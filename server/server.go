@@ -1,6 +1,9 @@
 package server
 
 import (
+	"errors"
+	"strings"
+
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"golang.org/x/net/context"
 )
@@ -9,8 +12,36 @@ import (
 type Server struct{}
 
 // Version returns the runtime name, runtime version and runtime API version
-func (s *Server) Version(context.Context, *pb.VersionRequest) (*pb.VersionResponse, error) {
-	return nil, nil
+func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.VersionResponse, error) {
+	var err error
+
+	version, err := getGPRCVersion()
+	if err != nil {
+		return nil, nil
+	}
+
+	// FIXME: the logic here may need to be changed. How to determine whether the client/server APIs are compatible?
+	if strings.Compare(version, *req.Version) != 0 {
+		return &pb.VersionResponse{
+			Version: &version,
+		}, errors.New("The version of the gRPC server API is different from the version of the gRPC client API.")
+	}
+
+	runtimeName := "runc"
+
+	runtimeVersion, err := execRuncVersion("runc", "-v")
+	if err != nil {
+		return nil, nil
+	}
+
+	runtimeApiVersion := "v1alpha1"
+
+	return &pb.VersionResponse{
+		Version:           &version,
+		RuntimeName:       &runtimeName,
+		RuntimeVersion:    &runtimeVersion,
+		RuntimeApiVersion: &runtimeApiVersion,
+	}, nil
 }
 
 // CreatePodSandbox creates a pod-level sandbox.

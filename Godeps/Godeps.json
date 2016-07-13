@@ -1,7 +1,10 @@
 {
-	"ImportPath": "github.com/mrunalp/ocid/cmd/server",
+	"ImportPath": "github.com/mrunalp/ocid",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
@@ -16,6 +19,11 @@
 			"ImportPath": "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime",
 			"Comment": "v1.4.0-alpha.0-1096-g60894b9",
 			"Rev": "60894b9e4089dd5a854b2c71b6f7d7b1e7a6e9f3"
+		},
+		{
+			"ImportPath": "github.com/urfave/cli",
+			"Comment": "v1.18.0-6-g3a52162",
+			"Rev": "3a5216227e14699bf7810b2573db60bf4b3f71b5"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
