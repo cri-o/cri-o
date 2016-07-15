@@ -1,9 +1,6 @@
 package server
 
 import (
-	"errors"
-	"strings"
-
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"golang.org/x/net/context"
 )
@@ -18,13 +15,6 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 	version, err := getGPRCVersion()
 	if err != nil {
 		return nil, nil
-	}
-
-	// FIXME: the logic here may need to be changed. How to determine whether the client/server APIs are compatible?
-	if strings.Compare(version, *req.Version) != 0 {
-		return &pb.VersionResponse{
-			Version: &version,
-		}, errors.New("The version of the gRPC server API is different from the version of the gRPC client API.")
 	}
 
 	runtimeName := "runc"

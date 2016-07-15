@@ -28,14 +28,20 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "ocic"
 	app.Usage = "client for ocid"
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "runtimeversion",
-			Value: "715fec664d75c6b5cb5b12718458621d4b75df37",
-			Usage: "the version of the gPRC client API",
-		},
+
+	app.Commands = []cli.Command{
+		runtimeVersionCommand,
 	}
-	app.Action = func(cxt *cli.Context) error {
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
+}
+
+var runtimeVersionCommand = cli.Command{
+	Name:  "runtimeversion",
+	Usage: "get runtime version information",
+	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
 		conn, err := grpc.Dial(address, grpc.WithInsecure())
 		if err != nil {
@@ -45,13 +51,12 @@ func main() {
 		client := pb.NewRuntimeServiceClient(conn)
 
 		// Test RuntimeServiceClient.Version
-		err = Version(client, cxt.String("runtimeversion"))
+		version := "v1alpha1"
+		err = Version(client, version)
 		if err != nil {
-			log.Fatalf("%s.Version failed: %v", app.Name, err)
+			log.Fatalf("Getting the runtime version failed: %v", err)
 		}
 
 		return nil
-	}
-
-	app.Run(os.Args)
+	},
 }
