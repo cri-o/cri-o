@@ -26,8 +26,8 @@ func Version(client pb.RuntimeServiceClient, version string) error {
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "ocidclient"
-	app.Usage = "Testing services provided by ocid"
+	app.Name = "ocic"
+	app.Usage = "client for ocid"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "runtimeversion",
