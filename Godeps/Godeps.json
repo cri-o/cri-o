@@ -21,6 +21,19 @@
 			"Rev": "60894b9e4089dd5a854b2c71b6f7d7b1e7a6e9f3"
 		},
 		{
+			"ImportPath": "github.com/opencontainers/ocitools/generate",
+			"Rev": "cc6b67605256c65ba19da6a201e3b0f264b8ba40"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/runtime-spec/specs-go",
+			"Comment": "v1.0.0-rc1-30-g5c5867d",
+			"Rev": "5c5867d534f48d4fb70ec2f9593a3a4ddc5b472c"
+		},
+		{
+			"ImportPath": "github.com/syndtr/gocapability/capability",
+			"Rev": "2c00daeb6c3b45114c80ac44119e7b8801fdd852"
+		},
+		{
 			"ImportPath": "github.com/urfave/cli",
 			"Comment": "v1.18.0-6-g3a52162",
 			"Rev": "3a5216227e14699bf7810b2573db60bf4b3f71b5"

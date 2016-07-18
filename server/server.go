@@ -1,7 +1,10 @@
 package server
 
 import (
+	"path/filepath"
+
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"github.com/opencontainers/ocitools/generate"
 	"golang.org/x/net/context"
 )
 
@@ -36,8 +39,19 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 
 // CreatePodSandbox creates a pod-level sandbox.
 // The definition of PodSandbox is at https://github.com/kubernetes/kubernetes/pull/25899
-func (s *Server) CreatePodSandbox(context.Context, *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
-	return nil, nil
+func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
+	var err error
+
+	// TODO: Parametrize as a global argument to ocid
+	ocidSandboxDir := "/var/lib/ocid/sandbox"
+	podSandboxDir := filepath.Join(ocidSandboxDir, req.GetConfig().GetName())
+
+	g := generate.New()
+
+	// TODO: Customize the config per the settings in the req
+	err = g.SaveToFile(filepath.Join(podSandboxDir, "config.json"))
+
+	return nil, err
 }
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the
