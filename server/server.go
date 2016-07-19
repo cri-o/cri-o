@@ -17,14 +17,14 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 
 	version, err := getGPRCVersion()
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	runtimeName := "runc"
 
 	runtimeVersion, err := execRuncVersion("runc", "-v")
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	runtimeApiVersion := "v1alpha1"

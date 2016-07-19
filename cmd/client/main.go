@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -45,7 +46,7 @@ var runtimeVersionCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := grpc.Dial(address, grpc.WithInsecure())
 		if err != nil {
-			log.Fatalf("Failed to connect: %v", err)
+			return fmt.Errorf("Failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
@@ -54,9 +55,8 @@ var runtimeVersionCommand = cli.Command{
 		version := "v1alpha1"
 		err = Version(client, version)
 		if err != nil {
-			log.Fatalf("Getting the runtime version failed: %v", err)
+			return fmt.Errorf("Getting the runtime version failed: %v", err)
 		}
-
 		return nil
 	},
 }
