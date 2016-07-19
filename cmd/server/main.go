@@ -19,6 +19,11 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	runtime.RegisterRuntimeServiceServer(s, &server.Server{})
+	service, err := server.New("")
+	if err != nil {
+		log.Fatal(err)
+	}
+	runtime.RegisterRuntimeServiceServer(s, service)
+	runtime.RegisterImageServiceServer(s, service)
 	s.Serve(lis)
 }

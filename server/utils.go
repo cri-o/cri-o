@@ -22,6 +22,5 @@ func getGPRCVersion() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	return out, err
+	return out, nil
 }
