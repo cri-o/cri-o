@@ -1,0 +1,14 @@
+language: go
+go:
+  - 1.6
+
+sudo: false
+
+before_install:
+  - go get github.com/vbatts/git-validation
+
+install: true
+
+script:
+  - $HOME/gopath/bin/git-validation -run DCO,short-subject -v -range ${TRAVIS_COMMIT_RANGE}
+  - make
