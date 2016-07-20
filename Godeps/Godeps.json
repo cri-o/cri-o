@@ -17,8 +17,8 @@
 		},
 		{
 			"ImportPath": "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime",
-			"Comment": "v1.4.0-alpha.0-1096-g60894b9",
-			"Rev": "60894b9e4089dd5a854b2c71b6f7d7b1e7a6e9f3"
+			"Comment": "v1.4.0-alpha.1-489-g976ca09",
+			"Rev": "976ca09d714cf114fb7a9e681bc0b170760cbdab"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/ocitools/generate",
@@ -26,8 +26,8 @@
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runtime-spec/specs-go",
-			"Comment": "v1.0.0-rc1-30-g5c5867d",
-			"Rev": "5c5867d534f48d4fb70ec2f9593a3a4ddc5b472c"
+			"Comment": "v1.0.0-rc1-29-gbbaf29e",
+			"Rev": "bbaf29e6173a1ef017d75db11e4d698ac4de0f1e"
 		},
 		{
 			"ImportPath": "github.com/syndtr/gocapability/capability",
