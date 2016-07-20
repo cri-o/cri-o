@@ -32,11 +32,41 @@ func main() {
 
 	app.Commands = []cli.Command{
 		runtimeVersionCommand,
+		pullImageCommand,
 	}
 
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func PullImage(client pb.ImageServiceClient, image string) error {
+	_, err := client.PullImage(context.Background(), &pb.PullImageRequest{Image: &pb.ImageSpec{Image: &image}})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// try this with ./ocic pullimage docker://busybox
+var pullImageCommand = cli.Command{
+	Name:  "pullimage",
+	Usage: "pull an image",
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := grpc.Dial(address, grpc.WithInsecure())
+		if err != nil {
+			return fmt.Errorf("Failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewImageServiceClient(conn)
+
+		err = PullImage(client, context.Args().Get(0))
+		if err != nil {
+			return fmt.Errorf("pulling image failed: %v", err)
+		}
+		return nil
+	},
 }
 
 var runtimeVersionCommand = cli.Command{
