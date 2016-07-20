@@ -1,0 +1,54 @@
+{
+	"name": "podsandbox1",
+	"hostname": "ocic_host",
+	"log_directory": ".",
+	"dns_options": {
+		"servers": [
+			"server1.redhat.com",
+			"server2.redhat.com"
+		],
+		"searches": [
+			"8.8.8.8"
+		]
+	},
+	"port_mappings": [
+		{
+			"name": "port_map1",
+			"protocol": 1,
+			"container_port": 80,
+			"host_port": 4888,
+			"host_ip": "192.168.0.33"
+		},
+		{
+			"name": "port_map2",
+			"protocol": 2,
+			"container_port": 81,
+			"host_port": 4889,
+			"host_ip": "192.168.0.33"
+		}
+	],
+	"resources": {
+		"cpu": {
+			"limits": 50000000,
+			"requests": 20000000
+		},
+		"memory": {
+			"limits": 500000000000,
+			"requests": 200000000000
+		}
+	},
+	"lables": {
+		"group": "test"
+	},
+	"annotations": {
+		"owner": "hmeng"
+	},
+	"linux": {
+		"cgroup_parent": "/sys/fs/cgroup/test",
+		"namespace_options": {
+			"host_network": true,
+			"host_pid": true,
+			"host_ipc": true
+		}
+	}
+}

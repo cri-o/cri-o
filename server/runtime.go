@@ -1,6 +1,9 @@
 package server
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -37,16 +40,124 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
 	var err error
 
-	// TODO: Parametrize as a global argument to ocid
-	ocidSandboxDir := "/var/lib/ocid/sandbox"
-	podSandboxDir := filepath.Join(ocidSandboxDir, req.GetConfig().GetName())
+	if err := os.MkdirAll(s.sandboxDir, 0755); err != nil {
+		return nil, err
+	}
 
+	// process req.Name
+	name := req.GetConfig().GetName()
+	var podSandboxDir string
+
+	if name == "" {
+		podSandboxDir, err := ioutil.TempDir(s.sandboxDir, "")
+		if err != nil {
+			return nil, err
+		}
+		name = filepath.Base(podSandboxDir)
+	} else {
+		podSandboxDir = filepath.Join(s.sandboxDir, name)
+		if _, err := os.Stat(podSandboxDir); err == nil {
+			return nil, fmt.Errorf("pod sandbox (%s) already exists", podSandboxDir)
+		}
+
+		if err := os.MkdirAll(podSandboxDir, 0755); err != nil {
+			return nil, err
+		}
+
+	}
+
+	// creates a spec Generator with the default spec.
 	g := generate.New()
 
-	// TODO: Customize the config per the settings in the req
-	err = g.SaveToFile(filepath.Join(podSandboxDir, "config.json"))
+	// process req.Hostname
+	hostname := req.GetConfig().GetHostname()
+	if hostname != "" {
+		g.SetHostname(hostname)
+	}
 
-	return nil, err
+	// process req.LogDirectory
+	logDir := req.GetConfig().GetLogDirectory()
+	if logDir == "" {
+		logDir = fmt.Sprintf("/var/log/ocid/pods/%s", name)
+	}
+
+	// TODO: construct /etc/resolv.conf based on dnsOpts.
+	dnsOpts := req.GetConfig().GetDnsOptions()
+	fmt.Println(dnsOpts)
+
+	// TODO: the unit of cpu here is cores. How to map it into specs.Spec.Linux.Resouces.CPU?
+	cpu := req.GetConfig().GetResources().GetCpu()
+	if cpu != nil {
+		limits := cpu.GetLimits()
+		requests := cpu.GetRequests()
+		fmt.Println(limits)
+		fmt.Println(requests)
+	}
+
+	memory := req.GetConfig().GetResources().GetMemory()
+	if memory != nil {
+		// limits sets specs.Spec.Linux.Resouces.Memory.Limit
+		limits := memory.GetLimits()
+		if limits != 0 {
+			g.SetLinuxResourcesMemoryLimit(uint64(limits))
+		}
+
+		// requests sets specs.Spec.Linux.Resouces.Memory.Reservation
+		requests := memory.GetRequests()
+		if requests != 0 {
+			g.SetLinuxResourcesMemoryReservation(uint64(requests))
+		}
+	}
+
+	labels := req.GetConfig().GetLabels()
+	s.sandboxes = append(s.sandboxes, &sandbox{
+		name:   name,
+		logDir: logDir,
+		labels: labels,
+	})
+
+	annotations := req.GetConfig().GetAnnotations()
+	for k, v := range annotations {
+		err := g.AddAnnotation(fmt.Sprintf("%s=%s", k, v))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// TODO: double check cgroupParent.
+	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
+	if cgroupParent != "" {
+		g.SetLinuxCgroupsPath(cgroupParent)
+	}
+
+	// set up namespaces
+	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostNetwork() == false {
+		err := g.AddOrReplaceLinuxNamespace("network", "")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostPid() == false {
+		err := g.AddOrReplaceLinuxNamespace("pid", "")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostIpc() == false {
+		err := g.AddOrReplaceLinuxNamespace("ipc", "")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = g.SaveToFile(filepath.Join(podSandboxDir, "config.json"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.CreatePodSandboxResponse{PodSandboxId: &name}, nil
 }
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the

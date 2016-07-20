@@ -6,16 +6,19 @@ const (
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	runtime ociRuntime
+	runtime    ociRuntime
+	sandboxDir string
+	sandboxes  []*sandbox
 }
 
 // New creates a new Server with options provided
-func New(runtimePath string) (*Server, error) {
+func New(runtimePath, sandboxDir string) (*Server, error) {
 	// TODO(runcom): runtimePath arg is unused but it might be useful
 	// if we're willing to open the doors to other runtimes in the future.
 	r := &runcRuntime{}
 	return &Server{
-		runtime: r,
+		runtime:    r,
+		sandboxDir: sandboxDir,
 	}, nil
 }
 
@@ -49,4 +52,10 @@ func (r *runcRuntime) Version() (string, error) {
 		return "", err
 	}
 	return runtimeVersion, nil
+}
+
+type sandbox struct {
+	name   string
+	logDir string
+	labels map[string]string
 }

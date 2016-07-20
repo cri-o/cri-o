@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -30,6 +31,39 @@ func getClientConnection() (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
+func loadPodSandboxConfig(path string) (*pb.PodSandboxConfig, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("pod sandbox config at %s not found", path)
+		}
+		return nil, err
+	}
+	defer f.Close()
+
+	var config pb.PodSandboxConfig
+	if err := json.NewDecoder(f).Decode(&config); err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+// CreatePodSandbox sends a CreatePodSandboxRequest to the server, and parses
+// the returned CreatePodSandboxResponse.
+func CreatePodSandbox(client pb.RuntimeServiceClient, path string) error {
+	config, err := loadPodSandboxConfig(path)
+	if err != nil {
+		return err
+	}
+
+	r, err := client.CreatePodSandbox(context.Background(), &pb.CreatePodSandboxRequest{Config: config})
+	if err != nil {
+		return err
+	}
+	fmt.Println(r)
+	return nil
+}
+
 // Version sends a VersionRequest to the server, and parses the returned VersionResponse.
 func Version(client pb.RuntimeServiceClient, version string) error {
 	r, err := client.Version(context.Background(), &pb.VersionRequest{Version: &version})
@@ -47,6 +81,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		runtimeVersionCommand,
+		createPodSandboxCommand,
 		pullImageCommand,
 	}
 
@@ -101,6 +136,34 @@ var runtimeVersionCommand = cli.Command{
 		err = Version(client, version)
 		if err != nil {
 			return fmt.Errorf("Getting the runtime version failed: %v", err)
+		}
+		return nil
+	},
+}
+
+var createPodSandboxCommand = cli.Command{
+	Name:  "createpodsandbox",
+	Usage: "create a pod sandbox",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "config",
+			Value: "config.json",
+			Usage: "the path of a pod sandbox config file",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("Failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		// Test RuntimeServiceClient.CreatePodSandbox
+		err = CreatePodSandbox(client, context.String("config"))
+		if err != nil {
+			return fmt.Errorf("Creating the pod sandbox failed: %v", err)
 		}
 		return nil
 	},

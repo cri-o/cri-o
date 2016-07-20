@@ -342,6 +342,83 @@ func (g Generator) SetLinuxMountLabel(label string) {
 	g.spec.Linux.MountLabel = label
 }
 
+// SetLinuxResourcesCPUShares sets g.spec.Linux.Resources.CPU.Shares.
+func (g Generator) SetLinuxResourcesCPUShares(shares uint64) {
+	g.spec.Linux.Resources.CPU.Shares = &shares
+}
+
+// SetLinuxResourcesCPUQuota sets g.spec.Linux.Resources.CPU.Quota.
+func (g Generator) SetLinuxResourcesCPUQuota(quota uint64) {
+	g.spec.Linux.Resources.CPU.Quota = &quota
+}
+
+// SetLinuxResourcesCPUPeriod sets g.spec.Linux.Resources.CPU.Period.
+func (g Generator) SetLinuxResourcesCPUPeriod(period uint64) {
+	g.spec.Linux.Resources.CPU.Period = &period
+}
+
+// SetLinuxResourcesCPURealtimeRuntime sets g.spec.Linux.Resources.CPU.RealtimeRuntime.
+func (g Generator) SetLinuxResourcesCPURealtimeRuntime(time uint64) {
+	g.spec.Linux.Resources.CPU.RealtimeRuntime = &time
+}
+
+// SetLinuxResourcesCPURealtimePeriod sets g.spec.Linux.Resources.CPU.RealtimePeriod.
+func (g Generator) SetLinuxResourcesCPURealtimePeriod(period uint64) {
+	g.spec.Linux.Resources.CPU.RealtimePeriod = &period
+}
+
+// SetLinuxResourcesCPUCpus sets g.spec.Linux.Resources.CPU.Cpus.
+func (g Generator) SetLinuxResourcesCPUCpus(cpus string) {
+	g.spec.Linux.Resources.CPU.Cpus = &cpus
+}
+
+// SetLinuxResourcesCPUMems sets g.spec.Linux.Resources.CPU.Mems.
+func (g Generator) SetLinuxResourcesCPUMems(mems string) {
+	g.spec.Linux.Resources.CPU.Mems = &mems
+}
+
+// SetLinuxResourcesMemoryLimit sets g.spec.Linux.Resources.Memory.Limit.
+func (g Generator) SetLinuxResourcesMemoryLimit(limit uint64) {
+	if g.spec.Linux == nil {
+		g.spec.Linux = &rspec.Linux{}
+	}
+
+	if g.spec.Linux.Resources == nil {
+		g.spec.Linux.Resources = &rspec.Resources{}
+	}
+
+	if g.spec.Linux.Resources.Memory == nil {
+		g.spec.Linux.Resources.Memory = &rspec.Memory{}
+	}
+
+	g.spec.Linux.Resources.Memory.Limit = &limit
+}
+
+// SetLinuxResourcesMemoryReservation sets g.spec.Linux.Resources.Memory.Reservation.
+func (g Generator) SetLinuxResourcesMemoryReservation(reservation uint64) {
+	g.spec.Linux.Resources.Memory.Reservation = &reservation
+}
+
+// SetLinuxResourcesMemorySwap sets g.spec.Linux.Resources.Memory.Swap.
+func (g Generator) SetLinuxResourcesMemorySwap(swap uint64) {
+	g.spec.Linux.Resources.Memory.Swap = &swap
+}
+
+// SetLinuxResourcesMemoryKernel sets g.spec.Linux.Resources.Memory.Kernel.
+func (g Generator) SetLinuxResourcesMemoryKernel(kernel uint64) {
+	g.spec.Linux.Resources.Memory.Kernel = &kernel
+}
+
+// SetLinuxResourcesMemoryKernelTCP sets g.spec.Linux.Resources.Memory.KernelTCP.
+func (g Generator) SetLinuxResourcesMemoryKernelTCP(kernelTCP uint64) {
+	g.spec.Linux.Resources.Memory.KernelTCP = &kernelTCP
+}
+
+// SetLinuxResourcesMemorySwappiness sets g.spec.Linux.Resources.Memory.Swappiness.
+func (g Generator) SetLinuxResourcesMemorySwappiness(swappiness uint64) {
+	g.spec.Linux.Resources.Memory.Swappiness = &swappiness
+}
+
 // ClearLinuxSysctl clears g.spec.Linux.Sysctl.
 func (g Generator) ClearLinuxSysctl() {
 	g.spec.Linux.Sysctl = make(map[string]string)
