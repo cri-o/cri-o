@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"time"
 
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/urfave/cli"
@@ -12,8 +14,21 @@ import (
 )
 
 const (
-	address = "localhost:49999"
+	unixDomainSocket = "/var/run/ocid.sock"
+	// TODO: Make configurable
+	timeout = 10 * time.Second
 )
+
+func getClientConnection() (*grpc.ClientConn, error) {
+	conn, err := grpc.Dial(unixDomainSocket, grpc.WithInsecure(), grpc.WithTimeout(timeout),
+		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
+			return net.DialTimeout("unix", addr, timeout)
+		}))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to connect: %v", err)
+	}
+	return conn, nil
+}
 
 // Version sends a VersionRequest to the server, and parses the returned VersionResponse.
 func Version(client pb.RuntimeServiceClient, version string) error {
@@ -54,7 +69,7 @@ var pullImageCommand = cli.Command{
 	Usage: "pull an image",
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := grpc.Dial(address, grpc.WithInsecure())
+		conn, err := getClientConnection()
 		if err != nil {
 			return fmt.Errorf("Failed to connect: %v", err)
 		}
@@ -74,7 +89,7 @@ var runtimeVersionCommand = cli.Command{
 	Usage: "get runtime version information",
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := grpc.Dial(address, grpc.WithInsecure())
+		conn, err := getClientConnection()
 		if err != nil {
 			return fmt.Errorf("Failed to connect: %v", err)
 		}

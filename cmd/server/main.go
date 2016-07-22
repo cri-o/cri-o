@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"os"
 
 	"github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/mrunalp/ocid/server"
@@ -10,11 +11,17 @@ import (
 )
 
 const (
-	port = ":49999"
+	unixDomainSocket = "/var/run/ocid.sock"
 )
 
 func main() {
-	lis, err := net.Listen("tcp", port)
+	// Remove the socket if it already exists
+	if _, err := os.Stat(unixDomainSocket); err == nil {
+		if err := os.Remove(unixDomainSocket); err != nil {
+			log.Fatal(err)
+		}
+	}
+	lis, err := net.Listen("unix", unixDomainSocket)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
