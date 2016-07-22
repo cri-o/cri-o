@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -46,24 +45,17 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 
 	// process req.Name
 	name := req.GetConfig().GetName()
-	var podSandboxDir string
-
 	if name == "" {
-		podSandboxDir, err := ioutil.TempDir(s.sandboxDir, "")
-		if err != nil {
-			return nil, err
-		}
-		name = filepath.Base(podSandboxDir)
-	} else {
-		podSandboxDir = filepath.Join(s.sandboxDir, name)
-		if _, err := os.Stat(podSandboxDir); err == nil {
-			return nil, fmt.Errorf("pod sandbox (%s) already exists", podSandboxDir)
-		}
+		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
+	}
 
-		if err := os.MkdirAll(podSandboxDir, 0755); err != nil {
-			return nil, err
-		}
+	podSandboxDir := filepath.Join(s.sandboxDir, name)
+	if _, err := os.Stat(podSandboxDir); err == nil {
+		return nil, fmt.Errorf("pod sandbox (%s) already exists", podSandboxDir)
+	}
 
+	if err := os.MkdirAll(podSandboxDir, 0755); err != nil {
+		return nil, err
 	}
 
 	// creates a spec Generator with the default spec.

@@ -37,7 +37,7 @@
 			"requests": 200000000000
 		}
 	},
-	"lables": {
+	"labels": {
 		"group": "test"
 	},
 	"annotations": {
