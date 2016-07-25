@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/opencontainers/ocitools/generate"
 )
 
 func getGPRCVersion() (string, error) {
@@ -89,5 +91,64 @@ func parseDNSOptions(servers, searches []string, path string) error {
 		}
 	}
 
+	return nil
+}
+
+// kubernetes compute resources - CPU: http://kubernetes.io/docs/user-guide/compute-resources/#meaning-of-cpu
+func setResourcesCPU(limits, requests, defaultCores float64, g generate.Generator) error {
+	if requests > limits {
+		return fmt.Errorf("CPU.Requests should not be greater than CPU.Limits")
+	}
+
+	cores := defaultCores
+	if limits != 0 || requests != 0 {
+		if limits > requests {
+			cores = limits
+		} else {
+			cores = requests
+		}
+	}
+
+	period := uint64(defaultCPUCFSPeriod)
+	quota := uint64(float64(period) * cores)
+
+	if quota < minCPUCFSQuota {
+		quota = minCPUCFSQuota
+	}
+
+	// adjust quota and period for the case where multiple CPUs are requested
+	// so that cpu.cfs_quota_us <= maxCPUCFSQuota.
+	for quota > maxCPUCFSQuota {
+		quota /= 10
+		period /= 10
+	}
+
+	g.SetLinuxResourcesCPUPeriod(period)
+	g.SetLinuxResourcesCPUQuota(quota)
+	return nil
+}
+
+// kubernetes compute resources - Memory: http://kubernetes.io/docs/user-guide/compute-resources/#meaning-of-memory
+func setResourcesMemory(limits, requests, defaultMem float64, g generate.Generator) error {
+	if requests > limits {
+		return fmt.Errorf("Memory.Requests should not be greater than Memory.Limits")
+	}
+
+	if limits != 0 {
+		if requests == 0 {
+			requests = limits
+		}
+	} else {
+		if requests == 0 {
+			// set the default values of limits and requests
+			requests = defaultMem
+			limits = defaultMem
+		} else {
+			limits = requests
+		}
+	}
+
+	g.SetLinuxResourcesMemoryLimit(uint64(limits))
+	g.SetLinuxResourcesMemoryReservation(uint64(requests))
 	return nil
 }

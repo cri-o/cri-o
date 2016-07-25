@@ -87,30 +87,6 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
-	// TODO: the unit of cpu here is cores. How to map it into specs.Spec.Linux.Resouces.CPU?
-	cpu := req.GetConfig().GetResources().GetCpu()
-	if cpu != nil {
-		limits := cpu.GetLimits()
-		requests := cpu.GetRequests()
-		fmt.Println(limits)
-		fmt.Println(requests)
-	}
-
-	memory := req.GetConfig().GetResources().GetMemory()
-	if memory != nil {
-		// limits sets specs.Spec.Linux.Resouces.Memory.Limit
-		limits := memory.GetLimits()
-		if limits != 0 {
-			g.SetLinuxResourcesMemoryLimit(uint64(limits))
-		}
-
-		// requests sets specs.Spec.Linux.Resouces.Memory.Reservation
-		requests := memory.GetRequests()
-		if requests != 0 {
-			g.SetLinuxResourcesMemoryReservation(uint64(requests))
-		}
-	}
-
 	labels := req.GetConfig().GetLabels()
 	s.sandboxes = append(s.sandboxes, &sandbox{
 		name:   name,

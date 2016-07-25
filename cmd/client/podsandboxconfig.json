@@ -29,12 +29,12 @@
 	],
 	"resources": {
 		"cpu": {
-			"limits": 50000000,
-			"requests": 20000000
+			"limits": 3,
+			"requests": 2
 		},
 		"memory": {
-			"limits": 500000000000,
-			"requests": 200000000000
+			"limits": 50000000,
+			"requests": 2000000
 		}
 	},
 	"labels": {
