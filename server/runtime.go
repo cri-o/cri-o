@@ -73,9 +73,19 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		logDir = fmt.Sprintf("/var/log/ocid/pods/%s", name)
 	}
 
-	// TODO: construct /etc/resolv.conf based on dnsOpts.
-	dnsOpts := req.GetConfig().GetDnsOptions()
-	fmt.Println(dnsOpts)
+	dnsServers := req.GetConfig().GetDnsOptions().GetServers()
+	dnsSearches := req.GetConfig().GetDnsOptions().GetSearches()
+	resolvPath := fmt.Sprintf("%s/resolv.conf", podSandboxDir)
+	if err := parseDNSOptions(dnsServers, dnsSearches, resolvPath); err != nil {
+		if err1 := removeFile(resolvPath); err1 != nil {
+			return nil, fmt.Errorf("%v; failed to remove %s: %v", err, resolvPath, err1)
+		}
+		return nil, err
+	}
+
+	if err := g.AddBindMount(fmt.Sprintf("%s:/etc/resolv.conf", resolvPath)); err != nil {
+		return nil, err
+	}
 
 	// TODO: the unit of cpu here is cores. How to map it into specs.Spec.Linux.Resouces.CPU?
 	cpu := req.GetConfig().GetResources().GetCpu()
