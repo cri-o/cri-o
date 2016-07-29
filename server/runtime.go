@@ -39,7 +39,7 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
 	var err error
 
-	if err := os.MkdirAll(s.sandboxDir, 0755); err != nil {
+	if err := os.MkdirAll(s.runtime.SandboxDir(), 0755); err != nil {
 		return nil, err
 	}
 
@@ -49,7 +49,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
 	}
 
-	podSandboxDir := filepath.Join(s.sandboxDir, name)
+	podSandboxDir := filepath.Join(s.runtime.SandboxDir(), name)
 	if _, err := os.Stat(podSandboxDir); err == nil {
 		return nil, fmt.Errorf("pod sandbox (%s) already exists", podSandboxDir)
 	}

@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/mrunalp/ocid/utils"
 	"github.com/opencontainers/ocitools/generate"
 )
 
@@ -23,7 +24,7 @@ func getGPRCVersion() (string, error) {
 
 	grepCmd := fmt.Sprintf(`grep -r "\"google.golang.org/grpc\"" %s -A 1 | grep "\"Rev\"" | cut -d: -f2 | tr -d ' "\n'`, p)
 
-	out, err := execCmd("bash", "-c", grepCmd)
+	out, err := utils.ExecCmd("bash", "-c", grepCmd)
 	if err != nil {
 		return "", err
 	}
