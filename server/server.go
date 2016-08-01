@@ -1,7 +1,10 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/mrunalp/ocid/oci"
+	"github.com/mrunalp/ocid/utils"
 )
 
 const (
@@ -17,6 +20,12 @@ type Server struct {
 
 // New creates a new Server with options provided
 func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
+	// TODO: This will go away later when we have wrapper process or systemd acting as
+	// subreaper.
+	if err := utils.SetSubreaper(1); err != nil {
+		return nil, fmt.Errorf("failed to set server as subreaper: %v", err)
+	}
+
 	r, err := oci.New(runtimePath, containerDir)
 	if err != nil {
 		return nil, err
