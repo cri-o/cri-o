@@ -8,11 +8,10 @@ import (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, sandboxDir string, containerDir string) (*Runtime, error) {
+func New(runtimePath string, containerDir string) (*Runtime, error) {
 	r := &Runtime{
 		name:         filepath.Base(runtimePath),
 		path:         runtimePath,
-		sandboxDir:   sandboxDir,
 		containerDir: containerDir,
 	}
 	return r, nil
@@ -33,11 +32,6 @@ func (r *Runtime) Name() string {
 // Path returns the full path the OCI Runtime executable
 func (r *Runtime) Path() string {
 	return r.path
-}
-
-// SandboxDir returns the path to the base directory for storing sandbox configurations
-func (r *Runtime) SandboxDir() string {
-	return r.sandboxDir
 }
 
 // ContainerDir returns the path to the base directory for storing container configurations
