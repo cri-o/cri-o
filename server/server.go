@@ -15,8 +15,8 @@ type Server struct {
 }
 
 // New creates a new Server with options provided
-func New(runtimePath, sandboxDir string) (*Server, error) {
-	r, err := oci.New(runtimePath, sandboxDir)
+func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
+	r, err := oci.New(runtimePath, sandboxDir, containerDir)
 	if err != nil {
 		return nil, err
 	}
