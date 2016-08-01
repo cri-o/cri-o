@@ -83,9 +83,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
-	if err := g.AddBindMount(fmt.Sprintf("%s:/etc/resolv.conf", resolvPath)); err != nil {
-		return nil, err
-	}
+	g.AddBindMount(resolvPath, "/etc/resolv.conf", "ro")
 
 	labels := req.GetConfig().GetLabels()
 	s.sandboxes = append(s.sandboxes, &sandbox{
@@ -96,10 +94,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 
 	annotations := req.GetConfig().GetAnnotations()
 	for k, v := range annotations {
-		err := g.AddAnnotation(fmt.Sprintf("%s=%s", k, v))
-		if err != nil {
-			return nil, err
-		}
+		g.AddAnnotation(k, v)
 	}
 
 	// TODO: double check cgroupParent.
