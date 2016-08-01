@@ -1,0 +1,95 @@
+{
+	"name": "container1",
+	"image": {
+		"image": "docker://redis:latest"
+	},
+	"command": [
+		"/bin/bash"
+	],
+	"args": [
+		"/bin/ls"
+	],
+	"working_dir": "/",
+	"envs": [
+		{
+			"key": "PATH",
+			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+		},
+		{
+			"key": "TERM",
+			"value": "xterm"
+		},
+		{
+			"key": "TESTDIR",
+			"value": "test/dir1"
+		},
+		{
+			"key": "TESTFILE",
+			"value": "test/file1"
+		}
+	],
+	"mounts": [
+		{
+			"name": "mount1",
+			"container_path": "/dir1",
+			"host_path": "/tmp/dir1",
+			"readonly": false,
+			"selinux_relabel": true
+		},
+		{
+			"name": "mount2",
+			"container_path": "/dir2",
+			"host_path": "/tmp/dir2",
+			"readonly": true,
+			"selinux_relabel": true
+		}
+	],
+	"labels": {
+		"type": "small",
+		"batch": "no"
+	},
+	"annotations": {
+		"owner": "dragon",
+		"daemon": "ocid"
+	},
+	"privileged": true,
+	"readonly_rootfs": true,
+	"log_path": "container.log",
+	"stdin": false,
+	"stdin_once": false,
+	"tty": false,
+	"linux": {
+		"resources": {
+			"cpu_period": 10000,
+			"cpu_quota": 20000,
+			"cpu_shares": 512,
+			"memory_limit_in_bytes": 88000000,
+			"oom_score_adj": 30
+		},
+		"capabilities": {
+			"add_capabilities": [
+				"setuid",
+				"setgid"
+			],
+			"drop_capabilities": [
+				"audit_write",
+				"audit_read"
+			]
+		},
+		"selinux_options": {
+			"user": "selinux_test",
+			"role": "control",
+			"type": "dogfood",
+			"level": "s1"
+		},
+		"user": {
+			"uid": 5,
+			"gid": 300,
+			"additional_gids": [
+				400,
+				401,
+				402
+			]
+		}
+	}
+}

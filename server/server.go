@@ -37,25 +37,44 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 		return nil, err
 	}
 	sandboxes := make(map[string]*sandbox)
+	containers := make(map[string]*oci.Container)
 	return &Server{
 		runtime:    r,
 		sandboxDir: sandboxDir,
 		state: &serverState{
-			sandboxes: sandboxes,
+			sandboxes:  sandboxes,
+			containers: containers,
 		},
 	}, nil
 }
 
 type serverState struct {
-	sandboxes map[string]*sandbox
+	sandboxes  map[string]*sandbox
+	containers map[string]*oci.Container
 }
 
 type sandbox struct {
-	name   string
-	logDir string
-	labels map[string]string
+	name       string
+	logDir     string
+	labels     map[string]string
+	containers []*oci.Container
 }
 
 func (s *Server) addSandbox(sb *sandbox) {
 	s.state.sandboxes[sb.name] = sb
+}
+
+func (s *Server) hasSandbox(name string) bool {
+	_, ok := s.state.sandboxes[name]
+	return ok
+}
+
+func (s *sandbox) addContainer(c *oci.Container) {
+	s.containers = append(s.containers, c)
+}
+
+func (s *Server) addContainer(c *oci.Container) {
+	sandbox := s.state.sandboxes[c.Sandbox()]
+	sandbox.addContainer(c)
+	s.state.containers[c.Name()] = c
 }
