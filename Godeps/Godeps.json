@@ -277,7 +277,7 @@
 		},
 		{
 			"ImportPath": "github.com/opencontainers/ocitools/generate",
-			"Rev": "bc8aadb6bbc2ceac25b0f247244c96a1432c2c1a"
+			"Rev": "7233310b6ba4390b50cc509a04bc1d852558e8d3"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer/user",

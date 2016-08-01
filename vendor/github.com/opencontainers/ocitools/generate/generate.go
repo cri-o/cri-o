@@ -237,20 +237,16 @@ func (g *Generator) SetHostname(s string) {
 
 // ClearAnnotations clears g.spec.Annotations.
 func (g *Generator) ClearAnnotations() {
-	g.initSpec()
+	if g.spec == nil {
+		return
+	}
 	g.spec.Annotations = make(map[string]string)
 }
 
 // AddAnnotation adds an annotation into g.spec.Annotations.
-func (g *Generator) AddAnnotation(s string) error {
+func (g *Generator) AddAnnotation(key, value string) {
 	g.initSpecAnnotations()
-
-	pair := strings.Split(s, "=")
-	if len(pair) != 2 {
-		return fmt.Errorf("incorrectly specified annotation: %s", s)
-	}
-	g.spec.Annotations[pair[0]] = pair[1]
-	return nil
+	g.spec.Annotations[key] = value
 }
 
 // RemoveAnnotation remove an annotation from g.spec.Annotations.
@@ -317,7 +313,9 @@ func (g *Generator) SetProcessArgs(args []string) {
 
 // ClearProcessEnv clears g.spec.Process.Env.
 func (g *Generator) ClearProcessEnv() {
-	g.initSpec()
+	if g.spec == nil {
+		return
+	}
 	g.spec.Process.Env = []string{}
 }
 
@@ -329,25 +327,21 @@ func (g *Generator) AddProcessEnv(env string) {
 
 // ClearProcessAdditionalGids clear g.spec.Process.AdditionalGids.
 func (g *Generator) ClearProcessAdditionalGids() {
-	g.initSpec()
+	if g.spec == nil {
+		return
+	}
 	g.spec.Process.User.AdditionalGids = []uint32{}
 }
 
 // AddProcessAdditionalGid adds an additional gid into g.spec.Process.AdditionalGids.
-func (g *Generator) AddProcessAdditionalGid(gid string) error {
-	groupID, err := strconv.Atoi(gid)
-	if err != nil {
-		return err
-	}
-
+func (g *Generator) AddProcessAdditionalGid(gid uint32) {
 	g.initSpec()
 	for _, group := range g.spec.Process.User.AdditionalGids {
-		if group == uint32(groupID) {
-			return nil
+		if group == gid {
+			return
 		}
 	}
-	g.spec.Process.User.AdditionalGids = append(g.spec.Process.User.AdditionalGids, uint32(groupID))
-	return nil
+	g.spec.Process.User.AdditionalGids = append(g.spec.Process.User.AdditionalGids, gid)
 }
 
 // SetProcessSelinuxLabel sets g.spec.Process.SelinuxLabel.
@@ -455,15 +449,9 @@ func (g *Generator) ClearLinuxSysctl() {
 }
 
 // AddLinuxSysctl adds a new sysctl config into g.spec.Linux.Sysctl.
-func (g *Generator) AddLinuxSysctl(s string) error {
+func (g *Generator) AddLinuxSysctl(key, value string) {
 	g.initSpecLinuxSysctl()
-
-	pair := strings.Split(s, "=")
-	if len(pair) != 2 {
-		return fmt.Errorf("incorrectly specified sysctl: %s", s)
-	}
-	g.spec.Linux.Sysctl[pair[0]] = pair[1]
-	return nil
+	g.spec.Linux.Sysctl[key] = value
 }
 
 // RemoveLinuxSysctl removes a sysctl config from g.spec.Linux.Sysctl.
@@ -746,35 +734,6 @@ func (g *Generator) RemoveSeccompSyscall(name string, action string) error {
 	return nil
 }
 
-func parseIDMapping(idms string) (rspec.IDMapping, error) {
-	idm := strings.Split(idms, ":")
-	if len(idm) != 3 {
-		return rspec.IDMapping{}, fmt.Errorf("idmappings error: %s", idms)
-	}
-
-	hid, err := strconv.Atoi(idm[0])
-	if err != nil {
-		return rspec.IDMapping{}, err
-	}
-
-	cid, err := strconv.Atoi(idm[1])
-	if err != nil {
-		return rspec.IDMapping{}, err
-	}
-
-	size, err := strconv.Atoi(idm[2])
-	if err != nil {
-		return rspec.IDMapping{}, err
-	}
-
-	idMapping := rspec.IDMapping{
-		HostID:      uint32(hid),
-		ContainerID: uint32(cid),
-		Size:        uint32(size),
-	}
-	return idMapping, nil
-}
-
 // ClearLinuxUIDMappings clear g.spec.Linux.UIDMappings.
 func (g *Generator) ClearLinuxUIDMappings() {
 	if g.spec == nil || g.spec.Linux == nil {
@@ -784,15 +743,15 @@ func (g *Generator) ClearLinuxUIDMappings() {
 }
 
 // AddLinuxUIDMapping adds uidMap into g.spec.Linux.UIDMappings.
-func (g *Generator) AddLinuxUIDMapping(uidMap string) error {
-	r, err := parseIDMapping(uidMap)
-	if err != nil {
-		return err
+func (g *Generator) AddLinuxUIDMapping(hid, cid, size uint32) {
+	idMapping := rspec.IDMapping{
+		HostID:      hid,
+		ContainerID: cid,
+		Size:        size,
 	}
 
 	g.initSpecLinux()
-	g.spec.Linux.UIDMappings = append(g.spec.Linux.UIDMappings, r)
-	return nil
+	g.spec.Linux.UIDMappings = append(g.spec.Linux.UIDMappings, idMapping)
 }
 
 // ClearLinuxGIDMappings clear g.spec.Linux.GIDMappings.
@@ -804,15 +763,15 @@ func (g *Generator) ClearLinuxGIDMappings() {
 }
 
 // AddLinuxGIDMapping adds gidMap into g.spec.Linux.GIDMappings.
-func (g *Generator) AddLinuxGIDMapping(gidMap string) error {
-	r, err := parseIDMapping(gidMap)
-	if err != nil {
-		return err
+func (g *Generator) AddLinuxGIDMapping(hid, cid, size uint32) {
+	idMapping := rspec.IDMapping{
+		HostID:      hid,
+		ContainerID: cid,
+		Size:        size,
 	}
 
 	g.initSpecLinux()
-	g.spec.Linux.GIDMappings = append(g.spec.Linux.GIDMappings, r)
-	return nil
+	g.spec.Linux.GIDMappings = append(g.spec.Linux.GIDMappings, idMapping)
 }
 
 // SetLinuxRootPropagation sets g.spec.Linux.RootfsPropagation.
@@ -833,16 +792,6 @@ func (g *Generator) SetLinuxRootPropagation(rp string) error {
 	return nil
 }
 
-func parseHook(s string) rspec.Hook {
-	parts := strings.Split(s, ":")
-	args := []string{}
-	path := parts[0]
-	if len(parts) > 1 {
-		args = parts[1:]
-	}
-	return rspec.Hook{Path: path, Args: args}
-}
-
 // ClearPreStartHooks clear g.spec.Hooks.Prestart.
 func (g *Generator) ClearPreStartHooks() {
 	if g.spec == nil {
@@ -852,11 +801,10 @@ func (g *Generator) ClearPreStartHooks() {
 }
 
 // AddPreStartHook add a prestart hook into g.spec.Hooks.Prestart.
-func (g *Generator) AddPreStartHook(s string) error {
-	hook := parseHook(s)
+func (g *Generator) AddPreStartHook(path string, args []string) {
 	g.initSpec()
+	hook := rspec.Hook{Path: path, Args: args}
 	g.spec.Hooks.Prestart = append(g.spec.Hooks.Prestart, hook)
-	return nil
 }
 
 // ClearPostStopHooks clear g.spec.Hooks.Poststop.
@@ -868,11 +816,10 @@ func (g *Generator) ClearPostStopHooks() {
 }
 
 // AddPostStopHook adds a poststop hook into g.spec.Hooks.Poststop.
-func (g *Generator) AddPostStopHook(s string) error {
-	hook := parseHook(s)
+func (g *Generator) AddPostStopHook(path string, args []string) {
 	g.initSpec()
+	hook := rspec.Hook{Path: path, Args: args}
 	g.spec.Hooks.Poststop = append(g.spec.Hooks.Poststop, hook)
-	return nil
 }
 
 // ClearPostStartHooks clear g.spec.Hooks.Poststart.
@@ -884,25 +831,23 @@ func (g *Generator) ClearPostStartHooks() {
 }
 
 // AddPostStartHook adds a poststart hook into g.spec.Hooks.Poststart.
-func (g *Generator) AddPostStartHook(s string) error {
-	hook := parseHook(s)
+func (g *Generator) AddPostStartHook(path string, args []string) {
 	g.initSpec()
+	hook := rspec.Hook{Path: path, Args: args}
 	g.spec.Hooks.Poststart = append(g.spec.Hooks.Poststart, hook)
-	return nil
 }
 
 // AddTmpfsMount adds a tmpfs mount into g.spec.Mounts.
-func (g *Generator) AddTmpfsMount(dest string) error {
+func (g *Generator) AddTmpfsMount(dest string, options []string) {
 	mnt := rspec.Mount{
 		Destination: dest,
 		Type:        "tmpfs",
 		Source:      "tmpfs",
-		Options:     []string{"nosuid", "nodev", "mode=755"},
+		Options:     options,
 	}
 
 	g.initSpec()
 	g.spec.Mounts = append(g.spec.Mounts, mnt)
-	return nil
 }
 
 // AddCgroupsMount adds a cgroup mount into g.spec.Mounts.
@@ -929,20 +874,13 @@ func (g *Generator) AddCgroupsMount(mountCgroupOption string) error {
 }
 
 // AddBindMount adds a bind mount into g.spec.Mounts.
-func (g *Generator) AddBindMount(bind string) error {
-	var source, dest string
-	options := "ro"
-	bparts := strings.SplitN(bind, ":", 3)
-	switch len(bparts) {
-	case 2:
-		source, dest = bparts[0], bparts[1]
-	case 3:
-		source, dest, options = bparts[0], bparts[1], bparts[2]
-	default:
-		return fmt.Errorf("--bind should have format src:dest:[options]")
+func (g *Generator) AddBindMount(source, dest, options string) {
+	if options == "" {
+		options = "ro"
 	}
 
 	defaultOptions := []string{"bind"}
+
 	mnt := rspec.Mount{
 		Destination: dest,
 		Type:        "bind",
@@ -951,7 +889,6 @@ func (g *Generator) AddBindMount(bind string) error {
 	}
 	g.initSpec()
 	g.spec.Mounts = append(g.spec.Mounts, mnt)
-	return nil
 }
 
 // SetupPrivileged sets up the priviledge-related fields inside g.spec.
@@ -960,7 +897,7 @@ func (g *Generator) SetupPrivileged(privileged bool) {
 		// Add all capabilities in privileged mode.
 		var finalCapList []string
 		for _, cap := range capability.List() {
-			if g.HostSpecific && cap > capability.CAP_LAST_CAP {
+			if g.HostSpecific && cap > lastCap() {
 				continue
 			}
 			finalCapList = append(finalCapList, fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String())))
@@ -973,13 +910,23 @@ func (g *Generator) SetupPrivileged(privileged bool) {
 	}
 }
 
+func lastCap() capability.Cap {
+	last := capability.CAP_LAST_CAP
+	// hack for RHEL6 which has no /proc/sys/kernel/cap_last_cap
+	if last == capability.Cap(63) {
+		last = capability.CAP_BLOCK_SUSPEND
+	}
+
+	return last
+}
+
 func checkCap(c string, hostSpecific bool) error {
 	isValid := false
 	cp := strings.ToUpper(c)
 
 	for _, cap := range capability.List() {
 		if cp == strings.ToUpper(cap.String()) {
-			if hostSpecific && cap > capability.CAP_LAST_CAP {
+			if hostSpecific && cap > lastCap() {
 				return fmt.Errorf("CAP_%s is not supported on the current host", cp)
 			}
 			isValid = true
