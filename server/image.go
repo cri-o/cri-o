@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"os"
+	"path/filepath"
 
 	"github.com/containers/image/directory"
 	"github.com/containers/image/image"
@@ -52,11 +53,11 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	if err != nil {
 		return nil, err
 	}
-	// TODO: make sure this dir exists?
-	if err := os.Mkdir("/var/lib/ocid/images/"+tr.StringWithinTransport(), 0755); err != nil {
+
+	if err := os.Mkdir(filepath.Join(imageStore, tr.StringWithinTransport()), 0755); err != nil {
 		return nil, err
 	}
-	dir, err := directory.NewReference("/var/lib/ocid/images/" + tr.StringWithinTransport())
+	dir, err := directory.NewReference(filepath.Join(imageStore, tr.StringWithinTransport()))
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/mrunalp/ocid/oci"
 	"github.com/mrunalp/ocid/utils"
@@ -9,6 +10,7 @@ import (
 
 const (
 	runtimeAPIVersion = "v1alpha1"
+	imageStore        = "/var/lib/ocid/images"
 )
 
 // Server implements the RuntimeService and ImageService
@@ -24,6 +26,10 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 	// subreaper.
 	if err := utils.SetSubreaper(1); err != nil {
 		return nil, fmt.Errorf("failed to set server as subreaper: %v", err)
+	}
+
+	if err := os.MkdirAll(imageStore, 0755); err != nil {
+		return nil, err
 	}
 
 	r, err := oci.New(runtimePath, containerDir)
