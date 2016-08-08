@@ -141,7 +141,7 @@ func (s *Server) StopPodSandbox(context.Context, *pb.StopPodSandboxRequest) (*pb
 
 // DeletePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
-func (s *Server) DeletePodSandbox(context.Context, *pb.DeletePodSandboxRequest) (*pb.DeletePodSandboxResponse, error) {
+func (s *Server) RemovePodSandbox(context.Context, *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
 	return nil, nil
 }
 

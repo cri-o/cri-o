@@ -272,8 +272,8 @@
 		},
 		{
 			"ImportPath": "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime",
-			"Comment": "v1.4.0-alpha.1-489-g976ca09",
-			"Rev": "976ca09d714cf114fb7a9e681bc0b170760cbdab"
+			"Comment": "v1.4.0-alpha.2-500-ge18eda9",
+			"Rev": "e18eda9b2b80128a4464cd8712801152e48afe37"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/ocitools/generate",

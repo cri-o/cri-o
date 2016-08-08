@@ -39,8 +39,8 @@ It has these top-level messages:
 	CreatePodSandboxResponse
 	StopPodSandboxRequest
 	StopPodSandboxResponse
-	DeletePodSandboxRequest
-	DeletePodSandboxResponse
+	RemovePodSandboxRequest
+	RemovePodSandboxResponse
 	PodSandboxStatusRequest
 	PodSandboxNetworkStatus
 	Namespace
@@ -57,6 +57,7 @@ It has these top-level messages:
 	SELinuxOption
 	Capability
 	LinuxContainerConfig
+	LinuxUser
 	ContainerConfig
 	CreateContainerRequest
 	CreateContainerResponse
@@ -541,13 +542,13 @@ type PodSandboxConfig struct {
 	// By default the log of a container going into the LogDirectory will be
 	// hooked up to STDOUT and STDERR. However, the LogDirectory may contain
 	// binary log files with structured logging data from the individual
-	// containers. For example the files might be newline seperated JSON
+	// containers. For example, the files might be newline separated JSON
 	// structured logs, systemd-journald journal files, gRPC trace files, etc.
 	// E.g.,
 	//     PodSandboxConfig.LogDirectory = `/var/log/pods/<podUID>/`
 	//     ContainerConfig.LogPath = `containerName_Instance#.log`
 	//
-	// WARNING: Log managment and how kubelet should interface with the
+	// WARNING: Log management and how kubelet should interface with the
 	// container logs are under active discussion in
 	// https://issues.k8s.io/24677. There *may* be future change of direction
 	// for logging as the discussion carries on.
@@ -560,7 +561,7 @@ type PodSandboxConfig struct {
 	// aggregate cpu/memory resources limits of all containers).
 	// Note: On a Linux host, kubelet will create a pod-level cgroup and pass
 	// it as the cgroup parent for the PodSandbox. For some runtimes, this is
-	// sufficent. For others, e.g., hypervisor-based runtimes, explicit
+	// sufficient. For others, e.g., hypervisor-based runtimes, explicit
 	// resource limits for the sandbox are needed at creation time.
 	Resources *PodSandboxResources `protobuf:"bytes,6,opt,name=resources" json:"resources,omitempty"`
 	// Labels are key value pairs that may be used to scope and select individual resources.
@@ -699,30 +700,30 @@ func (m *StopPodSandboxResponse) Reset()         { *m = StopPodSandboxResponse{}
 func (m *StopPodSandboxResponse) String() string { return proto.CompactTextString(m) }
 func (*StopPodSandboxResponse) ProtoMessage()    {}
 
-type DeletePodSandboxRequest struct {
+type RemovePodSandboxRequest struct {
 	// The id of the PodSandBox
 	PodSandboxId     *string `protobuf:"bytes,1,opt,name=pod_sandbox_id" json:"pod_sandbox_id,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *DeletePodSandboxRequest) Reset()         { *m = DeletePodSandboxRequest{} }
-func (m *DeletePodSandboxRequest) String() string { return proto.CompactTextString(m) }
-func (*DeletePodSandboxRequest) ProtoMessage()    {}
+func (m *RemovePodSandboxRequest) Reset()         { *m = RemovePodSandboxRequest{} }
+func (m *RemovePodSandboxRequest) String() string { return proto.CompactTextString(m) }
+func (*RemovePodSandboxRequest) ProtoMessage()    {}
 
-func (m *DeletePodSandboxRequest) GetPodSandboxId() string {
+func (m *RemovePodSandboxRequest) GetPodSandboxId() string {
 	if m != nil && m.PodSandboxId != nil {
 		return *m.PodSandboxId
 	}
 	return ""
 }
 
-type DeletePodSandboxResponse struct {
+type RemovePodSandboxResponse struct {
 	XXX_unrecognized []byte `json:"-"`
 }
 
-func (m *DeletePodSandboxResponse) Reset()         { *m = DeletePodSandboxResponse{} }
-func (m *DeletePodSandboxResponse) String() string { return proto.CompactTextString(m) }
-func (*DeletePodSandboxResponse) ProtoMessage()    {}
+func (m *RemovePodSandboxResponse) Reset()         { *m = RemovePodSandboxResponse{} }
+func (m *RemovePodSandboxResponse) String() string { return proto.CompactTextString(m) }
+func (*RemovePodSandboxResponse) ProtoMessage()    {}
 
 type PodSandboxStatusRequest struct {
 	// The id of the PodSandBox
@@ -1216,8 +1217,10 @@ type LinuxContainerConfig struct {
 	// Capabilities to add or drop.
 	Capabilities *Capability `protobuf:"bytes,2,opt,name=capabilities" json:"capabilities,omitempty"`
 	// Optional SELinux context to be applied.
-	SelinuxOptions   *SELinuxOption `protobuf:"bytes,3,opt,name=selinux_options" json:"selinux_options,omitempty"`
-	XXX_unrecognized []byte         `json:"-"`
+	SelinuxOptions *SELinuxOption `protobuf:"bytes,3,opt,name=selinux_options" json:"selinux_options,omitempty"`
+	// User contains the user for the container process.
+	User             *LinuxUser `protobuf:"bytes,4,opt,name=user" json:"user,omitempty"`
+	XXX_unrecognized []byte     `json:"-"`
 }
 
 func (m *LinuxContainerConfig) Reset()         { *m = LinuxContainerConfig{} }
@@ -1241,6 +1244,48 @@ func (m *LinuxContainerConfig) GetCapabilities() *Capability {
 func (m *LinuxContainerConfig) GetSelinuxOptions() *SELinuxOption {
 	if m != nil {
 		return m.SelinuxOptions
+	}
+	return nil
+}
+
+func (m *LinuxContainerConfig) GetUser() *LinuxUser {
+	if m != nil {
+		return m.User
+	}
+	return nil
+}
+
+type LinuxUser struct {
+	// uid specifies the user ID the container process has.
+	Uid *int64 `protobuf:"varint,1,opt,name=uid" json:"uid,omitempty"`
+	// gid specifies the group ID the container process has.
+	Gid *int64 `protobuf:"varint,2,opt,name=gid" json:"gid,omitempty"`
+	// additional_gids specifies additional GIDs the container process has.
+	AdditionalGids   []int64 `protobuf:"varint,3,rep,name=additional_gids" json:"additional_gids,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *LinuxUser) Reset()         { *m = LinuxUser{} }
+func (m *LinuxUser) String() string { return proto.CompactTextString(m) }
+func (*LinuxUser) ProtoMessage()    {}
+
+func (m *LinuxUser) GetUid() int64 {
+	if m != nil && m.Uid != nil {
+		return *m.Uid
+	}
+	return 0
+}
+
+func (m *LinuxUser) GetGid() int64 {
+	if m != nil && m.Gid != nil {
+		return *m.Gid
+	}
+	return 0
+}
+
+func (m *LinuxUser) GetAdditionalGids() []int64 {
+	if m != nil {
+		return m.AdditionalGids
 	}
 	return nil
 }
@@ -1281,7 +1326,7 @@ type ContainerConfig struct {
 	//     PodSandboxConfig.LogDirectory = `/var/log/pods/<podUID>/`
 	//     ContainerConfig.LogPath = `containerName_Instance#.log`
 	//
-	// WARNING: Log managment and how kubelet should interface with the
+	// WARNING: Log management and how kubelet should interface with the
 	// container logs are under active discussion in
 	// https://issues.k8s.io/24677. There *may* be future change of direction
 	// for logging as the discussion carries on.
@@ -2210,8 +2255,8 @@ func init() {
 	proto.RegisterType((*CreatePodSandboxResponse)(nil), "runtime.CreatePodSandboxResponse")
 	proto.RegisterType((*StopPodSandboxRequest)(nil), "runtime.StopPodSandboxRequest")
 	proto.RegisterType((*StopPodSandboxResponse)(nil), "runtime.StopPodSandboxResponse")
-	proto.RegisterType((*DeletePodSandboxRequest)(nil), "runtime.DeletePodSandboxRequest")
-	proto.RegisterType((*DeletePodSandboxResponse)(nil), "runtime.DeletePodSandboxResponse")
+	proto.RegisterType((*RemovePodSandboxRequest)(nil), "runtime.RemovePodSandboxRequest")
+	proto.RegisterType((*RemovePodSandboxResponse)(nil), "runtime.RemovePodSandboxResponse")
 	proto.RegisterType((*PodSandboxStatusRequest)(nil), "runtime.PodSandboxStatusRequest")
 	proto.RegisterType((*PodSandboxNetworkStatus)(nil), "runtime.PodSandboxNetworkStatus")
 	proto.RegisterType((*Namespace)(nil), "runtime.Namespace")
@@ -2228,6 +2273,7 @@ func init() {
 	proto.RegisterType((*SELinuxOption)(nil), "runtime.SELinuxOption")
 	proto.RegisterType((*Capability)(nil), "runtime.Capability")
 	proto.RegisterType((*LinuxContainerConfig)(nil), "runtime.LinuxContainerConfig")
+	proto.RegisterType((*LinuxUser)(nil), "runtime.LinuxUser")
 	proto.RegisterType((*ContainerConfig)(nil), "runtime.ContainerConfig")
 	proto.RegisterType((*CreateContainerRequest)(nil), "runtime.CreateContainerRequest")
 	proto.RegisterType((*CreateContainerResponse)(nil), "runtime.CreateContainerResponse")
@@ -2274,13 +2320,14 @@ type RuntimeServiceClient interface {
 	// CreatePodSandbox creates a pod-level sandbox.
 	// The definition of PodSandbox is at https://github.com/kubernetes/kubernetes/pull/25899
 	CreatePodSandbox(ctx context.Context, in *CreatePodSandboxRequest, opts ...grpc.CallOption) (*CreatePodSandboxResponse, error)
-	// StopPodSandbox stops the sandbox. If there are any running containers in the
-	// sandbox, they should be force terminated.
+	// StopPodSandbox stops the running sandbox. If there are any running
+	// containers in the sandbox, they should be forcibly terminated.
 	StopPodSandbox(ctx context.Context, in *StopPodSandboxRequest, opts ...grpc.CallOption) (*StopPodSandboxResponse, error)
-	// DeletePodSandbox deletes the sandbox. If there are any running containers in the
-	// sandbox, they should be force deleted.
-	DeletePodSandbox(ctx context.Context, in *DeletePodSandboxRequest, opts ...grpc.CallOption) (*DeletePodSandboxResponse, error)
-	// PodSandboxStatus returns the Status of the PodSandbox.
+	// RemovePodSandbox removes the sandbox. If there are any running containers in the
+	// sandbox, they should be forcibly removed.
+	// It should return success if the sandbox has already been removed.
+	RemovePodSandbox(ctx context.Context, in *RemovePodSandboxRequest, opts ...grpc.CallOption) (*RemovePodSandboxResponse, error)
+	// PodSandboxStatus returns the status of the PodSandbox.
 	PodSandboxStatus(ctx context.Context, in *PodSandboxStatusRequest, opts ...grpc.CallOption) (*PodSandboxStatusResponse, error)
 	// ListPodSandbox returns a list of SandBox.
 	ListPodSandbox(ctx context.Context, in *ListPodSandboxRequest, opts ...grpc.CallOption) (*ListPodSandboxResponse, error)
@@ -2290,8 +2337,9 @@ type RuntimeServiceClient interface {
 	StartContainer(ctx context.Context, in *StartContainerRequest, opts ...grpc.CallOption) (*StartContainerResponse, error)
 	// StopContainer stops a running container with a grace period (i.e., timeout).
 	StopContainer(ctx context.Context, in *StopContainerRequest, opts ...grpc.CallOption) (*StopContainerResponse, error)
-	// RemoveContainer removes the container. If the container is running, the container
-	// should be force removed.
+	// RemoveContainer removes the container. If the container is running, the
+	// container should be forcibly removed.
+	// It should return success if the container has already been removed.
 	RemoveContainer(ctx context.Context, in *RemoveContainerRequest, opts ...grpc.CallOption) (*RemoveContainerResponse, error)
 	// ListContainers lists all containers by filters.
 	ListContainers(ctx context.Context, in *ListContainersRequest, opts ...grpc.CallOption) (*ListContainersResponse, error)
@@ -2336,9 +2384,9 @@ func (c *runtimeServiceClient) StopPodSandbox(ctx context.Context, in *StopPodSa
 	return out, nil
 }
 
-func (c *runtimeServiceClient) DeletePodSandbox(ctx context.Context, in *DeletePodSandboxRequest, opts ...grpc.CallOption) (*DeletePodSandboxResponse, error) {
-	out := new(DeletePodSandboxResponse)
-	err := grpc.Invoke(ctx, "/runtime.RuntimeService/DeletePodSandbox", in, out, c.cc, opts...)
+func (c *runtimeServiceClient) RemovePodSandbox(ctx context.Context, in *RemovePodSandboxRequest, opts ...grpc.CallOption) (*RemovePodSandboxResponse, error) {
+	out := new(RemovePodSandboxResponse)
+	err := grpc.Invoke(ctx, "/runtime.RuntimeService/RemovePodSandbox", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2456,13 +2504,14 @@ type RuntimeServiceServer interface {
 	// CreatePodSandbox creates a pod-level sandbox.
 	// The definition of PodSandbox is at https://github.com/kubernetes/kubernetes/pull/25899
 	CreatePodSandbox(context.Context, *CreatePodSandboxRequest) (*CreatePodSandboxResponse, error)
-	// StopPodSandbox stops the sandbox. If there are any running containers in the
-	// sandbox, they should be force terminated.
+	// StopPodSandbox stops the running sandbox. If there are any running
+	// containers in the sandbox, they should be forcibly terminated.
 	StopPodSandbox(context.Context, *StopPodSandboxRequest) (*StopPodSandboxResponse, error)
-	// DeletePodSandbox deletes the sandbox. If there are any running containers in the
-	// sandbox, they should be force deleted.
-	DeletePodSandbox(context.Context, *DeletePodSandboxRequest) (*DeletePodSandboxResponse, error)
-	// PodSandboxStatus returns the Status of the PodSandbox.
+	// RemovePodSandbox removes the sandbox. If there are any running containers in the
+	// sandbox, they should be forcibly removed.
+	// It should return success if the sandbox has already been removed.
+	RemovePodSandbox(context.Context, *RemovePodSandboxRequest) (*RemovePodSandboxResponse, error)
+	// PodSandboxStatus returns the status of the PodSandbox.
 	PodSandboxStatus(context.Context, *PodSandboxStatusRequest) (*PodSandboxStatusResponse, error)
 	// ListPodSandbox returns a list of SandBox.
 	ListPodSandbox(context.Context, *ListPodSandboxRequest) (*ListPodSandboxResponse, error)
@@ -2472,8 +2521,9 @@ type RuntimeServiceServer interface {
 	StartContainer(context.Context, *StartContainerRequest) (*StartContainerResponse, error)
 	// StopContainer stops a running container with a grace period (i.e., timeout).
 	StopContainer(context.Context, *StopContainerRequest) (*StopContainerResponse, error)
-	// RemoveContainer removes the container. If the container is running, the container
-	// should be force removed.
+	// RemoveContainer removes the container. If the container is running, the
+	// container should be forcibly removed.
+	// It should return success if the container has already been removed.
 	RemoveContainer(context.Context, *RemoveContainerRequest) (*RemoveContainerResponse, error)
 	// ListContainers lists all containers by filters.
 	ListContainers(context.Context, *ListContainersRequest) (*ListContainersResponse, error)
@@ -2523,12 +2573,12 @@ func _RuntimeService_StopPodSandbox_Handler(srv interface{}, ctx context.Context
 	return out, nil
 }
 
-func _RuntimeService_DeletePodSandbox_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(DeletePodSandboxRequest)
+func _RuntimeService_RemovePodSandbox_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(RemovePodSandboxRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
-	out, err := srv.(RuntimeServiceServer).DeletePodSandbox(ctx, in)
+	out, err := srv.(RuntimeServiceServer).RemovePodSandbox(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -2674,8 +2724,8 @@ var _RuntimeService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeService_StopPodSandbox_Handler,
 		},
 		{
-			MethodName: "DeletePodSandbox",
-			Handler:    _RuntimeService_DeletePodSandbox_Handler,
+			MethodName: "RemovePodSandbox",
+			Handler:    _RuntimeService_RemovePodSandbox_Handler,
 		},
 		{
 			MethodName: "PodSandboxStatus",
@@ -2727,9 +2777,10 @@ type ImageServiceClient interface {
 	ListImages(ctx context.Context, in *ListImagesRequest, opts ...grpc.CallOption) (*ListImagesResponse, error)
 	// ImageStatus returns the status of the image.
 	ImageStatus(ctx context.Context, in *ImageStatusRequest, opts ...grpc.CallOption) (*ImageStatusResponse, error)
-	// PullImage pulls a image with authentication config.
+	// PullImage pulls an image with authentication config.
 	PullImage(ctx context.Context, in *PullImageRequest, opts ...grpc.CallOption) (*PullImageResponse, error)
 	// RemoveImage removes the image.
+	// It should return success if the image has already been removed.
 	RemoveImage(ctx context.Context, in *RemoveImageRequest, opts ...grpc.CallOption) (*RemoveImageResponse, error)
 }
 
@@ -2784,9 +2835,10 @@ type ImageServiceServer interface {
 	ListImages(context.Context, *ListImagesRequest) (*ListImagesResponse, error)
 	// ImageStatus returns the status of the image.
 	ImageStatus(context.Context, *ImageStatusRequest) (*ImageStatusResponse, error)
-	// PullImage pulls a image with authentication config.
+	// PullImage pulls an image with authentication config.
 	PullImage(context.Context, *PullImageRequest) (*PullImageResponse, error)
 	// RemoveImage removes the image.
+	// It should return success if the image has already been removed.
 	RemoveImage(context.Context, *RemoveImageRequest) (*RemoveImageResponse, error)
 }
 
