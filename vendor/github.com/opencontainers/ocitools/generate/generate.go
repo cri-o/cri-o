@@ -362,6 +362,12 @@ func (g *Generator) SetLinuxMountLabel(label string) {
 	g.spec.Linux.MountLabel = label
 }
 
+// SetLinuxResourcesOOMScoreAdj sets g.spec.Linux.Resources.OOMScoreAdj.
+func (g *Generator) SetLinuxResourcesOOMScoreAdj(adj int) {
+	g.initSpecLinuxResources()
+	g.spec.Linux.Resources.OOMScoreAdj = &adj
+}
+
 // SetLinuxResourcesCPUShares sets g.spec.Linux.Resources.CPU.Shares.
 func (g *Generator) SetLinuxResourcesCPUShares(shares uint64) {
 	g.initSpecLinuxResourcesCPU()
@@ -855,6 +861,7 @@ func (g *Generator) AddCgroupsMount(mountCgroupOption string) error {
 	switch mountCgroupOption {
 	case "ro":
 	case "rw":
+		break
 	case "no":
 		return nil
 	default:
