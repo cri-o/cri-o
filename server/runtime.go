@@ -63,6 +63,11 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	// creates a spec Generator with the default spec.
 	g := generate.New()
 
+	// setup defaults for the pod sandbox
+	g.SetRootPath("/var/lib/ocid/graph/vfs/pause")
+	g.SetRootReadonly(true)
+	g.SetProcessArgs([]string{"/pause"})
+
 	// process req.Hostname
 	hostname := req.GetConfig().GetHostname()
 	if hostname != "" {
