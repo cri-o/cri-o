@@ -112,22 +112,22 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	}
 
 	// set up namespaces
-	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostNetwork() == false {
-		err := g.AddOrReplaceLinuxNamespace("network", "")
+	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostNetwork() {
+		err := g.RemoveLinuxNamespace("network")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostPid() == false {
-		err := g.AddOrReplaceLinuxNamespace("pid", "")
+	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostPid() {
+		err := g.RemoveLinuxNamespace("pid")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostIpc() == false {
-		err := g.AddOrReplaceLinuxNamespace("ipc", "")
+	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostIpc() {
+		err := g.RemoveLinuxNamespace("ipc")
 		if err != nil {
 			return nil, err
 		}
