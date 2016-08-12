@@ -1,4 +1,4 @@
-.PHONY: all clean
+.PHONY: all clean ocid ocic
 
 all: ocid ocic
 
