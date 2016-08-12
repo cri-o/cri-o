@@ -46,9 +46,9 @@
 	"linux": {
 		"cgroup_parent": "/sys/fs/cgroup/test",
 		"namespace_options": {
-			"host_network": true,
-			"host_pid": true,
-			"host_ipc": true
+			"host_network": false,
+			"host_pid": false,
+			"host_ipc": false
 		}
 	}
 }
