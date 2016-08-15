@@ -147,6 +147,10 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
+	if err := s.runtime.StartContainer(container); err != nil {
+		return nil, err
+	}
+
 	s.addContainer(container)
 
 	return &pb.CreatePodSandboxResponse{PodSandboxId: &name}, nil
