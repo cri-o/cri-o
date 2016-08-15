@@ -44,7 +44,7 @@
 		"owner": "hmeng"
 	},
 	"linux": {
-		"cgroup_parent": "/sys/fs/cgroup/test",
+		"cgroup_parent": "podsandbox1.slice:container:infra",
 		"namespace_options": {
 			"host_network": false,
 			"host_pid": false,
