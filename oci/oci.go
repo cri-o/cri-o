@@ -18,6 +18,7 @@ func New(runtimePath string, containerDir string) (*Runtime, error) {
 	return r, nil
 }
 
+// Runtime stores the information about a oci runtime
 type Runtime struct {
 	name         string
 	path         string
@@ -62,7 +63,18 @@ func getOCIVersion(name string, args ...string) (string, error) {
 
 // CreateContainer creates a container.
 func (r *Runtime) CreateContainer(c *Container) error {
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "create", "--bundle", c.bundlePath, c.name)
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "--systemd-cgroup", "create", "--bundle", c.bundlePath, c.name)
+}
+
+// StartContainer starts a container.
+func (r *Runtime) StartContainer(c *Container) error {
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", c.name)
+}
+
+// StopContainer stops a container.
+func (r *Runtime) StopContainer(c *Container) error {
+	// TODO: Check if it is still running after some time and send SIGKILL
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.name)
 }
 
 // Container respresents a runtime container.
@@ -74,6 +86,7 @@ type Container struct {
 	sandbox    string
 }
 
+// NewContainer creates a container object.
 func NewContainer(name string, bundlePath string, logPath string, labels map[string]string, sandbox string) (*Container, error) {
 	c := &Container{
 		name:       name,
