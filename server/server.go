@@ -28,6 +28,8 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 		return nil, fmt.Errorf("failed to set server as subreaper: %v", err)
 	}
 
+	utils.StartReaper()
+
 	if err := os.MkdirAll(imageStore, 0755); err != nil {
 		return nil, err
 	}
