@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/Sirupsen/logrus"
 )
 
 const PR_SET_CHILD_SUBREAPER = 36
@@ -96,4 +99,27 @@ func dockerRemove(container string) error {
 		return err
 	}
 	return nil
+}
+
+// StartReaper starts a goroutine to reap processes
+func StartReaper() {
+	logrus.Infof("Starting reaper")
+	go func() {
+		sigs := make(chan os.Signal, 10)
+		signal.Notify(sigs, syscall.SIGCHLD)
+		for {
+			// Wait for a child to terminate
+			sig := <-sigs
+			logrus.Infof("Signal received: %v", sig)
+			for {
+				// Reap processes
+				cpid, _ := syscall.Wait4(-1, nil, syscall.WNOHANG, nil)
+				if cpid < 1 {
+					break
+				}
+
+				logrus.Infof("Reaped process with pid %d", cpid)
+			}
+		}
+	}()
 }
