@@ -105,7 +105,6 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		g.AddAnnotation(k, v)
 	}
 
-	// TODO: double check cgroupParent.
 	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
 	if cgroupParent != "" {
 		g.SetLinuxCgroupsPath(cgroupParent)
@@ -137,6 +136,18 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	if err != nil {
 		return nil, err
 	}
+
+	containerName := name + "-infra"
+	container, err := oci.NewContainer(containerName, podSandboxDir, podSandboxDir, labels, name)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.runtime.CreateContainer(container); err != nil {
+		return nil, err
+	}
+
+	s.addContainer(container)
 
 	return &pb.CreatePodSandboxResponse{PodSandboxId: &name}, nil
 }
