@@ -158,8 +158,23 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be force terminated.
-func (s *Server) StopPodSandbox(context.Context, *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
-	return nil, nil
+func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
+	sbName := req.PodSandboxId
+	if *sbName == "" {
+		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
+	}
+	sb := s.state.sandboxes[*sbName]
+	if sb == nil {
+		return nil, fmt.Errorf("specified sandbox not found: %s", *sbName)
+	}
+
+	for _, c := range sb.containers {
+		if err := s.runtime.StopContainer(c); err != nil {
+			return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *sbName, err)
+		}
+	}
+
+	return &pb.StopPodSandboxResponse{}, nil
 }
 
 // DeletePodSandbox deletes the sandbox. If there are any running containers in the
