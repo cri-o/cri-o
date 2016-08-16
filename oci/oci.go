@@ -77,6 +77,11 @@ func (r *Runtime) StopContainer(c *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.name)
 }
 
+// DeleteContainer deletes a container.
+func (r *Runtime) DeleteContainer(c *Container) error {
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "delete", c.name)
+}
+
 // Container respresents a runtime container.
 type Container struct {
 	name       string
