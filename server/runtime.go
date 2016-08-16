@@ -161,7 +161,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
 	sbName := req.PodSandboxId
 	if *sbName == "" {
-		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
+		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
 	sb := s.state.sandboxes[*sbName]
 	if sb == nil {
@@ -177,10 +177,32 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	return &pb.StopPodSandboxResponse{}, nil
 }
 
-// DeletePodSandbox deletes the sandbox. If there are any running containers in the
+// RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
-func (s *Server) RemovePodSandbox(context.Context, *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
-	return nil, nil
+func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
+	sbName := req.PodSandboxId
+	if *sbName == "" {
+		return nil, fmt.Errorf("PodSandboxId should not be empty")
+	}
+	sb := s.state.sandboxes[*sbName]
+	if sb == nil {
+		return nil, fmt.Errorf("specified sandbox not found: %s", *sbName)
+	}
+
+	// Delete all the containers in the sandbox
+	for _, c := range sb.containers {
+		if err := s.runtime.DeleteContainer(c); err != nil {
+			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), *sbName, err)
+		}
+	}
+
+	// Remove the files related to the sandbox
+	podSandboxDir := filepath.Join(s.sandboxDir, *sbName)
+	if err := os.RemoveAll(podSandboxDir); err != nil {
+		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", *sbName, err)
+	}
+
+	return &pb.RemovePodSandboxResponse{}, nil
 }
 
 // PodSandboxStatus returns the Status of the PodSandbox.
