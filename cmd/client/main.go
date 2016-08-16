@@ -100,6 +100,20 @@ func StopPodSandbox(client pb.RuntimeServiceClient, ID string) error {
 	return nil
 }
 
+// RemovePodSandbox sends a RemovePodSandboxRequest to the server, and parses
+// the returned RemovePodSandboxResponse.
+func RemovePodSandbox(client pb.RuntimeServiceClient, ID string) error {
+	if ID == "" {
+		return fmt.Errorf("ID cannot be empty")
+	}
+	r, err := client.RemovePodSandbox(context.Background(), &pb.RemovePodSandboxRequest{PodSandboxId: &ID})
+	if err != nil {
+		return err
+	}
+	fmt.Println(r)
+	return nil
+}
+
 // CreateContainer sends a CreateContainerRequest to the server, and parses
 // the returned CreateContainerResponse.
 func CreateContainer(client pb.RuntimeServiceClient, sandbox string, path string) error {
@@ -138,6 +152,7 @@ func main() {
 		runtimeVersionCommand,
 		createPodSandboxCommand,
 		stopPodSandboxCommand,
+		removePodSandboxCommand,
 		createContainerCommand,
 		pullImageCommand,
 	}
@@ -248,6 +263,33 @@ var stopPodSandboxCommand = cli.Command{
 		err = StopPodSandbox(client, context.String("id"))
 		if err != nil {
 			return fmt.Errorf("Stopping the pod sandbox failed: %v", err)
+		}
+		return nil
+	},
+}
+
+var removePodSandboxCommand = cli.Command{
+	Name:  "removepodsandbox",
+	Usage: "remove a pod sandbox",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "id of the pod sandbox",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		err = RemovePodSandbox(client, context.String("id"))
+		if err != nil {
+			return fmt.Errorf("removing the pod sandbox failed: %v", err)
 		}
 		return nil
 	},
