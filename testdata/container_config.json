@@ -77,10 +77,10 @@
 			]
 		},
 		"selinux_options": {
-			"user": "selinux_test",
-			"role": "control",
-			"type": "dogfood",
-			"level": "s1"
+			"user": "system_u",
+			"role": "system_r",
+			"type": "svirt_lxc_net_t",
+			"level": "s0:c4-c5"
 		},
 		"user": {
 			"uid": 5,
