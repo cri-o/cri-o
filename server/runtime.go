@@ -457,8 +457,22 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 }
 
 // StartContainer starts the container.
-func (s *Server) StartContainer(context.Context, *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
-	return nil, nil
+func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
+	containerName := req.ContainerId
+
+	if *containerName == "" {
+		return nil, fmt.Errorf("PodSandboxId should not be empty")
+	}
+	c := s.state.containers[*containerName]
+	if c == nil {
+		return nil, fmt.Errorf("specified container not found: %s", *containerName)
+	}
+
+	if err := s.runtime.StartContainer(c); err != nil {
+		return nil, fmt.Errorf("failed to start container %s in sandbox %s: %v", c.Name(), *containerName, err)
+	}
+
+	return &pb.StartContainerResponse{}, nil
 }
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
