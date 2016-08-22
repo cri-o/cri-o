@@ -488,17 +488,30 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	}
 
 	if err := s.runtime.StopContainer(c); err != nil {
-		return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *containerName, err)
+		return nil, fmt.Errorf("failed to stop container %s: %v", *containerName, err)
 	}
 
 	return &pb.StopContainerResponse{}, nil
-	return nil, nil
 }
 
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
-func (s *Server) RemoveContainer(context.Context, *pb.RemoveContainerRequest) (*pb.RemoveContainerResponse, error) {
-	return nil, nil
+func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (*pb.RemoveContainerResponse, error) {
+	containerName := req.ContainerId
+
+	if *containerName == "" {
+		return nil, fmt.Errorf("PodSandboxId should not be empty")
+	}
+	c := s.state.containers[*containerName]
+	if c == nil {
+		return nil, fmt.Errorf("specified container not found: %s", *containerName)
+	}
+
+	if err := s.runtime.DeleteContainer(c); err != nil {
+		return nil, fmt.Errorf("failed to delete container %s: %v", *containerName, err)
+	}
+
+	return &pb.RemoveContainerResponse{}, nil
 }
 
 // ListContainers lists all containers by filters.
