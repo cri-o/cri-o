@@ -149,6 +149,22 @@ func StartContainer(client pb.RuntimeServiceClient, ID string) error {
 	return nil
 }
 
+// StopContainer sends a StopContainerRequest to the server, and parses
+// the returned StopContainerResponse.
+func StopContainer(client pb.RuntimeServiceClient, ID string) error {
+	if ID == "" {
+		return fmt.Errorf("ID cannot be empty")
+	}
+	r, err := client.StopContainer(context.Background(), &pb.StopContainerRequest{
+		ContainerId: &ID,
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Println(r)
+	return nil
+}
+
 // Version sends a VersionRequest to the server, and parses the returned VersionResponse.
 func Version(client pb.RuntimeServiceClient, version string) error {
 	r, err := client.Version(context.Background(), &pb.VersionRequest{Version: &version})
@@ -171,6 +187,7 @@ func main() {
 		removePodSandboxCommand,
 		createContainerCommand,
 		startContainerCommand,
+		stopContainerCommand,
 		pullImageCommand,
 	}
 
@@ -369,6 +386,33 @@ var startContainerCommand = cli.Command{
 		err = StartContainer(client, context.String("id"))
 		if err != nil {
 			return fmt.Errorf("Starting the container failed: %v", err)
+		}
+		return nil
+	},
+}
+
+var stopContainerCommand = cli.Command{
+	Name:  "stopcontainer",
+	Usage: "stop a container",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "id of the container",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("Failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		err = StopContainer(client, context.String("id"))
+		if err != nil {
+			return fmt.Errorf("Stopping the container failed: %v", err)
 		}
 		return nil
 	},
