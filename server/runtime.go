@@ -511,6 +511,11 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, fmt.Errorf("failed to delete container %s: %v", *containerName, err)
 	}
 
+	containerDir := filepath.Join(s.runtime.ContainerDir(), *containerName)
+	if err := os.RemoveAll(containerDir); err != nil {
+		return nil, fmt.Errorf("failed to remove container %s directory: %v", *containerName, err)
+	}
+
 	return &pb.RemoveContainerResponse{}, nil
 }
 
