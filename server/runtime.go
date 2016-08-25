@@ -97,7 +97,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		name:       name,
 		logDir:     logDir,
 		labels:     labels,
-		containers: []*oci.Container{},
+		containers: make(map[string]*oci.Container),
 	})
 
 	annotations := req.GetConfig().GetAnnotations()
@@ -515,6 +515,8 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 	if err := os.RemoveAll(containerDir); err != nil {
 		return nil, fmt.Errorf("failed to remove container %s directory: %v", *containerName, err)
 	}
+
+	s.removeContainer(c)
 
 	return &pb.RemoveContainerResponse{}, nil
 }
