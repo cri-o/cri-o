@@ -59,7 +59,7 @@ type sandbox struct {
 	name       string
 	logDir     string
 	labels     map[string]string
-	containers []*oci.Container
+	containers map[string]*oci.Container
 }
 
 func (s *Server) addSandbox(sb *sandbox) {
@@ -72,11 +72,21 @@ func (s *Server) hasSandbox(name string) bool {
 }
 
 func (s *sandbox) addContainer(c *oci.Container) {
-	s.containers = append(s.containers, c)
+	s.containers[c.Name()] = c
+}
+
+func (s *sandbox) removeContainer(c *oci.Container) {
+	delete(s.containers, c.Name())
 }
 
 func (s *Server) addContainer(c *oci.Container) {
 	sandbox := s.state.sandboxes[c.Sandbox()]
 	sandbox.addContainer(c)
 	s.state.containers[c.Name()] = c
+}
+
+func (s *Server) removeContainer(c *oci.Container) {
+	sandbox := s.state.sandboxes[c.Sandbox()]
+	sandbox.removeContainer(c)
+	delete(s.state.containers, c.Name())
 }
