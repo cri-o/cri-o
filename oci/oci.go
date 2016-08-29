@@ -1,11 +1,16 @@
 package oci
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/mrunalp/ocid/utils"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // New creates a new Runtime with options provided
@@ -82,6 +87,24 @@ func (r *Runtime) DeleteContainer(c *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "delete", c.name)
 }
 
+// updateStatus refreshes the status of the container.
+func (r *Runtime) UpdateStatus(c *Container) error {
+	out, err := exec.Command(r.path, "state", c.name).Output()
+	if err != nil {
+		return fmt.Errorf("error getting container state for %s: %s", c.name, err)
+	}
+	stateReader := bytes.NewReader(out)
+	if err := json.NewDecoder(stateReader).Decode(&c.state); err != nil {
+		return fmt.Errorf("failed to decode container status for %s: %s", c.name, err)
+	}
+	return nil
+}
+
+// ContainerStatus returns the state of a container.
+func (r *Runtime) ContainerStatus(c *Container) *specs.State {
+	return c.state
+}
+
 // Container respresents a runtime container.
 type Container struct {
 	name       string
@@ -89,6 +112,11 @@ type Container struct {
 	logPath    string
 	labels     map[string]string
 	sandbox    string
+	state      *specs.State
+}
+
+// ContainerStatus represents the status of a container.
+type ContainerStatus struct {
 }
 
 // NewContainer creates a container object.
