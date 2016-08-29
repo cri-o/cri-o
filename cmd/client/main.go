@@ -199,11 +199,8 @@ func main() {
 
 	app.Commands = []cli.Command{
 		podSandboxCommand,
+		containerCommand,
 		runtimeVersionCommand,
-		createContainerCommand,
-		startContainerCommand,
-		stopContainerCommand,
-		removeContainerCommand,
 		pullImageCommand,
 	}
 
@@ -354,12 +351,23 @@ var removePodSandboxCommand = cli.Command{
 	},
 }
 
+var containerCommand = cli.Command{
+	Name:    "container",
+	Aliases: []string{"ctr"},
+	Subcommands: []cli.Command{
+		createContainerCommand,
+		startContainerCommand,
+		stopContainerCommand,
+		removeContainerCommand,
+	},
+}
+
 var createContainerCommand = cli.Command{
-	Name:  "createcontainer",
+	Name:  "create",
 	Usage: "create a container",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "sandbox",
+			Name:  "pod",
 			Usage: "the id of the pod sandbox to which the container belongs",
 		},
 		cli.StringFlag{
@@ -377,11 +385,11 @@ var createContainerCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
-		if !context.IsSet("sandbox") {
-			return fmt.Errorf("Please specify the id of the pod sandbox to which the container belongs via the --sandbox option")
+		if !context.IsSet("pod") {
+			return fmt.Errorf("Please specify the id of the pod sandbox to which the container belongs via the --pod option")
 		}
 		// Test RuntimeServiceClient.CreateContainer
-		err = CreateContainer(client, context.String("sandbox"), context.String("config"))
+		err = CreateContainer(client, context.String("pod"), context.String("config"))
 		if err != nil {
 			return fmt.Errorf("Creating the pod sandbox failed: %v", err)
 		}
@@ -390,7 +398,7 @@ var createContainerCommand = cli.Command{
 }
 
 var startContainerCommand = cli.Command{
-	Name:  "startcontainer",
+	Name:  "start",
 	Usage: "start a container",
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -417,7 +425,7 @@ var startContainerCommand = cli.Command{
 }
 
 var stopContainerCommand = cli.Command{
-	Name:  "stopcontainer",
+	Name:  "stop",
 	Usage: "stop a container",
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -444,7 +452,7 @@ var stopContainerCommand = cli.Command{
 }
 
 var removeContainerCommand = cli.Command{
-	Name:  "removecontainer",
+	Name:  "remove",
 	Usage: "remove a container",
 	Flags: []cli.Flag{
 		cli.StringFlag{
