@@ -435,19 +435,20 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	sandboxConfig := req.GetSandboxConfig()
 	fmt.Printf("sandboxConfig: %v\n", sandboxConfig)
 
-	// Get the namespace paths for the pod sandbox container.
+	// Join the namespace paths for the pod sandbox container.
 	podContainerName := podSandboxId + "-infra"
 	podInfraContainer := s.state.containers[podContainerName]
 	podInfraState := s.runtime.ContainerStatus(podInfraContainer)
 
 	logrus.Infof("pod container state %v", podInfraState)
 
-	netNsPath := fmt.Sprintf("/proc/%d/ns/%s", podInfraState.Pid, "net")
-	specgen.AddOrReplaceLinuxNamespace("network", netNsPath)
-
-	for _, ns := range []string{"ipc", "uts"} {
-		nsPath := fmt.Sprintf("/proc/%d/ns/%s", podInfraState.Pid, ns)
-		specgen.AddOrReplaceLinuxNamespace(ns, nsPath)
+	for nsType, nsFile := range map[string]string{
+		"ipc":     "ipc",
+		"uts":     "uts",
+		"network": "net",
+	} {
+		nsPath := fmt.Sprintf("/proc/%d/ns/%s", podInfraState.Pid, nsFile)
+		specgen.AddOrReplaceLinuxNamespace(nsType, nsPath)
 	}
 
 	if err := specgen.SaveToFile(filepath.Join(containerDir, "config.json")); err != nil {
