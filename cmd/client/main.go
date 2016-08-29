@@ -195,12 +195,11 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "ocic"
 	app.Usage = "client for ocid"
+	app.Version = "0.0.1"
 
 	app.Commands = []cli.Command{
+		podSandboxCommand,
 		runtimeVersionCommand,
-		createPodSandboxCommand,
-		stopPodSandboxCommand,
-		removePodSandboxCommand,
 		createContainerCommand,
 		startContainerCommand,
 		stopContainerCommand,
@@ -264,9 +263,18 @@ var runtimeVersionCommand = cli.Command{
 	},
 }
 
+var podSandboxCommand = cli.Command{
+	Name: "pod",
+	Subcommands: []cli.Command{
+		createPodSandboxCommand,
+		stopPodSandboxCommand,
+		removePodSandboxCommand,
+	},
+}
+
 var createPodSandboxCommand = cli.Command{
-	Name:  "createpodsandbox",
-	Usage: "create a pod sandbox",
+	Name:  "create",
+	Usage: "create a pod",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "config",
@@ -293,7 +301,7 @@ var createPodSandboxCommand = cli.Command{
 }
 
 var stopPodSandboxCommand = cli.Command{
-	Name:  "stoppodsandbox",
+	Name:  "stop",
 	Usage: "stop a pod sandbox",
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -320,7 +328,7 @@ var stopPodSandboxCommand = cli.Command{
 }
 
 var removePodSandboxCommand = cli.Command{
-	Name:  "removepodsandbox",
+	Name:  "remove",
 	Usage: "remove a pod sandbox",
 	Flags: []cli.Flag{
 		cli.StringFlag{
