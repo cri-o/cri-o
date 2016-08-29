@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Sirupsen/logrus"
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/mrunalp/ocid/oci"
 	"github.com/mrunalp/ocid/utils"
@@ -152,6 +153,10 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	}
 
 	s.addContainer(container)
+
+	if err := s.runtime.UpdateStatus(container); err != nil {
+		return nil, err
+	}
 
 	return &pb.CreatePodSandboxResponse{PodSandboxId: &name}, nil
 }
@@ -429,6 +434,21 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	// The config of the PodSandbox
 	sandboxConfig := req.GetSandboxConfig()
 	fmt.Printf("sandboxConfig: %v\n", sandboxConfig)
+
+	// Get the namespace paths for the pod sandbox container.
+	podContainerName := podSandboxId + "-infra"
+	podInfraContainer := s.state.containers[podContainerName]
+	podInfraState := s.runtime.ContainerStatus(podInfraContainer)
+
+	logrus.Infof("pod container state %v", podInfraState)
+
+	netNsPath := fmt.Sprintf("/proc/%d/ns/%s", podInfraState.Pid, "net")
+	specgen.AddOrReplaceLinuxNamespace("network", netNsPath)
+
+	for _, ns := range []string{"ipc", "uts"} {
+		nsPath := fmt.Sprintf("/proc/%d/ns/%s", podInfraState.Pid, ns)
+		specgen.AddOrReplaceLinuxNamespace(ns, nsPath)
+	}
 
 	if err := specgen.SaveToFile(filepath.Join(containerDir, "config.json")); err != nil {
 		return nil, err
