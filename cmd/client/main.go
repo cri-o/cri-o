@@ -82,7 +82,7 @@ func CreatePodSandbox(client pb.RuntimeServiceClient, path string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Println(*r.PodSandboxId)
 	return nil
 }
 
@@ -92,11 +92,11 @@ func StopPodSandbox(client pb.RuntimeServiceClient, ID string) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
-	r, err := client.StopPodSandbox(context.Background(), &pb.StopPodSandboxRequest{PodSandboxId: &ID})
+	_, err := client.StopPodSandbox(context.Background(), &pb.StopPodSandboxRequest{PodSandboxId: &ID})
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Println(ID)
 	return nil
 }
 
@@ -106,11 +106,11 @@ func RemovePodSandbox(client pb.RuntimeServiceClient, ID string) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
-	r, err := client.RemovePodSandbox(context.Background(), &pb.RemovePodSandboxRequest{PodSandboxId: &ID})
+	_, err := client.RemovePodSandbox(context.Background(), &pb.RemovePodSandboxRequest{PodSandboxId: &ID})
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Println(ID)
 	return nil
 }
 
@@ -129,7 +129,7 @@ func CreateContainer(client pb.RuntimeServiceClient, sandbox string, path string
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Println(*r.ContainerId)
 	return nil
 }
 
@@ -139,13 +139,13 @@ func StartContainer(client pb.RuntimeServiceClient, ID string) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
-	r, err := client.StartContainer(context.Background(), &pb.StartContainerRequest{
+	_, err := client.StartContainer(context.Background(), &pb.StartContainerRequest{
 		ContainerId: &ID,
 	})
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Println(ID)
 	return nil
 }
 
@@ -155,13 +155,13 @@ func StopContainer(client pb.RuntimeServiceClient, ID string) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
-	r, err := client.StopContainer(context.Background(), &pb.StopContainerRequest{
+	_, err := client.StopContainer(context.Background(), &pb.StopContainerRequest{
 		ContainerId: &ID,
 	})
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Println(ID)
 	return nil
 }
 
@@ -171,13 +171,13 @@ func RemoveContainer(client pb.RuntimeServiceClient, ID string) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
-	r, err := client.RemoveContainer(context.Background(), &pb.RemoveContainerRequest{
+	_, err := client.RemoveContainer(context.Background(), &pb.RemoveContainerRequest{
 		ContainerId: &ID,
 	})
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Println(ID)
 	return nil
 }
 
