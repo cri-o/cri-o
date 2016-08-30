@@ -272,8 +272,8 @@
 		},
 		{
 			"ImportPath": "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime",
-			"Comment": "v1.4.0-alpha.2-500-ge18eda9",
-			"Rev": "e18eda9b2b80128a4464cd8712801152e48afe37"
+			"Comment": "v1.4.0-alpha.3-265-g3fd14d9",
+			"Rev": "3fd14d97fb13ba2849e0c908aaff18efcece70c1"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/ocitools/generate",
@@ -351,31 +351,38 @@
 		},
 		{
 			"ImportPath": "google.golang.org/grpc",
-			"Rev": "715fec664d75c6b5cb5b12718458621d4b75df37"
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/codes",
-			"Rev": "715fec664d75c6b5cb5b12718458621d4b75df37"
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/credentials",
-			"Rev": "715fec664d75c6b5cb5b12718458621d4b75df37"
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/grpclog",
-			"Rev": "715fec664d75c6b5cb5b12718458621d4b75df37"
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/metadata",
-			"Rev": "715fec664d75c6b5cb5b12718458621d4b75df37"
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/naming",
-			"Rev": "715fec664d75c6b5cb5b12718458621d4b75df37"
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/transport",
-			"Rev": "715fec664d75c6b5cb5b12718458621d4b75df37"
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/util/errors",
@@ -396,6 +403,16 @@
 			"ImportPath": "k8s.io/kubernetes/pkg/util/sets",
 			"Comment": "v1.4.0-alpha.1-489-g976ca09",
 			"Rev": "976ca09d714cf114fb7a9e681bc0b170760cbdab"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/internal",
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/peer",
+			"Comment": "v1.0.1-GA-29-g79b7c34",
+			"Rev": "79b7c349179cdd6efd8bac4a1ce7f01b98c16e9b"
 		}
 	]
 }

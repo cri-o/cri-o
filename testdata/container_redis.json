@@ -1,5 +1,7 @@
 {
-	"name": "podsandbox1-redis",
+	"metadata": {
+		"name": "podsandbox1-redis"
+	},
 	"image": {
 		"image": "docker://redis:latest"
 	},

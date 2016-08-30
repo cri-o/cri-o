@@ -1,5 +1,7 @@
 {
-	"name": "podsandbox1",
+	"metadata": {
+		"name": "podsandbox1"
+	},
 	"hostname": "ocic_host",
 	"log_directory": ".",
 	"dns_options": {

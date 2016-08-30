@@ -47,7 +47,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	}
 
 	// process req.Name
-	name := req.GetConfig().GetName()
+	name := req.GetConfig().GetMetadata().GetName()
 	if name == "" {
 		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
 	}
@@ -243,7 +243,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig is nil")
 	}
 
-	name := containerConfig.GetName()
+	name := containerConfig.GetMetadata().GetName()
 	if name == "" {
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
