@@ -27,7 +27,6 @@ func New(runtimePath string, containerDir string) (*Runtime, error) {
 type Runtime struct {
 	name         string
 	path         string
-	sandboxDir   string
 	containerDir string
 }
 
