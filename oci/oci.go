@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/mrunalp/ocid/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -100,7 +101,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 }
 
 // ContainerStatus returns the state of a container.
-func (r *Runtime) ContainerStatus(c *Container) *specs.State {
+func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
 	return c.state
 }
 
@@ -111,11 +112,13 @@ type Container struct {
 	logPath    string
 	labels     map[string]string
 	sandbox    string
-	state      *specs.State
+	state      *ContainerState
 }
 
 // ContainerStatus represents the status of a container.
-type ContainerStatus struct {
+type ContainerState struct {
+	specs.State
+	Created time.Time `json:"created"`
 }
 
 // NewContainer creates a container object.

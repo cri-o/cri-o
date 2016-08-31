@@ -219,9 +219,44 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	return &pb.RemovePodSandboxResponse{}, nil
 }
 
+func int64Ptr(i int64) *int64 {
+	return &i
+}
+
+func sPtr(s string) *string {
+	return &s
+}
+
 // PodSandboxStatus returns the Status of the PodSandbox.
-func (s *Server) PodSandboxStatus(context.Context, *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
-	return nil, nil
+func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
+	sbName := req.PodSandboxId
+	if *sbName == "" {
+		return nil, fmt.Errorf("PodSandboxId should not be empty")
+	}
+	sb := s.state.sandboxes[*sbName]
+	if sb == nil {
+		return nil, fmt.Errorf("specified sandbox not found: %s", *sbName)
+	}
+
+	podInfraContainerName := *sbName + "-infra"
+	podInfraContainer := sb.containers[podInfraContainerName]
+
+	cState := s.runtime.ContainerStatus(podInfraContainer)
+	created := cState.Created.Unix()
+
+	netNsPath := fmt.Sprintf("/proc/%d/ns/net", cState.Pid)
+
+	return &pb.PodSandboxStatusResponse{
+		Status: &pb.PodSandboxStatus{
+			Id:        sbName,
+			CreatedAt: int64Ptr(created),
+			Linux: &pb.LinuxPodSandboxStatus{
+				Namespaces: &pb.Namespace{
+					Network: sPtr(netNsPath),
+				},
+			},
+		},
+	}, nil
 }
 
 // ListPodSandbox returns a list of SandBox.
