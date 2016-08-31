@@ -114,6 +114,20 @@ func RemovePodSandbox(client pb.RuntimeServiceClient, ID string) error {
 	return nil
 }
 
+// PodSandboxStatus sends a PodSandboxStatusRequest to the server, and parses
+// the returned PodSandboxStatusResponse.
+func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
+	if ID == "" {
+		return fmt.Errorf("ID cannot be empty")
+	}
+	r, err := client.PodSandboxStatus(context.Background(), &pb.PodSandboxStatusRequest{PodSandboxId: &ID})
+	if err != nil {
+		return err
+	}
+	fmt.Println(r)
+	return nil
+}
+
 // CreateContainer sends a CreateContainerRequest to the server, and parses
 // the returned CreateContainerResponse.
 func CreateContainer(client pb.RuntimeServiceClient, sandbox string, path string) error {
@@ -266,6 +280,7 @@ var podSandboxCommand = cli.Command{
 		createPodSandboxCommand,
 		stopPodSandboxCommand,
 		removePodSandboxCommand,
+		podSandboxStatusCommand,
 	},
 }
 
@@ -346,6 +361,33 @@ var removePodSandboxCommand = cli.Command{
 		err = RemovePodSandbox(client, context.String("id"))
 		if err != nil {
 			return fmt.Errorf("removing the pod sandbox failed: %v", err)
+		}
+		return nil
+	},
+}
+
+var podSandboxStatusCommand = cli.Command{
+	Name:  "status",
+	Usage: "return the status of a pod",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "id of the pod",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		err = PodSandboxStatus(client, context.String("id"))
+		if err != nil {
+			return fmt.Errorf("getting the pod sandbox status failed: %v", err)
 		}
 		return nil
 	},
