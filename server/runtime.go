@@ -148,6 +148,20 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
+	if err := s.runtime.UpdateStatus(container); err != nil {
+		return nil, err
+	}
+
+	// Setup the network
+	podNamespace := ""
+	netnsPath, err := container.NetNsPath()
+	if err != nil {
+		return nil, err
+	}
+	if err := s.netPlugin.SetUpPod(netnsPath, podNamespace, name, containerName); err != nil {
+		return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, name, err)
+	}
+
 	if err := s.runtime.StartContainer(container); err != nil {
 		return nil, err
 	}
@@ -173,7 +187,18 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		return nil, fmt.Errorf("specified sandbox not found: %s", *sbName)
 	}
 
+	podInfraContainer := *sbName + "-infra"
 	for _, c := range sb.containers {
+		if podInfraContainer == c.Name() {
+			podNamespace := ""
+			netnsPath, err := c.NetNsPath()
+			if err != nil {
+				return nil, err
+			}
+			if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, *sbName, podInfraContainer); err != nil {
+				return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v", c.Name(), *sbName, err)
+			}
+		}
 		if err := s.runtime.StopContainer(c); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *sbName, err)
 		}
@@ -244,7 +269,16 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	cState := s.runtime.ContainerStatus(podInfraContainer)
 	created := cState.Created.Unix()
 
-	netNsPath := fmt.Sprintf("/proc/%d/ns/net", cState.Pid)
+	netNsPath, err := podInfraContainer.NetNsPath()
+	if err != nil {
+		return nil, err
+	}
+	podNamespace := ""
+	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, *sbName, podInfraContainerName)
+	if err != nil {
+		// ignore the error on network status
+		ip = ""
+	}
 
 	return &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
@@ -255,6 +289,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 					Network: sPtr(netNsPath),
 				},
 			},
+			Network: &pb.PodSandboxNetworkStatus{Ip: &ip},
 		},
 	}, nil
 }

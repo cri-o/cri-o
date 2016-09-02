@@ -6,6 +6,7 @@ import (
 
 	"github.com/mrunalp/ocid/oci"
 	"github.com/mrunalp/ocid/utils"
+	"github.com/rajatchopra/ocicni"
 )
 
 const (
@@ -18,6 +19,7 @@ type Server struct {
 	runtime    *oci.Runtime
 	sandboxDir string
 	state      *serverState
+	netPlugin  ocicni.CNIPlugin
 }
 
 // New creates a new Server with options provided
@@ -40,8 +42,13 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 	}
 	sandboxes := make(map[string]*sandbox)
 	containers := make(map[string]*oci.Container)
+	netPlugin, err := ocicni.InitCNI("")
+	if err != nil {
+		return nil, err
+	}
 	return &Server{
 		runtime:    r,
+		netPlugin:  netPlugin,
 		sandboxDir: sandboxDir,
 		state: &serverState{
 			sandboxes:  sandboxes,
