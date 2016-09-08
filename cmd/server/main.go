@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/Sirupsen/logrus"
+	sreexec "github.com/containers/storage/pkg/reexec"
+	dreexec "github.com/docker/docker/pkg/reexec"
 	"github.com/kubernetes-incubator/ocid/server"
 	"github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/urfave/cli"
@@ -18,6 +20,13 @@ const (
 )
 
 func main() {
+	if sreexec.Init() {
+		return
+	}
+	if dreexec.Init() {
+		return
+	}
+
 	app := cli.NewApp()
 	app.Name = "ocic"
 	app.Usage = "client for ocid"

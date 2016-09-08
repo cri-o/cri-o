@@ -13,12 +13,12 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-// exclusion return true if the specified pattern is an exclusion
+// exclusion returns true if the specified pattern is an exclusion
 func exclusion(pattern string) bool {
 	return pattern[0] == '!'
 }
 
-// empty return true if the specified pattern is empty
+// empty returns true if the specified pattern is empty
 func empty(pattern string) bool {
 	return pattern == ""
 }
@@ -31,7 +31,7 @@ func CleanPatterns(patterns []string) ([]string, [][]string, bool, error) {
 	// Loop over exclusion patterns and:
 	// 1. Clean them up.
 	// 2. Indicate whether we are dealing with any exception rules.
-	// 3. Error if we see a single exclusion marker on it's own (!).
+	// 3. Error if we see a single exclusion marker on its own (!).
 	cleanedPatterns := []string{}
 	patternDirs := [][]string{}
 	exceptions := false
@@ -217,7 +217,7 @@ func regexpMatch(pattern, path string) (bool, error) {
 }
 
 // CopyFile copies from src to dst until either EOF is reached
-// on src or an error occurs. It verifies src exists and remove
+// on src or an error occurs. It verifies src exists and removes
 // the dst if it exists.
 func CopyFile(src, dst string) (int64, error) {
 	cleanSrc := filepath.Clean(src)

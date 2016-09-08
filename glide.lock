@@ -1,5 +1,5 @@
-hash: d966770b8886be2e6e94f299dc52f7b6f64597a6e036b70aa361108d0aa5a5aa
-updated: 2016-09-17T17:51:57.682909454+02:00
+hash: 06a42cd1074b800b7cff0bfa89b648dcff008fce0172bf1f5f42548ccb4baa26
+updated: 2016-09-17T18:49:17.02525117+02:00
 imports:
 - name: github.com/containernetworking/cni
   version: 9d5e6e60e79491207834ae8439e80c943db65a69
@@ -14,29 +14,28 @@ imports:
   - directory
   - image
   - transports
-  - directory/explicitfilepath
+  - signatures
+  - copy
+  - storage
+  - signature
   - types
   - manifest
+  - version
   - docker
   - oci/layout
   - openshift
-  - storage
+  - directory/explicitfilepath
   - docker/policyconfiguration
-  - version
 - name: github.com/containers/storage
   version: 32264f11f3b997e8d2ba032a6a13ebdfcddc2897
   subpackages:
-  - pkg/archive
-  - pkg/ioutils
   - storage
-  - pkg/fileutils
-  - pkg/idtools
-  - pkg/pools
-  - pkg/promise
-  - pkg/system
-  - pkg/longpath
+  - pkg/reexec
   - drivers
   - drivers/register
+  - pkg/archive
+  - pkg/idtools
+  - pkg/ioutils
   - pkg/stringid
   - storageversion
   - pkg/chrootarchive
@@ -50,8 +49,12 @@ imports:
   - drivers/vfs
   - drivers/windows
   - drivers/zfs
+  - pkg/fileutils
+  - pkg/pools
+  - pkg/promise
+  - pkg/system
+  - pkg/longpath
   - pkg/random
-  - pkg/reexec
   - pkg/plugins/transport
   - pkg/directory
   - pkg/parsers
@@ -63,36 +66,31 @@ imports:
   subpackages:
   - digest
   - reference
+  - context
+  - uuid
 - name: github.com/docker/docker
-  version: b9f10c951893f9a00865890a5232e85d770c1087
+  version: 23cf638307f030cd8d48c9efc21feec18a6f88f8
   subpackages:
-  - pkg/jsonlog
-  - pkg/jsonmessage
-  - pkg/longpath
-  - pkg/mount
-  - pkg/stdcopy
-  - pkg/symlink
-  - pkg/system
-  - pkg/term
-  - pkg/term/windows
+  - pkg/reexec
   - reference
   - image
   - image/v1
+  - pkg/ioutils
   - pkg/homedir
   - layer
-  - pkg/version
+  - pkg/longpath
   - daemon/graphdriver
   - pkg/archive
   - pkg/idtools
-  - pkg/ioutils
   - pkg/stringid
   - pkg/chrootarchive
+  - pkg/mount
   - pkg/plugins
   - pkg/fileutils
   - pkg/pools
   - pkg/promise
+  - pkg/system
   - pkg/random
-  - pkg/reexec
   - pkg/plugins/transport
 - name: github.com/docker/engine-api
   version: dea108d3aa0c67d7162a3fd8aa65f38a430019fd
@@ -157,6 +155,10 @@ imports:
   subpackages:
   - jsonpb
   - proto
+- name: github.com/gorilla/context
+  version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
+- name: github.com/gorilla/mux
+  version: 8096f47503459bcc74d1f4c487b7e6e42e5746b5
 - name: github.com/imdario/mergo
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/kubernetes/kubernetes
@@ -174,6 +176,8 @@ imports:
   version: d8e08e7d31d4f441646638b35f423a760d6dfbcd
 - name: github.com/mistifyio/go-zfs
   version: 1b4ae6fb4e77b095934d4430860ff202060169f8
+- name: github.com/mtrmac/gpgme
+  version: 7486dcd030936581e863bb69602ef411920d7fc9
 - name: github.com/opencontainers/image-spec
   version: 287772a24ab02d5d2fe3fbbba4f13dff9b9ce003
   subpackages:
