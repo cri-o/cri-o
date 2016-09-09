@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mrunalp/ocid/utils"
+	"github.com/kubernetes-incubator/ocid/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 

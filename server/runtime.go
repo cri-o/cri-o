@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/kubernetes-incubator/ocid/oci"
+	"github.com/kubernetes-incubator/ocid/utils"
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-	"github.com/mrunalp/ocid/oci"
-	"github.com/mrunalp/ocid/utils"
 	"github.com/opencontainers/ocitools/generate"
 	"golang.org/x/net/context"
 )

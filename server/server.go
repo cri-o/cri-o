@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mrunalp/ocid/oci"
-	"github.com/mrunalp/ocid/utils"
+	"github.com/kubernetes-incubator/ocid/oci"
+	"github.com/kubernetes-incubator/ocid/utils"
 	"github.com/rajatchopra/ocicni"
 )
 

@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/mrunalp/ocid/utils"
+	"github.com/kubernetes-incubator/ocid/utils"
 	"github.com/opencontainers/ocitools/generate"
 )
 
