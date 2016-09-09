@@ -1,4 +1,8 @@
-# ocid
+# ocid - OCI-based implementation of Kubernetes Container Runtime Interface
 ===========================
-ocid aims to implement the kubelet [Container Runtime Interface](https://github.com/kubernetes/kubernetes/pull/25899)
- to allow plugging in OCI compatible runtimes.
+
+The plan is to use OCI projects and best of breed libraries for different aspects:
+- Runtime: runc (or any OCI runtime-spec compliant runtime)
+- Images: Image management using https://github.com/containers/image
+- Storage: Storage and management of image layers using https://github.com/containers/storage
+- Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
