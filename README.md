@@ -1,5 +1,5 @@
-# ocid - OCI-based implementation of Kubernetes Container Runtime Interface
-===========================
+ocid - OCI-based implementation of Kubernetes Container Runtime Interface
+=
 
 The plan is to use OCI projects and best of breed libraries for different aspects:
 - Runtime: runc (or any OCI runtime-spec compliant runtime)
