@@ -561,7 +561,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 	containerName := req.ContainerId
 
 	if *containerName == "" {
-		return nil, fmt.Errorf("PodSandboxId should not be empty")
+		return nil, fmt.Errorf("container ID should not be empty")
 	}
 	c := s.state.containers[*containerName]
 	if c == nil {
@@ -580,7 +580,7 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	containerName := req.ContainerId
 
 	if *containerName == "" {
-		return nil, fmt.Errorf("PodSandboxId should not be empty")
+		return nil, fmt.Errorf("container ID should not be empty")
 	}
 	c := s.state.containers[*containerName]
 	if c == nil {
@@ -600,7 +600,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 	containerName := req.ContainerId
 
 	if *containerName == "" {
-		return nil, fmt.Errorf("PodSandboxId should not be empty")
+		return nil, fmt.Errorf("container ID should not be empty")
 	}
 	c := s.state.containers[*containerName]
 	if c == nil {
