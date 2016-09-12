@@ -121,6 +121,7 @@ type Container struct {
 	logPath    string
 	labels     map[string]string
 	sandbox    string
+	terminal   bool
 	state      *ContainerState
 	stateLock  sync.Mutex
 }
@@ -133,13 +134,14 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(name string, bundlePath string, logPath string, labels map[string]string, sandbox string) (*Container, error) {
+func NewContainer(name string, bundlePath string, logPath string, labels map[string]string, sandbox string, terminal bool) (*Container, error) {
 	c := &Container{
 		name:       name,
 		bundlePath: bundlePath,
 		logPath:    logPath,
 		labels:     labels,
 		sandbox:    sandbox,
+		terminal:   terminal,
 	}
 	return c, nil
 }
