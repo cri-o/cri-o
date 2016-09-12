@@ -195,6 +195,21 @@ func RemoveContainer(client pb.RuntimeServiceClient, ID string) error {
 	return nil
 }
 
+// ContainerStatus sends a ContainerStatusRequest to the server, and parses
+// the returned ContainerStatusResponse.
+func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
+	if ID == "" {
+		return fmt.Errorf("ID cannot be empty")
+	}
+	r, err := client.ContainerStatus(context.Background(), &pb.ContainerStatusRequest{
+		ContainerId: &ID})
+	if err != nil {
+		return err
+	}
+	fmt.Println(r)
+	return nil
+}
+
 // Version sends a VersionRequest to the server, and parses the returned VersionResponse.
 func Version(client pb.RuntimeServiceClient, version string) error {
 	r, err := client.Version(context.Background(), &pb.VersionRequest{Version: &version})
@@ -401,6 +416,7 @@ var containerCommand = cli.Command{
 		startContainerCommand,
 		stopContainerCommand,
 		removeContainerCommand,
+		containerStatusCommand,
 	},
 }
 
@@ -515,6 +531,33 @@ var removeContainerCommand = cli.Command{
 		err = RemoveContainer(client, context.String("id"))
 		if err != nil {
 			return fmt.Errorf("Removing the container failed: %v", err)
+		}
+		return nil
+	},
+}
+
+var containerStatusCommand = cli.Command{
+	Name:  "status",
+	Usage: "get the status of a container",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "id of the container",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("Failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		err = ContainerStatus(client, context.String("id"))
+		if err != nil {
+			return fmt.Errorf("Getting the status of the container failed: %v", err)
 		}
 		return nil
 	},
