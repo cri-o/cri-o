@@ -627,7 +627,31 @@ func (s *Server) ListContainers(context.Context, *pb.ListContainersRequest) (*pb
 }
 
 // ContainerStatus returns status of the container.
-func (s *Server) ContainerStatus(context.Context, *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
+func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
+	containerName := req.ContainerId
+
+	if *containerName == "" {
+		return nil, fmt.Errorf("container ID should not be empty")
+	}
+	c := s.state.containers[*containerName]
+
+	if c == nil {
+		return nil, fmt.Errorf("specified container not found: %s", *containerName)
+	}
+
+	if err := s.runtime.UpdateStatus(c); err != nil {
+		return nil, err
+	}
+
+	cState := s.runtime.ContainerStatus(c)
+	created := cState.Created.Unix()
+
+	return &pb.ContainerStatusResponse{
+		Status: &pb.ContainerStatus{
+			Id:        containerName,
+			CreatedAt: int64Ptr(created),
+		},
+	}, nil
 	return nil, nil
 }
 
