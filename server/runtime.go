@@ -549,6 +549,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
+	if err := s.runtime.UpdateStatus(container); err != nil {
+		return nil, err
+	}
+
 	s.addContainer(container)
 
 	return &pb.CreateContainerResponse{
