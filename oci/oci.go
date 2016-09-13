@@ -73,7 +73,11 @@ func (r *Runtime) CreateContainer(c *Container) error {
 
 // StartContainer starts a container.
 func (r *Runtime) StartContainer(c *Container) error {
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", c.name)
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", c.name); err != nil {
+		return err
+	}
+	c.state.Started = time.Now()
+	return nil
 }
 
 // StopContainer stops a container.
@@ -119,6 +123,7 @@ type Container struct {
 type ContainerState struct {
 	specs.State
 	Created time.Time `json:"created"`
+	Started time.Time `json:"started"`
 }
 
 // NewContainer creates a container object.

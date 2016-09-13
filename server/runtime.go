@@ -643,16 +643,38 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		return nil, err
 	}
 
-	cState := s.runtime.ContainerStatus(c)
-	created := cState.Created.Unix()
-
-	return &pb.ContainerStatusResponse{
+	csr := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
-			Id:        containerName,
-			CreatedAt: int64Ptr(created),
+			Id: containerName,
 		},
-	}, nil
-	return nil, nil
+	}
+
+	cState := s.runtime.ContainerStatus(c)
+	rStatus := pb.ContainerState_UNKNOWN
+
+	switch cState.Status {
+	case "created":
+		rStatus = pb.ContainerState_CREATED
+		created := cState.Created.Unix()
+		csr.Status.CreatedAt = int64Ptr(created)
+	case "running":
+		rStatus = pb.ContainerState_RUNNING
+		created := cState.Created.Unix()
+		csr.Status.CreatedAt = int64Ptr(created)
+		started := cState.Started.Unix()
+		csr.Status.StartedAt = int64Ptr(started)
+	case "stopped":
+		// TODO: Get the exit time
+		rStatus = pb.ContainerState_EXITED
+		created := cState.Created.Unix()
+		csr.Status.CreatedAt = int64Ptr(created)
+		started := cState.Started.Unix()
+		csr.Status.StartedAt = int64Ptr(started)
+	}
+
+	csr.Status.State = &rStatus
+
+	return csr, nil
 }
 
 // Exec executes the command in the container.
