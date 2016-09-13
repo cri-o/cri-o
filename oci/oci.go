@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kubernetes-incubator/ocid/utils"
@@ -93,6 +94,8 @@ func (r *Runtime) DeleteContainer(c *Container) error {
 
 // updateStatus refreshes the status of the container.
 func (r *Runtime) UpdateStatus(c *Container) error {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
 	out, err := exec.Command(r.path, "state", c.name).Output()
 	if err != nil {
 		return fmt.Errorf("error getting container state for %s: %s", c.name, err)
@@ -106,6 +109,8 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 
 // ContainerStatus returns the state of a container.
 func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
 	return c.state
 }
 
@@ -117,6 +122,7 @@ type Container struct {
 	labels     map[string]string
 	sandbox    string
 	state      *ContainerState
+	stateLock  sync.Mutex
 }
 
 // ContainerStatus represents the status of a container.
