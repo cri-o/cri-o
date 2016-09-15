@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -30,6 +32,11 @@ type Runtime struct {
 	name         string
 	path         string
 	containerDir string
+}
+
+// syncInfo is used to return data from monitor process to daemon
+type syncInfo struct {
+	Pid int `"json:pid"`
 }
 
 // Name returns the name of the OCI Runtime
@@ -69,7 +76,46 @@ func getOCIVersion(name string, args ...string) (string, error) {
 
 // CreateContainer creates a container.
 func (r *Runtime) CreateContainer(c *Container) error {
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "--systemd-cgroup", "create", "--bundle", c.bundlePath, c.name)
+	parentPipe, childPipe, err := newPipe()
+	if err != nil {
+		return fmt.Errorf("error creating socket pair: %v", err)
+	}
+	defer parentPipe.Close()
+
+	args := []string{"-c", c.name}
+	if c.terminal {
+		args = append(args, "-t")
+	}
+
+	cmd := exec.Command("conmon", args...)
+	cmd.Dir = c.bundlePath
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
+	// 0, 1 and 2 are stdin, stdout and stderr
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
+
+	err = cmd.Start()
+	if err != nil {
+		childPipe.Close()
+		return err
+	}
+
+	// We don't need childPipe on the parent side
+	childPipe.Close()
+
+	// Wait to get container pid from conmon
+	// TODO(mrunalp): Add a timeout here
+	var si *syncInfo
+	if err := json.NewDecoder(parentPipe).Decode(&si); err != nil {
+		return fmt.Errorf("reading pid from init pipe: %v", err)
+	}
+	logrus.Infof("Received container pid: %v", si.Pid)
+	return nil
 }
 
 // StartContainer starts a container.
@@ -177,4 +223,13 @@ func (c *Container) NetNsPath() (string, error) {
 		return "", fmt.Errorf("container state is not populated")
 	}
 	return fmt.Sprintf("/proc/%d/ns/net", c.state.Pid), nil
+}
+
+// newPipe creates a unix socket pair for communication
+func newPipe() (parent *os.File, child *os.File, err error) {
+	fds, err := syscall.Socketpair(syscall.AF_LOCAL, syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC, 0)
+	if err != nil {
+		return nil, nil, err
+	}
+	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
