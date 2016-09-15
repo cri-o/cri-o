@@ -14,8 +14,11 @@ import (
 	"google.golang.org/grpc"
 )
 
+var (
+	unixDomainSocket string
+)
+
 const (
-	unixDomainSocket = "/var/run/ocid.sock"
 	// TODO: Make configurable
 	timeout = 10 * time.Second
 )
@@ -231,6 +234,15 @@ func main() {
 		containerCommand,
 		runtimeVersionCommand,
 		pullImageCommand,
+	}
+
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:        "sock",
+			Value:       "/var/run/ocid.sock",
+			Usage:       "Socket to connect to",
+			Destination: &unixDomainSocket,
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
