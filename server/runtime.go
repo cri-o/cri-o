@@ -139,7 +139,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	}
 
 	containerName := name + "-infra"
-	container, err := oci.NewContainer(containerName, podSandboxDir, podSandboxDir, labels, name)
+	container, err := oci.NewContainer(containerName, podSandboxDir, podSandboxDir, labels, name, false)
 	if err != nil {
 		return nil, err
 	}
@@ -540,7 +540,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(name, containerDir, logPath, labels, podSandboxId)
+	container, err := oci.NewContainer(name, containerDir, logPath, labels, podSandboxId, containerConfig.GetTty())
 	if err != nil {
 		return nil, err
 	}

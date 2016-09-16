@@ -76,6 +76,9 @@ int main(int argc, char *argv[])
 	struct termios t;
 	struct epoll_event ev;
 	struct epoll_event evlist[MAX_EVENTS];
+	int child_pipe = -1;
+	char *sync_pipe, *endptr;
+	int len;
 
 	while ((opt = getopt(argc, argv, "tc:")) != -1) {
 		switch(opt) {
@@ -99,6 +102,14 @@ int main(int argc, char *argv[])
 
 	if (cid == NULL) {
 		nexit("Container ID not passed");
+	}
+
+	sync_pipe = getenv("_OCI_SYNCPIPE");
+	if (sync_pipe) {
+		errno = 0;
+		child_pipe = strtol(sync_pipe, &endptr, 10);
+		if (errno != 0 || *endptr != '\0')
+			pexit("unable to parse _OCI_SYNCPIPE");
 	}
 
 	/*
@@ -154,6 +165,14 @@ int main(int argc, char *argv[])
 
 	cpid = atoi(contents);
 	printf("container PID: %d\n", cpid);
+
+	/* Send the container pid back to parent */
+	if (child_pipe > 0) {
+		len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", cpid);
+		if (len < 0 || write(child_pipe, buf, len) != len) {
+			pexit("unable to send container pid to parent");
+		}
+	}
 
 	if (terminal) {
 		/* Save exiting termios settings */
