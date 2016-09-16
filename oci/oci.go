@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -150,6 +152,27 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 	if err := json.NewDecoder(stateReader).Decode(&c.state); err != nil {
 		return fmt.Errorf("failed to decode container status for %s: %s", c.name, err)
 	}
+
+	if c.state.Status == "stopped" {
+		exitFilePath := filepath.Join(c.bundlePath, "exit")
+		fi, err := os.Stat(exitFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to find container exit file: %v", err)
+		}
+		st := fi.Sys().(*syscall.Stat_t)
+		c.state.Finished = time.Unix(int64(st.Ctim.Sec), int64(st.Ctim.Nsec))
+
+		statusCodeStr, err := ioutil.ReadFile(exitFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to read exit file: %v", err)
+		}
+		statusCode, err := strconv.Atoi(string(statusCodeStr))
+		if err != nil {
+			return fmt.Errorf("status code conversion failed: %v", err)
+		}
+		c.state.ExitCode = int32(statusCode)
+	}
+
 	return nil
 }
 
@@ -175,8 +198,10 @@ type Container struct {
 // ContainerStatus represents the status of a container.
 type ContainerState struct {
 	specs.State
-	Created time.Time `json:"created"`
-	Started time.Time `json:"started"`
+	Created  time.Time `json:"created"`
+	Started  time.Time `json:"started"`
+	Finished time.Time `json:"finished"`
+	ExitCode int32     `json:"exitCode"`
 }
 
 // NewContainer creates a container object.
