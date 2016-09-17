@@ -85,6 +85,7 @@ func (r *Runtime) CreateContainer(c *Container) error {
 	defer parentPipe.Close()
 
 	args := []string{"-c", c.name}
+	args = append(args, "-r", r.path)
 	if c.terminal {
 		args = append(args, "-t")
 	}
