@@ -61,6 +61,12 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
+	defer func() {
+		if err != nil {
+			os.RemoveAll(podSandboxDir)
+		}
+	}()
+
 	// creates a spec Generator with the default spec.
 	g := generate.New()
 
@@ -84,8 +90,11 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	dnsServers := req.GetConfig().GetDnsOptions().GetServers()
 	dnsSearches := req.GetConfig().GetDnsOptions().GetSearches()
 	resolvPath := fmt.Sprintf("%s/resolv.conf", podSandboxDir)
-	if err := parseDNSOptions(dnsServers, dnsSearches, resolvPath); err != nil {
-		if err1 := removeFile(resolvPath); err1 != nil {
+	err = parseDNSOptions(dnsServers, dnsSearches, resolvPath)
+	if err != nil {
+		err1 := removeFile(resolvPath)
+		if err1 != nil {
+			err = err1
 			return nil, fmt.Errorf("%v; failed to remove %s: %v", err, resolvPath, err1)
 		}
 		return nil, err
@@ -113,21 +122,21 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 
 	// set up namespaces
 	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostNetwork() {
-		err := g.RemoveLinuxNamespace("network")
+		err = g.RemoveLinuxNamespace("network")
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostPid() {
-		err := g.RemoveLinuxNamespace("pid")
+		err = g.RemoveLinuxNamespace("pid")
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostIpc() {
-		err := g.RemoveLinuxNamespace("ipc")
+		err = g.RemoveLinuxNamespace("ipc")
 		if err != nil {
 			return nil, err
 		}
@@ -144,11 +153,11 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
-	if err := s.runtime.CreateContainer(container); err != nil {
+	if err = s.runtime.CreateContainer(container); err != nil {
 		return nil, err
 	}
 
-	if err := s.runtime.UpdateStatus(container); err != nil {
+	if err = s.runtime.UpdateStatus(container); err != nil {
 		return nil, err
 	}
 
@@ -158,17 +167,17 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	if err != nil {
 		return nil, err
 	}
-	if err := s.netPlugin.SetUpPod(netnsPath, podNamespace, name, containerName); err != nil {
+	if err = s.netPlugin.SetUpPod(netnsPath, podNamespace, name, containerName); err != nil {
 		return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, name, err)
 	}
 
-	if err := s.runtime.StartContainer(container); err != nil {
+	if err = s.runtime.StartContainer(container); err != nil {
 		return nil, err
 	}
 
 	s.addContainer(container)
 
-	if err := s.runtime.UpdateStatus(container); err != nil {
+	if err = s.runtime.UpdateStatus(container); err != nil {
 		return nil, err
 	}
 
