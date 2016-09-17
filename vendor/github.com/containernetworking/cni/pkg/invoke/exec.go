@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 
@@ -58,25 +57,15 @@ func ExecPluginWithoutResult(pluginPath string, netconf []byte, args CNIArgs) er
 }
 
 func execPlugin(pluginPath string, netconf []byte, args CNIArgs) ([]byte, error) {
-	return defaultRawExec.ExecPlugin(pluginPath, netconf, args.AsEnv())
-}
-
-var defaultRawExec = &RawExec{Stderr: os.Stderr}
-
-type RawExec struct {
-	Stderr io.Writer
-}
-
-func (e *RawExec) ExecPlugin(pluginPath string, stdinData []byte, environ []string) ([]byte, error) {
 	stdout := &bytes.Buffer{}
 
 	c := exec.Cmd{
-		Env:    environ,
+		Env:    args.AsEnv(),
 		Path:   pluginPath,
 		Args:   []string{pluginPath},
-		Stdin:  bytes.NewBuffer(stdinData),
+		Stdin:  bytes.NewBuffer(netconf),
 		Stdout: stdout,
-		Stderr: e.Stderr,
+		Stderr: os.Stderr,
 	}
 	if err := c.Run(); err != nil {
 		return nil, pluginErr(err, stdout.Bytes())

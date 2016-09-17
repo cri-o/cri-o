@@ -1,7 +1,6 @@
 package directory
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -14,6 +13,7 @@ type dirImageSource struct {
 }
 
 // newImageSource returns an ImageSource reading from an existing directory.
+// The caller must call .Close() on the returned ImageSource.
 func newImageSource(ref dirReference) types.ImageSource {
 	return &dirImageSource{ref}
 }
@@ -24,8 +24,12 @@ func (s *dirImageSource) Reference() types.ImageReference {
 	return s.ref
 }
 
+// Close removes resources associated with an initialized ImageSource, if any.
+func (s *dirImageSource) Close() {
+}
+
 // it's up to the caller to determine the MIME type of the returned manifest's bytes
-func (s *dirImageSource) GetManifest(_ []string) ([]byte, string, error) {
+func (s *dirImageSource) GetManifest() ([]byte, string, error) {
 	m, err := ioutil.ReadFile(s.ref.manifestPath())
 	if err != nil {
 		return nil, "", err
@@ -33,6 +37,7 @@ func (s *dirImageSource) GetManifest(_ []string) ([]byte, string, error) {
 	return m, "", err
 }
 
+// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 func (s *dirImageSource) GetBlob(digest string) (io.ReadCloser, int64, error) {
 	r, err := os.Open(s.ref.layerPath(digest))
 	if err != nil {
@@ -58,8 +63,4 @@ func (s *dirImageSource) GetSignatures() ([][]byte, error) {
 		signatures = append(signatures, signature)
 	}
 	return signatures, nil
-}
-
-func (s *dirImageSource) Delete() error {
-	return fmt.Errorf("directory#dirImageSource.Delete() not implmented")
 }

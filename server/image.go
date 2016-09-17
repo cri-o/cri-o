@@ -44,11 +44,11 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		return nil, err
 	}
 	// TODO(runcom): figure out the ImageContext story in containers/image instead of passing ("", true)
-	src, err := tr.NewImageSource("", true)
+	src, err := tr.NewImageSource(nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	i := image.FromSource(src, nil)
+	i := image.FromSource(src)
 	blobs, err := i.BlobDigests()
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		return nil, err
 	}
 	// TODO(runcom): figure out the ImageContext story in containers/image instead of passing ("", true)
-	dest, err := dir.NewImageDestination("", true)
+	dest, err := dir.NewImageDestination(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		if err != nil {
 			return nil, err
 		}
-		if err := dest.PutBlob(b, r); err != nil {
+		if _, _, err := dest.PutBlob(r, b, -1); err != nil {
 			r.Close()
 			return nil, err
 		}

@@ -2,12 +2,8 @@
 
 package winio
 
-import (
-	"syscall"
-	"unsafe"
-
-	"golang.org/x/sys/windows"
-)
+import "unsafe"
+import "syscall"
 
 var _ unsafe.Pointer
 
@@ -304,7 +300,7 @@ func setFileInformationByHandle(h syscall.Handle, class uint32, buffer *byte, si
 	return
 }
 
-func adjustTokenPrivileges(token windows.Token, releaseAll bool, input *byte, outputSize uint32, output *byte, requiredSize *uint32) (success bool, err error) {
+func adjustTokenPrivileges(token syscall.Handle, releaseAll bool, input *byte, outputSize uint32, output *byte, requiredSize *uint32) (success bool, err error) {
 	var _p0 uint32
 	if releaseAll {
 		_p0 = 1
@@ -347,7 +343,7 @@ func revertToSelf() (err error) {
 	return
 }
 
-func openThreadToken(thread syscall.Handle, accessMask uint32, openAsSelf bool, token *windows.Token) (err error) {
+func openThreadToken(thread syscall.Handle, accessMask uint32, openAsSelf bool, token *syscall.Handle) (err error) {
 	var _p0 uint32
 	if openAsSelf {
 		_p0 = 1

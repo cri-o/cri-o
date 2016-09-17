@@ -62,7 +62,7 @@ func ParseSocketControlMessage(b []byte) ([]SocketControlMessage, error) {
 
 func socketControlMessageHeaderAndData(b []byte) (*Cmsghdr, []byte, error) {
 	h := (*Cmsghdr)(unsafe.Pointer(&b[0]))
-	if h.Len < SizeofCmsghdr || uint64(h.Len) > uint64(len(b)) {
+	if h.Len < SizeofCmsghdr || int(h.Len) > len(b) {
 		return nil, nil, EINVAL
 	}
 	return h, b[cmsgAlignOf(SizeofCmsghdr):h.Len], nil
@@ -77,10 +77,10 @@ func UnixRights(fds ...int) []byte {
 	h.Level = SOL_SOCKET
 	h.Type = SCM_RIGHTS
 	h.SetLen(CmsgLen(datalen))
-	data := cmsgData(h)
+	data := uintptr(cmsgData(h))
 	for _, fd := range fds {
-		*(*int32)(data) = int32(fd)
-		data = unsafe.Pointer(uintptr(data) + 4)
+		*(*int32)(unsafe.Pointer(data)) = int32(fd)
+		data += 4
 	}
 	return b
 }
