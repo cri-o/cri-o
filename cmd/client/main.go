@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
@@ -234,6 +235,7 @@ func main() {
 		containerCommand,
 		runtimeVersionCommand,
 		pullImageCommand,
+		listImagesCommand,
 	}
 
 	app.Flags = []cli.Flag{
@@ -248,6 +250,36 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+var listImagesCommand = cli.Command{
+	Name:  "listimages",
+	Usage: "list images",
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewImageServiceClient(conn)
+		if err := ListImages(client); err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+func ListImages(client pb.ImageServiceClient) error {
+	resp, err := client.ListImages(context.Background(), &pb.ListImagesRequest{})
+	if err != nil {
+		return fmt.Errorf("listing images failed: %v", err)
+	}
+	for _, i := range resp.Images {
+		logrus.Println(i.String())
+	}
+	return nil
 }
 
 func PullImage(client pb.ImageServiceClient, image string) error {
