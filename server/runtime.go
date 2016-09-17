@@ -248,6 +248,10 @@ func int64Ptr(i int64) *int64 {
 	return &i
 }
 
+func int32Ptr(i int32) *int32 {
+	return &i
+}
+
 func sPtr(s string) *string {
 	return &s
 }
@@ -668,12 +672,14 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		started := cState.Started.Unix()
 		csr.Status.StartedAt = int64Ptr(started)
 	case "stopped":
-		// TODO: Get the exit time
 		rStatus = pb.ContainerState_EXITED
 		created := cState.Created.Unix()
 		csr.Status.CreatedAt = int64Ptr(created)
 		started := cState.Started.Unix()
 		csr.Status.StartedAt = int64Ptr(started)
+		finished := cState.Finished.Unix()
+		csr.Status.FinishedAt = int64Ptr(finished)
+		csr.Status.ExitCode = int32Ptr(cState.ExitCode)
 	}
 
 	csr.Status.State = &rStatus
