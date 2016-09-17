@@ -1,5 +1,5 @@
-hash: e1c100879f58ef4902c4e13d6710505f0ec62fbb5eaa237abeff8faf0ddf30f1
-updated: 2016-09-17T15:49:39.168380014+02:00
+hash: d966770b8886be2e6e94f299dc52f7b6f64597a6e036b70aa361108d0aa5a5aa
+updated: 2016-09-17T17:51:57.682909454+02:00
 imports:
 - name: github.com/containernetworking/cni
   version: 9d5e6e60e79491207834ae8439e80c943db65a69
@@ -8,7 +8,8 @@ imports:
   - pkg/invoke
   - pkg/types
 - name: github.com/containers/image
-  version: f6f11ab5cf8b1e70ef4aa3f8b6fdb4b671d16abd
+  version: 5a72b5908c6978a8eee293fdd654395da29015fe
+  repo: git@github.com:nalind/image
   subpackages:
   - directory
   - image
@@ -19,8 +20,44 @@ imports:
   - docker
   - oci/layout
   - openshift
+  - storage
   - docker/policyconfiguration
   - version
+- name: github.com/containers/storage
+  version: 32264f11f3b997e8d2ba032a6a13ebdfcddc2897
+  subpackages:
+  - pkg/archive
+  - pkg/ioutils
+  - storage
+  - pkg/fileutils
+  - pkg/idtools
+  - pkg/pools
+  - pkg/promise
+  - pkg/system
+  - pkg/longpath
+  - drivers
+  - drivers/register
+  - pkg/stringid
+  - storageversion
+  - pkg/chrootarchive
+  - pkg/mount
+  - pkg/plugins
+  - drivers/aufs
+  - drivers/btrfs
+  - drivers/devmapper
+  - drivers/overlay
+  - drivers/overlay2
+  - drivers/vfs
+  - drivers/windows
+  - drivers/zfs
+  - pkg/random
+  - pkg/reexec
+  - pkg/plugins/transport
+  - pkg/directory
+  - pkg/parsers
+  - pkg/devicemapper
+  - pkg/loopback
+  - pkg/parsers/kernel
 - name: github.com/docker/distribution
   version: cd27f179f2c10c5d300e6d09025b538c475b0d51
   subpackages:
@@ -126,8 +163,17 @@ imports:
   version: ff3ca3d616518087dc20180f69bb4038379f1028
   subpackages:
   - pkg/kubelet/api/v1alpha1/runtime
+- name: github.com/mattn/go-shellwords
+  version: 525bedee691b5a8df547cb5cf9f86b7fb1883e24
 - name: github.com/Microsoft/go-winio
   version: 8f9387ea7efabb228a981b9c381142be7667967f
+  subpackages:
+  - archive/tar
+  - backuptar
+- name: github.com/Microsoft/hcsshim
+  version: d8e08e7d31d4f441646638b35f423a760d6dfbcd
+- name: github.com/mistifyio/go-zfs
+  version: 1b4ae6fb4e77b095934d4430860ff202060169f8
 - name: github.com/opencontainers/image-spec
   version: 287772a24ab02d5d2fe3fbbba4f13dff9b9ce003
   subpackages:
@@ -160,6 +206,8 @@ imports:
   version: 7dab1a245d3e13d0ad03b77409d0bf7e00a6ada4
   subpackages:
   - specs-go
+- name: github.com/pborman/uuid
+  version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/rajatchopra/ocicni
   version: daea0034a4bc2d193d9bf5031bace0403094011a
 - name: github.com/Sirupsen/logrus

@@ -3,6 +3,8 @@ import:
 - package: github.com/Sirupsen/logrus
   version: ~0.10.0
 - package: github.com/containers/image
+  version: add-storage-transport
+  repo:    git@github.com:nalind/image
   subpackages:
   - directory
   - image

@@ -950,8 +950,7 @@ func (m *clustersMap) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	for _, e := range a {
-		cluster := e.Cluster // Allocates a new instance in each iteration
-		(*m)[e.Name] = &cluster
+		(*m)[e.Name] = &e.Cluster
 	}
 	return nil
 }
@@ -964,8 +963,7 @@ func (m *authInfosMap) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	for _, e := range a {
-		authInfo := e.AuthInfo // Allocates a new instance in each iteration
-		(*m)[e.Name] = &authInfo
+		(*m)[e.Name] = &e.AuthInfo
 	}
 	return nil
 }
@@ -978,8 +976,7 @@ func (m *contextsMap) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	for _, e := range a {
-		context := e.Context // Allocates a new instance in each iteration
-		(*m)[e.Name] = &context
+		(*m)[e.Name] = &e.Context
 	}
 	return nil
 }
