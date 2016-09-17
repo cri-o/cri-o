@@ -35,7 +35,7 @@
 Package transport defines and implements message oriented communication channel
 to complete various transactions (e.g., an RPC).
 */
-package transport
+package transport // import "google.golang.org/grpc/transport"
 
 import (
 	"bytes"
@@ -522,7 +522,7 @@ func (e ConnectionError) Origin() error {
 
 var (
 	// ErrConnClosing indicates that the transport is closing.
-	ErrConnClosing = ConnectionErrorf(true, nil, "transport is closing")
+	ErrConnClosing = ConnectionError{Desc: "transport is closing", temp: true}
 	// ErrStreamDrain indicates that the stream is rejected by the server because
 	// the server stops accepting new RPCs.
 	ErrStreamDrain = StreamErrorf(codes.Unavailable, "the server stops accepting new RPCs")

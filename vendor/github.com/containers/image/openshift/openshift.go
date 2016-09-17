@@ -2,12 +2,14 @@ package openshift
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -20,7 +22,8 @@ import (
 
 // openshiftClient is configuration for dealing with a single image stream, for reading or writing.
 type openshiftClient struct {
-	ref openshiftReference
+	ref     openshiftReference
+	baseURL *url.URL
 	// Values from Kubernetes configuration
 	httpClient  *http.Client
 	bearerToken string // "" if not used
@@ -50,13 +53,15 @@ func newOpenshiftClient(ref openshiftReference) (*openshiftClient, error) {
 		return nil, err
 	}
 	logrus.Debugf("URL: %#v", *baseURL)
-	if *baseURL != *ref.baseURL {
-		return nil, fmt.Errorf("Unexpected baseURL mismatch: default %#v, reference %#v", *baseURL, *ref.baseURL)
+
+	if httpClient == nil {
+		httpClient = http.DefaultClient
 	}
 	httpClient.Timeout = 1 * time.Minute
 
 	return &openshiftClient{
 		ref:         ref,
+		baseURL:     baseURL,
 		httpClient:  httpClient,
 		bearerToken: restConfig.BearerToken,
 		username:    restConfig.Username,
@@ -66,7 +71,7 @@ func newOpenshiftClient(ref openshiftReference) (*openshiftClient, error) {
 
 // doRequest performs a correctly authenticated request to a specified path, and returns response body or an error object.
 func (c *openshiftClient) doRequest(method, path string, requestBody []byte) ([]byte, error) {
-	url := *c.ref.baseURL
+	url := *c.baseURL
 	url.Path = path
 	var requestBodyReader io.Reader
 	if requestBody != nil {
@@ -126,6 +131,22 @@ func (c *openshiftClient) doRequest(method, path string, requestBody []byte) ([]
 	return body, nil
 }
 
+// getImage loads the specified image object.
+func (c *openshiftClient) getImage(imageStreamImageName string) (*image, error) {
+	// FIXME: validate components per validation.IsValidPathSegmentName?
+	path := fmt.Sprintf("/oapi/v1/namespaces/%s/imagestreamimages/%s@%s", c.ref.namespace, c.ref.stream, imageStreamImageName)
+	body, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	// Note: This does absolutely no kind/version checking or conversions.
+	var isi imageStreamImage
+	if err := json.Unmarshal(body, &isi); err != nil {
+		return nil, err
+	}
+	return &isi.Image, nil
+}
+
 // convertDockerImageReference takes an image API DockerImageReference value and returns a reference we can actually use;
 // currently OpenShift stores the cluster-internal service IPs here, which are unusable from the outside.
 func (c *openshiftClient) convertDockerImageReference(ref string) (string, error) {
@@ -133,42 +154,33 @@ func (c *openshiftClient) convertDockerImageReference(ref string) (string, error
 	if len(parts) != 2 {
 		return "", fmt.Errorf("Invalid format of docker reference %s: missing '/'", ref)
 	}
-	// Sanity check that the reference is at least plausibly similar, i.e. uses the hard-coded port we expect.
-	if !strings.HasSuffix(parts[0], ":5000") {
-		return "", fmt.Errorf("Invalid format of docker reference %s: expecting port 5000", ref)
-	}
-	return c.dockerRegistryHostPart() + "/" + parts[1], nil
-}
-
-// dockerRegistryHostPart returns the host:port of the embedded Docker Registry API endpoint
-// FIXME: There seems to be no way to discover the correct:host port using the API, so hard-code our knowledge
-// about how the OpenShift Atomic Registry is configured, per examples/atomic-registry/run.sh:
-// -p OPENSHIFT_OAUTH_PROVIDER_URL=https://${INSTALL_HOST}:8443,COCKPIT_KUBE_URL=https://${INSTALL_HOST},REGISTRY_HOST=${INSTALL_HOST}:5000
-func (c *openshiftClient) dockerRegistryHostPart() string {
-	return strings.SplitN(c.ref.baseURL.Host, ":", 2)[0] + ":5000"
+	return c.ref.dockerReference.Hostname() + "/" + parts[1], nil
 }
 
 type openshiftImageSource struct {
 	client *openshiftClient
 	// Values specific to this image
-	certPath  string // Only for parseDockerImageSource
-	tlsVerify bool   // Only for parseDockerImageSource
+	ctx                        *types.SystemContext
+	requestedManifestMIMETypes []string
 	// State
 	docker               types.ImageSource // The Docker Registry endpoint, or nil if not resolved yet
 	imageStreamImageName string            // Resolved image identifier, or "" if not known yet
 }
 
-// newImageSource creates a new ImageSource for the specified reference and connection specification.
-func newImageSource(ref openshiftReference, certPath string, tlsVerify bool) (types.ImageSource, error) {
+// newImageSource creates a new ImageSource for the specified reference,
+// asking the backend to use a manifest from requestedManifestMIMETypes if possible.
+// nil requestedManifestMIMETypes means manifest.DefaultRequestedManifestMIMETypes.
+// The caller must call .Close() on the returned ImageSource.
+func newImageSource(ctx *types.SystemContext, ref openshiftReference, requestedManifestMIMETypes []string) (types.ImageSource, error) {
 	client, err := newOpenshiftClient(ref)
 	if err != nil {
 		return nil, err
 	}
 
 	return &openshiftImageSource{
-		client:    client,
-		certPath:  certPath,
-		tlsVerify: tlsVerify,
+		client: client,
+		ctx:    ctx,
+		requestedManifestMIMETypes: requestedManifestMIMETypes,
 	}, nil
 }
 
@@ -178,13 +190,22 @@ func (s *openshiftImageSource) Reference() types.ImageReference {
 	return s.client.ref
 }
 
-func (s *openshiftImageSource) GetManifest(mimetypes []string) ([]byte, string, error) {
+// Close removes resources associated with an initialized ImageSource, if any.
+func (s *openshiftImageSource) Close() {
+	if s.docker != nil {
+		s.docker.Close()
+		s.docker = nil
+	}
+}
+
+func (s *openshiftImageSource) GetManifest() ([]byte, string, error) {
 	if err := s.ensureImageIsResolved(); err != nil {
 		return nil, "", err
 	}
-	return s.docker.GetManifest(mimetypes)
+	return s.docker.GetManifest()
 }
 
+// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 func (s *openshiftImageSource) GetBlob(digest string) (io.ReadCloser, int64, error) {
 	if err := s.ensureImageIsResolved(); err != nil {
 		return nil, 0, err
@@ -193,7 +214,21 @@ func (s *openshiftImageSource) GetBlob(digest string) (io.ReadCloser, int64, err
 }
 
 func (s *openshiftImageSource) GetSignatures() ([][]byte, error) {
-	return nil, nil
+	if err := s.ensureImageIsResolved(); err != nil {
+		return nil, err
+	}
+
+	image, err := s.client.getImage(s.imageStreamImageName)
+	if err != nil {
+		return nil, err
+	}
+	var sigs [][]byte
+	for _, sig := range image.Signatures {
+		if sig.Type == imageSignatureTypeAtomic {
+			sigs = append(sigs, sig.Content)
+		}
+	}
+	return sigs, nil
 }
 
 // ensureImageIsResolved sets up s.docker and s.imageStreamImageName
@@ -215,7 +250,7 @@ func (s *openshiftImageSource) ensureImageIsResolved() error {
 	}
 	var te *tagEvent
 	for _, tag := range is.Status.Tags {
-		if tag.Tag != s.client.ref.tag {
+		if tag.Tag != s.client.ref.dockerReference.Tag() {
 			continue
 		}
 		if len(tag.Items) > 0 {
@@ -236,7 +271,7 @@ func (s *openshiftImageSource) ensureImageIsResolved() error {
 	if err != nil {
 		return err
 	}
-	d, err := dockerRef.NewImageSource(s.certPath, s.tlsVerify)
+	d, err := dockerRef.NewImageSource(s.ctx, s.requestedManifestMIMETypes)
 	if err != nil {
 		return err
 	}
@@ -248,10 +283,12 @@ func (s *openshiftImageSource) ensureImageIsResolved() error {
 type openshiftImageDestination struct {
 	client *openshiftClient
 	docker types.ImageDestination // The Docker Registry endpoint
+	// State
+	imageStreamImageName string // "" if not yet known
 }
 
-// newImageDestination creates a new ImageDestination for the specified reference and connection specification.
-func newImageDestination(ref openshiftReference, certPath string, tlsVerify bool) (types.ImageDestination, error) {
+// newImageDestination creates a new ImageDestination for the specified reference.
+func newImageDestination(ctx *types.SystemContext, ref openshiftReference) (types.ImageDestination, error) {
 	client, err := newOpenshiftClient(ref)
 	if err != nil {
 		return nil, err
@@ -260,12 +297,12 @@ func newImageDestination(ref openshiftReference, certPath string, tlsVerify bool
 	// FIXME: Should this always use a digest, not a tag? Uploading to Docker by tag requires the tag _inside_ the manifest to match,
 	// i.e. a single signed image cannot be available under multiple tags.  But with types.ImageDestination, we don't know
 	// the manifest digest at this point.
-	dockerRefString := fmt.Sprintf("//%s/%s/%s:%s", client.dockerRegistryHostPart(), client.ref.namespace, client.ref.stream, client.ref.tag)
+	dockerRefString := fmt.Sprintf("//%s/%s/%s:%s", client.ref.dockerReference.Hostname(), client.ref.namespace, client.ref.stream, client.ref.dockerReference.Tag())
 	dockerRef, err := docker.ParseReference(dockerRefString)
 	if err != nil {
 		return nil, err
 	}
-	docker, err := dockerRef.NewImageDestination(certPath, tlsVerify)
+	docker, err := dockerRef.NewImageDestination(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -282,21 +319,47 @@ func (d *openshiftImageDestination) Reference() types.ImageReference {
 	return d.client.ref
 }
 
+// Close removes resources associated with an initialized ImageDestination, if any.
+func (d *openshiftImageDestination) Close() {
+	d.docker.Close()
+}
+
 func (d *openshiftImageDestination) SupportedManifestMIMETypes() []string {
 	return []string{
-		manifest.DockerV2Schema1SignedMIMEType,
-		manifest.DockerV2Schema1MIMEType,
+		manifest.DockerV2Schema1SignedMediaType,
+		manifest.DockerV2Schema1MediaType,
 	}
 }
 
+// SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
+// Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
+func (d *openshiftImageDestination) SupportsSignatures() error {
+	return nil
+}
+
+// PutBlob writes contents of stream and returns its computed digest and size.
+// A digest can be optionally provided if known, the specific image destination can decide to play with it or not.
+// The length of stream is expected to be expectedSize; if expectedSize == -1, it is not known.
+// WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
+// to any other readers for download using the supplied digest.
+// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
+func (d *openshiftImageDestination) PutBlob(stream io.Reader, digest string, expectedSize int64) (string, int64, error) {
+	return d.docker.PutBlob(stream, digest, expectedSize)
+}
+
 func (d *openshiftImageDestination) PutManifest(m []byte) error {
+	// FIXME? Can this eventually just call d.docker.PutManifest()?
+	// Right now we need this as a skeleton to attach signatures to, and
+	// to workaround our inability to change tags when uploading v2s1 manifests.
+
 	// Note: This does absolutely no kind/version checking or conversions.
 	manifestDigest, err := manifest.Digest(m)
 	if err != nil {
 		return err
 	}
+	d.imageStreamImageName = manifestDigest
 	// FIXME: We can't do what respositorymiddleware.go does because we don't know the internal address. Does any of this matter?
-	dockerImageReference := fmt.Sprintf("%s/%s/%s@%s", d.client.dockerRegistryHostPart(), d.client.ref.namespace, d.client.ref.stream, manifestDigest)
+	dockerImageReference := fmt.Sprintf("%s/%s/%s@%s", d.client.ref.dockerReference.Hostname(), d.client.ref.namespace, d.client.ref.stream, manifestDigest)
 	ism := imageStreamMapping{
 		typeMeta: typeMeta{
 			Kind:       "ImageStreamMapping",
@@ -313,7 +376,7 @@ func (d *openshiftImageDestination) PutManifest(m []byte) error {
 			DockerImageReference: dockerImageReference,
 			DockerImageManifest:  string(m),
 		},
-		Tag: d.client.ref.tag,
+		Tag: d.client.ref.dockerReference.Tag(),
 	}
 	body, err := json.Marshal(ism)
 	if err != nil {
@@ -327,18 +390,76 @@ func (d *openshiftImageDestination) PutManifest(m []byte) error {
 		return err
 	}
 
-	return d.docker.PutManifest(m)
-}
-
-func (d *openshiftImageDestination) PutBlob(digest string, stream io.Reader) error {
-	return d.docker.PutBlob(digest, stream)
+	return nil
 }
 
 func (d *openshiftImageDestination) PutSignatures(signatures [][]byte) error {
-	if len(signatures) != 0 {
-		return fmt.Errorf("Pushing signatures to an Atomic Registry is not supported")
+	if d.imageStreamImageName == "" {
+		return fmt.Errorf("Internal error: Unknown manifest digest, can't add signatures")
 	}
+	// Because image signatures are a shared resource in Atomic Registry, the default upload
+	// always adds signatures.  Eventually we should also allow removing signatures.
+
+	if len(signatures) == 0 {
+		return nil // No need to even read the old state.
+	}
+
+	image, err := d.client.getImage(d.imageStreamImageName)
+	if err != nil {
+		return err
+	}
+	existingSigNames := map[string]struct{}{}
+	for _, sig := range image.Signatures {
+		existingSigNames[sig.objectMeta.Name] = struct{}{}
+	}
+
+sigExists:
+	for _, newSig := range signatures {
+		for _, existingSig := range image.Signatures {
+			if existingSig.Type == imageSignatureTypeAtomic && bytes.Equal(existingSig.Content, newSig) {
+				continue sigExists
+			}
+		}
+
+		// The API expect us to invent a new unique name. This is racy, but hopefully good enough.
+		var signatureName string
+		for {
+			randBytes := make([]byte, 16)
+			n, err := rand.Read(randBytes)
+			if err != nil || n != 16 {
+				return fmt.Errorf("Error generating random signature ID: %v, len %d", err, n)
+			}
+			signatureName = fmt.Sprintf("%s@%032x", d.imageStreamImageName, randBytes)
+			if _, ok := existingSigNames[signatureName]; !ok {
+				break
+			}
+		}
+		// Note: This does absolutely no kind/version checking or conversions.
+		sig := imageSignature{
+			typeMeta: typeMeta{
+				Kind:       "ImageSignature",
+				APIVersion: "v1",
+			},
+			objectMeta: objectMeta{Name: signatureName},
+			Type:       imageSignatureTypeAtomic,
+			Content:    newSig,
+		}
+		body, err := json.Marshal(sig)
+		_, err = d.client.doRequest("POST", "/oapi/v1/imagesignatures", body)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// Commit marks the process of storing the image as successful and asks for the image to be persisted.
+// WARNING: This does not have any transactional semantics:
+// - Uploaded data MAY be visible to others before Commit() is called
+// - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
+func (d *openshiftImageDestination) Commit() error {
+	return d.docker.Commit()
 }
 
 // These structs are subsets of github.com/openshift/origin/pkg/image/api/v1 and its dependencies.
@@ -367,6 +488,22 @@ type image struct {
 	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty"`
 	DockerImageManifest        string `json:"dockerImageManifest,omitempty"`
 	//	DockerImageLayers          []ImageLayer         `json:"dockerImageLayers"`
+	Signatures []imageSignature `json:"signatures,omitempty"`
+}
+
+const imageSignatureTypeAtomic string = "atomic"
+
+type imageSignature struct {
+	typeMeta   `json:",inline"`
+	objectMeta `json:"metadata,omitempty"`
+	Type       string `json:"type"`
+	Content    []byte `json:"content"`
+	// Conditions []SignatureCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	// ImageIdentity string `json:"imageIdentity,omitempty"`
+	// SignedClaims map[string]string `json:"signedClaims,omitempty"`
+	// Created *unversioned.Time `json:"created,omitempty"`
+	// IssuedBy SignatureIssuer `json:"issuedBy,omitempty"`
+	// IssuedTo SignatureSubject `json:"issuedTo,omitempty"`
 }
 type imageStreamMapping struct {
 	typeMeta   `json:",inline"`
@@ -397,8 +534,4 @@ type status struct {
 	// Reason StatusReason `json:"reason,omitempty"`
 	// Details *StatusDetails `json:"details,omitempty"`
 	Code int32 `json:"code,omitempty"`
-}
-
-func (s *openshiftImageSource) Delete() error {
-	return fmt.Errorf("openshift#openshiftImageSource.Delete() not implmented")
 }

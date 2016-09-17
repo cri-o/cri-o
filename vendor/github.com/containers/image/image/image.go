@@ -33,21 +33,18 @@ type genericImage struct {
 	// this field is valid only if cachedManifest is not nil
 	cachedManifestMIMEType string
 	// private cache for Signatures(); nil if not yet known.
-	cachedSignatures           [][]byte
-	requestedManifestMIMETypes []string
+	cachedSignatures [][]byte
 }
 
 // FromSource returns a types.Image implementation for source.
-func FromSource(src types.ImageSource, requestedManifestMIMETypes []string) types.Image {
-	if len(requestedManifestMIMETypes) == 0 {
-		requestedManifestMIMETypes = []string{
-			manifest.OCIV1ImageManifestMIMEType,
-			manifest.DockerV2Schema2MIMEType,
-			manifest.DockerV2Schema1SignedMIMEType,
-			manifest.DockerV2Schema1MIMEType,
-		}
-	}
-	return &genericImage{src: src, requestedManifestMIMETypes: requestedManifestMIMETypes}
+// The caller must call .Close() on the returned Image.
+//
+// FromSource “takes ownership” of the input ImageSource and will call src.Close()
+// when the image is closed.  (This does not prevent callers from using both the
+// Image and ImageSource objects simultaneously, but it means that they only need to
+// the Image.)
+func FromSource(src types.ImageSource) types.Image {
+	return &genericImage{src: src}
 }
 
 // Reference returns the reference used to set up this source, _as specified by the user_
@@ -56,16 +53,26 @@ func (i *genericImage) Reference() types.ImageReference {
 	return i.src.Reference()
 }
 
+// Close removes resources associated with an initialized Image, if any.
+func (i *genericImage) Close() {
+	i.src.Close()
+}
+
 // Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
 // NOTE: It is essential for signature verification that Manifest returns the manifest from which BlobDigests is computed.
 func (i *genericImage) Manifest() ([]byte, string, error) {
 	if i.cachedManifest == nil {
-		m, mt, err := i.src.GetManifest(i.requestedManifestMIMETypes)
+		m, mt, err := i.src.GetManifest()
 		if err != nil {
 			return nil, "", err
 		}
 		i.cachedManifest = m
-		if mt == "" {
+		if mt == "" || mt == "text/plain" {
+			// Crane registries can return "text/plain".
+			// This makes no real sense, but it happens
+			// because requests for manifests are
+			// redirected to a content distribution
+			// network which is configured that way.
 			mt = manifest.GuessMIMEType(i.cachedManifest)
 		}
 		i.cachedManifestMIMEType = mt
@@ -244,7 +251,7 @@ func (i *genericImage) getParsedManifest() (genericManifest, error) {
 	// "application/json" is a valid v2s1 value per https://github.com/docker/distribution/blob/master/docs/spec/manifest-v2-1.md .
 	// This works for now, when nothing else seems to return "application/json"; if that were not true, the mapping/detection might
 	// need to happen within the ImageSource.
-	case manifest.DockerV2Schema1MIMEType, manifest.DockerV2Schema1SignedMIMEType, "application/json":
+	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType, "application/json":
 		mschema1 := &manifestSchema1{}
 		if err := json.Unmarshal(manblob, mschema1); err != nil {
 			return nil, err
@@ -260,7 +267,7 @@ func (i *genericImage) getParsedManifest() (genericManifest, error) {
 		//return nil, fmt.Errorf("no FSLayers in manifest for %q", ref.String())
 		//}
 		return mschema1, nil
-	case manifest.DockerV2Schema2MIMEType:
+	case manifest.DockerV2Schema2MediaType:
 		v2s2 := manifestSchema2{src: i.src}
 		if err := json.Unmarshal(manblob, &v2s2); err != nil {
 			return nil, err
@@ -297,15 +304,6 @@ func (i *genericImage) BlobDigests() ([]string, error) {
 		return nil, err
 	}
 	return uniqueBlobDigests(m), nil
-}
-
-func (i *genericImage) getLayer(dest types.ImageDestination, digest string) error {
-	stream, _, err := i.src.GetBlob(digest)
-	if err != nil {
-		return err
-	}
-	defer stream.Close()
-	return dest.PutBlob(digest, stream)
 }
 
 // fixManifestLayers, after validating the supplied manifest

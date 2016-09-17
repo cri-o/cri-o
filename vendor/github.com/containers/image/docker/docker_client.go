@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/containers/image/types"
 	"github.com/docker/docker/pkg/homedir"
 )
 
@@ -35,38 +36,39 @@ const (
 
 // dockerClient is configuration for dealing with a single Docker registry.
 type dockerClient struct {
+	ctx             *types.SystemContext
 	registry        string
 	username        string
 	password        string
 	wwwAuthenticate string // Cache of a value set by ping() if scheme is not empty
 	scheme          string // Cache of a value returned by a successful ping() if not empty
 	client          *http.Client
+	signatureBase   signatureStorageBase
 }
 
 // newDockerClient returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
-func newDockerClient(refHostname, certPath string, tlsVerify bool) (*dockerClient, error) {
-	var registry string
-	if refHostname == dockerHostname {
+// “write” specifies whether the client will be used for "write" access (in particular passed to lookaside.go:toplevelFromSection)
+func newDockerClient(ctx *types.SystemContext, ref dockerReference, write bool) (*dockerClient, error) {
+	registry := ref.ref.Hostname()
+	if registry == dockerHostname {
 		registry = dockerRegistry
-	} else {
-		registry = refHostname
 	}
-	username, password, err := getAuth(refHostname)
+	username, password, err := getAuth(ref.ref.Hostname())
 	if err != nil {
 		return nil, err
 	}
 	var tr *http.Transport
-	if certPath != "" || !tlsVerify {
+	if ctx != nil && (ctx.DockerCertPath != "" || ctx.DockerInsecureSkipTLSVerify) {
 		tlsc := &tls.Config{}
 
-		if certPath != "" {
-			cert, err := tls.LoadX509KeyPair(filepath.Join(certPath, "cert.pem"), filepath.Join(certPath, "key.pem"))
+		if ctx.DockerCertPath != "" {
+			cert, err := tls.LoadX509KeyPair(filepath.Join(ctx.DockerCertPath, "cert.pem"), filepath.Join(ctx.DockerCertPath, "key.pem"))
 			if err != nil {
 				return nil, fmt.Errorf("Error loading x509 key pair: %s", err)
 			}
 			tlsc.Certificates = append(tlsc.Certificates, cert)
 		}
-		tlsc.InsecureSkipVerify = !tlsVerify
+		tlsc.InsecureSkipVerify = ctx.DockerInsecureSkipTLSVerify
 		tr = &http.Transport{
 			TLSClientConfig: tlsc,
 		}
@@ -77,11 +79,19 @@ func newDockerClient(refHostname, certPath string, tlsVerify bool) (*dockerClien
 	if tr != nil {
 		client.Transport = tr
 	}
+
+	sigBase, err := configuredSignatureStorageBase(ctx, ref, write)
+	if err != nil {
+		return nil, err
+	}
+
 	return &dockerClient{
-		registry: registry,
-		username: username,
-		password: password,
-		client:   client,
+		ctx:           ctx,
+		registry:      registry,
+		username:      username,
+		password:      password,
+		client:        client,
+		signatureBase: sigBase,
 	}, nil
 }
 
@@ -98,15 +108,19 @@ func (c *dockerClient) makeRequest(method, url string, headers map[string][]stri
 	}
 
 	url = fmt.Sprintf(baseURL, c.scheme, c.registry) + url
-	return c.makeRequestToResolvedURL(method, url, headers, stream)
+	return c.makeRequestToResolvedURL(method, url, headers, stream, -1)
 }
 
 // makeRequestToResolvedURL creates and executes a http.Request with the specified parameters, adding authentication and TLS options for the Docker client.
+// streamLen, if not -1, specifies the length of the data expected on stream.
 // makeRequest should generally be preferred.
-func (c *dockerClient) makeRequestToResolvedURL(method, url string, headers map[string][]string, stream io.Reader) (*http.Response, error) {
+func (c *dockerClient) makeRequestToResolvedURL(method, url string, headers map[string][]string, stream io.Reader, streamLen int64) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, stream)
 	if err != nil {
 		return nil, err
+	}
+	if streamLen != -1 { // Do not blindly overwrite if streamLen == -1, http.NewRequest above can figure out the length of bytes.Reader and similar objects without us having to compute it.
+		req.ContentLength = streamLen
 	}
 	req.Header.Set("Docker-Distribution-API-Version", "registry/2.0")
 	for n, h := range headers {
@@ -137,41 +151,38 @@ func (c *dockerClient) setupRequestAuth(req *http.Request) error {
 		req.SetBasicAuth(c.username, c.password)
 		return nil
 	case "Bearer":
-		res, err := c.client.Do(req)
+		// FIXME? This gets a new token for every API request;
+		// we may be easily able to reuse a previous token, e.g.
+		// for OpenShift the token only identifies the user and does not vary
+		// across operations.  Should we just try the request first, and
+		// only get a new token on failure?
+		// OTOH what to do with the single-use body stream in that case?
+
+		// Try performing the request, expecting it to fail.
+		testReq := *req
+		// Do not use the body stream, or we couldn't reuse it for the "real" call later.
+		testReq.Body = nil
+		testReq.ContentLength = 0
+		res, err := c.client.Do(&testReq)
 		if err != nil {
 			return err
 		}
-		hdr := res.Header.Get("WWW-Authenticate")
-		if hdr == "" || res.StatusCode != http.StatusUnauthorized {
+		chs := parseAuthHeader(res.Header)
+		if res.StatusCode != http.StatusUnauthorized || chs == nil || len(chs) == 0 {
 			// no need for bearer? wtf?
 			return nil
 		}
-		tokens = strings.Split(hdr, " ")
-		tokens = strings.Split(tokens[1], ",")
-		var realm, service, scope string
-		for _, token := range tokens {
-			if strings.HasPrefix(token, "realm") {
-				realm = strings.Trim(token[len("realm="):], "\"")
-			}
-			if strings.HasPrefix(token, "service") {
-				service = strings.Trim(token[len("service="):], "\"")
-			}
-			if strings.HasPrefix(token, "scope") {
-				scope = strings.Trim(token[len("scope="):], "\"")
-			}
+		// Arbitrarily use the first challenge, there is no reason to expect more than one.
+		challenge := chs[0]
+		if challenge.Scheme != "bearer" { // Another artifact of trying to handle WWW-Authenticate before it actually happens.
+			return fmt.Errorf("Unimplemented: WWW-Authenticate Bearer replaced by %#v", challenge.Scheme)
 		}
-
-		if realm == "" {
+		realm, ok := challenge.Parameters["realm"]
+		if !ok {
 			return fmt.Errorf("missing realm in bearer auth challenge")
 		}
-		if service == "" {
-			return fmt.Errorf("missing service in bearer auth challenge")
-		}
-		// The scope can be empty if we're not getting a token for a specific repo
-		//if scope == "" && repo != "" {
-		if scope == "" {
-			return fmt.Errorf("missing scope in bearer auth challenge")
-		}
+		service, _ := challenge.Parameters["service"] // Will be "" if not present
+		scope, _ := challenge.Parameters["scope"]     // Will be "" if not present
 		token, err := c.getBearerToken(realm, service, scope)
 		if err != nil {
 			return err
@@ -189,7 +200,9 @@ func (c *dockerClient) getBearerToken(realm, service, scope string) (string, err
 		return "", err
 	}
 	getParams := authReq.URL.Query()
-	getParams.Add("service", service)
+	if service != "" {
+		getParams.Add("service", service)
+	}
 	if scope != "" {
 		getParams.Add("scope", scope)
 	}
@@ -321,14 +334,9 @@ func (c *dockerClient) ping() (*pingResponse, error) {
 		}
 		return pr, nil
 	}
-	scheme := "https"
-	pr, err := ping(scheme)
-	if err != nil {
-		scheme = "http"
-		pr, err = ping(scheme)
-		if err == nil {
-			return pr, nil
-		}
+	pr, err := ping("https")
+	if err != nil && c.ctx.DockerInsecureSkipTLSVerify {
+		pr, err = ping("http")
 	}
 	return pr, err
 }

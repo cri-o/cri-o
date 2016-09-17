@@ -393,5 +393,5 @@ func mapRecvMsgError(err error) error {
 			}
 		}
 	}
-	return ConnectionErrorf(true, err, err.Error())
+	return ConnectionError{Desc: err.Error()}
 }

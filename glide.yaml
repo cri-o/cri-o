@@ -1,0 +1,28 @@
+package: github.com/kubernetes-incubator/ocid
+import:
+- package: github.com/Sirupsen/logrus
+  version: ~0.10.0
+- package: github.com/containers/image
+  subpackages:
+  - directory
+  - image
+  - transports
+- package: github.com/kubernetes/kubernetes
+  version: ~1.5.0-alpha.0
+  subpackages:
+  - pkg/kubelet/api/v1alpha1/runtime
+- package: github.com/opencontainers/ocitools
+  subpackages:
+  - generate
+- package: github.com/opencontainers/runtime-spec
+  version: ~1.0.0-rc2
+  subpackages:
+  - specs-go
+- package: github.com/rajatchopra/ocicni
+- package: github.com/urfave/cli
+  version: ~1.18.1
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: google.golang.org/grpc
+  version: ~1.0.1-GA

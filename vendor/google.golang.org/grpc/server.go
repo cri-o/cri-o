@@ -367,10 +367,7 @@ func (s *Server) handleRawConn(rawConn net.Conn) {
 		s.errorf("ServerHandshake(%q) failed: %v", rawConn.RemoteAddr(), err)
 		s.mu.Unlock()
 		grpclog.Printf("grpc: Server.Serve failed to complete security handshake from %q: %v", rawConn.RemoteAddr(), err)
-		// If serverHandShake returns ErrConnDispatched, keep rawConn open.
-		if err != credentials.ErrConnDispatched {
-			rawConn.Close()
-		}
+		rawConn.Close()
 		return
 	}
 

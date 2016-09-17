@@ -18,12 +18,13 @@ type Image struct {
 
 // newImage returns a new Image interface type after setting up
 // a client to the registry hosting the given image.
-func newImage(ref dockerReference, certPath string, tlsVerify bool) (types.Image, error) {
-	s, err := newImageSource(ref, certPath, tlsVerify)
+// The caller must call .Close() on the returned Image.
+func newImage(ctx *types.SystemContext, ref dockerReference) (types.Image, error) {
+	s, err := newImageSource(ctx, ref, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &Image{Image: image.FromSource(s, nil), src: s}, nil
+	return &Image{Image: image.FromSource(s), src: s}, nil
 }
 
 // SourceRefFullName returns a fully expanded name for the repository this image is in.
