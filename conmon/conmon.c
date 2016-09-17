@@ -33,9 +33,13 @@
 
 #define _cleanup_(x) __attribute__((cleanup(x)))
 
-static inline void freep(void *p) { free(*(void **)p); }
+static inline void freep(void *p)
+{
+	free(*(void **)p);
+}
 
-static inline void closep(int *fd) {
+static inline void closep(int *fd)
+{
 	if (*fd >= 0)
 		close(*fd);
 	*fd = -1;
@@ -62,6 +66,7 @@ int main(int argc, char *argv[])
 	int opt;
 	bool terminal = FALSE;
 	const char *cid = NULL;
+	const char *runtime_path = NULL;
 	char cmd[CMD_SIZE];
 	GError *err = NULL;
 	_cleanup_free_ char *contents;
@@ -80,29 +85,38 @@ int main(int argc, char *argv[])
 	char *sync_pipe, *endptr;
 	int len;
 
-	while ((opt = getopt(argc, argv, "tc:")) != -1) {
-		switch(opt) {
+	while ((opt = getopt(argc, argv, "tc:r:")) != -1) {
+		switch (opt) {
 		case 't':
 			terminal = TRUE;
 			break;
 		case 'c':
 			cid = optarg;
 			break;
+		case 'r':
+			runtime_path = optarg;
+			break;
 		case '?':
-			if (optopt == 'c')
-				nexit("Option -%c requires an argument.", optopt);
-			else if (isprint (optopt))
+			if (optopt == 'c' || optopt == 'r')
+				nexit("Option -%c requires an argument.",
+				      optopt);
+			else if (isprint(optopt))
 				nexit("Unknown option `-%c'.", optopt);
 			else
-				nexit("Unknown option character `\\x%x'.\n", optopt);
+				nexit("Unknown option character `\\x%x'.\n",
+				      optopt);
 		default:
-			nexit("Usage: %s [-c container_id] [-t]", argv[0]);
+			nexit
+			    ("Usage: %s -r runtime_path [-c container_id] [-t]",
+			     argv[0]);
 		}
 	}
 
-	if (cid == NULL) {
-		nexit("Container ID not passed");
-	}
+	if (cid == NULL)
+		nexit("Container ID not provided");
+
+	if (runtime_path == NULL)
+		nexit("Runtime path not provided");
 
 	sync_pipe = getenv("_OCI_SYNCPIPE");
 	if (sync_pipe) {
@@ -132,7 +146,7 @@ int main(int argc, char *argv[])
 			pexit("Failed to grant access to slave pty");
 
 		/* Unlock the slave pty */
-		if (unlockpt(mfd) == -1) {             /* Unlock slave pty */
+		if (unlockpt(mfd) == -1) {	/* Unlock slave pty */
 			pexit("Failed to unlock the slave pty");
 		}
 
@@ -146,9 +160,12 @@ int main(int argc, char *argv[])
 
 	/* Create the container */
 	if (terminal) {
-		snprintf(cmd, CMD_SIZE, "runc create %s --pid-file pidfile --console %s", cid, slname);
+		snprintf(cmd, CMD_SIZE,
+			 "%s create %s --pid-file pidfile --console %s",
+			 runtime_path, cid, slname);
 	} else {
-		snprintf(cmd, CMD_SIZE, "runc create %s --pid-file pidfile", cid);
+		snprintf(cmd, CMD_SIZE, "%s create %s --pid-file pidfile",
+			 runtime_path, cid);
 	}
 	ret = system(cmd);
 	if (ret != 0) {
@@ -180,9 +197,11 @@ int main(int argc, char *argv[])
 			pexit("tcegetattr");
 
 		/* Settings for raw mode */
-		t.c_lflag &= ~(ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHONL | IEXTEN);
-		t.c_iflag &= ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR | INPCK |
-				ISTRIP | IXON | IXOFF | IGNPAR | PARMRK);
+		t.c_lflag &=
+		    ~(ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHONL | IEXTEN);
+		t.c_iflag &=
+		    ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR | INPCK | ISTRIP |
+		      IXON | IXOFF | IGNPAR | PARMRK);
 		t.c_oflag &= ~OPOST;
 		t.c_cc[VMIN] = 1;
 		t.c_cc[VTIME] = 0;
@@ -214,33 +233,43 @@ int main(int argc, char *argv[])
 			for (int i = 0; i < ready; i++) {
 				if (evlist[i].events & EPOLLIN) {
 					if (evlist[i].data.fd == STDIN_FILENO) {
-						num_read = read(STDIN_FILENO, buf, BUF_SIZE);
+						num_read =
+						    read(STDIN_FILENO, buf,
+							 BUF_SIZE);
 						if (num_read <= 0)
 							goto out;
 
-						if (write(mfd, buf, num_read) != num_read) {
-							nwarn("partial/failed write (masterFd)");
+						if (write(mfd, buf, num_read) !=
+						    num_read) {
+							nwarn
+							    ("partial/failed write (masterFd)");
 							goto out;
 						}
 					} else if (evlist[i].data.fd == mfd) {
-						num_read = read(mfd, buf, BUF_SIZE);
+						num_read =
+						    read(mfd, buf, BUF_SIZE);
 						if (num_read <= 0)
 							goto out;
 
-						if (write(STDOUT_FILENO, buf, num_read) != num_read) {
-							nwarn("partial/failed write (STDOUT_FILENO)");
+						if (write
+						    (STDOUT_FILENO, buf,
+						     num_read) != num_read) {
+							nwarn
+							    ("partial/failed write (STDOUT_FILENO)");
 							goto out;
 						}
 					}
-				} else if (evlist[i].events & (EPOLLHUP | EPOLLERR)) {
-					printf("closing fd %d\n", evlist[i].data.fd);
+				} else if (evlist[i].events &
+					   (EPOLLHUP | EPOLLERR)) {
+					printf("closing fd %d\n",
+					       evlist[i].data.fd);
 					if (close(evlist[i].data.fd) < 0)
 						pexit("close");
 					goto out;
 				}
 			}
 		}
-out:
+ out:
 		tty_restore();
 	}
 
@@ -253,9 +282,12 @@ out:
 			if (ret < 0) {
 				pexit("Failed to allocate memory for status");
 			}
-			g_file_set_contents("exit", status_str, strlen(status_str), &err);
+			g_file_set_contents("exit", status_str,
+					    strlen(status_str), &err);
 			if (err) {
-				fprintf(stderr, "Failed to write %s to exit file: %s\n", status_str, err->message);
+				fprintf(stderr,
+					"Failed to write %s to exit file: %s\n",
+					status_str, err->message);
 				g_error_free(err);
 				exit(1);
 			}

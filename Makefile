@@ -1,6 +1,9 @@
-.PHONY: all clean ocid ocic
+.PHONY: all clean conmon ocid ocic
 
-all: ocid ocic
+all: conmon ocid ocic
+
+conmon:
+	make -C $@
 
 ocid:
 	go build -o ocid ./cmd/server/main.go
