@@ -325,7 +325,7 @@ func PullImage(client pb.ImageServiceClient, image string) error {
 	return nil
 }
 
-// try this with ./ocic pullimage docker://busybox
+// try this with ./ocic pullimage busybox
 var pullImageCommand = cli.Command{
 	Name:  "pull",
 	Usage: "pull an image",

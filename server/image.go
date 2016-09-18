@@ -2,9 +2,9 @@ package server
 
 import (
 	"errors"
-	"fmt"
 
 	ic "github.com/containers/image/copy"
+	"github.com/containers/image/docker"
 	"github.com/containers/image/signature"
 	"github.com/containers/image/storage"
 	"github.com/containers/image/transports"
@@ -52,13 +52,12 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	}
 
 	// TODO(runcom): deal with AuthConfig in req.GetAuth()
-	sr, err := transports.ParseImageName(img)
+	// FIXME: pretend that the image coming from k8s is in docker format
+	// because k8s haven't yet figured out a way for multiple image
+	// formats - https://github.com/kubernetes/features/issues/63
+	sr, err := transports.ParseImageName(docker.Transport.Name() + "://" + img)
 	if err != nil {
 		return nil, err
-	}
-
-	if sr.Transport().Name() != "docker" {
-		return nil, fmt.Errorf("can only pull docker images, got %s", sr.Transport().Name())
 	}
 
 	dr, err := transports.ParseImageName(storage.Transport.Name() + ":" + sr.DockerReference().String())
