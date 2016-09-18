@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 
 	ic "github.com/containers/image/copy"
 	"github.com/containers/image/signature"
@@ -56,7 +57,11 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		return nil, err
 	}
 
-	dr, err := transports.ParseImageName(storage.Transport.Name() + ":" + sr.StringWithinTransport())
+	if sr.Transport().Name() != "docker" {
+		return nil, fmt.Errorf("can only pull docker images, got %s", sr.Transport().Name())
+	}
+
+	dr, err := transports.ParseImageName(storage.Transport.Name() + ":" + sr.DockerReference().String())
 	if err != nil {
 		return nil, err
 	}
@@ -82,5 +87,5 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 // RemoveImage removes the image.
 func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*pb.RemoveImageResponse, error) {
 	_, err := s.storage.DeleteImage(*(req.Image.Image), true)
-	return nil, err
+	return &pb.RemoveImageResponse{}, err
 }

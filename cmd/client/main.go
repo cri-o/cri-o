@@ -234,8 +234,7 @@ func main() {
 		podSandboxCommand,
 		containerCommand,
 		runtimeVersionCommand,
-		pullImageCommand,
-		listImagesCommand,
+		imagesCommand,
 	}
 
 	app.Flags = []cli.Flag{
@@ -252,8 +251,44 @@ func main() {
 	}
 }
 
+var imagesCommand = cli.Command{
+	Name: "images",
+	Subcommands: []cli.Command{
+		pullImageCommand,
+		removeImageCommand,
+		listImagesCommand,
+	},
+}
+
+var removeImageCommand = cli.Command{
+	Name:  "delete",
+	Usage: "delete an image",
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewImageServiceClient(conn)
+		if err := RemoveImage(client, context.Args().Get(0)); err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+func RemoveImage(client pb.ImageServiceClient, image string) error {
+	_, err := client.RemoveImage(context.Background(), &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: &image}})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 var listImagesCommand = cli.Command{
-	Name:  "listimages",
+	Name:  "list",
 	Usage: "list images",
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -292,7 +327,7 @@ func PullImage(client pb.ImageServiceClient, image string) error {
 
 // try this with ./ocic pullimage docker://busybox
 var pullImageCommand = cli.Command{
-	Name:  "pullimage",
+	Name:  "pull",
 	Usage: "pull an image",
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
