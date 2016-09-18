@@ -86,6 +86,10 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 		return nil, err
 	}
 
+	if err := os.MkdirAll(sandboxDir, 0755); err != nil {
+		return nil, err
+	}
+
 	r, err := oci.New(runtimePath, containerDir)
 	if err != nil {
 		return nil, err
