@@ -1,10 +1,14 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/oci"
 	"github.com/kubernetes-incubator/ocid/utils"
 	"github.com/rajatchopra/ocicni"
@@ -22,6 +26,50 @@ type Server struct {
 	stateLock  sync.Mutex
 	state      *serverState
 	netPlugin  ocicni.CNIPlugin
+}
+
+func (s *Server) loadSandboxes() error {
+	if err := filepath.Walk(s.sandboxDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			return nil
+		}
+		if path == s.sandboxDir {
+			return nil
+		}
+		metaJSON, err := ioutil.ReadFile(filepath.Join(path, "metadata.json"))
+		if err != nil {
+			return err
+		}
+		var m metadata
+		if err := json.Unmarshal(metaJSON, &m); err != nil {
+			return err
+		}
+		sname, err := filepath.Rel(s.sandboxDir, path)
+		if err != nil {
+			return err
+		}
+		s.addSandbox(&sandbox{
+			name:       sname,
+			logDir:     m.LogDir,
+			labels:     m.Labels,
+			containers: make(map[string]*oci.Container),
+		})
+		scontainer, err := oci.NewContainer(m.ContainerName, path, path, m.Labels, sname, false)
+		if err != nil {
+			return err
+		}
+		s.addContainer(scontainer)
+		if err = s.runtime.UpdateStatus(scontainer); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // New creates a new Server with options provided
@@ -48,7 +96,7 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Server{
+	s := &Server{
 		runtime:    r,
 		netPlugin:  netPlugin,
 		sandboxDir: sandboxDir,
@@ -56,7 +104,13 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 			sandboxes:  sandboxes,
 			containers: containers,
 		},
-	}, nil
+	}
+	if err := s.loadSandboxes(); err != nil {
+		logrus.Warnf("couldn't get sandboxes: %v", err)
+	}
+	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
+	logrus.Debugf("containers: %v", s.state.containers)
+	return s, nil
 }
 
 type serverState struct {
@@ -69,6 +123,12 @@ type sandbox struct {
 	logDir     string
 	labels     map[string]string
 	containers oci.Store
+}
+
+type metadata struct {
+	LogDir        string            `json:"log_dir"`
+	ContainerName string            `json:"container_name"`
+	Labels        map[string]string `json:"labels"`
 }
 
 func (s *sandbox) addContainer(c *oci.Container) {

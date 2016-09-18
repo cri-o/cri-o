@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -176,6 +178,24 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	}
 
 	s.addContainer(container)
+
+	meta := &metadata{
+		LogDir:        logDir,
+		ContainerName: containerName,
+		Labels:        labels,
+	}
+
+	b, err := json.Marshal(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: eventually we would track all containers in this pod so on server start
+	// we can repopulate the structs in memory properly...
+	// e.g. each container can write itself in podSandboxDir
+	if err := ioutil.WriteFile(filepath.Join(podSandboxDir, "metadata.json"), b, 0644); err != nil {
+		return nil, err
+	}
 
 	if err = s.runtime.UpdateStatus(container); err != nil {
 		return nil, err
