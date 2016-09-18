@@ -29,7 +29,7 @@ func getClientConnection() (*grpc.ClientConn, error) {
 			return net.DialTimeout("unix", addr, timeout)
 		}))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect: %v", err)
+		return nil, fmt.Errorf("failed to connect: %v", err)
 	}
 	return conn, nil
 }
@@ -266,7 +266,7 @@ var pullImageCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewImageServiceClient(conn)
@@ -286,7 +286,7 @@ var runtimeVersionCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
@@ -325,7 +325,7 @@ var createPodSandboxCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
@@ -353,7 +353,7 @@ var stopPodSandboxCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
@@ -450,7 +450,7 @@ var createContainerCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
@@ -461,7 +461,7 @@ var createContainerCommand = cli.Command{
 		// Test RuntimeServiceClient.CreateContainer
 		err = CreateContainer(client, context.String("pod"), context.String("config"))
 		if err != nil {
-			return fmt.Errorf("Creating the pod sandbox failed: %v", err)
+			return fmt.Errorf("Creating container failed: %v", err)
 		}
 		return nil
 	},
@@ -481,7 +481,7 @@ var startContainerCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
@@ -508,7 +508,7 @@ var stopContainerCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
@@ -535,7 +535,7 @@ var removeContainerCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
@@ -562,7 +562,7 @@ var containerStatusCommand = cli.Command{
 		// Set up a connection to the server.
 		conn, err := getClientConnection()
 		if err != nil {
-			return fmt.Errorf("Failed to connect: %v", err)
+			return fmt.Errorf("failed to connect: %v", err)
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
