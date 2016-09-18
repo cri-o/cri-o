@@ -63,7 +63,7 @@ func (s *Server) loadSandboxes() error {
 		}
 		s.addContainer(scontainer)
 		if err = s.runtime.UpdateStatus(scontainer); err != nil {
-			return err
+			logrus.Warnf("error updating status for container %s: %v", scontainer, err)
 		}
 		return nil
 	}); err != nil {
