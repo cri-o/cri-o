@@ -44,10 +44,6 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
 	var err error
 
-	if err := os.MkdirAll(s.sandboxDir, 0755); err != nil {
-		return nil, err
-	}
-
 	// process req.Name
 	name := req.GetConfig().GetMetadata().GetName()
 	if name == "" {
@@ -439,6 +435,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 			specgen.AddAnnotation(k, v)
 		}
 	}
+
+	specgen.AddAnnotation("pod_sandbox_id", podSandboxId)
 
 	if containerConfig.GetPrivileged() {
 		specgen.SetupPrivileged(true)
