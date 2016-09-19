@@ -33,7 +33,7 @@ func sPtr(s string) *string {
 func getGPRCVersion() (string, error) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
-		return "", errors.New("failed to recover the caller information.")
+		return "", errors.New("failed to recover the caller information")
 	}
 
 	ocidRoot := filepath.Dir(filepath.Dir(file))
