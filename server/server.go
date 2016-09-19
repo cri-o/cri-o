@@ -5,6 +5,9 @@ import (
 	"os"
 	"sync"
 
+	imagestorage "github.com/containers/image/storage"
+	imagetypes "github.com/containers/image/types"
+	"github.com/containers/storage/storage"
 	"github.com/kubernetes-incubator/ocid/oci"
 	"github.com/kubernetes-incubator/ocid/utils"
 	"github.com/rajatchopra/ocicni"
@@ -13,15 +16,19 @@ import (
 const (
 	runtimeAPIVersion = "v1alpha1"
 	imageStore        = "/var/lib/ocid/images"
+	storageRun        = "/var/run/ocid/storage"
+	storageGraph      = "/var/lib/ocid/storage"
 )
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	runtime    *oci.Runtime
-	sandboxDir string
-	stateLock  sync.Mutex
-	state      *serverState
-	netPlugin  ocicni.CNIPlugin
+	runtime      *oci.Runtime
+	sandboxDir   string
+	stateLock    sync.Mutex
+	state        *serverState
+	netPlugin    ocicni.CNIPlugin
+	imageContext *imagetypes.SystemContext
+	storage      storage.Store
 }
 
 // New creates a new Server with options provided
@@ -44,6 +51,11 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 	}
 	sandboxes := make(map[string]*sandbox)
 	containers := make(map[string]*oci.Container)
+	store, err := storage.MakeStore(storageRun, storageGraph, "", []string{}, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	imagestorage.Transport.SetStore(store)
 	netPlugin, err := ocicni.InitCNI("")
 	if err != nil {
 		return nil, err
@@ -52,9 +64,16 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 		runtime:    r,
 		netPlugin:  netPlugin,
 		sandboxDir: sandboxDir,
+		storage:    store,
 		state: &serverState{
 			sandboxes:  sandboxes,
 			containers: containers,
+		},
+		imageContext: &imagetypes.SystemContext{
+			RootForImplicitAbsolutePaths: "",
+			SignaturePolicyPath:          "",
+			DockerCertPath:               "",
+			DockerInsecureSkipTLSVerify:  false,
 		},
 	}, nil
 }

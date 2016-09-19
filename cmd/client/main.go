@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
@@ -233,7 +234,7 @@ func main() {
 		podSandboxCommand,
 		containerCommand,
 		runtimeVersionCommand,
-		pullImageCommand,
+		imagesCommand,
 	}
 
 	app.Flags = []cli.Flag{
@@ -250,6 +251,72 @@ func main() {
 	}
 }
 
+var imagesCommand = cli.Command{
+	Name: "image",
+	Subcommands: []cli.Command{
+		pullImageCommand,
+		removeImageCommand,
+		listImagesCommand,
+	},
+}
+
+var removeImageCommand = cli.Command{
+	Name:  "delete",
+	Usage: "delete an image",
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewImageServiceClient(conn)
+		if err := RemoveImage(client, context.Args().Get(0)); err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+func RemoveImage(client pb.ImageServiceClient, image string) error {
+	_, err := client.RemoveImage(context.Background(), &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: &image}})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+var listImagesCommand = cli.Command{
+	Name:  "list",
+	Usage: "list images",
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection()
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewImageServiceClient(conn)
+		if err := ListImages(client); err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
+func ListImages(client pb.ImageServiceClient) error {
+	resp, err := client.ListImages(context.Background(), &pb.ListImagesRequest{})
+	if err != nil {
+		return fmt.Errorf("listing images failed: %v", err)
+	}
+	for _, i := range resp.Images {
+		logrus.Println(i.String())
+	}
+	return nil
+}
+
 func PullImage(client pb.ImageServiceClient, image string) error {
 	_, err := client.PullImage(context.Background(), &pb.PullImageRequest{Image: &pb.ImageSpec{Image: &image}})
 	if err != nil {
@@ -258,9 +325,9 @@ func PullImage(client pb.ImageServiceClient, image string) error {
 	return nil
 }
 
-// try this with ./ocic pullimage docker://busybox
+// try this with ./ocic pullimage busybox
 var pullImageCommand = cli.Command{
-	Name:  "pullimage",
+	Name:  "pull",
 	Usage: "pull an image",
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.

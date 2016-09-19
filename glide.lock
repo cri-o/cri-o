@@ -1,5 +1,5 @@
-hash: e1c100879f58ef4902c4e13d6710505f0ec62fbb5eaa237abeff8faf0ddf30f1
-updated: 2016-09-17T15:49:39.168380014+02:00
+hash: 06a42cd1074b800b7cff0bfa89b648dcff008fce0172bf1f5f42548ccb4baa26
+updated: 2016-09-19T16:39:43.965362487+02:00
 imports:
 - name: github.com/containernetworking/cni
   version: 9d5e6e60e79491207834ae8439e80c943db65a69
@@ -8,54 +8,89 @@ imports:
   - pkg/invoke
   - pkg/types
 - name: github.com/containers/image
-  version: f6f11ab5cf8b1e70ef4aa3f8b6fdb4b671d16abd
+  version: ba9c203ae29e53c7beac408141598fbc63df1ead
+  repo: git@github.com:nalind/image
   subpackages:
   - directory
   - image
   - transports
-  - directory/explicitfilepath
-  - types
-  - manifest
+  - signatures
+  - copy
+  - storage
   - docker
+  - signature
+  - types
+  - docker/policyconfiguration
+  - manifest
+  - version
   - oci/layout
   - openshift
-  - docker/policyconfiguration
-  - version
+  - directory/explicitfilepath
+- name: github.com/containers/storage
+  version: 32264f11f3b997e8d2ba032a6a13ebdfcddc2897
+  subpackages:
+  - storage
+  - pkg/reexec
+  - drivers
+  - drivers/register
+  - pkg/archive
+  - pkg/idtools
+  - pkg/ioutils
+  - pkg/stringid
+  - storageversion
+  - pkg/chrootarchive
+  - pkg/mount
+  - pkg/plugins
+  - drivers/aufs
+  - drivers/btrfs
+  - drivers/devmapper
+  - drivers/overlay
+  - drivers/overlay2
+  - drivers/vfs
+  - drivers/windows
+  - drivers/zfs
+  - pkg/fileutils
+  - pkg/pools
+  - pkg/promise
+  - pkg/system
+  - pkg/longpath
+  - pkg/random
+  - pkg/plugins/transport
+  - pkg/directory
+  - pkg/parsers
+  - pkg/devicemapper
+  - pkg/loopback
+  - pkg/parsers/kernel
 - name: github.com/docker/distribution
   version: cd27f179f2c10c5d300e6d09025b538c475b0d51
   subpackages:
   - digest
   - reference
+  - context
+  - uuid
 - name: github.com/docker/docker
-  version: b9f10c951893f9a00865890a5232e85d770c1087
+  version: 23cf638307f030cd8d48c9efc21feec18a6f88f8
   subpackages:
-  - pkg/jsonlog
-  - pkg/jsonmessage
-  - pkg/longpath
-  - pkg/mount
-  - pkg/stdcopy
-  - pkg/symlink
-  - pkg/system
-  - pkg/term
-  - pkg/term/windows
+  - pkg/reexec
+  - pkg/homedir
   - reference
   - image
   - image/v1
-  - pkg/homedir
+  - pkg/ioutils
   - layer
-  - pkg/version
+  - pkg/longpath
   - daemon/graphdriver
   - pkg/archive
   - pkg/idtools
-  - pkg/ioutils
   - pkg/stringid
   - pkg/chrootarchive
+  - pkg/mount
   - pkg/plugins
   - pkg/fileutils
   - pkg/pools
   - pkg/promise
+  - pkg/system
   - pkg/random
-  - pkg/reexec
   - pkg/plugins/transport
 - name: github.com/docker/engine-api
   version: dea108d3aa0c67d7162a3fd8aa65f38a430019fd
@@ -120,14 +155,29 @@ imports:
   subpackages:
   - jsonpb
   - proto
+- name: github.com/gorilla/context
+  version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
+- name: github.com/gorilla/mux
+  version: 8096f47503459bcc74d1f4c487b7e6e42e5746b5
 - name: github.com/imdario/mergo
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/kubernetes/kubernetes
   version: ff3ca3d616518087dc20180f69bb4038379f1028
   subpackages:
   - pkg/kubelet/api/v1alpha1/runtime
+- name: github.com/mattn/go-shellwords
+  version: 525bedee691b5a8df547cb5cf9f86b7fb1883e24
 - name: github.com/Microsoft/go-winio
   version: 8f9387ea7efabb228a981b9c381142be7667967f
+  subpackages:
+  - archive/tar
+  - backuptar
+- name: github.com/Microsoft/hcsshim
+  version: d8e08e7d31d4f441646638b35f423a760d6dfbcd
+- name: github.com/mistifyio/go-zfs
+  version: 1b4ae6fb4e77b095934d4430860ff202060169f8
+- name: github.com/mtrmac/gpgme
+  version: 7486dcd030936581e863bb69602ef411920d7fc9
 - name: github.com/opencontainers/image-spec
   version: 287772a24ab02d5d2fe3fbbba4f13dff9b9ce003
   subpackages:
@@ -160,6 +210,8 @@ imports:
   version: 7dab1a245d3e13d0ad03b77409d0bf7e00a6ada4
   subpackages:
   - specs-go
+- name: github.com/pborman/uuid
+  version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/rajatchopra/ocicni
   version: daea0034a4bc2d193d9bf5031bace0403094011a
 - name: github.com/Sirupsen/logrus
@@ -187,7 +239,7 @@ imports:
   - internal/timeseries
   - proxy
 - name: golang.org/x/sys
-  version: 9c60d1c508f5134d1ca726b4641db998f2523357
+  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
   subpackages:
   - unix
 - name: google.golang.org/grpc
@@ -204,7 +256,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/kubernetes
-  version: 8fd414537b5143ab039cb910590237cabf4af783
+  version: 87b40782c9c1cc82ba42f75de4cf23126297e0a3
   subpackages:
   - pkg/util/errors
   - pkg/util/homedir
