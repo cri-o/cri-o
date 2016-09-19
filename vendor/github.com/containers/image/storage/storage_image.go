@@ -117,7 +117,8 @@ func (s *storageImage) loadMetadata() error {
 
 func (s *storageImage) saveMetadata() error {
 	if s.ID != "" {
-		if metadata, err := json.Marshal(s); len(metadata) != 0 && err == nil {
+		metadata, err := json.Marshal(s)
+		if len(metadata) != 0 && err == nil {
 			istore, err := s.store.GetImageStore()
 			if istore != nil && err == nil {
 				if err = istore.SetMetadata(s.ID, string(metadata)); err != nil {
@@ -127,10 +128,9 @@ func (s *storageImage) saveMetadata() error {
 				logrus.Errorf("error locating image store: %v", err)
 			}
 			return err
-		} else {
-			logrus.Errorf("error encoding metadata for image %q: %v", s.ID, err)
-			return err
 		}
+		logrus.Errorf("error encoding metadata for image %q: %v", s.ID, err)
+		return err
 	}
 	return nil
 }

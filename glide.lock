@@ -1,5 +1,5 @@
 hash: 06a42cd1074b800b7cff0bfa89b648dcff008fce0172bf1f5f42548ccb4baa26
-updated: 2016-09-17T18:49:17.02525117+02:00
+updated: 2016-09-19T16:39:43.965362487+02:00
 imports:
 - name: github.com/containernetworking/cni
   version: 9d5e6e60e79491207834ae8439e80c943db65a69
@@ -8,7 +8,7 @@ imports:
   - pkg/invoke
   - pkg/types
 - name: github.com/containers/image
-  version: 5a72b5908c6978a8eee293fdd654395da29015fe
+  version: ba9c203ae29e53c7beac408141598fbc63df1ead
   repo: git@github.com:nalind/image
   subpackages:
   - directory
@@ -17,15 +17,15 @@ imports:
   - signatures
   - copy
   - storage
+  - docker
   - signature
   - types
+  - docker/policyconfiguration
   - manifest
   - version
-  - docker
   - oci/layout
   - openshift
   - directory/explicitfilepath
-  - docker/policyconfiguration
 - name: github.com/containers/storage
   version: 32264f11f3b997e8d2ba032a6a13ebdfcddc2897
   subpackages:
@@ -72,11 +72,11 @@ imports:
   version: 23cf638307f030cd8d48c9efc21feec18a6f88f8
   subpackages:
   - pkg/reexec
+  - pkg/homedir
   - reference
   - image
   - image/v1
   - pkg/ioutils
-  - pkg/homedir
   - layer
   - pkg/longpath
   - daemon/graphdriver
@@ -239,7 +239,7 @@ imports:
   - internal/timeseries
   - proxy
 - name: golang.org/x/sys
-  version: 9c60d1c508f5134d1ca726b4641db998f2523357
+  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
   subpackages:
   - unix
 - name: google.golang.org/grpc
@@ -256,7 +256,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/kubernetes
-  version: 8fd414537b5143ab039cb910590237cabf4af783
+  version: 87b40782c9c1cc82ba42f75de4cf23126297e0a3
   subpackages:
   - pkg/util/errors
   - pkg/util/homedir

@@ -188,14 +188,18 @@ type SystemContext struct {
 	// If not "", prefixed to any absolute paths used by default by the library (e.g. in /etc/).
 	// Not used for any of the more specific path overrides available in this struct.
 	// Not used for any paths specified by users in config files (even if the location of the config file _was_ affected by it).
+	// NOTE: If this is set, environment-variable overrides of paths are ignored (to keep the semantics simple: to create an /etc replacement, just set RootForImplicitAbsolutePaths .
+	// and there is no need to worry about the environment.)
 	// NOTE: This does NOT affect paths starting by $HOME.
 	RootForImplicitAbsolutePaths string
 
 	// === Global configuration overrides ===
 	// If not "", overrides the system's default path for signature.Policy configuration.
 	SignaturePolicyPath string
+	// If not "", overrides the system's default path for registries.d (Docker signature storage configuration)
+	RegistriesDirPath string
 
 	// === docker.Transport overrides ===
 	DockerCertPath              string // If not "", a directory containing "cert.pem" and "key.pem" used when talking to a Docker Registry
-	DockerInsecureSkipTLSVerify bool
+	DockerInsecureSkipTLSVerify bool   // Allow contacting docker registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
 }

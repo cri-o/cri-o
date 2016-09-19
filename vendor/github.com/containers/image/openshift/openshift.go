@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -21,7 +22,8 @@ import (
 
 // openshiftClient is configuration for dealing with a single image stream, for reading or writing.
 type openshiftClient struct {
-	ref openshiftReference
+	ref     openshiftReference
+	baseURL *url.URL
 	// Values from Kubernetes configuration
 	httpClient  *http.Client
 	bearerToken string // "" if not used
@@ -51,9 +53,7 @@ func newOpenshiftClient(ref openshiftReference) (*openshiftClient, error) {
 		return nil, err
 	}
 	logrus.Debugf("URL: %#v", *baseURL)
-	if *baseURL != *ref.baseURL {
-		return nil, fmt.Errorf("Unexpected baseURL mismatch: default %#v, reference %#v", *baseURL, *ref.baseURL)
-	}
+
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -61,6 +61,7 @@ func newOpenshiftClient(ref openshiftReference) (*openshiftClient, error) {
 
 	return &openshiftClient{
 		ref:         ref,
+		baseURL:     baseURL,
 		httpClient:  httpClient,
 		bearerToken: restConfig.BearerToken,
 		username:    restConfig.Username,
@@ -70,7 +71,7 @@ func newOpenshiftClient(ref openshiftReference) (*openshiftClient, error) {
 
 // doRequest performs a correctly authenticated request to a specified path, and returns response body or an error object.
 func (c *openshiftClient) doRequest(method, path string, requestBody []byte) ([]byte, error) {
-	url := *c.ref.baseURL
+	url := *c.baseURL
 	url.Path = path
 	var requestBodyReader io.Reader
 	if requestBody != nil {
@@ -153,19 +154,7 @@ func (c *openshiftClient) convertDockerImageReference(ref string) (string, error
 	if len(parts) != 2 {
 		return "", fmt.Errorf("Invalid format of docker reference %s: missing '/'", ref)
 	}
-	// Sanity check that the reference is at least plausibly similar, i.e. uses the hard-coded port we expect.
-	if !strings.HasSuffix(parts[0], ":5000") {
-		return "", fmt.Errorf("Invalid format of docker reference %s: expecting port 5000", ref)
-	}
-	return c.dockerRegistryHostPart() + "/" + parts[1], nil
-}
-
-// dockerRegistryHostPart returns the host:port of the embedded Docker Registry API endpoint
-// FIXME: There seems to be no way to discover the correct:host port using the API, so hard-code our knowledge
-// about how the OpenShift Atomic Registry is configured, per examples/atomic-registry/run.sh:
-// -p OPENSHIFT_OAUTH_PROVIDER_URL=https://${INSTALL_HOST}:8443,COCKPIT_KUBE_URL=https://${INSTALL_HOST},REGISTRY_HOST=${INSTALL_HOST}:5000
-func (c *openshiftClient) dockerRegistryHostPart() string {
-	return strings.SplitN(c.ref.baseURL.Host, ":", 2)[0] + ":5000"
+	return c.ref.dockerReference.Hostname() + "/" + parts[1], nil
 }
 
 type openshiftImageSource struct {
@@ -261,7 +250,7 @@ func (s *openshiftImageSource) ensureImageIsResolved() error {
 	}
 	var te *tagEvent
 	for _, tag := range is.Status.Tags {
-		if tag.Tag != s.client.ref.tag {
+		if tag.Tag != s.client.ref.dockerReference.Tag() {
 			continue
 		}
 		if len(tag.Items) > 0 {
@@ -308,7 +297,7 @@ func newImageDestination(ctx *types.SystemContext, ref openshiftReference) (type
 	// FIXME: Should this always use a digest, not a tag? Uploading to Docker by tag requires the tag _inside_ the manifest to match,
 	// i.e. a single signed image cannot be available under multiple tags.  But with types.ImageDestination, we don't know
 	// the manifest digest at this point.
-	dockerRefString := fmt.Sprintf("//%s/%s/%s:%s", client.dockerRegistryHostPart(), client.ref.namespace, client.ref.stream, client.ref.tag)
+	dockerRefString := fmt.Sprintf("//%s/%s/%s:%s", client.ref.dockerReference.Hostname(), client.ref.namespace, client.ref.stream, client.ref.dockerReference.Tag())
 	dockerRef, err := docker.ParseReference(dockerRefString)
 	if err != nil {
 		return nil, err
@@ -370,7 +359,7 @@ func (d *openshiftImageDestination) PutManifest(m []byte) error {
 	}
 	d.imageStreamImageName = manifestDigest
 	// FIXME: We can't do what respositorymiddleware.go does because we don't know the internal address. Does any of this matter?
-	dockerImageReference := fmt.Sprintf("%s/%s/%s@%s", d.client.dockerRegistryHostPart(), d.client.ref.namespace, d.client.ref.stream, manifestDigest)
+	dockerImageReference := fmt.Sprintf("%s/%s/%s@%s", d.client.ref.dockerReference.Hostname(), d.client.ref.namespace, d.client.ref.stream, manifestDigest)
 	ism := imageStreamMapping{
 		typeMeta: typeMeta{
 			Kind:       "ImageStreamMapping",
@@ -387,7 +376,7 @@ func (d *openshiftImageDestination) PutManifest(m []byte) error {
 			DockerImageReference: dockerImageReference,
 			DockerImageManifest:  string(m),
 		},
-		Tag: d.client.ref.tag,
+		Tag: d.client.ref.dockerReference.Tag(),
 	}
 	body, err := json.Marshal(ism)
 	if err != nil {

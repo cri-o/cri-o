@@ -8,6 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
@@ -18,11 +21,13 @@ import (
 type dockerImageDestination struct {
 	ref dockerReference
 	c   *dockerClient
+	// State
+	manifestDigest string // or "" if not yet known.
 }
 
 // newImageDestination creates a new ImageDestination for the specified image reference.
 func newImageDestination(ctx *types.SystemContext, ref dockerReference) (types.ImageDestination, error) {
-	c, err := newDockerClient(ctx, ref.ref.Hostname())
+	c, err := newDockerClient(ctx, ref, true)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +149,7 @@ func (d *dockerImageDestination) PutManifest(m []byte) error {
 	if err != nil {
 		return err
 	}
+	d.manifestDigest = digest
 	url := fmt.Sprintf(manifestURL, d.ref.ref.RemoteName(), digest)
 
 	headers := map[string][]string{}
@@ -168,10 +174,89 @@ func (d *dockerImageDestination) PutManifest(m []byte) error {
 }
 
 func (d *dockerImageDestination) PutSignatures(signatures [][]byte) error {
-	if len(signatures) != 0 {
-		return fmt.Errorf("Pushing signatures to a Docker Registry is not supported")
+	// FIXME? This overwrites files one at a time, definitely not atomic.
+	// A failure when updating signatures with a reordered copy could lose some of them.
+
+	// Skip dealing with the manifest digest if not necessary.
+	if len(signatures) == 0 {
+		return nil
 	}
+	if d.c.signatureBase == nil {
+		return fmt.Errorf("Pushing signatures to a Docker Registry is not supported, and there is no applicable signature storage configured")
+	}
+
+	// FIXME: This assumption that signatures are stored after the manifest rather breaks the model.
+	if d.manifestDigest == "" {
+		return fmt.Errorf("Unknown manifest digest, can't add signatures")
+	}
+
+	for i, signature := range signatures {
+		url := signatureStorageURL(d.c.signatureBase, d.manifestDigest, i)
+		if url == nil {
+			return fmt.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
+		}
+		err := d.putOneSignature(url, signature)
+		if err != nil {
+			return err
+		}
+	}
+	// Remove any other signatures, if present.
+	// We stop at the first missing signature; if a previous deleting loop aborted
+	// prematurely, this may not clean up all of them, but one missing signature
+	// is enough for dockerImageSource to stop looking for other signatures, so that
+	// is sufficient.
+	for i := len(signatures); ; i++ {
+		url := signatureStorageURL(d.c.signatureBase, d.manifestDigest, i)
+		if url == nil {
+			return fmt.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
+		}
+		missing, err := d.c.deleteOneSignature(url)
+		if err != nil {
+			return err
+		}
+		if missing {
+			break
+		}
+	}
+
 	return nil
+}
+
+// putOneSignature stores one signature to url.
+func (d *dockerImageDestination) putOneSignature(url *url.URL, signature []byte) error {
+	switch url.Scheme {
+	case "file":
+		logrus.Debugf("Writing to %s", url.Path)
+		err := os.MkdirAll(filepath.Dir(url.Path), 0755)
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(url.Path, signature, 0644)
+		if err != nil {
+			return err
+		}
+		return nil
+
+	default:
+		return fmt.Errorf("Unsupported scheme when writing signature to %s", url.String())
+	}
+}
+
+// deleteOneSignature deletes a signature from url, if it exists.
+// If it successfully determines that the signature does not exist, returns (true, nil)
+func (c *dockerClient) deleteOneSignature(url *url.URL) (missing bool, err error) {
+	switch url.Scheme {
+	case "file":
+		logrus.Debugf("Deleting %s", url.Path)
+		err := os.Remove(url.Path)
+		if err != nil && os.IsNotExist(err) {
+			return true, nil
+		}
+		return false, err
+
+	default:
+		return false, fmt.Errorf("Unsupported scheme when deleting signature from %s", url.String())
+	}
 }
 
 // Commit marks the process of storing the image as successful and asks for the image to be persisted.

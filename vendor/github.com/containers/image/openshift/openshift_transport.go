@@ -3,10 +3,9 @@ package openshift
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"regexp"
+	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/docker/policyconfiguration"
 	"github.com/containers/image/types"
 	"github.com/docker/docker/reference"
@@ -44,67 +43,33 @@ func (t openshiftTransport) ValidatePolicyConfigurationScope(scope string) error
 
 // openshiftReference is an ImageReference for OpenShift images.
 type openshiftReference struct {
-	baseURL         *url.URL
-	namespace       string
-	stream          string
-	tag             string
-	dockerReference reference.Named // Computed from the above in advance, so that later references can not fail.
+	dockerReference reference.NamedTagged
+	namespace       string // Computed from dockerReference in advance.
+	stream          string // Computed from dockerReference in advance.
 }
-
-// FIXME: Is imageName like this a good way to refer to OpenShift images?
-// Keep this in sync with scopeRegexp!
-var imageNameRegexp = regexp.MustCompile("^([^:/]*)/([^:/]*):([^:/]*)$")
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an OpenShift ImageReference.
-func ParseReference(reference string) (types.ImageReference, error) {
-	// Overall, this is modelled on openshift/origin/pkg/cmd/util/clientcmd.New().ClientConfig() and openshift/origin/pkg/client.
-	cmdConfig := defaultClientConfig()
-	logrus.Debugf("cmdConfig: %#v", cmdConfig)
-	restConfig, err := cmdConfig.ClientConfig()
+func ParseReference(ref string) (types.ImageReference, error) {
+	r, err := reference.ParseNamed(ref)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse image reference %q, %v", ref, err)
 	}
-	// REMOVED: SetOpenShiftDefaults (values are not overridable in config files, so hard-coded these defaults.)
-	logrus.Debugf("restConfig: %#v", restConfig)
-	baseURL, _, err := restClientFor(restConfig)
-	if err != nil {
-		return nil, err
+	tagged, ok := r.(reference.NamedTagged)
+	if !ok {
+		return nil, fmt.Errorf("invalid image reference %s, %#v", ref, r)
 	}
-	logrus.Debugf("URL: %#v", *baseURL)
-
-	m := imageNameRegexp.FindStringSubmatch(reference)
-	if m == nil || len(m) != 4 {
-		return nil, fmt.Errorf("Invalid image reference %s, %#v", reference, m)
-	}
-
-	return NewReference(baseURL, m[1], m[2], m[3])
+	return NewReference(tagged)
 }
 
-// NewReference returns an OpenShift reference for a base URL, namespace, stream and tag.
-func NewReference(baseURL *url.URL, namespace, stream, tag string) (types.ImageReference, error) {
-	// Precompute also dockerReference so that later references can not fail.
-	//
-	// This discards ref.baseURL.Path, which is unexpected for a “base URL”;
-	// but openshiftClient.doRequest actually completely overrides url.Path
-	// (and defaultServerURL rejects non-trivial Path values), so it is OK for
-	// us to ignore it as well.
-	//
-	// FIXME: This is, strictly speaking, a namespace conflict with images placed in a Docker registry running on the same host.
-	// Do we need to do something else, perhaps disambiguate (port number?) or namespace Docker and OpenShift separately?
-	dockerRef, err := reference.WithName(fmt.Sprintf("%s/%s/%s", baseURL.Host, namespace, stream))
-	if err != nil {
-		return nil, err
+// NewReference returns an OpenShift reference for a reference.NamedTagged
+func NewReference(dockerRef reference.NamedTagged) (types.ImageReference, error) {
+	r := strings.SplitN(dockerRef.RemoteName(), "/", 3)
+	if len(r) != 2 {
+		return nil, fmt.Errorf("invalid image reference %s", dockerRef.String())
 	}
-	dockerRef, err = reference.WithTag(dockerRef, tag)
-	if err != nil {
-		return nil, err
-	}
-
 	return openshiftReference{
-		baseURL:         baseURL,
-		namespace:       namespace,
-		stream:          stream,
-		tag:             tag,
+		namespace:       r[0],
+		stream:          r[1],
 		dockerReference: dockerRef,
 	}, nil
 }
@@ -119,7 +84,7 @@ func (ref openshiftReference) Transport() types.ImageTransport {
 // e.g. default attribute values omitted by the user may be filled in in the return value, or vice versa.
 // WARNING: Do not use the return value in the UI to describe an image, it does not contain the Transport().Name() prefix.
 func (ref openshiftReference) StringWithinTransport() string {
-	return fmt.Sprintf("%s/%s:%s", ref.namespace, ref.stream, ref.tag)
+	return ref.dockerReference.String()
 }
 
 // DockerReference returns a Docker reference associated with this reference

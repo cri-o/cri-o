@@ -36,23 +36,24 @@ const (
 
 // dockerClient is configuration for dealing with a single Docker registry.
 type dockerClient struct {
+	ctx             *types.SystemContext
 	registry        string
 	username        string
 	password        string
 	wwwAuthenticate string // Cache of a value set by ping() if scheme is not empty
 	scheme          string // Cache of a value returned by a successful ping() if not empty
 	client          *http.Client
+	signatureBase   signatureStorageBase
 }
 
 // newDockerClient returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
-func newDockerClient(ctx *types.SystemContext, refHostname string) (*dockerClient, error) {
-	var registry string
-	if refHostname == dockerHostname {
+// “write” specifies whether the client will be used for "write" access (in particular passed to lookaside.go:toplevelFromSection)
+func newDockerClient(ctx *types.SystemContext, ref dockerReference, write bool) (*dockerClient, error) {
+	registry := ref.ref.Hostname()
+	if registry == dockerHostname {
 		registry = dockerRegistry
-	} else {
-		registry = refHostname
 	}
-	username, password, err := getAuth(refHostname)
+	username, password, err := getAuth(ref.ref.Hostname())
 	if err != nil {
 		return nil, err
 	}
@@ -78,11 +79,19 @@ func newDockerClient(ctx *types.SystemContext, refHostname string) (*dockerClien
 	if tr != nil {
 		client.Transport = tr
 	}
+
+	sigBase, err := configuredSignatureStorageBase(ctx, ref, write)
+	if err != nil {
+		return nil, err
+	}
+
 	return &dockerClient{
-		registry: registry,
-		username: username,
-		password: password,
-		client:   client,
+		ctx:           ctx,
+		registry:      registry,
+		username:      username,
+		password:      password,
+		client:        client,
+		signatureBase: sigBase,
 	}, nil
 }
 
@@ -325,14 +334,9 @@ func (c *dockerClient) ping() (*pingResponse, error) {
 		}
 		return pr, nil
 	}
-	scheme := "https"
-	pr, err := ping(scheme)
-	if err != nil {
-		scheme = "http"
-		pr, err = ping(scheme)
-		if err == nil {
-			return pr, nil
-		}
+	pr, err := ping("https")
+	if err != nil && c.ctx.DockerInsecureSkipTLSVerify {
+		pr, err = ping("http")
 	}
 	return pr, err
 }
