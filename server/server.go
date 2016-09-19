@@ -43,7 +43,7 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 		return nil, err
 	}
 	sandboxes := make(map[string]*sandbox)
-	containers := make(map[string]*oci.Container)
+	containers := oci.NewMemoryStore()
 	netPlugin, err := ocicni.InitCNI("")
 	if err != nil {
 		return nil, err
@@ -61,34 +61,26 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 
 type serverState struct {
 	sandboxes  map[string]*sandbox
-	containers map[string]*oci.Container
+	containers oci.Store
 }
 
 type sandbox struct {
-	name           string
-	logDir         string
-	labels         map[string]string
-	containersLock sync.Mutex
-	containers     map[string]*oci.Container
+	name       string
+	logDir     string
+	labels     map[string]string
+	containers oci.Store
 }
 
 func (s *sandbox) addContainer(c *oci.Container) {
-	s.containersLock.Lock()
-	s.containers[c.Name()] = c
-	s.containersLock.Unlock()
+	s.containers.Add(c.Name(), c)
 }
 
 func (s *sandbox) getContainer(name string) *oci.Container {
-	s.containersLock.Lock()
-	c := s.containers[name]
-	s.containersLock.Unlock()
-	return c
+	return s.containers.Get(name)
 }
 
 func (s *sandbox) removeContainer(c *oci.Container) {
-	s.containersLock.Lock()
-	delete(s.containers, c.Name())
-	s.containersLock.Unlock()
+	s.containers.Delete(c.Name())
 }
 
 func (s *Server) addSandbox(sb *sandbox) {
@@ -115,13 +107,13 @@ func (s *Server) addContainer(c *oci.Container) {
 	s.stateLock.Lock()
 	sandbox := s.state.sandboxes[c.Sandbox()]
 	sandbox.addContainer(c)
-	s.state.containers[c.Name()] = c
+	s.state.containers.Add(c.Name(), c)
 	s.stateLock.Unlock()
 }
 
 func (s *Server) getContainer(name string) *oci.Container {
 	s.stateLock.Lock()
-	c := s.state.containers[name]
+	c := s.state.containers.Get(name)
 	s.stateLock.Unlock()
 	return c
 }
@@ -130,6 +122,6 @@ func (s *Server) removeContainer(c *oci.Container) {
 	s.stateLock.Lock()
 	sandbox := s.state.sandboxes[c.Sandbox()]
 	sandbox.removeContainer(c)
-	delete(s.state.containers, c.Name())
+	s.state.containers.Delete(c.Name())
 	s.stateLock.Unlock()
 }

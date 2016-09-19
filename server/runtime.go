@@ -107,7 +107,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		name:       name,
 		logDir:     logDir,
 		labels:     labels,
-		containers: make(map[string]*oci.Container),
+		containers: oci.NewMemoryStore(),
 	})
 
 	annotations := req.GetConfig().GetAnnotations()
@@ -197,26 +197,22 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	podInfraContainer := *sbName + "-infra"
-	sb.containersLock.Lock()
-	for _, c := range sb.containers {
+	containersList := sb.containers.List()
+	for _, c := range containersList {
 		if podInfraContainer == c.Name() {
 			podNamespace := ""
 			netnsPath, err := c.NetNsPath()
 			if err != nil {
-				sb.containersLock.Unlock()
 				return nil, err
 			}
 			if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, *sbName, podInfraContainer); err != nil {
-				sb.containersLock.Unlock()
 				return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v", c.Name(), *sbName, err)
 			}
 		}
 		if err := s.runtime.StopContainer(c); err != nil {
-			sb.containersLock.Unlock()
 			return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *sbName, err)
 		}
 	}
-	sb.containersLock.Unlock()
 
 	return &pb.StopPodSandboxResponse{}, nil
 }
@@ -236,23 +232,19 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	podInfraContainer := *sbName + "-infra"
 
 	// Delete all the containers in the sandbox
-	sb.containersLock.Lock()
-	for _, c := range sb.containers {
+	containersList := sb.containers.List()
+	for _, c := range containersList {
 		if err := s.runtime.DeleteContainer(c); err != nil {
-			sb.containersLock.Unlock()
 			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), *sbName, err)
 		}
 		if podInfraContainer == c.Name() {
-			sb.containersLock.Unlock()
 			continue
 		}
 		containerDir := filepath.Join(s.runtime.ContainerDir(), c.Name())
 		if err := os.RemoveAll(containerDir); err != nil {
-			sb.containersLock.Unlock()
 			return nil, fmt.Errorf("failed to remove container %s directory: %v", c.Name(), err)
 		}
 	}
-	sb.containersLock.Unlock()
 
 	// Remove the files related to the sandbox
 	podSandboxDir := filepath.Join(s.sandboxDir, *sbName)
@@ -539,7 +531,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	// Join the namespace paths for the pod sandbox container.
 	podContainerName := podSandboxId + "-infra"
-	podInfraContainer := s.state.containers[podContainerName]
+	podInfraContainer := s.state.containers.Get(podContainerName)
 	podInfraState := s.runtime.ContainerStatus(podInfraContainer)
 
 	logrus.Infof("pod container state %v", podInfraState)
@@ -590,7 +582,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 	if *containerName == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
-	c := s.state.containers[*containerName]
+	c := s.state.containers.Get(*containerName)
 	if c == nil {
 		return nil, fmt.Errorf("specified container not found: %s", *containerName)
 	}
@@ -609,7 +601,7 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	if *containerName == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
-	c := s.state.containers[*containerName]
+	c := s.state.containers.Get(*containerName)
 	if c == nil {
 		return nil, fmt.Errorf("specified container not found: %s", *containerName)
 	}
@@ -629,7 +621,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 	if *containerName == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
-	c := s.state.containers[*containerName]
+	c := s.state.containers.Get(*containerName)
 	if c == nil {
 		return nil, fmt.Errorf("specified container not found: %s", *containerName)
 	}
@@ -660,7 +652,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	if *containerName == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
-	c := s.state.containers[*containerName]
+	c := s.state.containers.Get(*containerName)
 
 	if c == nil {
 		return nil, fmt.Errorf("specified container not found: %s", *containerName)
