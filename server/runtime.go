@@ -243,7 +243,6 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), *sbName, err)
 		}
 		if podInfraContainer == c.Name() {
-			sb.containersLock.Unlock()
 			continue
 		}
 		containerDir := filepath.Join(s.runtime.ContainerDir(), c.Name())
