@@ -28,46 +28,44 @@ type Server struct {
 	netPlugin  ocicni.CNIPlugin
 }
 
-func (s *Server) loadSandboxes() error {
-	err := filepath.Walk(s.sandboxDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			return nil
-		}
-		if path == s.sandboxDir {
-			return nil
-		}
-		metaJSON, err := ioutil.ReadFile(filepath.Join(path, "metadata.json"))
-		if err != nil {
-			return err
-		}
-		var m metadata
-		if err2 := json.Unmarshal(metaJSON, &m); err2 != nil {
-			return err2
-		}
-		sname, err := filepath.Rel(s.sandboxDir, path)
-		if err != nil {
-			return err
-		}
-		s.addSandbox(&sandbox{
-			name:       sname,
-			logDir:     m.LogDir,
-			labels:     m.Labels,
-			containers: oci.NewMemoryStore(),
-		})
-		scontainer, err := oci.NewContainer(m.ContainerName, path, path, m.Labels, sname, false)
-		if err != nil {
-			return err
-		}
-		s.addContainer(scontainer)
-		if err = s.runtime.UpdateStatus(scontainer); err != nil {
-			logrus.Warnf("error updating status for container %s: %v", scontainer, err)
-		}
-		return nil
+func (s *Server) loadSandbox(id string) error {
+	metaJSON, err := ioutil.ReadFile(filepath.Join(s.sandboxDir, id, "metadata.json"))
+	if err != nil {
+		return err
+	}
+	var m metadata
+	if err = json.Unmarshal(metaJSON, &m); err != nil {
+		return err
+	}
+	s.addSandbox(&sandbox{
+		name:       id,
+		logDir:     m.LogDir,
+		labels:     m.Labels,
+		containers: oci.NewMemoryStore(),
 	})
-	return err
+	sandboxPath := filepath.Join(s.sandboxDir, id)
+	scontainer, err := oci.NewContainer(m.ContainerName, sandboxPath, sandboxPath, m.Labels, id, false)
+	if err != nil {
+		return err
+	}
+	s.addContainer(scontainer)
+	if err = s.runtime.UpdateStatus(scontainer); err != nil {
+		logrus.Warnf("error updating status for container %s: %v", scontainer, err)
+	}
+	return nil
+}
+
+func (s *Server) restore() error {
+	dir, err := ioutil.ReadDir(s.sandboxDir)
+	if err != nil {
+		return err
+	}
+	for _, v := range dir {
+		if err := s.loadSandbox(v.Name()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // New creates a new Server with options provided
@@ -107,8 +105,8 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 			containers: containers,
 		},
 	}
-	if err := s.loadSandboxes(); err != nil {
-		logrus.Warnf("couldn't get sandboxes: %v", err)
+	if err := s.restore(); err != nil {
+		logrus.Warnf("couldn't restore: %v", err)
 	}
 	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
 	logrus.Debugf("containers: %v", s.state.containers)
