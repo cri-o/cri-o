@@ -250,12 +250,10 @@ func main() {
 	}
 }
 
-func PullImage(client pb.ImageServiceClient, image string) error {
-	_, err := client.PullImage(context.Background(), &pb.PullImageRequest{Image: &pb.ImageSpec{Image: &image}})
-	if err != nil {
-		return err
-	}
-	return nil
+// PullImage sends a PullImageRequest to the server, and parses
+// the returned ContainerStatusResponse.
+func PullImage(client pb.ImageServiceClient, image string) (*pb.PullImageResponse, error) {
+	return client.PullImage(context.Background(), &pb.PullImageRequest{Image: &pb.ImageSpec{Image: &image}})
 }
 
 // try this with ./ocic pullimage docker://busybox
@@ -271,7 +269,7 @@ var pullImageCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewImageServiceClient(conn)
 
-		err = PullImage(client, context.Args().Get(0))
+		_, err = PullImage(client, context.Args().Get(0))
 		if err != nil {
 			return fmt.Errorf("pulling image failed: %v", err)
 		}

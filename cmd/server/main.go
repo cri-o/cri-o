@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 
@@ -80,12 +79,12 @@ func main() {
 		// Remove the socket if it already exists
 		if _, err := os.Stat(unixDomainSocket); err == nil {
 			if err := os.Remove(unixDomainSocket); err != nil {
-				log.Fatal(err)
+				logrus.Fatal(err)
 			}
 		}
 		lis, err := net.Listen("unix", unixDomainSocket)
 		if err != nil {
-			log.Fatalf("failed to listen: %v", err)
+			logrus.Fatalf("failed to listen: %v", err)
 		}
 
 		s := grpc.NewServer()
@@ -94,16 +93,18 @@ func main() {
 		sandboxDir := c.String("sandboxdir")
 		service, err := server.New(c.String("runtime"), sandboxDir, containerDir)
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 
 		runtime.RegisterRuntimeServiceServer(s, service)
 		runtime.RegisterImageServiceServer(s, service)
-		s.Serve(lis)
+		if err := s.Serve(lis); err != nil {
+			logrus.Fatal(err)
+		}
 		return nil
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 }

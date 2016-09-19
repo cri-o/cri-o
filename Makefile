@@ -66,5 +66,8 @@ install.tools: .install.gitvalidation .install.glide .install.glide-vc .install.
 
 .PHONY: \
 	binaries \
+	conmon \
+	ocid \
+	ocic \
 	clean \
 	lint

@@ -29,7 +29,7 @@ type Server struct {
 }
 
 func (s *Server) loadSandboxes() error {
-	if err := filepath.Walk(s.sandboxDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(s.sandboxDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -44,8 +44,8 @@ func (s *Server) loadSandboxes() error {
 			return err
 		}
 		var m metadata
-		if err := json.Unmarshal(metaJSON, &m); err != nil {
-			return err
+		if err2 := json.Unmarshal(metaJSON, &m); err2 != nil {
+			return err2
 		}
 		sname, err := filepath.Rel(s.sandboxDir, path)
 		if err != nil {
@@ -55,7 +55,7 @@ func (s *Server) loadSandboxes() error {
 			name:       sname,
 			logDir:     m.LogDir,
 			labels:     m.Labels,
-			containers: make(map[string]*oci.Container),
+			containers: oci.NewMemoryStore(),
 		})
 		scontainer, err := oci.NewContainer(m.ContainerName, path, path, m.Labels, sname, false)
 		if err != nil {
@@ -66,10 +66,8 @@ func (s *Server) loadSandboxes() error {
 			logrus.Warnf("error updating status for container %s: %v", scontainer, err)
 		}
 		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
+	return err
 }
 
 // New creates a new Server with options provided
@@ -120,31 +118,6 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 type serverState struct {
 	sandboxes  map[string]*sandbox
 	containers oci.Store
-}
-
-type sandbox struct {
-	name       string
-	logDir     string
-	labels     map[string]string
-	containers oci.Store
-}
-
-type metadata struct {
-	LogDir        string            `json:"log_dir"`
-	ContainerName string            `json:"container_name"`
-	Labels        map[string]string `json:"labels"`
-}
-
-func (s *sandbox) addContainer(c *oci.Container) {
-	s.containers.Add(c.Name(), c)
-}
-
-func (s *sandbox) getContainer(name string) *oci.Container {
-	return s.containers.Get(name)
-}
-
-func (s *sandbox) removeContainer(c *oci.Container) {
-	s.containers.Delete(c.Name())
 }
 
 func (s *Server) addSandbox(sb *sandbox) {
