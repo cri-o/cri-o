@@ -129,7 +129,7 @@ func (s *Server) createSandboxContainer(name, podSandboxID string, SandboxConfig
 		}
 	}
 
-	specgen.AddAnnotation("pod_sandbox_id", podSandboxID)
+	specgen.AddAnnotation("ocid/pod_sandbox_id", podSandboxID)
 
 	if containerConfig.GetPrivileged() {
 		specgen.SetupPrivileged(true)
