@@ -252,7 +252,7 @@ func main() {
 }
 
 var imagesCommand = cli.Command{
-	Name: "images",
+	Name: "image",
 	Subcommands: []cli.Command{
 		pullImageCommand,
 		removeImageCommand,
