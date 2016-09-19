@@ -1,14 +1,22 @@
 language: go
 go:
   - 1.6
+  - 1.7
 
-sudo: false
+sudo: required
+
+before_script:
+  - export PATH=$HOME/gopath/bin:$PATH
 
 before_install:
-  - go get github.com/vbatts/git-validation
+  - make install.tools
+  - go get -u github.com/alecthomas/gometalinter
+  - gometalinter --install --update
+  - go get -t -d ./...
 
 install: true
 
 script:
-  - $HOME/gopath/bin/git-validation -run DCO,short-subject -v -range ${TRAVIS_COMMIT_RANGE}
+  - make .gitvalidation
+  - make lint
   - make
