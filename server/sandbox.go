@@ -226,8 +226,11 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 				return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v", c.Name(), *sbName, err)
 			}
 		}
-		if err := s.runtime.StopContainer(c); err != nil {
-			return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *sbName, err)
+		cStatus := s.runtime.ContainerStatus(c)
+		if cStatus.Status != "stopped" {
+			if err := s.runtime.StopContainer(c); err != nil {
+				return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *sbName, err)
+			}
 		}
 	}
 
