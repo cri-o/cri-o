@@ -38,7 +38,7 @@ type Runtime struct {
 
 // syncInfo is used to return data from monitor process to daemon
 type syncInfo struct {
-	Pid int `"json:pid"`
+	Pid int `json:"pid"`
 }
 
 // Name returns the name of the OCI Runtime
@@ -141,7 +141,7 @@ func (r *Runtime) DeleteContainer(c *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "delete", c.name)
 }
 
-// updateStatus refreshes the status of the container.
+// UpdateStatus refreshes the status of the container.
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
@@ -161,7 +161,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 			return fmt.Errorf("failed to find container exit file: %v", err)
 		}
 		st := fi.Sys().(*syscall.Stat_t)
-		c.state.Finished = time.Unix(int64(st.Ctim.Sec), int64(st.Ctim.Nsec))
+		c.state.Finished = time.Unix(st.Ctim.Sec, st.Ctim.Nsec)
 
 		statusCodeStr, err := ioutil.ReadFile(exitFilePath)
 		if err != nil {
@@ -196,7 +196,7 @@ type Container struct {
 	stateLock  sync.Mutex
 }
 
-// ContainerStatus represents the status of a container.
+// ContainerState represents the status of a container.
 type ContainerState struct {
 	specs.State
 	Created  time.Time `json:"created"`

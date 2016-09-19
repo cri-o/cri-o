@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -54,7 +55,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		return nil, err
 	}
 
-	if err := os.Mkdir(filepath.Join(imageStore, tr.StringWithinTransport()), 0755); err != nil {
+	if err = os.Mkdir(filepath.Join(imageStore, tr.StringWithinTransport()), 0755); err != nil {
 		return nil, err
 	}
 	dir, err := directory.NewReference(filepath.Join(imageStore, tr.StringWithinTransport()))
@@ -69,11 +70,12 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	// save blobs (layer + config for docker v2s2, layers only for docker v2s1 [the config is in the manifest])
 	for _, b := range blobs {
 		// TODO(runcom,nalin): we need do-then-commit to later purge on error
-		r, _, err := src.GetBlob(b)
+		var r io.ReadCloser
+		r, _, err = src.GetBlob(b)
 		if err != nil {
 			return nil, err
 		}
-		if _, _, err := dest.PutBlob(r, b, -1); err != nil {
+		if _, _, err = dest.PutBlob(r, b, -1); err != nil {
 			r.Close()
 			return nil, err
 		}

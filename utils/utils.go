@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -13,8 +14,11 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-const PR_SET_CHILD_SUBREAPER = 36
+// PRSetChildSubreaper is the value of PR_SET_CHILD_SUBREAPER in prctl(2)
+const PRSetChildSubreaper = 36
 
+// ExecCmd executes a command with args and returns its output as a string along
+// with an error, if any
 func ExecCmd(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	var stdout bytes.Buffer
@@ -31,7 +35,7 @@ func ExecCmd(name string, args ...string) (string, error) {
 }
 
 // ExecCmdWithStdStreams execute a command with the specified standard streams.
-func ExecCmdWithStdStreams(stdin, stdout, stderr *os.File, name string, args ...string) error {
+func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
@@ -47,7 +51,7 @@ func ExecCmdWithStdStreams(stdin, stdout, stderr *os.File, name string, args ...
 
 // SetSubreaper sets the value i as the subreaper setting for the calling process
 func SetSubreaper(i int) error {
-	return Prctl(PR_SET_CHILD_SUBREAPER, uintptr(i), 0, 0, 0)
+	return Prctl(PRSetChildSubreaper, uintptr(i), 0, 0, 0)
 }
 
 // Prctl is a way to make the prctl linux syscall
@@ -95,10 +99,8 @@ func dockerExport(image string, rootfs string) error {
 }
 
 func dockerRemove(container string) error {
-	if _, err := ExecCmd("docker", "rm", container); err != nil {
-		return err
-	}
-	return nil
+	_, err := ExecCmd("docker", "rm", container)
+	return err
 }
 
 // StartReaper starts a goroutine to reap processes

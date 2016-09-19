@@ -1,5 +1,7 @@
 {
-	"name": "container1",
+	"metadata": {
+		"name": "container1"
+	},
 	"image": {
 		"image": "docker://redis:latest"
 	},
@@ -26,22 +28,6 @@
 		{
 			"key": "TESTFILE",
 			"value": "test/file1"
-		}
-	],
-	"mounts": [
-		{
-			"name": "mount1",
-			"container_path": "/dir1",
-			"host_path": "/tmp/dir1",
-			"readonly": false,
-			"selinux_relabel": true
-		},
-		{
-			"name": "mount2",
-			"container_path": "/dir2",
-			"host_path": "/tmp/dir2",
-			"readonly": true,
-			"selinux_relabel": true
 		}
 	],
 	"labels": {

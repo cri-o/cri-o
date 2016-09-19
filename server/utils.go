@@ -10,8 +10,25 @@ import (
 	"strings"
 
 	"github.com/kubernetes-incubator/ocid/utils"
-	"github.com/opencontainers/ocitools/generate"
 )
+
+const (
+	// According to http://man7.org/linux/man-pages/man5/resolv.conf.5.html:
+	// "The search list is currently limited to six domains with a total of 256 characters."
+	maxDNSSearches = 6
+)
+
+func int64Ptr(i int64) *int64 {
+	return &i
+}
+
+func int32Ptr(i int32) *int32 {
+	return &i
+}
+
+func sPtr(s string) *string {
+	return &s
+}
 
 func getGPRCVersion() (string, error) {
 	_, file, _, ok := runtime.Caller(0)
@@ -44,10 +61,8 @@ func copyFile(src, dest string) error {
 	}
 	defer out.Close()
 
-	if _, err := io.Copy(out, in); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(out, in)
+	return err
 }
 
 func removeFile(path string) error {
@@ -92,64 +107,5 @@ func parseDNSOptions(servers, searches []string, path string) error {
 		}
 	}
 
-	return nil
-}
-
-// kubernetes compute resources - CPU: http://kubernetes.io/docs/user-guide/compute-resources/#meaning-of-cpu
-func setResourcesCPU(limits, requests, defaultCores float64, g generate.Generator) error {
-	if requests > limits {
-		return fmt.Errorf("CPU.Requests should not be greater than CPU.Limits")
-	}
-
-	cores := defaultCores
-	if limits != 0 || requests != 0 {
-		if limits > requests {
-			cores = limits
-		} else {
-			cores = requests
-		}
-	}
-
-	period := uint64(defaultCPUCFSPeriod)
-	quota := uint64(float64(period) * cores)
-
-	if quota < minCPUCFSQuota {
-		quota = minCPUCFSQuota
-	}
-
-	// adjust quota and period for the case where multiple CPUs are requested
-	// so that cpu.cfs_quota_us <= maxCPUCFSQuota.
-	for quota > maxCPUCFSQuota {
-		quota /= 10
-		period /= 10
-	}
-
-	g.SetLinuxResourcesCPUPeriod(period)
-	g.SetLinuxResourcesCPUQuota(quota)
-	return nil
-}
-
-// kubernetes compute resources - Memory: http://kubernetes.io/docs/user-guide/compute-resources/#meaning-of-memory
-func setResourcesMemory(limits, requests, defaultMem float64, g generate.Generator) error {
-	if requests > limits {
-		return fmt.Errorf("Memory.Requests should not be greater than Memory.Limits")
-	}
-
-	if limits != 0 {
-		if requests == 0 {
-			requests = limits
-		}
-	} else {
-		if requests == 0 {
-			// set the default values of limits and requests
-			requests = defaultMem
-			limits = defaultMem
-		} else {
-			limits = requests
-		}
-	}
-
-	g.SetLinuxResourcesMemoryLimit(uint64(limits))
-	g.SetLinuxResourcesMemoryReservation(uint64(requests))
 	return nil
 }

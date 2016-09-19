@@ -1,10 +1,14 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/oci"
 	"github.com/kubernetes-incubator/ocid/utils"
 	"github.com/rajatchopra/ocicni"
@@ -24,6 +28,46 @@ type Server struct {
 	netPlugin  ocicni.CNIPlugin
 }
 
+func (s *Server) loadSandbox(id string) error {
+	metaJSON, err := ioutil.ReadFile(filepath.Join(s.sandboxDir, id, "metadata.json"))
+	if err != nil {
+		return err
+	}
+	var m metadata
+	if err = json.Unmarshal(metaJSON, &m); err != nil {
+		return err
+	}
+	s.addSandbox(&sandbox{
+		name:       id,
+		logDir:     m.LogDir,
+		labels:     m.Labels,
+		containers: oci.NewMemoryStore(),
+	})
+	sandboxPath := filepath.Join(s.sandboxDir, id)
+	scontainer, err := oci.NewContainer(m.ContainerName, sandboxPath, sandboxPath, m.Labels, id, false)
+	if err != nil {
+		return err
+	}
+	s.addContainer(scontainer)
+	if err = s.runtime.UpdateStatus(scontainer); err != nil {
+		logrus.Warnf("error updating status for container %s: %v", scontainer, err)
+	}
+	return nil
+}
+
+func (s *Server) restore() error {
+	dir, err := ioutil.ReadDir(s.sandboxDir)
+	if err != nil {
+		return err
+	}
+	for _, v := range dir {
+		if err := s.loadSandbox(v.Name()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // New creates a new Server with options provided
 func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 	// TODO: This will go away later when we have wrapper process or systemd acting as
@@ -38,6 +82,10 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 		return nil, err
 	}
 
+	if err := os.MkdirAll(sandboxDir, 0755); err != nil {
+		return nil, err
+	}
+
 	r, err := oci.New(runtimePath, containerDir)
 	if err != nil {
 		return nil, err
@@ -48,7 +96,7 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Server{
+	s := &Server{
 		runtime:    r,
 		netPlugin:  netPlugin,
 		sandboxDir: sandboxDir,
@@ -56,31 +104,18 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 			sandboxes:  sandboxes,
 			containers: containers,
 		},
-	}, nil
+	}
+	if err := s.restore(); err != nil {
+		logrus.Warnf("couldn't restore: %v", err)
+	}
+	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
+	logrus.Debugf("containers: %v", s.state.containers)
+	return s, nil
 }
 
 type serverState struct {
 	sandboxes  map[string]*sandbox
 	containers oci.Store
-}
-
-type sandbox struct {
-	name       string
-	logDir     string
-	labels     map[string]string
-	containers oci.Store
-}
-
-func (s *sandbox) addContainer(c *oci.Container) {
-	s.containers.Add(c.Name(), c)
-}
-
-func (s *sandbox) getContainer(name string) *oci.Container {
-	return s.containers.Get(name)
-}
-
-func (s *sandbox) removeContainer(c *oci.Container) {
-	s.containers.Delete(c.Name())
 }
 
 func (s *Server) addSandbox(sb *sandbox) {
