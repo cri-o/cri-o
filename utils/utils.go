@@ -125,3 +125,8 @@ func StartReaper() {
 		}
 	}()
 }
+
+// StatusToExitCode converts wait status code to an exit code
+func StatusToExitCode(status int) int {
+	return ((status) & 0xff00) >> 8
+}
