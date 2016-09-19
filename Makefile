@@ -5,7 +5,7 @@ default: help
 help:
 	@echo "Usage: make <target>"
 	@echo
-	@echo " * 'binaries' - Build ocid, conmon andocic"
+	@echo " * 'binaries' - Build ocid, conmon and ocic"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
 	@echo " * 'update-deps' - Update vendored dependencies"
@@ -37,7 +37,6 @@ update-deps:
 binaries: ocid ocic conmon
 
 .PHONY: .gitvalidation
-	#
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation:
 	@which git-validation > /dev/null 2>/dev/null || (echo "ERROR: git-validation not found. Consider 'make install.tools' target" && false)
@@ -62,7 +61,7 @@ install.tools: .install.gitvalidation .install.glide .install.glide-vc .install.
 
 .install.gometalinter:
 	go get github.com/alecthomas/gometalinter
-	gometalinter --install --update
+	gometalinter --install
 
 .PHONY: \
 	binaries \
