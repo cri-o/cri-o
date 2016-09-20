@@ -10,9 +10,9 @@ import (
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/ocid/oci"
 	"github.com/kubernetes-incubator/ocid/utils"
-	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 type sandbox struct {
@@ -51,7 +51,7 @@ func (s *Server) generatePodIDandName(name string) (string, string, error) {
 }
 
 // CreatePodSandbox creates a pod-level sandbox.
-// The definition of PodSandbox is at https://github.com/kubernetes/kubernetes/pull/25899
+// The definition of PodSandbox is at https://k8s.io/kubernetes/pull/25899
 func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
 	// process req.Name
 	name := req.GetConfig().GetMetadata().GetName()

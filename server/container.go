@@ -9,9 +9,9 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/oci"
 	"github.com/kubernetes-incubator/ocid/utils"
-	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 // CreateContainer creates a new container in specified PodSandbox
@@ -250,12 +250,12 @@ func (s *Server) createSandboxContainer(name string, sb *sandbox, SandboxConfig 
 		"network": "net",
 	} {
 		nsPath := fmt.Sprintf("/proc/%d/ns/%s", podInfraState.Pid, nsFile)
-		if err = specgen.AddOrReplaceLinuxNamespace(nsType, nsPath); err != nil {
+		if err := specgen.AddOrReplaceLinuxNamespace(nsType, nsPath); err != nil {
 			return nil, err
 		}
 	}
 
-	if err = specgen.SaveToFile(filepath.Join(containerDir, "config.json")); err != nil {
+	if err := specgen.SaveToFile(filepath.Join(containerDir, "config.json")); err != nil {
 		return nil, err
 	}
 
@@ -271,7 +271,7 @@ func (s *Server) createSandboxContainer(name string, sb *sandbox, SandboxConfig 
 
 	// TODO: copy the rootfs into the bundle.
 	// Currently, utils.CreateFakeRootfs is used to populate the rootfs.
-	if err = utils.CreateFakeRootfs(containerDir, image); err != nil {
+	if err := utils.CreateFakeRootfs(containerDir, image); err != nil {
 		return nil, err
 	}
 

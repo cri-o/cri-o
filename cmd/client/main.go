@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
