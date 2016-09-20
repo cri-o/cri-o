@@ -209,7 +209,26 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Printf("ID: %s\n", *r.Status.Id)
+	if r.Status.State != nil {
+		fmt.Printf("Status: %s\n", r.Status.State)
+	}
+	if r.Status.CreatedAt != nil {
+		ctm := time.Unix(*r.Status.CreatedAt, 0)
+		fmt.Printf("Created: %v\n", ctm)
+	}
+	if r.Status.StartedAt != nil {
+		stm := time.Unix(*r.Status.StartedAt, 0)
+		fmt.Printf("Started: %v\n", stm)
+	}
+	if r.Status.FinishedAt != nil {
+		ftm := time.Unix(*r.Status.FinishedAt, 0)
+		fmt.Printf("Finished: %v\n", ftm)
+	}
+	if r.Status.ExitCode != nil {
+		fmt.Printf("Exit Code: %v\n", *r.Status.ExitCode)
+	}
+
 	return nil
 }
 
