@@ -12,10 +12,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	unixDomainSocket = "/var/run/ocid.sock"
-)
-
 func main() {
 	app := cli.NewApp()
 	app.Name = "ocic"
@@ -28,14 +24,19 @@ func main() {
 			Usage: "ocid pod sandbox dir",
 		},
 		cli.StringFlag{
-			Name:  "runtime",
-			Value: "/usr/bin/runc",
-			Usage: "OCI runtime path",
-		},
-		cli.StringFlag{
 			Name:  "containerdir",
 			Value: "/var/lib/ocid/containers",
 			Usage: "ocid container dir",
+		},
+		cli.StringFlag{
+			Name:  "socket",
+			Value: "/var/run/ocid.sock",
+			Usage: "path to ocid socket",
+		},
+		cli.StringFlag{
+			Name:  "runtime",
+			Value: "/usr/bin/runc",
+			Usage: "OCI runtime path",
 		},
 		cli.BoolFlag{
 			Name:  "debug",
@@ -76,13 +77,14 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
+		socketPath := c.String("socket")
 		// Remove the socket if it already exists
-		if _, err := os.Stat(unixDomainSocket); err == nil {
-			if err := os.Remove(unixDomainSocket); err != nil {
+		if _, err := os.Stat(socketPath); err == nil {
+			if err := os.Remove(socketPath); err != nil {
 				logrus.Fatal(err)
 			}
 		}
-		lis, err := net.Listen("unix", unixDomainSocket)
+		lis, err := net.Listen("unix", socketPath)
 		if err != nil {
 			logrus.Fatalf("failed to listen: %v", err)
 		}
