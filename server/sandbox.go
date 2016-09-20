@@ -3,11 +3,11 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/ocid/oci"
 	"github.com/kubernetes-incubator/ocid/utils"
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -16,16 +16,11 @@ import (
 )
 
 type sandbox struct {
+	id         string
 	name       string
 	logDir     string
 	labels     map[string]string
 	containers oci.Store
-}
-
-type metadata struct {
-	LogDir        string            `json:"log_dir"`
-	ContainerName string            `json:"container_name"`
-	Labels        map[string]string `json:"labels"`
 }
 
 const (
@@ -44,6 +39,17 @@ func (s *sandbox) removeContainer(c *oci.Container) {
 	s.containers.Delete(c.Name())
 }
 
+func (s *Server) generatePodIDandName(name string) (string, string, error) {
+	var (
+		err error
+		id  = stringid.GenerateNonCryptoID()
+	)
+	if name, err = s.reservePodName(id, name); err != nil {
+		return "", "", err
+	}
+	return id, name, err
+}
+
 // CreatePodSandbox creates a pod-level sandbox.
 // The definition of PodSandbox is at https://github.com/kubernetes/kubernetes/pull/25899
 func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
@@ -53,16 +59,20 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
 	}
 
-	podSandboxDir := filepath.Join(s.sandboxDir, name)
-	if _, err := os.Stat(podSandboxDir); err == nil {
+	var err error
+	id, name, err := s.generatePodIDandName(name)
+	if err != nil {
+		return nil, err
+	}
+	podSandboxDir := filepath.Join(s.sandboxDir, id)
+	if _, err = os.Stat(podSandboxDir); err == nil {
 		return nil, fmt.Errorf("pod sandbox (%s) already exists", podSandboxDir)
 	}
 
-	if err := os.MkdirAll(podSandboxDir, 0755); err != nil {
+	if err = os.MkdirAll(podSandboxDir, 0755); err != nil {
 		return nil, err
 	}
 
-	var err error
 	defer func() {
 		if err != nil {
 			if err2 := os.RemoveAll(podSandboxDir); err2 != nil {
@@ -88,7 +98,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	// process req.LogDirectory
 	logDir := req.GetConfig().GetLogDirectory()
 	if logDir == "" {
-		logDir = fmt.Sprintf("/var/log/ocid/pods/%s", name)
+		logDir = fmt.Sprintf("/var/log/ocid/pods/%s", id)
 	}
 
 	dnsServers := req.GetConfig().GetDnsOptions().GetServers()
@@ -107,7 +117,17 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	g.AddBindMount(resolvPath, "/etc/resolv.conf", "ro")
 
 	labels := req.GetConfig().GetLabels()
+	labelsJSON, err := json.Marshal(labels)
+	if err != nil {
+		return nil, err
+	}
+	g.AddAnnotation("ocid/labels", string(labelsJSON))
+	g.AddAnnotation("ocid/log_path", logDir)
+	g.AddAnnotation("ocid/name", name)
+	containerName := name + "-infra"
+	g.AddAnnotation("ocid/container_name", containerName)
 	s.addSandbox(&sandbox{
+		id:         id,
 		name:       name,
 		logDir:     logDir,
 		labels:     labels,
@@ -162,8 +182,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		}
 	}
 
-	containerName := name + "-infra"
-	container, err := oci.NewContainer(containerName, podSandboxDir, podSandboxDir, labels, name, false)
+	container, err := oci.NewContainer(containerName, podSandboxDir, podSandboxDir, labels, id, false)
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +201,8 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	if err != nil {
 		return nil, err
 	}
-	if err = s.netPlugin.SetUpPod(netnsPath, podNamespace, name, containerName); err != nil {
-		return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, name, err)
+	if err = s.netPlugin.SetUpPod(netnsPath, podNamespace, id, containerName); err != nil {
+		return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
 	}
 
 	if err = s.runtime.StartContainer(container); err != nil {
@@ -192,24 +211,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 
 	s.addContainer(container)
 
-	meta := &metadata{
-		LogDir:        logDir,
-		ContainerName: containerName,
-		Labels:        labels,
-	}
-
-	b, err := json.Marshal(meta)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: eventually we would track all containers in this pod so on server start
-	// we can repopulate the structs in memory properly...
-	// e.g. each container can write itself in podSandboxDir
-	err = ioutil.WriteFile(filepath.Join(podSandboxDir, "metadata.json"), b, 0644)
-	if err != nil {
-		return nil, err
-	}
+	s.podIDIndex.Add(id)
 
 	if err = s.runtime.UpdateStatus(container); err != nil {
 		return nil, err
