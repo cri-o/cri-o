@@ -11,7 +11,7 @@ import (
 	"github.com/kubernetes-incubator/ocid/oci"
 	"github.com/kubernetes-incubator/ocid/utils"
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-	"github.com/opencontainers/ocitools/generate"
+	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
 )
 
@@ -211,7 +211,9 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 
 	s.addContainer(container)
 
-	s.podIDIndex.Add(id)
+	if err = s.podIDIndex.Add(id); err != nil {
+		return nil, err
+	}
 
 	if err = s.runtime.UpdateStatus(container); err != nil {
 		return nil, err

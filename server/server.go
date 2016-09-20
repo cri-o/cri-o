@@ -47,6 +47,10 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 	name := m.Annotations["ocid/name"]
+	name, err = s.reservePodName(id, name)
+	if err != nil {
+		return err
+	}
 	s.addSandbox(&sandbox{
 		id:         id,
 		name:       name,
@@ -63,8 +67,9 @@ func (s *Server) loadSandbox(id string) error {
 	if err = s.runtime.UpdateStatus(scontainer); err != nil {
 		logrus.Warnf("error updating status for container %s: %v", scontainer, err)
 	}
-	s.podIDIndex.Add(id)
-	s.reservePodName(id, name)
+	if err = s.podIDIndex.Add(id); err != nil {
+		return err
+	}
 	return nil
 }
 
