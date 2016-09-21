@@ -75,7 +75,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	g := generate.New()
 
 	// setup defaults for the pod sandbox
-	g.SetRootPath(filepath.Join(podInfraRootfs, "rootfs"))
+	g.SetRootPath(podInfraRootfs)
 	g.SetRootReadonly(true)
 	g.SetProcessArgs([]string{"/pause"})
 
