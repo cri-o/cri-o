@@ -76,5 +76,3 @@ clone git github.com/gogo/protobuf 43a2e0b1c32252bfbbdf81f7faa7a88fb3fa4028
 clone git github.com/gorilla/context v1.1
 
 clean
-
-mv vendor/src/* vendor/
