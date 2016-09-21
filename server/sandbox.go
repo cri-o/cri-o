@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/oci"
+	"github.com/kubernetes-incubator/ocid/utils"
 	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/opencontainers/ocitools/generate"
 	"golang.org/x/net/context"
@@ -26,6 +27,10 @@ type metadata struct {
 	ContainerName string            `json:"container_name"`
 	Labels        map[string]string `json:"labels"`
 }
+
+const (
+	podInfraRootfs = "/var/lib/ocid/graph/vfs/pause"
+)
 
 func (s *sandbox) addContainer(c *oci.Container) {
 	s.containers.Add(c.Name(), c)
@@ -70,7 +75,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	g := generate.New()
 
 	// setup defaults for the pod sandbox
-	g.SetRootPath("/var/lib/ocid/graph/vfs/pause")
+	g.SetRootPath(filepath.Join(podInfraRootfs, "rootfs"))
 	g.SetRootReadonly(true)
 	g.SetProcessArgs([]string{"/pause"})
 
@@ -144,6 +149,17 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	err = g.SaveToFile(filepath.Join(podSandboxDir, "config.json"))
 	if err != nil {
 		return nil, err
+	}
+
+	if _, err = os.Stat(podInfraRootfs); err != nil {
+		if os.IsNotExist(err) {
+			// TODO: Replace by rootfs creation API when it is ready
+			if err := utils.CreateFakeRootfs(podInfraRootfs, "docker://kubernetes/pause"); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	containerName := name + "-infra"
