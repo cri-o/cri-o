@@ -19,7 +19,7 @@ help:
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
 
-lint:
+lint: ${OCID_LINK}
 	@echo "checking lint"
 	@./.tool/lint
 
