@@ -4,6 +4,7 @@ load helpers
 
 function teardown() {
 	stop_ocid
+	cleanup_test
 }
 
 @test "ocic runtimeversion" {

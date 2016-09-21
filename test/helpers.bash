@@ -15,8 +15,16 @@ OCID_BINARY=${OCID_BINARY:-${OCID_ROOT}/ocid/ocid}
 OCIC_BINARY=${OCIC_BINARY:-${OCID_ROOT}/ocid/ocic}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${OCID_ROOT}/ocid/conmon/conmon}
+# Path of the runc binary.
+RUNC_PATH=$(command -v runc || true)
+RUNC_BINARY=${RUNC_PATH:-/usr/local/sbin/runc}
 
-PATH=$PATH:$BATS_TMPDIR
+TESTDIR=$(mktemp -d)
+OCID_SOCKET="$TESTDIR/ocid.sock"
+
+cp "$CONMON_BINARY" "$TESTDIR/conmon"
+
+PATH=$PATH:$TESTDIR
 
 # Run ocid using the binary specified by $OCID_BINARY.
 # This must ONLY be run on engines created with `start_ocid`.
@@ -26,7 +34,7 @@ function ocid() {
 
 # Run ocic using the binary specified by $OCID_BINARY.
 function ocic() {
-	"$OCIC_BINARY" "$@"
+	"$OCIC_BINARY" --socket "$OCID_SOCKET" "$@"
 }
 
 # Communicate with Docker on the host machine.
@@ -57,24 +65,21 @@ function retry() {
 
 # Waits until the given ocid becomes reachable.
 function wait_until_reachable() {
-	retry 15 1 "$OCIC_BINARY" runtimeversion
+	retry 15 1 ocic runtimeversion
 }
 
 # Start ocid.
 function start_ocid() {
-	cp "$CONMON_BINARY" "$BATS_TMPDIR/conmon"
-	mkdir -p "$BATS_TMPDIR/ocid/containers"
-	mkdir -p "$BATS_TMPDIR/ocid/sandboxes"
-
-	"$OCID_BINARY" --debug --runtime /usr/local/bin/runc  --containerdir "$BATS_TMPDIR/ocid/containers" --sandboxdir "$BATS_TMPDIR/ocid/sandboxes" & OCID_PID=$!
+	"$OCID_BINARY" --debug --socket "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" & OCID_PID=$!
 	wait_until_reachable
 }
 
 # Stop ocid.
 function stop_ocid() {
-	# TODO(runcom): why a greceful kill doesn't work?!
-	kill -9 "$OCID_PID"
-	# TODO(runcom): remove the whole /var/lib/ocid
-	rm -rf "$BATS_TMPDIR/ocid/{containers,sandboxes}"
+	kill "$OCID_PID"
+}
+
+function cleanup_test() {
+	rm -rf "$TESTDIR"
 	# TODO(runcom): runc list and kill/delete everything!
 }
