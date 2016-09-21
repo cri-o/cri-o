@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     protobuf-c-compiler \
     protobuf-compiler \
     python-minimal \
+    libglib2.0-dev \
     --no-install-recommends
 
 # install bats
