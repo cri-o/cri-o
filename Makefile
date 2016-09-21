@@ -6,6 +6,7 @@ OCID_IMAGE := ocid_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
 OCID_LINK := ${CURDIR}/vendor/src/github.com/kubernetes-incubator/ocid
 OCID_LINK_DIR := ${CURDIR}/vendor/src/github.com/kubernetes-incubator
 OCID_INSTANCE := ocid_dev
+SYSTEM_GOPATH := ${GOPATH}
 export GOPATH := ${CURDIR}/vendor
 
 default: help
@@ -70,20 +71,14 @@ endif
 
 .PHONY: install.tools
 
-install.tools: .install.gitvalidation .install.glide .install.glide-vc .install.gometalinter
+install.tools: .install.gitvalidation .install.gometalinter
 
 .install.gitvalidation:
-	go get github.com/vbatts/git-validation
-
-.install.glide:
-	go get github.com/Masterminds/glide
-
-.install.glide-vc:
-	go get github.com/sgotti/glide-vc
+	GOPATH=${SYSTEM_GOPATH} go get github.com/vbatts/git-validation
 
 .install.gometalinter:
-	go get github.com/alecthomas/gometalinter
-	gometalinter --install
+	GOPATH=${SYSTEM_GOPATH} go get github.com/alecthomas/gometalinter
+	GOPATH=${SYSTEM_GOPATH} gometalinter --install
 
 .PHONY: \
 	binaries \
