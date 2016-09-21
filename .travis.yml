@@ -12,11 +12,10 @@ before_install:
   - make install.tools
   - go get -u github.com/alecthomas/gometalinter
   - gometalinter --install --update
-  - go get -t -d ./...
 
 install: true
 
 script:
   - make .gitvalidation
   - make lint
-  - make
+  - make binaries
