@@ -219,7 +219,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
-	return &pb.CreatePodSandboxResponse{PodSandboxId: &name}, nil
+	return &pb.CreatePodSandboxResponse{PodSandboxId: &id}, nil
 }
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the
