@@ -7,7 +7,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/server"
-	"github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 )

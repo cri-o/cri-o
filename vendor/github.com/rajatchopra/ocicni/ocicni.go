@@ -1,5 +1,5 @@
 
-package ocicni 
+package ocicni
 
 import (
 	"errors"

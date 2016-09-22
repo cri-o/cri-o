@@ -4,21 +4,21 @@ import "os"
 
 // Spec is the base configuration for the container.
 type Spec struct {
-	// Version of the Open Container Runtime Specification with which the bundle complies.
+	// Version is the version of the specification that is supported.
 	Version string `json:"ociVersion"`
-	// Platform specifies the configuration's target platform.
+	// Platform is the host information for OS and Arch.
 	Platform Platform `json:"platform"`
-	// Process configures the container process.
+	// Process is the container's main process.
 	Process Process `json:"process"`
-	// Root configures the container's root filesystem.
+	// Root is the root information for the container's filesystem.
 	Root Root `json:"root"`
-	// Hostname configures the container's hostname.
+	// Hostname is the container's host name.
 	Hostname string `json:"hostname,omitempty"`
-	// Mounts configures additional mounts (on top of Root).
+	// Mounts profile configuration for adding mounts to the container's filesystem.
 	Mounts []Mount `json:"mounts,omitempty"`
-	// Hooks configures callbacks for container lifecycle events.
+	// Hooks are the commands run at various lifecycle events of the container.
 	Hooks Hooks `json:"hooks"`
-	// Annotations contains arbitrary metadata for the container.
+	// Annotations is an unstructured key value map that may be set by external tools to store and retrieve arbitrary metadata.
 	Annotations map[string]string `json:"annotations,omitempty"`
 
 	// Linux is platform specific configuration for Linux based containers.
@@ -53,8 +53,8 @@ type Process struct {
 	SelinuxLabel string `json:"selinuxLabel,omitempty" platform:"linux"`
 }
 
-// User specifies Linux/Solaris specific user and group information
-// for the container process.
+// User specifies Linux/Solaris specific user and group information for the container's
+// main process.
 type User struct {
 	// UID is the user id. (this field is platform dependent)
 	UID uint32 `json:"uid" platform:"linux,solaris"`
@@ -262,7 +262,7 @@ type Memory struct {
 	// Kernel memory limit (in bytes).
 	Kernel *uint64 `json:"kernel,omitempty"`
 	// Kernel memory limit for tcp (in bytes)
-	KernelTCP *uint64 `json:"kernelTCP,omitempty"`
+	KernelTCP *uint64 `json:"kernelTCP"`
 	// How aggressive the kernel will swap memory pages. Range from 0 to 100.
 	Swappiness *uint64 `json:"swappiness,omitempty"`
 }
@@ -294,15 +294,15 @@ type Pids struct {
 // Network identification and priority configuration
 type Network struct {
 	// Set class identifier for container's network packets
-	ClassID *uint32 `json:"classID,omitempty"`
+	ClassID *uint32 `json:"classID"`
 	// Set priority of network traffic for container
 	Priorities []InterfacePriority `json:"priorities,omitempty"`
 }
 
 // Resources has container runtime resource constraints
 type Resources struct {
-	// Devices configures the device whitelist.
-	Devices []DeviceCgroup `json:"devices,omitempty"`
+	// Devices are a list of device rules for the whitelist controller
+	Devices []DeviceCgroup `json:"devices"`
 	// DisableOOMKiller disables the OOM killer for out of memory conditions
 	DisableOOMKiller *bool `json:"disableOOMKiller,omitempty"`
 	// Specify an oom_score_adj for the container.

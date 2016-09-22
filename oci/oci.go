@@ -147,7 +147,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 	defer c.stateLock.Unlock()
 	out, err := exec.Command(r.path, "state", c.name).Output()
 	if err != nil {
-		return fmt.Errorf("error getting container state for %s: %s", c.name, err)
+		return fmt.Errorf("error getting container state for %s: %s: %v", c.name, err, out)
 	}
 	stateReader := bytes.NewReader(out)
 	if err := json.NewDecoder(stateReader).Decode(&c.state); err != nil {

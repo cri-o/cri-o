@@ -9,7 +9,7 @@ import (
 	"github.com/containers/image/directory"
 	"github.com/containers/image/image"
 	"github.com/containers/image/transports"
-	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"golang.org/x/net/context"
 )
 

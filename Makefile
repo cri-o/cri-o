@@ -8,7 +8,6 @@ help:
 	@echo " * 'binaries' - Build ocid, conmon and ocic"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
-	@echo " * 'update-deps' - Update vendored dependencies"
 
 lint:
 	@echo "checking lint"
@@ -27,13 +26,6 @@ clean:
 	rm -f ocic ocid
 	rm -f conmon/conmon.o conmon/conmon
 
-update-deps:
-	@which glide > /dev/null 2>/dev/null || (echo "ERROR: glide not found." && false)
-	glide update --strip-vcs --strip-vendor --update-vendored --delete
-	glide-vc --only-code --no-tests
-	# see http://sed.sourceforge.net/sed1line.txt
-	find vendor -type f -exec sed -i -e :a -e '/^\n*$$/{$$d;N;ba' -e '}' "{}" \;
-
 binaries: ocid ocic conmon
 
 .PHONY: .gitvalidation
@@ -41,9 +33,9 @@ binaries: ocid ocic conmon
 .gitvalidation:
 	@which git-validation > /dev/null 2>/dev/null || (echo "ERROR: git-validation not found. Consider 'make install.tools' target" && false)
 ifeq ($(TRAVIS),true)
-	git-validation -q -run DCO,short-subject,dangling-whitespace
+	git-validation -q -run DCO,short-subject
 else
-	git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
+	git-validation -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
 .PHONY: install.tools

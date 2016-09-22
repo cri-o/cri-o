@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,19 +9,19 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/oci"
 	"github.com/kubernetes-incubator/ocid/utils"
-	pb "github.com/kubernetes/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-	"github.com/opencontainers/ocitools/generate"
+	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (*pb.CreateContainerResponse, error) {
 	// The id of the PodSandbox
 	podSandboxID := req.GetPodSandboxId()
-	if !s.hasSandbox(podSandboxID) {
+	sb := s.getSandbox(podSandboxID)
+	if sb == nil {
 		return nil, fmt.Errorf("the pod sandbox (%s) does not exist", podSandboxID)
 	}
-
 	// The config of the container
 	containerConfig := req.GetConfig()
 	if containerConfig == nil {
@@ -43,7 +44,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	container, err := s.createSandboxContainer(name, podSandboxID, req.GetSandboxConfig(), containerDir, containerConfig)
+	container, err := s.createSandboxContainer(name, sb, req.GetSandboxConfig(), containerDir, containerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}, nil
 }
 
-func (s *Server) createSandboxContainer(name, podSandboxID string, SandboxConfig *pb.PodSandboxConfig, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (s *Server) createSandboxContainer(name string, sb *sandbox, SandboxConfig *pb.PodSandboxConfig, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+	if sb == nil {
+		return nil, errors.New("createSandboxContainer needs a sandbox")
+	}
 	// creates a spec Generator with the default spec.
 	specgen := generate.New()
 
@@ -128,8 +132,6 @@ func (s *Server) createSandboxContainer(name, podSandboxID string, SandboxConfig
 			specgen.AddAnnotation(k, v)
 		}
 	}
-
-	specgen.AddAnnotation("pod_sandbox_id", podSandboxID)
 
 	if containerConfig.GetPrivileged() {
 		specgen.SetupPrivileged(true)
@@ -235,9 +237,8 @@ func (s *Server) createSandboxContainer(name, podSandboxID string, SandboxConfig
 			}
 		}
 	}
-
 	// Join the namespace paths for the pod sandbox container.
-	podContainerName := podSandboxID + "-infra"
+	podContainerName := sb.name + "-infra"
 	podInfraContainer := s.state.containers.Get(podContainerName)
 	podInfraState := s.runtime.ContainerStatus(podInfraContainer)
 
@@ -274,7 +275,7 @@ func (s *Server) createSandboxContainer(name, podSandboxID string, SandboxConfig
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(name, containerDir, logPath, labels, podSandboxID, containerConfig.GetTty())
+	container, err := oci.NewContainer(name, containerDir, logPath, labels, sb.id, containerConfig.GetTty())
 	if err != nil {
 		return nil, err
 	}
