@@ -231,16 +231,16 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be force terminated.
 func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
-	sbName := req.PodSandboxId
-	if *sbName == "" {
+	sbID := req.PodSandboxId
+	if *sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
-	sb := s.getSandbox(*sbName)
+	sb := s.getSandbox(*sbID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", *sbName)
+		return nil, fmt.Errorf("specified sandbox not found: %s", *sbID)
 	}
 
-	podInfraContainer := *sbName + "-infra"
+	podInfraContainer := sb.name + "-infra"
 	for _, c := range sb.containers.List() {
 		if podInfraContainer == c.Name() {
 			podNamespace := ""
@@ -248,14 +248,14 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			if err != nil {
 				return nil, err
 			}
-			if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, *sbName, podInfraContainer); err != nil {
-				return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v", c.Name(), *sbName, err)
+			if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, *sbID, podInfraContainer); err != nil {
+				return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v", c.Name(), *sbID, err)
 			}
 		}
 		cStatus := s.runtime.ContainerStatus(c)
 		if cStatus.Status != "stopped" {
 			if err := s.runtime.StopContainer(c); err != nil {
-				return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *sbName, err)
+				return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *sbID, err)
 			}
 		}
 	}
