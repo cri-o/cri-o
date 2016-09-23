@@ -55,7 +55,6 @@ func (s *Server) generatePodIDandName(name, namespace string) (string, string, e
 }
 
 // CreatePodSandbox creates a pod-level sandbox.
-// The definition of PodSandbox is at https://k8s.io/kubernetes/pull/25899
 func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
 	// process req.Name
 	name := req.GetConfig().GetMetadata().GetName()
@@ -95,18 +94,19 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	g.SetRootReadonly(true)
 	g.SetProcessArgs([]string{"/pause"})
 
-	// process req.Hostname
+	// set hostname
 	hostname := req.GetConfig().GetHostname()
 	if hostname != "" {
 		g.SetHostname(hostname)
 	}
 
-	// process req.LogDirectory
+	// set log directory
 	logDir := req.GetConfig().GetLogDirectory()
 	if logDir == "" {
 		logDir = fmt.Sprintf("/var/log/ocid/pods/%s", id)
 	}
 
+	// set DNS options
 	dnsServers := req.GetConfig().GetDnsOptions().GetServers()
 	dnsSearches := req.GetConfig().GetDnsOptions().GetSearches()
 	resolvPath := fmt.Sprintf("%s/resolv.conf", podSandboxDir)
@@ -122,6 +122,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 
 	g.AddBindMount(resolvPath, "/etc/resolv.conf", "ro")
 
+	// add labels
 	labels := req.GetConfig().GetLabels()
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
@@ -145,6 +146,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		g.AddAnnotation(k, v)
 	}
 
+	// setup cgroup settings
 	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
 	if cgroupParent != "" {
 		g.SetLinuxCgroupsPath(cgroupParent)
@@ -201,7 +203,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
-	// Setup the network
+	// setup the network
 	podNamespace := ""
 	netnsPath, err := container.NetNsPath()
 	if err != nil {
