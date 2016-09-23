@@ -17,10 +17,10 @@ conmon:
 	make -C $@
 
 ocid:
-	go build -o ocid ./cmd/server/main.go
+	go build -o ocid ./cmd/server/
 
 ocic:
-	go build -o ocic ./cmd/client/main.go
+	go build -o ocic ./cmd/client/
 
 clean:
 	rm -f ocic ocid
