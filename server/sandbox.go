@@ -302,16 +302,16 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 // PodSandboxStatus returns the Status of the PodSandbox.
 func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
-	sbName := req.PodSandboxId
-	if *sbName == "" {
+	sbID := req.PodSandboxId
+	if *sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
-	sb := s.getSandbox(*sbName)
+	sb := s.getSandbox(*sbID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", *sbName)
+		return nil, fmt.Errorf("specified sandbox not found: %s", *sbID)
 	}
 
-	podInfraContainerName := *sbName + "-infra"
+	podInfraContainerName := sb.name + "-infra"
 	podInfraContainer := sb.getContainer(podInfraContainerName)
 
 	cState := s.runtime.ContainerStatus(podInfraContainer)
@@ -322,7 +322,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		return nil, err
 	}
 	podNamespace := ""
-	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, *sbName, podInfraContainerName)
+	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, *sbID, podInfraContainerName)
 	if err != nil {
 		// ignore the error on network status
 		ip = ""
@@ -330,7 +330,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 
 	return &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
-			Id:        sbName,
+			Id:        sbID,
 			CreatedAt: int64Ptr(created),
 			Linux: &pb.LinuxPodSandboxStatus{
 				Namespaces: &pb.Namespace{
