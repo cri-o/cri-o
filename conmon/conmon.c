@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 {
 	int ret;
 	int opt;
-	bool terminal = FALSE;
+	bool terminal = false;
 	const char *cid = NULL;
 	const char *runtime_path = NULL;
 	char cmd[CMD_SIZE];
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	while ((opt = getopt(argc, argv, "tc:r:")) != -1) {
 		switch (opt) {
 		case 't':
-			terminal = TRUE;
+			terminal = true;
 			break;
 		case 'c':
 			cid = optarg;
