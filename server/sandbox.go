@@ -89,6 +89,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	// creates a spec Generator with the default spec.
 	g := generate.New()
 
+	podInfraRootfs := filepath.Join(s.root, "graph/vfs/pause")
 	// setup defaults for the pod sandbox
 	g.SetRootPath(filepath.Join(podInfraRootfs, "rootfs"))
 	g.SetRootReadonly(true)

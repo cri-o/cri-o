@@ -24,6 +24,7 @@ const (
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
+	root         string
 	runtime      *oci.Runtime
 	sandboxDir   string
 	stateLock    sync.Mutex
@@ -102,7 +103,7 @@ func (s *Server) reservePodName(id, name string) (string, error) {
 }
 
 // New creates a new Server with options provided
-func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
+func New(runtimePath, root, sandboxDir, containerDir string) (*Server, error) {
 	// TODO: This will go away later when we have wrapper process or systemd acting as
 	// subreaper.
 	if err := utils.SetSubreaper(1); err != nil {
@@ -130,6 +131,7 @@ func New(runtimePath, sandboxDir, containerDir string) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{
+		root:       root,
 		runtime:    r,
 		netPlugin:  netPlugin,
 		sandboxDir: sandboxDir,

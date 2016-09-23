@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 {
 	int ret;
 	int opt;
-	bool terminal = FALSE;
+	bool terminal = false;
 	const char *cid = NULL;
 	const char *runtime_path = NULL;
 	char cmd[CMD_SIZE];
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	while ((opt = getopt(argc, argv, "tc:r:")) != -1) {
 		switch (opt) {
 		case 't':
-			terminal = TRUE;
+			terminal = true;
 			break;
 		case 'c':
 			cid = optarg;
@@ -230,7 +230,8 @@ int main(int argc, char *argv[])
 		/* Copy data back and forth between STDIN and master fd */
 		while (true) {
 			int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
-			for (int i = 0; i < ready; i++) {
+			int i = 0;
+			for (i = 0; i < ready; i++) {
 				if (evlist[i].events & EPOLLIN) {
 					if (evlist[i].data.fd == STDIN_FILENO) {
 						num_read =

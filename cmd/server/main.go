@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/server"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+)
+
+const (
+	ocidRoot = "/var/lib/ocid"
 )
 
 func main() {
@@ -20,13 +25,18 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
+			Name:  "root",
+			Value: ocidRoot,
+			Usage: "ocid root dir",
+		},
+		cli.StringFlag{
 			Name:  "sandboxdir",
-			Value: "/var/lib/ocid/sandboxes",
+			Value: filepath.Join(ocidRoot, "sandboxes"),
 			Usage: "ocid pod sandbox dir",
 		},
 		cli.StringFlag{
 			Name:  "containerdir",
-			Value: "/var/lib/ocid/containers",
+			Value: filepath.Join(ocidRoot, "containers"),
 			Usage: "ocid container dir",
 		},
 		cli.StringFlag{
@@ -94,7 +104,7 @@ func main() {
 
 		containerDir := c.String("containerdir")
 		sandboxDir := c.String("sandboxdir")
-		service, err := server.New(c.String("runtime"), sandboxDir, containerDir)
+		service, err := server.New(c.String("runtime"), c.String("root"), sandboxDir, containerDir)
 		if err != nil {
 			logrus.Fatal(err)
 		}
