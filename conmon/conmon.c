@@ -230,7 +230,8 @@ int main(int argc, char *argv[])
 		/* Copy data back and forth between STDIN and master fd */
 		while (true) {
 			int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
-			for (int i = 0; i < ready; i++) {
+			int i = 0;
+			for (i = 0; i < ready; i++) {
 				if (evlist[i].events & EPOLLIN) {
 					if (evlist[i].data.fd == STDIN_FILENO) {
 						num_read =
