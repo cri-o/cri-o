@@ -182,7 +182,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 	if _, err = os.Stat(podInfraRootfs); err != nil {
 		if os.IsNotExist(err) {
 			// TODO: Replace by rootfs creation API when it is ready
-			if err := utils.CreateFakeRootfs(podInfraRootfs, "docker://kubernetes/pause"); err != nil {
+			if err = utils.CreateFakeRootfs(podInfraRootfs, "docker://kubernetes/pause"); err != nil {
 				return nil, err
 			}
 		} else {
