@@ -24,7 +24,8 @@ type sandbox struct {
 }
 
 const (
-	podInfraRootfs = "/var/lib/ocid/graph/vfs/pause"
+	podInfraRootfs      = "/var/lib/ocid/graph/vfs/pause"
+	podDefaultNamespace = "default"
 )
 
 func (s *sandbox) addContainer(c *oci.Container) {
@@ -39,12 +40,15 @@ func (s *sandbox) removeContainer(c *oci.Container) {
 	s.containers.Delete(c.Name())
 }
 
-func (s *Server) generatePodIDandName(name string) (string, string, error) {
+func (s *Server) generatePodIDandName(name, namespace string) (string, string, error) {
 	var (
 		err error
 		id  = stringid.GenerateNonCryptoID()
 	)
-	if name, err = s.reservePodName(id, name); err != nil {
+	if namespace == "" {
+		namespace = podDefaultNamespace
+	}
+	if name, err = s.reservePodName(id, namespace+"-"+name); err != nil {
 		return "", "", err
 	}
 	return id, name, err
@@ -59,8 +63,10 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
 	}
 
+	namespace := req.GetConfig().GetMetadata().GetNamespace()
+
 	var err error
-	id, name, err := s.generatePodIDandName(name)
+	id, name, err := s.generatePodIDandName(name, namespace)
 	if err != nil {
 		return nil, err
 	}
