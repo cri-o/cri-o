@@ -21,5 +21,4 @@ install: true
 script:
   - make .gitvalidation
   - make lint
-  - make ocid ocic
   - make integration
