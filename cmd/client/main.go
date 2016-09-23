@@ -3,19 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"time"
 
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-)
-
-var (
-	unixDomainSocket string
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 const (
@@ -23,8 +19,8 @@ const (
 	timeout = 10 * time.Second
 )
 
-func getClientConnection() (*grpc.ClientConn, error) {
-	conn, err := grpc.Dial(unixDomainSocket, grpc.WithInsecure(), grpc.WithTimeout(timeout),
+func getClientConnection(context *cli.Context) (*grpc.ClientConn, error) {
+	conn, err := grpc.Dial(context.GlobalString("socket"), grpc.WithInsecure(), grpc.WithTimeout(timeout),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
 			return net.DialTimeout("unix", addr, timeout)
 		}))
@@ -238,7 +234,7 @@ func Version(client pb.RuntimeServiceClient, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("VersionResponse: Version: %s, RuntimeName: %s, RuntimeVersion: %s, RuntimeApiVersion: %s\n", *r.Version, *r.RuntimeName, *r.RuntimeVersion, *r.RuntimeApiVersion)
+	fmt.Printf("VersionResponse: Version: %s, RuntimeName: %s, RuntimeVersion: %s, RuntimeApiVersion: %s\n", *r.Version, *r.RuntimeName, *r.RuntimeVersion, *r.RuntimeApiVersion)
 	return nil
 }
 
@@ -257,15 +253,14 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:        "sock",
-			Value:       "/var/run/ocid.sock",
-			Usage:       "Socket to connect to",
-			Destination: &unixDomainSocket,
+			Name:  "socket",
+			Value: "/var/run/ocid.sock",
+			Usage: "Socket to connect to",
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 }
 
@@ -281,7 +276,7 @@ var pullImageCommand = cli.Command{
 	Usage: "pull an image",
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -301,7 +296,7 @@ var runtimeVersionCommand = cli.Command{
 	Usage: "get runtime version information",
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -340,7 +335,7 @@ var createPodSandboxCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -368,7 +363,7 @@ var stopPodSandboxCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -395,7 +390,7 @@ var removePodSandboxCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -422,7 +417,7 @@ var podSandboxStatusCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -465,7 +460,7 @@ var createContainerCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -496,7 +491,7 @@ var startContainerCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -523,7 +518,7 @@ var stopContainerCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -550,7 +545,7 @@ var removeContainerCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
@@ -577,7 +572,7 @@ var containerStatusCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
-		conn, err := getClientConnection()
+		conn, err := getClientConnection(context)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
