@@ -266,21 +266,21 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
-	sbName := req.PodSandboxId
-	if *sbName == "" {
+	sbID := req.PodSandboxId
+	if *sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
-	sb := s.getSandbox(*sbName)
+	sb := s.getSandbox(*sbID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", *sbName)
+		return nil, fmt.Errorf("specified sandbox not found: %s", *sbID)
 	}
 
-	podInfraContainer := *sbName + "-infra"
+	podInfraContainer := sb.name + "-infra"
 
 	// Delete all the containers in the sandbox
 	for _, c := range sb.containers.List() {
 		if err := s.runtime.DeleteContainer(c); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), *sbName, err)
+			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), *sbID, err)
 		}
 		if podInfraContainer == c.Name() {
 			continue
@@ -292,9 +292,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	// Remove the files related to the sandbox
-	podSandboxDir := filepath.Join(s.sandboxDir, *sbName)
+	podSandboxDir := filepath.Join(s.sandboxDir, *sbID)
 	if err := os.RemoveAll(podSandboxDir); err != nil {
-		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", *sbName, err)
+		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", *sbID, err)
 	}
 
 	return &pb.RemovePodSandboxResponse{}, nil
