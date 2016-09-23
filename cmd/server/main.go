@@ -7,15 +7,16 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/ocid/server"
-	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
+	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "ocic"
-	app.Usage = "client for ocid"
+	app.Name = "ocid"
+	app.Usage = "ocid server"
+	app.Version = "0.0.1"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
