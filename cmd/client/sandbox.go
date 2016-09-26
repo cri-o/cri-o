@@ -11,14 +11,14 @@ import (
 var podSandboxCommand = cli.Command{
 	Name: "pod",
 	Subcommands: []cli.Command{
-		createPodSandboxCommand,
+		runPodSandboxCommand,
 		stopPodSandboxCommand,
 		removePodSandboxCommand,
 		podSandboxStatusCommand,
 	},
 }
 
-var createPodSandboxCommand = cli.Command{
+var runPodSandboxCommand = cli.Command{
 	Name:  "create",
 	Usage: "create a pod",
 	Flags: []cli.Flag{
@@ -37,8 +37,8 @@ var createPodSandboxCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
-		// Test RuntimeServiceClient.CreatePodSandbox
-		err = CreatePodSandbox(client, context.String("config"))
+		// Test RuntimeServiceClient.RunPodSandbox
+		err = RunPodSandbox(client, context.String("config"))
 		if err != nil {
 			return fmt.Errorf("Creating the pod sandbox failed: %v", err)
 		}
@@ -127,15 +127,15 @@ var podSandboxStatusCommand = cli.Command{
 	},
 }
 
-// CreatePodSandbox sends a CreatePodSandboxRequest to the server, and parses
-// the returned CreatePodSandboxResponse.
-func CreatePodSandbox(client pb.RuntimeServiceClient, path string) error {
+// RunPodSandbox sends a RunPodSandboxRequest to the server, and parses
+// the returned RunPodSandboxResponse.
+func RunPodSandbox(client pb.RuntimeServiceClient, path string) error {
 	config, err := loadPodSandboxConfig(path)
 	if err != nil {
 		return err
 	}
 
-	r, err := client.CreatePodSandbox(context.Background(), &pb.CreatePodSandboxRequest{Config: config})
+	r, err := client.RunPodSandbox(context.Background(), &pb.RunPodSandboxRequest{Config: config})
 	if err != nil {
 		return err
 	}
