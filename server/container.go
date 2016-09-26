@@ -14,6 +14,15 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
+const (
+	// ContainerStateCreated represents the created state of a container
+	ContainerStateCreated = "created"
+	// ContainerStateRunning represents the running state of a container
+	ContainerStateRunning = "running"
+	// ContainerStateStopped represents the stopped state of a container
+	ContainerStateStopped = "stopped"
+)
+
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (*pb.CreateContainerResponse, error) {
 	// The id of the PodSandbox
@@ -380,17 +389,17 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	rStatus := pb.ContainerState_UNKNOWN
 
 	switch cState.Status {
-	case "created":
+	case ContainerStateCreated:
 		rStatus = pb.ContainerState_CREATED
 		created := cState.Created.Unix()
 		csr.Status.CreatedAt = int64Ptr(created)
-	case "running":
+	case ContainerStateRunning:
 		rStatus = pb.ContainerState_RUNNING
 		created := cState.Created.Unix()
 		csr.Status.CreatedAt = int64Ptr(created)
 		started := cState.Started.Unix()
 		csr.Status.StartedAt = int64Ptr(started)
-	case "stopped":
+	case ContainerStateStopped:
 		rStatus = pb.ContainerState_EXITED
 		created := cState.Created.Unix()
 		csr.Status.CreatedAt = int64Ptr(created)
