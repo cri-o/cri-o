@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PROJECT=github.com/kubernetes-incubator/ocid
+PROJECT=github.com/kubernetes-incubator/cri-o
 
 # Downloads dependencies into vendor/ directory
 mkdir -p vendor

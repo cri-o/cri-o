@@ -10,11 +10,11 @@ TESTDATA="${INTEGRATION_ROOT}/../testdata"
 OCID_ROOT=${OCID_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
 # Path of the ocid binary.
-OCID_BINARY=${OCID_BINARY:-${OCID_ROOT}/ocid/ocid}
+OCID_BINARY=${OCID_BINARY:-${OCID_ROOT}/cri-o/ocid}
 # Path of the ocic binary.
-OCIC_BINARY=${OCIC_BINARY:-${OCID_ROOT}/ocid/ocic}
+OCIC_BINARY=${OCIC_BINARY:-${OCID_ROOT}/cri-o/ocic}
 # Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${OCID_ROOT}/ocid/conmon/conmon}
+CONMON_BINARY=${CONMON_BINARY:-${OCID_ROOT}/cri-o/conmon/conmon}
 # Path of the runc binary.
 RUNC_PATH=$(command -v runc || true)
 RUNC_BINARY=${RUNC_PATH:-/usr/local/sbin/runc}

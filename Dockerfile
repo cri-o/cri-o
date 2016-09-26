@@ -46,6 +46,6 @@ RUN set -x \
 	&& cp runc /usr/local/bin/runc \
 	&& rm -rf "$GOPATH"
 
-WORKDIR /go/src/github.com/kubernetes-incubator/ocid
+WORKDIR /go/src/github.com/kubernetes-incubator/cri-o
 
-ADD . /go/src/github.com/kubernetes-incubator/ocid
+ADD . /go/src/github.com/kubernetes-incubator/cri-o
