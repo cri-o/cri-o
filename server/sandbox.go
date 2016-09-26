@@ -54,8 +54,8 @@ func (s *Server) generatePodIDandName(name, namespace string) (string, string, e
 	return id, name, err
 }
 
-// CreatePodSandbox creates a pod-level sandbox.
-func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxRequest) (*pb.CreatePodSandboxResponse, error) {
+// RunPodSandbox creates and runs a pod-level sandbox.
+func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (*pb.RunPodSandboxResponse, error) {
 	// process req.Name
 	name := req.GetConfig().GetMetadata().GetName()
 	if name == "" {
@@ -228,7 +228,7 @@ func (s *Server) CreatePodSandbox(ctx context.Context, req *pb.CreatePodSandboxR
 		return nil, err
 	}
 
-	return &pb.CreatePodSandboxResponse{PodSandboxId: &id}, nil
+	return &pb.RunPodSandboxResponse{PodSandboxId: &id}, nil
 }
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the
