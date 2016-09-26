@@ -95,7 +95,7 @@ func (s *Server) reservePodName(id, name string) (string, error) {
 				logrus.Warnf("name %s already reserved for %s", name, id)
 				return "", err
 			}
-			return "", fmt.Errorf("conflict, name %s already reserver", name)
+			return "", fmt.Errorf("conflict, name %s already reserved", name)
 		}
 		return "", fmt.Errorf("error reserving name %s", name)
 	}
