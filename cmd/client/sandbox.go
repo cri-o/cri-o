@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
@@ -181,6 +182,19 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(r)
+	fmt.Printf("ID: %s\n", *r.Status.Id)
+	if r.Status.State != nil {
+		fmt.Printf("Status: %s\n", r.Status.State)
+	}
+	if r.Status.CreatedAt != nil {
+		ctm := time.Unix(*r.Status.CreatedAt, 0)
+		fmt.Printf("Created: %v\n", ctm)
+	}
+	if r.Status.Linux != nil {
+		fmt.Printf("Network namespace: %s\n", *r.Status.Linux.Namespaces.Network)
+	}
+	if r.Status.Network != nil {
+		fmt.Printf("IP Address: %v\n", *r.Status.Network.Ip)
+	}
 	return nil
 }
