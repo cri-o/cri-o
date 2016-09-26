@@ -102,6 +102,10 @@ func (s *Server) reservePodName(id, name string) (string, error) {
 	return name, nil
 }
 
+func (s *Server) releasePodName(name string) {
+	s.podNameIndex.Release(name)
+}
+
 // New creates a new Server with options provided
 func New(runtimePath, root, sandboxDir, containerDir string) (*Server, error) {
 	// TODO: This will go away later when we have wrapper process or systemd acting as
