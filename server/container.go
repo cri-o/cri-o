@@ -25,12 +25,21 @@ const (
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (*pb.CreateContainerResponse, error) {
-	// The id of the PodSandbox
-	podSandboxID := req.GetPodSandboxId()
-	sb := s.getSandbox(podSandboxID)
-	if sb == nil {
-		return nil, fmt.Errorf("the pod sandbox (%s) does not exist", podSandboxID)
+	sbID := req.GetPodSandboxId()
+	if sbID == "" {
+		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
+
+	sandboxID, err := s.podIDIndex.Get(sbID)
+	if err != nil {
+		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+	}
+
+	sb := s.getSandbox(sandboxID)
+	if sb == nil {
+		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
+	}
+
 	// The config of the container
 	containerConfig := req.GetConfig()
 	if containerConfig == nil {
@@ -45,11 +54,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	// containerDir is the dir for the container bundle.
 	containerDir := filepath.Join(s.runtime.ContainerDir(), name)
 
-	if _, err := os.Stat(containerDir); err == nil {
+	if _, err = os.Stat(containerDir); err == nil {
 		return nil, fmt.Errorf("container (%s) already exists", containerDir)
 	}
 
-	if err := os.MkdirAll(containerDir, 0755); err != nil {
+	if err = os.MkdirAll(containerDir, 0755); err != nil {
 		return nil, err
 	}
 
