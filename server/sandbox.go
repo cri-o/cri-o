@@ -331,6 +331,11 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		ip = ""
 	}
 
+	rStatus := pb.PodSandBoxState_NOTREADY
+	if cState.Status == "running" {
+		rStatus = pb.PodSandBoxState_READY
+	}
+
 	return &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
 			Id:        sbID,
@@ -341,6 +346,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 				},
 			},
 			Network: &pb.PodSandboxNetworkStatus{Ip: &ip},
+			State:   &rStatus,
 		},
 	}, nil
 }
