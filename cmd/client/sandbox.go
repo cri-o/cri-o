@@ -16,6 +16,7 @@ var podSandboxCommand = cli.Command{
 		stopPodSandboxCommand,
 		removePodSandboxCommand,
 		podSandboxStatusCommand,
+		listPodSandboxCommand,
 	},
 }
 
@@ -128,6 +129,26 @@ var podSandboxStatusCommand = cli.Command{
 	},
 }
 
+var listPodSandboxCommand = cli.Command{
+	Name:  "list",
+	Usage: "list pod sandboxes",
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection(context)
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		err = ListPodSandboxes(client)
+		if err != nil {
+			return fmt.Errorf("listing pod sandboxes failed: %v", err)
+		}
+		return nil
+	},
+}
+
 // RunPodSandbox sends a RunPodSandboxRequest to the server, and parses
 // the returned RunPodSandboxResponse.
 func RunPodSandbox(client pb.RuntimeServiceClient, path string) error {
@@ -195,6 +216,22 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 	}
 	if r.Status.Network != nil {
 		fmt.Printf("IP Address: %v\n", *r.Status.Network.Ip)
+	}
+	return nil
+}
+
+// ListPodSandboxes sends a ListPodSandboxRequest to the server, and parses
+// the returned ListPodSandboxResponse.
+func ListPodSandboxes(client pb.RuntimeServiceClient) error {
+	r, err := client.ListPodSandbox(context.Background(), &pb.ListPodSandboxRequest{})
+	if err != nil {
+		return err
+	}
+	for _, pod := range r.Items {
+		fmt.Printf("ID: %s\n", *pod.Id)
+		fmt.Printf("Status: %s\n", pod.State)
+		ctm := time.Unix(*pod.CreatedAt, 0)
+		fmt.Printf("Created: %v\n", ctm)
 	}
 	return nil
 }

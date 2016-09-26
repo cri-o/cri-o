@@ -316,6 +316,9 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 
 	podInfraContainerName := sb.name + "-infra"
 	podInfraContainer := sb.getContainer(podInfraContainerName)
+	if err := s.runtime.UpdateStatus(podInfraContainer); err != nil {
+		return nil, err
+	}
 
 	cState := s.runtime.ContainerStatus(podInfraContainer)
 	created := cState.Created.Unix()
@@ -332,7 +335,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	rStatus := pb.PodSandBoxState_NOTREADY
-	if cState.Status == "running" {
+	if cState.Status == ContainerStateRunning {
 		rStatus = pb.PodSandBoxState_READY
 	}
 
@@ -351,7 +354,32 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}, nil
 }
 
-// ListPodSandbox returns a list of SandBox.
+// ListPodSandbox returns a list of SandBoxes.
 func (s *Server) ListPodSandbox(context.Context, *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
-	return nil, nil
+	var pods []*pb.PodSandbox
+	for _, sb := range s.state.sandboxes {
+		podInfraContainerName := sb.name + "-infra"
+		podInfraContainer := sb.getContainer(podInfraContainerName)
+		if err := s.runtime.UpdateStatus(podInfraContainer); err != nil {
+			return nil, err
+		}
+		cState := s.runtime.ContainerStatus(podInfraContainer)
+		created := cState.Created.Unix()
+		rStatus := pb.PodSandBoxState_NOTREADY
+		if cState.Status == ContainerStateRunning {
+			rStatus = pb.PodSandBoxState_READY
+		}
+
+		pod := &pb.PodSandbox{
+			Id:        &sb.id,
+			CreatedAt: int64Ptr(created),
+			State:     &rStatus,
+		}
+
+		pods = append(pods, pod)
+	}
+
+	return &pb.ListPodSandboxResponse{
+		Items: pods,
+	}, nil
 }
