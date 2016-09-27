@@ -59,7 +59,6 @@ function setup() {
 
 # teardown is called at the end of every test.
 function teardown() {
-	stop_ocid
 	cleanup_test
 }
 

@@ -19,7 +19,7 @@ function teardown() {
 	id="$output"
 	run ocic pod stop --id "$id"
 	[ "$status" -eq 0 ]
-	sleep 5 # FIXME: there's a race between container kill and delete below
+	sleep 1 # FIXME: there's a race between container kill and delete below
 	run ocic pod remove --id "$id"
 	[ "$status" -eq 0 ]
 	run ocic pod create --config "$TESTDATA"/sandbox_config.json
