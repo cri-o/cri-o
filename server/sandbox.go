@@ -234,13 +234,19 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be force terminated.
 func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
-	sbID := req.PodSandboxId
-	if *sbID == "" {
+	sbID := req.GetPodSandboxId()
+	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
-	sb := s.getSandbox(*sbID)
+
+	sandboxID, err := s.podIDIndex.Get(sbID)
+	if err != nil {
+		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+	}
+
+	sb := s.getSandbox(sandboxID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", *sbID)
+		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
 	}
 
 	podInfraContainer := sb.name + "-infra"
@@ -251,14 +257,14 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			if err != nil {
 				return nil, err
 			}
-			if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, *sbID, podInfraContainer); err != nil {
-				return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v", c.Name(), *sbID, err)
+			if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, sandboxID, podInfraContainer); err != nil {
+				return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v", c.Name(), sandboxID, err)
 			}
 		}
 		cStatus := s.runtime.ContainerStatus(c)
 		if cStatus.Status != "stopped" {
 			if err := s.runtime.StopContainer(c); err != nil {
-				return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), *sbID, err)
+				return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), sandboxID, err)
 			}
 		}
 	}
@@ -269,13 +275,19 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
-	sbID := req.PodSandboxId
-	if *sbID == "" {
+	sbID := req.GetPodSandboxId()
+	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
-	sb := s.getSandbox(*sbID)
+
+	sandboxID, err := s.podIDIndex.Get(sbID)
+	if err != nil {
+		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+	}
+
+	sb := s.getSandbox(sandboxID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", *sbID)
+		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
 	}
 
 	podInfraContainer := sb.name + "-infra"
@@ -283,7 +295,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	// Delete all the containers in the sandbox
 	for _, c := range sb.containers.List() {
 		if err := s.runtime.DeleteContainer(c); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), *sbID, err)
+			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), sandboxID, err)
 		}
 		if podInfraContainer == c.Name() {
 			continue
@@ -295,9 +307,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	// Remove the files related to the sandbox
-	podSandboxDir := filepath.Join(s.sandboxDir, *sbID)
+	podSandboxDir := filepath.Join(s.sandboxDir, sandboxID)
 	if err := os.RemoveAll(podSandboxDir); err != nil {
-		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", *sbID, err)
+		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", sandboxID, err)
 	}
 
 	return &pb.RemovePodSandboxResponse{}, nil
@@ -305,18 +317,24 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 // PodSandboxStatus returns the Status of the PodSandbox.
 func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
-	sbID := req.PodSandboxId
-	if *sbID == "" {
+	sbID := req.GetPodSandboxId()
+	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
-	sb := s.getSandbox(*sbID)
+
+	sandboxID, err := s.podIDIndex.Get(sbID)
+	if err != nil {
+		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+	}
+
+	sb := s.getSandbox(sandboxID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", *sbID)
+		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
 	}
 
 	podInfraContainerName := sb.name + "-infra"
 	podInfraContainer := sb.getContainer(podInfraContainerName)
-	if err := s.runtime.UpdateStatus(podInfraContainer); err != nil {
+	if err = s.runtime.UpdateStatus(podInfraContainer); err != nil {
 		return nil, err
 	}
 
@@ -328,7 +346,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		return nil, err
 	}
 	podNamespace := ""
-	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, *sbID, podInfraContainerName)
+	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, sandboxID, podInfraContainerName)
 	if err != nil {
 		// ignore the error on network status
 		ip = ""
@@ -341,7 +359,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 
 	return &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
-			Id:        sbID,
+			Id:        &sbID,
 			CreatedAt: int64Ptr(created),
 			Linux: &pb.LinuxPodSandboxStatus{
 				Namespaces: &pb.Namespace{
