@@ -1,15 +1,15 @@
-OCID - OCI-based implementation of Kubernetes Container Runtime Interface [![Build Status](https://travis-ci.org/kubernetes-incubator/cri-o.svg?branch=master)](https://travis-ci.org/kubernetes-incubator/cri-o)
+cri-o - OCI-based implementation of Kubernetes Container Runtime Interface [![Build Status](https://travis-ci.org/kubernetes-incubator/cri-o.svg?branch=master)](https://travis-ci.org/kubernetes-incubator/cri-o)
 =
 
 ### Status: pre-alpha
 
 # What is the scope of this project?
 
-OCID is meant to provide an integration path between OCI conformant runtimes and the kubelet.
+cri-o is meant to provide an integration path between OCI conformant runtimes and the kubelet.
 Specifically, it implements the Kubelet Container Runtime Interface (CRI) using OCI conformant runtimes.
-The scope of OCID is tied to the scope of the CRI.
+The scope of cri-o is tied to the scope of the CRI.
 
-At a high level, we expect the scope of OCID to be restricted to the following functionalities:
+At a high level, we expect the scope of cri-o to be restricted to the following functionalities:
 
 * Support multiple image formats including the existing Docker image format 
 * Support for multiple means to download images including trust & image verification
@@ -21,7 +21,7 @@ At a high level, we expect the scope of OCID to be restricted to the following f
 # What is not in scope for this project?
 
 * Building, signing and pushing images to various image storages
-* A CLI utility for interacting with OCID. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backwards compatibility with it.
+* A CLI utility for interacting with cri-o. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backwards compatibility with it.
 
 This is an implementation of the Kubernetes Container Runtime Interface (CRI) that will allow Kubernetes to directly launch and manage Open Container Initiative (OCI) containers.
 
