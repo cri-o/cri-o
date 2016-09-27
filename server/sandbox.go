@@ -312,6 +312,8 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", sandboxID, err)
 	}
 
+	s.releasePodName(sb.name)
+
 	return &pb.RemovePodSandboxResponse{}, nil
 }
 
