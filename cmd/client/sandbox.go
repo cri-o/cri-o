@@ -74,7 +74,7 @@ var stopPodSandboxCommand = cli.Command{
 
 		err = StopPodSandbox(client, context.String("id"))
 		if err != nil {
-			return fmt.Errorf("Stopping the pod sandbox failed: %v", err)
+			return fmt.Errorf("stopping the pod sandbox failed: %v", err)
 		}
 		return nil
 	},
