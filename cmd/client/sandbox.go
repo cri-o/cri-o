@@ -29,6 +29,11 @@ var runPodSandboxCommand = cli.Command{
 			Value: "config.json",
 			Usage: "the path of a pod sandbox config file",
 		},
+		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "the name of the pod sandbox",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -40,7 +45,7 @@ var runPodSandboxCommand = cli.Command{
 		client := pb.NewRuntimeServiceClient(conn)
 
 		// Test RuntimeServiceClient.RunPodSandbox
-		err = RunPodSandbox(client, context.String("config"))
+		err = RunPodSandbox(client, context.String("config"), context.String("name"))
 		if err != nil {
 			return fmt.Errorf("Creating the pod sandbox failed: %v", err)
 		}
@@ -151,10 +156,15 @@ var listPodSandboxCommand = cli.Command{
 
 // RunPodSandbox sends a RunPodSandboxRequest to the server, and parses
 // the returned RunPodSandboxResponse.
-func RunPodSandbox(client pb.RuntimeServiceClient, path string) error {
+func RunPodSandbox(client pb.RuntimeServiceClient, path string, name string) error {
 	config, err := loadPodSandboxConfig(path)
 	if err != nil {
 		return err
+	}
+
+	// Override the name by the one specified through CLI
+	if name != "" {
+		config.Metadata.Name = &name
 	}
 
 	r, err := client.RunPodSandbox(context.Background(), &pb.RunPodSandboxRequest{Config: config})
