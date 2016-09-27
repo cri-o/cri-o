@@ -76,23 +76,24 @@ function start_ocid() {
 
 function cleanup_pods() {
 	run ocic pod list
-	[ "$status" -eq 0 ]
-	printf '%s\n' "$output" | while IFS= read -r line
-	do
-	   pod=$(echo "$line" | sed -e 's/ID: //g')
-	   ocic pod stop --id "$pod"
-	   sleep 1
-	   ocic pod remove --id "$pod"
-	done
+	if [ "$status" -eq 0 ]; then
+		printf '%s\n' "$output" | while IFS= read -r line
+		do
+		   pod=$(echo "$line" | sed -e 's/ID: //g')
+		   ocic pod stop --id "$pod"
+		   sleep 1
+		   ocic pod remove --id "$pod"
+		done
+	fi
 }
 
 # Stop ocid.
 function stop_ocid() {
-	kill "$OCID_PID"
+	if [ "$OCID_PID" != "" ]; then
+		kill "$OCID_PID" >/dev/null 2>&1
+	fi
 }
 
 function cleanup_test() {
-	cleanup_pods
-	stop_ocid
 	rm -rf "$TESTDIR"
 }
