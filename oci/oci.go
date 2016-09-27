@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/kubernetes-incubator/ocid/utils"
+	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 

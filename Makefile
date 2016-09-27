@@ -1,9 +1,9 @@
 EPOCH_TEST_COMMIT ?= 7fc874e05e74faa81e7c423b6514fc5c474c6b34
-PROJECT := github.com/kubernetes-incubator/ocid
+PROJECT := github.com/kubernetes-incubator/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 OCID_IMAGE := ocid_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
-OCID_LINK := ${CURDIR}/vendor/src/github.com/kubernetes-incubator/ocid
+OCID_LINK := ${CURDIR}/vendor/src/github.com/kubernetes-incubator/cri-o
 OCID_LINK_DIR := ${CURDIR}/vendor/src/github.com/kubernetes-incubator
 OCID_INSTANCE := ocid_dev
 SYSTEM_GOPATH := ${GOPATH}
@@ -46,9 +46,9 @@ ocidimage:
 
 dbuild: ocidimage
 	docker run --name=${OCID_INSTANCE} --privileged ${OCID_IMAGE} make binaries
-	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/ocid/ocid .
-	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/ocid/ocic .
-	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/ocid/conmon/conmon ./conmon/conmon
+	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/cri-o/ocid .
+	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/cri-o/ocic .
+	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon ./conmon/conmon
 	docker rm ${OCID_INSTANCE}
 
 integration: ocidimage

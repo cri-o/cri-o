@@ -2,4 +2,4 @@
 /ocic
 conmon/conmon
 conmon/conmon.o
-vendor/src/github.com/kubernetes-incubator/ocid
+vendor/src/github.com/kubernetes-incubator/cri-o
