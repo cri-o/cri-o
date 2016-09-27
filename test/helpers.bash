@@ -4,7 +4,7 @@
 INTEGRATION_ROOT=$(dirname "$(readlink -f "$BASH_SOURCE")")
 
 # Test data path.
-TESTDATA="${INTEGRATION_ROOT}/../testdata"
+TESTDATA="${INTEGRATION_ROOT}/testdata"
 
 # Root directory of the repository.
 OCID_ROOT=${OCID_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
@@ -70,7 +70,7 @@ function wait_until_reachable() {
 
 # Start ocid.
 function start_ocid() {
-	"$OCID_BINARY" --debug --socket "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" & OCID_PID=$!
+	"$OCID_BINARY" --debug --socket "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" & OCID_PID=$!
 	wait_until_reachable
 }
 
