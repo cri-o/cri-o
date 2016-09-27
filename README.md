@@ -1,4 +1,4 @@
-OCID - OCI-based implementation of Kubernetes Container Runtime Interface [![Build Status](https://travis-ci.org/kubernetes-incubator/ocid.svg?branch=master)](https://travis-ci.org/kubernetes-incubator/ocid)
+OCID - OCI-based implementation of Kubernetes Container Runtime Interface [![Build Status](https://travis-ci.org/kubernetes-incubator/cri-o.svg?branch=master)](https://travis-ci.org/kubernetes-incubator/cri-o)
 =
 
 ### Status: pre-alpha
