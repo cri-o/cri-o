@@ -74,12 +74,25 @@ function start_ocid() {
 	wait_until_reachable
 }
 
+function cleanup_pods() {
+	run ocic pod list
+	[ "$status" -eq 0 ]
+	printf '%s\n' "$output" | while IFS= read -r line
+	do
+	   pod=$(echo "$line" | sed -e 's/ID: //g')
+	   ocic pod stop --id "$pod"
+	   sleep 1
+	   ocic pod remove --id "$pod"
+	done
+}
+
 # Stop ocid.
 function stop_ocid() {
 	kill "$OCID_PID"
 }
 
 function cleanup_test() {
+	cleanup_pods
+	stop_ocid
 	rm -rf "$TESTDIR"
-	# TODO(runcom): runc list and kill/delete everything!
 }
