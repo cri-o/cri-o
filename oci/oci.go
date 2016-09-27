@@ -17,6 +17,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"golang.org/x/sys/unix"
 )
 
 // New creates a new Runtime with options provided
@@ -132,8 +133,27 @@ func (r *Runtime) StartContainer(c *Container) error {
 
 // StopContainer stops a container.
 func (r *Runtime) StopContainer(c *Container) error {
-	// TODO: Check if it is still running after some time and send SIGKILL
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.name)
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.name); err != nil {
+		return err
+	}
+	i := 0
+	for {
+		if i == 1000 {
+			err := unix.Kill(c.state.Pid, syscall.SIGKILL)
+			if err != nil && err != syscall.ESRCH {
+				return fmt.Errorf("failed to kill process: %v", err)
+			}
+		}
+		// Check if the process is still around
+		err := unix.Kill(c.state.Pid, 0)
+		if err == syscall.ESRCH {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+		i++
+	}
+
+	return nil
 }
 
 // DeleteContainer deletes a container.
