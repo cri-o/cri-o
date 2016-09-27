@@ -52,7 +52,7 @@ dbuild: ocidimage
 	docker rm ${OCID_INSTANCE}
 
 integration: ocidimage
-	docker run -e TESTFLAGS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
+	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
 
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}
