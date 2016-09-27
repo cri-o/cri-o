@@ -1,4 +1,4 @@
-EPOCH_TEST_COMMIT ?= 7fc874e05e74faa81e7c423b6514fc5c474c6b34
+EPOCH_TEST_COMMIT ?= 78aae
 PROJECT := github.com/kubernetes-incubator/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
@@ -52,7 +52,7 @@ dbuild: ocidimage
 	docker rm ${OCID_INSTANCE}
 
 integration: ocidimage
-	docker run -e TESTFLAGS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
+	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
 
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}

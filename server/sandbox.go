@@ -313,6 +313,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	s.releasePodName(sb.name)
+	s.removeSandbox(sandboxID)
 
 	return &pb.RemovePodSandboxResponse{}, nil
 }
@@ -380,6 +381,11 @@ func (s *Server) ListPodSandbox(context.Context, *pb.ListPodSandboxRequest) (*pb
 	for _, sb := range s.state.sandboxes {
 		podInfraContainerName := sb.name + "-infra"
 		podInfraContainer := sb.getContainer(podInfraContainerName)
+		if podInfraContainer == nil {
+			// this can't really happen, but if it does because of a bug
+			// it's better not to panic
+			continue
+		}
 		if err := s.runtime.UpdateStatus(podInfraContainer); err != nil {
 			return nil, err
 		}

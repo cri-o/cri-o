@@ -4,7 +4,7 @@
 INTEGRATION_ROOT=$(dirname "$(readlink -f "$BASH_SOURCE")")
 
 # Test data path.
-TESTDATA="${INTEGRATION_ROOT}/../testdata"
+TESTDATA="${INTEGRATION_ROOT}/testdata"
 
 # Root directory of the repository.
 OCID_ROOT=${OCID_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
@@ -70,16 +70,30 @@ function wait_until_reachable() {
 
 # Start ocid.
 function start_ocid() {
-	"$OCID_BINARY" --debug --socket "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" & OCID_PID=$!
+	"$OCID_BINARY" --debug --socket "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" & OCID_PID=$!
 	wait_until_reachable
+}
+
+function cleanup_pods() {
+	run ocic pod list
+	if [ "$status" -eq 0 ]; then
+		printf '%s\n' "$output" | while IFS= read -r line
+		do
+		   pod=$(echo "$line" | sed -e 's/ID: //g')
+		   ocic pod stop --id "$pod"
+		   sleep 1
+		   ocic pod remove --id "$pod"
+		done
+	fi
 }
 
 # Stop ocid.
 function stop_ocid() {
-	kill "$OCID_PID"
+	if [ "$OCID_PID" != "" ]; then
+		kill "$OCID_PID" >/dev/null 2>&1
+	fi
 }
 
 function cleanup_test() {
 	rm -rf "$TESTDIR"
-	# TODO(runcom): runc list and kill/delete everything!
 }

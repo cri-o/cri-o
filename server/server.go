@@ -179,6 +179,12 @@ func (s *Server) hasSandbox(id string) bool {
 	return ok
 }
 
+func (s *Server) removeSandbox(id string) {
+	s.stateLock.Lock()
+	delete(s.state.sandboxes, id)
+	s.stateLock.Unlock()
+}
+
 func (s *Server) addContainer(c *oci.Container) {
 	s.stateLock.Lock()
 	sandbox := s.state.sandboxes[c.Sandbox()]
