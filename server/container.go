@@ -367,8 +367,40 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 }
 
 // ListContainers lists all containers by filters.
-func (s *Server) ListContainers(context.Context, *pb.ListContainersRequest) (*pb.ListContainersResponse, error) {
-	return nil, nil
+func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (*pb.ListContainersResponse, error) {
+	var ctrs []*pb.Container
+	for _, ctr := range s.state.containers.List() {
+		if err := s.runtime.UpdateStatus(ctr); err != nil {
+			return nil, err
+		}
+
+		podSandboxID := ctr.Sandbox()
+		cState := s.runtime.ContainerStatus(ctr)
+		created := cState.Created.Unix()
+		rState := pb.ContainerState_UNKNOWN
+
+		c := &pb.Container{
+			Id:           &cState.ID,
+			PodSandboxId: &podSandboxID,
+			CreatedAt:    int64Ptr(created),
+		}
+
+		switch cState.Status {
+		case ContainerStateCreated:
+			rState = pb.ContainerState_CREATED
+		case ContainerStateRunning:
+			rState = pb.ContainerState_RUNNING
+		case ContainerStateStopped:
+			rState = pb.ContainerState_EXITED
+		}
+		c.State = &rState
+
+		ctrs = append(ctrs, c)
+	}
+
+	return &pb.ListContainersResponse{
+		Containers: ctrs,
+	}, nil
 }
 
 // ContainerStatus returns status of the container.
