@@ -81,7 +81,6 @@ function cleanup_pods() {
 		do
 		   pod=$(echo "$line" | sed -e 's/ID: //g')
 		   ocic pod stop --id "$pod"
-		   sleep 1
 		   ocic pod remove --id "$pod"
 		done
 	fi
