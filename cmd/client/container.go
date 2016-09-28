@@ -18,6 +18,7 @@ var containerCommand = cli.Command{
 		stopContainerCommand,
 		removeContainerCommand,
 		containerStatusCommand,
+		listContainersCommand,
 	},
 }
 
@@ -164,6 +165,26 @@ var containerStatusCommand = cli.Command{
 	},
 }
 
+var listContainersCommand = cli.Command{
+	Name:  "list",
+	Usage: "list containers",
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection(context)
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		err = ListContainers(client)
+		if err != nil {
+			return fmt.Errorf("listing containers failed: %v", err)
+		}
+		return nil
+	},
+}
+
 // CreateContainer sends a CreateContainerRequest to the server, and parses
 // the returned CreateContainerResponse.
 func CreateContainer(client pb.RuntimeServiceClient, sandbox string, path string) error {
@@ -262,5 +283,26 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 		fmt.Printf("Exit Code: %v\n", *r.Status.ExitCode)
 	}
 
+	return nil
+}
+
+// ListContainers sends a ListContainerRequest to the server, and parses
+// the returned ListContainerResponse.
+func ListContainers(client pb.RuntimeServiceClient) error {
+	r, err := client.ListContainers(context.Background(), &pb.ListContainersRequest{})
+	if err != nil {
+		return err
+	}
+	for _, c := range r.GetContainers() {
+		fmt.Printf("ID: %s\n", *c.Id)
+		fmt.Printf("Pod: %s\n", *c.PodSandboxId)
+		if c.State != nil {
+			fmt.Printf("Status: %s\n", *c.State)
+		}
+		if c.CreatedAt != nil {
+			ctm := time.Unix(*c.CreatedAt, 0)
+			fmt.Printf("Created: %v\n", ctm)
+		}
+	}
 	return nil
 }
