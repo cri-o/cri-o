@@ -22,6 +22,7 @@ help:
 	@echo " * 'lint' - Execute the source code linter"
 
 lint: ${OCID_LINK}
+	@which gometalinter > /dev/null 2>/dev/null || (echo "ERROR: gometalinter not found. Consider 'make install.tools' target" && false)
 	@echo "checking lint"
 	@./.tool/lint
 
