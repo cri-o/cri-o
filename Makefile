@@ -9,6 +9,7 @@ OCID_INSTANCE := ocid_dev
 SYSTEM_GOPATH := ${GOPATH}
 PREFIX ?= ${DESTDIR}/usr
 INSTALLDIR=${PREFIX}/bin
+GO_MD2MAN ?= /usr/bin/go-md2man
 export GOPATH := ${CURDIR}/vendor
 
 default: help
@@ -43,6 +44,9 @@ clean:
 	rm -f ocic ocid
 	rm -f ${OCID_LINK}
 	rm -f conmon/conmon.o conmon/conmon
+	rm -f docs/*.1 docs/*.8
+	find . -name \*~ -delete
+	find . -name \#\* -delete
 
 ocidimage:
 	docker build -t ${OCID_IMAGE} .
@@ -62,14 +66,28 @@ localintegration: binaries
 
 binaries: ${OCID_LINK} ocid ocic conmon
 
-install:
+MANPAGES_MD = $(wildcard docs/*.md)
+
+docs/%.1: docs/%.1.md
+	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+
+docs/%.8: docs/%.8.md
+	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+
+docs: $(MANPAGES_MD:%.md=%)
+
+install: binaries docs
 	install -D -m 755 ocid ${INSTALLDIR}/ocid
 	install -D -m 755 ocic ${INSTALLDIR}/ocic
 	install -D -m 755 conmon/conmon ${INSTALLDIR}/conmon
+	install -d $(PREFIX)/share/man/man8
+	install -m 644 $(basename $(MANPAGES_MD)) $(PREFIX)/share/man/man8
 
 uninstall:
 	rm -f ${INSTALLDIR}/{ocid,ocic,conmon}
-
+	for i in $(basename $(MANPAGES_MD)); do \
+		rm -f $(PREFIX)/share/man/man8/$$(basename $${i}); \
+	done
 
 .PHONY: .gitvalidation
 # When this is running in travis, it will only check the travis commit range
@@ -95,9 +113,12 @@ install.tools: .install.gitvalidation .install.gometalinter
 .PHONY: \
 	binaries \
 	conmon \
+	default \
+	docs \
 	ocid \
 	ocic \
 	clean \
 	lint \
+	help \
 	install \
 	uninstall
