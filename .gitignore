@@ -2,4 +2,5 @@
 /ocic
 conmon/conmon
 conmon/conmon.o
+/docs/ocid.8
 vendor/src/github.com/kubernetes-incubator/cri-o
