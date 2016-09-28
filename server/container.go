@@ -352,6 +352,17 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, fmt.Errorf("specified container not found: %s", *containerName)
 	}
 
+	if err := s.runtime.UpdateStatus(c); err != nil {
+		return nil, fmt.Errorf("failed to update container state: %v", err)
+	}
+
+	cState := s.runtime.ContainerStatus(c)
+	if cState.Status == ContainerStateCreated || cState.Status == ContainerStateRunning {
+		if err := s.runtime.StopContainer(c); err != nil {
+			return nil, fmt.Errorf("failed to stop container %s: %v", *containerName, err)
+		}
+	}
+
 	if err := s.runtime.DeleteContainer(c); err != nil {
 		return nil, fmt.Errorf("failed to delete container %s: %v", *containerName, err)
 	}
