@@ -9,7 +9,7 @@ OCID_INSTANCE := ocid_dev
 SYSTEM_GOPATH := ${GOPATH}
 PREFIX ?= ${DESTDIR}/usr
 INSTALLDIR=${PREFIX}/bin
-GO_MD2MAN ?= /usr/bin/go-md2man
+GO_MD2MAN ?= $(shell command -v go-md2man)
 export GOPATH := ${CURDIR}/vendor
 
 default: help
@@ -69,9 +69,11 @@ binaries: ${OCID_LINK} ocid ocic conmon
 MANPAGES_MD = $(wildcard docs/*.md)
 
 docs/%.1: docs/%.1.md
+	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.8: docs/%.8.md
+	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES_MD:%.md=%)
@@ -101,7 +103,7 @@ endif
 
 .PHONY: install.tools
 
-install.tools: .install.gitvalidation .install.gometalinter
+install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 .install.gitvalidation:
 	GOPATH=${SYSTEM_GOPATH} go get github.com/vbatts/git-validation
@@ -109,6 +111,9 @@ install.tools: .install.gitvalidation .install.gometalinter
 .install.gometalinter:
 	GOPATH=${SYSTEM_GOPATH} go get github.com/alecthomas/gometalinter
 	GOPATH=${SYSTEM_GOPATH} gometalinter --install
+
+.install.md2man:
+	GOPATH=${SYSTEM_GOPATH} go get github.com/cpuguy83/go-md2man
 
 .PHONY: \
 	binaries \

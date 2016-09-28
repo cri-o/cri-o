@@ -19,3 +19,4 @@ script:
   - make .gitvalidation
   - make lint
   - make integration
+  - make docs
