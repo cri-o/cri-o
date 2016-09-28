@@ -294,9 +294,21 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	// Delete all the containers in the sandbox
 	for _, c := range sb.containers.List() {
+		if err := s.runtime.UpdateStatus(c); err != nil {
+			return nil, fmt.Errorf("failed to update container state: %v", err)
+		}
+
+		cState := s.runtime.ContainerStatus(c)
+		if cState.Status == ContainerStateCreated || cState.Status == ContainerStateRunning {
+			if err := s.runtime.StopContainer(c); err != nil {
+				return nil, fmt.Errorf("failed to stop container %s: %v", c.Name(), err)
+			}
+		}
+
 		if err := s.runtime.DeleteContainer(c); err != nil {
 			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), sandboxID, err)
 		}
+
 		if podInfraContainer == c.Name() {
 			continue
 		}
