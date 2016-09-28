@@ -7,6 +7,8 @@ OCID_LINK := ${CURDIR}/vendor/src/github.com/kubernetes-incubator/cri-o
 OCID_LINK_DIR := ${CURDIR}/vendor/src/github.com/kubernetes-incubator
 OCID_INSTANCE := ocid_dev
 SYSTEM_GOPATH := ${GOPATH}
+PREFIX ?= ${DESTDIR}/usr
+INSTALLDIR=${PREFIX}/bin
 export GOPATH := ${CURDIR}/vendor
 
 default: help
@@ -59,6 +61,15 @@ localintegration: binaries
 
 binaries: ${OCID_LINK} ocid ocic conmon
 
+install:
+	install -D -m 755 ocid ${INSTALLDIR}/ocid
+	install -D -m 755 ocic ${INSTALLDIR}/ocic
+	install -D -m 755 conmon/conmon ${INSTALLDIR}/conmon
+
+uninstall:
+	rm -f ${INSTALLDIR}/{ocid,ocic,conmon}
+
+
 .PHONY: .gitvalidation
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation:
@@ -86,4 +97,6 @@ install.tools: .install.gitvalidation .install.gometalinter
 	ocid \
 	ocic \
 	clean \
-	lint
+	lint \
+	install \
+	uninstall
