@@ -1,9 +1,11 @@
-cri-o - OCI-based implementation of Kubernetes Container Runtime Interface [![Build Status](https://travis-ci.org/kubernetes-incubator/cri-o.svg?branch=master)](https://travis-ci.org/kubernetes-incubator/cri-o)
-=
+# cri-o - OCI-based implementation of Kubernetes Container Runtime Interface
+
+[![Build Status](https://img.shields.io/travis/kubernetes-incubator/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-incubator/cri-o)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-incubator/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-incubator/cri-o)
 
 ### Status: pre-alpha
 
-# What is the scope of this project?
+## What is the scope of this project?
 
 cri-o is meant to provide an integration path between OCI conformant runtimes and the kubelet.
 Specifically, it implements the Kubelet Container Runtime Interface (CRI) using OCI conformant runtimes.
@@ -18,7 +20,7 @@ At a high level, we expect the scope of cri-o to be restricted to the following 
 * Monitoring and logging required to satisfy the CRI
 * Resource isolation as required by the CRI
 
-# What is not in scope for this project?
+## What is not in scope for this project?
 
 * Building, signing and pushing images to various image storages
 * A CLI utility for interacting with cri-o. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backwards compatibility with it.
@@ -33,7 +35,7 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788).  Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
-## Current Roadmap 
+### Current Roadmap
 
 1. Basic pod/container lifecycle, basic image pull (already works)
 1. Support for tty handling and state management
