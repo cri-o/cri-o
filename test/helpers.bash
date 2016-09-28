@@ -70,7 +70,7 @@ function wait_until_reachable() {
 
 # Start ocid.
 function start_ocid() {
-	"$OCID_BINARY" --debug --socket "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" & OCID_PID=$!
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --debug --socket "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" & OCID_PID=$!
 	wait_until_reachable
 }
 

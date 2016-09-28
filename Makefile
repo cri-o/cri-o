@@ -81,12 +81,13 @@ docs: $(MANPAGES_MD:%.md=%)
 install: binaries docs
 	install -D -m 755 ocid ${INSTALLDIR}/ocid
 	install -D -m 755 ocic ${INSTALLDIR}/ocic
-	install -D -m 755 conmon/conmon ${INSTALLDIR}/conmon
+	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
 	install -d $(PREFIX)/share/man/man8
 	install -m 644 $(basename $(MANPAGES_MD)) $(PREFIX)/share/man/man8
 
 uninstall:
-	rm -f ${INSTALLDIR}/{ocid,ocic,conmon}
+	rm -f ${INSTALLDIR}/{ocid,ocic}
+	rm -f $(PREFIX)/libexec/ocid/conmon
 	for i in $(basename $(MANPAGES_MD)); do \
 		rm -f $(PREFIX)/share/man/man8/$$(basename $${i}); \
 	done
