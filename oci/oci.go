@@ -21,11 +21,12 @@ import (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, containerDir string) (*Runtime, error) {
+func New(runtimePath string, containerDir string, conmonPath string) (*Runtime, error) {
 	r := &Runtime{
 		name:         filepath.Base(runtimePath),
 		path:         runtimePath,
 		containerDir: containerDir,
+		conmonPath:   conmonPath,
 	}
 	return r, nil
 }
@@ -35,6 +36,7 @@ type Runtime struct {
 	name         string
 	path         string
 	containerDir string
+	conmonPath   string
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -91,7 +93,7 @@ func (r *Runtime) CreateContainer(c *Container) error {
 		args = append(args, "-t")
 	}
 
-	cmd := exec.Command("conmon", args...)
+	cmd := exec.Command(r.conmonPath, args...)
 	cmd.Dir = c.bundlePath
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,

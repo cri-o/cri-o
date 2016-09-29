@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	ocidRoot = "/var/lib/ocid"
+	ocidRoot   = "/var/lib/ocid"
+	conmonPath = "/usr/libexec/ocid/conmon"
 )
 
 func main() {
@@ -24,6 +25,11 @@ func main() {
 	app.Version = "0.0.1"
 
 	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "conmon",
+			Value: conmonPath,
+			Usage: "path to the conmon executable",
+		},
 		cli.StringFlag{
 			Name:  "root",
 			Value: ocidRoot,
@@ -104,7 +110,7 @@ func main() {
 
 		containerDir := c.String("containerdir")
 		sandboxDir := c.String("sandboxdir")
-		service, err := server.New(c.String("runtime"), c.String("root"), sandboxDir, containerDir)
+		service, err := server.New(c.String("runtime"), c.String("root"), sandboxDir, containerDir, conmonPath)
 		if err != nil {
 			logrus.Fatal(err)
 		}

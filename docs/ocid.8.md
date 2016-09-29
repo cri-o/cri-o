@@ -7,6 +7,7 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 # SYNOPSIS
 **ocid**
 [**--root**=[*value*]]
+[**--conmon**=[*value*]]
 [**--sandboxdir**=[*value*]]
 [**--containerdir**=[*value*]]
 [**--socket**=[*value*]]
@@ -38,6 +39,9 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 
 **--sandboxdir**=""
   OCID pod sandbox dir (default: "/var/lib/ocid/sandboxes")
+
+**--conmon**=""
+  path to the conmon executable (default: "/usr/libexec/ocid/conmon")
 
 **--containerdir**=""
   OCID container dir (default: "/var/lib/ocid/containers")

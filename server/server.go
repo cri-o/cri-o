@@ -107,7 +107,7 @@ func (s *Server) releasePodName(name string) {
 }
 
 // New creates a new Server with options provided
-func New(runtimePath, root, sandboxDir, containerDir string) (*Server, error) {
+func New(runtimePath, root, sandboxDir, containerDir string, conmonPath string) (*Server, error) {
 	// TODO: This will go away later when we have wrapper process or systemd acting as
 	// subreaper.
 	if err := utils.SetSubreaper(1); err != nil {
@@ -124,7 +124,7 @@ func New(runtimePath, root, sandboxDir, containerDir string) (*Server, error) {
 		return nil, err
 	}
 
-	r, err := oci.New(runtimePath, containerDir)
+	r, err := oci.New(runtimePath, containerDir, conmonPath)
 	if err != nil {
 		return nil, err
 	}
