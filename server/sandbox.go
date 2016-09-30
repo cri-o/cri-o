@@ -16,11 +16,12 @@ import (
 )
 
 type sandbox struct {
-	id         string
-	name       string
-	logDir     string
-	labels     map[string]string
-	containers oci.Store
+	id          string
+	name        string
+	logDir      string
+	labels      map[string]string
+	annotations map[string]string
+	containers  oci.Store
 }
 
 const (
@@ -129,20 +130,28 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+
+	// add annotations
+	annotations := req.GetConfig().GetAnnotations()
+	annotationsJSON, err := json.Marshal(annotations)
+	if err != nil {
+		return nil, err
+	}
 	g.AddAnnotation("ocid/labels", string(labelsJSON))
+	g.AddAnnotation("ocid/annotations", string(annotationsJSON))
 	g.AddAnnotation("ocid/log_path", logDir)
 	g.AddAnnotation("ocid/name", name)
 	containerName := name + "-infra"
 	g.AddAnnotation("ocid/container_name", containerName)
 	s.addSandbox(&sandbox{
-		id:         id,
-		name:       name,
-		logDir:     logDir,
-		labels:     labels,
-		containers: oci.NewMemoryStore(),
+		id:          id,
+		name:        name,
+		logDir:      logDir,
+		labels:      labels,
+		annotations: annotations,
+		containers:  oci.NewMemoryStore(),
 	})
 
-	annotations := req.GetConfig().GetAnnotations()
 	for k, v := range annotations {
 		g.AddAnnotation(k, v)
 	}
