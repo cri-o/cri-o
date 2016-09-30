@@ -48,10 +48,16 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	echo "$output"
 	pod_id="$output"
+	run ocic pod list
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
+	run ocic ctr list
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run ocic ctr status --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -61,19 +67,40 @@ function teardown() {
 	run ocic ctr status --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run ocic ctr list
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run ocic ctr stop --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ocic ctr status --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run ocic ctr list
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run ocic ctr remove --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic ctr list
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ocic pod stop --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run ocic pod list
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic ctr list
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run ocic pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic pod list
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic ctr list
 	echo "$output"
 	[ "$status" -eq 0 ]
 	stop_ocid
