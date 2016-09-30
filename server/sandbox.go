@@ -40,7 +40,7 @@ func (s *sandbox) removeContainer(c *oci.Container) {
 	s.containers.Delete(c.Name())
 }
 
-func (s *Server) generatePodIDandName(name, namespace string) (string, string, error) {
+func (s *Server) generatePodIDandName(name string, namespace string, attempt uint32) (string, string, error) {
 	var (
 		err error
 		id  = stringid.GenerateNonCryptoID()
@@ -48,7 +48,8 @@ func (s *Server) generatePodIDandName(name, namespace string) (string, string, e
 	if namespace == "" {
 		namespace = podDefaultNamespace
 	}
-	if name, err = s.reservePodName(id, namespace+"-"+name); err != nil {
+
+	if name, err = s.reservePodName(id, fmt.Sprintf("%s-%s-%v", namespace, name, attempt)); err != nil {
 		return "", "", err
 	}
 	return id, name, err
@@ -63,9 +64,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	namespace := req.GetConfig().GetMetadata().GetNamespace()
+	attempt := req.GetConfig().GetMetadata().GetAttempt()
 
 	var err error
-	id, name, err := s.generatePodIDandName(name, namespace)
+	id, name, err := s.generatePodIDandName(name, namespace, attempt)
 	if err != nil {
 		return nil, err
 	}
