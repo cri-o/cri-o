@@ -34,6 +34,9 @@ ${OCID_LINK}:
 conmon:
 	make -C $@
 
+pause:
+	make -C $@
+
 ocid: ${OCID_LINK}
 	go build -o ocid ./cmd/server/
 
@@ -44,6 +47,7 @@ clean:
 	rm -f ocic ocid
 	rm -f ${OCID_LINK}
 	rm -f conmon/conmon.o conmon/conmon
+	rm -f pause/pause.o pause/pause
 	rm -f docs/*.1 docs/*.8
 	find . -name \*~ -delete
 	find . -name \#\* -delete
@@ -64,7 +68,7 @@ integration: ocidimage
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: ${OCID_LINK} ocid ocic conmon
+binaries: ${OCID_LINK} ocid ocic conmon pause
 
 MANPAGES_MD = $(wildcard docs/*.md)
 
@@ -82,12 +86,13 @@ install: binaries docs
 	install -D -m 755 ocid ${INSTALLDIR}/ocid
 	install -D -m 755 ocic ${INSTALLDIR}/ocic
 	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
+	install -D -m 755 pause/pause $(PREFIX)/libexec/ocid/pause
 	install -d $(PREFIX)/share/man/man8
 	install -m 644 $(basename $(MANPAGES_MD)) $(PREFIX)/share/man/man8
 
 uninstall:
 	rm -f ${INSTALLDIR}/{ocid,ocic}
-	rm -f $(PREFIX)/libexec/ocid/conmon
+	rm -f $(PREFIX)/libexec/ocid/{conmon,pause}
 	for i in $(basename $(MANPAGES_MD)); do \
 		rm -f $(PREFIX)/share/man/man8/$$(basename $${i}); \
 	done
@@ -118,13 +123,14 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 .PHONY: \
 	binaries \
+	clean \
 	conmon \
 	default \
 	docs \
-	ocid \
-	ocic \
-	clean \
-	lint \
 	help \
 	install \
+	lint \
+	ocic \
+	ocid \
+	pause \
 	uninstall
