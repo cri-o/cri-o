@@ -16,6 +16,7 @@ import (
 const (
 	ocidRoot   = "/var/lib/ocid"
 	conmonPath = "/usr/libexec/ocid/conmon"
+	pausePath  = "/usr/libexec/ocid/pause"
 )
 
 func main() {
@@ -29,6 +30,11 @@ func main() {
 			Name:  "conmon",
 			Value: conmonPath,
 			Usage: "path to the conmon executable",
+		},
+		cli.StringFlag{
+			Name:  "pause",
+			Value: pausePath,
+			Usage: "path to the pause executable",
 		},
 		cli.StringFlag{
 			Name:  "root",
@@ -110,7 +116,8 @@ func main() {
 
 		containerDir := c.String("containerdir")
 		sandboxDir := c.String("sandboxdir")
-		service, err := server.New(c.String("runtime"), c.String("root"), sandboxDir, containerDir, conmonPath)
+		pausePath := c.String("pause")
+		service, err := server.New(c.String("runtime"), c.String("root"), sandboxDir, containerDir, conmonPath, pausePath)
 		if err != nil {
 			logrus.Fatal(err)
 		}
