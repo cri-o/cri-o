@@ -116,6 +116,7 @@ func main() {
 
 		containerDir := c.String("containerdir")
 		sandboxDir := c.String("sandboxdir")
+		conmonPath := c.String("conmon")
 		pausePath := c.String("pause")
 		service, err := server.New(c.String("runtime"), c.String("root"), sandboxDir, containerDir, conmonPath, pausePath)
 		if err != nil {
