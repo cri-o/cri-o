@@ -15,20 +15,25 @@ function teardown() {
 
 	start_ocid
 	run ocic pod create --config "$TESTDATA"/sandbox_config.json
-	[ "$status" -eq 0 ]
 	echo "$output"
+	[ "$status" -eq 0 ]
 	id="$output"
 	run ocic pod stop --id "$id"
+	echo "$output"
 	[ "$status" -eq 0 ]
+	echo "$output"
 	run ocic pod remove --id "$id"
+	echo "$output"
 	[ "$status" -eq 0 ]
 	run ocic pod create --config "$TESTDATA"/sandbox_config.json
-	[ "$status" -eq 0 ]
 	echo "$output"
+	[ "$status" -eq 0 ]
 	id="$output"
 	run ocic pod stop --id "$id"
+	echo "$output"
 	[ "$status" -eq 0 ]
 	run ocic pod remove --id "$id"
+	echo "$output"
 	[ "$status" -eq 0 ]
 	stop_ocid
 	cleanup_pods
@@ -42,8 +47,8 @@ function teardown() {
 
 	start_ocid
 	run ocic pod create --config "$TESTDATA"/sandbox_config.json
-	[ "$status" -eq 0 ]
 	echo "$output"
+	[ "$status" -eq 0 ]
 	pod_id="$output"
 	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
 	echo "$output"
