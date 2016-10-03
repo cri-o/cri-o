@@ -5,7 +5,7 @@ override LIBS += $(shell pkg-config --libs glib-2.0)
 override CFLAGS += -Wall -Wextra $(shell pkg-config --cflags glib-2.0)
 
 conmon: $(obj)
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 clean:

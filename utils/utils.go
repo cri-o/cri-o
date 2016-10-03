@@ -78,6 +78,38 @@ func CreateFakeRootfs(dir string, image string) error {
 	return dockerExport(image[9:], rootfs)
 }
 
+// CreateInfraRootfs creates a rootfs similar to CreateFakeRootfs, but only
+// copies a single binary from the host into the rootfs. This is all done
+// without Docker, and is only used currently for the pause container which is
+// required for all sandboxes.
+func CreateInfraRootfs(dir string, src string) error {
+	rootfs := filepath.Join(dir, "rootfs")
+	if err := os.MkdirAll(rootfs, 0755); err != nil {
+		return err
+	}
+
+	dest := filepath.Join(rootfs, filepath.Base(src))
+	logrus.Debugf("copying infra rootfs binary: %v -> %v", src, dest)
+
+	in, err := os.OpenFile(src, os.O_RDONLY, 0755)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0755)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+
+	return out.Sync()
+}
+
 func dockerExport(image string, rootfs string) error {
 	out, err := ExecCmd("docker", "create", image)
 	if err != nil {
