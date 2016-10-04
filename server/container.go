@@ -29,9 +29,9 @@ func (s *Server) generateContainerIDandName(podName string, name string, attempt
 		err error
 		id  = stringid.GenerateNonCryptoID()
 	)
-	nameStr = fmt.Sprintf("%s-%s-%v", podName, name, attempt)
+	nameStr := fmt.Sprintf("%s-%s-%v", podName, name, attempt)
 	if name == "infra" {
-		nameStr := fmt.Sprintf("%s-%s", podName, name)
+		nameStr = fmt.Sprintf("%s-%s", podName, name)
 	}
 	if name, err = s.reserveContainerName(id, nameStr); err != nil {
 		return "", "", err
@@ -67,6 +67,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
 
+	attempt := containerConfig.GetMetadata().GetAttempt()
+	containerID, containerName, err := s.generateContainerIDandName(sb.name, name, attempt)
+	if err != nil {
+		return nil, err
+	}
+
 	// containerDir is the dir for the container bundle.
 	containerDir := filepath.Join(s.runtime.ContainerDir(), name)
 
@@ -78,7 +84,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	container, err := s.createSandboxContainer(name, sb, req.GetSandboxConfig(), containerDir, containerConfig)
+	container, err := s.createSandboxContainer(containerID, containerName, sb, req.GetSandboxConfig(), containerDir, containerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -94,11 +100,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	s.addContainer(container)
 
 	return &pb.CreateContainerResponse{
-		ContainerId: &name,
+		ContainerId: &containerID,
 	}, nil
 }
 
-func (s *Server) createSandboxContainer(name string, sb *sandbox, SandboxConfig *pb.PodSandboxConfig, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (s *Server) createSandboxContainer(containerID string, containerName string, sb *sandbox, SandboxConfig *pb.PodSandboxConfig, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
@@ -273,7 +279,7 @@ func (s *Server) createSandboxContainer(name string, sb *sandbox, SandboxConfig 
 	}
 	// Join the namespace paths for the pod sandbox container.
 	podContainerName := sb.name + "-infra"
-	podInfraContainer := s.state.containers.Get(podContainerName)
+	podInfraContainer := sb.getContainer(podContainerName)
 	podInfraState := s.runtime.ContainerStatus(podInfraContainer)
 
 	logrus.Infof("pod container state %v", podInfraState)
@@ -309,7 +315,7 @@ func (s *Server) createSandboxContainer(name string, sb *sandbox, SandboxConfig 
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(name, containerDir, logPath, labels, sb.id, containerConfig.GetTty())
+	container, err := oci.NewContainer(containerID, containerName, containerDir, logPath, labels, sb.id, containerConfig.GetTty())
 	if err != nil {
 		return nil, err
 	}
@@ -319,18 +325,18 @@ func (s *Server) createSandboxContainer(name string, sb *sandbox, SandboxConfig 
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
-	containerName := req.ContainerId
+	containerID := req.GetContainerId()
 
-	if *containerName == "" {
+	if containerID == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
-	c := s.state.containers.Get(*containerName)
+	c := s.state.containers.Get(containerID)
 	if c == nil {
-		return nil, fmt.Errorf("specified container not found: %s", *containerName)
+		return nil, fmt.Errorf("specified container not found: %s", containerID)
 	}
 
 	if err := s.runtime.StartContainer(c); err != nil {
-		return nil, fmt.Errorf("failed to start container %s in sandbox %s: %v", c.Name(), *containerName, err)
+		return nil, fmt.Errorf("failed to start container %s in sandbox %s: %v", c.Name(), containerID, err)
 	}
 
 	return &pb.StartContainerResponse{}, nil
@@ -338,18 +344,18 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest) (*pb.StopContainerResponse, error) {
-	containerName := req.ContainerId
+	containerID := req.GetContainerId()
 
-	if *containerName == "" {
+	if containerID == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
-	c := s.state.containers.Get(*containerName)
+	c := s.state.containers.Get(containerID)
 	if c == nil {
-		return nil, fmt.Errorf("specified container not found: %s", *containerName)
+		return nil, fmt.Errorf("specified container not found: %s", containerID)
 	}
 
 	if err := s.runtime.StopContainer(c); err != nil {
-		return nil, fmt.Errorf("failed to stop container %s: %v", *containerName, err)
+		return nil, fmt.Errorf("failed to stop container %s: %v", containerID, err)
 	}
 
 	return &pb.StopContainerResponse{}, nil
@@ -358,14 +364,14 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (*pb.RemoveContainerResponse, error) {
-	containerName := req.ContainerId
+	containerID := req.GetContainerId()
 
-	if *containerName == "" {
+	if containerID == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
-	c := s.state.containers.Get(*containerName)
+	c := s.state.containers.Get(containerID)
 	if c == nil {
-		return nil, fmt.Errorf("specified container not found: %s", *containerName)
+		return nil, fmt.Errorf("specified container not found: %s", containerID)
 	}
 
 	if err := s.runtime.UpdateStatus(c); err != nil {
@@ -375,19 +381,20 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 	cState := s.runtime.ContainerStatus(c)
 	if cState.Status == ContainerStateCreated || cState.Status == ContainerStateRunning {
 		if err := s.runtime.StopContainer(c); err != nil {
-			return nil, fmt.Errorf("failed to stop container %s: %v", *containerName, err)
+			return nil, fmt.Errorf("failed to stop container %s: %v", containerID, err)
 		}
 	}
 
 	if err := s.runtime.DeleteContainer(c); err != nil {
-		return nil, fmt.Errorf("failed to delete container %s: %v", *containerName, err)
+		return nil, fmt.Errorf("failed to delete container %s: %v", containerID, err)
 	}
 
-	containerDir := filepath.Join(s.runtime.ContainerDir(), *containerName)
+	containerDir := filepath.Join(s.runtime.ContainerDir(), containerID)
 	if err := os.RemoveAll(containerDir); err != nil {
-		return nil, fmt.Errorf("failed to remove container %s directory: %v", *containerName, err)
+		return nil, fmt.Errorf("failed to remove container %s directory: %v", containerID, err)
 	}
 
+	s.releaseContainerName(c.Name())
 	s.removeContainer(c)
 
 	return &pb.RemoveContainerResponse{}, nil
@@ -432,15 +439,15 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
-	containerName := req.ContainerId
+	containerID := req.GetContainerId()
 
-	if *containerName == "" {
+	if containerID == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
-	c := s.state.containers.Get(*containerName)
+	c := s.state.containers.Get(containerID)
 
 	if c == nil {
-		return nil, fmt.Errorf("specified container not found: %s", *containerName)
+		return nil, fmt.Errorf("specified container not found: %s", containerID)
 	}
 
 	if err := s.runtime.UpdateStatus(c); err != nil {
@@ -449,7 +456,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 
 	csr := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
-			Id: containerName,
+			Id: &containerID,
 		},
 	}
 

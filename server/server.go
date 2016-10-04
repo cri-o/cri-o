@@ -63,7 +63,7 @@ func (s *Server) loadSandbox(id string) error {
 		containers: oci.NewMemoryStore(),
 	})
 	sandboxPath := filepath.Join(s.sandboxDir, id)
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_name"], sandboxPath, sandboxPath, labels, id, false)
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"], sandboxPath, sandboxPath, labels, id, false)
 	if err != nil {
 		return err
 	}
@@ -217,13 +217,13 @@ func (s *Server) addContainer(c *oci.Container) {
 	sandbox := s.state.sandboxes[c.Sandbox()]
 	// TODO(runcom): handle !ok above!!! otherwise it panics!
 	sandbox.addContainer(c)
-	s.state.containers.Add(c.Name(), c)
+	s.state.containers.Add(c.ID(), c)
 	s.stateLock.Unlock()
 }
 
-func (s *Server) getContainer(name string) *oci.Container {
+func (s *Server) getContainer(id string) *oci.Container {
 	s.stateLock.Lock()
-	c := s.state.containers.Get(name)
+	c := s.state.containers.Get(id)
 	s.stateLock.Unlock()
 	return c
 }
@@ -232,6 +232,6 @@ func (s *Server) removeContainer(c *oci.Container) {
 	s.stateLock.Lock()
 	sandbox := s.state.sandboxes[c.Sandbox()]
 	sandbox.removeContainer(c)
-	s.state.containers.Delete(c.Name())
+	s.state.containers.Delete(c.ID())
 	s.stateLock.Unlock()
 }
