@@ -33,6 +33,8 @@ type Server struct {
 	netPlugin    ocicni.CNIPlugin
 	podNameIndex *registrar.Registrar
 	podIDIndex   *truncindex.TruncIndex
+	ctrNameIndex *registrar.Registrar
+	ctrIDIndex   *truncindex.TruncIndex
 }
 
 func (s *Server) loadSandbox(id string) error {
@@ -107,6 +109,25 @@ func (s *Server) releasePodName(name string) {
 	s.podNameIndex.Release(name)
 }
 
+func (s *Server) reserveContainerName(id, name string) (string, error) {
+	if err := s.ctrNameIndex.Reserve(name, id); err != nil {
+		if err == registrar.ErrNameReserved {
+			id, err := s.ctrNameIndex.Get(name)
+			if err != nil {
+				logrus.Warnf("name %s already reserved for %s", name, id)
+				return "", err
+			}
+			return "", fmt.Errorf("conflict, name %s already reserved", name)
+		}
+		return "", fmt.Errorf("error reserving name %s", name)
+	}
+	return name, nil
+}
+
+func (s *Server) releaseContainerName(name string) {
+	s.ctrNameIndex.Release(name)
+}
+
 // New creates a new Server with options provided
 func New(runtimePath, root, sandboxDir, containerDir, conmonPath, pausePath string) (*Server, error) {
 	// TODO: This will go away later when we have wrapper process or systemd acting as
@@ -146,8 +167,12 @@ func New(runtimePath, root, sandboxDir, containerDir, conmonPath, pausePath stri
 			containers: containers,
 		},
 	}
+
 	s.podIDIndex = truncindex.NewTruncIndex([]string{})
 	s.podNameIndex = registrar.NewRegistrar()
+	s.ctrIDIndex = truncindex.NewTruncIndex([]string{})
+	s.ctrNameIndex = registrar.NewRegistrar()
+
 	if err := s.restore(); err != nil {
 		logrus.Warnf("couldn't restore: %v", err)
 	}
