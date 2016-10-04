@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -22,6 +23,21 @@ const (
 	// ContainerStateStopped represents the stopped state of a container
 	ContainerStateStopped = "stopped"
 )
+
+func (s *Server) generateContainerIDandName(podName string, name string, attempt uint32) (string, string, error) {
+	var (
+		err error
+		id  = stringid.GenerateNonCryptoID()
+	)
+	nameStr = fmt.Sprintf("%s-%s-%v", podName, name, attempt)
+	if name == "infra" {
+		nameStr := fmt.Sprintf("%s-%s", podName, name)
+	}
+	if name, err = s.reserveContainerName(id, nameStr); err != nil {
+		return "", "", err
+	}
+	return id, name, err
+}
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (*pb.CreateContainerResponse, error) {
