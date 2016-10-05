@@ -11,6 +11,7 @@ PREFIX ?= ${DESTDIR}/usr
 INSTALLDIR=${PREFIX}/bin
 GO_MD2MAN ?= $(shell which go-md2man)
 export GOPATH := ${CURDIR}/vendor
+BUILDTAGS := selinux
 
 default: help
 
@@ -38,7 +39,7 @@ pause:
 	make -C $@
 
 ocid: ${OCID_LINK}
-	go build -o ocid ./cmd/server/
+	go build --tags "$(BUILDTAGS)" -o ocid ./cmd/server/
 
 ocic: ${OCID_LINK}
 	go build -o ocic ./cmd/client/

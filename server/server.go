@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/opencontainers/runc/libcontainer/label"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/rajatchopra/ocicni"
 )
@@ -55,14 +56,22 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
+
+	processLabel, mountLabel, err := label.InitLabels(label.DupSecOpt(m.Process.SelinuxLabel))
+	if err != nil {
+		return err
+	}
 	s.addSandbox(&sandbox{
-		id:         id,
-		name:       name,
-		logDir:     m.Annotations["ocid/log_path"],
-		labels:     labels,
-		containers: oci.NewMemoryStore(),
+		id:           id,
+		name:         name,
+		logDir:       m.Annotations["ocid/log_path"],
+		labels:       labels,
+		containers:   oci.NewMemoryStore(),
+		processLabel: processLabel,
+		mountLabel:   mountLabel,
 	})
 	sandboxPath := filepath.Join(s.sandboxDir, id)
+
 	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"], sandboxPath, sandboxPath, labels, id, false)
 	if err != nil {
 		return err

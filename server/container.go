@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -161,8 +163,12 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			options = "ro"
 		}
 
-		//TODO(hmeng): how to use this info? Do we need to handle relabel a FS with Selinux?
-		//selinuxRelabel := mount.GetSelinuxRelabel()
+		if mount.GetSelinuxRelabel() {
+			// Need a way in kubernetes to determine if the volume is shared or private
+			if err := label.Relabel(src, sb.mountLabel, true); err != nil && err != syscall.ENOTSUP {
+				return nil, fmt.Errorf("relabel failed %s: %v", src, err)
+			}
+		}
 
 		specgen.AddBindMount(src, dest, options)
 
@@ -240,30 +246,8 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			}
 		}
 
-		selinuxOptions := linux.GetSelinuxOptions()
-		if selinuxOptions != nil {
-			user := selinuxOptions.GetUser()
-			if user == "" {
-				return nil, fmt.Errorf("SELinuxOption.User is empty")
-			}
-
-			role := selinuxOptions.GetRole()
-			if role == "" {
-				return nil, fmt.Errorf("SELinuxOption.Role is empty")
-			}
-
-			t := selinuxOptions.GetType()
-			if t == "" {
-				return nil, fmt.Errorf("SELinuxOption.Type is empty")
-			}
-
-			level := selinuxOptions.GetLevel()
-			if level == "" {
-				return nil, fmt.Errorf("SELinuxOption.Level is empty")
-			}
-
-			specgen.SetProcessSelinuxLabel(fmt.Sprintf("%s:%s:%s:%s", user, role, t, level))
-		}
+		specgen.SetProcessSelinuxLabel(sb.processLabel)
+		specgen.SetLinuxMountLabel(sb.mountLabel)
 
 		user := linux.GetUser()
 		if user != nil {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/server"
+	"github.com/opencontainers/runc/libcontainer/selinux"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -65,6 +66,10 @@ func main() {
 			Name:  "debug",
 			Usage: "enable debug output for logging",
 		},
+		cli.BoolFlag{
+			Name:  "selinux-enabled",
+			Usage: "enable selinux support",
+		},
 		cli.StringFlag{
 			Name:  "log",
 			Value: "",
@@ -80,6 +85,9 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 		if c.GlobalBool("debug") {
 			logrus.SetLevel(logrus.DebugLevel)
+		}
+		if !c.GlobalBool("selinux-enabled") {
+			selinux.SetDisabled()
 		}
 		if path := c.GlobalString("log"); path != "" {
 			f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0666)
