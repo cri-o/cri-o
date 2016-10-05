@@ -99,6 +99,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	s.addContainer(container)
 
+	if err := s.ctrIDIndex.Add(containerID); err != nil {
+		return nil, err
+	}
+
 	return &pb.CreateContainerResponse{
 		ContainerId: &containerID,
 	}, nil
@@ -396,6 +400,10 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 
 	s.releaseContainerName(c.Name())
 	s.removeContainer(c)
+
+	if err := s.ctrIDIndex.Delete(c.ID()); err != nil {
+		return nil, err
+	}
 
 	return &pb.RemoveContainerResponse{}, nil
 }
