@@ -329,11 +329,16 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
-	containerID := req.GetContainerId()
-
-	if containerID == "" {
+	ctrID := req.GetContainerId()
+	if ctrID == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
+
+	containerID, err := s.ctrIDIndex.Get(ctrID)
+	if err != nil {
+		return nil, fmt.Errorf("container with ID starting with %s not found: %v", ctrID, err)
+	}
+
 	c := s.state.containers.Get(containerID)
 	if c == nil {
 		return nil, fmt.Errorf("specified container not found: %s", containerID)
@@ -348,11 +353,16 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest) (*pb.StopContainerResponse, error) {
-	containerID := req.GetContainerId()
-
-	if containerID == "" {
+	ctrID := req.GetContainerId()
+	if ctrID == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
+
+	containerID, err := s.ctrIDIndex.Get(ctrID)
+	if err != nil {
+		return nil, fmt.Errorf("container with ID starting with %s not found: %v", ctrID, err)
+	}
+
 	c := s.state.containers.Get(containerID)
 	if c == nil {
 		return nil, fmt.Errorf("specified container not found: %s", containerID)
@@ -368,11 +378,16 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (*pb.RemoveContainerResponse, error) {
-	containerID := req.GetContainerId()
-
-	if containerID == "" {
+	ctrID := req.GetContainerId()
+	if ctrID == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
+
+	containerID, err := s.ctrIDIndex.Get(ctrID)
+	if err != nil {
+		return nil, fmt.Errorf("container with ID starting with %s not found: %v", ctrID, err)
+	}
+
 	c := s.state.containers.Get(containerID)
 	if c == nil {
 		return nil, fmt.Errorf("specified container not found: %s", containerID)
@@ -447,11 +462,16 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
-	containerID := req.GetContainerId()
-
-	if containerID == "" {
+	ctrID := req.GetContainerId()
+	if ctrID == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
+
+	containerID, err := s.ctrIDIndex.Get(ctrID)
+	if err != nil {
+		return nil, fmt.Errorf("container with ID starting with %s not found: %v", ctrID, err)
+	}
+
 	c := s.state.containers.Get(containerID)
 
 	if c == nil {
