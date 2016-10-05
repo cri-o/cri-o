@@ -139,12 +139,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+
+	containerID, containerName, err := s.generateContainerIDandName(name, "infra", 0)
 	g.AddAnnotation("ocid/labels", string(labelsJSON))
 	g.AddAnnotation("ocid/annotations", string(annotationsJSON))
 	g.AddAnnotation("ocid/log_path", logDir)
 	g.AddAnnotation("ocid/name", name)
-	containerName := name + "-infra"
 	g.AddAnnotation("ocid/container_name", containerName)
+	g.AddAnnotation("ocid/container_id", containerID)
 	s.addSandbox(&sandbox{
 		id:          id,
 		name:        name,
@@ -202,7 +204,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	container, err := oci.NewContainer(containerName, podSandboxDir, podSandboxDir, labels, id, false)
+	container, err := oci.NewContainer(containerID, containerName, podSandboxDir, podSandboxDir, labels, id, false)
 	if err != nil {
 		return nil, err
 	}
@@ -331,6 +333,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			return nil, fmt.Errorf("failed to remove container %s directory: %v", c.Name(), err)
 		}
 
+		s.releaseContainerName(c.Name())
 		s.removeContainer(c)
 	}
 
@@ -339,6 +342,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	if err := os.RemoveAll(podSandboxDir); err != nil {
 		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", sandboxID, err)
 	}
+	s.releaseContainerName(podInfraContainer.Name())
 	s.removeContainer(podInfraContainer)
 
 	s.releasePodName(sb.name)

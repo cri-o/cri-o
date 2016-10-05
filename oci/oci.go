@@ -208,6 +208,7 @@ func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
 
 // Container respresents a runtime container.
 type Container struct {
+	id         string
 	name       string
 	bundlePath string
 	logPath    string
@@ -228,8 +229,9 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(name string, bundlePath string, logPath string, labels map[string]string, sandbox string, terminal bool) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, labels map[string]string, sandbox string, terminal bool) (*Container, error) {
 	c := &Container{
+		id:         id,
 		name:       name,
 		bundlePath: bundlePath,
 		logPath:    logPath,
@@ -243,6 +245,11 @@ func NewContainer(name string, bundlePath string, logPath string, labels map[str
 // Name returns the name of the container.
 func (c *Container) Name() string {
 	return c.name
+}
+
+// ID returns the id of the container.
+func (c *Container) ID() string {
+	return c.id
 }
 
 // BundlePath returns the bundlePath of the container.
