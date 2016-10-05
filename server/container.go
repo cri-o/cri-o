@@ -74,7 +74,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	// containerDir is the dir for the container bundle.
-	containerDir := filepath.Join(s.runtime.ContainerDir(), name)
+	containerDir := filepath.Join(s.runtime.ContainerDir(), containerID)
 
 	if _, err = os.Stat(containerDir); err == nil {
 		return nil, fmt.Errorf("container (%s) already exists", containerDir)
