@@ -35,7 +35,90 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788).  Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
-### Current Roadmap
+## Getting started
+
+### Prerequisites
+`runc` version 1.0.0.rc1 or greater is expected to be installed on the system. It is picked up as the default runtime by ocid.
+
+### Build
+
+`glib2-devel` package on Fedora or ` libglib2.0-dev` on Ubuntu or equivalent is required.
+
+
+```
+$ GOPATH=/path/to/gopath
+$ mkdir $GOPATH
+$ go get -d github.com/kubernetes-incubator/cri-o
+$ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
+$ make binaries
+$ sudo make install
+```
+
+
+### Running pods and containers
+
+#### Start the server
+```
+# ocid --debug
+```
+
+#### Create a pod
+```
+$ ocic pod create --config test/testdata/sandbox_config.json
+```
+
+#### Get pod status
+```
+# ocic pod status --id <pod_id>
+```
+
+#### Run a container inside a pod
+```
+# ocic ctr create --pod <pod_id> --config test/testdata/container_redis.json
+```
+
+#### Start a container
+```
+# ocic ctr start --id <ctr_id>
+```
+
+#### Get container status
+```
+# ocic ctr status --id <ctr_id>
+```
+
+#### Stop a container
+```
+# ocic ctr stop --id <ctr_id>
+```
+
+#### Remove a container
+```
+# ocic ctr remove --id <ctr_id>
+```
+
+#### Stop a pod
+```
+# ocic pod stop --id <pod_id>
+```
+
+#### Remove a pod
+```
+# ocic pod remove --id <pod_id>
+
+```
+
+#### List pods
+```
+# ocic pod list
+```
+
+#### List containers
+```
+# ocic ctr list
+```
+
+### Current Roadmap 
 
 1. Basic pod/container lifecycle, basic image pull (already works)
 1. Support for tty handling and state management
