@@ -10,18 +10,21 @@ import (
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 type sandbox struct {
-	id          string
-	name        string
-	logDir      string
-	labels      map[string]string
-	annotations map[string]string
-	containers  oci.Store
+	id           string
+	name         string
+	logDir       string
+	labels       map[string]string
+	annotations  map[string]string
+	containers   oci.Store
+	processLabel string
+	mountLabel   string
 }
 
 const (
@@ -58,6 +61,7 @@ func (s *Server) generatePodIDandName(name string, namespace string, attempt uin
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (*pb.RunPodSandboxResponse, error) {
+	var processLabel, mountLabel string
 	// process req.Name
 	name := req.GetConfig().GetMetadata().GetName()
 	if name == "" {
@@ -140,6 +144,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
+	processLabel, mountLabel, err = getSELinuxLabels(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	containerID, containerName, err := s.generateContainerIDandName(name, "infra", 0)
 	g.AddAnnotation("ocid/labels", string(labelsJSON))
 	g.AddAnnotation("ocid/annotations", string(annotationsJSON))
@@ -148,12 +157,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/container_name", containerName)
 	g.AddAnnotation("ocid/container_id", containerID)
 	s.addSandbox(&sandbox{
-		id:          id,
-		name:        name,
-		logDir:      logDir,
-		labels:      labels,
-		annotations: annotations,
-		containers:  oci.NewMemoryStore(),
+		id:           id,
+		name:         name,
+		logDir:       logDir,
+		labels:       labels,
+		annotations:  annotations,
+		containers:   oci.NewMemoryStore(),
+		processLabel: processLabel,
+		mountLabel:   mountLabel,
 	})
 
 	for k, v := range annotations {
@@ -441,4 +452,31 @@ func (s *Server) ListPodSandbox(context.Context, *pb.ListPodSandboxRequest) (*pb
 	return &pb.ListPodSandboxResponse{
 		Items: pods,
 	}, nil
+}
+
+func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mountLabel string, err error) {
+	processLabel = ""
+	if selinuxOptions != nil {
+		user := selinuxOptions.GetUser()
+		if user == "" {
+			return "", "", fmt.Errorf("SELinuxOption.User is empty")
+		}
+
+		role := selinuxOptions.GetRole()
+		if role == "" {
+			return "", "", fmt.Errorf("SELinuxOption.Role is empty")
+		}
+
+		t := selinuxOptions.GetType()
+		if t == "" {
+			return "", "", fmt.Errorf("SELinuxOption.Type is empty")
+		}
+
+		level := selinuxOptions.GetLevel()
+		if level == "" {
+			return "", "", fmt.Errorf("SELinuxOption.Level is empty")
+		}
+		processLabel = fmt.Sprintf("%s:%s:%s:%s", user, role, t, level)
+	}
+	return label.InitLabels(label.DupSecOpt(processLabel))
 }
