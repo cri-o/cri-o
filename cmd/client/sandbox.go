@@ -214,6 +214,20 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 		return err
 	}
 	fmt.Printf("ID: %s\n", *r.Status.Id)
+	if r.Status.Metadata != nil {
+		if r.Status.Metadata.Name != nil {
+			fmt.Printf("Name: %s\n", *r.Status.Metadata.Name)
+		}
+		if r.Status.Metadata.Uid != nil {
+			fmt.Printf("UID: %s\n", *r.Status.Metadata.Uid)
+		}
+		if r.Status.Metadata.Namespace != nil {
+			fmt.Printf("Namespace: %s\n", *r.Status.Metadata.Namespace)
+		}
+		if r.Status.Metadata.Attempt != nil {
+			fmt.Printf("Attempt: %v\n", *r.Status.Metadata.Attempt)
+		}
+	}
 	if r.Status.State != nil {
 		fmt.Printf("Status: %s\n", r.Status.State)
 	}
@@ -227,6 +241,18 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 	if r.Status.Network != nil {
 		fmt.Printf("IP Address: %v\n", *r.Status.Network.Ip)
 	}
+	if r.Status.Labels != nil {
+		fmt.Println("Labels:")
+		for k, v := range r.Status.Labels {
+			fmt.Printf("\t%s -> %s\n", k, v)
+		}
+	}
+	if r.Status.Annotations != nil {
+		fmt.Println("Annotations:")
+		for k, v := range r.Status.Annotations {
+			fmt.Printf("\t%s -> %s\n", k, v)
+		}
+	}
 	return nil
 }
 
@@ -239,9 +265,35 @@ func ListPodSandboxes(client pb.RuntimeServiceClient) error {
 	}
 	for _, pod := range r.Items {
 		fmt.Printf("ID: %s\n", *pod.Id)
+		if pod.Metadata != nil {
+			if pod.Metadata.Name != nil {
+				fmt.Printf("Name: %s\n", *pod.Metadata.Name)
+			}
+			if pod.Metadata.Uid != nil {
+				fmt.Printf("UID: %s\n", *pod.Metadata.Uid)
+			}
+			if pod.Metadata.Namespace != nil {
+				fmt.Printf("Namespace: %s\n", *pod.Metadata.Namespace)
+			}
+			if pod.Metadata.Attempt != nil {
+				fmt.Printf("Attempt: %v\n", *pod.Metadata.Attempt)
+			}
+		}
 		fmt.Printf("Status: %s\n", pod.State)
 		ctm := time.Unix(*pod.CreatedAt, 0)
 		fmt.Printf("Created: %v\n", ctm)
+		if pod.Labels != nil {
+			fmt.Println("Labels:")
+			for k, v := range pod.Labels {
+				fmt.Printf("\t%s -> %s\n", k, v)
+			}
+		}
+		if pod.Annotations != nil {
+			fmt.Println("Annotations:")
+			for k, v := range pod.Annotations {
+				fmt.Printf("\t%s -> %s\n", k, v)
+			}
+		}
 	}
 	return nil
 }
