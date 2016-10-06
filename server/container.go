@@ -40,7 +40,7 @@ func (s *Server) generateContainerIDandName(podName string, name string, attempt
 }
 
 // CreateContainer creates a new container in specified PodSandbox
-func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (*pb.CreateContainerResponse, error) {
+func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
 	sbID := req.GetPodSandboxId()
 	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
@@ -75,6 +75,14 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	// containerDir is the dir for the container bundle.
 	containerDir := filepath.Join(s.runtime.ContainerDir(), containerID)
+	defer func() {
+		if err != nil {
+			err1 := os.RemoveAll(containerDir)
+			if err1 != nil {
+				logrus.Warnf("Failed to cleanup container directory: %v")
+			}
+		}
+	}()
 
 	if _, err = os.Stat(containerDir); err == nil {
 		return nil, fmt.Errorf("container (%s) already exists", containerDir)
@@ -89,17 +97,18 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	if err := s.runtime.CreateContainer(container); err != nil {
+	if err = s.runtime.CreateContainer(container); err != nil {
 		return nil, err
 	}
 
-	if err := s.runtime.UpdateStatus(container); err != nil {
+	if err = s.runtime.UpdateStatus(container); err != nil {
 		return nil, err
 	}
 
 	s.addContainer(container)
 
-	if err := s.ctrIDIndex.Add(containerID); err != nil {
+	if err = s.ctrIDIndex.Add(containerID); err != nil {
+		s.removeContainer(container)
 		return nil, err
 	}
 
