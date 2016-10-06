@@ -62,6 +62,10 @@ $ sudo make install
 ```
 # ocid --debug
 ```
+If the default --runtime value does not point to your runtime:   
+```
+# ocid --runtime $(which runc)
+```
 
 #### Create a pod
 ```
