@@ -59,6 +59,28 @@ func (s *Server) generatePodIDandName(name string, namespace string, attempt uin
 	return id, name, err
 }
 
+type podSandboxRequest interface {
+	GetPodSandboxId() string
+}
+
+func (s *Server) getPodSandboxFromRequest(req podSandboxRequest) (*sandbox, error) {
+	sbID := req.GetPodSandboxId()
+	if sbID == "" {
+		return nil, fmt.Errorf("PodSandboxId should not be empty")
+	}
+
+	sandboxID, err := s.podIDIndex.Get(sbID)
+	if err != nil {
+		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+	}
+
+	sb := s.getSandbox(sandboxID)
+	if sb == nil {
+		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
+	}
+	return sb, nil
+}
+
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (*pb.RunPodSandboxResponse, error) {
 	var processLabel, mountLabel string
