@@ -82,7 +82,7 @@ docs/%.8: docs/%.8.md
 
 docs: $(MANPAGES_MD:%.md=%)
 
-install: binaries docs
+install: 
 	install -D -m 755 ocid ${INSTALLDIR}/ocid
 	install -D -m 755 ocic ${INSTALLDIR}/ocic
 	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
