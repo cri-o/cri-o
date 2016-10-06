@@ -9,7 +9,7 @@ OCID_INSTANCE := ocid_dev
 SYSTEM_GOPATH := ${GOPATH}
 PREFIX ?= ${DESTDIR}/usr
 INSTALLDIR=${PREFIX}/bin
-GO_MD2MAN ?= $(shell command -v go-md2man)
+GO_MD2MAN ?= $(shell which go-md2man)
 export GOPATH := ${CURDIR}/vendor
 
 default: help
