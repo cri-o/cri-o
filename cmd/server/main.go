@@ -88,6 +88,10 @@ func main() {
 			}
 			logrus.SetOutput(f)
 		}
+		if _, err := os.Stat(c.GlobalString("runtime")); os.IsNotExist(err) {
+			// path to runtime does not exist
+			return fmt.Errorf("invalid --runtime value %q", err)
+		}
 		switch c.GlobalString("log-format") {
 		case "text":
 			// retain logrus's default.
