@@ -13,7 +13,7 @@ The scope of cri-o is tied to the scope of the CRI.
 
 At a high level, we expect the scope of cri-o to be restricted to the following functionalities:
 
-* Support multiple image formats including the existing Docker image format 
+* Support multiple image formats including the existing Docker image format
 * Support for multiple means to download images including trust & image verification
 * Container image management (managing image layers, overlay filesystems, etc)
 * Container process lifecycle management
@@ -28,7 +28,7 @@ At a high level, we expect the scope of cri-o to be restricted to the following 
 This is an implementation of the Kubernetes Container Runtime Interface (CRI) that will allow Kubernetes to directly launch and manage Open Container Initiative (OCI) containers.
 
 The plan is to use OCI projects and best of breed libraries for different aspects:
-- Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI runtime-spec implementation) and [oci runtime tools](https://github.com/opencontainers/runtime-tools) 
+- Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI runtime-spec implementation) and [oci runtime tools](https://github.com/opencontainers/runtime-tools)
 - Images: Image management using [containers/image](https://github.com/containers/image)
 - Storage: Storage and management of image layers using [containers/storage](https://github.com/containers/storage)
 - Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
@@ -50,6 +50,7 @@ $ GOPATH=/path/to/gopath
 $ mkdir $GOPATH
 $ go get -d github.com/kubernetes-incubator/cri-o
 $ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
+$ make install.tools
 $ make binaries
 $ sudo make install
 ```
@@ -118,7 +119,7 @@ $ ocic pod create --config test/testdata/sandbox_config.json
 # ocic ctr list
 ```
 
-### Current Roadmap 
+### Current Roadmap
 
 1. Basic pod/container lifecycle, basic image pull (already works)
 1. Support for tty handling and state management
