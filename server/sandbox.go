@@ -25,6 +25,7 @@ type sandbox struct {
 	containers   oci.Store
 	processLabel string
 	mountLabel   string
+	metadata     *pb.PodSandboxMetadata
 }
 
 const (
@@ -190,6 +191,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		containers:   oci.NewMemoryStore(),
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
+		metadata:     req.GetConfig().GetMetadata(),
 	})
 
 	for k, v := range annotations {
@@ -409,8 +411,11 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 					Network: sPtr(netNsPath),
 				},
 			},
-			Network: &pb.PodSandboxNetworkStatus{Ip: &ip},
-			State:   &rStatus,
+			Network:     &pb.PodSandboxNetworkStatus{Ip: &ip},
+			State:       &rStatus,
+			Labels:      sb.labels,
+			Annotations: sb.annotations,
+			Metadata:    sb.metadata,
 		},
 	}, nil
 }
@@ -437,9 +442,12 @@ func (s *Server) ListPodSandbox(context.Context, *pb.ListPodSandboxRequest) (*pb
 		}
 
 		pod := &pb.PodSandbox{
-			Id:        &sb.id,
-			CreatedAt: int64Ptr(created),
-			State:     &rStatus,
+			Id:          &sb.id,
+			CreatedAt:   int64Ptr(created),
+			State:       &rStatus,
+			Labels:      sb.labels,
+			Annotations: sb.annotations,
+			Metadata:    sb.metadata,
 		}
 
 		pods = append(pods, pod)
