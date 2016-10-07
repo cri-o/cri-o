@@ -38,6 +38,49 @@ type Server struct {
 	ctrIDIndex   *truncindex.TruncIndex
 }
 
+func (s *Server) loadContainer(id string) error {
+	config, err := ioutil.ReadFile(filepath.Join(s.runtime.ContainerDir(), id, "config.json"))
+	if err != nil {
+		return err
+	}
+	var m rspec.Spec
+	if err = json.Unmarshal(config, &m); err != nil {
+		return err
+	}
+	labels := make(map[string]string)
+	if err = json.Unmarshal([]byte(m.Annotations["ocid/labels"]), &labels); err != nil {
+		return err
+	}
+	name := m.Annotations["ocid/name"]
+	name, err = s.reserveContainerName(id, name)
+	if err != nil {
+		return err
+	}
+	sb := s.getSandbox(m.Annotations["ocid/sandbox_id"])
+	if sb == nil {
+		logrus.Warnf("could not get sandbox with id %s, skipping", m.Annotations["ocid/sandbox_id"])
+	}
+
+	var tty bool
+	if v := m.Annotations["ocid/tty"]; v == "true" {
+		tty = true
+	}
+	containerPath := filepath.Join(s.runtime.ContainerDir(), id)
+
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], labels, sb.id, tty)
+	if err != nil {
+		return err
+	}
+	s.addContainer(ctr)
+	if err = s.runtime.UpdateStatus(ctr); err != nil {
+		logrus.Warnf("error updating status for container %s: %v", ctr.ID(), err)
+	}
+	if err = s.ctrIDIndex.Add(id); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Server) loadSandbox(id string) error {
 	config, err := ioutil.ReadFile(filepath.Join(s.sandboxDir, id, "config.json"))
 	if err != nil {
@@ -72,13 +115,24 @@ func (s *Server) loadSandbox(id string) error {
 	})
 	sandboxPath := filepath.Join(s.sandboxDir, id)
 
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"], sandboxPath, sandboxPath, labels, id, false)
+	if err := label.ReserveLabel(processLabel); err != nil {
+		return err
+	}
+
+	cname, err := s.reserveContainerName(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"])
+	if err != nil {
+		return err
+	}
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, labels, id, false)
 	if err != nil {
 		return err
 	}
 	s.addContainer(scontainer)
 	if err = s.runtime.UpdateStatus(scontainer); err != nil {
-		logrus.Warnf("error updating status for container %s: %v", scontainer, err)
+		logrus.Warnf("error updating status for container %s: %v", scontainer.ID(), err)
+	}
+	if err = s.ctrIDIndex.Add(scontainer.ID()); err != nil {
+		return err
 	}
 	if err = s.podIDIndex.Add(id); err != nil {
 		return err
@@ -86,17 +140,32 @@ func (s *Server) loadSandbox(id string) error {
 	return nil
 }
 
-func (s *Server) restore() error {
-	dir, err := ioutil.ReadDir(s.sandboxDir)
+func (s *Server) restore() {
+	sandboxDir, err := ioutil.ReadDir(s.sandboxDir)
 	if err != nil {
-		return err
+		logrus.Warnf("could not read sandbox directory %s: %v", sandboxDir, err)
 	}
-	for _, v := range dir {
-		if err := s.loadSandbox(v.Name()); err != nil {
-			return err
+	for _, v := range sandboxDir {
+		if !v.IsDir() {
+			continue
+		}
+		if err = s.loadSandbox(v.Name()); err != nil {
+			logrus.Warnf("could not restore sandbox %s: %v", v.Name(), err)
 		}
 	}
-	return nil
+	containerDir, err := ioutil.ReadDir(s.runtime.ContainerDir())
+	if err != nil {
+		logrus.Warnf("could not read container directory %s: %v", s.runtime.ContainerDir(), err)
+	}
+	for _, v := range containerDir {
+		if !v.IsDir() {
+			continue
+		}
+		if err := s.loadContainer(v.Name()); err != nil {
+			logrus.Warnf("could not restore container %s: %v", v.Name(), err)
+
+		}
+	}
 }
 
 func (s *Server) reservePodName(id, name string) (string, error) {
@@ -182,9 +251,8 @@ func New(runtimePath, root, sandboxDir, containerDir, conmonPath, pausePath stri
 	s.ctrIDIndex = truncindex.NewTruncIndex([]string{})
 	s.ctrNameIndex = registrar.NewRegistrar()
 
-	if err := s.restore(); err != nil {
-		logrus.Warnf("couldn't restore: %v", err)
-	}
+	s.restore()
+
 	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
 	logrus.Debugf("containers: %v", s.state.containers)
 	return s, nil

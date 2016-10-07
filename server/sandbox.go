@@ -173,6 +173,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
+		g.SetProcessSelinuxLabel(processLabel)
 	}
 
 	containerID, containerName, err := s.generateContainerIDandName(name, "infra", 0)
@@ -353,6 +354,10 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 		s.releaseContainerName(c.Name())
 		s.removeContainer(c)
+	}
+
+	if err := label.UnreserveLabel(sb.processLabel); err != nil {
+		return nil, err
 	}
 
 	// Remove the files related to the sandbox
