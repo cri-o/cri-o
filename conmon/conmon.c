@@ -60,13 +60,20 @@ static void tty_restore(void)
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
 
+static bool terminal = false;
+static char *cid = NULL;
+static char *runtime_path = NULL;
+static GOptionEntry entries[] =
+{
+  { "terminal", 't', 0, G_OPTION_ARG_NONE, &terminal, "Terminal", NULL },
+  { "cid", 'c', 0, G_OPTION_ARG_STRING, &cid, "Container ID", NULL },
+  { "runtime", 'r', 0, G_OPTION_ARG_STRING, &runtime_path, "Runtime path", NULL },
+  { NULL }
+};
+
 int main(int argc, char *argv[])
 {
 	int ret;
-	int opt;
-	bool terminal = false;
-	const char *cid = NULL;
-	const char *runtime_path = NULL;
 	char cmd[CMD_SIZE];
 	GError *err = NULL;
 	_cleanup_free_ char *contents;
@@ -84,40 +91,24 @@ int main(int argc, char *argv[])
 	int child_pipe = -1;
 	char *sync_pipe, *endptr;
 	int len;
+	GError *error = NULL;
+	GOptionContext *context;
 
-	while ((opt = getopt(argc, argv, "tc:r:")) != -1) {
-		switch (opt) {
-		case 't':
-			terminal = true;
-			break;
-		case 'c':
-			cid = optarg;
-			break;
-		case 'r':
-			runtime_path = optarg;
-			break;
-		case '?':
-			if (optopt == 'c' || optopt == 'r')
-				nexit("Option -%c requires an argument.",
-				      optopt);
-			else if (isprint(optopt))
-				nexit("Unknown option `-%c'.", optopt);
-			else
-				nexit("Unknown option character `\\x%x'.\n",
-				      optopt);
-		default:
-			nexit
-			    ("Usage: %s -r runtime_path [-c container_id] [-t]",
-			     argv[0]);
-		}
+	/* Command line parameters */
+	context = g_option_context_new ("- conmon utility");
+	g_option_context_add_main_entries (context, entries, "conmon");
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+	        g_print ("option parsing failed: %s\n", error->message);
+	        exit (1);
 	}
 
 	if (cid == NULL)
-		nexit("Container ID not provided");
+		nexit("Container ID not provided. Use --cid");
 
 	if (runtime_path == NULL)
-		nexit("Runtime path not provided");
+		nexit("Runtime path not provided. Use --runtime");
 
+	/* Environment variables */
 	sync_pipe = getenv("_OCI_SYNCPIPE");
 	if (sync_pipe) {
 		errno = 0;
