@@ -149,12 +149,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.SetHostname(hostname)
 	}
 
-	// set log directory
-	logDir := req.GetConfig().LogDirectory
-	if logDir == "" {
-		logDir = filepath.Join(s.config.LogDir, id)
-	}
-
 	// set DNS options
 	if req.GetConfig().GetDnsConfig() != nil {
 		dnsServers := req.GetConfig().GetDnsConfig().Servers
@@ -192,6 +186,19 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	annotationsJSON, err := json.Marshal(annotations)
 	if err != nil {
 		return nil, err
+	}
+
+	// set log directory
+	logDir := req.GetConfig().LogDirectory
+	if logDir == "" {
+		logDir = filepath.Join(s.config.LogDir, id)
+	}
+	if err = os.MkdirAll(logDir, 0700); err != nil {
+		return nil, err
+	}
+	// This should always be absolute from k8s.
+	if !filepath.IsAbs(logDir) {
+		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", id, logDir)
 	}
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace,
@@ -245,12 +252,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	privileged := s.privilegedSandbox(req)
+	// set log path inside log directory
+	logPath := filepath.Join(logDir, id+".log")
 
+	privileged := s.privilegedSandbox(req)
 	g.AddAnnotation("ocid/metadata", string(metadataJSON))
 	g.AddAnnotation("ocid/labels", string(labelsJSON))
 	g.AddAnnotation("ocid/annotations", string(annotationsJSON))
-	g.AddAnnotation("ocid/log_path", logDir)
+	g.AddAnnotation("ocid/log_path", logPath)
 	g.AddAnnotation("ocid/name", name)
 	g.AddAnnotation("ocid/container_type", containerTypeSandbox)
 	g.AddAnnotation("ocid/sandbox_id", id)
@@ -379,7 +388,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logDir, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged)
 	if err != nil {
 		return nil, err
 	}

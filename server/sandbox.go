@@ -121,7 +121,6 @@ func hostNetNsPath() (string, error) {
 	}
 
 	defer netNS.Close()
-
 	return netNS.Path(), nil
 }
 

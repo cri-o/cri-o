@@ -332,6 +332,22 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	logPath := containerConfig.LogPath
+	if logPath == "" {
+		// TODO: Should we use sandboxConfig.GetLogDirectory() here?
+		logPath = filepath.Join(sb.logDir, containerID+".log")
+	}
+	if !filepath.IsAbs(logPath) {
+		// XXX: It's not really clear what this should be versus the sbox logDirectory.
+		logrus.Warnf("requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
+		logPath = filepath.Join(sb.logDir, logPath)
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"sbox.logdir": sb.logDir,
+		"ctr.logfile": containerConfig.LogPath,
+		"log_path":    logPath,
+	}).Debugf("setting container's log_path")
+
 	specgen.SetProcessTerminal(containerConfig.Tty)
 
 	linux := containerConfig.GetLinux()

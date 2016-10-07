@@ -2,36 +2,46 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/epoll.h>
 #include <sys/prctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <syslog.h>
-#include <termios.h>
 #include <unistd.h>
 
 #include <glib.h>
 
+#include "cmsg.h"
+
 #define pexit(fmt, ...)                                                          \
 	do {                                                                     \
-		fprintf(stderr, "conmon: " fmt " %m\n", ##__VA_ARGS__);          \
+		fprintf(stderr, "[conmon:e]: " fmt " %m\n", ##__VA_ARGS__);      \
 		syslog(LOG_ERR, "conmon <error>: " fmt ": %m\n", ##__VA_ARGS__); \
 		exit(EXIT_FAILURE);                                              \
 	} while (0)
 
 #define nexit(fmt, ...)                                                       \
 	do {                                                                  \
-		fprintf(stderr, "conmon: " fmt "\n", ##__VA_ARGS__);          \
+		fprintf(stderr, "[conmon:e]: " fmt "\n", ##__VA_ARGS__);      \
 		syslog(LOG_ERR, "conmon <error>: " fmt " \n", ##__VA_ARGS__); \
 		exit(EXIT_FAILURE);                                           \
 	} while (0)
 
 #define nwarn(fmt, ...)                                                        \
 	do {                                                                   \
-		fprintf(stderr, "conmon: " fmt "\n", ##__VA_ARGS__);           \
+		fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__);       \
+	} while (0)
+
+#define ninfo(fmt, ...)                                                        \
+	do {                                                                   \
+		fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__);       \
 	} while (0)
 
 #define _cleanup_(x) __attribute__((cleanup(x)))
@@ -58,14 +68,6 @@ static inline void gstring_free_cleanup(GString **string)
 #define _cleanup_close_ _cleanup_(closep)
 #define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
 
-struct termios tty_orig;
-
-static void tty_restore(void)
-{
-	if (tcsetattr(STDIN_FILENO, TCSANOW, &tty_orig) == -1)
-		pexit("tcsetattr");
-}
-
 #define BUF_SIZE 256
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
@@ -77,6 +79,7 @@ static char *bundle_path = NULL;
 static char *pid_file = NULL;
 static bool systemd_cgroup = false;
 static bool exec = false;
+static char *log_path = NULL;
 static GOptionEntry entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &terminal, "Terminal", NULL },
@@ -86,6 +89,7 @@ static GOptionEntry entries[] =
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &pid_file, "PID file", NULL },
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &systemd_cgroup, "Enable systemd cgroup manager", NULL },
   { "exec", 'e', 0, G_OPTION_ARG_NONE, &exec, "Exec a command in a running container", NULL },
+  { "log-path", 'l', 0, G_OPTION_ARG_STRING, &log_path, "Log file path", NULL },
   { NULL }
 };
 
@@ -98,13 +102,15 @@ int main(int argc, char *argv[])
 	_cleanup_free_ char *contents;
 	int cpid = -1;
 	int status;
-	pid_t pid;
+	pid_t pid, create_pid;
+	_cleanup_close_ int logfd = -1;
 	_cleanup_close_ int mfd = -1;
 	_cleanup_close_ int epfd = -1;
-	char slname[BUF_SIZE];
+	_cleanup_close_ int csfd = -1;
+	int runtime_mfd = -1;
+	char csname[PATH_MAX] = "/tmp/conmon-term.XXXXXXXX";
 	char buf[BUF_SIZE];
 	int num_read;
-	struct termios t;
 	struct epoll_event ev;
 	struct epoll_event evlist[MAX_EVENTS];
 	int sync_pipe_fd = -1;
@@ -115,11 +121,11 @@ int main(int argc, char *argv[])
 	_cleanup_gstring_ GString *cmd = NULL;
 
 	/* Command line parameters */
-	context = g_option_context_new ("- conmon utility");
-	g_option_context_add_main_entries (context, entries, "conmon");
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
-	        g_print ("option parsing failed: %s\n", error->message);
-	        exit (1);
+	context = g_option_context_new("- conmon utility");
+	g_option_context_add_main_entries(context, entries, "conmon");
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+	        g_print("option parsing failed: %s\n", error->message);
+	        exit(1);
 	}
 
 	if (cid == NULL)
@@ -132,7 +138,6 @@ int main(int argc, char *argv[])
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
 			nexit("Failed to get working directory");
 		}
-
 		bundle_path = cwd;
 	}
 
@@ -141,9 +146,11 @@ int main(int argc, char *argv[])
 			     "%s/pidfile-%s", cwd, cid) < 0) {
 			nexit("Failed to generate the pidfile path");
 		}
-
 		pid_file = default_pid_file;
 	}
+
+	if (log_path == NULL)
+		nexit("Log file path not provided. Use --log-path");
 
 	/* Environment variables */
 	sync_pipe = getenv("_OCI_SYNCPIPE");
@@ -153,6 +160,11 @@ int main(int argc, char *argv[])
 		if (errno != 0 || *endptr != '\0')
 			pexit("unable to parse _OCI_SYNCPIPE");
 	}
+
+	/* Open the log path file. */
+	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT);
+	if (logfd < 0)
+		pexit("Failed to open log file");
 
 	/*
 	 * Set self as subreaper so we can wait for container process
@@ -164,163 +176,247 @@ int main(int argc, char *argv[])
 	}
 
 	if (terminal) {
-		/* Open the master pty */
-		mfd = open("/dev/ptmx", O_RDWR | O_NOCTTY);
-		if (mfd < 0)
-			pexit("Failed to open console master pty");
+		struct sockaddr_un addr = {0};
 
-		/* Grant access to the slave pty */
-		if (grantpt(mfd) == -1)
-			pexit("Failed to grant access to slave pty");
+		/*
+		 * Generate a temporary name. Is this unsafe? Probably, but we can
+		 * replace it with a rename(2) setup if necessary.
+		 */
 
-		/* Unlock the slave pty */
-		if (unlockpt(mfd) == -1) {	/* Unlock slave pty */
-			pexit("Failed to unlock the slave pty");
-		}
+		int unusedfd = g_mkstemp(csname);
+		if (unusedfd < 0)
+			pexit("Failed to generate random path for console-socket");
+		close(unusedfd);
 
-		/* Get the slave pty name */
-		ret = ptsname_r(mfd, slname, BUF_SIZE);
-		if (ret != 0) {
-			pexit("Failed to get the slave pty name");
-		}
+		addr.sun_family = AF_UNIX;
+		strncpy(addr.sun_path, csname, sizeof(addr.sun_path)-1);
 
+		ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", addr.sun_path);
+
+		/* Bind to the console socket path. */
+		csfd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
+		if (csfd < 0)
+			pexit("Failed to create console-socket");
+		/* XXX: This should be handled with a rename(2). */
+		if (unlink(csname) < 0)
+			pexit("Failed to unlink temporary ranom path");
+		if (bind(csfd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+			pexit("Failed to bind to console-socket");
+		if (listen(csfd, 128) < 0)
+			pexit("Failed to listen on console-socket");
+	} else {
+		int fds[2];
+
+		/*
+		 * Create a "fake" master fd so that we can use the same epoll code in
+		 * both cases. The runtime_mfd will be closed after we dup over
+		 * everything.
+		 *
+		 * TODO: Maybe this should be done with pipe(2)s?
+		 */
+		if (socketpair(AF_LOCAL, SOCK_STREAM, 0, fds) < 0)
+			pexit("Failed to create runtime_mfd socketpair");
+
+		mfd = fds[0];
+		runtime_mfd = fds[1];
 	}
 
 	cmd = g_string_new(runtime_path);
-	if (!exec) {
-		/* Create the container */
-		if (systemd_cgroup) {
-			g_string_append_printf(cmd, " --systemd-cgroup");
-		}
-		g_string_append_printf(cmd, " create %s --bundle %s --pid-file %s",
-				       cid, bundle_path, pid_file);
-		if (terminal) {
-			g_string_append_printf(cmd, " --console %s", slname);
-		}
-	} else {
+
+	/* Generate the cmdline. */
+	if (exec && systemd_cgroup)
+		g_string_append_printf(cmd, " --systemd-cgroup");
+
+	if (exec)
+		g_string_append_printf(cmd, " exec -d --pid-file %s", pid_file);
+	else
+		g_string_append_printf(cmd, " create --bundle %s --pid-file %s", bundle_path, pid_file);
+
+	if (terminal)
+		g_string_append_printf(cmd, " --console-socket %s", csname);
+
+	/* Container name comes last. */
+	g_string_append_printf(cmd, " %s", cid);
+
+	/* Set the exec arguments. */
+	if (exec) {
+		/*
+		 * FIXME: This code is broken if argv[1] contains spaces or other
+		 *        similar characters that shells don't like. It's a bit silly
+		 *        that we're doing things inside a shell at all -- this should
+		 *        all be done in arrays.
+		 */
+
 		int i;
-
-		/* Exec the command */
-		if (terminal) {
-			g_string_append_printf(cmd, " exec -d --pid-file %s --console %s %s",
-					       pid_file, slname, cid);
-		} else {
-			g_string_append_printf(cmd, " exec -d --pid-file %s %s",
-					       pid_file, cid);
-		}
-
-		for (i = 1; i < argc; i++) {
+		for (i = 1; i < argc; i++)
 			g_string_append_printf(cmd, " %s", argv[i]);
-		}
 	}
 
-	runtime_status = system(cmd->str);
-	if (runtime_status != 0) {
-		nexit("Failed to create container");
+	/*
+	 * We have to fork here because the current runC API dups the stdio of the
+	 * calling process over the container's fds. This is actually *very bad*
+	 * but is currently being discussed for change in
+	 * https://github.com/opencontainers/runtime-spec/pull/513. Hopefully this
+	 * won't be the case for very long.
+	 */
+
+	/* Create our container. */
+	create_pid = fork();
+	if (create_pid < 0) {
+		pexit("Failed to fork the create command");
+	} else if (!create_pid) {
+		char *argv[] = {"sh", "-c", cmd->str, NULL};
+
+		/* We only need to touch the stdio if we have terminal=false. */
+		/* FIXME: This results in us not outputting runc error messages to ocid's log. */
+		if (runtime_mfd >= 0) {
+			if (dup2(runtime_mfd, STDIN_FILENO) < 0)
+				pexit("Failed to dup over stdin");
+			if (dup2(runtime_mfd, STDOUT_FILENO) < 0)
+				pexit("Failed to dup over stdout");
+			if (dup2(runtime_mfd, STDERR_FILENO) < 0)
+				pexit("Failed to dup over stderr");
+		}
+
+		/* Exec into the process. TODO: Don't use the shell. */
+		execv("/bin/sh", argv);
+		exit(127);
 	}
+
+	/* The runtime has that fd now. We don't need to touch it anymore. */
+	close(runtime_mfd);
+
+	/* Get the console fd. */
+	/*
+	 * FIXME: If runc fails to start a container, we won't bail because we're
+	 *        busy waiting for requests. The solution probably involves
+	 *        epoll(2) and a signalfd(2). This causes a lot of issues.
+	 */
+	if (terminal) {
+		struct file_t console;
+		int connfd = -1;
+
+		ninfo("about to accept from csfd: %d", csfd);
+		connfd = accept4(csfd, NULL, NULL, SOCK_CLOEXEC);
+		if (connfd < 0)
+			pexit("Failed to accept console-socket connection");
+
+		/* Not accepting anything else. */
+		close(csfd);
+		unlink(csname);
+
+		/* We exit if this fails. */
+		ninfo("about to recvfd from connfd: %d", connfd);
+		console = recvfd(connfd);
+
+		ninfo("console = {.name = '%s'; .fd = %d}", console.name, console.fd);
+		free(console.name);
+
+		mfd = console.fd;
+
+		/* Clean up everything */
+		close(connfd);
+	}
+
+	ninfo("about to waitpid: %d", create_pid);
+
+	/* Wait for our create child to exit with the return code. */
+	if (waitpid(create_pid, &runtime_status, 0) < 0) {
+		int old_errno = errno;
+		kill(create_pid, SIGKILL);
+		errno = old_errno;
+		pexit("Failed to wait for `runtime %s`", exec ? "exec" : "create");
+	}
+	if (!WIFEXITED(runtime_status) || WEXITSTATUS(runtime_status) != 0)
+		nexit("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
 
 	/* Read the pid so we can wait for the process to exit */
 	g_file_get_contents(pid_file, &contents, NULL, &err);
 	if (err) {
-		fprintf(stderr, "Failed to read pidfile: %s\n", err->message);
+		nwarn("Failed to read pidfile: %s", err->message);
 		g_error_free(err);
 		exit(1);
 	}
 
 	cpid = atoi(contents);
-	printf("container PID: %d\n", cpid);
+	ninfo("container PID: %d", cpid);
 
 	/* Send the container pid back to parent */
-	if (sync_pipe_fd > 0  && !exec) {
+	if (sync_pipe_fd > 0 && !exec) {
 		len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", cpid);
 		if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
 			pexit("unable to send container pid to parent");
 		}
 	}
 
-	if (terminal) {
-		/* Save exiting termios settings */
-		if (tcgetattr(STDIN_FILENO, &tty_orig) == -1)
-			pexit("tcegetattr");
-
-		/* Settings for raw mode */
-		t.c_lflag &=
-		    ~(ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHONL | IEXTEN);
-		t.c_iflag &=
-		    ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR | INPCK | ISTRIP |
-		      IXON | IXOFF | IGNPAR | PARMRK);
-		t.c_oflag &= ~OPOST;
-		t.c_cc[VMIN] = 1;
-		t.c_cc[VTIME] = 0;
-
-		/* Set terminal to raw mode */
-		if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &t) == -1)
-			pexit("tcsetattr");
-
-		/* Setup terminal restore on exit */
-		if (atexit(tty_restore) != 0)
-			pexit("atexit");
-
-		epfd = epoll_create(5);
-		if (epfd < 0)
-			pexit("epoll_create");
-		ev.events = EPOLLIN;
-		ev.data.fd = STDIN_FILENO;
-		if (epoll_ctl(epfd, EPOLL_CTL_ADD, STDIN_FILENO, &ev) < 0) {
-			pexit("Failed to add stdin to epoll");
-		}
-		ev.data.fd = mfd;
-		if (epoll_ctl(epfd, EPOLL_CTL_ADD, mfd, &ev) < 0) {
-			pexit("Failed to add console master fd to epoll");
-		}
-
-		/* Copy data back and forth between STDIN and master fd */
-		while (true) {
-			int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
-			int i = 0;
-			for (i = 0; i < ready; i++) {
-				if (evlist[i].events & EPOLLIN) {
-					if (evlist[i].data.fd == STDIN_FILENO) {
-						num_read =
-						    read(STDIN_FILENO, buf,
-							 BUF_SIZE);
-						if (num_read <= 0)
-							goto out;
-
-						if (write(mfd, buf, num_read) !=
-						    num_read) {
-							nwarn
-							    ("partial/failed write (masterFd)");
-							goto out;
-						}
-					} else if (evlist[i].data.fd == mfd) {
-						num_read =
-						    read(mfd, buf, BUF_SIZE);
-						if (num_read <= 0)
-							goto out;
-
-						if (write
-						    (STDOUT_FILENO, buf,
-						     num_read) != num_read) {
-							nwarn
-							    ("partial/failed write (STDOUT_FILENO)");
-							goto out;
-						}
-					}
-				} else if (evlist[i].events &
-					   (EPOLLHUP | EPOLLERR)) {
-					printf("closing fd %d\n",
-					       evlist[i].data.fd);
-					if (close(evlist[i].data.fd) < 0)
-						pexit("close");
-					goto out;
-				}
-			}
-		}
- out:
-		tty_restore();
+	/* Create epoll_ctl so that we can handle read/write events. */
+	/*
+	 * TODO: Switch to libuv so that we can also implement exec as well as
+	 *       attach and other important things. Using epoll directly is just
+	 *       really nasty.
+	 */
+	epfd = epoll_create(5);
+	if (epfd < 0)
+		pexit("epoll_create");
+	ev.events = EPOLLIN;
+	/*
+	ev.data.fd = STDIN_FILENO;
+	if (epoll_ctl(epfd, EPOLL_CTL_ADD, STDIN_FILENO, &ev) < 0) {
+		pexit("Failed to add stdin to epoll");
+	}
+	*/
+	ev.data.fd = mfd;
+	if (epoll_ctl(epfd, EPOLL_CTL_ADD, mfd, &ev) < 0) {
+		pexit("Failed to add console master fd to epoll");
 	}
 
+	/*
+	 * Log all of the container's output and pipe STDIN into it. Currently
+	 * nothing using the STDIN setup (which makes its inclusion here a bit
+	 * questionable but we need to rewrite this code soon anyway TODO).
+	 */
+	while (true) {
+		int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
+		int i = 0;
+		for (i = 0; i < ready; i++) {
+			if (evlist[i].events & EPOLLIN) {
+				if (evlist[i].data.fd == STDIN_FILENO) {
+					/*
+					 * TODO: We need to replace STDIN_FILENO with something
+					 *       more sophisticated so that attach actually works
+					 *       properly.
+					 */
+					num_read = read(STDIN_FILENO, buf, BUF_SIZE);
+					if (num_read <= 0)
+						goto out;
+
+					if (write(mfd, buf, num_read) != num_read) {
+						nwarn("partial/failed write (masterFd)");
+						goto out;
+					}
+				} else if (evlist[i].data.fd == mfd) {
+					num_read = read(mfd, buf, BUF_SIZE);
+					if (num_read <= 0)
+						goto out;
+
+					ninfo("read a chunk: (fd=%d) '%s'", mfd, buf);
+
+					/* Log all output to logfd. */
+					if (write(logfd, buf, num_read) != num_read) {
+						nwarn("partial/failed write (logFd)");
+						goto out;
+					}
+				}
+			} else if (evlist[i].events & (EPOLLHUP | EPOLLERR)) {
+				printf("closing fd %d\n", evlist[i].data.fd);
+				if (close(evlist[i].data.fd) < 0)
+					pexit("close");
+				goto out;
+			}
+		}
+	}
+
+out:
 	/* Wait for the container process and record its exit code */
 	while ((pid = waitpid(-1, &status, 0)) > 0) {
 		int exit_status = WEXITSTATUS(status);
