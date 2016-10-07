@@ -166,9 +166,12 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	processLabel, mountLabel, err = getSELinuxLabels(nil)
-	if err != nil {
-		return nil, err
+	// Don't use SELinux separation with Host Pid or IPC Namespace,
+	if !req.GetConfig().GetLinux().GetNamespaceOptions().GetHostPid() && !req.GetConfig().GetLinux().GetNamespaceOptions().GetHostIpc() {
+		processLabel, mountLabel, err = getSELinuxLabels(nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	containerID, containerName, err := s.generateContainerIDandName(name, "infra", 0)
