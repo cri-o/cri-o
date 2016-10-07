@@ -32,15 +32,6 @@
 			"value": "92d6d93ef2efc91e595c8bf578bf72baff397507"
 		}
 	],
-	"mounts": [
-		{
-			"name": "redis_data",
-			"container_path": "/data",
-			"host_path": "/test/redis-data",
-			"readonly": false,
-			"selinux_relabel": true
-		}
-	],
 	"labels": {
 		"tier": "backend"
 	},
