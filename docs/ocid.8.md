@@ -6,16 +6,18 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 
 # SYNOPSIS
 **ocid**
-[**--root**=[*value*]]
 [**--conmon**=[*value*]]
-[**--sandboxdir**=[*value*]]
 [**--containerdir**=[*value*]]
-[**--socket**=[*value*]]
-[**--runtime**=[*value*]]
 [**--debug**]
+[**--help**|**-h**]
 [**--log**=[*value*]]
 [**--log-format value**]
-[**--help**|**-h**]
+[**--pause**=[*value*]]
+[**--root**=[*value*]]
+[**--runtime**=[*value*]]
+[**--sandboxdir**=[*value*]]
+[**--selinux-enabled**]
+[**--socket**=[*value*]]
 [**--version**|**-v**]
 
 # DESCRIPTION
@@ -34,26 +36,17 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 
 # OPTIONS
 
-**--root**=""
-  OCID root dir (default: "/var/lib/ocid")
-
-**--sandboxdir**=""
-  OCID pod sandbox dir (default: "/var/lib/ocid/sandboxes")
-
 **--conmon**=""
   path to the conmon executable (default: "/usr/libexec/ocid/conmon")
 
 **--containerdir**=""
   OCID container dir (default: "/var/lib/ocid/containers")
 
-**--socket**=""
-  Path to ocid socket (default: "/var/run/ocid.sock")
-
-**--runtime**=""
-  OCI runtime path (default: "/usr/bin/runc")
-
 **--debug**
   Enable debug output for logging
+
+**--help, -h**
+  Print usage statement
 
 **--log**=""
   Set the log file path where internal debug information is written
@@ -61,8 +54,23 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 **--log-format**=""
   Set the format used by logs ('text' (default), or 'json') (default: "text")
 
-**--help, -h**
-  Print usage statement
+**--pause**=""
+  Path to the pause executable (default: "/usr/libexec/ocid/pause")
+
+**--root**=""
+  OCID root dir (default: "/var/lib/ocid")
+
+**--runtime**=""
+  OCI runtime path (default: "/usr/bin/runc")
+
+**--sandboxdir**=""
+  OCID pod sandbox dir (default: "/var/lib/ocid/sandboxes")
+
+**--selinux-enabled**
+  Enable selinux support
+
+**--socket**=""
+  Path to ocid socket (default: "/var/run/ocid.sock")
 
 **--version, -v**
   Print the version
