@@ -17,15 +17,6 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
-const (
-	// ContainerStateCreated represents the created state of a container
-	ContainerStateCreated = "created"
-	// ContainerStateRunning represents the running state of a container
-	ContainerStateRunning = "running"
-	// ContainerStateStopped represents the stopped state of a container
-	ContainerStateStopped = "stopped"
-)
-
 func (s *Server) generateContainerIDandName(podName string, name string, attempt uint32) (string, string, error) {
 	var (
 		err error
@@ -383,7 +374,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 	}
 
 	cState := s.runtime.ContainerStatus(c)
-	if cState.Status == ContainerStateCreated || cState.Status == ContainerStateRunning {
+	if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
 		if err := s.runtime.StopContainer(c); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 		}
@@ -428,11 +419,11 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		}
 
 		switch cState.Status {
-		case ContainerStateCreated:
+		case oci.ContainerStateCreated:
 			rState = pb.ContainerState_CREATED
-		case ContainerStateRunning:
+		case oci.ContainerStateRunning:
 			rState = pb.ContainerState_RUNNING
-		case ContainerStateStopped:
+		case oci.ContainerStateStopped:
 			rState = pb.ContainerState_EXITED
 		}
 		c.State = &rState
@@ -467,17 +458,17 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	rStatus := pb.ContainerState_UNKNOWN
 
 	switch cState.Status {
-	case ContainerStateCreated:
+	case oci.ContainerStateCreated:
 		rStatus = pb.ContainerState_CREATED
 		created := cState.Created.Unix()
 		csr.Status.CreatedAt = int64Ptr(created)
-	case ContainerStateRunning:
+	case oci.ContainerStateRunning:
 		rStatus = pb.ContainerState_RUNNING
 		created := cState.Created.Unix()
 		csr.Status.CreatedAt = int64Ptr(created)
 		started := cState.Started.Unix()
 		csr.Status.StartedAt = int64Ptr(started)
-	case ContainerStateStopped:
+	case oci.ContainerStateStopped:
 		rStatus = pb.ContainerState_EXITED
 		created := cState.Created.Unix()
 		csr.Status.CreatedAt = int64Ptr(created)

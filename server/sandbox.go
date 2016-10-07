@@ -286,7 +286,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			}
 		}
 		cStatus := s.runtime.ContainerStatus(c)
-		if cStatus.Status != "stopped" {
+		if cStatus.Status != oci.ContainerStateStopped {
 			if err := s.runtime.StopContainer(c); err != nil {
 				return nil, fmt.Errorf("failed to stop container %s in sandbox %s: %v", c.Name(), sandboxID, err)
 			}
@@ -324,7 +324,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 
 		cState := s.runtime.ContainerStatus(c)
-		if cState.Status == ContainerStateCreated || cState.Status == ContainerStateRunning {
+		if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
 			if err := s.runtime.StopContainer(c); err != nil {
 				return nil, fmt.Errorf("failed to stop container %s: %v", c.Name(), err)
 			}
@@ -400,7 +400,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	rStatus := pb.PodSandBoxState_NOTREADY
-	if cState.Status == ContainerStateRunning {
+	if cState.Status == oci.ContainerStateRunning {
 		rStatus = pb.PodSandBoxState_READY
 	}
 
@@ -436,7 +436,7 @@ func (s *Server) ListPodSandbox(context.Context, *pb.ListPodSandboxRequest) (*pb
 		cState := s.runtime.ContainerStatus(podInfraContainer)
 		created := cState.Created.Unix()
 		rStatus := pb.PodSandBoxState_NOTREADY
-		if cState.Status == ContainerStateRunning {
+		if cState.Status == oci.ContainerStateRunning {
 			rStatus = pb.PodSandBoxState_READY
 		}
 

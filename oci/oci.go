@@ -20,6 +20,15 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const (
+	// ContainerStateCreated represents the created state of a container
+	ContainerStateCreated = "created"
+	// ContainerStateRunning represents the running state of a container
+	ContainerStateRunning = "running"
+	// ContainerStateStopped represents the stopped state of a container
+	ContainerStateStopped = "stopped"
+)
+
 // New creates a new Runtime with options provided
 func New(runtimePath string, containerDir string, conmonPath string) (*Runtime, error) {
 	r := &Runtime{
@@ -176,7 +185,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 		return fmt.Errorf("failed to decode container status for %s: %s", c.name, err)
 	}
 
-	if c.state.Status == "stopped" {
+	if c.state.Status == ContainerStateStopped {
 		exitFilePath := filepath.Join(c.bundlePath, "exit")
 		fi, err := os.Stat(exitFilePath)
 		if err != nil {
