@@ -35,6 +35,11 @@ var createContainerCommand = cli.Command{
 			Value: "config.json",
 			Usage: "the path of a container config file",
 		},
+		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "the name of the container",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -49,7 +54,7 @@ var createContainerCommand = cli.Command{
 			return fmt.Errorf("Please specify the id of the pod sandbox to which the container belongs via the --pod option")
 		}
 		// Test RuntimeServiceClient.CreateContainer
-		err = CreateContainer(client, context.String("pod"), context.String("config"))
+		err = CreateContainer(client, context.String("pod"), context.String("config"), context.String("name"))
 		if err != nil {
 			return fmt.Errorf("Creating container failed: %v", err)
 		}
@@ -187,10 +192,15 @@ var listContainersCommand = cli.Command{
 
 // CreateContainer sends a CreateContainerRequest to the server, and parses
 // the returned CreateContainerResponse.
-func CreateContainer(client pb.RuntimeServiceClient, sandbox string, path string) error {
+func CreateContainer(client pb.RuntimeServiceClient, sandbox string, path string, name string) error {
 	config, err := loadContainerConfig(path)
 	if err != nil {
 		return err
+	}
+
+	// Override the name by the one specified through CLI
+	if name != "" {
+		config.Metadata.Name = &name
 	}
 
 	r, err := client.CreateContainer(context.Background(), &pb.CreateContainerRequest{
