@@ -173,6 +173,12 @@ var containerStatusCommand = cli.Command{
 var listContainersCommand = cli.Command{
 	Name:  "list",
 	Usage: "list containers",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "quiet",
+			Usage: "list only container IDs",
+		},
+	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
 		conn, err := getClientConnection(context)
@@ -182,7 +188,7 @@ var listContainersCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
-		err = ListContainers(client)
+		err = ListContainers(client, context.Bool("quiet"))
 		if err != nil {
 			return fmt.Errorf("listing containers failed: %v", err)
 		}
@@ -298,12 +304,16 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 
 // ListContainers sends a ListContainerRequest to the server, and parses
 // the returned ListContainerResponse.
-func ListContainers(client pb.RuntimeServiceClient) error {
+func ListContainers(client pb.RuntimeServiceClient, quiet bool) error {
 	r, err := client.ListContainers(context.Background(), &pb.ListContainersRequest{})
 	if err != nil {
 		return err
 	}
 	for _, c := range r.GetContainers() {
+		if quiet {
+			fmt.Println(*c.Id)
+			continue
+		}
 		fmt.Printf("ID: %s\n", *c.Id)
 		fmt.Printf("Pod: %s\n", *c.PodSandboxId)
 		if c.State != nil {
