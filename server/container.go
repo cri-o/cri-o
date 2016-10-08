@@ -422,9 +422,10 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		cState := s.runtime.ContainerStatus(ctr)
 		created := cState.Created.Unix()
 		rState := pb.ContainerState_UNKNOWN
+		cID := ctr.ID()
 
 		c := &pb.Container{
-			Id:           &cState.ID,
+			Id:           &cID,
 			PodSandboxId: &podSandboxID,
 			CreatedAt:    int64Ptr(created),
 		}
