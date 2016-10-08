@@ -76,6 +76,19 @@ function start_ocid() {
 	wait_until_reachable
 }
 
+function cleanup_ctrs() {
+	run ocic ctr list --quiet
+	if [ "$status" -eq 0 ]; then
+		if [ "$output" != "" ]; then
+			printf '%s\n' "$output" | while IFS= read -r line
+			do
+			   ocic ctr stop --id "$line"
+			   ocic ctr remove --id "$line"
+			done
+		fi
+	fi
+}
+
 function cleanup_pods() {
 	run ocic pod list --quiet
 	if [ "$status" -eq 0 ]; then
@@ -92,7 +105,7 @@ function cleanup_pods() {
 # Stop ocid.
 function stop_ocid() {
 	if [ "$OCID_PID" != "" ]; then
-		kill -9 "$OCID_PID" >/dev/null 2>&1
+		kill "$OCID_PID" >/dev/null 2>&1
 	fi
 }
 

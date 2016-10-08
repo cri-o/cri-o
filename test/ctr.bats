@@ -33,6 +33,7 @@ function teardown() {
 	run ocic pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	cleanup_ctrs
 	cleanup_pods
 	stop_ocid
 }
@@ -103,6 +104,7 @@ function teardown() {
 	run ocic ctr list
 	echo "$output"
 	[ "$status" -eq 0 ]
+	cleanup_ctrs
 	cleanup_pods
 	stop_ocid
 }
