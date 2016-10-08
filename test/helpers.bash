@@ -77,21 +77,22 @@ function start_ocid() {
 }
 
 function cleanup_pods() {
-	run ocic pod list
+	run ocic pod list --quiet
 	if [ "$status" -eq 0 ]; then
-		printf '%s\n' "$output" | while IFS= read -r line
-		do
-		   pod=$(echo "$line" | sed -e 's/ID: //g')
-		   ocic pod stop --id "$pod"
-		   ocic pod remove --id "$pod"
-		done
+		if [ "$output" != "" ]; then
+			printf '%s\n' "$output" | while IFS= read -r line
+			do
+			   ocic pod stop --id "$line"
+			   ocic pod remove --id "$line"
+			done
+		fi
 	fi
 }
 
 # Stop ocid.
 function stop_ocid() {
 	if [ "$OCID_PID" != "" ]; then
-		kill "$OCID_PID" >/dev/null 2>&1
+		kill -9 "$OCID_PID" >/dev/null 2>&1
 	fi
 }
 
