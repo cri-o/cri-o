@@ -142,7 +142,7 @@ func (s *Server) loadSandbox(id string) error {
 
 func (s *Server) restore() {
 	sandboxDir, err := ioutil.ReadDir(s.sandboxDir)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		logrus.Warnf("could not read sandbox directory %s: %v", sandboxDir, err)
 	}
 	for _, v := range sandboxDir {
@@ -154,7 +154,7 @@ func (s *Server) restore() {
 		}
 	}
 	containerDir, err := ioutil.ReadDir(s.runtime.ContainerDir())
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		logrus.Warnf("could not read container directory %s: %v", s.runtime.ContainerDir(), err)
 	}
 	for _, v := range containerDir {
