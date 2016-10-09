@@ -10,14 +10,14 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 [**--containerdir**=[*value*]]
 [**--debug**]
 [**--help**|**-h**]
+[**--listen**=[*value*]]
 [**--log**=[*value*]]
 [**--log-format value**]
 [**--pause**=[*value*]]
 [**--root**=[*value*]]
 [**--runtime**=[*value*]]
 [**--sandboxdir**=[*value*]]
-[**--selinux-enabled**]
-[**--socket**=[*value*]]
+[**--selinux**]
 [**--version**|**-v**]
 
 # DESCRIPTION
@@ -32,9 +32,11 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 	* Monitoring and logging required to satisfy the CRI
 	* Resource isolation as required by the CRI
 
-**ocid [OPTIONS]**
+**ocid [GLOBAL OPTIONS]**
 
-# OPTIONS
+**ocid [GLOBAL OPTIONS] config [OPTIONS]**
+
+# GLOBAL OPTIONS
 
 **--conmon**=""
   path to the conmon executable (default: "/usr/libexec/ocid/conmon")
@@ -47,6 +49,9 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 
 **--help, -h**
   Print usage statement
+
+**--listen**=""
+  Path to ocid socket (default: "/var/run/ocid.sock")
 
 **--log**=""
   Set the log file path where internal debug information is written
@@ -66,14 +71,27 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 **--sandboxdir**=""
   OCID pod sandbox dir (default: "/var/lib/ocid/sandboxes")
 
-**--selinux-enabled**
-  Enable selinux support
-
-**--socket**=""
-  Path to ocid socket (default: "/var/run/ocid.sock")
+**--selinux**
+  Enable selinux support (default: false)
 
 **--version, -v**
   Print the version
 
+# COMMANDS
+OCID's default command is to start the daemon. However, it currently offers a
+single additional subcommand.
+
+## config
+
+Outputs a commented version of the configuration file that would've been used
+by OCID. This allows you to save you current configuration setup and then load
+it later with **--config**. Global options will modify the output.
+
+**--default**
+  Output the default configuration (without taking into account any configuration options).
+
+# SEE ALSO
+ocid.conf(5)
+
 # HISTORY
-Sept 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
+Sept 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com> and Aleksa Sarai <asarai@suse.de>

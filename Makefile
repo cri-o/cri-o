@@ -49,7 +49,7 @@ clean:
 	rm -f ${OCID_LINK}
 	rm -f conmon/conmon.o conmon/conmon
 	rm -f pause/pause.o pause/pause
-	rm -f docs/*.1 docs/*.8
+	rm -f docs/*.1 docs/*.5 docs/*.8
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 
@@ -73,29 +73,34 @@ binaries: ${OCID_LINK} ocid ocic conmon pause
 
 MANPAGES_MD = $(wildcard docs/*.md)
 
-docs/%.1: docs/%.1.md
+docs/%.8: docs/%.8.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs/%.8: docs/%.8.md
+docs/%.5: docs/%.5.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES_MD:%.md=%)
 
-install: 
+install:
 	install -D -m 755 ocid ${INSTALLDIR}/ocid
 	install -D -m 755 ocic ${INSTALLDIR}/ocic
 	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
 	install -D -m 755 pause/pause $(PREFIX)/libexec/ocid/pause
 	install -d $(PREFIX)/share/man/man8
-	install -m 644 $(basename $(MANPAGES_MD)) $(PREFIX)/share/man/man8
+	install -m 644 $(wildcard docs/*.8.md) $(PREFIX)/share/man/man8
+	install -d $(PREFIX)/share/man/man5
+	install -m 644 $(wildcard docs/*.5.md) $(PREFIX)/share/man/man5
 
 uninstall:
 	rm -f ${INSTALLDIR}/{ocid,ocic}
 	rm -f $(PREFIX)/libexec/ocid/{conmon,pause}
-	for i in $(basename $(MANPAGES_MD)); do \
+	for i in $(wildcard docs/*.8.md); do \
 		rm -f $(PREFIX)/share/man/man8/$$(basename $${i}); \
+	done
+	for i in $(wildcard docs/*.5.md); do \
+		rm -f $(PREFIX)/share/man/man5/$$(basename $${i}); \
 	done
 
 .PHONY: .gitvalidation
