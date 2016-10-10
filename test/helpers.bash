@@ -76,15 +76,29 @@ function start_ocid() {
 	wait_until_reachable
 }
 
-function cleanup_pods() {
-	run ocic pod list
+function cleanup_ctrs() {
+	run ocic ctr list --quiet
 	if [ "$status" -eq 0 ]; then
-		printf '%s\n' "$output" | while IFS= read -r line
-		do
-		   pod=$(echo "$line" | sed -e 's/ID: //g')
-		   ocic pod stop --id "$pod"
-		   ocic pod remove --id "$pod"
-		done
+		if [ "$output" != "" ]; then
+			printf '%s\n' "$output" | while IFS= read -r line
+			do
+			   ocic ctr stop --id "$line"
+			   ocic ctr remove --id "$line"
+			done
+		fi
+	fi
+}
+
+function cleanup_pods() {
+	run ocic pod list --quiet
+	if [ "$status" -eq 0 ]; then
+		if [ "$output" != "" ]; then
+			printf '%s\n' "$output" | while IFS= read -r line
+			do
+			   ocic pod stop --id "$line"
+			   ocic pod remove --id "$line"
+			done
+		fi
 	fi
 }
 

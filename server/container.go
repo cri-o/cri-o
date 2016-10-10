@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -204,7 +205,6 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			specgen.AddAnnotation(k, v)
 		}
 	}
-
 	if containerConfig.GetPrivileged() {
 		specgen.SetupPrivileged(true)
 	}
@@ -305,7 +305,18 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		}
 	}
 
-	if err := specgen.SaveToFile(filepath.Join(containerDir, "config.json")); err != nil {
+	specgen.AddAnnotation("ocid/name", containerName)
+	specgen.AddAnnotation("ocid/sandbox_id", sb.id)
+	specgen.AddAnnotation("ocid/log_path", logPath)
+	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.GetTty()))
+	labelsJSON, err := json.Marshal(labels)
+	if err != nil {
+		return nil, err
+	}
+
+	specgen.AddAnnotation("ocid/labels", string(labelsJSON))
+
+	if err = specgen.SaveToFile(filepath.Join(containerDir, "config.json")); err != nil {
 		return nil, err
 	}
 
@@ -321,7 +332,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 	// TODO: copy the rootfs into the bundle.
 	// Currently, utils.CreateFakeRootfs is used to populate the rootfs.
-	if err := utils.CreateFakeRootfs(containerDir, image); err != nil {
+	if err = utils.CreateFakeRootfs(containerDir, image); err != nil {
 		return nil, err
 	}
 
@@ -411,9 +422,10 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		cState := s.runtime.ContainerStatus(ctr)
 		created := cState.Created.Unix()
 		rState := pb.ContainerState_UNKNOWN
+		cID := ctr.ID()
 
 		c := &pb.Container{
-			Id:           &cState.ID,
+			Id:           &cID,
 			PodSandboxId: &podSandboxID,
 			CreatedAt:    int64Ptr(created),
 		}

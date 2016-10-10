@@ -137,6 +137,12 @@ var podSandboxStatusCommand = cli.Command{
 var listPodSandboxCommand = cli.Command{
 	Name:  "list",
 	Usage: "list pod sandboxes",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "quiet",
+			Usage: "list only pod IDs",
+		},
+	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
 		conn, err := getClientConnection(context)
@@ -146,7 +152,7 @@ var listPodSandboxCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
-		err = ListPodSandboxes(client)
+		err = ListPodSandboxes(client, context.Bool("quiet"))
 		if err != nil {
 			return fmt.Errorf("listing pod sandboxes failed: %v", err)
 		}
@@ -258,12 +264,16 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 
 // ListPodSandboxes sends a ListPodSandboxRequest to the server, and parses
 // the returned ListPodSandboxResponse.
-func ListPodSandboxes(client pb.RuntimeServiceClient) error {
+func ListPodSandboxes(client pb.RuntimeServiceClient, quiet bool) error {
 	r, err := client.ListPodSandbox(context.Background(), &pb.ListPodSandboxRequest{})
 	if err != nil {
 		return err
 	}
 	for _, pod := range r.Items {
+		if quiet {
+			fmt.Println(*pod.Id)
+			continue
+		}
 		fmt.Printf("ID: %s\n", *pod.Id)
 		if pod.Metadata != nil {
 			if pod.Metadata.Name != nil {
