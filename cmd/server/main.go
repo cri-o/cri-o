@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/server"
@@ -14,35 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
-const (
-	ocidRoot      = "/var/lib/ocid"
-	conmonPath    = "/usr/libexec/ocid/conmon"
-	pausePath     = "/usr/libexec/ocid/pause"
-	ociConfigPath = "/etc/ocid.conf"
-)
-
-// DefaultConfig returns the default configuration for ocid.
-func DefaultConfig() *server.Config {
-	return &server.Config{
-		RootConfig: server.RootConfig{
-			Root:         ocidRoot,
-			SandboxDir:   filepath.Join(ocidRoot, "sandboxes"),
-			ContainerDir: filepath.Join(ocidRoot, "containers"),
-		},
-		APIConfig: server.APIConfig{
-			Listen: "/var/run/ocid.sock",
-		},
-		RuntimeConfig: server.RuntimeConfig{
-			Runtime: "/usr/bin/runc",
-			Conmon:  conmonPath,
-			SELinux: selinux.SelinuxEnabled(),
-		},
-		ImageConfig: server.ImageConfig{
-			Pause:      pausePath,
-			ImageStore: filepath.Join(ocidRoot, "store"),
-		},
-	}
-}
+const ociConfigPath = "/etc/ocid.conf"
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
@@ -148,6 +119,10 @@ func main() {
 			Value: "text",
 			Usage: "set the format used by logs ('text' (default), or 'json')",
 		},
+	}
+
+	app.Commands = []cli.Command{
+		configCommand,
 	}
 
 	app.Before = func(c *cli.Context) error {
