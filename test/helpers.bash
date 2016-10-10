@@ -36,7 +36,7 @@ function ocid() {
 
 # Run ocic using the binary specified by $OCID_BINARY.
 function ocic() {
-	"$OCIC_BINARY" --socket "$OCID_SOCKET" "$@"
+	"$OCIC_BINARY" --connect "$OCID_SOCKET" "$@"
 }
 
 # Communicate with Docker on the host machine.
@@ -72,7 +72,7 @@ function wait_until_reachable() {
 
 # Start ocid.
 function start_ocid() {
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --debug --socket "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" & OCID_PID=$!
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --debug --listen "$TESTDIR/ocid.sock" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" & OCID_PID=$!
 	wait_until_reachable
 }
 

@@ -53,7 +53,7 @@ func main() {
 			Usage: "ocid container dir",
 		},
 		cli.StringFlag{
-			Name:  "socket",
+			Name:  "listen",
 			Value: "/var/run/ocid.sock",
 			Usage: "path to ocid socket",
 		},
@@ -67,7 +67,7 @@ func main() {
 			Usage: "enable debug output for logging",
 		},
 		cli.BoolFlag{
-			Name:  "selinux-enabled",
+			Name:  "selinux",
 			Usage: "enable selinux support",
 		},
 		cli.StringFlag{
@@ -86,7 +86,7 @@ func main() {
 		if c.GlobalBool("debug") {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
-		if !c.GlobalBool("selinux-enabled") {
+		if !c.GlobalBool("selinux") {
 			selinux.SetDisabled()
 		}
 		if path := c.GlobalString("log"); path != "" {
@@ -108,11 +108,12 @@ func main() {
 		default:
 			return fmt.Errorf("unknown log-format %q", c.GlobalString("log-format"))
 		}
+
 		return nil
 	}
 
 	app.Action = func(c *cli.Context) error {
-		socketPath := c.String("socket")
+		socketPath := c.String("listen")
 		// Remove the socket if it already exists
 		if _, err := os.Stat(socketPath); err == nil {
 			if err := os.Remove(socketPath); err != nil {
