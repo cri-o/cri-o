@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	ocidRoot   = "/var/lib/ocid"
-	conmonPath = "/usr/libexec/ocid/conmon"
-	pausePath  = "/usr/libexec/ocid/pause"
+	ocidRoot      = "/var/lib/ocid"
+	conmonPath    = "/usr/libexec/ocid/conmon"
+	pausePath     = "/usr/libexec/ocid/pause"
+	ociConfigPath = "/etc/ocid.conf"
 )
 
 // DefaultConfig returns the default configuration for ocid.
@@ -44,6 +45,20 @@ func DefaultConfig() *server.Config {
 }
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
+	// Don't parse the config if the user explicitly set it to "".
+	if path := ctx.GlobalString("config"); path != "" {
+		if err := config.FromFile(path); err != nil {
+			if ctx.GlobalIsSet("config") || !os.IsNotExist(err) {
+				return err
+			}
+
+			// We don't error out if --config wasn't explicitly set and the
+			// default doesn't exist. But we will log a warning about it, so
+			// the user doesn't miss it.
+			logrus.Warnf("default configuration file does not exist: %s", ociConfigPath)
+		}
+	}
+
 	// Override options set with the CLI.
 	if ctx.GlobalIsSet("conmon") {
 		config.Conmon = ctx.GlobalString("conmon")
@@ -82,6 +97,11 @@ func main() {
 	}
 
 	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "config",
+			Value: ociConfigPath,
+			Usage: "path to configuration file",
+		},
 		cli.StringFlag{
 			Name:  "conmon",
 			Usage: "path to the conmon executable",
