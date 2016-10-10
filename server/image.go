@@ -55,10 +55,10 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		return nil, err
 	}
 
-	if err = os.Mkdir(filepath.Join(imageStore, tr.StringWithinTransport()), 0755); err != nil {
+	if err = os.Mkdir(filepath.Join(s.config.ImageStore, tr.StringWithinTransport()), 0755); err != nil {
 		return nil, err
 	}
-	dir, err := directory.NewReference(filepath.Join(imageStore, tr.StringWithinTransport()))
+	dir, err := directory.NewReference(filepath.Join(s.config.ImageStore, tr.StringWithinTransport()))
 	if err != nil {
 		return nil, err
 	}

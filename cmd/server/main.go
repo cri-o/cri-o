@@ -20,46 +20,94 @@ const (
 	pausePath  = "/usr/libexec/ocid/pause"
 )
 
+// DefaultConfig returns the default configuration for ocid.
+func DefaultConfig() *server.Config {
+	return &server.Config{
+		RootConfig: server.RootConfig{
+			Root:         ocidRoot,
+			SandboxDir:   filepath.Join(ocidRoot, "sandboxes"),
+			ContainerDir: filepath.Join(ocidRoot, "containers"),
+		},
+		APIConfig: server.APIConfig{
+			Listen: "/var/run/ocid.sock",
+		},
+		RuntimeConfig: server.RuntimeConfig{
+			Runtime: "/usr/bin/runc",
+			Conmon:  conmonPath,
+			SELinux: selinux.SelinuxEnabled(),
+		},
+		ImageConfig: server.ImageConfig{
+			Pause:      pausePath,
+			ImageStore: filepath.Join(ocidRoot, "store"),
+		},
+	}
+}
+
+func mergeConfig(config *server.Config, ctx *cli.Context) error {
+	// Override options set with the CLI.
+	if ctx.GlobalIsSet("conmon") {
+		config.Conmon = ctx.GlobalString("conmon")
+	}
+	if ctx.GlobalIsSet("pause") {
+		config.Pause = ctx.GlobalString("pause")
+	}
+	if ctx.GlobalIsSet("root") {
+		config.Root = ctx.GlobalString("root")
+	}
+	if ctx.GlobalIsSet("sandboxdir") {
+		config.SandboxDir = ctx.GlobalString("sandboxdir")
+	}
+	if ctx.GlobalIsSet("containerdir") {
+		config.ContainerDir = ctx.GlobalString("containerdir")
+	}
+	if ctx.GlobalIsSet("listen") {
+		config.Listen = ctx.GlobalString("listen")
+	}
+	if ctx.GlobalIsSet("runtime") {
+		config.Runtime = ctx.GlobalString("runtime")
+	}
+	if ctx.GlobalIsSet("selinux") {
+		config.SELinux = ctx.GlobalBool("selinux")
+	}
+	return nil
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "ocid"
 	app.Usage = "ocid server"
 	app.Version = "0.0.1"
+	app.Metadata = map[string]interface{}{
+		"config": DefaultConfig(),
+	}
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "conmon",
-			Value: conmonPath,
 			Usage: "path to the conmon executable",
 		},
 		cli.StringFlag{
 			Name:  "pause",
-			Value: pausePath,
 			Usage: "path to the pause executable",
 		},
 		cli.StringFlag{
 			Name:  "root",
-			Value: ocidRoot,
 			Usage: "ocid root dir",
 		},
 		cli.StringFlag{
 			Name:  "sandboxdir",
-			Value: filepath.Join(ocidRoot, "sandboxes"),
 			Usage: "ocid pod sandbox dir",
 		},
 		cli.StringFlag{
 			Name:  "containerdir",
-			Value: filepath.Join(ocidRoot, "containers"),
 			Usage: "ocid container dir",
 		},
 		cli.StringFlag{
 			Name:  "listen",
-			Value: "/var/run/ocid.sock",
 			Usage: "path to ocid socket",
 		},
 		cli.StringFlag{
 			Name:  "runtime",
-			Value: "/usr/bin/runc",
 			Usage: "OCI runtime path",
 		},
 		cli.BoolFlag{
@@ -83,12 +131,16 @@ func main() {
 	}
 
 	app.Before = func(c *cli.Context) error {
+		// Load the configuration file.
+		config := c.App.Metadata["config"].(*server.Config)
+		if err := mergeConfig(config, c); err != nil {
+			return err
+		}
+
 		if c.GlobalBool("debug") {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
-		if !c.GlobalBool("selinux") {
-			selinux.SetDisabled()
-		}
+
 		if path := c.GlobalString("log"); path != "" {
 			f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0666)
 			if err != nil {
@@ -96,10 +148,7 @@ func main() {
 			}
 			logrus.SetOutput(f)
 		}
-		if _, err := os.Stat(c.GlobalString("runtime")); os.IsNotExist(err) {
-			// path to runtime does not exist
-			return fmt.Errorf("invalid --runtime value %q", err)
-		}
+
 		switch c.GlobalString("log-format") {
 		case "text":
 			// retain logrus's default.
@@ -113,25 +162,31 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		socketPath := c.String("listen")
+		config := c.App.Metadata["config"].(*server.Config)
+
+		if !config.SELinux {
+			selinux.SetDisabled()
+		}
+
+		if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
+			// path to runtime does not exist
+			return fmt.Errorf("invalid --runtime value %q", err)
+		}
+
 		// Remove the socket if it already exists
-		if _, err := os.Stat(socketPath); err == nil {
-			if err := os.Remove(socketPath); err != nil {
+		if _, err := os.Stat(config.Listen); err == nil {
+			if err := os.Remove(config.Listen); err != nil {
 				logrus.Fatal(err)
 			}
 		}
-		lis, err := net.Listen("unix", socketPath)
+		lis, err := net.Listen("unix", config.Listen)
 		if err != nil {
 			logrus.Fatalf("failed to listen: %v", err)
 		}
 
 		s := grpc.NewServer()
 
-		containerDir := c.String("containerdir")
-		sandboxDir := c.String("sandboxdir")
-		conmonPath := c.String("conmon")
-		pausePath := c.String("pause")
-		service, err := server.New(c.String("runtime"), c.String("root"), sandboxDir, containerDir, conmonPath, pausePath)
+		service, err := server.New(config)
 		if err != nil {
 			logrus.Fatal(err)
 		}

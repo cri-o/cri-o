@@ -99,7 +99,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
-	podSandboxDir := filepath.Join(s.sandboxDir, id)
+	podSandboxDir := filepath.Join(s.config.SandboxDir, id)
 	if _, err = os.Stat(podSandboxDir); err == nil {
 		return nil, fmt.Errorf("pod sandbox (%s) already exists", podSandboxDir)
 	}
@@ -119,7 +119,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// creates a spec Generator with the default spec.
 	g := generate.New()
 
-	podInfraRootfs := filepath.Join(s.root, "graph/vfs/pause")
+	podInfraRootfs := filepath.Join(s.config.Root, "graph/vfs/pause")
 	// setup defaults for the pod sandbox
 	g.SetRootPath(filepath.Join(podInfraRootfs, "rootfs"))
 	g.SetRootReadonly(true)
@@ -235,7 +235,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if _, err = os.Stat(podInfraRootfs); err != nil {
 		if os.IsNotExist(err) {
 			// TODO: Replace by rootfs creation API when it is ready
-			if err = utils.CreateInfraRootfs(podInfraRootfs, s.pausePath); err != nil {
+			if err = utils.CreateInfraRootfs(podInfraRootfs, s.config.Pause); err != nil {
 				return nil, err
 			}
 		} else {
@@ -361,7 +361,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	// Remove the files related to the sandbox
-	podSandboxDir := filepath.Join(s.sandboxDir, sb.id)
+	podSandboxDir := filepath.Join(s.config.SandboxDir, sb.id)
 	if err := os.RemoveAll(podSandboxDir); err != nil {
 		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", sb.id, err)
 	}
