@@ -52,6 +52,7 @@ $ go get -d github.com/kubernetes-incubator/cri-o
 $ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
 $ make install.tools
 $ make binaries
+$ make docs
 $ sudo make install
 ```
 
