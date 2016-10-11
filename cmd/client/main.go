@@ -19,7 +19,7 @@ const (
 )
 
 func getClientConnection(context *cli.Context) (*grpc.ClientConn, error) {
-	conn, err := grpc.Dial(context.GlobalString("socket"), grpc.WithInsecure(), grpc.WithTimeout(timeout),
+	conn, err := grpc.Dial(context.GlobalString("connect"), grpc.WithInsecure(), grpc.WithTimeout(timeout),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
 			return net.DialTimeout("unix", addr, timeout)
 		}))
@@ -83,7 +83,7 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "socket",
+			Name:  "connect",
 			Value: "/var/run/ocid.sock",
 			Usage: "Socket to connect to",
 		},

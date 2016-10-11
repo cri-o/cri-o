@@ -20,15 +20,12 @@ import (
 
 const (
 	runtimeAPIVersion = "v1alpha1"
-	imageStore        = "/var/lib/ocid/images"
 )
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	root         string
+	config       Config
 	runtime      *oci.Runtime
-	sandboxDir   string
-	pausePath    string
 	stateLock    sync.Mutex
 	state        *serverState
 	netPlugin    ocicni.CNIPlugin
@@ -83,7 +80,7 @@ func (s *Server) loadContainer(id string) error {
 }
 
 func (s *Server) loadSandbox(id string) error {
-	config, err := ioutil.ReadFile(filepath.Join(s.sandboxDir, id, "config.json"))
+	config, err := ioutil.ReadFile(filepath.Join(s.config.SandboxDir, id, "config.json"))
 	if err != nil {
 		return err
 	}
@@ -114,7 +111,7 @@ func (s *Server) loadSandbox(id string) error {
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
 	})
-	sandboxPath := filepath.Join(s.sandboxDir, id)
+	sandboxPath := filepath.Join(s.config.SandboxDir, id)
 
 	if err := label.ReserveLabel(processLabel); err != nil {
 		return err
@@ -142,7 +139,7 @@ func (s *Server) loadSandbox(id string) error {
 }
 
 func (s *Server) restore() {
-	sandboxDir, err := ioutil.ReadDir(s.sandboxDir)
+	sandboxDir, err := ioutil.ReadDir(s.config.SandboxDir)
 	if err != nil && !os.IsNotExist(err) {
 		logrus.Warnf("could not read sandbox directory %s: %v", sandboxDir, err)
 	}
@@ -208,7 +205,7 @@ func (s *Server) releaseContainerName(name string) {
 }
 
 // New creates a new Server with options provided
-func New(runtimePath, root, sandboxDir, containerDir, conmonPath, pausePath string) (*Server, error) {
+func New(config *Config) (*Server, error) {
 	// TODO: This will go away later when we have wrapper process or systemd acting as
 	// subreaper.
 	if err := utils.SetSubreaper(1); err != nil {
@@ -217,15 +214,15 @@ func New(runtimePath, root, sandboxDir, containerDir, conmonPath, pausePath stri
 
 	utils.StartReaper()
 
-	if err := os.MkdirAll(imageStore, 0755); err != nil {
+	if err := os.MkdirAll(config.ImageStore, 0755); err != nil {
 		return nil, err
 	}
 
-	if err := os.MkdirAll(sandboxDir, 0755); err != nil {
+	if err := os.MkdirAll(config.SandboxDir, 0755); err != nil {
 		return nil, err
 	}
 
-	r, err := oci.New(runtimePath, containerDir, conmonPath)
+	r, err := oci.New(config.Runtime, config.ContainerDir, config.Conmon)
 	if err != nil {
 		return nil, err
 	}
@@ -236,11 +233,9 @@ func New(runtimePath, root, sandboxDir, containerDir, conmonPath, pausePath stri
 		return nil, err
 	}
 	s := &Server{
-		root:       root,
-		runtime:    r,
-		netPlugin:  netPlugin,
-		sandboxDir: sandboxDir,
-		pausePath:  pausePath,
+		runtime:   r,
+		netPlugin: netPlugin,
+		config:    *config,
 		state: &serverState{
 			sandboxes:  sandboxes,
 			containers: containers,
