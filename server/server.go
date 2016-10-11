@@ -192,10 +192,10 @@ func (s *Server) reserveContainerName(id, name string) (string, error) {
 		if err == registrar.ErrNameReserved {
 			id, err := s.ctrNameIndex.Get(name)
 			if err != nil {
-				logrus.Warnf("name %s already reserved for %s", name, id)
+				logrus.Warnf("get reserved name %s failed", name)
 				return "", err
 			}
-			return "", fmt.Errorf("conflict, name %s already reserved", name)
+			return "", fmt.Errorf("conflict, name %s already reserved for %s", name, id)
 		}
 		return "", fmt.Errorf("error reserving name %s", name)
 	}

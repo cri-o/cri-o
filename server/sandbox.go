@@ -104,17 +104,18 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("pod sandbox (%s) already exists", podSandboxDir)
 	}
 
-	if err = os.MkdirAll(podSandboxDir, 0755); err != nil {
-		return nil, err
-	}
-
 	defer func() {
 		if err != nil {
+			s.releasePodName(name)
 			if err2 := os.RemoveAll(podSandboxDir); err2 != nil {
 				logrus.Warnf("couldn't cleanup podSandboxDir %s: %v", podSandboxDir, err2)
 			}
 		}
 	}()
+
+	if err = os.MkdirAll(podSandboxDir, 0755); err != nil {
+		return nil, err
+	}
 
 	// creates a spec Generator with the default spec.
 	g := generate.New()
