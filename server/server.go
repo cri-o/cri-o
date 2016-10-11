@@ -59,6 +59,7 @@ func (s *Server) loadContainer(id string) error {
 	sb := s.getSandbox(m.Annotations["ocid/sandbox_id"])
 	if sb == nil {
 		logrus.Warnf("could not get sandbox with id %s, skipping", m.Annotations["ocid/sandbox_id"])
+		return nil
 	}
 
 	var tty bool
