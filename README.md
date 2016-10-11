@@ -52,6 +52,7 @@ $ go get -d github.com/kubernetes-incubator/cri-o
 $ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
 $ make install.tools
 $ make binaries
+$ make docs
 $ sudo make install
 ```
 
@@ -122,6 +123,23 @@ $ ocic pod create --config test/testdata/sandbox_config.json
 ```
 # ocic ctr list
 ```
+#### Recovery from errors
+Information about created pods is stored here `/var/lib/ocid/sandboxes`.
+Currently, this information can get out of sync causing errors such as:
+```
+$ ocic pod list
+FATA[0000] listing pod sandboxes failed: rpc error: code = 2 desc = error
+getting container state for default-foo-0-infra: exit status 1: []
+```
+While we are working on resolving these issues you may need to remove sandboxes
+manually:
+```
+$ cd /var/lib/ocid/sandboxes
+$ ls
+e00dea37fb97506c8de456fcd3b7d238e4176107ab84043e32319ee00ecb3e74
+$ rm -drf e00dea37fb97506c8de456fcd3b7d238e4176107ab84043e32319ee00ecb3e74
+```
+Then restart your cri-o server.  
 
 ### Current Roadmap
 
