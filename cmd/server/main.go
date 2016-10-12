@@ -188,6 +188,10 @@ func main() {
 
 		runtime.RegisterRuntimeServiceServer(s, service)
 		runtime.RegisterImageServiceServer(s, service)
+
+		// after the daemon is done setting up we can notify systemd api
+		notifySystem()
+
 		if err := s.Serve(lis); err != nil {
 			logrus.Fatal(err)
 		}
