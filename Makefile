@@ -92,8 +92,12 @@ install:
 	install -m 644 $(wildcard docs/*.8.md) $(PREFIX)/share/man/man8
 	install -d $(PREFIX)/share/man/man5
 	install -m 644 $(wildcard docs/*.5.md) $(PREFIX)/share/man/man5
+	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
 
 uninstall:
+	systemctl stop ocid.service
+	systemctl disable ocid.service
+	rm -f $(PREFIX)/lib/systemd/system/ocid.service
 	rm -f ${INSTALLDIR}/{ocid,ocic}
 	rm -f $(PREFIX)/libexec/ocid/{conmon,pause}
 	for i in $(wildcard docs/*.8.md); do \

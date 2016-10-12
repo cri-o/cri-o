@@ -1,0 +1,23 @@
+[Unit]
+Description=Open Container Initiative Daemon
+Documentation=https://github.com/kubernetes-incubator/cri-o
+After=network.target
+
+[Service]
+Type=notify
+EnvironmentFile=-/etc/sysconfig/ocid-storage
+EnvironmentFile=-/etc/sysconfig/ocid-network
+Environment=GOTRACEBACK=crash
+ExecStart=/usr/bin/ocid \
+          $OCID_STORAGE_OPTIONS \
+          $OCID_NETWORK_OPTIONS \
+ExecReload=/bin/kill -s HUP $MAINPID
+TasksMax=8192
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=infinity
+TimeoutStartSec=0
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
