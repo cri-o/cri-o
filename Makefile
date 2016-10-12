@@ -44,7 +44,11 @@ ocid: ${OCID_LINK}
 ocic: ${OCID_LINK}
 	go build -o ocic ./cmd/client/
 
+ocid.conf: ocid
+	 ./ocid --config="" config --default > ocid.conf 
+
 clean:
+	rm -f ocid.conf
 	rm -f ocic ocid
 	rm -f ${OCID_LINK}
 	rm -f conmon/conmon.o conmon/conmon
@@ -83,7 +87,7 @@ docs/%.5: docs/%.5.md
 
 docs: $(MANPAGES_MD:%.md=%)
 
-install:
+install: ocid.conf
 	install -D -m 755 ocid ${INSTALLDIR}/ocid
 	install -D -m 755 ocic ${INSTALLDIR}/ocic
 	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
@@ -93,6 +97,7 @@ install:
 	install -d $(PREFIX)/share/man/man5
 	install -m 644 $(wildcard docs/*.5.md) $(PREFIX)/share/man/man5
 	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
+	install -D -m 644 ocid.conf $(DESTDIR)/etc
 
 uninstall:
 	systemctl stop ocid.service
