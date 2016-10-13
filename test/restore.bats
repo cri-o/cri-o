@@ -30,13 +30,13 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" != "" ]]
-	[[ "${output}" =~ "${pod_id}"  ]]
+	[[ "${output}" =~ "${pod_id}" ]]
 
 	run ocic ctr list
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" != "" ]]
-	[[ "${output}" =~ "${pod_id}"  ]]
+	[[ "${output}" =~ "${pod_id}" ]]
 
 	cleanup_ctrs
 	cleanup_pods
