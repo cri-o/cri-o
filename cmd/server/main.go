@@ -34,6 +34,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("conmon") {
 		config.Conmon = ctx.GlobalString("conmon")
 	}
+	if ctx.GlobalIsSet("containerdir") {
+		config.ContainerDir = ctx.GlobalString("containerdir")
+	}
 	if ctx.GlobalIsSet("pause") {
 		config.Pause = ctx.GlobalString("pause")
 	}
@@ -42,9 +45,6 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	}
 	if ctx.GlobalIsSet("sandboxdir") {
 		config.SandboxDir = ctx.GlobalString("sandboxdir")
-	}
-	if ctx.GlobalIsSet("containerdir") {
-		config.ContainerDir = ctx.GlobalString("containerdir")
 	}
 	if ctx.GlobalIsSet("listen") {
 		config.Listen = ctx.GlobalString("listen")
@@ -78,36 +78,16 @@ func main() {
 			Usage: "path to the conmon executable",
 		},
 		cli.StringFlag{
-			Name:  "pause",
-			Usage: "path to the pause executable",
-		},
-		cli.StringFlag{
-			Name:  "root",
-			Usage: "ocid root dir",
-		},
-		cli.StringFlag{
-			Name:  "sandboxdir",
-			Usage: "ocid pod sandbox dir",
-		},
-		cli.StringFlag{
 			Name:  "containerdir",
 			Usage: "ocid container dir",
-		},
-		cli.StringFlag{
-			Name:  "listen",
-			Usage: "path to ocid socket",
-		},
-		cli.StringFlag{
-			Name:  "runtime",
-			Usage: "OCI runtime path",
 		},
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug output for logging",
 		},
-		cli.BoolFlag{
-			Name:  "selinux",
-			Usage: "enable selinux support",
+		cli.StringFlag{
+			Name:  "listen",
+			Usage: "path to ocid socket",
 		},
 		cli.StringFlag{
 			Name:  "log",
@@ -118,6 +98,26 @@ func main() {
 			Name:  "log-format",
 			Value: "text",
 			Usage: "set the format used by logs ('text' (default), or 'json')",
+		},
+		cli.StringFlag{
+			Name:  "pause",
+			Usage: "path to the pause executable",
+		},
+		cli.StringFlag{
+			Name:  "root",
+			Usage: "ocid root dir",
+		},
+		cli.StringFlag{
+			Name:  "runtime",
+			Usage: "OCI runtime path",
+		},
+		cli.StringFlag{
+			Name:  "sandboxdir",
+			Usage: "ocid pod sandbox dir",
+		},
+		cli.BoolFlag{
+			Name:  "selinux",
+			Usage: "enable selinux support",
 		},
 	}
 

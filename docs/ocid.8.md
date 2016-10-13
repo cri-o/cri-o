@@ -6,6 +6,7 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 
 # SYNOPSIS
 **ocid**
+[**--config**=[*value*]]
 [**--conmon**=[*value*]]
 [**--containerdir**=[*value*]]
 [**--debug**]
@@ -37,6 +38,9 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 **ocid [GLOBAL OPTIONS] config [OPTIONS]**
 
 # GLOBAL OPTIONS
+
+**--config**=""
+  path to configuration file
 
 **--conmon**=""
   path to the conmon executable (default: "/usr/libexec/ocid/conmon")
