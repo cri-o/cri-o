@@ -18,6 +18,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
+	"k8s.io/kubernetes/pkg/fields"
 )
 
 const (
@@ -221,7 +222,7 @@ type Container struct {
 	name       string
 	bundlePath string
 	logPath    string
-	labels     map[string]string
+	labels     fields.Set
 	sandbox    string
 	terminal   bool
 	state      *ContainerState
