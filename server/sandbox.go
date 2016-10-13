@@ -99,6 +99,25 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		if err != nil {
+			s.releasePodName(name)
+		}
+	}()
+
+	if err = s.podIDIndex.Add(id); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			if err = s.podIDIndex.Delete(id); err != nil {
+				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
+			}
+		}
+	}()
+
 	podSandboxDir := filepath.Join(s.config.SandboxDir, id)
 	if _, err = os.Stat(podSandboxDir); err == nil {
 		return nil, fmt.Errorf("pod sandbox (%s) already exists", podSandboxDir)
@@ -106,7 +125,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	defer func() {
 		if err != nil {
-			s.releasePodName(name)
 			if err2 := os.RemoveAll(podSandboxDir); err2 != nil {
 				logrus.Warnf("couldn't cleanup podSandboxDir %s: %v", podSandboxDir, err2)
 			}
@@ -178,6 +196,28 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	containerID, containerName, err := s.generateContainerIDandName(name, "infra", 0)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			s.releaseContainerName(containerName)
+		}
+	}()
+
+	if err = s.ctrIDIndex.Add(containerID); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			if err = s.ctrIDIndex.Delete(containerID); err != nil {
+				logrus.Warnf("couldn't delete ctr id %s from idIndex", containerID)
+			}
+		}
+	}()
+
 	g.AddAnnotation("ocid/labels", string(labelsJSON))
 	g.AddAnnotation("ocid/annotations", string(annotationsJSON))
 	g.AddAnnotation("ocid/log_path", logDir)
@@ -273,10 +313,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	s.addContainer(container)
 
-	if err = s.podIDIndex.Add(id); err != nil {
-		return nil, err
-	}
-
 	if err = s.runtime.UpdateStatus(container); err != nil {
 		return nil, err
 	}
@@ -348,7 +384,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			continue
 		}
 
-		containerDir := filepath.Join(s.runtime.ContainerDir(), c.Name())
+		containerDir := filepath.Join(s.runtime.ContainerDir(), c.ID())
 		if err := os.RemoveAll(containerDir); err != nil {
 			return nil, fmt.Errorf("failed to remove container %s directory: %v", c.Name(), err)
 		}

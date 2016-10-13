@@ -108,3 +108,37 @@ function teardown() {
 	cleanup_pods
 	stop_ocid
 }
+
+# regression test for #127
+@test "ctrs status for a pod" {
+	# this test requires docker, thus it can't yet be run in a container
+	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
+		skip "cannot yet run this test in a container, use sudo make localintegration"
+	fi
+
+	start_ocid
+	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run ocic ctr list --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" != "" ]]
+
+	printf '%s\n' "$output" | while IFS= read -r id
+	do
+		run ocic ctr status --id "$id"
+		echo "$output"
+		[ "$status" -eq 0 ]
+	done
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_ocid
+}
+
