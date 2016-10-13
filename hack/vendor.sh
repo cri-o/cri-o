@@ -46,6 +46,7 @@ case $# in
 	;;
 esac
 
+clone git github.com/coreos/go-systemd master
 clone git github.com/BurntSushi/toml v0.2.0
 clone git github.com/Sirupsen/logrus v0.10.0
 clone git github.com/containers/image f6f11ab5cf8b1e70ef4aa3f8b6fdb4b671d16abd
