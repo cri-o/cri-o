@@ -42,7 +42,7 @@ It is currently in active development in the Kubernetes community through the [d
 
 ### Build
 
-`glib2-devel` package on Fedora or ` libglib2.0-dev` on Ubuntu or equivalent is required.
+`glib2-devel` and `glibc-static` packages on Fedora or ` libglib2.0-dev` on Ubuntu or equivalent is required.
 
 
 ```
