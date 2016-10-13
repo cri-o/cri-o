@@ -411,10 +411,54 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 	return &pb.RemoveContainerResponse{}, nil
 }
 
+// filterContainer returns whether passed container matches filtering criteria
+func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
+	if filter != nil {
+		if filter.State != nil {
+			if *c.State != *filter.State {
+				return false
+			}
+		}
+		// TODO(mrunalp): Add support for label filtering
+	}
+	return true
+}
+
 // ListContainers lists all containers by filters.
 func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (*pb.ListContainersResponse, error) {
 	var ctrs []*pb.Container
-	for _, ctr := range s.state.containers.List() {
+	filter := req.Filter
+	ctrList := s.state.containers.List()
+
+	// Filter using container id and pod id first.
+	if filter != nil {
+		if filter.Id != nil {
+			c := s.state.containers.Get(*filter.Id)
+			if c != nil {
+				if filter.PodSandboxId != nil {
+					if c.Sandbox() == *filter.PodSandboxId {
+						ctrList = []*oci.Container{c}
+					} else {
+						ctrList = []*oci.Container{}
+					}
+
+				} else {
+					ctrList = []*oci.Container{c}
+				}
+			}
+		} else {
+			if filter.PodSandboxId != nil {
+				pod := s.state.sandboxes[*filter.PodSandboxId]
+				if pod == nil {
+					ctrList = []*oci.Container{}
+				} else {
+					ctrList = pod.containers.List()
+				}
+			}
+		}
+	}
+
+	for _, ctr := range ctrList {
 		if err := s.runtime.UpdateStatus(ctr); err != nil {
 			return nil, err
 		}
@@ -441,7 +485,10 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		}
 		c.State = &rState
 
-		ctrs = append(ctrs, c)
+		// Filter by other criteria such as state and labels.
+		if filterContainer(c, req.Filter) {
+			ctrs = append(ctrs, c)
+		}
 	}
 
 	return &pb.ListContainersResponse{
