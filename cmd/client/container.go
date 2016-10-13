@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/urfave/cli"
@@ -178,6 +179,21 @@ var listContainersCommand = cli.Command{
 			Name:  "quiet",
 			Usage: "list only container IDs",
 		},
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "filter by container id",
+		},
+		cli.StringFlag{
+			Name:  "pod",
+			Value: "",
+			Usage: "filter by container pod id",
+		},
+		cli.StringFlag{
+			Name:  "state",
+			Value: "",
+			Usage: "filter by container state",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -188,7 +204,7 @@ var listContainersCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
-		err = ListContainers(client, context.Bool("quiet"))
+		err = ListContainers(client, context.Bool("quiet"), context.String("id"), context.String("pod"), context.String("state"))
 		if err != nil {
 			return fmt.Errorf("listing containers failed: %v", err)
 		}
@@ -304,8 +320,33 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 
 // ListContainers sends a ListContainerRequest to the server, and parses
 // the returned ListContainerResponse.
-func ListContainers(client pb.RuntimeServiceClient, quiet bool) error {
-	r, err := client.ListContainers(context.Background(), &pb.ListContainersRequest{})
+func ListContainers(client pb.RuntimeServiceClient, quiet bool, id string, podID string, state string) error {
+	filter := &pb.ContainerFilter{}
+	if id != "" {
+		filter.Id = &id
+	}
+	if podID != "" {
+		filter.PodSandboxId = &podID
+	}
+	if state != "" {
+		st := pb.ContainerState_UNKNOWN
+		switch state {
+		case "created":
+			st = pb.ContainerState_CREATED
+			filter.State = &st
+		case "running":
+			st = pb.ContainerState_RUNNING
+			filter.State = &st
+		case "stopped":
+			st = pb.ContainerState_EXITED
+			filter.State = &st
+		default:
+			log.Fatalf("--state should be one of created, running or stopped")
+		}
+	}
+	r, err := client.ListContainers(context.Background(), &pb.ListContainersRequest{
+		Filter: filter,
+	})
 	if err != nil {
 		return err
 	}
