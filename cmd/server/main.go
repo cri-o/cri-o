@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sort"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/server"
@@ -56,6 +57,18 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		config.SELinux = ctx.GlobalBool("selinux")
 	}
 	return nil
+}
+
+type byName []cli.Flag
+
+func (f byName) Len() int {
+	return len(f)
+}
+func (f byName) Less(i, j int) bool {
+	return f[i].GetName() < f[j].GetName()
+}
+func (f byName) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
 }
 
 func main() {
@@ -120,6 +133,10 @@ func main() {
 			Usage: "enable selinux support",
 		},
 	}
+
+	// remove once https://github.com/urfave/cli/pull/544 lands
+	sort.Sort(byName(app.Flags))
+	sort.Sort(byName(configCommand.Flags))
 
 	app.Commands = []cli.Command{
 		configCommand,
