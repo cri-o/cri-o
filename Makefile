@@ -13,6 +13,8 @@ GO_MD2MAN ?= $(shell which go-md2man)
 export GOPATH := ${CURDIR}/vendor
 BUILDTAGS := selinux
 
+all: binaries ocid.conf docs
+
 default: help
 
 help:
@@ -38,24 +40,25 @@ conmon:
 pause:
 	make -C $@
 
-ocid: ${OCID_LINK}
-	go build --tags "$(BUILDTAGS)" -o ocid ./cmd/server/
+GO_SRC =  $(shell find . -name \*.go)
+ocid: $(GO_SRC) ${OCID_LINK}
+	go build --tags "$(BUILDTAGS)" -o $@ ./cmd/server/
 
-ocic: ${OCID_LINK}
-	go build -o ocic ./cmd/client/
+ocic: $(GO_SRC)
+	go build -o $@ ./cmd/client/
 
 ocid.conf: ocid
-	 ./ocid --config="" config --default > ocid.conf 
+	 ./ocid --config="" config --default > ocid.conf
 
 clean:
 	rm -f ocid.conf
 	rm -f ocic ocid
 	rm -f ${OCID_LINK}
-	rm -f conmon/conmon.o conmon/conmon
-	rm -f pause/pause.o pause/pause
 	rm -f docs/*.1 docs/*.5{,.gz} docs/*.8{,.gz}
 	find . -name \*~ -delete
 	find . -name \#\* -delete
+	make -C conmon clean
+	make -C pause clean
 
 ocidimage:
 	docker build -t ${OCID_IMAGE} .
@@ -73,7 +76,7 @@ integration: ocidimage
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: ${OCID_LINK} ocid ocic conmon pause
+binaries: ocid ocic conmon pause
 
 MANPAGES_MD = $(wildcard docs/*.md)
 
@@ -89,7 +92,7 @@ docs/%.5: docs/%.5.md
 
 docs: $(MANPAGES_MD:%.md=%)
 
-install: ocid.conf
+install: all
 	install -D -m 755 ocid ${INSTALLDIR}/ocid
 	install -D -m 755 ocic ${INSTALLDIR}/ocic
 	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
@@ -102,8 +105,6 @@ install: ocid.conf
 	install -D -m 644 ocid.conf $(DESTDIR)/etc
 
 uninstall:
-	systemctl stop ocid.service
-	systemctl disable ocid.service
 	rm -f $(PREFIX)/lib/systemd/system/ocid.service
 	rm -f ${INSTALLDIR}/{ocid,ocic}
 	rm -f $(PREFIX)/libexec/ocid/{conmon,pause}
@@ -147,7 +148,5 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	help \
 	install \
 	lint \
-	ocic \
-	ocid \
 	pause \
 	uninstall
