@@ -22,6 +22,11 @@ RUNC_PATH=$(command -v runc || true)
 RUNC_BINARY=${RUNC_PATH:-/usr/local/sbin/runc}
 
 TESTDIR=$(mktemp -d)
+if selinuxenabled; then
+    . /etc/selinux/config
+    filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
+    chcon -R ${filelabel} $TESTDIR
+fi
 OCID_SOCKET="$TESTDIR/ocid.sock"
 OCID_CONFIG="$TESTDIR/ocid.conf"
 
