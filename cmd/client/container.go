@@ -24,6 +24,17 @@ var containerCommand = cli.Command{
 	},
 }
 
+type createOptions struct {
+	// configPath is path to the config for container
+	configPath string
+	// name sets the container name
+	name string
+	// podID of the container
+	podID string
+	// labels for the container
+	labels map[string]string
+}
+
 var createContainerCommand = cli.Command{
 	Name:  "create",
 	Usage: "create a container",
@@ -42,6 +53,10 @@ var createContainerCommand = cli.Command{
 			Value: "",
 			Usage: "the name of the container",
 		},
+		cli.StringSliceFlag{
+			Name:  "label",
+			Usage: "add key=value labels to the container",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -55,8 +70,24 @@ var createContainerCommand = cli.Command{
 		if !context.IsSet("pod") {
 			return fmt.Errorf("Please specify the id of the pod sandbox to which the container belongs via the --pod option")
 		}
+
+		opts := createOptions{
+			configPath: context.String("config"),
+			name:       context.String("name"),
+			podID:      context.String("pod"),
+			labels:     make(map[string]string),
+		}
+
+		for _, l := range context.StringSlice("label") {
+			pair := strings.Split(l, "=")
+			if len(pair) != 2 {
+				return fmt.Errorf("incorrectly specified label: %v", l)
+			}
+			opts.labels[pair[0]] = pair[1]
+		}
+
 		// Test RuntimeServiceClient.CreateContainer
-		err = CreateContainer(client, context.String("pod"), context.String("config"), context.String("name"))
+		err = CreateContainer(client, opts)
 		if err != nil {
 			return fmt.Errorf("Creating container failed: %v", err)
 		}
@@ -247,19 +278,23 @@ var listContainersCommand = cli.Command{
 
 // CreateContainer sends a CreateContainerRequest to the server, and parses
 // the returned CreateContainerResponse.
-func CreateContainer(client pb.RuntimeServiceClient, sandbox string, path string, name string) error {
-	config, err := loadContainerConfig(path)
+func CreateContainer(client pb.RuntimeServiceClient, opts createOptions) error {
+	config, err := loadContainerConfig(opts.configPath)
 	if err != nil {
 		return err
 	}
 
 	// Override the name by the one specified through CLI
-	if name != "" {
-		config.Metadata.Name = &name
+	if opts.name != "" {
+		config.Metadata.Name = &opts.name
+	}
+
+	for k, v := range opts.labels {
+		config.Labels[k] = v
 	}
 
 	r, err := client.CreateContainer(context.Background(), &pb.CreateContainerRequest{
-		PodSandboxId: &sandbox,
+		PodSandboxId: &opts.podID,
 		Config:       config,
 	})
 	if err != nil {
