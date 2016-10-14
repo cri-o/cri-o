@@ -53,7 +53,7 @@ clean:
 	rm -f ${OCID_LINK}
 	rm -f conmon/conmon.o conmon/conmon
 	rm -f pause/pause.o pause/pause
-	rm -f docs/*.1 docs/*.5 docs/*.8
+	rm -f docs/*.1 docs/*.5{,.gz} docs/*.8{,.gz}
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 
@@ -80,10 +80,12 @@ MANPAGES_MD = $(wildcard docs/*.md)
 docs/%.8: docs/%.8.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	gzip -k $@
 
 docs/%.5: docs/%.5.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	gzip -k $@
 
 docs: $(MANPAGES_MD:%.md=%)
 
@@ -93,9 +95,9 @@ install: ocid.conf
 	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
 	install -D -m 755 pause/pause $(PREFIX)/libexec/ocid/pause
 	install -d $(PREFIX)/share/man/man8
-	install -m 644 $(wildcard docs/*.8.md) $(PREFIX)/share/man/man8
+	install -m 644 $(wildcard docs/*.8.gz) $(PREFIX)/share/man/man8
 	install -d $(PREFIX)/share/man/man5
-	install -m 644 $(wildcard docs/*.5.md) $(PREFIX)/share/man/man5
+	install -m 644 $(wildcard docs/*.5.gz) $(PREFIX)/share/man/man5
 	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
 	install -D -m 644 ocid.conf $(DESTDIR)/etc
 
@@ -105,10 +107,10 @@ uninstall:
 	rm -f $(PREFIX)/lib/systemd/system/ocid.service
 	rm -f ${INSTALLDIR}/{ocid,ocic}
 	rm -f $(PREFIX)/libexec/ocid/{conmon,pause}
-	for i in $(wildcard docs/*.8.md); do \
+	for i in $(wildcard docs/*.8.gz); do \
 		rm -f $(PREFIX)/share/man/man8/$$(basename $${i}); \
 	done
-	for i in $(wildcard docs/*.5.md); do \
+	for i in $(wildcard docs/*.5.gz); do \
 		rm -f $(PREFIX)/share/man/man5/$$(basename $${i}); \
 	done
 
