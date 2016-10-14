@@ -251,11 +251,19 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id" --name ctr1 --label "a=b" --label "c=d" --label "e=f"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr1_id="$output"
-	run ocic ctr list --label "tier=backend" --quiet
+	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id" --name ctr2 --label "a=b" --label "c=d"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr2_id="$output"
+	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id" --name ctr3 --label "a=b"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr3_id="$output"
+	run ocic ctr list --label "tier=backend" --label "a=b" --label "c=d" --label "e=f" --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" != "" ]]
@@ -264,6 +272,19 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "" ]]
+	run ocic ctr list --label "a=b" --label "c=d" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$ctr1_id"  ]]
+	[[ "$output" =~ "$ctr2_id"  ]]
+	run ocic ctr list --label "a=b" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$ctr1_id"  ]]
+	[[ "$output" =~ "$ctr2_id"  ]]
+	[[ "$output" =~ "$ctr3_id"  ]]
 	run ocic pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
