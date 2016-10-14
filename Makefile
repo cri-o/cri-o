@@ -12,7 +12,7 @@ PREFIX ?= ${DESTDIR}/usr
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
-ETCDIR ?= ${PREFIX}/etc
+ETCDIR ?= ${DESTDIR}/etc
 GO_MD2MAN ?= $(shell which go-md2man)
 export GOPATH := ${CURDIR}/vendor
 BUILDTAGS := selinux
@@ -102,7 +102,7 @@ install:
 	install -D -m 644 ocid.conf $(ETCDIR)/ocid.conf
 
 install.systemd:
-	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system
+	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system/ocid.service
 
 uninstall:
 	rm -f $(BINDIR)/{ocid,ocic}
