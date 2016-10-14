@@ -15,6 +15,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
+	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
@@ -419,7 +420,12 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 				return false
 			}
 		}
-		// TODO(mrunalp): Add support for label filtering
+		if filter.LabelSelector != nil {
+			sel := fields.SelectorFromSet(filter.LabelSelector)
+			if !sel.Matches(fields.Set(c.Labels)) {
+				return false
+			}
+		}
 	}
 	return true
 }
@@ -473,6 +479,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			Id:           &cID,
 			PodSandboxId: &podSandboxID,
 			CreatedAt:    int64Ptr(created),
+			Labels:       ctr.Labels(),
 		}
 
 		switch cState.Status {
