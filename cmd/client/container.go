@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/urfave/cli"
@@ -171,6 +172,19 @@ var containerStatusCommand = cli.Command{
 	},
 }
 
+type listOptions struct {
+	// id of the container
+	id string
+	// podID of the container
+	podID string
+	// state of the container
+	state string
+	// quiet is for listing just container IDs
+	quiet bool
+	// labels are selectors for the container
+	labels map[string]string
+}
+
 var listContainersCommand = cli.Command{
 	Name:  "list",
 	Usage: "list containers",
@@ -194,6 +208,10 @@ var listContainersCommand = cli.Command{
 			Value: "",
 			Usage: "filter by container state",
 		},
+		cli.StringSliceFlag{
+			Name:  "label",
+			Usage: "filter by key=value label",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -203,8 +221,23 @@ var listContainersCommand = cli.Command{
 		}
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
+		opts := listOptions{
+			id:     context.String("id"),
+			podID:  context.String("pod"),
+			state:  context.String("state"),
+			quiet:  context.Bool("quiet"),
+			labels: make(map[string]string),
+		}
 
-		err = ListContainers(client, context.Bool("quiet"), context.String("id"), context.String("pod"), context.String("state"))
+		for _, l := range context.StringSlice("label") {
+			pair := strings.Split(l, "=")
+			if len(pair) != 2 {
+				return fmt.Errorf("incorrectly specified label: %v", l)
+			}
+			opts.labels[pair[0]] = pair[1]
+		}
+
+		err = ListContainers(client, opts)
 		if err != nil {
 			return fmt.Errorf("listing containers failed: %v", err)
 		}
@@ -320,17 +353,17 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 
 // ListContainers sends a ListContainerRequest to the server, and parses
 // the returned ListContainerResponse.
-func ListContainers(client pb.RuntimeServiceClient, quiet bool, id string, podID string, state string) error {
+func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 	filter := &pb.ContainerFilter{}
-	if id != "" {
-		filter.Id = &id
+	if opts.id != "" {
+		filter.Id = &opts.id
 	}
-	if podID != "" {
-		filter.PodSandboxId = &podID
+	if opts.podID != "" {
+		filter.PodSandboxId = &opts.podID
 	}
-	if state != "" {
+	if opts.state != "" {
 		st := pb.ContainerState_UNKNOWN
-		switch state {
+		switch opts.state {
 		case "created":
 			st = pb.ContainerState_CREATED
 			filter.State = &st
@@ -344,6 +377,9 @@ func ListContainers(client pb.RuntimeServiceClient, quiet bool, id string, podID
 			log.Fatalf("--state should be one of created, running or stopped")
 		}
 	}
+	if opts.labels != nil {
+		filter.LabelSelector = opts.labels
+	}
 	r, err := client.ListContainers(context.Background(), &pb.ListContainersRequest{
 		Filter: filter,
 	})
@@ -351,7 +387,7 @@ func ListContainers(client pb.RuntimeServiceClient, quiet bool, id string, podID
 		return err
 	}
 	for _, c := range r.GetContainers() {
-		if quiet {
+		if opts.quiet {
 			fmt.Println(*c.Id)
 			continue
 		}
@@ -363,6 +399,18 @@ func ListContainers(client pb.RuntimeServiceClient, quiet bool, id string, podID
 		if c.CreatedAt != nil {
 			ctm := time.Unix(*c.CreatedAt, 0)
 			fmt.Printf("Created: %v\n", ctm)
+		}
+		if c.Labels != nil {
+			fmt.Println("Labels:")
+			for k, v := range c.Labels {
+				fmt.Printf("\t%s -> %s\n", k, v)
+			}
+		}
+		if c.Annotations != nil {
+			fmt.Println("Annotations:")
+			for k, v := range c.Annotations {
+				fmt.Printf("\t%s -> %s\n", k, v)
+			}
 		}
 	}
 	return nil
