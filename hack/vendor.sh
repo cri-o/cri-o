@@ -72,7 +72,7 @@ clone git github.com/golang/protobuf 3c84672111d91bb5ac31719e112f9f7126a0e26e
 clone git github.com/golang/glog 44145f04b68cf362d9c4df2182967c2275eaefed
 clone git github.com/gorilla/mux v1.1
 clone git github.com/imdario/mergo 6633656539c1639d9d78127b7d47c622b5d7b6dc
-clone git github.com/opencontainers/runc cc29e3dded8e27ba8f65738f40d251c885030a28
+clone git github.com/opencontainers/runc 3abefdff18bc201199c5dfd0e91e941cb4c61376
 clone git github.com/syndtr/gocapability 2c00daeb6c3b45114c80ac44119e7b8801fdd852
 clone git github.com/gogo/protobuf 43a2e0b1c32252bfbbdf81f7faa7a88fb3fa4028
 clone git github.com/gorilla/context v1.1
