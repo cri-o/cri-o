@@ -239,3 +239,35 @@ function teardown() {
 	cleanup_pods
 	stop_ocid
 }
+
+@test "ctr list label filtering" {
+	# this test requires docker, thus it can't yet be run in a container
+	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
+		skip "cannot yet run this test in a container, use sudo make localintegration"
+	fi
+
+	start_ocid
+	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr1_id="$output"
+	run ocic ctr list --label "tier=backend" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$ctr1_id"  ]]
+	run ocic ctr list --label "tier=frontend" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" == "" ]]
+	run ocic pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_ocid
+}
