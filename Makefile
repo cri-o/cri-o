@@ -41,10 +41,10 @@ pause:
 	make -C $@
 
 GO_SRC =  $(shell find . -name \*.go)
-ocid: $(GO_SRC) ${OCID_LINK}
+ocid: $(GO_SRC) | ${OCID_LINK}
 	go build --tags "$(BUILDTAGS)" -o $@ ./cmd/server/
 
-ocic: $(GO_SRC)
+ocic: $(GO_SRC) | ${OCID_LINK}
 	go build -o $@ ./cmd/client/
 
 ocid.conf: ocid
