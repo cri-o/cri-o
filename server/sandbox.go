@@ -463,10 +463,46 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}, nil
 }
 
+// filterSandbox returns whether passed container matches filtering criteria
+func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
+	if filter != nil {
+		if filter.State != nil {
+			if *p.State != *filter.State {
+				return false
+			}
+		}
+		if filter.LabelSelector != nil {
+			sel := fields.SelectorFromSet(filter.LabelSelector)
+			if !sel.Matches(fields.Set(p.Labels)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // ListPodSandbox returns a list of SandBoxes.
-func (s *Server) ListPodSandbox(context.Context, *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
+func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
 	var pods []*pb.PodSandbox
+	var podList []*sandbox
 	for _, sb := range s.state.sandboxes {
+		podList = append(podList, sb)
+	}
+
+	filter := req.Filter
+	// Filter by pod id first.
+	if filter != nil {
+		if filter.Id != nil {
+			sb := s.getSandbox(*filter.Id)
+			if sb == nil {
+				podList = []*sandbox{}
+			} else {
+				podList = []*sandbox{sb}
+			}
+		}
+	}
+
+	for _, sb := range podList {
 		podInfraContainerName := sb.name + "-infra"
 		podInfraContainer := sb.getContainer(podInfraContainerName)
 		if podInfraContainer == nil {
@@ -493,7 +529,10 @@ func (s *Server) ListPodSandbox(context.Context, *pb.ListPodSandboxRequest) (*pb
 			Metadata:    sb.metadata,
 		}
 
-		pods = append(pods, pod)
+		// Filter by other criteria such as state and labels.
+		if filterSandbox(pod, req.Filter) {
+			pods = append(pods, pod)
+		}
 	}
 
 	return &pb.ListPodSandboxResponse{
