@@ -53,6 +53,9 @@ type RuntimeConfig struct {
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	Conmon string `toml:"conmon"`
 
+	// ConmonEnv is the environment variable list for conmon process.
+	ConmonEnv []string `toml:"conmon_env"`
+
 	// SELinux determines whether or not SELinux is used for pod separation.
 	SELinux bool `toml:"selinux"`
 }

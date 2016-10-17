@@ -49,6 +49,11 @@ runtime = "{{ .Runtime }}"
 # conmon is the path to conmon binary, used for managing the runtime.
 conmon = "{{ .Conmon }}"
 
+# conmon_env is the environment variable list for conmon process,
+# used for passing necessary environment variable to conmon or runtime.
+conmon_env = [
+{{ range $env := .ConmonEnv }}{{ printf "\t%q,\n" $env }}{{ end }}]
+
 # selinux indicates whether or not SELinux will be used for pod
 # separation on the host. If you enable this flag, SELinux must be running
 # on the host.
@@ -77,6 +82,9 @@ func DefaultConfig() *server.Config {
 		RuntimeConfig: server.RuntimeConfig{
 			Runtime: "/usr/bin/runc",
 			Conmon:  conmonPath,
+			ConmonEnv: []string{
+				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+			},
 			SELinux: selinux.SelinuxEnabled(),
 		},
 		ImageConfig: server.ImageConfig{

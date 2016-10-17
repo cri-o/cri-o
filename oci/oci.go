@@ -31,12 +31,13 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, containerDir string, conmonPath string) (*Runtime, error) {
+func New(runtimePath string, containerDir string, conmonPath string, conmonEnv []string) (*Runtime, error) {
 	r := &Runtime{
 		name:         filepath.Base(runtimePath),
 		path:         runtimePath,
 		containerDir: containerDir,
 		conmonPath:   conmonPath,
+		conmonEnv:    conmonEnv,
 	}
 	return r, nil
 }
@@ -47,6 +48,7 @@ type Runtime struct {
 	path         string
 	containerDir string
 	conmonPath   string
+	conmonEnv    []string
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -113,7 +115,7 @@ func (r *Runtime) CreateContainer(c *Container) error {
 	cmd.Stderr = os.Stderr
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
+	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 
 	err = cmd.Start()
 	if err != nil {
