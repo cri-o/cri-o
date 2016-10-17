@@ -22,7 +22,7 @@ RUNC_PATH=$(command -v runc || true)
 RUNC_BINARY=${RUNC_PATH:-/usr/local/sbin/runc}
 
 TESTDIR=$(mktemp -d)
-if selinuxenabled; then
+if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
     . /etc/selinux/config
     filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
     chcon -R ${filelabel} $TESTDIR
