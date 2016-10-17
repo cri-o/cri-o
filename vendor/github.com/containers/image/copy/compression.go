@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
-	"errors"
 	"io"
+
+	"github.com/pkg/errors"
 
 	"github.com/Sirupsen/logrus"
 )

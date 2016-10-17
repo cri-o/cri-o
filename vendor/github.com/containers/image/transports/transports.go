@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/openshift"
 	"github.com/containers/image/storage"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 )
 
 // KnownTransports is a registry of known ImageTransport instances.
@@ -40,11 +41,11 @@ func init() {
 func ParseImageName(imgName string) (types.ImageReference, error) {
 	parts := strings.SplitN(imgName, ":", 2)
 	if len(parts) != 2 {
-		return nil, fmt.Errorf(`Invalid image name "%s", expected colon-separated transport:reference`, imgName)
+		return nil, errors.Errorf(`Invalid image name "%s", expected colon-separated transport:reference`, imgName)
 	}
 	transport, ok := KnownTransports[parts[0]]
 	if !ok {
-		return nil, fmt.Errorf(`Invalid image name "%s", unknown transport "%s"`, imgName, parts[0])
+		return nil, errors.Errorf(`Invalid image name "%s", unknown transport "%s"`, imgName, parts[0])
 	}
 	return transport.ParseReference(parts[1])
 }

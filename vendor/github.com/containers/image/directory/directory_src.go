@@ -1,14 +1,14 @@
 package directory
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 type dirImageSource struct {
@@ -42,7 +42,7 @@ func (s *dirImageSource) GetManifest() ([]byte, string, error) {
 }
 
 func (s *dirImageSource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
-	return nil, "", fmt.Errorf(`Getting target manifest not supported by "dir:"`)
+	return nil, "", errors.Errorf(`Getting target manifest not supported by "dir:"`)
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).

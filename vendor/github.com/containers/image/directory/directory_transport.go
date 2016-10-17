@@ -1,16 +1,17 @@
 package directory
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/containers/image/directory/explicitfilepath"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
 )
 
 // Transport is an ImageTransport for directory paths.
@@ -33,7 +34,7 @@ func (t dirTransport) ParseReference(reference string) (types.ImageReference, er
 // scope passed to this function will not be "", that value is always allowed.
 func (t dirTransport) ValidatePolicyConfigurationScope(scope string) error {
 	if !strings.HasPrefix(scope, "/") {
-		return fmt.Errorf("Invalid scope %s: Must be an absolute path", scope)
+		return errors.Errorf("Invalid scope %s: Must be an absolute path", scope)
 	}
 	// Refuse also "/", otherwise "/" and "" would have the same semantics,
 	// and "" could be unexpectedly shadowed by the "/" entry.
@@ -42,7 +43,7 @@ func (t dirTransport) ValidatePolicyConfigurationScope(scope string) error {
 	}
 	cleaned := filepath.Clean(scope)
 	if cleaned != scope {
-		return fmt.Errorf(`Invalid scope %s: Uses non-canonical format, perhaps try %s`, scope, cleaned)
+		return errors.Errorf(`Invalid scope %s: Uses non-canonical format, perhaps try %s`, scope, cleaned)
 	}
 	return nil
 }
@@ -153,7 +154,7 @@ func (ref dirReference) NewImageDestination(ctx *types.SystemContext) (types.Ima
 
 // DeleteImage deletes the named image from the registry, if supported.
 func (ref dirReference) DeleteImage(ctx *types.SystemContext) error {
-	return fmt.Errorf("Deleting images not implemented for dir: images")
+	return errors.Errorf("Deleting images not implemented for dir: images")
 }
 
 // manifestPath returns a path for the manifest within a directory using our conventions.

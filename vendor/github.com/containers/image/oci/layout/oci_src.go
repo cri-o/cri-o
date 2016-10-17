@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 

@@ -2,13 +2,12 @@ package image
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"runtime"
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 type platformSpec struct {
@@ -54,10 +53,10 @@ func manifestSchema2FromManifestList(src types.ImageSource, manblob []byte) (gen
 
 	matches, err := manifest.MatchesDigest(manblob, targetManifestDigest)
 	if err != nil {
-		return nil, fmt.Errorf("Error computing manifest digest: %v", err)
+		return nil, errors.Wrap(err, "Error computing manifest digest")
 	}
 	if !matches {
-		return nil, fmt.Errorf("Manifest image does not match selected manifest digest %s", targetManifestDigest)
+		return nil, errors.Errorf("Manifest image does not match selected manifest digest %s", targetManifestDigest)
 	}
 
 	return manifestInstanceFromBlob(src, manblob, mt)

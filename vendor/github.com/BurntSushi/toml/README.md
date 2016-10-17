@@ -1,9 +1,9 @@
 ## TOML parser and encoder for Go with reflection
 
 TOML stands for Tom's Obvious, Minimal Language. This Go package provides a
-reflection interface similar to Go's standard library `json` and `xml`
+reflection interface similar to Go's standard library `json` and `xml` 
 packages. This package also supports the `encoding.TextUnmarshaler` and
-`encoding.TextMarshaler` interfaces so that you can define custom data
+`encoding.TextMarshaler` interfaces so that you can define custom data 
 representations. (There is an example of this below.)
 
 Spec: https://github.com/mojombo/toml
@@ -87,7 +87,7 @@ type TOML struct {
 
 ### Using the `encoding.TextUnmarshaler` interface
 
-Here's an example that automatically parses duration strings into
+Here's an example that automatically parses duration strings into 
 `time.Duration` values:
 
 ```toml
@@ -120,7 +120,7 @@ for _, s := range favorites.Song {
 }
 ```
 
-And you'll also need a `duration` type that satisfies the
+And you'll also need a `duration` type that satisfies the 
 `encoding.TextUnmarshaler` interface:
 
 ```go
@@ -217,3 +217,4 @@ Note that a case insensitive match will be tried if an exact match can't be
 found.
 
 A working example of the above can be found in `_examples/example.{go,toml}`.
+

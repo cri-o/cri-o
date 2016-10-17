@@ -151,8 +151,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			if key == "" {
 				continue
 			}
-			env := fmt.Sprintf("%s=%s", key, value)
-			specgen.AddProcessEnv(env)
+			specgen.AddProcessEnv(key, value)
 		}
 	}
 

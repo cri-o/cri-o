@@ -6,10 +6,9 @@
 package signature
 
 import (
-	"fmt"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 )
 
 // PolicyRequirementError is an explanatory text for rejecting a signature or an image.
@@ -95,7 +94,7 @@ const (
 // changeContextState changes pc.state, or fails if the state is unexpected
 func (pc *PolicyContext) changeState(expected, new policyContextState) error {
 	if pc.state != expected {
-		return fmt.Errorf(`"Invalid PolicyContext state, expected "%s", found "%s"`, expected, pc.state)
+		return errors.Errorf(`"Invalid PolicyContext state, expected "%s", found "%s"`, expected, pc.state)
 	}
 	pc.state = new
 	return nil

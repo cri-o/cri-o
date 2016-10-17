@@ -1,13 +1,13 @@
 package directory
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 type dirImageDestination struct {
@@ -69,7 +69,7 @@ func (d *dirImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo
 		}
 	}()
 
-	digester := digest.Canonical.New()
+	digester := digest.Canonical.Digester()
 	tee := io.TeeReader(stream, digester.Hash())
 
 	size, err := io.Copy(blobFile, tee)
@@ -78,7 +78,7 @@ func (d *dirImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo
 	}
 	computedDigest := digester.Digest()
 	if inputInfo.Size != -1 && size != inputInfo.Size {
-		return types.BlobInfo{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", computedDigest, inputInfo.Size, size)
+		return types.BlobInfo{}, errors.Errorf("Size mismatch when copying %s, expected %d, got %d", computedDigest, inputInfo.Size, size)
 	}
 	if err := blobFile.Sync(); err != nil {
 		return types.BlobInfo{}, err
@@ -96,7 +96,7 @@ func (d *dirImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo
 
 func (d *dirImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
 	if info.Digest == "" {
-		return false, -1, fmt.Errorf(`"Can not check for a blob with unknown digest`)
+		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
 	}
 	blobPath := d.ref.layerPath(info.Digest)
 	finfo, err := os.Stat(blobPath)

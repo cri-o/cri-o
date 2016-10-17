@@ -15,10 +15,11 @@ package signature
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/transports"
@@ -405,7 +406,7 @@ func (pr *prSignedBy) UnmarshalJSON(data []byte) error {
 	case !gotKeyPath && !gotKeyData:
 		return InvalidPolicyFormatError("At least one of keyPath and keyData mus be specified")
 	default: // Coverage: This should never happen
-		return fmt.Errorf("Impossible keyPath/keyData presence combination!?")
+		return errors.Errorf("Impossible keyPath/keyData presence combination!?")
 	}
 	if err != nil {
 		return err

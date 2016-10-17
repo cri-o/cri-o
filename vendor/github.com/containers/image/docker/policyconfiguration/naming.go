@@ -1,9 +1,9 @@
 package policyconfiguration
 
 import (
-	"errors"
-	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/containers/image/docker/reference"
 )
@@ -17,9 +17,9 @@ func DockerReferenceIdentity(ref reference.Named) (string, error) {
 	digested, isDigested := ref.(reference.Canonical)
 	switch {
 	case isTagged && isDigested: // This should not happen, docker/reference.ParseNamed drops the tag.
-		return "", fmt.Errorf("Unexpected Docker reference %s with both a name and a digest", ref.String())
+		return "", errors.Errorf("Unexpected Docker reference %s with both a name and a digest", ref.String())
 	case !isTagged && !isDigested: // This should not happen, the caller is expected to ensure !reference.IsNameOnly()
-		return "", fmt.Errorf("Internal inconsistency: Docker reference %s with neither a tag nor a digest", ref.String())
+		return "", errors.Errorf("Internal inconsistency: Docker reference %s with neither a tag nor a digest", ref.String())
 	case isTagged:
 		res = res + ":" + tagged.Tag()
 	case isDigested:

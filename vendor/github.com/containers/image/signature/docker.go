@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/containers/image/manifest"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
 )
 
 // SignDockerManifest returns a signature for manifest as the specified dockerReference,

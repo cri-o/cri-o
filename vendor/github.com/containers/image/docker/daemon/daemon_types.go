@@ -1,6 +1,6 @@
 package daemon
 
-import "github.com/docker/distribution/digest"
+import "github.com/opencontainers/go-digest"
 
 // Various data structures.
 

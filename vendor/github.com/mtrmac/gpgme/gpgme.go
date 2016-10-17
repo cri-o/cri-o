@@ -9,6 +9,7 @@ package gpgme
 import "C"
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"runtime"
@@ -389,7 +390,14 @@ func (c *Context) GetKey(fingerprint string, secret bool) (*Key, error) {
 	key := newKey()
 	cfpr := C.CString(fingerprint)
 	defer C.free(unsafe.Pointer(cfpr))
-	return key, handleError(C.gpgme_get_key(c.ctx, cfpr, &key.k, cbool(secret)))
+	err := handleError(C.gpgme_get_key(c.ctx, cfpr, &key.k, cbool(secret)))
+	if e, ok := err.(Error); key.k == nil && ok && e.Code() == ErrorEOF {
+		return nil, fmt.Errorf("key %q not found", fingerprint)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
 }
 
 func (c *Context) Decrypt(ciphertext, plaintext *Data) error {

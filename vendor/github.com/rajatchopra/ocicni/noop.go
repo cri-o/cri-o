@@ -1,9 +1,7 @@
-
 package ocicni
 
 type cniNoOp struct {
 }
-
 
 func (noop *cniNoOp) Name() string {
 	return "CNINoOp"

@@ -3,11 +3,11 @@ package storage
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/image"
@@ -16,7 +16,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/storage"
-	ddigest "github.com/docker/distribution/digest"
+	ddigest "github.com/opencontainers/go-digest"
 )
 
 var (
@@ -78,7 +78,7 @@ func newImageSource(imageRef storageReference) (*storageImageSource, error) {
 	}
 	img, err := imageRef.transport.store.GetImage(id)
 	if err != nil {
-		return nil, fmt.Errorf("error reading image %q: %v", id, err)
+		return nil, errors.Wrapf(err, "error reading image %q", id)
 	}
 	image := &storageImageSource{
 		imageRef:       imageRef,
@@ -90,7 +90,7 @@ func newImageSource(imageRef storageReference) (*storageImageSource, error) {
 		SignatureSizes: []int{},
 	}
 	if err := json.Unmarshal([]byte(img.Metadata), image); err != nil {
-		return nil, fmt.Errorf("error decoding metadata for source image: %v", err)
+		return nil, errors.Wrap(err, "error decoding metadata for source image")
 	}
 	return image, nil
 }
@@ -150,10 +150,10 @@ func (s *storageImageDestination) PutBlob(stream io.Reader, blobinfo types.BlobI
 	// Set up to read the whole blob (the initial snippet, plus the rest)
 	// while digesting it with either the default, or the passed-in digest,
 	// if one was specified.
-	hasher := ddigest.Canonical.New()
+	hasher := ddigest.Canonical.Digester()
 	if digest.Validate() == nil {
 		if a := digest.Algorithm(); a.Available() {
-			hasher = a.New()
+			hasher = a.Digester()
 		}
 	}
 	hash := ""
@@ -278,7 +278,7 @@ func (s *storageImageDestination) PutBlob(stream io.Reader, blobinfo types.BlobI
 
 func (s *storageImageDestination) HasBlob(blobinfo types.BlobInfo) (bool, int64, error) {
 	if blobinfo.Digest == "" {
-		return false, -1, fmt.Errorf(`"Can not check for a blob with unknown digest`)
+		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
 	}
 	for _, blob := range s.BlobList {
 		if blob.Digest == blobinfo.Digest {
@@ -468,7 +468,7 @@ func diffLayer(store storage.Store, layerID string) (rc io.ReadCloser, n int64, 
 	}
 	if layer.Metadata != "" {
 		if err := json.Unmarshal([]byte(layer.Metadata), &layerMeta); err != nil {
-			return nil, -1, fmt.Errorf("error decoding metadata for layer %q: %v", layerID, err)
+			return nil, -1, errors.Wrapf(err, "error decoding metadata for layer %q", layerID)
 		}
 	}
 	if layerMeta.CompressedSize <= 0 {
@@ -504,7 +504,7 @@ func (s *storageImageSource) GetSignatures() (signatures [][]byte, err error) {
 		offset += length
 	}
 	if offset != len(signature) {
-		return nil, fmt.Errorf("signatures data contained %d extra bytes", len(signatures)-offset)
+		return nil, errors.Errorf("signatures data contained %d extra bytes", len(signatures)-offset)
 	}
 	return sigslice, nil
 }
@@ -513,12 +513,12 @@ func (s *storageImageSource) getSize() (int64, error) {
 	var sum int64
 	names, err := s.imageRef.transport.store.ListImageBigData(s.imageRef.id)
 	if err != nil {
-		return -1, fmt.Errorf("error reading image %q: %v", s.imageRef.id, err)
+		return -1, errors.Wrapf(err, "error reading image %q", s.imageRef.id)
 	}
 	for _, name := range names {
 		bigSize, err := s.imageRef.transport.store.GetImageBigDataSize(s.imageRef.id, name)
 		if err != nil {
-			return -1, fmt.Errorf("error reading data blob size %q for %q: %v", name, s.imageRef.id, err)
+			return -1, errors.Wrapf(err, "error reading data blob size %q for %q", name, s.imageRef.id)
 		}
 		sum += bigSize
 	}
@@ -536,11 +536,11 @@ func (s *storageImageSource) getSize() (int64, error) {
 			}
 			if layer.Metadata != "" {
 				if err := json.Unmarshal([]byte(layer.Metadata), &layerMeta); err != nil {
-					return -1, fmt.Errorf("error decoding metadata for layer %q: %v", layerID, err)
+					return -1, errors.Wrapf(err, "error decoding metadata for layer %q", layerID)
 				}
 			}
 			if layerMeta.Size < 0 {
-				return -1, fmt.Errorf("size for layer %q is unknown, failing getSize()", layerID)
+				return -1, errors.Errorf("size for layer %q is unknown, failing getSize()", layerID)
 			}
 			sum += layerMeta.Size
 		}

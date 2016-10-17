@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,8 +14,9 @@ import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/engine-api/client"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 
@@ -36,16 +36,16 @@ type daemonImageDestination struct {
 // newImageDestination returns a types.ImageDestination for the specified image reference.
 func newImageDestination(systemCtx *types.SystemContext, ref daemonReference) (types.ImageDestination, error) {
 	if ref.ref == nil {
-		return nil, fmt.Errorf("Invalid destination docker-daemon:%s: a destination must be a name:tag", ref.StringWithinTransport())
+		return nil, errors.Errorf("Invalid destination docker-daemon:%s: a destination must be a name:tag", ref.StringWithinTransport())
 	}
 	namedTaggedRef, ok := ref.ref.(reference.NamedTagged)
 	if !ok {
-		return nil, fmt.Errorf("Invalid destination docker-daemon:%s: a destination must be a name:tag", ref.StringWithinTransport())
+		return nil, errors.Errorf("Invalid destination docker-daemon:%s: a destination must be a name:tag", ref.StringWithinTransport())
 	}
 
 	c, err := client.NewClient(client.DefaultDockerHost, "1.22", nil, nil) // FIXME: overridable host
 	if err != nil {
-		return nil, fmt.Errorf("Error initializing docker engine client: %v", err)
+		return nil, errors.Wrap(err, "Error initializing docker engine client")
 	}
 
 	reader, writer := io.Pipe()
@@ -84,7 +84,7 @@ func imageLoadGoroutine(ctx context.Context, c *client.Client, reader *io.PipeRe
 
 	resp, err := c.ImageLoad(ctx, reader, true)
 	if err != nil {
-		err = fmt.Errorf("Error saving image to docker engine: %v", err)
+		err = errors.Wrap(err, "Error saving image to docker engine")
 		return
 	}
 	defer resp.Body.Close()
@@ -123,7 +123,7 @@ func (d *daemonImageDestination) SupportedManifestMIMETypes() []string {
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 // Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
 func (d *daemonImageDestination) SupportsSignatures() error {
-	return fmt.Errorf("Storing signatures for docker-daemon: destinations is not supported")
+	return errors.Errorf("Storing signatures for docker-daemon: destinations is not supported")
 }
 
 // ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
@@ -170,7 +170,7 @@ func (d *daemonImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 		logrus.Debugf("… streaming done")
 	}
 
-	digester := digest.Canonical.New()
+	digester := digest.Canonical.Digester()
 	tee := io.TeeReader(stream, digester.Hash())
 	if err := d.sendFile(inputInfo.Digest.String(), inputInfo.Size, tee); err != nil {
 		return types.BlobInfo{}, err
@@ -181,7 +181,7 @@ func (d *daemonImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 
 func (d *daemonImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
 	if info.Digest == "" {
-		return false, -1, fmt.Errorf(`"Can not check for a blob with unknown digest`)
+		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
 	}
 	if blob, ok := d.blobs[info.Digest]; ok {
 		return true, blob.Size, nil
@@ -196,10 +196,10 @@ func (d *daemonImageDestination) ReapplyBlob(info types.BlobInfo) (types.BlobInf
 func (d *daemonImageDestination) PutManifest(m []byte) error {
 	var man schema2Manifest
 	if err := json.Unmarshal(m, &man); err != nil {
-		return fmt.Errorf("Error parsing manifest: %v", err)
+		return errors.Wrap(err, "Error parsing manifest")
 	}
 	if man.SchemaVersion != 2 || man.MediaType != manifest.DockerV2Schema2MediaType {
-		return fmt.Errorf("Unsupported manifest type, need a Docker schema 2 manifest")
+		return errors.Errorf("Unsupported manifest type, need a Docker schema 2 manifest")
 	}
 
 	layerPaths := []string{}
@@ -280,14 +280,14 @@ func (d *daemonImageDestination) sendFile(path string, expectedSize int64, strea
 		return err
 	}
 	if size != expectedSize {
-		return fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", path, expectedSize, size)
+		return errors.Errorf("Size mismatch when copying %s, expected %d, got %d", path, expectedSize, size)
 	}
 	return nil
 }
 
 func (d *daemonImageDestination) PutSignatures(signatures [][]byte) error {
 	if len(signatures) != 0 {
-		return fmt.Errorf("Storing signatures for docker-daemon: destinations is not supported")
+		return errors.Errorf("Storing signatures for docker-daemon: destinations is not supported")
 	}
 	return nil
 }

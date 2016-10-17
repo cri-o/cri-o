@@ -9,6 +9,7 @@ import (
 	"github.com/containers/image/docker/reference"
 	genericImage "github.com/containers/image/image"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 )
 
 // Transport is an ImageTransport for OpenShift registry-hosted images.
@@ -36,7 +37,7 @@ var scopeRegexp = regexp.MustCompile("^[^/]*(/[^:/]*(/[^:/]*(:[^:/]*)?)?)?$")
 // scope passed to this function will not be "", that value is always allowed.
 func (t openshiftTransport) ValidatePolicyConfigurationScope(scope string) error {
 	if scopeRegexp.FindStringIndex(scope) == nil {
-		return fmt.Errorf("Invalid scope name %s", scope)
+		return errors.Errorf("Invalid scope name %s", scope)
 	}
 	return nil
 }
@@ -52,11 +53,11 @@ type openshiftReference struct {
 func ParseReference(ref string) (types.ImageReference, error) {
 	r, err := reference.ParseNamed(ref)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse image reference %q, %v", ref, err)
+		return nil, errors.Wrapf(err, "failed to parse image reference %q", ref)
 	}
 	tagged, ok := r.(reference.NamedTagged)
 	if !ok {
-		return nil, fmt.Errorf("invalid image reference %s, %#v", ref, r)
+		return nil, errors.Errorf("invalid image reference %s, %#v", ref, r)
 	}
 	return NewReference(tagged)
 }
@@ -65,7 +66,7 @@ func ParseReference(ref string) (types.ImageReference, error) {
 func NewReference(dockerRef reference.NamedTagged) (types.ImageReference, error) {
 	r := strings.SplitN(dockerRef.RemoteName(), "/", 3)
 	if len(r) != 2 {
-		return nil, fmt.Errorf("invalid image reference %s", dockerRef.String())
+		return nil, errors.Errorf("invalid image reference %s", dockerRef.String())
 	}
 	return openshiftReference{
 		namespace:       r[0],
@@ -146,5 +147,5 @@ func (ref openshiftReference) NewImageDestination(ctx *types.SystemContext) (typ
 
 // DeleteImage deletes the named image from the registry, if supported.
 func (ref openshiftReference) DeleteImage(ctx *types.SystemContext) error {
-	return fmt.Errorf("Deleting images not implemented for atomic: images")
+	return errors.Errorf("Deleting images not implemented for atomic: images")
 }

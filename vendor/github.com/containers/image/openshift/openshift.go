@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,7 +16,8 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/image/version"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 // openshiftClient is configuration for dealing with a single image stream, for reading or writing.
@@ -124,7 +124,7 @@ func (c *openshiftClient) doRequest(method, path string, requestBody []byte) ([]
 		if statusValid {
 			return nil, errors.New(status.Message)
 		}
-		return nil, fmt.Errorf("HTTP error: status code: %d, body: %s", res.StatusCode, string(body))
+		return nil, errors.Errorf("HTTP error: status code: %d, body: %s", res.StatusCode, string(body))
 	}
 
 	return body, nil
@@ -151,7 +151,7 @@ func (c *openshiftClient) getImage(imageStreamImageName string) (*image, error) 
 func (c *openshiftClient) convertDockerImageReference(ref string) (string, error) {
 	parts := strings.SplitN(ref, "/", 2)
 	if len(parts) != 2 {
-		return "", fmt.Errorf("Invalid format of docker reference %s: missing '/'", ref)
+		return "", errors.Errorf("Invalid format of docker reference %s: missing '/'", ref)
 	}
 	return c.ref.dockerReference.Hostname() + "/" + parts[1], nil
 }
@@ -267,7 +267,7 @@ func (s *openshiftImageSource) ensureImageIsResolved() error {
 		}
 	}
 	if te == nil {
-		return fmt.Errorf("No matching tag found")
+		return errors.Errorf("No matching tag found")
 	}
 	logrus.Debugf("tag event %#v", te)
 	dockerRefString, err := s.client.convertDockerImageReference(te.DockerImageReference)
@@ -386,7 +386,7 @@ func (d *openshiftImageDestination) PutManifest(m []byte) error {
 
 func (d *openshiftImageDestination) PutSignatures(signatures [][]byte) error {
 	if d.imageStreamImageName == "" {
-		return fmt.Errorf("Internal error: Unknown manifest digest, can't add signatures")
+		return errors.Errorf("Internal error: Unknown manifest digest, can't add signatures")
 	}
 	// Because image signatures are a shared resource in Atomic Registry, the default upload
 	// always adds signatures.  Eventually we should also allow removing signatures.
@@ -418,7 +418,7 @@ sigExists:
 			randBytes := make([]byte, 16)
 			n, err := rand.Read(randBytes)
 			if err != nil || n != 16 {
-				return fmt.Errorf("Error generating random signature ID: %v, len %d", err, n)
+				return errors.Wrapf(err, "Error generating random signature len %d", n)
 			}
 			signatureName = fmt.Sprintf("%s@%032x", d.imageStreamImageName, randBytes)
 			if _, ok := existingSigNames[signatureName]; !ok {

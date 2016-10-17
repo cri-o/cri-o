@@ -1,11 +1,10 @@
-
 package ocicni
 
 import (
+	"fmt"
+	"net"
 	"os/exec"
 	"strings"
-	"net"
-	"fmt"
 )
 
 func getContainerIP(nsenterPath, netnsPath, interfaceName, addrType string) (net.IP, error) {

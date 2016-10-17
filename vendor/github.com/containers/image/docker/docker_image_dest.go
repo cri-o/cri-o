@@ -13,7 +13,8 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 type dockerImageDestination struct {
@@ -57,7 +58,7 @@ func (d *dockerImageDestination) SupportedManifestMIMETypes() []string {
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 // Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
 func (d *dockerImageDestination) SupportsSignatures() error {
-	return fmt.Errorf("Pushing signatures to a Docker Registry is not supported")
+	return errors.Errorf("Pushing signatures to a Docker Registry is not supported")
 }
 
 // ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
@@ -101,11 +102,11 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 			return types.BlobInfo{Digest: inputInfo.Digest, Size: getBlobSize(res)}, nil
 		case http.StatusUnauthorized:
 			logrus.Debugf("... not authorized")
-			return types.BlobInfo{}, fmt.Errorf("not authorized to read from destination repository %s", d.ref.ref.RemoteName())
+			return types.BlobInfo{}, errors.Errorf("not authorized to read from destination repository %s", d.ref.ref.RemoteName())
 		case http.StatusNotFound:
 			// noop
 		default:
-			return types.BlobInfo{}, fmt.Errorf("failed to read from destination repository %s: %v", d.ref.ref.RemoteName(), http.StatusText(res.StatusCode))
+			return types.BlobInfo{}, errors.Errorf("failed to read from destination repository %s: %v", d.ref.ref.RemoteName(), http.StatusText(res.StatusCode))
 		}
 		logrus.Debugf("... failed, status %d", res.StatusCode)
 	}
@@ -120,14 +121,14 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusAccepted {
 		logrus.Debugf("Error initiating layer upload, response %#v", *res)
-		return types.BlobInfo{}, fmt.Errorf("Error initiating layer upload to %s, status %d", uploadURL, res.StatusCode)
+		return types.BlobInfo{}, errors.Errorf("Error initiating layer upload to %s, status %d", uploadURL, res.StatusCode)
 	}
 	uploadLocation, err := res.Location()
 	if err != nil {
-		return types.BlobInfo{}, fmt.Errorf("Error determining upload URL: %s", err.Error())
+		return types.BlobInfo{}, errors.Wrap(err, "Error determining upload URL")
 	}
 
-	digester := digest.Canonical.New()
+	digester := digest.Canonical.Digester()
 	sizeCounter := &sizeCounter{}
 	tee := io.TeeReader(stream, io.MultiWriter(digester.Hash(), sizeCounter))
 	res, err = d.c.makeRequestToResolvedURL("PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, true)
@@ -140,7 +141,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 
 	uploadLocation, err = res.Location()
 	if err != nil {
-		return types.BlobInfo{}, fmt.Errorf("Error determining upload URL: %s", err.Error())
+		return types.BlobInfo{}, errors.Wrap(err, "Error determining upload URL")
 	}
 
 	// FIXME: DELETE uploadLocation on failure
@@ -156,7 +157,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		logrus.Debugf("Error uploading layer, response %#v", *res)
-		return types.BlobInfo{}, fmt.Errorf("Error uploading layer to %s, status %d", uploadLocation, res.StatusCode)
+		return types.BlobInfo{}, errors.Errorf("Error uploading layer to %s, status %d", uploadLocation, res.StatusCode)
 	}
 
 	logrus.Debugf("Upload of layer %s complete", computedDigest)
@@ -165,7 +166,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 
 func (d *dockerImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
 	if info.Digest == "" {
-		return false, -1, fmt.Errorf(`"Can not check for a blob with unknown digest`)
+		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
 	}
 	checkURL := fmt.Sprintf(blobsURL, d.ref.ref.RemoteName(), info.Digest.String())
 
@@ -181,7 +182,7 @@ func (d *dockerImageDestination) HasBlob(info types.BlobInfo) (bool, int64, erro
 		return true, getBlobSize(res), nil
 	case http.StatusUnauthorized:
 		logrus.Debugf("... not authorized")
-		return false, -1, fmt.Errorf("not authorized to read from destination repository %s", d.ref.ref.RemoteName())
+		return false, -1, errors.Errorf("not authorized to read from destination repository %s", d.ref.ref.RemoteName())
 	case http.StatusNotFound:
 		logrus.Debugf("... not present")
 		return false, -1, types.ErrBlobNotFound
@@ -225,7 +226,7 @@ func (d *dockerImageDestination) PutManifest(m []byte) error {
 			logrus.Debugf("Error body %s", string(body))
 		}
 		logrus.Debugf("Error uploading manifest, status %d, %#v", res.StatusCode, res)
-		return fmt.Errorf("Error uploading manifest to %s, status %d", url, res.StatusCode)
+		return errors.Errorf("Error uploading manifest to %s, status %d", url, res.StatusCode)
 	}
 	return nil
 }
@@ -239,18 +240,18 @@ func (d *dockerImageDestination) PutSignatures(signatures [][]byte) error {
 		return nil
 	}
 	if d.c.signatureBase == nil {
-		return fmt.Errorf("Pushing signatures to a Docker Registry is not supported, and there is no applicable signature storage configured")
+		return errors.Errorf("Pushing signatures to a Docker Registry is not supported, and there is no applicable signature storage configured")
 	}
 
 	if d.manifestDigest.String() == "" {
 		// This shouldn’t happen, ImageDestination users are required to call PutManifest before PutSignatures
-		return fmt.Errorf("Unknown manifest digest, can't add signatures")
+		return errors.Errorf("Unknown manifest digest, can't add signatures")
 	}
 
 	for i, signature := range signatures {
 		url := signatureStorageURL(d.c.signatureBase, d.manifestDigest, i)
 		if url == nil {
-			return fmt.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
+			return errors.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
 		}
 		err := d.putOneSignature(url, signature)
 		if err != nil {
@@ -265,7 +266,7 @@ func (d *dockerImageDestination) PutSignatures(signatures [][]byte) error {
 	for i := len(signatures); ; i++ {
 		url := signatureStorageURL(d.c.signatureBase, d.manifestDigest, i)
 		if url == nil {
-			return fmt.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
+			return errors.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
 		}
 		missing, err := d.c.deleteOneSignature(url)
 		if err != nil {
@@ -295,9 +296,9 @@ func (d *dockerImageDestination) putOneSignature(url *url.URL, signature []byte)
 		return nil
 
 	case "http", "https":
-		return fmt.Errorf("Writing directly to a %s sigstore %s is not supported. Configure a sigstore-staging: location", url.Scheme, url.String())
+		return errors.Errorf("Writing directly to a %s sigstore %s is not supported. Configure a sigstore-staging: location", url.Scheme, url.String())
 	default:
-		return fmt.Errorf("Unsupported scheme when writing signature to %s", url.String())
+		return errors.Errorf("Unsupported scheme when writing signature to %s", url.String())
 	}
 }
 
@@ -314,9 +315,9 @@ func (c *dockerClient) deleteOneSignature(url *url.URL) (missing bool, err error
 		return false, err
 
 	case "http", "https":
-		return false, fmt.Errorf("Writing directly to a %s sigstore %s is not supported. Configure a sigstore-staging: location", url.Scheme, url.String())
+		return false, errors.Errorf("Writing directly to a %s sigstore %s is not supported. Configure a sigstore-staging: location", url.Scheme, url.String())
 	default:
-		return false, fmt.Errorf("Unsupported scheme when deleting signature from %s", url.String())
+		return false, errors.Errorf("Unsupported scheme when deleting signature from %s", url.String())
 	}
 }
 

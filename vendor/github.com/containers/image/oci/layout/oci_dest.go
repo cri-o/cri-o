@@ -2,16 +2,16 @@ package layout
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
+
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -44,7 +44,7 @@ func (d *ociImageDestination) SupportedManifestMIMETypes() []string {
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 // Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
 func (d *ociImageDestination) SupportsSignatures() error {
-	return fmt.Errorf("Pushing signatures for OCI images is not supported")
+	return errors.Errorf("Pushing signatures for OCI images is not supported")
 }
 
 // ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
@@ -80,7 +80,7 @@ func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo
 		}
 	}()
 
-	digester := digest.Canonical.New()
+	digester := digest.Canonical.Digester()
 	tee := io.TeeReader(stream, digester.Hash())
 
 	size, err := io.Copy(blobFile, tee)
@@ -89,7 +89,7 @@ func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo
 	}
 	computedDigest := digester.Digest()
 	if inputInfo.Size != -1 && size != inputInfo.Size {
-		return types.BlobInfo{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", computedDigest, inputInfo.Size, size)
+		return types.BlobInfo{}, errors.Errorf("Size mismatch when copying %s, expected %d, got %d", computedDigest, inputInfo.Size, size)
 	}
 	if err := blobFile.Sync(); err != nil {
 		return types.BlobInfo{}, err
@@ -114,7 +114,7 @@ func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo
 
 func (d *ociImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
 	if info.Digest == "" {
-		return false, -1, fmt.Errorf(`"Can not check for a blob with unknown digest`)
+		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
 	}
 	blobPath, err := d.ref.blobPath(info.Digest)
 	if err != nil {
@@ -169,7 +169,7 @@ func createManifest(m []byte) ([]byte, string, error) {
 	case imgspecv1.MediaTypeImageManifest:
 		return m, mt, nil
 	}
-	return nil, "", fmt.Errorf("unrecognized manifest media type %q", mt)
+	return nil, "", errors.Errorf("unrecognized manifest media type %q", mt)
 }
 
 func (d *ociImageDestination) PutManifest(m []byte) error {
@@ -227,7 +227,7 @@ func ensureParentDirectoryExists(path string) error {
 
 func (d *ociImageDestination) PutSignatures(signatures [][]byte) error {
 	if len(signatures) != 0 {
-		return fmt.Errorf("Pushing signatures for OCI images is not supported")
+		return errors.Errorf("Pushing signatures for OCI images is not supported")
 	}
 	return nil
 }

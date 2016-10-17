@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/image/image"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 )
 
 // Image is a Docker-specific implementation of types.Image with a few extra methods
@@ -46,7 +47,7 @@ func (i *Image) GetRepositoryTags() ([]string, error) {
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		// print url also
-		return nil, fmt.Errorf("Invalid status code returned when fetching tags list %d", res.StatusCode)
+		return nil, errors.Errorf("Invalid status code returned when fetching tags list %d", res.StatusCode)
 	}
 	type tagsRes struct {
 		Tags []string

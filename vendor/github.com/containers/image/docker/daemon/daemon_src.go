@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,8 +11,9 @@ import (
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/engine-api/client"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 
@@ -49,13 +49,13 @@ type layerInfo struct {
 func newImageSource(ctx *types.SystemContext, ref daemonReference) (types.ImageSource, error) {
 	c, err := client.NewClient(client.DefaultDockerHost, "1.22", nil, nil) // FIXME: overridable host
 	if err != nil {
-		return nil, fmt.Errorf("Error initializing docker engine client: %v", err)
+		return nil, errors.Wrap(err, "Error initializing docker engine client")
 	}
 	// Per NewReference(), ref.StringWithinTransport() is either an image ID (config digest), or a !reference.NameOnly() reference.
 	// Either way ImageSave should create a tarball with exactly one image.
 	inputStream, err := c.ImageSave(context.TODO(), []string{ref.StringWithinTransport()})
 	if err != nil {
-		return nil, fmt.Errorf("Error loading image from docker engine: %v", err)
+		return nil, errors.Wrap(err, "Error loading image from docker engine")
 	}
 	defer inputStream.Close()
 
@@ -145,7 +145,7 @@ func (s *daemonImageSource) openTarComponent(componentPath string) (io.ReadClose
 	}
 
 	if !header.FileInfo().Mode().IsRegular() {
-		return nil, fmt.Errorf("Error reading tar archive component %s: not a regular file", header.Name)
+		return nil, errors.Errorf("Error reading tar archive component %s: not a regular file", header.Name)
 	}
 	succeeded = true
 	return &tarReadCloser{Reader: tarReader, backingFile: f}, nil
@@ -174,7 +174,7 @@ func findTarComponent(inputFile io.Reader, path string) (*tar.Reader, *tar.Heade
 func (s *daemonImageSource) readTarComponent(path string) ([]byte, error) {
 	file, err := s.openTarComponent(path)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading tar component %s: %v", path, err)
+		return nil, errors.Wrapf(err, "Error loading tar component %s", path)
 	}
 	defer file.Close()
 	bytes, err := ioutil.ReadAll(file)
@@ -203,7 +203,7 @@ func (s *daemonImageSource) ensureCachedDataIsPresent() error {
 	}
 	var parsedConfig dockerImage // Most fields ommitted, we only care about layer DiffIDs.
 	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
-		return fmt.Errorf("Error decoding tar config %s: %v", tarManifest.Config, err)
+		return errors.Wrapf(err, "Error decoding tar config %s", tarManifest.Config)
 	}
 
 	knownLayers, err := s.prepareLayerData(tarManifest, &parsedConfig)
@@ -229,10 +229,10 @@ func (s *daemonImageSource) loadTarManifest() (*manifestItem, error) {
 	}
 	var items []manifestItem
 	if err := json.Unmarshal(bytes, &items); err != nil {
-		return nil, fmt.Errorf("Error decoding tar manifest.json: %v", err)
+		return nil, errors.Wrap(err, "Error decoding tar manifest.json")
 	}
 	if len(items) != 1 {
-		return nil, fmt.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(items))
+		return nil, errors.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(items))
 	}
 	return &items[0], nil
 }
@@ -240,7 +240,7 @@ func (s *daemonImageSource) loadTarManifest() (*manifestItem, error) {
 func (s *daemonImageSource) prepareLayerData(tarManifest *manifestItem, parsedConfig *dockerImage) (map[diffID]*layerInfo, error) {
 	// Collect layer data available in manifest and config.
 	if len(tarManifest.Layers) != len(parsedConfig.RootFS.DiffIDs) {
-		return nil, fmt.Errorf("Inconsistent layer count: %d in manifest, %d in config", len(tarManifest.Layers), len(parsedConfig.RootFS.DiffIDs))
+		return nil, errors.Errorf("Inconsistent layer count: %d in manifest, %d in config", len(tarManifest.Layers), len(parsedConfig.RootFS.DiffIDs))
 	}
 	knownLayers := map[diffID]*layerInfo{}
 	unknownLayerSizes := map[string]*layerInfo{} // Points into knownLayers, a "to do list" of items with unknown sizes.
@@ -253,7 +253,7 @@ func (s *daemonImageSource) prepareLayerData(tarManifest *manifestItem, parsedCo
 		}
 		layerPath := tarManifest.Layers[i]
 		if _, ok := unknownLayerSizes[layerPath]; ok {
-			return nil, fmt.Errorf("Layer tarfile %s used for two different DiffID values", layerPath)
+			return nil, errors.Errorf("Layer tarfile %s used for two different DiffID values", layerPath)
 		}
 		li := &layerInfo{ // A new element in each iteration
 			path: layerPath,
@@ -284,7 +284,7 @@ func (s *daemonImageSource) prepareLayerData(tarManifest *manifestItem, parsedCo
 		}
 	}
 	if len(unknownLayerSizes) != 0 {
-		return nil, fmt.Errorf("Some layer tarfiles are missing in the tarball") // This could do with a better error reporting, if this ever happened in practice.
+		return nil, errors.Errorf("Some layer tarfiles are missing in the tarball") // This could do with a better error reporting, if this ever happened in practice.
 	}
 
 	return knownLayers, nil
@@ -310,7 +310,7 @@ func (s *daemonImageSource) GetManifest() ([]byte, string, error) {
 		for _, diffID := range s.orderedDiffIDList {
 			li, ok := s.knownLayers[diffID]
 			if !ok {
-				return nil, "", fmt.Errorf("Internal inconsistency: Information about layer %s missing", diffID)
+				return nil, "", errors.Errorf("Internal inconsistency: Information about layer %s missing", diffID)
 			}
 			m.Layers = append(m.Layers, distributionDescriptor{
 				Digest:    digest.Digest(diffID), // diffID is a digest of the uncompressed tarball
@@ -331,7 +331,7 @@ func (s *daemonImageSource) GetManifest() ([]byte, string, error) {
 // out of a manifest list.
 func (s *daemonImageSource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
 	// How did we even get here? GetManifest() above has returned a manifest.DockerV2Schema2MediaType.
-	return nil, "", fmt.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
+	return nil, "", errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
@@ -352,7 +352,7 @@ func (s *daemonImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, 
 		return stream, li.size, nil
 	}
 
-	return nil, 0, fmt.Errorf("Unknown blob %s", info.Digest)
+	return nil, 0, errors.Errorf("Unknown blob %s", info.Digest)
 }
 
 // GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
