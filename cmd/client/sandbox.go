@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"time"
 
 	"github.com/urfave/cli"
@@ -34,6 +36,10 @@ var runPodSandboxCommand = cli.Command{
 			Value: "",
 			Usage: "the name of the pod sandbox",
 		},
+		cli.StringSliceFlag{
+			Name:  "label",
+			Usage: "add key=value labels to the container",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -44,8 +50,22 @@ var runPodSandboxCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
+		opts := createOptions{
+			configPath: context.String("config"),
+			name:       context.String("name"),
+			labels:     make(map[string]string),
+		}
+
+		for _, l := range context.StringSlice("label") {
+			pair := strings.Split(l, "=")
+			if len(pair) != 2 {
+				return fmt.Errorf("incorrectly specified label: %v", l)
+			}
+			opts.labels[pair[0]] = pair[1]
+		}
+
 		// Test RuntimeServiceClient.RunPodSandbox
-		err = RunPodSandbox(client, context.String("config"), context.String("name"))
+		err = RunPodSandbox(client, opts)
 		if err != nil {
 			return fmt.Errorf("Creating the pod sandbox failed: %v", err)
 		}
@@ -138,6 +158,20 @@ var listPodSandboxCommand = cli.Command{
 	Name:  "list",
 	Usage: "list pod sandboxes",
 	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "filter by pod sandbox id",
+		},
+		cli.StringFlag{
+			Name:  "state",
+			Value: "",
+			Usage: "filter by pod sandbox state",
+		},
+		cli.StringSliceFlag{
+			Name:  "label",
+			Usage: "filter by key=value label",
+		},
 		cli.BoolFlag{
 			Name:  "quiet",
 			Usage: "list only pod IDs",
@@ -152,7 +186,22 @@ var listPodSandboxCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
-		err = ListPodSandboxes(client, context.Bool("quiet"))
+		opts := listOptions{
+			id:     context.String("id"),
+			state:  context.String("state"),
+			quiet:  context.Bool("quiet"),
+			labels: make(map[string]string),
+		}
+
+		for _, l := range context.StringSlice("label") {
+			pair := strings.Split(l, "=")
+			if len(pair) != 2 {
+				return fmt.Errorf("incorrectly specified label: %v", l)
+			}
+			opts.labels[pair[0]] = pair[1]
+		}
+
+		err = ListPodSandboxes(client, opts)
 		if err != nil {
 			return fmt.Errorf("listing pod sandboxes failed: %v", err)
 		}
@@ -162,15 +211,19 @@ var listPodSandboxCommand = cli.Command{
 
 // RunPodSandbox sends a RunPodSandboxRequest to the server, and parses
 // the returned RunPodSandboxResponse.
-func RunPodSandbox(client pb.RuntimeServiceClient, path string, name string) error {
-	config, err := loadPodSandboxConfig(path)
+func RunPodSandbox(client pb.RuntimeServiceClient, opts createOptions) error {
+	config, err := loadPodSandboxConfig(opts.configPath)
 	if err != nil {
 		return err
 	}
 
 	// Override the name by the one specified through CLI
-	if name != "" {
-		config.Metadata.Name = &name
+	if opts.name != "" {
+		config.Metadata.Name = &opts.name
+	}
+
+	for k, v := range opts.labels {
+		config.Labels[k] = v
 	}
 
 	r, err := client.RunPodSandbox(context.Background(), &pb.RunPodSandboxRequest{Config: config})
@@ -264,13 +317,35 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 
 // ListPodSandboxes sends a ListPodSandboxRequest to the server, and parses
 // the returned ListPodSandboxResponse.
-func ListPodSandboxes(client pb.RuntimeServiceClient, quiet bool) error {
-	r, err := client.ListPodSandbox(context.Background(), &pb.ListPodSandboxRequest{})
+func ListPodSandboxes(client pb.RuntimeServiceClient, opts listOptions) error {
+	filter := &pb.PodSandboxFilter{}
+	if opts.id != "" {
+		filter.Id = &opts.id
+	}
+	if opts.state != "" {
+		st := pb.PodSandBoxState_NOTREADY
+		switch opts.state {
+		case "ready":
+			st = pb.PodSandBoxState_READY
+			filter.State = &st
+		case "notready":
+			st = pb.PodSandBoxState_NOTREADY
+			filter.State = &st
+		default:
+			log.Fatalf("--state should be ready or notready")
+		}
+	}
+	if opts.labels != nil {
+		filter.LabelSelector = opts.labels
+	}
+	r, err := client.ListPodSandbox(context.Background(), &pb.ListPodSandboxRequest{
+		Filter: filter,
+	})
 	if err != nil {
 		return err
 	}
 	for _, pod := range r.Items {
-		if quiet {
+		if opts.quiet {
 			fmt.Println(*pod.Id)
 			continue
 		}

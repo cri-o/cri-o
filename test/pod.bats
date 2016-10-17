@@ -65,3 +65,91 @@ function teardown() {
 	cleanup_pods
 	stop_ocid
 }
+
+@test "pod list filtering" {
+	# this test requires docker, thus it can't yet be run in a container
+	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
+		skip "cannot yet run this test in a container, use sudo make localintegration"
+	fi
+
+	start_ocid
+	run ocic pod create --config "$TESTDATA"/sandbox_config.json -name pod1 --label "a=b" --label "c=d" --label "e=f"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod1_id="$output"
+	run ocic pod create --config "$TESTDATA"/sandbox_config.json -name pod2 --label "a=b" --label "c=d"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod2_id="$output"
+	run ocic pod create --config "$TESTDATA"/sandbox_config.json -name pod3 --label "a=b"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod3_id="$output"
+	run ocic pod list --label "a=b" --label "c=d" --label "e=f" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod1_id"  ]]
+	run ocic pod list --label "g=h" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" == "" ]]
+	run ocic pod list --label "a=b" --label "c=d" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod1_id"  ]]
+	[[ "$output" =~ "$pod2_id"  ]]
+	run ocic pod list --label "a=b" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod1_id"  ]]
+	[[ "$output" =~ "$pod2_id"  ]]
+	[[ "$output" =~ "$pod3_id"  ]]
+	run ocic pod list --id "$pod1_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod1_id"  ]]
+	run ocic pod list --id "$pod2_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod2_id"  ]]
+	run ocic pod list --id "$pod3_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod3_id"  ]]
+	run ocic pod list --id "$pod1_id" --label "a=b"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod1_id"  ]]
+	run ocic pod list --id "$pod2_id" --label "a=b"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod2_id"  ]]
+	run ocic pod list --id "$pod3_id" --label "a=b"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod3_id"  ]]
+	run ocic pod list --id "$pod3_id" --label "c=d"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" == "" ]]
+	run ocic pod remove --id "$pod1_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic pod remove --id "$pod2_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic pod remove --id "$pod3_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_pods
+	stop_ocid
+}
