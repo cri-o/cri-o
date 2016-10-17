@@ -13,6 +13,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
+	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
@@ -20,7 +21,7 @@ type sandbox struct {
 	id           string
 	name         string
 	logDir       string
-	labels       map[string]string
+	labels       fields.Set
 	annotations  map[string]string
 	containers   oci.Store
 	processLabel string
