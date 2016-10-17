@@ -36,6 +36,10 @@ var runPodSandboxCommand = cli.Command{
 			Value: "",
 			Usage: "the name of the pod sandbox",
 		},
+		cli.StringSliceFlag{
+			Name:  "label",
+			Usage: "add key=value labels to the container",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -46,8 +50,22 @@ var runPodSandboxCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
+		opts := createOptions{
+			configPath: context.String("config"),
+			name:       context.String("name"),
+			labels:     make(map[string]string),
+		}
+
+		for _, l := range context.StringSlice("label") {
+			pair := strings.Split(l, "=")
+			if len(pair) != 2 {
+				return fmt.Errorf("incorrectly specified label: %v", l)
+			}
+			opts.labels[pair[0]] = pair[1]
+		}
+
 		// Test RuntimeServiceClient.RunPodSandbox
-		err = RunPodSandbox(client, context.String("config"), context.String("name"))
+		err = RunPodSandbox(client, opts)
 		if err != nil {
 			return fmt.Errorf("Creating the pod sandbox failed: %v", err)
 		}
@@ -193,15 +211,19 @@ var listPodSandboxCommand = cli.Command{
 
 // RunPodSandbox sends a RunPodSandboxRequest to the server, and parses
 // the returned RunPodSandboxResponse.
-func RunPodSandbox(client pb.RuntimeServiceClient, path string, name string) error {
-	config, err := loadPodSandboxConfig(path)
+func RunPodSandbox(client pb.RuntimeServiceClient, opts createOptions) error {
+	config, err := loadPodSandboxConfig(opts.configPath)
 	if err != nil {
 		return err
 	}
 
 	// Override the name by the one specified through CLI
-	if name != "" {
-		config.Metadata.Name = &name
+	if opts.name != "" {
+		config.Metadata.Name = &opts.name
+	}
+
+	for k, v := range opts.labels {
+		config.Labels[k] = v
 	}
 
 	r, err := client.RunPodSandbox(context.Background(), &pb.RunPodSandboxRequest{Config: config})
