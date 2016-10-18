@@ -12,17 +12,21 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 # The "ocid" table contains all of the server options.
 [ocid]
 
-# root is a path to the "root directory". OCID stores all of its state
-# data, including container images, in this directory.
+# root is a path to the "root directory". OCID stores all of its data,
+# including container images, in this directory.
 root = "{{ .Root }}"
 
-# sandbox_dir is the directory where ocid will store all of its sandbox
-# state and other information.
-sandbox_dir = "{{ .SandboxDir }}"
+# run is a path to the "run directory". OCID stores all of its state
+# in this directory.
+runroot = "{{ .RunRoot }}"
 
-# container_dir is the directory where ocid will store all of its
-# container state and other information.
-container_dir = "{{ .ContainerDir }}"
+# storage_driver select which storage driver is used to manage storage
+# of images and containers.
+storage_driver = "{{ .Storage }}"
+
+# storage_option is used to pass an option to the storage driver.
+storage_option = [
+{{ range $opt := .StorageOptions }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
 # The "ocid.api" table contains settings for the kubelet/gRPC
 # interface (which is also used by ocic).
@@ -67,9 +71,23 @@ cgroup_manager = "{{ .CgroupManager }}"
 # management of OCI images.
 [ocid.image]
 
-# pause is the path to the statically linked pause container binary, used
-# as the entrypoint for infra containers.
-pause = "{{ .Pause }}"
+# default_transport is the prefix we try prepending to an image name if the
+# image name as we receive it can't be parsed as a valid source reference
+default_transport = "{{ .DefaultTransport }}"
+
+# pause_image is the image which we use to instantiate infra containers.
+pause_image = "{{ .PauseImage }}"
+
+# pause_command is the command to run in a pause_image to have a container just
+# sit there.  If the image contains the necessary information, this value need
+# not be specified.
+pause_command = "{{ .PauseCommand }}"
+
+# signature_policy is the name of the file which decides what sort of policy we
+# use when deciding whether or not to trust an image that we've pulled.
+# Outside of testing situations, it is strongly advised that this be left
+# unspecified so that the default system-wide policy will be used.
+signature_policy = "{{ .SignaturePolicyPath }}"
 
 # The "ocid.network" table contains settings pertaining to the
 # management of CNI plugins.

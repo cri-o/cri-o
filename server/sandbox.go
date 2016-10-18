@@ -145,6 +145,7 @@ const (
 	podDefaultNamespace = "default"
 	defaultShmSize      = 64 * 1024 * 1024
 	nsRunDir            = "/var/run/netns"
+	podInfraCommand     = "/pause"
 )
 
 var (
@@ -277,7 +278,7 @@ func (s *Server) getPodSandboxFromRequest(req podSandboxRequest) (*sandbox, erro
 
 	sb := s.getSandbox(sandboxID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
+		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
 	}
 	return sb, nil
 }

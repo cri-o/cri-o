@@ -2,8 +2,6 @@ package server
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -15,6 +13,7 @@ import (
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (*pb.RemoveContainerResponse, error) {
 	logrus.Debugf("RemoveContainerRequest %+v", req)
+	s.Update()
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -35,9 +34,12 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, fmt.Errorf("failed to delete container %s: %v", c.ID(), err)
 	}
 
-	containerDir := filepath.Join(s.runtime.ContainerDir(), c.ID())
-	if err := os.RemoveAll(containerDir); err != nil {
-		return nil, fmt.Errorf("failed to remove container %s directory: %v", c.ID(), err)
+	if err := s.storage.StopContainer(c.ID()); err != nil {
+		return nil, fmt.Errorf("failed to unmount container %s: %v", c.ID(), err)
+	}
+
+	if err := s.storage.DeleteContainer(c.ID()); err != nil {
+		return nil, fmt.Errorf("failed to delete storage for container %s: %v", c.ID(), err)
 	}
 
 	s.releaseContainerName(c.Name())
