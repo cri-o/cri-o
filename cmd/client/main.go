@@ -13,13 +13,8 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
-const (
-	// TODO: Make configurable
-	timeout = 10 * time.Second
-)
-
 func getClientConnection(context *cli.Context) (*grpc.ClientConn, error) {
-	conn, err := grpc.Dial(context.GlobalString("connect"), grpc.WithInsecure(), grpc.WithTimeout(timeout),
+	conn, err := grpc.Dial(context.GlobalString("connect"), grpc.WithInsecure(), grpc.WithTimeout(context.GlobalDuration("timeout")),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
 			return net.DialTimeout("unix", addr, timeout)
 		}))
@@ -86,6 +81,11 @@ func main() {
 			Name:  "connect",
 			Value: "/var/run/ocid.sock",
 			Usage: "Socket to connect to",
+		},
+		cli.DurationFlag{
+			Name:  "timeout",
+			Value: 10 * time.Second,
+			Usage: "Timeout of connecting to server",
 		},
 	}
 
