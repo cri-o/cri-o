@@ -78,7 +78,8 @@ localintegration: binaries
 
 binaries: ocid ocic conmon pause
 
-MANPAGES_MD = $(wildcard docs/*.md)
+MANPAGES_MD := $(wildcard docs/*.md)
+MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 docs/%.8: docs/%.8.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
@@ -88,7 +89,7 @@ docs/%.5: docs/%.5.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs: $(MANPAGES_MD:%.md=%)
+docs: $(MANPAGES)
 
 install: all
 	install -D -m 755 ocid ${INSTALLDIR}/ocid
@@ -96,9 +97,9 @@ install: all
 	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
 	install -D -m 755 pause/pause $(PREFIX)/libexec/ocid/pause
 	install -d $(PREFIX)/share/man/man8
-	install -m 644 $(wildcard docs/*.8) $(PREFIX)/share/man/man8
+	install -m 644 $(filter %.8,$(MANPAGES)) $(PREFIX)/share/man/man8
 	install -d $(PREFIX)/share/man/man5
-	install -m 644 $(wildcard docs/*.5) $(PREFIX)/share/man/man5
+	install -m 644 $(filter %.5,$(MANPAGES)) $(PREFIX)/share/man/man5
 	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
 	install -D -m 644 ocid.conf $(DESTDIR)/etc
 
