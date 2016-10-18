@@ -54,7 +54,7 @@ clean:
 	rm -f ocid.conf
 	rm -f ocic ocid
 	rm -f ${OCID_LINK}
-	rm -f docs/*.5 docs/*.5.gz docs/*.8 docs/*.8.gz
+	rm -f docs/*.5 docs/*.8
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 	make -C conmon clean
@@ -106,10 +106,10 @@ uninstall:
 	rm -f $(PREFIX)/lib/systemd/system/ocid.service
 	rm -f ${INSTALLDIR}/{ocid,ocic}
 	rm -f $(PREFIX)/libexec/ocid/{conmon,pause}
-	for i in $(wildcard docs/*.8.gz); do \
+	for i in $(wildcard docs/*.8); do \
 		rm -f $(PREFIX)/share/man/man8/$$(basename $${i}); \
 	done
-	for i in $(wildcard docs/*.5.gz); do \
+	for i in $(wildcard docs/*.5); do \
 		rm -f $(PREFIX)/share/man/man5/$$(basename $${i}); \
 	done
 
