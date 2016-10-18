@@ -83,12 +83,10 @@ MANPAGES_MD = $(wildcard docs/*.md)
 docs/%.8: docs/%.8.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
-	gzip -k $@
 
 docs/%.5: docs/%.5.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
-	gzip -k $@
 
 docs: $(MANPAGES_MD:%.md=%)
 
@@ -98,9 +96,9 @@ install: all
 	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
 	install -D -m 755 pause/pause $(PREFIX)/libexec/ocid/pause
 	install -d $(PREFIX)/share/man/man8
-	install -m 644 $(wildcard docs/*.8.gz) $(PREFIX)/share/man/man8
+	install -m 644 $(wildcard docs/*.8) $(PREFIX)/share/man/man8
 	install -d $(PREFIX)/share/man/man5
-	install -m 644 $(wildcard docs/*.5.gz) $(PREFIX)/share/man/man5
+	install -m 644 $(wildcard docs/*.5) $(PREFIX)/share/man/man5
 	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
 	install -D -m 644 ocid.conf $(DESTDIR)/etc
 
