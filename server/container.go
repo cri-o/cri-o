@@ -298,7 +298,6 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 	for nsType, nsFile := range map[string]string{
 		"ipc":     "ipc",
-		"uts":     "uts",
 		"network": "net",
 	} {
 		nsPath := fmt.Sprintf("/proc/%d/ns/%s", podInfraState.Pid, nsFile)
