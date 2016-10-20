@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/directory"
 	"github.com/containers/image/image"
 	"github.com/containers/image/transports"
@@ -15,22 +16,25 @@ import (
 
 // ListImages lists existing images.
 func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (*pb.ListImagesResponse, error) {
+	logrus.Debugf("ListImages: %+v", req)
 	// TODO
 	// containers/storage will take care of this by looking inside /var/lib/ocid/images
 	// and listing images.
-	return nil, nil
+	return &pb.ListImagesResponse{}, nil
 }
 
 // ImageStatus returns the status of the image.
 func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*pb.ImageStatusResponse, error) {
+	logrus.Debugf("ImageStatus: %+v", req)
 	// TODO
 	// containers/storage will take care of this by looking inside /var/lib/ocid/images
 	// and getting the image status
-	return nil, nil
+	return &pb.ImageStatusResponse{}, nil
 }
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.PullImageResponse, error) {
+	logrus.Debugf("PullImage: %+v", req)
 	img := req.GetImage().GetImage()
 	if img == "" {
 		return nil, errors.New("got empty imagespec name")
@@ -97,5 +101,6 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 
 // RemoveImage removes the image.
 func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*pb.RemoveImageResponse, error) {
-	return nil, nil
+	logrus.Debugf("RemoveImage: %+v", req)
+	return &pb.RemoveImageResponse{}, nil
 }
