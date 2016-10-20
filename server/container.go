@@ -550,7 +550,27 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	return csr, nil
 }
 
-// Exec executes the command in the container.
-func (s *Server) Exec(pb.RuntimeService_ExecServer) error {
-	return nil
+// UpdateRuntimeConfig updates the configuration of a running container.
+func (s *Server) UpdateRuntimeConfig(ctx context.Context, req *pb.UpdateRuntimeConfigRequest) (*pb.UpdateRuntimeConfigResponse, error) {
+	return nil, nil
+}
+
+// ExecSync runs a command in a container synchronously.
+func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.ExecSyncResponse, error) {
+	return nil, nil
+}
+
+// Exec prepares a streaming endpoint to execute a command in the container.
+func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (*pb.ExecResponse, error) {
+	return nil, nil
+}
+
+// Attach prepares a streaming endpoint to attach to a running container.
+func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (*pb.AttachResponse, error) {
+	return nil, nil
+}
+
+// PortForward prepares a streaming endpoint to forward ports from a PodSandbox.
+func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+	return nil, nil
 }
