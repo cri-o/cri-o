@@ -217,7 +217,7 @@ func New(config *Config) (*Server, error) {
 
 	utils.StartReaper()
 
-	if err := os.MkdirAll(config.ImageStore, 0755); err != nil {
+	if err := os.MkdirAll(config.ImageDir, 0755); err != nil {
 		return nil, err
 	}
 

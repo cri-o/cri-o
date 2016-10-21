@@ -70,7 +70,9 @@ type ImageConfig struct {
 	Pause string `toml:"pause"`
 
 	// ImageStore is the directory where the ocid image store will be stored.
-	ImageStore string
+	// TODO: This is currently not really used because we don't have
+	//       containers/storage integrated.
+	ImageDir string `toml:"image_dir"`
 }
 
 // tomlConfig is another way of looking at a Config, which is
