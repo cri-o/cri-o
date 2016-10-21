@@ -58,6 +58,7 @@ func (s *Server) getContainerFromRequest(req containerRequest) (*oci.Container, 
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
+	logrus.Debugf("CreateContainer %+v", req)
 	sbID := req.GetPodSandboxId()
 	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
@@ -347,6 +348,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
+	logrus.Debugf("StartContainer %+v", req)
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -361,6 +363,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest) (*pb.StopContainerResponse, error) {
+	logrus.Debugf("StopContainer %+v", req)
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -376,6 +379,7 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (*pb.RemoveContainerResponse, error) {
+	logrus.Debugf("RemoveContainer %+v", req)
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -431,6 +435,7 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 
 // ListContainers lists all containers by filters.
 func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (*pb.ListContainersResponse, error) {
+	logrus.Debugf("ListContainers %+v", req)
 	var ctrs []*pb.Container
 	filter := req.Filter
 	ctrList := s.state.containers.List()
@@ -504,6 +509,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
+	logrus.Debugf("ContainerStatus %+v", req)
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err

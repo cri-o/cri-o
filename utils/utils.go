@@ -144,7 +144,6 @@ func StartReaper() {
 		for {
 			// Wait for a child to terminate
 			sig := <-sigs
-			logrus.Infof("Signal received: %v", sig)
 			for {
 				// Reap processes
 				cpid, _ := syscall.Wait4(-1, nil, syscall.WNOHANG, nil)
@@ -152,7 +151,7 @@ func StartReaper() {
 					break
 				}
 
-				logrus.Infof("Reaped process with pid %d", cpid)
+				logrus.Debugf("Reaped process with pid %d %v", cpid, sig)
 			}
 		}
 	}()
