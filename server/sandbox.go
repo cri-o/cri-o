@@ -31,7 +31,6 @@ type sandbox struct {
 }
 
 const (
-	podInfraRootfs      = "/var/lib/ocid/graph/vfs/pause"
 	podDefaultNamespace = "default"
 )
 
@@ -141,6 +140,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// creates a spec Generator with the default spec.
 	g := generate.New()
 
+	// TODO: Make the `graph/vfs` part of this configurable once the storage
+	//       integration has been merged.
 	podInfraRootfs := filepath.Join(s.config.Root, "graph/vfs/pause")
 	// setup defaults for the pod sandbox
 	g.SetRootPath(filepath.Join(podInfraRootfs, "rootfs"))
@@ -156,7 +157,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// set log directory
 	logDir := req.GetConfig().GetLogDirectory()
 	if logDir == "" {
-		logDir = fmt.Sprintf("/var/log/ocid/pods/%s", id)
+		logDir = filepath.Join(s.config.LogDir, id)
 	}
 
 	// set DNS options

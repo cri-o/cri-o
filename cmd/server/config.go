@@ -78,6 +78,7 @@ func DefaultConfig() *server.Config {
 			Root:         ocidRoot,
 			SandboxDir:   filepath.Join(ocidRoot, "sandboxes"),
 			ContainerDir: filepath.Join(ocidRoot, "containers"),
+			LogDir:       "/var/log/ocid/pods",
 		},
 		APIConfig: server.APIConfig{
 			Listen: "/var/run/ocid.sock",
