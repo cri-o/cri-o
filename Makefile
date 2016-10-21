@@ -1,4 +1,5 @@
-EPOCH_TEST_COMMIT ?= 78aae
+GO ?= go
+EPOCH_TEST_COMMIT ?= 78aae688e2932f0cfc2a23e28ad30b58c6b8577f
 PROJECT := github.com/kubernetes-incubator/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
@@ -8,7 +9,10 @@ OCID_LINK_DIR := ${CURDIR}/vendor/src/github.com/kubernetes-incubator
 OCID_INSTANCE := ocid_dev
 SYSTEM_GOPATH := ${GOPATH}
 PREFIX ?= ${DESTDIR}/usr
-INSTALLDIR=${PREFIX}/bin
+BINDIR ?= ${PREFIX}/bin
+LIBEXECDIR ?= ${PREFIX}/libexec
+MANDIR ?= ${PREFIX}/share/man
+ETCDIR ?= ${PREFIX}/etc
 GO_MD2MAN ?= $(shell which go-md2man)
 export GOPATH := ${CURDIR}/vendor
 BUILDTAGS := selinux
@@ -40,16 +44,15 @@ conmon:
 pause:
 	make -C $@
 
-GO_SRC = $(shell find . -name \*.go)
-
+GO_SRC =  $(shell find . -name \*.go)
 ocid: $(GO_SRC) | ${OCID_LINK}
-	go build --tags "$(BUILDTAGS)" -o $@ ./cmd/server/
+	$(GO) build --tags "$(BUILDTAGS)" -o $@ ./cmd/server/
 
 ocic: $(GO_SRC) | ${OCID_LINK}
-	go build -o $@ ./cmd/client/
+	$(GO) build -o $@ ./cmd/client/
 
 ocid.conf: ocid
-	 ./ocid --config="" config --default > ocid.conf
+	./ocid --config="" config --default > ocid.conf
 
 clean:
 	rm -f ocid.conf
@@ -65,11 +68,7 @@ ocidimage:
 	docker build -t ${OCID_IMAGE} .
 
 dbuild: ocidimage
-	docker run --name=${OCID_INSTANCE} --privileged ${OCID_IMAGE} make binaries
-	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/cri-o/ocid .
-	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/cri-o/ocic .
-	docker cp ${OCID_INSTANCE}:/go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon ./conmon/conmon
-	docker rm ${OCID_INSTANCE}
+	docker run --name=${OCID_INSTANCE} --privileged ${OCID_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm make binaries
 
 integration: ocidimage
 	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
@@ -79,7 +78,8 @@ localintegration: binaries
 
 binaries: ocid ocic conmon pause
 
-MANPAGES_MD = $(wildcard docs/*.md)
+MANPAGES_MD := $(wildcard docs/*.md)
+MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 docs/%.8: docs/%.8.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
@@ -89,30 +89,29 @@ docs/%.5: docs/%.5.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs: $(MANPAGES_MD:%.md=%)
+docs: $(MANPAGES)
 
-install: all
-	install -D -m 755 ocid ${INSTALLDIR}/ocid
-	install -D -m 755 ocic ${INSTALLDIR}/ocic
-	install -D -m 755 conmon/conmon $(PREFIX)/libexec/ocid/conmon
-	install -D -m 755 pause/pause $(PREFIX)/libexec/ocid/pause
-	install -d $(PREFIX)/share/man/man8
-	install -m 644 $(wildcard docs/*.8) $(PREFIX)/share/man/man8
-	install -d $(PREFIX)/share/man/man5
-	install -m 644 $(wildcard docs/*.5) $(PREFIX)/share/man/man5
-	install -D -m 644 ocid.conf $(DESTDIR)/etc
+install:
+	install -D -m 755 ocid $(BINDIR)/ocid
+	install -D -m 755 ocic $(BINDIR)/ocic
+	install -D -m 755 conmon/conmon $(LIBEXECDIR)/ocid/conmon
+	install -D -m 755 pause/pause $(LIBEXECDIR)/ocid/pause
+	install -d -m 755 $(MANDIR)/man{8,5}
+	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
+	install -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
+	install -D -m 644 ocid.conf $(ETCDIR)/ocid.conf
 
 install.systemd:
 	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
 
 uninstall:
-	rm -f ${INSTALLDIR}/{ocid,ocic}
-	rm -f $(PREFIX)/libexec/ocid/{conmon,pause}
-	for i in $(wildcard docs/*.8); do \
-		rm -f $(PREFIX)/share/man/man8/$$(basename $${i}); \
+	rm -f $(BINDIR)/{ocid,ocic}
+	rm -f $(LIBEXECDIR)/ocid/{conmon,pause}
+	for i in $(filter %.8,$(MANPAGES)); do \
+		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done
-	for i in $(wildcard docs/*.5); do \
-		rm -f $(PREFIX)/share/man/man5/$$(basename $${i}); \
+	for i in $(filter %.5,$(MANPAGES)); do \
+		rm -f $(MANDIR)/man5/$$(basename $${i}); \
 	done
 
 .PHONY: .gitvalidation
