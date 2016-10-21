@@ -193,7 +193,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 			return fmt.Errorf("failed to find container exit file: %v", err)
 		}
 		st := fi.Sys().(*syscall.Stat_t)
-		c.state.Finished = time.Unix(int64(st.Ctim.Sec), int64(st.Ctim.Nsec))
+		c.state.Finished = time.Unix(st.Ctim.Sec, st.Ctim.Nsec)
 
 		statusCodeStr, err := ioutil.ReadFile(exitFilePath)
 		if err != nil {
