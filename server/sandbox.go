@@ -85,6 +85,7 @@ func (s *Server) getPodSandboxFromRequest(req podSandboxRequest) (*sandbox, erro
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (*pb.RunPodSandboxResponse, error) {
+	logrus.Debugf("RunPodSandbox %+v", req)
 	var processLabel, mountLabel string
 	// process req.Name
 	name := req.GetConfig().GetMetadata().GetName()
@@ -324,6 +325,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be force terminated.
 func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
+	logrus.Debugf("StopPodSandbox %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -355,6 +357,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
+	logrus.Debugf("RemovePodSandbox %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -414,6 +417,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 // PodSandboxStatus returns the Status of the PodSandbox.
 func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
+	logrus.Debugf("PodSandboxStatus %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -483,6 +487,7 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 
 // ListPodSandbox returns a list of SandBoxes.
 func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
+	logrus.Debugf("ListPodSandbox %+v", req)
 	var pods []*pb.PodSandbox
 	var podList []*sandbox
 	for _, sb := range s.state.sandboxes {
