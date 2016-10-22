@@ -159,8 +159,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// set DNS options
-	dnsServers := req.GetConfig().GetDnsOptions().GetServers()
-	dnsSearches := req.GetConfig().GetDnsOptions().GetSearches()
+	dnsServers := req.GetConfig().GetDnsConfig().GetServers()
+	dnsSearches := req.GetConfig().GetDnsConfig().GetSearches()
 	resolvPath := fmt.Sprintf("%s/resolv.conf", podSandboxDir)
 	err = parseDNSOptions(dnsServers, dnsSearches, resolvPath)
 	if err != nil {
