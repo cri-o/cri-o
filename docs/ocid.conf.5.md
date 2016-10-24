@@ -47,7 +47,10 @@ The `ocid` table supports the following options:
 ## OCID.RUNTIME TABLE
 
 **conmon**=""
-  path to the conmon executable (default: "/usr/libexec/ocid/conmon")
+  Path to the conmon executable (default: "/usr/libexec/ocid/conmon")
+
+**conmon_env**=[]
+  Environment variable list for conmon process (default: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",])
 
 **runtime**=""
   OCI runtime path (default: "/usr/bin/runc")
