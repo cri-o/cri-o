@@ -51,8 +51,6 @@ $ mkdir $GOPATH
 $ go get -d github.com/kubernetes-incubator/cri-o
 $ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
 $ make install.tools
-$ make binaries
-$ make docs
 $ sudo make install
 ```
 
@@ -63,7 +61,7 @@ $ sudo make install
 ```
 # ocid --debug
 ```
-If the default `--runtime` value does not point to your runtime:   
+If the default `--runtime` value does not point to your runtime:
 ```
 # ocid --runtime $(which runc)
 ```
@@ -111,7 +109,6 @@ $ ocic pod create --config test/testdata/sandbox_config.json
 #### Remove a pod
 ```
 # ocic pod remove --id <pod_id>
-
 ```
 
 #### List pods
