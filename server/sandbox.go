@@ -162,8 +162,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// set DNS options
 	dnsServers := req.GetConfig().GetDnsConfig().GetServers()
 	dnsSearches := req.GetConfig().GetDnsConfig().GetSearches()
+	dnsOptions := req.GetConfig().GetDnsConfig().GetOptions()
 	resolvPath := fmt.Sprintf("%s/resolv.conf", podSandboxDir)
-	err = parseDNSOptions(dnsServers, dnsSearches, resolvPath)
+	err = parseDNSOptions(dnsServers, dnsSearches, dnsOptions, resolvPath)
 	if err != nil {
 		err1 := removeFile(resolvPath)
 		if err1 != nil {

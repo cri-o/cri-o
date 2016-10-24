@@ -74,10 +74,11 @@ func removeFile(path string) error {
 	return nil
 }
 
-func parseDNSOptions(servers, searches []string, path string) error {
+func parseDNSOptions(servers, searches, options []string, path string) error {
 	nServers := len(servers)
 	nSearches := len(searches)
-	if nServers == 0 && nSearches == 0 {
+	nOptions := len(options)
+	if nServers == 0 && nSearches == 0 && nOptions == 0 {
 		return copyFile("/etc/resolv.conf", path)
 	}
 
@@ -101,6 +102,14 @@ func parseDNSOptions(servers, searches []string, path string) error {
 
 	if nServers > 0 {
 		data := fmt.Sprintf("nameserver %s\n", strings.Join(servers, "\nnameserver "))
+		_, err = f.Write([]byte(data))
+		if err != nil {
+			return err
+		}
+	}
+
+	if nOptions > 0 {
+		data := fmt.Sprintf("options %s\n", strings.Join(options, " "))
 		_, err = f.Write([]byte(data))
 		if err != nil {
 			return err
