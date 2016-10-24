@@ -18,15 +18,16 @@ import (
 )
 
 type sandbox struct {
-	id           string
-	name         string
-	logDir       string
-	labels       fields.Set
-	annotations  map[string]string
-	containers   oci.Store
-	processLabel string
-	mountLabel   string
-	metadata     *pb.PodSandboxMetadata
+	id             string
+	name           string
+	logDir         string
+	labels         fields.Set
+	annotations    map[string]string
+	infraContainer *oci.Container
+	containers     oci.Store
+	processLabel   string
+	mountLabel     string
+	metadata       *pb.PodSandboxMetadata
 }
 
 const (
@@ -225,7 +226,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/name", name)
 	g.AddAnnotation("ocid/container_name", containerName)
 	g.AddAnnotation("ocid/container_id", containerID)
-	s.addSandbox(&sandbox{
+
+	sb := &sandbox{
 		id:           id,
 		name:         name,
 		logDir:       logDir,
@@ -235,7 +237,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
 		metadata:     req.GetConfig().GetMetadata(),
-	})
+	}
+
+	s.addSandbox(sb)
 
 	for k, v := range annotations {
 		g.AddAnnotation(k, v)
@@ -290,6 +294,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
+	sb.infraContainer = container
+
 	if err = s.runtime.CreateContainer(container); err != nil {
 		return nil, err
 	}
@@ -312,8 +318,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	s.addContainer(container)
-
 	if err = s.runtime.UpdateStatus(container); err != nil {
 		return nil, err
 	}
@@ -329,18 +333,22 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		return nil, err
 	}
 
-	podInfraContainer := sb.name + "-infra"
-	for _, c := range sb.containers.List() {
-		if podInfraContainer == c.Name() {
-			podNamespace := ""
-			netnsPath, err := c.NetNsPath()
-			if err != nil {
-				return nil, err
-			}
-			if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, sb.id, podInfraContainer); err != nil {
-				return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v", c.Name(), sb.id, err)
-			}
-		}
+	podNamespace := ""
+	podInfraContainer := sb.infraContainer
+	netnsPath, err := podInfraContainer.NetNsPath()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, sb.id, podInfraContainer.Name()); err != nil {
+		return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v",
+			podInfraContainer.Name(), sb.id, err)
+	}
+
+	containers := sb.containers.List()
+	containers = append(containers, podInfraContainer)
+
+	for _, c := range containers {
 		cStatus := s.runtime.ContainerStatus(c)
 		if cStatus.Status != oci.ContainerStateStopped {
 			if err := s.runtime.StopContainer(c); err != nil {
@@ -360,11 +368,12 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		return nil, err
 	}
 
-	podInfraContainerName := sb.name + "-infra"
-	var podInfraContainer *oci.Container
+	podInfraContainer := sb.infraContainer
+	containers := sb.containers.List()
+	containers = append(containers, podInfraContainer)
 
 	// Delete all the containers in the sandbox
-	for _, c := range sb.containers.List() {
+	for _, c := range containers {
 		if err := s.runtime.UpdateStatus(c); err != nil {
 			return nil, fmt.Errorf("failed to update container state: %v", err)
 		}
@@ -380,8 +389,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), sb.id, err)
 		}
 
-		if podInfraContainerName == c.Name() {
-			podInfraContainer = c
+		if c == podInfraContainer {
 			continue
 		}
 
@@ -405,6 +413,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 	s.releaseContainerName(podInfraContainer.Name())
 	s.removeContainer(podInfraContainer)
+	sb.infraContainer = nil
 
 	s.releasePodName(sb.name)
 	s.removeSandbox(sb.id)
@@ -419,8 +428,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		return nil, err
 	}
 
-	podInfraContainerName := sb.name + "-infra"
-	podInfraContainer := sb.getContainer(podInfraContainerName)
+	podInfraContainer := sb.infraContainer
 	if err = s.runtime.UpdateStatus(podInfraContainer); err != nil {
 		return nil, err
 	}
@@ -433,7 +441,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		return nil, err
 	}
 	podNamespace := ""
-	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, sb.id, podInfraContainerName)
+	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, sb.id, podInfraContainer.Name())
 	if err != nil {
 		// ignore the error on network status
 		ip = ""
@@ -503,8 +511,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	}
 
 	for _, sb := range podList {
-		podInfraContainerName := sb.name + "-infra"
-		podInfraContainer := sb.getContainer(podInfraContainerName)
+		podInfraContainer := sb.infraContainer
 		if podInfraContainer == nil {
 			// this can't really happen, but if it does because of a bug
 			// it's better not to panic
