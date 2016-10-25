@@ -102,7 +102,8 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
-	s.addSandbox(&sandbox{
+
+	sb := &sandbox{
 		id:           id,
 		name:         name,
 		logDir:       m.Annotations["ocid/log_path"],
@@ -110,7 +111,9 @@ func (s *Server) loadSandbox(id string) error {
 		containers:   oci.NewMemoryStore(),
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
-	})
+	}
+	s.addSandbox(sb)
+
 	sandboxPath := filepath.Join(s.config.SandboxDir, id)
 
 	if err := label.ReserveLabel(processLabel); err != nil {
@@ -125,7 +128,7 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
-	s.addContainer(scontainer)
+	sb.infraContainer = scontainer
 	if err = s.runtime.UpdateStatus(scontainer); err != nil {
 		logrus.Warnf("error updating status for container %s: %v", scontainer.ID(), err)
 	}
