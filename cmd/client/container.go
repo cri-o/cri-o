@@ -364,6 +364,14 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 		return err
 	}
 	fmt.Printf("ID: %s\n", *r.Status.Id)
+	if r.Status.Metadata != nil {
+		if r.Status.Metadata.Name != nil {
+			fmt.Printf("Name: %s\n", *r.Status.Metadata.Name)
+		}
+		if r.Status.Metadata.Attempt != nil {
+			fmt.Printf("Attempt: %v\n", *r.Status.Metadata.Attempt)
+		}
+	}
 	if r.Status.State != nil {
 		fmt.Printf("Status: %s\n", r.Status.State)
 	}
@@ -428,6 +436,14 @@ func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 		}
 		fmt.Printf("ID: %s\n", *c.Id)
 		fmt.Printf("Pod: %s\n", *c.PodSandboxId)
+		if c.Metadata != nil {
+			if c.Metadata.Name != nil {
+				fmt.Printf("Name: %s\n", *c.Metadata.Name)
+			}
+			if c.Metadata.Attempt != nil {
+				fmt.Printf("Attempt: %v\n", *c.Metadata.Attempt)
+			}
+		}
 		if c.State != nil {
 			fmt.Printf("Status: %s\n", *c.State)
 		}
@@ -447,6 +463,7 @@ func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 				fmt.Printf("\t%s -> %s\n", k, v)
 			}
 		}
+		fmt.Println()
 	}
 	return nil
 }

@@ -379,6 +379,7 @@ func ListPodSandboxes(client pb.RuntimeServiceClient, opts listOptions) error {
 				fmt.Printf("\t%s -> %s\n", k, v)
 			}
 		}
+		fmt.Println()
 	}
 	return nil
 }
