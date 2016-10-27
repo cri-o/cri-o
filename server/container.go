@@ -383,6 +383,16 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, err
 	}
 
+	sb := s.getSandbox(c.Sandbox())
+	if sb == nil {
+		return nil, fmt.Errorf("failed to find sandbox for container %s", c.ID())
+	}
+
+	podInfraContainerName := sb.name + "-infra"
+	if podInfraContainerName == c.Name() {
+		return nil, fmt.Errorf("can not delete Infra container %s\n", c.ID())
+	}
+
 	if err := s.runtime.UpdateStatus(c); err != nil {
 		return nil, fmt.Errorf("failed to update container state: %v", err)
 	}
