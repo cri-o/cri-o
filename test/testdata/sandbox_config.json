@@ -1,6 +1,9 @@
 {
 	"metadata": {
-		"name": "podsandbox1"
+		"name": "podsandbox1",
+		"uid": "redhat-test-ocid",
+		"namespace": "redhat.test.ocid",
+		"attempt": 1
 	},
 	"hostname": "ocic_host",
 	"log_directory": ".",

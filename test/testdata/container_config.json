@@ -1,6 +1,7 @@
 {
 	"metadata": {
-		"name": "container1"
+		"name": "container1",
+		"attempt": 1
 	},
 	"image": {
 		"image": "docker://redis:latest"
