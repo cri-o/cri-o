@@ -40,11 +40,12 @@ conmon:
 pause:
 	make -C $@
 
-GO_SRC =  $(shell find . -name \*.go)
-ocid: $(GO_SRC) ${OCID_LINK}
+GO_SRC = $(shell find . -name \*.go)
+
+ocid: $(GO_SRC) | ${OCID_LINK}
 	go build --tags "$(BUILDTAGS)" -o $@ ./cmd/server/
 
-ocic: $(GO_SRC)
+ocic: $(GO_SRC) | ${OCID_LINK}
 	go build -o $@ ./cmd/client/
 
 ocid.conf: ocid
@@ -99,11 +100,12 @@ install: all
 	install -m 644 $(wildcard docs/*.8) $(PREFIX)/share/man/man8
 	install -d $(PREFIX)/share/man/man5
 	install -m 644 $(wildcard docs/*.5) $(PREFIX)/share/man/man5
-	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
 	install -D -m 644 ocid.conf $(DESTDIR)/etc
 
+install.systemd:
+	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
+
 uninstall:
-	rm -f $(PREFIX)/lib/systemd/system/ocid.service
 	rm -f ${INSTALLDIR}/{ocid,ocic}
 	rm -f $(PREFIX)/libexec/ocid/{conmon,pause}
 	for i in $(wildcard docs/*.8); do \

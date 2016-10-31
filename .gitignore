@@ -4,7 +4,7 @@ conmon/conmon
 conmon/conmon.o
 pause/pause
 pause/pause.o
-/docs/ocid.8
-/docs/ocid.conf.5
+/docs/*.[58]
+/docs/*.[58].gz
 vendor/src/github.com/kubernetes-incubator/cri-o
 ocid.conf
