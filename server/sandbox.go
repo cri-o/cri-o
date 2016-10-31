@@ -86,7 +86,7 @@ func (s *Server) getPodSandboxFromRequest(req podSandboxRequest) (*sandbox, erro
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (*pb.RunPodSandboxResponse, error) {
-	logrus.Debugf("RunPodSandbox %+v", req)
+	logrus.Debugf("RunPodSandboxRequest %+v", req)
 	var processLabel, mountLabel string
 	// process req.Name
 	name := req.GetConfig().GetMetadata().GetName()
@@ -323,13 +323,15 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	return &pb.RunPodSandboxResponse{PodSandboxId: &id}, nil
+	resp := &pb.RunPodSandboxResponse{PodSandboxId: &id}
+	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
+	return resp, nil
 }
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be force terminated.
 func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
-	logrus.Debugf("StopPodSandbox %+v", req)
+	logrus.Debugf("StopPodSandboxRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -359,13 +361,15 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		}
 	}
 
-	return &pb.StopPodSandboxResponse{}, nil
+	resp := &pb.StopPodSandboxResponse{}
+	logrus.Debugf("StopPodSandboxResponse: %+v", resp)
+	return resp, nil
 }
 
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
-	logrus.Debugf("RemovePodSandbox %+v", req)
+	logrus.Debugf("RemovePodSandboxRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -421,12 +425,14 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	s.releasePodName(sb.name)
 	s.removeSandbox(sb.id)
 
-	return &pb.RemovePodSandboxResponse{}, nil
+	resp := &pb.RemovePodSandboxResponse{}
+	logrus.Debugf("RemovePodSandboxResponse %+v", resp)
+	return resp, nil
 }
 
 // PodSandboxStatus returns the Status of the PodSandbox.
 func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
-	logrus.Debugf("PodSandboxStatus %+v", req)
+	logrus.Debugf("PodSandboxStatusRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -457,7 +463,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	sandboxID := sb.id
-	return &pb.PodSandboxStatusResponse{
+	resp := &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
 			Id:        &sandboxID,
 			CreatedAt: int64Ptr(created),
@@ -472,7 +478,10 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 			Annotations: sb.annotations,
 			Metadata:    sb.metadata,
 		},
-	}, nil
+	}
+
+	logrus.Infof("PodSandboxStatusResponse: %+v", resp)
+	return resp, nil
 }
 
 // filterSandbox returns whether passed container matches filtering criteria
@@ -495,7 +504,7 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 
 // ListPodSandbox returns a list of SandBoxes.
 func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
-	logrus.Debugf("ListPodSandbox %+v", req)
+	logrus.Debugf("ListPodSandboxRequest %+v", req)
 	var pods []*pb.PodSandbox
 	var podList []*sandbox
 	for _, sb := range s.state.sandboxes {
@@ -547,9 +556,11 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		}
 	}
 
-	return &pb.ListPodSandboxResponse{
+	resp := &pb.ListPodSandboxResponse{
 		Items: pods,
-	}, nil
+	}
+	logrus.Debugf("ListPodSandboxResponse %+v", resp)
+	return resp, nil
 }
 
 func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mountLabel string, err error) {
