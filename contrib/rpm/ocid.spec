@@ -7,7 +7,7 @@
 # https://github.com/kubernetes-incubator/cri-o
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path     %{provider_prefix}
-%global commit          da8c0190322cfe972777765dbf3e9128cc05e70d
+%global commit          8ba639952a95f2e24cc98987689138b67545576c
 %global shortcommit     %(c=%{commit}; echo ${c:0:7})
 
 Name:           %{Name}
