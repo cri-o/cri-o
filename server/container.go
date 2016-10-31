@@ -58,7 +58,7 @@ func (s *Server) getContainerFromRequest(req containerRequest) (*oci.Container, 
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
-	logrus.Debugf("CreateContainer %+v", req)
+	logrus.Debugf("CreateContainerRequest %+v", req)
 	sbID := req.GetPodSandboxId()
 	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
@@ -131,9 +131,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	return &pb.CreateContainerResponse{
+	resp := &pb.CreateContainerResponse{
 		ContainerId: &containerID,
-	}, nil
+	}
+
+	logrus.Debugf("CreateContainerResponse: %+v", resp)
+	return resp, nil
 }
 
 func (s *Server) createSandboxContainer(containerID string, containerName string, sb *sandbox, SandboxConfig *pb.PodSandboxConfig, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
@@ -293,7 +296,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	// Join the namespace paths for the pod sandbox container.
 	podInfraState := s.runtime.ContainerStatus(sb.infraContainer)
 
-	logrus.Infof("pod container state %v", podInfraState)
+	logrus.Debugf("pod container state %+v", podInfraState)
 
 	for nsType, nsFile := range map[string]string{
 		"ipc":     "ipc",
@@ -346,7 +349,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
-	logrus.Debugf("StartContainer %+v", req)
+	logrus.Debugf("StartContainerRequest %+v", req)
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -356,12 +359,14 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 
-	return &pb.StartContainerResponse{}, nil
+	resp := &pb.StartContainerResponse{}
+	logrus.Debugf("StartContainerResponse %+v", resp)
+	return resp, nil
 }
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest) (*pb.StopContainerResponse, error) {
-	logrus.Debugf("StopContainer %+v", req)
+	logrus.Debugf("StopContainerRequest %+v", req)
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -371,13 +376,15 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 	}
 
-	return &pb.StopContainerResponse{}, nil
+	resp := &pb.StopContainerResponse{}
+	logrus.Debugf("StopContainerResponse: %+v", resp)
+	return resp, nil
 }
 
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (*pb.RemoveContainerResponse, error) {
-	logrus.Debugf("RemoveContainer %+v", req)
+	logrus.Debugf("RemoveContainerRequest %+v", req)
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -410,7 +417,9 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, err
 	}
 
-	return &pb.RemoveContainerResponse{}, nil
+	resp := &pb.RemoveContainerResponse{}
+	logrus.Debugf("RemoveContainerResponse: %+v", resp)
+	return resp, nil
 }
 
 // filterContainer returns whether passed container matches filtering criteria
@@ -433,7 +442,7 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 
 // ListContainers lists all containers by filters.
 func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (*pb.ListContainersResponse, error) {
-	logrus.Debugf("ListContainers %+v", req)
+	logrus.Debugf("ListContainersRequest %+v", req)
 	var ctrs []*pb.Container
 	filter := req.Filter
 	ctrList := s.state.containers.List()
@@ -500,14 +509,16 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		}
 	}
 
-	return &pb.ListContainersResponse{
+	resp := &pb.ListContainersResponse{
 		Containers: ctrs,
-	}, nil
+	}
+	logrus.Debugf("ListContainersResponse: %+v", resp)
+	return resp, nil
 }
 
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
-	logrus.Debugf("ContainerStatus %+v", req)
+	logrus.Debugf("ContainerStatusRequest %+v", req)
 	c, err := s.getContainerFromRequest(req)
 	if err != nil {
 		return nil, err
@@ -518,7 +529,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 
 	containerID := c.ID()
-	csr := &pb.ContainerStatusResponse{
+	resp := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
 			Id: &containerID,
 		},
@@ -531,27 +542,28 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	case oci.ContainerStateCreated:
 		rStatus = pb.ContainerState_CREATED
 		created := cState.Created.Unix()
-		csr.Status.CreatedAt = int64Ptr(created)
+		resp.Status.CreatedAt = int64Ptr(created)
 	case oci.ContainerStateRunning:
 		rStatus = pb.ContainerState_RUNNING
 		created := cState.Created.Unix()
-		csr.Status.CreatedAt = int64Ptr(created)
+		resp.Status.CreatedAt = int64Ptr(created)
 		started := cState.Started.Unix()
-		csr.Status.StartedAt = int64Ptr(started)
+		resp.Status.StartedAt = int64Ptr(started)
 	case oci.ContainerStateStopped:
 		rStatus = pb.ContainerState_EXITED
 		created := cState.Created.Unix()
-		csr.Status.CreatedAt = int64Ptr(created)
+		resp.Status.CreatedAt = int64Ptr(created)
 		started := cState.Started.Unix()
-		csr.Status.StartedAt = int64Ptr(started)
+		resp.Status.StartedAt = int64Ptr(started)
 		finished := cState.Finished.Unix()
-		csr.Status.FinishedAt = int64Ptr(finished)
-		csr.Status.ExitCode = int32Ptr(cState.ExitCode)
+		resp.Status.FinishedAt = int64Ptr(finished)
+		resp.Status.ExitCode = int32Ptr(cState.ExitCode)
 	}
 
-	csr.Status.State = &rStatus
+	resp.Status.State = &rStatus
 
-	return csr, nil
+	logrus.Debugf("ContainerStatusResponse: %+v", resp)
+	return resp, nil
 }
 
 // UpdateRuntimeConfig updates the configuration of a running container.
