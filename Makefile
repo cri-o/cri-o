@@ -103,7 +103,7 @@ install: all
 	install -D -m 644 ocid.conf $(DESTDIR)/etc
 
 install.systemd:
-	install -D -m 644 ocid.service $(PREFIX)/lib/systemd/system
+	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system
 
 uninstall:
 	rm -f ${INSTALLDIR}/{ocid,ocic}
