@@ -103,6 +103,11 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
+	annotations := make(map[string]string)
+	if err = json.Unmarshal([]byte(m.Annotations["ocid/annotations"]), &annotations); err != nil {
+		return err
+	}
+
 	sb := &sandbox{
 		id:           id,
 		name:         name,
@@ -111,6 +116,7 @@ func (s *Server) loadSandbox(id string) error {
 		containers:   oci.NewMemoryStore(),
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
+		annotations:  annotations,
 	}
 	s.addSandbox(sb)
 
