@@ -453,14 +453,14 @@ func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 		}
 		if c.Labels != nil {
 			fmt.Println("Labels:")
-			for k, v := range c.Labels {
-				fmt.Printf("\t%s -> %s\n", k, v)
+			for _, k := range getSortedKeys(c.Labels) {
+				fmt.Printf("\t%s -> %s\n", k, c.Labels[k])
 			}
 		}
 		if c.Annotations != nil {
 			fmt.Println("Annotations:")
-			for k, v := range c.Annotations {
-				fmt.Printf("\t%s -> %s\n", k, v)
+			for _, k := range getSortedKeys(c.Annotations) {
+				fmt.Printf("\t%s -> %s\n", k, c.Annotations[k])
 			}
 		}
 		fmt.Println()
