@@ -16,6 +16,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/label"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/rajatchopra/ocicni"
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 const (
@@ -53,6 +54,10 @@ func (s *Server) loadContainer(id string) error {
 	if err != nil {
 		return err
 	}
+	var metadata pb.ContainerMetadata
+	if err = json.Unmarshal([]byte(m.Annotations["ocid/metadata"]), &metadata); err != nil {
+		return err
+	}
 	sb := s.getSandbox(m.Annotations["ocid/sandbox_id"])
 	if sb == nil {
 		logrus.Warnf("could not get sandbox with id %s, skipping", m.Annotations["ocid/sandbox_id"])
@@ -65,7 +70,7 @@ func (s *Server) loadContainer(id string) error {
 	}
 	containerPath := filepath.Join(s.runtime.ContainerDir(), id)
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], labels, sb.id, tty)
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], labels, &metadata, sb.id, tty)
 	if err != nil {
 		return err
 	}
@@ -97,6 +102,10 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
+	var metadata pb.PodSandboxMetadata
+	if err = json.Unmarshal([]byte(m.Annotations["ocid/metadata"]), &metadata); err != nil {
+		return err
+	}
 
 	processLabel, mountLabel, err := label.InitLabels(label.DupSecOpt(m.Process.SelinuxLabel))
 	if err != nil {
@@ -117,6 +126,7 @@ func (s *Server) loadSandbox(id string) error {
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
 		annotations:  annotations,
+		metadata:     &metadata,
 	}
 	s.addSandbox(sb)
 
@@ -130,7 +140,7 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, labels, id, false)
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, labels, nil, id, false)
 	if err != nil {
 		return err
 	}

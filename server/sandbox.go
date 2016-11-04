@@ -176,6 +176,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	g.AddBindMount(resolvPath, "/etc/resolv.conf", "ro")
 
+	// add metadata
+	metadata := req.GetConfig().GetMetadata()
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+
 	// add labels
 	labels := req.GetConfig().GetLabels()
 	labelsJSON, err := json.Marshal(labels)
@@ -222,6 +229,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
+	g.AddAnnotation("ocid/metadata", string(metadataJSON))
 	g.AddAnnotation("ocid/labels", string(labelsJSON))
 	g.AddAnnotation("ocid/annotations", string(annotationsJSON))
 	g.AddAnnotation("ocid/log_path", logDir)
@@ -238,7 +246,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		containers:   oci.NewMemoryStore(),
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
-		metadata:     req.GetConfig().GetMetadata(),
+		metadata:     metadata,
 	}
 
 	s.addSandbox(sb)
@@ -291,7 +299,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, podSandboxDir, podSandboxDir, labels, id, false)
+	container, err := oci.NewContainer(containerID, containerName, podSandboxDir, podSandboxDir, labels, nil, id, false)
 	if err != nil {
 		return nil, err
 	}

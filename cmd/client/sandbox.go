@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -302,14 +303,14 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 	}
 	if r.Status.Labels != nil {
 		fmt.Println("Labels:")
-		for k, v := range r.Status.Labels {
-			fmt.Printf("\t%s -> %s\n", k, v)
+		for _, k := range getSortedKeys(r.Status.Labels) {
+			fmt.Printf("\t%s -> %s\n", k, r.Status.Labels[k])
 		}
 	}
 	if r.Status.Annotations != nil {
 		fmt.Println("Annotations:")
-		for k, v := range r.Status.Annotations {
-			fmt.Printf("\t%s -> %s\n", k, v)
+		for _, k := range getSortedKeys(r.Status.Annotations) {
+			fmt.Printf("\t%s -> %s\n", k, r.Status.Annotations[k])
 		}
 	}
 	return nil
@@ -369,16 +370,27 @@ func ListPodSandboxes(client pb.RuntimeServiceClient, opts listOptions) error {
 		fmt.Printf("Created: %v\n", ctm)
 		if pod.Labels != nil {
 			fmt.Println("Labels:")
-			for k, v := range pod.Labels {
-				fmt.Printf("\t%s -> %s\n", k, v)
+			for _, k := range getSortedKeys(pod.Labels) {
+				fmt.Printf("\t%s -> %s\n", k, pod.Labels[k])
 			}
 		}
 		if pod.Annotations != nil {
 			fmt.Println("Annotations:")
-			for k, v := range pod.Annotations {
-				fmt.Printf("\t%s -> %s\n", k, v)
+			for _, k := range getSortedKeys(pod.Annotations) {
+				fmt.Printf("\t%s -> %s\n", k, pod.Annotations[k])
 			}
 		}
+		fmt.Println()
 	}
 	return nil
+}
+
+func getSortedKeys(m map[string]string) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	return keys
 }

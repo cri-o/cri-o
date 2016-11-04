@@ -205,6 +205,8 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 	labels := containerConfig.GetLabels()
 
+	metadata := containerConfig.GetMetadata()
+
 	annotations := containerConfig.GetAnnotations()
 	if annotations != nil {
 		for k, v := range annotations {
@@ -312,11 +314,17 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	specgen.AddAnnotation("ocid/sandbox_id", sb.id)
 	specgen.AddAnnotation("ocid/log_path", logPath)
 	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.GetTty()))
+
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation("ocid/metadata", string(metadataJSON))
+
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
 	}
-
 	specgen.AddAnnotation("ocid/labels", string(labelsJSON))
 
 	if err = specgen.SaveToFile(filepath.Join(containerDir, "config.json")); err != nil {
@@ -339,7 +347,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerDir, logPath, labels, sb.id, containerConfig.GetTty())
+	container, err := oci.NewContainer(containerID, containerName, containerDir, logPath, labels, metadata, sb.id, containerConfig.GetTty())
 	if err != nil {
 		return nil, err
 	}
@@ -491,6 +499,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			PodSandboxId: &podSandboxID,
 			CreatedAt:    int64Ptr(created),
 			Labels:       ctr.Labels(),
+			Metadata:     ctr.Metadata(),
 		}
 
 		switch cState.Status {
@@ -531,7 +540,8 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	containerID := c.ID()
 	resp := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
-			Id: &containerID,
+			Id:       &containerID,
+			Metadata: c.Metadata(),
 		},
 	}
 

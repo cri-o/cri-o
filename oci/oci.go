@@ -19,6 +19,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 	"k8s.io/kubernetes/pkg/fields"
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 const (
@@ -228,6 +229,7 @@ type Container struct {
 	sandbox    string
 	terminal   bool
 	state      *ContainerState
+	metadata   *pb.ContainerMetadata
 	stateLock  sync.Mutex
 }
 
@@ -241,7 +243,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, labels map[string]string, sandbox string, terminal bool) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, labels map[string]string, metadata *pb.ContainerMetadata, sandbox string, terminal bool) (*Container, error) {
 	c := &Container{
 		id:         id,
 		name:       name,
@@ -250,6 +252,7 @@ func NewContainer(id string, name string, bundlePath string, logPath string, lab
 		labels:     labels,
 		sandbox:    sandbox,
 		terminal:   terminal,
+		metadata:   metadata,
 	}
 	return c, nil
 }
@@ -290,6 +293,11 @@ func (c *Container) NetNsPath() (string, error) {
 		return "", fmt.Errorf("container state is not populated")
 	}
 	return fmt.Sprintf("/proc/%d/ns/net", c.state.Pid), nil
+}
+
+// Metadata returns the metadata of the container.
+func (c *Container) Metadata() *pb.ContainerMetadata {
+	return c.metadata
 }
 
 // newPipe creates a unix socket pair for communication
