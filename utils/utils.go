@@ -146,12 +146,24 @@ func StartReaper() {
 			sig := <-sigs
 			for {
 				// Reap processes
-				cpid, _ := syscall.Wait4(-1, nil, syscall.WNOHANG, nil)
+				var status syscall.WaitStatus
+				cpid, err := syscall.Wait4(-1, &status, syscall.WNOHANG, nil)
+				if err != nil {
+					if err != syscall.ECHILD {
+						logrus.Debugf("wait4 after %v: %v", sig, err)
+					}
+					break
+				}
 				if cpid < 1 {
 					break
 				}
-
-				logrus.Debugf("Reaped process with pid %d %v", cpid, sig)
+				if status.Exited() {
+					logrus.Debugf("Reaped process with pid %d, exited with status %d", cpid, status.ExitStatus())
+				} else if status.Signaled() {
+					logrus.Debugf("Reaped process with pid %d, exited on %s", cpid, status.Signal())
+				} else {
+					logrus.Debugf("Reaped process with pid %d", cpid)
+				}
 			}
 		}
 	}()
