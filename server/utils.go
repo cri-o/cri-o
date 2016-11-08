@@ -1,15 +1,10 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
-
-	"github.com/kubernetes-incubator/cri-o/utils"
 )
 
 const (
@@ -28,24 +23,6 @@ func int32Ptr(i int32) *int32 {
 
 func sPtr(s string) *string {
 	return &s
-}
-
-func getGPRCVersion() (string, error) {
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", errors.New("failed to recover the caller information")
-	}
-
-	ocidRoot := filepath.Dir(filepath.Dir(file))
-	p := filepath.Join(ocidRoot, "Godeps/Godeps.json")
-
-	grepCmd := fmt.Sprintf(`grep -r "\"google.golang.org/grpc\"" %s -A 1 | grep "\"Rev\"" | cut -d: -f2 | tr -d ' "\n'`, p)
-
-	out, err := utils.ExecCmd("bash", "-c", grepCmd)
-	if err != nil {
-		return "", err
-	}
-	return out, nil
 }
 
 func copyFile(src, dest string) error {
