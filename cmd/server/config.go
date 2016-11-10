@@ -68,6 +68,9 @@ selinux = {{ .SELinux }}
 pause = "{{ .Pause }}"
 `))
 
+// TODO: Currently ImageDir isn't really used, so we haven't added it to this
+//       template. Add it once the storage code has been merged.
+
 // DefaultConfig returns the default configuration for ocid.
 func DefaultConfig() *server.Config {
 	return &server.Config{
@@ -75,6 +78,7 @@ func DefaultConfig() *server.Config {
 			Root:         ocidRoot,
 			SandboxDir:   filepath.Join(ocidRoot, "sandboxes"),
 			ContainerDir: filepath.Join(ocidRoot, "containers"),
+			LogDir:       "/var/log/ocid/pods",
 		},
 		APIConfig: server.APIConfig{
 			Listen: "/var/run/ocid.sock",
@@ -88,8 +92,8 @@ func DefaultConfig() *server.Config {
 			SELinux: selinux.SelinuxEnabled(),
 		},
 		ImageConfig: server.ImageConfig{
-			Pause:      pausePath,
-			ImageStore: filepath.Join(ocidRoot, "store"),
+			Pause:    pausePath,
+			ImageDir: filepath.Join(ocidRoot, "store"),
 		},
 	}
 }
