@@ -74,7 +74,7 @@ var listImageCommand = cli.Command{
 				fmt.Printf("Digest: %s\n", digest)
 			}
 			if image.Size_ != nil {
-				fmt.Printf("Size: %d\n", image.Size_)
+				fmt.Printf("Size: %d\n", *image.Size_)
 			}
 		}
 		return nil
@@ -115,7 +115,7 @@ var imageStatusCommand = cli.Command{
 			fmt.Printf("Digest: %s\n", digest)
 		}
 		if image.Size_ != nil {
-			fmt.Printf("Size: %d\n", image.Size_)
+			fmt.Printf("Size: %d\n", *image.Size_)
 		}
 		return nil
 	},
