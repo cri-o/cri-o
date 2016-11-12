@@ -6,6 +6,13 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 )
 
+const (
+	// containerTypeSandbox represents a pod sandbox container
+	containerTypeSandbox = "sandbox"
+	// containerTypeContainer represents a container running within a pod
+	containerTypeContainer = "container"
+)
+
 type containerRequest interface {
 	GetContainerId() string
 }
