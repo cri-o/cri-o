@@ -454,7 +454,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	cState := s.runtime.ContainerStatus(podInfraContainer)
-	created := cState.Created.Unix()
+	created := cState.Created.UnixNano()
 
 	netNsPath, err := podInfraContainer.NetNsPath()
 	if err != nil {
@@ -545,7 +545,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 			return nil, err
 		}
 		cState := s.runtime.ContainerStatus(podInfraContainer)
-		created := cState.Created.Unix()
+		created := cState.Created.UnixNano()
 		rStatus := pb.PodSandBoxState_NOTREADY
 		if cState.Status == oci.ContainerStateRunning {
 			rStatus = pb.PodSandBoxState_READY

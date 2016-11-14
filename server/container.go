@@ -490,7 +490,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 
 		podSandboxID := ctr.Sandbox()
 		cState := s.runtime.ContainerStatus(ctr)
-		created := cState.Created.Unix()
+		created := cState.Created.UnixNano()
 		rState := pb.ContainerState_UNKNOWN
 		cID := ctr.ID()
 
@@ -551,21 +551,21 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	switch cState.Status {
 	case oci.ContainerStateCreated:
 		rStatus = pb.ContainerState_CREATED
-		created := cState.Created.Unix()
+		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = int64Ptr(created)
 	case oci.ContainerStateRunning:
 		rStatus = pb.ContainerState_RUNNING
-		created := cState.Created.Unix()
+		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = int64Ptr(created)
-		started := cState.Started.Unix()
+		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = int64Ptr(started)
 	case oci.ContainerStateStopped:
 		rStatus = pb.ContainerState_EXITED
-		created := cState.Created.Unix()
+		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = int64Ptr(created)
-		started := cState.Started.Unix()
+		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = int64Ptr(started)
-		finished := cState.Finished.Unix()
+		finished := cState.Finished.UnixNano()
 		resp.Status.FinishedAt = int64Ptr(finished)
 		resp.Status.ExitCode = int32Ptr(cState.ExitCode)
 	}
