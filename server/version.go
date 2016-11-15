@@ -7,10 +7,6 @@ import (
 
 // Version returns the runtime name, runtime version and runtime API version
 func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.VersionResponse, error) {
-	version, err := getGPRCVersion()
-	if err != nil {
-		return nil, err
-	}
 
 	runtimeVersion, err := s.runtime.Version()
 	if err != nil {
@@ -18,7 +14,7 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 	}
 
 	// TODO: Track upstream code. For now it expects 0.1.0
-	version = "0.1.0"
+	version := "0.1.0"
 
 	// taking const address
 	rav := runtimeAPIVersion
