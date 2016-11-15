@@ -102,6 +102,8 @@ func (r *Runtime) CreateContainer(c *Container) error {
 
 	args := []string{"-c", c.name}
 	args = append(args, "-r", r.path)
+	args = append(args, "-b", c.bundlePath)
+	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
 	if c.terminal {
 		args = append(args, "-t")
 	}

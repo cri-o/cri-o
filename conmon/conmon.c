@@ -66,11 +66,15 @@ static void tty_restore(void)
 static bool terminal = false;
 static char *cid = NULL;
 static char *runtime_path = NULL;
+static char *bundle_path = NULL;
+static char *pid_file = NULL;
 static GOptionEntry entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &terminal, "Terminal", NULL },
   { "cid", 'c', 0, G_OPTION_ARG_STRING, &cid, "Container ID", NULL },
   { "runtime", 'r', 0, G_OPTION_ARG_STRING, &runtime_path, "Runtime path", NULL },
+  { "bundle", 'b', 0, G_OPTION_ARG_STRING, &bundle_path, "Bundle path", NULL },
+  { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &pid_file, "PID file", NULL },
   { NULL }
 };
 
@@ -78,6 +82,8 @@ int main(int argc, char *argv[])
 {
 	int ret;
 	char cmd[CMD_SIZE];
+	char cwd[PATH_MAX];
+	char default_pid_file[PATH_MAX];
 	GError *err = NULL;
 	_cleanup_free_ char *contents;
 	int cpid = -1;
@@ -110,6 +116,23 @@ int main(int argc, char *argv[])
 
 	if (runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
+
+	if (bundle_path == NULL) {
+		if (getcwd(cwd, sizeof(cwd)) == NULL) {
+			nexit("Failed to get working directory");
+		}
+
+		bundle_path = cwd;
+	}
+
+	if (pid_file == NULL) {
+		if (snprintf(default_pid_file, sizeof(default_pid_file),
+			     "%s/pidfile-%s", cwd, cid) < 0) {
+			nexit("Failed to generate the pidfile path");
+		}
+
+		pid_file = default_pid_file;
+	}
 
 	/* Environment variables */
 	sync_pipe = getenv("_OCI_SYNCPIPE");
@@ -155,11 +178,11 @@ int main(int argc, char *argv[])
 	/* Create the container */
 	if (terminal) {
 		snprintf(cmd, CMD_SIZE,
-			 "%s create %s --pid-file pidfile --console %s",
-			 runtime_path, cid, slname);
+			 "%s create %s --bundle %s --pid-file %s --console %s",
+			 runtime_path, cid, bundle_path, pid_file, slname);
 	} else {
-		snprintf(cmd, CMD_SIZE, "%s create %s --pid-file pidfile",
-			 runtime_path, cid);
+		snprintf(cmd, CMD_SIZE, "%s create %s --bundle %s --pid-file %s",
+			 runtime_path, cid, bundle_path, pid_file);
 	}
 	ret = system(cmd);
 	if (ret != 0) {
