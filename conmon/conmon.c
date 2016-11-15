@@ -9,21 +9,24 @@
 #include <sys/epoll.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
+#include <syslog.h>
 #include <termios.h>
 #include <unistd.h>
 
 #include <glib.h>
 
-#define pexit(fmt, ...)                                                        \
-	do {                                                                   \
-		fprintf(stderr, "conmon: " fmt " %m\n", ##__VA_ARGS__);        \
-		exit(EXIT_FAILURE);                                            \
+#define pexit(fmt, ...)                                                          \
+	do {                                                                     \
+		fprintf(stderr, "conmon: " fmt " %m\n", ##__VA_ARGS__);          \
+		syslog(LOG_ERR, "conmon <error>: " fmt ": %m\n", ##__VA_ARGS__); \
+		exit(EXIT_FAILURE);                                              \
 	} while (0)
 
-#define nexit(fmt, ...)                                                        \
-	do {                                                                   \
-		fprintf(stderr, "conmon: " fmt "\n", ##__VA_ARGS__);           \
-		exit(EXIT_FAILURE);                                            \
+#define nexit(fmt, ...)                                                       \
+	do {                                                                  \
+		fprintf(stderr, "conmon: " fmt "\n", ##__VA_ARGS__);          \
+		syslog(LOG_ERR, "conmon <error>: " fmt " \n", ##__VA_ARGS__); \
+		exit(EXIT_FAILURE);                                           \
 	} while (0)
 
 #define nwarn(fmt, ...)                                                        \
