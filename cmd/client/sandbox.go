@@ -292,7 +292,7 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 		fmt.Printf("Status: %s\n", r.Status.State)
 	}
 	if r.Status.CreatedAt != nil {
-		ctm := time.Unix(*r.Status.CreatedAt, 0)
+		ctm := time.Unix(0, *r.Status.CreatedAt)
 		fmt.Printf("Created: %v\n", ctm)
 	}
 	if r.Status.Linux != nil {
@@ -366,7 +366,7 @@ func ListPodSandboxes(client pb.RuntimeServiceClient, opts listOptions) error {
 			}
 		}
 		fmt.Printf("Status: %s\n", pod.State)
-		ctm := time.Unix(*pod.CreatedAt, 0)
+		ctm := time.Unix(0, *pod.CreatedAt)
 		fmt.Printf("Created: %v\n", ctm)
 		if pod.Labels != nil {
 			fmt.Println("Labels:")

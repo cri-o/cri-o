@@ -376,15 +376,15 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 		fmt.Printf("Status: %s\n", r.Status.State)
 	}
 	if r.Status.CreatedAt != nil {
-		ctm := time.Unix(*r.Status.CreatedAt, 0)
+		ctm := time.Unix(0, *r.Status.CreatedAt)
 		fmt.Printf("Created: %v\n", ctm)
 	}
 	if r.Status.StartedAt != nil {
-		stm := time.Unix(*r.Status.StartedAt, 0)
+		stm := time.Unix(0, *r.Status.StartedAt)
 		fmt.Printf("Started: %v\n", stm)
 	}
 	if r.Status.FinishedAt != nil {
-		ftm := time.Unix(*r.Status.FinishedAt, 0)
+		ftm := time.Unix(0, *r.Status.FinishedAt)
 		fmt.Printf("Finished: %v\n", ftm)
 	}
 	if r.Status.ExitCode != nil {
@@ -448,7 +448,7 @@ func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 			fmt.Printf("Status: %s\n", *c.State)
 		}
 		if c.CreatedAt != nil {
-			ctm := time.Unix(*c.CreatedAt, 0)
+			ctm := time.Unix(0, *c.CreatedAt)
 			fmt.Printf("Created: %v\n", ctm)
 		}
 		if c.Labels != nil {
