@@ -199,7 +199,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace,
-	if !req.GetConfig().GetLinux().GetNamespaceOptions().GetHostPid() && !req.GetConfig().GetLinux().GetNamespaceOptions().GetHostIpc() {
+	if !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() && !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostIpc() {
 		processLabel, mountLabel, err = getSELinuxLabels(nil)
 		if err != nil {
 			return nil, err
@@ -263,21 +263,21 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// set up namespaces
-	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostNetwork() {
+	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostNetwork() {
 		err = g.RemoveLinuxNamespace("network")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostPid() {
+	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() {
 		err = g.RemoveLinuxNamespace("pid")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if req.GetConfig().GetLinux().GetNamespaceOptions().GetHostIpc() {
+	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostIpc() {
 		err = g.RemoveLinuxNamespace("ipc")
 		if err != nil {
 			return nil, err
@@ -467,9 +467,9 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		ip = ""
 	}
 
-	rStatus := pb.PodSandBoxState_NOTREADY
+	rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
 	if cState.Status == oci.ContainerStateRunning {
-		rStatus = pb.PodSandBoxState_READY
+		rStatus = pb.PodSandboxState_SANDBOX_READY
 	}
 
 	sandboxID := sb.id
@@ -546,9 +546,9 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		}
 		cState := s.runtime.ContainerStatus(podInfraContainer)
 		created := cState.Created.UnixNano()
-		rStatus := pb.PodSandBoxState_NOTREADY
+		rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
 		if cState.Status == oci.ContainerStateRunning {
-			rStatus = pb.PodSandBoxState_READY
+			rStatus = pb.PodSandboxState_SANDBOX_READY
 		}
 
 		pod := &pb.PodSandbox{

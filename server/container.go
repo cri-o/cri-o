@@ -213,11 +213,11 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			specgen.AddAnnotation(k, v)
 		}
 	}
-	if containerConfig.GetPrivileged() {
+	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 		specgen.SetupPrivileged(true)
 	}
 
-	if containerConfig.GetReadonlyRootfs() {
+	if containerConfig.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
 		specgen.SetRootReadonly(true)
 	}
 
@@ -255,7 +255,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			specgen.SetLinuxResourcesOOMScoreAdj(int(oomScoreAdj))
 		}
 
-		capabilities := linux.GetCapabilities()
+		capabilities := linux.GetSecurityContext().GetCapabilities()
 		if capabilities != nil {
 			addCaps := capabilities.GetAddCapabilities()
 			if addCaps != nil {
@@ -279,20 +279,14 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		specgen.SetProcessSelinuxLabel(sb.processLabel)
 		specgen.SetLinuxMountLabel(sb.mountLabel)
 
-		user := linux.GetUser()
-		if user != nil {
-			uid := user.GetUid()
-			specgen.SetProcessUID(uint32(uid))
+		user := linux.GetSecurityContext().GetRunAsUser()
+		specgen.SetProcessUID(uint32(user))
 
-			gid := user.GetGid()
-			specgen.SetProcessGID(uint32(gid))
+		specgen.SetProcessGID(uint32(user))
 
-			groups := user.GetAdditionalGids()
-			if groups != nil {
-				for _, group := range groups {
-					specgen.AddProcessAdditionalGid(uint32(group))
-				}
-			}
+		groups := linux.GetSecurityContext().GetSupplementalGroups()
+		for _, group := range groups {
+			specgen.AddProcessAdditionalGid(uint32(group))
 		}
 	}
 	// Join the namespace paths for the pod sandbox container.
@@ -491,7 +485,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		podSandboxID := ctr.Sandbox()
 		cState := s.runtime.ContainerStatus(ctr)
 		created := cState.Created.UnixNano()
-		rState := pb.ContainerState_UNKNOWN
+		rState := pb.ContainerState_CONTAINER_UNKNOWN
 		cID := ctr.ID()
 
 		c := &pb.Container{
@@ -504,11 +498,11 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 
 		switch cState.Status {
 		case oci.ContainerStateCreated:
-			rState = pb.ContainerState_CREATED
+			rState = pb.ContainerState_CONTAINER_CREATED
 		case oci.ContainerStateRunning:
-			rState = pb.ContainerState_RUNNING
+			rState = pb.ContainerState_CONTAINER_RUNNING
 		case oci.ContainerStateStopped:
-			rState = pb.ContainerState_EXITED
+			rState = pb.ContainerState_CONTAINER_EXITED
 		}
 		c.State = &rState
 
@@ -546,21 +540,21 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 
 	cState := s.runtime.ContainerStatus(c)
-	rStatus := pb.ContainerState_UNKNOWN
+	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
 	switch cState.Status {
 	case oci.ContainerStateCreated:
-		rStatus = pb.ContainerState_CREATED
+		rStatus = pb.ContainerState_CONTAINER_CREATED
 		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = int64Ptr(created)
 	case oci.ContainerStateRunning:
-		rStatus = pb.ContainerState_RUNNING
+		rStatus = pb.ContainerState_CONTAINER_RUNNING
 		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = int64Ptr(created)
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = int64Ptr(started)
 	case oci.ContainerStateStopped:
-		rStatus = pb.ContainerState_EXITED
+		rStatus = pb.ContainerState_CONTAINER_EXITED
 		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = int64Ptr(created)
 		started := cState.Started.UnixNano()
@@ -598,5 +592,10 @@ func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (*pb.AttachR
 
 // PortForward prepares a streaming endpoint to forward ports from a PodSandbox.
 func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+	return nil, nil
+}
+
+// Status returns the status of the runtime
+func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
 	return nil, nil
 }

@@ -405,16 +405,16 @@ func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 		filter.PodSandboxId = &opts.podID
 	}
 	if opts.state != "" {
-		st := pb.ContainerState_UNKNOWN
+		st := pb.ContainerState_CONTAINER_UNKNOWN
 		switch opts.state {
 		case "created":
-			st = pb.ContainerState_CREATED
+			st = pb.ContainerState_CONTAINER_CREATED
 			filter.State = &st
 		case "running":
-			st = pb.ContainerState_RUNNING
+			st = pb.ContainerState_CONTAINER_RUNNING
 			filter.State = &st
 		case "stopped":
-			st = pb.ContainerState_EXITED
+			st = pb.ContainerState_CONTAINER_EXITED
 			filter.State = &st
 		default:
 			log.Fatalf("--state should be one of created, running or stopped")
