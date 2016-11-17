@@ -324,13 +324,13 @@ func ListPodSandboxes(client pb.RuntimeServiceClient, opts listOptions) error {
 		filter.Id = &opts.id
 	}
 	if opts.state != "" {
-		st := pb.PodSandBoxState_NOTREADY
+		st := pb.PodSandboxState_SANDBOX_NOTREADY
 		switch opts.state {
 		case "ready":
-			st = pb.PodSandBoxState_READY
+			st = pb.PodSandboxState_SANDBOX_READY
 			filter.State = &st
 		case "notready":
-			st = pb.PodSandBoxState_NOTREADY
+			st = pb.PodSandboxState_SANDBOX_NOTREADY
 			filter.State = &st
 		default:
 			log.Fatalf("--state should be ready or notready")
