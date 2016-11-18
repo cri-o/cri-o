@@ -21,6 +21,7 @@ var containerCommand = cli.Command{
 		removeContainerCommand,
 		containerStatusCommand,
 		listContainersCommand,
+		execSyncCommand,
 	},
 }
 
@@ -198,6 +199,38 @@ var containerStatusCommand = cli.Command{
 		err = ContainerStatus(client, context.String("id"))
 		if err != nil {
 			return fmt.Errorf("Getting the status of the container failed: %v", err)
+		}
+		return nil
+	},
+}
+
+var execSyncCommand = cli.Command{
+	Name:  "execsync",
+	Usage: "exec a command synchronously in a container",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "id of the container",
+		},
+		cli.Int64Flag{
+			Name:  "timeout",
+			Value: 0,
+			Usage: "timeout for the command",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection(context)
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		err = ExecSync(client, context.String("id"), context.Args(), context.Int64("timeout"))
+		if err != nil {
+			return fmt.Errorf("execing command in container failed: %v", err)
 		}
 		return nil
 	},
@@ -390,6 +423,29 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 	if r.Status.ExitCode != nil {
 		fmt.Printf("Exit Code: %v\n", *r.Status.ExitCode)
 	}
+
+	return nil
+}
+
+// ExecSync sends an ExecSyncRequest to the server, and parses
+// the returned ExecSyncResponse.
+func ExecSync(client pb.RuntimeServiceClient, ID string, cmd []string, timeout int64) error {
+	if ID == "" {
+		return fmt.Errorf("ID cannot be empty")
+	}
+	r, err := client.ExecSync(context.Background(), &pb.ExecSyncRequest{
+		ContainerId: &ID,
+		Cmd:         cmd,
+		Timeout:     &timeout,
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Println("Stdout:")
+	fmt.Println(string(r.Stdout))
+	fmt.Println("Stderr:")
+	fmt.Println(string(r.Stderr))
+	fmt.Printf("Exit code: %v\n", *r.ExitCode)
 
 	return nil
 }
