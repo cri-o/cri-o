@@ -597,13 +597,13 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.Exe
 		return nil, fmt.Errorf("exec command cannot be empty")
 	}
 
-	out, errout, rc, err := s.runtime.ExecSync(c, cmd, req.GetTimeout())
-
+	execResp, err := s.runtime.ExecSync(c, cmd, req.GetTimeout())
 	resp := &pb.ExecSyncResponse{
-		Stdout:   out,
-		Stderr:   errout,
-		ExitCode: &rc,
+		Stdout:   execResp.Stdout,
+		Stderr:   execResp.Stderr,
+		ExitCode: &execResp.ExitCode,
 	}
+
 	logrus.Debugf("ExecSyncResponse: %+v", resp)
 	return resp, err
 }

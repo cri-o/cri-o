@@ -148,28 +148,98 @@ func (r *Runtime) StartContainer(c *Container) error {
 	return nil
 }
 
+// ExecSyncResponse is returned from ExecSync.
+type ExecSyncResponse struct {
+	Stdout   []byte
+	Stderr   []byte
+	ExitCode int32
+}
+
 // ExecSync execs a command in a container and returns it's stdout, stderr and return code.
-func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (stdout []byte, stderr []byte, exitCode int32, err error) {
+func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	args := []string{"exec", c.name}
 	args = append(args, command...)
 	cmd := exec.Command(r.Path(), args...)
-	logrus.Debugf("Command: +v\n", cmd)
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	err = cmd.Start()
 	if err != nil {
-		return stdoutBuf.Bytes(), stderrBuf.Bytes(), -1, err
+		return &ExecSyncResponse{
+			Stdout:   stdoutBuf.Bytes(),
+			Stderr:   stderrBuf.Bytes(),
+			ExitCode: -1,
+		}, err
 	}
-	err = cmd.Wait()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-				return stdoutBuf.Bytes(), stderrBuf.Bytes(), int32(status.ExitStatus()), err
+
+	if timeout > 0 {
+		done := make(chan error, 1)
+		go func() {
+			done <- cmd.Wait()
+		}()
+
+		select {
+		case <-time.After(time.Duration(timeout) * time.Second):
+			err = unix.Kill(cmd.Process.Pid, syscall.SIGKILL)
+			if err != nil && err != syscall.ESRCH {
+				return &ExecSyncResponse{
+					Stdout:   stdoutBuf.Bytes(),
+					Stderr:   stderrBuf.Bytes(),
+					ExitCode: -1,
+				}, fmt.Errorf("failed to kill process on timeout: %v", err)
 			}
+			return &ExecSyncResponse{
+				Stdout:   stdoutBuf.Bytes(),
+				Stderr:   stderrBuf.Bytes(),
+				ExitCode: -1,
+			}, fmt.Errorf("command timed out")
+		case err = <-done:
+			if err != nil {
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+						return &ExecSyncResponse{
+							Stdout:   stdoutBuf.Bytes(),
+							Stderr:   stderrBuf.Bytes(),
+							ExitCode: int32(status.ExitStatus()),
+						}, err
+					}
+				} else {
+					return &ExecSyncResponse{
+						Stdout:   stdoutBuf.Bytes(),
+						Stderr:   stderrBuf.Bytes(),
+						ExitCode: -1,
+					}, err
+				}
+			}
+
+		}
+	} else {
+		err = cmd.Wait()
+		if err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+					return &ExecSyncResponse{
+						Stdout:   stdoutBuf.Bytes(),
+						Stderr:   stderrBuf.Bytes(),
+						ExitCode: int32(status.ExitStatus()),
+					}, err
+				}
+			} else {
+				return &ExecSyncResponse{
+					Stdout:   stdoutBuf.Bytes(),
+					Stderr:   stderrBuf.Bytes(),
+					ExitCode: -1,
+				}, err
+			}
+
 		}
 	}
-	return stdoutBuf.Bytes(), stderrBuf.Bytes(), 0, nil
+
+	return &ExecSyncResponse{
+		Stdout:   stdoutBuf.Bytes(),
+		Stderr:   stderrBuf.Bytes(),
+		ExitCode: 0,
+	}, nil
 }
 
 // StopContainer stops a container.
