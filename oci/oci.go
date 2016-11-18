@@ -148,6 +148,30 @@ func (r *Runtime) StartContainer(c *Container) error {
 	return nil
 }
 
+// ExecSync execs a command in a container and returns it's stdout, stderr and return code.
+func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (stdout []byte, stderr []byte, exitCode int32, err error) {
+	args := []string{"exec", c.name}
+	args = append(args, command...)
+	cmd := exec.Command(r.Path(), args...)
+	logrus.Debugf("Command: +v\n", cmd)
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+	err = cmd.Start()
+	if err != nil {
+		return stdoutBuf.Bytes(), stderrBuf.Bytes(), -1, err
+	}
+	err = cmd.Wait()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+				return stdoutBuf.Bytes(), stderrBuf.Bytes(), int32(status.ExitStatus()), err
+			}
+		}
+	}
+	return stdoutBuf.Bytes(), stderrBuf.Bytes(), 0, nil
+}
+
 // StopContainer stops a container.
 func (r *Runtime) StopContainer(c *Container) error {
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.name); err != nil {
