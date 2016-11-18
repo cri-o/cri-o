@@ -597,5 +597,35 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (*
 
 // Status returns the status of the runtime
 func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
-	return nil, nil
+
+	// Deal with Runtime conditions
+	runtimeReady, err := s.runtime.RuntimeReady()
+	if err != nil {
+		return nil, err
+	}
+	networkReady, err := s.runtime.NetworkReady()
+	if err != nil {
+		return nil, err
+	}
+
+	// Use vendored strings
+	runtimeReadyConditionString := pb.RuntimeReady
+	networkReadyConditionString := pb.NetworkReady
+
+	resp := &pb.StatusResponse{
+		Status: &pb.RuntimeStatus{
+			Conditions: []*pb.RuntimeCondition{
+				&pb.RuntimeCondition{
+					Type:   &runtimeReadyConditionString,
+					Status: &runtimeReady,
+				},
+				&pb.RuntimeCondition{
+					Type:   &networkReadyConditionString,
+					Status: &networkReady,
+				},
+			},
+		},
+	}
+
+	return resp, nil
 }

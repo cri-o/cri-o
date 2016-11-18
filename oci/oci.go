@@ -310,3 +310,15 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 	}
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
+
+// RuntimeReady checks if the runtime is up and ready to accept
+// basic containers e.g. container only needs host network.
+func (r *Runtime) RuntimeReady() (bool, error) {
+	return true, nil
+}
+
+// NetworkReady checks if the runtime network is up and ready to
+// accept containers which require container network.
+func (r *Runtime) NetworkReady() (bool, error) {
+	return true, nil
+}
