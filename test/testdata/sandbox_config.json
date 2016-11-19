@@ -46,7 +46,9 @@
 		"group": "test"
 	},
 	"annotations": {
-		"owner": "hmeng"
+		"owner": "hmeng",
+		"security.alpha.kubernetes.io/sysctls": "kernel.shm_rmid_forced=1,net.ipv4.ip_local_port_range=1024 65000",
+		"security.alpha.kubernetes.io/unsafe-sysctls": "kernel.msgmax=8192" 
 	},
 	"linux": {
 		"cgroup_parent": "podsandbox1.slice:container:infra",

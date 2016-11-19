@@ -187,3 +187,43 @@ function teardown() {
 	cleanup_pods
 	stop_ocid
 }
+
+@test "pass pod sysctls to runtime" {
+	# this test requires docker, thus it can't yet be run in a container
+	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
+		skip "cannot yet run this test in a container, use sudo make localintegration"
+	fi
+
+	start_ocid
+	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run ocic ctr create --pod "$pod_id" --config "$TESTDATA"/container_redis.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	container_id="$output"
+
+	run ocic ctr start --id "$container_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run ocic ctr execsync --id "$container_id" sysctl kernel.shm_rmid_forced
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "kernel.shm_rmid_forced = 1" ]]
+
+	run ocic ctr execsync --id "$container_id" sysctl kernel.msgmax
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "kernel.msgmax = 8192" ]]
+
+	run ocic ctr execsync --id "$container_id" sysctl net.ipv4.ip_local_port_range
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "net.ipv4.ip_local_port_range = 1024	65000" ]]
+
+	cleanup_pods
+	stop_ocid
+}
