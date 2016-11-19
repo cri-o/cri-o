@@ -188,6 +188,18 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.AddAnnotation(k, v)
 	}
 
+	// extract linux sysctls from annotations and pass down to oci runtime
+	safe, unsafe, err := SysctlsFromPodAnnotations(annotations)
+	if err != nil {
+		return nil, err
+	}
+	for _, sysctl := range safe {
+		g.AddLinuxSysctl(sysctl.Name, sysctl.Value)
+	}
+	for _, sysctl := range unsafe {
+		g.AddLinuxSysctl(sysctl.Name, sysctl.Value)
+	}
+
 	// setup cgroup settings
 	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
 	if cgroupParent != "" {
