@@ -577,7 +577,35 @@ func (s *Server) UpdateRuntimeConfig(ctx context.Context, req *pb.UpdateRuntimeC
 
 // ExecSync runs a command in a container synchronously.
 func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.ExecSyncResponse, error) {
-	return nil, nil
+	logrus.Debugf("ExecSyncRequest %+v", req)
+	c, err := s.getContainerFromRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.runtime.UpdateStatus(c); err != nil {
+		return nil, err
+	}
+
+	cState := s.runtime.ContainerStatus(c)
+	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
+		return nil, fmt.Errorf("container is not created or running")
+	}
+
+	cmd := req.GetCmd()
+	if cmd == nil {
+		return nil, fmt.Errorf("exec command cannot be empty")
+	}
+
+	execResp, err := s.runtime.ExecSync(c, cmd, req.GetTimeout())
+	resp := &pb.ExecSyncResponse{
+		Stdout:   execResp.Stdout,
+		Stderr:   execResp.Stderr,
+		ExitCode: &execResp.ExitCode,
+	}
+
+	logrus.Debugf("ExecSyncResponse: %+v", resp)
+	return resp, err
 }
 
 // Exec prepares a streaming endpoint to execute a command in the container.
