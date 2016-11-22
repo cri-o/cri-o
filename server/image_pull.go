@@ -35,10 +35,14 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	if err != nil {
 		return nil, err
 	}
-	i := image.FromSource(src)
-	blobs, err := i.BlobDigests()
+	i, err := image.FromSource(src)
 	if err != nil {
 		return nil, err
+	}
+	blobs := i.LayerInfos()
+	config := i.ConfigInfo()
+	if config.Digest != "" {
+		blobs = append(blobs, config)
 	}
 
 	if err = os.Mkdir(filepath.Join(s.config.ImageDir, tr.StringWithinTransport()), 0755); err != nil {
@@ -61,7 +65,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		if err != nil {
 			return nil, err
 		}
-		if _, _, err = dest.PutBlob(r, b, -1); err != nil {
+		if _, err = dest.PutBlob(r, b); err != nil {
 			r.Close()
 			return nil, err
 		}

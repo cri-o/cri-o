@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package specs
+package v1
 
 // Descriptor describes the disposition of targeted content.
 type Descriptor struct {
@@ -24,4 +24,7 @@ type Descriptor struct {
 
 	// Size specifies the size in bytes of the blob.
 	Size int64 `json:"size"`
+
+	// URLs specifies a list of URLs from which this object MAY be downloaded
+	URLs []string `json:"urls,omitempty"`
 }

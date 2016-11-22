@@ -1,8 +1,6 @@
 package layout
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +11,7 @@ import (
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	imgspec "github.com/opencontainers/image-spec/specs-go"
+	"github.com/docker/distribution/digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -49,19 +47,30 @@ func (d *ociImageDestination) SupportsSignatures() error {
 	return fmt.Errorf("Pushing signatures for OCI images is not supported")
 }
 
-// PutBlob writes contents of stream and returns its computed digest and size.
-// A digest can be optionally provided if known, the specific image destination can decide to play with it or not.
-// The length of stream is expected to be expectedSize; if expectedSize == -1, it is not known.
+// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
+func (d *ociImageDestination) ShouldCompressLayers() bool {
+	return true
+}
+
+// AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
+// uploaded to the image destination, true otherwise.
+func (d *ociImageDestination) AcceptsForeignLayerURLs() bool {
+	return false
+}
+
+// PutBlob writes contents of stream and returns data representing the result (with all data filled in).
+// inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
+// inputInfo.Size is the expected length of stream, if known.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *ociImageDestination) PutBlob(stream io.Reader, _ string, expectedSize int64) (string, int64, error) {
+func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types.BlobInfo, error) {
 	if err := ensureDirectoryExists(d.ref.dir); err != nil {
-		return "", -1, err
+		return types.BlobInfo{}, err
 	}
 	blobFile, err := ioutil.TempFile(d.ref.dir, "oci-put-blob")
 	if err != nil {
-		return "", -1, err
+		return types.BlobInfo{}, err
 	}
 	succeeded := false
 	defer func() {
@@ -71,36 +80,58 @@ func (d *ociImageDestination) PutBlob(stream io.Reader, _ string, expectedSize i
 		}
 	}()
 
-	h := sha256.New()
-	tee := io.TeeReader(stream, h)
+	digester := digest.Canonical.New()
+	tee := io.TeeReader(stream, digester.Hash())
 
 	size, err := io.Copy(blobFile, tee)
 	if err != nil {
-		return "", -1, err
+		return types.BlobInfo{}, err
 	}
-	computedDigest := "sha256:" + hex.EncodeToString(h.Sum(nil))
-	if expectedSize != -1 && size != expectedSize {
-		return "", -1, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", computedDigest, expectedSize, size)
+	computedDigest := digester.Digest()
+	if inputInfo.Size != -1 && size != inputInfo.Size {
+		return types.BlobInfo{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", computedDigest, inputInfo.Size, size)
 	}
 	if err := blobFile.Sync(); err != nil {
-		return "", -1, err
+		return types.BlobInfo{}, err
 	}
 	if err := blobFile.Chmod(0644); err != nil {
-		return "", -1, err
+		return types.BlobInfo{}, err
 	}
 
 	blobPath, err := d.ref.blobPath(computedDigest)
 	if err != nil {
-		return "", -1, err
+		return types.BlobInfo{}, err
 	}
 	if err := ensureParentDirectoryExists(blobPath); err != nil {
-		return "", -1, err
+		return types.BlobInfo{}, err
 	}
 	if err := os.Rename(blobFile.Name(), blobPath); err != nil {
-		return "", -1, err
+		return types.BlobInfo{}, err
 	}
 	succeeded = true
-	return computedDigest, size, nil
+	return types.BlobInfo{Digest: computedDigest, Size: size}, nil
+}
+
+func (d *ociImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
+	if info.Digest == "" {
+		return false, -1, fmt.Errorf(`"Can not check for a blob with unknown digest`)
+	}
+	blobPath, err := d.ref.blobPath(info.Digest)
+	if err != nil {
+		return false, -1, err
+	}
+	finfo, err := os.Stat(blobPath)
+	if err != nil && os.IsNotExist(err) {
+		return false, -1, types.ErrBlobNotFound
+	}
+	if err != nil {
+		return false, -1, err
+	}
+	return true, finfo.Size(), nil
+}
+
+func (d *ociImageDestination) ReapplyBlob(info types.BlobInfo) (types.BlobInfo, error) {
+	return info, nil
 }
 
 func createManifest(m []byte) ([]byte, string, error) {
@@ -118,8 +149,12 @@ func createManifest(m []byte) ([]byte, string, error) {
 			return nil, "", err
 		}
 		om.MediaType = imgspecv1.MediaTypeImageManifest
-		for i := range om.Layers {
-			om.Layers[i].MediaType = imgspecv1.MediaTypeImageLayer
+		for i, l := range om.Layers {
+			if l.MediaType == manifest.DockerV2Schema2ForeignLayerMediaType {
+				om.Layers[i].MediaType = imgspecv1.MediaTypeImageLayerNonDistributable
+			} else {
+				om.Layers[i].MediaType = imgspecv1.MediaTypeImageLayer
+			}
 		}
 		om.Config.MediaType = imgspecv1.MediaTypeImageConfig
 		b, err := json.Marshal(om)
@@ -148,8 +183,8 @@ func (d *ociImageDestination) PutManifest(m []byte) error {
 	if err != nil {
 		return err
 	}
-	desc := imgspec.Descriptor{}
-	desc.Digest = digest
+	desc := imgspecv1.Descriptor{}
+	desc.Digest = digest.String()
 	// TODO(runcom): beaware and add support for OCI manifest list
 	desc.MediaType = mt
 	desc.Size = int64(len(ociMan))

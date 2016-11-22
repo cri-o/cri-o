@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	"github.com/containers/image/directory/explicitfilepath"
+	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/image"
 	"github.com/containers/image/types"
-	"github.com/docker/docker/reference"
+	"github.com/docker/distribution/digest"
 )
 
 // Transport is an ImageTransport for OCI directories.
@@ -164,10 +166,13 @@ func (ref ociReference) PolicyConfigurationNamespaces() []string {
 	return res
 }
 
-// NewImage returns a types.Image for this reference.
+// NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
 // The caller must call .Close() on the returned Image.
+// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 func (ref ociReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
-	return nil, errors.New("Full Image support not implemented for oci: image names")
+	src := newImageSource(ref)
+	return image.FromSource(src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference,
@@ -175,7 +180,7 @@ func (ref ociReference) NewImage(ctx *types.SystemContext) (types.Image, error) 
 // nil requestedManifestMIMETypes means manifest.DefaultRequestedManifestMIMETypes.
 // The caller must call .Close() on the returned ImageSource.
 func (ref ociReference) NewImageSource(ctx *types.SystemContext, requestedManifestMIMETypes []string) (types.ImageSource, error) {
-	return nil, errors.New("Reading images not implemented for oci: image names")
+	return newImageSource(ref), nil
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
@@ -195,12 +200,11 @@ func (ref ociReference) ociLayoutPath() string {
 }
 
 // blobPath returns a path for a blob within a directory using OCI image-layout conventions.
-func (ref ociReference) blobPath(digest string) (string, error) {
-	pts := strings.SplitN(digest, ":", 2)
-	if len(pts) != 2 {
-		return "", fmt.Errorf("unexpected digest reference %s", digest)
+func (ref ociReference) blobPath(digest digest.Digest) (string, error) {
+	if err := digest.Validate(); err != nil {
+		return "", fmt.Errorf("unexpected digest reference %s: %v", digest, err)
 	}
-	return filepath.Join(ref.dir, "blobs", pts[0], pts[1]), nil
+	return filepath.Join(ref.dir, "blobs", digest.Algorithm().String(), digest.Hex()), nil
 }
 
 // descriptorPath returns a path for the manifest within a directory using OCI conventions.

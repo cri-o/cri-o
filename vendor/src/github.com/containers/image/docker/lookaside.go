@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/docker/distribution/digest"
 	"github.com/ghodss/yaml"
 
 	"github.com/Sirupsen/logrus"
@@ -188,11 +189,11 @@ func (ns registryNamespace) signatureTopLevel(write bool) string {
 
 // signatureStorageURL returns an URL usable for acessing signature index in base with known manifestDigest, or nil if not applicable.
 // Returns nil iff base == nil.
-func signatureStorageURL(base signatureStorageBase, manifestDigest string, index int) *url.URL {
+func signatureStorageURL(base signatureStorageBase, manifestDigest digest.Digest, index int) *url.URL {
 	if base == nil {
 		return nil
 	}
 	url := *base
-	url.Path = fmt.Sprintf("%s@%s/signature-%d", url.Path, manifestDigest, index+1)
+	url.Path = fmt.Sprintf("%s@%s/signature-%d", url.Path, manifestDigest.String(), index+1)
 	return &url
 }

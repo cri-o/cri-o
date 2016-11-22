@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/containers/image/docker/policyconfiguration"
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
-	"github.com/docker/docker/reference"
 )
 
 // Transport is an ImageTransport for Docker registry-hosted images.
@@ -115,8 +115,10 @@ func (ref dockerReference) PolicyConfigurationNamespaces() []string {
 	return policyconfiguration.DockerReferenceNamespaces(ref.ref)
 }
 
-// NewImage returns a types.Image for this reference.
+// NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
 // The caller must call .Close() on the returned Image.
+// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 func (ref dockerReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
 	return newImage(ctx, ref)
 }
