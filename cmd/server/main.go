@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/opencontainers/runc/libcontainer/selinux"
 	"github.com/urfave/cli"
@@ -78,6 +79,9 @@ func (f byName) Swap(i, j int) {
 }
 
 func main() {
+	if reexec.Init() {
+		return
+	}
 	app := cli.NewApp()
 	app.Name = "ocid"
 	app.Usage = "ocid server"
