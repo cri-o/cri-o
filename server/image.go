@@ -29,7 +29,14 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*
 	// TODO
 	// containers/storage will take care of this by looking inside /var/lib/ocid/images
 	// and getting the image status
-	return &pb.ImageStatusResponse{}, nil
+
+	// HACK: Return fake status for now as the image pull actually happens in create container.
+	image := req.GetImage().GetImage()
+	return &pb.ImageStatusResponse{
+		Image: &pb.Image{
+			Id: &image,
+		},
+	}, nil
 }
 
 // PullImage pulls a image with authentication config.
