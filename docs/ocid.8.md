@@ -19,6 +19,7 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 [**--runtime**=[*value*]]
 [**--sandboxdir**=[*value*]]
 [**--selinux**]
+[**--seccomp-profile**=[*value*]]
 [**--version**|**-v**]
 
 # DESCRIPTION
@@ -77,6 +78,9 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 
 **--selinux**
   Enable selinux support (default: false)
+
+**seccomp_profile**
+  Path to the seccomp json profile to be used as the runtime's default (default: "/etc/ocid/seccomp.json")
 
 **--version, -v**
   Print the version

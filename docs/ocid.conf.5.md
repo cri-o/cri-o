@@ -58,6 +58,9 @@ The `ocid` table supports the following options:
 **selinux**
   Enable selinux support (default: false)
 
+**seccomp_profile**
+  Path to the seccomp json profile to be used as the runtime's default (default: "/etc/ocid/seccomp.json")
+
 ## OCID.IMAGE TABLE
 
 **pause**=""

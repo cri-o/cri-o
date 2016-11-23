@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
-const ociConfigPath = "/etc/ocid.conf"
+const ociConfigPath = "/etc/ocid/ocid.conf"
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
@@ -55,6 +55,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	}
 	if ctx.GlobalIsSet("selinux") {
 		config.SELinux = ctx.GlobalBool("selinux")
+	}
+	if ctx.GlobalIsSet("seccomp-profile") {
+		config.SeccompProfile = ctx.GlobalString("seccomp-profile")
 	}
 	return nil
 }
@@ -127,6 +130,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "sandboxdir",
 			Usage: "ocid pod sandbox dir",
+		},
+		cli.StringFlag{
+			Name:  "seccomp-profile",
+			Usage: "default seccomp profile path",
 		},
 		cli.BoolFlag{
 			Name:  "selinux",

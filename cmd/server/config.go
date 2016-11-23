@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	ocidRoot   = "/var/lib/ocid"
-	conmonPath = "/usr/libexec/ocid/conmon"
-	pausePath  = "/usr/libexec/ocid/pause"
+	ocidRoot           = "/var/lib/ocid"
+	conmonPath         = "/usr/libexec/ocid/conmon"
+	pausePath          = "/usr/libexec/ocid/pause"
+	seccompProfilePath = "/etc/ocid/seccomp.json"
 )
 
 var commentedConfigTemplate = template.Must(template.New("config").Parse(`
@@ -59,6 +60,10 @@ conmon_env = [
 # on the host.
 selinux = {{ .SELinux }}
 
+# seccomp_profile is the seccomp json profile path which is used as the
+# default for the runtime.
+seccomp_profile = "{{ .SeccompProfile }}"
+
 # The "ocid.image" table contains settings pertaining to the
 # management of OCI images.
 [ocid.image]
@@ -89,7 +94,8 @@ func DefaultConfig() *server.Config {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			SELinux: selinux.SelinuxEnabled(),
+			SELinux:        selinux.SelinuxEnabled(),
+			SeccompProfile: seccompProfilePath,
 		},
 		ImageConfig: server.ImageConfig{
 			Pause:    pausePath,

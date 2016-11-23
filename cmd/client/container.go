@@ -329,6 +329,8 @@ func CreateContainer(client pb.RuntimeServiceClient, opts createOptions) error {
 	r, err := client.CreateContainer(context.Background(), &pb.CreateContainerRequest{
 		PodSandboxId: &opts.podID,
 		Config:       config,
+		// TODO(runcom): this is missing PodSandboxConfig!!!
+		// we should/could find a way to retrieve it from the fs and set it here
 	})
 	if err != nil {
 		return err
