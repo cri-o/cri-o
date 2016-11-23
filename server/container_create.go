@@ -273,14 +273,20 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 	logrus.Debugf("pod container state %+v", podInfraState)
 
-	for nsType, nsFile := range map[string]string{
-		"ipc":     "ipc",
-		"network": "net",
-	} {
-		nsPath := fmt.Sprintf("/proc/%d/ns/%s", podInfraState.Pid, nsFile)
-		if err := specgen.AddOrReplaceLinuxNamespace(nsType, nsPath); err != nil {
-			return nil, err
-		}
+	ipcNsPath := fmt.Sprintf("/proc/%d/ns/ipc", podInfraState.Pid)
+	if err := specgen.AddOrReplaceLinuxNamespace("ipc", ipcNsPath); err != nil {
+		return nil, err
+	}
+
+	netNsPath := sb.netNsPath()
+	if netNsPath == "" {
+		// The sandbox does not have a permanent namespace,
+		// it's on the host one.
+		netNsPath = fmt.Sprintf("/proc/%d/ns/net", podInfraState.Pid)
+	}
+
+	if err := specgen.AddOrReplaceLinuxNamespace("network", netNsPath); err != nil {
+		return nil, err
 	}
 
 	imageSpec := containerConfig.GetImage()
@@ -336,7 +342,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerDir, logPath, labels, annotations, imageSpec, metadata, sb.id, containerConfig.GetTty())
+	container, err := oci.NewContainer(containerID, containerName, containerDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.GetTty())
 	if err != nil {
 		return nil, err
 	}

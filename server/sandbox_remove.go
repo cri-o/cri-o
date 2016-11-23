@@ -78,6 +78,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	if err := os.RemoveAll(podSandboxDir); err != nil {
 		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", sb.id, err)
 	}
+	if err := sb.netNsRemove(); err != nil {
+		return nil, fmt.Errorf("failed to remove networking namespace for sandbox %s: %v", sb.id, err)
+	}
 	s.releaseContainerName(podInfraContainer.Name())
 	s.removeContainer(podInfraContainer)
 	sb.infraContainer = nil
