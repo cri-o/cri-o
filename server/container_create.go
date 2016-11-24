@@ -149,9 +149,9 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			return nil, fmt.Errorf("Mount.HostPath is empty")
 		}
 
-		options := "rw"
+		options := []string{"rw"}
 		if mount.GetReadonly() {
-			options = "ro"
+			options = []string{"ro"}
 		}
 
 		if mount.GetSelinuxRelabel() {
@@ -162,7 +162,6 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		}
 
 		specgen.AddBindMount(src, dest, options)
-
 	}
 
 	labels := containerConfig.GetLabels()
@@ -283,7 +282,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	}
 	specgen.AddAnnotation("ocid/labels", string(labelsJSON))
 
-	if err = specgen.SaveToFile(filepath.Join(containerDir, "config.json")); err != nil {
+	if err = specgen.SaveToFile(filepath.Join(containerDir, "config.json"), generate.ExportOptions{}); err != nil {
 		return nil, err
 	}
 

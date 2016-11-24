@@ -7,10 +7,10 @@ import (
 	"io"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate/seccomp"
 	"github.com/syndtr/gocapability/capability"
 )
 
@@ -23,6 +23,11 @@ var (
 type Generator struct {
 	spec         *rspec.Spec
 	HostSpecific bool
+}
+
+// ExportOptions have toggles for exporting only certain parts of the specification
+type ExportOptions struct {
+	Seccomp bool // seccomp toggles if only seccomp should be exported
 }
 
 // New creates a spec Generator with the default spec.
@@ -140,6 +145,7 @@ func New() Generator {
 			Devices: []rspec.Device{},
 		},
 	}
+	spec.Linux.Seccomp = seccomp.DefaultProfile(&spec)
 	return Generator{
 		spec: &spec,
 	}
@@ -152,7 +158,7 @@ func NewFromSpec(spec *rspec.Spec) Generator {
 	}
 }
 
-// NewFromFile loads the template specifed in a file into a spec Generator.
+// NewFromFile loads the template specified in a file into a spec Generator.
 func NewFromFile(path string) (Generator, error) {
 	cf, err := os.Open(path)
 	if err != nil {
@@ -187,8 +193,14 @@ func (g *Generator) Spec() *rspec.Spec {
 }
 
 // Save writes the spec into w.
-func (g *Generator) Save(w io.Writer) error {
-	data, err := json.MarshalIndent(g.spec, "", "\t")
+func (g *Generator) Save(w io.Writer, exportOpts ExportOptions) (err error) {
+	var data []byte
+
+	if exportOpts.Seccomp {
+		data, err = json.MarshalIndent(g.spec.Linux.Seccomp, "", "\t")
+	} else {
+		data, err = json.MarshalIndent(g.spec, "", "\t")
+	}
 	if err != nil {
 		return err
 	}
@@ -202,13 +214,13 @@ func (g *Generator) Save(w io.Writer) error {
 }
 
 // SaveToFile writes the spec into a file.
-func (g *Generator) SaveToFile(path string) error {
+func (g *Generator) SaveToFile(path string, exportOpts ExportOptions) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return g.Save(f)
+	return g.Save(f, exportOpts)
 }
 
 // SetVersion sets g.spec.Version.
@@ -325,6 +337,47 @@ func (g *Generator) AddProcessEnv(env string) {
 	g.spec.Process.Env = append(g.spec.Process.Env, env)
 }
 
+// AddProcessRlimits adds rlimit into g.spec.Process.Rlimits.
+func (g *Generator) AddProcessRlimits(rType string, rHard uint64, rSoft uint64) {
+	g.initSpec()
+	for i, rlimit := range g.spec.Process.Rlimits {
+		if rlimit.Type == rType {
+			g.spec.Process.Rlimits[i].Hard = rHard
+			g.spec.Process.Rlimits[i].Soft = rSoft
+			return
+		}
+	}
+
+	newRlimit := rspec.Rlimit{
+		Type: rType,
+		Hard: rHard,
+		Soft: rSoft,
+	}
+	g.spec.Process.Rlimits = append(g.spec.Process.Rlimits, newRlimit)
+}
+
+// RemoveProcessRlimits removes a rlimit from g.spec.Process.Rlimits.
+func (g *Generator) RemoveProcessRlimits(rType string) error {
+	if g.spec == nil {
+		return nil
+	}
+	for i, rlimit := range g.spec.Process.Rlimits {
+		if rlimit.Type == rType {
+			g.spec.Process.Rlimits = append(g.spec.Process.Rlimits[:i], g.spec.Process.Rlimits[i+1:]...)
+			return nil
+		}
+	}
+	return nil
+}
+
+// ClearProcessRlimits clear g.spec.Process.Rlimits.
+func (g *Generator) ClearProcessRlimits() {
+	if g.spec == nil {
+		return
+	}
+	g.spec.Process.Rlimits = []rspec.Rlimit{}
+}
+
 // ClearProcessAdditionalGids clear g.spec.Process.AdditionalGids.
 func (g *Generator) ClearProcessAdditionalGids() {
 	if g.spec == nil {
@@ -360,6 +413,12 @@ func (g *Generator) SetLinuxCgroupsPath(path string) {
 func (g *Generator) SetLinuxMountLabel(label string) {
 	g.initSpecLinux()
 	g.spec.Linux.MountLabel = label
+}
+
+// SetLinuxResourcesDisableOOMKiller sets g.spec.Linux.Resources.DisableOOMKiller.
+func (g *Generator) SetLinuxResourcesDisableOOMKiller(disable bool) {
+	g.initSpecLinuxResources()
+	g.spec.Linux.Resources.DisableOOMKiller = &disable
 }
 
 // SetLinuxResourcesOOMScoreAdj sets g.spec.Linux.Resources.OOMScoreAdj.
@@ -446,6 +505,44 @@ func (g *Generator) SetLinuxResourcesMemorySwappiness(swappiness uint64) {
 	g.spec.Linux.Resources.Memory.Swappiness = &swappiness
 }
 
+// SetLinuxResourcesNetworkClassID sets g.spec.Linux.Resources.Network.ClassID.
+func (g *Generator) SetLinuxResourcesNetworkClassID(classid uint32) {
+	g.initSpecLinuxResourcesNetwork()
+	g.spec.Linux.Resources.Network.ClassID = &classid
+}
+
+// AddLinuxResourcesNetworkPriorities adds or sets g.spec.Linux.Resources.Network.Priorities.
+func (g *Generator) AddLinuxResourcesNetworkPriorities(name string, prio uint32) {
+	g.initSpecLinuxResourcesNetwork()
+	for i, netPriority := range g.spec.Linux.Resources.Network.Priorities {
+		if netPriority.Name == name {
+			g.spec.Linux.Resources.Network.Priorities[i].Priority = prio
+			return
+		}
+	}
+	interfacePrio := new(rspec.InterfacePriority)
+	interfacePrio.Name = name
+	interfacePrio.Priority = prio
+	g.spec.Linux.Resources.Network.Priorities = append(g.spec.Linux.Resources.Network.Priorities, *interfacePrio)
+}
+
+// DropLinuxResourcesNetworkPriorities drops one item from g.spec.Linux.Resources.Network.Priorities.
+func (g *Generator) DropLinuxResourcesNetworkPriorities(name string) {
+	g.initSpecLinuxResourcesNetwork()
+	for i, netPriority := range g.spec.Linux.Resources.Network.Priorities {
+		if netPriority.Name == name {
+			g.spec.Linux.Resources.Network.Priorities = append(g.spec.Linux.Resources.Network.Priorities[:i], g.spec.Linux.Resources.Network.Priorities[i+1:]...)
+			return
+		}
+	}
+}
+
+// SetLinuxResourcesPidsLimit sets g.spec.Linux.Resources.Pids.Limit.
+func (g *Generator) SetLinuxResourcesPidsLimit(limit int64) {
+	g.initSpecLinuxResourcesPids()
+	g.spec.Linux.Resources.Pids.Limit = &limit
+}
+
 // ClearLinuxSysctl clears g.spec.Linux.Sysctl.
 func (g *Generator) ClearLinuxSysctl() {
 	if g.spec == nil || g.spec.Linux == nil {
@@ -466,278 +563,6 @@ func (g *Generator) RemoveLinuxSysctl(key string) {
 		return
 	}
 	delete(g.spec.Linux.Sysctl, key)
-}
-
-// SetLinuxSeccompDefault sets g.spec.Linux.Seccomp.DefaultAction.
-func (g *Generator) SetLinuxSeccompDefault(sdefault string) error {
-	switch sdefault {
-	case "":
-	case "SCMP_ACT_KILL":
-	case "SCMP_ACT_TRAP":
-	case "SCMP_ACT_ERRNO":
-	case "SCMP_ACT_TRACE":
-	case "SCMP_ACT_ALLOW":
-	default:
-		return fmt.Errorf("seccomp-default must be empty or one of " +
-			"SCMP_ACT_KILL|SCMP_ACT_TRAP|SCMP_ACT_ERRNO|SCMP_ACT_TRACE|" +
-			"SCMP_ACT_ALLOW")
-	}
-
-	g.initSpecLinuxSeccomp()
-	g.spec.Linux.Seccomp.DefaultAction = rspec.Action(sdefault)
-	return nil
-}
-
-func checkSeccompArch(arch string) error {
-	switch arch {
-	case "":
-	case "SCMP_ARCH_X86":
-	case "SCMP_ARCH_X86_64":
-	case "SCMP_ARCH_X32":
-	case "SCMP_ARCH_ARM":
-	case "SCMP_ARCH_AARCH64":
-	case "SCMP_ARCH_MIPS":
-	case "SCMP_ARCH_MIPS64":
-	case "SCMP_ARCH_MIPS64N32":
-	case "SCMP_ARCH_MIPSEL":
-	case "SCMP_ARCH_MIPSEL64":
-	case "SCMP_ARCH_MIPSEL64N32":
-	default:
-		return fmt.Errorf("seccomp-arch must be empty or one of " +
-			"SCMP_ARCH_X86|SCMP_ARCH_X86_64|SCMP_ARCH_X32|SCMP_ARCH_ARM|" +
-			"SCMP_ARCH_AARCH64SCMP_ARCH_MIPS|SCMP_ARCH_MIPS64|" +
-			"SCMP_ARCH_MIPS64N32|SCMP_ARCH_MIPSEL|SCMP_ARCH_MIPSEL64|" +
-			"SCMP_ARCH_MIPSEL64N32")
-	}
-	return nil
-}
-
-// ClearLinuxSeccompArch clears g.spec.Linux.Seccomp.Architectures.
-func (g *Generator) ClearLinuxSeccompArch() {
-	if g.spec == nil || g.spec.Linux == nil || g.spec.Linux.Seccomp == nil {
-		return
-	}
-
-	g.spec.Linux.Seccomp.Architectures = []rspec.Arch{}
-}
-
-// AddLinuxSeccompArch adds sArch into g.spec.Linux.Seccomp.Architectures.
-func (g *Generator) AddLinuxSeccompArch(sArch string) error {
-	if err := checkSeccompArch(sArch); err != nil {
-		return err
-	}
-
-	g.initSpecLinuxSeccomp()
-	g.spec.Linux.Seccomp.Architectures = append(g.spec.Linux.Seccomp.Architectures, rspec.Arch(sArch))
-
-	return nil
-}
-
-// RemoveSeccompArch removes sArch from g.spec.Linux.Seccomp.Architectures.
-func (g *Generator) RemoveSeccompArch(sArch string) error {
-	if err := checkSeccompArch(sArch); err != nil {
-		return err
-	}
-
-	if g.spec == nil || g.spec.Linux == nil || g.spec.Linux.Seccomp == nil {
-		return nil
-	}
-
-	for i, arch := range g.spec.Linux.Seccomp.Architectures {
-		if string(arch) == sArch {
-			g.spec.Linux.Seccomp.Architectures = append(g.spec.Linux.Seccomp.Architectures[:i], g.spec.Linux.Seccomp.Architectures[i+1:]...)
-			return nil
-		}
-	}
-
-	return nil
-}
-
-func checkSeccompSyscallAction(syscall string) error {
-	switch syscall {
-	case "":
-	case "SCMP_ACT_KILL":
-	case "SCMP_ACT_TRAP":
-	case "SCMP_ACT_ERRNO":
-	case "SCMP_ACT_TRACE":
-	case "SCMP_ACT_ALLOW":
-	default:
-		return fmt.Errorf("seccomp-syscall action must be empty or " +
-			"one of SCMP_ACT_KILL|SCMP_ACT_TRAP|SCMP_ACT_ERRNO|" +
-			"SCMP_ACT_TRACE|SCMP_ACT_ALLOW")
-	}
-	return nil
-}
-
-func checkSeccompSyscallArg(arg string) error {
-	switch arg {
-	case "":
-	case "SCMP_CMP_NE":
-	case "SCMP_CMP_LT":
-	case "SCMP_CMP_LE":
-	case "SCMP_CMP_EQ":
-	case "SCMP_CMP_GE":
-	case "SCMP_CMP_GT":
-	case "SCMP_CMP_MASKED_EQ":
-	default:
-		return fmt.Errorf("seccomp-syscall args must be " +
-			"empty or one of SCMP_CMP_NE|SCMP_CMP_LT|" +
-			"SCMP_CMP_LE|SCMP_CMP_EQ|SCMP_CMP_GE|" +
-			"SCMP_CMP_GT|SCMP_CMP_MASKED_EQ")
-	}
-	return nil
-}
-
-func parseSeccompSyscall(s string) (rspec.Syscall, error) {
-	syscall := strings.Split(s, ":")
-	if len(syscall) != 3 {
-		return rspec.Syscall{}, fmt.Errorf("seccomp sysctl must consist of 3 parameters")
-	}
-	name := syscall[0]
-	if err := checkSeccompSyscallAction(syscall[1]); err != nil {
-		return rspec.Syscall{}, err
-	}
-	action := rspec.Action(syscall[1])
-
-	var Args []rspec.Arg
-	if strings.EqualFold(syscall[2], "") {
-		Args = nil
-	} else {
-		argsslice := strings.Split(syscall[2], ",")
-		for _, argsstru := range argsslice {
-			args := strings.Split(argsstru, "/")
-			if len(args) == 4 {
-				index, err := strconv.Atoi(args[0])
-				value, err := strconv.Atoi(args[1])
-				value2, err := strconv.Atoi(args[2])
-				if err != nil {
-					return rspec.Syscall{}, err
-				}
-				if err := checkSeccompSyscallArg(args[3]); err != nil {
-					return rspec.Syscall{}, err
-				}
-				op := rspec.Operator(args[3])
-				Arg := rspec.Arg{
-					Index:    uint(index),
-					Value:    uint64(value),
-					ValueTwo: uint64(value2),
-					Op:       op,
-				}
-				Args = append(Args, Arg)
-			} else {
-				return rspec.Syscall{}, fmt.Errorf("seccomp-sysctl args error: %s", argsstru)
-			}
-		}
-	}
-
-	return rspec.Syscall{
-		Name:   name,
-		Action: action,
-		Args:   Args,
-	}, nil
-}
-
-// ClearLinuxSeccompSyscall clears g.spec.Linux.Seccomp.Syscalls.
-func (g *Generator) ClearLinuxSeccompSyscall() {
-	if g.spec == nil || g.spec.Linux == nil || g.spec.Linux.Seccomp == nil {
-		return
-	}
-
-	g.spec.Linux.Seccomp.Syscalls = []rspec.Syscall{}
-}
-
-// AddLinuxSeccompSyscall adds sSyscall into g.spec.Linux.Seccomp.Syscalls.
-func (g *Generator) AddLinuxSeccompSyscall(sSyscall string) error {
-	f, err := parseSeccompSyscall(sSyscall)
-	if err != nil {
-		return err
-	}
-
-	g.initSpecLinuxSeccomp()
-	g.spec.Linux.Seccomp.Syscalls = append(g.spec.Linux.Seccomp.Syscalls, f)
-	return nil
-}
-
-// AddLinuxSeccompSyscallAllow adds seccompAllow into g.spec.Linux.Seccomp.Syscalls.
-func (g *Generator) AddLinuxSeccompSyscallAllow(seccompAllow string) {
-	syscall := rspec.Syscall{
-		Name:   seccompAllow,
-		Action: "SCMP_ACT_ALLOW",
-	}
-
-	g.initSpecLinuxSeccomp()
-	g.spec.Linux.Seccomp.Syscalls = append(g.spec.Linux.Seccomp.Syscalls, syscall)
-}
-
-// AddLinuxSeccompSyscallErrno adds seccompErrno into g.spec.Linux.Seccomp.Syscalls.
-func (g *Generator) AddLinuxSeccompSyscallErrno(seccompErrno string) {
-	syscall := rspec.Syscall{
-		Name:   seccompErrno,
-		Action: "SCMP_ACT_ERRNO",
-	}
-
-	g.initSpecLinuxSeccomp()
-	g.spec.Linux.Seccomp.Syscalls = append(g.spec.Linux.Seccomp.Syscalls, syscall)
-}
-
-// RemoveSeccompSyscallByName removes all the seccomp syscalls with the given
-// name from g.spec.Linux.Seccomp.Syscalls.
-func (g *Generator) RemoveSeccompSyscallByName(name string) error {
-	if g.spec == nil || g.spec.Linux == nil || g.spec.Linux.Seccomp == nil {
-		return nil
-	}
-
-	var r []rspec.Syscall
-	for _, syscall := range g.spec.Linux.Seccomp.Syscalls {
-		if strings.Compare(name, syscall.Name) != 0 {
-			r = append(r, syscall)
-		}
-	}
-	g.spec.Linux.Seccomp.Syscalls = r
-	return nil
-}
-
-// RemoveSeccompSyscallByAction removes all the seccomp syscalls with the given
-// action from g.spec.Linux.Seccomp.Syscalls.
-func (g *Generator) RemoveSeccompSyscallByAction(action string) error {
-	if g.spec == nil || g.spec.Linux == nil || g.spec.Linux.Seccomp == nil {
-		return nil
-	}
-
-	if err := checkSeccompSyscallAction(action); err != nil {
-		return err
-	}
-
-	var r []rspec.Syscall
-	for _, syscall := range g.spec.Linux.Seccomp.Syscalls {
-		if strings.Compare(action, string(syscall.Action)) != 0 {
-			r = append(r, syscall)
-		}
-	}
-	g.spec.Linux.Seccomp.Syscalls = r
-	return nil
-}
-
-// RemoveSeccompSyscall removes all the seccomp syscalls with the given
-// name and action from g.spec.Linux.Seccomp.Syscalls.
-func (g *Generator) RemoveSeccompSyscall(name string, action string) error {
-	if g.spec == nil || g.spec.Linux == nil || g.spec.Linux.Seccomp == nil {
-		return nil
-	}
-
-	if err := checkSeccompSyscallAction(action); err != nil {
-		return err
-	}
-
-	var r []rspec.Syscall
-	for _, syscall := range g.spec.Linux.Seccomp.Syscalls {
-		if !(strings.Compare(name, syscall.Name) == 0 &&
-			strings.Compare(action, string(syscall.Action)) == 0) {
-			r = append(r, syscall)
-		}
-	}
-	g.spec.Linux.Seccomp.Syscalls = r
-	return nil
 }
 
 // ClearLinuxUIDMappings clear g.spec.Linux.UIDMappings.
@@ -881,24 +706,35 @@ func (g *Generator) AddCgroupsMount(mountCgroupOption string) error {
 }
 
 // AddBindMount adds a bind mount into g.spec.Mounts.
-func (g *Generator) AddBindMount(source, dest, options string) {
-	if options == "" {
-		options = "ro"
+func (g *Generator) AddBindMount(source, dest string, options []string) {
+	if len(options) == 0 {
+		options = []string{"rw"}
 	}
 
-	defaultOptions := []string{"bind"}
+	// We have to make sure that there is a bind option set, otherwise it won't
+	// be an actual bindmount.
+	foundBindOption := false
+	for _, opt := range options {
+		if opt == "bind" || opt == "rbind" {
+			foundBindOption = true
+			break
+		}
+	}
+	if !foundBindOption {
+		options = append(options, "bind")
+	}
 
 	mnt := rspec.Mount{
 		Destination: dest,
 		Type:        "bind",
 		Source:      source,
-		Options:     append(defaultOptions, options),
+		Options:     options,
 	}
 	g.initSpec()
 	g.spec.Mounts = append(g.spec.Mounts, mnt)
 }
 
-// SetupPrivileged sets up the priviledge-related fields inside g.spec.
+// SetupPrivileged sets up the privilege-related fields inside g.spec.
 func (g *Generator) SetupPrivileged(privileged bool) {
 	if privileged {
 		// Add all capabilities in privileged mode.
@@ -1063,42 +899,51 @@ func (g *Generator) RemoveLinuxNamespace(ns string) error {
 // strPtr returns the pointer pointing to the string s.
 func strPtr(s string) *string { return &s }
 
-// FIXME: this function is not used.
-func parseArgs(args2parse string) ([]*rspec.Arg, error) {
-	var Args []*rspec.Arg
-	argstrslice := strings.Split(args2parse, ",")
-	for _, argstr := range argstrslice {
-		args := strings.Split(argstr, "/")
-		if len(args) == 4 {
-			index, err := strconv.Atoi(args[0])
-			value, err := strconv.Atoi(args[1])
-			value2, err := strconv.Atoi(args[2])
-			if err != nil {
-				return nil, err
-			}
-			switch args[3] {
-			case "":
-			case "SCMP_CMP_NE":
-			case "SCMP_CMP_LT":
-			case "SCMP_CMP_LE":
-			case "SCMP_CMP_EQ":
-			case "SCMP_CMP_GE":
-			case "SCMP_CMP_GT":
-			case "SCMP_CMP_MASKED_EQ":
-			default:
-				return nil, fmt.Errorf("seccomp-sysctl args must be empty or one of SCMP_CMP_NE|SCMP_CMP_LT|SCMP_CMP_LE|SCMP_CMP_EQ|SCMP_CMP_GE|SCMP_CMP_GT|SCMP_CMP_MASKED_EQ")
-			}
-			op := rspec.Operator(args[3])
-			Arg := rspec.Arg{
-				Index:    uint(index),
-				Value:    uint64(value),
-				ValueTwo: uint64(value2),
-				Op:       op,
-			}
-			Args = append(Args, &Arg)
-		} else {
-			return nil, fmt.Errorf("seccomp-sysctl args error: %s", argstr)
-		}
-	}
-	return Args, nil
+// SetSyscallAction adds rules for syscalls with the specified action
+func (g *Generator) SetSyscallAction(arguments seccomp.SyscallOpts) error {
+	g.initSpecLinuxSeccomp()
+	return seccomp.ParseSyscallFlag(arguments, g.spec.Linux.Seccomp)
+}
+
+// SetDefaultSeccompAction sets the default action for all syscalls not defined
+// and then removes any syscall rules with this action already specified.
+func (g *Generator) SetDefaultSeccompAction(action string) error {
+	g.initSpecLinuxSeccomp()
+	return seccomp.ParseDefaultAction(action, g.spec.Linux.Seccomp)
+}
+
+// SetDefaultSeccompActionForce only sets the default action for all syscalls not defined
+func (g *Generator) SetDefaultSeccompActionForce(action string) error {
+	g.initSpecLinuxSeccomp()
+	return seccomp.ParseDefaultActionForce(action, g.spec.Linux.Seccomp)
+}
+
+// SetSeccompArchitecture sets the supported seccomp architectures
+func (g *Generator) SetSeccompArchitecture(architecture string) error {
+	g.initSpecLinuxSeccomp()
+	return seccomp.ParseArchitectureFlag(architecture, g.spec.Linux.Seccomp)
+}
+
+// RemoveSeccompRule removes rules for any specified syscalls
+func (g *Generator) RemoveSeccompRule(arguments string) error {
+	g.initSpecLinuxSeccomp()
+	return seccomp.RemoveAction(arguments, g.spec.Linux.Seccomp)
+}
+
+// RemoveAllSeccompRules removes all syscall rules
+func (g *Generator) RemoveAllSeccompRules() error {
+	g.initSpecLinuxSeccomp()
+	return seccomp.RemoveAllSeccompRules(g.spec.Linux.Seccomp)
+}
+
+// AddLinuxMaskedPaths adds masked paths into g.spec.Linux.MaskedPaths.
+func (g *Generator) AddLinuxMaskedPaths(path string) {
+	g.initSpecLinux()
+	g.spec.Linux.MaskedPaths = append(g.spec.Linux.MaskedPaths, path)
+}
+
+// AddLinuxReadonlyPaths adds readonly paths into g.spec.Linux.MaskedPaths.
+func (g *Generator) AddLinuxReadonlyPaths(path string) {
+	g.initSpecLinux()
+	g.spec.Linux.ReadonlyPaths = append(g.spec.Linux.ReadonlyPaths, path)
 }
