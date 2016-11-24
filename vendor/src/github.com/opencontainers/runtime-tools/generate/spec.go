@@ -58,3 +58,17 @@ func (g *Generator) initSpecLinuxResourcesMemory() {
 		g.spec.Linux.Resources.Memory = &rspec.Memory{}
 	}
 }
+
+func (g *Generator) initSpecLinuxResourcesNetwork() {
+	g.initSpecLinuxResources()
+	if g.spec.Linux.Resources.Network == nil {
+		g.spec.Linux.Resources.Network = &rspec.Network{}
+	}
+}
+
+func (g *Generator) initSpecLinuxResourcesPids() {
+	g.initSpecLinuxResources()
+	if g.spec.Linux.Resources.Pids == nil {
+		g.spec.Linux.Resources.Pids = &rspec.Pids{}
+	}
+}

@@ -107,7 +107,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	g.AddBindMount(resolvPath, "/etc/resolv.conf", "ro")
+	g.AddBindMount(resolvPath, "/etc/resolv.conf", []string{"ro"})
 
 	// add metadata
 	metadata := req.GetConfig().GetMetadata()
@@ -216,7 +216,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	err = g.SaveToFile(filepath.Join(podSandboxDir, "config.json"))
+	err = g.SaveToFile(filepath.Join(podSandboxDir, "config.json"), generate.ExportOptions{})
 	if err != nil {
 		return nil, err
 	}
