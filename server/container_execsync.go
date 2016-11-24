@@ -32,6 +32,9 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.Exe
 	}
 
 	execResp, err := s.runtime.ExecSync(c, cmd, req.GetTimeout())
+	if err != nil {
+		return nil, err
+	}
 	resp := &pb.ExecSyncResponse{
 		Stdout:   execResp.Stdout,
 		Stderr:   execResp.Stderr,
@@ -39,5 +42,5 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.Exe
 	}
 
 	logrus.Debugf("ExecSyncResponse: %+v", resp)
-	return resp, err
+	return resp, nil
 }

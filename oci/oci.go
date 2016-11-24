@@ -155,6 +155,18 @@ type ExecSyncResponse struct {
 	ExitCode int32
 }
 
+// ExecSyncError wraps command's streams, exit code and error on ExecSync error.
+type ExecSyncError struct {
+	Stdout   bytes.Buffer
+	Stderr   bytes.Buffer
+	ExitCode int32
+	Err      error
+}
+
+func (e ExecSyncError) Error() string {
+	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
+}
+
 // ExecSync execs a command in a container and returns it's stdout, stderr and return code.
 func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	args := []string{"exec", c.name}
@@ -165,11 +177,12 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	cmd.Stderr = &stderrBuf
 	err = cmd.Start()
 	if err != nil {
-		return &ExecSyncResponse{
-			Stdout:   stdoutBuf.Bytes(),
-			Stderr:   stderrBuf.Bytes(),
+		return nil, ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
 			ExitCode: -1,
-		}, err
+			Err:      err,
+		}
 	}
 
 	if timeout > 0 {
@@ -182,33 +195,37 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		case <-time.After(time.Duration(timeout) * time.Second):
 			err = unix.Kill(cmd.Process.Pid, syscall.SIGKILL)
 			if err != nil && err != syscall.ESRCH {
-				return &ExecSyncResponse{
-					Stdout:   stdoutBuf.Bytes(),
-					Stderr:   stderrBuf.Bytes(),
+				return nil, ExecSyncError{
+					Stdout:   stdoutBuf,
+					Stderr:   stderrBuf,
 					ExitCode: -1,
-				}, fmt.Errorf("failed to kill process on timeout: %v", err)
+					Err:      fmt.Errorf("failed to kill process on timeout: %+v", err),
+				}
 			}
-			return &ExecSyncResponse{
-				Stdout:   stdoutBuf.Bytes(),
-				Stderr:   stderrBuf.Bytes(),
+			return nil, ExecSyncError{
+				Stdout:   stdoutBuf,
+				Stderr:   stderrBuf,
 				ExitCode: -1,
-			}, fmt.Errorf("command timed out")
+				Err:      fmt.Errorf("command timed out"),
+			}
 		case err = <-done:
 			if err != nil {
 				if exitErr, ok := err.(*exec.ExitError); ok {
 					if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-						return &ExecSyncResponse{
-							Stdout:   stdoutBuf.Bytes(),
-							Stderr:   stderrBuf.Bytes(),
+						return nil, ExecSyncError{
+							Stdout:   stdoutBuf,
+							Stderr:   stderrBuf,
 							ExitCode: int32(status.ExitStatus()),
-						}, err
+							Err:      err,
+						}
 					}
 				} else {
-					return &ExecSyncResponse{
-						Stdout:   stdoutBuf.Bytes(),
-						Stderr:   stderrBuf.Bytes(),
+					return nil, ExecSyncError{
+						Stdout:   stdoutBuf,
+						Stderr:   stderrBuf,
 						ExitCode: -1,
-					}, err
+						Err:      err,
+					}
 				}
 			}
 
@@ -218,18 +235,20 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		if err != nil {
 			if exitErr, ok := err.(*exec.ExitError); ok {
 				if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-					return &ExecSyncResponse{
-						Stdout:   stdoutBuf.Bytes(),
-						Stderr:   stderrBuf.Bytes(),
+					return nil, ExecSyncError{
+						Stdout:   stdoutBuf,
+						Stderr:   stderrBuf,
 						ExitCode: int32(status.ExitStatus()),
-					}, err
+						Err:      err,
+					}
 				}
 			} else {
-				return &ExecSyncResponse{
-					Stdout:   stdoutBuf.Bytes(),
-					Stderr:   stderrBuf.Bytes(),
+				return nil, ExecSyncError{
+					Stdout:   stdoutBuf,
+					Stderr:   stderrBuf,
 					ExitCode: -1,
-				}, err
+					Err:      err,
+				}
 			}
 
 		}
