@@ -182,6 +182,13 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			specgen.AddAnnotation(k, v)
 		}
 	}
+
+	// set this container's apparmor profile if it is set by sandbox
+	appArmorProfileName := GetAppArmorProfileName(sb.annotations, metadata.GetName())
+	if appArmorProfileName != "" {
+		specgen.SetProcessApparmorProfile(appArmorProfileName)
+	}
+
 	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 		specgen.SetupPrivileged(true)
 	}
