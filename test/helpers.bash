@@ -17,6 +17,8 @@ OCIC_BINARY=${OCIC_BINARY:-${OCID_ROOT}/cri-o/ocic}
 CONMON_BINARY=${CONMON_BINARY:-${OCID_ROOT}/cri-o/conmon/conmon}
 # Path of the pause binary.
 PAUSE_BINARY=${PAUSE_BINARY:-${OCID_ROOT}/cri-o/pause/pause}
+# Path of the default seccomp profile
+SECCOMP_PROFILE=${SECCOMP_PROFILE:-${OCID_ROOT}/cri-o/seccomp.json}
 # Path of the runc binary.
 RUNC_PATH=$(command -v runc || true)
 RUNC_BINARY=${RUNC_PATH:-/usr/local/sbin/runc}
@@ -78,7 +80,13 @@ function wait_until_reachable() {
 
 # Start ocid.
 function start_ocid() {
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" config >$OCID_CONFIG
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" --seccomp-profile "$SECCOMP_PROFILE" config >$OCID_CONFIG
+	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
+	wait_until_reachable
+}
+
+function start_ocid_with_seccomp_path() {
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" --seccomp-profile "$1" config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
 }
@@ -89,7 +97,7 @@ function cleanup_ctrs() {
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   ocic ctr stop --id "$line"
+			   ocic ctr stop --id "$line" || true
 			   ocic ctr remove --id "$line"
 			done
 		fi
@@ -102,7 +110,7 @@ function cleanup_pods() {
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   ocic pod stop --id "$line"
+			   ocic pod stop --id "$line" || true
 			   ocic pod remove --id "$line"
 			done
 		fi

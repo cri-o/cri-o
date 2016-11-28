@@ -234,6 +234,7 @@ type Resources struct {
 	// Applicable to all platforms
 	CPUShares int64 `json:"CpuShares"` // CPU shares (relative weight vs. other containers)
 	Memory    int64 // Memory limit (in bytes)
+	NanoCPUs  int64 `json:"NanoCpus"` // CPU quota in units of 10<sup>-9</sup> CPUs.
 
 	// Applicable to UNIX platforms
 	CgroupParent         string // Parent cgroup.
@@ -243,8 +244,10 @@ type Resources struct {
 	BlkioDeviceWriteBps  []*blkiodev.ThrottleDevice
 	BlkioDeviceReadIOps  []*blkiodev.ThrottleDevice
 	BlkioDeviceWriteIOps []*blkiodev.ThrottleDevice
-	CPUPeriod            int64           `json:"CpuPeriod"` // CPU CFS (Completely Fair Scheduler) period
-	CPUQuota             int64           `json:"CpuQuota"`  // CPU CFS (Completely Fair Scheduler) quota
+	CPUPeriod            int64           `json:"CpuPeriod"`          // CPU CFS (Completely Fair Scheduler) period
+	CPUQuota             int64           `json:"CpuQuota"`           // CPU CFS (Completely Fair Scheduler) quota
+	CPURealtimePeriod    int64           `json:"CpuRealtimePeriod"`  // CPU real-time period
+	CPURealtimeRuntime   int64           `json:"CpuRealtimeRuntime"` // CPU real-time runtime
 	CpusetCpus           string          // CpusetCpus 0-2, 0,1
 	CpusetMems           string          // CpusetMems 0-2, 0,1
 	Devices              []DeviceMapping // List of devices to map inside the container
@@ -324,4 +327,7 @@ type HostConfig struct {
 
 	// Run a custom init inside the container, if null, use the daemon's configured settings
 	Init *bool `json:",omitempty"`
+
+	// Custom init path
+	InitPath string `json:",omitempty"`
 }

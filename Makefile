@@ -13,6 +13,7 @@ BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
+ETCDIR_OCID ?= ${ETCDIR}/ocid
 GO_MD2MAN ?= $(shell which go-md2man)
 export GOPATH := ${CURDIR}/vendor
 BUILDTAGS := selinux
@@ -99,7 +100,8 @@ install:
 	install -d -m 755 $(MANDIR)/man{8,5}
 	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 	install -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
-	install -D -m 644 ocid.conf $(ETCDIR)/ocid.conf
+	install -D -m 644 ocid.conf $(ETCDIR_OCID)/ocid.conf
+	install -D -m 644 seccomp.json $(ETCDIR_OCID)/seccomp.json
 
 install.systemd:
 	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system/ocid.service

@@ -7,11 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer/label"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -34,6 +36,9 @@ type Server struct {
 	podIDIndex   *truncindex.TruncIndex
 	ctrNameIndex *registrar.Registrar
 	ctrIDIndex   *truncindex.TruncIndex
+
+	seccompEnabled bool
+	seccompProfile seccomp.Seccomp
 }
 
 func (s *Server) loadContainer(id string) error {
@@ -223,6 +228,23 @@ func (s *Server) releaseContainerName(name string) {
 	s.ctrNameIndex.Release(name)
 }
 
+const (
+	// SeccompModeFilter refers to the syscall argument SECCOMP_MODE_FILTER.
+	SeccompModeFilter = uintptr(2)
+)
+
+func seccompEnabled() bool {
+	var enabled bool
+	// Check if Seccomp is supported, via CONFIG_SECCOMP.
+	if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_GET_SECCOMP, 0, 0); err != syscall.EINVAL {
+		// Make sure the kernel has CONFIG_SECCOMP_FILTER.
+		if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_SECCOMP, SeccompModeFilter, 0); err != syscall.EINVAL {
+			enabled = true
+		}
+	}
+	return enabled
+}
+
 // New creates a new Server with options provided
 func New(config *Config) (*Server, error) {
 	// TODO: This will go away later when we have wrapper process or systemd acting as
@@ -259,7 +281,17 @@ func New(config *Config) (*Server, error) {
 			sandboxes:  sandboxes,
 			containers: containers,
 		},
+		seccompEnabled: seccompEnabled(),
 	}
+	seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
+	if err != nil {
+		return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, err)
+	}
+	var seccompConfig seccomp.Seccomp
+	if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
+		return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
+	}
+	s.seccompProfile = seccompConfig
 
 	s.podIDIndex = truncindex.NewTruncIndex([]string{})
 	s.podNameIndex = registrar.NewRegistrar()

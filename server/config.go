@@ -64,6 +64,10 @@ type RuntimeConfig struct {
 
 	// SELinux determines whether or not SELinux is used for pod separation.
 	SELinux bool `toml:"selinux"`
+
+	// SeccompProfile is the seccomp json profile path which is used as the
+	// default for the runtime.
+	SeccompProfile string `toml:"seccomp_profile"`
 }
 
 // ImageConfig represents the "ocid.image" TOML config table.

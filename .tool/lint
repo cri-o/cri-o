@@ -11,6 +11,7 @@ for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -n
 		--exclude='duplicate of.*_test.go.*\(dupl\)$' \
 		--exclude='cmd\/client\/.*\.go.*\(dupl\)$' \
 		--exclude='vendor\/src\/.*' \
+		--exclude='server\/seccomp\/.*\.go.*$' \
 		--disable=aligncheck \
 		--disable=gotype \
 		--disable=gas \

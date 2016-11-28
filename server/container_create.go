@@ -6,16 +6,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+)
+
+const (
+	seccompUnconfined      = "unconfined"
+	seccompRuntimeDefault  = "runtime/default"
+	seccompLocalhostPrefix = "localhost/"
 )
 
 // CreateContainer creates a new container in specified PodSandbox
@@ -73,7 +81,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	container, err := s.createSandboxContainer(containerID, containerName, sb, req.GetSandboxConfig(), containerDir, containerConfig)
+	container, err := s.createSandboxContainer(containerID, containerName, sb, containerDir, containerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +109,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	return resp, nil
 }
 
-func (s *Server) createSandboxContainer(containerID string, containerName string, sb *sandbox, SandboxConfig *pb.PodSandboxConfig, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (s *Server) createSandboxContainer(containerID string, containerName string, sb *sandbox, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
@@ -282,6 +290,10 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	}
 	specgen.AddAnnotation("ocid/labels", string(labelsJSON))
 
+	if err = s.setupSeccomp(&specgen, containerName, sb.annotations); err != nil {
+		return nil, err
+	}
+
 	if err = specgen.SaveToFile(filepath.Join(containerDir, "config.json"), generate.ExportOptions{}); err != nil {
 		return nil, err
 	}
@@ -308,6 +320,41 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	}
 
 	return container, nil
+}
+
+func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnotations map[string]string) error {
+	profile, ok := sbAnnotations["security.alpha.kubernetes.io/seccomp/container/"+cname]
+	if !ok {
+		profile, ok = sbAnnotations["security.alpha.kubernetes.io/seccomp/pod"]
+		if !ok {
+			// running w/o seccomp, aka unconfined
+			profile = seccompUnconfined
+		}
+	}
+	if !s.seccompEnabled {
+		if profile != seccompUnconfined {
+			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
+		}
+		logrus.Warn("seccomp is not enabled in your kernel, running container without profile")
+	}
+	if profile == seccompUnconfined {
+		// running w/o seccomp, aka unconfined
+		specgen.Spec().Linux.Seccomp = nil
+		return nil
+	}
+	if profile == seccompRuntimeDefault {
+		return seccomp.LoadProfileFromStruct(s.seccompProfile, specgen)
+	}
+	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
+		return fmt.Errorf("unknown seccomp profile option: %q", profile)
+	}
+	//file, err := ioutil.ReadFile(filepath.Join(s.seccompProfileRoot, strings.TrimPrefix(profile, seccompLocalhostPrefix)))
+	//if err != nil {
+	//return err
+	//}
+	// TODO(runcom): setup from provided node's seccomp profile
+	// can't do this yet, see https://issues.k8s.io/36997
+	return nil
 }
 
 func (s *Server) generateContainerIDandName(podName string, name string, attempt uint32) (string, string, error) {

@@ -61,8 +61,8 @@ clone git github.com/containernetworking/cni master
 clone git k8s.io/kubernetes 43110dd64d058786e975ce30d4c12a4853d1778c https://github.com/kubernetes/kubernetes
 clone git google.golang.org/grpc v1.0.1-GA https://github.com/grpc/grpc-go.git
 clone git github.com/opencontainers/runtime-spec bb6925ea99f0e366a3f7d1c975f6577475ca25f0
-clone git github.com/docker/distribution 77b9d2997abcded79a5314970fe69a44c93c25fb
-clone git github.com/vbatts/tar-split v0.9.11
+clone git github.com/docker/distribution d22e09a6686c32be8c17b684b639da4b90efe320
+clone git github.com/vbatts/tar-split v0.10.1
 clone git github.com/docker/go-units f2145db703495b2e525c59662db69a7344b00bb8
 clone git github.com/docker/go-connections 988efe982fdecb46f01d53465878ff1f2ff411ce
 clone git github.com/docker/libtrust 9cbd2a1374f46905c68a4eb3694a130610adc62a
@@ -77,5 +77,6 @@ clone git github.com/syndtr/gocapability 2c00daeb6c3b45114c80ac44119e7b8801fdd85
 clone git github.com/gogo/protobuf 43a2e0b1c32252bfbbdf81f7faa7a88fb3fa4028
 clone git github.com/gorilla/context v1.1
 clone git golang.org/x/sys 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9 https://github.com/golang/sys.git
+clone git github.com/seccomp/libseccomp-golang 32f571b70023028bd57d9288c20efbcb237f3ce0
 
 clean
