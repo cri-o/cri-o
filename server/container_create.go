@@ -12,6 +12,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer/label"
@@ -184,9 +185,11 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	}
 
 	// set this container's apparmor profile if it is set by sandbox
-	appArmorProfileName := GetAppArmorProfileName(sb.annotations, metadata.GetName())
-	if appArmorProfileName != "" {
-		specgen.SetProcessApparmorProfile(appArmorProfileName)
+	if s.appArmorEnabled {
+		appArmorProfileName := apparmor.GetAppArmorProfileName(sb.annotations, metadata.GetName())
+		if appArmorProfileName != "" {
+			specgen.SetProcessApparmorProfile(appArmorProfileName)
+		}
 	}
 
 	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {

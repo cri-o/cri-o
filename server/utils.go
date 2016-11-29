@@ -11,14 +11,6 @@ const (
 	// According to http://man7.org/linux/man-pages/man5/resolv.conf.5.html:
 	// "The search list is currently limited to six domains with a total of 256 characters."
 	maxDNSSearches = 6
-
-	// ContainerAnnotationKeyPrefix is the prefix to an annotation key specifying a container profile.
-	ContainerAnnotationKeyPrefix = "container.apparmor.security.beta.kubernetes.io/"
-
-	// ProfileRuntimeDefault is he profile specifying the runtime default.
-	ProfileRuntimeDefault = "runtime/default"
-	// ProfileNamePrefix is the prefix for specifying profiles loaded on the node.
-	ProfileNamePrefix = "localhost/"
 )
 
 func int64Ptr(i int64) *int64 {
@@ -163,22 +155,4 @@ func SysctlsFromPodAnnotation(annotation string) ([]Sysctl, error) {
 		sysctls[i].Value = cs[1]
 	}
 	return sysctls, nil
-}
-
-// GetAppArmorProfileName gets the profile name for the given container.
-func GetAppArmorProfileName(annotations map[string]string, ctrName string) string {
-	profile := GetProfileNameFromPodAnnotations(annotations, ctrName)
-	if profile == "" || profile == ProfileRuntimeDefault {
-		// If the value is runtime/default, then it is equivalent to not specifying a profile.
-		return ""
-	}
-
-	profileName := strings.TrimPrefix(profile, ProfileNamePrefix)
-	return profileName
-}
-
-// GetProfileNameFromPodAnnotations gets the name of the profile to use with container from
-// pod annotations
-func GetProfileNameFromPodAnnotations(annotations map[string]string, containerName string) string {
-	return annotations[ContainerAnnotationKeyPrefix+containerName]
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer/label"
@@ -39,6 +40,8 @@ type Server struct {
 
 	seccompEnabled bool
 	seccompProfile seccomp.Seccomp
+
+	appArmorEnabled bool
 }
 
 func (s *Server) loadContainer(id string) error {
@@ -281,7 +284,8 @@ func New(config *Config) (*Server, error) {
 			sandboxes:  sandboxes,
 			containers: containers,
 		},
-		seccompEnabled: seccompEnabled(),
+		seccompEnabled:  seccompEnabled(),
+		appArmorEnabled: apparmor.IsEnabled(),
 	}
 	seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
 	if err != nil {
@@ -292,6 +296,10 @@ func New(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
 	}
 	s.seccompProfile = seccompConfig
+
+	if s.appArmorEnabled {
+		apparmor.InstallDefaultAppArmorProfile()
+	}
 
 	s.podIDIndex = truncindex.NewTruncIndex([]string{})
 	s.podNameIndex = registrar.NewRegistrar()
