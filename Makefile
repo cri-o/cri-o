@@ -16,7 +16,7 @@ ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_OCID ?= ${ETCDIR}/ocid
 GO_MD2MAN ?= $(shell which go-md2man)
 export GOPATH := ${CURDIR}/vendor
-BUILDTAGS := selinux
+BUILDTAGS := selinux seccomp
 
 all: binaries ocid.conf docs
 
