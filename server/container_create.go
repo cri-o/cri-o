@@ -275,6 +275,8 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 	specgen.AddAnnotation("ocid/name", containerName)
 	specgen.AddAnnotation("ocid/sandbox_id", sb.id)
+	specgen.AddAnnotation("ocid/sandbox_name", sb.infraContainer.Name())
+	specgen.AddAnnotation("ocid/container_type", containerTypeContainer)
 	specgen.AddAnnotation("ocid/log_path", logPath)
 	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.GetTty()))
 
