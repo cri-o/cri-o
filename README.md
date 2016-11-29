@@ -43,9 +43,10 @@ It is currently in active development in the Kubernetes community through the [d
 ### Build
 
 `glib2-devel` and `glibc-static` packages on Fedora or ` libglib2.0-dev` on Ubuntu or equivalent is required.
+In order to enable seccomp support you will need to install `libseccomp` on your platform.
+> e.g. `libseccomp-devel` for CentOS/Fedora, or `libseccomp-dev` for Ubuntu
 
-
-```
+```bash
 $ GOPATH=/path/to/gopath
 $ mkdir $GOPATH
 $ go get -d github.com/kubernetes-incubator/cri-o
@@ -54,7 +55,17 @@ $ make install.tools
 $ make
 $ sudo make install
 ```
+Otherwise, if you do not want to build `cri-o` with seccomp support you can add `BUILDTAGS=""` when running make.
 
+```bash
+# create a 'github.com/kubernetes-incubator' in your $GOPATH/src
+cd github.com/kubernetes-incubator
+git clone https://github.com/kubernetes-incubator/cri-o
+cd cri-o
+
+make BUILDTAGS=""
+sudo make install
+```
 
 ### Running pods and containers
 
