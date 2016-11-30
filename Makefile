@@ -52,12 +52,16 @@ ocid: $(GO_SRC) | ${OCID_LINK}
 ocic: $(GO_SRC) | ${OCID_LINK}
 	$(GO) build -o $@ ./cmd/client/
 
+kpod: $(GO_SRC) | ${OCID_LINK}
+	$(GO) build -o $@ ./cmd/kpod/
+
 ocid.conf: ocid
 	./ocid --config="" config --default > ocid.conf
 
 clean:
 	rm -f ocid.conf
 	rm -f ocic ocid
+	rm -f kpod
 	rm -f ${OCID_LINK}
 	rm -f docs/*.5 docs/*.8
 	find . -name \*~ -delete
@@ -77,7 +81,7 @@ integration: ocidimage
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: ocid ocic conmon pause
+binaries: ocid ocic kpod conmon pause
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
