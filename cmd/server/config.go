@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	ocidRoot           = "/var/lib/ocid"
-	conmonPath         = "/usr/libexec/ocid/conmon"
-	pausePath          = "/usr/libexec/ocid/pause"
-	seccompProfilePath = "/etc/ocid/seccomp.json"
+	ocidRoot            = "/var/lib/ocid"
+	conmonPath          = "/usr/libexec/ocid/conmon"
+	pausePath           = "/usr/libexec/ocid/pause"
+	seccompProfilePath  = "/etc/ocid/seccomp.json"
+	apparmorProfileName = "crio-default"
 )
 
 var commentedConfigTemplate = template.Must(template.New("config").Parse(`
@@ -64,6 +65,10 @@ selinux = {{ .SELinux }}
 # default for the runtime.
 seccomp_profile = "{{ .SeccompProfile }}"
 
+# apparmor_profile is the apparmor profile name which is used as the
+# default for the runtime.
+apparmor_profile = "{{ .ApparmorProfile }}"
+
 # The "ocid.image" table contains settings pertaining to the
 # management of OCI images.
 [ocid.image]
@@ -94,8 +99,9 @@ func DefaultConfig() *server.Config {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			SELinux:        selinux.SelinuxEnabled(),
-			SeccompProfile: seccompProfilePath,
+			SELinux:         selinux.SelinuxEnabled(),
+			SeccompProfile:  seccompProfilePath,
+			ApparmorProfile: apparmorProfileName,
 		},
 		ImageConfig: server.ImageConfig{
 			Pause:    pausePath,

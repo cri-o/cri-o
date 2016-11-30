@@ -186,7 +186,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 
 	// set this container's apparmor profile if it is set by sandbox
 	if s.appArmorEnabled {
-		appArmorProfileName := apparmor.GetAppArmorProfileName(sb.annotations, metadata.GetName())
+		appArmorProfileName := s.getAppArmorProfileName(sb.annotations, metadata.GetName())
 		if appArmorProfileName != "" {
 			specgen.SetProcessApparmorProfile(appArmorProfileName)
 		}
@@ -382,4 +382,21 @@ func (s *Server) generateContainerIDandName(podName string, name string, attempt
 		return "", "", err
 	}
 	return id, name, err
+}
+
+// getAppArmorProfileName gets the profile name for the given container.
+func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName string) string {
+	profile := apparmor.GetProfileNameFromPodAnnotations(annotations, ctrName)
+
+	if profile == "" {
+		return ""
+	}
+
+	if profile == apparmor.ProfileRuntimeDefault {
+		// If the value is runtime/default, then return default profile.
+		return s.appArmorProfile
+	}
+
+	profileName := strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
+	return profileName
 }

@@ -68,6 +68,10 @@ type RuntimeConfig struct {
 	// SeccompProfile is the seccomp json profile path which is used as the
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile"`
+
+	// ApparmorProfile is the apparmor profile name which is used as the
+	// default for the runtime.
+	ApparmorProfile string `toml:"apparmor_profile"`
 }
 
 // ImageConfig represents the "ocid.image" TOML config table.

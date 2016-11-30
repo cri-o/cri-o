@@ -57,24 +57,6 @@ func IsEnabled() bool {
 	return apparmor.IsEnabled()
 }
 
-// GetAppArmorProfileName gets the profile name for the given container.
-func GetAppArmorProfileName(annotations map[string]string, ctrName string) string {
-	profile := GetProfileNameFromPodAnnotations(annotations, ctrName)
-
-	if profile == "" {
-		return ""
-	}
-
-	if profile == ProfileRuntimeDefault {
-		// If the value is runtime/default, then return default profile.
-		logrus.Infof("get default profile name")
-		return defaultApparmorProfile
-	}
-
-	profileName := strings.TrimPrefix(profile, ProfileNamePrefix)
-	return profileName
-}
-
 // GetProfileNameFromPodAnnotations gets the name of the profile to use with container from
 // pod annotations
 func GetProfileNameFromPodAnnotations(annotations map[string]string, containerName string) string {

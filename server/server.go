@@ -42,6 +42,7 @@ type Server struct {
 	seccompProfile seccomp.Seccomp
 
 	appArmorEnabled bool
+	appArmorProfile string
 }
 
 func (s *Server) loadContainer(id string) error {
@@ -300,6 +301,7 @@ func New(config *Config) (*Server, error) {
 	if s.appArmorEnabled {
 		apparmor.InstallDefaultAppArmorProfile()
 	}
+	s.appArmorProfile = config.ApparmorProfile
 
 	s.podIDIndex = truncindex.NewTruncIndex([]string{})
 	s.podNameIndex = registrar.NewRegistrar()

@@ -59,6 +59,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("seccomp-profile") {
 		config.SeccompProfile = ctx.GlobalString("seccomp-profile")
 	}
+	if ctx.GlobalIsSet("apparmor-profile") {
+		config.ApparmorProfile = ctx.GlobalString("apparmor-profile")
+	}
 	return nil
 }
 
@@ -134,6 +137,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "seccomp-profile",
 			Usage: "default seccomp profile path",
+		},
+		cli.StringFlag{
+			Name:  "apparmor-profile",
+			Usage: "default apparmor profile name (default: \"crio-default\")",
 		},
 		cli.BoolFlag{
 			Name:  "selinux",
