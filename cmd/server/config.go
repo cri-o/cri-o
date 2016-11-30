@@ -15,7 +15,7 @@ const (
 	conmonPath          = "/usr/libexec/ocid/conmon"
 	pausePath           = "/usr/libexec/ocid/pause"
 	seccompProfilePath  = "/etc/ocid/seccomp.json"
-	apparmorProfileName = "crio-default"
+	apparmorProfileName = "ocid-default"
 )
 
 var commentedConfigTemplate = template.Must(template.New("config").Parse(`

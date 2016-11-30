@@ -140,7 +140,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "apparmor-profile",
-			Usage: "default apparmor profile name (default: \"crio-default\")",
+			Usage: "default apparmor profile name (default: \"ocid-default\")",
 		},
 		cli.BoolFlag{
 			Name:  "selinux",

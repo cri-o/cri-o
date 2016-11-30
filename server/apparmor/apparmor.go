@@ -15,7 +15,7 @@ import (
 
 const (
 	// defaultApparmorProfile is the name of default apparmor profile name.
-	defaultApparmorProfile = "crio-default"
+	defaultApparmorProfile = "ocid-default"
 
 	// profileDirectory is the file store for apparmor profiles and macros.
 	profileDirectory = "/etc/apparmor.d"
