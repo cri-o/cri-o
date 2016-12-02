@@ -17,6 +17,7 @@ ETCDIR_OCID ?= ${ETCDIR}/ocid
 GO_MD2MAN ?= $(shell which go-md2man)
 export GOPATH := ${CURDIR}/vendor
 BUILDTAGS := selinux seccomp
+BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 
 all: binaries ocid.conf docs
 
@@ -63,7 +64,7 @@ clean:
 	rm -f ocic ocid
 	rm -f kpod
 	rm -f ${OCID_LINK}
-	rm -f docs/*.5 docs/*.8
+	rm -f docs/*.1 docs/*.5 docs/*.8
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 	make -C conmon clean
@@ -86,7 +87,7 @@ binaries: ocid ocic kpod conmon pause
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
-docs/%.8: docs/%.8.md
+docs/%.1: docs/%.1.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
@@ -94,18 +95,28 @@ docs/%.5: docs/%.5.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
 	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
+docs/%.8: docs/%.8.md
+	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
+	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+
 docs: $(MANPAGES)
 
 install:
+	install -D -m 755 kpod $(BINDIR)/kpod
 	install -D -m 755 ocid $(BINDIR)/ocid
 	install -D -m 755 ocic $(BINDIR)/ocic
 	install -D -m 755 conmon/conmon $(LIBEXECDIR)/ocid/conmon
 	install -D -m 755 pause/pause $(LIBEXECDIR)/ocid/pause
-	install -d -m 755 $(MANDIR)/man{8,5}
-	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
+	install -d -m 755 $(MANDIR)/man{1,4,8}
+	install -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
 	install -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
+	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 	install -D -m 644 ocid.conf $(ETCDIR_OCID)/ocid.conf
 	install -D -m 644 seccomp.json $(ETCDIR_OCID)/seccomp.json
+
+install.completions:
+	install -d -m 755 ${BASHINSTALLDIR}
+	install -m 644 -D completions/bash/kpod ${BASHINSTALLDIR}
 
 install.systemd:
 	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system/ocid.service
@@ -113,11 +124,14 @@ install.systemd:
 uninstall:
 	rm -f $(BINDIR)/{ocid,ocic}
 	rm -f $(LIBEXECDIR)/ocid/{conmon,pause}
-	for i in $(filter %.8,$(MANPAGES)); do \
+	for i in $(filter %.1,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
+	done
+	for i in $(filter %.8,$(MANPAGES)); do \
+		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done
 
 .PHONY: .gitvalidation
