@@ -1,0 +1,89 @@
+#! /bin/bash
+
+: ${PROG:=$(basename ${BASH_SOURCE})}
+
+_complete_() {
+    local options_with_args=$1
+    local boolean_options="$2 -h --help"
+
+    case "$prev" in
+	$options_with_args)
+	    return
+	    ;;
+    esac
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=( $( compgen -W "$boolean_options $options_with_args" -- "$cur" ) )
+	    ;;
+    esac
+}
+
+_kpod_launch() {
+     local options_with_args="
+     "
+     local boolean_options="
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_kpod() {
+     local options_with_args="
+     "
+     local boolean_options="
+	   --version -v
+	   --help -h
+     "
+     commands="
+	launch
+     "
+
+     case "$prev" in
+	 $main_options_with_args_glob )
+	     return
+	     ;;
+     esac
+
+     case "$cur" in
+	 -*)
+	     COMPREPLY=( $( compgen -W "$boolean_options $options_with_args" -- "$cur" ) )
+	     ;;
+	 *)
+	     COMPREPLY=( $( compgen -W "${commands[*]} help" -- "$cur" ) )
+	     ;;
+     esac
+}
+
+_cli_bash_autocomplete() {
+     local cur opts base
+
+     COMPREPLY=()
+     cur="${COMP_WORDS[COMP_CWORD]}"
+     COMPREPLY=()
+     local cur prev words cword
+
+     _get_comp_words_by_ref -n : cur prev words cword
+
+     local command=${PROG} cpos=0
+     local counter=1
+     counter=1
+     while [ $counter -lt $cword ]; do
+	 case "!${words[$counter]}" in
+	     *)
+		 command=$(echo "${words[$counter]}" | sed 's/-/_/g')
+		 cpos=$counter
+		 (( cpos++ ))
+		 break
+		 ;;
+	 esac
+	 (( counter++ ))
+     done
+
+     local completions_func=_kpod_${command}
+     declare -F $completions_func >/dev/null && $completions_func
+
+     eval "$previous_extglob_setting"
+     return 0
+}
+
+complete -F _cli_bash_autocomplete $PROG
