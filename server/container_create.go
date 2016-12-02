@@ -397,6 +397,5 @@ func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName s
 		return s.appArmorProfile
 	}
 
-	profileName := strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
-	return profileName
+	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
 }

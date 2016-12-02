@@ -7,11 +7,17 @@ function teardown() {
 }
 
 # 1. test running with loading the default apparmor profile.
-# test that we can run with the default apparomr profile which will not block touching a file in `.`
-@test "load default apparomr profile and run a container with it" {
+# test that we can run with the default apparmor profile which will not block touching a file in `.`
+@test "load default apparmor profile and run a container with it" {
     # this test requires docker, thus it can't yet be run in a container
     if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
         skip "cannot yet run this test in a container, use sudo make localintegration"
+    fi
+
+    # this test requires apparmor, so skip this test if apparmor is not enabled.
+    enabled=is_apparmor_enabled
+    if [[ "$enabled" =~ "0" ]]; then
+        skip "skip this test since apparmor is not enabled."
     fi
 
     start_ocid
@@ -26,8 +32,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run ocic ctr start --id "$ctr_id"
-    echo "$output"
     [ "$status" -eq 0 ]
     run ocic ctr execsync --id "$ctr_id" touch test.txt
     echo "$output"
@@ -41,16 +45,22 @@ function teardown() {
 
 # 2. test running with loading a specific apparmor profile as ocid default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.` as ocid default apparmor profile.
-@test "load a specific apparomr profile as default apparmor and run a container with it" {
+@test "load a specific apparmor profile as default apparmor and run a container with it" {
     # this test requires docker, thus it can't yet be run in a container
     if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
         skip "cannot yet run this test in a container, use sudo make localintegration"
     fi
 
-    load_apparmor_test_profile
-    start_ocid_with_apparmor_profile_name "$APPARMOR_TEST_PROFILE_NAME"
+    # this test requires apparmor, so skip this test if apparmor is not enabled.
+    enabled=is_apparmor_enabled
+    if [[ "$enabled" =~ "0" ]]; then
+        skip "skip this test since apparmor is not enabled."
+    fi
 
-    sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname2": "apparmor_test_deny_write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor2.json
+    load_apparmor_test_profile
+    start_ocid "" "$APPARMOR_TEST_PROFILE_NAME"
+
+    sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname2": "apparmor-test-deny-write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor2.json
 
     run ocic pod create --name apparmor2 --config "$TESTDIR"/apparmor2.json
     echo "$output"
@@ -60,8 +70,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run ocic ctr start --id "$ctr_id"
-    echo "$output"
     [ "$status" -eq 0 ]
     run ocic ctr execsync --id "$ctr_id" touch test.txt
     echo "$output"
@@ -76,16 +84,22 @@ function teardown() {
 
 # 3. test running with loading a specific apparmor profile but not as ocid default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.`
-@test "load default apparomr profile and run a container with another apparmor profile" {
+@test "load default apparmor profile and run a container with another apparmor profile" {
     # this test requires docker, thus it can't yet be run in a container
     if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
         skip "cannot yet run this test in a container, use sudo make localintegration"
     fi
 
+    # this test requires apparmor, so skip this test if apparmor is not enabled.
+    enabled=is_apparmor_enabled
+    if [[ "$enabled" =~ "0" ]]; then
+        skip "skip this test since apparmor is not enabled."
+    fi
+
     load_apparmor_test_profile
     start_ocid
 
-    sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname3": "apparmor_test_deny_write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor3.json
+    sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname3": "apparmor-test-deny-write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor3.json
 
     run ocic pod create --name apparmor3 --config "$TESTDIR"/apparmor3.json
     echo "$output"
@@ -95,8 +109,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run ocic ctr start --id "$ctr_id"
-    echo "$output"
     [ "$status" -eq 0 ]
     run ocic ctr execsync --id "$ctr_id" touch test.txt
     echo "$output"
@@ -109,12 +121,18 @@ function teardown() {
     remove_apparmor_test_profile
 }
 
-# 1. test running with wrong apparmor profile name.
+# 4. test running with wrong apparmor profile name.
 # test that we can will fail when running a ctr with rong apparmor profile name.
 @test "run a container with wrong apparmor profile name" {
     # this test requires docker, thus it can't yet be run in a container
     if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
         skip "cannot yet run this test in a container, use sudo make localintegration"
+    fi
+
+    # this test requires apparmor, so skip this test if apparmor is not enabled.
+    enabled=is_apparmor_enabled
+    if [[ "$enabled" =~ "0" ]]; then
+        skip "skip this test since apparmor is not enabled."
     fi
 
     start_ocid

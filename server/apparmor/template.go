@@ -1,3 +1,5 @@
+// +build apparmor
+
 package apparmor
 
 // baseTemplate defines the default apparmor profile for containers.

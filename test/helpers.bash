@@ -20,7 +20,7 @@ PAUSE_BINARY=${PAUSE_BINARY:-${OCID_ROOT}/cri-o/pause/pause}
 # Path of the default seccomp profile.
 SECCOMP_PROFILE=${SECCOMP_PROFILE:-${OCID_ROOT}/cri-o/seccomp.json}
 # Name of the default apparmor profile.
-APPARMOR_DEFAULT_PROFILE=${SECCOMP_PROFILE:-ocid-default}
+APPARMOR_PROFILE=${APPARMOR_PROFILE:-ocid-default}
 # Path of the runc binary.
 RUNC_PATH=$(command -v runc || true)
 RUNC_BINARY=${RUNC_PATH:-/usr/local/sbin/runc}
@@ -29,7 +29,11 @@ APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
 # Path of the apparmor profile for test.
 APPARMOR_TEST_PROFILE_PATH=${APPARMOR_TEST_PROFILE_PATH:-${TESTDATA}/apparmor_test_deny_write}
 # Name of the apparmor profile for test.
-APPARMOR_TEST_PROFILE_NAME=${APPARMOR_TEST_PROFILE_NAME:-apparmor_test_deny_write}
+APPARMOR_TEST_PROFILE_NAME=${APPARMOR_TEST_PROFILE_NAME:-apparmor-test-deny-write}
+# Path of boot config.
+BOOT_CONFIG_FILE_PATH=${BOOT_CONFIG_FILE_PATH:-/boot/config-`uname -r`}
+# Path of apparmor parameters file.
+APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/apparmor/parameters/enabled}
 
 TESTDIR=$(mktemp -d)
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -88,19 +92,19 @@ function wait_until_reachable() {
 
 # Start ocid.
 function start_ocid() {
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" --seccomp-profile "$SECCOMP_PROFILE" --apparmor-profile "$APPARMOR_PROFILE" config >$OCID_CONFIG
-	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
-	wait_until_reachable
-}
+	if [[ -n "$1" ]]; then
+		seccomp="$1"
+	else
+		seccomp="$SECCOMP_PROFILE"
+	fi
 
-function start_ocid_with_seccomp_path() {
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" --seccomp-profile "$1" --apparmor-profile "$APPARMOR_PROFILE" config >$OCID_CONFIG
-	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
-	wait_until_reachable
-}
+	if [[ -n "$2" ]]; then
+		apparmor="$2"
+	else
+		apparmor="$APPARMOR_PROFILE"
+	fi
 
-function start_ocid_with_apparmor_profile_name() {
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" --seccomp-profile "$SECCOMP_PROFILE" --apparmor-profile "$1" config >$OCID_CONFIG
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
 }
@@ -150,4 +154,30 @@ function load_apparmor_test_profile() {
 
 function remove_apparmor_test_profile() {
 	"$APPARMOR_PARSER_BINARY" -R "$APPARMOR_TEST_PROFILE_PATH"
+}
+
+function is_seccomp_enabled() {
+	if [[ -f "$BOOT_CONFIG_FILE_PATH" ]]; then
+		out=$(cat "$BOOT_CONFIG_FILE_PATH" | grep CONFIG_SECCOMP=)
+		if [[ "$out" =~ "CONFIG_SECCOMP=y" ]]; then
+			echo 1
+		else
+			echo 0
+		fi
+	else
+		echo 0
+	fi
+}
+
+function is_apparmor_enabled() {
+	if [[ -f "$APPARMOR_PARAMETERS_FILE_PATH" ]]; then
+		out=$(cat "$APPARMOR_PARAMETERS_FILE_PATH")
+		if [[ "$out" =~ "Y" ]]; then
+			echo 1
+		else
+			echo 0
+		fi
+	else
+		echo 0
+	fi
 }

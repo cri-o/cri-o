@@ -67,6 +67,21 @@ make BUILDTAGS=""
 sudo make install
 ```
 
+#### Build Tags
+
+`cri-o` supports optional build tags for compiling support of various features.
+To add build tags to the make option the `BUILDTAGS` variable must be set.
+
+```bash
+make BUILDTAGS='seccomp apparmor'
+```
+
+| Build Tag | Feature                            | Dependency  |
+|-----------|------------------------------------|-------------|
+| seccomp   | syscall filtering                  | libseccomp  |
+| selinux   | selinux process and mount labeling | <none>      |
+| apparmor  | apparmor profile support           | libapparmor |
+
 ### Running pods and containers
 
 #### Start the server

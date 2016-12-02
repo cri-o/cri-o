@@ -1,3 +1,5 @@
+// +build apparmor
+
 package apparmor
 
 import (
@@ -7,6 +9,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/utils/templates"
@@ -27,6 +30,9 @@ const (
 	ProfileRuntimeDefault = "runtime/default"
 	// ProfileNamePrefix is the prefix for specifying profiles loaded on the node.
 	ProfileNamePrefix = "localhost/"
+
+	// readConfigTimeout is the timeout of reading apparmor profiles.
+	readConfigTimeout = 10
 )
 
 // profileData holds information about the given profile for generation.
@@ -46,7 +52,7 @@ func InstallDefaultAppArmorProfile() {
 	if err := InstallDefault(defaultApparmorProfile); err != nil {
 		// Allow daemon to run if loading failed, but are active
 		// (possibly through another run, manually, or via system startup)
-		if err := IsLoaded(defaultApparmorProfile); err != nil {
+		if !IsLoaded(defaultApparmorProfile) {
 			logrus.Errorf("AppArmor enabled on system but the %s profile could not be loaded.", defaultApparmorProfile)
 		}
 	}
@@ -75,38 +81,43 @@ func InstallDefault(name string) error {
 	if err != nil {
 		return err
 	}
-	profilePath := f.Name()
-
 	defer f.Close()
 
 	if err := p.generateDefault(f); err != nil {
 		return err
 	}
 
-	if err := LoadProfile(profilePath); err != nil {
-		return err
-	}
-
-	return nil
+	return LoadProfile(f.Name())
 }
 
 // IsLoaded checks if a passed profile has been loaded into the kernel.
-func IsLoaded(name string) error {
+func IsLoaded(name string) bool {
 	file, err := os.Open("/sys/kernel/security/apparmor/profiles")
 	if err != nil {
-		return err
+		return false
 	}
 	defer file.Close()
 
-	r := bufio.NewReader(file)
-	for {
-		p, err := r.ReadString('\n')
-		if err != nil {
-			return err
+	ch := make(chan bool, 1)
+
+	go func() {
+		r := bufio.NewReader(file)
+		for {
+			p, err := r.ReadString('\n')
+			if err != nil {
+				ch <- false
+			}
+			if strings.HasPrefix(p, name+" ") {
+				ch <- true
+			}
 		}
-		if strings.HasPrefix(p, name+" ") {
-			return nil
-		}
+	}()
+
+	select {
+	case <-time.After(time.Duration(readConfigTimeout) * time.Second):
+		return false
+	case enabled := <-ch:
+		return enabled
 	}
 }
 
@@ -133,10 +144,7 @@ func (p *profileData) generateDefault(out io.Writer) error {
 	}
 	p.Version = ver
 
-	if err := compiled.Execute(out, p); err != nil {
-		return err
-	}
-	return nil
+	return compiled.Execute(out, p)
 }
 
 // macrosExists checks if the passed macro exists.
