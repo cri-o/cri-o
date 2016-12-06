@@ -12,6 +12,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer/label"
@@ -182,6 +183,15 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			specgen.AddAnnotation(k, v)
 		}
 	}
+
+	// set this container's apparmor profile if it is set by sandbox
+	if s.appArmorEnabled {
+		appArmorProfileName := s.getAppArmorProfileName(sb.annotations, metadata.GetName())
+		if appArmorProfileName != "" {
+			specgen.SetProcessApparmorProfile(appArmorProfileName)
+		}
+	}
+
 	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 		specgen.SetupPrivileged(true)
 	}
@@ -372,4 +382,20 @@ func (s *Server) generateContainerIDandName(podName string, name string, attempt
 		return "", "", err
 	}
 	return id, name, err
+}
+
+// getAppArmorProfileName gets the profile name for the given container.
+func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName string) string {
+	profile := apparmor.GetProfileNameFromPodAnnotations(annotations, ctrName)
+
+	if profile == "" {
+		return ""
+	}
+
+	if profile == apparmor.ProfileRuntimeDefault {
+		// If the value is runtime/default, then return default profile.
+		return s.appArmorProfile
+	}
+
+	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
 }

@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     protobuf-compiler \
     python-minimal \
     libglib2.0-dev \
+    libapparmor-dev \
     --no-install-recommends
 
 # install bats

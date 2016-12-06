@@ -20,6 +20,7 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 [**--sandboxdir**=[*value*]]
 [**--selinux**]
 [**--seccomp-profile**=[*value*]]
+[**--apparmor-profile**=[*value*]]
 [**--version**|**-v**]
 
 # DESCRIPTION
@@ -76,11 +77,14 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 **--sandboxdir**=""
   OCID pod sandbox dir (default: "/var/lib/ocid/sandboxes")
 
-**--selinux**
+**--selinux**=*true*|*false*
   Enable selinux support (default: false)
 
-**seccomp_profile**
+**--seccomp_profile**=""
   Path to the seccomp json profile to be used as the runtime's default (default: "/etc/ocid/seccomp.json")
+
+**--apparmor_profile**=""
+  Name of the apparmor profile to be used as the runtime's default (default: "ocid-default")
 
 **--version, -v**
   Print the version

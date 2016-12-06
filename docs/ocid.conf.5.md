@@ -55,11 +55,14 @@ The `ocid` table supports the following options:
 **runtime**=""
   OCI runtime path (default: "/usr/bin/runc")
 
-**selinux**
+**selinux**=*true*|*false*
   Enable selinux support (default: false)
 
-**seccomp_profile**
+**seccomp_profile**=""
   Path to the seccomp json profile to be used as the runtime's default (default: "/etc/ocid/seccomp.json")
+
+**apparmor_profile**=""
+  Name of the apparmor profile to be used as the runtime's default (default: "ocid-default")
 
 ## OCID.IMAGE TABLE
 

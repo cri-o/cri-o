@@ -14,10 +14,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+    if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp1-1-testname-0": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
 	run ocic pod create --name seccomp1 --config "$TESTDIR"/seccomp1.json
@@ -48,10 +55,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp2-1-testname2-0": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
 	run ocic pod create --name seccomp2 --config "$TESTDIR"/seccomp2.json
@@ -82,10 +96,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp3-1-testname3-1": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
 	run ocic pod create --name seccomp3 --config "$TESTDIR"/seccomp3.json
@@ -111,10 +132,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	#sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	#start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	#start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	skip "need https://issues.k8s.io/36997"
 }
@@ -129,10 +157,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp2-1-testname2-0-not-exists": "unconfined", "security\.alpha\.kubernetes\.io\/seccomp\/pod": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp5.json
 	run ocic pod create --name seccomp5 --config "$TESTDIR"/seccomp5.json
@@ -166,10 +201,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp6-1-testname6-0-not-exists": "runtime-default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp6.json
 	run ocic pod create --name seccomp6 --config "$TESTDIR"/seccomp6.json
@@ -200,10 +242,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
 	run ocic pod create --name seccomp1 --config "$TESTDIR"/seccomp1.json
@@ -234,10 +283,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
 	run ocic pod create --name seccomp2 --config "$TESTDIR"/seccomp2.json
@@ -268,10 +324,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	# 3. test running with pod wrong profile name
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
@@ -298,10 +361,17 @@ function teardown() {
 		skip "cannot yet run this test in a container, use sudo make localintegration"
 	fi
 
+	# this test requires seccomp, so skip this test if seccomp is not enabled.
+	enabled=is_seccomp_enabled
+	if [[ "$enabled" =~ "0" ]]; then
+		skip "skip this test since seccomp is not enabled."
+	fi
+
 	#sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
-	#start_ocid_with_seccomp_path "$TESTDIR"/seccomp_profile1.json
+
+	#start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	skip "need https://issues.k8s.io/36997"
 }
