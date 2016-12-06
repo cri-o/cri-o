@@ -161,12 +161,10 @@ function is_seccomp_enabled() {
 		out=$(cat "$BOOT_CONFIG_FILE_PATH" | grep CONFIG_SECCOMP=)
 		if [[ "$out" =~ "CONFIG_SECCOMP=y" ]]; then
 			echo 1
-		else
-			echo 0
+			return
 		fi
-	else
-		echo 0
 	fi
+	echo 0
 }
 
 function is_apparmor_enabled() {
@@ -174,10 +172,8 @@ function is_apparmor_enabled() {
 		out=$(cat "$APPARMOR_PARAMETERS_FILE_PATH")
 		if [[ "$out" =~ "Y" ]]; then
 			echo 1
-		else
-			echo 0
+			return
 		fi
-	else
-		echo 0
 	fi
+	echo 0
 }
