@@ -39,7 +39,11 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	// Filter by pod id first.
 	if filter != nil {
 		if filter.Id != nil {
-			sb := s.getSandbox(*filter.Id)
+			id, err := s.podIDIndex.Get(*filter.Id)
+			if err != nil {
+				return nil, err
+			}
+			sb := s.getSandbox(id)
 			if sb == nil {
 				podList = []*sandbox{}
 			} else {
