@@ -17,6 +17,26 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
+func (s *Server) runContainer(container *oci.Container) error {
+	if err := s.runtime.CreateContainer(container); err != nil {
+		return err
+	}
+
+	if err := s.runtime.UpdateStatus(container); err != nil {
+		return err
+	}
+
+	if err := s.runtime.StartContainer(container); err != nil {
+		return err
+	}
+
+	if err := s.runtime.UpdateStatus(container); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
@@ -307,19 +327,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
 	}
 
-	if err = s.runtime.CreateContainer(container); err != nil {
-		return nil, err
-	}
-
-	if err = s.runtime.UpdateStatus(container); err != nil {
-		return nil, err
-	}
-
-	if err = s.runtime.StartContainer(container); err != nil {
-		return nil, err
-	}
-
-	if err = s.runtime.UpdateStatus(container); err != nil {
+	if err = s.runContainer(container); err != nil {
 		return nil, err
 	}
 
