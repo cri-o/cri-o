@@ -187,6 +187,11 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" != "" ]]
 	[[ "$output" =~ "$ctr1_id"  ]]
+	run ocic ctr list --id "${ctr1_id:0:4}" --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$ctr1_id"  ]]
 	run ocic ctr list --id "$ctr2_id" --pod "$pod2_id" --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]

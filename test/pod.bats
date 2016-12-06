@@ -112,6 +112,12 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" != "" ]]
 	[[ "$output" =~ "$pod1_id"  ]]
+	# filter by truncated id should work as well
+	run ocic pod list --id "${pod1_id:0:4}"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" != "" ]]
+	[[ "$output" =~ "$pod1_id" ]]
 	run ocic pod list --id "$pod2_id"
 	echo "$output"
 	[ "$status" -eq 0 ]

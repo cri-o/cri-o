@@ -16,7 +16,7 @@ function teardown() {
 
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=is_apparmor_enabled
-    if [[ "$enabled" =~ "0" ]]; then
+    if [[ "$enabled" = "0" ]]; then
         skip "skip this test since apparmor is not enabled."
     fi
 
@@ -53,7 +53,7 @@ function teardown() {
 
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=is_apparmor_enabled
-    if [[ "$enabled" =~ "0" ]]; then
+    if [[ "$enabled" -eq "0" ]]; then
         skip "skip this test since apparmor is not enabled."
     fi
 
@@ -92,7 +92,7 @@ function teardown() {
 
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=is_apparmor_enabled
-    if [[ "$enabled" =~ "0" ]]; then
+    if [[ "$enabled" -eq "0" ]]; then
         skip "skip this test since apparmor is not enabled."
     fi
 
@@ -131,7 +131,7 @@ function teardown() {
 
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=is_apparmor_enabled
-    if [[ "$enabled" =~ "0" ]]; then
+    if [[ "$enabled" -eq "0" ]]; then
         skip "skip this test since apparmor is not enabled."
     fi
 

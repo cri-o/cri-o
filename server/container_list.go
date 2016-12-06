@@ -36,7 +36,11 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	// Filter using container id and pod id first.
 	if filter != nil {
 		if filter.Id != nil {
-			c := s.state.containers.Get(*filter.Id)
+			id, err := s.ctrIDIndex.Get(*filter.Id)
+			if err != nil {
+				return nil, err
+			}
+			c := s.state.containers.Get(id)
 			if c != nil {
 				if filter.PodSandboxId != nil {
 					if c.Sandbox() == *filter.PodSandboxId {
