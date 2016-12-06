@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -24,9 +25,13 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	if err != nil {
 		return nil, err
 	}
-
-	if err := s.netPlugin.TearDownPod(netnsPath, podNamespace, sb.id, podInfraContainer.Name()); err != nil {
-		return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v",
+	if _, err := os.Stat(netnsPath); err == nil {
+		if err2 := s.netPlugin.TearDownPod(netnsPath, podNamespace, sb.id, podInfraContainer.Name()); err2 != nil {
+			return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v",
+				podInfraContainer.Name(), sb.id, err2)
+		}
+	} else if !os.IsNotExist(err) { // it's ok for netnsPath to *not* exist
+		return nil, fmt.Errorf("failed to stat netns path for container %s in sandbox %s before tearing down the network: %v",
 			podInfraContainer.Name(), sb.id, err)
 	}
 
