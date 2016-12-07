@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
     python-minimal \
     libglib2.0-dev \
     libapparmor-dev \
+    btrfs-tools \
+    libdevmapper1.02.1 \
+    libdevmapper-dev \
     --no-install-recommends \
     && apt-get clean
 
