@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	// defaultApparmorProfile is the name of default apparmor profile name.
-	defaultApparmorProfile = "ocid-default"
+	// DefaultApparmorProfile is the name of default apparmor profile name.
+	DefaultApparmorProfile = "ocid-default"
 
 	// profileDirectory is the file store for apparmor profiles and macros.
 	profileDirectory = "/etc/apparmor.d"
@@ -47,13 +47,11 @@ type profileData struct {
 	Version int
 }
 
-// InstallDefaultAppArmorProfile installs default apparmor profile.
-func InstallDefaultAppArmorProfile() {
-	if err := InstallDefault(defaultApparmorProfile); err != nil {
-		// Allow daemon to run if loading failed, but are active
-		// (possibly through another run, manually, or via system startup)
-		if !IsLoaded(defaultApparmorProfile) {
-			logrus.Errorf("AppArmor enabled on system but the %s profile could not be loaded.", defaultApparmorProfile)
+// LoadDefaultAppArmorProfile loads default apparmor profile, if it is not loaded.
+func LoadDefaultAppArmorProfile() {
+	if !IsLoaded(DefaultApparmorProfile) {
+		if err := InstallDefault(DefaultApparmorProfile); err != nil {
+			logrus.Errorf("AppArmor enabled on system but the %s profile could not be loaded:%v", DefaultApparmorProfile, err)
 		}
 	}
 }

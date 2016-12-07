@@ -393,6 +393,11 @@ func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName s
 	}
 
 	if profile == apparmor.ProfileRuntimeDefault {
+		// reload default apparmor profile if it is unloaded.
+		if s.appArmorProfile == apparmor.DefaultApparmorProfile {
+			apparmor.LoadDefaultAppArmorProfile()
+		}
+
 		// If the value is runtime/default, then return default profile.
 		return s.appArmorProfile
 	}

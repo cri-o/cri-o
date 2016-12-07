@@ -3,6 +3,9 @@
 package apparmor
 
 const (
+	// DefaultApparmorProfile is the name of default apparmor profile name.
+	DefaultApparmorProfile = "ocid-default"
+
 	// ContainerAnnotationKeyPrefix is the prefix to an annotation key specifying a container profile.
 	ContainerAnnotationKeyPrefix = "container.apparmor.security.beta.kubernetes.io/"
 
@@ -17,8 +20,8 @@ func IsEnabled() bool {
 	return false
 }
 
-// InstallDefaultAppArmorProfile dose nothing, when build without apparmor build tag.
-func InstallDefaultAppArmorProfile() {
+// LoadDefaultAppArmorProfile dose nothing, when build without apparmor build tag.
+func LoadDefaultAppArmorProfile() {
 }
 
 // GetProfileNameFromPodAnnotations dose nothing, when build without apparmor build tag.

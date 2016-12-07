@@ -299,7 +299,7 @@ func New(config *Config) (*Server, error) {
 	s.seccompProfile = seccompConfig
 
 	if s.appArmorEnabled {
-		apparmor.InstallDefaultAppArmorProfile()
+		apparmor.LoadDefaultAppArmorProfile()
 	}
 	s.appArmorProfile = config.ApparmorProfile
 
