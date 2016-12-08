@@ -17,7 +17,7 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.Exe
 		return nil, err
 	}
 
-	if err := s.runtime.UpdateStatus(c); err != nil {
+	if err = s.runtime.UpdateStatus(c); err != nil {
 		return nil, err
 	}
 
