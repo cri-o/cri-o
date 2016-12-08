@@ -51,10 +51,11 @@
 	},
 	"linux": {
 		"cgroup_parent": "podsandbox1.slice:container:infra",
-		"namespace_options": {
-			"host_network": false,
-			"host_pid": false,
-			"host_ipc": false
-		}
+		"security_context": {
+			"namespace_options": {
+				"host_network": false,
+				"host_pid": false,
+				"host_ipc": false
+			}
 	}
 }
