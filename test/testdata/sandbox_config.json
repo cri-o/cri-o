@@ -59,5 +59,6 @@
 				"host_pid": false,
 				"host_ipc": false
 			}
+		}
 	}
 }
