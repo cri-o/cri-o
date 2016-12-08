@@ -283,6 +283,9 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		}
 	}
 
+	// bind mount the pod shm
+	specgen.AddBindMount(sb.shmPath, "/dev/shm", []string{"rw"})
+
 	specgen.AddAnnotation("ocid/name", containerName)
 	specgen.AddAnnotation("ocid/sandbox_id", sb.id)
 	specgen.AddAnnotation("ocid/sandbox_name", sb.infraContainer.Name())

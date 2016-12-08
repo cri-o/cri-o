@@ -20,10 +20,12 @@ type sandbox struct {
 	processLabel   string
 	mountLabel     string
 	metadata       *pb.PodSandboxMetadata
+	shmPath        string
 }
 
 const (
 	podDefaultNamespace = "default"
+	defaultShmSize      = 64 * 1024 * 1024
 )
 
 func (s *sandbox) addContainer(c *oci.Container) {

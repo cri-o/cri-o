@@ -136,6 +136,7 @@ func (s *Server) loadSandbox(id string) error {
 		mountLabel:   mountLabel,
 		annotations:  annotations,
 		metadata:     &metadata,
+		shmPath:      m.Annotations["ocid/shm_path"],
 	}
 	s.addSandbox(sb)
 
