@@ -107,7 +107,7 @@ install:
 	install -D -m 755 ocic $(BINDIR)/ocic
 	install -D -m 755 conmon/conmon $(LIBEXECDIR)/ocid/conmon
 	install -D -m 755 pause/pause $(LIBEXECDIR)/ocid/pause
-	install -d -m 755 $(MANDIR)/man{1,4,8}
+	install -d -m 755 $(MANDIR)/man{1,5,8}
 	install -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
 	install -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
