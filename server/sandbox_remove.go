@@ -18,7 +18,13 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	logrus.Debugf("RemovePodSandboxRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
-		return nil, err
+		if err == errSandboxIDEmpty {
+			return nil, err
+		}
+
+		resp := &pb.RemovePodSandboxResponse{}
+		logrus.Warnf("could not get sandbox %s, it's probably been removed already: %v", req.GetPodSandboxId(), err)
+		return resp, nil
 	}
 
 	podInfraContainer := sb.infraContainer

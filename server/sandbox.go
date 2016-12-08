@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/docker/docker/pkg/stringid"
@@ -24,6 +25,10 @@ type sandbox struct {
 
 const (
 	podDefaultNamespace = "default"
+)
+
+var (
+	errSandboxIDEmpty = errors.New("PodSandboxId should not be empty")
 )
 
 func (s *sandbox) addContainer(c *oci.Container) {
@@ -60,7 +65,7 @@ type podSandboxRequest interface {
 func (s *Server) getPodSandboxFromRequest(req podSandboxRequest) (*sandbox, error) {
 	sbID := req.GetPodSandboxId()
 	if sbID == "" {
-		return nil, fmt.Errorf("PodSandboxId should not be empty")
+		return nil, errSandboxIDEmpty
 	}
 
 	sandboxID, err := s.podIDIndex.Get(sbID)
