@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -63,6 +64,13 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	if err := label.UnreserveLabel(sb.processLabel); err != nil {
 		return nil, err
+	}
+
+	// unmount the shm for the pod
+	if sb.shmPath != "/dev/shm" {
+		if err := syscall.Unmount(sb.shmPath, syscall.MNT_DETACH); err != nil {
+			return nil, err
+		}
 	}
 
 	// Remove the files related to the sandbox

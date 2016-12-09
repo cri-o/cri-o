@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -139,6 +141,24 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.SetProcessSelinuxLabel(processLabel)
 	}
 
+	// create shm mount for the pod containers.
+	var shmPath string
+	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostIpc() {
+		shmPath = "/dev/shm"
+	} else {
+		shmPath, err = setupShm(podSandboxDir, mountLabel)
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if err != nil {
+				if err2 := syscall.Unmount(shmPath, syscall.MNT_DETACH); err2 != nil {
+					logrus.Warnf("failed to unmount shm for pod: %v", err2)
+				}
+			}
+		}()
+	}
+
 	containerID, containerName, err := s.generateContainerIDandName(name, "infra", 0)
 	if err != nil {
 		return nil, err
@@ -170,6 +190,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/container_type", containerTypeSandbox)
 	g.AddAnnotation("ocid/container_name", containerName)
 	g.AddAnnotation("ocid/container_id", containerID)
+	g.AddAnnotation("ocid/shm_path", shmPath)
 
 	sb := &sandbox{
 		id:           id,
@@ -181,6 +202,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
 		metadata:     metadata,
+		shmPath:      shmPath,
 	}
 
 	s.addSandbox(sb)
@@ -308,4 +330,20 @@ func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mo
 		processLabel = fmt.Sprintf("%s:%s:%s:%s", user, role, t, level)
 	}
 	return label.InitLabels(label.DupSecOpt(processLabel))
+}
+
+func setupShm(podSandboxDir, mountLabel string) (shmPath string, err error) {
+	shmPath = filepath.Join(podSandboxDir, "shm")
+	if err = os.Mkdir(shmPath, 0700); err != nil {
+		return "", err
+	}
+	shmOptions := "mode=1777,size=" + strconv.Itoa(defaultShmSize)
+	if mountLabel != "" {
+		shmOptions = label.FormatMountLabel(shmOptions, mountLabel)
+
+	}
+	if err = syscall.Mount("shm", shmPath, "tmpfs", uintptr(syscall.MS_NOEXEC|syscall.MS_NOSUID|syscall.MS_NODEV), shmOptions); err != nil {
+		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
+	}
+	return shmPath, nil
 }
