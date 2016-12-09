@@ -14,9 +14,10 @@ import (
 	"syscall"
 	"time"
 
+	specs "github.com/opencontainers/runtime-spec/specs-go"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/utils"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -295,12 +296,11 @@ func (r *Runtime) DeleteContainer(c *Container) error {
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-	out, err := exec.Command(r.path, "state", c.name).Output()
+	out, err := exec.Command(r.path, "state", c.name).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("error getting container state for %s: %s: %v", c.name, err, out)
+		return fmt.Errorf("error getting container state for %s: %s: %q", c.name, err, out)
 	}
-	stateReader := bytes.NewReader(out)
-	if err := json.NewDecoder(stateReader).Decode(&c.state); err != nil {
+	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {
 		return fmt.Errorf("failed to decode container status for %s: %s", c.name, err)
 	}
 
