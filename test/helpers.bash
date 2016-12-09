@@ -143,6 +143,16 @@ function stop_ocid() {
 	fi
 }
 
+function restart_ocid() {
+	if [ "$OCID_PID" != "" ]; then
+		kill "$OCID_PID" >/dev/null 2>&1
+		start_ocid
+	else
+		echo "you must start ocid first"
+		exit 1
+	fi
+}
+
 function cleanup_test() {
 	rm -rf "$TESTDIR"
 }
