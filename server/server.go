@@ -141,7 +141,7 @@ func (s *Server) loadSandbox(id string) error {
 
 	sandboxPath := filepath.Join(s.config.SandboxDir, id)
 
-	if err := label.ReserveLabel(processLabel); err != nil {
+	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
 
