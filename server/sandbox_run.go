@@ -338,11 +338,8 @@ func setupShm(podSandboxDir, mountLabel string) (shmPath string, err error) {
 		return "", err
 	}
 	shmOptions := "mode=1777,size=" + strconv.Itoa(defaultShmSize)
-	if mountLabel != "" {
-		shmOptions = label.FormatMountLabel(shmOptions, mountLabel)
-
-	}
-	if err = syscall.Mount("shm", shmPath, "tmpfs", uintptr(syscall.MS_NOEXEC|syscall.MS_NOSUID|syscall.MS_NODEV), shmOptions); err != nil {
+	if err = syscall.Mount("shm", shmPath, "tmpfs", uintptr(syscall.MS_NOEXEC|syscall.MS_NOSUID|syscall.MS_NODEV),
+		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
 	}
 	return shmPath, nil
