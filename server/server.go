@@ -200,12 +200,12 @@ func (s *Server) reservePodName(id, name string) (string, error) {
 		if err == registrar.ErrNameReserved {
 			id, err := s.podNameIndex.Get(name)
 			if err != nil {
-				logrus.Warnf("name %s already reserved for %s", name, id)
+				logrus.Warnf("conflict, pod name %q already reserved", name)
 				return "", err
 			}
-			return "", fmt.Errorf("conflict, name %s already reserved", name)
+			return "", fmt.Errorf("conflict, name %q already reserved for pod %q", name, id)
 		}
-		return "", fmt.Errorf("error reserving name %s", name)
+		return "", fmt.Errorf("error reserving pod name %q", name)
 	}
 	return name, nil
 }
@@ -219,12 +219,12 @@ func (s *Server) reserveContainerName(id, name string) (string, error) {
 		if err == registrar.ErrNameReserved {
 			id, err := s.ctrNameIndex.Get(name)
 			if err != nil {
-				logrus.Warnf("get reserved name %s failed", name)
+				logrus.Warnf("conflict, ctr name %q already reserved", name)
 				return "", err
 			}
-			return "", fmt.Errorf("conflict, name %s already reserved for %s", name, id)
+			return "", fmt.Errorf("conflict, name %q already reserved for ctr %q", name, id)
 		}
-		return "", fmt.Errorf("error reserving name %s", name)
+		return "", fmt.Errorf("error reserving ctr name %s", name)
 	}
 	return name, nil
 }
