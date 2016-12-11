@@ -69,7 +69,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 			s.releaseContainerName(containerName)
 			err1 := os.RemoveAll(containerDir)
 			if err1 != nil {
-				logrus.Warnf("Failed to cleanup container directory: %v")
+				logrus.Warnf("Failed to cleanup container directory: %v", err1)
 			}
 		}
 	}()
