@@ -121,11 +121,21 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	// here set it to be "rootfs".
 	specgen.SetRootPath("rootfs")
 
+	processArgs := []string{}
+	commands := containerConfig.GetCommand()
 	args := containerConfig.GetArgs()
-	if args == nil {
-		args = []string{"/bin/sh"}
+	if commands == nil && args == nil {
+		// TODO: override with image's config in #189
+		processArgs = []string{"/bin/sh"}
 	}
-	specgen.SetProcessArgs(args)
+	if commands != nil {
+		processArgs = append(processArgs, commands...)
+	}
+	if args != nil {
+		processArgs = append(processArgs, args...)
+	}
+
+	specgen.SetProcessArgs(processArgs)
 
 	cwd := containerConfig.GetWorkingDir()
 	if cwd == "" {
