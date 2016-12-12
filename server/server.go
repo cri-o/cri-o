@@ -287,6 +287,7 @@ func New(config *Config) (*Server, error) {
 		},
 		seccompEnabled:  seccompEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
+		appArmorProfile: config.ApparmorProfile,
 	}
 	seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
 	if err != nil {
@@ -298,10 +299,11 @@ func New(config *Config) (*Server, error) {
 	}
 	s.seccompProfile = seccompConfig
 
-	if s.appArmorEnabled {
-		apparmor.LoadDefaultAppArmorProfile()
+	if s.appArmorEnabled && s.appArmorProfile == apparmor.DefaultApparmorProfile {
+		if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
+			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", err)
+		}
 	}
-	s.appArmorProfile = config.ApparmorProfile
 
 	s.podIDIndex = truncindex.NewTruncIndex([]string{})
 	s.podNameIndex = registrar.NewRegistrar()

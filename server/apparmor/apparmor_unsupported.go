@@ -7,8 +7,9 @@ func IsEnabled() bool {
 	return false
 }
 
-// LoadDefaultAppArmorProfile dose nothing, when build without apparmor build tag.
-func LoadDefaultAppArmorProfile() {
+// EnsureDefaultApparmorProfile dose nothing, when build without apparmor build tag.
+func EnsureDefaultApparmorProfile() error {
+	return nil
 }
 
 // GetProfileNameFromPodAnnotations dose nothing, when build without apparmor build tag.

@@ -4,14 +4,13 @@ package apparmor
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
-	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/utils/templates"
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 )
@@ -19,9 +18,6 @@ import (
 const (
 	// profileDirectory is the file store for apparmor profiles and macros.
 	profileDirectory = "/etc/apparmor.d"
-
-	// readConfigTimeout is the timeout of reading apparmor profiles.
-	readConfigTimeout = 10
 )
 
 // profileData holds information about the given profile for generation.
@@ -36,13 +32,26 @@ type profileData struct {
 	Version int
 }
 
-// LoadDefaultAppArmorProfile loads default apparmor profile, if it is not loaded.
-func LoadDefaultAppArmorProfile() {
-	if !IsLoaded(DefaultApparmorProfile) {
+// EnsureDefaultApparmorProfile loads default apparmor profile, if it is not loaded.
+func EnsureDefaultApparmorProfile() error {
+	if apparmor.IsEnabled() {
+		loaded, err := IsLoaded(DefaultApparmorProfile)
+		if err != nil {
+			return fmt.Errorf("Could not check if %s AppArmor profile was loaded: %s", DefaultApparmorProfile, err)
+		}
+
+		// Nothing to do.
+		if loaded {
+			return nil
+		}
+
+		// Load the profile.
 		if err := InstallDefault(DefaultApparmorProfile); err != nil {
-			logrus.Errorf("AppArmor enabled on system but the %s profile could not be loaded:%v", DefaultApparmorProfile, err)
+			return fmt.Errorf("AppArmor enabled on system but the %s profile could not be loaded.", DefaultApparmorProfile)
 		}
 	}
+
+	return nil
 }
 
 // IsEnabled returns true if apparmor is enabled for the host.
@@ -77,35 +86,30 @@ func InstallDefault(name string) error {
 	return LoadProfile(f.Name())
 }
 
-// IsLoaded checks if a passed profile has been loaded into the kernel.
-func IsLoaded(name string) bool {
+// IsLoaded checks if a profile with the given name has been loaded into the
+// kernel.
+func IsLoaded(name string) (bool, error) {
 	file, err := os.Open("/sys/kernel/security/apparmor/profiles")
 	if err != nil {
-		return false
+		return false, err
 	}
 	defer file.Close()
 
-	ch := make(chan bool, 1)
-
-	go func() {
-		r := bufio.NewReader(file)
-		for {
-			p, err := r.ReadString('\n')
-			if err != nil {
-				ch <- false
-			}
-			if strings.HasPrefix(p, name+" ") {
-				ch <- true
-			}
+	r := bufio.NewReader(file)
+	for {
+		p, err := r.ReadString('\n')
+		if err == io.EOF {
+			break
 		}
-	}()
-
-	select {
-	case <-time.After(time.Duration(readConfigTimeout) * time.Second):
-		return false
-	case enabled := <-ch:
-		return enabled
+		if err != nil {
+			return false, err
+		}
+		if strings.HasPrefix(p, name+" ") {
+			return true, nil
+		}
 	}
+
+	return false, nil
 }
 
 // generateDefault creates an apparmor profile from ProfileData.

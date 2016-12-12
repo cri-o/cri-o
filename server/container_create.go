@@ -188,6 +188,13 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	if s.appArmorEnabled {
 		appArmorProfileName := s.getAppArmorProfileName(sb.annotations, metadata.GetName())
 		if appArmorProfileName != "" {
+			// reload default apparmor profile if it is unloaded.
+			if s.appArmorProfile == apparmor.DefaultApparmorProfile {
+				if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
+					return nil, err
+				}
+			}
+
 			specgen.SetProcessApparmorProfile(appArmorProfileName)
 		}
 	}
@@ -393,11 +400,6 @@ func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName s
 	}
 
 	if profile == apparmor.ProfileRuntimeDefault {
-		// reload default apparmor profile if it is unloaded.
-		if s.appArmorProfile == apparmor.DefaultApparmorProfile {
-			apparmor.LoadDefaultAppArmorProfile()
-		}
-
 		// If the value is runtime/default, then return default profile.
 		return s.appArmorProfile
 	}
