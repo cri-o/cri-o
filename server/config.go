@@ -2,7 +2,9 @@ package server
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/BurntSushi/toml"
 )
@@ -151,4 +153,30 @@ func (c *Config) ToFile(path string) error {
 	}
 
 	return ioutil.WriteFile(path, w.Bytes(), 0644)
+}
+
+// Check resolves that all paths and files are available as expected
+func (c *Config) Check() error {
+	for _, file := range []string{
+		c.RootConfig.SandboxDir,
+		c.RootConfig.ContainerDir,
+		c.RuntimeConfig.Runtime,
+		c.RuntimeConfig.Conmon,
+		c.RuntimeConfig.SeccompProfile,
+		c.ImageConfig.Pause,
+	} {
+		if _, err := os.Stat(file); err != nil && os.IsNotExist(err) {
+			return checkError{Path: file}
+		}
+	}
+
+	return nil
+}
+
+type checkError struct {
+	Path string
+}
+
+func (ce checkError) Error() string {
+	return fmt.Sprintf("%q does not exist", ce.Path)
 }

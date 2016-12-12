@@ -163,6 +163,10 @@ func main() {
 			return err
 		}
 
+		if err := config.Check(); err != nil {
+			return err
+		}
+
 		cf := &logrus.TextFormatter{
 			TimestampFormat: "2006-01-02 15:04:05.000000000Z07:00",
 			FullTimestamp:   true,
