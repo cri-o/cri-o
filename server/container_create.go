@@ -316,6 +316,12 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	}
 	specgen.AddAnnotation("ocid/labels", string(labelsJSON))
 
+	annotationsJSON, err := json.Marshal(annotations)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation("ocid/annotations", string(annotationsJSON))
+
 	if err = s.setupSeccomp(&specgen, containerName, sb.annotations); err != nil {
 		return nil, err
 	}
