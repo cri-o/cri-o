@@ -283,6 +283,16 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		}
 	}
 
+	imageSpec := containerConfig.GetImage()
+	if imageSpec == nil {
+		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image is nil")
+	}
+
+	image := imageSpec.GetImage()
+	if image == "" {
+		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
+	}
+
 	// bind mount the pod shm
 	specgen.AddBindMount(sb.shmPath, "/dev/shm", []string{"rw"})
 
@@ -292,6 +302,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	specgen.AddAnnotation("ocid/container_type", containerTypeContainer)
 	specgen.AddAnnotation("ocid/log_path", logPath)
 	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.GetTty()))
+	specgen.AddAnnotation("ocid/image", image)
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
@@ -313,23 +324,13 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		return nil, err
 	}
 
-	imageSpec := containerConfig.GetImage()
-	if imageSpec == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image is nil")
-	}
-
-	image := imageSpec.GetImage()
-	if image == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
-	}
-
 	// TODO: copy the rootfs into the bundle.
 	// Currently, utils.CreateFakeRootfs is used to populate the rootfs.
 	if err = utils.CreateFakeRootfs(containerDir, image); err != nil {
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerDir, logPath, labels, metadata, sb.id, containerConfig.GetTty())
+	container, err := oci.NewContainer(containerID, containerName, containerDir, logPath, labels, annotations, imageSpec, metadata, sb.id, containerConfig.GetTty())
 	if err != nil {
 		return nil, err
 	}

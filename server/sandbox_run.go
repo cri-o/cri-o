@@ -267,7 +267,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, podSandboxDir, podSandboxDir, labels, nil, id, false)
+	container, err := oci.NewContainer(containerID, containerName, podSandboxDir, podSandboxDir, labels, annotations, nil, nil, id, false)
 	if err != nil {
 		return nil, err
 	}
