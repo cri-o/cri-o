@@ -336,16 +336,18 @@ func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
 
 // Container respresents a runtime container.
 type Container struct {
-	id         string
-	name       string
-	bundlePath string
-	logPath    string
-	labels     fields.Set
-	sandbox    string
-	terminal   bool
-	state      *ContainerState
-	metadata   *pb.ContainerMetadata
-	stateLock  sync.Mutex
+	id          string
+	name        string
+	bundlePath  string
+	logPath     string
+	labels      fields.Set
+	annotations fields.Set
+	image       *pb.ImageSpec
+	sandbox     string
+	terminal    bool
+	state       *ContainerState
+	metadata    *pb.ContainerMetadata
+	stateLock   sync.Mutex
 }
 
 // ContainerState represents the status of a container.
@@ -358,16 +360,18 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, labels map[string]string, metadata *pb.ContainerMetadata, sandbox string, terminal bool) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool) (*Container, error) {
 	c := &Container{
-		id:         id,
-		name:       name,
-		bundlePath: bundlePath,
-		logPath:    logPath,
-		labels:     labels,
-		sandbox:    sandbox,
-		terminal:   terminal,
-		metadata:   metadata,
+		id:          id,
+		name:        name,
+		bundlePath:  bundlePath,
+		logPath:     logPath,
+		labels:      labels,
+		sandbox:     sandbox,
+		terminal:    terminal,
+		metadata:    metadata,
+		annotations: annotations,
+		image:       image,
 	}
 	return c, nil
 }
@@ -395,6 +399,16 @@ func (c *Container) LogPath() string {
 // Labels returns the labels of the container.
 func (c *Container) Labels() map[string]string {
 	return c.labels
+}
+
+// Annotations returns the annotations of the container.
+func (c *Container) Annotations() map[string]string {
+	return c.annotations
+}
+
+// Image returns the image of the container.
+func (c *Container) Image() *pb.ImageSpec {
+	return c.image
 }
 
 // Sandbox returns the sandbox name of the container.

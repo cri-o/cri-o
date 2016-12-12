@@ -82,6 +82,8 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			CreatedAt:    int64Ptr(created),
 			Labels:       ctr.Labels(),
 			Metadata:     ctr.Metadata(),
+			Annotations:  ctr.Annotations(),
+			Image:        ctr.Image(),
 		}
 
 		switch cState.Status {

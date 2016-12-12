@@ -505,6 +505,9 @@ func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 		if c.State != nil {
 			fmt.Printf("Status: %s\n", *c.State)
 		}
+		if c.Image != nil {
+			fmt.Printf("Image: %s\n", c.Image.GetImage())
+		}
 		if c.CreatedAt != nil {
 			ctm := time.Unix(0, *c.CreatedAt)
 			fmt.Printf("Created: %v\n", ctm)
