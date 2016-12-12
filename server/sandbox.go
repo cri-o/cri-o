@@ -1,8 +1,11 @@
 package server
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/Sirupsen/logrus"
@@ -15,21 +18,98 @@ import (
 
 type sandboxNetNs struct {
 	sync.Mutex
-	ns     ns.NetNS
-	closed bool
+	ns      ns.NetNS
+	symlink *os.File
+	closed  bool
 }
 
-func netNsGet(nspath string) (*sandboxNetNs, error) {
+func (ns *sandboxNetNs) symlinkCreate(name string) error {
+	b := make([]byte, 4)
+	_, randErr := rand.Reader.Read(b)
+	if randErr != nil {
+		return randErr
+	}
+
+	nsName := fmt.Sprintf("%s-%x", name, b)
+	symlinkPath := filepath.Join(nsRunDir, nsName)
+
+	if err := os.Symlink(ns.ns.Path(), symlinkPath); err != nil {
+		return err
+	}
+
+	fd, err := os.Open(symlinkPath)
+	if err != nil {
+		if removeErr := os.RemoveAll(symlinkPath); removeErr != nil {
+			return removeErr
+		}
+
+		return err
+	}
+
+	ns.symlink = fd
+
+	return nil
+}
+
+func (ns *sandboxNetNs) symlinkRemove() error {
+	if err := ns.symlink.Close(); err != nil {
+		return err
+	}
+
+	return os.RemoveAll(ns.symlink.Name())
+}
+
+func isSymbolicLink(path string) (bool, error) {
+	fi, err := os.Lstat(path)
+	if err != nil {
+		return false, err
+	}
+
+	return fi.Mode()&os.ModeSymlink == os.ModeSymlink, nil
+}
+
+func netNsGet(nspath, name string) (*sandboxNetNs, error) {
 	if err := ns.IsNSorErr(nspath); err != nil {
 		return nil, errSandboxClosedNetNS
 	}
 
-	netNS, err := ns.GetNS(nspath)
+	symlink, symlinkErr := isSymbolicLink(nspath)
+	if symlinkErr != nil {
+		return nil, symlinkErr
+	}
+
+	var resolvedNsPath string
+	if symlink {
+		path, err := os.Readlink(nspath)
+		if err != nil {
+			return nil, err
+		}
+		resolvedNsPath = path
+	} else {
+		resolvedNsPath = nspath
+	}
+
+	netNS, err := ns.GetNS(resolvedNsPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return &sandboxNetNs{ns: netNS, closed: false,}, nil
+	netNs := &sandboxNetNs{ns: netNS, closed: false,}
+
+	if symlink {
+		fd, err := os.Open(nspath)
+		if err != nil {
+			return nil, err
+		}
+
+		netNs.symlink = fd
+	} else {
+		if err := netNs.symlinkCreate(name); err != nil {
+			return nil, err
+		}
+	}
+
+	return netNs, nil
 }
 
 func hostNetNsPath() (string, error) {
@@ -61,6 +141,7 @@ type sandbox struct {
 const (
 	podDefaultNamespace = "default"
 	defaultShmSize      = 64 * 1024 * 1024
+	nsRunDir            = "/var/run/netns"
 )
 
 var (
@@ -93,7 +174,7 @@ func (s *sandbox) netNsPath() string {
 		return ""
 	}
 
-	return s.netns.ns.Path()
+	return s.netns.symlink.Name()
 }
 
 func (s *sandbox) netNsCreate() error {
@@ -109,6 +190,16 @@ func (s *sandbox) netNsCreate() error {
 	s.netns = &sandboxNetNs{
 		ns: netNS,
 		closed: false,
+	}
+
+	if err := s.netns.symlinkCreate(s.name); err != nil {
+		logrus.Warnf("Could not create nentns symlink %v", err)
+
+		if err := s.netns.ns.Close(); err != nil {
+			return err
+		}
+
+		return err
 	}
 
 	return nil
@@ -127,6 +218,10 @@ func (s *sandbox) netNsRemove() error {
 		// netNsRemove() can be called multiple
 		// times without returning an error.
 		return nil
+	}
+
+	if err := s.netns.symlinkRemove(); err != nil {
+		return err
 	}
 
 	if err := s.netns.ns.Close(); err != nil {

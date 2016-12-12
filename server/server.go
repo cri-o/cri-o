@@ -172,7 +172,7 @@ func (s *Server) loadSandbox(id string) error {
 	// Otherwise, the sandbox will live in the host namespace.
 	netNsPath, err := configNetNsPath(m)
 	if err == nil {
-		netNS, nsErr := netNsGet(netNsPath)
+		netNS, nsErr := netNsGet(netNsPath, sb.name)
 		// If we can't load the networking namespace
 		// because it's closed, we just set the sb netns
 		// pointer to nil. Otherwise we return an error.
