@@ -251,6 +251,11 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 			specgen.SetLinuxResourcesOOMScoreAdj(int(oomScoreAdj))
 		}
 
+		if sb.cgroupParent != "" {
+			// NOTE: we only support cgroupfs for now, discussion happens in issue #270.
+			specgen.SetLinuxCgroupsPath(sb.cgroupParent + "/" + containerID)
+		}
+
 		capabilities := linux.GetSecurityContext().GetCapabilities()
 		if capabilities != nil {
 			addCaps := capabilities.GetAddCapabilities()

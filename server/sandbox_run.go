@@ -245,7 +245,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// setup cgroup settings
 	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
 	if cgroupParent != "" {
-		g.SetLinuxCgroupsPath(cgroupParent)
+		// NOTE: we only support cgroupfs for now, discussion happens in issue #270.
+		g.SetLinuxCgroupsPath(cgroupParent + "/" + containerID)
+		sb.cgroupParent = cgroupParent
 	}
 
 	// set up namespaces
@@ -273,7 +275,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			if netnsErr := sb.netNsRemove(); netnsErr != nil {
 				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
 			}
-		} ()
+		}()
 
 		// Pass the created namespace path to the runtime
 		err = g.AddOrReplaceLinuxNamespace("network", sb.netNsPath())

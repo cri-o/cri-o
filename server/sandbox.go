@@ -9,20 +9,20 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/containernetworking/cni/pkg/ns"
+	"golang.org/x/sys/unix"
 	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-	"golang.org/x/sys/unix"
 )
 
 type sandboxNetNs struct {
 	sync.Mutex
-	ns        ns.NetNS
-	symlink   *os.File
-	closed    bool
-	restored  bool
+	ns       ns.NetNS
+	symlink  *os.File
+	closed   bool
+	restored bool
 }
 
 func (ns *sandboxNetNs) symlinkCreate(name string) error {
@@ -138,6 +138,7 @@ type sandbox struct {
 	netns          *sandboxNetNs
 	metadata       *pb.PodSandboxMetadata
 	shmPath        string
+	cgroupParent   string
 }
 
 const (
@@ -190,7 +191,7 @@ func (s *sandbox) netNsCreate() error {
 	}
 
 	s.netns = &sandboxNetNs{
-		ns: netNS,
+		ns:     netNS,
 		closed: false,
 	}
 
