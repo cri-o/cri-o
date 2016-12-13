@@ -148,6 +148,44 @@ $ ocic pod create --config test/testdata/sandbox_config.json
 # ocic ctr list
 ```
 
+### Setup CNI networking
+
+Follow the steps below in order to setup networking in your pods using the CNI
+bridge plugin. Nothing else is required after this since `CRI-O` automatically
+setup networking if it finds any CNI plugin.
+
+```sh
+$ go get -d github.com/containernetworking/cni
+$ cd $GOPATH/src/github.com/containernetworking/cni
+$ sudo mkdir -p /etc/cni/net.d
+$ sudo sh -c 'cat >/etc/cni/net.d/10-mynet.conf <<-EOF
+{
+    "cniVersion": "0.2.0",
+    "name": "mynet",
+    "type": "bridge",
+    "bridge": "cni0",
+    "isGateway": true,
+    "ipMasq": true,
+    "ipam": {
+        "type": "host-local",
+        "subnet": "10.88.0.0/16",
+        "routes": [
+            { "dst": "0.0.0.0/0"  }
+        ]
+    }
+}
+EOF'
+$ sudo sh -c 'cat >/etc/cni/net.d/99-loopback.conf <<-EOF
+{
+    "cniVersion": "0.2.0",
+    "type": "loopback"
+}
+EOF'
+$ ./build
+$ sudo mkdir -p /opt/cni/bin
+$ sudo cp bin/* /opt/cni/bin/
+```
+
 ### Current Roadmap
 
 1. Basic pod/container lifecycle, basic image pull (already works)
