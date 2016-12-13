@@ -18,6 +18,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/containernetworking/cni/pkg/ns"
 	"golang.org/x/sys/unix"
 	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -344,6 +345,7 @@ type Container struct {
 	annotations fields.Set
 	image       *pb.ImageSpec
 	sandbox     string
+	netns       ns.NetNS
 	terminal    bool
 	state       *ContainerState
 	metadata    *pb.ContainerMetadata
@@ -360,7 +362,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool) (*Container, error) {
 	c := &Container{
 		id:          id,
 		name:        name,
@@ -368,6 +370,7 @@ func NewContainer(id string, name string, bundlePath string, logPath string, lab
 		logPath:     logPath,
 		labels:      labels,
 		sandbox:     sandbox,
+		netns:       netns,
 		terminal:    terminal,
 		metadata:    metadata,
 		annotations: annotations,
@@ -421,7 +424,12 @@ func (c *Container) NetNsPath() (string, error) {
 	if c.state == nil {
 		return "", fmt.Errorf("container state is not populated")
 	}
-	return fmt.Sprintf("/proc/%d/ns/net", c.state.Pid), nil
+
+	if c.netns == nil {
+		return fmt.Sprintf("/proc/%d/ns/net", c.state.Pid), nil
+	}
+
+	return c.netns.Path(), nil
 }
 
 // Metadata returns the metadata of the container.

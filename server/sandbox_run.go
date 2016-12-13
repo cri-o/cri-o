@@ -17,10 +17,30 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
+func (s *Server) runContainer(container *oci.Container) error {
+	if err := s.runtime.CreateContainer(container); err != nil {
+		return err
+	}
+
+	if err := s.runtime.UpdateStatus(container); err != nil {
+		return err
+	}
+
+	if err := s.runtime.StartContainer(container); err != nil {
+		return err
+	}
+
+	if err := s.runtime.UpdateStatus(container); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // RunPodSandbox creates and runs a pod-level sandbox.
-func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (*pb.RunPodSandboxResponse, error) {
+func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
-	var processLabel, mountLabel string
+	var processLabel, mountLabel, netNsPath string
 	// process req.Name
 	name := req.GetConfig().GetMetadata().GetName()
 	if name == "" {
@@ -30,7 +50,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	namespace := req.GetConfig().GetMetadata().GetNamespace()
 	attempt := req.GetConfig().GetMetadata().GetAttempt()
 
-	var err error
 	id, name, err := s.generatePodIDandName(name, namespace, attempt)
 	if err != nil {
 		return nil, err
@@ -235,6 +254,34 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
+
+		netNsPath, err = hostNetNsPath()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Create the sandbox network namespace
+		if err = sb.netNsCreate(); err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			if err == nil {
+				return
+			}
+
+			if netnsErr := sb.netNsRemove(); netnsErr != nil {
+				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
+			}
+		} ()
+
+		// Pass the created namespace path to the runtime
+		err = g.AddOrReplaceLinuxNamespace("network", sb.netNsPath())
+		if err != nil {
+			return nil, err
+		}
+
+		netNsPath = sb.netNsPath()
 	}
 
 	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() {
@@ -267,40 +314,24 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, podSandboxDir, podSandboxDir, labels, annotations, nil, nil, id, false)
+	container, err := oci.NewContainer(containerID, containerName, podSandboxDir, podSandboxDir, sb.netNs(), labels, annotations, nil, nil, id, false)
 	if err != nil {
 		return nil, err
 	}
 
 	sb.infraContainer = container
 
-	if err = s.runtime.CreateContainer(container); err != nil {
-		return nil, err
-	}
-
-	if err = s.runtime.UpdateStatus(container); err != nil {
-		return nil, err
-	}
-
 	// setup the network
 	podNamespace := ""
-	netnsPath, err := container.NetNsPath()
-	if err != nil {
-		return nil, err
-	}
-	if err = s.netPlugin.SetUpPod(netnsPath, podNamespace, id, containerName); err != nil {
+	if err = s.netPlugin.SetUpPod(netNsPath, podNamespace, id, containerName); err != nil {
 		return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
 	}
 
-	if err = s.runtime.StartContainer(container); err != nil {
+	if err = s.runContainer(container); err != nil {
 		return nil, err
 	}
 
-	if err = s.runtime.UpdateStatus(container); err != nil {
-		return nil, err
-	}
-
-	resp := &pb.RunPodSandboxResponse{PodSandboxId: &id}
+	resp = &pb.RunPodSandboxResponse{PodSandboxId: &id}
 	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
 	return resp, nil
 }

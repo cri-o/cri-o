@@ -92,7 +92,7 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], labels, annotations, img, &metadata, sb.id, tty)
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty)
 	if err != nil {
 		return err
 	}
@@ -104,6 +104,22 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 	return nil
+}
+
+func configNetNsPath(spec rspec.Spec) (string, error) {
+	for _, ns := range spec.Linux.Namespaces {
+		if ns.Type != rspec.NetworkNamespace {
+			continue
+		}
+
+		if ns.Path == "" {
+			return "", fmt.Errorf("empty networking namespace")
+		}
+
+		return ns.Path, nil
+	}
+
+	return "", fmt.Errorf("missing networking namespace")
 }
 
 func (s *Server) loadSandbox(id string) error {
@@ -151,6 +167,22 @@ func (s *Server) loadSandbox(id string) error {
 		metadata:     &metadata,
 		shmPath:      m.Annotations["ocid/shm_path"],
 	}
+
+	// We add a netNS only if we can load a permanent one.
+	// Otherwise, the sandbox will live in the host namespace.
+	netNsPath, err := configNetNsPath(m)
+	if err == nil {
+		netNS, nsErr := netNsGet(netNsPath, sb.name)
+		// If we can't load the networking namespace
+		// because it's closed, we just set the sb netns
+		// pointer to nil. Otherwise we return an error.
+		if nsErr != nil && nsErr != errSandboxClosedNetNS {
+			return nsErr
+		}
+
+		sb.netns = netNS
+	}
+
 	s.addSandbox(sb)
 
 	sandboxPath := filepath.Join(s.config.SandboxDir, id)
@@ -163,7 +195,7 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, labels, annotations, nil, nil, id, false)
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, sb.netNs(), labels, annotations, nil, nil, id, false)
 	if err != nil {
 		return err
 	}
