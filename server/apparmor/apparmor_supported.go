@@ -4,35 +4,20 @@ package apparmor
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
-	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/utils/templates"
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 )
 
 const (
-	// defaultApparmorProfile is the name of default apparmor profile name.
-	defaultApparmorProfile = "ocid-default"
-
 	// profileDirectory is the file store for apparmor profiles and macros.
 	profileDirectory = "/etc/apparmor.d"
-
-	// ContainerAnnotationKeyPrefix is the prefix to an annotation key specifying a container profile.
-	ContainerAnnotationKeyPrefix = "container.apparmor.security.beta.kubernetes.io/"
-
-	// ProfileRuntimeDefault is he profile specifying the runtime default.
-	ProfileRuntimeDefault = "runtime/default"
-	// ProfileNamePrefix is the prefix for specifying profiles loaded on the node.
-	ProfileNamePrefix = "localhost/"
-
-	// readConfigTimeout is the timeout of reading apparmor profiles.
-	readConfigTimeout = 10
 )
 
 // profileData holds information about the given profile for generation.
@@ -47,15 +32,26 @@ type profileData struct {
 	Version int
 }
 
-// InstallDefaultAppArmorProfile installs default apparmor profile.
-func InstallDefaultAppArmorProfile() {
-	if err := InstallDefault(defaultApparmorProfile); err != nil {
-		// Allow daemon to run if loading failed, but are active
-		// (possibly through another run, manually, or via system startup)
-		if !IsLoaded(defaultApparmorProfile) {
-			logrus.Errorf("AppArmor enabled on system but the %s profile could not be loaded.", defaultApparmorProfile)
+// EnsureDefaultApparmorProfile loads default apparmor profile, if it is not loaded.
+func EnsureDefaultApparmorProfile() error {
+	if apparmor.IsEnabled() {
+		loaded, err := IsLoaded(DefaultApparmorProfile)
+		if err != nil {
+			return fmt.Errorf("Could not check if %s AppArmor profile was loaded: %s", DefaultApparmorProfile, err)
+		}
+
+		// Nothing to do.
+		if loaded {
+			return nil
+		}
+
+		// Load the profile.
+		if err := InstallDefault(DefaultApparmorProfile); err != nil {
+			return fmt.Errorf("AppArmor enabled on system but the %s profile could not be loaded.", DefaultApparmorProfile)
 		}
 	}
+
+	return nil
 }
 
 // IsEnabled returns true if apparmor is enabled for the host.
@@ -90,35 +86,30 @@ func InstallDefault(name string) error {
 	return LoadProfile(f.Name())
 }
 
-// IsLoaded checks if a passed profile has been loaded into the kernel.
-func IsLoaded(name string) bool {
+// IsLoaded checks if a profile with the given name has been loaded into the
+// kernel.
+func IsLoaded(name string) (bool, error) {
 	file, err := os.Open("/sys/kernel/security/apparmor/profiles")
 	if err != nil {
-		return false
+		return false, err
 	}
 	defer file.Close()
 
-	ch := make(chan bool, 1)
-
-	go func() {
-		r := bufio.NewReader(file)
-		for {
-			p, err := r.ReadString('\n')
-			if err != nil {
-				ch <- false
-			}
-			if strings.HasPrefix(p, name+" ") {
-				ch <- true
-			}
+	r := bufio.NewReader(file)
+	for {
+		p, err := r.ReadString('\n')
+		if err == io.EOF {
+			break
 		}
-	}()
-
-	select {
-	case <-time.After(time.Duration(readConfigTimeout) * time.Second):
-		return false
-	case enabled := <-ch:
-		return enabled
+		if err != nil {
+			return false, err
+		}
+		if strings.HasPrefix(p, name+" ") {
+			return true, nil
+		}
 	}
+
+	return false, nil
 }
 
 // generateDefault creates an apparmor profile from ProfileData.

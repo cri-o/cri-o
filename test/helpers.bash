@@ -28,6 +28,8 @@ RUNC_BINARY=${RUNC_PATH:-/usr/local/sbin/runc}
 APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
 # Path of the apparmor profile for test.
 APPARMOR_TEST_PROFILE_PATH=${APPARMOR_TEST_PROFILE_PATH:-${TESTDATA}/apparmor_test_deny_write}
+# Path of the apparmor profile for unloading ocid-default.
+FAKE_OCID_DEFAULT_PROFILE_PATH=${FAKE_OCID_DEFAULT_PROFILE_PATH:-${TESTDATA}/fake_ocid_default}
 # Name of the apparmor profile for test.
 APPARMOR_TEST_PROFILE_NAME=${APPARMOR_TEST_PROFILE_NAME:-apparmor-test-deny-write}
 # Path of boot config.
@@ -158,12 +160,12 @@ function cleanup_test() {
 }
 
 
-function load_apparmor_test_profile() {
-	"$APPARMOR_PARSER_BINARY" -r "$APPARMOR_TEST_PROFILE_PATH"
+function load_apparmor_profile() {
+	"$APPARMOR_PARSER_BINARY" -r "$1"
 }
 
-function remove_apparmor_test_profile() {
-	"$APPARMOR_PARSER_BINARY" -R "$APPARMOR_TEST_PROFILE_PATH"
+function remove_apparmor_profile() {
+	"$APPARMOR_PARSER_BINARY" -R "$1"
 }
 
 function is_seccomp_enabled() {

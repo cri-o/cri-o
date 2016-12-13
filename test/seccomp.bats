@@ -15,8 +15,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-    if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+    if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -56,8 +56,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -97,8 +97,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -133,8 +133,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -158,8 +158,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -202,8 +202,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -243,8 +243,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -284,8 +284,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -325,8 +325,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
@@ -362,8 +362,8 @@ function teardown() {
 	fi
 
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=is_seccomp_enabled
-	if [[ "$enabled" =~ "0" ]]; then
+	enabled=$(is_seccomp_enabled)
+	if [[ "$enabled" -eq 0 ]]; then
 		skip "skip this test since seccomp is not enabled."
 	fi
 
