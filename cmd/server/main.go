@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/kubernetes-incubator/cri-o/manager"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/opencontainers/runc/libcontainer/selinux"
 	"github.com/urfave/cli"
@@ -16,7 +17,7 @@ import (
 
 const ociConfigPath = "/etc/ocid/ocid.conf"
 
-func mergeConfig(config *server.Config, ctx *cli.Context) error {
+func mergeConfig(config *manager.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
 	if path := ctx.GlobalString("config"); path != "" {
 		if err := config.FromFile(path); err != nil {
@@ -158,7 +159,7 @@ func main() {
 
 	app.Before = func(c *cli.Context) error {
 		// Load the configuration file.
-		config := c.App.Metadata["config"].(*server.Config)
+		config := c.App.Metadata["config"].(*manager.Config)
 		if err := mergeConfig(config, c); err != nil {
 			return err
 		}
@@ -195,7 +196,7 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		config := c.App.Metadata["config"].(*server.Config)
+		config := c.App.Metadata["config"].(*manager.Config)
 
 		if !config.SELinux {
 			selinux.SetDisabled()

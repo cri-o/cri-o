@@ -8,7 +8,7 @@ import (
 // Version returns the runtime name, runtime version and runtime API version
 func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.VersionResponse, error) {
 
-	runtimeVersion, err := s.runtime.Version()
+	versionResp, err := s.manager.Version()
 	if err != nil {
 		return nil, err
 	}
@@ -18,12 +18,11 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 
 	// taking const address
 	rav := runtimeAPIVersion
-	runtimeName := s.runtime.Name()
 
 	return &pb.VersionResponse{
 		Version:           &version,
-		RuntimeName:       &runtimeName,
-		RuntimeVersion:    &runtimeVersion,
+		RuntimeName:       &versionResp.RuntimeName,
+		RuntimeVersion:    &versionResp.RuntimeVersion,
 		RuntimeApiVersion: &rav,
 	}, nil
 }
