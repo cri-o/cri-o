@@ -273,7 +273,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			if netnsErr := sb.netNsRemove(); netnsErr != nil {
 				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
 			}
-		} ()
+		}()
 
 		// Pass the created namespace path to the runtime
 		err = g.AddOrReplaceLinuxNamespace("network", sb.netNsPath())

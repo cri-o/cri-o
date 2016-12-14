@@ -25,11 +25,11 @@ func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 	resp := &pb.StatusResponse{
 		Status: &pb.RuntimeStatus{
 			Conditions: []*pb.RuntimeCondition{
-				&pb.RuntimeCondition{
+				{
 					Type:   &runtimeReadyConditionString,
 					Status: &runtimeReady,
 				},
-				&pb.RuntimeCondition{
+				{
 					Type:   &networkReadyConditionString,
 					Status: &networkReady,
 				},
