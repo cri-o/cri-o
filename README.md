@@ -95,7 +95,7 @@ If the default `--runtime` value does not point to your runtime:
 
 #### Create a pod
 ```
-$ ocic pod create --config test/testdata/sandbox_config.json
+$ ocic pod run --config test/testdata/sandbox_config.json
 ```
 
 #### Get pod status

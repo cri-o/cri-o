@@ -24,12 +24,12 @@ var podSandboxCommand = cli.Command{
 }
 
 var runPodSandboxCommand = cli.Command{
-	Name:  "create",
-	Usage: "create a pod",
+	Name:  "run",
+	Usage: "run a pod",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "config",
-			Value: "config.json",
+			Value: "",
 			Usage: "the path of a pod sandbox config file",
 		},
 		cli.StringFlag{

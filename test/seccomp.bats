@@ -27,7 +27,7 @@ function teardown() {
 	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp1-1-testname-0": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run ocic pod create --name seccomp1 --config "$TESTDIR"/seccomp1.json
+	run ocic pod run --name seccomp1 --config "$TESTDIR"/seccomp1.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -68,7 +68,7 @@ function teardown() {
 	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp2-1-testname2-0": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
-	run ocic pod create --name seccomp2 --config "$TESTDIR"/seccomp2.json
+	run ocic pod run --name seccomp2 --config "$TESTDIR"/seccomp2.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -109,7 +109,7 @@ function teardown() {
 	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp3-1-testname3-1": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
-	run ocic pod create --name seccomp3 --config "$TESTDIR"/seccomp3.json
+	run ocic pod run --name seccomp3 --config "$TESTDIR"/seccomp3.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -170,7 +170,7 @@ function teardown() {
 	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp2-1-testname2-0-not-exists": "unconfined", "security\.alpha\.kubernetes\.io\/seccomp\/pod": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp5.json
-	run ocic pod create --name seccomp5 --config "$TESTDIR"/seccomp5.json
+	run ocic pod run --name seccomp5 --config "$TESTDIR"/seccomp5.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -214,7 +214,7 @@ function teardown() {
 	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp6-1-testname6-0-not-exists": "runtime-default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp6.json
-	run ocic pod create --name seccomp6 --config "$TESTDIR"/seccomp6.json
+	run ocic pod run --name seccomp6 --config "$TESTDIR"/seccomp6.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -255,7 +255,7 @@ function teardown() {
 	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run ocic pod create --name seccomp1 --config "$TESTDIR"/seccomp1.json
+	run ocic pod run --name seccomp1 --config "$TESTDIR"/seccomp1.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -296,7 +296,7 @@ function teardown() {
 	start_ocid "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
-	run ocic pod create --name seccomp2 --config "$TESTDIR"/seccomp2.json
+	run ocic pod run --name seccomp2 --config "$TESTDIR"/seccomp2.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -338,7 +338,7 @@ function teardown() {
 
 	# 3. test running with pod wrong profile name
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
-	run ocic pod create --name seccomp3 --config "$TESTDIR"/seccomp3.json
+	run ocic pod run --name seccomp3 --config "$TESTDIR"/seccomp3.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"

@@ -13,7 +13,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -45,7 +45,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -117,7 +117,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -149,7 +149,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json --name pod1
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json --name pod1
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod1_id="$output"
@@ -160,7 +160,7 @@ function teardown() {
 	run ocic ctr start --id "$ctr1_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json --name pod2
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json --name pod2
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod2_id="$output"
@@ -168,7 +168,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr2_id="$output"
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json --name pod3
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json --name pod3
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod3_id="$output"
@@ -252,7 +252,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -305,7 +305,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -340,7 +340,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -373,7 +373,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -401,7 +401,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
