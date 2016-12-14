@@ -15,7 +15,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
-	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer/label"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/rajatchopra/ocicni"
@@ -297,14 +296,6 @@ func seccompEnabled() bool {
 
 // New creates a new Server with options provided
 func New(config *Config) (*Server, error) {
-	// TODO: This will go away later when we have wrapper process or systemd acting as
-	// subreaper.
-	if err := utils.SetSubreaper(1); err != nil {
-		return nil, fmt.Errorf("failed to set server as subreaper: %v", err)
-	}
-
-	utils.StartReaper()
-
 	if err := os.MkdirAll(config.ImageDir, 0755); err != nil {
 		return nil, err
 	}

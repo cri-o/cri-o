@@ -17,8 +17,8 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/containernetworking/cni/pkg/ns"
+	"github.com/kubernetes-incubator/cri-o/utils"
 	"golang.org/x/sys/unix"
 	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -275,6 +275,7 @@ func (r *Runtime) StopContainer(c *Container) error {
 			if err != nil && err != syscall.ESRCH {
 				return fmt.Errorf("failed to kill process: %v", err)
 			}
+			break
 		}
 		// Check if the process is still around
 		err := unix.Kill(c.state.Pid, 0)
