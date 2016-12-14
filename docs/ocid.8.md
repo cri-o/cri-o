@@ -72,7 +72,7 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
   OCID root dir (default: "/var/lib/ocid")
 
 **--runtime**=""
-  OCI runtime path (default: "/usr/bin/runc")
+  OCI runtime path (default: "/usr/sbin/runc")
 
 **--sandboxdir**=""
   OCID pod sandbox dir (default: "/var/lib/ocid/sandboxes")
