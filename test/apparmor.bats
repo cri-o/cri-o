@@ -24,7 +24,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname1": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor1.json
 
-    run ocic pod create --name apparmor1 --config "$TESTDIR"/apparmor1.json
+    run ocic pod run --name apparmor1 --config "$TESTDIR"/apparmor1.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -62,7 +62,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname2": "apparmor-test-deny-write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor2.json
 
-    run ocic pod create --name apparmor2 --config "$TESTDIR"/apparmor2.json
+    run ocic pod run --name apparmor2 --config "$TESTDIR"/apparmor2.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -101,7 +101,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname3": "apparmor-test-deny-write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor3.json
 
-    run ocic pod create --name apparmor3 --config "$TESTDIR"/apparmor3.json
+    run ocic pod run --name apparmor3 --config "$TESTDIR"/apparmor3.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -139,7 +139,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname4": "not-exists"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor4.json
 
-    run ocic pod create --name apparmor4 --config "$TESTDIR"/apparmor4.json
+    run ocic pod run --name apparmor4 --config "$TESTDIR"/apparmor4.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -173,7 +173,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname5": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor5.json
 
-    run ocic pod create --name apparmor5 --config "$TESTDIR"/apparmor5.json
+    run ocic pod run --name apparmor5 --config "$TESTDIR"/apparmor5.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"

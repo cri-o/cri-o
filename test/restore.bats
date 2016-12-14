@@ -13,7 +13,7 @@ function teardown() {
 	fi
 
 	start_ocid
-	run ocic pod create --config "$TESTDATA"/sandbox_config.json
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
