@@ -30,6 +30,7 @@ help:
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
+	@echo " * 'gofmt' - Verify the source code gofmt"
 
 lint: ${OCID_LINK}
 	@which gometalinter > /dev/null 2>/dev/null || (echo "ERROR: gometalinter not found. Consider 'make install.tools' target" && false)
@@ -39,6 +40,9 @@ lint: ${OCID_LINK}
 ${OCID_LINK}:
 	mkdir -p ${OCID_LINK_DIR}
 	ln -sfn ${CURDIR} ${OCID_LINK}
+
+gofmt:
+	@./hack/verify-gofmt.sh
 
 conmon:
 	make -C $@
@@ -164,6 +168,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	conmon \
 	default \
 	docs \
+	gofmt \
 	help \
 	install \
 	lint \
