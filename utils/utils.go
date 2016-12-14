@@ -6,16 +6,12 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
 )
-
-// PRSetChildSubreaper is the value of PR_SET_CHILD_SUBREAPER in prctl(2)
-const PRSetChildSubreaper = 36
 
 // ExecCmd executes a command with args and returns its output as a string along
 // with an error, if any
@@ -47,11 +43,6 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, name strin
 	}
 
 	return nil
-}
-
-// SetSubreaper sets the value i as the subreaper setting for the calling process
-func SetSubreaper(i int) error {
-	return Prctl(PRSetChildSubreaper, uintptr(i), 0, 0, 0)
 }
 
 // Prctl is a way to make the prctl linux syscall
@@ -133,40 +124,6 @@ func dockerExport(image string, rootfs string) error {
 func dockerRemove(container string) error {
 	_, err := ExecCmd("docker", "rm", container)
 	return err
-}
-
-// StartReaper starts a goroutine to reap processes
-func StartReaper() {
-	logrus.Infof("Starting reaper")
-	go func() {
-		sigs := make(chan os.Signal, 10)
-		signal.Notify(sigs, syscall.SIGCHLD)
-		for {
-			// Wait for a child to terminate
-			sig := <-sigs
-			for {
-				// Reap processes
-				var status syscall.WaitStatus
-				cpid, err := syscall.Wait4(-1, &status, syscall.WNOHANG, nil)
-				if err != nil {
-					if err != syscall.ECHILD {
-						logrus.Debugf("wait4 after %v: %v", sig, err)
-					}
-					break
-				}
-				if cpid < 1 {
-					break
-				}
-				if status.Exited() {
-					logrus.Debugf("Reaped process with pid %d, exited with status %d", cpid, status.ExitStatus())
-				} else if status.Signaled() {
-					logrus.Debugf("Reaped process with pid %d, exited on %s", cpid, status.Signal())
-				} else {
-					logrus.Debugf("Reaped process with pid %d", cpid)
-				}
-			}
-		}
-	}()
 }
 
 // StatusToExitCode converts wait status code to an exit code
