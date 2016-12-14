@@ -1,270 +1,83 @@
 package server
 
 import (
-	"crypto/rand"
-	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-	"sync"
+	"golang.org/x/net/context"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/pkg/stringid"
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/containernetworking/cni/pkg/ns"
-	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
-type sandboxNetNs struct {
-	sync.Mutex
-	ns      ns.NetNS
-	symlink *os.File
-	closed  bool
-}
+// ListPodSandbox returns a list of SandBoxes.
+func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
+	logrus.Debugf("ListPodSandboxRequest %+v", req)
 
-func (ns *sandboxNetNs) symlinkCreate(name string) error {
-	b := make([]byte, 4)
-	_, randErr := rand.Reader.Read(b)
-	if randErr != nil {
-		return randErr
-	}
-
-	nsName := fmt.Sprintf("%s-%x", name, b)
-	symlinkPath := filepath.Join(nsRunDir, nsName)
-
-	if err := os.Symlink(ns.ns.Path(), symlinkPath); err != nil {
-		return err
-	}
-
-	fd, err := os.Open(symlinkPath)
-	if err != nil {
-		if removeErr := os.RemoveAll(symlinkPath); removeErr != nil {
-			return removeErr
-		}
-
-		return err
-	}
-
-	ns.symlink = fd
-
-	return nil
-}
-
-func (ns *sandboxNetNs) symlinkRemove() error {
-	if err := ns.symlink.Close(); err != nil {
-		return err
-	}
-
-	return os.RemoveAll(ns.symlink.Name())
-}
-
-func isSymbolicLink(path string) (bool, error) {
-	fi, err := os.Lstat(path)
-	if err != nil {
-		return false, err
-	}
-
-	return fi.Mode()&os.ModeSymlink == os.ModeSymlink, nil
-}
-
-func netNsGet(nspath, name string) (*sandboxNetNs, error) {
-	if err := ns.IsNSorErr(nspath); err != nil {
-		return nil, errSandboxClosedNetNS
-	}
-
-	symlink, symlinkErr := isSymbolicLink(nspath)
-	if symlinkErr != nil {
-		return nil, symlinkErr
-	}
-
-	var resolvedNsPath string
-	if symlink {
-		path, err := os.Readlink(nspath)
-		if err != nil {
-			return nil, err
-		}
-		resolvedNsPath = path
-	} else {
-		resolvedNsPath = nspath
-	}
-
-	netNS, err := ns.GetNS(resolvedNsPath)
+	pods, err := s.manager.ListPodSandbox(req.GetFilter())
 	if err != nil {
 		return nil, err
 	}
 
-	netNs := &sandboxNetNs{ns: netNS, closed: false,}
-
-	if symlink {
-		fd, err := os.Open(nspath)
-		if err != nil {
-			return nil, err
-		}
-
-		netNs.symlink = fd
-	} else {
-		if err := netNs.symlinkCreate(name); err != nil {
-			return nil, err
-		}
+	resp := &pb.ListPodSandboxResponse{
+		Items: pods,
 	}
-
-	return netNs, nil
+	logrus.Debugf("ListPodSandboxResponse %+v", resp)
+	return resp, nil
 }
 
-func hostNetNsPath() (string, error) {
-	netNS, err := ns.GetCurrentNS()
+// RemovePodSandbox deletes the sandbox. If there are any running containers in the
+// sandbox, they should be force deleted.
+func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
+	logrus.Debugf("RemovePodSandboxRequest %+v", req)
+
+	if err := s.manager.RemovePodSandbox(req.GetPodSandboxId()); err != nil {
+		return nil, err
+	}
+
+	resp := &pb.RemovePodSandboxResponse{}
+	logrus.Debugf("RemovePodSandboxResponse %+v", resp)
+	return resp, nil
+}
+
+// RunPodSandbox creates and runs a pod-level sandbox.
+func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
+	logrus.Debugf("RunPodSandboxRequest %+v", req)
+
+	id, err := s.manager.RunPodSandbox(req.GetConfig())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	defer netNS.Close()
-
-	return netNS.Path(), nil
+	resp = &pb.RunPodSandboxResponse{PodSandboxId: &id}
+	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
+	return resp, nil
 }
 
-type sandbox struct {
-	id             string
-	name           string
-	logDir         string
-	labels         fields.Set
-	annotations    map[string]string
-	infraContainer *oci.Container
-	containers     oci.Store
-	processLabel   string
-	mountLabel     string
-	netns          *sandboxNetNs
-	metadata       *pb.PodSandboxMetadata
-	shmPath        string
-}
+// PodSandboxStatus returns the Status of the PodSandbox.
+func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
+	logrus.Debugf("PodSandboxStatusRequest %+v", req)
 
-const (
-	podDefaultNamespace = "default"
-	defaultShmSize      = 64 * 1024 * 1024
-	nsRunDir            = "/var/run/netns"
-)
-
-var (
-	errSandboxIDEmpty     = errors.New("PodSandboxId should not be empty")
-	errSandboxClosedNetNS = errors.New("PodSandbox networking namespace is closed")
-)
-
-func (s *sandbox) addContainer(c *oci.Container) {
-	s.containers.Add(c.Name(), c)
-}
-
-func (s *sandbox) getContainer(name string) *oci.Container {
-	return s.containers.Get(name)
-}
-
-func (s *sandbox) removeContainer(c *oci.Container) {
-	s.containers.Delete(c.Name())
-}
-
-func (s *sandbox) netNs() ns.NetNS {
-	if s.netns == nil {
-		return nil
-	}
-
-	return s.netns.ns
-}
-
-func (s *sandbox) netNsPath() string {
-	if s.netns == nil {
-		return ""
-	}
-
-	return s.netns.symlink.Name()
-}
-
-func (s *sandbox) netNsCreate() error {
-	if s.netns != nil {
-		return fmt.Errorf("net NS already created")
-	}
-
-	netNS, err := ns.NewNS()
+	status, err := s.manager.PodSandboxStatus(req.GetPodSandboxId())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	s.netns = &sandboxNetNs{
-		ns: netNS,
-		closed: false,
+	resp := &pb.PodSandboxStatusResponse{
+		Status: status,
 	}
 
-	if err := s.netns.symlinkCreate(s.name); err != nil {
-		logrus.Warnf("Could not create nentns symlink %v", err)
-
-		if err := s.netns.ns.Close(); err != nil {
-			return err
-		}
-
-		return err
-	}
-
-	return nil
+	logrus.Infof("PodSandboxStatusResponse: %+v", resp)
+	return resp, nil
 }
 
-func (s *sandbox) netNsRemove() error {
-	if s.netns == nil {
-		logrus.Warn("no networking namespace")
-		return nil
+// StopPodSandbox stops the sandbox. If there are any running containers in the
+// sandbox, they should be force terminated.
+func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
+	logrus.Debugf("StopPodSandboxRequest %+v", req)
+
+	if err := s.manager.StopPodSandbox(req.GetPodSandboxId()); err != nil {
+		return nil, err
 	}
 
-	s.netns.Lock()
-	defer s.netns.Unlock()
-
-	if s.netns.closed {
-		// netNsRemove() can be called multiple
-		// times without returning an error.
-		return nil
-	}
-
-	if err := s.netns.symlinkRemove(); err != nil {
-		return err
-	}
-
-	if err := s.netns.ns.Close(); err != nil {
-		return err
-	}
-
-	s.netns.closed = true
-	return nil
-}
-
-func (s *Server) generatePodIDandName(name string, namespace string, attempt uint32) (string, string, error) {
-	var (
-		err error
-		id  = stringid.GenerateNonCryptoID()
-	)
-	if namespace == "" {
-		namespace = podDefaultNamespace
-	}
-
-	if name, err = s.reservePodName(id, fmt.Sprintf("%s-%s-%v", namespace, name, attempt)); err != nil {
-		return "", "", err
-	}
-	return id, name, err
-}
-
-type podSandboxRequest interface {
-	GetPodSandboxId() string
-}
-
-func (s *Server) getPodSandboxFromRequest(req podSandboxRequest) (*sandbox, error) {
-	sbID := req.GetPodSandboxId()
-	if sbID == "" {
-		return nil, errSandboxIDEmpty
-	}
-
-	sandboxID, err := s.podIDIndex.Get(sbID)
-	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
-	}
-
-	sb := s.getSandbox(sandboxID)
-	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
-	}
-	return sb, nil
+	resp := &pb.StopPodSandboxResponse{}
+	logrus.Debugf("StopPodSandboxResponse: %+v", resp)
+	return resp, nil
 }

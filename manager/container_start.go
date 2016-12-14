@@ -1,26 +1,17 @@
-package server
+package manager
 
-import (
-	"fmt"
-
-	"github.com/Sirupsen/logrus"
-	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-)
+import "fmt"
 
 // StartContainer starts the container.
-func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
-	logrus.Debugf("StartContainerRequest %+v", req)
-	c, err := s.getContainerFromRequest(req)
+func (m *Manager) StartContainer(cID string) error {
+	c, err := m.getContainerWithPartialID(cID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := s.runtime.StartContainer(c); err != nil {
-		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
+	if err := m.runtime.StartContainer(c); err != nil {
+		return fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 
-	resp := &pb.StartContainerResponse{}
-	logrus.Debugf("StartContainerResponse %+v", resp)
-	return resp, nil
+	return nil
 }

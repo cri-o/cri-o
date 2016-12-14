@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/kubernetes-incubator/cri-o/server"
+	"github.com/kubernetes-incubator/cri-o/manager"
 	"github.com/opencontainers/runc/libcontainer/selinux"
 	"github.com/urfave/cli"
 )
@@ -82,18 +82,18 @@ pause = "{{ .Pause }}"
 //       template. Add it once the storage code has been merged.
 
 // DefaultConfig returns the default configuration for ocid.
-func DefaultConfig() *server.Config {
-	return &server.Config{
-		RootConfig: server.RootConfig{
+func DefaultConfig() *manager.Config {
+	return &manager.Config{
+		RootConfig: manager.RootConfig{
 			Root:         ocidRoot,
 			SandboxDir:   filepath.Join(ocidRoot, "sandboxes"),
 			ContainerDir: filepath.Join(ocidRoot, "containers"),
 			LogDir:       "/var/log/ocid/pods",
 		},
-		APIConfig: server.APIConfig{
+		APIConfig: manager.APIConfig{
 			Listen: "/var/run/ocid.sock",
 		},
-		RuntimeConfig: server.RuntimeConfig{
+		RuntimeConfig: manager.RuntimeConfig{
 			Runtime: "/usr/bin/runc",
 			Conmon:  conmonPath,
 			ConmonEnv: []string{
@@ -103,7 +103,7 @@ func DefaultConfig() *server.Config {
 			SeccompProfile:  seccompProfilePath,
 			ApparmorProfile: apparmorProfileName,
 		},
-		ImageConfig: server.ImageConfig{
+		ImageConfig: manager.ImageConfig{
 			Pause:    pausePath,
 			ImageDir: filepath.Join(ocidRoot, "store"),
 		},
@@ -122,7 +122,7 @@ var configCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		// At this point, app.Before has already parsed the user's chosen
 		// config file. So no need to handle that here.
-		config := c.App.Metadata["config"].(*server.Config)
+		config := c.App.Metadata["config"].(*manager.Config)
 		if c.Bool("default") {
 			config = DefaultConfig()
 		}

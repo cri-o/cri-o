@@ -7,34 +7,13 @@ import (
 
 // Status returns the status of the runtime
 func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
-
-	// Deal with Runtime conditions
-	runtimeReady, err := s.runtime.RuntimeReady()
+	status, err := s.manager.Status()
 	if err != nil {
 		return nil, err
 	}
-	networkReady, err := s.runtime.NetworkReady()
-	if err != nil {
-		return nil, err
-	}
-
-	// Use vendored strings
-	runtimeReadyConditionString := pb.RuntimeReady
-	networkReadyConditionString := pb.NetworkReady
 
 	resp := &pb.StatusResponse{
-		Status: &pb.RuntimeStatus{
-			Conditions: []*pb.RuntimeCondition{
-				&pb.RuntimeCondition{
-					Type:   &runtimeReadyConditionString,
-					Status: &runtimeReady,
-				},
-				&pb.RuntimeCondition{
-					Type:   &networkReadyConditionString,
-					Status: &networkReady,
-				},
-			},
-		},
+		Status: status,
 	}
 
 	return resp, nil

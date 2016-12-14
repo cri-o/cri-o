@@ -1,4 +1,4 @@
-package server
+package manager
 
 import (
 	"crypto/rand"
@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/containernetworking/cni/pkg/ns"
 	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
@@ -94,7 +94,7 @@ func netNsGet(nspath, name string) (*sandboxNetNs, error) {
 		return nil, err
 	}
 
-	netNs := &sandboxNetNs{ns: netNS, closed: false,}
+	netNs := &sandboxNetNs{ns: netNS, closed: false}
 
 	if symlink {
 		fd, err := os.Open(nspath)
@@ -188,7 +188,7 @@ func (s *sandbox) netNsCreate() error {
 	}
 
 	s.netns = &sandboxNetNs{
-		ns: netNS,
+		ns:     netNS,
 		closed: false,
 	}
 
@@ -232,7 +232,7 @@ func (s *sandbox) netNsRemove() error {
 	return nil
 }
 
-func (s *Server) generatePodIDandName(name string, namespace string, attempt uint32) (string, string, error) {
+func (m *Manager) generatePodIDandName(name string, namespace string, attempt uint32) (string, string, error) {
 	var (
 		err error
 		id  = stringid.GenerateNonCryptoID()
@@ -241,28 +241,23 @@ func (s *Server) generatePodIDandName(name string, namespace string, attempt uin
 		namespace = podDefaultNamespace
 	}
 
-	if name, err = s.reservePodName(id, fmt.Sprintf("%s-%s-%v", namespace, name, attempt)); err != nil {
+	if name, err = m.reservePodName(id, fmt.Sprintf("%s-%s-%v", namespace, name, attempt)); err != nil {
 		return "", "", err
 	}
 	return id, name, err
 }
 
-type podSandboxRequest interface {
-	GetPodSandboxId() string
-}
-
-func (s *Server) getPodSandboxFromRequest(req podSandboxRequest) (*sandbox, error) {
-	sbID := req.GetPodSandboxId()
+func (m *Manager) getPodSandboxWithPartialID(sbID string) (*sandbox, error) {
 	if sbID == "" {
 		return nil, errSandboxIDEmpty
 	}
 
-	sandboxID, err := s.podIDIndex.Get(sbID)
+	sandboxID, err := m.podIDIndex.Get(sbID)
 	if err != nil {
 		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
 	}
 
-	sb := s.getSandbox(sandboxID)
+	sb := m.getSandbox(sandboxID)
 	if sb == nil {
 		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
 	}

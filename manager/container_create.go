@@ -1,4 +1,4 @@
-package server
+package manager
 
 import (
 	"encoding/json"
@@ -11,13 +11,12 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/kubernetes-incubator/cri-o/manager/apparmor"
+	"github.com/kubernetes-incubator/cri-o/manager/seccomp"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/server/apparmor"
-	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runtime-tools/generate"
-	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
@@ -28,45 +27,42 @@ const (
 )
 
 // CreateContainer creates a new container in specified PodSandbox
-func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
-	logrus.Debugf("CreateContainerRequest %+v", req)
-	sbID := req.GetPodSandboxId()
+func (m *Manager) CreateContainer(sbID string, containerConfig *pb.ContainerConfig, sandboxConfig *pb.PodSandboxConfig) (string, error) {
 	if sbID == "" {
-		return nil, fmt.Errorf("PodSandboxId should not be empty")
+		return "", fmt.Errorf("PodSandboxId should not be empty")
 	}
 
-	sandboxID, err := s.podIDIndex.Get(sbID)
+	sandboxID, err := m.podIDIndex.Get(sbID)
 	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+		return "", fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
 	}
 
-	sb := s.getSandbox(sandboxID)
+	sb := m.getSandbox(sandboxID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
+		return "", fmt.Errorf("specified sandbox not found: %s", sandboxID)
 	}
 
 	// The config of the container
-	containerConfig := req.GetConfig()
 	if containerConfig == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig is nil")
+		return "", fmt.Errorf("CreateContainerRequest.ContainerConfig is nil")
 	}
 
 	name := containerConfig.GetMetadata().GetName()
 	if name == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
+		return "", fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
 
 	attempt := containerConfig.GetMetadata().GetAttempt()
-	containerID, containerName, err := s.generateContainerIDandName(sb.name, name, attempt)
+	containerID, containerName, err := m.generateContainerIDandName(sb.name, name, attempt)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// containerDir is the dir for the container bundle.
-	containerDir := filepath.Join(s.runtime.ContainerDir(), containerID)
+	containerDir := filepath.Join(m.runtime.ContainerDir(), containerID)
 	defer func() {
 		if err != nil {
-			s.releaseContainerName(containerName)
+			m.releaseContainerName(containerName)
 			err1 := os.RemoveAll(containerDir)
 			if err1 != nil {
 				logrus.Warnf("Failed to cleanup container directory: %v", err1)
@@ -75,42 +71,37 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}()
 
 	if _, err = os.Stat(containerDir); err == nil {
-		return nil, fmt.Errorf("container (%s) already exists", containerDir)
+		return "", fmt.Errorf("container (%s) already exists", containerDir)
 	}
 
 	if err = os.MkdirAll(containerDir, 0755); err != nil {
-		return nil, err
+		return "", err
 	}
 
-	container, err := s.createSandboxContainer(containerID, containerName, sb, containerDir, containerConfig)
+	container, err := m.createSandboxContainer(containerID, containerName, sb, containerDir, containerConfig)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	if err = s.runtime.CreateContainer(container); err != nil {
-		return nil, err
+	if err = m.runtime.CreateContainer(container); err != nil {
+		return "", err
 	}
 
-	if err = s.runtime.UpdateStatus(container); err != nil {
-		return nil, err
+	if err = m.runtime.UpdateStatus(container); err != nil {
+		return "", err
 	}
 
-	s.addContainer(container)
+	m.addContainer(container)
 
-	if err = s.ctrIDIndex.Add(containerID); err != nil {
-		s.removeContainer(container)
-		return nil, err
+	if err = m.ctrIDIndex.Add(containerID); err != nil {
+		m.removeContainer(container)
+		return "", err
 	}
 
-	resp := &pb.CreateContainerResponse{
-		ContainerId: &containerID,
-	}
-
-	logrus.Debugf("CreateContainerResponse: %+v", resp)
-	return resp, nil
+	return containerID, nil
 }
 
-func (s *Server) createSandboxContainer(containerID string, containerName string, sb *sandbox, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (m *Manager) createSandboxContainer(containerID string, containerName string, sb *sandbox, containerDir string, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
@@ -121,11 +112,21 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	// here set it to be "rootfs".
 	specgen.SetRootPath("rootfs")
 
+	processArgs := []string{}
+	commands := containerConfig.GetCommand()
 	args := containerConfig.GetArgs()
-	if args == nil {
-		args = []string{"/bin/sh"}
+	if commands == nil && args == nil {
+		// TODO: override with image's config in #189
+		processArgs = []string{"/bin/sh"}
 	}
-	specgen.SetProcessArgs(args)
+	if commands != nil {
+		processArgs = append(processArgs, commands...)
+	}
+	if args != nil {
+		processArgs = append(processArgs, args...)
+	}
+
+	specgen.SetProcessArgs(processArgs)
 
 	cwd := containerConfig.GetWorkingDir()
 	if cwd == "" {
@@ -185,11 +186,11 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	}
 
 	// set this container's apparmor profile if it is set by sandbox
-	if s.appArmorEnabled {
-		appArmorProfileName := s.getAppArmorProfileName(sb.annotations, metadata.GetName())
+	if m.appArmorEnabled {
+		appArmorProfileName := m.getAppArmorProfileName(sb.annotations, metadata.GetName())
 		if appArmorProfileName != "" {
 			// reload default apparmor profile if it is unloaded.
-			if s.appArmorProfile == apparmor.DefaultApparmorProfile {
+			if m.appArmorProfile == apparmor.DefaultApparmorProfile {
 				if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
 					return nil, err
 				}
@@ -276,7 +277,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		}
 	}
 	// Join the namespace paths for the pod sandbox container.
-	podInfraState := s.runtime.ContainerStatus(sb.infraContainer)
+	podInfraState := m.runtime.ContainerStatus(sb.infraContainer)
 
 	logrus.Debugf("pod container state %+v", podInfraState)
 
@@ -335,7 +336,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	}
 	specgen.AddAnnotation("ocid/annotations", string(annotationsJSON))
 
-	if err = s.setupSeccomp(&specgen, containerName, sb.annotations); err != nil {
+	if err = m.setupSeccomp(&specgen, containerName, sb.annotations); err != nil {
 		return nil, err
 	}
 
@@ -357,7 +358,7 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 	return container, nil
 }
 
-func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnotations map[string]string) error {
+func (m *Manager) setupSeccomp(specgen *generate.Generator, cname string, sbAnnotations map[string]string) error {
 	profile, ok := sbAnnotations["security.alpha.kubernetes.io/seccomp/container/"+cname]
 	if !ok {
 		profile, ok = sbAnnotations["security.alpha.kubernetes.io/seccomp/pod"]
@@ -366,7 +367,7 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnot
 			profile = seccompUnconfined
 		}
 	}
-	if !s.seccompEnabled {
+	if !m.seccompEnabled {
 		if profile != seccompUnconfined {
 			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
 		}
@@ -378,7 +379,7 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnot
 		return nil
 	}
 	if profile == seccompRuntimeDefault {
-		return seccomp.LoadProfileFromStruct(s.seccompProfile, specgen)
+		return seccomp.LoadProfileFromStruct(m.seccompProfile, specgen)
 	}
 	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
 		return fmt.Errorf("unknown seccomp profile option: %q", profile)
@@ -392,7 +393,7 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnot
 	return nil
 }
 
-func (s *Server) generateContainerIDandName(podName string, name string, attempt uint32) (string, string, error) {
+func (m *Manager) generateContainerIDandName(podName string, name string, attempt uint32) (string, string, error) {
 	var (
 		err error
 		id  = stringid.GenerateNonCryptoID()
@@ -401,14 +402,14 @@ func (s *Server) generateContainerIDandName(podName string, name string, attempt
 	if name == "infra" {
 		nameStr = fmt.Sprintf("%s-%s", podName, name)
 	}
-	if name, err = s.reserveContainerName(id, nameStr); err != nil {
+	if name, err = m.reserveContainerName(id, nameStr); err != nil {
 		return "", "", err
 	}
 	return id, name, err
 }
 
 // getAppArmorProfileName gets the profile name for the given container.
-func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName string) string {
+func (m *Manager) getAppArmorProfileName(annotations map[string]string, ctrName string) string {
 	profile := apparmor.GetProfileNameFromPodAnnotations(annotations, ctrName)
 
 	if profile == "" {
@@ -417,7 +418,7 @@ func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName s
 
 	if profile == apparmor.ProfileRuntimeDefault {
 		// If the value is runtime/default, then return default profile.
-		return s.appArmorProfile
+		return m.appArmorProfile
 	}
 
 	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)

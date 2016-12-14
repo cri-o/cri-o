@@ -1,4 +1,4 @@
-package server
+package manager
 
 import (
 	"errors"
@@ -6,20 +6,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/directory"
 	"github.com/containers/image/image"
 	"github.com/containers/image/transports"
-	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 // PullImage pulls a image with authentication config.
-func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.PullImageResponse, error) {
-	logrus.Debugf("PullImage: %+v", req)
-	img := req.GetImage().GetImage()
+func (m *Manager) PullImage(imageSpec *pb.ImageSpec, auth *pb.AuthConfig, sandboxConfig *pb.PodSandboxConfig) error {
+	img := imageSpec.GetImage()
 	if img == "" {
-		return nil, errors.New("got empty imagespec name")
+		return errors.New("got empty imagespec name")
 	}
 
 	// TODO(runcom): deal with AuthConfig in req.GetAuth()
@@ -28,30 +25,30 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	// how do we pull in a specified sandbox?
 	tr, err := transports.ParseImageName(img)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// TODO(runcom): figure out the ImageContext story in containers/image instead of passing ("", true)
 	src, err := tr.NewImageSource(nil, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	i := image.FromSource(src)
 	blobs, err := i.BlobDigests()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err = os.Mkdir(filepath.Join(s.config.ImageDir, tr.StringWithinTransport()), 0755); err != nil {
-		return nil, err
+	if err = os.Mkdir(filepath.Join(m.config.ImageDir, tr.StringWithinTransport()), 0755); err != nil {
+		return err
 	}
-	dir, err := directory.NewReference(filepath.Join(s.config.ImageDir, tr.StringWithinTransport()))
+	dir, err := directory.NewReference(filepath.Join(m.config.ImageDir, tr.StringWithinTransport()))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// TODO(runcom): figure out the ImageContext story in containers/image instead of passing ("", true)
 	dest, err := dir.NewImageDestination(nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// save blobs (layer + config for docker v2s2, layers only for docker v2s1 [the config is in the manifest])
 	for _, b := range blobs {
@@ -59,24 +56,24 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		var r io.ReadCloser
 		r, _, err = src.GetBlob(b)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if _, _, err = dest.PutBlob(r, b, -1); err != nil {
 			r.Close()
-			return nil, err
+			return err
 		}
 		r.Close()
 	}
 	// save manifest
-	m, _, err := i.Manifest()
+	mf, _, err := i.Manifest()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if err := dest.PutManifest(m); err != nil {
-		return nil, err
+	if err := dest.PutManifest(mf); err != nil {
+		return err
 	}
 
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
 
-	return &pb.PullImageResponse{}, nil
+	return nil
 }

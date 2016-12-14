@@ -1,19 +1,16 @@
-package server
+package manager
 
-import (
-	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-)
+import pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 
 // Status returns the status of the runtime
-func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
+func (m *Manager) Status() (*pb.RuntimeStatus, error) {
 
 	// Deal with Runtime conditions
-	runtimeReady, err := s.runtime.RuntimeReady()
+	runtimeReady, err := m.runtime.RuntimeReady()
 	if err != nil {
 		return nil, err
 	}
-	networkReady, err := s.runtime.NetworkReady()
+	networkReady, err := m.runtime.NetworkReady()
 	if err != nil {
 		return nil, err
 	}
@@ -22,20 +19,18 @@ func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 	runtimeReadyConditionString := pb.RuntimeReady
 	networkReadyConditionString := pb.NetworkReady
 
-	resp := &pb.StatusResponse{
-		Status: &pb.RuntimeStatus{
-			Conditions: []*pb.RuntimeCondition{
-				&pb.RuntimeCondition{
-					Type:   &runtimeReadyConditionString,
-					Status: &runtimeReady,
-				},
-				&pb.RuntimeCondition{
-					Type:   &networkReadyConditionString,
-					Status: &networkReady,
-				},
+	status := &pb.RuntimeStatus{
+		Conditions: []*pb.RuntimeCondition{
+			&pb.RuntimeCondition{
+				Type:   &runtimeReadyConditionString,
+				Status: &runtimeReady,
+			},
+			&pb.RuntimeCondition{
+				Type:   &networkReadyConditionString,
+				Status: &networkReady,
 			},
 		},
 	}
 
-	return resp, nil
+	return status, nil
 }

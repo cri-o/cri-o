@@ -1,29 +1,23 @@
-package server
+package manager
 
-import (
-	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-)
+// Version returns the runtime name and runtime version
+func (m *Manager) Version() (*VersionResponse, error) {
 
-// Version returns the runtime name, runtime version and runtime API version
-func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.VersionResponse, error) {
-
-	runtimeVersion, err := s.runtime.Version()
+	runtimeVersion, err := m.runtime.Version()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Track upstream code. For now it expects 0.1.0
-	version := "0.1.0"
+	runtimeName := m.runtime.Name()
 
-	// taking const address
-	rav := runtimeAPIVersion
-	runtimeName := s.runtime.Name()
-
-	return &pb.VersionResponse{
-		Version:           &version,
-		RuntimeName:       &runtimeName,
-		RuntimeVersion:    &runtimeVersion,
-		RuntimeApiVersion: &rav,
+	return &VersionResponse{
+		RuntimeName:    runtimeName,
+		RuntimeVersion: runtimeVersion,
 	}, nil
+}
+
+// VersionResponse is returned from Version.
+type VersionResponse struct {
+	RuntimeVersion string
+	RuntimeName    string
 }

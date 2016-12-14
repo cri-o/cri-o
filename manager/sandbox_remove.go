@@ -1,4 +1,4 @@
-package server
+package manager
 
 import (
 	"fmt"
@@ -9,23 +9,19 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/opencontainers/runc/libcontainer/label"
-	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
-func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
-	logrus.Debugf("RemovePodSandboxRequest %+v", req)
-	sb, err := s.getPodSandboxFromRequest(req)
+func (m *Manager) RemovePodSandbox(sbID string) error {
+	sb, err := m.getPodSandboxWithPartialID(sbID)
 	if err != nil {
 		if err == errSandboxIDEmpty {
-			return nil, err
+			return err
 		}
 
-		resp := &pb.RemovePodSandboxResponse{}
-		logrus.Warnf("could not get sandbox %s, it's probably been removed already: %v", req.GetPodSandboxId(), err)
-		return resp, nil
+		logrus.Warnf("could not get sandbox %s, it's probably been removed already: %v", sbID, err)
+		return nil
 	}
 
 	podInfraContainer := sb.infraContainer
@@ -34,62 +30,60 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	// Delete all the containers in the sandbox
 	for _, c := range containers {
-		if err := s.runtime.UpdateStatus(c); err != nil {
-			return nil, fmt.Errorf("failed to update container state: %v", err)
+		if err := m.runtime.UpdateStatus(c); err != nil {
+			return fmt.Errorf("failed to update container state: %v", err)
 		}
 
-		cState := s.runtime.ContainerStatus(c)
+		cState := m.runtime.ContainerStatus(c)
 		if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
-			if err := s.runtime.StopContainer(c); err != nil {
-				return nil, fmt.Errorf("failed to stop container %s: %v", c.Name(), err)
+			if err := m.runtime.StopContainer(c); err != nil {
+				return fmt.Errorf("failed to stop container %s: %v", c.Name(), err)
 			}
 		}
 
-		if err := s.runtime.DeleteContainer(c); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), sb.id, err)
+		if err := m.runtime.DeleteContainer(c); err != nil {
+			return fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), sb.id, err)
 		}
 
 		if c == podInfraContainer {
 			continue
 		}
 
-		containerDir := filepath.Join(s.runtime.ContainerDir(), c.ID())
+		containerDir := filepath.Join(m.runtime.ContainerDir(), c.ID())
 		if err := os.RemoveAll(containerDir); err != nil {
-			return nil, fmt.Errorf("failed to remove container %s directory: %v", c.Name(), err)
+			return fmt.Errorf("failed to remove container %s directory: %v", c.Name(), err)
 		}
 
-		s.releaseContainerName(c.Name())
-		s.removeContainer(c)
+		m.releaseContainerName(c.Name())
+		m.removeContainer(c)
 	}
 
 	if err := label.UnreserveLabel(sb.processLabel); err != nil {
-		return nil, err
+		return err
 	}
 
 	// unmount the shm for the pod
 	if sb.shmPath != "/dev/shm" {
 		if err := syscall.Unmount(sb.shmPath, syscall.MNT_DETACH); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if err := sb.netNsRemove(); err != nil {
-		return nil, fmt.Errorf("failed to remove networking namespace for sandbox %s: %v", sb.id, err)
+		return fmt.Errorf("failed to remove networking namespace for sandbox %s: %v", sb.id, err)
 	}
 
 	// Remove the files related to the sandbox
-	podSandboxDir := filepath.Join(s.config.SandboxDir, sb.id)
+	podSandboxDir := filepath.Join(m.config.SandboxDir, sb.id)
 	if err := os.RemoveAll(podSandboxDir); err != nil {
-		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", sb.id, err)
+		return fmt.Errorf("failed to remove sandbox %s directory: %v", sb.id, err)
 	}
-	s.releaseContainerName(podInfraContainer.Name())
-	s.removeContainer(podInfraContainer)
+	m.releaseContainerName(podInfraContainer.Name())
+	m.removeContainer(podInfraContainer)
 	sb.infraContainer = nil
 
-	s.releasePodName(sb.name)
-	s.removeSandbox(sb.id)
+	m.releasePodName(sb.name)
+	m.removeSandbox(sb.id)
 
-	resp := &pb.RemovePodSandboxResponse{}
-	logrus.Debugf("RemovePodSandboxResponse %+v", resp)
-	return resp, nil
+	return nil
 }
