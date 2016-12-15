@@ -7,5 +7,5 @@ import (
 
 // UpdateRuntimeConfig updates the configuration of a running container.
 func (s *Server) UpdateRuntimeConfig(ctx context.Context, req *pb.UpdateRuntimeConfigRequest) (*pb.UpdateRuntimeConfigResponse, error) {
-	return nil, nil
+	return &pb.UpdateRuntimeConfigResponse{}, nil
 }
