@@ -14,13 +14,15 @@ import (
 	"github.com/containernetworking/cni/pkg/ns"
 	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"golang.org/x/sys/unix"
 )
 
 type sandboxNetNs struct {
 	sync.Mutex
-	ns      ns.NetNS
-	symlink *os.File
-	closed  bool
+	ns        ns.NetNS
+	symlink   *os.File
+	closed    bool
+	restored  bool
 }
 
 func (ns *sandboxNetNs) symlinkCreate(name string) error {
@@ -94,7 +96,7 @@ func netNsGet(nspath, name string) (*sandboxNetNs, error) {
 		return nil, err
 	}
 
-	netNs := &sandboxNetNs{ns: netNS, closed: false,}
+	netNs := &sandboxNetNs{ns: netNS, closed: false, restored: true}
 
 	if symlink {
 		fd, err := os.Open(nspath)
@@ -226,6 +228,16 @@ func (s *sandbox) netNsRemove() error {
 
 	if err := s.netns.ns.Close(); err != nil {
 		return err
+	}
+
+	if s.netns.restored {
+		if err := unix.Unmount(s.netns.ns.Path(), unix.MNT_DETACH); err != nil {
+			return err
+		}
+
+		if err := os.RemoveAll(s.netns.ns.Path()); err != nil {
+			return err
+		}
 	}
 
 	s.netns.closed = true
