@@ -138,6 +138,7 @@ type sandbox struct {
 	netns          *sandboxNetNs
 	metadata       *pb.PodSandboxMetadata
 	shmPath        string
+	cgroupParent   string
 }
 
 const (
