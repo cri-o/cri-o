@@ -52,7 +52,7 @@
 		"security.alpha.kubernetes.io/seccomp/pod": "unconfined"
 	},
 	"linux": {
-		"cgroup_parent": "podsandbox1.slice:container:infra",
+		"cgroup_parent": "/ocid-podsandbox1",
 		"security_context": {
 			"namespace_options": {
 				"host_network": false,
