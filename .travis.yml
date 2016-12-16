@@ -17,6 +17,7 @@ before_script:
 
 script:
   - make .gitvalidation
+  - make gofmt
   - make lint
   - make integration
   - make docs
