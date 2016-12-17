@@ -46,6 +46,7 @@ fi
 OCID_SOCKET="$TESTDIR/ocid.sock"
 OCID_CONFIG="$TESTDIR/ocid.conf"
 OCID_CNI_CONFIG="$TESTDIR/cni/net.d/"
+OCID_CNI_PLUGIN="/opt/cni/bin/"
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
