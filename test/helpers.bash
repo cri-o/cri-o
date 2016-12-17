@@ -45,8 +45,13 @@ if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
 fi
 OCID_SOCKET="$TESTDIR/ocid.sock"
 OCID_CONFIG="$TESTDIR/ocid.conf"
+OCID_CNI_CONFIG="$TESTDIR/cni/net.d/"
+POD_CIDR="10.88.0.0/16"
+POD_CIDR_MASK="10.88.*.*"
 
 cp "$CONMON_BINARY" "$TESTDIR/conmon"
+
+mkdir -p $OCID_CNI_CONFIG
 
 PATH=$PATH:$TESTDIR
 
@@ -106,7 +111,7 @@ function start_ocid() {
 		apparmor="$APPARMOR_PROFILE"
 	fi
 
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" config >$OCID_CONFIG
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --pause "$PAUSE_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --sandboxdir "$TESTDIR/sandboxes" --containerdir "$TESTDIR/ocid/containers" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
 }
@@ -187,5 +192,72 @@ function is_apparmor_enabled() {
 			return
 		fi
 	fi
+	echo 0
+}
+
+function prepare_network_conf() {
+	cat >$OCID_CNI_CONFIG/10-ocid.conf <<-EOF
+{
+    "cniVersion": "0.2.0",
+    "name": "ocidnet",
+    "type": "bridge",
+    "bridge": "cni0",
+    "isGateway": true,
+    "ipMasq": true,
+    "ipam": {
+        "type": "host-local",
+        "subnet": "$1",
+        "routes": [
+            { "dst": "0.0.0.0/0"  }
+        ]
+    }
+}
+EOF
+
+	cat >$OCID_CNI_CONFIG/99-loopback.conf <<-EOF
+{
+    "cniVersion": "0.2.0",
+    "type": "loopback"
+}
+EOF
+
+	echo 0
+}
+
+function check_pod_cidr() {
+        fullnetns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
+	netns=`basename $fullnetns`
+
+	ip netns exec $netns ip addr show dev eth0 scope global | grep $POD_CIDR_MASK
+
+	echo $?
+}
+
+function parse_pod_ip() {
+  for arg
+  do
+      cidr=`echo "$arg" | grep $POD_CIDR_MASK`
+      if [ "$cidr" == "$arg" ]
+      then
+	  echo `echo "$arg" | sed "s/\/[0-9][0-9]//"`
+      fi
+  done
+}
+
+function ping_pod() {
+        netns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
+	inet=`ip netns exec \`basename $netns\` ip addr show dev eth0 scope global | grep inet`
+
+	IFS=" "
+	ip=`parse_pod_ip $inet`
+
+	ping -W 1 -c 5 $ip
+
+	echo $?
+}
+
+function cleanup_network_conf() {
+	rm -rf $OCID_CNI_CONFIG
+
 	echo 0
 }
