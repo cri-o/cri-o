@@ -69,6 +69,14 @@ The `ocid` table supports the following options:
 **pause**=""
   Path to the pause executable (default: "/usr/libexec/ocid/pause")
 
+## OCID.NETWORK TABLE
+
+**network_dir**=""
+  Path to CNI configuration files (default: "/etc/cni/net.d/")
+
+**plugin_dir**=""
+  Path to CNI plugin binaries (default: "/opt/cni/bin/")
+
 # SEE ALSO
 ocid(8)
 

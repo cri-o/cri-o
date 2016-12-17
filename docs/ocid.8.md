@@ -21,6 +21,8 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 [**--selinux**]
 [**--seccomp-profile**=[*value*]]
 [**--apparmor-profile**=[*value*]]
+[**---cni-config-dir**=[*value*]]
+[**---cni-plugin-dir**=[*value*]]
 [**--version**|**-v**]
 
 # DESCRIPTION
@@ -85,6 +87,12 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 
 **--apparmor_profile**=""
   Name of the apparmor profile to be used as the runtime's default (default: "ocid-default")
+
+**--cni-config-dir**=""
+  CNI configuration files directory (defautl: "/etc/cni/net.d/")
+
+**--cni-plugin-dir**=""
+  CNI plugin binaries directory (defautl: "/opt/cni/bin/")
 
 **--version, -v**
   Print the version

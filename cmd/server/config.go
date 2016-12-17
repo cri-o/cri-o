@@ -17,6 +17,8 @@ const (
 	seccompProfilePath  = "/etc/ocid/seccomp.json"
 	apparmorProfileName = "ocid-default"
 	cgroupManager       = "cgroupfs"
+	cniConfigDir        = "/etc/cni/net.d/"
+	cniBinDir           = "/opt/cni/bin/"
 )
 
 var commentedConfigTemplate = template.Must(template.New("config").Parse(`
@@ -81,6 +83,17 @@ cgroup_manager = "{{ .CgroupManager }}"
 # pause is the path to the statically linked pause container binary, used
 # as the entrypoint for infra containers.
 pause = "{{ .Pause }}"
+
+# The "ocid.network" table contains settings pertaining to the
+# management of CNI plugins.
+[ocid.network]
+
+# network_dir is is where CNI network configuration
+# files are stored.
+network_dir = "{{ .NetworkDir }}"
+
+# plugin_dir is is where CNI plugin binaries are stored.
+plugin_dir = "{{ .PluginDir }}"
 `))
 
 // TODO: Currently ImageDir isn't really used, so we haven't added it to this
@@ -112,6 +125,10 @@ func DefaultConfig() *server.Config {
 		ImageConfig: server.ImageConfig{
 			Pause:    pausePath,
 			ImageDir: filepath.Join(ocidRoot, "store"),
+		},
+		NetworkConfig: server.NetworkConfig{
+			NetworkDir: cniConfigDir,
+			PluginDir:  cniBinDir,
 		},
 	}
 }
