@@ -48,8 +48,15 @@ static inline void closep(int *fd)
 	*fd = -1;
 }
 
+static inline void gstring_free_cleanup(GString **string)
+{
+	if (*string)
+		g_string_free(*string, TRUE);
+}
+
 #define _cleanup_free_ _cleanup_(freep)
 #define _cleanup_close_ _cleanup_(closep)
+#define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
 
 struct termios tty_orig;
 
@@ -68,6 +75,7 @@ static char *cid = NULL;
 static char *runtime_path = NULL;
 static char *bundle_path = NULL;
 static char *pid_file = NULL;
+static bool systemd_cgroup = false;
 static GOptionEntry entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &terminal, "Terminal", NULL },
@@ -75,13 +83,13 @@ static GOptionEntry entries[] =
   { "runtime", 'r', 0, G_OPTION_ARG_STRING, &runtime_path, "Runtime path", NULL },
   { "bundle", 'b', 0, G_OPTION_ARG_STRING, &bundle_path, "Bundle path", NULL },
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &pid_file, "PID file", NULL },
+  { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &systemd_cgroup, "Enable systemd cgroup manager", NULL },
   { NULL }
 };
 
 int main(int argc, char *argv[])
 {
 	int ret;
-	char cmd[CMD_SIZE];
 	char cwd[PATH_MAX];
 	char default_pid_file[PATH_MAX];
 	GError *err = NULL;
@@ -102,6 +110,7 @@ int main(int argc, char *argv[])
 	int len;
 	GError *error = NULL;
 	GOptionContext *context;
+	_cleanup_gstring_ GString *cmd = NULL;
 
 	/* Command line parameters */
 	context = g_option_context_new ("- conmon utility");
@@ -176,15 +185,16 @@ int main(int argc, char *argv[])
 	}
 
 	/* Create the container */
-	if (terminal) {
-		snprintf(cmd, CMD_SIZE,
-			 "%s create %s --bundle %s --pid-file %s --console %s",
-			 runtime_path, cid, bundle_path, pid_file, slname);
-	} else {
-		snprintf(cmd, CMD_SIZE, "%s create %s --bundle %s --pid-file %s",
-			 runtime_path, cid, bundle_path, pid_file);
+	cmd = g_string_new(runtime_path);
+	if (systemd_cgroup) {
+		g_string_append_printf(cmd, " --systemd-cgroup");
 	}
-	ret = system(cmd);
+	g_string_append_printf(cmd, " create %s --bundle %s --pid-file %s",
+			       cid, bundle_path, pid_file);
+	if (terminal) {
+		g_string_append_printf(cmd, " --console %s", slname);
+	}
+	ret = system(cmd->str);
 	if (ret != 0) {
 		nexit("Failed to create container");
 	}

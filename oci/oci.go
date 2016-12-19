@@ -104,7 +104,11 @@ func (r *Runtime) CreateContainer(c *Container) error {
 	}
 	defer parentPipe.Close()
 
-	args := []string{"-c", c.name}
+	var args []string
+	if r.cgroupManager == "systemd" {
+		args = append(args, "-s")
+	}
+	args = append(args, "-c", c.name)
 	args = append(args, "-r", r.path)
 	args = append(args, "-b", c.bundlePath)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
