@@ -24,7 +24,11 @@ func newImage(ctx *types.SystemContext, ref dockerReference) (types.Image, error
 	if err != nil {
 		return nil, err
 	}
-	return &Image{Image: image.FromSource(s), src: s}, nil
+	img, err := image.FromSource(s)
+	if err != nil {
+		return nil, err
+	}
+	return &Image{Image: img, src: s}, nil
 }
 
 // SourceRefFullName returns a fully expanded name for the repository this image is in.

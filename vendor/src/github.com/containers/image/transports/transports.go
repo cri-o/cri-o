@@ -6,8 +6,10 @@ import (
 
 	"github.com/containers/image/directory"
 	"github.com/containers/image/docker"
+	"github.com/containers/image/docker/daemon"
 	ociLayout "github.com/containers/image/oci/layout"
 	"github.com/containers/image/openshift"
+	"github.com/containers/image/storage"
 	"github.com/containers/image/types"
 )
 
@@ -16,11 +18,15 @@ var KnownTransports map[string]types.ImageTransport
 
 func init() {
 	KnownTransports = make(map[string]types.ImageTransport)
+	// NOTE: Make sure docs/policy.json.md is updated when adding or updating
+	// a transport.
 	for _, t := range []types.ImageTransport{
 		directory.Transport,
 		docker.Transport,
+		daemon.Transport,
 		ociLayout.Transport,
 		openshift.Transport,
+		storage.Transport,
 	} {
 		name := t.Name()
 		if _, ok := KnownTransports[name]; ok {

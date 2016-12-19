@@ -22,11 +22,11 @@ type Manifest struct {
 
 	// Config references a configuration object for a container, by digest.
 	// The referenced configuration object is a JSON blob that the runtime uses to set up the container.
-	Config specs.Descriptor `json:"config"`
+	Config Descriptor `json:"config"`
 
 	// Layers is an indexed list of layers referenced by the manifest.
-	Layers []specs.Descriptor `json:"layers"`
+	Layers []Descriptor `json:"layers"`
 
 	// Annotations contains arbitrary metadata for the manifest list.
-	Annotations map[string]string `json:"annotations"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }

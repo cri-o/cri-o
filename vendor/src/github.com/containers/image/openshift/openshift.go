@@ -11,13 +11,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/docker"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/image/version"
+	"github.com/docker/distribution/digest"
 )
 
 // openshiftClient is configuration for dealing with a single image stream, for reading or writing.
@@ -57,7 +57,6 @@ func newOpenshiftClient(ref openshiftReference) (*openshiftClient, error) {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
-	httpClient.Timeout = 1 * time.Minute
 
 	return &openshiftClient{
 		ref:         ref,
@@ -198,6 +197,15 @@ func (s *openshiftImageSource) Close() {
 	}
 }
 
+func (s *openshiftImageSource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
+	if err := s.ensureImageIsResolved(); err != nil {
+		return nil, "", err
+	}
+	return s.docker.GetTargetManifest(digest)
+}
+
+// GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
+// It may use a remote (= slow) service.
 func (s *openshiftImageSource) GetManifest() ([]byte, string, error) {
 	if err := s.ensureImageIsResolved(); err != nil {
 		return nil, "", err
@@ -206,11 +214,11 @@ func (s *openshiftImageSource) GetManifest() ([]byte, string, error) {
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
-func (s *openshiftImageSource) GetBlob(digest string) (io.ReadCloser, int64, error) {
+func (s *openshiftImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
 	if err := s.ensureImageIsResolved(); err != nil {
 		return nil, 0, err
 	}
-	return s.docker.GetBlob(digest)
+	return s.docker.GetBlob(info)
 }
 
 func (s *openshiftImageSource) GetSignatures() ([][]byte, error) {
@@ -337,60 +345,43 @@ func (d *openshiftImageDestination) SupportsSignatures() error {
 	return nil
 }
 
-// PutBlob writes contents of stream and returns its computed digest and size.
-// A digest can be optionally provided if known, the specific image destination can decide to play with it or not.
-// The length of stream is expected to be expectedSize; if expectedSize == -1, it is not known.
+// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
+func (d *openshiftImageDestination) ShouldCompressLayers() bool {
+	return true
+}
+
+// AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
+// uploaded to the image destination, true otherwise.
+func (d *openshiftImageDestination) AcceptsForeignLayerURLs() bool {
+	return true
+}
+
+// PutBlob writes contents of stream and returns data representing the result (with all data filled in).
+// inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
+// inputInfo.Size is the expected length of stream, if known.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *openshiftImageDestination) PutBlob(stream io.Reader, digest string, expectedSize int64) (string, int64, error) {
-	return d.docker.PutBlob(stream, digest, expectedSize)
+func (d *openshiftImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types.BlobInfo, error) {
+	return d.docker.PutBlob(stream, inputInfo)
+}
+
+func (d *openshiftImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
+	return d.docker.HasBlob(info)
+}
+
+func (d *openshiftImageDestination) ReapplyBlob(info types.BlobInfo) (types.BlobInfo, error) {
+	return d.docker.ReapplyBlob(info)
 }
 
 func (d *openshiftImageDestination) PutManifest(m []byte) error {
-	// FIXME? Can this eventually just call d.docker.PutManifest()?
-	// Right now we need this as a skeleton to attach signatures to, and
-	// to workaround our inability to change tags when uploading v2s1 manifests.
-
-	// Note: This does absolutely no kind/version checking or conversions.
 	manifestDigest, err := manifest.Digest(m)
 	if err != nil {
 		return err
 	}
-	d.imageStreamImageName = manifestDigest
-	// FIXME: We can't do what respositorymiddleware.go does because we don't know the internal address. Does any of this matter?
-	dockerImageReference := fmt.Sprintf("%s/%s/%s@%s", d.client.ref.dockerReference.Hostname(), d.client.ref.namespace, d.client.ref.stream, manifestDigest)
-	ism := imageStreamMapping{
-		typeMeta: typeMeta{
-			Kind:       "ImageStreamMapping",
-			APIVersion: "v1",
-		},
-		objectMeta: objectMeta{
-			Namespace: d.client.ref.namespace,
-			Name:      d.client.ref.stream,
-		},
-		Image: image{
-			objectMeta: objectMeta{
-				Name: manifestDigest,
-			},
-			DockerImageReference: dockerImageReference,
-			DockerImageManifest:  string(m),
-		},
-		Tag: d.client.ref.dockerReference.Tag(),
-	}
-	body, err := json.Marshal(ism)
-	if err != nil {
-		return err
-	}
+	d.imageStreamImageName = manifestDigest.String()
 
-	// FIXME: validate components per validation.IsValidPathSegmentName?
-	path := fmt.Sprintf("/oapi/v1/namespaces/%s/imagestreammappings", d.client.ref.namespace)
-	body, err = d.client.doRequest("POST", path, body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return d.docker.PutManifest(m)
 }
 
 func (d *openshiftImageDestination) PutSignatures(signatures [][]byte) error {
@@ -504,12 +495,6 @@ type imageSignature struct {
 	// Created *unversioned.Time `json:"created,omitempty"`
 	// IssuedBy SignatureIssuer `json:"issuedBy,omitempty"`
 	// IssuedTo SignatureSubject `json:"issuedTo,omitempty"`
-}
-type imageStreamMapping struct {
-	typeMeta   `json:",inline"`
-	objectMeta `json:"metadata,omitempty"`
-	Image      image  `json:"image"`
-	Tag        string `json:"tag"`
 }
 type typeMeta struct {
 	Kind       string `json:"kind,omitempty"`

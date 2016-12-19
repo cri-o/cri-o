@@ -49,7 +49,17 @@ esac
 clone git github.com/coreos/go-systemd master
 clone git github.com/BurntSushi/toml v0.2.0
 clone git github.com/Sirupsen/logrus v0.10.0
-clone git github.com/containers/image f6f11ab5cf8b1e70ef4aa3f8b6fdb4b671d16abd
+
+clone git github.com/containers/storage master
+clone git github.com/mistifyio/go-zfs master
+clone git github.com/pborman/uuid master
+
+clone git github.com/containers/image master
+clone git github.com/mtrmac/gpgme master
+clone git gopkg.in/cheggaaa/pb.v1 master
+clone git github.com/mattn/go-runewidth master
+clone git github.com/docker/engine-api v0.4.0
+
 clone git github.com/opencontainers/image-spec master
 clone git golang.org/x/net 991d3e32f76f19ee6d9caadb3a22eae8d23315f7 https://github.com/golang/net.git
 clone git github.com/docker/docker master
@@ -64,7 +74,7 @@ clone git github.com/opencontainers/runtime-spec bb6925ea99f0e366a3f7d1c975f6577
 clone git github.com/docker/distribution d22e09a6686c32be8c17b684b639da4b90efe320
 clone git github.com/vbatts/tar-split v0.10.1
 clone git github.com/docker/go-units f2145db703495b2e525c59662db69a7344b00bb8
-clone git github.com/docker/go-connections 988efe982fdecb46f01d53465878ff1f2ff411ce
+clone git github.com/docker/go-connections 4ccf312bf1d35e5dbda654e57a9be4c3f3cd0366
 clone git github.com/docker/libtrust 9cbd2a1374f46905c68a4eb3694a130610adc62a
 clone git github.com/ghodss/yaml 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 clone git gopkg.in/yaml.v2 d466437aa4adc35830964cffc5b5f262c63ddcb4

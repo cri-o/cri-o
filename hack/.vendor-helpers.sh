@@ -60,7 +60,7 @@ clean() {
 	local packages=($(GOPATH=$original_GOPATH go list -e ./... | grep -v "^${PROJECT}/vendor"))
 	local platforms=( linux/amd64 linux/386 )
 
-	local buildTags=(  )
+	local buildTags=( seccomp )
 
 	echo
 

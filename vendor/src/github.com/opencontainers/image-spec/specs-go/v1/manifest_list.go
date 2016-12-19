@@ -44,7 +44,7 @@ type Platform struct {
 
 // ManifestDescriptor describes a platform specific manifest.
 type ManifestDescriptor struct {
-	specs.Descriptor
+	Descriptor
 
 	// Platform describes the platform which the image in the manifest runs on.
 	Platform Platform `json:"platform"`
@@ -58,5 +58,5 @@ type ManifestList struct {
 	Manifests []ManifestDescriptor `json:"manifests"`
 
 	// Annotations contains arbitrary metadata for the manifest list.
-	Annotations map[string]string `json:"annotations"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }

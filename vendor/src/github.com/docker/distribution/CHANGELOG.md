@@ -39,7 +39,7 @@
   - Changes the client Tags `All()` method to follow links
   - Allow registry clients to connect via HTTP2
   - Better handling of OAuth errors in client
-
+  
 #### Spec
   - Manifest: clarify relationship between urls and foreign layers
 

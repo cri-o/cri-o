@@ -1,10 +1,12 @@
 package types
 
 import (
+	"errors"
 	"io"
 	"time"
 
-	"github.com/docker/docker/reference"
+	"github.com/containers/image/docker/reference"
+	"github.com/docker/distribution/digest"
 )
 
 // ImageTransport is a top-level namespace for ways to to store/load an image.
@@ -70,8 +72,10 @@ type ImageReference interface {
 	// and each following element to be a prefix of the element preceding it.
 	PolicyConfigurationNamespaces() []string
 
-	// NewImage returns a types.Image for this reference.
+	// NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
 	// The caller must call .Close() on the returned Image.
+	// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+	// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 	NewImage(ctx *SystemContext) (Image, error)
 	// NewImageSource returns a types.ImageSource for this reference,
 	// asking the backend to use a manifest from requestedManifestMIMETypes if possible.
@@ -86,21 +90,36 @@ type ImageReference interface {
 	DeleteImage(ctx *SystemContext) error
 }
 
+// BlobInfo collects known information about a blob (layer/config).
+// In some situations, some fields may be unknown, in others they may be mandatory; documenting an “unknown” value here does not override that.
+type BlobInfo struct {
+	Digest digest.Digest // "" if unknown.
+	Size   int64         // -1 if unknown
+	URLs   []string
+}
+
 // ImageSource is a service, possibly remote (= slow), to download components of a single image.
 // This is primarily useful for copying images around; for examining their properties, Image (below)
 // is usually more useful.
 // Each ImageSource should eventually be closed by calling Close().
+//
+// WARNING: Various methods which return an object identified by digest generally do not
+// validate that the returned data actually matches that digest; this is the caller’s responsibility.
 type ImageSource interface {
 	// Reference returns the reference used to set up this source, _as specified by the user_
 	// (not as the image itself, or its underlying storage, claims).  This can be used e.g. to determine which public keys are trusted for this image.
 	Reference() ImageReference
 	// Close removes resources associated with an initialized ImageSource, if any.
 	Close()
-	// GetManifest returns the image's manifest along with its MIME type. The empty string is returned if the MIME type is unknown.
+	// GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
 	// It may use a remote (= slow) service.
 	GetManifest() ([]byte, string, error)
+	// GetTargetManifest returns an image's manifest given a digest. This is mainly used to retrieve a single image's manifest
+	// out of a manifest list.
+	GetTargetManifest(digest digest.Digest) ([]byte, string, error)
 	// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
-	GetBlob(digest string) (io.ReadCloser, int64, error)
+	// The Digest field in BlobInfo is guaranteed to be provided; Size may be -1.
+	GetBlob(BlobInfo) (io.ReadCloser, int64, error)
 	// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
 	GetSignatures() ([][]byte, error)
 }
@@ -109,6 +128,7 @@ type ImageSource interface {
 //
 // There is a specific required order for some of the calls:
 // PutBlob on the various blobs, if any, MUST be called before PutManifest (manifest references blobs, which may be created or compressed only at push time)
+// ReapplyBlob, if used, MUST only be called if HasBlob returned true for the same blob digest
 // PutSignatures, if called, MUST be called after PutManifest (signatures reference manifest contents)
 // Finally, Commit MUST be called if the caller wants the image, as formed by the components saved above, to persist.
 //
@@ -126,14 +146,24 @@ type ImageDestination interface {
 	// SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 	// Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
 	SupportsSignatures() error
+	// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
+	ShouldCompressLayers() bool
 
-	// PutBlob writes contents of stream and returns its computed digest and size.
-	// A digest can be optionally provided if known, the specific image destination can decide to play with it or not.
-	// The length of stream is expected to be expectedSize; if expectedSize == -1, it is not known.
+	// AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
+	// uploaded to the image destination, true otherwise.
+	AcceptsForeignLayerURLs() bool
+
+	// PutBlob writes contents of stream and returns data representing the result (with all data filled in).
+	// inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
+	// inputInfo.Size is the expected length of stream, if known.
 	// WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 	// to any other readers for download using the supplied digest.
 	// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-	PutBlob(stream io.Reader, digest string, expectedSize int64) (string, int64, error)
+	PutBlob(stream io.Reader, inputInfo BlobInfo) (BlobInfo, error)
+	// HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob.  Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.  A false result will often be accompanied by an ErrBlobNotFound error.
+	HasBlob(info BlobInfo) (bool, int64, error)
+	// ReapplyBlob informs the image destination that a blob for which HasBlob previously returned true would have been passed to PutBlob if it had returned false.  Like HasBlob and unlike PutBlob, the digest can not be empty.  If the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree.
+	ReapplyBlob(info BlobInfo) (BlobInfo, error)
 	// FIXME? This should also receive a MIME type if known, to differentiate between schema versions.
 	PutManifest([]byte) error
 	PutSignatures(signatures [][]byte) error
@@ -144,26 +174,69 @@ type ImageDestination interface {
 	Commit() error
 }
 
-// Image is the primary API for inspecting properties of images.
-// Each Image should eventually be closed by calling Close().
-type Image interface {
+// UnparsedImage is an Image-to-be; until it is verified and accepted, it only caries its identity and caches manifest and signature blobs.
+// Thus, an UnparsedImage can be created from an ImageSource simply by fetching blobs without interpreting them,
+// allowing cryptographic signature verification to happen first, before even fetching the manifest, or parsing anything else.
+// This also makes the UnparsedImage→Image conversion an explicitly visible step.
+// Each UnparsedImage should eventually be closed by calling Close().
+type UnparsedImage interface {
 	// Reference returns the reference used to set up this source, _as specified by the user_
 	// (not as the image itself, or its underlying storage, claims).  This can be used e.g. to determine which public keys are trusted for this image.
 	Reference() ImageReference
-	// Close removes resources associated with an initialized Image, if any.
+	// Close removes resources associated with an initialized UnparsedImage, if any.
 	Close()
-	// ref to repository?
 	// Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
-	// NOTE: It is essential for signature verification that Manifest returns the manifest from which BlobDigests is computed.
 	Manifest() ([]byte, string, error)
 	// Signatures is like ImageSource.GetSignatures, but the result is cached; it is OK to call this however often you need.
 	Signatures() ([][]byte, error)
-	// BlobDigests returns a list of blob digests referenced by this image.
-	// The list will not contain duplicates; it is not intended to correspond to the "history" or "parent chain" of a Docker image.
-	// NOTE: It is essential for signature verification that BlobDigests is computed from the same manifest which is returned by Manifest().
-	BlobDigests() ([]string, error)
+}
+
+// Image is the primary API for inspecting properties of images.
+// Each Image should eventually be closed by calling Close().
+type Image interface {
+	// Note that Reference may return nil in the return value of UpdatedImage!
+	UnparsedImage
+	// ConfigInfo returns a complete BlobInfo for the separate config object, or a BlobInfo{Digest:""} if there isn't a separate object.
+	// Note that the config object may not exist in the underlying storage in the return value of UpdatedImage! Use ConfigBlob() below.
+	ConfigInfo() BlobInfo
+	// ConfigBlob returns the blob described by ConfigInfo, iff ConfigInfo().Digest != ""; nil otherwise.
+	// The result is cached; it is OK to call this however often you need.
+	ConfigBlob() ([]byte, error)
+	// LayerInfos returns a list of BlobInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
+	// The Digest field is guaranteed to be provided; Size may be -1.
+	// WARNING: The list may contain duplicates, and they are semantically relevant.
+	LayerInfos() []BlobInfo
 	// Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
 	Inspect() (*ImageInspectInfo, error)
+	// UpdatedImageNeedsLayerDiffIDs returns true iff UpdatedImage(options) needs InformationOnly.LayerDiffIDs.
+	// This is a horribly specific interface, but computing InformationOnly.LayerDiffIDs can be very expensive to compute
+	// (most importantly it forces us to download the full layers even if they are already present at the destination).
+	UpdatedImageNeedsLayerDiffIDs(options ManifestUpdateOptions) bool
+	// UpdatedImage returns a types.Image modified according to options.
+	// Everything in options.InformationOnly should be provided, other fields should be set only if a modification is desired.
+	// This does not change the state of the original Image object.
+	UpdatedImage(options ManifestUpdateOptions) (Image, error)
+	// IsMultiImage returns true if the image's manifest is a list of images, false otherwise.
+	IsMultiImage() bool
+	// Size returns an approximation of the amount of disk space which is consumed by the image in its current
+	// location.  If the size is not known, -1 will be returned.
+	Size() (int64, error)
+}
+
+// ManifestUpdateOptions is a way to pass named optional arguments to Image.UpdatedManifest
+type ManifestUpdateOptions struct {
+	LayerInfos       []BlobInfo // Complete BlobInfos (size+digest+urls) which should replace the originals, in order (the root layer first, and then successive layered layers)
+	ManifestMIMEType string
+	// The values below are NOT requests to modify the image; they provide optional context which may or may not be used.
+	InformationOnly ManifestUpdateInformation
+}
+
+// ManifestUpdateInformation is a component of ManifestUpdateOptions, named here
+// only to make writing struct literals possible.
+type ManifestUpdateInformation struct {
+	Destination  ImageDestination // and yes, UpdatedManifest may write to Destination (see the schema2 → schema1 conversion logic in image/docker_schema2.go)
+	LayerInfos   []BlobInfo       // Complete BlobInfos (size+digest) which have been uploaded, in order (the root layer first, and then successive layered layers)
+	LayerDiffIDs []digest.Digest  // Digest values for the _uncompressed_ contents of the blobs which have been uploaded, in the same order.
 }
 
 // ImageInspectInfo is a set of metadata describing Docker images, primarily their manifest and configuration.
@@ -177,6 +250,12 @@ type ImageInspectInfo struct {
 	Architecture  string
 	Os            string
 	Layers        []string
+}
+
+// DockerAuthConfig contains authorization information for connecting to a registry.
+type DockerAuthConfig struct {
+	Username string
+	Password string
 }
 
 // SystemContext allows parametrizing access to implicitly-accessed resources,
@@ -200,6 +279,22 @@ type SystemContext struct {
 	RegistriesDirPath string
 
 	// === docker.Transport overrides ===
-	DockerCertPath              string // If not "", a directory containing "cert.pem" and "key.pem" used when talking to a Docker Registry
-	DockerInsecureSkipTLSVerify bool   // Allow contacting docker registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+	// If not "", a directory containing a CA certificate (ending with ".crt"),
+	// a client certificate (ending with ".cert") and a client ceritificate key
+	// (ending with ".key") used when talking to a Docker Registry.
+	DockerCertPath              string
+	DockerInsecureSkipTLSVerify bool // Allow contacting docker registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+	// if nil, the library tries to parse ~/.docker/config.json to retrieve credentials
+	DockerAuthConfig *DockerAuthConfig
+	// if not "", an User-Agent header is added to each request when contacting a registry.
+	DockerRegistryUserAgent string
+	// if true, a V1 ping attempt isn't done to give users a better error. Default is false.
+	// Note that this field is used mainly to integrate containers/image into projectatomic/docker
+	// in order to not break any existing docker's integration tests.
+	DockerDisableV1Ping bool
 }
+
+var (
+	// ErrBlobNotFound can be returned by an ImageDestination's HasBlob() method
+	ErrBlobNotFound = errors.New("no such blob present")
+)

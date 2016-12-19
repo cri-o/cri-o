@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/docker/docker/reference"
+	"github.com/containers/image/docker/reference"
 )
 
 // DockerReferenceIdentity returns a string representation of the reference, suitable for policy lookup,

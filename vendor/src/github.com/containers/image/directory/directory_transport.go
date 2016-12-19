@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	"github.com/containers/image/directory/explicitfilepath"
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	"github.com/containers/image/types"
-	"github.com/docker/docker/reference"
+	"github.com/docker/distribution/digest"
 )
 
 // Transport is an ImageTransport for directory paths.
@@ -127,11 +128,13 @@ func (ref dirReference) PolicyConfigurationNamespaces() []string {
 	return res
 }
 
-// NewImage returns a types.Image for this reference.
+// NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
 // The caller must call .Close() on the returned Image.
+// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 func (ref dirReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
 	src := newImageSource(ref)
-	return image.FromSource(src), nil
+	return image.FromSource(src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference,
@@ -159,9 +162,9 @@ func (ref dirReference) manifestPath() string {
 }
 
 // layerPath returns a path for a layer tarball within a directory using our conventions.
-func (ref dirReference) layerPath(digest string) string {
+func (ref dirReference) layerPath(digest digest.Digest) string {
 	// FIXME: Should we keep the digest identification?
-	return filepath.Join(ref.path, strings.TrimPrefix(digest, "sha256:")+".tar")
+	return filepath.Join(ref.path, digest.Hex()+".tar")
 }
 
 // signaturePath returns a path for a signature within a directory using our conventions.

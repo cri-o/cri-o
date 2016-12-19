@@ -25,11 +25,11 @@ const (
 	MediaTypeImageManifestList = "application/vnd.oci.image.manifest.list.v1+json"
 
 	// MediaTypeImageLayer is the media type used for layers referenced by the manifest.
-	MediaTypeImageLayer = "application/vnd.oci.image.layer.tar+gzip"
+	MediaTypeImageLayer = "application/vnd.oci.image.layer.v1.tar+gzip"
 
 	// MediaTypeImageLayerNonDistributable is the media type for layers referenced by
 	// the manifest but with distribution restrictions.
-	MediaTypeImageLayerNonDistributable = "application/vnd.oci.image.layer.nondistributable.tar+gzip"
+	MediaTypeImageLayerNonDistributable = "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip"
 
 	// MediaTypeImageConfig specifies the media type for the image configuration.
 	MediaTypeImageConfig = "application/vnd.oci.image.config.v1+json"

@@ -1,10 +1,9 @@
 package manifest
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 
+	"github.com/docker/distribution/digest"
 	"github.com/docker/libtrust"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -19,8 +18,14 @@ const (
 	DockerV2Schema1SignedMediaType = "application/vnd.docker.distribution.manifest.v1+prettyjws"
 	// DockerV2Schema2MediaType MIME type represents Docker manifest schema 2
 	DockerV2Schema2MediaType = "application/vnd.docker.distribution.manifest.v2+json"
+	// DockerV2Schema2ConfigMediaType is the MIME type used for schema 2 config blobs.
+	DockerV2Schema2ConfigMediaType = "application/vnd.docker.container.image.v1+json"
+	// DockerV2Schema2LayerMediaType is the MIME type used for schema 2 layers.
+	DockerV2Schema2LayerMediaType = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 	// DockerV2ListMediaType MIME type represents Docker manifest schema 2 list
 	DockerV2ListMediaType = "application/vnd.docker.distribution.manifest.list.v2+json"
+	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for schema 2 foreign layers.
+	DockerV2Schema2ForeignLayerMediaType = "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
 )
 
 // DefaultRequestedManifestMIMETypes is a list of MIME types a types.ImageSource
@@ -30,6 +35,7 @@ var DefaultRequestedManifestMIMETypes = []string{
 	DockerV2Schema2MediaType,
 	DockerV2Schema1SignedMediaType,
 	DockerV2Schema1MediaType,
+	DockerV2ListMediaType,
 }
 
 // GuessMIMEType guesses MIME type of a manifest and returns it _if it is recognized_, or "" if unknown or unrecognized.
@@ -65,7 +71,7 @@ func GuessMIMEType(manifest []byte) string {
 }
 
 // Digest returns the a digest of a docker manifest, with any necessary implied transformations like stripping v1s1 signatures.
-func Digest(manifest []byte) (string, error) {
+func Digest(manifest []byte) (digest.Digest, error) {
 	if GuessMIMEType(manifest) == DockerV2Schema1SignedMediaType {
 		sig, err := libtrust.ParsePrettySignature(manifest, "signatures")
 		if err != nil {
@@ -79,19 +85,36 @@ func Digest(manifest []byte) (string, error) {
 		}
 	}
 
-	hash := sha256.Sum256(manifest)
-	return "sha256:" + hex.EncodeToString(hash[:]), nil
+	return digest.FromBytes(manifest), nil
 }
 
 // MatchesDigest returns true iff the manifest matches expectedDigest.
 // Error may be set if this returns false.
 // Note that this is not doing ConstantTimeCompare; by the time we get here, the cryptographic signature must already have been verified,
 // or we are not using a cryptographic channel and the attacker can modify the digest along with the manifest blob.
-func MatchesDigest(manifest []byte, expectedDigest string) (bool, error) {
+func MatchesDigest(manifest []byte, expectedDigest digest.Digest) (bool, error) {
 	// This should eventually support various digest types.
 	actualDigest, err := Digest(manifest)
 	if err != nil {
 		return false, err
 	}
 	return expectedDigest == actualDigest, nil
+}
+
+// AddDummyV2S1Signature adds an JWS signature with a temporary key (i.e. useless) to a v2s1 manifest.
+// This is useful to make the manifest acceptable to a Docker Registry (even though nothing needs or wants the JWS signature).
+func AddDummyV2S1Signature(manifest []byte) ([]byte, error) {
+	key, err := libtrust.GenerateECP256PrivateKey()
+	if err != nil {
+		return nil, err // Coverage: This can fail only if rand.Reader fails.
+	}
+
+	js, err := libtrust.NewJSONSignature(manifest)
+	if err != nil {
+		return nil, err
+	}
+	if err := js.Sign(key); err != nil { // Coverage: This can fail basically only if rand.Reader fails.
+		return nil, err
+	}
+	return js.PrettySignature("signatures")
 }
