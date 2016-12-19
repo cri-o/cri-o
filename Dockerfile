@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y \
     python-minimal \
     libglib2.0-dev \
     libapparmor-dev \
-    --no-install-recommends
+    --no-install-recommends \
+    && apt-get clean
 
 # install bats
 RUN cd /tmp \
@@ -34,7 +35,8 @@ ENV CRIU_VERSION 1.7
 RUN mkdir -p /usr/src/criu \
     && curl -sSL https://github.com/xemul/criu/archive/v${CRIU_VERSION}.tar.gz | tar -v -C /usr/src/criu/ -xz --strip-components=1 \
     && cd /usr/src/criu \
-    && make install-criu
+    && make install-criu \
+    && rm -rf /usr/src/criu
 
 # Install runc
 ENV RUNC_COMMIT cc29e3dded8e27ba8f65738f40d251c885030a28
