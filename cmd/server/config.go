@@ -16,6 +16,7 @@ const (
 	pausePath           = "/usr/libexec/ocid/pause"
 	seccompProfilePath  = "/etc/ocid/seccomp.json"
 	apparmorProfileName = "ocid-default"
+	cgroupManager       = "cgroupfs"
 )
 
 var commentedConfigTemplate = template.Must(template.New("config").Parse(`
@@ -69,6 +70,10 @@ seccomp_profile = "{{ .SeccompProfile }}"
 # default for the runtime.
 apparmor_profile = "{{ .ApparmorProfile }}"
 
+# cgroup_manager is the cgroup management implementation to be used
+# for the runtime.
+cgroup_manager = "{{ .CgroupManager }}"
+
 # The "ocid.image" table contains settings pertaining to the
 # management of OCI images.
 [ocid.image]
@@ -102,6 +107,7 @@ func DefaultConfig() *server.Config {
 			SELinux:         selinux.SelinuxEnabled(),
 			SeccompProfile:  seccompProfilePath,
 			ApparmorProfile: apparmorProfileName,
+			CgroupManager:   cgroupManager,
 		},
 		ImageConfig: server.ImageConfig{
 			Pause:    pausePath,
