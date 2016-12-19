@@ -34,24 +34,26 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, containerDir string, conmonPath string, conmonEnv []string) (*Runtime, error) {
+func New(runtimePath string, containerDir string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
 	r := &Runtime{
-		name:         filepath.Base(runtimePath),
-		path:         runtimePath,
-		containerDir: containerDir,
-		conmonPath:   conmonPath,
-		conmonEnv:    conmonEnv,
+		name:          filepath.Base(runtimePath),
+		path:          runtimePath,
+		containerDir:  containerDir,
+		conmonPath:    conmonPath,
+		conmonEnv:     conmonEnv,
+		cgroupManager: cgroupManager,
 	}
 	return r, nil
 }
 
 // Runtime stores the information about a oci runtime
 type Runtime struct {
-	name         string
-	path         string
-	containerDir string
-	conmonPath   string
-	conmonEnv    []string
+	name          string
+	path          string
+	containerDir  string
+	conmonPath    string
+	conmonEnv     []string
+	cgroupManager string
 }
 
 // syncInfo is used to return data from monitor process to daemon
