@@ -66,6 +66,12 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("cgroup-manager") {
 		config.CgroupManager = ctx.GlobalString("cgroup-manager")
 	}
+	if ctx.GlobalIsSet("cni-config-dir") {
+		config.NetworkDir = ctx.GlobalString("cni-config-dir")
+	}
+	if ctx.GlobalIsSet("cni-plugin-dir") {
+		config.PluginDir = ctx.GlobalString("cni-plugin-dir")
+	}
 	return nil
 }
 
@@ -156,6 +162,14 @@ func main() {
 		cli.StringFlag{
 			Name:  "cgroup-manager",
 			Usage: "cgroup manager (cgroupfs or systemd)",
+		},
+		cli.StringFlag{
+			Name:  "cni-config-dir",
+			Usage: "CNI configuration files directory",
+		},
+		cli.StringFlag{
+			Name:  "cni-plugin-dir",
+			Usage: "CNI plugin binaries directory",
 		},
 	}
 

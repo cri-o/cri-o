@@ -14,6 +14,7 @@ type Config struct {
 	APIConfig
 	RuntimeConfig
 	ImageConfig
+	NetworkConfig
 }
 
 // This structure is necessary to fake the TOML tables when parsing,
@@ -93,6 +94,15 @@ type ImageConfig struct {
 	ImageDir string `toml:"image_dir"`
 }
 
+// NetworkConfig represents the "ocid.network" TOML config table
+type NetworkConfig struct {
+	// NetworkDir is where CNI network configuration files are stored.
+	NetworkDir string `toml:"network_dir"`
+
+	// PluginDir is where CNI plugin binaries are stored.
+	PluginDir string `toml:"plugin_dir"`
+}
+
 // tomlConfig is another way of looking at a Config, which is
 // TOML-friendly (it has all of the explicit tables). It's just used for
 // conversions.
@@ -102,6 +112,7 @@ type tomlConfig struct {
 		API     struct{ APIConfig }     `toml:"api"`
 		Runtime struct{ RuntimeConfig } `toml:"runtime"`
 		Image   struct{ ImageConfig }   `toml:"image"`
+		Network struct{ NetworkConfig } `toml:"network"`
 	} `toml:"ocid"`
 }
 
@@ -110,6 +121,7 @@ func (t *tomlConfig) toConfig(c *Config) {
 	c.APIConfig = t.Ocid.API.APIConfig
 	c.RuntimeConfig = t.Ocid.Runtime.RuntimeConfig
 	c.ImageConfig = t.Ocid.Image.ImageConfig
+	c.NetworkConfig = t.Ocid.Network.NetworkConfig
 }
 
 func (t *tomlConfig) fromConfig(c *Config) {
@@ -117,6 +129,7 @@ func (t *tomlConfig) fromConfig(c *Config) {
 	t.Ocid.API.APIConfig = c.APIConfig
 	t.Ocid.Runtime.RuntimeConfig = c.RuntimeConfig
 	t.Ocid.Image.ImageConfig = c.ImageConfig
+	t.Ocid.Network.NetworkConfig = c.NetworkConfig
 }
 
 // FromFile populates the Config from the TOML-encoded file at the given path.
