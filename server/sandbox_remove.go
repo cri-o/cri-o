@@ -60,6 +60,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 		s.releaseContainerName(c.Name())
 		s.removeContainer(c)
+		if err := s.ctrIDIndex.Delete(c.ID()); err != nil {
+			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.id, err)
+		}
 	}
 
 	if err := label.UnreserveLabel(sb.processLabel); err != nil {
@@ -85,9 +88,15 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	s.releaseContainerName(podInfraContainer.Name())
 	s.removeContainer(podInfraContainer)
 	sb.infraContainer = nil
+	if err := s.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
+		return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.id, err)
+	}
 
 	s.releasePodName(sb.name)
 	s.removeSandbox(sb.id)
+	if err := s.podIDIndex.Delete(sb.id); err != nil {
+		return nil, fmt.Errorf("failed to pod sandbox %s from index: %v", sb.id, err)
+	}
 
 	resp := &pb.RemovePodSandboxResponse{}
 	logrus.Debugf("RemovePodSandboxResponse %+v", resp)
