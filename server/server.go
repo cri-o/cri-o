@@ -304,7 +304,7 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	r, err := oci.New(config.Runtime, config.ContainerDir, config.Conmon, config.ConmonEnv)
+	r, err := oci.New(config.Runtime, config.ContainerDir, config.Conmon, config.ConmonEnv, config.CgroupManager)
 	if err != nil {
 		return nil, err
 	}

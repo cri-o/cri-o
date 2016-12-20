@@ -34,24 +34,26 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, containerDir string, conmonPath string, conmonEnv []string) (*Runtime, error) {
+func New(runtimePath string, containerDir string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
 	r := &Runtime{
-		name:         filepath.Base(runtimePath),
-		path:         runtimePath,
-		containerDir: containerDir,
-		conmonPath:   conmonPath,
-		conmonEnv:    conmonEnv,
+		name:          filepath.Base(runtimePath),
+		path:          runtimePath,
+		containerDir:  containerDir,
+		conmonPath:    conmonPath,
+		conmonEnv:     conmonEnv,
+		cgroupManager: cgroupManager,
 	}
 	return r, nil
 }
 
 // Runtime stores the information about a oci runtime
 type Runtime struct {
-	name         string
-	path         string
-	containerDir string
-	conmonPath   string
-	conmonEnv    []string
+	name          string
+	path          string
+	containerDir  string
+	conmonPath    string
+	conmonEnv     []string
+	cgroupManager string
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -102,7 +104,11 @@ func (r *Runtime) CreateContainer(c *Container) error {
 	}
 	defer parentPipe.Close()
 
-	args := []string{"-c", c.name}
+	var args []string
+	if r.cgroupManager == "systemd" {
+		args = append(args, "-s")
+	}
+	args = append(args, "-c", c.name)
 	args = append(args, "-r", r.path)
 	args = append(args, "-b", c.bundlePath)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))

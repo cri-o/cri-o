@@ -72,6 +72,10 @@ type RuntimeConfig struct {
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
 	ApparmorProfile string `toml:"apparmor_profile"`
+
+	// CgroupManager is the manager implementation name which is used to
+	// handle cgroups for containers.
+	CgroupManager string `toml:"cgroup_manager"`
 }
 
 // ImageConfig represents the "ocid.image" TOML config table.

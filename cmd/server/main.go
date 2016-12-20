@@ -63,6 +63,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("apparmor-profile") {
 		config.ApparmorProfile = ctx.GlobalString("apparmor-profile")
 	}
+	if ctx.GlobalIsSet("cgroup-manager") {
+		config.CgroupManager = ctx.GlobalString("cgroup-manager")
+	}
 	return nil
 }
 
@@ -149,6 +152,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "selinux",
 			Usage: "enable selinux support",
+		},
+		cli.StringFlag{
+			Name:  "cgroup-manager",
+			Usage: "cgroup manager (cgroupfs or systemd)",
 		},
 	}
 

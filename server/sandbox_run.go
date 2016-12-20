@@ -245,8 +245,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// setup cgroup settings
 	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
 	if cgroupParent != "" {
-		// NOTE: we only support cgroupfs for now, discussion happens in issue #270.
-		g.SetLinuxCgroupsPath(cgroupParent + "/" + containerID)
+		if s.config.CgroupManager == "systemd" {
+			cgPath := sb.cgroupParent + ":" + "ocid" + ":" + containerID
+			g.SetLinuxCgroupsPath(cgPath)
+
+		} else {
+			g.SetLinuxCgroupsPath(sb.cgroupParent + "/" + containerID)
+
+		}
 		sb.cgroupParent = cgroupParent
 	}
 

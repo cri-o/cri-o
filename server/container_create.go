@@ -252,8 +252,12 @@ func (s *Server) createSandboxContainer(containerID string, containerName string
 		}
 
 		if sb.cgroupParent != "" {
-			// NOTE: we only support cgroupfs for now, discussion happens in issue #270.
-			specgen.SetLinuxCgroupsPath(sb.cgroupParent + "/" + containerID)
+			if s.config.CgroupManager == "systemd" {
+				cgPath := sb.cgroupParent + ":" + "ocid" + ":" + containerID
+				specgen.SetLinuxCgroupsPath(cgPath)
+			} else {
+				specgen.SetLinuxCgroupsPath(sb.cgroupParent + "/" + containerID)
+			}
 		}
 
 		capabilities := linux.GetSecurityContext().GetCapabilities()
