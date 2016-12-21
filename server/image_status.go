@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/containers/storage/storage"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
@@ -21,6 +22,9 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*
 	}
 	status, err := s.images.ImageStatus(s.imageContext, image)
 	if err != nil {
+		if err == storage.ErrImageUnknown {
+			return &pb.ImageStatusResponse{}, nil
+		}
 		return nil, err
 	}
 	resp := &pb.ImageStatusResponse{
