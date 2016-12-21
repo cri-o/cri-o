@@ -325,6 +325,10 @@ func (s *Server) update() error {
 	for removedPod := range removedPods {
 		// forget this pod
 		sb := s.getSandbox(removedPod)
+		if sb == nil {
+			logrus.Warnf("bad state when getting pod to remove %+v", removedPod)
+			continue
+		}
 		podInfraContainer := sb.infraContainer
 		s.releaseContainerName(podInfraContainer.Name())
 		s.removeContainer(podInfraContainer)
