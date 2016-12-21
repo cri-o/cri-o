@@ -257,8 +257,22 @@ function ping_pod() {
 	echo $?
 }
 
+function ping_pod_from_pod() {
+	pod_ip=`ocic pod status --id $1 | grep "IP Address" | cut -d ' ' -f 3`
+	netns=`ocic pod status --id $2 | grep namespace | cut -d ' ' -f 3`
+
+	ip netns exec `basename $netns` ping -W 1 -c 2 $pod_ip
+
+	echo $?
+}
+
+
 function cleanup_network_conf() {
 	rm -rf $OCID_CNI_CONFIG
 
 	echo 0
+}
+
+function temp_sandbox_conf() {
+	sed -e s/\"namespace\":.*/\"namespace\":\ \"$1\",/g "$TESTDATA"/sandbox_config.json > $TESTDIR/sandbox_config_$1.json
 }
