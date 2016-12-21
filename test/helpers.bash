@@ -245,6 +245,14 @@ function parse_pod_ip() {
   done
 }
 
+function ping_host_pod() {
+	pod_ip=`ocic pod status --id $1 | grep "IP Address" | cut -d ' ' -f 3`
+
+	ping -W 1 -c 5 $pod_ip
+
+	echo $?
+}
+
 function ping_pod() {
         netns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
 	inet=`ip netns exec \`basename $netns\` ip addr show dev eth0 scope global | grep inet`
