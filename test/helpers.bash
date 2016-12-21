@@ -235,14 +235,14 @@ function check_pod_cidr() {
 }
 
 function parse_pod_ip() {
-  for arg
-  do
-      cidr=`echo "$arg" | grep $POD_CIDR_MASK`
-      if [ "$cidr" == "$arg" ]
-      then
-	  echo `echo "$arg" | sed "s/\/[0-9][0-9]//"`
-      fi
-  done
+	for arg
+	do
+		cidr=`echo "$arg" | grep $POD_CIDR_MASK`
+		if [ "$cidr" == "$arg" ]
+		then
+			echo `echo "$arg" | sed "s/\/[0-9][0-9]//"`
+		fi
+	done
 }
 
 function ping_host_pod() {
@@ -254,7 +254,7 @@ function ping_host_pod() {
 }
 
 function ping_pod() {
-        netns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
+	netns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
 	inet=`ip netns exec \`basename $netns\` ip addr show dev eth0 scope global | grep inet`
 
 	IFS=" "
