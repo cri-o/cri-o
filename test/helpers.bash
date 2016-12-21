@@ -235,18 +235,26 @@ function check_pod_cidr() {
 }
 
 function parse_pod_ip() {
-  for arg
-  do
-      cidr=`echo "$arg" | grep $POD_CIDR_MASK`
-      if [ "$cidr" == "$arg" ]
-      then
-	  echo `echo "$arg" | sed "s/\/[0-9][0-9]//"`
-      fi
-  done
+	for arg
+	do
+		cidr=`echo "$arg" | grep $POD_CIDR_MASK`
+		if [ "$cidr" == "$arg" ]
+		then
+			echo `echo "$arg" | sed "s/\/[0-9][0-9]//"`
+		fi
+	done
+}
+
+function ping_host_pod() {
+	pod_ip=`ocic pod status --id $1 | grep "IP Address" | cut -d ' ' -f 3`
+
+	ping -W 1 -c 5 $pod_ip
+
+	echo $?
 }
 
 function ping_pod() {
-        netns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
+	netns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
 	inet=`ip netns exec \`basename $netns\` ip addr show dev eth0 scope global | grep inet`
 
 	IFS=" "
@@ -257,8 +265,22 @@ function ping_pod() {
 	echo $?
 }
 
+function ping_pod_from_pod() {
+	pod_ip=`ocic pod status --id $1 | grep "IP Address" | cut -d ' ' -f 3`
+	netns=`ocic pod status --id $2 | grep namespace | cut -d ' ' -f 3`
+
+	ip netns exec `basename $netns` ping -W 1 -c 2 $pod_ip
+
+	echo $?
+}
+
+
 function cleanup_network_conf() {
 	rm -rf $OCID_CNI_CONFIG
 
 	echo 0
+}
+
+function temp_sandbox_conf() {
+	sed -e s/\"namespace\":.*/\"namespace\":\ \"$1\",/g "$TESTDATA"/sandbox_config.json > $TESTDIR/sandbox_config_$1.json
 }
