@@ -309,6 +309,10 @@ func (s *Server) update() error {
 	for removedPodContainer := range removedPodContainers {
 		// forget this container
 		c := s.getContainer(removedPodContainer)
+		if c == nil {
+			logrus.Warnf("bad state when getting container removed %+v", removedPodContainer)
+			continue
+		}
 		s.releaseContainerName(c.Name())
 		s.removeContainer(c)
 		if err = s.ctrIDIndex.Delete(c.ID()); err != nil {
