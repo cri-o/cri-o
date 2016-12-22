@@ -68,14 +68,20 @@ func (s *Server) loadContainer(id string) error {
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		if err != nil {
+			s.releaseContainerName(name)
+		}
+	}()
+
 	var metadata pb.ContainerMetadata
 	if err = json.Unmarshal([]byte(m.Annotations["ocid/metadata"]), &metadata); err != nil {
 		return err
 	}
 	sb := s.getSandbox(m.Annotations["ocid/sandbox_id"])
 	if sb == nil {
-		logrus.Warnf("could not get sandbox with id %s, skipping", m.Annotations["ocid/sandbox_id"])
-		return nil
+		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations["ocid/sandbox_id"])
 	}
 
 	var tty bool
@@ -104,11 +110,10 @@ func (s *Server) loadContainer(id string) error {
 	if err != nil {
 		return err
 	}
-	s.addContainer(ctr)
 	if err = s.runtime.UpdateStatus(ctr); err != nil {
-		logrus.Warnf("error updating status for container %s: %v", ctr.ID(), err)
-		return nil
+		return fmt.Errorf("error updating status for container %s: %v", ctr.ID(), err)
 	}
+	s.addContainer(ctr)
 	if err = s.ctrIDIndex.Add(id); err != nil {
 		return err
 	}
@@ -149,6 +154,11 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err != nil {
+			s.releasePodName(name)
+		}
+	}()
 	var metadata pb.PodSandboxMetadata
 	if err = json.Unmarshal([]byte(m.Annotations["ocid/metadata"]), &metadata); err != nil {
 		return err
@@ -194,12 +204,14 @@ func (s *Server) loadSandbox(id string) error {
 
 	s.addSandbox(sb)
 
+	defer func() {
+		if err != nil {
+			s.removeSandbox(sb.id)
+		}
+	}()
+
 	sandboxPath, err := s.store.GetContainerRunDirectory(id)
 	if err != nil {
-		return err
-	}
-
-	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
 
@@ -207,15 +219,22 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err != nil {
+			s.releaseContainerName(cname)
+		}
+	}()
 	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, sb.netNs(), labels, annotations, nil, nil, id, false)
 	if err != nil {
 		return err
 	}
-	sb.infraContainer = scontainer
 	if err = s.runtime.UpdateStatus(scontainer); err != nil {
-		logrus.Warnf("error updating status for pod sandbox infra container %s: %v", scontainer.ID(), err)
-		return nil
+		return fmt.Errorf("error updating status for pod sandbox infra container %s: %v", scontainer.ID(), err)
 	}
+	if err = label.ReserveLabel(processLabel); err != nil {
+		return err
+	}
+	sb.infraContainer = scontainer
 	if err = s.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return err
 	}
