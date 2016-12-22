@@ -107,6 +107,7 @@ func (s *Server) loadContainer(id string) error {
 	s.addContainer(ctr)
 	if err = s.runtime.UpdateStatus(ctr); err != nil {
 		logrus.Warnf("error updating status for container %s: %v", ctr.ID(), err)
+		return nil
 	}
 	if err = s.ctrIDIndex.Add(id); err != nil {
 		return err
@@ -213,6 +214,7 @@ func (s *Server) loadSandbox(id string) error {
 	sb.infraContainer = scontainer
 	if err = s.runtime.UpdateStatus(scontainer); err != nil {
 		logrus.Warnf("error updating status for pod sandbox infra container %s: %v", scontainer.ID(), err)
+		return nil
 	}
 	if err = s.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return err
