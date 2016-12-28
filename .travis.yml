@@ -10,6 +10,8 @@ services:
   - docker
 
 install:
+  - ./autogen.sh
+  - ./configure --with-travis
   - make install.tools
 
 before_script:
