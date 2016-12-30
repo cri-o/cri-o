@@ -275,7 +275,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 func (r *Runtime) StopContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.name); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.name, "TERM"); err != nil {
 		return err
 	}
 	i := 0
