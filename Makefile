@@ -8,7 +8,7 @@ OCID_LINK := ${CURDIR}/vendor/src/github.com/kubernetes-incubator/cri-o
 OCID_LINK_DIR := ${CURDIR}/vendor/src/github.com/kubernetes-incubator
 OCID_INSTANCE := ocid_dev
 SYSTEM_GOPATH := ${GOPATH}
-PREFIX ?= ${DESTDIR}/usr
+PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
@@ -115,6 +115,8 @@ install:
 	install -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
 	install -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
+
+install.config:
 	install -D -m 644 ocid.conf $(ETCDIR_OCID)/ocid.conf
 	install -D -m 644 seccomp.json $(ETCDIR_OCID)/seccomp.json
 
