@@ -75,18 +75,6 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	return nil
 }
 
-type byName []cli.Flag
-
-func (f byName) Len() int {
-	return len(f)
-}
-func (f byName) Less(i, j int) bool {
-	return f[i].GetName() < f[j].GetName()
-}
-func (f byName) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
-}
-
 func main() {
 	if reexec.Init() {
 		return
@@ -173,9 +161,8 @@ func main() {
 		},
 	}
 
-	// remove once https://github.com/urfave/cli/pull/544 lands
-	sort.Sort(byName(app.Flags))
-	sort.Sort(byName(configCommand.Flags))
+	sort.Sort(cli.FlagsByName(app.Flags))
+	sort.Sort(cli.FlagsByName(configCommand.Flags))
 
 	app.Commands = []cli.Command{
 		configCommand,

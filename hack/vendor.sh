@@ -63,7 +63,7 @@ clone git github.com/docker/engine-api v0.4.0
 clone git github.com/opencontainers/image-spec master
 clone git golang.org/x/net 991d3e32f76f19ee6d9caadb3a22eae8d23315f7 https://github.com/golang/net.git
 clone git github.com/docker/docker master
-clone git github.com/urfave/cli v1.18.1
+clone git github.com/urfave/cli v1.19.1
 clone git github.com/opencontainers/runtime-tools master
 clone git github.com/tchap/go-patricia v2.2.6
 clone git github.com/rajatchopra/ocicni master
