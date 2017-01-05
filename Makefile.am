@@ -1,13 +1,13 @@
 GO ?= go
 EPOCH_TEST_COMMIT ?= 78aae688e2932f0cfc2a23e28ad30b58c6b8577f
-PROJECT := github.com/kubernetes-incubator/cri-o
-GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
-GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
-OCID_IMAGE := ocid_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
-OCID_LINK := ${CURDIR}/vendor/src/github.com/kubernetes-incubator/cri-o
-OCID_LINK_DIR := ${CURDIR}/vendor/src/github.com/kubernetes-incubator
-OCID_INSTANCE := ocid_dev
-SYSTEM_GOPATH := ${GOPATH}
+PROJECT = github.com/kubernetes-incubator/cri-o
+GIT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
+GIT_BRANCH_CLEAN = $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
+OCID_IMAGE = ocid_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
+OCID_LINK = ${CURDIR}/vendor/src/github.com/kubernetes-incubator/cri-o
+OCID_LINK_DIR = ${CURDIR}/vendor/src/github.com/kubernetes-incubator
+OCID_INSTANCE = ocid_dev
+SYSTEM_GOPATH = ${GOPATH}
 PREFIX ?= ${DESTDIR}/usr
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
@@ -15,9 +15,21 @@ MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_OCID ?= ${ETCDIR}/ocid
 GO_MD2MAN ?= $(shell which go-md2man)
-export GOPATH := ${CURDIR}/vendor
-BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
+export GOPATH = ${CURDIR}/vendor
+BUILDTAGS = $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
+
+if USE_SELINUX
+BUILDTAGS += selinux
+endif
+
+if USE_SECCOMP
+BUILDTAGS += seccomp
+endif
+
+if USE_APPARMOR
+BUILDTAGS += apparmor
+endif
 
 all: binaries ocid.conf docs
 
@@ -63,7 +75,7 @@ kpod: $(GO_SRC) | ${OCID_LINK}
 ocid.conf: ocid
 	./ocid --config="" config --default > ocid.conf
 
-clean:
+clean-local:
 	rm -f ocid.conf
 	rm -f ocic ocid
 	rm -f kpod
@@ -88,8 +100,8 @@ localintegration: binaries
 
 binaries: ocid ocic kpod conmon pause
 
-MANPAGES_MD := $(wildcard docs/*.md)
-MANPAGES    := $(MANPAGES_MD:%.md=%)
+MANPAGES_MD = $(wildcard docs/*.md)
+MANPAGES    = $(MANPAGES_MD:%.md=%)
 
 docs/%.1: docs/%.1.md
 	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
@@ -105,7 +117,7 @@ docs/%.8: docs/%.8.md
 
 docs: $(MANPAGES)
 
-install:
+install-exec-local:
 	install -D -m 755 kpod $(BINDIR)/kpod
 	install -D -m 755 ocid $(BINDIR)/ocid
 	install -D -m 755 ocic $(BINDIR)/ocic
@@ -125,7 +137,7 @@ install.completions:
 install.systemd:
 	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system/ocid.service
 
-uninstall:
+uninstall-local:
 	rm -f $(BINDIR)/{ocid,ocic}
 	rm -f $(LIBEXECDIR)/ocid/{conmon,pause}
 	for i in $(filter %.1,$(MANPAGES)); do \
@@ -142,7 +154,7 @@ uninstall:
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation:
 	@which git-validation > /dev/null 2>/dev/null || (echo "ERROR: git-validation not found. Consider 'make install.tools' target" && false)
-ifeq ($(TRAVIS),true)
+if TRAVIS
 	git-validation -q -run DCO,short-subject
 else
 	git-validation -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
