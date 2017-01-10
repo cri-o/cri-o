@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Read the pid so we can wait for the process to exit */
-	g_file_get_contents("pidfile", &contents, NULL, &err);
+	g_file_get_contents(pid_file, &contents, NULL, &err);
 	if (err) {
 		fprintf(stderr, "Failed to read pidfile: %s\n", err->message);
 		g_error_free(err);
