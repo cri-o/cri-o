@@ -47,6 +47,9 @@ pause:
 bin2img:
 	make -C test/$@
 
+copyimg:
+	make -C test/$@
+
 ocid:
 ifndef GOPATH
 	$(error GOPATH is not set)
@@ -72,11 +75,13 @@ ocid.conf: ocid
 
 clean:
 	rm -f docs/*.1 docs/*.5 docs/*.8
+	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 	make -C conmon clean
 	make -C pause clean
 	make -C test/bin2img clean
+	make -C test/copyimg clean
 
 ocidimage:
 	docker build -t ${OCID_IMAGE} .
@@ -90,7 +95,7 @@ integration: ocidimage
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: ocid ocic kpod conmon pause bin2img
+binaries: ocid ocic kpod conmon pause bin2img copyimg
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
@@ -188,6 +193,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	binaries \
 	clean \
 	conmon \
+	copyimg \
 	default \
 	docs \
 	gofmt \

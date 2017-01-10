@@ -8,3 +8,5 @@ ocid.conf
 *.orig
 *.rej
 test/bin2img/bin2img
+test/copyimg/copyimg
+test/testdata/redis-image

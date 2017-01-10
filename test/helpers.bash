@@ -38,6 +38,8 @@ BOOT_CONFIG_FILE_PATH=${BOOT_CONFIG_FILE_PATH:-/boot/config-`uname -r`}
 APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/apparmor/parameters/enabled}
 # Path of the bin2img binary.
 BIN2IMG_BINARY=${BIN2IMG_BINARY:-${OCID_ROOT}/cri-o/test/bin2img/bin2img}
+# Path of the copyimg binary.
+COPYIMG_BINARY=${COPYIMG_BINARY:-${OCID_ROOT}/cri-o/test/copyimg/copyimg}
 
 TESTDIR=$(mktemp -d)
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -57,6 +59,16 @@ cp "$CONMON_BINARY" "$TESTDIR/conmon"
 mkdir -p $OCID_CNI_CONFIG
 
 PATH=$PATH:$TESTDIR
+
+# Make sure we have a copy of the redis:latest image.
+if ! [ -d "$TESTDATA"/redis-image ]; then
+    mkdir -p "$TESTDATA"/redis-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://redis --export-to=dir:"$TESTDATA"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://redis"
+        rm -fr "$TESTDATA"/redis-image
+        exit 1
+    fi
+fi
 
 # Run ocid using the binary specified by $OCID_BINARY.
 # This must ONLY be run on engines created with `start_ocid`.
@@ -114,10 +126,11 @@ function start_ocid() {
 		apparmor="$APPARMOR_PROFILE"
 	fi
 
-	# Don't forget: bin2img and ocid have their own default drivers, so if you override either, you probably need to override both
+	# Don't forget: bin2img, copyimg, and ocid have their own default drivers, so if you override any, you probably need to override them all
 	if ! [ "$3" = "--no-pause-image" ] ; then
 		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
 	fi
+	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$TESTDATA"/redis-image --add-name=docker://docker.io/library/redis:latest
 	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
