@@ -335,7 +335,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 		if err != nil {
 			return fmt.Errorf("status code conversion failed: %v", err)
 		}
-		c.state.ExitCode = int32(utils.StatusToExitCode(statusCode))
+		c.state.ExitCode = int32(statusCode)
 	}
 
 	return nil

@@ -303,10 +303,12 @@ int main(int argc, char *argv[])
 
 	/* Wait for the container process and record its exit code */
 	while ((pid = waitpid(-1, &status, 0)) > 0) {
-		printf("PID %d exited\n", pid);
+		int exit_status = WEXITSTATUS(status);
+
+		printf("PID %d exited with status %d\n", pid, exit_status);
 		if (pid == cpid) {
 			_cleanup_free_ char *status_str = NULL;
-			ret = asprintf(&status_str, "%d", status);
+			ret = asprintf(&status_str, "%d", exit_status);
 			if (ret < 0) {
 				pexit("Failed to allocate memory for status");
 			}
