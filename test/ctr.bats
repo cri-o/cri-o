@@ -387,7 +387,6 @@ function teardown() {
 	run ocic ctr execsync --id "$ctr_id" doesnotexist
 	echo "$output"
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "executable file not found in" ]]
 
 	cleanup_ctrs
 	cleanup_pods
