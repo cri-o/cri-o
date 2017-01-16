@@ -76,6 +76,7 @@ static char *runtime_path = NULL;
 static char *bundle_path = NULL;
 static char *pid_file = NULL;
 static bool systemd_cgroup = false;
+static bool exec = false;
 static GOptionEntry entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &terminal, "Terminal", NULL },
@@ -84,12 +85,13 @@ static GOptionEntry entries[] =
   { "bundle", 'b', 0, G_OPTION_ARG_STRING, &bundle_path, "Bundle path", NULL },
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &pid_file, "PID file", NULL },
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &systemd_cgroup, "Enable systemd cgroup manager", NULL },
+  { "exec", 'e', 0, G_OPTION_ARG_NONE, &exec, "Exec a command in a running container", NULL },
   { NULL }
 };
 
 int main(int argc, char *argv[])
 {
-	int ret;
+	int ret, runtime_status;
 	char cwd[PATH_MAX];
 	char default_pid_file[PATH_MAX];
 	GError *err = NULL;
@@ -105,7 +107,7 @@ int main(int argc, char *argv[])
 	struct termios t;
 	struct epoll_event ev;
 	struct epoll_event evlist[MAX_EVENTS];
-	int child_pipe = -1;
+	int sync_pipe_fd = -1;
 	char *sync_pipe, *endptr;
 	int len;
 	GError *error = NULL;
@@ -126,7 +128,7 @@ int main(int argc, char *argv[])
 	if (runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
 
-	if (bundle_path == NULL) {
+	if (bundle_path == NULL && !exec) {
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
 			nexit("Failed to get working directory");
 		}
@@ -147,7 +149,7 @@ int main(int argc, char *argv[])
 	sync_pipe = getenv("_OCI_SYNCPIPE");
 	if (sync_pipe) {
 		errno = 0;
-		child_pipe = strtol(sync_pipe, &endptr, 10);
+		sync_pipe_fd = strtol(sync_pipe, &endptr, 10);
 		if (errno != 0 || *endptr != '\0')
 			pexit("unable to parse _OCI_SYNCPIPE");
 	}
@@ -184,23 +186,41 @@ int main(int argc, char *argv[])
 
 	}
 
-	/* Create the container */
 	cmd = g_string_new(runtime_path);
-	if (systemd_cgroup) {
-		g_string_append_printf(cmd, " --systemd-cgroup");
+	if (!exec) {
+		/* Create the container */
+		if (systemd_cgroup) {
+			g_string_append_printf(cmd, " --systemd-cgroup");
+		}
+		g_string_append_printf(cmd, " create %s --bundle %s --pid-file %s",
+				       cid, bundle_path, pid_file);
+		if (terminal) {
+			g_string_append_printf(cmd, " --console %s", slname);
+		}
+	} else {
+		int i;
+
+		/* Exec the command */
+		if (terminal) {
+			g_string_append_printf(cmd, " exec -d --pid-file %s --console %s %s",
+					       pid_file, slname, cid);
+		} else {
+			g_string_append_printf(cmd, " exec -d --pid-file %s %s",
+					       pid_file, cid);
+		}
+
+		for (i = 1; i < argc; i++) {
+			g_string_append_printf(cmd, " %s", argv[i]);
+		}
 	}
-	g_string_append_printf(cmd, " create %s --bundle %s --pid-file %s",
-			       cid, bundle_path, pid_file);
-	if (terminal) {
-		g_string_append_printf(cmd, " --console %s", slname);
-	}
-	ret = system(cmd->str);
-	if (ret != 0) {
+
+	runtime_status = system(cmd->str);
+	if (runtime_status != 0) {
 		nexit("Failed to create container");
 	}
 
 	/* Read the pid so we can wait for the process to exit */
-	g_file_get_contents("pidfile", &contents, NULL, &err);
+	g_file_get_contents(pid_file, &contents, NULL, &err);
 	if (err) {
 		fprintf(stderr, "Failed to read pidfile: %s\n", err->message);
 		g_error_free(err);
@@ -211,9 +231,9 @@ int main(int argc, char *argv[])
 	printf("container PID: %d\n", cpid);
 
 	/* Send the container pid back to parent */
-	if (child_pipe > 0) {
+	if (sync_pipe_fd > 0  && !exec) {
 		len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", cpid);
-		if (len < 0 || write(child_pipe, buf, len) != len) {
+		if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
 			pexit("unable to send container pid to parent");
 		}
 	}
@@ -303,23 +323,50 @@ int main(int argc, char *argv[])
 
 	/* Wait for the container process and record its exit code */
 	while ((pid = waitpid(-1, &status, 0)) > 0) {
-		printf("PID %d exited\n", pid);
+		int exit_status = WEXITSTATUS(status);
+
+		printf("PID %d exited with status %d\n", pid, exit_status);
 		if (pid == cpid) {
-			_cleanup_free_ char *status_str = NULL;
-			ret = asprintf(&status_str, "%d", status);
-			if (ret < 0) {
-				pexit("Failed to allocate memory for status");
-			}
-			g_file_set_contents("exit", status_str,
-					    strlen(status_str), &err);
-			if (err) {
-				fprintf(stderr,
-					"Failed to write %s to exit file: %s\n",
-					status_str, err->message);
-				g_error_free(err);
-				exit(1);
+			if (!exec) {
+				_cleanup_free_ char *status_str = NULL;
+				ret = asprintf(&status_str, "%d", exit_status);
+				if (ret < 0) {
+					pexit("Failed to allocate memory for status");
+				}
+				g_file_set_contents("exit", status_str,
+						    strlen(status_str), &err);
+				if (err) {
+					fprintf(stderr,
+						"Failed to write %s to exit file: %s\n",
+						status_str, err->message);
+					g_error_free(err);
+					exit(1);
+				}
+			} else {
+				/* Send the command exec exit code back to the parent */
+				if (sync_pipe_fd > 0) {
+					len = snprintf(buf, BUF_SIZE, "{\"exit_code\": %d}\n", exit_status);
+					if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+						pexit("unable to send exit status");
+						exit(1);
+					}
+				}
 			}
 			break;
+		}
+	}
+
+	if (exec && pid < 0 && errno == ECHILD && sync_pipe_fd > 0) {
+		/*
+		 * waitpid failed and set errno to ECHILD:
+		 * The runtime exec call did not create any child
+		 * process and we can send the system() exit code
+		 * to the parent.
+		 */
+		len = snprintf(buf, BUF_SIZE, "{\"exit_code\": %d}\n", WEXITSTATUS(runtime_status));
+		if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+			pexit("unable to send exit status");
+			exit(1);
 		}
 	}
 

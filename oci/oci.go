@@ -61,6 +61,11 @@ type syncInfo struct {
 	Pid int `json:"pid"`
 }
 
+// exitCodeInfo is used to return the monitored process exit code to the daemon
+type exitCodeInfo struct {
+	ExitCode int32 `json:"exit_code"`
+}
+
 // Name returns the name of the OCI Runtime
 func (r *Runtime) Name() string {
 	return r.name
@@ -177,16 +182,61 @@ func (e ExecSyncError) Error() string {
 	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
 }
 
+func prepareExec() (pidFile, parentPipe, childPipe *os.File, err error) {
+	parentPipe, childPipe, err = os.Pipe()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	pidFile, err = ioutil.TempFile("", "pidfile")
+	if err != nil {
+		parentPipe.Close()
+		childPipe.Close()
+		return nil, nil, nil, err
+	}
+
+	return
+}
+
 // ExecSync execs a command in a container and returns it's stdout, stderr and return code.
 func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
-	args := []string{"exec", c.name}
+	pidFile, parentPipe, childPipe, err := prepareExec()
+	if err != nil {
+		return nil, ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+	defer parentPipe.Close()
+	defer func() {
+		if e := os.Remove(pidFile.Name()); e != nil {
+			logrus.Warnf("could not remove temporary PID file %s", pidFile.Name())
+		}
+	}()
+
+	var args []string
+	args = append(args, "-c", c.name)
+	args = append(args, "-r", r.path)
+	args = append(args, "-p", pidFile.Name())
+	args = append(args, "-e")
+	if c.terminal {
+		args = append(args, "-t")
+	}
+
 	args = append(args, command...)
-	cmd := exec.Command(r.Path(), args...)
+
+	cmd := exec.Command(r.conmonPath, args...)
+
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
+	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
+	// 0, 1 and 2 are stdin, stdout and stderr
+	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
+
 	err = cmd.Start()
 	if err != nil {
+		childPipe.Close()
 		return nil, ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
@@ -194,6 +244,9 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 			Err:      err,
 		}
 	}
+
+	// We don't need childPipe on the parent side
+	childPipe.Close()
 
 	if timeout > 0 {
 		done := make(chan error, 1)
@@ -260,7 +313,27 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 					Err:      err,
 				}
 			}
+		}
+	}
 
+	var ec *exitCodeInfo
+	if err := json.NewDecoder(parentPipe).Decode(&ec); err != nil {
+		return nil, ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+
+	logrus.Infof("Received container exit code: %v", ec.ExitCode)
+
+	if ec.ExitCode != 0 {
+		return nil, ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: ec.ExitCode,
+			Err:      fmt.Errorf("container workload exited with error %v", ec.ExitCode),
 		}
 	}
 
@@ -335,7 +408,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 		if err != nil {
 			return fmt.Errorf("status code conversion failed: %v", err)
 		}
-		c.state.ExitCode = int32(utils.StatusToExitCode(statusCode))
+		c.state.ExitCode = int32(statusCode)
 	}
 
 	return nil

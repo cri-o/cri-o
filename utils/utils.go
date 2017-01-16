@@ -125,8 +125,3 @@ func dockerRemove(container string) error {
 	_, err := ExecCmd("docker", "rm", container)
 	return err
 }
-
-// StatusToExitCode converts wait status code to an exit code
-func StatusToExitCode(status int) int {
-	return ((status) & 0xff00) >> 8
-}
