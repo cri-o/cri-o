@@ -465,7 +465,7 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(imageService)
+	storageRuntimeService := storage.GetRuntimeService(imageService, config.PauseImage)
 	if err != nil {
 		return nil, err
 	}

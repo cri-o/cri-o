@@ -134,6 +134,11 @@ function start_ocid() {
 	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
+
+	run ocic image status --id=redis
+	if [ "$status" -ne 0 ] ; then
+		ocic image pull docker://redis:latest
+	fi
 }
 
 function cleanup_ctrs() {
