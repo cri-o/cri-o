@@ -112,7 +112,7 @@ func DefaultConfig() *server.Config {
 			Listen: "/var/run/ocid.sock",
 		},
 		RuntimeConfig: server.RuntimeConfig{
-			Runtime: "/usr/bin/runc",
+			Runtime: "/usr/sbin/runc",
 			Conmon:  conmonPath,
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
