@@ -84,7 +84,7 @@ func main() {
 	app.Usage = "ocid server"
 	app.Version = "0.0.1"
 	app.Metadata = map[string]interface{}{
-		"config": DefaultConfig(),
+		"config": server.DefaultConfig(),
 	}
 
 	app.Flags = []cli.Flag{
