@@ -3,8 +3,25 @@ package server
 import (
 	"bytes"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/opencontainers/runc/libcontainer/selinux"
+)
+
+// Default paths if none are specified
+const (
+	ocidRoot           = "/var/lib/ocid"
+	conmonPath         = "/usr/libexec/ocid/conmon"
+	pausePath          = "/usr/libexec/ocid/pause"
+	seccompProfilePath = "/etc/ocid/seccomp.json"
+	cniConfigDir       = "/etc/cni/net.d/"
+	cniBinDir          = "/opt/cni/bin/"
+)
+
+const (
+	apparmorProfileName = "ocid-default"
+	cgroupManager       = "cgroupfs"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -168,4 +185,38 @@ func (c *Config) ToFile(path string) error {
 	}
 
 	return ioutil.WriteFile(path, w.Bytes(), 0644)
+}
+
+// DefaultConfig returns the default configuration for ocid.
+func DefaultConfig() *Config {
+	return &Config{
+		RootConfig: RootConfig{
+			Root:         ocidRoot,
+			SandboxDir:   filepath.Join(ocidRoot, "sandboxes"),
+			ContainerDir: filepath.Join(ocidRoot, "containers"),
+			LogDir:       "/var/log/ocid/pods",
+		},
+		APIConfig: APIConfig{
+			Listen: "/var/run/ocid.sock",
+		},
+		RuntimeConfig: RuntimeConfig{
+			Runtime: "/usr/bin/runc",
+			Conmon:  conmonPath,
+			ConmonEnv: []string{
+				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+			},
+			SELinux:         selinux.SelinuxEnabled(),
+			SeccompProfile:  seccompProfilePath,
+			ApparmorProfile: apparmorProfileName,
+			CgroupManager:   cgroupManager,
+		},
+		ImageConfig: ImageConfig{
+			Pause:    pausePath,
+			ImageDir: filepath.Join(ocidRoot, "store"),
+		},
+		NetworkConfig: NetworkConfig{
+			NetworkDir: cniConfigDir,
+			PluginDir:  cniBinDir,
+		},
+	}
 }
