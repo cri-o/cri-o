@@ -256,8 +256,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		sb.cgroupParent = cgroupParent
 	}
 
+	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostNetwork()
+
 	// set up namespaces
-	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostNetwork() {
+	if hostNetwork {
 		err = g.RemoveLinuxNamespace("network")
 		if err != nil {
 			return nil, err
@@ -330,9 +332,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	sb.infraContainer = container
 
 	// setup the network
-	podNamespace := ""
-	if err = s.netPlugin.SetUpPod(netNsPath, podNamespace, id, containerName); err != nil {
-		return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
+	if !hostNetwork {
+		podNamespace := ""
+		if err = s.netPlugin.SetUpPod(netNsPath, podNamespace, id, containerName); err != nil {
+			return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
+		}
 	}
 
 	if err = s.runContainer(container); err != nil {
