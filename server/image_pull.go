@@ -22,7 +22,9 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	if err != nil {
 		return nil, err
 	}
-	resp := &pb.PullImageResponse{}
+	resp := &pb.PullImageResponse{
+		ImageRef: &image,
+	}
 	logrus.Debugf("PullImageResponse: %+v", resp)
 	return resp, nil
 }
