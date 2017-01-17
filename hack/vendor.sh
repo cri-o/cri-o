@@ -29,13 +29,13 @@ case $# in
 	exit 0
 	;;
 2)
-	rm -rf "vendor/src/$1"
+	rm -rf "vendor/$1"
 	clone git "$1" "$2"
 	clean
 	exit 0
 	;;
 [34])
-	rm -rf "vendor/src/$2"
+	rm -rf "vendor/$2"
 	clone "$@"
 	clean
 	exit 0

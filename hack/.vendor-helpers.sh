@@ -23,7 +23,7 @@ clone() {
 	local url="$4"
 
 	: ${url:=https://$pkg}
-	local target="vendor/src/$pkg"
+	local target="vendor/$pkg"
 
 	echo -n "$pkg @ $rev: "
 
@@ -84,11 +84,11 @@ clean() {
 	echo -n 'pruning unused packages, '
 	findArgs=(
 		# This directory contains only .c and .h files which are necessary
-		# -path vendor/src/github.com/mattn/go-sqlite3/code
+		# -path vendor/github.com/mattn/go-sqlite3/code
 	)
 	for import in "${imports[@]}"; do
 		[ "${#findArgs[@]}" -eq 0 ] || findArgs+=( -or )
-		findArgs+=( -path "vendor/src/$import" )
+		findArgs+=( -path "vendor/$import" )
 	done
 	local IFS=$'\n'
 	local prune=( $($find vendor -depth -type d -not '(' "${findArgs[@]}" ')') )
@@ -108,7 +108,7 @@ clean() {
 fix_rewritten_imports () {
        local pkg="$1"
        local remove="${pkg}/Godeps/_workspace/src/"
-       local target="vendor/src/$pkg"
+       local target="vendor/$pkg"
 
        echo "$pkg: fixing rewritten imports"
        $find "$target" -name \*.go -exec sed -i -e "s|\"${remove}|\"|g" {} \;

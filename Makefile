@@ -4,18 +4,13 @@ PROJECT := github.com/kubernetes-incubator/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 OCID_IMAGE := ocid_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
-OCID_LINK := ${CURDIR}/vendor/src/github.com/kubernetes-incubator/cri-o
-OCID_LINK_DIR := ${CURDIR}/vendor/src/github.com/kubernetes-incubator
 OCID_INSTANCE := ocid_dev
-SYSTEM_GOPATH := ${GOPATH}
 PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_OCID ?= ${ETCDIR}/ocid
-GO_MD2MAN ?= $(shell which go-md2man)
-export GOPATH := ${CURDIR}/vendor
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 
@@ -26,20 +21,19 @@ default: help
 help:
 	@echo "Usage: make <target>"
 	@echo
+	@echo " * 'install' - Install binaries to system locations"
 	@echo " * 'binaries' - Build ocid, conmon and ocic"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
 	@echo " * 'gofmt' - Verify the source code gofmt"
 
-lint: ${OCID_LINK}
-	@which gometalinter > /dev/null 2>/dev/null || (echo "ERROR: gometalinter not found. Consider 'make install.tools' target" && false)
+lint:
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
 	@echo "checking lint"
 	@./.tool/lint
-
-${OCID_LINK}:
-	mkdir -p ${OCID_LINK_DIR}
-	ln -sfn ${CURDIR} ${OCID_LINK}
 
 gofmt:
 	@./hack/verify-gofmt.sh
@@ -50,24 +44,30 @@ conmon:
 pause:
 	make -C $@
 
-GO_SRC =  $(shell find . -name \*.go)
-ocid: $(GO_SRC) | ${OCID_LINK}
-	$(GO) build --tags "$(BUILDTAGS)" -o $@ ./cmd/server/
+ocid:
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
+	$(GO) install \
+		-tags "$(BUILDTAGS)" \
+		$(PROJECT)/cmd/ocid
 
-ocic: $(GO_SRC) | ${OCID_LINK}
-	$(GO) build -o $@ ./cmd/client/
+ocic:
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
+	$(GO) install $(PROJECT)/cmd/ocic
 
-kpod: $(GO_SRC) | ${OCID_LINK}
-	$(GO) build -o $@ ./cmd/kpod/
+kpod:
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
+	$(GO) install $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
-	./ocid --config="" config --default > ocid.conf
+	$(GOPATH)/bin/ocid --config="" config --default > ocid.conf
 
 clean:
-	rm -f ocid.conf
-	rm -f ocic ocid
-	rm -f kpod
-	rm -f ${OCID_LINK}
 	rm -f docs/*.1 docs/*.5 docs/*.8
 	find . -name \*~ -delete
 	find . -name \#\* -delete
@@ -92,23 +92,32 @@ MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 docs/%.1: docs/%.1.md
-	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
-	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
+	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.5: docs/%.5.md
-	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
-	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
+	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.8: docs/%.8.md
-	@which go-md2man > /dev/null 2>/dev/null || (echo "ERROR: go-md2man not found. Consider 'make install.tools' target" && false)
-	$(GO_MD2MAN) -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
+	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES)
 
 install:
-	install -D -m 755 kpod $(BINDIR)/kpod
-	install -D -m 755 ocid $(BINDIR)/ocid
-	install -D -m 755 ocic $(BINDIR)/ocic
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
+	install -D -m 755 $(GOPATH)/bin/ocid $(BINDIR)/ocid
+	install -D -m 755 $(GOPATH)/bin/ocic $(BINDIR)/ocic
+	install -D -m 755 $(GOPATH)/bin/kpod $(BINDIR)/kpod
 	install -D -m 755 conmon/conmon $(LIBEXECDIR)/ocid/conmon
 	install -D -m 755 pause/pause $(LIBEXECDIR)/ocid/pause
 	install -d -m 755 $(MANDIR)/man1
@@ -130,8 +139,10 @@ install.systemd:
 	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system/ocid.service
 
 uninstall:
-	rm -f $(BINDIR)/{ocid,ocic}
-	rm -f $(LIBEXECDIR)/ocid/{conmon,pause}
+	rm -f $(BINDIR)/ocid
+	rm -f $(BINDIR)/ocic
+	rm -f $(LIBEXECDIR)/ocid/conmon
+	rm -f $(LIBEXECDIR)/ocid/pause
 	for i in $(filter %.1,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done
@@ -145,11 +156,13 @@ uninstall:
 .PHONY: .gitvalidation
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation:
-	@which git-validation > /dev/null 2>/dev/null || (echo "ERROR: git-validation not found. Consider 'make install.tools' target" && false)
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
 ifeq ($(TRAVIS),true)
-	git-validation -q -run DCO,short-subject
+	$(GOPATH)/bin/git-validation -q -run DCO,short-subject
 else
-	git-validation -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
+	$(GOPATH)/bin/ -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
 .PHONY: install.tools
@@ -157,14 +170,14 @@ endif
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 .install.gitvalidation:
-	GOPATH=${SYSTEM_GOPATH} go get github.com/vbatts/git-validation
+	go get -u github.com/vbatts/git-validation
 
 .install.gometalinter:
-	GOPATH=${SYSTEM_GOPATH} go get github.com/alecthomas/gometalinter
-	GOPATH=${SYSTEM_GOPATH} gometalinter --install
+	go get -u github.com/alecthomas/gometalinter
+	$(GOPATH)/bin/gometalinter --install
 
 .install.md2man:
-	GOPATH=${SYSTEM_GOPATH} go get github.com/cpuguy83/go-md2man
+	go get -u github.com/cpuguy83/go-md2man
 
 .PHONY: \
 	binaries \
