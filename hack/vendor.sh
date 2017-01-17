@@ -68,7 +68,8 @@ clone git github.com/opencontainers/runtime-tools master
 clone git github.com/tchap/go-patricia v2.2.6
 clone git github.com/rajatchopra/ocicni master
 clone git github.com/containernetworking/cni master
-clone git k8s.io/kubernetes 43110dd64d058786e975ce30d4c12a4853d1778c https://github.com/kubernetes/kubernetes
+clone git k8s.io/kubernetes 550f8be73aac92c7c23b1783d3db17f8660019f6 https://github.com/kubernetes/kubernetes
+clone git k8s.io/apimachinery master https://github.com/kubernetes/apimachinery
 clone git google.golang.org/grpc v1.0.1-GA https://github.com/grpc/grpc-go.git
 clone git github.com/opencontainers/runtime-spec bb6925ea99f0e366a3f7d1c975f6577475ca25f0
 clone git github.com/docker/distribution d22e09a6686c32be8c17b684b639da4b90efe320
