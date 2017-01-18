@@ -29,6 +29,7 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 // ListContainers lists all containers by filters.
 func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (*pb.ListContainersResponse, error) {
 	logrus.Debugf("ListContainersRequest %+v", req)
+	s.Update()
 	var ctrs []*pb.Container
 	filter := req.Filter
 	ctrList := s.state.containers.List()

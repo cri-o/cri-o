@@ -1,4 +1,4 @@
-// +build !autogen
+// +build !containersstorageautogen
 
 // Package storageversion is auto-generated at build-time
 package storageversion

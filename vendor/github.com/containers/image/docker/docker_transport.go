@@ -7,6 +7,7 @@ import (
 	"github.com/containers/image/docker/policyconfiguration"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 )
 
 // Transport is an ImageTransport for Docker registry-hosted images.
@@ -42,7 +43,7 @@ type dockerReference struct {
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an Docker ImageReference.
 func ParseReference(refString string) (types.ImageReference, error) {
 	if !strings.HasPrefix(refString, "//") {
-		return nil, fmt.Errorf("docker: image reference %s does not start with //", refString)
+		return nil, errors.Errorf("docker: image reference %s does not start with //", refString)
 	}
 	ref, err := reference.ParseNamed(strings.TrimPrefix(refString, "//"))
 	if err != nil {
@@ -55,7 +56,7 @@ func ParseReference(refString string) (types.ImageReference, error) {
 // NewReference returns a Docker reference for a named reference. The reference must satisfy !reference.IsNameOnly().
 func NewReference(ref reference.Named) (types.ImageReference, error) {
 	if reference.IsNameOnly(ref) {
-		return nil, fmt.Errorf("Docker reference %s has neither a tag nor a digest", ref.String())
+		return nil, errors.Errorf("Docker reference %s has neither a tag nor a digest", ref.String())
 	}
 	// A github.com/distribution/reference value can have a tag and a digest at the same time!
 	// docker/reference does not handle that, so fail.
@@ -64,7 +65,7 @@ func NewReference(ref reference.Named) (types.ImageReference, error) {
 	_, isTagged := ref.(reference.NamedTagged)
 	_, isDigested := ref.(reference.Canonical)
 	if isTagged && isDigested {
-		return nil, fmt.Errorf("Docker references with both a tag and digest are currently not supported")
+		return nil, errors.Errorf("Docker references with both a tag and digest are currently not supported")
 	}
 	return dockerReference{
 		ref: ref,
@@ -151,5 +152,5 @@ func (ref dockerReference) tagOrDigest() (string, error) {
 		return ref.Tag(), nil
 	}
 	// This should not happen, NewReference above refuses reference.IsNameOnly values.
-	return "", fmt.Errorf("Internal inconsistency: Reference %s unexpectedly has neither a digest nor a tag", ref.ref.String())
+	return "", errors.Errorf("Internal inconsistency: Reference %s unexpectedly has neither a digest nor a tag", ref.ref.String())
 }

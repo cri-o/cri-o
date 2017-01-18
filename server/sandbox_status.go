@@ -10,6 +10,7 @@ import (
 // PodSandboxStatus returns the Status of the PodSandbox.
 func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
 	logrus.Debugf("PodSandboxStatusRequest %+v", req)
+	s.Update()
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
 		return nil, err

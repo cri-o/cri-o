@@ -3,8 +3,8 @@ package image
 import (
 	"time"
 
-	"github.com/docker/distribution/digest"
 	"github.com/docker/engine-api/types/strslice"
+	"github.com/opencontainers/go-digest"
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"

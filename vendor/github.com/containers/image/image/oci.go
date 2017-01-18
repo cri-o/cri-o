@@ -2,13 +2,13 @@ package image
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 )
 
 type manifestOCI1 struct {
@@ -59,7 +59,7 @@ func (m *manifestOCI1) ConfigInfo() types.BlobInfo {
 func (m *manifestOCI1) ConfigBlob() ([]byte, error) {
 	if m.configBlob == nil {
 		if m.src == nil {
-			return nil, fmt.Errorf("Internal error: neither src nor configBlob set in manifestOCI1")
+			return nil, errors.Errorf("Internal error: neither src nor configBlob set in manifestOCI1")
 		}
 		stream, _, err := m.src.GetBlob(types.BlobInfo{
 			Digest: m.ConfigDescriptor.Digest,
@@ -76,7 +76,7 @@ func (m *manifestOCI1) ConfigBlob() ([]byte, error) {
 		}
 		computedDigest := digest.FromBytes(blob)
 		if computedDigest != m.ConfigDescriptor.Digest {
-			return nil, fmt.Errorf("Download config.json digest %s does not match expected %s", computedDigest, m.ConfigDescriptor.Digest)
+			return nil, errors.Errorf("Download config.json digest %s does not match expected %s", computedDigest, m.ConfigDescriptor.Digest)
 		}
 		m.configBlob = blob
 	}
@@ -125,7 +125,7 @@ func (m *manifestOCI1) UpdatedImage(options types.ManifestUpdateOptions) (types.
 	copy := *m // NOTE: This is not a deep copy, it still shares slices etc.
 	if options.LayerInfos != nil {
 		if len(copy.LayersDescriptors) != len(options.LayerInfos) {
-			return nil, fmt.Errorf("Error preparing updated manifest: layer count changed from %d to %d", len(copy.LayersDescriptors), len(options.LayerInfos))
+			return nil, errors.Errorf("Error preparing updated manifest: layer count changed from %d to %d", len(copy.LayersDescriptors), len(options.LayerInfos))
 		}
 		copy.LayersDescriptors = make([]descriptor, len(options.LayerInfos))
 		for i, info := range options.LayerInfos {
@@ -139,7 +139,7 @@ func (m *manifestOCI1) UpdatedImage(options types.ManifestUpdateOptions) (types.
 	case manifest.DockerV2Schema2MediaType:
 		return copy.convertToManifestSchema2()
 	default:
-		return nil, fmt.Errorf("Conversion of image manifest from %s to %s is not implemented", imgspecv1.MediaTypeImageManifest, options.ManifestMIMEType)
+		return nil, errors.Errorf("Conversion of image manifest from %s to %s is not implemented", imgspecv1.MediaTypeImageManifest, options.ManifestMIMEType)
 	}
 
 	return memoryImageFromManifest(&copy), nil

@@ -60,7 +60,7 @@ clean() {
 	local packages=($(GOPATH=$original_GOPATH go list -e ./... | grep -v "^${PROJECT}/vendor"))
 	local platforms=( linux/amd64 linux/386 )
 
-	local buildTags=( seccomp )
+	local buildTagSets=( seccomp )
 
 	echo
 
@@ -68,10 +68,12 @@ clean() {
 	local IFS=$'\n'
 	local imports=( $(
 		for platform in "${platforms[@]}"; do
-			export GOOS="${platform%/*}";
-			export GOARCH="${platform##*/}";
-			go list -e -tags "$buildTags" -f '{{join .Deps "\n"}}' "${packages[@]}"
-			go list -e -tags "$buildTags" -f '{{join .TestImports "\n"}}' "${packages[@]}"
+			for buildTags in "" "${buildTagSets[@]}"; do
+				export GOOS="${platform%/*}";
+				export GOARCH="${platform##*/}";
+				go list -e -tags "$buildTags" -f '{{join .Deps "\n"}}' "${packages[@]}"
+				go list -e -tags "$buildTags" -f '{{join .TestImports "\n"}}' "${packages[@]}"
+			done
 		done | grep -vE "^${PROJECT}" | sort -u
 	) )
 	# .TestImports does not include indirect dependencies, so do one more iteration.

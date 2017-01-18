@@ -9,3 +9,4 @@ install:
 script:
   - export PATH="$PATH:$HOME/gopath/bin"
   - make test
+

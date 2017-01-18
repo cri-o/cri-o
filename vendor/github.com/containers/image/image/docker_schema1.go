@@ -2,8 +2,6 @@ package image
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -11,7 +9,8 @@ import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -54,7 +53,7 @@ func manifestSchema1FromManifest(manifest []byte) (genericManifest, error) {
 		return nil, err
 	}
 	if mschema1.SchemaVersion != 1 {
-		return nil, fmt.Errorf("unsupported schema version %d", mschema1.SchemaVersion)
+		return nil, errors.Errorf("unsupported schema version %d", mschema1.SchemaVersion)
 	}
 	if len(mschema1.FSLayers) != len(mschema1.History) {
 		return nil, errors.New("length of history not equal to number of layers")
@@ -153,7 +152,7 @@ func (m *manifestSchema1) UpdatedImage(options types.ManifestUpdateOptions) (typ
 	if options.LayerInfos != nil {
 		// Our LayerInfos includes empty layers (where m.History.V1Compatibility->ThrowAway), so expect them to be included here as well.
 		if len(copy.FSLayers) != len(options.LayerInfos) {
-			return nil, fmt.Errorf("Error preparing updated manifest: layer count changed from %d to %d", len(copy.FSLayers), len(options.LayerInfos))
+			return nil, errors.Errorf("Error preparing updated manifest: layer count changed from %d to %d", len(copy.FSLayers), len(options.LayerInfos))
 		}
 		for i, info := range options.LayerInfos {
 			// (docker push) sets up m.History.V1Compatibility->{Id,Parent} based on values of info.Digest,
@@ -171,7 +170,7 @@ func (m *manifestSchema1) UpdatedImage(options types.ManifestUpdateOptions) (typ
 	case manifest.DockerV2Schema2MediaType:
 		return copy.convertToManifestSchema2(options.InformationOnly.LayerInfos, options.InformationOnly.LayerDiffIDs)
 	default:
-		return nil, fmt.Errorf("Conversion of image manifest from %s to %s is not implemented", manifest.DockerV2Schema1SignedMediaType, options.ManifestMIMEType)
+		return nil, errors.Errorf("Conversion of image manifest from %s to %s is not implemented", manifest.DockerV2Schema1SignedMediaType, options.ManifestMIMEType)
 	}
 
 	return memoryImageFromManifest(&copy), nil
@@ -211,7 +210,7 @@ func fixManifestLayers(manifest *manifestSchema1) error {
 	for _, img := range imgs {
 		// skip IDs that appear after each other, we handle those later
 		if _, exists := idmap[img.ID]; img.ID != lastID && exists {
-			return fmt.Errorf("ID %+v appears multiple times in manifest", img.ID)
+			return errors.Errorf("ID %+v appears multiple times in manifest", img.ID)
 		}
 		lastID = img.ID
 		idmap[lastID] = struct{}{}
@@ -222,7 +221,7 @@ func fixManifestLayers(manifest *manifestSchema1) error {
 			manifest.FSLayers = append(manifest.FSLayers[:i], manifest.FSLayers[i+1:]...)
 			manifest.History = append(manifest.History[:i], manifest.History[i+1:]...)
 		} else if imgs[i].Parent != imgs[i+1].ID {
-			return fmt.Errorf("Invalid parent ID. Expected %v, got %v", imgs[i+1].ID, imgs[i].Parent)
+			return errors.Errorf("Invalid parent ID. Expected %v, got %v", imgs[i+1].ID, imgs[i].Parent)
 		}
 	}
 	return nil
@@ -230,7 +229,7 @@ func fixManifestLayers(manifest *manifestSchema1) error {
 
 func validateV1ID(id string) error {
 	if ok := validHex.MatchString(id); !ok {
-		return fmt.Errorf("image ID %q is invalid", id)
+		return errors.Errorf("image ID %q is invalid", id)
 	}
 	return nil
 }
@@ -239,16 +238,16 @@ func validateV1ID(id string) error {
 func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.BlobInfo, layerDiffIDs []digest.Digest) (types.Image, error) {
 	if len(m.History) == 0 {
 		// What would this even mean?! Anyhow, the rest of the code depends on fsLayers[0] and history[0] existing.
-		return nil, fmt.Errorf("Cannot convert an image with 0 history entries to %s", manifest.DockerV2Schema2MediaType)
+		return nil, errors.Errorf("Cannot convert an image with 0 history entries to %s", manifest.DockerV2Schema2MediaType)
 	}
 	if len(m.History) != len(m.FSLayers) {
-		return nil, fmt.Errorf("Inconsistent schema 1 manifest: %d history entries, %d fsLayers entries", len(m.History), len(m.FSLayers))
+		return nil, errors.Errorf("Inconsistent schema 1 manifest: %d history entries, %d fsLayers entries", len(m.History), len(m.FSLayers))
 	}
 	if len(uploadedLayerInfos) != len(m.FSLayers) {
-		return nil, fmt.Errorf("Internal error: uploaded %d blobs, but schema1 manifest has %d fsLayers", len(uploadedLayerInfos), len(m.FSLayers))
+		return nil, errors.Errorf("Internal error: uploaded %d blobs, but schema1 manifest has %d fsLayers", len(uploadedLayerInfos), len(m.FSLayers))
 	}
 	if len(layerDiffIDs) != len(m.FSLayers) {
-		return nil, fmt.Errorf("Internal error: collected %d DiffID values, but schema1 manifest has %d fsLayers", len(layerDiffIDs), len(m.FSLayers))
+		return nil, errors.Errorf("Internal error: collected %d DiffID values, but schema1 manifest has %d fsLayers", len(layerDiffIDs), len(m.FSLayers))
 	}
 
 	rootFS := rootFS{
@@ -263,7 +262,7 @@ func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.Bl
 
 		var v1compat v1Compatibility
 		if err := json.Unmarshal([]byte(m.History[v1Index].V1Compatibility), &v1compat); err != nil {
-			return nil, fmt.Errorf("Error decoding history entry %d: %v", v1Index, err)
+			return nil, errors.Wrapf(err, "Error decoding history entry %d", v1Index)
 		}
 		history[v2Index] = imageHistory{
 			Created:    v1compat.Created,

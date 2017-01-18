@@ -34,11 +34,10 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, containerDir string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
+func New(runtimePath string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
 	r := &Runtime{
 		name:          filepath.Base(runtimePath),
 		path:          runtimePath,
-		containerDir:  containerDir,
 		conmonPath:    conmonPath,
 		conmonEnv:     conmonEnv,
 		cgroupManager: cgroupManager,
@@ -50,7 +49,6 @@ func New(runtimePath string, containerDir string, conmonPath string, conmonEnv [
 type Runtime struct {
 	name          string
 	path          string
-	containerDir  string
 	conmonPath    string
 	conmonEnv     []string
 	cgroupManager string
@@ -74,11 +72,6 @@ func (r *Runtime) Name() string {
 // Path returns the full path the OCI Runtime executable
 func (r *Runtime) Path() string {
 	return r.path
-}
-
-// ContainerDir returns the path to the base directory for storing container configurations
-func (r *Runtime) ContainerDir() string {
-	return r.containerDir
 }
 
 // Version returns the version of the OCI Runtime

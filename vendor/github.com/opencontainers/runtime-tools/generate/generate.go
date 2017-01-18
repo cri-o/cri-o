@@ -196,6 +196,16 @@ func (g *Generator) Spec() *rspec.Spec {
 func (g *Generator) Save(w io.Writer, exportOpts ExportOptions) (err error) {
 	var data []byte
 
+	if g.spec.Linux != nil {
+		buf, err := json.Marshal(g.spec.Linux)
+		if err != nil {
+			return err
+		}
+		if string(buf) == "{}" {
+			g.spec.Linux = nil
+		}
+	}
+
 	if exportOpts.Seccomp {
 		data, err = json.MarshalIndent(g.spec.Linux.Seccomp, "", "\t")
 	} else {
@@ -331,9 +341,18 @@ func (g *Generator) ClearProcessEnv() {
 	g.spec.Process.Env = []string{}
 }
 
-// AddProcessEnv adds env into g.spec.Process.Env.
-func (g *Generator) AddProcessEnv(env string) {
+// AddProcessEnv adds name=value into g.spec.Process.Env, or replaces an
+// existing entry with the given name.
+func (g *Generator) AddProcessEnv(name, value string) {
 	g.initSpec()
+
+	env := fmt.Sprintf("%s=%s", name, value)
+	for idx := range g.spec.Process.Env {
+		if strings.HasPrefix(g.spec.Process.Env[idx], name+"=") {
+			g.spec.Process.Env[idx] = env
+			return
+		}
+	}
 	g.spec.Process.Env = append(g.spec.Process.Env, env)
 }
 

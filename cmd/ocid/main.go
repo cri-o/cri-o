@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"sort"
+	"strings"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/pkg/reexec"
@@ -36,17 +39,29 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("conmon") {
 		config.Conmon = ctx.GlobalString("conmon")
 	}
-	if ctx.GlobalIsSet("containerdir") {
-		config.ContainerDir = ctx.GlobalString("containerdir")
+	if ctx.GlobalIsSet("pause-command") {
+		config.PauseCommand = ctx.GlobalString("pause-command")
 	}
-	if ctx.GlobalIsSet("pause") {
-		config.Pause = ctx.GlobalString("pause")
+	if ctx.GlobalIsSet("pause-image") {
+		config.PauseImage = ctx.GlobalString("pause-image")
+	}
+	if ctx.GlobalIsSet("signature-policy") {
+		config.SignaturePolicyPath = ctx.GlobalString("signature-policy")
 	}
 	if ctx.GlobalIsSet("root") {
 		config.Root = ctx.GlobalString("root")
 	}
-	if ctx.GlobalIsSet("sandboxdir") {
-		config.SandboxDir = ctx.GlobalString("sandboxdir")
+	if ctx.GlobalIsSet("runroot") {
+		config.RunRoot = ctx.GlobalString("runroot")
+	}
+	if ctx.GlobalIsSet("storage-driver") {
+		config.Storage = ctx.GlobalString("storage-driver")
+	}
+	if ctx.GlobalIsSet("storage-option") {
+		config.StorageOptions = ctx.GlobalStringSlice("storage-option")
+	}
+	if ctx.GlobalIsSet("default-transport") {
+		config.DefaultTransport = ctx.GlobalString("default-transport")
 	}
 	if ctx.GlobalIsSet("listen") {
 		config.Listen = ctx.GlobalString("listen")
@@ -75,6 +90,26 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	return nil
 }
 
+func catchShutdown(gserver *grpc.Server, sserver *server.Server, signalled *bool) {
+	sig := make(chan os.Signal, 10)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for s := range sig {
+			switch s {
+			case syscall.SIGINT:
+				logrus.Debugf("Caught SIGINT")
+			case syscall.SIGTERM:
+				logrus.Debugf("Caught SIGTERM")
+			default:
+				continue
+			}
+			*signalled = true
+			gserver.GracefulStop()
+			return
+		}
+	}()
+}
+
 func main() {
 	if reexec.Init() {
 		return
@@ -97,10 +132,6 @@ func main() {
 			Name:  "conmon",
 			Usage: "path to the conmon executable",
 		},
-		cli.StringFlag{
-			Name:  "containerdir",
-			Usage: "ocid container dir",
-		},
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug output for logging",
@@ -120,20 +151,40 @@ func main() {
 			Usage: "set the format used by logs ('text' (default), or 'json')",
 		},
 		cli.StringFlag{
-			Name:  "pause",
-			Usage: "path to the pause executable",
+			Name:  "pause-command",
+			Usage: "name of the pause command in the pause image",
+		},
+		cli.StringFlag{
+			Name:  "pause-image",
+			Usage: "name of the pause image",
+		},
+		cli.StringFlag{
+			Name:  "signature-policy",
+			Usage: "path to signature policy file",
 		},
 		cli.StringFlag{
 			Name:  "root",
 			Usage: "ocid root dir",
 		},
 		cli.StringFlag{
-			Name:  "runtime",
-			Usage: "OCI runtime path",
+			Name:  "runroot",
+			Usage: "ocid state dir",
 		},
 		cli.StringFlag{
-			Name:  "sandboxdir",
-			Usage: "ocid pod sandbox dir",
+			Name:  "storage-driver",
+			Usage: "storage driver",
+		},
+		cli.StringSliceFlag{
+			Name:  "storage-option",
+			Usage: "storage driver option",
+		},
+		cli.StringFlag{
+			Name:  "default-transport",
+			Usage: "default transport",
+		},
+		cli.StringFlag{
+			Name:  "runtime",
+			Usage: "OCI runtime path",
 		},
 		cli.StringFlag{
 			Name:  "seccomp-profile",
@@ -236,13 +287,24 @@ func main() {
 			logrus.Fatal(err)
 		}
 
+		graceful := false
+		catchShutdown(s, service, &graceful)
 		runtime.RegisterRuntimeServiceServer(s, service)
 		runtime.RegisterImageServiceServer(s, service)
 
 		// after the daemon is done setting up we can notify systemd api
 		notifySystem()
 
-		if err := s.Serve(lis); err != nil {
+		err = s.Serve(lis)
+		if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
+			err = nil
+		}
+
+		if err2 := service.Shutdown(); err2 != nil {
+			logrus.Infof("error shutting down layer storage: %v", err2)
+		}
+
+		if err != nil {
 			logrus.Fatal(err)
 		}
 		return nil

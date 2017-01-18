@@ -3,8 +3,8 @@ package manifest
 import (
 	"encoding/json"
 
-	"github.com/docker/distribution/digest"
 	"github.com/docker/libtrust"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 

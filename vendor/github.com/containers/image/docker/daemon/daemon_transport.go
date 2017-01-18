@@ -1,13 +1,12 @@
 package daemon
 
 import (
-	"errors"
-	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
 )
 
 // Transport is an ImageTransport for images managed by a local Docker daemon.
@@ -52,11 +51,11 @@ func ParseReference(refString string) (types.ImageReference, error) {
 
 	// digest:hexstring is structurally the same as a reponame:tag (meaning docker.io/library/reponame:tag).
 	// reference.ParseIDOrReference interprets such strings as digests.
-	if dgst, err := digest.ParseDigest(refString); err == nil {
+	if dgst, err := digest.Parse(refString); err == nil {
 		// The daemon explicitly refuses to tag images with a reponame equal to digest.Canonical - but _only_ this digest name.
 		// Other digest references are ambiguous, so refuse them.
 		if dgst.Algorithm() != digest.Canonical {
-			return nil, fmt.Errorf("Invalid docker-daemon: reference %s: only digest algorithm %s accepted", refString, digest.Canonical)
+			return nil, errors.Errorf("Invalid docker-daemon: reference %s: only digest algorithm %s accepted", refString, digest.Canonical)
 		}
 		return NewReference(dgst, nil)
 	}
@@ -66,7 +65,7 @@ func ParseReference(refString string) (types.ImageReference, error) {
 		return nil, err
 	}
 	if ref.Name() == digest.Canonical.String() {
-		return nil, fmt.Errorf("Invalid docker-daemon: reference %s: The %s repository name is reserved for (non-shortened) digest references", refString, digest.Canonical)
+		return nil, errors.Errorf("Invalid docker-daemon: reference %s: The %s repository name is reserved for (non-shortened) digest references", refString, digest.Canonical)
 	}
 	return NewReference("", ref)
 }
@@ -78,14 +77,14 @@ func NewReference(id digest.Digest, ref reference.Named) (types.ImageReference, 
 	}
 	if ref != nil {
 		if reference.IsNameOnly(ref) {
-			return nil, fmt.Errorf("docker-daemon: reference %s has neither a tag nor a digest", ref.String())
+			return nil, errors.Errorf("docker-daemon: reference %s has neither a tag nor a digest", ref.String())
 		}
 		// A github.com/distribution/reference value can have a tag and a digest at the same time!
 		// docker/reference does not handle that, so fail.
 		_, isTagged := ref.(reference.NamedTagged)
 		_, isDigested := ref.(reference.Canonical)
 		if isTagged && isDigested {
-			return nil, fmt.Errorf("docker-daemon: references with both a tag and digest are currently not supported")
+			return nil, errors.Errorf("docker-daemon: references with both a tag and digest are currently not supported")
 		}
 	}
 	return daemonReference{
@@ -175,5 +174,5 @@ func (ref daemonReference) DeleteImage(ctx *types.SystemContext) error {
 	// Should this just untag the image? Should this stop running containers?
 	// The semantics is not quite as clear as for remote repositories.
 	// The user can run (docker rmi) directly anyway, so, for now(?), punt instead of trying to guess what the user meant.
-	return fmt.Errorf("Deleting images not implemented for docker-daemon: images")
+	return errors.Errorf("Deleting images not implemented for docker-daemon: images")
 }

@@ -9,6 +9,10 @@ sudo: required
 services:
   - docker
 
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev
+
 install:
   - make install.tools
 

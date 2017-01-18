@@ -1,17 +1,18 @@
 package storage
 
 import (
-	"errors"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/storage"
-	"github.com/docker/distribution/digest"
-	ddigest "github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
+	ddigest "github.com/opencontainers/go-digest"
 )
 
 var (
@@ -94,7 +95,7 @@ func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (
 				return nil, err
 			}
 		}
-		sum, err = digest.ParseDigest("sha256:" + refInfo[1])
+		sum, err = digest.Parse("sha256:" + refInfo[1])
 		if err != nil {
 			return nil, err
 		}
@@ -265,7 +266,7 @@ func (s storageTransport) ValidatePolicyConfigurationScope(scope string) error {
 		if err != nil {
 			return err
 		}
-		_, err = ddigest.ParseDigest("sha256:" + scopeInfo[1])
+		_, err = ddigest.Parse("sha256:" + scopeInfo[1])
 		if err != nil {
 			return err
 		}

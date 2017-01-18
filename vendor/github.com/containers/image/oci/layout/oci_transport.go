@@ -1,7 +1,6 @@
 package layout
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -11,7 +10,8 @@ import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 // Transport is an ImageTransport for OCI directories.
@@ -43,16 +43,16 @@ func (t ociTransport) ValidatePolicyConfigurationScope(scope string) error {
 		dir = scope[:sep]
 		tag := scope[sep+1:]
 		if !refRegexp.MatchString(tag) {
-			return fmt.Errorf("Invalid tag %s", tag)
+			return errors.Errorf("Invalid tag %s", tag)
 		}
 	}
 
 	if strings.Contains(dir, ":") {
-		return fmt.Errorf("Invalid OCI reference %s: path contains a colon", scope)
+		return errors.Errorf("Invalid OCI reference %s: path contains a colon", scope)
 	}
 
 	if !strings.HasPrefix(dir, "/") {
-		return fmt.Errorf("Invalid scope %s: must be an absolute path", scope)
+		return errors.Errorf("Invalid scope %s: must be an absolute path", scope)
 	}
 	// Refuse also "/", otherwise "/" and "" would have the same semantics,
 	// and "" could be unexpectedly shadowed by the "/" entry.
@@ -62,7 +62,7 @@ func (t ociTransport) ValidatePolicyConfigurationScope(scope string) error {
 	}
 	cleaned := filepath.Clean(dir)
 	if cleaned != dir {
-		return fmt.Errorf(`Invalid scope %s: Uses non-canonical path format, perhaps try with path %s`, scope, cleaned)
+		return errors.Errorf(`Invalid scope %s: Uses non-canonical path format, perhaps try with path %s`, scope, cleaned)
 	}
 	return nil
 }
@@ -106,10 +106,10 @@ func NewReference(dir, tag string) (types.ImageReference, error) {
 	// This is necessary to prevent directory paths returned by PolicyConfigurationNamespaces
 	// from being ambiguous with values of PolicyConfigurationIdentity.
 	if strings.Contains(resolved, ":") {
-		return nil, fmt.Errorf("Invalid OCI reference %s:%s: path %s contains a colon", dir, tag, resolved)
+		return nil, errors.Errorf("Invalid OCI reference %s:%s: path %s contains a colon", dir, tag, resolved)
 	}
 	if !refRegexp.MatchString(tag) {
-		return nil, fmt.Errorf("Invalid tag %s", tag)
+		return nil, errors.Errorf("Invalid tag %s", tag)
 	}
 	return ociReference{dir: dir, resolvedDir: resolved, tag: tag}, nil
 }
@@ -191,7 +191,7 @@ func (ref ociReference) NewImageDestination(ctx *types.SystemContext) (types.Ima
 
 // DeleteImage deletes the named image from the registry, if supported.
 func (ref ociReference) DeleteImage(ctx *types.SystemContext) error {
-	return fmt.Errorf("Deleting images not implemented for oci: images")
+	return errors.Errorf("Deleting images not implemented for oci: images")
 }
 
 // ociLayoutPathPath returns a path for the oci-layout within a directory using OCI conventions.
@@ -202,7 +202,7 @@ func (ref ociReference) ociLayoutPath() string {
 // blobPath returns a path for a blob within a directory using OCI image-layout conventions.
 func (ref ociReference) blobPath(digest digest.Digest) (string, error) {
 	if err := digest.Validate(); err != nil {
-		return "", fmt.Errorf("unexpected digest reference %s: %v", digest, err)
+		return "", errors.Wrapf(err, "unexpected digest reference %s", digest)
 	}
 	return filepath.Join(ref.dir, "blobs", digest.Algorithm().String(), digest.Hex()), nil
 }

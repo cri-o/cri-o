@@ -42,9 +42,11 @@ It is currently in active development in the Kubernetes community through the [d
 
 ### Build
 
-`glib2-devel` and `glibc-static` packages on Fedora or ` libglib2.0-dev` on Ubuntu or equivalent is required.
-In order to enable seccomp support you will need to install `libseccomp` on your platform.
+`btrfs-progs-devel`, `device-mapper-devel`, `glib2-devel`, `glibc-devel`, `gpgme-devel`, `libassuan-devel`, `libgpg-error-devel`, and `pkg-config` packages on CentOS/Fedora or `btrfs-tools`, `libassuan-dev`, `libc6-dev`, `libdevmapper-dev`, `libglib2.0-dev`, `libgpg-error-dev`, `libgpgme11-dev`, and `pkg-config` on Ubuntu or equivalent is required.
+In order to enable seccomp support you will need to install development files for `libseccomp` on your platform.
 > e.g. `libseccomp-devel` for CentOS/Fedora, or `libseccomp-dev` for Ubuntu
+In order to enable apparmor support you will need to install development files for `libapparmor` on your platform.
+> e.g. `libapparmor-dev` for Ubuntu
 
 ```bash
 $ GOPATH=/path/to/gopath

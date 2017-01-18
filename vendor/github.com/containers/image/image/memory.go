@@ -1,7 +1,7 @@
 package image
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
 	"github.com/containers/image/types"
 )
@@ -37,11 +37,7 @@ func (i *memoryImage) Close() {
 
 // Size returns the size of the image as stored, if known, or -1 if not.
 func (i *memoryImage) Size() (int64, error) {
-	s, err := i.serialize()
-	if err != nil {
-		return -1, err
-	}
-	return int64(len(s)), nil
+	return -1, nil
 }
 
 // Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.

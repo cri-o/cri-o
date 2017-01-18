@@ -2,8 +2,6 @@ package server
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
@@ -17,6 +15,7 @@ import (
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
 	logrus.Debugf("RemovePodSandboxRequest %+v", req)
+	s.Update()
 	sb, err := s.getPodSandboxFromRequest(req)
 	if err != nil {
 		if err == errSandboxIDEmpty {
@@ -46,16 +45,18 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 
 		if err := s.runtime.DeleteContainer(c); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in sandbox %s: %v", c.Name(), sb.id, err)
+			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
 		}
 
 		if c == podInfraContainer {
 			continue
 		}
 
-		containerDir := filepath.Join(s.runtime.ContainerDir(), c.ID())
-		if err := os.RemoveAll(containerDir); err != nil {
-			return nil, fmt.Errorf("failed to remove container %s directory: %v", c.Name(), err)
+		if err := s.storage.StopContainer(c.ID()); err != nil {
+			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
+		}
+		if err := s.storage.DeleteContainer(c.ID()); err != nil {
+			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
 		}
 
 		s.releaseContainerName(c.Name())
@@ -81,10 +82,13 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	// Remove the files related to the sandbox
-	podSandboxDir := filepath.Join(s.config.SandboxDir, sb.id)
-	if err := os.RemoveAll(podSandboxDir); err != nil {
-		return nil, fmt.Errorf("failed to remove sandbox %s directory: %v", sb.id, err)
+	if err := s.storage.StopContainer(sb.id); err != nil {
+		return nil, fmt.Errorf("failed to delete sandbox container in pod sandbox %s: %v", sb.id, err)
 	}
+	if err := s.storage.RemovePodSandbox(sb.id); err != nil {
+		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.id, err)
+	}
+
 	s.releaseContainerName(podInfraContainer.Name())
 	s.removeContainer(podInfraContainer)
 	sb.infraContainer = nil

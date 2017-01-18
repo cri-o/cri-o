@@ -13,8 +13,9 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/registry/client"
+	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 type dockerImageSource struct {
@@ -139,7 +140,7 @@ func (s *dockerImageSource) getExternalBlob(urls []string) (io.ReadCloser, int64
 		resp, err = s.c.makeRequestToResolvedURL("GET", url, nil, nil, -1, false)
 		if err == nil {
 			if resp.StatusCode != http.StatusOK {
-				err = fmt.Errorf("error fetching external blob from %q: %d", url, resp.StatusCode)
+				err = errors.Errorf("error fetching external blob from %q: %d", url, resp.StatusCode)
 				logrus.Debug(err)
 				continue
 			}
@@ -173,7 +174,7 @@ func (s *dockerImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, 
 	}
 	if res.StatusCode != http.StatusOK {
 		// print url also
-		return nil, 0, fmt.Errorf("Invalid status code returned when fetching blob %d", res.StatusCode)
+		return nil, 0, errors.Errorf("Invalid status code returned when fetching blob %d", res.StatusCode)
 	}
 	return res.Body, getBlobSize(res), nil
 }
@@ -195,7 +196,7 @@ func (s *dockerImageSource) GetSignatures() ([][]byte, error) {
 	for i := 0; ; i++ {
 		url := signatureStorageURL(s.c.signatureBase, manifestDigest, i)
 		if url == nil {
-			return nil, fmt.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
+			return nil, errors.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
 		}
 		signature, missing, err := s.getOneSignature(url)
 		if err != nil {
@@ -234,7 +235,7 @@ func (s *dockerImageSource) getOneSignature(url *url.URL) (signature []byte, mis
 		if res.StatusCode == http.StatusNotFound {
 			return nil, true, nil
 		} else if res.StatusCode != http.StatusOK {
-			return nil, false, fmt.Errorf("Error reading signature from %s: status %d", url.String(), res.StatusCode)
+			return nil, false, errors.Errorf("Error reading signature from %s: status %d", url.String(), res.StatusCode)
 		}
 		sig, err := ioutil.ReadAll(res.Body)
 		if err != nil {
@@ -243,7 +244,7 @@ func (s *dockerImageSource) getOneSignature(url *url.URL) (signature []byte, mis
 		return sig, false, nil
 
 	default:
-		return nil, false, fmt.Errorf("Unsupported scheme when reading signature from %s", url.String())
+		return nil, false, errors.Errorf("Unsupported scheme when reading signature from %s", url.String())
 	}
 }
 
@@ -276,9 +277,9 @@ func deleteImage(ctx *types.SystemContext, ref dockerReference) error {
 	switch get.StatusCode {
 	case http.StatusOK:
 	case http.StatusNotFound:
-		return fmt.Errorf("Unable to delete %v. Image may not exist or is not stored with a v2 Schema in a v2 registry", ref.ref)
+		return errors.Errorf("Unable to delete %v. Image may not exist or is not stored with a v2 Schema in a v2 registry", ref.ref)
 	default:
-		return fmt.Errorf("Failed to delete %v: %s (%v)", ref.ref, manifestBody, get.Status)
+		return errors.Errorf("Failed to delete %v: %s (%v)", ref.ref, manifestBody, get.Status)
 	}
 
 	digest := get.Header.Get("Docker-Content-Digest")
@@ -297,7 +298,7 @@ func deleteImage(ctx *types.SystemContext, ref dockerReference) error {
 		return err
 	}
 	if delete.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("Failed to delete %v: %s (%v)", deleteURL, string(body), delete.Status)
+		return errors.Errorf("Failed to delete %v: %s (%v)", deleteURL, string(body), delete.Status)
 	}
 
 	if c.signatureBase != nil {
@@ -309,7 +310,7 @@ func deleteImage(ctx *types.SystemContext, ref dockerReference) error {
 		for i := 0; ; i++ {
 			url := signatureStorageURL(c.signatureBase, manifestDigest, i)
 			if url == nil {
-				return fmt.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
+				return errors.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
 			}
 			missing, err := c.deleteOneSignature(url)
 			if err != nil {

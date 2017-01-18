@@ -3,6 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -38,7 +39,8 @@ var (
 )
 
 type runtimeService struct {
-	image ImageServer
+	image      ImageServer
+	pauseImage string
 }
 
 // ContainerInfo wraps a subset of information about a container: its ID and
@@ -176,12 +178,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		}
 		img, err = istorage.Transport.GetStoreImage(r.image.GetStore(), ref)
 	}
-	if err != nil && err != storage.ErrImageUnknown {
-		return ContainerInfo{}, err
-	}
-
-	// Pull the image down if we don't already have it.
-	if err == storage.ErrImageUnknown {
+	if img == nil && err == storage.ErrImageUnknown && imageName == r.pauseImage {
 		image := imageID
 		if imageName != "" {
 			image = imageName
@@ -199,6 +196,15 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 			return ContainerInfo{}, err
 		}
 		logrus.Debugf("successfully pulled image %q", image)
+	}
+	if img == nil && err == storage.ErrImageUnknown {
+		if imageID == "" {
+			return ContainerInfo{}, fmt.Errorf("image %q not present in image store", imageName)
+		}
+		if imageName == "" {
+			return ContainerInfo{}, fmt.Errorf("image with ID %q not present in image store", imageID)
+		}
+		return ContainerInfo{}, fmt.Errorf("image %q with ID %q not present in image store", imageName, imageID)
 	}
 
 	// Pull out a copy of the image's configuration.
@@ -449,8 +455,9 @@ func (r *runtimeService) GetRunDir(id string) (string, error) {
 // GetRuntimeService returns a RuntimeServer that uses the passed-in image
 // service to pull and manage images, and its store to manage containers based
 // on those images.
-func GetRuntimeService(image ImageServer) RuntimeServer {
+func GetRuntimeService(image ImageServer, pauseImage string) RuntimeServer {
 	return &runtimeService{
-		image: image,
+		image:      image,
+		pauseImage: pauseImage,
 	}
 }
