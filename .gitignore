@@ -1,3 +1,4 @@
+.artifacts/
 conmon/conmon
 conmon/conmon.o
 pause/pause
