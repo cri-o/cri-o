@@ -9,11 +9,6 @@ function teardown() {
 # 1. test running with ctr unconfined
 # test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp profiles unconfined" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
     if [[ "$enabled" -eq 0 ]]; then
@@ -50,11 +45,6 @@ function teardown() {
 # 2. test running with ctr runtime/default
 # test that we cannot run with a syscall blocked by the default seccomp profile
 @test "ctr seccomp profiles runtime/default" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then
@@ -91,11 +81,6 @@ function teardown() {
 
 # 3. test running with ctr wrong profile name
 @test "ctr seccomp profiles wrong profile name" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then
@@ -127,11 +112,6 @@ function teardown() {
 # TODO(runcom): need https://issues.k8s.io/36997
 # 4. test running with ctr localhost/profile_name
 @test "ctr seccomp profiles localhost/profile_name" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then
@@ -152,11 +132,6 @@ function teardown() {
 # pod -> runtime/default
 # result: fail chmod
 @test "ctr seccomp profiles falls back to pod profile" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then
@@ -196,11 +171,6 @@ function teardown() {
 # pod -> NO
 # result: success, running unconfined
 @test "ctr seccomp profiles falls back to unconfined" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then
@@ -237,11 +207,6 @@ function teardown() {
 # 1. test running with pod unconfined
 # test that we can run with a syscall which would be otherwise blocked
 @test "pod seccomp profiles unconfined" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then
@@ -278,11 +243,6 @@ function teardown() {
 # 2. test running with pod runtime/default
 # test that we cannot run with a syscall blocked by the default seccomp profile
 @test "pod seccomp profiles runtime/default" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then
@@ -319,11 +279,6 @@ function teardown() {
 
 # 3. test running with pod wrong profile name
 @test "pod seccomp profiles wrong profile name" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then
@@ -356,11 +311,6 @@ function teardown() {
 # TODO(runcom): need https://issues.k8s.io/36997
 # 4. test running with pod localhost/profile_name
 @test "pod seccomp profiles localhost/profile_name" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then

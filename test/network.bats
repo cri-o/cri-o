@@ -3,11 +3,6 @@
 load helpers
 
 @test "Check for valid pod netns CIDR" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	if [ ! -f "$OCID_CNI_PLUGIN/bridge" ]; then
 		skip "missing CNI bridge plugin, please install it"
 	fi
@@ -32,11 +27,6 @@ load helpers
 }
 
 @test "Ping pod from the host" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	if [ ! -f "$OCID_CNI_PLUGIN/bridge" ]; then
 		skip "missing CNI bridge plugin, please install it"
 	fi
@@ -61,11 +51,6 @@ load helpers
 }
 
 @test "Ping pod from another pod" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	if [ ! -f "$OCID_CNI_PLUGIN/bridge" ]; then
 		skip "missing CNI bridge plugin, please install it"
 	fi
