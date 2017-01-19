@@ -13,6 +13,8 @@ ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_OCID ?= ${ETCDIR}/ocid
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
+GOBINDIR := $(word 1,$(subst :, ,$(GOPATH)))
+PATH := $(GOBINDIR)/bin:$(PATH)
 
 all: binaries ocid.conf docs
 
@@ -71,7 +73,7 @@ endif
 	$(GO) install $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
-	$(GOPATH)/bin/ocid --config="" config --default > ocid.conf
+	ocid --config="" config --default > ocid.conf
 
 clean:
 	rm -f docs/*.1 docs/*.5 docs/*.8
@@ -104,19 +106,19 @@ docs/%.1: docs/%.1.md
 ifndef GOPATH
 	$(error GOPATH is not set)
 endif
-	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.5: docs/%.5.md
 ifndef GOPATH
 	$(error GOPATH is not set)
 endif
-	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.8: docs/%.8.md
 ifndef GOPATH
 	$(error GOPATH is not set)
 endif
-	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES)
 
@@ -124,9 +126,9 @@ install:
 ifndef GOPATH
 	$(error GOPATH is not set)
 endif
-	install -D -m 755 $(GOPATH)/bin/ocid $(BINDIR)/ocid
-	install -D -m 755 $(GOPATH)/bin/ocic $(BINDIR)/ocic
-	install -D -m 755 $(GOPATH)/bin/kpod $(BINDIR)/kpod
+	install -D -m 755 $(GOBINDIR)/bin/ocid $(BINDIR)/ocid
+	install -D -m 755 $(GOBINDIR)/bin/ocic $(BINDIR)/ocic
+	install -D -m 755 $(GOBINDIR)/bin/kpod $(BINDIR)/kpod
 	install -D -m 755 conmon/conmon $(LIBEXECDIR)/ocid/conmon
 	install -D -m 755 pause/pause $(LIBEXECDIR)/ocid/pause
 	install -d -m 755 $(MANDIR)/man1
@@ -169,9 +171,9 @@ ifndef GOPATH
 	$(error GOPATH is not set)
 endif
 ifeq ($(TRAVIS),true)
-	$(GOPATH)/bin/git-validation -q -run DCO,short-subject
+	git-validation -q -run DCO,short-subject
 else
-	$(GOPATH)/bin/ -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
+	git-validation -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
 .PHONY: install.tools
@@ -183,7 +185,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 .install.gometalinter:
 	go get -u github.com/alecthomas/gometalinter
-	$(GOPATH)/bin/gometalinter --install
+	gometalinter --install
 
 .install.md2man:
 	go get -u github.com/cpuguy83/go-md2man
