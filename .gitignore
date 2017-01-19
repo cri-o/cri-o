@@ -11,3 +11,4 @@ ocid.conf
 test/bin2img/bin2img
 test/copyimg/copyimg
 test/testdata/redis-image
+test/checkseccomp/checkseccomp

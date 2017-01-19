@@ -50,6 +50,9 @@ bin2img:
 copyimg:
 	make -C test/$@
 
+checkseccomp:
+	make -C test/$@
+
 ocid:
 ifndef GOPATH
 	$(error GOPATH is not set)
@@ -82,6 +85,7 @@ clean:
 	make -C pause clean
 	make -C test/bin2img clean
 	make -C test/copyimg clean
+	make -C test/checkseccomp clean
 
 ocidimage:
 	docker build -t ${OCID_IMAGE} .
@@ -95,7 +99,7 @@ integration: ocidimage
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: ocid ocic kpod conmon pause bin2img copyimg
+binaries: ocid ocic kpod conmon pause bin2img copyimg checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
@@ -191,6 +195,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 .PHONY: \
 	bin2img \
 	binaries \
+	checkseccomp \
 	clean \
 	conmon \
 	copyimg \
