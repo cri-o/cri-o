@@ -66,7 +66,6 @@ clone git github.com/docker/docker master
 clone git github.com/urfave/cli v1.19.1
 clone git github.com/opencontainers/runtime-tools master
 clone git github.com/tchap/go-patricia v2.2.6
-clone git github.com/rajatchopra/ocicni master
 clone git github.com/containernetworking/cni master
 clone git k8s.io/kubernetes 550f8be73aac92c7c23b1783d3db17f8660019f6 https://github.com/kubernetes/kubernetes
 clone git k8s.io/apimachinery master https://github.com/kubernetes/apimachinery
