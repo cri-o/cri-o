@@ -31,6 +31,8 @@ type cniNetwork struct {
 	CNIConfig     libcni.CNI
 }
 
+// InitCNI takes the plugin directory and cni directories where the cni files should be searched for
+// Returns a valid plugin object and any error
 func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
 	plugin := probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir, cniDirs, "")
 	var err error
@@ -52,9 +54,7 @@ func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
 		t := time.NewTimer(10 * time.Second)
 		for {
 			plugin.syncNetworkConfig()
-			select {
-			case <-t.C:
-			}
+			<-t.C
 		}
 	}()
 	return plugin, nil
