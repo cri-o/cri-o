@@ -30,10 +30,14 @@ help:
 	@echo " * 'lint' - Execute the source code linter"
 	@echo " * 'gofmt' - Verify the source code gofmt"
 
-lint:
+.PHONY: check-gopath
+
+check-gopath:
 ifndef GOPATH
 	$(error GOPATH is not set)
 endif
+
+lint: check-gopath
 	@echo "checking lint"
 	@./.tool/lint
 
@@ -52,27 +56,18 @@ bin2img:
 copyimg:
 	make -C test/$@
 
-checkseccomp:
+checkseccomp: check-gopath
 	make -C test/$@
 
-ocid:
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+ocid: check-gopath
 	$(GO) install \
 		-tags "$(BUILDTAGS)" \
 		$(PROJECT)/cmd/ocid
 
-ocic:
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+ocic: check-gopath
 	$(GO) install $(PROJECT)/cmd/ocic
 
-kpod:
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+kpod: check-gopath
 	$(GO) install $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
@@ -106,30 +101,18 @@ binaries: ocid ocic kpod conmon pause bin2img copyimg checkseccomp
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
-docs/%.1: docs/%.1.md
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+docs/%.1: docs/%.1.md check-gopath
 	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs/%.5: docs/%.5.md
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+docs/%.5: docs/%.5.md check-gopath
 	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs/%.8: docs/%.8.md
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+docs/%.8: docs/%.8.md check-gopath
 	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES)
 
-install:
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+install: check-gopath
 	install -D -m 755 $(GOBINDIR)/bin/ocid $(BINDIR)/ocid
 	install -D -m 755 $(GOBINDIR)/bin/ocic $(BINDIR)/ocic
 	install -D -m 755 $(GOBINDIR)/bin/kpod $(BINDIR)/kpod
@@ -170,10 +153,7 @@ uninstall:
 
 .PHONY: .gitvalidation
 # When this is running in travis, it will only check the travis commit range
-.gitvalidation:
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+.gitvalidation: check-gopath
 ifeq ($(TRAVIS),true)
 	git-validation -q -run DCO,short-subject
 else
