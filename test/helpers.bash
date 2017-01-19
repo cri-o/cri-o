@@ -42,6 +42,8 @@ BIN2IMG_BINARY=${BIN2IMG_BINARY:-${OCID_ROOT}/cri-o/test/bin2img/bin2img}
 COPYIMG_BINARY=${COPYIMG_BINARY:-${OCID_ROOT}/cri-o/test/copyimg/copyimg}
 # Path of tests artifacts.
 ARTIFACTS_PATH=${ARTIFACTS_PATH:-${OCID_ROOT}/cri-o/.artifacts}
+# Path of the checkseccomp binary.
+CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${OCID_ROOT}/cri-o/test/checkseccomp/checkseccomp}
 
 TESTDIR=$(mktemp -d)
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -214,14 +216,11 @@ function remove_apparmor_profile() {
 }
 
 function is_seccomp_enabled() {
-	if [[ -f "$BOOT_CONFIG_FILE_PATH" ]]; then
-		out=$(cat "$BOOT_CONFIG_FILE_PATH" | grep CONFIG_SECCOMP=)
-		if [[ "$out" =~ "CONFIG_SECCOMP=y" ]]; then
-			echo 1
-			return
-		fi
+	if ! "$CHECKSECCOMP_BINARY" ; then
+		echo 0
+		return
 	fi
-	echo 0
+	echo 1
 }
 
 function is_apparmor_enabled() {
