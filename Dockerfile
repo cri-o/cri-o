@@ -53,6 +53,16 @@ RUN set -x \
 	&& cp runc /usr/local/bin/runc \
 	&& rm -rf "$GOPATH"
 
+# Install CNI plugins
+RUN set -x \
+       && export GOPATH="$(mktemp -d)" \
+       && git clone https://github.com/containernetworking/cni.git "$GOPATH/src/github.com/containernetworking/cni" \
+       && cd "$GOPATH/src/github.com/containernetworking/cni" \
+       && ./build \
+       && mkdir -p /opt/cni/bin \
+       && cp bin/* /opt/cni/bin/ \
+       && rm -rf "$GOPATH"
+
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
