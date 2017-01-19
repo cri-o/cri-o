@@ -40,6 +40,10 @@ APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/appar
 BIN2IMG_BINARY=${BIN2IMG_BINARY:-${OCID_ROOT}/cri-o/test/bin2img/bin2img}
 # Path of the copyimg binary.
 COPYIMG_BINARY=${COPYIMG_BINARY:-${OCID_ROOT}/cri-o/test/copyimg/copyimg}
+# Path of tests artifacts.
+ARTIFACTS_PATH=${ARTIFACTS_PATH:-${OCID_ROOT}/cri-o/.artifacts}
+# Path of the checkseccomp binary.
+CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${OCID_ROOT}/cri-o/test/checkseccomp/checkseccomp}
 
 TESTDIR=$(mktemp -d)
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -61,11 +65,11 @@ mkdir -p $OCID_CNI_CONFIG
 PATH=$PATH:$TESTDIR
 
 # Make sure we have a copy of the redis:latest image.
-if ! [ -d "$TESTDATA"/redis-image ]; then
-    mkdir -p "$TESTDATA"/redis-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://redis --export-to=dir:"$TESTDATA"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
+    mkdir -p "$ARTIFACTS_PATH"/redis-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://redis --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
         echo "Error pulling docker://redis"
-        rm -fr "$TESTDATA"/redis-image
+        rm -fr "$ARTIFACTS_PATH"/redis-image
         exit 1
     fi
 fi
@@ -130,7 +134,7 @@ function start_ocid() {
 	if ! [ "$3" = "--no-pause-image" ] ; then
 		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
 	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$TESTDATA"/redis-image --add-name=docker://docker.io/library/redis:latest
+	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest
 	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
@@ -212,14 +216,11 @@ function remove_apparmor_profile() {
 }
 
 function is_seccomp_enabled() {
-	if [[ -f "$BOOT_CONFIG_FILE_PATH" ]]; then
-		out=$(cat "$BOOT_CONFIG_FILE_PATH" | grep CONFIG_SECCOMP=)
-		if [[ "$out" =~ "CONFIG_SECCOMP=y" ]]; then
-			echo 1
-			return
-		fi
+	if ! "$CHECKSECCOMP_BINARY" ; then
+		echo 0
+		return
 	fi
-	echo 0
+	echo 1
 }
 
 function is_apparmor_enabled() {

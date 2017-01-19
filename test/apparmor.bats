@@ -9,11 +9,6 @@ function teardown() {
 # 1. test running with loading the default apparmor profile.
 # test that we can run with the default apparmor profile which will not block touching a file in `.`
 @test "load default apparmor profile and run a container with it" {
-    # this test requires docker, thus it can't yet be run in a container
-    if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-        skip "cannot yet run this test in a container, use sudo make localintegration"
-    fi
-
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=$(is_apparmor_enabled)
     if [[ "$enabled" -eq 0 ]]; then
@@ -46,11 +41,6 @@ function teardown() {
 # 2. test running with loading a specific apparmor profile as ocid default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.` as ocid default apparmor profile.
 @test "load a specific apparmor profile as default apparmor and run a container with it" {
-    # this test requires docker, thus it can't yet be run in a container
-    if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-        skip "cannot yet run this test in a container, use sudo make localintegration"
-    fi
-
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=$(is_apparmor_enabled)
     if [[ "$enabled" -eq 0 ]]; then
@@ -85,11 +75,6 @@ function teardown() {
 # 3. test running with loading a specific apparmor profile but not as ocid default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.`
 @test "load default apparmor profile and run a container with another apparmor profile" {
-    # this test requires docker, thus it can't yet be run in a container
-    if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-        skip "cannot yet run this test in a container, use sudo make localintegration"
-    fi
-
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=$(is_apparmor_enabled)
     if [[ "$enabled" -eq 0 ]]; then
@@ -124,11 +109,6 @@ function teardown() {
 # 4. test running with wrong apparmor profile name.
 # test that we can will fail when running a ctr with rong apparmor profile name.
 @test "run a container with wrong apparmor profile name" {
-    # this test requires docker, thus it can't yet be run in a container
-    if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-        skip "cannot yet run this test in a container, use sudo make localintegration"
-    fi
-
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=$(is_apparmor_enabled)
     if [[ "$enabled" -eq 0 ]]; then
@@ -157,11 +137,6 @@ function teardown() {
 # 5. test running with default apparmor profile unloaded.
 # test that we can will fail when running a ctr with rong apparmor profile name.
 @test "run a container after unloading default apparmor profile" {
-    # this test requires docker, thus it can't yet be run in a container
-    if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-        skip "cannot yet run this test in a container, use sudo make localintegration"
-    fi
-
     # this test requires apparmor, so skip this test if apparmor is not enabled.
     enabled=$(is_apparmor_enabled)
     if [[ "$enabled" -eq 0 ]]; then

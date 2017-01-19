@@ -8,11 +8,6 @@ function teardown() {
 
 # PR#59
 @test "pod release name on remove" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -41,11 +36,6 @@ function teardown() {
 }
 
 @test "pod remove" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -67,11 +57,6 @@ function teardown() {
 }
 
 @test "pod list filtering" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json -name pod1 --label "a=b" --label "c=d" --label "e=f"
 	echo "$output"
@@ -161,11 +146,6 @@ function teardown() {
 }
 
 @test "pod metadata in list & status" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -195,11 +175,6 @@ function teardown() {
 }
 
 @test "pass pod sysctls to runtime" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -235,11 +210,6 @@ function teardown() {
 }
 
 @test "pod stop idempotent" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -258,11 +228,6 @@ function teardown() {
 }
 
 @test "pod remove idempotent" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -281,11 +246,6 @@ function teardown() {
 }
 
 @test "pod stop idempotent with ctrs already stopped" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -308,11 +268,6 @@ function teardown() {
 }
 
 @test "restart ocid and still get pod status" {
-	# this test requires docker, thus it can't yet be run in a container
-	if [ "$TRAVIS" = "true" ]; then # instead of $TRAVIS, add a function is_containerized to skip here
-		skip "cannot yet run this test in a container, use sudo make localintegration"
-	fi
-
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"

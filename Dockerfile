@@ -1,4 +1,4 @@
-FROM golang:1.7.3
+FROM golang:1.7
 
 # libseccomp in jessie is not _quite_ new enough -- need backports version
 RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
@@ -53,6 +53,16 @@ RUN set -x \
 	&& cp runc /usr/local/bin/runc \
 	&& rm -rf "$GOPATH"
 
+# Install CNI plugins
+RUN set -x \
+       && export GOPATH="$(mktemp -d)" \
+       && git clone https://github.com/containernetworking/cni.git "$GOPATH/src/github.com/containernetworking/cni" \
+       && cd "$GOPATH/src/github.com/containernetworking/cni" \
+       && ./build \
+       && mkdir -p /opt/cni/bin \
+       && cp bin/* /opt/cni/bin/ \
+       && rm -rf "$GOPATH"
+
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
@@ -60,3 +70,7 @@ COPY test/policy.json /etc/containers/policy.json
 WORKDIR /go/src/github.com/kubernetes-incubator/cri-o
 
 ADD . /go/src/github.com/kubernetes-incubator/cri-o
+
+RUN make copyimg \
+	&& mkdir -p .artifacts/redis-image \
+	&& ./test/copyimg/copyimg --import-from=docker://redis --export-to=dir:.artifacts/redis-image --signature-policy ./test/policy.json
