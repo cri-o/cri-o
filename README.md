@@ -105,6 +105,11 @@ $ ocic pod run --config test/testdata/sandbox_config.json
 # ocic pod status --id <pod_id>
 ```
 
+#### Pull image from registry for container to run in a pod
+```
+# ocic image pull docker://redis:latest
+```
+
 #### Run a container inside a pod
 ```
 # ocic ctr create --pod <pod_id> --config test/testdata/container_redis.json
