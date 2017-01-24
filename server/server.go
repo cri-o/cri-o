@@ -476,7 +476,7 @@ func New(config *Config) (*Server, error) {
 	}
 	sandboxes := make(map[string]*sandbox)
 	containers := oci.NewMemoryStore()
-	netPlugin, err := ocicni.InitCNI(config.NetworkDir)
+	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {
 		return nil, err
 	}
