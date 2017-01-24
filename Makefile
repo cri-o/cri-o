@@ -13,8 +13,6 @@ ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_OCID ?= ${ETCDIR}/ocid
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
-GOBINDIR := $(word 1,$(subst :, ,$(GOPATH)))
-PATH := $(GOBINDIR)/bin:$(PATH)
 
 all: binaries ocid.conf docs
 
@@ -60,15 +58,15 @@ checkseccomp: check-gopath
 	$(MAKE) -C test/$@
 
 ocid: check-gopath
-	$(GO) install \
+	$(GO) build -o $@ \
 		-tags "$(BUILDTAGS)" \
 		$(PROJECT)/cmd/ocid
 
 ocic: check-gopath
-	$(GO) install $(PROJECT)/cmd/ocic
+	$(GO) build -o $@ $(PROJECT)/cmd/ocic
 
 kpod: check-gopath
-	$(GO) install $(PROJECT)/cmd/kpod
+	$(GO) build -o $@ $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
 	ocid --config="" config --default > ocid.conf
@@ -78,6 +76,7 @@ clean:
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
+	rm -f ocic ocid kpod
 	make -C conmon clean
 	make -C pause clean
 	make -C test/bin2img clean
@@ -113,9 +112,9 @@ docs/%.8: docs/%.8.md check-gopath
 docs: $(MANPAGES)
 
 install: check-gopath
-	install -D -m 755 $(GOBINDIR)/bin/ocid $(BINDIR)/ocid
-	install -D -m 755 $(GOBINDIR)/bin/ocic $(BINDIR)/ocic
-	install -D -m 755 $(GOBINDIR)/bin/kpod $(BINDIR)/kpod
+	install -D -m 755 ocid $(BINDIR)/ocid
+	install -D -m 755 ocic $(BINDIR)/ocic
+	install -D -m 755 kpod $(BINDIR)/kpod
 	install -D -m 755 conmon/conmon $(LIBEXECDIR)/ocid/conmon
 	install -D -m 755 pause/pause $(LIBEXECDIR)/ocid/pause
 	install -d -m 755 $(MANDIR)/man1

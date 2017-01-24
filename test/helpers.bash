@@ -10,9 +10,9 @@ TESTDATA="${INTEGRATION_ROOT}/testdata"
 OCID_ROOT=${OCID_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
 # Path of the ocid binary.
-OCID_BINARY=${OCID_BINARY:-${GOPATH}/bin/ocid}
+OCID_BINARY=${OCID_BINARY:-${OCID_ROOT}/cri-o/ocid}
 # Path of the ocic binary.
-OCIC_BINARY=${OCIC_BINARY:-${GOPATH}/bin/ocic}
+OCIC_BINARY=${OCIC_BINARY:-${OCID_ROOT}/cri-o/ocic}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${OCID_ROOT}/cri-o/conmon/conmon}
 # Path of the pause binary.
