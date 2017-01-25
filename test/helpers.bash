@@ -21,9 +21,10 @@ PAUSE_BINARY=${PAUSE_BINARY:-${OCID_ROOT}/cri-o/pause/pause}
 SECCOMP_PROFILE=${SECCOMP_PROFILE:-${OCID_ROOT}/cri-o/seccomp.json}
 # Name of the default apparmor profile.
 APPARMOR_PROFILE=${APPARMOR_PROFILE:-ocid-default}
-# Path of the runc binary.
-RUNC_PATH=$(command -v runc || true)
-RUNC_BINARY=${RUNC_PATH:-/usr/local/sbin/runc}
+# Runtime
+RUNTIME=${RUNTIME:-runc}
+RUNTIME_PATH=$(command -v $RUNTIME || true)
+RUNTIME_BINARY=${RUNTIME_PATH:-/usr/local/sbin/runc}
 # Path of the apparmor_parser binary.
 APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
 # Path of the apparmor profile for test.
@@ -135,7 +136,7 @@ function start_ocid() {
 		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json config >$OCID_CONFIG
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
 
