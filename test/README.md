@@ -13,25 +13,21 @@ Integration tests are written in *bash* using the
 
 ## Running integration tests
 
+### Containerized tests
+
 The easiest way to run integration tests is with Docker:
 ```
 $ make integration
 ```
-Alternatively, you can run integration tests directly on your host through make:
-```
-$ sudo make localintegration
-```
-Or you can just run them directly using bats
-```
-$ sudo bats test
-```
+
 To run a single test bucket:
 ```
 $ make integration TESTFLAGS="runtimeversion.bats"
 ```
 
+### On your host
 
-To run them on your host, you will need to setup a development environment plus
+To run the integration tests on your host, you will first need to setup a development environment plus
 [bats](https://github.com/sstephenson/bats#installing-bats-from-source)
 For example:
 ```
@@ -39,6 +35,33 @@ $ cd ~/go/src/github.com
 $ git clone https://github.com/sstephenson/bats.git
 $ cd bats
 $ ./install.sh /usr/local
+```
+
+Then you can run the tests on your host:
+```
+$ sudo make localintegration
+```
+
+To run a single test bucket:
+```
+$ make localintegration TESTFLAGS="runtimeversion.bats"
+```
+
+Or you can just run them directly using bats
+```
+$ sudo bats test
+```
+
+#### Runtime selection
+Tests on the host will run with `runc` as the default runtime.
+However you can select other OCI compatible runtimes by setting
+the `RUNTIME` environment variable.
+
+For example one could use the [Clear Containers](https://github.com/01org/cc-oci-runtime/wiki/Installation)
+runtime instead of `runc`:
+
+```
+make localintegration RUNTIME=cc-oci-runtime
 ```
 
 ## Writing integration tests
