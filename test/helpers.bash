@@ -80,7 +80,7 @@ function ocid() {
 	"$OCID_BINARY" --listen "$OCID_SOCKET" "$@"
 }
 
-# Run ocic using the binary specified by $OCID_BINARY.
+# Run ocic using the binary specified by $OCIC_BINARY.
 function ocic() {
 	"$OCIC_BINARY" --connect "$OCID_SOCKET" "$@"
 }
@@ -134,7 +134,7 @@ function start_ocid() {
 	if ! [ "$3" = "--no-pause-image" ] ; then
 		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
 	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest
+	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNC_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
