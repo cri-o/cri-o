@@ -86,74 +86,7 @@ make BUILDTAGS='seccomp apparmor'
 
 ### Running pods and containers
 
-#### Start the server
-```
-# ocid --debug
-```
-If the default `--runtime` value does not point to your runtime:
-```
-# ocid --runtime $(which runc)
-```
-
-#### Create a pod
-```
-$ ocic pod run --config test/testdata/sandbox_config.json
-```
-
-#### Get pod status
-```
-# ocic pod status --id <pod_id>
-```
-
-#### Pull image from registry for container to run in a pod
-```
-# ocic image pull docker://redis:latest
-```
-
-#### Run a container inside a pod
-```
-# ocic ctr create --pod <pod_id> --config test/testdata/container_redis.json
-```
-
-#### Start a container
-```
-# ocic ctr start --id <ctr_id>
-```
-
-#### Get container status
-```
-# ocic ctr status --id <ctr_id>
-```
-
-#### Stop a container
-```
-# ocic ctr stop --id <ctr_id>
-```
-
-#### Remove a container
-```
-# ocic ctr remove --id <ctr_id>
-```
-
-#### Stop a pod
-```
-# ocic pod stop --id <pod_id>
-```
-
-#### Remove a pod
-```
-# ocic pod remove --id <pod_id>
-```
-
-#### List pods
-```
-# ocic pod list
-```
-
-#### List containers
-```
-# ocic ctr list
-```
+Follow this [tutorial](tutorial.md) to get started with CRI-O.
 
 ### Setup CNI networking
 
