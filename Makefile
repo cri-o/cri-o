@@ -45,19 +45,19 @@ gofmt:
 	@./hack/verify-gofmt.sh
 
 conmon:
-	make -C $@
+	$(MAKE) -C $@
 
 pause:
-	make -C $@
+	$(MAKE) -C $@
 
 bin2img:
-	make -C test/$@
+	$(MAKE) -C test/$@ BUILDTAGS="$(BUILDTAGS)"
 
 copyimg:
-	make -C test/$@
+	$(MAKE) -C test/$@ BUILDTAGS="$(BUILDTAGS)"
 
 checkseccomp: check-gopath
-	make -C test/$@
+	$(MAKE) -C test/$@
 
 ocid: check-gopath
 	$(GO) install \

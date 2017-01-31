@@ -1,5 +1,5 @@
 bin2img: $(wildcard *.go)
-	go build -o $@
+	go build -tags "$(BUILDTAGS)" -o $@
 
 .PHONY: clean
 clean:
