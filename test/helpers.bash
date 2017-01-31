@@ -142,8 +142,9 @@ function start_ocid() {
 
 	run ocic image status --id=redis
 	if [ "$status" -ne 0 ] ; then
-		ocic image pull docker://redis:latest
+		ocic image pull redis:latest
 	fi
+	REDIS_IMAGEID=$(ocic image status --id=redis | head -1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {

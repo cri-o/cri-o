@@ -167,7 +167,11 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 			ref, err = istorage.Transport.ParseStoreReference(r.image.GetStore(), otherRef.DockerReference().FullName())
 		}
 		if err != nil {
-			return ContainerInfo{}, err
+			// maybe it's just imageID
+			ref, err = istorage.Transport.ParseStoreReference(r.image.GetStore(), "@"+imageID)
+			if err != nil {
+				return ContainerInfo{}, err
+			}
 		}
 	}
 	img, err := istorage.Transport.GetStoreImage(r.image.GetStore(), ref)
