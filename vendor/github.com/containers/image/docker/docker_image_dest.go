@@ -17,6 +17,21 @@ import (
 	"github.com/pkg/errors"
 )
 
+var manifestMIMETypes = []string{
+	// TODO(runcom): we'll add OCI as part of another PR here
+	manifest.DockerV2Schema2MediaType,
+	manifest.DockerV2Schema1SignedMediaType,
+	manifest.DockerV2Schema1MediaType,
+}
+
+func supportedManifestMIMETypesMap() map[string]bool {
+	m := make(map[string]bool, len(manifestMIMETypes))
+	for _, mt := range manifestMIMETypes {
+		m[mt] = true
+	}
+	return m
+}
+
 type dockerImageDestination struct {
 	ref dockerReference
 	c   *dockerClient
@@ -26,7 +41,7 @@ type dockerImageDestination struct {
 
 // newImageDestination creates a new ImageDestination for the specified image reference.
 func newImageDestination(ctx *types.SystemContext, ref dockerReference) (types.ImageDestination, error) {
-	c, err := newDockerClient(ctx, ref, true)
+	c, err := newDockerClient(ctx, ref, true, "push")
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +62,7 @@ func (d *dockerImageDestination) Close() {
 }
 
 func (d *dockerImageDestination) SupportedManifestMIMETypes() []string {
-	return []string{
-		// TODO(runcom): we'll add OCI as part of another PR here
-		manifest.DockerV2Schema2MediaType,
-		manifest.DockerV2Schema1SignedMediaType,
-		manifest.DockerV2Schema1MediaType,
-	}
+	return manifestMIMETypes
 }
 
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.

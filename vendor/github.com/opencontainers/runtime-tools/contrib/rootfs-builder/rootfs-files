@@ -1,0 +1,3 @@
+./bin/busybox
+./etc/group
+./etc/passwd
