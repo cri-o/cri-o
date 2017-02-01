@@ -350,7 +350,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	attempt := metadata.GetAttempt()
 	containerInfo, err := s.storage.CreateContainer(s.imageContext,
 		sb.name, sb.id,
-		image, "",
+		image, image,
 		containerName, containerID,
 		metaname,
 		attempt,

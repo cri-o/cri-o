@@ -8,6 +8,21 @@ function teardown() {
 	cleanup_test
 }
 
+@test "run container in pod with image ID" {
+	start_ocid
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
+	run ocic ctr create --config "$TESTDIR"/ctr_by_imageid.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_ocid
+}
+
 @test "image pull" {
 	start_ocid "" "" --no-pause-image
 	run ocic image pull "$IMAGE"
