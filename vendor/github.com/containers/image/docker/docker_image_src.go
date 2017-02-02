@@ -32,11 +32,22 @@ type dockerImageSource struct {
 // nil requestedManifestMIMETypes means manifest.DefaultRequestedManifestMIMETypes.
 // The caller must call .Close() on the returned ImageSource.
 func newImageSource(ctx *types.SystemContext, ref dockerReference, requestedManifestMIMETypes []string) (*dockerImageSource, error) {
-	c, err := newDockerClient(ctx, ref, false)
+	c, err := newDockerClient(ctx, ref, false, "pull")
 	if err != nil {
 		return nil, err
 	}
 	if requestedManifestMIMETypes == nil {
+		requestedManifestMIMETypes = manifest.DefaultRequestedManifestMIMETypes
+	}
+	supportedMIMEs := supportedManifestMIMETypesMap()
+	acceptableRequestedMIMEs := false
+	for _, mtrequested := range requestedManifestMIMETypes {
+		if supportedMIMEs[mtrequested] {
+			acceptableRequestedMIMEs = true
+			break
+		}
+	}
+	if !acceptableRequestedMIMEs {
 		requestedManifestMIMETypes = manifest.DefaultRequestedManifestMIMETypes
 	}
 	return &dockerImageSource{
@@ -250,7 +261,7 @@ func (s *dockerImageSource) getOneSignature(url *url.URL) (signature []byte, mis
 
 // deleteImage deletes the named image from the registry, if supported.
 func deleteImage(ctx *types.SystemContext, ref dockerReference) error {
-	c, err := newDockerClient(ctx, ref, true)
+	c, err := newDockerClient(ctx, ref, true, "push")
 	if err != nil {
 		return err
 	}

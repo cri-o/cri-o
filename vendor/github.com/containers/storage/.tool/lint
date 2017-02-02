@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -not -iwholename '*vendor*'); do
+	gometalinter \
+		--exclude='error return value not checked.*(Close|Log|Print).*\(errcheck\)$' \
+		--exclude='.*_test\.go:.*error return value not checked.*\(errcheck\)$' \
+		--exclude='duplicate of.*_test.go.*\(dupl\)$' \
+		--disable=aligncheck \
+		--disable=gotype \
+		--disable=gas \
+		--cyclo-over=50 \
+		--dupl-threshold=100 \
+		--tests \
+		--deadline=30s "${d}"
+done

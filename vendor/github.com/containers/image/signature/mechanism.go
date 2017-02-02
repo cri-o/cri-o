@@ -4,9 +4,13 @@ package signature
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"strings"
 
 	"github.com/mtrmac/gpgme"
+	"golang.org/x/crypto/openpgp"
 )
 
 // SigningMechanism abstracts a way to sign binary blobs and verify their signatures.
@@ -21,6 +25,12 @@ type SigningMechanism interface {
 	Sign(input []byte, keyIdentity string) ([]byte, error)
 	// Verify parses unverifiedSignature and returns the content and the signer's identity
 	Verify(unverifiedSignature []byte) (contents []byte, keyIdentity string, err error)
+	// UntrustedSignatureContents returns UNTRUSTED contents of the signature WITHOUT ANY VERIFICATION,
+	// along with a short identifier of the key used for signing.
+	// WARNING: The short key identifier (which correponds to "Key ID" for OpenPGP keys)
+	// is NOT the same as a "key identity" used in other calls ot this interface, and
+	// the values may have no recognizable relationship if the public key is not available.
+	UntrustedSignatureContents(untrustedSignature []byte) (untrustedContents []byte, shortKeyIdentifier string, err error)
 }
 
 // A GPG/OpenPGP signing mechanism.
@@ -118,4 +128,32 @@ func (m gpgSigningMechanism) Verify(unverifiedSignature []byte) (contents []byte
 		return nil, "", InvalidSignatureError{msg: fmt.Sprintf("Invalid GPG signature: %#v", sig)}
 	}
 	return signedBuffer.Bytes(), sig.Fingerprint, nil
+}
+
+// UntrustedSignatureContents returns UNTRUSTED contents of the signature WITHOUT ANY VERIFICATION,
+// along with a short identifier of the key used for signing.
+// WARNING: The short key identifier (which correponds to "Key ID" for OpenPGP keys)
+// is NOT the same as a "key identity" used in other calls ot this interface, and
+// the values may have no recognizable relationship if the public key is not available.
+func (m gpgSigningMechanism) UntrustedSignatureContents(untrustedSignature []byte) (untrustedContents []byte, shortKeyIdentifier string, err error) {
+	// This uses the Golang-native OpenPGP implementation instead of gpgme because we are not doing any cryptography.
+	md, err := openpgp.ReadMessage(bytes.NewReader(untrustedSignature), openpgp.EntityList{}, nil, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	if !md.IsSigned {
+		return nil, "", errors.New("The input is not a signature")
+	}
+	content, err := ioutil.ReadAll(md.UnverifiedBody)
+	if err != nil {
+		// Coverage: An error during reading the body can happen only if
+		// 1) the message is encrypted, which is not our case (and we don’t give ReadMessage the key
+		// to decrypt the contents anyway), or
+		// 2) the message is signed AND we give ReadMessage a correspnding public key, which we don’t.
+		return nil, "", err
+	}
+
+	// Uppercase the key ID for minimal consistency with the gpgme-returned fingerprints
+	// (but note that key ID is a suffix of the fingerprint only for V4 keys, not V3)!
+	return content, strings.ToUpper(fmt.Sprintf("%016X", md.SignedByKeyId)), nil
 }

@@ -29,6 +29,23 @@ func validateExactMapKeys(m map[string]interface{}, expectedKeys ...string) erro
 	return nil
 }
 
+// int64Field returns a member fieldName of m, if it is an int64, or an error.
+func int64Field(m map[string]interface{}, fieldName string) (int64, error) {
+	untyped, ok := m[fieldName]
+	if !ok {
+		return -1, jsonFormatError(fmt.Sprintf("Field %s missing", fieldName))
+	}
+	f, ok := untyped.(float64)
+	if !ok {
+		return -1, jsonFormatError(fmt.Sprintf("Field %s is not a number", fieldName))
+	}
+	v := int64(f)
+	if float64(v) != f {
+		return -1, jsonFormatError(fmt.Sprintf("Field %s is not an integer", fieldName))
+	}
+	return v, nil
+}
+
 // mapField returns a member fieldName of m, if it is a JSON map, or an error.
 func mapField(m map[string]interface{}, fieldName string) (map[string]interface{}, error) {
 	untyped, ok := m[fieldName]
@@ -50,7 +67,7 @@ func stringField(m map[string]interface{}, fieldName string) (string, error) {
 	}
 	v, ok := untyped.(string)
 	if !ok {
-		return "", jsonFormatError(fmt.Sprintf("Field %s is not a JSON object", fieldName))
+		return "", jsonFormatError(fmt.Sprintf("Field %s is not a string", fieldName))
 	}
 	return v, nil
 }

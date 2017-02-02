@@ -1,0 +1,393 @@
+{
+    "memo": "3b6ae2941d9c2fcab5942f6708186355cd795d594c81cd1c28defb85aadb6a92",
+    "projects": [
+        {
+            "name": "github.com/BurntSushi/toml",
+            "version": "v0.2.0",
+            "revision": "bbd5bb678321a0d6e58f1099321dfa73391c1b6f",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/Microsoft/go-winio",
+            "version": "v0.3.7",
+            "revision": "24a3e3d3fc7451805e09d11e11e95d9a0a4f205e",
+            "packages": [
+                ".",
+                "archive/tar",
+                "backuptar"
+            ]
+        },
+        {
+            "name": "github.com/Microsoft/hcsshim",
+            "version": "v0.5.11",
+            "revision": "0f615c198a84e0344b4ed49c464d8833d4648dfc",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/Sirupsen/logrus",
+            "branch": "master",
+            "revision": "61e43dc76f7ee59a82bdf3d71033dc12bea4c77d",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/containernetworking/cni",
+            "version": "v0.4.0",
+            "revision": "530dd71e193012895ff7beee42cd64a02e1993da",
+            "packages": [
+                "libcni",
+                "pkg/ns",
+                "pkg/types"
+            ]
+        },
+        {
+            "name": "github.com/containers/image",
+            "branch": "master",
+            "revision": "b9c0864946ae611722007b9eb011b6b5868d1d6d",
+            "packages": [
+                "copy",
+                "signature",
+                "storage",
+                "transports",
+                "types"
+            ]
+        },
+        {
+            "name": "github.com/containers/storage",
+            "branch": "master",
+            "revision": "5cbbc6bafb45bd7ef10486b673deb3b81bb3b787",
+            "packages": [
+                "pkg/archive",
+                "pkg/homedir",
+                "pkg/ioutils",
+                "pkg/reexec",
+                "storage"
+            ]
+        },
+        {
+            "name": "github.com/coreos/go-systemd",
+            "version": "v14",
+            "revision": "48702e0da86bd25e76cfef347e2adeb434a0d0a6",
+            "packages": [
+                "daemon"
+            ]
+        },
+        {
+            "name": "github.com/docker/distribution",
+            "branch": "master",
+            "revision": "fb0bebc4b64e3881cc52a2478d749845ed76d2a8",
+            "packages": [
+                "reference",
+                "registry/client"
+            ]
+        },
+        {
+            "name": "github.com/docker/docker",
+            "version": "v1.13.0",
+            "revision": "49bf474f9ed7ce7143a59d1964ff7b7fd9b52178",
+            "packages": [
+                "api/types/strslice",
+                "client",
+                "pkg/mount",
+                "pkg/registrar",
+                "pkg/stringid",
+                "pkg/stringutils",
+                "pkg/truncindex",
+                "utils/templates"
+            ]
+        },
+        {
+            "name": "github.com/docker/go-connections",
+            "branch": "master",
+            "revision": "4ccf312bf1d35e5dbda654e57a9be4c3f3cd0366",
+            "packages": [
+                "nat",
+                "sockets",
+                "tlsconfig"
+            ]
+        },
+        {
+            "name": "github.com/docker/go-units",
+            "version": "v0.3.1",
+            "revision": "f2d77a61e3c169b43402a0a1e84f06daf29b8190",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/docker/libtrust",
+            "branch": "master",
+            "revision": "aabc10ec26b754e797f9028f4589c5b7bd90dc20",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/ghodss/yaml",
+            "branch": "master",
+            "revision": "04f313413ffd65ce25f2541bfd2b2ceec5c0908c",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/gogo/protobuf",
+            "version": "v0.3",
+            "revision": "909568be09de550ed094403c2bf8a261b5bb730a",
+            "packages": [
+                "proto"
+            ]
+        },
+        {
+            "name": "github.com/golang/glog",
+            "branch": "master",
+            "revision": "23def4e6c14b4da8ac2ed8007337bc5eb5007998",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/golang/protobuf",
+            "branch": "master",
+            "revision": "8ee79997227bf9b34611aee7946ae64735e6fd93",
+            "packages": [
+                "proto"
+            ]
+        },
+        {
+            "name": "github.com/gorilla/context",
+            "version": "v1.1",
+            "revision": "1ea25387ff6f684839d82767c1733ff4d4d15d0a",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/gorilla/mux",
+            "version": "v1.3.0",
+            "revision": "392c28fe23e1c45ddba891b0320b3b5df220beea",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/imdario/mergo",
+            "version": "0.2.2",
+            "revision": "3e95a51e0639b4cf372f2ccf74c86749d747fbdc",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-runewidth",
+            "version": "v0.0.1",
+            "revision": "d6bea18f789704b5f83375793155289da36a3c7f",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-shellwords",
+            "version": "v1.0.1",
+            "revision": "753a2322a99f87c0eff284980e77f53041555bc6",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mistifyio/go-zfs",
+            "version": "v2.1.1",
+            "revision": "cdc0f941c4d0e0e94d85348285568d921891e138",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mtrmac/gpgme",
+            "branch": "master",
+            "revision": "b2432428689ca58c2b8e8dea9449d3295cf96fc9",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/opencontainers/go-digest",
+            "version": "v1.0.0-rc0",
+            "revision": "aa2ec055abd10d26d539eb630a92241b781ce4bc",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/opencontainers/image-spec",
+            "branch": "master",
+            "revision": "5fccf471dfc2e02d5509daf0feddeab86f80510a",
+            "packages": [
+                "specs-go",
+                "specs-go/v1"
+            ]
+        },
+        {
+            "name": "github.com/opencontainers/runc",
+            "version": "v0.1.1",
+            "revision": "baf6536d6259209c3edfa2b22237af82942d3dfa",
+            "packages": [
+                "libcontainer/apparmor",
+                "libcontainer/label",
+                "libcontainer/selinux",
+                "libcontainer/system",
+                "libcontainer/user"
+            ]
+        },
+        {
+            "name": "github.com/opencontainers/runtime-spec",
+            "branch": "master",
+            "revision": "bb6925ea99f0e366a3f7d1c975f6577475ca25f0",
+            "packages": [
+                "specs-go"
+            ]
+        },
+        {
+            "name": "github.com/opencontainers/runtime-tools",
+            "branch": "master",
+            "revision": "06e17eef1ab6e13f4f37308a16727510ab81414f",
+            "packages": [
+                "generate"
+            ]
+        },
+        {
+            "name": "github.com/pkg/errors",
+            "version": "v0.8.0",
+            "revision": "645ef00459ed84a119197bfb8d8205042c6df63d",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/seccomp/libseccomp-golang",
+            "version": "v0.9.0",
+            "revision": "e3496e3a417d1dc9ecdceca5af2513271fed37a0",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/syndtr/gocapability",
+            "branch": "master",
+            "revision": "e7cb7fa329f456b3855136a2642b197bad7366ba",
+            "packages": [
+                "capability"
+            ]
+        },
+        {
+            "name": "github.com/tchap/go-patricia",
+            "version": "v2.2.6",
+            "revision": "666120de432aea38ab06bd5c818f04f4129882c9",
+            "packages": [
+                "patricia"
+            ]
+        },
+        {
+            "name": "github.com/urfave/cli",
+            "version": "v1.19.1",
+            "revision": "0bdeddeeb0f650497d603c4ad7b20cfe685682f6",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/vbatts/tar-split",
+            "version": "v0.10.1",
+            "revision": "d3f1b54304d656376e58f9406a9cb4775799a357",
+            "packages": [
+                "tar/asm",
+                "tar/storage"
+            ]
+        },
+        {
+            "name": "golang.org/x/crypto",
+            "branch": "master",
+            "revision": "dc137beb6cce2043eb6b5f223ab8bf51c32459f4",
+            "packages": [
+                "openpgp"
+            ]
+        },
+        {
+            "name": "golang.org/x/net",
+            "branch": "master",
+            "revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
+            "packages": [
+                "context",
+                "context/ctxhttp",
+                "http2",
+                "http2/hpack",
+                "proxy",
+                "trace"
+            ]
+        },
+        {
+            "name": "golang.org/x/sys",
+            "branch": "master",
+            "revision": "d75a52659825e75fff6158388dddc6a5b04f9ba5",
+            "packages": [
+                "unix",
+                "windows"
+            ]
+        },
+        {
+            "name": "google.golang.org/grpc",
+            "version": "v1.0.1-GA",
+            "revision": "0032a855ba5c8a3c8e0d71c2deef354b70af1584",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "gopkg.in/cheggaaa/pb.v1",
+            "version": "v1.0.7",
+            "revision": "d7e6ca3010b6f084d8056847f55d7f572f180678",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "gopkg.in/yaml.v2",
+            "branch": "v2",
+            "revision": "4c78c975fe7c825c6d1466c42be594d1d6f3aba6",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "k8s.io/apimachinery",
+            "branch": "master",
+            "revision": "21807b270ec15d19215659a5caa08b17f66d6f44",
+            "packages": [
+                "pkg/fields",
+                "pkg/selection"
+            ]
+        },
+        {
+            "name": "k8s.io/client-go",
+            "branch": "master",
+            "revision": "b766ef93a46ce6dc863462254658ca2861a53314",
+            "packages": [
+                "util/homedir"
+            ]
+        },
+        {
+            "name": "k8s.io/kubernetes",
+            "branch": "master",
+            "revision": "550f8be73aac92c7c23b1783d3db17f8660019f6",
+            "packages": [
+                "pkg/fields",
+                "pkg/kubelet/api/v1alpha1/runtime"
+            ]
+        }
+    ]
+}

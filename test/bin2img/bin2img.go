@@ -102,7 +102,9 @@ func main() {
 			logrus.Errorf("error opening storage: %v", err)
 			os.Exit(1)
 		}
-		defer store.Shutdown(false)
+		defer func() {
+			_, _ = store.Shutdown(false)
+		}()
 
 		layerBuffer := &bytes.Buffer{}
 		binary, err := os.Open(sourceBinary)
@@ -188,16 +190,15 @@ func main() {
 		manifest := &v1.Manifest{
 			Versioned: specs.Versioned{
 				SchemaVersion: 2,
-				MediaType:     v1.MediaTypeImageManifest,
 			},
 			Config: v1.Descriptor{
 				MediaType: v1.MediaTypeImageConfig,
-				Digest:    configInfo.Digest.String(),
+				Digest:    configInfo.Digest,
 				Size:      int64(len(cbytes)),
 			},
 			Layers: []v1.Descriptor{{
 				MediaType: v1.MediaTypeImageLayer,
-				Digest:    layer.Digest.String(),
+				Digest:    layer.Digest,
 				Size:      layer.Size,
 			}},
 		}

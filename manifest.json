@@ -1,0 +1,16 @@
+{
+    "dependencies": {
+        "github.com/Sirupsen/logrus": {
+            "branch": "master"
+        },
+        "github.com/docker/distribution": {
+            "branch": "master"
+        },
+        "google.golang.org/grpc": {
+            "version": "v1.0.1-GA"
+        },
+        "k8s.io/kubernetes": {
+            "branch": "master"
+        }
+    }
+}

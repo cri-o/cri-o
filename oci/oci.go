@@ -20,7 +20,7 @@ import (
 	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"golang.org/x/sys/unix"
-	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
