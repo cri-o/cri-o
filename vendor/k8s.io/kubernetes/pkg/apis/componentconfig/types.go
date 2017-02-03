@@ -481,6 +481,9 @@ type KubeletConfiguration struct {
 	// (binaries, etc.) to mount the volume are available on the underlying node. If the check is enabled
 	// and fails the mount operation fails.
 	ExperimentalCheckNodeCapabilitiesBeforeMount bool
+	// This flag, if set, instructs the kubelet to keep volumes from terminated pods mounted to the node.
+	// This can be useful for debugging volume related issues.
+	KeepTerminatedPodVolumes bool
 }
 
 type KubeletAuthorizationMode string
@@ -561,8 +564,7 @@ type KubeSchedulerConfiguration struct {
 	// kubeAPIBurst is the QPS burst to use while talking with kubernetes apiserver.
 	KubeAPIBurst int32
 	// schedulerName is name of the scheduler, used to select which pods
-	// will be processed by this scheduler, based on pod's annotation with
-	// key 'scheduler.alpha.kubernetes.io/name'.
+	// will be processed by this scheduler, based on pod's "spec.SchedulerName".
 	SchedulerName string
 	// RequiredDuringScheduling affinity is not symmetric, but there is an implicit PreferredDuringScheduling affinity rule
 	// corresponding to every RequiredDuringScheduling affinity rule.

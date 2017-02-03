@@ -37,13 +37,14 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	authauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/v1"
 	apps "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
 	autoscaling "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	certificates "k8s.io/kubernetes/pkg/apis/certificates/v1alpha1"
+	certificates "k8s.io/kubernetes/pkg/apis/certificates/v1beta1"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	policy "k8s.io/kubernetes/pkg/apis/policy/v1alpha1"
 	rbac "k8s.io/kubernetes/pkg/apis/rbac/v1alpha1"
@@ -52,13 +53,12 @@ import (
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/record"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/controller"
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	"k8s.io/kubernetes/pkg/generated/openapi"
-	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver/authenticator"
 	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
+	genericapiserver "k8s.io/kubernetes/pkg/genericapiserver/server"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
@@ -267,7 +267,7 @@ func startMasterOrDie(masterConfig *master.Config, incomingServer *httptest.Serv
 	if masterConfig.EnableCoreControllers {
 		// TODO Once /healthz is updated for posthooks, we'll wait for good health
 		coreClient := coreclient.NewForConfigOrDie(&cfg)
-		svcWatch, err := coreClient.Services(v1.NamespaceDefault).Watch(v1.ListOptions{})
+		svcWatch, err := coreClient.Services(metav1.NamespaceDefault).Watch(metav1.ListOptions{})
 		if err != nil {
 			glog.Fatal(err)
 		}
@@ -403,7 +403,7 @@ func CreateTestingNamespace(baseName string, apiserver *httptest.Server, t *test
 	// Currently we neither create the namespace nor delete all its contents at the end.
 	// But as long as tests are not using the same namespaces, this should work fine.
 	return &v1.Namespace{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			// TODO: Once we start creating namespaces, switch to GenerateName.
 			Name: baseName,
 		},

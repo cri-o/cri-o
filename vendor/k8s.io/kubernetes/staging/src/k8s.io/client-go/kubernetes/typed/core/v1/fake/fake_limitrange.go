@@ -20,8 +20,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	testing "k8s.io/client-go/testing"
 )
@@ -61,7 +61,7 @@ func (c *FakeLimitRanges) Delete(name string, options *v1.DeleteOptions) error {
 	return err
 }
 
-func (c *FakeLimitRanges) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeLimitRanges) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(limitrangesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.LimitRangeList{})
@@ -78,7 +78,7 @@ func (c *FakeLimitRanges) Get(name string, options meta_v1.GetOptions) (result *
 	return obj.(*v1.LimitRange), err
 }
 
-func (c *FakeLimitRanges) List(opts v1.ListOptions) (result *v1.LimitRangeList, err error) {
+func (c *FakeLimitRanges) List(opts meta_v1.ListOptions) (result *v1.LimitRangeList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(limitrangesResource, c.ns, opts), &v1.LimitRangeList{})
 
@@ -100,14 +100,14 @@ func (c *FakeLimitRanges) List(opts v1.ListOptions) (result *v1.LimitRangeList, 
 }
 
 // Watch returns a watch.Interface that watches the requested limitRanges.
-func (c *FakeLimitRanges) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeLimitRanges) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(limitrangesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched limitRange.
-func (c *FakeLimitRanges) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.LimitRange, err error) {
+func (c *FakeLimitRanges) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.LimitRange, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(limitrangesResource, c.ns, name, data, subresources...), &v1.LimitRange{})
 

@@ -32,12 +32,13 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/version"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/integration/framework"
@@ -60,7 +61,7 @@ func TestClient(t *testing.T) {
 		t.Errorf("expected %#v, got %#v", e, a)
 	}
 
-	pods, err := client.Core().Pods(ns.Name).List(v1.ListOptions{})
+	pods, err := client.Core().Pods(ns.Name).List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -70,7 +71,7 @@ func TestClient(t *testing.T) {
 
 	// get a validation error
 	pod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test",
 			Namespace:    ns.Name,
 		},
@@ -99,7 +100,7 @@ func TestClient(t *testing.T) {
 	}
 
 	// pod is shown, but not scheduled
-	pods, err = client.Core().Pods(ns.Name).List(v1.ListOptions{})
+	pods, err = client.Core().Pods(ns.Name).List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -128,7 +129,7 @@ func TestAtomicPut(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: c.Core().RESTClient().APIVersion().String(),
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "atomicrc",
 			Namespace: ns.Name,
 			Labels: map[string]string{
@@ -141,7 +142,7 @@ func TestAtomicPut(t *testing.T) {
 				"foo": "bar",
 			},
 			Template: &v1.PodTemplateSpec{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"foo": "bar",
 					},
@@ -222,7 +223,7 @@ func TestPatch(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: c.Core().RESTClient().APIVersion().String(),
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns.Name,
 			Labels:    map[string]string{},
@@ -239,23 +240,23 @@ func TestPatch(t *testing.T) {
 		t.Fatalf("Failed creating patchpods: %v", err)
 	}
 
-	patchBodies := map[schema.GroupVersion]map[api.PatchType]struct {
+	patchBodies := map[schema.GroupVersion]map[types.PatchType]struct {
 		AddLabelBody        []byte
 		RemoveLabelBody     []byte
 		RemoveAllLabelsBody []byte
 	}{
 		v1.SchemeGroupVersion: {
-			api.JSONPatchType: {
+			types.JSONPatchType: {
 				[]byte(`[{"op":"add","path":"/metadata/labels","value":{"foo":"bar","baz":"qux"}}]`),
 				[]byte(`[{"op":"remove","path":"/metadata/labels/foo"}]`),
 				[]byte(`[{"op":"remove","path":"/metadata/labels"}]`),
 			},
-			api.MergePatchType: {
+			types.MergePatchType: {
 				[]byte(`{"metadata":{"labels":{"foo":"bar","baz":"qux"}}}`),
 				[]byte(`{"metadata":{"labels":{"foo":null}}}`),
 				[]byte(`{"metadata":{"labels":null}}`),
 			},
-			api.StrategicMergePatchType: {
+			types.StrategicMergePatchType: {
 				[]byte(`{"metadata":{"labels":{"foo":"bar","baz":"qux"}}}`),
 				[]byte(`{"metadata":{"labels":{"foo":null}}}`),
 				[]byte(`{"metadata":{"labels":{"$patch":"replace"}}}`),
@@ -265,7 +266,7 @@ func TestPatch(t *testing.T) {
 
 	pb := patchBodies[c.Core().RESTClient().APIVersion()]
 
-	execPatch := func(pt api.PatchType, body []byte) error {
+	execPatch := func(pt types.PatchType, body []byte) error {
 		return c.Core().RESTClient().Patch(pt).
 			Resource(resource).
 			Namespace(ns.Name).
@@ -326,7 +327,7 @@ func TestPatchWithCreateOnUpdate(t *testing.T) {
 	defer framework.DeleteTestingNamespace(ns, s, t)
 
 	endpointTemplate := &v1.Endpoints{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "patchendpoint",
 			Namespace: ns.Name,
 		},
@@ -339,7 +340,7 @@ func TestPatchWithCreateOnUpdate(t *testing.T) {
 	}
 
 	patchEndpoint := func(json []byte) (runtime.Object, error) {
-		return c.Core().RESTClient().Patch(api.MergePatchType).Resource("endpoints").Namespace(ns.Name).Name("patchendpoint").Body(json).Do().Get()
+		return c.Core().RESTClient().Patch(types.MergePatchType).Resource("endpoints").Namespace(ns.Name).Name("patchendpoint").Body(json).Do().Get()
 	}
 
 	// Make sure patch doesn't get to CreateOnUpdate
@@ -461,7 +462,7 @@ func TestSingleWatch(t *testing.T) {
 	mkEvent := func(i int) *v1.Event {
 		name := fmt.Sprintf("event-%v", i)
 		return &v1.Event{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ns.Name,
 				Name:      name,
 			},
@@ -546,7 +547,7 @@ func TestMultiWatch(t *testing.T) {
 	dummyEvent := func(i int) *v1.Event {
 		name := fmt.Sprintf("unrelated-%v", i)
 		return &v1.Event{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("%v.%x", name, time.Now().UnixNano()),
 				Namespace: ns.Name,
 			},
@@ -571,7 +572,7 @@ func TestMultiWatch(t *testing.T) {
 		watchesStarted.Add(1)
 		name := fmt.Sprintf("multi-watch-%v", i)
 		got, err := client.Core().Pods(ns.Name).Create(&v1.Pod{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
 				Labels: labels.Set{"watchlabel": name},
 			},
@@ -587,7 +588,7 @@ func TestMultiWatch(t *testing.T) {
 			t.Fatalf("Couldn't make %v: %v", name, err)
 		}
 		go func(name, rv string) {
-			options := v1.ListOptions{
+			options := metav1.ListOptions{
 				LabelSelector:   labels.Set{"watchlabel": name}.AsSelector().String(),
 				ResourceVersion: rv,
 			}
@@ -678,7 +679,7 @@ func TestMultiWatch(t *testing.T) {
 					}
 					name := fmt.Sprintf("unrelated-%v", i)
 					_, err := client.Core().Pods(ns.Name).Create(&v1.Pod{
-						ObjectMeta: v1.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name: name,
 						},
 						Spec: v1.PodSpec{
@@ -742,7 +743,7 @@ func TestMultiWatch(t *testing.T) {
 
 func runSelfLinkTestOnNamespace(t *testing.T, c clientset.Interface, namespace string) {
 	podBody := v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "selflinktest",
 			Namespace: namespace,
 			Labels: map[string]string{
@@ -763,7 +764,7 @@ func runSelfLinkTestOnNamespace(t *testing.T, c clientset.Interface, namespace s
 		t.Errorf("Failed listing pod with supplied self link '%v': %v", pod.SelfLink, err)
 	}
 
-	podList, err := c.Core().Pods(namespace).List(v1.ListOptions{})
+	podList, err := c.Core().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("Failed listing pods: %v", err)
 	}

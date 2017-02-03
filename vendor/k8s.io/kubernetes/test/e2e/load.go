@@ -27,17 +27,18 @@ import (
 	"sync"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/transport"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/transport"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"
@@ -423,7 +424,7 @@ func generateServicesForConfigs(configs []testutils.RunObjectConfig) []*v1.Servi
 		serviceName := config.GetName() + "-svc"
 		labels := map[string]string{"name": config.GetName()}
 		service := &v1.Service{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      serviceName,
 				Namespace: config.GetNamespace(),
 			},
@@ -483,7 +484,7 @@ func scaleResource(wg *sync.WaitGroup, config testutils.RunObjectConfig, scaling
 		fmt.Sprintf("scaling rc %s for the first time", config.GetName()))
 
 	selector := labels.SelectorFromSet(labels.Set(map[string]string{"name": config.GetName()}))
-	options := v1.ListOptions{
+	options := metav1.ListOptions{
 		LabelSelector:   selector.String(),
 		ResourceVersion: "0",
 	}

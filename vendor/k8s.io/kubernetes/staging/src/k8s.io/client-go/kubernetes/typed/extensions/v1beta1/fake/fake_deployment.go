@@ -20,8 +20,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	testing "k8s.io/client-go/testing"
@@ -72,7 +72,7 @@ func (c *FakeDeployments) Delete(name string, options *v1.DeleteOptions) error {
 	return err
 }
 
-func (c *FakeDeployments) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeDeployments) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(deploymentsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.DeploymentList{})
@@ -89,7 +89,7 @@ func (c *FakeDeployments) Get(name string, options meta_v1.GetOptions) (result *
 	return obj.(*v1beta1.Deployment), err
 }
 
-func (c *FakeDeployments) List(opts v1.ListOptions) (result *v1beta1.DeploymentList, err error) {
+func (c *FakeDeployments) List(opts meta_v1.ListOptions) (result *v1beta1.DeploymentList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(deploymentsResource, c.ns, opts), &v1beta1.DeploymentList{})
 
@@ -111,14 +111,14 @@ func (c *FakeDeployments) List(opts v1.ListOptions) (result *v1beta1.DeploymentL
 }
 
 // Watch returns a watch.Interface that watches the requested deployments.
-func (c *FakeDeployments) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeDeployments) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(deploymentsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched deployment.
-func (c *FakeDeployments) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1beta1.Deployment, err error) {
+func (c *FakeDeployments) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Deployment, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(deploymentsResource, c.ns, name, data, subresources...), &v1beta1.Deployment{})
 

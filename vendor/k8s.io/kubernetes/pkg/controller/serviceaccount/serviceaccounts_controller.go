@@ -23,12 +23,14 @@ import (
 	"github.com/golang/glog"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	"k8s.io/kubernetes/pkg/client/legacylisters"
 	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/util/metrics"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -62,7 +64,7 @@ type ServiceAccountsControllerOptions struct {
 func DefaultServiceAccountsControllerOptions() ServiceAccountsControllerOptions {
 	return ServiceAccountsControllerOptions{
 		ServiceAccounts: []v1.ServiceAccount{
-			{ObjectMeta: v1.ObjectMeta{Name: "default"}},
+			{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 		},
 	}
 }
@@ -104,8 +106,8 @@ type ServiceAccountsController struct {
 	// To allow injection for testing.
 	syncHandler func(key string) error
 
-	saLister *cache.StoreToServiceAccountLister
-	nsLister *cache.IndexerToNamespaceLister
+	saLister *listers.StoreToServiceAccountLister
+	nsLister *listers.IndexerToNamespaceLister
 
 	saSynced cache.InformerSynced
 	nsSynced cache.InformerSynced

@@ -49,7 +49,6 @@ go_library(
         "//vendor:github.com/docker/engine-api/types/versions",
         "//vendor:github.com/docker/go-connections/nat",
         "//vendor:github.com/golang/glog",
-        "//vendor:github.com/golang/protobuf/proto",
     ],
 )
 
@@ -78,12 +77,12 @@ go_test(
         "//pkg/kubelet/types:go_default_library",
         "//pkg/security/apparmor:go_default_library",
         "//pkg/securitycontext:go_default_library",
-        "//pkg/util/clock:go_default_library",
         "//vendor:github.com/docker/engine-api/types",
         "//vendor:github.com/docker/engine-api/types/container",
         "//vendor:github.com/golang/mock/gomock",
         "//vendor:github.com/stretchr/testify/assert",
         "//vendor:github.com/stretchr/testify/require",
+        "//vendor:k8s.io/client-go/util/clock",
     ],
 )
 

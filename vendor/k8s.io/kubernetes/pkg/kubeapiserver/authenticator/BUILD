@@ -14,7 +14,6 @@ go_library(
     deps = [
         "//pkg/genericapiserver/authenticator:go_default_library",
         "//pkg/serviceaccount:go_default_library",
-        "//pkg/util/cert:go_default_library",
         "//plugin/pkg/auth/authenticator/password/keystone:go_default_library",
         "//plugin/pkg/auth/authenticator/password/passwordfile:go_default_library",
         "//plugin/pkg/auth/authenticator/request/basicauth:go_default_library",
@@ -33,6 +32,7 @@ go_library(
         "//vendor:k8s.io/apiserver/pkg/authentication/user",
         "//vendor:k8s.io/client-go/plugin/pkg/client/auth/gcp",
         "//vendor:k8s.io/client-go/plugin/pkg/client/auth/oidc",
+        "//vendor:k8s.io/client-go/util/cert",
     ],
 )
 

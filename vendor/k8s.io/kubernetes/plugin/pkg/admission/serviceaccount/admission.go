@@ -25,17 +25,16 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/fields"
 	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kubelet "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -108,15 +107,11 @@ func (a *serviceAccount) SetInternalClientSet(cl internalclientset.Interface) {
 	a.client = cl
 	a.serviceAccounts, a.serviceAccountsReflector = cache.NewNamespaceKeyedIndexerAndReflector(
 		&cache.ListWatch{
-			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				internalOptions := api.ListOptions{}
-				v1.Convert_v1_ListOptions_To_api_ListOptions(&options, &internalOptions, nil)
-				return cl.Core().ServiceAccounts(api.NamespaceAll).List(internalOptions)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return cl.Core().ServiceAccounts(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				internalOptions := api.ListOptions{}
-				v1.Convert_v1_ListOptions_To_api_ListOptions(&options, &internalOptions, nil)
-				return cl.Core().ServiceAccounts(api.NamespaceAll).Watch(internalOptions)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return cl.Core().ServiceAccounts(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&api.ServiceAccount{},
@@ -126,17 +121,13 @@ func (a *serviceAccount) SetInternalClientSet(cl internalclientset.Interface) {
 	tokenSelector := fields.SelectorFromSet(map[string]string{api.SecretTypeField: string(api.SecretTypeServiceAccountToken)})
 	a.secrets, a.secretsReflector = cache.NewNamespaceKeyedIndexerAndReflector(
 		&cache.ListWatch{
-			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				internalOptions := api.ListOptions{}
-				v1.Convert_v1_ListOptions_To_api_ListOptions(&options, &internalOptions, nil)
-				internalOptions.FieldSelector = tokenSelector
-				return cl.Core().Secrets(api.NamespaceAll).List(internalOptions)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				options.FieldSelector = tokenSelector.String()
+				return cl.Core().Secrets(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				internalOptions := api.ListOptions{}
-				v1.Convert_v1_ListOptions_To_api_ListOptions(&options, &internalOptions, nil)
-				internalOptions.FieldSelector = tokenSelector
-				return cl.Core().Secrets(api.NamespaceAll).Watch(internalOptions)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				options.FieldSelector = tokenSelector.String()
+				return cl.Core().Secrets(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&api.Secret{},
@@ -265,7 +256,7 @@ func (s *serviceAccount) enforceMountableSecrets(serviceAccount *api.ServiceAcco
 
 // getServiceAccount returns the ServiceAccount for the given namespace and name if it exists
 func (s *serviceAccount) getServiceAccount(namespace string, name string) (*api.ServiceAccount, error) {
-	key := &api.ServiceAccount{ObjectMeta: api.ObjectMeta{Namespace: namespace}}
+	key := &api.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: namespace}}
 	index, err := s.serviceAccounts.Index("namespace", key)
 	if err != nil {
 		return nil, err
@@ -327,7 +318,7 @@ func (s *serviceAccount) getReferencedServiceAccountToken(serviceAccount *api.Se
 
 // getServiceAccountTokens returns all ServiceAccountToken secrets for the given ServiceAccount
 func (s *serviceAccount) getServiceAccountTokens(serviceAccount *api.ServiceAccount) ([]*api.Secret, error) {
-	key := &api.Secret{ObjectMeta: api.ObjectMeta{Namespace: serviceAccount.Namespace}}
+	key := &api.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: serviceAccount.Namespace}}
 	index, err := s.secrets.Index("namespace", key)
 	if err != nil {
 		return nil, err

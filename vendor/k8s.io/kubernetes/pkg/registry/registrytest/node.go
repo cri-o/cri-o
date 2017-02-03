@@ -20,9 +20,10 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 )
 
@@ -59,7 +60,7 @@ func (r *NodeRegistry) SetError(err error) {
 	r.Err = err
 }
 
-func (r *NodeRegistry) ListNodes(ctx genericapirequest.Context, options *api.ListOptions) (*api.NodeList, error) {
+func (r *NodeRegistry) ListNodes(ctx genericapirequest.Context, options *metainternalversion.ListOptions) (*api.NodeList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return &r.Nodes, r.Err
@@ -105,13 +106,13 @@ func (r *NodeRegistry) DeleteNode(ctx genericapirequest.Context, nodeID string) 
 	var newList []api.Node
 	for _, node := range r.Nodes.Items {
 		if node.Name != nodeID {
-			newList = append(newList, api.Node{ObjectMeta: api.ObjectMeta{Name: node.Name}})
+			newList = append(newList, api.Node{ObjectMeta: metav1.ObjectMeta{Name: node.Name}})
 		}
 	}
 	r.Nodes.Items = newList
 	return r.Err
 }
 
-func (r *NodeRegistry) WatchNodes(ctx genericapirequest.Context, options *api.ListOptions) (watch.Interface, error) {
+func (r *NodeRegistry) WatchNodes(ctx genericapirequest.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
 	return nil, r.Err
 }

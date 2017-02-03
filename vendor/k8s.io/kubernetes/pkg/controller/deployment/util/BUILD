@@ -22,14 +22,13 @@ go_library(
         "//pkg/api/v1:go_default_library",
         "//pkg/apis/extensions:go_default_library",
         "//pkg/apis/extensions/v1beta1:go_default_library",
-        "//pkg/client/cache:go_default_library",
         "//pkg/client/clientset_generated/clientset:go_default_library",
         "//pkg/client/clientset_generated/clientset/typed/core/v1:go_default_library",
         "//pkg/client/clientset_generated/clientset/typed/extensions/v1beta1:go_default_library",
+        "//pkg/client/legacylisters:go_default_library",
         "//pkg/client/retry:go_default_library",
         "//pkg/controller:go_default_library",
         "//pkg/util/hash:go_default_library",
-        "//pkg/util/integer:go_default_library",
         "//pkg/util/intstr:go_default_library",
         "//pkg/util/labels:go_default_library",
         "//vendor:github.com/golang/glog",
@@ -39,6 +38,7 @@ go_library(
         "//vendor:k8s.io/apimachinery/pkg/runtime",
         "//vendor:k8s.io/apimachinery/pkg/util/errors",
         "//vendor:k8s.io/apimachinery/pkg/util/wait",
+        "//vendor:k8s.io/client-go/util/integer",
     ],
 )
 

@@ -20,8 +20,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	testing "k8s.io/client-go/testing"
@@ -72,7 +72,7 @@ func (c *FakeIngresses) Delete(name string, options *v1.DeleteOptions) error {
 	return err
 }
 
-func (c *FakeIngresses) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeIngresses) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(ingressesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.IngressList{})
@@ -89,7 +89,7 @@ func (c *FakeIngresses) Get(name string, options meta_v1.GetOptions) (result *v1
 	return obj.(*v1beta1.Ingress), err
 }
 
-func (c *FakeIngresses) List(opts v1.ListOptions) (result *v1beta1.IngressList, err error) {
+func (c *FakeIngresses) List(opts meta_v1.ListOptions) (result *v1beta1.IngressList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(ingressesResource, c.ns, opts), &v1beta1.IngressList{})
 
@@ -111,14 +111,14 @@ func (c *FakeIngresses) List(opts v1.ListOptions) (result *v1beta1.IngressList, 
 }
 
 // Watch returns a watch.Interface that watches the requested ingresses.
-func (c *FakeIngresses) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeIngresses) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(ingressesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched ingress.
-func (c *FakeIngresses) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1beta1.Ingress, err error) {
+func (c *FakeIngresses) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Ingress, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(ingressesResource, c.ns, name, data, subresources...), &v1beta1.Ingress{})
 

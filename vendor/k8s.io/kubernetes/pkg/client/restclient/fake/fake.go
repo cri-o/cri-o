@@ -24,10 +24,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 )
 
 func CreateHTTPClient(roundTripper func(*http.Request) (*http.Response, error)) *http.Client {
@@ -61,7 +62,7 @@ func (c *RESTClient) Put() *restclient.Request {
 	return c.request("PUT")
 }
 
-func (c *RESTClient) Patch(_ api.PatchType) *restclient.Request {
+func (c *RESTClient) Patch(_ types.PatchType) *restclient.Request {
 	return c.request("PATCH")
 }
 

@@ -17,9 +17,11 @@ limitations under the License.
 package controller
 
 import (
+	"strings"
 	"testing"
 
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 )
@@ -36,18 +38,18 @@ func TestControllerStrategy(t *testing.T) {
 	validSelector := map[string]string{"a": "b"}
 	validPodTemplate := api.PodTemplate{
 		Template: api.PodTemplateSpec{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Labels: validSelector,
 			},
 			Spec: api.PodSpec{
 				RestartPolicy: api.RestartPolicyAlways,
 				DNSPolicy:     api.DNSClusterFirst,
-				Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+				Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: api.TerminationMessageReadFile}},
 			},
 		},
 	}
 	rc := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+		ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: metav1.NamespaceDefault},
 		Spec: api.ReplicationControllerSpec{
 			Selector: validSelector,
 			Template: &validPodTemplate.Template,
@@ -71,7 +73,7 @@ func TestControllerStrategy(t *testing.T) {
 	}
 
 	invalidRc := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "4"},
+		ObjectMeta: metav1.ObjectMeta{Name: "bar", ResourceVersion: "4"},
 	}
 	Strategy.PrepareForUpdate(ctx, invalidRc, rc)
 	errs = Strategy.ValidateUpdate(ctx, invalidRc, rc)
@@ -94,18 +96,18 @@ func TestControllerStatusStrategy(t *testing.T) {
 	validSelector := map[string]string{"a": "b"}
 	validPodTemplate := api.PodTemplate{
 		Template: api.PodTemplateSpec{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Labels: validSelector,
 			},
 			Spec: api.PodSpec{
 				RestartPolicy: api.RestartPolicyAlways,
 				DNSPolicy:     api.DNSClusterFirst,
-				Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+				Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File"}},
 			},
 		},
 	}
 	oldController := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault, ResourceVersion: "10"},
+		ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: metav1.NamespaceDefault, ResourceVersion: "10"},
 		Spec: api.ReplicationControllerSpec{
 			Replicas: 3,
 			Selector: validSelector,
@@ -117,7 +119,7 @@ func TestControllerStatusStrategy(t *testing.T) {
 		},
 	}
 	newController := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault, ResourceVersion: "9"},
+		ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: metav1.NamespaceDefault, ResourceVersion: "9"},
 		Spec: api.ReplicationControllerSpec{
 			Replicas: 1,
 			Selector: validSelector,
@@ -148,4 +150,68 @@ func TestSelectableFieldLabelConversions(t *testing.T) {
 		ControllerToSelectableFields(&api.ReplicationController{}),
 		nil,
 	)
+}
+
+func TestValidateUpdate(t *testing.T) {
+	ctx := genericapirequest.NewDefaultContext()
+	validSelector := map[string]string{"a": "b"}
+	validPodTemplate := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: validSelector,
+			},
+			Spec: api.PodSpec{
+				RestartPolicy: api.RestartPolicyAlways,
+				DNSPolicy:     api.DNSClusterFirst,
+				Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File"}},
+			},
+		},
+	}
+	oldController := &api.ReplicationController{
+		ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault, ResourceVersion: "10", Annotations: make(map[string]string)},
+		Spec: api.ReplicationControllerSpec{
+			Replicas: 3,
+			Selector: validSelector,
+			Template: &validPodTemplate.Template,
+		},
+		Status: api.ReplicationControllerStatus{
+			Replicas:           1,
+			ObservedGeneration: int64(10),
+		},
+	}
+	// Conversion sets this annotation
+	oldController.Annotations[api.NonConvertibleAnnotationPrefix+"/"+"spec.selector"] = "no way"
+
+	// Deep-copy so we won't mutate both selectors.
+	objCopy, err := api.Scheme.DeepCopy(oldController)
+	if err != nil {
+		t.Fatalf("unexpected deep-copy error: %v", err)
+	}
+	newController, ok := objCopy.(*api.ReplicationController)
+	if !ok {
+		t.Fatalf("unexpected object: %#v", objCopy)
+	}
+	// Irrelevant (to the selector) update for the replication controller.
+	newController.Spec.Replicas = 5
+
+	// If they didn't try to update the selector then we should not return any error.
+	errs := Strategy.ValidateUpdate(ctx, newController, oldController)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+
+	// Update the selector - validation should return an error.
+	newController.Spec.Selector["shiny"] = "newlabel"
+	newController.Spec.Template.Labels["shiny"] = "newlabel"
+
+	errs = Strategy.ValidateUpdate(ctx, newController, oldController)
+	for _, err := range errs {
+		t.Logf("%#v\n", err)
+	}
+	if len(errs) != 1 {
+		t.Fatalf("expected a validation error")
+	}
+	if !strings.Contains(errs[0].Error(), "selector") {
+		t.Fatalf("expected error related to the selector")
+	}
 }

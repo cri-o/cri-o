@@ -68,7 +68,7 @@ function safe-format-and-mount() {
   # Format only if the disk is not already formatted.
   if ! tune2fs -l "${device}" ; then
     echo "Formatting '${device}'"
-    mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard "${device}"
+    mkfs.ext4 -F "${device}"
   fi
 
   mkdir -p "${mountpoint}"
@@ -214,6 +214,9 @@ function create-master-auth {
     echo "${CA_CERT}" | base64 --decode > "${auth_dir}/ca.crt"
     echo "${MASTER_CERT}" | base64 --decode > "${auth_dir}/server.cert"
     echo "${MASTER_KEY}" | base64 --decode > "${auth_dir}/server.key"
+  fi
+  if [[ ! -z "${CA_KEY:-}" ]]; then
+    echo "${CA_KEY}" | base64 --decode > "${auth_dir}/ca.key"
   fi
   if [ ! -e "${auth_dir}/kubeapiserver.cert" ] && [[ ! -z "${KUBEAPISERVER_CERT:-}" ]] && [[ ! -z "${KUBEAPISERVER_KEY:-}" ]]; then
     echo "${KUBEAPISERVER_CERT}" | base64 --decode > "${auth_dir}/kubeapiserver.cert"
@@ -970,6 +973,10 @@ function start-kube-controller-manager {
   fi
   if [[ -n "${CLUSTER_IP_RANGE:-}" ]]; then
     params+=" --cluster-cidr=${CLUSTER_IP_RANGE}"
+  fi
+  if [[ -n "${CA_KEY:-}" ]]; then
+    params+=" --cluster-signing-cert-file=/etc/srv/kubernetes/ca.crt"
+    params+=" --cluster-signing-key-file=/etc/srv/kubernetes/ca.key"
   fi
   if [[ -n "${SERVICE_CLUSTER_IP_RANGE:-}" ]]; then
     params+=" --service-cluster-ip-range=${SERVICE_CLUSTER_IP_RANGE}"

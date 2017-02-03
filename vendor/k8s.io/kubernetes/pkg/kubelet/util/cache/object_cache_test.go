@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/client-go/util/clock"
 	expirationcache "k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/util/clock"
 )
 
 type testObject struct {

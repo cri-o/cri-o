@@ -140,7 +140,9 @@
             "version": "v0.3",
             "revision": "909568be09de550ed094403c2bf8a261b5bb730a",
             "packages": [
-                "proto"
+                "gogoproto",
+                "proto",
+                "sortkeys"
             ]
         },
         {
@@ -255,7 +257,7 @@
         {
             "name": "github.com/opencontainers/runtime-tools",
             "branch": "master",
-            "revision": "06e17eef1ab6e13f4f37308a16727510ab81414f",
+            "revision": "2d92f6557e64d4f9a0e799a75fdf153cec13dffa",
             "packages": [
                 "generate"
             ]
@@ -368,8 +370,7 @@
             "branch": "master",
             "revision": "21807b270ec15d19215659a5caa08b17f66d6f44",
             "packages": [
-                "pkg/fields",
-                "pkg/selection"
+                "pkg/fields"
             ]
         },
         {
@@ -383,7 +384,7 @@
         {
             "name": "k8s.io/kubernetes",
             "branch": "master",
-            "revision": "550f8be73aac92c7c23b1783d3db17f8660019f6",
+            "revision": "760d8e98e8f6ad27aaf50b1a030cb9e7b6859aab",
             "packages": [
                 "pkg/fields",
                 "pkg/kubelet/api/v1alpha1/runtime"

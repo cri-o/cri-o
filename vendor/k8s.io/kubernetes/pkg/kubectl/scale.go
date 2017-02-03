@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -36,7 +37,6 @@ import (
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	extensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 )
 
 // Scaler provides an interface for resources that can be scaled.
@@ -224,8 +224,8 @@ func (scaler *ReplicationControllerScaler) Scale(namespace, name string, newSize
 			return err
 		}
 		if !checkRC(currentRC) {
-			watchOptions := api.ListOptions{
-				FieldSelector:   fields.OneTermEqualSelector("metadata.name", name),
+			watchOptions := metav1.ListOptions{
+				FieldSelector:   fields.OneTermEqualSelector("metadata.name", name).String(),
 				ResourceVersion: updatedResourceVersion,
 			}
 			watcher, err := scaler.c.ReplicationControllers(namespace).Watch(watchOptions)

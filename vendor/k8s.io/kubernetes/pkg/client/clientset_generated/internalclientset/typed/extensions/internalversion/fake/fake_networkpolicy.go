@@ -20,8 +20,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/kubernetes/pkg/api"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
@@ -54,14 +54,14 @@ func (c *FakeNetworkPolicies) Update(networkPolicy *extensions.NetworkPolicy) (r
 	return obj.(*extensions.NetworkPolicy), err
 }
 
-func (c *FakeNetworkPolicies) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeNetworkPolicies) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(networkpoliciesResource, c.ns, name), &extensions.NetworkPolicy{})
 
 	return err
 }
 
-func (c *FakeNetworkPolicies) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeNetworkPolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(networkpoliciesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &extensions.NetworkPolicyList{})
@@ -78,7 +78,7 @@ func (c *FakeNetworkPolicies) Get(name string, options v1.GetOptions) (result *e
 	return obj.(*extensions.NetworkPolicy), err
 }
 
-func (c *FakeNetworkPolicies) List(opts api.ListOptions) (result *extensions.NetworkPolicyList, err error) {
+func (c *FakeNetworkPolicies) List(opts v1.ListOptions) (result *extensions.NetworkPolicyList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(networkpoliciesResource, c.ns, opts), &extensions.NetworkPolicyList{})
 
@@ -100,14 +100,14 @@ func (c *FakeNetworkPolicies) List(opts api.ListOptions) (result *extensions.Net
 }
 
 // Watch returns a watch.Interface that watches the requested networkPolicies.
-func (c *FakeNetworkPolicies) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeNetworkPolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(networkpoliciesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched networkPolicy.
-func (c *FakeNetworkPolicies) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *extensions.NetworkPolicy, err error) {
+func (c *FakeNetworkPolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *extensions.NetworkPolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(networkpoliciesResource, c.ns, name, data, subresources...), &extensions.NetworkPolicy{})
 

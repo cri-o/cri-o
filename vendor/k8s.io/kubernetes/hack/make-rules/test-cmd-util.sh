@@ -900,6 +900,22 @@ run_kubectl_apply_tests() {
   kubectl delete svc prune-svc 2>&1 "${kube_flags[@]}"
 }
 
+# Runs tests related to kubectl create --filename(-f) --selector(-l).
+run_kubectl_create_filter_tests() {
+  ## kubectl create -f with label selector should only create matching objects
+  # Pre-Condition: no POD exists
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
+  # create
+  kubectl create -l unique-label=bingbang -f hack/testdata/filter "${kube_flags[@]}"
+  # check right pod exists
+  kube::test::get_object_assert 'pods selector-test-pod' "{{${labels_field}.name}}" 'selector-test-pod'
+  # check wrong pod doesn't exist
+  output_message=$(! kubectl get pods selector-test-pod-dont-apply 2>&1 "${kube_flags[@]}")
+  kube::test::if_has_string "${output_message}" 'pods "selector-test-pod-dont-apply" not found'
+  # cleanup
+  kubectl delete pods selector-test-pod
+}
+
 # Runs tests for --save-config tests.
 run_save_config_tests() {
   ## Configuration annotations should be set when --save-config is enabled
@@ -2043,7 +2059,7 @@ run_deployment_tests() {
   kubectl apply -f hack/testdata/deployment-revision2.yaml "${kube_flags[@]}"
   kube::test::get_object_assert deployment.extensions "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R2}:"
   # Rollback to revision 1 with dry-run - should be no-op
-  kubectl rollout undo deployment nginx --to-revision=1 --dry-run=true "${kube_flags[@]}"
+  kubectl rollout undo deployment nginx --dry-run=true "${kube_flags[@]}" | grep "test-cmd"
   kube::test::get_object_assert deployment.extensions "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R2}:"
   # Rollback to revision 1
   kubectl rollout undo deployment nginx --to-revision=1 "${kube_flags[@]}"
@@ -2592,6 +2608,7 @@ runTests() {
     # run for federation apiserver as well.
     run_kubectl_apply_tests
     run_kubectl_run_tests
+    run_kubectl_create_filter_tests
   fi
 
   ###############

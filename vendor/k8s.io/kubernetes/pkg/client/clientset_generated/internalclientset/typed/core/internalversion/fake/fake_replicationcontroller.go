@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -63,14 +64,14 @@ func (c *FakeReplicationControllers) UpdateStatus(replicationController *api.Rep
 	return obj.(*api.ReplicationController), err
 }
 
-func (c *FakeReplicationControllers) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeReplicationControllers) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(replicationcontrollersResource, c.ns, name), &api.ReplicationController{})
 
 	return err
 }
 
-func (c *FakeReplicationControllers) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeReplicationControllers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(replicationcontrollersResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.ReplicationControllerList{})
@@ -87,7 +88,7 @@ func (c *FakeReplicationControllers) Get(name string, options v1.GetOptions) (re
 	return obj.(*api.ReplicationController), err
 }
 
-func (c *FakeReplicationControllers) List(opts api.ListOptions) (result *api.ReplicationControllerList, err error) {
+func (c *FakeReplicationControllers) List(opts v1.ListOptions) (result *api.ReplicationControllerList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(replicationcontrollersResource, c.ns, opts), &api.ReplicationControllerList{})
 
@@ -109,14 +110,14 @@ func (c *FakeReplicationControllers) List(opts api.ListOptions) (result *api.Rep
 }
 
 // Watch returns a watch.Interface that watches the requested replicationControllers.
-func (c *FakeReplicationControllers) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeReplicationControllers) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(replicationcontrollersResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched replicationController.
-func (c *FakeReplicationControllers) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.ReplicationController, err error) {
+func (c *FakeReplicationControllers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ReplicationController, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(replicationcontrollersResource, c.ns, name, data, subresources...), &api.ReplicationController{})
 

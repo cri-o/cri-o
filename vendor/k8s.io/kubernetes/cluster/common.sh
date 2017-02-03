@@ -308,6 +308,17 @@ function load-or-gen-kube-bearertoken() {
   fi
 }
 
+# Create a temp dir that'll be deleted at the end of this bash session.
+#
+# Vars set:
+#   KUBE_TEMP
+function ensure-temp-dir {
+  if [[ -z ${KUBE_TEMP-} ]]; then
+    KUBE_TEMP=$(mktemp -d -t kubernetes.XXXXXX)
+    trap 'rm -rf "${KUBE_TEMP}"' EXIT
+  fi
+}
+
 # Get the master IP for the current-context in kubeconfig if one exists.
 #
 # Assumed vars:
@@ -412,6 +423,30 @@ function tars_from_version() {
   fi
 }
 
+# Search for the specified tarball in the various known output locations,
+# echoing the location if found.
+#
+# Assumed vars:
+#   KUBE_ROOT
+#
+# Args:
+#   $1 name of tarball to search for
+function find-tar() {
+  local -r tarball=$1
+  locations=(
+    "${KUBE_ROOT}/server/${tarball}"
+    "${KUBE_ROOT}/_output/release-tars/${tarball}"
+    "${KUBE_ROOT}/bazel-bin/build/release-tars/${tarball}"
+  )
+  location=$( (ls -t "${locations[@]}" 2>/dev/null || true) | head -1 )
+
+  if [[ ! -f "${location}" ]]; then
+    echo "!!! Cannot find ${tarball}" >&2
+    exit 1
+  fi
+  echo "${location}"
+}
+
 # Verify and find the various tar files that we are going to use on the server.
 #
 # Assumed vars:
@@ -421,36 +456,14 @@ function tars_from_version() {
 #   SALT_TAR
 #   KUBE_MANIFESTS_TAR
 function find-release-tars() {
-  SERVER_BINARY_TAR="${KUBE_ROOT}/server/kubernetes-server-linux-amd64.tar.gz"
-  if [[ ! -f "${SERVER_BINARY_TAR}" ]]; then
-    SERVER_BINARY_TAR="${KUBE_ROOT}/_output/release-tars/kubernetes-server-linux-amd64.tar.gz"
-  fi
-  if [[ ! -f "${SERVER_BINARY_TAR}" ]]; then
-    echo "!!! Cannot find kubernetes-server-linux-amd64.tar.gz" >&2
-    exit 1
-  fi
-
-  SALT_TAR="${KUBE_ROOT}/server/kubernetes-salt.tar.gz"
-  if [[ ! -f "${SALT_TAR}" ]]; then
-    SALT_TAR="${KUBE_ROOT}/_output/release-tars/kubernetes-salt.tar.gz"
-  fi
-  if [[ ! -f "${SALT_TAR}" ]]; then
-    echo "!!! Cannot find kubernetes-salt.tar.gz" >&2
-    exit 1
-  fi
+  SERVER_BINARY_TAR=$(find-tar kubernetes-server-linux-amd64.tar.gz)
+  SALT_TAR=$(find-tar kubernetes-salt.tar.gz)
 
   # This tarball is used by GCI, Ubuntu Trusty, and Container Linux.
   KUBE_MANIFESTS_TAR=
   if [[ "${MASTER_OS_DISTRIBUTION:-}" == "trusty" || "${MASTER_OS_DISTRIBUTION:-}" == "gci" || "${MASTER_OS_DISTRIBUTION:-}" == "container-linux" ]] || \
      [[ "${NODE_OS_DISTRIBUTION:-}" == "trusty" || "${NODE_OS_DISTRIBUTION:-}" == "gci" || "${NODE_OS_DISTRIBUTION:-}" == "container-linux" ]] ; then
-    KUBE_MANIFESTS_TAR="${KUBE_ROOT}/server/kubernetes-manifests.tar.gz"
-    if [[ ! -f "${KUBE_MANIFESTS_TAR}" ]]; then
-      KUBE_MANIFESTS_TAR="${KUBE_ROOT}/_output/release-tars/kubernetes-manifests.tar.gz"
-    fi
-    if [[ ! -f "${KUBE_MANIFESTS_TAR}" ]]; then
-      echo "!!! Cannot find kubernetes-manifests.tar.gz" >&2
-      exit 1
-    fi
+    KUBE_MANIFESTS_TAR=$(find-tar kubernetes-manifests.tar.gz)
   fi
 }
 
@@ -573,6 +586,7 @@ function build-kube-master-certs {
 KUBEAPISERVER_CERT: $(yaml-quote ${KUBEAPISERVER_CERT_BASE64:-})
 KUBEAPISERVER_KEY: $(yaml-quote ${KUBEAPISERVER_KEY_BASE64:-})
 KUBELET_AUTH_CA_CERT: $(yaml-quote ${KUBELET_AUTH_CA_CERT_BASE64:-})
+CA_KEY: $(yaml-quote ${CA_KEY_BASE64:-})
 EOF
 }
 
@@ -719,7 +733,7 @@ ENABLE_MANIFEST_URL: $(yaml-quote ${ENABLE_MANIFEST_URL:-false})
 MANIFEST_URL: $(yaml-quote ${MANIFEST_URL:-})
 MANIFEST_URL_HEADER: $(yaml-quote ${MANIFEST_URL_HEADER:-})
 NUM_NODES: $(yaml-quote ${NUM_NODES})
-STORAGE_BACKEND: $(yaml-quote ${STORAGE_BACKEND:-etcd2})
+STORAGE_BACKEND: $(yaml-quote ${STORAGE_BACKEND:-etcd3})
 ENABLE_GARBAGE_COLLECTOR: $(yaml-quote ${ENABLE_GARBAGE_COLLECTOR:-})
 MASTER_ADVERTISE_ADDRESS: $(yaml-quote ${MASTER_ADVERTISE_ADDRESS:-})
 ETCD_CA_KEY: $(yaml-quote ${ETCD_CA_KEY_BASE64:-})
@@ -948,6 +962,7 @@ function create-certs {
   CERT_DIR="${KUBE_TEMP}/easy-rsa-master/easyrsa3"
   # By default, linux wraps base64 output every 76 cols, so we use 'tr -d' to remove whitespaces.
   # Note 'base64 -w0' doesn't work on Mac OS X, which has different flags.
+  CA_KEY_BASE64=$(cat "${CERT_DIR}/pki/private/ca.key" | base64 | tr -d '\r\n')
   CA_CERT_BASE64=$(cat "${CERT_DIR}/pki/ca.crt" | base64 | tr -d '\r\n')
   MASTER_CERT_BASE64=$(cat "${CERT_DIR}/pki/issued/${MASTER_NAME}.crt" | base64 | tr -d '\r\n')
   MASTER_KEY_BASE64=$(cat "${CERT_DIR}/pki/private/${MASTER_NAME}.key" | base64 | tr -d '\r\n')
@@ -995,7 +1010,12 @@ function generate-certs {
     mv "kubelet.pem" "pki/issued/kubelet.crt"
     rm -f "kubelet.csr"
 
-    ./easyrsa build-client-full kubecfg nopass
+    # Make a superuser client cert with subject "O=system:masters, CN=kubecfg"
+    ./easyrsa --dn-mode=org \
+      --req-cn=kubecfg --req-org=system:masters \
+      --req-c= --req-st= --req-city= --req-email= --req-ou= \
+      build-client-full kubecfg nopass
+
     cd ../kubelet
     ./easyrsa init-pki
     ./easyrsa --batch "--req-cn=kubelet@$(date +%s)" build-ca nopass
@@ -1049,7 +1069,7 @@ function update-or-verify-gcloud() {
     ${sudo_prefix} gcloud ${gcloud_prompt:-} components install beta
     ${sudo_prefix} gcloud ${gcloud_prompt:-} components update
   else
-    local version=$(${sudo_prefix} gcloud version --format=json)
+    local version=$(gcloud version --format=json)
     python -c'
 import json,sys
 from distutils import version

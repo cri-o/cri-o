@@ -28,7 +28,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	flag "github.com/spf13/pflag"
 	"github.com/ugorji/go/codec"
 
@@ -180,6 +180,10 @@ var nonRoundTrippableTypes = sets.NewString(
 	// the schema by content type, rather than via kind/version included in each
 	// object.
 	"WatchEvent",
+	// ListOptions is now part of the meta group
+	"ListOptions",
+	// Delete options is only read in metav1
+	"DeleteOptions",
 )
 
 var commonKinds = []string{"Status", "ListOptions", "DeleteOptions", "ExportOptions"}
@@ -356,7 +360,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 func TestEncodePtr(t *testing.T) {
 	grace := int64(30)
 	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{"name": "foo"},
 		},
 		Spec: api.PodSpec{
@@ -366,6 +370,7 @@ func TestEncodePtr(t *testing.T) {
 			TerminationGracePeriodSeconds: &grace,
 
 			SecurityContext: &api.PodSecurityContext{},
+			SchedulerName:   api.DefaultSchedulerName,
 		},
 	}
 	obj := runtime.Object(pod)
@@ -518,7 +523,7 @@ const benchmarkSeed = 100
 
 func benchmarkItems() []v1.Pod {
 	apiObjectFuzzer := apitesting.FuzzerFor(nil, api.SchemeGroupVersion, rand.NewSource(benchmarkSeed))
-	items := make([]v1.Pod, 2)
+	items := make([]v1.Pod, 10)
 	for i := range items {
 		var pod api.Pod
 		apiObjectFuzzer.Fuzz(&pod)

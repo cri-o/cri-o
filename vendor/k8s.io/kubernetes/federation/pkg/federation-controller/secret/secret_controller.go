@@ -21,9 +21,11 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/flowcontrol"
 	federationapi "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	federationclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
 	"k8s.io/kubernetes/federation/pkg/federation-controller/util"
@@ -35,7 +37,6 @@ import (
 	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 
 	"github.com/golang/glog"
 )
@@ -103,11 +104,11 @@ func NewSecretController(client federationclientset.Interface) *SecretController
 	// Start informer in federated API servers on secrets that should be federated.
 	secretcontroller.secretInformerStore, secretcontroller.secretInformerController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options apiv1.ListOptions) (pkgruntime.Object, error) {
-				return client.Core().Secrets(apiv1.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
+				return client.Core().Secrets(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options apiv1.ListOptions) (watch.Interface, error) {
-				return client.Core().Secrets(apiv1.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return client.Core().Secrets(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&apiv1.Secret{},
@@ -120,11 +121,11 @@ func NewSecretController(client federationclientset.Interface) *SecretController
 		func(cluster *federationapi.Cluster, targetClient kubeclientset.Interface) (cache.Store, cache.Controller) {
 			return cache.NewInformer(
 				&cache.ListWatch{
-					ListFunc: func(options apiv1.ListOptions) (pkgruntime.Object, error) {
-						return targetClient.Core().Secrets(apiv1.NamespaceAll).List(options)
+					ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
+						return targetClient.Core().Secrets(metav1.NamespaceAll).List(options)
 					},
-					WatchFunc: func(options apiv1.ListOptions) (watch.Interface, error) {
-						return targetClient.Core().Secrets(apiv1.NamespaceAll).Watch(options)
+					WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+						return targetClient.Core().Secrets(metav1.NamespaceAll).Watch(options)
 					},
 				},
 				&apiv1.Secret{},
@@ -160,7 +161,7 @@ func NewSecretController(client federationclientset.Interface) *SecretController
 		},
 		func(client kubeclientset.Interface, obj pkgruntime.Object) error {
 			secret := obj.(*apiv1.Secret)
-			err := client.Core().Secrets(secret.Namespace).Delete(secret.Name, &apiv1.DeleteOptions{})
+			err := client.Core().Secrets(secret.Namespace).Delete(secret.Name, &metav1.DeleteOptions{})
 			return err
 		})
 

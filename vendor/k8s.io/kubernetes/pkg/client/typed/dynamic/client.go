@@ -32,11 +32,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 )
 
 // Client is a Kubernetes client that allows you to access metadata
@@ -137,7 +138,7 @@ func (rc *ResourceClient) Get(name string) (*unstructured.Unstructured, error) {
 }
 
 // Delete deletes the resource with the specified name.
-func (rc *ResourceClient) Delete(name string, opts *v1.DeleteOptions) error {
+func (rc *ResourceClient) Delete(name string, opts *metav1.DeleteOptions) error {
 	return rc.cl.Delete().
 		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
@@ -148,7 +149,7 @@ func (rc *ResourceClient) Delete(name string, opts *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (rc *ResourceClient) DeleteCollection(deleteOptions *v1.DeleteOptions, listOptions runtime.Object) error {
+func (rc *ResourceClient) DeleteCollection(deleteOptions *metav1.DeleteOptions, listOptions runtime.Object) error {
 	parameterEncoder := rc.parameterCodec
 	if parameterEncoder == nil {
 		parameterEncoder = defaultParameterEncoder
@@ -204,7 +205,7 @@ func (rc *ResourceClient) Watch(opts runtime.Object) (watch.Interface, error) {
 		Watch()
 }
 
-func (rc *ResourceClient) Patch(name string, pt api.PatchType, data []byte) (*unstructured.Unstructured, error) {
+func (rc *ResourceClient) Patch(name string, pt types.PatchType, data []byte) (*unstructured.Unstructured, error) {
 	result := new(unstructured.Unstructured)
 	err := rc.cl.Patch(pt).
 		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).

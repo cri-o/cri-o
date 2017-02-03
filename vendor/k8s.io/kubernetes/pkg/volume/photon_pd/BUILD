@@ -27,6 +27,7 @@ go_library(
         "//pkg/volume:go_default_library",
         "//pkg/volume/util:go_default_library",
         "//vendor:github.com/golang/glog",
+        "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
         "//vendor:k8s.io/apimachinery/pkg/types",
     ],
 )
@@ -43,11 +44,11 @@ go_test(
         "//pkg/api/v1:go_default_library",
         "//pkg/cloudprovider/providers/photon:go_default_library",
         "//pkg/util/mount:go_default_library",
-        "//pkg/util/testing:go_default_library",
         "//pkg/volume:go_default_library",
         "//pkg/volume/testing:go_default_library",
         "//vendor:github.com/golang/glog",
         "//vendor:k8s.io/apimachinery/pkg/types",
+        "//vendor:k8s.io/client-go/util/testing",
     ],
 )
 

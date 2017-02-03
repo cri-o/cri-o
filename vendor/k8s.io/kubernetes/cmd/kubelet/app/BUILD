@@ -17,10 +17,10 @@ go_test(
     library = ":go_default_library",
     tags = ["automanaged"],
     deps = [
-        "//pkg/client/restclient:go_default_library",
         "//pkg/kubelet:go_default_library",
         "//pkg/util/config:go_default_library",
         "//vendor:k8s.io/apimachinery/pkg/util/diff",
+        "//vendor:k8s.io/client-go/rest",
     ],
 )
 
@@ -44,13 +44,9 @@ go_library(
         "//pkg/capabilities:go_default_library",
         "//pkg/client/chaosclient:go_default_library",
         "//pkg/client/clientset_generated/clientset:go_default_library",
-        "//pkg/client/clientset_generated/clientset/typed/certificates/v1alpha1:go_default_library",
+        "//pkg/client/clientset_generated/clientset/typed/certificates/v1beta1:go_default_library",
         "//pkg/client/clientset_generated/clientset/typed/core/v1:go_default_library",
         "//pkg/client/record:go_default_library",
-        "//pkg/client/restclient:go_default_library",
-        "//pkg/client/unversioned/auth:go_default_library",
-        "//pkg/client/unversioned/clientcmd:go_default_library",
-        "//pkg/client/unversioned/clientcmd/api:go_default_library",
         "//pkg/cloudprovider:go_default_library",
         "//pkg/cloudprovider/providers:go_default_library",
         "//pkg/credentialprovider:go_default_library",
@@ -71,7 +67,6 @@ go_library(
         "//pkg/kubelet/server:go_default_library",
         "//pkg/kubelet/types:go_default_library",
         "//pkg/kubelet/util/csr:go_default_library",
-        "//pkg/util/cert:go_default_library",
         "//pkg/util/config:go_default_library",
         "//pkg/util/configz:go_default_library",
         "//pkg/util/flock:go_default_library",
@@ -115,7 +110,7 @@ go_library(
         "//vendor:k8s.io/apimachinery/pkg/util/wait",
         "//vendor:k8s.io/apiserver/pkg/authentication/authenticator",
         "//vendor:k8s.io/apiserver/pkg/authorization/authorizer",
-        "//vendor:k8s.io/apiserver/pkg/healthz",
+        "//vendor:k8s.io/apiserver/pkg/server/healthz",
         "//vendor:k8s.io/client-go/kubernetes",
         "//vendor:k8s.io/client-go/kubernetes/typed/authentication/v1beta1",
         "//vendor:k8s.io/client-go/kubernetes/typed/authorization/v1beta1",
@@ -123,6 +118,7 @@ go_library(
         "//vendor:k8s.io/client-go/tools/auth",
         "//vendor:k8s.io/client-go/tools/clientcmd",
         "//vendor:k8s.io/client-go/tools/clientcmd/api",
+        "//vendor:k8s.io/client-go/util/cert",
     ],
 )
 

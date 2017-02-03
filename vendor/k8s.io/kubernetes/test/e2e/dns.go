@@ -49,7 +49,7 @@ func createDNSPod(namespace, wheezyProbeCmd, jessieProbeCmd string, useAnnotatio
 			Kind:       "Pod",
 			APIVersion: api.Registry.GroupOrDie(v1.GroupName).GroupVersion.String(),
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dns-test-" + string(uuid.NewUUID()),
 			Namespace: namespace,
 		},
@@ -238,7 +238,7 @@ func validateDNSResults(f *framework.Framework, pod *v1.Pod, fileNames []string)
 	defer func() {
 		By("deleting the pod")
 		defer GinkgoRecover()
-		podClient.Delete(pod.Name, v1.NewDeleteOptions(0))
+		podClient.Delete(pod.Name, metav1.NewDeleteOptions(0))
 	}()
 	if _, err := podClient.Create(pod); err != nil {
 		framework.Failf("Failed to create %s pod: %v", pod.Name, err)
@@ -267,7 +267,7 @@ func validateTargetedProbeOutput(f *framework.Framework, pod *v1.Pod, fileNames 
 	defer func() {
 		By("deleting the pod")
 		defer GinkgoRecover()
-		podClient.Delete(pod.Name, v1.NewDeleteOptions(0))
+		podClient.Delete(pod.Name, metav1.NewDeleteOptions(0))
 	}()
 	if _, err := podClient.Create(pod); err != nil {
 		framework.Failf("Failed to create %s pod: %v", pod.Name, err)
@@ -288,9 +288,9 @@ func validateTargetedProbeOutput(f *framework.Framework, pod *v1.Pod, fileNames 
 }
 
 func verifyDNSPodIsRunning(f *framework.Framework) {
-	systemClient := f.ClientSet.Core().Pods(api.NamespaceSystem)
+	systemClient := f.ClientSet.Core().Pods(metav1.NamespaceSystem)
 	By("Waiting for DNS Service to be Running")
-	options := v1.ListOptions{LabelSelector: dnsServiceLabelSelector.String()}
+	options := metav1.ListOptions{LabelSelector: dnsServiceLabelSelector.String()}
 	dnsPods, err := systemClient.List(options)
 	if err != nil {
 		framework.Failf("Failed to list all dns service pods")
@@ -304,7 +304,7 @@ func verifyDNSPodIsRunning(f *framework.Framework) {
 
 func createServiceSpec(serviceName, externalName string, isHeadless bool, selector map[string]string) *v1.Service {
 	headlessService := &v1.Service{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 		},
 		Spec: v1.ServiceSpec{

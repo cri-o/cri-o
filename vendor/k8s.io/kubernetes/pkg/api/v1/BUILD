@@ -33,7 +33,6 @@ go_library(
         "//pkg/api:go_default_library",
         "//pkg/api/resource:go_default_library",
         "//pkg/apis/extensions:go_default_library",
-        "//pkg/fields:go_default_library",
         "//pkg/util:go_default_library",
         "//pkg/util/intstr:go_default_library",
         "//pkg/util/parsers:go_default_library",

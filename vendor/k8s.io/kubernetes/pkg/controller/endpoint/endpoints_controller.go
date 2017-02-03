@@ -36,6 +36,7 @@ import (
 	utilpod "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	"k8s.io/kubernetes/pkg/client/legacylisters"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/util/metrics"
@@ -83,11 +84,11 @@ func NewEndpointController(podInformer cache.SharedIndexInformer, client clients
 
 	e.serviceStore.Indexer, e.serviceController = cache.NewIndexerInformer(
 		&cache.ListWatch{
-			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return e.client.Core().Services(v1.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return e.client.Core().Services(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return e.client.Core().Services(v1.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return e.client.Core().Services(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&v1.Service{},
@@ -128,8 +129,8 @@ func NewEndpointControllerFromClient(client *clientset.Clientset, resyncPeriod c
 type EndpointController struct {
 	client clientset.Interface
 
-	serviceStore cache.StoreToServiceLister
-	podStore     cache.StoreToPodLister
+	serviceStore listers.StoreToServiceLister
+	podStore     listers.StoreToPodLister
 
 	// internalPodInformer is used to hold a personal informer.  If we're using
 	// a normal shared informer, then the informer will be started for us.  If
@@ -451,7 +452,7 @@ func (e *EndpointController) syncService(key string) error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			currentEndpoints = &v1.Endpoints{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:   service.Name,
 					Labels: service.Labels,
 				},
@@ -502,7 +503,7 @@ func (e *EndpointController) syncService(key string) error {
 // some stragglers could have been left behind if the endpoint controller
 // reboots).
 func (e *EndpointController) checkLeftoverEndpoints() {
-	list, err := e.client.Core().Endpoints(v1.NamespaceAll).List(v1.ListOptions{})
+	list, err := e.client.Core().Endpoints(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to list endpoints (%v); orphaned endpoints will not be cleaned up. (They're pretty harmless, but you can restart this component if you want another attempt made.)", err))
 		return

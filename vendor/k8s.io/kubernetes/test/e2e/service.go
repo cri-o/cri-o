@@ -66,7 +66,7 @@ var _ = framework.KubeDescribe("Services", func() {
 	// TODO: We get coverage of TCP/UDP and multi-port services through the DNS test. We should have a simpler test for multi-port TCP here.
 
 	It("should provide secure master service [Conformance]", func() {
-		_, err := cs.Core().Services(v1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
+		_, err := cs.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -86,7 +86,7 @@ var _ = framework.KubeDescribe("Services", func() {
 		}()
 
 		service := &v1.Service{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: serviceName,
 			},
 			Spec: v1.ServiceSpec{
@@ -148,7 +148,7 @@ var _ = framework.KubeDescribe("Services", func() {
 
 		By("creating service " + serviceName + " in namespace " + ns)
 		service := &v1.Service{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: serviceName,
 			},
 			Spec: v1.ServiceSpec{
@@ -791,7 +791,7 @@ var _ = framework.KubeDescribe("Services", func() {
 
 		By("creating service " + serviceName + " with same NodePort but different protocols in namespace " + ns)
 		service := &v1.Service{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      t.ServiceName,
 				Namespace: t.Namespace,
 			},
@@ -1027,7 +1027,7 @@ var _ = framework.KubeDescribe("Services", func() {
 		terminateSeconds := int64(600)
 
 		service := &v1.Service{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:        t.ServiceName,
 				Namespace:   t.Namespace,
 				Annotations: map[string]string{endpoint.TolerateUnreadyEndpointsAnnotation: "true"},
@@ -1137,7 +1137,7 @@ var _ = framework.KubeDescribe("Services", func() {
 
 		By("Remove pods immediately")
 		label := labels.SelectorFromSet(labels.Set(t.Labels))
-		options := v1.ListOptions{LabelSelector: label.String()}
+		options := metav1.ListOptions{LabelSelector: label.String()}
 		podClient := t.Client.Core().Pods(f.Namespace.Name)
 		pods, err := podClient.List(options)
 		if err != nil {
@@ -1145,7 +1145,7 @@ var _ = framework.KubeDescribe("Services", func() {
 		} else {
 			for _, pod := range pods.Items {
 				var gracePeriodSeconds int64 = 0
-				err := podClient.Delete(pod.Name, &v1.DeleteOptions{GracePeriodSeconds: &gracePeriodSeconds})
+				err := podClient.Delete(pod.Name, &metav1.DeleteOptions{GracePeriodSeconds: &gracePeriodSeconds})
 				if err != nil {
 					framework.Logf("warning: error force deleting pod '%s': %s", pod.Name, err)
 				}

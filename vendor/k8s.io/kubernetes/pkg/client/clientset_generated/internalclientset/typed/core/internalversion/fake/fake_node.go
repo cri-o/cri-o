@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -59,13 +60,13 @@ func (c *FakeNodes) UpdateStatus(node *api.Node) (*api.Node, error) {
 	return obj.(*api.Node), err
 }
 
-func (c *FakeNodes) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeNodes) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewRootDeleteAction(nodesResource, name), &api.Node{})
 	return err
 }
 
-func (c *FakeNodes) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeNodes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewRootDeleteCollectionAction(nodesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.NodeList{})
@@ -81,7 +82,7 @@ func (c *FakeNodes) Get(name string, options v1.GetOptions) (result *api.Node, e
 	return obj.(*api.Node), err
 }
 
-func (c *FakeNodes) List(opts api.ListOptions) (result *api.NodeList, err error) {
+func (c *FakeNodes) List(opts v1.ListOptions) (result *api.NodeList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootListAction(nodesResource, opts), &api.NodeList{})
 	if obj == nil {
@@ -102,13 +103,13 @@ func (c *FakeNodes) List(opts api.ListOptions) (result *api.NodeList, err error)
 }
 
 // Watch returns a watch.Interface that watches the requested nodes.
-func (c *FakeNodes) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeNodes) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewRootWatchAction(nodesResource, opts))
 }
 
 // Patch applies the patch and returns the patched node.
-func (c *FakeNodes) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.Node, err error) {
+func (c *FakeNodes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Node, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootPatchSubresourceAction(nodesResource, name, data, subresources...), &api.Node{})
 	if obj == nil {

@@ -59,7 +59,7 @@ func (s sortedPods) Less(i, j int) bool {
 
 func CreateValidPod(name, namespace string) *v1.Pod {
 	return &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			UID:       types.UID(name), // for the purpose of testing, this is unique enough
 			Name:      name,
 			Namespace: namespace,
@@ -69,10 +69,11 @@ func CreateValidPod(name, namespace string) *v1.Pod {
 			DNSPolicy:     v1.DNSClusterFirst,
 			Containers: []v1.Container{
 				{
-					Name:            "ctr",
-					Image:           "image",
-					ImagePullPolicy: "IfNotPresent",
-					SecurityContext: securitycontext.ValidSecurityContextWithContainerDefaults(),
+					Name:                     "ctr",
+					Image:                    "image",
+					ImagePullPolicy:          "IfNotPresent",
+					SecurityContext:          securitycontext.ValidSecurityContextWithContainerDefaults(),
+					TerminationMessagePolicy: v1.TerminationMessageReadFile,
 				},
 			},
 		},
@@ -186,7 +187,7 @@ func TestInvalidPodFiltered(t *testing.T) {
 	expectPodUpdate(t, ch, CreatePodUpdate(kubetypes.ADD, TestSource, CreateValidPod("foo", "new")))
 
 	// add an invalid update
-	podUpdate = CreatePodUpdate(kubetypes.UPDATE, TestSource, &v1.Pod{ObjectMeta: v1.ObjectMeta{Name: "foo"}})
+	podUpdate = CreatePodUpdate(kubetypes.UPDATE, TestSource, &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "foo"}})
 	channel <- podUpdate
 	expectNoPodUpdate(t, ch)
 }
@@ -204,7 +205,7 @@ func TestNewPodAddedSnapshotAndUpdates(t *testing.T) {
 
 	// container updates are separated as UPDATE
 	pod := *podUpdate.Pods[0]
-	pod.Spec.Containers = []v1.Container{{Name: "bar", Image: "test", ImagePullPolicy: v1.PullIfNotPresent}}
+	pod.Spec.Containers = []v1.Container{{Name: "bar", Image: "test", ImagePullPolicy: v1.PullIfNotPresent, TerminationMessagePolicy: v1.TerminationMessageReadFile}}
 	channel <- CreatePodUpdate(kubetypes.ADD, TestSource, &pod)
 	expectPodUpdate(t, ch, CreatePodUpdate(kubetypes.UPDATE, TestSource, &pod))
 }
@@ -222,7 +223,7 @@ func TestNewPodAddedSnapshot(t *testing.T) {
 
 	// container updates are separated as UPDATE
 	pod := *podUpdate.Pods[0]
-	pod.Spec.Containers = []v1.Container{{Name: "bar", Image: "test", ImagePullPolicy: v1.PullIfNotPresent}}
+	pod.Spec.Containers = []v1.Container{{Name: "bar", Image: "test", ImagePullPolicy: v1.PullIfNotPresent, TerminationMessagePolicy: v1.TerminationMessageReadFile}}
 	channel <- CreatePodUpdate(kubetypes.ADD, TestSource, &pod)
 	expectPodUpdate(t, ch, CreatePodUpdate(kubetypes.SET, TestSource, &pod))
 }
@@ -240,12 +241,12 @@ func TestNewPodAddedUpdatedRemoved(t *testing.T) {
 
 	// an kubetypes.ADD should be converted to kubetypes.UPDATE
 	pod := CreateValidPod("foo", "new")
-	pod.Spec.Containers = []v1.Container{{Name: "bar", Image: "test", ImagePullPolicy: v1.PullIfNotPresent}}
+	pod.Spec.Containers = []v1.Container{{Name: "bar", Image: "test", ImagePullPolicy: v1.PullIfNotPresent, TerminationMessagePolicy: v1.TerminationMessageReadFile}}
 	podUpdate = CreatePodUpdate(kubetypes.ADD, TestSource, pod)
 	channel <- podUpdate
 	expectPodUpdate(t, ch, CreatePodUpdate(kubetypes.UPDATE, TestSource, pod))
 
-	podUpdate = CreatePodUpdate(kubetypes.REMOVE, TestSource, &v1.Pod{ObjectMeta: v1.ObjectMeta{Name: "foo", Namespace: "new"}})
+	podUpdate = CreatePodUpdate(kubetypes.REMOVE, TestSource, &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "new"}})
 	channel <- podUpdate
 	expectPodUpdate(t, ch, CreatePodUpdate(kubetypes.REMOVE, TestSource, pod))
 }
@@ -282,7 +283,7 @@ func TestNewPodAddedUpdatedSet(t *testing.T) {
 
 	// should be converted to an kubetypes.ADD, kubetypes.REMOVE, and kubetypes.UPDATE
 	pod := CreateValidPod("foo2", "new")
-	pod.Spec.Containers = []v1.Container{{Name: "bar", Image: "test", ImagePullPolicy: v1.PullIfNotPresent}}
+	pod.Spec.Containers = []v1.Container{{Name: "bar", Image: "test", ImagePullPolicy: v1.PullIfNotPresent, TerminationMessagePolicy: v1.TerminationMessageReadFile}}
 	podUpdate = CreatePodUpdate(kubetypes.SET, TestSource, pod, CreateValidPod("foo3", "new"), CreateValidPod("foo4", "new"))
 	channel <- podUpdate
 	expectPodUpdate(t, ch,

@@ -46,7 +46,7 @@ func (cc *ConformanceContainer) Create() {
 		imagePullSecrets = append(imagePullSecrets, v1.LocalObjectReference{Name: s})
 	}
 	pod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: cc.podName,
 		},
 		Spec: v1.PodSpec{
@@ -63,7 +63,7 @@ func (cc *ConformanceContainer) Create() {
 }
 
 func (cc *ConformanceContainer) Delete() error {
-	return cc.PodClient.Delete(cc.podName, v1.NewDeleteOptions(0))
+	return cc.PodClient.Delete(cc.podName, metav1.NewDeleteOptions(0))
 }
 
 func (cc *ConformanceContainer) IsReady() (bool, error) {

@@ -28,6 +28,7 @@ import (
 
 	"github.com/golang/glog"
 
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/labels"
@@ -38,6 +39,7 @@ import (
 	utilpod "k8s.io/kubernetes/pkg/api/pod"
 	"k8s.io/kubernetes/pkg/api/resource"
 	apiservice "k8s.io/kubernetes/pkg/api/service"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/validation/genericvalidation"
 	storageutil "k8s.io/kubernetes/pkg/apis/storage/util"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -50,7 +52,7 @@ import (
 // fields by default.
 var RepairMalformedUpdates bool = genericvalidation.RepairMalformedUpdates
 
-const isNegativeErrorMsg string = genericvalidation.IsNegativeErrorMsg
+const isNegativeErrorMsg string = apimachineryvalidation.IsNegativeErrorMsg
 const isInvalidQuotaResource string = `must be a standard resource for quota`
 const fieldImmutableErrorMsg string = genericvalidation.FieldImmutableErrorMsg
 const isNotIntegerErrorMsg string = `must be an integer`
@@ -61,8 +63,8 @@ var volumeModeErrorMsg string = "must be a number between 0 and 0777 (octal), bo
 // BannedOwners is a black list of object that are not allowed to be owners.
 var BannedOwners = genericvalidation.BannedOwners
 
-// ValidateHasLabel requires that api.ObjectMeta has a Label with key and expectedValue
-func ValidateHasLabel(meta api.ObjectMeta, fldPath *field.Path, key, expectedValue string) field.ErrorList {
+// ValidateHasLabel requires that metav1.ObjectMeta has a Label with key and expectedValue
+func ValidateHasLabel(meta metav1.ObjectMeta, fldPath *field.Path, key, expectedValue string) field.ErrorList {
 	allErrs := field.ErrorList{}
 	actualValue, found := meta.Labels[key]
 	if !found {
@@ -175,7 +177,7 @@ func ValidateOwnerReferences(ownerReferences []metav1.OwnerReference, fldPath *f
 // if the name will have a value appended to it.  If the name is not valid,
 // this returns a list of descriptions of individual characteristics of the
 // value that were not valid.  Otherwise this returns an empty list or nil.
-type ValidateNameFunc genericvalidation.ValidateNameFunc
+type ValidateNameFunc apimachineryvalidation.ValidateNameFunc
 
 // maskTrailingDash replaces the final character of a string with a subdomain safe
 // value if is a dash.
@@ -210,7 +212,7 @@ var ValidateNodeName = NameIsDNSSubdomain
 // ValidateNamespaceName can be used to check whether the given namespace name is valid.
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
-var ValidateNamespaceName = genericvalidation.ValidateNamespaceName
+var ValidateNamespaceName = apimachineryvalidation.ValidateNamespaceName
 
 // ValidateLimitRangeName can be used to check whether the given limit range name is valid.
 // Prefix indicates this name will be used as part of generation, in which case
@@ -231,7 +233,7 @@ var ValidateSecretName = NameIsDNSSubdomain
 // ValidateServiceAccountName can be used to check whether the given service account name is valid.
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
-var ValidateServiceAccountName = genericvalidation.ValidateServiceAccountName
+var ValidateServiceAccountName = apimachineryvalidation.ValidateServiceAccountName
 
 // ValidateEndpointsName can be used to check whether the given endpoints name is valid.
 // Prefix indicates this name will be used as part of generation, in which case
@@ -244,22 +246,22 @@ var ValidateClusterName = genericvalidation.ValidateClusterName
 // TODO update all references to these functions to point to the genericvalidation ones
 // NameIsDNSSubdomain is a ValidateNameFunc for names that must be a DNS subdomain.
 func NameIsDNSSubdomain(name string, prefix bool) []string {
-	return genericvalidation.NameIsDNSSubdomain(name, prefix)
+	return apimachineryvalidation.NameIsDNSSubdomain(name, prefix)
 }
 
 // NameIsDNSLabel is a ValidateNameFunc for names that must be a DNS 1123 label.
 func NameIsDNSLabel(name string, prefix bool) []string {
-	return genericvalidation.NameIsDNSLabel(name, prefix)
+	return apimachineryvalidation.NameIsDNSLabel(name, prefix)
 }
 
 // NameIsDNS1035Label is a ValidateNameFunc for names that must be a DNS 952 label.
 func NameIsDNS1035Label(name string, prefix bool) []string {
-	return genericvalidation.NameIsDNS1035Label(name, prefix)
+	return apimachineryvalidation.NameIsDNS1035Label(name, prefix)
 }
 
 // Validates that given value is not negative.
 func ValidateNonnegativeField(value int64, fldPath *field.Path) field.ErrorList {
-	return genericvalidation.ValidateNonnegativeField(value, fldPath)
+	return apimachineryvalidation.ValidateNonnegativeField(value, fldPath)
 }
 
 // Validates that a Quantity is not negative
@@ -288,12 +290,12 @@ func ValidateImmutableAnnotation(newVal string, oldVal string, annotation string
 // been performed.
 // It doesn't return an error for rootscoped resources with namespace, because namespace should already be cleared before.
 // TODO: Remove calls to this method scattered in validations of specific resources, e.g., ValidatePodUpdate.
-func ValidateObjectMeta(meta *api.ObjectMeta, requiresNamespace bool, nameFn ValidateNameFunc, fldPath *field.Path) field.ErrorList {
-	return genericvalidation.ValidateObjectMeta(meta, requiresNamespace, genericvalidation.ValidateNameFunc(nameFn), fldPath)
+func ValidateObjectMeta(meta *metav1.ObjectMeta, requiresNamespace bool, nameFn ValidateNameFunc, fldPath *field.Path) field.ErrorList {
+	return genericvalidation.ValidateObjectMeta(meta, requiresNamespace, apimachineryvalidation.ValidateNameFunc(nameFn), fldPath)
 }
 
 // ValidateObjectMetaUpdate validates an object's metadata when updated
-func ValidateObjectMetaUpdate(newMeta, oldMeta *api.ObjectMeta, fldPath *field.Path) field.ErrorList {
+func ValidateObjectMetaUpdate(newMeta, oldMeta *metav1.ObjectMeta, fldPath *field.Path) field.ErrorList {
 	return genericvalidation.ValidateObjectMetaUpdate(newMeta, oldMeta, fldPath)
 }
 
@@ -1258,8 +1260,21 @@ func validateEnvFrom(vars []api.EnvFromSource, fldPath *field.Path) field.ErrorL
 				allErrs = append(allErrs, field.Invalid(idxPath.Child("prefix"), ev.Prefix, msg))
 			}
 		}
+
+		numSources := 0
 		if ev.ConfigMapRef != nil {
+			numSources++
 			allErrs = append(allErrs, validateConfigMapEnvSource(ev.ConfigMapRef, idxPath.Child("configMapRef"))...)
+		}
+		if ev.SecretRef != nil {
+			numSources++
+			allErrs = append(allErrs, validateSecretEnvSource(ev.SecretRef, idxPath.Child("secretRef"))...)
+		}
+
+		if numSources == 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath, "", "must specify one of: `configMapRef` or `secretRef`"))
+		} else if numSources > 1 {
+			allErrs = append(allErrs, field.Invalid(fldPath, "", "may not have more than one field specified at a time"))
 		}
 	}
 	return allErrs
@@ -1268,6 +1283,14 @@ func validateEnvFrom(vars []api.EnvFromSource, fldPath *field.Path) field.ErrorL
 func validateConfigMapEnvSource(configMapSource *api.ConfigMapEnvSource, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(configMapSource.Name) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
+	}
+	return allErrs
+}
+
+func validateSecretEnvSource(secretSource *api.SecretEnvSource, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if len(secretSource.Name) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 	}
 	return allErrs
@@ -1574,6 +1597,14 @@ func validateContainers(containers []api.Container, volumes sets.String, fldPath
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("livenessProbe", "successThreshold"), ctr.LivenessProbe.SuccessThreshold, "must be 1"))
 		}
 
+		switch ctr.TerminationMessagePolicy {
+		case api.TerminationMessageReadFile, api.TerminationMessageFallbackToLogsOnError:
+		case "":
+			allErrs = append(allErrs, field.Required(idxPath.Child("terminationMessagePolicy"), "must be 'File' or 'FallbackToLogsOnError'"))
+		default:
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("terminationMessagePolicy"), ctr.TerminationMessagePolicy, "must be 'File' or 'FallbackToLogsOnError'"))
+		}
+
 		allErrs = append(allErrs, validateProbe(ctr.ReadinessProbe, idxPath.Child("readinessProbe"))...)
 		allErrs = append(allErrs, validateContainerPorts(ctr.Ports, idxPath.Child("ports"))...)
 		allErrs = append(allErrs, validateEnv(ctr.Env, idxPath.Child("env"))...)
@@ -1845,8 +1876,13 @@ func ValidateNodeSelector(nodeSelector *api.NodeSelector, fldPath *field.Path) f
 func ValidateAvoidPodsInNodeAnnotations(annotations map[string]string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	avoids, err := api.GetAvoidPodsFromNodeAnnotations(annotations)
+	v1Avoids, err := v1.GetAvoidPodsFromNodeAnnotations(annotations)
 	if err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("AvoidPods"), api.PreferAvoidPodsAnnotationKey, err.Error()))
+		return allErrs
+	}
+	var avoids api.AvoidPods
+	if err := v1.Convert_v1_AvoidPods_To_api_AvoidPods(&v1Avoids, &avoids, nil); err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("AvoidPods"), api.PreferAvoidPodsAnnotationKey, err.Error()))
 		return allErrs
 	}
@@ -1975,10 +2011,17 @@ func validatePodAffinity(podAffinity *api.PodAffinity, fldPath *field.Path) fiel
 func ValidateTolerationsInPodAnnotations(annotations map[string]string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	tolerations, err := api.GetTolerationsFromPodAnnotations(annotations)
+	v1Tolerations, err := v1.GetTolerationsFromPodAnnotations(annotations)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath, api.TolerationsAnnotationKey, err.Error()))
 		return allErrs
+	}
+	tolerations := make([]api.Toleration, len(v1Tolerations))
+	for i := range v1Tolerations {
+		if err := v1.Convert_v1_Toleration_To_api_Toleration(&v1Tolerations[i], &tolerations[i], nil); err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath, api.TolerationsAnnotationKey, err.Error()))
+			return allErrs
+		}
 	}
 	if len(tolerations) > 0 {
 		allErrs = append(allErrs, validateTolerations(tolerations, fldPath.Child(api.TolerationsAnnotationKey))...)
@@ -2675,10 +2718,17 @@ func validateTaints(taints []api.Taint, fldPath *field.Path) field.ErrorList {
 func ValidateTaintsInNodeAnnotations(annotations map[string]string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	taints, err := api.GetTaintsFromNodeAnnotations(annotations)
+	v1Taints, err := v1.GetTaintsFromNodeAnnotations(annotations)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath, api.TaintsAnnotationKey, err.Error()))
 		return allErrs
+	}
+	taints := make([]api.Taint, len(v1Taints))
+	for i := range v1Taints {
+		if err := v1.Convert_v1_Taint_To_api_Taint(&v1Taints[i], &taints[i], nil); err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath, api.TaintsAnnotationKey, err.Error()))
+			return allErrs
+		}
 	}
 	if len(taints) > 0 {
 		allErrs = append(allErrs, validateTaints(taints, fldPath.Child(api.TaintsAnnotationKey))...)

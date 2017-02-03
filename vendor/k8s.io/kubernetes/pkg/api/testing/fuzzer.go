@@ -23,7 +23,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/google/gofuzz"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,10 +41,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/util/intstr"
-
-	"github.com/google/gofuzz"
 )
 
 // FuzzerFor can randomly populate api objects that are destined for version.
@@ -77,7 +77,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			j.APIVersion = ""
 			j.Kind = ""
 		},
-		func(j *api.ObjectMeta, c fuzz.Continue) {
+		func(j *metav1.ObjectMeta, c fuzz.Continue) {
 			j.Name = c.RandString()
 			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 			j.SelfLink = c.RandString()
@@ -117,6 +117,14 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			j.Stdout = true
 			j.Stderr = true
 		},
+		func(j *api.PodPortForwardOptions, c fuzz.Continue) {
+			if c.RandBool() {
+				j.Ports = make([]int32, c.Intn(10))
+				for i := range j.Ports {
+					j.Ports[i] = c.Int31n(65535)
+				}
+			}
+		},
 		func(s *api.PodSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(s)
 			// has a default value
@@ -133,6 +141,9 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			}
 			if s.Affinity == nil {
 				s.Affinity = new(api.Affinity)
+			}
+			if s.SchedulerName == "" {
+				s.SchedulerName = api.DefaultSchedulerName
 			}
 		},
 		func(j *api.PodPhase, c fuzz.Continue) {
@@ -275,6 +286,10 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 		func(s *api.SecretVolumeSource, c fuzz.Continue) {
 			c.FuzzNoCustom(s) // fuzz self without calling this function again
 
+			if c.RandBool() {
+				opt := c.RandBool()
+				s.Optional = &opt
+			}
 			// DefaultMode should always be set, it has a default
 			// value and it is expected to be between 0 and 0777
 			var mode int32
@@ -285,6 +300,10 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 		func(cm *api.ConfigMapVolumeSource, c fuzz.Continue) {
 			c.FuzzNoCustom(cm) // fuzz self without calling this function again
 
+			if c.RandBool() {
+				opt := c.RandBool()
+				cm.Optional = &opt
+			}
 			// DefaultMode should always be set, it has a default
 			// value and it is expected to be between 0 and 0777
 			var mode int32
@@ -347,6 +366,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 		func(ct *api.Container, c fuzz.Continue) {
 			c.FuzzNoCustom(ct)                                          // fuzz self without calling this function again
 			ct.TerminationMessagePath = "/" + ct.TerminationMessagePath // Must be non-empty
+			ct.TerminationMessagePolicy = "File"
 		},
 		func(p *api.Probe, c fuzz.Continue) {
 			c.FuzzNoCustom(p)
@@ -383,10 +403,19 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			}
 			if c.RandBool() {
 				c.Fuzz(&ev.ConfigMapRef)
+			} else {
+				c.Fuzz(&ev.SecretRef)
 			}
 		},
 		func(cm *api.ConfigMapEnvSource, c fuzz.Continue) {
 			c.FuzzNoCustom(cm) // fuzz self without calling this function again
+			if c.RandBool() {
+				opt := c.RandBool()
+				cm.Optional = &opt
+			}
+		},
+		func(s *api.SecretEnvSource, c fuzz.Continue) {
+			c.FuzzNoCustom(s) // fuzz self without calling this function again
 		},
 		func(sc *api.SecurityContext, c fuzz.Continue) {
 			c.FuzzNoCustom(sc) // fuzz self without calling this function again
@@ -562,6 +591,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			obj.API.Port = 20
 			obj.Networking.ServiceSubnet = "foo"
 			obj.Networking.DNSDomain = "foo"
+			obj.AuthorizationMode = "foo"
 			obj.Discovery.Token = &kubeadm.TokenDiscovery{}
 		},
 		func(s *policy.PodDisruptionBudgetStatus, c fuzz.Continue) {

@@ -48,7 +48,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/v1/service"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	awscredentials "k8s.io/kubernetes/pkg/credentialprovider/aws"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
@@ -182,7 +181,7 @@ const DefaultVolumeType = "gp2"
 // See http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/volume_limits.html#linux-specific-volume-limits
 const DefaultMaxEBSVolumes = 39
 
-// Used to call awscredentials.Init() just once
+// Used to call RecognizeWellKnownRegions just once
 var once sync.Once
 
 // Services is an abstraction over AWS, to allow mocking/other implementations
@@ -691,6 +690,7 @@ func init() {
 				},
 				&credentials.SharedCredentialsProvider{},
 			})
+
 		aws := newAWSSDKProvider(creds)
 		return newAWSCloud(config, aws)
 	})
@@ -732,15 +732,6 @@ func getAvailabilityZone(metadata EC2Metadata) (string, error) {
 	return metadata.GetMetadata("placement/availability-zone")
 }
 
-func isRegionValid(region string) bool {
-	for _, r := range awscredentials.AWSRegions {
-		if r == region {
-			return true
-		}
-	}
-	return false
-}
-
 // Derives the region from a valid az name.
 // Returns an error if the az is known invalid (empty)
 func azToRegion(az string) (string, error) {
@@ -777,9 +768,14 @@ func newAWSCloud(config io.Reader, awsServices Services) (*Cloud, error) {
 		return nil, err
 	}
 
+	// Trust that if we get a region from configuration or AWS metadata that it is valid,
+	// and register ECR providers
+	RecognizeRegion(regionName)
+
 	if !cfg.Global.DisableStrictZoneCheck {
 		valid := isRegionValid(regionName)
 		if !valid {
+			// This _should_ now be unreachable, given we call RecognizeRegion
 			return nil, fmt.Errorf("not a valid AWS zone (unknown region): %s", zone)
 		}
 	} else {
@@ -848,9 +844,9 @@ func newAWSCloud(config io.Reader, awsServices Services) (*Cloud, error) {
 		glog.Infof("AWS cloud - no tag filtering")
 	}
 
-	// Register handler for ECR credentials
+	// Register regions, in particular for ECR credentials
 	once.Do(func() {
-		awscredentials.Init()
+		RecognizeWellKnownRegions()
 	})
 
 	return awsCloud, nil
@@ -1175,16 +1171,16 @@ func (i *awsInstance) describeInstance() (*ec2.Instance, error) {
 // Gets the mountDevice already assigned to the volume, or assigns an unused mountDevice.
 // If the volume is already assigned, this will return the existing mountDevice with alreadyAttached=true.
 // Otherwise the mountDevice is assigned by finding the first available mountDevice, and it is returned with alreadyAttached=false.
-func (c *Cloud) getMountDevice(i *awsInstance, volumeID awsVolumeID, assign bool) (assigned mountDevice, alreadyAttached bool, err error) {
+func (c *Cloud) getMountDevice(
+	i *awsInstance,
+	info *ec2.Instance,
+	volumeID awsVolumeID,
+	assign bool) (assigned mountDevice, alreadyAttached bool, err error) {
 	instanceType := i.getInstanceType()
 	if instanceType == nil {
 		return "", false, fmt.Errorf("could not get instance type for instance: %s", i.awsID)
 	}
 
-	info, err := i.describeInstance()
-	if err != nil {
-		return "", false, err
-	}
 	deviceMappings := map[mountDevice]awsVolumeID{}
 	for _, blockDevice := range info.BlockDeviceMappings {
 		name := aws.StringValue(blockDevice.DeviceName)
@@ -1441,7 +1437,7 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName,
 		return "", err
 	}
 
-	awsInstance, err := c.getAwsInstance(nodeName)
+	awsInstance, info, err := c.getFullInstance(nodeName)
 	if err != nil {
 		return "", fmt.Errorf("error finding instance %s: %v", nodeName, err)
 	}
@@ -1468,7 +1464,7 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName,
 		}
 	}()
 
-	mountDevice, alreadyAttached, err = c.getMountDevice(awsInstance, disk.awsID, true)
+	mountDevice, alreadyAttached, err = c.getMountDevice(awsInstance, info, disk.awsID, true)
 	if err != nil {
 		return "", err
 	}
@@ -1528,7 +1524,7 @@ func (c *Cloud) DetachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 		return "", err
 	}
 
-	awsInstance, err := c.getAwsInstance(nodeName)
+	awsInstance, info, err := c.getFullInstance(nodeName)
 	if err != nil {
 		if err == cloudprovider.InstanceNotFound {
 			// If instance no longer exists, safe to assume volume is not attached.
@@ -1542,7 +1538,7 @@ func (c *Cloud) DetachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 		return "", err
 	}
 
-	mountDevice, alreadyAttached, err := c.getMountDevice(awsInstance, disk.awsID, false)
+	mountDevice, alreadyAttached, err := c.getMountDevice(awsInstance, info, disk.awsID, false)
 	if err != nil {
 		return "", err
 	}
@@ -1726,7 +1722,7 @@ func (c *Cloud) GetDiskPath(volumeName KubernetesVolumeID) (string, error) {
 
 // DiskIsAttached implements Volumes.DiskIsAttached
 func (c *Cloud) DiskIsAttached(diskName KubernetesVolumeID, nodeName types.NodeName) (bool, error) {
-	awsInstance, err := c.getAwsInstance(nodeName)
+	_, instance, err := c.getFullInstance(nodeName)
 	if err != nil {
 		if err == cloudprovider.InstanceNotFound {
 			// If instance no longer exists, safe to assume volume is not attached.
@@ -1745,11 +1741,7 @@ func (c *Cloud) DiskIsAttached(diskName KubernetesVolumeID, nodeName types.NodeN
 		return false, fmt.Errorf("error mapping volume spec %q to aws id: %v", diskName, err)
 	}
 
-	info, err := awsInstance.describeInstance()
-	if err != nil {
-		return false, err
-	}
-	for _, blockDevice := range info.BlockDeviceMappings {
+	for _, blockDevice := range instance.BlockDeviceMappings {
 		id := awsVolumeID(aws.StringValue(blockDevice.Ebs.VolumeId))
 		if id == diskID {
 			return true, nil
@@ -1769,7 +1761,7 @@ func (c *Cloud) DisksAreAttached(diskNames []KubernetesVolumeID, nodeName types.
 		idToDiskName[volumeID] = diskName
 		attached[diskName] = false
 	}
-	awsInstance, err := c.getAwsInstance(nodeName)
+	_, instance, err := c.getFullInstance(nodeName)
 	if err != nil {
 		if err == cloudprovider.InstanceNotFound {
 			// If instance no longer exists, safe to assume volume is not attached.
@@ -1782,11 +1774,7 @@ func (c *Cloud) DisksAreAttached(diskNames []KubernetesVolumeID, nodeName types.
 
 		return attached, err
 	}
-	info, err := awsInstance.describeInstance()
-	if err != nil {
-		return attached, err
-	}
-	for _, blockDevice := range info.BlockDeviceMappings {
+	for _, blockDevice := range instance.BlockDeviceMappings {
 		volumeID := awsVolumeID(aws.StringValue(blockDevice.Ebs.VolumeId))
 		diskName, found := idToDiskName[volumeID]
 		if found {
@@ -3136,7 +3124,7 @@ func (c *Cloud) getInstanceByID(instanceID string) (*ec2.Instance, error) {
 	}
 
 	if len(instances) == 0 {
-		return nil, fmt.Errorf("no instances found for instance: %s", instanceID)
+		return nil, cloudprovider.InstanceNotFound
 	}
 	if len(instances) > 1 {
 		return nil, fmt.Errorf("multiple instances found for instance: %s", instanceID)
@@ -3265,6 +3253,19 @@ func (c *Cloud) getInstanceByNodeName(nodeName types.NodeName) (*ec2.Instance, e
 		return nil, cloudprovider.InstanceNotFound
 	}
 	return instance, err
+}
+
+func (c *Cloud) getFullInstance(nodeName types.NodeName) (*awsInstance, *ec2.Instance, error) {
+	if nodeName == "" {
+		instance, err := c.getInstanceByID(c.selfAWSInstance.awsID)
+		return c.selfAWSInstance, instance, err
+	}
+	instance, err := c.getInstanceByNodeName(nodeName)
+	if err != nil {
+		return nil, nil, err
+	}
+	awsInstance := newAWSInstance(c.ec2, instance)
+	return awsInstance, instance, err
 }
 
 // Add additional filters, to match on our tags

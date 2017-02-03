@@ -55,29 +55,53 @@ echo "creating the tmp directory"
 mkdir -p "${CLIENT_REPO_TEMP}"
 cd "${CLIENT_REPO}"
 
+# there are two classes of package in staging/client-go, those which are authoritative (client-go has the only copy)
+# and those which are copied and rewritten (client-go is not authoritative).
+# we first copy out the authoritative packages to the temp location, then copy non-authoritative packages
+# then save over the original
+
+
+# save copies code from client-go into the temp folder to make sure we don't lose it by accident
+# TODO this is temporary until everything in certain directories is authoritative
+function save() {
+    mkdir -p "${CLIENT_REPO_TEMP}/$1"
+    cp -r "${CLIENT_REPO}/$1/"* "${CLIENT_REPO_TEMP}/$1"
+}
+
+# save everything for which the staging directory is the source of truth
+save "rest"
+# remove the rest/fake until we're authoritative for it (need to update for registry)
+rm -rf ${CLIENT_REPO_TEMP}/rest/fake
+save "tools/auth"
+save "tools/clientcmd"
+save "tools/metrics"
+save "transport"
+save "pkg/third_party"
+save "plugin"
+save "util"
+
+
+
 # mkcp copies file from the main repo to the client repo, it creates the directory if it doesn't exist in the client repo.
 function mkcp() {
     mkdir -p "${CLIENT_REPO_TEMP}/$2" && cp -r "${MAIN_REPO}/$1" "${CLIENT_REPO_TEMP}/$2"
 }
 
+# assemble all the other parts of the staging directory
 echo "copying client packages"
 mkcp "pkg/client/clientset_generated/${CLIENTSET}" "pkg/client/clientset_generated"
 mkcp "/pkg/client/record" "/pkg/client"
 mkcp "/pkg/client/cache" "/pkg/client"
 # TODO: make this test file not depending on pkg/client/unversioned
 rm "${CLIENT_REPO_TEMP}"/pkg/client/cache/listwatch_test.go
-mkcp "/pkg/client/restclient" "/pkg/client"
+mkcp "/pkg/client/restclient/fake" "/pkg/client/restclient"
 mkcp "/pkg/client/testing" "/pkg/client"
 # remove this test because it imports the internal clientset
 rm "${CLIENT_REPO_TEMP}"/pkg/client/testing/core/fake_test.go
-mkcp "/pkg/client/transport" "/pkg/client"
 mkcp "/pkg/client/typed" "/pkg/client"
 
-mkcp "/pkg/client/unversioned/auth" "/pkg/client/unversioned"
-mkcp "/pkg/client/unversioned/clientcmd" "/pkg/client/unversioned"
 mkcp "/pkg/client/unversioned/portforward" "/pkg/client/unversioned"
 
-mkcp "/plugin/pkg/client/auth" "/plugin/pkg/client"
 mkcp "/pkg/util/workqueue" "pkg/util"
 # remove this folder because it imports prometheus
 rm -rf "${CLIENT_REPO_TEMP}/pkg/util/workqueue/prometheus"
@@ -124,8 +148,6 @@ find "${CLIENT_REPO_TEMP}"/pkg/client/record -type f -name "*.go" -print0 | xarg
 # gofmt the changed files
 
 echo "rewrite conflicting Prometheus registration"
-sed -i "s/request_latency_microseconds/request_latency_microseconds_copy/g" "${CLIENT_REPO_TEMP}"/pkg/client/metrics/metrics.go
-sed -i "s/request_status_codes/request_status_codes_copy/g" "${CLIENT_REPO_TEMP}"/pkg/client/metrics/metrics.go
 sed -i "s/kubernetes_build_info/kubernetes_build_info_copy/g" "${CLIENT_REPO_TEMP}"/pkg/version/version.go
 
 echo "rewrite proto names in proto.RegisterType"
@@ -143,12 +165,9 @@ echo "rearranging directory layout"
 function mvfolder {
     local src=${1%/#/}
     local dst=${2%/#/}
-    # create the parent directory of dst
-    if [ "${dst%/*}" != "${dst}" ]; then
-        mkdir -p "${CLIENT_REPO_TEMP}/${dst%/*}"
-    fi
+    mkdir -p "${CLIENT_REPO_TEMP}/${dst}"
     # move
-    mv "${CLIENT_REPO_TEMP}/${src}" "${CLIENT_REPO_TEMP}/${dst}"
+    mv "${CLIENT_REPO_TEMP}/${src}"/* "${CLIENT_REPO_TEMP}/${dst}"
     # rewrite package
     local src_package="${src##*/}"
     local dst_package="${dst##*/}"
@@ -170,14 +189,10 @@ function mvfolder {
 mvfolder "pkg/client/clientset_generated/${CLIENTSET}" kubernetes
 mvfolder pkg/client/typed/discovery discovery
 mvfolder pkg/client/typed/dynamic dynamic
-mvfolder pkg/client/transport transport
 mvfolder pkg/client/record tools/record
-mvfolder pkg/client/restclient rest
+mvfolder pkg/client/restclient/fake rest/fake
 mvfolder pkg/client/cache tools/cache
-mvfolder pkg/client/unversioned/auth tools/auth
-mvfolder pkg/client/unversioned/clientcmd tools/clientcmd
 mvfolder pkg/client/unversioned/portforward tools/portforward
-mvfolder pkg/client/metrics tools/metrics
 mvfolder pkg/client/testing/core testing
 mvfolder pkg/client/testing/cache tools/cache/testing
 mvfolder cmd/kubeadm/app/apis/kubeadm pkg/apis/kubeadm
@@ -187,7 +202,6 @@ if [ "$(find "${CLIENT_REPO_TEMP}"/pkg/client -type f -name "*.go")" ]; then
 else
     rm -r "${CLIENT_REPO_TEMP}"/pkg/client
 fi
-mvfolder third_party pkg/third_party
 mvfolder federation pkg/federation
 
 echo "running gofmt"
@@ -201,6 +215,9 @@ find "${CLIENT_REPO_TEMP}" -type f \( \
     -name "*.yml" -o \
     -name "*.sh" \
     \) -delete
+
+echo "remove cyclical godep"
+rm -rf "${CLIENT_REPO_TEMP}/_vendor/k8s.io/client-go"
 
 if [ "${VERIFYONLY}" = true ]; then
     echo "running verify-only"

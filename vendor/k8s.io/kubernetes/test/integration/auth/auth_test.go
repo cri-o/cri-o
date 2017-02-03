@@ -36,20 +36,21 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/client-go/tools/clientcmd/api/v1"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	authenticationv1beta1 "k8s.io/kubernetes/pkg/apis/authentication/v1beta1"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/auth/authorizer/abac"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api/v1"
 	apiserverauthorizer "k8s.io/kubernetes/pkg/genericapiserver/authorizer"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/tokentest"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/webhook"
@@ -968,10 +969,10 @@ func TestNamespaceAuthorization(t *testing.T) {
 		{"GET", path("pods", "foo", "a"), "bar", "", integration.Code403},
 		{"DELETE", timeoutPath("pods", "foo", "a"), "bar", "", integration.Code403},
 
-		{"POST", timeoutPath("pods", api.NamespaceDefault, ""), "", aPod, integration.Code403},
+		{"POST", timeoutPath("pods", metav1.NamespaceDefault, ""), "", aPod, integration.Code403},
 		{"GET", path("pods", "", ""), "", "", integration.Code403},
-		{"GET", path("pods", api.NamespaceDefault, "a"), "", "", integration.Code403},
-		{"DELETE", timeoutPath("pods", api.NamespaceDefault, "a"), "", "", integration.Code403},
+		{"GET", path("pods", metav1.NamespaceDefault, "a"), "", "", integration.Code403},
+		{"DELETE", timeoutPath("pods", metav1.NamespaceDefault, "a"), "", "", integration.Code403},
 	}
 
 	for _, r := range requests {
@@ -1139,7 +1140,7 @@ func TestReadOnlyAuthorization(t *testing.T) {
 	}{
 		{"POST", path("pods", ns.Name, ""), aPod, integration.Code403},
 		{"GET", path("pods", ns.Name, ""), "", integration.Code200},
-		{"GET", path("pods", api.NamespaceDefault, "a"), "", integration.Code404},
+		{"GET", path("pods", metav1.NamespaceDefault, "a"), "", integration.Code404},
 	}
 
 	for _, r := range requests {

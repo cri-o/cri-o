@@ -20,15 +20,15 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/genericapiserver/api/rest"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
@@ -47,7 +47,7 @@ func newStorage(t *testing.T) (*REST, *StatusREST, *etcdtesting.EtcdTestServer) 
 
 func validNewPersistentVolumeClaim(name, ns string) *api.PersistentVolumeClaim {
 	pv := &api.PersistentVolumeClaim{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
 		},
@@ -71,14 +71,14 @@ func TestCreate(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
-	pv := validNewPersistentVolumeClaim("foo", api.NamespaceDefault)
-	pv.ObjectMeta = api.ObjectMeta{}
+	pv := validNewPersistentVolumeClaim("foo", metav1.NamespaceDefault)
+	pv.ObjectMeta = metav1.ObjectMeta{}
 	test.TestCreate(
 		// valid
 		pv,
 		// invalid
 		&api.PersistentVolumeClaim{
-			ObjectMeta: api.ObjectMeta{Name: "*BadName!"},
+			ObjectMeta: metav1.ObjectMeta{Name: "*BadName!"},
 		},
 	)
 }
@@ -90,7 +90,7 @@ func TestUpdate(t *testing.T) {
 	test := registrytest.New(t, storage.Store)
 	test.TestUpdate(
 		// valid
-		validNewPersistentVolumeClaim("foo", api.NamespaceDefault),
+		validNewPersistentVolumeClaim("foo", metav1.NamespaceDefault),
 		// updateFunc
 		func(obj runtime.Object) runtime.Object {
 			object := obj.(*api.PersistentVolumeClaim)
@@ -105,7 +105,7 @@ func TestDelete(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store).ReturnDeletedObject()
-	test.TestDelete(validNewPersistentVolumeClaim("foo", api.NamespaceDefault))
+	test.TestDelete(validNewPersistentVolumeClaim("foo", metav1.NamespaceDefault))
 }
 
 func TestGet(t *testing.T) {
@@ -113,7 +113,7 @@ func TestGet(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
-	test.TestGet(validNewPersistentVolumeClaim("foo", api.NamespaceDefault))
+	test.TestGet(validNewPersistentVolumeClaim("foo", metav1.NamespaceDefault))
 }
 
 func TestList(t *testing.T) {
@@ -121,7 +121,7 @@ func TestList(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
-	test.TestList(validNewPersistentVolumeClaim("foo", api.NamespaceDefault))
+	test.TestList(validNewPersistentVolumeClaim("foo", metav1.NamespaceDefault))
 }
 
 func TestWatch(t *testing.T) {
@@ -130,7 +130,7 @@ func TestWatch(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 	test.TestWatch(
-		validNewPersistentVolumeClaim("foo", api.NamespaceDefault),
+		validNewPersistentVolumeClaim("foo", metav1.NamespaceDefault),
 		// matching labels
 		[]labels.Set{},
 		// not matching labels
@@ -156,13 +156,13 @@ func TestUpdateStatus(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 
 	key, _ := storage.KeyFunc(ctx, "foo")
-	pvcStart := validNewPersistentVolumeClaim("foo", api.NamespaceDefault)
+	pvcStart := validNewPersistentVolumeClaim("foo", metav1.NamespaceDefault)
 	err := storage.Storage.Create(ctx, key, pvcStart, nil, 0)
 
 	pvc := &api.PersistentVolumeClaim{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: api.PersistentVolumeClaimSpec{
 			AccessModes: []api.PersistentVolumeAccessMode{api.ReadWriteOnce},

@@ -34,6 +34,7 @@ import (
 	cadvisorclient "github.com/google/cadvisor/client/v2"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -294,7 +295,7 @@ func formatCPUSummary(summary framework.ContainersCPUSummary) string {
 // createCadvisorPod creates a standalone cadvisor pod for fine-grain resource monitoring.
 func getCadvisorPod() *v1.Pod {
 	return &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: cadvisorPodName,
 		},
 		Spec: v1.PodSpec{
@@ -373,7 +374,7 @@ func deletePodsSync(f *framework.Framework, pods []*v1.Pod) {
 		go func(pod *v1.Pod) {
 			defer wg.Done()
 
-			err := f.PodClient().Delete(pod.ObjectMeta.Name, v1.NewDeleteOptions(30))
+			err := f.PodClient().Delete(pod.ObjectMeta.Name, metav1.NewDeleteOptions(30))
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(framework.WaitForPodToDisappear(f.ClientSet, f.Namespace.Name, pod.ObjectMeta.Name, labels.Everything(),
@@ -395,7 +396,7 @@ func newTestPods(numPods int, imageName, podType string) []*v1.Pod {
 		}
 		pods = append(pods,
 			&v1.Pod{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:   podName,
 					Labels: labels,
 				},

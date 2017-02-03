@@ -19,11 +19,12 @@ package storage
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
@@ -41,12 +42,12 @@ func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 
 func validNewPodTemplate(name string) *api.PodTemplate {
 	return &api.PodTemplate{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Template: api.PodTemplateSpec{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{"test": "foo"},
 			},
 			Spec: api.PodSpec{
@@ -58,7 +59,8 @@ func validNewPodTemplate(name string) *api.PodTemplate {
 						Image:           "test",
 						ImagePullPolicy: api.PullAlways,
 
-						TerminationMessagePath: api.TerminationMessagePathDefault,
+						TerminationMessagePath:   api.TerminationMessagePathDefault,
+						TerminationMessagePolicy: api.TerminationMessageReadFile,
 					},
 				},
 			},
@@ -72,7 +74,7 @@ func TestCreate(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 	pod := validNewPodTemplate("foo")
-	pod.ObjectMeta = api.ObjectMeta{}
+	pod.ObjectMeta = metav1.ObjectMeta{}
 	test.TestCreate(
 		// valid
 		pod,

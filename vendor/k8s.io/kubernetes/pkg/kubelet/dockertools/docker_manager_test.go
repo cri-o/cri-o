@@ -17,6 +17,7 @@ limitations under the License.
 package dockertools
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -36,9 +37,12 @@ import (
 	"github.com/golang/mock/gomock"
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubetypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/util/clock"
+	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -52,11 +56,24 @@ import (
 	nettest "k8s.io/kubernetes/pkg/kubelet/network/testing"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
 	"k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/util/clock"
 	uexec "k8s.io/kubernetes/pkg/util/exec"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/util/intstr"
 )
+
+var testTempDir string
+
+func TestMain(m *testing.M) {
+	dir, err := ioutil.TempDir("", "dockertools")
+	if err != nil {
+		panic(err)
+	}
+	testTempDir = dir
+
+	flag.Parse()
+	status := m.Run()
+	os.RemoveAll(testTempDir)
+	os.Exit(status)
+}
 
 type fakeHTTP struct {
 	url string
@@ -80,7 +97,7 @@ func (f *fakeRuntimeHelper) GenerateRunContainerOptions(pod *v1.Pod, container *
 	var opts kubecontainer.RunContainerOptions
 	var err error
 	if len(container.TerminationMessagePath) != 0 {
-		testPodContainerDir, err = ioutil.TempDir("", "fooPodContainerDir")
+		testPodContainerDir, err = ioutil.TempDir(testTempDir, "fooPodContainerDir")
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +181,7 @@ func newTestDockerManagerWithHTTPClient(fakeHTTPClient *fakeHTTP) (*DockerManage
 }
 
 func newTestDockerManagerWithVersion(version, apiVersion string) (*DockerManager, *FakeDockerClient) {
-	fakeDocker := NewFakeDockerClientWithVersion(version, apiVersion)
+	fakeDocker := NewFakeDockerClient().WithVersion(version, apiVersion)
 	return createTestDockerManagerWithFakeImageManager(nil, fakeDocker)
 }
 
@@ -1918,7 +1935,7 @@ func makePod(name string, spec *v1.PodSpec) *v1.Pod {
 		spec = &v1.PodSpec{Containers: []v1.Container{{Name: "foo"}, {Name: "bar"}}}
 	}
 	pod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			UID:       "12345678",
 			Name:      name,
 			Namespace: "new",

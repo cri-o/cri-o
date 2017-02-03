@@ -26,9 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/clock"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/util/clock"
 
 	"net/http"
 
@@ -298,10 +298,10 @@ func (recorder *recorderImpl) makeEvent(ref *v1.ObjectReference, eventtype, reas
 	t := metav1.Time{Time: recorder.clock.Now()}
 	namespace := ref.Namespace
 	if namespace == "" {
-		namespace = v1.NamespaceDefault
+		namespace = metav1.NamespaceDefault
 	}
 	return &v1.Event{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v.%x", ref.Name, t.UnixNano()),
 			Namespace: namespace,
 		},

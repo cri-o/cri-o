@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
@@ -38,7 +38,7 @@ func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 
 func validNewNamespace() *api.Namespace {
 	return &api.Namespace{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
 	}
@@ -50,13 +50,13 @@ func TestCreate(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store).ClusterScope()
 	namespace := validNewNamespace()
-	namespace.ObjectMeta = api.ObjectMeta{GenerateName: "foo"}
+	namespace.ObjectMeta = metav1.ObjectMeta{GenerateName: "foo"}
 	test.TestCreate(
 		// valid
 		namespace,
 		// invalid
 		&api.Namespace{
-			ObjectMeta: api.ObjectMeta{Name: "bad value"},
+			ObjectMeta: metav1.ObjectMeta{Name: "bad value"},
 		},
 	)
 }
@@ -145,7 +145,7 @@ func TestDeleteNamespaceWithIncompleteFinalizers(t *testing.T) {
 	ctx := genericapirequest.NewContext()
 	now := metav1.Now()
 	namespace := &api.Namespace{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "foo",
 			DeletionTimestamp: &now,
 		},
@@ -170,7 +170,7 @@ func TestDeleteNamespaceWithCompleteFinalizers(t *testing.T) {
 	ctx := genericapirequest.NewContext()
 	now := metav1.Now()
 	namespace := &api.Namespace{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "foo",
 			DeletionTimestamp: &now,
 		},

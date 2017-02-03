@@ -24,14 +24,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	genericapirequest "k8s.io/apiserver/pkg/request"
-	"k8s.io/kubernetes/pkg/api"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
-	"k8s.io/kubernetes/pkg/genericapiserver/api/rest"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
+	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/registry/extensions/replicaset"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	genericregistry "k8s.io/kubernetes/pkg/registry/generic/registry"
 )
 
 // ReplicaSetStorage includes dummy storage for ReplicaSets and for Scale subresource.
@@ -169,7 +168,7 @@ func (r *ScaleREST) Update(ctx genericapirequest.Context, name string, objInfo r
 func scaleFromReplicaSet(rs *extensions.ReplicaSet) (*extensions.Scale, error) {
 	return &extensions.Scale{
 		// TODO: Create a variant of ObjectMeta type that only contains the fields below.
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              rs.Name,
 			Namespace:         rs.Namespace,
 			UID:               rs.UID,

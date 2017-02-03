@@ -35,9 +35,6 @@ const (
 
 	// Value used to identify mirror pods from pre-v1.1 kubelet.
 	mirrorAnnotationValue_1_0 = "mirror"
-
-	// annotation key prefix used to identify non-convertible json paths.
-	NonConvertibleAnnotationPrefix = "kubernetes.io/non-convertible"
 )
 
 // This is a "fast-path" that avoids reflection for common types. It focuses on the objects that are
@@ -269,9 +266,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 }
 
 func Convert_v1_ReplicationController_to_extensions_ReplicaSet(in *ReplicationController, out *extensions.ReplicaSet, s conversion.Scope) error {
-	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_ReplicationControllerSpec_to_extensions_ReplicaSetSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -304,9 +299,7 @@ func Convert_v1_ReplicationControllerStatus_to_extensions_ReplicaSetStatus(in *R
 }
 
 func Convert_extensions_ReplicaSet_to_v1_ReplicationController(in *extensions.ReplicaSet, out *ReplicationController, s conversion.Scope) error {
-	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_extensions_ReplicaSetSpec_to_v1_ReplicationControllerSpec(&in.Spec, &out.Spec, s); err != nil {
 		fieldErr, ok := err.(*field.Error)
 		if !ok {
@@ -315,7 +308,7 @@ func Convert_extensions_ReplicaSet_to_v1_ReplicationController(in *extensions.Re
 		if out.Annotations == nil {
 			out.Annotations = make(map[string]string)
 		}
-		out.Annotations[NonConvertibleAnnotationPrefix+"/"+fieldErr.Field] = reflect.ValueOf(fieldErr.BadValue).String()
+		out.Annotations[api.NonConvertibleAnnotationPrefix+"/"+fieldErr.Field] = reflect.ValueOf(fieldErr.BadValue).String()
 	}
 	if err := Convert_extensions_ReplicaSetStatus_to_v1_ReplicationControllerStatus(&in.Status, &out.Status, s); err != nil {
 		return err

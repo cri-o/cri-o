@@ -20,8 +20,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/kubernetes/pkg/api"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
@@ -64,14 +64,14 @@ func (c *FakeDeployments) UpdateStatus(deployment *extensions.Deployment) (*exte
 	return obj.(*extensions.Deployment), err
 }
 
-func (c *FakeDeployments) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeDeployments) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(deploymentsResource, c.ns, name), &extensions.Deployment{})
 
 	return err
 }
 
-func (c *FakeDeployments) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeDeployments) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(deploymentsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &extensions.DeploymentList{})
@@ -88,7 +88,7 @@ func (c *FakeDeployments) Get(name string, options v1.GetOptions) (result *exten
 	return obj.(*extensions.Deployment), err
 }
 
-func (c *FakeDeployments) List(opts api.ListOptions) (result *extensions.DeploymentList, err error) {
+func (c *FakeDeployments) List(opts v1.ListOptions) (result *extensions.DeploymentList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(deploymentsResource, c.ns, opts), &extensions.DeploymentList{})
 
@@ -110,14 +110,14 @@ func (c *FakeDeployments) List(opts api.ListOptions) (result *extensions.Deploym
 }
 
 // Watch returns a watch.Interface that watches the requested deployments.
-func (c *FakeDeployments) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeDeployments) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(deploymentsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched deployment.
-func (c *FakeDeployments) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *extensions.Deployment, err error) {
+func (c *FakeDeployments) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *extensions.Deployment, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(deploymentsResource, c.ns, name, data, subresources...), &extensions.Deployment{})
 

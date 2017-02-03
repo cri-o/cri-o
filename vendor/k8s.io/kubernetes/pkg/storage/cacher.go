@@ -28,15 +28,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/golang/glog"
@@ -188,9 +187,9 @@ type Cacher struct {
 	stopWg   sync.WaitGroup
 }
 
-// Create a new Cacher responsible from service WATCH and LIST requests from its
-// internal cache and updating its cache in the background based on the given
-// configuration.
+// Create a new Cacher responsible for servicing WATCH and LIST requests from
+// its internal cache and updating its cache in the background based on the
+// given configuration.
 func NewCacherFromConfig(config CacherConfig) *Cacher {
 	watchCache := newWatchCache(config.CacheCapacity, config.KeyFunc, config.GetAttrsFunc)
 	listerWatcher := newCacherListerWatcher(config.Storage, config.ResourcePrefix, config.NewListFunc)
@@ -692,7 +691,7 @@ func newCacherListerWatcher(storage Interface, resourcePrefix string, newListFun
 }
 
 // Implements cache.ListerWatcher interface.
-func (lw *cacherListerWatcher) List(options v1.ListOptions) (runtime.Object, error) {
+func (lw *cacherListerWatcher) List(options metav1.ListOptions) (runtime.Object, error) {
 	list := lw.newListFunc()
 	if err := lw.storage.List(context.TODO(), lw.resourcePrefix, "", Everything, list); err != nil {
 		return nil, err
@@ -701,7 +700,7 @@ func (lw *cacherListerWatcher) List(options v1.ListOptions) (runtime.Object, err
 }
 
 // Implements cache.ListerWatcher interface.
-func (lw *cacherListerWatcher) Watch(options v1.ListOptions) (watch.Interface, error) {
+func (lw *cacherListerWatcher) Watch(options metav1.ListOptions) (watch.Interface, error) {
 	return lw.storage.WatchList(context.TODO(), lw.resourcePrefix, options.ResourceVersion, Everything)
 }
 

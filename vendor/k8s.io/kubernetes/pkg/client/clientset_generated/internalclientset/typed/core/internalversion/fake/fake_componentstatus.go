@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -50,13 +51,13 @@ func (c *FakeComponentStatuses) Update(componentStatus *api.ComponentStatus) (re
 	return obj.(*api.ComponentStatus), err
 }
 
-func (c *FakeComponentStatuses) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeComponentStatuses) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewRootDeleteAction(componentstatusesResource, name), &api.ComponentStatus{})
 	return err
 }
 
-func (c *FakeComponentStatuses) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeComponentStatuses) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewRootDeleteCollectionAction(componentstatusesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.ComponentStatusList{})
@@ -72,7 +73,7 @@ func (c *FakeComponentStatuses) Get(name string, options v1.GetOptions) (result 
 	return obj.(*api.ComponentStatus), err
 }
 
-func (c *FakeComponentStatuses) List(opts api.ListOptions) (result *api.ComponentStatusList, err error) {
+func (c *FakeComponentStatuses) List(opts v1.ListOptions) (result *api.ComponentStatusList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootListAction(componentstatusesResource, opts), &api.ComponentStatusList{})
 	if obj == nil {
@@ -93,13 +94,13 @@ func (c *FakeComponentStatuses) List(opts api.ListOptions) (result *api.Componen
 }
 
 // Watch returns a watch.Interface that watches the requested componentStatuses.
-func (c *FakeComponentStatuses) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeComponentStatuses) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewRootWatchAction(componentstatusesResource, opts))
 }
 
 // Patch applies the patch and returns the patched componentStatus.
-func (c *FakeComponentStatuses) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.ComponentStatus, err error) {
+func (c *FakeComponentStatuses) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ComponentStatus, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootPatchSubresourceAction(componentstatusesResource, name, data, subresources...), &api.ComponentStatus{})
 	if obj == nil {

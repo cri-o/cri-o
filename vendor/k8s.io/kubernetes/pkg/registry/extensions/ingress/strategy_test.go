@@ -19,7 +19,8 @@ package ingress
 import (
 	"testing"
 
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
@@ -33,9 +34,9 @@ func newIngress() extensions.Ingress {
 		ServicePort: intstr.FromInt(80),
 	}
 	return extensions.Ingress{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: extensions.IngressSpec{
 			Backend: &extensions.IngressBackend{

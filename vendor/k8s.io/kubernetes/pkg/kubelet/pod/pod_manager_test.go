@@ -20,16 +20,19 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api/v1"
 	podtest "k8s.io/kubernetes/pkg/kubelet/pod/testing"
+	"k8s.io/kubernetes/pkg/kubelet/secret"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 // Stub out mirror client for testing purpose.
 func newTestManager() (*basicManager, *podtest.FakeMirrorClient) {
 	fakeMirrorClient := podtest.NewFakeMirrorClient()
-	manager := NewBasicPodManager(fakeMirrorClient).(*basicManager)
+	secretManager := secret.NewFakeManager()
+	manager := NewBasicPodManager(fakeMirrorClient, secretManager).(*basicManager)
 	return manager, fakeMirrorClient
 }
 
@@ -37,7 +40,7 @@ func newTestManager() (*basicManager, *podtest.FakeMirrorClient) {
 // methods work correctly.
 func TestGetSetPods(t *testing.T) {
 	mirrorPod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			UID:       "987654321",
 			Name:      "bar",
 			Namespace: "default",
@@ -48,7 +51,7 @@ func TestGetSetPods(t *testing.T) {
 		},
 	}
 	staticPod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			UID:         "123456789",
 			Name:        "bar",
 			Namespace:   "default",
@@ -58,7 +61,7 @@ func TestGetSetPods(t *testing.T) {
 
 	expectedPods := []*v1.Pod{
 		{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				UID:         "999999999",
 				Name:        "taco",
 				Namespace:   "default",
@@ -112,10 +115,10 @@ func TestGetSetPods(t *testing.T) {
 
 func TestDeletePods(t *testing.T) {
 	mirrorPod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			UID:       types.UID("mirror-pod-uid"),
 			Name:      "mirror-static-pod-name",
-			Namespace: v1.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 			Annotations: map[string]string{
 				kubetypes.ConfigSourceAnnotationKey: "api",
 				kubetypes.ConfigMirrorAnnotationKey: "mirror",
@@ -123,20 +126,20 @@ func TestDeletePods(t *testing.T) {
 		},
 	}
 	staticPod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			UID:         types.UID("static-pod-uid"),
 			Name:        "mirror-static-pod-name",
-			Namespace:   v1.NamespaceDefault,
+			Namespace:   metav1.NamespaceDefault,
 			Annotations: map[string]string{kubetypes.ConfigSourceAnnotationKey: "file"},
 		},
 	}
 
 	expectedPods := []*v1.Pod{
 		{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				UID:         types.UID("extra-pod-uid"),
 				Name:        "extra-pod-name",
-				Namespace:   v1.NamespaceDefault,
+				Namespace:   metav1.NamespaceDefault,
 				Annotations: map[string]string{kubetypes.ConfigSourceAnnotationKey: "api"},
 			},
 		},

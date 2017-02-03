@@ -20,8 +20,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/kubernetes/pkg/api"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
@@ -64,14 +64,14 @@ func (c *FakeDaemonSets) UpdateStatus(daemonSet *extensions.DaemonSet) (*extensi
 	return obj.(*extensions.DaemonSet), err
 }
 
-func (c *FakeDaemonSets) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeDaemonSets) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(daemonsetsResource, c.ns, name), &extensions.DaemonSet{})
 
 	return err
 }
 
-func (c *FakeDaemonSets) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeDaemonSets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(daemonsetsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &extensions.DaemonSetList{})
@@ -88,7 +88,7 @@ func (c *FakeDaemonSets) Get(name string, options v1.GetOptions) (result *extens
 	return obj.(*extensions.DaemonSet), err
 }
 
-func (c *FakeDaemonSets) List(opts api.ListOptions) (result *extensions.DaemonSetList, err error) {
+func (c *FakeDaemonSets) List(opts v1.ListOptions) (result *extensions.DaemonSetList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(daemonsetsResource, c.ns, opts), &extensions.DaemonSetList{})
 
@@ -110,14 +110,14 @@ func (c *FakeDaemonSets) List(opts api.ListOptions) (result *extensions.DaemonSe
 }
 
 // Watch returns a watch.Interface that watches the requested daemonSets.
-func (c *FakeDaemonSets) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeDaemonSets) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(daemonsetsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched daemonSet.
-func (c *FakeDaemonSets) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *extensions.DaemonSet, err error) {
+func (c *FakeDaemonSets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *extensions.DaemonSet, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(daemonsetsResource, c.ns, name, data, subresources...), &extensions.DaemonSet{})
 

@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
 )
 
 // IsOpaqueIntResourceName returns true if the resource name has the opaque
@@ -48,7 +47,7 @@ func OpaqueIntResourceName(name string) ResourceName {
 // NewDeleteOptions returns a DeleteOptions indicating the resource should
 // be deleted within the specified grace period. Use zero to indicate
 // immediate deletion. If you would prefer to use the default grace period,
-// use &api.DeleteOptions{} directly.
+// use &metav1.DeleteOptions{} directly.
 func NewDeleteOptions(grace int64) *DeleteOptions {
 	return &DeleteOptions{GracePeriodSeconds: &grace}
 }
@@ -86,30 +85,8 @@ var standardFinalizers = sets.NewString(
 	FinalizerOrphan,
 )
 
-// HasAnnotation returns a bool if passed in annotation exists
-func HasAnnotation(obj ObjectMeta, ann string) bool {
-	_, found := obj.Annotations[ann]
-	return found
-}
-
-// SetMetaDataAnnotation sets the annotation and value
-func SetMetaDataAnnotation(obj *ObjectMeta, ann string, value string) {
-	if obj.Annotations == nil {
-		obj.Annotations = make(map[string]string)
-	}
-	obj.Annotations[ann] = value
-}
-
 func IsStandardFinalizerName(str string) bool {
 	return standardFinalizers.Has(str)
-}
-
-// SingleObject returns a ListOptions for watching a single object.
-func SingleObject(meta ObjectMeta) ListOptions {
-	return ListOptions{
-		FieldSelector:   fields.OneTermEqualSelector("metadata.name", meta.Name).String(),
-		ResourceVersion: meta.ResourceVersion,
-	}
 }
 
 // AddToNodeAddresses appends the NodeAddresses to the passed-by-pointer slice,

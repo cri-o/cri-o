@@ -20,9 +20,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	apiregistration "k8s.io/kubernetes/cmd/kube-aggregator/pkg/apis/apiregistration"
-	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
 
@@ -60,13 +60,13 @@ func (c *FakeAPIServices) UpdateStatus(aPIService *apiregistration.APIService) (
 	return obj.(*apiregistration.APIService), err
 }
 
-func (c *FakeAPIServices) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeAPIServices) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewRootDeleteAction(apiservicesResource, name), &apiregistration.APIService{})
 	return err
 }
 
-func (c *FakeAPIServices) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeAPIServices) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewRootDeleteCollectionAction(apiservicesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &apiregistration.APIServiceList{})
@@ -82,7 +82,7 @@ func (c *FakeAPIServices) Get(name string, options v1.GetOptions) (result *apire
 	return obj.(*apiregistration.APIService), err
 }
 
-func (c *FakeAPIServices) List(opts api.ListOptions) (result *apiregistration.APIServiceList, err error) {
+func (c *FakeAPIServices) List(opts v1.ListOptions) (result *apiregistration.APIServiceList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootListAction(apiservicesResource, opts), &apiregistration.APIServiceList{})
 	if obj == nil {
@@ -103,13 +103,13 @@ func (c *FakeAPIServices) List(opts api.ListOptions) (result *apiregistration.AP
 }
 
 // Watch returns a watch.Interface that watches the requested aPIServices.
-func (c *FakeAPIServices) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeAPIServices) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewRootWatchAction(apiservicesResource, opts))
 }
 
 // Patch applies the patch and returns the patched aPIService.
-func (c *FakeAPIServices) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *apiregistration.APIService, err error) {
+func (c *FakeAPIServices) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *apiregistration.APIService, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootPatchSubresourceAction(apiservicesResource, name, data, subresources...), &apiregistration.APIService{})
 	if obj == nil {

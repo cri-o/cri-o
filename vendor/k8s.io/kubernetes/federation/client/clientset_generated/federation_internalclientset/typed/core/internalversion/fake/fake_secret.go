@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -53,14 +54,14 @@ func (c *FakeSecrets) Update(secret *api.Secret) (result *api.Secret, err error)
 	return obj.(*api.Secret), err
 }
 
-func (c *FakeSecrets) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeSecrets) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(secretsResource, c.ns, name), &api.Secret{})
 
 	return err
 }
 
-func (c *FakeSecrets) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeSecrets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(secretsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.SecretList{})
@@ -77,7 +78,7 @@ func (c *FakeSecrets) Get(name string, options v1.GetOptions) (result *api.Secre
 	return obj.(*api.Secret), err
 }
 
-func (c *FakeSecrets) List(opts api.ListOptions) (result *api.SecretList, err error) {
+func (c *FakeSecrets) List(opts v1.ListOptions) (result *api.SecretList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(secretsResource, c.ns, opts), &api.SecretList{})
 
@@ -99,14 +100,14 @@ func (c *FakeSecrets) List(opts api.ListOptions) (result *api.SecretList, err er
 }
 
 // Watch returns a watch.Interface that watches the requested secrets.
-func (c *FakeSecrets) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeSecrets) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(secretsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched secret.
-func (c *FakeSecrets) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.Secret, err error) {
+func (c *FakeSecrets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Secret, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(secretsResource, c.ns, name, data, subresources...), &api.Secret{})
 

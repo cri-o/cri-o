@@ -33,12 +33,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/sets"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/clock"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/pkg/controller/garbagecollector/metaonly"
-	"k8s.io/kubernetes/pkg/util/clock"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 )
 
@@ -126,7 +126,7 @@ func getPod(podName string, ownerReferences []metav1.OwnerReference) *v1.Pod {
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            podName,
 			Namespace:       "ns1",
 			OwnerReferences: ownerReferences,
@@ -237,7 +237,7 @@ func createEvent(eventType eventType, selfUID string, owners []string) event {
 	return event{
 		eventType: eventType,
 		obj: &v1.Pod{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				UID:             types.UID(selfUID),
 				OwnerReferences: ownerReferences,
 			},
@@ -349,8 +349,8 @@ func TestGCListWatcher(t *testing.T) {
 		t.Fatal(err)
 	}
 	lw := gcListWatcher(client, podResource)
-	lw.Watch(v1.ListOptions{ResourceVersion: "1"})
-	lw.List(v1.ListOptions{ResourceVersion: "1"})
+	lw.Watch(metav1.ListOptions{ResourceVersion: "1"})
+	lw.List(metav1.ListOptions{ResourceVersion: "1"})
 	if e, a := 2, len(testHandler.actions); e != a {
 		t.Errorf("expect %d requests, got %d", e, a)
 	}

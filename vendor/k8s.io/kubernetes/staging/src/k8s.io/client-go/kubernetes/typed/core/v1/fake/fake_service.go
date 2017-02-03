@@ -20,8 +20,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	testing "k8s.io/client-go/testing"
 )
@@ -71,7 +71,7 @@ func (c *FakeServices) Delete(name string, options *v1.DeleteOptions) error {
 	return err
 }
 
-func (c *FakeServices) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeServices) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(servicesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.ServiceList{})
@@ -88,7 +88,7 @@ func (c *FakeServices) Get(name string, options meta_v1.GetOptions) (result *v1.
 	return obj.(*v1.Service), err
 }
 
-func (c *FakeServices) List(opts v1.ListOptions) (result *v1.ServiceList, err error) {
+func (c *FakeServices) List(opts meta_v1.ListOptions) (result *v1.ServiceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(servicesResource, c.ns, opts), &v1.ServiceList{})
 
@@ -110,14 +110,14 @@ func (c *FakeServices) List(opts v1.ListOptions) (result *v1.ServiceList, err er
 }
 
 // Watch returns a watch.Interface that watches the requested services.
-func (c *FakeServices) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeServices) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(servicesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched service.
-func (c *FakeServices) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Service, err error) {
+func (c *FakeServices) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Service, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(servicesResource, c.ns, name, data, subresources...), &v1.Service{})
 

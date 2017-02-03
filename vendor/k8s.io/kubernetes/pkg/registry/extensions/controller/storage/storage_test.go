@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/genericapiserver/api/rest"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
@@ -44,7 +44,7 @@ func newStorage(t *testing.T) (*ScaleREST, *etcdtesting.EtcdTestServer, storage.
 
 var validPodTemplate = api.PodTemplate{
 	Template: api.PodTemplateSpec{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{"a": "b"},
 		},
 		Spec: api.PodSpec{
@@ -70,12 +70,12 @@ var validControllerSpec = api.ReplicationControllerSpec{
 }
 
 var validController = api.ReplicationController{
-	ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "test"},
+	ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "test"},
 	Spec:       validControllerSpec,
 }
 
 var validScale = extensions.Scale{
-	ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "test"},
+	ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "test"},
 	Spec: extensions.ScaleSpec{
 		Replicas: validReplicas,
 	},
@@ -117,7 +117,7 @@ func TestUpdate(t *testing.T) {
 	}
 	replicas := int32(12)
 	update := extensions.Scale{
-		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "test"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "test"},
 		Spec: extensions.ScaleSpec{
 			Replicas: replicas,
 		},

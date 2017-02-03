@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -63,14 +64,14 @@ func (c *FakeResourceQuotas) UpdateStatus(resourceQuota *api.ResourceQuota) (*ap
 	return obj.(*api.ResourceQuota), err
 }
 
-func (c *FakeResourceQuotas) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeResourceQuotas) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(resourcequotasResource, c.ns, name), &api.ResourceQuota{})
 
 	return err
 }
 
-func (c *FakeResourceQuotas) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeResourceQuotas) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(resourcequotasResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.ResourceQuotaList{})
@@ -87,7 +88,7 @@ func (c *FakeResourceQuotas) Get(name string, options v1.GetOptions) (result *ap
 	return obj.(*api.ResourceQuota), err
 }
 
-func (c *FakeResourceQuotas) List(opts api.ListOptions) (result *api.ResourceQuotaList, err error) {
+func (c *FakeResourceQuotas) List(opts v1.ListOptions) (result *api.ResourceQuotaList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(resourcequotasResource, c.ns, opts), &api.ResourceQuotaList{})
 
@@ -109,14 +110,14 @@ func (c *FakeResourceQuotas) List(opts api.ListOptions) (result *api.ResourceQuo
 }
 
 // Watch returns a watch.Interface that watches the requested resourceQuotas.
-func (c *FakeResourceQuotas) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeResourceQuotas) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(resourcequotasResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched resourceQuota.
-func (c *FakeResourceQuotas) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.ResourceQuota, err error) {
+func (c *FakeResourceQuotas) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ResourceQuota, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(resourcequotasResource, c.ns, name, data, subresources...), &api.ResourceQuota{})
 

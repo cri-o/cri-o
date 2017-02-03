@@ -23,15 +23,15 @@ import (
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 	storeerr "k8s.io/kubernetes/pkg/api/errors/storage"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/genericapiserver/api/rest"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/storage"
@@ -53,9 +53,9 @@ func newStorage(t *testing.T) (*REST, *BindingREST, *StatusREST, *etcdtesting.Et
 func validNewPod() *api.Pod {
 	grace := int64(30)
 	return &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: api.PodSpec{
 			RestartPolicy: api.RestartPolicyAlways,
@@ -68,11 +68,13 @@ func validNewPod() *api.Pod {
 					Image:           "test",
 					ImagePullPolicy: api.PullAlways,
 
-					TerminationMessagePath: api.TerminationMessagePathDefault,
-					SecurityContext:        securitycontext.ValidInternalSecurityContextWithContainerDefaults(),
+					TerminationMessagePath:   api.TerminationMessagePathDefault,
+					TerminationMessagePolicy: api.TerminationMessageReadFile,
+					SecurityContext:          securitycontext.ValidInternalSecurityContextWithContainerDefaults(),
 				},
 			},
 			SecurityContext: &api.PodSecurityContext{},
+			SchedulerName:   api.DefaultSchedulerName,
 		},
 	}
 }
@@ -91,7 +93,7 @@ func TestCreate(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 	pod := validNewPod()
-	pod.ObjectMeta = api.ObjectMeta{}
+	pod.ObjectMeta = metav1.ObjectMeta{}
 	// Make an invalid pod with an an incorrect label.
 	invalidPod := validNewPod()
 	invalidPod.Namespace = test.TestNamespace()
@@ -166,7 +168,7 @@ func newFailDeleteStorage(t *testing.T, called *bool) (*REST, *etcdtesting.EtcdT
 
 func TestIgnoreDeleteNotFound(t *testing.T) {
 	pod := validNewPod()
-	testContext := genericapirequest.WithNamespace(genericapirequest.NewContext(), api.NamespaceDefault)
+	testContext := genericapirequest.WithNamespace(genericapirequest.NewContext(), metav1.NamespaceDefault)
 	called := false
 	registry, server := newFailDeleteStorage(t, &called)
 	defer server.Terminate(t)
@@ -187,7 +189,7 @@ func TestIgnoreDeleteNotFound(t *testing.T) {
 	// delete object with grace period 0, storage will return NotFound, but the
 	// registry shouldn't get any error since we ignore the NotFound error.
 	zero := int64(0)
-	opt := &api.DeleteOptions{GracePeriodSeconds: &zero}
+	opt := &metav1.DeleteOptions{GracePeriodSeconds: &zero}
 	obj, err := registry.Delete(testContext, pod.Name, opt)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -243,7 +245,7 @@ func TestResourceLocation(t *testing.T) {
 	}{
 		{
 			pod: api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Status:     api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo",
@@ -251,7 +253,7 @@ func TestResourceLocation(t *testing.T) {
 		},
 		{
 			pod: api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Status:     api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo:12345",
@@ -259,7 +261,7 @@ func TestResourceLocation(t *testing.T) {
 		},
 		{
 			pod: api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{Name: "ctr"},
@@ -272,7 +274,7 @@ func TestResourceLocation(t *testing.T) {
 		},
 		{
 			pod: api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{Name: "ctr", Ports: []api.ContainerPort{{ContainerPort: 9376}}},
@@ -285,7 +287,7 @@ func TestResourceLocation(t *testing.T) {
 		},
 		{
 			pod: api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{Name: "ctr", Ports: []api.ContainerPort{{ContainerPort: 9376}}},
@@ -298,7 +300,7 @@ func TestResourceLocation(t *testing.T) {
 		},
 		{
 			pod: api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{Name: "ctr1"},
@@ -312,7 +314,7 @@ func TestResourceLocation(t *testing.T) {
 		},
 		{
 			pod: api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{Name: "ctr1", Ports: []api.ContainerPort{{ContainerPort: 9376}}},
@@ -405,7 +407,7 @@ func TestEtcdCreate(t *testing.T) {
 
 	// Suddenly, a wild scheduler appears:
 	_, err = bindingStorage.Create(ctx, &api.Binding{
-		ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceDefault, Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo"},
 		Target:     api.ObjectReference{Name: "machine"},
 	})
 	if err != nil {
@@ -431,7 +433,7 @@ func TestEtcdCreateBindingNoPod(t *testing.T) {
 	// - Schedule (scheduler)
 	// - Delete (apiserver)
 	_, err := bindingStorage.Create(ctx, &api.Binding{
-		ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceDefault, Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo"},
 		Target:     api.ObjectReference{Name: "machine"},
 	})
 	if err == nil {
@@ -475,8 +477,8 @@ func TestEtcdCreateWithContainersNotFound(t *testing.T) {
 
 	// Suddenly, a wild scheduler appears:
 	_, err = bindingStorage.Create(ctx, &api.Binding{
-		ObjectMeta: api.ObjectMeta{
-			Namespace:   api.NamespaceDefault,
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   metav1.NamespaceDefault,
 			Name:        "foo",
 			Annotations: map[string]string{"label1": "value1"},
 		},
@@ -510,8 +512,8 @@ func TestEtcdCreateWithConflict(t *testing.T) {
 
 	// Suddenly, a wild scheduler appears:
 	binding := api.Binding{
-		ObjectMeta: api.ObjectMeta{
-			Namespace:   api.NamespaceDefault,
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   metav1.NamespaceDefault,
 			Name:        "foo",
 			Annotations: map[string]string{"label1": "value1"},
 		},
@@ -540,7 +542,7 @@ func TestEtcdCreateWithExistingContainers(t *testing.T) {
 
 	// Suddenly, a wild scheduler appears:
 	_, err = bindingStorage.Create(ctx, &api.Binding{
-		ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceDefault, Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo"},
 		Target:     api.ObjectReference{Name: "machine"},
 	})
 	if err != nil {
@@ -562,28 +564,28 @@ func TestEtcdCreateBinding(t *testing.T) {
 	}{
 		"noName": {
 			binding: api.Binding{
-				ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceDefault, Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo"},
 				Target:     api.ObjectReference{},
 			},
 			errOK: func(err error) bool { return err != nil },
 		},
 		"badKind": {
 			binding: api.Binding{
-				ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceDefault, Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo"},
 				Target:     api.ObjectReference{Name: "machine1", Kind: "unknown"},
 			},
 			errOK: func(err error) bool { return err != nil },
 		},
 		"emptyKind": {
 			binding: api.Binding{
-				ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceDefault, Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo"},
 				Target:     api.ObjectReference{Name: "machine2"},
 			},
 			errOK: func(err error) bool { return err == nil },
 		},
 		"kindNode": {
 			binding: api.Binding{
-				ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceDefault, Name: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "foo"},
 				Target:     api.ObjectReference{Name: "machine3", Kind: "Node"},
 			},
 			errOK: func(err error) bool { return err == nil },
@@ -645,9 +647,9 @@ func TestEtcdUpdateScheduled(t *testing.T) {
 
 	key, _ := storage.KeyFunc(ctx, "foo")
 	err := storage.Storage.Create(ctx, key, &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: api.PodSpec{
 			NodeName: "machine",
@@ -659,6 +661,7 @@ func TestEtcdUpdateScheduled(t *testing.T) {
 				},
 			},
 			SecurityContext: &api.PodSecurityContext{},
+			SchedulerName:   api.DefaultSchedulerName,
 		},
 	}, nil, 1)
 	if err != nil {
@@ -667,7 +670,7 @@ func TestEtcdUpdateScheduled(t *testing.T) {
 
 	grace := int64(30)
 	podIn := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 			Labels: map[string]string{
 				"foo": "bar",
@@ -676,17 +679,19 @@ func TestEtcdUpdateScheduled(t *testing.T) {
 		Spec: api.PodSpec{
 			NodeName: "machine",
 			Containers: []api.Container{{
-				Name:                   "foobar",
-				Image:                  "foo:v2",
-				ImagePullPolicy:        api.PullIfNotPresent,
-				TerminationMessagePath: api.TerminationMessagePathDefault,
-				SecurityContext:        securitycontext.ValidInternalSecurityContextWithContainerDefaults(),
+				Name:                     "foobar",
+				Image:                    "foo:v2",
+				ImagePullPolicy:          api.PullIfNotPresent,
+				TerminationMessagePath:   api.TerminationMessagePathDefault,
+				TerminationMessagePolicy: api.TerminationMessageReadFile,
+				SecurityContext:          securitycontext.ValidInternalSecurityContextWithContainerDefaults(),
 			}},
 			RestartPolicy: api.RestartPolicyAlways,
 			DNSPolicy:     api.DNSClusterFirst,
 
 			TerminationGracePeriodSeconds: &grace,
 			SecurityContext:               &api.PodSecurityContext{},
+			SchedulerName:                 api.DefaultSchedulerName,
 		},
 	}
 	_, _, err = storage.Update(ctx, podIn.Name, rest.DefaultUpdatedObjectInfo(&podIn, api.Scheme))
@@ -714,9 +719,9 @@ func TestEtcdUpdateStatus(t *testing.T) {
 
 	key, _ := storage.KeyFunc(ctx, "foo")
 	podStart := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: api.PodSpec{
 			NodeName: "machine",
@@ -727,6 +732,7 @@ func TestEtcdUpdateStatus(t *testing.T) {
 				},
 			},
 			SecurityContext: &api.PodSecurityContext{},
+			SchedulerName:   api.DefaultSchedulerName,
 		},
 	}
 	err := storage.Storage.Create(ctx, key, &podStart, nil, 0)
@@ -735,7 +741,7 @@ func TestEtcdUpdateStatus(t *testing.T) {
 	}
 
 	podIn := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 			Labels: map[string]string{
 				"foo": "bar",
@@ -751,6 +757,7 @@ func TestEtcdUpdateStatus(t *testing.T) {
 				},
 			},
 			SecurityContext: &api.PodSecurityContext{},
+			SchedulerName:   api.DefaultSchedulerName,
 		},
 		Status: api.PodStatus{
 			Phase:   api.PodRunning,
@@ -767,6 +774,7 @@ func TestEtcdUpdateStatus(t *testing.T) {
 	expected.Spec.DNSPolicy = api.DNSClusterFirst
 	expected.Spec.Containers[0].ImagePullPolicy = api.PullIfNotPresent
 	expected.Spec.Containers[0].TerminationMessagePath = api.TerminationMessagePathDefault
+	expected.Spec.Containers[0].TerminationMessagePolicy = api.TerminationMessageReadFile
 	expected.Labels = podIn.Labels
 	expected.Status = podIn.Status
 

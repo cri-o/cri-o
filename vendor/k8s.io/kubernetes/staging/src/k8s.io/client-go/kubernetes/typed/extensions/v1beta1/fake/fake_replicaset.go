@@ -20,8 +20,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	testing "k8s.io/client-go/testing"
@@ -72,7 +72,7 @@ func (c *FakeReplicaSets) Delete(name string, options *v1.DeleteOptions) error {
 	return err
 }
 
-func (c *FakeReplicaSets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeReplicaSets) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(replicasetsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.ReplicaSetList{})
@@ -89,7 +89,7 @@ func (c *FakeReplicaSets) Get(name string, options meta_v1.GetOptions) (result *
 	return obj.(*v1beta1.ReplicaSet), err
 }
 
-func (c *FakeReplicaSets) List(opts v1.ListOptions) (result *v1beta1.ReplicaSetList, err error) {
+func (c *FakeReplicaSets) List(opts meta_v1.ListOptions) (result *v1beta1.ReplicaSetList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(replicasetsResource, c.ns, opts), &v1beta1.ReplicaSetList{})
 
@@ -111,14 +111,14 @@ func (c *FakeReplicaSets) List(opts v1.ListOptions) (result *v1beta1.ReplicaSetL
 }
 
 // Watch returns a watch.Interface that watches the requested replicaSets.
-func (c *FakeReplicaSets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeReplicaSets) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(replicasetsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched replicaSet.
-func (c *FakeReplicaSets) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1beta1.ReplicaSet, err error) {
+func (c *FakeReplicaSets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ReplicaSet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(replicasetsResource, c.ns, name, data, subresources...), &v1beta1.ReplicaSet{})
 
