@@ -3,6 +3,9 @@
         "github.com/Sirupsen/logrus": {
             "branch": "master"
         },
+        "github.com/containers/image": {
+            "branch": "master"
+        },
         "github.com/docker/distribution": {
             "branch": "master"
         },
