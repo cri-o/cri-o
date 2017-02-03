@@ -13,8 +13,11 @@ ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_OCID ?= ${ETCDIR}/ocid
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
-GOBINDIR := $(word 1,$(subst :, ,$(GOPATH)))
-PATH := $(GOBINDIR)/bin:$(PATH)
+SYSTEM_GOPATH := ${GOPATH}
+OUTDIR ?= _output
+GOPATH := $(abspath $(OUTDIR))$(if $(GOPATH),:$(GOPATH))
+GOBIN := $(OUTDIR)/bin
+PATH := $(GOBIN):$(PATH)
 
 all: binaries ocid.conf docs
 
@@ -30,14 +33,15 @@ help:
 	@echo " * 'lint' - Execute the source code linter"
 	@echo " * 'gofmt' - Verify the source code gofmt"
 
-.PHONY: check-gopath
+$(OUTDIR): $(OUTDIR)/.ok
 
-check-gopath:
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+$(OUTDIR)/.ok:
+	mkdir -p "$(dir $(OUTDIR)/src/$(PROJECT))"
+	ln -s ../../../.. "$(OUTDIR)/src/$(PROJECT)"
+	mkdir -p $(GOBIN)
+	touch $@
 
-lint: check-gopath
+lint: $(OUTDIR)
 	@echo "checking lint"
 	@./.tool/lint
 
@@ -56,18 +60,20 @@ bin2img:
 copyimg:
 	$(MAKE) -C test/$@ BUILDTAGS="$(BUILDTAGS)"
 
-checkseccomp: check-gopath
-	$(MAKE) -C test/$@
+checkseccomp:
+	$(GO) test \
+		-tags "$(BUILDTAGS)" \
+		$(PROJECT)/test/bin2img
 
-ocid: check-gopath
+ocid: $(OUTDIR)
 	$(GO) install \
 		-tags "$(BUILDTAGS)" \
 		$(PROJECT)/cmd/ocid
 
-ocic: check-gopath
+ocic: $(OUTDIR)
 	$(GO) install $(PROJECT)/cmd/ocic
 
-kpod: check-gopath
+kpod: $(OUTDIR)
 	$(GO) install $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
@@ -101,21 +107,21 @@ binaries: ocid ocic kpod conmon pause bin2img copyimg checkseccomp
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
-docs/%.1: docs/%.1.md check-gopath
+docs/%.1: docs/%.1.md $(OUTDIR)
 	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs/%.5: docs/%.5.md check-gopath
+docs/%.5: docs/%.5.md $(OUTDIR)
 	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs/%.8: docs/%.8.md check-gopath
+docs/%.8: docs/%.8.md $(OUTDIR)
 	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES)
 
-install: check-gopath
-	install -D -m 755 $(GOBINDIR)/bin/ocid $(BINDIR)/ocid
-	install -D -m 755 $(GOBINDIR)/bin/ocic $(BINDIR)/ocic
-	install -D -m 755 $(GOBINDIR)/bin/kpod $(BINDIR)/kpod
+install: $(OUTDIR)
+	install -D -m 755 $(GOBIN)/ocid $(BINDIR)/ocid
+	install -D -m 755 $(GOBIN)/ocic $(BINDIR)/ocic
+	install -D -m 755 $(GOBIN)/kpod $(BINDIR)/kpod
 	install -D -m 755 conmon/conmon $(LIBEXECDIR)/ocid/conmon
 	install -D -m 755 pause/pause $(LIBEXECDIR)/ocid/pause
 	install -d -m 755 $(MANDIR)/man1
@@ -153,7 +159,7 @@ uninstall:
 
 .PHONY: .gitvalidation
 # When this is running in travis, it will only check the travis commit range
-.gitvalidation: check-gopath
+.gitvalidation: $(OUTDIR)
 ifeq ($(TRAVIS),true)
 	git-validation -q -run DCO,short-subject
 else
@@ -165,14 +171,14 @@ endif
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 .install.gitvalidation:
-	go get -u github.com/vbatts/git-validation
+	GOPATH=${SYSTEM_GOPATH} go get -u github.com/vbatts/git-validation
 
 .install.gometalinter:
-	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install
+	GOPATH=${SYSTEM_GOPATH} go get -u github.com/alecthomas/gometalinter
+	GOPATH=${SYSTEM_GOPATH} gometalinter --install
 
 .install.md2man:
-	go get -u github.com/cpuguy83/go-md2man
+	GOPATH=${SYSTEM_GOPATH} go get -u github.com/cpuguy83/go-md2man
 
 .PHONY: \
 	bin2img \

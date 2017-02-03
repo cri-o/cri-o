@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -not -iwholename '*vendor*'); do
-	${GOPATH}/bin/gometalinter \
+	gometalinter \
 		 --exclude='error return value not checked.*(Close|Log|Print).*\(errcheck\)$' \
 		 --exclude='.*_test\.go:.*error return value not checked.*\(errcheck\)$' \
 		 --exclude='duplicate of.*_test.go.*\(dupl\)$' \

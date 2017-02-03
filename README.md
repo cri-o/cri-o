@@ -38,33 +38,74 @@ It is currently in active development in the Kubernetes community through the [d
 ## Getting started
 
 ### Prerequisites
+
 `runc` version 1.0.0.rc1 or greater is expected to be installed on the system. It is picked up as the default runtime by ocid.
+
+### Build Dependencies
+
+**Required**
+
+Fedora, CentOS, RHEL, and related distributions:
+
+```bash
+yum install -y \
+  runc \
+  btrfs-progs-devel \
+  device-mapper-devel \
+  glib2-devel \
+  glibc-devel \
+  gpgme-devel \
+  libassuan-devel \
+  libgpg-error-devel
+```
+
+Debian, Ubuntu, and related distributions:
+
+```bash
+apt install -y \
+  runc \
+  btrfs-tools \
+  libassuan-dev \
+  libdevmapper-dev \
+  libglib2.0-dev \
+  libc6-dev \
+  libgpgme11-dev \
+  libgpg-error-dev
+```
+
+If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough, or else build your own.
+
+**Optional**
+
+Fedora, CentOS, RHEL, and related distributions:
+
+```bash
+yum install -y \
+  libseccomp-devel \
+  libapparmor
+```
+
+Debian, Ubuntu, and related distributions:
+
+```bash
+apt install -y \
+  libseccomp-dev \
+  libapparmor-dev
+```
 
 ### Build
 
-`btrfs-progs-devel`, `device-mapper-devel`, `glib2-devel`, `glibc-devel`, `gpgme-devel`, `libassuan-devel`, `libgpg-error-devel`, and `pkg-config` packages on CentOS/Fedora or `btrfs-tools`, `libassuan-dev`, `libc6-dev`, `libdevmapper-dev`, `libglib2.0-dev`, `libgpg-error-dev`, `libgpgme11-dev`, and `pkg-config` on Ubuntu or equivalent is required.
-In order to enable seccomp support you will need to install development files for `libseccomp` on your platform.
-> e.g. `libseccomp-devel` for CentOS/Fedora, or `libseccomp-dev` for Ubuntu
-In order to enable apparmor support you will need to install development files for `libapparmor` on your platform.
-> e.g. `libapparmor-dev` for Ubuntu
-
 ```bash
-$ GOPATH=/path/to/gopath
-$ mkdir $GOPATH
-$ go get -d github.com/kubernetes-incubator/cri-o
-$ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
-$ make install.tools
-$ make
-$ sudo make install
-```
-Otherwise, if you do not want to build `cri-o` with seccomp support you can add `BUILDTAGS=""` when running make.
-
-```bash
-# create a 'github.com/kubernetes-incubator' in your $GOPATH/src
-cd github.com/kubernetes-incubator
-git clone https://github.com/kubernetes-incubator/cri-o
+git clone https://github.com/kubernetes-incubator/cri-o # or your fork
 cd cri-o
+make install.tools
+make
+sudo make install
+```
 
+To avoid building `cri-o` with seccomp support, add `BUILDTAGS=""` when running `make` instead:
+
+```bash
 make BUILDTAGS=""
 sudo make install
 ```
