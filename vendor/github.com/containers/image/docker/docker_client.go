@@ -37,23 +37,33 @@ const (
 	manifestURL   = "%s/manifests/%s"
 	blobsURL      = "%s/blobs/%s"
 	blobUploadURL = "%s/blobs/uploads/"
+
+	minimumTokenLifetimeSeconds = 60
 )
 
 // ErrV1NotSupported is returned when we're trying to talk to a
 // docker V1 registry.
 var ErrV1NotSupported = errors.New("can't talk to a V1 docker registry")
 
+type bearerToken struct {
+	Token     string    `json:"token"`
+	ExpiresIn int       `json:"expires_in"`
+	IssuedAt  time.Time `json:"issued_at"`
+}
+
 // dockerClient is configuration for dealing with a single Docker registry.
 type dockerClient struct {
-	ctx           *types.SystemContext
-	registry      string
-	username      string
-	password      string
-	scheme        string // Cache of a value returned by a successful ping() if not empty
-	client        *http.Client
-	signatureBase signatureStorageBase
-	challenges    []challenge
-	scope         authScope
+	ctx             *types.SystemContext
+	registry        string
+	username        string
+	password        string
+	scheme          string // Cache of a value returned by a successful ping() if not empty
+	client          *http.Client
+	signatureBase   signatureStorageBase
+	challenges      []challenge
+	scope           authScope
+	token           *bearerToken
+	tokenExpiration time.Time
 }
 
 type authScope struct {
@@ -262,26 +272,30 @@ func (c *dockerClient) setupRequestAuth(req *http.Request) error {
 		req.SetBasicAuth(c.username, c.password)
 		return nil
 	case "bearer":
-		realm, ok := challenge.Parameters["realm"]
-		if !ok {
-			return errors.Errorf("missing realm in bearer auth challenge")
+		if c.token == nil || time.Now().After(c.tokenExpiration) {
+			realm, ok := challenge.Parameters["realm"]
+			if !ok {
+				return errors.Errorf("missing realm in bearer auth challenge")
+			}
+			service, _ := challenge.Parameters["service"] // Will be "" if not present
+			scope := fmt.Sprintf("repository:%s:%s", c.scope.remoteName, c.scope.actions)
+			token, err := c.getBearerToken(realm, service, scope)
+			if err != nil {
+				return err
+			}
+			c.token = token
+			c.tokenExpiration = token.IssuedAt.Add(time.Duration(token.ExpiresIn) * time.Second)
 		}
-		service, _ := challenge.Parameters["service"] // Will be "" if not present
-		scope := fmt.Sprintf("repository:%s:%s", c.scope.remoteName, c.scope.actions)
-		token, err := c.getBearerToken(realm, service, scope)
-		if err != nil {
-			return err
-		}
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token.Token))
 		return nil
 	}
 	return errors.Errorf("no handler for %s authentication", challenge.Scheme)
 }
 
-func (c *dockerClient) getBearerToken(realm, service, scope string) (string, error) {
+func (c *dockerClient) getBearerToken(realm, service, scope string) (*bearerToken, error) {
 	authReq, err := http.NewRequest("GET", realm, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	getParams := authReq.URL.Query()
 	if service != "" {
@@ -300,35 +314,33 @@ func (c *dockerClient) getBearerToken(realm, service, scope string) (string, err
 	client := &http.Client{Transport: tr}
 	res, err := client.Do(authReq)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusUnauthorized:
-		return "", errors.Errorf("unable to retrieve auth token: 401 unauthorized")
+		return nil, errors.Errorf("unable to retrieve auth token: 401 unauthorized")
 	case http.StatusOK:
 		break
 	default:
-		return "", errors.Errorf("unexpected http code: %d, URL: %s", res.StatusCode, authReq.URL)
+		return nil, errors.Errorf("unexpected http code: %d, URL: %s", res.StatusCode, authReq.URL)
 	}
 	tokenBlob, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	tokenStruct := struct {
-		Token string `json:"token"`
-	}{}
-	if err := json.Unmarshal(tokenBlob, &tokenStruct); err != nil {
-		return "", err
+	var token bearerToken
+	if err := json.Unmarshal(tokenBlob, &token); err != nil {
+		return nil, err
 	}
-	// TODO(runcom): reuse tokens?
-	//hostAuthTokens, ok = rb.hostsV2AuthTokens[req.URL.Host]
-	//if !ok {
-	//hostAuthTokens = make(map[string]string)
-	//rb.hostsV2AuthTokens[req.URL.Host] = hostAuthTokens
-	//}
-	//hostAuthTokens[repo] = tokenStruct.Token
-	return tokenStruct.Token, nil
+	if token.ExpiresIn < minimumTokenLifetimeSeconds {
+		token.ExpiresIn = minimumTokenLifetimeSeconds
+		logrus.Debugf("Increasing token expiration to: %d seconds", token.ExpiresIn)
+	}
+	if token.IssuedAt.IsZero() {
+		token.IssuedAt = time.Now().UTC()
+	}
+	return &token, nil
 }
 
 func getAuth(ctx *types.SystemContext, registry string) (string, string, error) {

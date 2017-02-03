@@ -1,5 +1,5 @@
 {
-    "memo": "3b6ae2941d9c2fcab5942f6708186355cd795d594c81cd1c28defb85aadb6a92",
+    "memo": "54df0475f8948f4d0f416a919b64659031d5da2b3ba1f87141eb855c832b952c",
     "projects": [
         {
             "name": "github.com/BurntSushi/toml",
@@ -48,7 +48,7 @@
         {
             "name": "github.com/containers/image",
             "branch": "master",
-            "revision": "b9c0864946ae611722007b9eb011b6b5868d1d6d",
+            "revision": "1c202c5d85d2ee531acb1e91740144410066d19e",
             "packages": [
                 "copy",
                 "signature",
