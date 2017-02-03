@@ -12,7 +12,7 @@ import (
 // ExecSync runs a command in a container synchronously.
 func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.ExecSyncResponse, error) {
 	logrus.Debugf("ExecSyncRequest %+v", req)
-	c, err := s.getContainerFromRequest(req)
+	c, err := s.getContainerFromRequest(req.ContainerId)
 	if err != nil {
 		return nil, err
 	}
@@ -26,19 +26,19 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.Exe
 		return nil, fmt.Errorf("container is not created or running")
 	}
 
-	cmd := req.GetCmd()
+	cmd := req.Cmd
 	if cmd == nil {
 		return nil, fmt.Errorf("exec command cannot be empty")
 	}
 
-	execResp, err := s.runtime.ExecSync(c, cmd, req.GetTimeout())
+	execResp, err := s.runtime.ExecSync(c, cmd, req.Timeout)
 	if err != nil {
 		return nil, err
 	}
 	resp := &pb.ExecSyncResponse{
 		Stdout:   execResp.Stdout,
 		Stderr:   execResp.Stderr,
-		ExitCode: &execResp.ExitCode,
+		ExitCode: execResp.ExitCode,
 	}
 
 	logrus.Debugf("ExecSyncResponse: %+v", resp)

@@ -14,7 +14,7 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (*pb
 	if reqFilter != nil {
 		filterImage := reqFilter.GetImage()
 		if filterImage != nil {
-			filter = filterImage.GetImage()
+			filter = filterImage.Image
 		}
 	}
 	results, err := s.images.ListImages(filter)
@@ -23,11 +23,18 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (*pb
 	}
 	response := pb.ListImagesResponse{}
 	for _, result := range results {
-		response.Images = append(response.Images, &pb.Image{
-			Id:       sPtr(result.ID),
-			RepoTags: result.Names,
-			Size_:    result.Size,
-		})
+		if result.Size != nil {
+			response.Images = append(response.Images, &pb.Image{
+				Id:       result.ID,
+				RepoTags: result.Names,
+				Size_:    *result.Size,
+			})
+		} else {
+			response.Images = append(response.Images, &pb.Image{
+				Id:       result.ID,
+				RepoTags: result.Names,
+			})
+		}
 	}
 	logrus.Debugf("ListImagesResponse: %+v", response)
 	return &response, nil

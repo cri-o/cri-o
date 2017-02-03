@@ -12,7 +12,7 @@ import (
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
 	logrus.Debugf("StartContainerRequest %+v", req)
 	s.Update()
-	c, err := s.getContainerFromRequest(req)
+	c, err := s.getContainerFromRequest(req.ContainerId)
 	if err != nil {
 		return nil, err
 	}

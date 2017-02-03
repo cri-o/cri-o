@@ -319,7 +319,7 @@ func CreateContainer(client pb.RuntimeServiceClient, opts createOptions) error {
 
 	// Override the name by the one specified through CLI
 	if opts.name != "" {
-		config.Metadata.Name = &opts.name
+		config.Metadata.Name = opts.name
 	}
 
 	for k, v := range opts.labels {
@@ -327,7 +327,7 @@ func CreateContainer(client pb.RuntimeServiceClient, opts createOptions) error {
 	}
 
 	r, err := client.CreateContainer(context.Background(), &pb.CreateContainerRequest{
-		PodSandboxId: &opts.podID,
+		PodSandboxId: opts.podID,
 		Config:       config,
 		// TODO(runcom): this is missing PodSandboxConfig!!!
 		// we should/could find a way to retrieve it from the fs and set it here
@@ -335,7 +335,7 @@ func CreateContainer(client pb.RuntimeServiceClient, opts createOptions) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(*r.ContainerId)
+	fmt.Println(r.ContainerId)
 	return nil
 }
 
@@ -346,7 +346,7 @@ func StartContainer(client pb.RuntimeServiceClient, ID string) error {
 		return fmt.Errorf("ID cannot be empty")
 	}
 	_, err := client.StartContainer(context.Background(), &pb.StartContainerRequest{
-		ContainerId: &ID,
+		ContainerId: ID,
 	})
 	if err != nil {
 		return err
@@ -362,7 +362,7 @@ func StopContainer(client pb.RuntimeServiceClient, ID string) error {
 		return fmt.Errorf("ID cannot be empty")
 	}
 	_, err := client.StopContainer(context.Background(), &pb.StopContainerRequest{
-		ContainerId: &ID,
+		ContainerId: ID,
 	})
 	if err != nil {
 		return err
@@ -378,7 +378,7 @@ func RemoveContainer(client pb.RuntimeServiceClient, ID string) error {
 		return fmt.Errorf("ID cannot be empty")
 	}
 	_, err := client.RemoveContainer(context.Background(), &pb.RemoveContainerRequest{
-		ContainerId: &ID,
+		ContainerId: ID,
 	})
 	if err != nil {
 		return err
@@ -394,37 +394,26 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 		return fmt.Errorf("ID cannot be empty")
 	}
 	r, err := client.ContainerStatus(context.Background(), &pb.ContainerStatusRequest{
-		ContainerId: &ID})
+		ContainerId: ID})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("ID: %s\n", *r.Status.Id)
+	fmt.Printf("ID: %s\n", r.Status.Id)
 	if r.Status.Metadata != nil {
-		if r.Status.Metadata.Name != nil {
-			fmt.Printf("Name: %s\n", *r.Status.Metadata.Name)
+		if r.Status.Metadata.Name != "" {
+			fmt.Printf("Name: %s\n", r.Status.Metadata.Name)
 		}
-		if r.Status.Metadata.Attempt != nil {
-			fmt.Printf("Attempt: %v\n", *r.Status.Metadata.Attempt)
-		}
+		fmt.Printf("Attempt: %v\n", r.Status.Metadata.Attempt)
 	}
-	if r.Status.State != nil {
-		fmt.Printf("Status: %s\n", r.Status.State)
-	}
-	if r.Status.CreatedAt != nil {
-		ctm := time.Unix(0, *r.Status.CreatedAt)
-		fmt.Printf("Created: %v\n", ctm)
-	}
-	if r.Status.StartedAt != nil {
-		stm := time.Unix(0, *r.Status.StartedAt)
-		fmt.Printf("Started: %v\n", stm)
-	}
-	if r.Status.FinishedAt != nil {
-		ftm := time.Unix(0, *r.Status.FinishedAt)
-		fmt.Printf("Finished: %v\n", ftm)
-	}
-	if r.Status.ExitCode != nil {
-		fmt.Printf("Exit Code: %v\n", *r.Status.ExitCode)
-	}
+	// TODO(mzylowski): print it prettier
+	fmt.Printf("Status: %s\n", r.Status.State)
+	ctm := time.Unix(0, r.Status.CreatedAt)
+	fmt.Printf("Created: %v\n", ctm)
+	stm := time.Unix(0, r.Status.StartedAt)
+	fmt.Printf("Started: %v\n", stm)
+	ftm := time.Unix(0, r.Status.FinishedAt)
+	fmt.Printf("Finished: %v\n", ftm)
+	fmt.Printf("Exit Code: %v\n", r.Status.ExitCode)
 
 	return nil
 }
@@ -436,9 +425,9 @@ func ExecSync(client pb.RuntimeServiceClient, ID string, cmd []string, timeout i
 		return fmt.Errorf("ID cannot be empty")
 	}
 	r, err := client.ExecSync(context.Background(), &pb.ExecSyncRequest{
-		ContainerId: &ID,
+		ContainerId: ID,
 		Cmd:         cmd,
-		Timeout:     &timeout,
+		Timeout:     timeout,
 	})
 	if err != nil {
 		return err
@@ -447,7 +436,7 @@ func ExecSync(client pb.RuntimeServiceClient, ID string, cmd []string, timeout i
 	fmt.Println(string(r.Stdout))
 	fmt.Println("Stderr:")
 	fmt.Println(string(r.Stderr))
-	fmt.Printf("Exit code: %v\n", *r.ExitCode)
+	fmt.Printf("Exit code: %v\n", r.ExitCode)
 
 	return nil
 }
@@ -457,23 +446,24 @@ func ExecSync(client pb.RuntimeServiceClient, ID string, cmd []string, timeout i
 func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 	filter := &pb.ContainerFilter{}
 	if opts.id != "" {
-		filter.Id = &opts.id
+		filter.Id = opts.id
 	}
 	if opts.podID != "" {
-		filter.PodSandboxId = &opts.podID
+		filter.PodSandboxId = opts.podID
 	}
 	if opts.state != "" {
-		st := pb.ContainerState_CONTAINER_UNKNOWN
+		st := &pb.ContainerStateValue{}
+		st.State = pb.ContainerState_CONTAINER_UNKNOWN
 		switch opts.state {
 		case "created":
-			st = pb.ContainerState_CONTAINER_CREATED
-			filter.State = &st
+			st.State = pb.ContainerState_CONTAINER_CREATED
+			filter.State = st
 		case "running":
-			st = pb.ContainerState_CONTAINER_RUNNING
-			filter.State = &st
+			st.State = pb.ContainerState_CONTAINER_RUNNING
+			filter.State = st
 		case "stopped":
-			st = pb.ContainerState_CONTAINER_EXITED
-			filter.State = &st
+			st.State = pb.ContainerState_CONTAINER_EXITED
+			filter.State = st
 		default:
 			log.Fatalf("--state should be one of created, running or stopped")
 		}
@@ -489,29 +479,23 @@ func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 	}
 	for _, c := range r.GetContainers() {
 		if opts.quiet {
-			fmt.Println(*c.Id)
+			fmt.Println(c.Id)
 			continue
 		}
-		fmt.Printf("ID: %s\n", *c.Id)
-		fmt.Printf("Pod: %s\n", *c.PodSandboxId)
+		fmt.Printf("ID: %s\n", c.Id)
+		fmt.Printf("Pod: %s\n", c.PodSandboxId)
 		if c.Metadata != nil {
-			if c.Metadata.Name != nil {
-				fmt.Printf("Name: %s\n", *c.Metadata.Name)
+			if c.Metadata.Name != "" {
+				fmt.Printf("Name: %s\n", c.Metadata.Name)
 			}
-			if c.Metadata.Attempt != nil {
-				fmt.Printf("Attempt: %v\n", *c.Metadata.Attempt)
-			}
+			fmt.Printf("Attempt: %v\n", c.Metadata.Attempt)
 		}
-		if c.State != nil {
-			fmt.Printf("Status: %s\n", *c.State)
-		}
+		fmt.Printf("Status: %s\n", c.State)
 		if c.Image != nil {
-			fmt.Printf("Image: %s\n", c.Image.GetImage())
+			fmt.Printf("Image: %s\n", c.Image.Image)
 		}
-		if c.CreatedAt != nil {
-			ctm := time.Unix(0, *c.CreatedAt)
-			fmt.Printf("Created: %v\n", ctm)
-		}
+		ctm := time.Unix(0, c.CreatedAt)
+		fmt.Printf("Created: %v\n", ctm)
 		if c.Labels != nil {
 			fmt.Println("Labels:")
 			for _, k := range getSortedKeys(c.Labels) {

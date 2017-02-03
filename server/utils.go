@@ -13,18 +13,6 @@ const (
 	maxDNSSearches = 6
 )
 
-func int64Ptr(i int64) *int64 {
-	return &i
-}
-
-func int32Ptr(i int32) *int32 {
-	return &i
-}
-
-func sPtr(s string) *string {
-	return &s
-}
-
 func copyFile(src, dest string) error {
 	in, err := os.Open(src)
 	if err != nil {

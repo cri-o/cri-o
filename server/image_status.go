@@ -15,7 +15,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*
 	image := ""
 	img := req.GetImage()
 	if img != nil {
-		image = img.GetImage()
+		image = img.Image
 	}
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
@@ -29,9 +29,9 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*
 	}
 	resp := &pb.ImageStatusResponse{
 		Image: &pb.Image{
-			Id:       &status.ID,
+			Id:       status.ID,
 			RepoTags: status.Names,
-			Size_:    status.Size,
+			Size_:    *status.Size,
 		},
 	}
 	logrus.Debugf("ImageStatusResponse: %+v", resp)

@@ -21,9 +21,9 @@ func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.Versi
 	runtimeName := s.runtime.Name()
 
 	return &pb.VersionResponse{
-		Version:           &version,
-		RuntimeName:       &runtimeName,
-		RuntimeVersion:    &runtimeVersion,
-		RuntimeApiVersion: &rav,
+		Version:           version,
+		RuntimeName:       runtimeName,
+		RuntimeVersion:    runtimeVersion,
+		RuntimeApiVersion: rav,
 	}, nil
 }

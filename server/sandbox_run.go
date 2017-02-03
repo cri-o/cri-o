@@ -42,13 +42,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
 	var processLabel, mountLabel, netNsPath string
 	// process req.Name
-	name := req.GetConfig().GetMetadata().GetName()
+	name := req.GetConfig().GetMetadata().Name
 	if name == "" {
 		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
 	}
 
-	namespace := req.GetConfig().GetMetadata().GetNamespace()
-	attempt := req.GetConfig().GetMetadata().GetAttempt()
+	namespace := req.GetConfig().GetMetadata().Namespace
+	attempt := req.GetConfig().GetMetadata().Attempt
 
 	id, name, err := s.generatePodIDandName(name, namespace, attempt)
 	if err != nil {
@@ -81,8 +81,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		name, id,
 		s.config.PauseImage, "",
 		containerName,
-		req.GetConfig().GetMetadata().GetName(),
-		req.GetConfig().GetMetadata().GetUid(),
+		req.GetConfig().GetMetadata().Name,
+		req.GetConfig().GetMetadata().Uid,
 		namespace,
 		attempt,
 		nil)
@@ -118,33 +118,34 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// set hostname
-	hostname := req.GetConfig().GetHostname()
+	hostname := req.GetConfig().Hostname
 	if hostname != "" {
 		g.SetHostname(hostname)
 	}
 
 	// set log directory
-	logDir := req.GetConfig().GetLogDirectory()
+	logDir := req.GetConfig().LogDirectory
 	if logDir == "" {
 		logDir = filepath.Join(s.config.LogDir, id)
 	}
 
 	// set DNS options
-	dnsServers := req.GetConfig().GetDnsConfig().GetServers()
-	dnsSearches := req.GetConfig().GetDnsConfig().GetSearches()
-	dnsOptions := req.GetConfig().GetDnsConfig().GetOptions()
-	resolvPath := fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
-	err = parseDNSOptions(dnsServers, dnsSearches, dnsOptions, resolvPath)
-	if err != nil {
-		err1 := removeFile(resolvPath)
-		if err1 != nil {
-			err = err1
-			return nil, fmt.Errorf("%v; failed to remove %s: %v", err, resolvPath, err1)
+	if req.GetConfig().GetDnsConfig() != nil {
+		dnsServers := req.GetConfig().GetDnsConfig().Servers
+		dnsSearches := req.GetConfig().GetDnsConfig().Searches
+		dnsOptions := req.GetConfig().GetDnsConfig().Options
+		resolvPath := fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
+		err = parseDNSOptions(dnsServers, dnsSearches, dnsOptions, resolvPath)
+		if err != nil {
+			err1 := removeFile(resolvPath)
+			if err1 != nil {
+				err = err1
+				return nil, fmt.Errorf("%v; failed to remove %s: %v", err, resolvPath, err1)
+			}
+			return nil, err
 		}
-		return nil, err
+		g.AddBindMount(resolvPath, "/etc/resolv.conf", []string{"ro"})
 	}
-
-	g.AddBindMount(resolvPath, "/etc/resolv.conf", []string{"ro"})
 
 	// add metadata
 	metadata := req.GetConfig().GetMetadata()
@@ -168,7 +169,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace,
-	if !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() && !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostIpc() {
+	if !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid && !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
 		processLabel, mountLabel, err = getSELinuxLabels(nil)
 		if err != nil {
 			return nil, err
@@ -178,7 +179,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// create shm mount for the pod containers.
 	var shmPath string
-	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostIpc() {
+	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
 		shmPath = "/dev/shm"
 	} else {
 		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
@@ -260,7 +261,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// setup cgroup settings
-	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
+	cgroupParent := req.GetConfig().GetLinux().CgroupParent
 	if cgroupParent != "" {
 		if s.config.CgroupManager == "systemd" {
 			cgPath := sb.cgroupParent + ":" + "ocid" + ":" + id
@@ -273,7 +274,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		sb.cgroupParent = cgroupParent
 	}
 
-	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostNetwork()
+	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
 
 	// set up namespaces
 	if hostNetwork {
@@ -311,14 +312,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		netNsPath = sb.netNsPath()
 	}
 
-	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() {
+	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid {
 		err = g.RemoveLinuxNamespace("pid")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostIpc() {
+	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
 		err = g.RemoveLinuxNamespace("ipc")
 		if err != nil {
 			return nil, err
@@ -358,7 +359,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	resp = &pb.RunPodSandboxResponse{PodSandboxId: &id}
+	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
 	return resp, nil
 }
@@ -379,22 +380,22 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mountLabel string, err error) {
 	processLabel = ""
 	if selinuxOptions != nil {
-		user := selinuxOptions.GetUser()
+		user := selinuxOptions.User
 		if user == "" {
 			return "", "", fmt.Errorf("SELinuxOption.User is empty")
 		}
 
-		role := selinuxOptions.GetRole()
+		role := selinuxOptions.Role
 		if role == "" {
 			return "", "", fmt.Errorf("SELinuxOption.Role is empty")
 		}
 
-		t := selinuxOptions.GetType()
+		t := selinuxOptions.Type
 		if t == "" {
 			return "", "", fmt.Errorf("SELinuxOption.Type is empty")
 		}
 
-		level := selinuxOptions.GetLevel()
+		level := selinuxOptions.Level
 		if level == "" {
 			return "", "", fmt.Errorf("SELinuxOption.Level is empty")
 		}

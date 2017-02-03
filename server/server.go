@@ -97,7 +97,7 @@ func (s *Server) loadContainer(id string) error {
 	image, ok := m.Annotations["ocid/image"]
 	if ok {
 		img = &pb.ImageSpec{
-			Image: &image,
+			Image: image,
 		}
 	}
 

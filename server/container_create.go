@@ -29,7 +29,7 @@ const (
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
 	logrus.Debugf("CreateContainerRequest %+v", req)
 	s.Update()
-	sbID := req.GetPodSandboxId()
+	sbID := req.PodSandboxId
 	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
@@ -50,12 +50,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig is nil")
 	}
 
-	name := containerConfig.GetMetadata().GetName()
+	name := containerConfig.GetMetadata().Name
 	if name == "" {
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
 
-	attempt := containerConfig.GetMetadata().GetAttempt()
+	attempt := containerConfig.GetMetadata().Attempt
 	containerID, containerName, err := s.generateContainerIDandName(sb.name, name, attempt)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	resp := &pb.CreateContainerResponse{
-		ContainerId: &containerID,
+		ContainerId: containerID,
 	}
 
 	logrus.Debugf("CreateContainerResponse: %+v", resp)
@@ -108,14 +108,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
 
+	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
 
 	// creates a spec Generator with the default spec.
 	specgen := generate.New()
 
 	processArgs := []string{}
-	commands := containerConfig.GetCommand()
-	args := containerConfig.GetArgs()
+	commands := containerConfig.Command
+	args := containerConfig.Args
 	if commands == nil && args == nil {
 		processArgs = nil
 	}
@@ -126,7 +127,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		processArgs = append(processArgs, args...)
 	}
 
-	cwd := containerConfig.GetWorkingDir()
+	cwd := containerConfig.WorkingDir
 	if cwd == "" {
 		cwd = "/"
 	}
@@ -135,8 +136,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	envs := containerConfig.GetEnvs()
 	if envs != nil {
 		for _, item := range envs {
-			key := item.GetKey()
-			value := item.GetValue()
+			key := item.Key
+			value := item.Value
 			if key == "" {
 				continue
 			}
@@ -146,22 +147,22 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
-		dest := mount.GetContainerPath()
+		dest := mount.ContainerPath
 		if dest == "" {
 			return nil, fmt.Errorf("Mount.ContainerPath is empty")
 		}
 
-		src := mount.GetHostPath()
+		src := mount.HostPath
 		if src == "" {
 			return nil, fmt.Errorf("Mount.HostPath is empty")
 		}
 
 		options := []string{"rw"}
-		if mount.GetReadonly() {
+		if mount.Readonly {
 			options = []string{"ro"}
 		}
 
-		if mount.GetSelinuxRelabel() {
+		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
 			if err := label.Relabel(src, sb.mountLabel, true); err != nil && err != syscall.ENOTSUP {
 				return nil, fmt.Errorf("relabel failed %s: %v", src, err)
@@ -184,7 +185,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// set this container's apparmor profile if it is set by sandbox
 	if s.appArmorEnabled {
-		appArmorProfileName := s.getAppArmorProfileName(sb.annotations, metadata.GetName())
+		appArmorProfileName := s.getAppArmorProfileName(sb.annotations, metadata.Name)
 		if appArmorProfileName != "" {
 			// reload default apparmor profile if it is unloaded.
 			if s.appArmorProfile == apparmor.DefaultApparmorProfile {
@@ -196,46 +197,44 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetProcessApparmorProfile(appArmorProfileName)
 		}
 	}
+	if containerConfig.GetLinux().GetSecurityContext() != nil {
+		if containerConfig.GetLinux().GetSecurityContext().Privileged {
+			specgen.SetupPrivileged(true)
+		}
 
-	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
-		specgen.SetupPrivileged(true)
+		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
+			specgen.SetRootReadonly(true)
+		}
 	}
 
-	if containerConfig.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
-		specgen.SetRootReadonly(true)
-	}
-
-	logPath := containerConfig.GetLogPath()
-
-	if containerConfig.GetTty() {
-		specgen.SetProcessTerminal(true)
-	}
+	logPath := containerConfig.LogPath
+	specgen.SetProcessTerminal(containerConfig.Tty)
 
 	linux := containerConfig.GetLinux()
 	if linux != nil {
 		resources := linux.GetResources()
 		if resources != nil {
-			cpuPeriod := resources.GetCpuPeriod()
+			cpuPeriod := resources.CpuPeriod
 			if cpuPeriod != 0 {
 				specgen.SetLinuxResourcesCPUPeriod(uint64(cpuPeriod))
 			}
 
-			cpuQuota := resources.GetCpuQuota()
+			cpuQuota := resources.CpuQuota
 			if cpuQuota != 0 {
 				specgen.SetLinuxResourcesCPUQuota(uint64(cpuQuota))
 			}
 
-			cpuShares := resources.GetCpuShares()
+			cpuShares := resources.CpuShares
 			if cpuShares != 0 {
 				specgen.SetLinuxResourcesCPUShares(uint64(cpuShares))
 			}
 
-			memoryLimit := resources.GetMemoryLimitInBytes()
+			memoryLimit := resources.MemoryLimitInBytes
 			if memoryLimit != 0 {
 				specgen.SetLinuxResourcesMemoryLimit(uint64(memoryLimit))
 			}
 
-			oomScoreAdj := resources.GetOomScoreAdj()
+			oomScoreAdj := resources.OomScoreAdj
 			specgen.SetLinuxResourcesOOMScoreAdj(int(oomScoreAdj))
 		}
 
@@ -250,7 +249,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 		capabilities := linux.GetSecurityContext().GetCapabilities()
 		if capabilities != nil {
-			addCaps := capabilities.GetAddCapabilities()
+			addCaps := capabilities.AddCapabilities
 			if addCaps != nil {
 				for _, cap := range addCaps {
 					if err := specgen.AddProcessCapability(cap); err != nil {
@@ -259,7 +258,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 				}
 			}
 
-			dropCaps := capabilities.GetDropCapabilities()
+			dropCaps := capabilities.DropCapabilities
 			if dropCaps != nil {
 				for _, cap := range dropCaps {
 					if err := specgen.DropProcessCapability(cap); err != nil {
@@ -272,14 +271,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.SetProcessSelinuxLabel(sb.processLabel)
 		specgen.SetLinuxMountLabel(sb.mountLabel)
 
-		user := linux.GetSecurityContext().GetRunAsUser()
-		specgen.SetProcessUID(uint32(user))
-
-		specgen.SetProcessGID(uint32(user))
-
-		groups := linux.GetSecurityContext().GetSupplementalGroups()
-		for _, group := range groups {
-			specgen.AddProcessAdditionalGid(uint32(group))
+		if linux.GetSecurityContext() != nil {
+			user := linux.GetSecurityContext().GetRunAsUser()
+			specgen.SetProcessUID(uint32(user.Value))
+			specgen.SetProcessGID(uint32(user.Value))
+			groups := linux.GetSecurityContext().SupplementalGroups
+			for _, group := range groups {
+				specgen.AddProcessAdditionalGid(uint32(group))
+			}
 		}
 	}
 	// Join the namespace paths for the pod sandbox container.
@@ -308,7 +307,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image is nil")
 	}
 
-	image := imageSpec.GetImage()
+	image := imageSpec.Image
 	if image == "" {
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
 	}
@@ -321,7 +320,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.AddAnnotation("ocid/sandbox_name", sb.infraContainer.Name())
 	specgen.AddAnnotation("ocid/container_type", containerTypeContainer)
 	specgen.AddAnnotation("ocid/log_path", logPath)
-	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.GetTty()))
+	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.Tty))
 	specgen.AddAnnotation("ocid/image", image)
 
 	metadataJSON, err := json.Marshal(metadata)
@@ -346,8 +345,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	metaname := metadata.GetName()
-	attempt := metadata.GetAttempt()
+	metaname := metadata.Name
+	attempt := metadata.Attempt
 	containerInfo, err := s.storage.CreateContainer(s.imageContext,
 		sb.name, sb.id,
 		image, image,
@@ -385,7 +384,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.GetTty())
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty)
 	if err != nil {
 		return nil, err
 	}
