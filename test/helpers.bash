@@ -197,6 +197,7 @@ function stop_ocid() {
 function restart_ocid() {
 	if [ "$OCID_PID" != "" ]; then
 		kill "$OCID_PID" >/dev/null 2>&1
+		wait "$OCID_PID"
 		start_ocid
 	else
 		echo "you must start ocid first"
