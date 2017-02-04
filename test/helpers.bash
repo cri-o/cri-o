@@ -136,7 +136,7 @@ function start_ocid() {
 		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json config >$OCID_CONFIG
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
 
@@ -197,6 +197,7 @@ function stop_ocid() {
 function restart_ocid() {
 	if [ "$OCID_PID" != "" ]; then
 		kill "$OCID_PID" >/dev/null 2>&1
+		wait "$OCID_PID"
 		start_ocid
 	else
 		echo "you must start ocid first"
