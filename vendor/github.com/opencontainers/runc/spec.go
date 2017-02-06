@@ -9,9 +9,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/codegangsta/cli"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/urfave/cli"
 )
 
 var specCommand = cli.Command{
@@ -42,11 +42,16 @@ command in a new hello-world container named container1:
     tar -C rootfs -xf hello-world.tar
     runc spec
     sed -i 's;"sh";"/hello";' ` + specConfig + `
-    runc start container1
+    runc run container1
 
-In the start command above, "container1" is the name for the instance of the
+In the run command above, "container1" is the name for the instance of the
 container that you are starting. The name you provide for the container instance
 must be unique on your host.
+
+An alternative for generating a customized spec config is to use "oci-runtime-tool", the
+sub-command "oci-runtime-tool generate" has lots of options that can be used to do any
+customizations as you want, see [runtime-tools](https://github.com/opencontainers/runtime-tools)
+to get more information.
 
 When starting a container through runc, runc needs root privilege. If not
 already running as root, you can use sudo to give runc root privilege. For
@@ -59,7 +64,10 @@ container on your host.`,
 			Usage: "path to the root of the bundle directory",
 		},
 	},
-	Action: func(context *cli.Context) {
+	Action: func(context *cli.Context) error {
+		if err := checkArgs(context, 0, exactArgs); err != nil {
+			return err
+		}
 		spec := specs.Spec{
 			Version: specs.Version,
 			Platform: specs.Platform{
@@ -87,7 +95,7 @@ container on your host.`,
 					"CAP_KILL",
 					"CAP_NET_BIND_SERVICE",
 				},
-				Rlimits: []specs.Rlimit{
+				Rlimits: []specs.LinuxRlimit{
 					{
 						Type: "RLIMIT_NOFILE",
 						Hard: uint64(1024),
@@ -140,12 +148,14 @@ container on your host.`,
 					Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
 				},
 			},
-			Linux: specs.Linux{
+			Linux: &specs.Linux{
 				MaskedPaths: []string{
 					"/proc/kcore",
 					"/proc/latency_stats",
+					"/proc/timer_list",
 					"/proc/timer_stats",
 					"/proc/sched_debug",
+					"/sys/firmware",
 				},
 				ReadonlyPaths: []string{
 					"/proc/asound",
@@ -155,15 +165,15 @@ container on your host.`,
 					"/proc/sys",
 					"/proc/sysrq-trigger",
 				},
-				Resources: &specs.Resources{
-					Devices: []specs.DeviceCgroup{
+				Resources: &specs.LinuxResources{
+					Devices: []specs.LinuxDeviceCgroup{
 						{
 							Allow:  false,
 							Access: sPtr("rwm"),
 						},
 					},
 				},
-				Namespaces: []specs.Namespace{
+				Namespaces: []specs.LinuxNamespace{
 					{
 						Type: "pid",
 					},
@@ -196,30 +206,26 @@ container on your host.`,
 		bundle := context.String("bundle")
 		if bundle != "" {
 			if err := os.Chdir(bundle); err != nil {
-				fatal(err)
+				return err
 			}
 		}
 		if err := checkNoFile(specConfig); err != nil {
-			fatal(err)
+			return err
 		}
 		data, err := json.MarshalIndent(&spec, "", "\t")
 		if err != nil {
-			fatal(err)
+			return err
 		}
 		if err := ioutil.WriteFile(specConfig, data, 0666); err != nil {
-			fatal(err)
+			return err
 		}
+		return nil
 	},
 }
 
-func sPtr(s string) *string      { return &s }
-func rPtr(r rune) *rune          { return &r }
-func iPtr(i int64) *int64        { return &i }
-func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
-func fmPtr(i int64) *os.FileMode { fm := os.FileMode(i); return &fm }
+func sPtr(s string) *string { return &s }
 
 // loadSpec loads the specification from the provided path.
-// If the path is empty then the default path will be "config.json"
 func loadSpec(cPath string) (spec *specs.Spec, err error) {
 	cf, err := os.Open(cPath)
 	if err != nil {
@@ -233,17 +239,30 @@ func loadSpec(cPath string) (spec *specs.Spec, err error) {
 	if err = json.NewDecoder(cf).Decode(&spec); err != nil {
 		return nil, err
 	}
+	if err = validatePlatform(&spec.Platform); err != nil {
+		return nil, err
+	}
 	return spec, validateProcessSpec(&spec.Process)
 }
 
-func createLibContainerRlimit(rlimit specs.Rlimit) (configs.Rlimit, error) {
+func createLibContainerRlimit(rlimit specs.LinuxRlimit) (configs.Rlimit, error) {
 	rl, err := strToRlimit(rlimit.Type)
 	if err != nil {
 		return configs.Rlimit{}, err
 	}
 	return configs.Rlimit{
 		Type: rl,
-		Hard: uint64(rlimit.Hard),
-		Soft: uint64(rlimit.Soft),
+		Hard: rlimit.Hard,
+		Soft: rlimit.Soft,
 	}, nil
+}
+
+func validatePlatform(platform *specs.Platform) error {
+	if platform.OS != runtime.GOOS {
+		return fmt.Errorf("target os %s mismatch with current os %s", platform.OS, runtime.GOOS)
+	}
+	if platform.Arch != runtime.GOARCH {
+		return fmt.Errorf("target arch %s mismatch with current arch %s", platform.Arch, runtime.GOARCH)
+	}
+	return nil
 }

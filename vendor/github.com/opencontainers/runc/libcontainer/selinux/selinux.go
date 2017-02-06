@@ -16,7 +16,6 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/docker/docker/pkg/mount"
 	"github.com/opencontainers/runc/libcontainer/system"
 )
 
@@ -33,20 +32,106 @@ const (
 	stRdOnly         = 0x01
 )
 
+type selinuxState struct {
+	enabledSet   bool
+	enabled      bool
+	selinuxfsSet bool
+	selinuxfs    string
+	mcsList      map[string]bool
+	sync.Mutex
+}
+
 var (
-	assignRegex           = regexp.MustCompile(`^([^=]+)=(.*)$`)
-	mcsList               = make(map[string]bool)
-	mcsLock               sync.Mutex
-	selinuxfs             = "unknown"
-	selinuxEnabled        = false // Stores whether selinux is currently enabled
-	selinuxEnabledChecked = false // Stores whether selinux enablement has been checked or established yet
+	assignRegex = regexp.MustCompile(`^([^=]+)=(.*)$`)
+	state       = selinuxState{
+		mcsList: make(map[string]bool),
+	}
 )
 
 type SELinuxContext map[string]string
 
+func (s *selinuxState) setEnable(enabled bool) bool {
+	s.Lock()
+	defer s.Unlock()
+	s.enabledSet = true
+	s.enabled = enabled
+	return s.enabled
+}
+
+func (s *selinuxState) getEnabled() bool {
+	s.Lock()
+	enabled := s.enabled
+	enabledSet := s.enabledSet
+	s.Unlock()
+	if enabledSet {
+		return enabled
+	}
+
+	enabled = false
+	if fs := getSelinuxMountPoint(); fs != "" {
+		if con, _ := Getcon(); con != "kernel" {
+			enabled = true
+		}
+	}
+	return s.setEnable(enabled)
+}
+
 // SetDisabled disables selinux support for the package
 func SetDisabled() {
-	selinuxEnabled, selinuxEnabledChecked = false, true
+	state.setEnable(false)
+}
+
+func (s *selinuxState) setSELinuxfs(selinuxfs string) string {
+	s.Lock()
+	defer s.Unlock()
+	s.selinuxfsSet = true
+	s.selinuxfs = selinuxfs
+	return s.selinuxfs
+}
+
+func (s *selinuxState) getSELinuxfs() string {
+	s.Lock()
+	selinuxfs := s.selinuxfs
+	selinuxfsSet := s.selinuxfsSet
+	s.Unlock()
+	if selinuxfsSet {
+		return selinuxfs
+	}
+
+	selinuxfs = ""
+	f, err := os.Open("/proc/self/mountinfo")
+	if err != nil {
+		return selinuxfs
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		txt := scanner.Text()
+		// Safe as mountinfo encodes mountpoints with spaces as \040.
+		sepIdx := strings.Index(txt, " - ")
+		if sepIdx == -1 {
+			continue
+		}
+		if !strings.Contains(txt[sepIdx:], "selinuxfs") {
+			continue
+		}
+		fields := strings.Split(txt, " ")
+		if len(fields) < 5 {
+			continue
+		}
+		selinuxfs = fields[4]
+		break
+	}
+
+	if selinuxfs != "" {
+		var buf syscall.Statfs_t
+		syscall.Statfs(selinuxfs, &buf)
+		if (buf.Flags & stRdOnly) == 1 {
+			selinuxfs = ""
+		}
+	}
+	return s.setSELinuxfs(selinuxfs)
 }
 
 // getSelinuxMountPoint returns the path to the mountpoint of an selinuxfs
@@ -55,43 +140,12 @@ func SetDisabled() {
 // processes.  The existence of an selinuxfs mount is used to determine
 // whether selinux is currently enabled or not.
 func getSelinuxMountPoint() string {
-	if selinuxfs != "unknown" {
-		return selinuxfs
-	}
-	selinuxfs = ""
-
-	mounts, err := mount.GetMounts()
-	if err != nil {
-		return selinuxfs
-	}
-	for _, mount := range mounts {
-		if mount.Fstype == "selinuxfs" {
-			selinuxfs = mount.Mountpoint
-			break
-		}
-	}
-	if selinuxfs != "" {
-		var buf syscall.Statfs_t
-		syscall.Statfs(selinuxfs, &buf)
-		if (buf.Flags & stRdOnly) == 1 {
-			selinuxfs = ""
-		}
-	}
-	return selinuxfs
+	return state.getSELinuxfs()
 }
 
 // SelinuxEnabled returns whether selinux is currently enabled.
 func SelinuxEnabled() bool {
-	if selinuxEnabledChecked {
-		return selinuxEnabled
-	}
-	selinuxEnabledChecked = true
-	if fs := getSelinuxMountPoint(); fs != "" {
-		if con, _ := Getcon(); con != "kernel" {
-			selinuxEnabled = true
-		}
-	}
-	return selinuxEnabled
+	return state.getEnabled()
 }
 
 func readConfig(target string) (value string) {
@@ -269,19 +323,19 @@ func SelinuxGetEnforceMode() int {
 }
 
 func mcsAdd(mcs string) error {
-	mcsLock.Lock()
-	defer mcsLock.Unlock()
-	if mcsList[mcs] {
+	state.Lock()
+	defer state.Unlock()
+	if state.mcsList[mcs] {
 		return fmt.Errorf("MCS Label already exists")
 	}
-	mcsList[mcs] = true
+	state.mcsList[mcs] = true
 	return nil
 }
 
 func mcsDelete(mcs string) {
-	mcsLock.Lock()
-	mcsList[mcs] = false
-	mcsLock.Unlock()
+	state.Lock()
+	defer state.Unlock()
+	state.mcsList[mcs] = false
 }
 
 func IntToMcs(id int, catRange uint32) string {
@@ -297,7 +351,7 @@ func IntToMcs(id int, catRange uint32) string {
 
 	for ORD > TIER {
 		ORD = ORD - TIER
-		TIER -= 1
+		TIER--
 	}
 	TIER = SETSIZE - TIER
 	ORD = ORD + TIER
@@ -320,9 +374,7 @@ func uniqMcs(catRange uint32) string {
 			continue
 		} else {
 			if c1 > c2 {
-				t := c1
-				c1 = c2
-				c2 = t
+				c1, c2 = c2, c1
 			}
 		}
 		mcs = fmt.Sprintf("s0:c%d,c%d", c1, c2)
@@ -339,6 +391,12 @@ func FreeLxcContexts(scon string) {
 		con := strings.SplitN(scon, ":", 4)
 		mcsDelete(con[3])
 	}
+}
+
+var roFileLabel string
+
+func GetROFileLabel() (fileLabel string) {
+	return roFileLabel
 }
 
 func GetLxcContexts() (processLabel string, fileLabel string) {
@@ -385,6 +443,9 @@ func GetLxcContexts() (processLabel string, fileLabel string) {
 			if key == "file" {
 				fileLabel = strings.Trim(val, "\"")
 			}
+			if key == "ro_file" {
+				roFileLabel = strings.Trim(val, "\"")
+			}
 		}
 	}
 
@@ -392,6 +453,9 @@ func GetLxcContexts() (processLabel string, fileLabel string) {
 		return "", ""
 	}
 
+	if roFileLabel == "" {
+		roFileLabel = fileLabel
+	}
 exit:
 	//	mcs := IntToMcs(os.Getpid(), 1024)
 	mcs := uniqMcs(1024)
@@ -432,13 +496,13 @@ func badPrefix(fpath string) error {
 
 	for _, prefix := range badprefixes {
 		if fpath == prefix || strings.HasPrefix(fpath, fmt.Sprintf("%s/", prefix)) {
-			return fmt.Errorf("Relabeling content in %s is not allowed.", prefix)
+			return fmt.Errorf("relabeling content in %s is not allowed", prefix)
 		}
 	}
 	return nil
 }
 
-// Change the fpath file object to the SELinux label scon.
+// Chcon changes the fpath file object to the SELinux label scon.
 // If the fpath is a directory and recurse is true Chcon will walk the
 // directory tree setting the label
 func Chcon(fpath string, scon string, recurse bool) error {
@@ -472,14 +536,14 @@ func DupSecOpt(src string) []string {
 		con["level"] == "" {
 		return nil
 	}
-	return []string{"label:user:" + con["user"],
-		"label:role:" + con["role"],
-		"label:type:" + con["type"],
-		"label:level:" + con["level"]}
+	return []string{"user:" + con["user"],
+		"role:" + con["role"],
+		"type:" + con["type"],
+		"level:" + con["level"]}
 }
 
 // DisableSecOpt returns a security opt that can be used to disabling SELinux
 // labeling support for future container processes
 func DisableSecOpt() []string {
-	return []string{"label:disable"}
+	return []string{"disable"}
 }

@@ -7,11 +7,11 @@ import (
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/specconv"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/urfave/cli"
 )
 
 var restoreCommand = cli.Command{
@@ -53,7 +53,7 @@ using the runc checkpoint command.`,
 		cli.StringFlag{
 			Name:  "manage-cgroups-mode",
 			Value: "",
-			Usage: "cgroups mode: 'soft' (default), 'full' and 'strict'.",
+			Usage: "cgroups mode: 'soft' (default), 'full' and 'strict'",
 		},
 		cli.StringFlag{
 			Name:  "bundle, b",
@@ -77,12 +77,19 @@ using the runc checkpoint command.`,
 			Name:  "no-pivot",
 			Usage: "do not use pivot root to jail process inside rootfs.  This should be used whenever the rootfs is on top of a ramdisk",
 		},
+		cli.StringSliceFlag{
+			Name:  "empty-ns",
+			Usage: "create a namespace, but don't restore its properies",
+		},
 	},
-	Action: func(context *cli.Context) {
+	Action: func(context *cli.Context) error {
+		if err := checkArgs(context, 1, exactArgs); err != nil {
+			return err
+		}
 		imagePath := context.String("image-path")
 		id := context.Args().First()
 		if id == "" {
-			fatal(errEmptyID)
+			return errEmptyID
 		}
 		if imagePath == "" {
 			imagePath = getDefaultImagePath(context)
@@ -90,12 +97,12 @@ using the runc checkpoint command.`,
 		bundle := context.String("bundle")
 		if bundle != "" {
 			if err := os.Chdir(bundle); err != nil {
-				fatal(err)
+				return err
 			}
 		}
 		spec, err := loadSpec(specConfig)
 		if err != nil {
-			fatal(err)
+			return err
 		}
 		config, err := specconv.CreateLibcontainerConfig(&specconv.CreateOpts{
 			CgroupName:       id,
@@ -104,19 +111,20 @@ using the runc checkpoint command.`,
 			Spec:             spec,
 		})
 		if err != nil {
-			fatal(err)
+			return err
 		}
 		status, err := restoreContainer(context, spec, config, imagePath)
-		if err != nil {
-			fatal(err)
+		if err == nil {
+			os.Exit(status)
 		}
-		os.Exit(status)
+		return err
 	},
 }
 
-func restoreContainer(context *cli.Context, spec *specs.Spec, config *configs.Config, imagePath string) (code int, err error) {
+func restoreContainer(context *cli.Context, spec *specs.Spec, config *configs.Config, imagePath string) (int, error) {
 	var (
 		rootuid = 0
+		rootgid = 0
 		id      = context.Args().First()
 	)
 	factory, err := loadFactory(context)
@@ -142,6 +150,10 @@ func restoreContainer(context *cli.Context, spec *specs.Spec, config *configs.Co
 
 	setManageCgroupsMode(context, options)
 
+	if err = setEmptyNsMask(context, options); err != nil {
+		return -1, err
+	}
+
 	// ensure that the container is always removed if we were the process
 	// that created it.
 	detach := context.Bool("detach")
@@ -149,29 +161,30 @@ func restoreContainer(context *cli.Context, spec *specs.Spec, config *configs.Co
 		defer destroy(container)
 	}
 	process := &libcontainer.Process{}
-	tty, err := setupIO(process, rootuid, "", false, detach)
+	tty, err := setupIO(process, rootuid, rootgid, false, detach)
 	if err != nil {
 		return -1, err
 	}
-	defer tty.Close()
-	handler := newSignalHandler(tty, !context.Bool("no-subreaper"))
+	handler := newSignalHandler(!context.Bool("no-subreaper"))
 	if err := container.Restore(process, options); err != nil {
 		return -1, err
 	}
+	// We don't need to do a tty.recvtty because config.Terminal is always false.
+	defer tty.Close()
 	if err := tty.ClosePostStart(); err != nil {
 		return -1, err
 	}
 	if pidFile := context.String("pid-file"); pidFile != "" {
 		if err := createPidFile(pidFile, process); err != nil {
-			process.Signal(syscall.SIGKILL)
-			process.Wait()
+			_ = process.Signal(syscall.SIGKILL)
+			_, _ = process.Wait()
 			return -1, err
 		}
 	}
 	if detach {
 		return 0, nil
 	}
-	return handler.forward(process)
+	return handler.forward(process, tty)
 }
 
 func criuOptions(context *cli.Context) *libcontainer.CriuOpts {
