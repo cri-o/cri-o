@@ -35,12 +35,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/client-go/util/clock"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/pkg/controller/garbagecollector/metaonly"
-	"k8s.io/kubernetes/pkg/util/clock"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 )
 
@@ -213,7 +212,7 @@ func referencesDiffs(old []metav1.OwnerReference, new []metav1.OwnerReference) (
 	return added, removed
 }
 
-func shouldOrphanDependents(e *event, accessor meta.Object) bool {
+func shouldOrphanDependents(e *event, accessor metav1.Object) bool {
 	// The delta_fifo may combine the creation and update of the object into one
 	// event, so we need to check AddEvent as well.
 	if e.oldObj == nil {
@@ -451,24 +450,24 @@ type GarbageCollector struct {
 
 func gcListWatcher(client *dynamic.Client, resource schema.GroupVersionResource) *cache.ListWatch {
 	return &cache.ListWatch{
-		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			// APIResource.Kind is not used by the dynamic client, so
 			// leave it empty. We want to list this resource in all
 			// namespaces if it's namespace scoped, so leave
 			// APIResource.Namespaced as false is all right.
 			apiResource := metav1.APIResource{Name: resource.Resource}
 			return client.ParameterCodec(dynamic.VersionedParameterEncoderWithV1Fallback).
-				Resource(&apiResource, v1.NamespaceAll).
+				Resource(&apiResource, metav1.NamespaceAll).
 				List(&options)
 		},
-		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			// APIResource.Kind is not used by the dynamic client, so
 			// leave it empty. We want to list this resource in all
 			// namespaces if it's namespace scoped, so leave
 			// APIResource.Namespaced as false is all right.
 			apiResource := metav1.APIResource{Name: resource.Resource}
 			return client.ParameterCodec(dynamic.VersionedParameterEncoderWithV1Fallback).
-				Resource(&apiResource, v1.NamespaceAll).
+				Resource(&apiResource, metav1.NamespaceAll).
 				Watch(&options)
 		},
 	}
@@ -625,8 +624,8 @@ func (gc *GarbageCollector) deleteObject(item objectReference) error {
 		return err
 	}
 	uid := item.UID
-	preconditions := v1.Preconditions{UID: &uid}
-	deleteOptions := v1.DeleteOptions{Preconditions: &preconditions}
+	preconditions := metav1.Preconditions{UID: &uid}
+	deleteOptions := metav1.DeleteOptions{Preconditions: &preconditions}
 	return client.Resource(resource, item.Namespace).Delete(item.Name, &deleteOptions)
 }
 
@@ -660,7 +659,7 @@ func (gc *GarbageCollector) patchObject(item objectReference, patch []byte) (*un
 	if err != nil {
 		return nil, err
 	}
-	return client.Resource(resource, item.Namespace).Patch(item.Name, api.StrategicMergePatchType, patch)
+	return client.Resource(resource, item.Namespace).Patch(item.Name, types.StrategicMergePatchType, patch)
 }
 
 func objectReferenceToUnstructured(ref objectReference) *unstructured.Unstructured {
@@ -679,7 +678,7 @@ func objectReferenceToMetadataOnlyObject(ref objectReference) *metaonly.Metadata
 			APIVersion: ref.APIVersion,
 			Kind:       ref.Kind,
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ref.Namespace,
 			UID:       ref.UID,
 			Name:      ref.Name,

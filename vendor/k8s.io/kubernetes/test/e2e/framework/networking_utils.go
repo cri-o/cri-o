@@ -323,7 +323,7 @@ func (config *NetworkingTestConfig) createNetShellPodSpec(podName string, node s
 			Kind:       "Pod",
 			APIVersion: api.Registry.GroupOrDie(v1.GroupName).GroupVersion.String(),
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
 			Namespace: config.Namespace,
 		},
@@ -367,7 +367,7 @@ func (config *NetworkingTestConfig) createTestPodSpec() *v1.Pod {
 			Kind:       "Pod",
 			APIVersion: api.Registry.GroupOrDie(v1.GroupName).GroupVersion.String(),
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      testPodName,
 			Namespace: config.Namespace,
 		},
@@ -397,7 +397,7 @@ func (config *NetworkingTestConfig) createTestPodSpec() *v1.Pod {
 
 func (config *NetworkingTestConfig) createNodePortService(selector map[string]string) {
 	serviceSpec := &v1.Service{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: nodePortServiceName,
 		},
 		Spec: v1.ServiceSpec{
@@ -501,7 +501,7 @@ func (config *NetworkingTestConfig) setup(selector map[string]string) {
 
 func (config *NetworkingTestConfig) cleanup() {
 	nsClient := config.getNamespacesClient()
-	nsList, err := nsClient.List(v1.ListOptions{})
+	nsList, err := nsClient.List(metav1.ListOptions{})
 	if err == nil {
 		for _, ns := range nsList.Items {
 			if strings.Contains(ns.Name, config.f.BaseName) && ns.Name != config.Namespace {
@@ -558,7 +558,7 @@ func (config *NetworkingTestConfig) createNetProxyPods(podName string, selector 
 
 func (config *NetworkingTestConfig) DeleteNetProxyPod() {
 	pod := config.EndpointPods[0]
-	config.getPodClient().Delete(pod.Name, v1.NewDeleteOptions(0))
+	config.getPodClient().Delete(pod.Name, metav1.NewDeleteOptions(0))
 	config.EndpointPods = config.EndpointPods[1:]
 	// wait for pod being deleted.
 	err := WaitForPodToDisappear(config.f.ClientSet, config.Namespace, pod.Name, labels.Everything(), time.Second, wait.ForeverTestTimeout)

@@ -74,7 +74,7 @@ var _ = framework.KubeDescribe("Kubelet Eviction Manager [Serial] [Disruptive]",
 				verifyPodName = "verify" + string(uuid.NewUUID())
 				createIdlePod(idlePodName, podClient)
 				podClient.Create(&v1.Pod{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: busyPodName,
 					},
 					Spec: v1.PodSpec{
@@ -97,9 +97,9 @@ var _ = framework.KubeDescribe("Kubelet Eviction Manager [Serial] [Disruptive]",
 				if !isImageSupported() || !evictionOptionIsSet() { // Skip the after each
 					return
 				}
-				podClient.DeleteSync(busyPodName, &v1.DeleteOptions{}, podDisappearTimeout)
-				podClient.DeleteSync(idlePodName, &v1.DeleteOptions{}, podDisappearTimeout)
-				podClient.DeleteSync(verifyPodName, &v1.DeleteOptions{}, podDisappearTimeout)
+				podClient.DeleteSync(busyPodName, &metav1.DeleteOptions{}, podDisappearTimeout)
+				podClient.DeleteSync(idlePodName, &metav1.DeleteOptions{}, podDisappearTimeout)
+				podClient.DeleteSync(verifyPodName, &metav1.DeleteOptions{}, podDisappearTimeout)
 
 				// Wait for 2 container gc loop to ensure that the containers are deleted. The containers
 				// created in this test consume a lot of disk, we don't want them to trigger disk eviction
@@ -188,7 +188,7 @@ var _ = framework.KubeDescribe("Kubelet Eviction Manager [Serial] [Disruptive]",
 
 func createIdlePod(podName string, podClient *framework.PodClient) {
 	podClient.Create(&v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 		},
 		Spec: v1.PodSpec{

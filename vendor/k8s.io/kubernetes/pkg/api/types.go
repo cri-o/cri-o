@@ -18,11 +18,11 @@ package api
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
@@ -57,6 +57,7 @@ import (
 
 // ObjectMeta is metadata that all persisted resources must have, which includes all objects
 // users must create.
+// DEPRECATED: Use k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta instead - this type will be removed soon.
 type ObjectMeta struct {
 	// Name is unique within a namespace.  Name is required when creating resources, although
 	// some resources may allow a client to request the generation of an appropriate name
@@ -370,7 +371,7 @@ type PersistentVolumeClaimVolumeSource struct {
 type PersistentVolume struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	//Spec defines a persistent volume owned by the cluster
 	// +optional
@@ -441,7 +442,7 @@ type PersistentVolumeList struct {
 type PersistentVolumeClaim struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the volume requested by a pod author
 	// +optional
@@ -728,8 +729,8 @@ type SecretVolumeSource struct {
 	// key and content is the value. If specified, the listed keys will be
 	// projected into the specified paths, and unlisted keys will not be
 	// present. If a key is specified which is not present in the Secret,
-	// the volume setup will error. Paths must be relative and may not contain
-	// the '..' path or start with '..'.
+	// the volume setup will error unless it is marked optional. Paths must be
+	// relative and may not contain the '..' path or start with '..'.
 	// +optional
 	Items []KeyToPath
 	// Mode bits to use on created files by default. Must be a value between
@@ -739,6 +740,9 @@ type SecretVolumeSource struct {
 	// mode, like fsGroup, and the result can be other mode bits set.
 	// +optional
 	DefaultMode *int32
+	// Specify whether the Secret or it's key must be defined
+	// +optional
+	Optional *bool
 }
 
 // Represents an NFS mount that lasts the lifetime of a pod.
@@ -991,8 +995,8 @@ type ConfigMapVolumeSource struct {
 	// key and content is the value. If specified, the listed keys will be
 	// projected into the specified paths, and unlisted keys will not be
 	// present. If a key is specified which is not present in the ConfigMap,
-	// the volume setup will error. Paths must be relative and may not contain
-	// the '..' path or start with '..'.
+	// the volume setup will error unless it is marked optional. Paths must be
+	// relative and may not contain the '..' path or start with '..'.
 	// +optional
 	Items []KeyToPath
 	// Mode bits to use on created files by default. Must be a value between
@@ -1002,6 +1006,9 @@ type ConfigMapVolumeSource struct {
 	// mode, like fsGroup, and the result can be other mode bits set.
 	// +optional
 	DefaultMode *int32
+	// Specify whether the ConfigMap or it's keys must be defined
+	// +optional
+	Optional *bool
 }
 
 // Maps a string key to a path within a volume.
@@ -1123,6 +1130,9 @@ type ConfigMapKeySelector struct {
 	LocalObjectReference
 	// The key to select.
 	Key string
+	// Specify whether the ConfigMap or it's key must be defined
+	// +optional
+	Optional *bool
 }
 
 // SecretKeySelector selects a key of a Secret.
@@ -1131,6 +1141,9 @@ type SecretKeySelector struct {
 	LocalObjectReference
 	// The key of the secret to select from.  Must be a valid secret key.
 	Key string
+	// Specify whether the Secret or it's key must be defined
+	// +optional
+	Optional *bool
 }
 
 // EnvFromSource represents the source of a set of ConfigMaps
@@ -1141,6 +1154,9 @@ type EnvFromSource struct {
 	// The ConfigMap to select from.
 	//+optional
 	ConfigMapRef *ConfigMapEnvSource
+	// The Secret to select from.
+	//+optional
+	SecretRef *SecretEnvSource
 }
 
 // ConfigMapEnvSource selects a ConfigMap to populate the environment
@@ -1151,6 +1167,22 @@ type EnvFromSource struct {
 type ConfigMapEnvSource struct {
 	// The ConfigMap to select from.
 	LocalObjectReference
+	// Specify whether the ConfigMap must be defined
+	// +optional
+	Optional *bool
+}
+
+// SecretEnvSource selects a Secret to populate the environment
+// variables with.
+//
+// The contents of the target Secret's Data field will represent the
+// key-value pairs as environment variables.
+type SecretEnvSource struct {
+	// The Secret to select from.
+	LocalObjectReference
+	// Specify whether the Secret must be defined
+	// +optional
+	Optional *bool
 }
 
 // HTTPHeader describes a custom header to be used in HTTP probes
@@ -1243,6 +1275,19 @@ const (
 	PullIfNotPresent PullPolicy = "IfNotPresent"
 )
 
+// TerminationMessagePolicy describes how termination messages are retrieved from a container.
+type TerminationMessagePolicy string
+
+const (
+	// TerminationMessageReadFile is the default behavior and will set the container status message to
+	// the contents of the container's terminationMessagePath when the container exits.
+	TerminationMessageReadFile TerminationMessagePolicy = "File"
+	// TerminationMessageFallbackToLogsOnError will read the most recent contents of the container logs
+	// for the container status message when the container exits with an error and the
+	// terminationMessagePath has no contents.
+	TerminationMessageFallbackToLogsOnError TerminationMessagePolicy = "FallbackToLogsOnError"
+)
+
 // Capability represent POSIX capabilities type
 type Capability string
 
@@ -1318,6 +1363,8 @@ type Container struct {
 	// Required.
 	// +optional
 	TerminationMessagePath string
+	// +optional
+	TerminationMessagePolicy TerminationMessagePolicy
 	// Required: Policy for pulling images for this container
 	ImagePullPolicy PullPolicy
 	// Optional: SecurityContext defines the security options the container should be run with.
@@ -1855,6 +1902,10 @@ type PodSpec struct {
 	// If specified, the pod's scheduling constraints
 	// +optional
 	Affinity *Affinity
+	// If specified, the pod will be dispatched by specified scheduler.
+	// If not specified, the pod will be dispatched by default scheduler.
+	// +optional
+	SchedulerName string
 }
 
 // Sysctl defines a kernel parameter to be set
@@ -1981,7 +2032,7 @@ type PodStatus struct {
 type PodStatusResult struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 	// Status represents the current information about a pod. This data may not be up
 	// to date.
 	// +optional
@@ -1994,7 +2045,7 @@ type PodStatusResult struct {
 type Pod struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the behavior of a pod.
 	// +optional
@@ -2010,7 +2061,7 @@ type Pod struct {
 type PodTemplateSpec struct {
 	// Metadata of the pods created from this template.
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the behavior of a pod.
 	// +optional
@@ -2023,7 +2074,7 @@ type PodTemplateSpec struct {
 type PodTemplate struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Template defines the pods that will be created from this pod template
 	// +optional
@@ -2128,7 +2179,7 @@ type ReplicationControllerCondition struct {
 type ReplicationController struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the desired behavior of this replication controller.
 	// +optional
@@ -2333,7 +2384,7 @@ type ServicePort struct {
 type Service struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the behavior of a service.
 	// +optional
@@ -2353,7 +2404,7 @@ type Service struct {
 type ServiceAccount struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Secrets is the list of secrets allowed to be used by pods running using this ServiceAccount
 	Secrets []ObjectReference
@@ -2391,7 +2442,7 @@ type ServiceAccountList struct {
 type Endpoints struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// The set of all endpoints is the union of all subsets.
 	Subsets []EndpointSubset
@@ -2713,7 +2764,7 @@ type ResourceList map[ResourceName]resource.Quantity
 type Node struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the behavior of a node.
 	// +optional
@@ -2773,7 +2824,7 @@ const (
 type Namespace struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the behavior of the Namespace.
 	// +optional
@@ -2798,7 +2849,7 @@ type Binding struct {
 	metav1.TypeMeta
 	// ObjectMeta describes the object that is being bound.
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Target is the object to bind to.
 	Target ObjectReference
@@ -2812,6 +2863,7 @@ type Preconditions struct {
 }
 
 // DeleteOptions may be provided when deleting an API object
+// DEPRECATED: This type has been moved to meta/v1 and will be removed soon.
 type DeleteOptions struct {
 	metav1.TypeMeta
 
@@ -2834,6 +2886,7 @@ type DeleteOptions struct {
 
 // ListOptions is the query options to a standard REST list call, and has future support for
 // watch calls.
+// DEPRECATED: This type has been moved to meta/v1 and will be removed soon.
 type ListOptions struct {
 	metav1.TypeMeta
 
@@ -2935,6 +2988,15 @@ type PodExecOptions struct {
 	Command []string
 }
 
+// PodPortForwardOptions is the query options to a Pod's port forward call
+type PodPortForwardOptions struct {
+	metav1.TypeMeta
+
+	// The list of ports to forward
+	// +optional
+	Ports []int32
+}
+
 // PodProxyOptions is the query options to a Pod's proxy call
 type PodProxyOptions struct {
 	metav1.TypeMeta
@@ -3026,7 +3088,7 @@ const (
 type Event struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Required. The object that this event is about.
 	// +optional
@@ -3129,7 +3191,7 @@ type LimitRangeSpec struct {
 type LimitRange struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the limits enforced
 	// +optional
@@ -3219,7 +3281,7 @@ type ResourceQuotaStatus struct {
 type ResourceQuota struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Spec defines the desired quota
 	// +optional
@@ -3247,7 +3309,7 @@ type ResourceQuotaList struct {
 type Secret struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Data contains the secret data.  Each key must be a valid DNS_SUBDOMAIN
 	// or leading dot followed by valid DNS_SUBDOMAIN.
@@ -3362,7 +3424,7 @@ type SecretList struct {
 type ConfigMap struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// Data contains the configuration data.
 	// Each key must be a valid DNS_SUBDOMAIN with an optional leading dot.
@@ -3421,17 +3483,6 @@ const (
 	PortForwardRequestIDHeader = "requestID"
 )
 
-// Similarly to above, these are constants to support HTTP PATCH utilized by
-// both the client and server that didn't make sense for a whole package to be
-// dedicated to.
-type PatchType string
-
-const (
-	JSONPatchType           PatchType = "application/json-patch+json"
-	MergePatchType          PatchType = "application/merge-patch+json"
-	StrategicMergePatchType PatchType = "application/strategic-merge-patch+json"
-)
-
 // Type and constants for component health validation.
 type ComponentConditionType string
 
@@ -3456,7 +3507,7 @@ type ComponentCondition struct {
 type ComponentStatus struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 
 	// +optional
 	Conditions []ComponentCondition
@@ -3535,7 +3586,7 @@ type SELinuxOptions struct {
 type RangeAllocation struct {
 	metav1.TypeMeta
 	// +optional
-	ObjectMeta
+	metav1.ObjectMeta
 	// A string representing a unique label for a range of resources, such as a CIDR "10.0.0.0/8" or
 	// port range "10000-30000". Range is not strongly schema'd here. The Range is expected to define
 	// a start and end unless there is an implicit end.

@@ -20,8 +20,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	v1beta1 "k8s.io/client-go/pkg/apis/apps/v1beta1"
 	testing "k8s.io/client-go/testing"
@@ -72,7 +72,7 @@ func (c *FakeStatefulSets) Delete(name string, options *v1.DeleteOptions) error 
 	return err
 }
 
-func (c *FakeStatefulSets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeStatefulSets) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(statefulsetsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.StatefulSetList{})
@@ -89,7 +89,7 @@ func (c *FakeStatefulSets) Get(name string, options meta_v1.GetOptions) (result 
 	return obj.(*v1beta1.StatefulSet), err
 }
 
-func (c *FakeStatefulSets) List(opts v1.ListOptions) (result *v1beta1.StatefulSetList, err error) {
+func (c *FakeStatefulSets) List(opts meta_v1.ListOptions) (result *v1beta1.StatefulSetList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(statefulsetsResource, c.ns, opts), &v1beta1.StatefulSetList{})
 
@@ -111,14 +111,14 @@ func (c *FakeStatefulSets) List(opts v1.ListOptions) (result *v1beta1.StatefulSe
 }
 
 // Watch returns a watch.Interface that watches the requested statefulSets.
-func (c *FakeStatefulSets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeStatefulSets) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(statefulsetsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched statefulSet.
-func (c *FakeStatefulSets) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1beta1.StatefulSet, err error) {
+func (c *FakeStatefulSets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.StatefulSet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(statefulsetsResource, c.ns, name, data, subresources...), &v1beta1.StatefulSet{})
 

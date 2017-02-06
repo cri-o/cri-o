@@ -11,7 +11,7 @@ import (
 func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
 	logrus.Debugf("PodSandboxStatusRequest %+v", req)
 	s.Update()
-	sb, err := s.getPodSandboxFromRequest(req)
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		return nil, err
 	}
@@ -43,15 +43,15 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	sandboxID := sb.id
 	resp := &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
-			Id:        &sandboxID,
-			CreatedAt: int64Ptr(created),
+			Id:        sandboxID,
+			CreatedAt: int64(created),
 			Linux: &pb.LinuxPodSandboxStatus{
 				Namespaces: &pb.Namespace{
-					Network: sPtr(netNsPath),
+					Network: netNsPath,
 				},
 			},
-			Network:     &pb.PodSandboxNetworkStatus{Ip: &ip},
-			State:       &rStatus,
+			Network:     &pb.PodSandboxNetworkStatus{Ip: ip},
+			State:       rStatus,
 			Labels:      sb.labels,
 			Annotations: sb.annotations,
 			Metadata:    sb.metadata,

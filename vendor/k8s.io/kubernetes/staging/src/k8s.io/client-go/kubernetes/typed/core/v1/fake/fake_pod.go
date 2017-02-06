@@ -20,8 +20,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	testing "k8s.io/client-go/testing"
 )
@@ -71,7 +71,7 @@ func (c *FakePods) Delete(name string, options *v1.DeleteOptions) error {
 	return err
 }
 
-func (c *FakePods) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakePods) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(podsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.PodList{})
@@ -88,7 +88,7 @@ func (c *FakePods) Get(name string, options meta_v1.GetOptions) (result *v1.Pod,
 	return obj.(*v1.Pod), err
 }
 
-func (c *FakePods) List(opts v1.ListOptions) (result *v1.PodList, err error) {
+func (c *FakePods) List(opts meta_v1.ListOptions) (result *v1.PodList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(podsResource, c.ns, opts), &v1.PodList{})
 
@@ -110,14 +110,14 @@ func (c *FakePods) List(opts v1.ListOptions) (result *v1.PodList, err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested pods.
-func (c *FakePods) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakePods) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(podsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched pod.
-func (c *FakePods) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Pod, err error) {
+func (c *FakePods) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Pod, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(podsResource, c.ns, name, data, subresources...), &v1.Pod{})
 

@@ -50,7 +50,7 @@ var _ = framework.KubeDescribe("Pods Extended", func() {
 			name := "pod-submit-remove-" + string(uuid.NewUUID())
 			value := strconv.Itoa(time.Now().Nanosecond())
 			pod := &v1.Pod{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: name,
 					Labels: map[string]string{
 						"name": "foo",
@@ -69,11 +69,11 @@ var _ = framework.KubeDescribe("Pods Extended", func() {
 
 			By("setting up watch")
 			selector := labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-			options := v1.ListOptions{LabelSelector: selector.String()}
+			options := metav1.ListOptions{LabelSelector: selector.String()}
 			pods, err := podClient.List(options)
 			Expect(err).NotTo(HaveOccurred(), "failed to query for pod")
 			Expect(len(pods.Items)).To(Equal(0))
-			options = v1.ListOptions{
+			options = metav1.ListOptions{
 				LabelSelector:   selector.String(),
 				ResourceVersion: pods.ListMeta.ResourceVersion,
 			}
@@ -85,7 +85,7 @@ var _ = framework.KubeDescribe("Pods Extended", func() {
 
 			By("verifying the pod is in kubernetes")
 			selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-			options = v1.ListOptions{LabelSelector: selector.String()}
+			options = metav1.ListOptions{LabelSelector: selector.String()}
 			pods, err = podClient.List(options)
 			Expect(err).NotTo(HaveOccurred(), "failed to query for pod")
 			Expect(len(pods.Items)).To(Equal(1))
@@ -184,7 +184,7 @@ var _ = framework.KubeDescribe("Pods Extended", func() {
 			Expect(lastPod.Spec.TerminationGracePeriodSeconds).ToNot(BeZero())
 
 			selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-			options = v1.ListOptions{LabelSelector: selector.String()}
+			options = metav1.ListOptions{LabelSelector: selector.String()}
 			pods, err = podClient.List(options)
 			Expect(err).NotTo(HaveOccurred(), "failed to query for pods")
 			Expect(len(pods.Items)).To(Equal(0))
@@ -201,7 +201,7 @@ var _ = framework.KubeDescribe("Pods Extended", func() {
 			By("creating the pod")
 			name := "pod-qos-class-" + string(uuid.NewUUID())
 			pod := &v1.Pod{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: name,
 					Labels: map[string]string{
 						"name": name,

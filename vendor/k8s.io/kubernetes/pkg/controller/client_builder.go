@@ -22,15 +22,16 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	v1core "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/golang/glog"
@@ -107,25 +108,25 @@ func (b SAControllerClientBuilder) Config(name string) (*restclient.Config, erro
 		// check to see if the namespace exists.  If it isn't a NotFound, just try to create the SA.
 		// It'll probably fail, but perhaps that will have a better message.
 		if _, err := b.CoreClient.Namespaces().Get(b.Namespace, metav1.GetOptions{}); apierrors.IsNotFound(err) {
-			_, err = b.CoreClient.Namespaces().Create(&v1.Namespace{ObjectMeta: v1.ObjectMeta{Name: b.Namespace}})
+			_, err = b.CoreClient.Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: b.Namespace}})
 			if err != nil && !apierrors.IsAlreadyExists(err) {
 				return nil, err
 			}
 		}
 
 		sa, err = b.CoreClient.ServiceAccounts(b.Namespace).Create(
-			&v1.ServiceAccount{ObjectMeta: v1.ObjectMeta{Namespace: b.Namespace, Name: name}})
+			&v1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: b.Namespace, Name: name}})
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	lw := &cache.ListWatch{
-		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			options.FieldSelector = fields.SelectorFromSet(map[string]string{api.SecretTypeField: string(v1.SecretTypeServiceAccountToken)}).String()
 			return b.CoreClient.Secrets(b.Namespace).List(options)
 		},
-		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			options.FieldSelector = fields.SelectorFromSet(map[string]string{api.SecretTypeField: string(v1.SecretTypeServiceAccountToken)}).String()
 			return b.CoreClient.Secrets(b.Namespace).Watch(options)
 		},
@@ -146,7 +147,7 @@ func (b SAControllerClientBuilder) Config(name string) (*restclient.Config, erro
 				}
 				// TODO maybe verify the token is valid
 				clientConfig.BearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
-				restclient.AddUserAgent(clientConfig, serviceaccount.MakeUsername(b.Namespace, name))
+				restclient.AddUserAgent(clientConfig, apiserverserviceaccount.MakeUsername(b.Namespace, name))
 				return true, nil
 
 			default:

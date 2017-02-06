@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -45,7 +46,7 @@ var _ = framework.KubeDescribe("InodeEviction [Slow] [Serial] [Disruptive] [Flak
 		{
 			evictionPriority: 1, // This pod should be evicted before the normal memory usage pod
 			pod: v1.Pod{
-				ObjectMeta: v1.ObjectMeta{Name: "container-inode-hog-pod"},
+				ObjectMeta: metav1.ObjectMeta{Name: "container-inode-hog-pod"},
 				Spec: v1.PodSpec{
 					RestartPolicy: v1.RestartPolicyNever,
 					Containers: []v1.Container{
@@ -65,7 +66,7 @@ var _ = framework.KubeDescribe("InodeEviction [Slow] [Serial] [Disruptive] [Flak
 		{
 			evictionPriority: 1, // This pod should be evicted before the normal memory usage pod
 			pod: v1.Pod{
-				ObjectMeta: v1.ObjectMeta{Name: "volume-inode-hog-pod"},
+				ObjectMeta: metav1.ObjectMeta{Name: "volume-inode-hog-pod"},
 				Spec: v1.PodSpec{
 					RestartPolicy: v1.RestartPolicyNever,
 					Containers: []v1.Container{
@@ -91,7 +92,7 @@ var _ = framework.KubeDescribe("InodeEviction [Slow] [Serial] [Disruptive] [Flak
 		{
 			evictionPriority: 0, // This pod should never be evicted
 			pod: v1.Pod{
-				ObjectMeta: v1.ObjectMeta{Name: "normal-memory-usage-pod"},
+				ObjectMeta: metav1.ObjectMeta{Name: "normal-memory-usage-pod"},
 				Spec: v1.PodSpec{
 					RestartPolicy: v1.RestartPolicyNever,
 					Containers: []v1.Container{
@@ -160,7 +161,7 @@ func runEvictionTest(f *framework.Framework, testCondition string, podTestSpecs 
 
 			Eventually(func() error {
 				// Gather current information
-				updatedPodList, err := f.ClientSet.Core().Pods(f.Namespace.Name).List(v1.ListOptions{})
+				updatedPodList, err := f.ClientSet.Core().Pods(f.Namespace.Name).List(metav1.ListOptions{})
 				updatedPods := updatedPodList.Items
 				for _, p := range updatedPods {
 					framework.Logf("fetching pod %s; phase= %v", p.Name, p.Status.Phase)
@@ -250,7 +251,7 @@ func runEvictionTest(f *framework.Framework, testCondition string, podTestSpecs 
 			By("making sure we can start a new pod after the test")
 			podName := "test-admit-pod"
 			f.PodClient().CreateSync(&v1.Pod{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: podName,
 				},
 				Spec: v1.PodSpec{
@@ -269,7 +270,7 @@ func runEvictionTest(f *framework.Framework, testCondition string, podTestSpecs 
 			By("deleting pods")
 			for _, spec := range podTestSpecs {
 				By(fmt.Sprintf("deleting pod: %s", spec.pod.Name))
-				f.PodClient().DeleteSync(spec.pod.Name, &v1.DeleteOptions{}, podDisappearTimeout)
+				f.PodClient().DeleteSync(spec.pod.Name, &metav1.DeleteOptions{}, podDisappearTimeout)
 			}
 
 			if CurrentGinkgoTestDescription().Failed {
@@ -287,7 +288,7 @@ func runEvictionTest(f *framework.Framework, testCondition string, podTestSpecs 
 // Returns TRUE if the node has disk pressure due to inodes exists on the node, FALSE otherwise
 func hasInodePressure(f *framework.Framework, testCondition string) (bool, error) {
 
-	nodeList, err := f.ClientSet.Core().Nodes().List(v1.ListOptions{})
+	nodeList, err := f.ClientSet.Core().Nodes().List(metav1.ListOptions{})
 	framework.ExpectNoError(err, "getting node list")
 	if len(nodeList.Items) != 1 {
 		return false, fmt.Errorf("expected 1 node, but see %d. List: %v", len(nodeList.Items), nodeList.Items)

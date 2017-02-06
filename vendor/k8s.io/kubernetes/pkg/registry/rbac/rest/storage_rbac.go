@@ -23,16 +23,18 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbacapiv1alpha1 "k8s.io/kubernetes/pkg/apis/rbac/v1alpha1"
+	rbacapiv1beta1 "k8s.io/kubernetes/pkg/apis/rbac/v1beta1"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
-	"k8s.io/kubernetes/pkg/genericapiserver"
-	"k8s.io/kubernetes/pkg/genericapiserver/api/rest"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
+	genericapiserver "k8s.io/kubernetes/pkg/genericapiserver/server"
 	"k8s.io/kubernetes/pkg/registry/rbac/clusterrole"
 	clusterrolepolicybased "k8s.io/kubernetes/pkg/registry/rbac/clusterrole/policybased"
 	clusterrolestore "k8s.io/kubernetes/pkg/registry/rbac/clusterrole/storage"
@@ -59,16 +61,18 @@ func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource genericapise
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(rbac.GroupName)
 
 	if apiResourceConfigSource.AnyResourcesForVersionEnabled(rbacapiv1alpha1.SchemeGroupVersion) {
-		apiGroupInfo.VersionedResourcesStorageMap[rbacapiv1alpha1.SchemeGroupVersion.Version] = p.v1alpha1Storage(apiResourceConfigSource, restOptionsGetter)
+		apiGroupInfo.VersionedResourcesStorageMap[rbacapiv1alpha1.SchemeGroupVersion.Version] = p.storage(rbacapiv1alpha1.SchemeGroupVersion, apiResourceConfigSource, restOptionsGetter)
 		apiGroupInfo.GroupMeta.GroupVersion = rbacapiv1alpha1.SchemeGroupVersion
+	}
+	if apiResourceConfigSource.AnyResourcesForVersionEnabled(rbacapiv1beta1.SchemeGroupVersion) {
+		apiGroupInfo.VersionedResourcesStorageMap[rbacapiv1beta1.SchemeGroupVersion.Version] = p.storage(rbacapiv1beta1.SchemeGroupVersion, apiResourceConfigSource, restOptionsGetter)
+		apiGroupInfo.GroupMeta.GroupVersion = rbacapiv1beta1.SchemeGroupVersion
 	}
 
 	return apiGroupInfo, true
 }
 
-func (p RESTStorageProvider) v1alpha1Storage(apiResourceConfigSource genericapiserver.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) map[string]rest.Storage {
-	version := rbacapiv1alpha1.SchemeGroupVersion
-
+func (p RESTStorageProvider) storage(version schema.GroupVersion, apiResourceConfigSource genericapiserver.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) map[string]rest.Storage {
 	once := new(sync.Once)
 	var (
 		authorizationRuleResolver  rbacregistryvalidation.AuthorizationRuleResolver
@@ -128,7 +132,7 @@ func PostStartHook(hookContext genericapiserver.PostStartHookContext) error {
 			return false, nil
 		}
 
-		existingClusterRoles, err := clientset.ClusterRoles().List(api.ListOptions{})
+		existingClusterRoles, err := clientset.ClusterRoles().List(metav1.ListOptions{})
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("unable to initialize clusterroles: %v", err))
 			return false, nil
@@ -145,7 +149,7 @@ func PostStartHook(hookContext genericapiserver.PostStartHookContext) error {
 			}
 		}
 
-		existingClusterRoleBindings, err := clientset.ClusterRoleBindings().List(api.ListOptions{})
+		existingClusterRoleBindings, err := clientset.ClusterRoleBindings().List(metav1.ListOptions{})
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("unable to initialize clusterrolebindings: %v", err))
 			return false, nil

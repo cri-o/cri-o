@@ -20,14 +20,14 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/diff"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/genericapiserver/api/rest"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
@@ -46,9 +46,9 @@ func newStorage(t *testing.T) (*REST, *StatusREST, *etcdtesting.EtcdTestServer) 
 
 func validNewResourceQuota() *api.ResourceQuota {
 	return &api.ResourceQuota{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: api.ResourceQuotaSpec{
 			Hard: api.ResourceList{
@@ -69,13 +69,13 @@ func TestCreate(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 	resourcequota := validNewResourceQuota()
-	resourcequota.ObjectMeta = api.ObjectMeta{}
+	resourcequota.ObjectMeta = metav1.ObjectMeta{}
 	test.TestCreate(
 		// valid
 		resourcequota,
 		// invalid
 		&api.ResourceQuota{
-			ObjectMeta: api.ObjectMeta{Name: "_-a123-a_"},
+			ObjectMeta: metav1.ObjectMeta{Name: "_-a123-a_"},
 		},
 	)
 }
@@ -166,9 +166,9 @@ func TestUpdateStatus(t *testing.T) {
 	}
 
 	resourcequotaIn := &api.ResourceQuota{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Status: api.ResourceQuotaStatus{
 			Used: api.ResourceList{

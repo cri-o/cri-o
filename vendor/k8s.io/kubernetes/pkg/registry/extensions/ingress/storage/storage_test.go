@@ -19,12 +19,13 @@ package storage
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -43,7 +44,7 @@ func newStorage(t *testing.T) (*REST, *StatusREST, *etcdtesting.EtcdTestServer) 
 }
 
 var (
-	namespace           = api.NamespaceNone
+	namespace           = metav1.NamespaceNone
 	name                = "foo-ingress"
 	defaultHostname     = "foo.bar.com"
 	defaultBackendName  = "default-backend"
@@ -89,7 +90,7 @@ func toIngressRules(hostRules map[string]IngressRuleValues) []extensions.Ingress
 
 func newIngress(pathMap map[string]string) *extensions.Ingress {
 	return &extensions.Ingress{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},

@@ -20,8 +20,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	v1beta1 "k8s.io/client-go/pkg/apis/policy/v1beta1"
 	testing "k8s.io/client-go/testing"
@@ -72,7 +72,7 @@ func (c *FakePodDisruptionBudgets) Delete(name string, options *v1.DeleteOptions
 	return err
 }
 
-func (c *FakePodDisruptionBudgets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakePodDisruptionBudgets) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(poddisruptionbudgetsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.PodDisruptionBudgetList{})
@@ -89,7 +89,7 @@ func (c *FakePodDisruptionBudgets) Get(name string, options meta_v1.GetOptions) 
 	return obj.(*v1beta1.PodDisruptionBudget), err
 }
 
-func (c *FakePodDisruptionBudgets) List(opts v1.ListOptions) (result *v1beta1.PodDisruptionBudgetList, err error) {
+func (c *FakePodDisruptionBudgets) List(opts meta_v1.ListOptions) (result *v1beta1.PodDisruptionBudgetList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(poddisruptionbudgetsResource, c.ns, opts), &v1beta1.PodDisruptionBudgetList{})
 
@@ -111,14 +111,14 @@ func (c *FakePodDisruptionBudgets) List(opts v1.ListOptions) (result *v1beta1.Po
 }
 
 // Watch returns a watch.Interface that watches the requested podDisruptionBudgets.
-func (c *FakePodDisruptionBudgets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakePodDisruptionBudgets) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(poddisruptionbudgetsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched podDisruptionBudget.
-func (c *FakePodDisruptionBudgets) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1beta1.PodDisruptionBudget, err error) {
+func (c *FakePodDisruptionBudgets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.PodDisruptionBudget, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(poddisruptionbudgetsResource, c.ns, name, data, subresources...), &v1beta1.PodDisruptionBudget{})
 

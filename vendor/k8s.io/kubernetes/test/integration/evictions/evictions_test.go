@@ -30,11 +30,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/policy/v1beta1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/controller/disruption"
 	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -68,7 +68,7 @@ func TestConcurrentEvictionRequests(t *testing.T) {
 	}
 
 	var gracePeriodSeconds int64 = 30
-	deleteOption := &v1.DeleteOptions{
+	deleteOption := &metav1.DeleteOptions{
 		GracePeriodSeconds: &gracePeriodSeconds,
 	}
 
@@ -169,7 +169,7 @@ func TestConcurrentEvictionRequests(t *testing.T) {
 
 func newPod(podName string) *v1.Pod {
 	return &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   podName,
 			Labels: map[string]string{"app": "test-evictions"},
 		},
@@ -198,7 +198,7 @@ func addPodConditionReady(pod *v1.Pod) {
 
 func newPDB() *v1beta1.PodDisruptionBudget {
 	return &v1beta1.PodDisruptionBudget{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-pdb",
 		},
 		Spec: v1beta1.PodDisruptionBudgetSpec{
@@ -213,13 +213,13 @@ func newPDB() *v1beta1.PodDisruptionBudget {
 	}
 }
 
-func newEviction(ns, evictionName string, deleteOption *v1.DeleteOptions) *v1beta1.Eviction {
+func newEviction(ns, evictionName string, deleteOption *metav1.DeleteOptions) *v1beta1.Eviction {
 	return &v1beta1.Eviction{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "Policy/v1beta1",
 			Kind:       "Eviction",
 		},
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      evictionName,
 			Namespace: ns,
 		},

@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -59,13 +60,13 @@ func (c *FakePersistentVolumes) UpdateStatus(persistentVolume *api.PersistentVol
 	return obj.(*api.PersistentVolume), err
 }
 
-func (c *FakePersistentVolumes) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakePersistentVolumes) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewRootDeleteAction(persistentvolumesResource, name), &api.PersistentVolume{})
 	return err
 }
 
-func (c *FakePersistentVolumes) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakePersistentVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewRootDeleteCollectionAction(persistentvolumesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.PersistentVolumeList{})
@@ -81,7 +82,7 @@ func (c *FakePersistentVolumes) Get(name string, options v1.GetOptions) (result 
 	return obj.(*api.PersistentVolume), err
 }
 
-func (c *FakePersistentVolumes) List(opts api.ListOptions) (result *api.PersistentVolumeList, err error) {
+func (c *FakePersistentVolumes) List(opts v1.ListOptions) (result *api.PersistentVolumeList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootListAction(persistentvolumesResource, opts), &api.PersistentVolumeList{})
 	if obj == nil {
@@ -102,13 +103,13 @@ func (c *FakePersistentVolumes) List(opts api.ListOptions) (result *api.Persiste
 }
 
 // Watch returns a watch.Interface that watches the requested persistentVolumes.
-func (c *FakePersistentVolumes) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakePersistentVolumes) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewRootWatchAction(persistentvolumesResource, opts))
 }
 
 // Patch applies the patch and returns the patched persistentVolume.
-func (c *FakePersistentVolumes) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.PersistentVolume, err error) {
+func (c *FakePersistentVolumes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.PersistentVolume, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootPatchSubresourceAction(persistentvolumesResource, name, data, subresources...), &api.PersistentVolume{})
 	if obj == nil {

@@ -14,6 +14,23 @@ filegroup(
     srcs = [
         ":package-srcs",
         "//hack/boilerplate:all-srcs",
+        "//hack/e2e-internal:all-srcs",
+        "//hack/lib:all-srcs",
     ],
     tags = ["automanaged"],
+)
+
+sh_test(
+    name = "verify-boilerplate",
+    srcs = ["verify-boilerplate.sh"],
+    data = ["//:all-srcs"],
+    tags = ["manual"],
+)
+
+test_suite(
+    name = "verify-all",
+    tags = ["manual"],
+    tests = [
+        "verify-boilerplate",
+    ],
 )

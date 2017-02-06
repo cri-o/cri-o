@@ -20,10 +20,10 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 )
 
@@ -32,11 +32,11 @@ type fakeLW struct {
 	watchResp watch.Interface
 }
 
-func (lw fakeLW) List(options v1.ListOptions) (runtime.Object, error) {
+func (lw fakeLW) List(options metav1.ListOptions) (runtime.Object, error) {
 	return lw.listResp, nil
 }
 
-func (lw fakeLW) Watch(options v1.ListOptions) (watch.Interface, error) {
+func (lw fakeLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
 	return lw.watchResp, nil
 }
 
@@ -44,13 +44,13 @@ var _ cache.ListerWatcher = fakeLW{}
 
 func TestNewServicesSourceApi_UpdatesAndMultipleServices(t *testing.T) {
 	service1v1 := &api.Service{
-		ObjectMeta: api.ObjectMeta{Namespace: "testnamespace", Name: "s1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "s1"},
 		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 10}}}}
 	service1v2 := &api.Service{
-		ObjectMeta: api.ObjectMeta{Namespace: "testnamespace", Name: "s1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "s1"},
 		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 20}}}}
 	service2 := &api.Service{
-		ObjectMeta: api.ObjectMeta{Namespace: "testnamespace", Name: "s2"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "s2"},
 		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 30}}}}
 
 	// Setup fake api client.
@@ -136,7 +136,7 @@ func TestNewServicesSourceApi_UpdatesAndMultipleServices(t *testing.T) {
 
 func TestNewEndpointsSourceApi_UpdatesAndMultipleEndpoints(t *testing.T) {
 	endpoints1v1 := &api.Endpoints{
-		ObjectMeta: api.ObjectMeta{Namespace: "testnamespace", Name: "e1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "e1"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{
 				{IP: "1.2.3.4"},
@@ -145,7 +145,7 @@ func TestNewEndpointsSourceApi_UpdatesAndMultipleEndpoints(t *testing.T) {
 		}},
 	}
 	endpoints1v2 := &api.Endpoints{
-		ObjectMeta: api.ObjectMeta{Namespace: "testnamespace", Name: "e1"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "e1"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{
 				{IP: "1.2.3.4"},
@@ -155,7 +155,7 @@ func TestNewEndpointsSourceApi_UpdatesAndMultipleEndpoints(t *testing.T) {
 		}},
 	}
 	endpoints2 := &api.Endpoints{
-		ObjectMeta: api.ObjectMeta{Namespace: "testnamespace", Name: "e2"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "e2"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{
 				{IP: "5.6.7.8"},

@@ -24,7 +24,6 @@ var generateFlags = []cli.Flag{
 	cli.StringSliceFlag{Name: "bind", Usage: "bind mount directories src:dest[:options...]"},
 	cli.StringSliceFlag{Name: "cap-add", Usage: "add Linux capabilities"},
 	cli.StringSliceFlag{Name: "cap-drop", Usage: "drop Linux capabilities"},
-	cli.StringFlag{Name: "cgroup", Usage: "cgroup namespace"},
 	cli.StringFlag{Name: "cgroups-path", Usage: "specify the path to the cgroups"},
 	cli.StringFlag{Name: "cwd", Value: "/", Usage: "current working directory for the process"},
 	cli.BoolFlag{Name: "disable-oom-kill", Usage: "disable OOM Killer"},
@@ -34,7 +33,6 @@ var generateFlags = []cli.Flag{
 	cli.StringSliceFlag{Name: "gidmappings", Usage: "add GIDMappings e.g HostID:ContainerID:Size"},
 	cli.StringSliceFlag{Name: "groups", Usage: "supplementary groups for the process"},
 	cli.StringFlag{Name: "hostname", Usage: "hostname value for the container"},
-	cli.StringFlag{Name: "ipc", Usage: "ipc namespace"},
 	cli.StringSliceFlag{Name: "label", Usage: "add annotations to the configuration e.g. key=value"},
 	cli.Uint64Flag{Name: "linux-cpu-shares", Usage: "the relative share of CPU time available to the tasks in a cgroup"},
 	cli.Uint64Flag{Name: "linux-cpu-period", Usage: "the CPU period to be used for hardcapping (in usecs)"},
@@ -47,21 +45,21 @@ var generateFlags = []cli.Flag{
 	cli.Uint64Flag{Name: "linux-mem-swap", Usage: "total memory limit (memory + swap) (in bytes)"},
 	cli.Uint64Flag{Name: "linux-mem-swappiness", Usage: "how aggressive the kernel will swap memory pages (Range from 0 to 100)"},
 	cli.StringFlag{Name: "linux-mems", Usage: "list of memory nodes in the cpuset (default is to use any available memory node)"},
+	cli.StringSliceFlag{Name: "linux-namespace-add", Usage: "adds a namespace to the set of namespaces to create or join of the form 'ns[:path]'"},
+	cli.StringSliceFlag{Name: "linux-namespace-remove", Usage: "removes a namespace from the set of namespaces to create or join of the form 'ns'"},
+	cli.BoolFlag{Name: "linux-namespace-remove-all", Usage: "removes all namespaces from the set of namespaces created or joined"},
 	cli.IntFlag{Name: "linux-network-classid", Usage: "specifies class identifier tagged by container's network packets"},
 	cli.StringSliceFlag{Name: "linux-network-priorities", Usage: "specifies priorities of network traffic"},
 	cli.Int64Flag{Name: "linux-pids-limit", Usage: "maximum number of PIDs"},
 	cli.Uint64Flag{Name: "linux-realtime-period", Usage: "CPU period to be used for realtime scheduling (in usecs)"},
 	cli.Uint64Flag{Name: "linux-realtime-runtime", Usage: "the time realtime scheduling may use (in usecs)"},
 	cli.StringSliceFlag{Name: "masked-paths", Usage: "specifies paths can not be read inside container"},
-	cli.StringFlag{Name: "mount", Usage: "mount namespace"},
 	cli.StringFlag{Name: "mount-cgroups", Value: "no", Usage: "mount cgroups (rw,ro,no)"},
 	cli.StringFlag{Name: "mount-label", Usage: "selinux mount context label"},
-	cli.StringFlag{Name: "network", Usage: "network namespace"},
 	cli.BoolFlag{Name: "no-new-privileges", Usage: "set no new privileges bit for the container process"},
 	cli.IntFlag{Name: "oom-score-adj", Usage: "oom_score_adj for the container"},
 	cli.StringFlag{Name: "os", Value: runtime.GOOS, Usage: "operating system the container is created for"},
 	cli.StringFlag{Name: "output", Usage: "output file (defaults to stdout)"},
-	cli.StringFlag{Name: "pid", Usage: "pid namespace"},
 	cli.StringSliceFlag{Name: "poststart", Usage: "set command to run in poststart hooks"},
 	cli.StringSliceFlag{Name: "poststop", Usage: "set command to run in poststop hooks"},
 	cli.StringSliceFlag{Name: "prestart", Usage: "set command to run in prestart hooks"},
@@ -91,8 +89,6 @@ var generateFlags = []cli.Flag{
 	cli.BoolFlag{Name: "tty", Usage: "allocate a new tty for the container process"},
 	cli.IntFlag{Name: "uid", Usage: "uid for the process"},
 	cli.StringSliceFlag{Name: "uidmappings", Usage: "add UIDMappings e.g HostID:ContainerID:Size"},
-	cli.StringFlag{Name: "user", Usage: "user namespace"},
-	cli.StringFlag{Name: "uts", Usage: "uts namespace"},
 }
 
 var generateCommand = cli.Command{
@@ -280,8 +276,6 @@ func setupSpec(g *generate.Generator, context *cli.Context) error {
 		}
 	}
 
-	needsNewUser := false
-
 	var uidMaps, gidMaps []string
 
 	if context.IsSet("uidmappings") {
@@ -292,11 +286,10 @@ func setupSpec(g *generate.Generator, context *cli.Context) error {
 		gidMaps = context.StringSlice("gidmappings")
 	}
 
+	// Add default user namespace.
 	if len(uidMaps) > 0 || len(gidMaps) > 0 {
-		needsNewUser = true
+		g.AddOrReplaceLinuxNamespace("user", "")
 	}
-
-	setupLinuxNamespaces(context, g, needsNewUser)
 
 	if context.IsSet("tmpfs") {
 		tmpfsSlice := context.StringSlice("tmpfs")
@@ -457,6 +450,32 @@ func setupSpec(g *generate.Generator, context *cli.Context) error {
 		}
 	}
 
+	if context.IsSet("linux-namespace-add") {
+		namespaces := context.StringSlice("linux-namespace-add")
+		for _, ns := range namespaces {
+			name, path, err := parseNamespace(ns)
+			if err != nil {
+				return err
+			}
+			if err := g.AddOrReplaceLinuxNamespace(name, path); err != nil {
+				return err
+			}
+		}
+	}
+
+	if context.IsSet("linux-namespace-remove") {
+		namespaces := context.StringSlice("linux-namespace-remove")
+		for _, name := range namespaces {
+			if err := g.RemoveLinuxNamespace(name); err != nil {
+				return err
+			}
+		}
+	}
+
+	if context.Bool("linux-namespace-remove-all") {
+		g.ClearLinuxNamespaces()
+	}
+
 	if context.IsSet("rlimits-add") {
 		rlimits := context.StringSlice("rlimits-add")
 		for _, rlimit := range rlimits {
@@ -484,20 +503,6 @@ func setupSpec(g *generate.Generator, context *cli.Context) error {
 
 	err := addSeccomp(context, g)
 	return err
-}
-
-func setupLinuxNamespaces(context *cli.Context, g *generate.Generator, needsNewUser bool) {
-	for _, nsName := range generate.Namespaces {
-		if !context.IsSet(nsName) && !(needsNewUser && nsName == "user") {
-			continue
-		}
-		nsPath := context.String(nsName)
-		if nsPath == "host" {
-			g.RemoveLinuxNamespace(nsName)
-			continue
-		}
-		g.AddOrReplaceLinuxNamespace(nsName, nsPath)
-	}
 }
 
 func parseIDMapping(idms string) (uint32, uint32, uint32, error) {
@@ -602,6 +607,22 @@ func parseRlimit(rlimit string) (string, uint64, uint64, error) {
 	}
 
 	return parts[0], uint64(hard), uint64(soft), nil
+}
+
+func parseNamespace(ns string) (string, string, error) {
+	parts := strings.SplitN(ns, ":", 2)
+	if len(parts) == 0 || parts[0] == "" {
+		return "", "", fmt.Errorf("invalid namespace value: %s", ns)
+	}
+
+	nsType := parts[0]
+	nsPath := ""
+
+	if len(parts) == 2 {
+		nsPath = parts[1]
+	}
+
+	return nsType, nsPath, nil
 }
 
 func addSeccomp(context *cli.Context, g *generate.Generator) error {

@@ -45,12 +45,6 @@ read the configuration from `config.json`.
 **--cap-drop**=[]
   Drop Linux capabilities
 
-**--cgroup**=*PATH*
-  Use a Cgroup namespace where *PATH* is an existing Cgroup namespace file
-  to join. The special *PATH*  empty-string  creates a new namespace.
-  The special *PATH* `host` removes any existing Cgroup namespace from
-  the configuration.
-
 **--cgroups-path**=""
   Specifies the path to the cgroups relative to the cgroups mount point.
 
@@ -65,7 +59,7 @@ read the configuration from `config.json`.
   This option allows you to specify arbitrary environment variables
   that are available for the process that will be launched inside of
   the container.
-  
+
 **--env-file**=[]
   Set environment variables from a file.
   This option sets environment variables in the container from the
@@ -87,12 +81,6 @@ read the configuration from `config.json`.
 
 **--hostname**=""
   Set the container host name that is available inside the container.
-
-**--ipc**=*PATH*
-  Use an IPC namespace where *PATH* is an existing IPC namespace file
-  to join. The special *PATH*  empty-string  creates a new namespace.
-  The special *PATH* `host` removes any existing IPC namespace from the
-  configuration.
 
 **--label**=[]
   Add annotations to the configuration e.g. key=value.
@@ -131,6 +119,20 @@ read the configuration from `config.json`.
 **--linux-mems**=MEMS
   Sets the list of memory nodes in the cpuset (default is to use any available memory node).
 
+**--linux-namespace-add**=NSNAME[:PATH]
+  Adds or replaces the given linux namespace NSNAME with a namespace entry that
+  has a path of PATH. Omitting PATH means that a new namespace will be created
+  by the container.
+
+**--linux-namespace-remove**=NSNAME
+  Removes a namespace from the set of namespaces configured in the container,
+  so that the host's namespace will be used by the container instead of
+  creating or joining another namespace.
+
+**--linux-namespace-remove-all**
+  Removes all namespaces from the set of namespaces configured for a container,
+  such that the container will effectively run on the host.
+
 **--linux-network-classid**=CLASSID
   Specifies network class identifier which will be tagged by container's network packets.
 
@@ -153,12 +155,6 @@ read the configuration from `config.json`.
   Specifies paths can not be read inside container. e.g. --masked-paths=/proc/kcore
   This option can be specified multiple times.
 
-**--mount**=*PATH*
-  Use a mount namespace where *PATH* is an existing mount namespace file
-  to join. The special *PATH*  empty-string  creates a new namespace.
-  The special *PATH* `host` removes any existing mount namespace from the
-  configuration.
-
 **--mount-cgroups**=[rw|ro|no]
   Mount cgroups. The default is *no*.
 
@@ -173,12 +169,6 @@ read the configuration from `config.json`.
 
       "system_u:object_r:usr_t:s0" might be a good label for a readonly container,
       "system_u:system_r:svirt_sandbox_file_t:s0:c1,c2" for a read/write container.
-
-**--network**=*PATH*
-  Use a network namespace where *PATH* is an existing network namespace file
-  to join. The special *PATH*  empty-string  creates a new namespace.
-  The special *PATH* `host` removes any existing network namespace from the
-  configuration.
 
 **--no-new-privileges**=true|false
   Set no new privileges bit for the container process.  Setting this flag
@@ -196,12 +186,6 @@ read the configuration from `config.json`.
   Instead of writing the configuration JSON to stdout, write it to a
   file at *PATH* (overwriting the existing content if a file already
   exists at *PATH*).
-
-**--pid**=*PATH*
-  Use a PID namespace where *PATH* is an existing PID namespace file
-  to join. The special *PATH*  empty-string  creates a new namespace.
-  The special *PATH* `host` removes any existing PID namespace from
-  the configuration.
 
 **--poststart**=CMD[:ARGS...]
   Set command to run in poststart hooks. Can be specified multiple times.
@@ -329,18 +313,6 @@ read the configuration from `config.json`.
 
 **--uidmappings**
   Add UIDMappings e.g HostUID:ContainerID:Size.  Implies **--user=**.
-
-**--user**=*PATH*
-  Use a user namespace where *PATH* is an existing user namespace file
-  to join. The special *PATH*  empty-string  creates a new namespace.
-  The special *PATH* `host` removes any existing user namespace from
-  the configuration.
-
-**--uts**=*PATH*
-  Use a UTS namespace where *PATH* is an existing UTS namespace file
-  to join. The special *PATH*  empty-string  creates a new namespace.
-  The special *PATH* `host` removes any existing UTS namespace from
-  the configuration.
 
 # EXAMPLES
 

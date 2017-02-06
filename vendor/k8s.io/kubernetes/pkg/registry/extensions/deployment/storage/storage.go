@@ -23,15 +23,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	genericapirequest "k8s.io/apiserver/pkg/request"
-	"k8s.io/kubernetes/pkg/api"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	storeerr "k8s.io/kubernetes/pkg/api/errors/storage"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
-	"k8s.io/kubernetes/pkg/genericapiserver/api/rest"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
+	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/registry/extensions/deployment"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	genericregistry "k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/storage"
 )
 
@@ -240,7 +239,7 @@ func (r *ScaleREST) Update(ctx genericapirequest.Context, name string, objInfo r
 func scaleFromDeployment(deployment *extensions.Deployment) (*extensions.Scale, error) {
 	return &extensions.Scale{
 		// TODO: Create a variant of ObjectMeta type that only contains the fields below.
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              deployment.Name,
 			Namespace:         deployment.Namespace,
 			UID:               deployment.UID,

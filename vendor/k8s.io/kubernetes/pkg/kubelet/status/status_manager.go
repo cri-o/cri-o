@@ -440,9 +440,9 @@ func (m *manager) syncPod(uid types.UID, status versionedPodStatus) {
 				glog.V(3).Infof("Pod %q is terminated, but some containers are still running", format.Pod(pod))
 				return
 			}
-			deleteOptions := v1.NewDeleteOptions(0)
+			deleteOptions := metav1.NewDeleteOptions(0)
 			// Use the pod UID as the precondition for deletion to prevent deleting a newly created pod with the same name and namespace.
-			deleteOptions.Preconditions = v1.NewUIDPreconditions(string(pod.UID))
+			deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pod.UID))
 			if err = m.kubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, deleteOptions); err == nil {
 				glog.V(3).Infof("Pod %q fully terminated and removed from etcd", format.Pod(pod))
 				m.deletePodStatus(uid)
@@ -513,6 +513,10 @@ func (m *manager) needsReconcile(uid types.UID, status v1.PodStatus) bool {
 // kubelet temporarily.
 // TODO(random-liu): Remove timestamp related logic after apiserver supports nanosecond or makes it consistent.
 func normalizeStatus(pod *v1.Pod, status *v1.PodStatus) *v1.PodStatus {
+	bytesPerStatus := kubecontainer.MaxPodTerminationMessageLogLength
+	if containers := len(pod.Spec.Containers) + len(pod.Spec.InitContainers); containers > 0 {
+		bytesPerStatus = bytesPerStatus / containers
+	}
 	normalizeTimeStamp := func(t *metav1.Time) {
 		*t = t.Rfc3339Copy()
 	}
@@ -523,6 +527,9 @@ func normalizeStatus(pod *v1.Pod, status *v1.PodStatus) *v1.PodStatus {
 		if c.Terminated != nil {
 			normalizeTimeStamp(&c.Terminated.StartedAt)
 			normalizeTimeStamp(&c.Terminated.FinishedAt)
+			if len(c.Terminated.Message) > bytesPerStatus {
+				c.Terminated.Message = c.Terminated.Message[:bytesPerStatus]
+			}
 		}
 	}
 

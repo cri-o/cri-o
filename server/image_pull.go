@@ -15,7 +15,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	image := ""
 	img := req.GetImage()
 	if img != nil {
-		image = img.GetImage()
+		image = img.Image
 	}
 	options := &copy.Options{}
 	_, err := s.images.PullImage(s.imageContext, image, options)
@@ -23,7 +23,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		return nil, err
 	}
 	resp := &pb.PullImageResponse{
-		ImageRef: &image,
+		ImageRef: image,
 	}
 	logrus.Debugf("PullImageResponse: %+v", resp)
 	return resp, nil

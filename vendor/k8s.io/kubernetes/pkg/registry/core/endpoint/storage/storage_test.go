@@ -19,11 +19,12 @@ package storage
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
@@ -41,9 +42,9 @@ func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 
 func validNewEndpoints() *api.Endpoints {
 	return &api.Endpoints{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: "1.2.3.4"}},
@@ -68,13 +69,13 @@ func TestCreate(t *testing.T) {
 	defer storage.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Store)
 	endpoints := validNewEndpoints()
-	endpoints.ObjectMeta = api.ObjectMeta{}
+	endpoints.ObjectMeta = metav1.ObjectMeta{}
 	test.TestCreate(
 		// valid
 		endpoints,
 		// invalid
 		&api.Endpoints{
-			ObjectMeta: api.ObjectMeta{Name: "_-a123-a_"},
+			ObjectMeta: metav1.ObjectMeta{Name: "_-a123-a_"},
 		},
 	)
 }

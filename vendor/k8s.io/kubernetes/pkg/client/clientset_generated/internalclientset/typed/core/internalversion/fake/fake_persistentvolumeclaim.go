@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -63,14 +64,14 @@ func (c *FakePersistentVolumeClaims) UpdateStatus(persistentVolumeClaim *api.Per
 	return obj.(*api.PersistentVolumeClaim), err
 }
 
-func (c *FakePersistentVolumeClaims) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakePersistentVolumeClaims) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(persistentvolumeclaimsResource, c.ns, name), &api.PersistentVolumeClaim{})
 
 	return err
 }
 
-func (c *FakePersistentVolumeClaims) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakePersistentVolumeClaims) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(persistentvolumeclaimsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.PersistentVolumeClaimList{})
@@ -87,7 +88,7 @@ func (c *FakePersistentVolumeClaims) Get(name string, options v1.GetOptions) (re
 	return obj.(*api.PersistentVolumeClaim), err
 }
 
-func (c *FakePersistentVolumeClaims) List(opts api.ListOptions) (result *api.PersistentVolumeClaimList, err error) {
+func (c *FakePersistentVolumeClaims) List(opts v1.ListOptions) (result *api.PersistentVolumeClaimList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(persistentvolumeclaimsResource, c.ns, opts), &api.PersistentVolumeClaimList{})
 
@@ -109,14 +110,14 @@ func (c *FakePersistentVolumeClaims) List(opts api.ListOptions) (result *api.Per
 }
 
 // Watch returns a watch.Interface that watches the requested persistentVolumeClaims.
-func (c *FakePersistentVolumeClaims) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakePersistentVolumeClaims) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(persistentvolumeclaimsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched persistentVolumeClaim.
-func (c *FakePersistentVolumeClaims) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.PersistentVolumeClaim, err error) {
+func (c *FakePersistentVolumeClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.PersistentVolumeClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(persistentvolumeclaimsResource, c.ns, name, data, subresources...), &api.PersistentVolumeClaim{})
 

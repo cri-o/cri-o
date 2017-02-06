@@ -26,6 +26,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/images"
 	"k8s.io/kubernetes/pkg/api/resource"
 	api "k8s.io/kubernetes/pkg/api/v1"
@@ -40,15 +41,17 @@ const (
 	DefaultClusterName     = "kubernetes"
 	DefaultCloudConfigPath = "/etc/kubernetes/cloud-config"
 
-	etcd                  = "etcd"
-	apiServer             = "apiserver"
-	controllerManager     = "controller-manager"
-	scheduler             = "scheduler"
-	proxy                 = "proxy"
-	kubeAPIServer         = "kube-apiserver"
-	kubeControllerManager = "kube-controller-manager"
-	kubeScheduler         = "kube-scheduler"
-	kubeProxy             = "kube-proxy"
+	etcd                           = "etcd"
+	apiServer                      = "apiserver"
+	controllerManager              = "controller-manager"
+	scheduler                      = "scheduler"
+	proxy                          = "proxy"
+	kubeAPIServer                  = "kube-apiserver"
+	kubeControllerManager          = "kube-controller-manager"
+	kubeScheduler                  = "kube-scheduler"
+	kubeProxy                      = "kube-proxy"
+	authorizationPolicyFile        = "abac_policy.json"
+	authorizationWebhookConfigFile = "webhook_authz.conf"
 )
 
 var (
@@ -80,7 +83,7 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 		kubeAPIServer: componentPod(api.Container{
 			Name:          kubeAPIServer,
 			Image:         images.GetCoreImage(images.KubeAPIServerImage, cfg, kubeadmapi.GlobalEnvParams.HyperkubeImage),
-			Command:       getAPIServerCommand(cfg),
+			Command:       getAPIServerCommand(cfg, false),
 			VolumeMounts:  volumeMounts,
 			LivenessProbe: componentProbe(8080, "/healthz"),
 			Resources:     componentResources("250m"),
@@ -89,7 +92,7 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 		kubeControllerManager: componentPod(api.Container{
 			Name:          kubeControllerManager,
 			Image:         images.GetCoreImage(images.KubeControllerManagerImage, cfg, kubeadmapi.GlobalEnvParams.HyperkubeImage),
-			Command:       getControllerManagerCommand(cfg),
+			Command:       getControllerManagerCommand(cfg, false),
 			VolumeMounts:  volumeMounts,
 			LivenessProbe: componentProbe(10252, "/healthz"),
 			Resources:     componentResources("200m"),
@@ -98,7 +101,7 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 		kubeScheduler: componentPod(api.Container{
 			Name:          kubeScheduler,
 			Image:         images.GetCoreImage(images.KubeSchedulerImage, cfg, kubeadmapi.GlobalEnvParams.HyperkubeImage),
-			Command:       getSchedulerCommand(cfg),
+			Command:       getSchedulerCommand(cfg, false),
 			LivenessProbe: componentProbe(10251, "/healthz"),
 			Resources:     componentResources("100m"),
 			Env:           getProxyEnvVars(),
@@ -215,6 +218,23 @@ func pkiVolumeMount() api.VolumeMount {
 	}
 }
 
+func flockVolume() api.Volume {
+	return api.Volume{
+		Name: "var-lock",
+		VolumeSource: api.VolumeSource{
+			HostPath: &api.HostPathVolumeSource{Path: "/var/lock"},
+		},
+	}
+}
+
+func flockVolumeMount() api.VolumeMount {
+	return api.VolumeMount{
+		Name:      "var-lock",
+		MountPath: "/var/lock",
+		ReadOnly:  false,
+	}
+}
+
 func k8sVolume(cfg *kubeadmapi.MasterConfiguration) api.Volume {
 	return api.Volume{
 		Name: "k8s",
@@ -261,7 +281,7 @@ func componentPod(container api.Container, volumes ...api.Volume) api.Pod {
 			APIVersion: "v1",
 			Kind:       "Pod",
 		},
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      container.Name,
 			Namespace: "kube-system",
 			Labels:    map[string]string{"component": container.Name, "tier": "control-plane"},
@@ -282,23 +302,51 @@ func getComponentBaseCommand(component string) []string {
 	return []string{"kube-" + component}
 }
 
-func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration) []string {
-	command := append(getComponentBaseCommand(apiServer),
+func getCertFilePath(certName string) string {
+	return path.Join(kubeadmapi.GlobalEnvParams.HostPKIPath, certName)
+}
+
+func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool) []string {
+	var command []string
+
+	// self-hosted apiserver needs to wait on a lock
+	if selfHosted {
+		command = []string{"/usr/bin/flock", "--exclusive", "--timeout=30", "/var/lock/api-server.lock"}
+	}
+
+	command = append(getComponentBaseCommand(apiServer),
 		"--insecure-bind-address=127.0.0.1",
 		"--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota",
 		"--service-cluster-ip-range="+cfg.Networking.ServiceSubnet,
-		"--service-account-key-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/apiserver-key.pem",
-		"--client-ca-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/ca.pem",
-		"--tls-cert-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/apiserver.pem",
-		"--tls-private-key-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/apiserver-key.pem",
+		"--service-account-key-file="+getCertFilePath(kubeadmconstants.APIServerKeyName),
+		"--client-ca-file="+getCertFilePath(kubeadmconstants.CACertName),
+		"--tls-cert-file="+getCertFilePath(kubeadmconstants.APIServerCertName),
+		"--tls-private-key-file="+getCertFilePath(kubeadmconstants.APIServerKeyName),
+		"--kubelet-client-certificate="+getCertFilePath(kubeadmconstants.APIServerKubeletClientCertName),
+		"--kubelet-client-key="+getCertFilePath(kubeadmconstants.APIServerKubeletClientKeyName),
 		"--token-auth-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/tokens.csv",
 		fmt.Sprintf("--secure-port=%d", cfg.API.Port),
 		"--allow-privileged",
+		"--storage-backend=etcd3",
 	)
+
+	if cfg.AuthorizationMode != "" {
+		command = append(command, "--authorization-mode="+cfg.AuthorizationMode)
+		switch cfg.AuthorizationMode {
+		case "ABAC":
+			command = append(command, "--authorization-policy-file="+path.Join(kubeadmapi.GlobalEnvParams.KubernetesDir, authorizationPolicyFile))
+		case "Webhook":
+			command = append(command, "--authorization-webhook-config-file="+path.Join(kubeadmapi.GlobalEnvParams.KubernetesDir, authorizationWebhookConfigFile))
+		}
+	}
 
 	// Use first address we are given
 	if len(cfg.API.AdvertiseAddresses) > 0 {
-		command = append(command, fmt.Sprintf("--advertise-address=%s", cfg.API.AdvertiseAddresses[0]))
+		if selfHosted {
+			command = append(command, "--advertise-address=$(POD_IP)")
+		} else {
+			command = append(command, fmt.Sprintf("--advertise-address=%s", cfg.API.AdvertiseAddresses[0]))
+		}
 	}
 
 	if len(cfg.KubernetesVersion) != 0 {
@@ -347,17 +395,24 @@ func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration) []string {
 	return command
 }
 
-func getControllerManagerCommand(cfg *kubeadmapi.MasterConfiguration) []string {
-	command := append(getComponentBaseCommand(controllerManager),
+func getControllerManagerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool) []string {
+	var command []string
+
+	// self-hosted controller-manager needs to wait on a lock
+	if selfHosted {
+		command = []string{"/usr/bin/flock", "--exclusive", "--timeout=30", "/var/lock/controller-manager.lock"}
+	}
+
+	command = append(getComponentBaseCommand(controllerManager),
 		"--address=127.0.0.1",
 		"--leader-elect",
 		"--master=127.0.0.1:8080",
 		"--cluster-name="+DefaultClusterName,
-		"--root-ca-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/ca.pem",
-		"--service-account-private-key-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/apiserver-key.pem",
-		"--cluster-signing-cert-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/ca.pem",
-		"--cluster-signing-key-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/ca-key.pem",
-		"--insecure-experimental-approve-all-kubelet-csrs-for-group=system:kubelet-bootstrap",
+		"--root-ca-file="+getCertFilePath(kubeadmconstants.CACertName),
+		"--service-account-private-key-file="+getCertFilePath(kubeadmconstants.APIServerKeyName),
+		"--cluster-signing-cert-file="+getCertFilePath(kubeadmconstants.CACertName),
+		"--cluster-signing-key-file="+getCertFilePath(kubeadmconstants.CAKeyName),
+		"--insecure-experimental-approve-all-kubelet-csrs-for-group="+KubeletBootstrapGroup,
 	)
 
 	if cfg.CloudProvider != "" {
@@ -374,15 +429,25 @@ func getControllerManagerCommand(cfg *kubeadmapi.MasterConfiguration) []string {
 	if cfg.Networking.PodSubnet != "" {
 		command = append(command, "--allocate-node-cidrs=true", "--cluster-cidr="+cfg.Networking.PodSubnet)
 	}
+
 	return command
 }
 
-func getSchedulerCommand(cfg *kubeadmapi.MasterConfiguration) []string {
-	return append(getComponentBaseCommand(scheduler),
+func getSchedulerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool) []string {
+	var command []string
+
+	// self-hosted apiserver needs to wait on a lock
+	if selfHosted {
+		command = []string{"/usr/bin/flock", "--exclusive", "--timeout=30", "/var/lock/api-server.lock"}
+	}
+
+	command = append(getComponentBaseCommand(scheduler),
 		"--address=127.0.0.1",
 		"--leader-elect",
 		"--master=127.0.0.1:8080",
 	)
+
+	return command
 }
 
 func getProxyCommand(cfg *kubeadmapi.MasterConfiguration) []string {
@@ -405,4 +470,17 @@ func getProxyEnvVars() []api.EnvVar {
 		}
 	}
 	return envs
+}
+
+func getSelfHostedAPIServerEnv() []api.EnvVar {
+	podIPEnvVar := api.EnvVar{
+		Name: "POD_IP",
+		ValueFrom: &api.EnvVarSource{
+			FieldRef: &api.ObjectFieldSelector{
+				FieldPath: "status.podIP",
+			},
+		},
+	}
+
+	return append(getProxyEnvVars(), podIPEnvVar)
 }

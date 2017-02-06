@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -44,8 +43,8 @@ var data = `{
 }`
 
 type Foo struct {
-	metav1.TypeMeta `json:",inline"`
-	v1.ObjectMeta   `json:"metadata,omitempty" description:"standard object metadata"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty" description:"standard object metadata"`
 
 	SomeField  string `json:"someField"`
 	OtherField int    `json:"otherField"`
@@ -64,7 +63,7 @@ var _ = Describe("ThirdParty resources [Flaky] [Disruptive]", func() {
 	f := framework.NewDefaultFramework("thirdparty")
 
 	rsrc := &extensions.ThirdPartyResource{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo.company.com",
 		},
 		Versions: []extensions.APIVersion{
@@ -120,7 +119,7 @@ var _ = Describe("ThirdParty resources [Flaky] [Disruptive]", func() {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "Foo",
 				},
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
 				},
 				SomeField:  "bar",
@@ -163,7 +162,7 @@ var _ = Describe("ThirdParty resources [Flaky] [Disruptive]", func() {
 			// Need to manually do the serialization because otherwise the
 			// Content-Type header is set to protobuf, the thirdparty codec in
 			// the API server side only accepts JSON.
-			deleteOptionsData, err := json.Marshal(v1.NewDeleteOptions(10))
+			deleteOptionsData, err := json.Marshal(metav1.NewDeleteOptions(10))
 			framework.ExpectNoError(err)
 			if _, err := f.ClientSet.Core().RESTClient().Delete().
 				AbsPath("/apis/company.com/v1/namespaces/default/foos/foo").

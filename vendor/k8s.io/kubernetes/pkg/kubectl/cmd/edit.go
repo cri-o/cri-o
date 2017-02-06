@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kubernetes/pkg/api"
@@ -100,12 +101,20 @@ func NewCmdEdit(f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 		Long:    editLong,
 		Example: fmt.Sprintf(editExample),
 		Run: func(cmd *cobra.Command, args []string) {
+			args = append([]string{"configmap"}, args...)
 			err := RunEdit(f, out, errOut, cmd, args, options)
 			cmdutil.CheckErr(err)
 		},
 		ValidArgs:  validArgs,
 		ArgAliases: argAliases,
 	}
+	addEditFlags(cmd, options)
+
+	cmd.AddCommand(NewCmdEditConfigMap(f, out, errOut))
+	return cmd
+}
+
+func addEditFlags(cmd *cobra.Command, options *resource.FilenameOptions) {
 	usage := "to use to edit the resource"
 	cmdutil.AddFilenameOptionFlags(cmd, options, usage)
 	cmdutil.AddValidateFlags(cmd)
@@ -115,7 +124,6 @@ func NewCmdEdit(f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	cmdutil.AddApplyAnnotationFlags(cmd)
 	cmdutil.AddRecordFlag(cmd)
 	cmdutil.AddInclude3rdPartyFlags(cmd)
-	return cmd
 }
 
 func RunEdit(f cmdutil.Factory, out, errOut io.Writer, cmd *cobra.Command, args []string, options *resource.FilenameOptions) error {
@@ -500,7 +508,7 @@ func visitToPatch(
 		}
 
 		results.version = defaultVersion
-		patched, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, api.StrategicMergePatchType, patch)
+		patched, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch)
 		if err != nil {
 			fmt.Fprintln(out, results.addError(err, info))
 			return nil

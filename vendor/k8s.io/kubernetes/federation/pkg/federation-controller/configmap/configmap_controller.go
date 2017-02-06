@@ -19,9 +19,11 @@ package configmap
 import (
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/flowcontrol"
 	federationapi "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	federationclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
 	"k8s.io/kubernetes/federation/pkg/federation-controller/util"
@@ -32,7 +34,6 @@ import (
 	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 
 	"github.com/golang/glog"
 )
@@ -98,11 +99,11 @@ func NewConfigMapController(client federationclientset.Interface) *ConfigMapCont
 	// Start informer on federated API servers on configmaps that should be federated.
 	configmapcontroller.configmapInformerStore, configmapcontroller.configmapInformerController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options apiv1.ListOptions) (pkgruntime.Object, error) {
-				return client.Core().ConfigMaps(apiv1.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
+				return client.Core().ConfigMaps(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options apiv1.ListOptions) (watch.Interface, error) {
-				return client.Core().ConfigMaps(apiv1.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return client.Core().ConfigMaps(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&apiv1.ConfigMap{},
@@ -115,11 +116,11 @@ func NewConfigMapController(client federationclientset.Interface) *ConfigMapCont
 		func(cluster *federationapi.Cluster, targetClient kubeclientset.Interface) (cache.Store, cache.Controller) {
 			return cache.NewInformer(
 				&cache.ListWatch{
-					ListFunc: func(options apiv1.ListOptions) (pkgruntime.Object, error) {
-						return targetClient.Core().ConfigMaps(apiv1.NamespaceAll).List(options)
+					ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
+						return targetClient.Core().ConfigMaps(metav1.NamespaceAll).List(options)
 					},
-					WatchFunc: func(options apiv1.ListOptions) (watch.Interface, error) {
-						return targetClient.Core().ConfigMaps(apiv1.NamespaceAll).Watch(options)
+					WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+						return targetClient.Core().ConfigMaps(metav1.NamespaceAll).Watch(options)
 					},
 				},
 				&apiv1.ConfigMap{},
@@ -155,7 +156,7 @@ func NewConfigMapController(client federationclientset.Interface) *ConfigMapCont
 		},
 		func(client kubeclientset.Interface, obj pkgruntime.Object) error {
 			configmap := obj.(*apiv1.ConfigMap)
-			err := client.Core().ConfigMaps(configmap.Namespace).Delete(configmap.Name, &apiv1.DeleteOptions{})
+			err := client.Core().ConfigMaps(configmap.Namespace).Delete(configmap.Name, &metav1.DeleteOptions{})
 			return err
 		})
 	return configmapcontroller

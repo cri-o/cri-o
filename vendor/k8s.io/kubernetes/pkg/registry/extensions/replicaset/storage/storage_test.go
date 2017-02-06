@@ -21,15 +21,15 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/genericapiserver/api/rest"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
@@ -56,22 +56,23 @@ func createReplicaSet(storage *REST, rs extensions.ReplicaSet, t *testing.T) (ex
 
 func validNewReplicaSet() *extensions.ReplicaSet {
 	return &extensions.ReplicaSet{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: extensions.ReplicaSetSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"a": "b"}},
 			Template: api.PodTemplateSpec{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{
-							Name:            "test",
-							Image:           "test_image",
-							ImagePullPolicy: api.PullIfNotPresent,
+							Name:                     "test",
+							Image:                    "test_image",
+							ImagePullPolicy:          api.PullIfNotPresent,
+							TerminationMessagePolicy: api.TerminationMessageReadFile,
 						},
 					},
 					RestartPolicy: api.RestartPolicyAlways,
@@ -94,7 +95,7 @@ func TestCreate(t *testing.T) {
 	defer storage.ReplicaSet.Store.DestroyFunc()
 	test := registrytest.New(t, storage.ReplicaSet.Store)
 	rs := validNewReplicaSet()
-	rs.ObjectMeta = api.ObjectMeta{}
+	rs.ObjectMeta = metav1.ObjectMeta{}
 	test.TestCreate(
 		// valid
 		rs,
@@ -253,16 +254,16 @@ func TestScaleGet(t *testing.T) {
 	name := "foo"
 
 	var rs extensions.ReplicaSet
-	ctx := genericapirequest.WithNamespace(genericapirequest.NewContext(), api.NamespaceDefault)
-	key := "/replicasets/" + api.NamespaceDefault + "/" + name
+	ctx := genericapirequest.WithNamespace(genericapirequest.NewContext(), metav1.NamespaceDefault)
+	key := "/replicasets/" + metav1.NamespaceDefault + "/" + name
 	if err := storage.ReplicaSet.Storage.Create(ctx, key, &validReplicaSet, &rs, 0); err != nil {
 		t.Fatalf("error setting new replica set (key: %s) %v: %v", key, validReplicaSet, err)
 	}
 
 	want := &extensions.Scale{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              name,
-			Namespace:         api.NamespaceDefault,
+			Namespace:         metav1.NamespaceDefault,
 			UID:               rs.UID,
 			ResourceVersion:   rs.ResourceVersion,
 			CreationTimestamp: rs.CreationTimestamp,
@@ -293,16 +294,16 @@ func TestScaleUpdate(t *testing.T) {
 	name := "foo"
 
 	var rs extensions.ReplicaSet
-	ctx := genericapirequest.WithNamespace(genericapirequest.NewContext(), api.NamespaceDefault)
-	key := "/replicasets/" + api.NamespaceDefault + "/" + name
+	ctx := genericapirequest.WithNamespace(genericapirequest.NewContext(), metav1.NamespaceDefault)
+	key := "/replicasets/" + metav1.NamespaceDefault + "/" + name
 	if err := storage.ReplicaSet.Storage.Create(ctx, key, &validReplicaSet, &rs, 0); err != nil {
 		t.Fatalf("error setting new replica set (key: %s) %v: %v", key, validReplicaSet, err)
 	}
 	replicas := 12
 	update := extensions.Scale{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: api.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: extensions.ScaleSpec{
 			Replicas: int32(replicas),
@@ -335,8 +336,8 @@ func TestStatusUpdate(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.ReplicaSet.Store.DestroyFunc()
 
-	ctx := genericapirequest.WithNamespace(genericapirequest.NewContext(), api.NamespaceDefault)
-	key := "/replicasets/" + api.NamespaceDefault + "/foo"
+	ctx := genericapirequest.WithNamespace(genericapirequest.NewContext(), metav1.NamespaceDefault)
+	key := "/replicasets/" + metav1.NamespaceDefault + "/foo"
 	if err := storage.ReplicaSet.Storage.Create(ctx, key, &validReplicaSet, nil, 0); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

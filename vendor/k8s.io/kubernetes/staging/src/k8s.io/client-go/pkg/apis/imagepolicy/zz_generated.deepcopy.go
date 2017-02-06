@@ -21,9 +21,9 @@ limitations under the License.
 package imagepolicy
 
 import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/client-go/pkg/api"
 	reflect "reflect"
 )
 
@@ -47,8 +47,10 @@ func DeepCopy_imagepolicy_ImageReview(in interface{}, out interface{}, c *conver
 		in := in.(*ImageReview)
 		out := out.(*ImageReview)
 		*out = *in
-		if err := api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_imagepolicy_ImageReviewSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -74,9 +76,7 @@ func DeepCopy_imagepolicy_ImageReviewSpec(in interface{}, out interface{}, c *co
 		if in.Containers != nil {
 			in, out := &in.Containers, &out.Containers
 			*out = make([]ImageReviewContainerSpec, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
+			copy(*out, *in)
 		}
 		if in.Annotations != nil {
 			in, out := &in.Annotations, &out.Annotations

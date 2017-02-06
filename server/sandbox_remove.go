@@ -16,14 +16,14 @@ import (
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
 	logrus.Debugf("RemovePodSandboxRequest %+v", req)
 	s.Update()
-	sb, err := s.getPodSandboxFromRequest(req)
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == errSandboxIDEmpty {
 			return nil, err
 		}
 
 		resp := &pb.RemovePodSandboxResponse{}
-		logrus.Warnf("could not get sandbox %s, it's probably been removed already: %v", req.GetPodSandboxId(), err)
+		logrus.Warnf("could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
 		return resp, nil
 	}
 

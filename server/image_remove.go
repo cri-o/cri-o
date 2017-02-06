@@ -14,7 +14,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*
 	image := ""
 	img := req.GetImage()
 	if img != nil {
-		image = img.GetImage()
+		image = img.Image
 	}
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")

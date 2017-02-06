@@ -4,15 +4,15 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
-	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/fields"
 )
 
 // filterSandbox returns whether passed container matches filtering criteria
 func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 	if filter != nil {
 		if filter.State != nil {
-			if *p.State != *filter.State {
+			if p.State != filter.State.State {
 				return false
 			}
 		}
@@ -39,8 +39,8 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	filter := req.Filter
 	// Filter by pod id first.
 	if filter != nil {
-		if filter.Id != nil {
-			id, err := s.podIDIndex.Get(*filter.Id)
+		if filter.Id != "" {
+			id, err := s.podIDIndex.Get(filter.Id)
 			if err != nil {
 				return nil, err
 			}
@@ -71,9 +71,9 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		}
 
 		pod := &pb.PodSandbox{
-			Id:          &sb.id,
-			CreatedAt:   int64Ptr(created),
-			State:       &rStatus,
+			Id:          sb.id,
+			CreatedAt:   int64(created),
+			State:       rStatus,
 			Labels:      sb.labels,
 			Annotations: sb.annotations,
 			Metadata:    sb.metadata,

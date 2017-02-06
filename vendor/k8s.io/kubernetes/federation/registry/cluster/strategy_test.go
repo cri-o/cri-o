@@ -21,17 +21,18 @@ import (
 
 	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/federation/apis/federation"
 	"k8s.io/kubernetes/pkg/api"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/fields"
 )
 
 func validNewCluster() *federation.Cluster {
 	return &federation.Cluster{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "foo",
 			ResourceVersion: "4",
 			Labels: map[string]string{
@@ -57,7 +58,7 @@ func validNewCluster() *federation.Cluster {
 func invalidNewCluster() *federation.Cluster {
 	// Create a cluster with empty ServerAddressByClientCIDRs (which is a required field).
 	return &federation.Cluster{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "foo2",
 			ResourceVersion: "5",
 		},

@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -59,13 +60,13 @@ func (c *FakeNamespaces) UpdateStatus(namespace *api.Namespace) (*api.Namespace,
 	return obj.(*api.Namespace), err
 }
 
-func (c *FakeNamespaces) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeNamespaces) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewRootDeleteAction(namespacesResource, name), &api.Namespace{})
 	return err
 }
 
-func (c *FakeNamespaces) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeNamespaces) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewRootDeleteCollectionAction(namespacesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.NamespaceList{})
@@ -81,7 +82,7 @@ func (c *FakeNamespaces) Get(name string, options v1.GetOptions) (result *api.Na
 	return obj.(*api.Namespace), err
 }
 
-func (c *FakeNamespaces) List(opts api.ListOptions) (result *api.NamespaceList, err error) {
+func (c *FakeNamespaces) List(opts v1.ListOptions) (result *api.NamespaceList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootListAction(namespacesResource, opts), &api.NamespaceList{})
 	if obj == nil {
@@ -102,13 +103,13 @@ func (c *FakeNamespaces) List(opts api.ListOptions) (result *api.NamespaceList, 
 }
 
 // Watch returns a watch.Interface that watches the requested namespaces.
-func (c *FakeNamespaces) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeNamespaces) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewRootWatchAction(namespacesResource, opts))
 }
 
 // Patch applies the patch and returns the patched namespace.
-func (c *FakeNamespaces) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.Namespace, err error) {
+func (c *FakeNamespaces) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Namespace, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewRootPatchSubresourceAction(namespacesResource, name, data, subresources...), &api.Namespace{})
 	if obj == nil {

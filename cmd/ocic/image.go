@@ -63,18 +63,18 @@ var listImageCommand = cli.Command{
 		quiet := context.Bool("quiet")
 		for _, image := range r.Images {
 			if quiet {
-				fmt.Printf("%s\n", *image.Id)
+				fmt.Printf("%s\n", image.Id)
 				continue
 			}
-			fmt.Printf("ID: %s\n", *image.Id)
+			fmt.Printf("ID: %s\n", image.Id)
 			for _, tag := range image.RepoTags {
 				fmt.Printf("Tag: %s\n", tag)
 			}
 			for _, digest := range image.RepoDigests {
 				fmt.Printf("Digest: %s\n", digest)
 			}
-			if image.Size_ != nil {
-				fmt.Printf("Size: %d\n", *image.Size_)
+			if image.Size_ != 0 {
+				fmt.Printf("Size: %d\n", image.Size_)
 			}
 		}
 		return nil
@@ -107,16 +107,14 @@ var imageStatusCommand = cli.Command{
 		if image == nil {
 			return fmt.Errorf("no such image present")
 		}
-		fmt.Printf("ID: %s\n", *image.Id)
+		fmt.Printf("ID: %s\n", image.Id)
 		for _, tag := range image.RepoTags {
 			fmt.Printf("Tag: %s\n", tag)
 		}
 		for _, digest := range image.RepoDigests {
 			fmt.Printf("Digest: %s\n", digest)
 		}
-		if image.Size_ != nil {
-			fmt.Printf("Size: %d\n", *image.Size_)
-		}
+		fmt.Printf("Size: %d\n", image.Size_)
 		return nil
 	},
 }
@@ -150,19 +148,19 @@ var removeImageCommand = cli.Command{
 // PullImage sends a PullImageRequest to the server, and parses
 // the returned PullImageResponse.
 func PullImage(client pb.ImageServiceClient, image string) (*pb.PullImageResponse, error) {
-	return client.PullImage(context.Background(), &pb.PullImageRequest{Image: &pb.ImageSpec{Image: &image}})
+	return client.PullImage(context.Background(), &pb.PullImageRequest{Image: &pb.ImageSpec{Image: image}})
 }
 
 // ListImages sends a ListImagesRequest to the server, and parses
 // the returned ListImagesResponse.
 func ListImages(client pb.ImageServiceClient, image string) (*pb.ListImagesResponse, error) {
-	return client.ListImages(context.Background(), &pb.ListImagesRequest{Filter: &pb.ImageFilter{Image: &pb.ImageSpec{Image: &image}}})
+	return client.ListImages(context.Background(), &pb.ListImagesRequest{Filter: &pb.ImageFilter{Image: &pb.ImageSpec{Image: image}}})
 }
 
 // ImageStatus sends an ImageStatusRequest to the server, and parses
 // the returned ImageStatusResponse.
 func ImageStatus(client pb.ImageServiceClient, image string) (*pb.ImageStatusResponse, error) {
-	return client.ImageStatus(context.Background(), &pb.ImageStatusRequest{Image: &pb.ImageSpec{Image: &image}})
+	return client.ImageStatus(context.Background(), &pb.ImageStatusRequest{Image: &pb.ImageSpec{Image: image}})
 }
 
 // RemoveImage sends a RemoveImageRequest to the server, and parses
@@ -171,5 +169,5 @@ func RemoveImage(client pb.ImageServiceClient, image string) (*pb.RemoveImageRes
 	if image == "" {
 		return nil, fmt.Errorf("ID cannot be empty")
 	}
-	return client.RemoveImage(context.Background(), &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: &image}})
+	return client.RemoveImage(context.Background(), &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: image}})
 }

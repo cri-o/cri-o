@@ -4,15 +4,15 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
-	"k8s.io/kubernetes/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/fields"
 )
 
 // filterContainer returns whether passed container matches filtering criteria
 func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 	if filter != nil {
 		if filter.State != nil {
-			if *c.State != *filter.State {
+			if c.State != filter.State.State {
 				return false
 			}
 		}
@@ -36,15 +36,15 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 
 	// Filter using container id and pod id first.
 	if filter != nil {
-		if filter.Id != nil {
-			id, err := s.ctrIDIndex.Get(*filter.Id)
+		if filter.Id != "" {
+			id, err := s.ctrIDIndex.Get(filter.Id)
 			if err != nil {
 				return nil, err
 			}
 			c := s.state.containers.Get(id)
 			if c != nil {
-				if filter.PodSandboxId != nil {
-					if c.Sandbox() == *filter.PodSandboxId {
+				if filter.PodSandboxId != "" {
+					if c.Sandbox() == filter.PodSandboxId {
 						ctrList = []*oci.Container{c}
 					} else {
 						ctrList = []*oci.Container{}
@@ -55,8 +55,8 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 				}
 			}
 		} else {
-			if filter.PodSandboxId != nil {
-				pod := s.state.sandboxes[*filter.PodSandboxId]
+			if filter.PodSandboxId != "" {
+				pod := s.state.sandboxes[filter.PodSandboxId]
 				if pod == nil {
 					ctrList = []*oci.Container{}
 				} else {
@@ -78,9 +78,9 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		cID := ctr.ID()
 
 		c := &pb.Container{
-			Id:           &cID,
-			PodSandboxId: &podSandboxID,
-			CreatedAt:    int64Ptr(created),
+			Id:           cID,
+			PodSandboxId: podSandboxID,
+			CreatedAt:    int64(created),
 			Labels:       ctr.Labels(),
 			Metadata:     ctr.Metadata(),
 			Annotations:  ctr.Annotations(),
@@ -95,7 +95,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		case oci.ContainerStateStopped:
 			rState = pb.ContainerState_CONTAINER_EXITED
 		}
-		c.State = &rState
+		c.State = rState
 
 		// Filter by other criteria such as state and labels.
 		if filterContainer(c, req.Filter) {

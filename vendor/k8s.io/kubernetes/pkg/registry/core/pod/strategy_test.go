@@ -22,13 +22,13 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	genericapirequest "k8s.io/apiserver/pkg/request"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/fields"
 )
 
 func TestMatchPod(t *testing.T) {
@@ -124,7 +124,7 @@ func newContainer(name string, requests api.ResourceList, limits api.ResourceLis
 
 func newPod(name string, containers []api.Container) *api.Pod {
 	return &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: api.PodSpec{
@@ -210,7 +210,7 @@ func TestCheckGracefulDelete(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		out := &api.DeleteOptions{GracePeriodSeconds: &defaultGracePeriod}
+		out := &metav1.DeleteOptions{GracePeriodSeconds: &defaultGracePeriod}
 		Strategy.CheckGracefulDelete(genericapirequest.NewContext(), tc.in, out)
 		if out.GracePeriodSeconds == nil {
 			t.Errorf("out grace period was nil but supposed to be %v", tc.gracePeriod)

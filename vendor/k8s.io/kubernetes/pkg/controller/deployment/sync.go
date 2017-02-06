@@ -58,7 +58,6 @@ func (dc *DeploymentController) sync(deployment *extensions.Deployment) error {
 		// so we can abort this resync
 		return err
 	}
-	dc.cleanupDeployment(oldRSs, deployment)
 
 	allRSs := append(oldRSs, newRS)
 	return dc.syncDeploymentStatus(allRSs, newRS, deployment)
@@ -128,7 +127,7 @@ func (dc *DeploymentController) getAllReplicaSetsAndSyncRevision(deployment *ext
 // rsAndPodsWithHashKeySynced returns the RSes and pods the given deployment targets, with pod-template-hash information synced.
 func (dc *DeploymentController) rsAndPodsWithHashKeySynced(deployment *extensions.Deployment) ([]*extensions.ReplicaSet, *v1.PodList, error) {
 	rsList, err := deploymentutil.ListReplicaSets(deployment,
-		func(namespace string, options v1.ListOptions) ([]*extensions.ReplicaSet, error) {
+		func(namespace string, options metav1.ListOptions) ([]*extensions.ReplicaSet, error) {
 			parsed, err := labels.Parse(options.LabelSelector)
 			if err != nil {
 				return nil, err
@@ -192,7 +191,7 @@ func (dc *DeploymentController) addHashKeyToRSAndPods(rs *extensions.ReplicaSet)
 	if err != nil {
 		return nil, fmt.Errorf("error in converting selector to label selector for replica set %s: %s", updatedRS.Name, err)
 	}
-	options := v1.ListOptions{LabelSelector: selector.String()}
+	options := metav1.ListOptions{LabelSelector: selector.String()}
 	parsed, err := labels.Parse(options.LabelSelector)
 	if err != nil {
 		return nil, err
@@ -241,7 +240,7 @@ func (dc *DeploymentController) addHashKeyToRSAndPods(rs *extensions.ReplicaSet)
 
 func (dc *DeploymentController) listPods(deployment *extensions.Deployment) (*v1.PodList, error) {
 	return deploymentutil.ListPods(deployment,
-		func(namespace string, options v1.ListOptions) (*v1.PodList, error) {
+		func(namespace string, options metav1.ListOptions) (*v1.PodList, error) {
 			parsed, err := labels.Parse(options.LabelSelector)
 			if err != nil {
 				return nil, err
@@ -324,7 +323,7 @@ func (dc *DeploymentController) getNewReplicaSet(deployment *extensions.Deployme
 
 	// Create new ReplicaSet
 	newRS := extensions.ReplicaSet{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			// Make the name deterministic, to ensure idempotence
 			Name:      deployment.Name + "-" + podTemplateSpecHash,
 			Namespace: namespace,

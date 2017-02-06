@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -53,14 +54,14 @@ func (c *FakeServiceAccounts) Update(serviceAccount *api.ServiceAccount) (result
 	return obj.(*api.ServiceAccount), err
 }
 
-func (c *FakeServiceAccounts) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeServiceAccounts) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(serviceaccountsResource, c.ns, name), &api.ServiceAccount{})
 
 	return err
 }
 
-func (c *FakeServiceAccounts) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeServiceAccounts) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(serviceaccountsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.ServiceAccountList{})
@@ -77,7 +78,7 @@ func (c *FakeServiceAccounts) Get(name string, options v1.GetOptions) (result *a
 	return obj.(*api.ServiceAccount), err
 }
 
-func (c *FakeServiceAccounts) List(opts api.ListOptions) (result *api.ServiceAccountList, err error) {
+func (c *FakeServiceAccounts) List(opts v1.ListOptions) (result *api.ServiceAccountList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(serviceaccountsResource, c.ns, opts), &api.ServiceAccountList{})
 
@@ -99,14 +100,14 @@ func (c *FakeServiceAccounts) List(opts api.ListOptions) (result *api.ServiceAcc
 }
 
 // Watch returns a watch.Interface that watches the requested serviceAccounts.
-func (c *FakeServiceAccounts) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeServiceAccounts) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(serviceaccountsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched serviceAccount.
-func (c *FakeServiceAccounts) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.ServiceAccount, err error) {
+func (c *FakeServiceAccounts) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ServiceAccount, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(serviceaccountsResource, c.ns, name, data, subresources...), &api.ServiceAccount{})
 

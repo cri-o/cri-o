@@ -63,7 +63,7 @@ func SpreadServiceOrFail(f *framework.Framework, replicaCount int, image string)
 	// First create the service
 	serviceName := "test-service"
 	serviceSpec := &v1.Service{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
 			Namespace: f.Namespace.Name,
 		},
@@ -82,7 +82,7 @@ func SpreadServiceOrFail(f *framework.Framework, replicaCount int, image string)
 
 	// Now create some pods behind the service
 	podSpec := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   serviceName,
 			Labels: map[string]string{"service": serviceName},
 		},
@@ -127,7 +127,7 @@ func getZoneNameForNode(node v1.Node) (string, error) {
 // Find the names of all zones in which we have nodes in this cluster.
 func getZoneNames(c clientset.Interface) ([]string, error) {
 	zoneNames := sets.NewString()
-	nodes, err := c.Core().Nodes().List(v1.ListOptions{})
+	nodes, err := c.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func SpreadRCOrFail(f *framework.Framework, replicaCount int32, image string) {
 	name := "ubelite-spread-rc-" + string(uuid.NewUUID())
 	By(fmt.Sprintf("Creating replication controller %s", name))
 	controller, err := f.ClientSet.Core().ReplicationControllers(f.Namespace.Name).Create(&v1.ReplicationController{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: f.Namespace.Name,
 			Name:      name,
 		},
@@ -202,7 +202,7 @@ func SpreadRCOrFail(f *framework.Framework, replicaCount int32, image string) {
 				"name": name,
 			},
 			Template: &v1.PodTemplateSpec{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"name": name},
 				},
 				Spec: v1.PodSpec{

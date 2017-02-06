@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	api "k8s.io/kubernetes/pkg/api"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
@@ -63,14 +64,14 @@ func (c *FakeServices) UpdateStatus(service *api.Service) (*api.Service, error) 
 	return obj.(*api.Service), err
 }
 
-func (c *FakeServices) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeServices) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(servicesResource, c.ns, name), &api.Service{})
 
 	return err
 }
 
-func (c *FakeServices) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeServices) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(servicesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.ServiceList{})
@@ -87,7 +88,7 @@ func (c *FakeServices) Get(name string, options v1.GetOptions) (result *api.Serv
 	return obj.(*api.Service), err
 }
 
-func (c *FakeServices) List(opts api.ListOptions) (result *api.ServiceList, err error) {
+func (c *FakeServices) List(opts v1.ListOptions) (result *api.ServiceList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(servicesResource, c.ns, opts), &api.ServiceList{})
 
@@ -109,14 +110,14 @@ func (c *FakeServices) List(opts api.ListOptions) (result *api.ServiceList, err 
 }
 
 // Watch returns a watch.Interface that watches the requested services.
-func (c *FakeServices) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeServices) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(servicesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched service.
-func (c *FakeServices) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *api.Service, err error) {
+func (c *FakeServices) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Service, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(servicesResource, c.ns, name, data, subresources...), &api.Service{})
 

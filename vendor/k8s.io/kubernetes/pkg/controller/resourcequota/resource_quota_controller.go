@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -94,11 +95,11 @@ func NewResourceQuotaController(options *ResourceQuotaControllerOptions) *Resour
 	// build the controller that observes quota
 	rq.rqIndexer, rq.rqController = cache.NewIndexerInformer(
 		&cache.ListWatch{
-			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return rq.kubeClient.Core().ResourceQuotas(v1.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return rq.kubeClient.Core().ResourceQuotas(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return rq.kubeClient.Core().ResourceQuotas(v1.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return rq.kubeClient.Core().ResourceQuotas(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&v1.ResourceQuota{},
@@ -300,7 +301,7 @@ func (rq *ResourceQuotaController) syncResourceQuota(v1ResourceQuota v1.Resource
 	// Create a usage object that is based on the quota resource version that will handle updates
 	// by default, we preserve the past usage observation, and set hard to the current spec
 	usage := api.ResourceQuota{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            resourceQuota.Name,
 			Namespace:       resourceQuota.Namespace,
 			ResourceVersion: resourceQuota.ResourceVersion,

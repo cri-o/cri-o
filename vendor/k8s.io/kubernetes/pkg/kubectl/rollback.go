@@ -23,6 +23,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -73,7 +74,7 @@ func (r *DeploymentRollbacker) Rollback(obj runtime.Object, updatedAnnotations m
 	result := ""
 
 	// Get current events
-	events, err := r.c.Core().Events(d.Namespace).List(api.ListOptions{})
+	events, err := r.c.Core().Events(d.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return result, err
 	}
@@ -82,7 +83,7 @@ func (r *DeploymentRollbacker) Rollback(obj runtime.Object, updatedAnnotations m
 		return result, err
 	}
 	// Watch for the changes of events
-	watch, err := r.c.Core().Events(d.Namespace).Watch(api.ListOptions{Watch: true, ResourceVersion: events.ResourceVersion})
+	watch, err := r.c.Core().Events(d.Namespace).Watch(metav1.ListOptions{Watch: true, ResourceVersion: events.ResourceVersion})
 	if err != nil {
 		return result, err
 	}
@@ -155,8 +156,8 @@ func simpleDryRun(deployment *extensions.Deployment, c clientset.Interface, toRe
 		revisionToSpec[v] = &rs.Spec.Template
 	}
 
-	if len(revisionToSpec) == 0 {
-		return "No rollout history found.", nil
+	if len(revisionToSpec) < 2 {
+		return "", fmt.Errorf("no rollout history found for deployment %q", deployment.Name)
 	}
 
 	if toRevision > 0 {
@@ -180,7 +181,7 @@ func simpleDryRun(deployment *extensions.Deployment, c clientset.Interface, toRe
 	}
 	sliceutil.SortInts64(revisions)
 
-	template, _ := revisionToSpec[revisions[len(revisions)-1]]
+	template, _ := revisionToSpec[revisions[len(revisions)-2]]
 	buf := bytes.NewBuffer([]byte{})
 	buf.WriteString("\n")
 	internalTemplate := &api.PodTemplateSpec{}

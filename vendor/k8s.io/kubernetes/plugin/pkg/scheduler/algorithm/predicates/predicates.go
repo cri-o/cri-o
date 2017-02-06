@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/legacylisters"
 	"k8s.io/kubernetes/pkg/kubelet/qos"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
@@ -64,7 +64,7 @@ type PersistentVolumeClaimInfo interface {
 
 // CachedPersistentVolumeClaimInfo implements PersistentVolumeClaimInfo
 type CachedPersistentVolumeClaimInfo struct {
-	*cache.StoreToPersistentVolumeClaimLister
+	*listers.StoreToPersistentVolumeClaimLister
 }
 
 // GetPersistentVolumeClaimInfo fetches the claim in specified namespace with specified name
@@ -73,12 +73,12 @@ func (c *CachedPersistentVolumeClaimInfo) GetPersistentVolumeClaimInfo(namespace
 }
 
 type CachedNodeInfo struct {
-	*cache.StoreToNodeLister
+	*listers.StoreToNodeLister
 }
 
 // GetNodeInfo returns cached data for the node 'id'.
 func (c *CachedNodeInfo) GetNodeInfo(id string) (*v1.Node, error) {
-	node, exists, err := c.Get(&v1.Node{ObjectMeta: v1.ObjectMeta{Name: id}})
+	node, exists, err := c.Get(&v1.Node{ObjectMeta: metav1.ObjectMeta{Name: id}})
 
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving node '%v' from cache: %v", id, err)
@@ -463,11 +463,7 @@ func GetResourceRequest(pod *v1.Pod) *schedulercache.Resource {
 				result.NvidiaGPU += rQuantity.Value()
 			default:
 				if v1.IsOpaqueIntResourceName(rName) {
-					// Lazily allocate this map only if required.
-					if result.OpaqueIntResources == nil {
-						result.OpaqueIntResources = map[v1.ResourceName]int64{}
-					}
-					result.OpaqueIntResources[rName] += rQuantity.Value()
+					result.AddOpaque(rName, rQuantity.Value())
 				}
 			}
 		}
@@ -490,11 +486,9 @@ func GetResourceRequest(pod *v1.Pod) *schedulercache.Resource {
 				}
 			default:
 				if v1.IsOpaqueIntResourceName(rName) {
-					// Lazily allocate this map only if required.
-					if result.OpaqueIntResources == nil {
-						result.OpaqueIntResources = map[v1.ResourceName]int64{}
-					}
 					value := rQuantity.Value()
+					// Ensure the opaque resource map is initialized in the result.
+					result.AddOpaque(rName, int64(0))
 					if value > result.OpaqueIntResources[rName] {
 						result.OpaqueIntResources[rName] = value
 					}
@@ -1170,11 +1164,6 @@ func tolerationsToleratesTaints(tolerations []v1.Toleration, taints []v1.Taint) 
 		return true
 	}
 
-	// The taint list isn't nil/empty, a nil/empty toleration list can't tolerate them.
-	if len(tolerations) == 0 {
-		return false
-	}
-
 	for i := range taints {
 		taint := &taints[i]
 		// skip taints that have effect PreferNoSchedule, since it is for priorities
@@ -1182,7 +1171,7 @@ func tolerationsToleratesTaints(tolerations []v1.Toleration, taints []v1.Taint) 
 			continue
 		}
 
-		if !v1.TaintToleratedByTolerations(taint, tolerations) {
+		if len(tolerations) == 0 || !v1.TaintToleratedByTolerations(taint, tolerations) {
 			return false
 		}
 	}

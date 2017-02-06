@@ -220,7 +220,7 @@ func RunPodSandbox(client pb.RuntimeServiceClient, opts createOptions) error {
 
 	// Override the name by the one specified through CLI
 	if opts.name != "" {
-		config.Metadata.Name = &opts.name
+		config.Metadata.Name = opts.name
 	}
 
 	for k, v := range opts.labels {
@@ -231,7 +231,7 @@ func RunPodSandbox(client pb.RuntimeServiceClient, opts createOptions) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(*r.PodSandboxId)
+	fmt.Println(r.PodSandboxId)
 	return nil
 }
 
@@ -241,7 +241,7 @@ func StopPodSandbox(client pb.RuntimeServiceClient, ID string) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
-	_, err := client.StopPodSandbox(context.Background(), &pb.StopPodSandboxRequest{PodSandboxId: &ID})
+	_, err := client.StopPodSandbox(context.Background(), &pb.StopPodSandboxRequest{PodSandboxId: ID})
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func RemovePodSandbox(client pb.RuntimeServiceClient, ID string) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
-	_, err := client.RemovePodSandbox(context.Background(), &pb.RemovePodSandboxRequest{PodSandboxId: &ID})
+	_, err := client.RemovePodSandbox(context.Background(), &pb.RemovePodSandboxRequest{PodSandboxId: ID})
 	if err != nil {
 		return err
 	}
@@ -269,37 +269,29 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
-	r, err := client.PodSandboxStatus(context.Background(), &pb.PodSandboxStatusRequest{PodSandboxId: &ID})
+	r, err := client.PodSandboxStatus(context.Background(), &pb.PodSandboxStatusRequest{PodSandboxId: ID})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("ID: %s\n", *r.Status.Id)
+	fmt.Printf("ID: %s\n", r.Status.Id)
 	if r.Status.Metadata != nil {
-		if r.Status.Metadata.Name != nil {
-			fmt.Printf("Name: %s\n", *r.Status.Metadata.Name)
+		if r.Status.Metadata.Name != "" {
+			fmt.Printf("Name: %s\n", r.Status.Metadata.Name)
 		}
-		if r.Status.Metadata.Uid != nil {
-			fmt.Printf("UID: %s\n", *r.Status.Metadata.Uid)
+		if r.Status.Metadata.Uid != "" {
+			fmt.Printf("UID: %s\n", r.Status.Metadata.Uid)
 		}
-		if r.Status.Metadata.Namespace != nil {
-			fmt.Printf("Namespace: %s\n", *r.Status.Metadata.Namespace)
+		if r.Status.Metadata.Namespace != "" {
+			fmt.Printf("Namespace: %s\n", r.Status.Metadata.Namespace)
 		}
-		if r.Status.Metadata.Attempt != nil {
-			fmt.Printf("Attempt: %v\n", *r.Status.Metadata.Attempt)
-		}
+		fmt.Printf("Attempt: %v\n", r.Status.Metadata.Attempt)
 	}
-	if r.Status.State != nil {
-		fmt.Printf("Status: %s\n", r.Status.State)
-	}
-	if r.Status.CreatedAt != nil {
-		ctm := time.Unix(0, *r.Status.CreatedAt)
-		fmt.Printf("Created: %v\n", ctm)
-	}
-	if r.Status.Linux != nil {
-		fmt.Printf("Network namespace: %s\n", *r.Status.Linux.Namespaces.Network)
-	}
+	fmt.Printf("Status: %s\n", r.Status.State)
+	ctm := time.Unix(0, r.Status.CreatedAt)
+	fmt.Printf("Created: %v\n", ctm)
+	fmt.Printf("Network namespace: %s\n", r.Status.Linux.Namespaces.Network)
 	if r.Status.Network != nil {
-		fmt.Printf("IP Address: %v\n", *r.Status.Network.Ip)
+		fmt.Printf("IP Address: %v\n", r.Status.Network.Ip)
 	}
 	if r.Status.Labels != nil {
 		fmt.Println("Labels:")
@@ -321,17 +313,18 @@ func PodSandboxStatus(client pb.RuntimeServiceClient, ID string) error {
 func ListPodSandboxes(client pb.RuntimeServiceClient, opts listOptions) error {
 	filter := &pb.PodSandboxFilter{}
 	if opts.id != "" {
-		filter.Id = &opts.id
+		filter.Id = opts.id
 	}
 	if opts.state != "" {
-		st := pb.PodSandboxState_SANDBOX_NOTREADY
+		st := &pb.PodSandboxStateValue{}
+		st.State = pb.PodSandboxState_SANDBOX_NOTREADY
 		switch opts.state {
 		case "ready":
-			st = pb.PodSandboxState_SANDBOX_READY
-			filter.State = &st
+			st.State = pb.PodSandboxState_SANDBOX_READY
+			filter.State = st
 		case "notready":
-			st = pb.PodSandboxState_SANDBOX_NOTREADY
-			filter.State = &st
+			st.State = pb.PodSandboxState_SANDBOX_NOTREADY
+			filter.State = st
 		default:
 			log.Fatalf("--state should be ready or notready")
 		}
@@ -347,26 +340,24 @@ func ListPodSandboxes(client pb.RuntimeServiceClient, opts listOptions) error {
 	}
 	for _, pod := range r.Items {
 		if opts.quiet {
-			fmt.Println(*pod.Id)
+			fmt.Println(pod.Id)
 			continue
 		}
-		fmt.Printf("ID: %s\n", *pod.Id)
+		fmt.Printf("ID: %s\n", pod.Id)
 		if pod.Metadata != nil {
-			if pod.Metadata.Name != nil {
-				fmt.Printf("Name: %s\n", *pod.Metadata.Name)
+			if pod.Metadata.Name != "" {
+				fmt.Printf("Name: %s\n", pod.Metadata.Name)
 			}
-			if pod.Metadata.Uid != nil {
-				fmt.Printf("UID: %s\n", *pod.Metadata.Uid)
+			if pod.Metadata.Uid != "" {
+				fmt.Printf("UID: %s\n", pod.Metadata.Uid)
 			}
-			if pod.Metadata.Namespace != nil {
-				fmt.Printf("Namespace: %s\n", *pod.Metadata.Namespace)
+			if pod.Metadata.Namespace != "" {
+				fmt.Printf("Namespace: %s\n", pod.Metadata.Namespace)
 			}
-			if pod.Metadata.Attempt != nil {
-				fmt.Printf("Attempt: %v\n", *pod.Metadata.Attempt)
-			}
+			fmt.Printf("Attempt: %v\n", pod.Metadata.Attempt)
 		}
 		fmt.Printf("Status: %s\n", pod.State)
-		ctm := time.Unix(0, *pod.CreatedAt)
+		ctm := time.Unix(0, pod.CreatedAt)
 		fmt.Printf("Created: %v\n", ctm)
 		if pod.Labels != nil {
 			fmt.Println("Labels:")

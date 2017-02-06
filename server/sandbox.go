@@ -261,19 +261,14 @@ func (s *Server) generatePodIDandName(name string, namespace string, attempt uin
 	return id, name, err
 }
 
-type podSandboxRequest interface {
-	GetPodSandboxId() string
-}
-
-func (s *Server) getPodSandboxFromRequest(req podSandboxRequest) (*sandbox, error) {
-	sbID := req.GetPodSandboxId()
-	if sbID == "" {
+func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox, error) {
+	if podSandboxID == "" {
 		return nil, errSandboxIDEmpty
 	}
 
-	sandboxID, err := s.podIDIndex.Get(sbID)
+	sandboxID, err := s.podIDIndex.Get(podSandboxID)
 	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
 	}
 
 	sb := s.getSandbox(sandboxID)

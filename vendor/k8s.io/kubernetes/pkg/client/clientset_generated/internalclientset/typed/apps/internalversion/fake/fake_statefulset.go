@@ -20,8 +20,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/kubernetes/pkg/api"
 	apps "k8s.io/kubernetes/pkg/apis/apps"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
@@ -64,14 +64,14 @@ func (c *FakeStatefulSets) UpdateStatus(statefulSet *apps.StatefulSet) (*apps.St
 	return obj.(*apps.StatefulSet), err
 }
 
-func (c *FakeStatefulSets) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeStatefulSets) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(statefulsetsResource, c.ns, name), &apps.StatefulSet{})
 
 	return err
 }
 
-func (c *FakeStatefulSets) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeStatefulSets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(statefulsetsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &apps.StatefulSetList{})
@@ -88,7 +88,7 @@ func (c *FakeStatefulSets) Get(name string, options v1.GetOptions) (result *apps
 	return obj.(*apps.StatefulSet), err
 }
 
-func (c *FakeStatefulSets) List(opts api.ListOptions) (result *apps.StatefulSetList, err error) {
+func (c *FakeStatefulSets) List(opts v1.ListOptions) (result *apps.StatefulSetList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(statefulsetsResource, c.ns, opts), &apps.StatefulSetList{})
 
@@ -110,14 +110,14 @@ func (c *FakeStatefulSets) List(opts api.ListOptions) (result *apps.StatefulSetL
 }
 
 // Watch returns a watch.Interface that watches the requested statefulSets.
-func (c *FakeStatefulSets) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeStatefulSets) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(statefulsetsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched statefulSet.
-func (c *FakeStatefulSets) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *apps.StatefulSet, err error) {
+func (c *FakeStatefulSets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *apps.StatefulSet, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(statefulsetsResource, c.ns, name, data, subresources...), &apps.StatefulSet{})
 

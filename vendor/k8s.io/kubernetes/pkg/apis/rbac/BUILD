@@ -18,7 +18,6 @@ go_library(
     ],
     tags = ["automanaged"],
     deps = [
-        "//pkg/api:go_default_library",
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
         "//vendor:k8s.io/apimachinery/pkg/conversion",
         "//vendor:k8s.io/apimachinery/pkg/runtime",
@@ -40,6 +39,7 @@ filegroup(
         ":package-srcs",
         "//pkg/apis/rbac/install:all-srcs",
         "//pkg/apis/rbac/v1alpha1:all-srcs",
+        "//pkg/apis/rbac/v1beta1:all-srcs",
         "//pkg/apis/rbac/validation:all-srcs",
     ],
     tags = ["automanaged"],

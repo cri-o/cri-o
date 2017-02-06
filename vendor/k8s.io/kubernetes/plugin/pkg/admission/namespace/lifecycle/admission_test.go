@@ -25,14 +25,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/util/clock"
 	"k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/controller/informers"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
-	"k8s.io/kubernetes/pkg/util/clock"
 )
 
 // newHandlerForTest returns a configured handler for testing.
@@ -43,7 +43,7 @@ func newHandlerForTest(c clientset.Interface) (admission.Interface, informers.Sh
 // newHandlerForTestWithClock returns a configured handler for testing.
 func newHandlerForTestWithClock(c clientset.Interface, cacheClock clock.Clock) (admission.Interface, informers.SharedInformerFactory, error) {
 	f := informers.NewSharedInformerFactory(nil, c, 5*time.Minute)
-	handler, err := newLifecycleWithClock(sets.NewString(api.NamespaceDefault, api.NamespaceSystem), cacheClock)
+	handler, err := newLifecycleWithClock(sets.NewString(metav1.NamespaceDefault, metav1.NamespaceSystem), cacheClock)
 	if err != nil {
 		return nil, f, err
 	}
@@ -65,7 +65,7 @@ func newMockClientForTest(namespaces map[string]api.NamespacePhase) *fake.Client
 		index := 0
 		for name, phase := range namespaces {
 			namespaceList.Items = append(namespaceList.Items, api.Namespace{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:            name,
 					ResourceVersion: fmt.Sprintf("%d", index),
 				},
@@ -83,7 +83,7 @@ func newMockClientForTest(namespaces map[string]api.NamespacePhase) *fake.Client
 // newPod returns a new pod for the specified namespace
 func newPod(namespace string) api.Pod {
 	return api.Pod{
-		ObjectMeta: api.ObjectMeta{Name: "123", Namespace: namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: "123", Namespace: namespace},
 		Spec: api.PodSpec{
 			Volumes:    []api.Volume{{Name: "vol"}},
 			Containers: []api.Container{{Name: "ctr", Image: "image"}},
@@ -168,7 +168,7 @@ func TestAdmissionNamespaceTerminating(t *testing.T) {
 	}
 
 	// verify delete of namespace default can never proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, nil, api.Kind("Namespace").WithVersion("version"), "", api.NamespaceDefault, api.Resource("namespaces").WithVersion("version"), "", admission.Delete, nil))
+	err = handler.Admit(admission.NewAttributesRecord(nil, nil, api.Kind("Namespace").WithVersion("version"), "", metav1.NamespaceDefault, api.Resource("namespaces").WithVersion("version"), "", admission.Delete, nil))
 	if err == nil {
 		t.Errorf("Expected an error that this namespace can never be deleted")
 	}
@@ -188,7 +188,7 @@ func TestAdmissionNamespaceForceLiveLookup(t *testing.T) {
 	mockClient := newMockClientForTest(phases)
 	mockClient.AddReactor("get", "namespaces", func(action core.Action) (bool, runtime.Object, error) {
 		getCalls++
-		return true, &api.Namespace{ObjectMeta: api.ObjectMeta{Name: namespace}, Status: api.NamespaceStatus{Phase: phases[namespace]}}, nil
+		return true, &api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}, Status: api.NamespaceStatus{Phase: phases[namespace]}}, nil
 	})
 
 	fakeClock := clock.NewFakeClock(time.Now())

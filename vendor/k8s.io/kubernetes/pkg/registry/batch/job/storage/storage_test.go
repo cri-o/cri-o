@@ -20,12 +20,12 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
@@ -46,7 +46,7 @@ func validNewJob() *batch.Job {
 	completions := int32(1)
 	parallelism := int32(1)
 	return &batch.Job{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 		},
@@ -58,15 +58,16 @@ func validNewJob() *batch.Job {
 			},
 			ManualSelector: newBool(true),
 			Template: api.PodTemplateSpec{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						{
-							Name:            "test",
-							Image:           "test_image",
-							ImagePullPolicy: api.PullIfNotPresent,
+							Name:                     "test",
+							Image:                    "test_image",
+							ImagePullPolicy:          api.PullIfNotPresent,
+							TerminationMessagePolicy: api.TerminationMessageReadFile,
 						},
 					},
 					RestartPolicy: api.RestartPolicyOnFailure,
@@ -83,7 +84,7 @@ func TestCreate(t *testing.T) {
 	defer storage.Job.Store.DestroyFunc()
 	test := registrytest.New(t, storage.Job.Store)
 	validJob := validNewJob()
-	validJob.ObjectMeta = api.ObjectMeta{}
+	validJob.ObjectMeta = metav1.ObjectMeta{}
 	test.TestCreate(
 		// valid
 		validJob,

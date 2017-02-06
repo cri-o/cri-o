@@ -24,12 +24,12 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	"k8s.io/client-go/util/clock"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	containertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/kubelet/network/mock_network"
-	"k8s.io/kubernetes/pkg/util/clock"
 )
 
 // newTestNetworkPlugin returns a mock plugin that implements network.NetworkPlugin
@@ -40,7 +40,7 @@ func newTestNetworkPlugin(t *testing.T) *mock_network.MockNetworkPlugin {
 
 func newTestDockerService() (*dockerService, *dockertools.FakeDockerClient, *clock.FakeClock) {
 	fakeClock := clock.NewFakeClock(time.Time{})
-	c := dockertools.NewFakeDockerClientWithClock(fakeClock)
+	c := dockertools.NewFakeDockerClient().WithClock(fakeClock)
 	return &dockerService{client: c, os: &containertest.FakeOS{}, networkPlugin: &network.NoopNetworkPlugin{}}, c, fakeClock
 }
 
@@ -53,8 +53,8 @@ func TestStatus(t *testing.T) {
 		assert.Equal(t, len(expected), len(conditions))
 		for k, v := range expected {
 			for _, c := range conditions {
-				if k == c.GetType() {
-					assert.Equal(t, v, c.GetStatus())
+				if k == c.Type {
+					assert.Equal(t, v, c.Status)
 				}
 			}
 		}

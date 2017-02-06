@@ -32,10 +32,10 @@ var runtimeVersionCommand = cli.Command{
 
 // Version sends a VersionRequest to the server, and parses the returned VersionResponse.
 func Version(client pb.RuntimeServiceClient, version string) error {
-	r, err := client.Version(context.Background(), &pb.VersionRequest{Version: &version})
+	r, err := client.Version(context.Background(), &pb.VersionRequest{Version: version})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("VersionResponse: Version: %s, RuntimeName: %s, RuntimeVersion: %s, RuntimeApiVersion: %s\n", *r.Version, *r.RuntimeName, *r.RuntimeVersion, *r.RuntimeApiVersion)
+	fmt.Printf("VersionResponse: Version: %s, RuntimeName: %s, RuntimeVersion: %s, RuntimeApiVersion: %s\n", r.Version, r.RuntimeName, r.RuntimeVersion, r.RuntimeApiVersion)
 	return nil
 }

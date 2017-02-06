@@ -17,12 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/api"
-	v1 "k8s.io/kubernetes/pkg/api/v1"
 	v1alpha1 "k8s.io/kubernetes/pkg/apis/rbac/v1alpha1"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
 )
 
 // RoleBindingsGetter has a method to return a RoleBindingInterface.
@@ -37,16 +37,16 @@ type RoleBindingInterface interface {
 	Update(*v1alpha1.RoleBinding) (*v1alpha1.RoleBinding, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1alpha1.RoleBinding, error)
+	Get(name string, options v1.GetOptions) (*v1alpha1.RoleBinding, error)
 	List(opts v1.ListOptions) (*v1alpha1.RoleBindingList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1alpha1.RoleBinding, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.RoleBinding, err error)
 	RoleBindingExpansion
 }
 
 // roleBindings implements RoleBindingInterface
 type roleBindings struct {
-	client restclient.Interface
+	client rest.Interface
 	ns     string
 }
 
@@ -106,7 +106,7 @@ func (c *roleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v
 }
 
 // Get takes name of the roleBinding, and returns the corresponding roleBinding object, and an error if there is any.
-func (c *roleBindings) Get(name string, options meta_v1.GetOptions) (result *v1alpha1.RoleBinding, err error) {
+func (c *roleBindings) Get(name string, options v1.GetOptions) (result *v1alpha1.RoleBinding, err error) {
 	result = &v1alpha1.RoleBinding{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -141,7 +141,7 @@ func (c *roleBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched roleBinding.
-func (c *roleBindings) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1alpha1.RoleBinding, err error) {
+func (c *roleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.RoleBinding, err error) {
 	result = &v1alpha1.RoleBinding{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

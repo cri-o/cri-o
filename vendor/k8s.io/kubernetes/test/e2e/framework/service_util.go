@@ -109,7 +109,7 @@ func NewServiceTestJig(client clientset.Interface, name string) *ServiceTestJig 
 // as the jig and exposes the given port.
 func (j *ServiceTestJig) newServiceTemplate(namespace string, proto v1.Protocol, port int32) *v1.Service {
 	service := &v1.Service{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      j.Name,
 			Labels:    j.Labels,
@@ -487,7 +487,7 @@ func (j *ServiceTestJig) WaitForLoadBalancerDestroyOrFail(namespace, name string
 // name as the jig and runs the "netexec" container.
 func (j *ServiceTestJig) newRCTemplate(namespace string) *v1.ReplicationController {
 	rc := &v1.ReplicationController{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      j.Name,
 			Labels:    j.Labels,
@@ -496,7 +496,7 @@ func (j *ServiceTestJig) newRCTemplate(namespace string) *v1.ReplicationControll
 			Replicas: func(i int) *int32 { x := int32(i); return &x }(1),
 			Selector: j.Labels,
 			Template: &v1.PodTemplateSpec{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: j.Labels,
 				},
 				Spec: v1.PodSpec{
@@ -552,7 +552,7 @@ func (j *ServiceTestJig) waitForPodsCreated(namespace string, replicas int) ([]s
 	label := labels.SelectorFromSet(labels.Set(j.Labels))
 	Logf("Waiting up to %v for %d pods to be created", timeout, replicas)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2 * time.Second) {
-		options := v1.ListOptions{LabelSelector: label.String()}
+		options := metav1.ListOptions{LabelSelector: label.String()}
 		pods, err := j.Client.Core().Pods(namespace).List(options)
 		if err != nil {
 			return nil, err
@@ -585,7 +585,7 @@ func (j *ServiceTestJig) waitForPodsReady(namespace string, pods []string) error
 // newNetexecPodSpec returns the pod spec of netexec pod
 func newNetexecPodSpec(podName string, httpPort, udpPort int32, hostNetwork bool) *v1.Pod {
 	pod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 		},
 		Spec: v1.PodSpec{
@@ -632,7 +632,7 @@ func (j *ServiceTestJig) LaunchNetexecPodOnNode(f *Framework, nodeName, podName 
 func newEchoServerPodSpec(podName string) *v1.Pod {
 	port := 8080
 	pod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 		},
 		Spec: v1.PodSpec{
@@ -783,7 +783,7 @@ func NewServerTest(client clientset.Interface, namespace string, serviceName str
 // Build default config for a service (which can then be changed)
 func (t *ServiceTestFixture) BuildServiceSpec() *v1.Service {
 	service := &v1.Service{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.ServiceName,
 			Namespace: t.Namespace,
 		},
@@ -1001,7 +1001,7 @@ func ValidateEndpointsOrFail(c clientset.Interface, namespace, serviceName strin
 		i++
 	}
 
-	if pods, err := c.Core().Pods(v1.NamespaceAll).List(v1.ListOptions{}); err == nil {
+	if pods, err := c.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
 		for _, pod := range pods.Items {
 			Logf("Pod %s\t%s\t%s\t%s", pod.Namespace, pod.Name, pod.Spec.NodeName, pod.DeletionTimestamp)
 		}
@@ -1017,7 +1017,7 @@ func StartServeHostnameService(c clientset.Interface, internalClient internalcli
 
 	By("creating service " + name + " in namespace " + ns)
 	_, err := c.Core().Services(ns).Create(&v1.Service{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: v1.ServiceSpec{

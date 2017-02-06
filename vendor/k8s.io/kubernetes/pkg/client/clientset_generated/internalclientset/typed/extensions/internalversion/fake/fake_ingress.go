@@ -20,8 +20,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/kubernetes/pkg/api"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
@@ -64,14 +64,14 @@ func (c *FakeIngresses) UpdateStatus(ingress *extensions.Ingress) (*extensions.I
 	return obj.(*extensions.Ingress), err
 }
 
-func (c *FakeIngresses) Delete(name string, options *api.DeleteOptions) error {
+func (c *FakeIngresses) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(core.NewDeleteAction(ingressesResource, c.ns, name), &extensions.Ingress{})
 
 	return err
 }
 
-func (c *FakeIngresses) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (c *FakeIngresses) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := core.NewDeleteCollectionAction(ingressesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &extensions.IngressList{})
@@ -88,7 +88,7 @@ func (c *FakeIngresses) Get(name string, options v1.GetOptions) (result *extensi
 	return obj.(*extensions.Ingress), err
 }
 
-func (c *FakeIngresses) List(opts api.ListOptions) (result *extensions.IngressList, err error) {
+func (c *FakeIngresses) List(opts v1.ListOptions) (result *extensions.IngressList, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewListAction(ingressesResource, c.ns, opts), &extensions.IngressList{})
 
@@ -110,14 +110,14 @@ func (c *FakeIngresses) List(opts api.ListOptions) (result *extensions.IngressLi
 }
 
 // Watch returns a watch.Interface that watches the requested ingresses.
-func (c *FakeIngresses) Watch(opts api.ListOptions) (watch.Interface, error) {
+func (c *FakeIngresses) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(core.NewWatchAction(ingressesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched ingress.
-func (c *FakeIngresses) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *extensions.Ingress, err error) {
+func (c *FakeIngresses) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *extensions.Ingress, err error) {
 	obj, err := c.Fake.
 		Invokes(core.NewPatchSubresourceAction(ingressesResource, c.ns, name, data, subresources...), &extensions.Ingress{})
 
