@@ -28,6 +28,10 @@ type Process struct {
 	// local to the container's user and group configuration.
 	User string
 
+	// AdditionalGroups specifies the gids that should be added to supplementary groups
+	// in addition to those that the user belongs to.
+	AdditionalGroups []string
+
 	// Cwd will change the processes current working directory inside the container's rootfs.
 	Cwd string
 
@@ -43,8 +47,9 @@ type Process struct {
 	// ExtraFiles specifies additional open files to be inherited by the container
 	ExtraFiles []*os.File
 
-	// consolePath is the path to the console allocated to the container.
-	consolePath string
+	// consoleChan provides the masterfd console.
+	// TODO: Make this persistent in Process.
+	consoleChan chan *os.File
 
 	// Capabilities specify the capabilities to keep when executing the process inside the container
 	// All capabilities not specified will be dropped from the processes capability mask
@@ -101,21 +106,14 @@ type IO struct {
 	Stderr io.ReadCloser
 }
 
-// NewConsole creates new console for process and returns it
-func (p *Process) NewConsole(rootuid int) (Console, error) {
-	console, err := NewConsole(rootuid, rootuid)
-	if err != nil {
-		return nil, err
+func (p *Process) GetConsole() (Console, error) {
+	consoleFd, ok := <-p.consoleChan
+	if !ok {
+		return nil, fmt.Errorf("failed to get console from process")
 	}
-	p.consolePath = console.Path()
-	return console, nil
-}
 
-// ConsoleFromPath sets the process's console with the path provided
-func (p *Process) ConsoleFromPath(path string) error {
-	if p.consolePath != "" {
-		return newGenericError(fmt.Errorf("console path already exists for process"), ConsoleExists)
-	}
-	p.consolePath = path
-	return nil
+	// TODO: Fix this so that it used the console API.
+	return &linuxConsole{
+		master: consoleFd,
+	}, nil
 }

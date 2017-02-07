@@ -93,7 +93,6 @@
             "packages": [
                 "api/types/strslice",
                 "client",
-                "pkg/mount",
                 "pkg/registrar",
                 "pkg/stringid",
                 "pkg/stringutils",
@@ -236,8 +235,8 @@
         },
         {
             "name": "github.com/opencontainers/runc",
-            "version": "v0.1.1",
-            "revision": "baf6536d6259209c3edfa2b22237af82942d3dfa",
+            "branch": "master",
+            "revision": "b263a43430ac6996a4302b891688544225197294",
             "packages": [
                 "libcontainer/apparmor",
                 "libcontainer/label",

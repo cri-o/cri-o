@@ -36,7 +36,7 @@ func TestExecIn(t *testing.T) {
 		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
-	err = container.Start(process)
+	err = container.Run(process)
 	stdinR.Close()
 	defer stdinW.Close()
 	ok(t, err)
@@ -51,7 +51,7 @@ func TestExecIn(t *testing.T) {
 		Stderr: buffers.Stderr,
 	}
 
-	err = container.Start(ps)
+	err = container.Run(ps)
 	ok(t, err)
 	waitProcess(ps, t)
 	stdinW.Close()
@@ -60,6 +60,9 @@ func TestExecIn(t *testing.T) {
 	out := buffers.Stdout.String()
 	if !strings.Contains(out, "cat") || !strings.Contains(out, "ps") {
 		t.Fatalf("unexpected running process, output %q", out)
+	}
+	if strings.Contains(out, "\r") {
+		t.Fatalf("unexpected carriage-return in output")
 	}
 }
 
@@ -86,8 +89,8 @@ func testExecInRlimit(t *testing.T, userns bool) {
 
 	config := newTemplateConfig(rootfs)
 	if userns {
-		config.UidMappings = []configs.IDMap{{0, 0, 1000}}
-		config.GidMappings = []configs.IDMap{{0, 0, 1000}}
+		config.UidMappings = []configs.IDMap{{HostID: 0, ContainerID: 0, Size: 1000}}
+		config.GidMappings = []configs.IDMap{{HostID: 0, ContainerID: 0, Size: 1000}}
 		config.Namespaces = append(config.Namespaces, configs.Namespace{Type: configs.NEWUSER})
 	}
 
@@ -103,7 +106,7 @@ func testExecInRlimit(t *testing.T, userns bool) {
 		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
-	err = container.Start(process)
+	err = container.Run(process)
 	stdinR.Close()
 	defer stdinW.Close()
 	ok(t, err)
@@ -121,7 +124,7 @@ func testExecInRlimit(t *testing.T, userns bool) {
 			{Type: syscall.RLIMIT_NOFILE, Hard: 1026, Soft: 1026},
 		},
 	}
-	err = container.Start(ps)
+	err = container.Run(ps)
 	ok(t, err)
 	waitProcess(ps, t)
 
@@ -131,6 +134,64 @@ func testExecInRlimit(t *testing.T, userns bool) {
 	out := buffers.Stdout.String()
 	if limit := strings.TrimSpace(out); limit != "1026" {
 		t.Fatalf("expected rlimit to be 1026, got %s", limit)
+	}
+}
+
+func TestExecInAdditionalGroups(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+
+	rootfs, err := newRootfs()
+	ok(t, err)
+	defer remove(rootfs)
+
+	config := newTemplateConfig(rootfs)
+	container, err := newContainer(config)
+	ok(t, err)
+	defer container.Destroy()
+
+	// Execute a first process in the container
+	stdinR, stdinW, err := os.Pipe()
+	ok(t, err)
+	process := &libcontainer.Process{
+		Cwd:   "/",
+		Args:  []string{"cat"},
+		Env:   standardEnvironment,
+		Stdin: stdinR,
+	}
+	err = container.Run(process)
+	stdinR.Close()
+	defer stdinW.Close()
+	ok(t, err)
+
+	var stdout bytes.Buffer
+	pconfig := libcontainer.Process{
+		Cwd:              "/",
+		Args:             []string{"sh", "-c", "id", "-Gn"},
+		Env:              standardEnvironment,
+		Stdin:            nil,
+		Stdout:           &stdout,
+		AdditionalGroups: []string{"plugdev", "audio"},
+	}
+	err = container.Run(&pconfig)
+	ok(t, err)
+
+	// Wait for process
+	waitProcess(&pconfig, t)
+
+	stdinW.Close()
+	waitProcess(process, t)
+
+	outputGroups := string(stdout.Bytes())
+
+	// Check that the groups output has the groups that we specified
+	if !strings.Contains(outputGroups, "audio") {
+		t.Fatalf("Listed groups do not contain the audio group as expected: %v", outputGroups)
+	}
+
+	if !strings.Contains(outputGroups, "plugdev") {
+		t.Fatalf("Listed groups do not contain the plugdev group as expected: %v", outputGroups)
 	}
 }
 
@@ -155,7 +216,7 @@ func TestExecInError(t *testing.T) {
 		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
-	err = container.Start(process)
+	err = container.Run(process)
 	stdinR.Close()
 	defer func() {
 		stdinW.Close()
@@ -173,7 +234,7 @@ func TestExecInError(t *testing.T) {
 			Env:    standardEnvironment,
 			Stdout: &out,
 		}
-		err = container.Start(unexistent)
+		err = container.Run(unexistent)
 		if err == nil {
 			t.Fatal("Should be an error")
 		}
@@ -207,7 +268,7 @@ func TestExecInTTY(t *testing.T) {
 		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
-	err = container.Start(process)
+	err = container.Run(process)
 	stdinR.Close()
 	defer stdinW.Close()
 	ok(t, err)
@@ -218,14 +279,14 @@ func TestExecInTTY(t *testing.T) {
 		Args: []string{"ps"},
 		Env:  standardEnvironment,
 	}
-	console, err := ps.NewConsole(0)
+	err = container.Run(ps)
+	ok(t, err)
+	console, err := ps.GetConsole()
 	copy := make(chan struct{})
 	go func() {
 		io.Copy(&stdout, console)
 		close(copy)
 	}()
-	ok(t, err)
-	err = container.Start(ps)
 	ok(t, err)
 	select {
 	case <-time.After(5 * time.Second):
@@ -238,8 +299,11 @@ func TestExecInTTY(t *testing.T) {
 	waitProcess(process, t)
 
 	out := stdout.String()
-	if !strings.Contains(out, "cat") || !strings.Contains(string(out), "ps") {
+	if !strings.Contains(out, "cat") || !strings.Contains(out, "ps") {
 		t.Fatalf("unexpected running process, output %q", out)
+	}
+	if strings.Contains(out, "\r") {
+		t.Fatalf("unexpected carriage-return in output")
 	}
 }
 
@@ -264,7 +328,7 @@ func TestExecInEnvironment(t *testing.T) {
 		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
-	err = container.Start(process)
+	err = container.Run(process)
 	stdinR.Close()
 	defer stdinW.Close()
 	ok(t, err)
@@ -283,7 +347,7 @@ func TestExecInEnvironment(t *testing.T) {
 		Stdout: buffers.Stdout,
 		Stderr: buffers.Stderr,
 	}
-	err = container.Start(process2)
+	err = container.Run(process2)
 	ok(t, err)
 	waitProcess(process2, t)
 
@@ -328,7 +392,7 @@ func TestExecinPassExtraFiles(t *testing.T) {
 		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
-	err = container.Start(process)
+	err = container.Run(process)
 	stdinR.Close()
 	defer stdinW.Close()
 	if err != nil {
@@ -346,7 +410,7 @@ func TestExecinPassExtraFiles(t *testing.T) {
 		Stdin:      nil,
 		Stdout:     &stdout,
 	}
-	err = container.Start(inprocess)
+	err = container.Run(inprocess)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,7 +465,7 @@ func TestExecInOomScoreAdj(t *testing.T) {
 		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
-	err = container.Start(process)
+	err = container.Run(process)
 	stdinR.Close()
 	defer stdinW.Close()
 	ok(t, err)
@@ -415,7 +479,7 @@ func TestExecInOomScoreAdj(t *testing.T) {
 		Stdout: buffers.Stdout,
 		Stderr: buffers.Stderr,
 	}
-	err = container.Start(ps)
+	err = container.Run(ps)
 	ok(t, err)
 	waitProcess(ps, t)
 
@@ -439,8 +503,8 @@ func TestExecInUserns(t *testing.T) {
 	ok(t, err)
 	defer remove(rootfs)
 	config := newTemplateConfig(rootfs)
-	config.UidMappings = []configs.IDMap{{0, 0, 1000}}
-	config.GidMappings = []configs.IDMap{{0, 0, 1000}}
+	config.UidMappings = []configs.IDMap{{HostID: 0, ContainerID: 0, Size: 1000}}
+	config.GidMappings = []configs.IDMap{{HostID: 0, ContainerID: 0, Size: 1000}}
 	config.Namespaces = append(config.Namespaces, configs.Namespace{Type: configs.NEWUSER})
 	container, err := newContainer(config)
 	ok(t, err)
@@ -456,7 +520,7 @@ func TestExecInUserns(t *testing.T) {
 		Env:   standardEnvironment,
 		Stdin: stdinR,
 	}
-	err = container.Start(process)
+	err = container.Run(process)
 	stdinR.Close()
 	defer stdinW.Close()
 	ok(t, err)
@@ -476,7 +540,7 @@ func TestExecInUserns(t *testing.T) {
 		Stdout: buffers.Stdout,
 		Stderr: os.Stderr,
 	}
-	err = container.Start(process2)
+	err = container.Run(process2)
 	ok(t, err)
 	waitProcess(process2, t)
 	stdinW.Close()

@@ -9,27 +9,30 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codegangsta/cli"
+	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/urfave/cli"
 )
 
 var execCommand = cli.Command{
 	Name:  "exec",
 	Usage: "execute new process inside the container",
-	ArgsUsage: `<container-id> <container command>
+	ArgsUsage: `<container-id> <command> [command options]  || -p process.json <container-id>
 
 Where "<container-id>" is the name for the instance of the container and
-"<container command>" is the command to be executed in the container.
+"<command>" is the command to be executed in the container.
+"<command>" can't be empty unless a "-p" flag provided.
 
+EXAMPLE:
 For example, if the container is configured to run the linux ps command the
 following will output a list of processes running in the container:
-	 
+
        # runc exec <container-id> ps`,
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "console",
-			Usage: "specify the pty slave path for use with the container",
+			Name:  "console-socket",
+			Usage: "path to an AF_UNIX socket which will receive a file descriptor referencing the master end of the console's pseudoterminal",
 		},
 		cli.StringFlag{
 			Name:  "cwd",
@@ -78,26 +81,45 @@ following will output a list of processes running in the container:
 			Usage: "add a capability to the bounding set for the process",
 		},
 		cli.BoolFlag{
-			Name:  "no-subreaper",
-			Usage: "disable the use of the subreaper used to reap reparented processes",
+			Name:   "no-subreaper",
+			Usage:  "disable the use of the subreaper used to reap reparented processes",
+			Hidden: true,
 		},
 	},
-	Action: func(context *cli.Context) {
+	Action: func(context *cli.Context) error {
+		if err := checkArgs(context, 1, minArgs); err != nil {
+			return err
+		}
 		if os.Geteuid() != 0 {
-			fatalf("runc should be run as root")
+			return fmt.Errorf("runc should be run as root")
+		}
+		if err := revisePidFile(context); err != nil {
+			return err
 		}
 		status, err := execProcess(context)
-		if err != nil {
-			fatalf("exec failed: %v", err)
+		if err == nil {
+			os.Exit(status)
 		}
-		os.Exit(status)
+		return fmt.Errorf("exec failed: %v", err)
 	},
+	SkipArgReorder: true,
 }
 
 func execProcess(context *cli.Context) (int, error) {
 	container, err := getContainer(context)
 	if err != nil {
 		return -1, err
+	}
+	status, err := container.Status()
+	if err != nil {
+		return -1, err
+	}
+	if status == libcontainer.Stopped {
+		return -1, fmt.Errorf("cannot exec a container that has run and stopped")
+	}
+	path := context.String("process")
+	if path == "" && len(context.Args()) == 1 {
+		return -1, fmt.Errorf("process args cannot be empty")
 	}
 	detach := context.Bool("detach")
 	state, err := container.State()
@@ -110,10 +132,10 @@ func execProcess(context *cli.Context) (int, error) {
 		return -1, err
 	}
 	r := &runner{
-		enableSubreaper: !context.Bool("no-subreaper"),
+		enableSubreaper: false,
 		shouldDestroy:   false,
 		container:       container,
-		console:         context.String("console"),
+		consoleSocket:   context.String("console-socket"),
 		detach:          detach,
 		pidFile:         context.String("pid-file"),
 	}
@@ -157,9 +179,8 @@ func getProcess(context *cli.Context, bundle string) (*specs.Process, error) {
 		p.Capabilities = caps
 	}
 	// append the passed env variables
-	for _, e := range context.StringSlice("env") {
-		p.Env = append(p.Env, e)
-	}
+	p.Env = append(p.Env, context.StringSlice("env")...)
+
 	// set the tty
 	if context.IsSet("tty") {
 		p.Terminal = context.Bool("tty")
