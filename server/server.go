@@ -21,12 +21,20 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 )
 
 const (
 	runtimeAPIVersion = "v1alpha1"
 	shutdownFile      = "/var/lib/ocid/ocid.shutdown"
 )
+
+// streamService implements streaming.Runtime.
+type streamService struct {
+	runtimeServer *Server // needed by Exec() endpoint
+	streamServer  streaming.Server
+	streaming.Runtime
+}
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
@@ -50,6 +58,8 @@ type Server struct {
 
 	appArmorEnabled bool
 	appArmorProfile string
+
+	stream streamService
 }
 
 func (s *Server) loadContainer(id string) error {
