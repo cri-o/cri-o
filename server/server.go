@@ -522,6 +522,20 @@ func New(config *Config) (*Server, error) {
 
 	s.restore()
 
+	// Prepare streaming server
+	streamServerConfig := streaming.DefaultConfig
+	streamServerConfig.Addr = "0.0.0.0:10101"
+	s.stream.runtimeServer = s
+	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create streaming server")
+	}
+
+	// TODO: Is it should be started somewhere else?
+	go func() {
+		s.stream.streamServer.Start(true)
+	}()
+
 	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
 	logrus.Debugf("containers: %v", s.state.containers)
 	return s, nil
