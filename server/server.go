@@ -61,6 +61,21 @@ type Server struct {
 	stream streamService
 }
 
+// GetExec returns exec stream request
+func (s *Server) GetExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
+	return s.stream.streamServer.GetExec(req)
+}
+
+// GetAttach returns attach stream request
+func (s *Server) GetAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
+	return s.stream.streamServer.GetAttach(req)
+}
+
+// GetPortForward returns port forward stream request
+func (s *Server) GetPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+	return s.stream.streamServer.GetPortForward(req)
+}
+
 func (s *Server) loadContainer(id string) error {
 	config, err := s.store.GetFromContainerDirectory(id, "config.json")
 	if err != nil {
