@@ -25,3 +25,6 @@ script:
   - make lint
   - make integration
   - make docs
+
+notifications:
+  irc: "chat.freenode.net#ocid"
