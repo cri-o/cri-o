@@ -76,6 +76,10 @@ type RuntimeConfig struct {
 	// yet merged a CLI API (so we assume runC's API here).
 	Runtime string `toml:"runtime"`
 
+	// RuntimeHostPrivileged is a path to the OCI runtime which ocid will be
+	// using for host privileged operations.
+	RuntimeHostPrivileged string `toml:"runtime_host_privileged"`
+
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	Conmon string `toml:"conmon"`
 
@@ -205,8 +209,9 @@ func DefaultConfig() *Config {
 			Listen: "/var/run/ocid.sock",
 		},
 		RuntimeConfig: RuntimeConfig{
-			Runtime: "/usr/bin/runc",
-			Conmon:  conmonPath,
+			Runtime:               "/usr/bin/runc",
+			RuntimeHostPrivileged: "",
+			Conmon:                conmonPath,
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},

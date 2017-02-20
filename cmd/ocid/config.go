@@ -42,6 +42,12 @@ listen = "{{ .Listen }}"
 # runtime is a path to the OCI runtime which ocid will be using.
 runtime = "{{ .Runtime }}"
 
+# runtime_host_privileged is a path to the OCI runtime which ocid
+# will be using for host privileged operations.
+# If this string is empty, ocid will not try to use the "runtime"
+# for all operations.
+runtime_host_privileged = "{{ .RuntimeHostPrivileged }}"
+
 # conmon is the path to conmon binary, used for managing the runtime.
 conmon = "{{ .Conmon }}"
 
