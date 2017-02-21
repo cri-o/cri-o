@@ -450,7 +450,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, privileged bool) (*Container, error) {
 	c := &Container{
 		id:          id,
 		name:        name,
@@ -460,6 +460,7 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		sandbox:     sandbox,
 		netns:       netns,
 		terminal:    terminal,
+		privileged:  privileged,
 		metadata:    metadata,
 		annotations: annotations,
 		image:       image,
