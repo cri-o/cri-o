@@ -34,24 +34,26 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
+func New(runtimePath string, runtimeHostPrivilegedPath string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
 	r := &Runtime{
-		name:          filepath.Base(runtimePath),
-		path:          runtimePath,
-		conmonPath:    conmonPath,
-		conmonEnv:     conmonEnv,
-		cgroupManager: cgroupManager,
+		name:           filepath.Base(runtimePath),
+		path:           runtimePath,
+		privilegedPath: runtimeHostPrivilegedPath,
+		conmonPath:     conmonPath,
+		conmonEnv:      conmonEnv,
+		cgroupManager:  cgroupManager,
 	}
 	return r, nil
 }
 
 // Runtime stores the information about a oci runtime
 type Runtime struct {
-	name          string
-	path          string
-	conmonPath    string
-	conmonEnv     []string
-	cgroupManager string
+	name           string
+	path           string
+	privilegedPath string
+	conmonPath     string
+	conmonEnv      []string
+	cgroupManager  string
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -69,8 +71,14 @@ func (r *Runtime) Name() string {
 	return r.name
 }
 
-// Path returns the full path the OCI Runtime executable
-func (r *Runtime) Path() string {
+// Path returns the full path the OCI Runtime executable.
+// Depending if the container is privileged, it will return
+// the privileged runtime or not.
+func (r *Runtime) Path(c *Container) string {
+	if c.privileged && r.privilegedPath != "" {
+		return r.privilegedPath
+	}
+
 	return r.path
 }
 
@@ -107,7 +115,7 @@ func (r *Runtime) CreateContainer(c *Container) error {
 		args = append(args, "-s")
 	}
 	args = append(args, "-c", c.name)
-	args = append(args, "-r", r.path)
+	args = append(args, "-r", r.Path(c))
 	args = append(args, "-b", c.bundlePath)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
 	if c.terminal {
@@ -149,7 +157,7 @@ func (r *Runtime) CreateContainer(c *Container) error {
 func (r *Runtime) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", c.name); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "start", c.name); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -209,7 +217,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 
 	var args []string
 	args = append(args, "-c", c.name)
-	args = append(args, "-r", r.path)
+	args = append(args, "-r", r.Path(c))
 	args = append(args, "-p", pidFile.Name())
 	args = append(args, "-e")
 	if c.terminal {
@@ -341,7 +349,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 func (r *Runtime) StopContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.name, "TERM"); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.name, "TERM"); err != nil {
 		return err
 	}
 	i := 0
@@ -369,14 +377,14 @@ func (r *Runtime) StopContainer(c *Container) error {
 func (r *Runtime) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "delete", c.name)
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "delete", c.name)
 }
 
 // UpdateStatus refreshes the status of the container.
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	out, err := exec.Command(r.path, "state", c.name).CombinedOutput()
+	out, err := exec.Command(r.Path(c), "state", c.name).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error getting container state for %s: %s: %q", c.name, err, out)
 	}
@@ -426,6 +434,7 @@ type Container struct {
 	sandbox     string
 	netns       ns.NetNS
 	terminal    bool
+	privileged  bool
 	state       *ContainerState
 	metadata    *pb.ContainerMetadata
 	opLock      sync.Mutex

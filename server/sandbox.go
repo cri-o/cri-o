@@ -139,6 +139,7 @@ type sandbox struct {
 	metadata       *pb.PodSandboxMetadata
 	shmPath        string
 	cgroupParent   string
+	privileged     bool
 }
 
 const (
