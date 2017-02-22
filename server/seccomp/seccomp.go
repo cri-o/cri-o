@@ -19,7 +19,7 @@ func IsEnabled() bool {
 	// seccompModeFilter refers to the syscall argument SECCOMP_MODE_FILTER.
 	const seccompModeFilter = uintptr(2)
 
-	var enabled bool
+	enabled := false
 	// Check if Seccomp is supported, via CONFIG_SECCOMP.
 	if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_GET_SECCOMP, 0, 0); err != syscall.EINVAL {
 		// Make sure the kernel has CONFIG_SECCOMP_FILTER.
