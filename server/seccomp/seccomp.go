@@ -6,12 +6,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"syscall"
 
 	"github.com/docker/docker/pkg/stringutils"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 )
+
+// IsEnabled returns true if seccomp is enabled for the host.
+func IsEnabled() bool {
+	// seccompModeFilter refers to the syscall argument SECCOMP_MODE_FILTER.
+	const seccompModeFilter = uintptr(2)
+
+	var enabled bool
+	// Check if Seccomp is supported, via CONFIG_SECCOMP.
+	if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_GET_SECCOMP, 0, 0); err != syscall.EINVAL {
+		// Make sure the kernel has CONFIG_SECCOMP_FILTER.
+		if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_SECCOMP, seccompModeFilter, 0); err != syscall.EINVAL {
+			enabled = true
+		}
+	}
+	return enabled
+}
 
 // LoadProfileFromStruct takes a Seccomp struct and setup seccomp in the spec.
 func LoadProfileFromStruct(config Seccomp, specgen *generate.Generator) error {
