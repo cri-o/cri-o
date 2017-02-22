@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
-	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
@@ -425,23 +424,6 @@ func (s *Server) releaseContainerName(name string) {
 	s.ctrNameIndex.Release(name)
 }
 
-const (
-	// SeccompModeFilter refers to the syscall argument SECCOMP_MODE_FILTER.
-	SeccompModeFilter = uintptr(2)
-)
-
-func seccompEnabled() bool {
-	var enabled bool
-	// Check if Seccomp is supported, via CONFIG_SECCOMP.
-	if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_GET_SECCOMP, 0, 0); err != syscall.EINVAL {
-		// Make sure the kernel has CONFIG_SECCOMP_FILTER.
-		if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_SECCOMP, SeccompModeFilter, 0); err != syscall.EINVAL {
-			enabled = true
-		}
-	}
-	return enabled
-}
-
 // Shutdown attempts to shut down the server's storage cleanly
 func (s *Server) Shutdown() error {
 	_, err := s.store.Shutdown(false)
@@ -491,19 +473,21 @@ func New(config *Config) (*Server, error) {
 			sandboxes:  sandboxes,
 			containers: containers,
 		},
-		seccompEnabled:  seccompEnabled(),
+		seccompEnabled:  seccomp.IsEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
 		appArmorProfile: config.ApparmorProfile,
 	}
-	seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
-	if err != nil {
-		return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, err)
+	if s.seccompEnabled {
+		seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
+		if err != nil {
+			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, err)
+		}
+		var seccompConfig seccomp.Seccomp
+		if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
+			return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
+		}
+		s.seccompProfile = seccompConfig
 	}
-	var seccompConfig seccomp.Seccomp
-	if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
-		return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
-	}
-	s.seccompProfile = seccompConfig
 
 	if s.appArmorEnabled && s.appArmorProfile == apparmor.DefaultApparmorProfile {
 		if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
