@@ -326,6 +326,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
+	if !s.seccompEnabled {
+		g.Spec().Linux.Seccomp = nil
+	}
+
 	saveOptions := generate.ExportOptions{}
 	mountPoint, err := s.storage.StartContainer(id)
 	if err != nil {

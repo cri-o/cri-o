@@ -495,15 +495,17 @@ func New(config *Config) (*Server, error) {
 		appArmorEnabled: apparmor.IsEnabled(),
 		appArmorProfile: config.ApparmorProfile,
 	}
-	seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
-	if err != nil {
-		return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, err)
+	if s.seccompEnabled {
+		seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
+		if err != nil {
+			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, err)
+		}
+		var seccompConfig seccomp.Seccomp
+		if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
+			return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
+		}
+		s.seccompProfile = seccompConfig
 	}
-	var seccompConfig seccomp.Seccomp
-	if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
-		return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
-	}
-	s.seccompProfile = seccompConfig
 
 	if s.appArmorEnabled && s.appArmorProfile == apparmor.DefaultApparmorProfile {
 		if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
