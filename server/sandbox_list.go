@@ -4,8 +4,8 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/fields"
 )
 
 // filterSandbox returns whether passed container matches filtering criteria
