@@ -57,8 +57,8 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("storage-driver") {
 		config.Storage = ctx.GlobalString("storage-driver")
 	}
-	if ctx.GlobalIsSet("storage-option") {
-		config.StorageOptions = ctx.GlobalStringSlice("storage-option")
+	if ctx.GlobalIsSet("storage-opt") {
+		config.StorageOptions = ctx.GlobalStringSlice("storage-opt")
 	}
 	if ctx.GlobalIsSet("default-transport") {
 		config.DefaultTransport = ctx.GlobalString("default-transport")
@@ -175,7 +175,7 @@ func main() {
 			Usage: "storage driver",
 		},
 		cli.StringSliceFlag{
-			Name:  "storage-option",
+			Name:  "storage-opt",
 			Usage: "storage driver option",
 		},
 		cli.StringFlag{
