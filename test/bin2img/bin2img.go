@@ -47,7 +47,7 @@ func main() {
 			Usage: "storage driver",
 		},
 		cli.StringSliceFlag{
-			Name:  "storage-option",
+			Name:  "storage-opt",
 			Usage: "storage option",
 		},
 		cli.StringFlag{
@@ -72,7 +72,7 @@ func main() {
 		rootDir := c.GlobalString("root")
 		runrootDir := c.GlobalString("runroot")
 		storageDriver := c.GlobalString("storage-driver")
-		storageOptions := c.GlobalStringSlice("storage-option")
+		storageOptions := c.GlobalStringSlice("storage-opt")
 		imageName := c.GlobalString("image-name")
 		sourceBinary := c.GlobalString("source-binary")
 		imageBinary := c.GlobalString("image-binary")

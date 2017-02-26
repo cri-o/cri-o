@@ -21,7 +21,7 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 [**--runtime**=[*value*]]
 [**--signature-policy**=[*value*]]
 [**--storage-driver**=[*value*]]
-[**--storage-option**=[*value*]]
+[**--storage-opt**=[*value*]]
 [**--selinux**]
 [**--seccomp-profile**=[*value*]]
 [**--apparmor-profile**=[*value*]]
@@ -101,7 +101,7 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 **--storage-driver**
   OCI storage driver (default: "devicemapper")
 
-**--storage-option**
+**--storage-opt**
   OCI storage driver option (no default)
 
 **--cni-config-dir**=""
