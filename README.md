@@ -1,4 +1,4 @@
-![cri-o logo](https://raw.githubusercontent.com/kubernetes-incubator/cri-o/master/logo/crio-logo.svg)
+![cri-o logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/crio-logo.svg)
 # cri-o - OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![Build Status](https://img.shields.io/travis/kubernetes-incubator/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-incubator/cri-o)
