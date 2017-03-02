@@ -12,7 +12,7 @@ services:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev
+  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev
 
 install:
   - make install.tools
@@ -26,6 +26,7 @@ script:
   - make lint
   - make integration
   - make docs
+  - make
 
 notifications:
   irc: "chat.freenode.net#ocid"
