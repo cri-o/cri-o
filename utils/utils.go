@@ -7,6 +7,9 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+
+	systemdDbus "github.com/coreos/go-systemd/dbus"
+	"github.com/godbus/dbus"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
@@ -53,4 +56,28 @@ func Prctl(option int, arg2, arg3, arg4, arg5 uintptr) (err error) {
 // StatusToExitCode converts wait status code to an exit code
 func StatusToExitCode(status int) int {
 	return ((status) & 0xff00) >> 8
+}
+
+// RunUnderSystemdScope adds the specified pid to a systemd scope
+func RunUnderSystemdScope(pid int, slice string, unitName string) error {
+	var properties []systemdDbus.Property
+	conn, err := systemdDbus.New()
+	if err != nil {
+		return err
+	}
+	properties = append(properties, systemdDbus.PropSlice(slice))
+	properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
+	properties = append(properties, newProp("Delegate", true))
+	properties = append(properties, newProp("DefaultDependencies", false))
+	if _, err := conn.StartTransientUnit(unitName, "replace", properties, nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func newProp(name string, units interface{}) systemdDbus.Property {
+	return systemdDbus.Property{
+		Name:  name,
+		Value: dbus.MakeVariant(units),
+	}
 }
