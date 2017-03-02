@@ -69,7 +69,7 @@ kpod: check-gopath
 	$(GO) build -o $@ $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
-	ocid --config="" config --default > ocid.conf
+	./ocid --config="" config --default > ocid.conf
 
 clean:
 	rm -f docs/*.1 docs/*.5 docs/*.8
