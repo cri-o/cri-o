@@ -9,6 +9,15 @@
         "github.com/docker/distribution": {
             "branch": "master"
         },
+        "github.com/godbus/dbus": {
+            "version": "^4.0.0"
+        },
+        "github.com/opencontainers/runc": {
+            "branch": "master"
+        },
+        "github.com/opencontainers/runtime-spec": {
+            "branch": "master"
+        },
         "google.golang.org/grpc": {
             "version": "v1.0.1-GA"
         },

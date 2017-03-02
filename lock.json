@@ -1,5 +1,5 @@
 {
-    "memo": "54df0475f8948f4d0f416a919b64659031d5da2b3ba1f87141eb855c832b952c",
+    "memo": "43d56ce99d6232de6146fa891dafc690d66b05555ce6587759f39d037e37c84a",
     "projects": [
         {
             "name": "github.com/BurntSushi/toml",
@@ -41,8 +41,10 @@
             "revision": "530dd71e193012895ff7beee42cd64a02e1993da",
             "packages": [
                 "libcni",
+                "pkg/invoke",
                 "pkg/ns",
-                "pkg/types"
+                "pkg/types",
+                "pkg/version"
             ]
         },
         {
@@ -51,10 +53,21 @@
             "revision": "1c202c5d85d2ee531acb1e91740144410066d19e",
             "packages": [
                 "copy",
+                "directory",
+                "directory/explicitfilepath",
+                "docker",
+                "docker/daemon",
+                "docker/policyconfiguration",
+                "docker/reference",
+                "image",
+                "manifest",
+                "oci/layout",
+                "openshift",
                 "signature",
                 "storage",
                 "transports",
-                "types"
+                "types",
+                "version"
             ]
         },
         {
@@ -62,11 +75,39 @@
             "branch": "master",
             "revision": "5cbbc6bafb45bd7ef10486b673deb3b81bb3b787",
             "packages": [
+                "drivers",
+                "drivers/aufs",
+                "drivers/btrfs",
+                "drivers/devmapper",
+                "drivers/overlay",
+                "drivers/overlay2",
+                "drivers/register",
+                "drivers/vfs",
+                "drivers/windows",
+                "drivers/zfs",
                 "pkg/archive",
+                "pkg/chrootarchive",
+                "pkg/devicemapper",
+                "pkg/directory",
+                "pkg/fileutils",
                 "pkg/homedir",
+                "pkg/idtools",
                 "pkg/ioutils",
+                "pkg/longpath",
+                "pkg/loopback",
+                "pkg/mount",
+                "pkg/parsers",
+                "pkg/parsers/kernel",
+                "pkg/plugins",
+                "pkg/plugins/transport",
+                "pkg/pools",
+                "pkg/promise",
+                "pkg/random",
                 "pkg/reexec",
-                "storage"
+                "pkg/stringid",
+                "pkg/system",
+                "storage",
+                "storageversion"
             ]
         },
         {
@@ -74,7 +115,8 @@
             "version": "v14",
             "revision": "48702e0da86bd25e76cfef347e2adeb434a0d0a6",
             "packages": [
-                "daemon"
+                "daemon",
+                "dbus"
             ]
         },
         {
@@ -82,8 +124,18 @@
             "branch": "master",
             "revision": "fb0bebc4b64e3881cc52a2478d749845ed76d2a8",
             "packages": [
+                ".",
+                "context",
+                "digestset",
                 "reference",
-                "registry/client"
+                "registry/api/errcode",
+                "registry/api/v2",
+                "registry/client",
+                "registry/client/auth/challenge",
+                "registry/client/transport",
+                "registry/storage/cache",
+                "registry/storage/cache/memory",
+                "uuid"
             ]
         },
         {
@@ -91,11 +143,26 @@
             "version": "v1.13.0",
             "revision": "49bf474f9ed7ce7143a59d1964ff7b7fd9b52178",
             "packages": [
+                "api/types",
+                "api/types/blkiodev",
+                "api/types/container",
+                "api/types/events",
+                "api/types/filters",
+                "api/types/mount",
+                "api/types/network",
+                "api/types/reference",
+                "api/types/registry",
                 "api/types/strslice",
+                "api/types/swarm",
+                "api/types/time",
+                "api/types/versions",
+                "api/types/volume",
                 "client",
+                "pkg/random",
                 "pkg/registrar",
                 "pkg/stringid",
                 "pkg/stringutils",
+                "pkg/tlsconfig",
                 "pkg/truncindex",
                 "utils/templates"
             ]
@@ -135,12 +202,21 @@
             ]
         },
         {
+            "name": "github.com/godbus/dbus",
+            "version": "v4.0.0",
+            "revision": "5f6efc7ef2759c81b7ba876593971bfce311eab3",
+            "packages": [
+                "."
+            ]
+        },
+        {
             "name": "github.com/gogo/protobuf",
             "version": "v0.3",
             "revision": "909568be09de550ed094403c2bf8a261b5bb730a",
             "packages": [
                 "gogoproto",
                 "proto",
+                "protoc-gen-gogo/descriptor",
                 "sortkeys"
             ]
         },
@@ -258,7 +334,8 @@
             "branch": "master",
             "revision": "2d92f6557e64d4f9a0e799a75fdf153cec13dffa",
             "packages": [
-                "generate"
+                "generate",
+                "generate/seccomp"
             ]
         },
         {
@@ -306,6 +383,7 @@
             "version": "v0.10.1",
             "revision": "d3f1b54304d656376e58f9406a9cb4775799a357",
             "packages": [
+                "archive/tar",
                 "tar/asm",
                 "tar/storage"
             ]
@@ -315,7 +393,13 @@
             "branch": "master",
             "revision": "dc137beb6cce2043eb6b5f223ab8bf51c32459f4",
             "packages": [
-                "openpgp"
+                "cast5",
+                "openpgp",
+                "openpgp/armor",
+                "openpgp/elgamal",
+                "openpgp/errors",
+                "openpgp/packet",
+                "openpgp/s2k"
             ]
         },
         {
@@ -327,6 +411,9 @@
                 "context/ctxhttp",
                 "http2",
                 "http2/hpack",
+                "idna",
+                "internal/timeseries",
+                "lex/httplex",
                 "proxy",
                 "trace"
             ]
@@ -345,7 +432,15 @@
             "version": "v1.0.1-GA",
             "revision": "0032a855ba5c8a3c8e0d71c2deef354b70af1584",
             "packages": [
-                "."
+                ".",
+                "codes",
+                "credentials",
+                "grpclog",
+                "internal",
+                "metadata",
+                "naming",
+                "peer",
+                "transport"
             ]
         },
         {
@@ -369,7 +464,8 @@
             "branch": "master",
             "revision": "21807b270ec15d19215659a5caa08b17f66d6f44",
             "packages": [
-                "pkg/fields"
+                "pkg/fields",
+                "pkg/selection"
             ]
         },
         {
@@ -385,7 +481,6 @@
             "branch": "master",
             "revision": "760d8e98e8f6ad27aaf50b1a030cb9e7b6859aab",
             "packages": [
-                "pkg/fields",
                 "pkg/kubelet/api/v1alpha1/runtime"
             ]
         }
