@@ -25,6 +25,37 @@ const (
 	seccompLocalhostPrefix = "localhost/"
 )
 
+func addOciBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+	mounts := containerConfig.GetMounts()
+	for _, mount := range mounts {
+		dest := mount.ContainerPath
+		if dest == "" {
+			return fmt.Errorf("Mount.ContainerPath is empty")
+		}
+
+		src := mount.HostPath
+		if src == "" {
+			return fmt.Errorf("Mount.HostPath is empty")
+		}
+
+		options := []string{"rw"}
+		if mount.Readonly {
+			options = []string{"ro"}
+		}
+
+		if mount.SelinuxRelabel {
+			// Need a way in kubernetes to determine if the volume is shared or private
+			if err := label.Relabel(src, sb.mountLabel, true); err != nil && err != syscall.ENOTSUP {
+				return fmt.Errorf("relabel failed %s: %v", src, err)
+			}
+		}
+
+		specgen.AddBindMount(src, dest, options)
+	}
+
+	return nil
+}
+
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
 	logrus.Debugf("CreateContainerRequest %+v", req)
@@ -145,31 +176,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 
-	mounts := containerConfig.GetMounts()
-	for _, mount := range mounts {
-		dest := mount.ContainerPath
-		if dest == "" {
-			return nil, fmt.Errorf("Mount.ContainerPath is empty")
-		}
-
-		src := mount.HostPath
-		if src == "" {
-			return nil, fmt.Errorf("Mount.HostPath is empty")
-		}
-
-		options := []string{"rw"}
-		if mount.Readonly {
-			options = []string{"ro"}
-		}
-
-		if mount.SelinuxRelabel {
-			// Need a way in kubernetes to determine if the volume is shared or private
-			if err := label.Relabel(src, sb.mountLabel, true); err != nil && err != syscall.ENOTSUP {
-				return nil, fmt.Errorf("relabel failed %s: %v", src, err)
-			}
-		}
-
-		specgen.AddBindMount(src, dest, options)
+	if err := addOciBindMounts(sb, containerConfig, &specgen); err != nil {
+		return nil, err
 	}
 
 	labels := containerConfig.GetLabels()
@@ -384,7 +392,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged)
 	if err != nil {
 		return nil, err
 	}

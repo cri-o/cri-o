@@ -17,6 +17,32 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
+// privilegedSandbox returns true if the sandbox configuration
+// requires additional host privileges for the sandbox.
+func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
+	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
+	if securityContext == nil {
+		return false
+	}
+
+	if securityContext.Privileged {
+		return true
+	}
+
+	namespaceOptions := securityContext.GetNamespaceOptions()
+	if namespaceOptions == nil {
+		return false
+	}
+
+	if namespaceOptions.HostNetwork ||
+		namespaceOptions.HostPid ||
+		namespaceOptions.HostIpc {
+		return true
+	}
+
+	return false
+}
+
 func (s *Server) runContainer(container *oci.Container) error {
 	if err := s.runtime.CreateContainer(container); err != nil {
 		return err
@@ -218,6 +244,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
+	privileged := s.privilegedSandbox(req)
+
 	g.AddAnnotation("ocid/metadata", string(metadataJSON))
 	g.AddAnnotation("ocid/labels", string(labelsJSON))
 	g.AddAnnotation("ocid/annotations", string(annotationsJSON))
@@ -228,6 +256,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/container_name", containerName)
 	g.AddAnnotation("ocid/container_id", id)
 	g.AddAnnotation("ocid/shm_path", shmPath)
+	g.AddAnnotation("ocid/privileged_runtime", fmt.Sprintf("%v", privileged))
 
 	sb := &sandbox{
 		id:           id,
@@ -240,6 +269,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		mountLabel:   mountLabel,
 		metadata:     metadata,
 		shmPath:      shmPath,
+		privileged:   privileged,
 	}
 
 	s.addSandbox(sb)
@@ -344,7 +374,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logDir, sb.netNs(), labels, annotations, nil, nil, id, false)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logDir, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged)
 	if err != nil {
 		return nil, err
 	}

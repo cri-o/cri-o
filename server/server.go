@@ -105,7 +105,7 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty)
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged)
 	if err != nil {
 		return err
 	}
@@ -173,6 +173,8 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
+	privileged := m.Annotations["ocid/privileged_runtime"] == "true"
+
 	sb := &sandbox{
 		id:           id,
 		name:         name,
@@ -184,6 +186,7 @@ func (s *Server) loadSandbox(id string) error {
 		annotations:  annotations,
 		metadata:     &metadata,
 		shmPath:      m.Annotations["ocid/shm_path"],
+		privileged:   privileged,
 	}
 
 	// We add a netNS only if we can load a permanent one.
@@ -223,7 +226,8 @@ func (s *Server) loadSandbox(id string) error {
 			s.releaseContainerName(cname)
 		}
 	}()
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, sb.netNs(), labels, annotations, nil, nil, id, false)
+
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
 	if err != nil {
 		return err
 	}
@@ -452,7 +456,7 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	r, err := oci.New(config.Runtime, config.Conmon, config.ConmonEnv, config.CgroupManager)
+	r, err := oci.New(config.Runtime, config.RuntimeHostPrivileged, config.Conmon, config.ConmonEnv, config.CgroupManager)
 	if err != nil {
 		return nil, err
 	}
