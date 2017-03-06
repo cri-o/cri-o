@@ -43,8 +43,8 @@ func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
 	return false
 }
 
-func (s *Server) runContainer(container *oci.Container) error {
-	if err := s.runtime.CreateContainer(container); err != nil {
+func (s *Server) runContainer(container *oci.Container, cgroupParent string) error {
+	if err := s.runtime.CreateContainer(container, cgroupParent); err != nil {
 		return err
 	}
 
@@ -389,7 +389,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if err = s.runContainer(container); err != nil {
+	if err = s.runContainer(container, sb.cgroupParent); err != nil {
 		return nil, err
 	}
 
