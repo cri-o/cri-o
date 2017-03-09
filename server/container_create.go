@@ -111,7 +111,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err = s.runtime.CreateContainer(container); err != nil {
+	if err = s.runtime.CreateContainer(container, sb.cgroupParent); err != nil {
 		return nil, err
 	}
 

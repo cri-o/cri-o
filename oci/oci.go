@@ -103,7 +103,7 @@ func getOCIVersion(name string, args ...string) (string, error) {
 }
 
 // CreateContainer creates a container.
-func (r *Runtime) CreateContainer(c *Container) error {
+func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	parentPipe, childPipe, err := newPipe()
 	if err != nil {
 		return fmt.Errorf("error creating socket pair: %v", err)
@@ -143,6 +143,16 @@ func (r *Runtime) CreateContainer(c *Container) error {
 	// We don't need childPipe on the parent side
 	childPipe.Close()
 
+	// Move conmon to specified cgroup
+	if cgroupParent != "" {
+		if r.cgroupManager == "systemd" {
+			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("ocid", c.name))
+			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("ocid", c.name)); err != nil {
+				logrus.Warnf("Failed to add conmon to sandbox cgroup: %v", err)
+			}
+		}
+	}
+
 	// Wait to get container pid from conmon
 	// TODO(mrunalp): Add a timeout here
 	var si *syncInfo
@@ -151,6 +161,10 @@ func (r *Runtime) CreateContainer(c *Container) error {
 	}
 	logrus.Infof("Received container pid: %v", si.Pid)
 	return nil
+}
+
+func createUnitName(prefix string, name string) string {
+	return fmt.Sprintf("%s-%s.scope", prefix, name)
 }
 
 // StartContainer starts a container.
