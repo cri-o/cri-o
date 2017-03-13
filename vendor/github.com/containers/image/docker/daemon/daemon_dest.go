@@ -91,7 +91,7 @@ func imageLoadGoroutine(ctx context.Context, c *client.Client, reader *io.PipeRe
 }
 
 // Close removes resources associated with an initialized ImageDestination, if any.
-func (d *daemonImageDestination) Close() {
+func (d *daemonImageDestination) Close() error {
 	if !d.committed {
 		logrus.Debugf("docker-daemon: Closing tar stream to abort loading")
 		// In principle, goroutineCancel() should abort the HTTP request and stop the process from continuing.
@@ -107,10 +107,10 @@ func (d *daemonImageDestination) Close() {
 		d.writer.CloseWithError(errors.New("Aborting upload, daemonImageDestination closed without a previous .Commit()"))
 	}
 	d.goroutineCancel()
+
+	return nil
 }
 
-// Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
-// e.g. it should use the public hostname instead of the result of resolving CNAMEs or following redirects.
 func (d *daemonImageDestination) Reference() types.ImageReference {
 	return d.ref
 }
@@ -230,7 +230,7 @@ func (d *daemonImageDestination) PutManifest(m []byte) error {
 	// a hostname-qualified reference.
 	// See https://github.com/containers/image/issues/72 for a more detailed
 	// analysis and explanation.
-	refString := fmt.Sprintf("%s:%s", d.namedTaggedRef.FullName(), d.namedTaggedRef.Tag())
+	refString := fmt.Sprintf("%s:%s", d.namedTaggedRef.Name(), d.namedTaggedRef.Tag())
 
 	items := []manifestItem{{
 		Config:       man.Config.Digest.String(),

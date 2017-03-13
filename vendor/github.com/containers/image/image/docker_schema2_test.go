@@ -9,13 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +25,7 @@ type unusedImageSource struct{}
 func (f unusedImageSource) Reference() types.ImageReference {
 	panic("Unexpected call to a mock function")
 }
-func (f unusedImageSource) Close() {
+func (f unusedImageSource) Close() error {
 	panic("Unexpected call to a mock function")
 }
 func (f unusedImageSource) GetManifest() ([]byte, string, error) {
@@ -326,7 +325,7 @@ func newSchema2ImageSource(t *testing.T, dockerRef string) *schema2ImageSource {
 	realConfigJSON, err := ioutil.ReadFile("fixtures/schema2-config.json")
 	require.NoError(t, err)
 
-	ref, err := reference.ParseNamed(dockerRef)
+	ref, err := reference.ParseNormalizedNamed(dockerRef)
 	require.NoError(t, err)
 
 	return &schema2ImageSource{
@@ -347,7 +346,7 @@ type memoryImageDest struct {
 func (d *memoryImageDest) Reference() types.ImageReference {
 	return refImageReferenceMock{d.ref}
 }
-func (d *memoryImageDest) Close() {
+func (d *memoryImageDest) Close() error {
 	panic("Unexpected call to a mock function")
 }
 func (d *memoryImageDest) SupportedManifestMIMETypes() []string {

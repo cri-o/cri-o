@@ -25,7 +25,7 @@ func SignDockerManifest(m []byte, dockerReference string, mech SigningMechanism,
 // using mech.
 func VerifyDockerManifestSignature(unverifiedSignature, unverifiedManifest []byte,
 	expectedDockerReference string, mech SigningMechanism, expectedKeyIdentity string) (*Signature, error) {
-	expectedRef, err := reference.ParseNamed(expectedDockerReference)
+	expectedRef, err := reference.ParseNormalizedNamed(expectedDockerReference)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func VerifyDockerManifestSignature(unverifiedSignature, unverifiedManifest []byt
 			return nil
 		},
 		validateSignedDockerReference: func(signedDockerReference string) error {
-			signedRef, err := reference.ParseNamed(signedDockerReference)
+			signedRef, err := reference.ParseNormalizedNamed(signedDockerReference)
 			if err != nil {
 				return InvalidSignatureError{msg: fmt.Sprintf("Invalid docker reference %s in signature", signedDockerReference)}
 			}

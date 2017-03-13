@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,12 +25,12 @@ func TestParseImageAndDockerReference(t *testing.T) {
 		bad2 = ""
 	)
 	// Success
-	ref, err := reference.ParseNamed(ok1)
+	ref, err := reference.ParseNormalizedNamed(ok1)
 	require.NoError(t, err)
 	r1, r2, err := parseImageAndDockerReference(refImageMock{ref}, ok2)
 	require.NoError(t, err)
-	assert.Equal(t, ok1, r1.String())
-	assert.Equal(t, ok2, r2.String())
+	assert.Equal(t, ok1, reference.FamiliarString(r1))
+	assert.Equal(t, ok2, reference.FamiliarString(r2))
 
 	// Unidentified images are rejected.
 	_, _, err = parseImageAndDockerReference(refImageMock{nil}, ok2)
@@ -44,7 +43,7 @@ func TestParseImageAndDockerReference(t *testing.T) {
 		{ok1, bad2},
 		{bad1, bad2},
 	} {
-		ref, err := reference.ParseNamed(refs[0])
+		ref, err := reference.ParseNormalizedNamed(refs[0])
 		if err == nil {
 			_, _, err := parseImageAndDockerReference(refImageMock{ref}, refs[1])
 			assert.Error(t, err)
@@ -58,7 +57,7 @@ type refImageMock struct{ reference.Named }
 func (ref refImageMock) Reference() types.ImageReference {
 	return refImageReferenceMock{ref.Named}
 }
-func (ref refImageMock) Close() {
+func (ref refImageMock) Close() error {
 	panic("unexpected call to a mock function")
 }
 func (ref refImageMock) Manifest() ([]byte, string, error) {
@@ -72,7 +71,7 @@ func (ref refImageMock) Signatures() ([][]byte, error) {
 type refImageReferenceMock struct{ reference.Named }
 
 func (ref refImageReferenceMock) Transport() types.ImageTransport {
-	// We use this in error messages, so sadly we must return something. But right now we do so only when DockerReference is nil, so restrict to that.
+	// We use this in error messages, so sady we must return something. But right now we do so only when DockerReference is nil, so restrict to that.
 	if ref.Named == nil {
 		return nameImageTransportMock("== Transport mock")
 	}
@@ -148,14 +147,12 @@ var prmExactMatchTestTable = []prmSymmetricTableTest{
 	{"busybox", "busybox:latest", false},
 	{"busybox", "busybox" + digestSuffix, false},
 	{"busybox", "busybox", false},
-	// References with both tags and digests: `reference.WithName` essentially drops the tag.
-	// This is not _particularly_ desirable but it is the semantics used throughout containers/image; at least, with the digest it is clear which image the reference means,
-	// even if the tag may reflect a different user intent.
+	// References with both tags and digests: We match them exactly (requiring BOTH to match)
 	// NOTE: Again, this is not documented behavior; the recommendation is to sign tags, not digests, and then tag-and-digest references won’t match the signed identity.
 	{"busybox:latest" + digestSuffix, "busybox:latest" + digestSuffix, true},
 	{"busybox:latest" + digestSuffix, "busybox:latest" + digestSuffixOther, false},
-	{"busybox:latest" + digestSuffix, "busybox:notlatest" + digestSuffix, true}, // Ugly.  Do not rely on this.
-	{"busybox:latest" + digestSuffix, "busybox" + digestSuffix, true},           // Ugly.  Do not rely on this.
+	{"busybox:latest" + digestSuffix, "busybox:notlatest" + digestSuffix, false},
+	{"busybox:latest" + digestSuffix, "busybox" + digestSuffix, false},
 	{"busybox:latest" + digestSuffix, "busybox:latest", false},
 	// Invalid format
 	{"UPPERCASE_IS_INVALID_IN_DOCKER_REFERENCES", "busybox:latest", false},
@@ -194,7 +191,7 @@ var prmRepositoryMatchTestTable = []prmSymmetricTableTest{
 	{"hostname/library/busybox:latest", "busybox:notlatest", false},
 	{"busybox:latest", fullRHELRef, false},
 	{"busybox" + digestSuffix, "notbusybox" + digestSuffix, false},
-	// References with both tags and digests: `reference.WithName` essentially drops the tag, and we ignore both anyway.
+	// References with both tags and digests: We ignore both anyway.
 	{"busybox:latest" + digestSuffix, "busybox:latest" + digestSuffix, true},
 	{"busybox:latest" + digestSuffix, "busybox:latest" + digestSuffixOther, true},
 	{"busybox:latest" + digestSuffix, "busybox:notlatest" + digestSuffix, true},
@@ -209,8 +206,8 @@ var prmRepositoryMatchTestTable = []prmSymmetricTableTest{
 
 func testImageAndSig(t *testing.T, prm PolicyReferenceMatch, imageRef, sigRef string, result bool) {
 	// This assumes that all ways to obtain a reference.Named perform equivalent validation,
-	// and therefore values refused by reference.ParseNamed can not happen in practice.
-	parsedImageRef, err := reference.ParseNamed(imageRef)
+	// and therefore values refused by reference.ParseNormalizedNamed can not happen in practice.
+	parsedImageRef, err := reference.ParseNormalizedNamed(imageRef)
 	if err != nil {
 		return
 	}
@@ -272,14 +269,12 @@ func TestPMMMatchRepoDigestOrExactMatchesDockerReference(t *testing.T) {
 		// Digest references accept any signature with matching repository.
 		{"busybox" + digestSuffix, "busybox:latest", true},
 		{"busybox" + digestSuffix, "busybox" + digestSuffixOther, true}, // Even this is accepted here. (This could more reasonably happen with two different digest algorithms.)
-		// References with both tags and digests: `reference.WithName` essentially drops the tag.
-		// This is not _particularly_ desirable but it is the semantics used throughout containers/image; at least, with the digest it is clear which image the reference means,
-		// even if the tag may reflect a different user intent.
-		{"busybox:latest" + digestSuffix, "busybox:latest", true},
-		{"busybox:latest" + digestSuffix, "busybox:notlatest", true},
+		// References with both tags and digests: We match them exactly (requiring BOTH to match).
+		{"busybox:latest" + digestSuffix, "busybox:latest", false},
+		{"busybox:latest" + digestSuffix, "busybox:notlatest", false},
 		{"busybox:latest", "busybox:latest" + digestSuffix, false},
-		{"busybox:latest" + digestSuffix, "busybox:latest" + digestSuffixOther, true},    // Even this is accepted here. (This could more reasonably happen with two different digest algorithms.)
-		{"busybox:latest" + digestSuffix, "busybox:notlatest" + digestSuffixOther, true}, // Ugly.  Do not rely on this.
+		{"busybox:latest" + digestSuffix, "busybox:latest" + digestSuffixOther, false},
+		{"busybox:latest" + digestSuffix, "busybox:notlatest" + digestSuffixOther, false},
 	} {
 		testImageAndSig(t, prm, test.imageRef, test.sigRef, test.result)
 	}
@@ -307,8 +302,8 @@ func TestParseDockerReferences(t *testing.T) {
 	// Success
 	r1, r2, err := parseDockerReferences(ok1, ok2)
 	require.NoError(t, err)
-	assert.Equal(t, ok1, r1.String())
-	assert.Equal(t, ok2, r2.String())
+	assert.Equal(t, ok1, reference.FamiliarString(r1))
+	assert.Equal(t, ok2, reference.FamiliarString(r2))
 
 	// Failures
 	for _, refs := range [][]string{
@@ -327,7 +322,7 @@ type forbiddenImageMock struct{}
 func (ref forbiddenImageMock) Reference() types.ImageReference {
 	panic("unexpected call to a mock function")
 }
-func (ref forbiddenImageMock) Close() {
+func (ref forbiddenImageMock) Close() error {
 	panic("unexpected call to a mock function")
 }
 func (ref forbiddenImageMock) Manifest() ([]byte, string, error) {

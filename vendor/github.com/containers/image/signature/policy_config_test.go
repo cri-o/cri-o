@@ -9,6 +9,8 @@ import (
 
 	"github.com/containers/image/directory"
 	"github.com/containers/image/docker"
+	// this import is needed  where we use the "atomic" transport in TestPolicyUnmarshalJSON
+	_ "github.com/containers/image/openshift"
 	"github.com/containers/image/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -244,6 +246,11 @@ func TestPolicyUnmarshalJSON(t *testing.T) {
 					xNewPRSignedByKeyData(SBKeyTypeSignedByGPGKeys, []byte("RHatomic"), NewPRMMatchRepository()),
 				},
 			},
+			"unknown": {
+				"registry.access.redhat.com/rhel7": []PolicyRequirement{
+					xNewPRSignedByKeyData(SBKeyTypeSignedByGPGKeys, []byte("RHatomic"), NewPRMMatchRepository()),
+				},
+			},
 		},
 	}
 	validJSON, err := json.Marshal(validPolicy)
@@ -269,9 +276,6 @@ func TestPolicyUnmarshalJSON(t *testing.T) {
 		func(v mSI) { v["transports"] = []string{} },
 		// "default" is an invalid PolicyRequirements
 		func(v mSI) { v["default"] = PolicyRequirements{} },
-		// A key in "transports" is an invalid transport name
-		func(v mSI) { x(v, "transports")["this is unknown"] = x(v, "transports")["docker"] },
-		func(v mSI) { x(v, "transports")[""] = x(v, "transports")["docker"] },
 	}
 	for _, fn := range breakFns {
 		err = tryUnmarshalModifiedPolicy(t, &p, validJSON, fn)

@@ -1,10 +1,9 @@
 package policyconfiguration
 
 import (
+	"fmt"
 	"strings"
 	"testing"
-
-	"fmt"
 
 	"github.com/containers/image/docker/reference"
 	"github.com/stretchr/testify/assert"
@@ -35,14 +34,9 @@ func TestDockerReference(t *testing.T) {
 		for inputSuffix, mappedSuffix := range map[string]string{
 			":tag":       ":tag",
 			sha256Digest: sha256Digest,
-			// A github.com/distribution/reference value can have a tag and a digest at the same time!
-			// github.com/docker/reference handles that by dropping the tag. That is not obviously the
-			// right thing to do, but it is at least reasonable, so test that we keep behaving reasonably.
-			// This test case should not be construed to make this an API promise.
-			":tag" + sha256Digest: sha256Digest,
 		} {
 			fullInput := inputName + inputSuffix
-			ref, err := reference.ParseNamed(fullInput)
+			ref, err := reference.ParseNormalizedNamed(fullInput)
 			require.NoError(t, err, fullInput)
 
 			identity, err := DockerReferenceIdentity(ref)
@@ -62,30 +56,24 @@ func TestDockerReference(t *testing.T) {
 	}
 }
 
-// refWithTagAndDigest is a reference.NamedTagged and reference.Canonical at the same time.
-type refWithTagAndDigest struct{ reference.Canonical }
-
-func (ref refWithTagAndDigest) Tag() string {
-	return "notLatest"
-}
-
 func TestDockerReferenceIdentity(t *testing.T) {
 	// TestDockerReference above has tested the core of the functionality, this tests only the failure cases.
 
 	// Neither a tag nor digest
-	parsed, err := reference.ParseNamed("busybox")
+	parsed, err := reference.ParseNormalizedNamed("busybox")
 	require.NoError(t, err)
 	id, err := DockerReferenceIdentity(parsed)
 	assert.Equal(t, "", id)
 	assert.Error(t, err)
 
 	// A github.com/distribution/reference value can have a tag and a digest at the same time!
-	parsed, err = reference.ParseNamed("busybox@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+	parsed, err = reference.ParseNormalizedNamed("busybox:notlatest@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
 	require.NoError(t, err)
-	refDigested, ok := parsed.(reference.Canonical)
+	_, ok := parsed.(reference.Canonical)
 	require.True(t, ok)
-	tagDigestRef := refWithTagAndDigest{refDigested}
-	id, err = DockerReferenceIdentity(tagDigestRef)
+	_, ok = parsed.(reference.NamedTagged)
+	require.True(t, ok)
+	id, err = DockerReferenceIdentity(parsed)
 	assert.Equal(t, "", id)
 	assert.Error(t, err)
 }

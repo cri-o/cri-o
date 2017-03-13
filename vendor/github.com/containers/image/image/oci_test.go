@@ -9,13 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -260,7 +259,7 @@ func newOCI1ImageSource(t *testing.T, dockerRef string) *oci1ImageSource {
 	realConfigJSON, err := ioutil.ReadFile("fixtures/oci1-config.json")
 	require.NoError(t, err)
 
-	ref, err := reference.ParseNamed(dockerRef)
+	ref, err := reference.ParseNormalizedNamed(dockerRef)
 	require.NoError(t, err)
 
 	return &oci1ImageSource{

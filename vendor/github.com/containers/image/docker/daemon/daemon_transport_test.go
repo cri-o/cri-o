@@ -50,15 +50,12 @@ func testParseReference(t *testing.T, fn func(string) (types.ImageReference, err
 		{"sha256:XX23456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "", ""}, // Invalid digest value
 		{"UPPERCASEISINVALID", "", ""},                                                      // Invalid reference input
 		{"busybox", "", ""},                                                                 // Missing tag or digest
-		{"busybox:latest", "", "busybox:latest"},                                            // Explicit tag
-		{"busybox@" + sha256digest, "", "busybox@" + sha256digest},                          // Explicit digest
+		{"busybox:latest", "", "docker.io/library/busybox:latest"},                          // Explicit tag
+		{"busybox@" + sha256digest, "", "docker.io/library/busybox@" + sha256digest},        // Explicit digest
 		// A github.com/distribution/reference value can have a tag and a digest at the same time!
-		// github.com/docker/reference handles that by dropping the tag. That is not obviously the
-		// right thing to do, but it is at least reasonable, so test that we keep behaving reasonably.
-		// This test case should not be construed to make this an API promise.
-		// FIXME? Instead work extra hard to reject such input?
-		{"busybox:latest@" + sha256digest, "", "busybox@" + sha256digest}, // Both tag and digest
-		{"docker.io/library/busybox:latest", "", "busybox:latest"},        // All implied values explicitly specified
+		// Most versions of docker/reference do not handle that (ignoring the tag), so we reject such input.
+		{"busybox:latest@" + sha256digest, "", ""},                                   // Both tag and digest
+		{"docker.io/library/busybox:latest", "", "docker.io/library/busybox:latest"}, // All implied values explicitly specified
 	} {
 		ref, err := fn(c.input)
 		if c.expectedID == "" && c.expectedRef == "" {
@@ -67,43 +64,37 @@ func testParseReference(t *testing.T, fn func(string) (types.ImageReference, err
 			require.NoError(t, err, c.input)
 			daemonRef, ok := ref.(daemonReference)
 			require.True(t, ok, c.input)
-			// If we don't reject the input, the interpretation must be consistent for reference.ParseIDOrReference
-			dockerID, dockerRef, err := reference.ParseIDOrReference(c.input)
+			// If we don't reject the input, the interpretation must be consistent with reference.ParseAnyReference
+			dockerRef, err := reference.ParseAnyReference(c.input)
 			require.NoError(t, err, c.input)
 
 			if c.expectedRef == "" {
 				assert.Equal(t, c.expectedID, daemonRef.id.String(), c.input)
 				assert.Nil(t, daemonRef.ref, c.input)
 
-				assert.Equal(t, c.expectedID, dockerID.String(), c.input)
-				assert.Nil(t, dockerRef, c.input)
+				_, ok := dockerRef.(reference.Digested)
+				require.True(t, ok, c.input)
+				assert.Equal(t, c.expectedID, dockerRef.String(), c.input)
 			} else {
 				assert.Equal(t, "", daemonRef.id.String(), c.input)
 				require.NotNil(t, daemonRef.ref, c.input)
 				assert.Equal(t, c.expectedRef, daemonRef.ref.String(), c.input)
 
-				assert.Equal(t, "", dockerID.String(), c.input)
-				require.NotNil(t, dockerRef, c.input)
+				_, ok := dockerRef.(reference.Named)
+				require.True(t, ok, c.input)
 				assert.Equal(t, c.expectedRef, dockerRef.String(), c.input)
 			}
 		}
 	}
 }
 
-// refWithTagAndDigest is a reference.NamedTagged and reference.Canonical at the same time.
-type refWithTagAndDigest struct{ reference.Canonical }
-
-func (ref refWithTagAndDigest) Tag() string {
-	return "notLatest"
-}
-
 // A common list of reference formats to test for the various ImageReference methods.
 // (For IDs it is much simpler, we simply use them unmodified)
 var validNamedReferenceTestCases = []struct{ input, dockerRef, stringWithinTransport string }{
-	{"busybox:notlatest", "busybox:notlatest", "busybox:notlatest"},                // Explicit tag
-	{"busybox" + sha256digest, "busybox" + sha256digest, "busybox" + sha256digest}, // Explicit digest
-	{"docker.io/library/busybox:latest", "busybox:latest", "busybox:latest"},       // All implied values explicitly specified
-	{"example.com/ns/foo:bar", "example.com/ns/foo:bar", "example.com/ns/foo:bar"}, // All values explicitly specified
+	{"busybox:notlatest", "docker.io/library/busybox:notlatest", "busybox:notlatest"},                // Explicit tag
+	{"busybox" + sha256digest, "docker.io/library/busybox" + sha256digest, "busybox" + sha256digest}, // Explicit digest
+	{"docker.io/library/busybox:latest", "docker.io/library/busybox:latest", "busybox:latest"},       // All implied values explicitly specified
+	{"example.com/ns/foo:bar", "example.com/ns/foo:bar", "example.com/ns/foo:bar"},                   // All values explicitly specified
 }
 
 func TestNewReference(t *testing.T) {
@@ -119,7 +110,7 @@ func TestNewReference(t *testing.T) {
 
 	// Named references
 	for _, c := range validNamedReferenceTestCases {
-		parsed, err := reference.ParseNamed(c.input)
+		parsed, err := reference.ParseNormalizedNamed(c.input)
 		require.NoError(t, err)
 		ref, err := NewReference("", parsed)
 		require.NoError(t, err, c.input)
@@ -131,24 +122,25 @@ func TestNewReference(t *testing.T) {
 	}
 
 	// Both an ID and a named reference provided
-	parsed, err := reference.ParseNamed("busybox:latest")
+	parsed, err := reference.ParseNormalizedNamed("busybox:latest")
 	require.NoError(t, err)
 	_, err = NewReference(id, parsed)
 	assert.Error(t, err)
 
 	// A reference with neither a tag nor digest
-	parsed, err = reference.ParseNamed("busybox")
+	parsed, err = reference.ParseNormalizedNamed("busybox")
 	require.NoError(t, err)
 	_, err = NewReference("", parsed)
 	assert.Error(t, err)
 
 	// A github.com/distribution/reference value can have a tag and a digest at the same time!
-	parsed, err = reference.ParseNamed("busybox@" + sha256digest)
+	parsed, err = reference.ParseNormalizedNamed("busybox:notlatest@" + sha256digest)
 	require.NoError(t, err)
-	refDigested, ok := parsed.(reference.Canonical)
+	_, ok = parsed.(reference.Canonical)
 	require.True(t, ok)
-	tagDigestRef := refWithTagAndDigest{refDigested}
-	_, err = NewReference("", tagDigestRef)
+	_, ok = parsed.(reference.NamedTagged)
+	require.True(t, ok)
+	_, err = NewReference("", parsed)
 	assert.Error(t, err)
 }
 

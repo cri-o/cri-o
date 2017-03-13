@@ -1,272 +1,659 @@
 package reference
 
 import (
+	_ "crypto/sha256"
+	_ "crypto/sha512"
+	"encoding/json"
+	"strconv"
+	"strings"
 	"testing"
 
-	_ "crypto/sha256"
+	"github.com/opencontainers/go-digest"
 )
 
-func TestValidateReferenceName(t *testing.T) {
-	validRepoNames := []string{
-		"docker/docker",
-		"library/debian",
-		"debian",
-		"docker.io/docker/docker",
-		"docker.io/library/debian",
-		"docker.io/debian",
-		"index.docker.io/docker/docker",
-		"index.docker.io/library/debian",
-		"index.docker.io/debian",
-		"127.0.0.1:5000/docker/docker",
-		"127.0.0.1:5000/library/debian",
-		"127.0.0.1:5000/debian",
-		"thisisthesongthatneverendsitgoesonandonandonthisisthesongthatnev",
+func TestReferenceParse(t *testing.T) {
+	// referenceTestcases is a unified set of testcases for
+	// testing the parsing of references
+	referenceTestcases := []struct {
+		// input is the repository name or name component testcase
+		input string
+		// err is the error expected from Parse, or nil
+		err error
+		// repository is the string representation for the reference
+		repository string
+		// domain is the domain expected in the reference
+		domain string
+		// tag is the tag for the reference
+		tag string
+		// digest is the digest for the reference (enforces digest reference)
+		digest string
+	}{
+		{
+			input:      "test_com",
+			repository: "test_com",
+		},
+		{
+			input:      "test.com:tag",
+			repository: "test.com",
+			tag:        "tag",
+		},
+		{
+			input:      "test.com:5000",
+			repository: "test.com",
+			tag:        "5000",
+		},
+		{
+			input:      "test.com/repo:tag",
+			domain:     "test.com",
+			repository: "test.com/repo",
+			tag:        "tag",
+		},
+		{
+			input:      "test:5000/repo",
+			domain:     "test:5000",
+			repository: "test:5000/repo",
+		},
+		{
+			input:      "test:5000/repo:tag",
+			domain:     "test:5000",
+			repository: "test:5000/repo",
+			tag:        "tag",
+		},
+		{
+			input:      "test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			domain:     "test:5000",
+			repository: "test:5000/repo",
+			digest:     "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+		},
+		{
+			input:      "test:5000/repo:tag@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			domain:     "test:5000",
+			repository: "test:5000/repo",
+			tag:        "tag",
+			digest:     "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+		},
+		{
+			input:      "test:5000/repo",
+			domain:     "test:5000",
+			repository: "test:5000/repo",
+		},
+		{
+			input: "",
+			err:   ErrNameEmpty,
+		},
+		{
+			input: ":justtag",
+			err:   ErrReferenceInvalidFormat,
+		},
+		{
+			input: "@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			err:   ErrReferenceInvalidFormat,
+		},
+		{
+			input: "repo@sha256:ffffffffffffffffffffffffffffffffff",
+			err:   digest.ErrDigestInvalidLength,
+		},
+		{
+			input: "validname@invaliddigest:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			err:   digest.ErrDigestUnsupported,
+		},
+		{
+			input: "Uppercase:tag",
+			err:   ErrNameContainsUppercase,
+		},
+		// FIXME "Uppercase" is incorrectly handled as a domain-name here, therefore passes.
+		// See https://github.com/docker/distribution/pull/1778, and https://github.com/docker/docker/pull/20175
+		//{
+		//	input: "Uppercase/lowercase:tag",
+		//	err:   ErrNameContainsUppercase,
+		//},
+		{
+			input: "test:5000/Uppercase/lowercase:tag",
+			err:   ErrNameContainsUppercase,
+		},
+		{
+			input:      "lowercase:Uppercase",
+			repository: "lowercase",
+			tag:        "Uppercase",
+		},
+		{
+			input: strings.Repeat("a/", 128) + "a:tag",
+			err:   ErrNameTooLong,
+		},
+		{
+			input:      strings.Repeat("a/", 127) + "a:tag-puts-this-over-max",
+			domain:     "a",
+			repository: strings.Repeat("a/", 127) + "a",
+			tag:        "tag-puts-this-over-max",
+		},
+		{
+			input: "aa/asdf$$^/aa",
+			err:   ErrReferenceInvalidFormat,
+		},
+		{
+			input:      "sub-dom1.foo.com/bar/baz/quux",
+			domain:     "sub-dom1.foo.com",
+			repository: "sub-dom1.foo.com/bar/baz/quux",
+		},
+		{
+			input:      "sub-dom1.foo.com/bar/baz/quux:some-long-tag",
+			domain:     "sub-dom1.foo.com",
+			repository: "sub-dom1.foo.com/bar/baz/quux",
+			tag:        "some-long-tag",
+		},
+		{
+			input:      "b.gcr.io/test.example.com/my-app:test.example.com",
+			domain:     "b.gcr.io",
+			repository: "b.gcr.io/test.example.com/my-app",
+			tag:        "test.example.com",
+		},
+		{
+			input:      "xn--n3h.com/myimage:xn--n3h.com", // ☃.com in punycode
+			domain:     "xn--n3h.com",
+			repository: "xn--n3h.com/myimage",
+			tag:        "xn--n3h.com",
+		},
+		{
+			input:      "xn--7o8h.com/myimage:xn--7o8h.com@sha512:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", // 🐳.com in punycode
+			domain:     "xn--7o8h.com",
+			repository: "xn--7o8h.com/myimage",
+			tag:        "xn--7o8h.com",
+			digest:     "sha512:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+		},
+		{
+			input:      "foo_bar.com:8080",
+			repository: "foo_bar.com",
+			tag:        "8080",
+		},
+		{
+			input:      "foo/foo_bar.com:8080",
+			domain:     "foo",
+			repository: "foo/foo_bar.com",
+			tag:        "8080",
+		},
 	}
-	invalidRepoNames := []string{
-		"https://github.com/docker/docker",
-		"docker/Docker",
-		"-docker",
-		"-docker/docker",
-		"-docker.io/docker/docker",
-		"docker///docker",
-		"docker.io/docker/Docker",
-		"docker.io/docker///docker",
-		"1a3f5e7d9c1b3a5f7e9d1c3b5a7f9e1d3c5b7a9f1e3d5d7c9b1a3f5e7d9c1b3a",
-		"docker.io/1a3f5e7d9c1b3a5f7e9d1c3b5a7f9e1d3c5b7a9f1e3d5d7c9b1a3f5e7d9c1b3a",
-	}
+	for _, testcase := range referenceTestcases {
+		failf := func(format string, v ...interface{}) {
+			t.Logf(strconv.Quote(testcase.input)+": "+format, v...)
+			t.Fail()
+		}
 
-	for _, name := range invalidRepoNames {
-		_, err := ParseNamed(name)
+		repo, err := Parse(testcase.input)
+		if testcase.err != nil {
+			if err == nil {
+				failf("missing expected error: %v", testcase.err)
+			} else if testcase.err != err {
+				failf("mismatched error: got %v, expected %v", err, testcase.err)
+			}
+			continue
+		} else if err != nil {
+			failf("unexpected parse error: %v", err)
+			continue
+		}
+		if repo.String() != testcase.input {
+			failf("mismatched repo: got %q, expected %q", repo.String(), testcase.input)
+		}
+
+		if named, ok := repo.(Named); ok {
+			if named.Name() != testcase.repository {
+				failf("unexpected repository: got %q, expected %q", named.Name(), testcase.repository)
+			}
+			domain, _ := SplitHostname(named)
+			if domain != testcase.domain {
+				failf("unexpected domain: got %q, expected %q", domain, testcase.domain)
+			}
+		} else if testcase.repository != "" || testcase.domain != "" {
+			failf("expected named type, got %T", repo)
+		}
+
+		tagged, ok := repo.(Tagged)
+		if testcase.tag != "" {
+			if ok {
+				if tagged.Tag() != testcase.tag {
+					failf("unexpected tag: got %q, expected %q", tagged.Tag(), testcase.tag)
+				}
+			} else {
+				failf("expected tagged type, got %T", repo)
+			}
+		} else if ok {
+			failf("unexpected tagged type")
+		}
+
+		digested, ok := repo.(Digested)
+		if testcase.digest != "" {
+			if ok {
+				if digested.Digest().String() != testcase.digest {
+					failf("unexpected digest: got %q, expected %q", digested.Digest().String(), testcase.digest)
+				}
+			} else {
+				failf("expected digested type, got %T", repo)
+			}
+		} else if ok {
+			failf("unexpected digested type")
+		}
+
+	}
+}
+
+// TestWithNameFailure tests cases where WithName should fail. Cases where it
+// should succeed are covered by TestSplitHostname, below.
+func TestWithNameFailure(t *testing.T) {
+	testcases := []struct {
+		input string
+		err   error
+	}{
+		{
+			input: "",
+			err:   ErrNameEmpty,
+		},
+		{
+			input: ":justtag",
+			err:   ErrReferenceInvalidFormat,
+		},
+		{
+			input: "@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			err:   ErrReferenceInvalidFormat,
+		},
+		{
+			input: "validname@invaliddigest:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			err:   ErrReferenceInvalidFormat,
+		},
+		{
+			input: strings.Repeat("a/", 128) + "a:tag",
+			err:   ErrNameTooLong,
+		},
+		{
+			input: "aa/asdf$$^/aa",
+			err:   ErrReferenceInvalidFormat,
+		},
+	}
+	for _, testcase := range testcases {
+		failf := func(format string, v ...interface{}) {
+			t.Logf(strconv.Quote(testcase.input)+": "+format, v...)
+			t.Fail()
+		}
+
+		_, err := WithName(testcase.input)
 		if err == nil {
-			t.Fatalf("Expected invalid repo name for %q", name)
+			failf("no error parsing name. expected: %s", testcase.err)
 		}
 	}
+}
 
-	for _, name := range validRepoNames {
-		_, err := ParseNamed(name)
+func TestSplitHostname(t *testing.T) {
+	testcases := []struct {
+		input  string
+		domain string
+		name   string
+	}{
+		{
+			input:  "test.com/foo",
+			domain: "test.com",
+			name:   "foo",
+		},
+		{
+			input:  "test_com/foo",
+			domain: "",
+			name:   "test_com/foo",
+		},
+		{
+			input:  "test:8080/foo",
+			domain: "test:8080",
+			name:   "foo",
+		},
+		{
+			input:  "test.com:8080/foo",
+			domain: "test.com:8080",
+			name:   "foo",
+		},
+		{
+			input:  "test-com:8080/foo",
+			domain: "test-com:8080",
+			name:   "foo",
+		},
+		{
+			input:  "xn--n3h.com:18080/foo",
+			domain: "xn--n3h.com:18080",
+			name:   "foo",
+		},
+	}
+	for _, testcase := range testcases {
+		failf := func(format string, v ...interface{}) {
+			t.Logf(strconv.Quote(testcase.input)+": "+format, v...)
+			t.Fail()
+		}
+
+		named, err := WithName(testcase.input)
 		if err != nil {
-			t.Fatalf("Error parsing repo name %s, got: %q", name, err)
+			failf("error parsing name: %s", err)
+		}
+		domain, name := SplitHostname(named)
+		if domain != testcase.domain {
+			failf("unexpected domain: got %q, expected %q", domain, testcase.domain)
+		}
+		if name != testcase.name {
+			failf("unexpected name: got %q, expected %q", name, testcase.name)
 		}
 	}
 }
 
-func TestValidateRemoteName(t *testing.T) {
-	validRepositoryNames := []string{
-		// Sanity check.
-		"docker/docker",
+type serializationType struct {
+	Description string
+	Field       Field
+}
 
-		// Allow 64-character non-hexadecimal names (hexadecimal names are forbidden).
-		"thisisthesongthatneverendsitgoesonandonandonthisisthesongthatnev",
-
-		// Allow embedded hyphens.
-		"docker-rules/docker",
-
-		// Allow multiple hyphens as well.
-		"docker---rules/docker",
-
-		//Username doc and image name docker being tested.
-		"doc/docker",
-
-		// single character names are now allowed.
-		"d/docker",
-		"jess/t",
-
-		// Consecutive underscores.
-		"dock__er/docker",
+func TestSerialization(t *testing.T) {
+	testcases := []struct {
+		description string
+		input       string
+		name        string
+		tag         string
+		digest      string
+		err         error
+	}{
+		{
+			description: "empty value",
+			err:         ErrNameEmpty,
+		},
+		{
+			description: "just a name",
+			input:       "example.com:8000/named",
+			name:        "example.com:8000/named",
+		},
+		{
+			description: "name with a tag",
+			input:       "example.com:8000/named:tagged",
+			name:        "example.com:8000/named",
+			tag:         "tagged",
+		},
+		{
+			description: "name with digest",
+			input:       "other.com/named@sha256:1234567890098765432112345667890098765432112345667890098765432112",
+			name:        "other.com/named",
+			digest:      "sha256:1234567890098765432112345667890098765432112345667890098765432112",
+		},
 	}
-	for _, repositoryName := range validRepositoryNames {
-		_, err := ParseNamed(repositoryName)
+	for _, testcase := range testcases {
+		failf := func(format string, v ...interface{}) {
+			t.Logf(strconv.Quote(testcase.input)+": "+format, v...)
+			t.Fail()
+		}
+
+		m := map[string]string{
+			"Description": testcase.description,
+			"Field":       testcase.input,
+		}
+		b, err := json.Marshal(m)
 		if err != nil {
-			t.Errorf("Repository name should be valid: %v. Error: %v", repositoryName, err)
+			failf("error marshalling: %v", err)
 		}
-	}
+		t := serializationType{}
 
-	invalidRepositoryNames := []string{
-		// Disallow capital letters.
-		"docker/Docker",
+		if err := json.Unmarshal(b, &t); err != nil {
+			if testcase.err == nil {
+				failf("error unmarshalling: %v", err)
+			}
+			if err != testcase.err {
+				failf("wrong error, expected %v, got %v", testcase.err, err)
+			}
 
-		// Only allow one slash.
-		"docker///docker",
-
-		// Disallow 64-character hexadecimal.
-		"1a3f5e7d9c1b3a5f7e9d1c3b5a7f9e1d3c5b7a9f1e3d5d7c9b1a3f5e7d9c1b3a",
-
-		// Disallow leading and trailing hyphens in namespace.
-		"-docker/docker",
-		"docker-/docker",
-		"-docker-/docker",
-
-		// Don't allow underscores everywhere (as opposed to hyphens).
-		"____/____",
-
-		"_docker/_docker",
-
-		// Disallow consecutive periods.
-		"dock..er/docker",
-		"dock_.er/docker",
-		"dock-.er/docker",
-
-		// No repository.
-		"docker/",
-
-		//namespace too long
-		"this_is_not_a_valid_namespace_because_its_lenth_is_greater_than_255_this_is_not_a_valid_namespace_because_its_lenth_is_greater_than_255_this_is_not_a_valid_namespace_because_its_lenth_is_greater_than_255_this_is_not_a_valid_namespace_because_its_lenth_is_greater_than_255/docker",
-	}
-	for _, repositoryName := range invalidRepositoryNames {
-		if _, err := ParseNamed(repositoryName); err == nil {
-			t.Errorf("Repository name should be invalid: %v", repositoryName)
+			continue
+		} else if testcase.err != nil {
+			failf("expected error unmarshalling: %v", testcase.err)
 		}
+
+		if t.Description != testcase.description {
+			failf("wrong description, expected %q, got %q", testcase.description, t.Description)
+		}
+
+		ref := t.Field.Reference()
+
+		if named, ok := ref.(Named); ok {
+			if named.Name() != testcase.name {
+				failf("unexpected repository: got %q, expected %q", named.Name(), testcase.name)
+			}
+		} else if testcase.name != "" {
+			failf("expected named type, got %T", ref)
+		}
+
+		tagged, ok := ref.(Tagged)
+		if testcase.tag != "" {
+			if ok {
+				if tagged.Tag() != testcase.tag {
+					failf("unexpected tag: got %q, expected %q", tagged.Tag(), testcase.tag)
+				}
+			} else {
+				failf("expected tagged type, got %T", ref)
+			}
+		} else if ok {
+			failf("unexpected tagged type")
+		}
+
+		digested, ok := ref.(Digested)
+		if testcase.digest != "" {
+			if ok {
+				if digested.Digest().String() != testcase.digest {
+					failf("unexpected digest: got %q, expected %q", digested.Digest().String(), testcase.digest)
+				}
+			} else {
+				failf("expected digested type, got %T", ref)
+			}
+		} else if ok {
+			failf("unexpected digested type")
+		}
+
+		t = serializationType{
+			Description: testcase.description,
+			Field:       AsField(ref),
+		}
+
+		b2, err := json.Marshal(t)
+		if err != nil {
+			failf("error marshing serialization type: %v", err)
+		}
+
+		if string(b) != string(b2) {
+			failf("unexpected serialized value: expected %q, got %q", string(b), string(b2))
+		}
+
+		// Ensure t.Field is not implementing "Reference" directly, getting
+		// around the Reference type system
+		var fieldInterface interface{} = t.Field
+		if _, ok := fieldInterface.(Reference); ok {
+			failf("field should not implement Reference interface")
+		}
+
 	}
 }
 
-func TestParseRepositoryInfo(t *testing.T) {
-	type tcase struct {
-		RemoteName, NormalizedName, FullName, AmbiguousName, Hostname string
-	}
-
-	tcases := []tcase{
+func TestWithTag(t *testing.T) {
+	testcases := []struct {
+		name     string
+		digest   digest.Digest
+		tag      string
+		combined string
+	}{
 		{
-			RemoteName:     "fooo/bar",
-			NormalizedName: "fooo/bar",
-			FullName:       "docker.io/fooo/bar",
-			AmbiguousName:  "index.docker.io/fooo/bar",
-			Hostname:       "docker.io",
+			name:     "test.com/foo",
+			tag:      "tag",
+			combined: "test.com/foo:tag",
 		},
 		{
-			RemoteName:     "library/ubuntu",
-			NormalizedName: "ubuntu",
-			FullName:       "docker.io/library/ubuntu",
-			AmbiguousName:  "library/ubuntu",
-			Hostname:       "docker.io",
+			name:     "foo",
+			tag:      "tag2",
+			combined: "foo:tag2",
 		},
 		{
-			RemoteName:     "nonlibrary/ubuntu",
-			NormalizedName: "nonlibrary/ubuntu",
-			FullName:       "docker.io/nonlibrary/ubuntu",
-			AmbiguousName:  "",
-			Hostname:       "docker.io",
+			name:     "test.com:8000/foo",
+			tag:      "tag4",
+			combined: "test.com:8000/foo:tag4",
 		},
 		{
-			RemoteName:     "other/library",
-			NormalizedName: "other/library",
-			FullName:       "docker.io/other/library",
-			AmbiguousName:  "",
-			Hostname:       "docker.io",
+			name:     "test.com:8000/foo",
+			tag:      "TAG5",
+			combined: "test.com:8000/foo:TAG5",
 		},
 		{
-			RemoteName:     "private/moonbase",
-			NormalizedName: "127.0.0.1:8000/private/moonbase",
-			FullName:       "127.0.0.1:8000/private/moonbase",
-			AmbiguousName:  "",
-			Hostname:       "127.0.0.1:8000",
-		},
-		{
-			RemoteName:     "privatebase",
-			NormalizedName: "127.0.0.1:8000/privatebase",
-			FullName:       "127.0.0.1:8000/privatebase",
-			AmbiguousName:  "",
-			Hostname:       "127.0.0.1:8000",
-		},
-		{
-			RemoteName:     "private/moonbase",
-			NormalizedName: "example.com/private/moonbase",
-			FullName:       "example.com/private/moonbase",
-			AmbiguousName:  "",
-			Hostname:       "example.com",
-		},
-		{
-			RemoteName:     "privatebase",
-			NormalizedName: "example.com/privatebase",
-			FullName:       "example.com/privatebase",
-			AmbiguousName:  "",
-			Hostname:       "example.com",
-		},
-		{
-			RemoteName:     "private/moonbase",
-			NormalizedName: "example.com:8000/private/moonbase",
-			FullName:       "example.com:8000/private/moonbase",
-			AmbiguousName:  "",
-			Hostname:       "example.com:8000",
-		},
-		{
-			RemoteName:     "privatebasee",
-			NormalizedName: "example.com:8000/privatebasee",
-			FullName:       "example.com:8000/privatebasee",
-			AmbiguousName:  "",
-			Hostname:       "example.com:8000",
-		},
-		{
-			RemoteName:     "library/ubuntu-12.04-base",
-			NormalizedName: "ubuntu-12.04-base",
-			FullName:       "docker.io/library/ubuntu-12.04-base",
-			AmbiguousName:  "index.docker.io/library/ubuntu-12.04-base",
-			Hostname:       "docker.io",
+			name:     "test.com:8000/foo",
+			digest:   "sha256:1234567890098765432112345667890098765",
+			tag:      "TAG5",
+			combined: "test.com:8000/foo:TAG5@sha256:1234567890098765432112345667890098765",
 		},
 	}
-
-	for _, tcase := range tcases {
-		refStrings := []string{tcase.NormalizedName, tcase.FullName}
-		if tcase.AmbiguousName != "" {
-			refStrings = append(refStrings, tcase.AmbiguousName)
+	for _, testcase := range testcases {
+		failf := func(format string, v ...interface{}) {
+			t.Logf(strconv.Quote(testcase.name)+": "+format, v...)
+			t.Fail()
 		}
 
-		var refs []Named
-		for _, r := range refStrings {
-			named, err := ParseNamed(r)
+		named, err := WithName(testcase.name)
+		if err != nil {
+			failf("error parsing name: %s", err)
+		}
+		if testcase.digest != "" {
+			canonical, err := WithDigest(named, testcase.digest)
 			if err != nil {
-				t.Fatal(err)
+				failf("error adding digest")
 			}
-			refs = append(refs, named)
-			named, err = WithName(r)
+			named = canonical
+		}
+
+		tagged, err := WithTag(named, testcase.tag)
+		if err != nil {
+			failf("WithTag failed: %s", err)
+		}
+		if tagged.String() != testcase.combined {
+			failf("unexpected: got %q, expected %q", tagged.String(), testcase.combined)
+		}
+	}
+}
+
+func TestWithDigest(t *testing.T) {
+	testcases := []struct {
+		name     string
+		digest   digest.Digest
+		tag      string
+		combined string
+	}{
+		{
+			name:     "test.com/foo",
+			digest:   "sha256:1234567890098765432112345667890098765",
+			combined: "test.com/foo@sha256:1234567890098765432112345667890098765",
+		},
+		{
+			name:     "foo",
+			digest:   "sha256:1234567890098765432112345667890098765",
+			combined: "foo@sha256:1234567890098765432112345667890098765",
+		},
+		{
+			name:     "test.com:8000/foo",
+			digest:   "sha256:1234567890098765432112345667890098765",
+			combined: "test.com:8000/foo@sha256:1234567890098765432112345667890098765",
+		},
+		{
+			name:     "test.com:8000/foo",
+			digest:   "sha256:1234567890098765432112345667890098765",
+			tag:      "latest",
+			combined: "test.com:8000/foo:latest@sha256:1234567890098765432112345667890098765",
+		},
+	}
+	for _, testcase := range testcases {
+		failf := func(format string, v ...interface{}) {
+			t.Logf(strconv.Quote(testcase.name)+": "+format, v...)
+			t.Fail()
+		}
+
+		named, err := WithName(testcase.name)
+		if err != nil {
+			failf("error parsing name: %s", err)
+		}
+		if testcase.tag != "" {
+			tagged, err := WithTag(named, testcase.tag)
 			if err != nil {
-				t.Fatal(err)
+				failf("error adding tag")
 			}
-			refs = append(refs, named)
+			named = tagged
 		}
-
-		for _, r := range refs {
-			if expected, actual := tcase.NormalizedName, r.Name(); expected != actual {
-				t.Fatalf("Invalid normalized reference for %q. Expected %q, got %q", r, expected, actual)
-			}
-			if expected, actual := tcase.FullName, r.FullName(); expected != actual {
-				t.Fatalf("Invalid normalized reference for %q. Expected %q, got %q", r, expected, actual)
-			}
-			if expected, actual := tcase.Hostname, r.Hostname(); expected != actual {
-				t.Fatalf("Invalid hostname for %q. Expected %q, got %q", r, expected, actual)
-			}
-			if expected, actual := tcase.RemoteName, r.RemoteName(); expected != actual {
-				t.Fatalf("Invalid remoteName for %q. Expected %q, got %q", r, expected, actual)
-			}
-
+		digested, err := WithDigest(named, testcase.digest)
+		if err != nil {
+			failf("WithDigest failed: %s", err)
+		}
+		if digested.String() != testcase.combined {
+			failf("unexpected: got %q, expected %q", digested.String(), testcase.combined)
 		}
 	}
 }
 
-func TestParseReferenceWithTagAndDigest(t *testing.T) {
-	ref, err := ParseNamed("busybox:latest@sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa")
-	if err != nil {
-		t.Fatal(err)
+func TestParseNamed(t *testing.T) {
+	testcases := []struct {
+		input  string
+		domain string
+		name   string
+		err    error
+	}{
+		{
+			input:  "test.com/foo",
+			domain: "test.com",
+			name:   "foo",
+		},
+		{
+			input:  "test:8080/foo",
+			domain: "test:8080",
+			name:   "foo",
+		},
+		{
+			input: "test_com/foo",
+			err:   ErrNameNotCanonical,
+		},
+		{
+			input: "test.com",
+			err:   ErrNameNotCanonical,
+		},
+		{
+			input: "foo",
+			err:   ErrNameNotCanonical,
+		},
+		{
+			input: "library/foo",
+			err:   ErrNameNotCanonical,
+		},
+		{
+			input:  "docker.io/library/foo",
+			domain: "docker.io",
+			name:   "library/foo",
+		},
+		// Ambiguous case, parser will add "library/" to foo
+		{
+			input: "docker.io/foo",
+			err:   ErrNameNotCanonical,
+		},
 	}
-	if _, isTagged := ref.(NamedTagged); isTagged {
-		t.Fatalf("Reference from %q should not support tag", ref)
-	}
-	if _, isCanonical := ref.(Canonical); !isCanonical {
-		t.Fatalf("Reference from %q should not support digest", ref)
-	}
-	if expected, actual := "busybox@sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", ref.String(); actual != expected {
-		t.Fatalf("Invalid parsed reference for %q: expected %q, got %q", ref, expected, actual)
-	}
-}
+	for _, testcase := range testcases {
+		failf := func(format string, v ...interface{}) {
+			t.Logf(strconv.Quote(testcase.input)+": "+format, v...)
+			t.Fail()
+		}
 
-func TestInvalidReferenceComponents(t *testing.T) {
-	if _, err := WithName("-foo"); err == nil {
-		t.Fatal("Expected WithName to detect invalid name")
-	}
-	ref, err := WithName("busybox")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := WithTag(ref, "-foo"); err == nil {
-		t.Fatal("Expected WithName to detect invalid tag")
+		named, err := ParseNamed(testcase.input)
+		if err != nil && testcase.err == nil {
+			failf("error parsing name: %s", err)
+			continue
+		} else if err == nil && testcase.err != nil {
+			failf("parsing succeded: expected error %v", testcase.err)
+			continue
+		} else if err != testcase.err {
+			failf("unexpected error %v, expected %v", err, testcase.err)
+			continue
+		} else if err != nil {
+			continue
+		}
+
+		domain, name := SplitHostname(named)
+		if domain != testcase.domain {
+			failf("unexpected domain: got %q, expected %q", domain, testcase.domain)
+		}
+		if name != testcase.name {
+			failf("unexpected name: got %q, expected %q", name, testcase.name)
+		}
 	}
 }

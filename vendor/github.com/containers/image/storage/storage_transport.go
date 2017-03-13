@@ -9,11 +9,16 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/storage"
 	"github.com/opencontainers/go-digest"
 	ddigest "github.com/opencontainers/go-digest"
 )
+
+func init() {
+	transports.Register(Transport)
+}
 
 var (
 	// Transport is an ImageTransport that uses either a default
@@ -83,14 +88,14 @@ func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (
 	refInfo := strings.SplitN(ref, "@", 2)
 	if len(refInfo) == 1 {
 		// A name.
-		name, err = reference.ParseNamed(refInfo[0])
+		name, err = reference.ParseNormalizedNamed(refInfo[0])
 		if err != nil {
 			return nil, err
 		}
 	} else if len(refInfo) == 2 {
 		// An ID, possibly preceded by a name.
 		if refInfo[0] != "" {
-			name, err = reference.ParseNamed(refInfo[0])
+			name, err = reference.ParseNormalizedNamed(refInfo[0])
 			if err != nil {
 				return nil, err
 			}
@@ -111,7 +116,7 @@ func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (
 	}
 	refname := ""
 	if name != nil {
-		name = reference.WithDefaultTag(name)
+		name = reference.TagNameOnly(name)
 		refname = verboseName(name)
 	}
 	if refname == "" {
@@ -257,12 +262,12 @@ func (s storageTransport) ValidatePolicyConfigurationScope(scope string) error {
 	// that are just bare IDs.
 	scopeInfo := strings.SplitN(scope, "@", 2)
 	if len(scopeInfo) == 1 && scopeInfo[0] != "" {
-		_, err := reference.ParseNamed(scopeInfo[0])
+		_, err := reference.ParseNormalizedNamed(scopeInfo[0])
 		if err != nil {
 			return err
 		}
 	} else if len(scopeInfo) == 2 && scopeInfo[0] != "" && scopeInfo[1] != "" {
-		_, err := reference.ParseNamed(scopeInfo[0])
+		_, err := reference.ParseNormalizedNamed(scopeInfo[0])
 		if err != nil {
 			return err
 		}
@@ -277,10 +282,10 @@ func (s storageTransport) ValidatePolicyConfigurationScope(scope string) error {
 }
 
 func verboseName(name reference.Named) string {
-	name = reference.WithDefaultTag(name)
+	name = reference.TagNameOnly(name)
 	tag := ""
 	if tagged, ok := name.(reference.NamedTagged); ok {
 		tag = tagged.Tag()
 	}
-	return name.FullName() + ":" + tag
+	return name.Name() + ":" + tag
 }
