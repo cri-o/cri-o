@@ -7,7 +7,7 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/signature"
 	"github.com/containers/image/storage"
-	"github.com/containers/image/transports"
+	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/reexec"
 	sstorage "github.com/containers/storage/storage"
@@ -137,7 +137,7 @@ func main() {
 		options := &copy.Options{}
 
 		if importFrom != "" {
-			importRef, err = transports.ParseImageName(importFrom)
+			importRef, err = alltransports.ParseImageName(importFrom)
 			if err != nil {
 				logrus.Errorf("error parsing image name %v: %v", importFrom, err)
 				os.Exit(1)
@@ -145,7 +145,7 @@ func main() {
 		}
 
 		if exportTo != "" {
-			exportRef, err = transports.ParseImageName(exportTo)
+			exportRef, err = alltransports.ParseImageName(exportTo)
 			if err != nil {
 				logrus.Errorf("error parsing image name %v: %v", exportTo, err)
 				os.Exit(1)
