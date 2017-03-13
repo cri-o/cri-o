@@ -9,7 +9,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/copy"
 	istorage "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
+	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/storage"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -162,9 +162,9 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	ref, err := istorage.Transport.ParseStoreReference(r.image.GetStore(), imageName)
 	if err != nil {
 		// Maybe it's some other transport's copy of the image?
-		otherRef, err2 := transports.ParseImageName(imageName)
+		otherRef, err2 := alltransports.ParseImageName(imageName)
 		if err2 == nil && otherRef.DockerReference() != nil {
-			ref, err = istorage.Transport.ParseStoreReference(r.image.GetStore(), otherRef.DockerReference().FullName())
+			ref, err = istorage.Transport.ParseStoreReference(r.image.GetStore(), otherRef.DockerReference().Name())
 		}
 		if err != nil {
 			// Maybe the image ID is sufficient?

@@ -1,4 +1,4 @@
-package copy
+package compression
 
 import (
 	"bytes"
@@ -33,7 +33,7 @@ func TestDetectCompression(t *testing.T) {
 		require.NoError(t, err, c.filename)
 		defer stream.Close()
 
-		_, updatedStream, err := detectCompression(stream)
+		_, updatedStream, err := DetectCompression(stream)
 		require.NoError(t, err, c.filename)
 
 		updatedContents, err := ioutil.ReadAll(updatedStream)
@@ -47,7 +47,7 @@ func TestDetectCompression(t *testing.T) {
 		require.NoError(t, err, c.filename)
 		defer stream.Close()
 
-		decompressor, updatedStream, err := detectCompression(stream)
+		decompressor, updatedStream, err := DetectCompression(stream)
 		require.NoError(t, err, c.filename)
 
 		var uncompressedStream io.Reader
@@ -70,7 +70,7 @@ func TestDetectCompression(t *testing.T) {
 	}
 
 	// Empty input is handled reasonably.
-	decompressor, updatedStream, err := detectCompression(bytes.NewReader([]byte{}))
+	decompressor, updatedStream, err := DetectCompression(bytes.NewReader([]byte{}))
 	require.NoError(t, err)
 	assert.Nil(t, decompressor)
 	updatedContents, err := ioutil.ReadAll(updatedStream)
@@ -80,7 +80,7 @@ func TestDetectCompression(t *testing.T) {
 	// Error reading input
 	reader, writer := io.Pipe()
 	defer reader.Close()
-	writer.CloseWithError(errors.New("Expected error reading input in detectCompression"))
-	_, _, err = detectCompression(reader)
+	writer.CloseWithError(errors.New("Expected error reading input in DetectCompression"))
+	_, _, err = DetectCompression(reader)
 	assert.Error(t, err)
 }

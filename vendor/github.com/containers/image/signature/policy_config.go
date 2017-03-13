@@ -19,11 +19,10 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 )
 
 // systemDefaultPolicyPath is the policy path used for DefaultPolicy().
@@ -123,10 +122,8 @@ func (m *policyTransportsMap) UnmarshalJSON(data []byte) error {
 	// So, use a temporary map of pointers-to-slices and convert.
 	tmpMap := map[string]*PolicyTransportScopes{}
 	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		transport, ok := transports.KnownTransports[key]
-		if !ok {
-			return nil
-		}
+		// transport can be nil
+		transport := transports.Get(key)
 		// paranoidUnmarshalJSONObject detects key duplication for us, check just to be safe.
 		if _, ok := tmpMap[key]; ok {
 			return nil
@@ -156,7 +153,7 @@ func (m *PolicyTransportScopes) UnmarshalJSON(data []byte) error {
 }
 
 // policyTransportScopesWithTransport is a way to unmarshal a PolicyTransportScopes
-// while validating using a specific ImageTransport.
+// while validating using a specific ImageTransport if not nil.
 type policyTransportScopesWithTransport struct {
 	transport types.ImageTransport
 	dest      *PolicyTransportScopes
@@ -175,7 +172,7 @@ func (m *policyTransportScopesWithTransport) UnmarshalJSON(data []byte) error {
 		if _, ok := tmpMap[key]; ok {
 			return nil
 		}
-		if key != "" {
+		if key != "" && m.transport != nil {
 			if err := m.transport.ValidatePolicyConfigurationScope(key); err != nil {
 				return nil
 			}
@@ -634,7 +631,7 @@ func (prm *prmMatchRepository) UnmarshalJSON(data []byte) error {
 
 // newPRMExactReference is NewPRMExactReference, except it resturns the private type.
 func newPRMExactReference(dockerReference string) (*prmExactReference, error) {
-	ref, err := reference.ParseNamed(dockerReference)
+	ref, err := reference.ParseNormalizedNamed(dockerReference)
 	if err != nil {
 		return nil, InvalidPolicyFormatError(fmt.Sprintf("Invalid format of dockerReference %s: %s", dockerReference, err.Error()))
 	}
@@ -686,7 +683,7 @@ func (prm *prmExactReference) UnmarshalJSON(data []byte) error {
 
 // newPRMExactRepository is NewPRMExactRepository, except it resturns the private type.
 func newPRMExactRepository(dockerRepository string) (*prmExactRepository, error) {
-	if _, err := reference.ParseNamed(dockerRepository); err != nil {
+	if _, err := reference.ParseNormalizedNamed(dockerRepository); err != nil {
 		return nil, InvalidPolicyFormatError(fmt.Sprintf("Invalid format of dockerRepository %s: %s", dockerRepository, err.Error()))
 	}
 	return &prmExactRepository{

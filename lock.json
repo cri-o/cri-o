@@ -1,5 +1,5 @@
 {
-    "memo": "43d56ce99d6232de6146fa891dafc690d66b05555ce6587759f39d037e37c84a",
+    "memo": "f9f05813d58aa8fce2eed8aae7f05fd12d1f2965afb0fea7ed0ead9a70836e53",
     "projects": [
         {
             "name": "github.com/BurntSushi/toml",
@@ -50,7 +50,7 @@
         {
             "name": "github.com/containers/image",
             "branch": "master",
-            "revision": "1c202c5d85d2ee531acb1e91740144410066d19e",
+            "revision": "1d7e25b91705e4d1cddb5396baf112caeb1119f3",
             "packages": [
                 "copy",
                 "directory",
@@ -63,9 +63,11 @@
                 "manifest",
                 "oci/layout",
                 "openshift",
+                "pkg/compression",
                 "signature",
                 "storage",
                 "transports",
+                "transports/alltransports",
                 "types",
                 "version"
             ]

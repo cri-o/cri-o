@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/docker/distribution/registry/client"
@@ -64,7 +65,8 @@ func (s *dockerImageSource) Reference() types.ImageReference {
 }
 
 // Close removes resources associated with an initialized ImageSource, if any.
-func (s *dockerImageSource) Close() {
+func (s *dockerImageSource) Close() error {
+	return nil
 }
 
 // simplifyContentType drops parameters from a HTTP media type (see https://tools.ietf.org/html/rfc7231#section-3.1.1.1)
@@ -91,7 +93,7 @@ func (s *dockerImageSource) GetManifest() ([]byte, string, error) {
 }
 
 func (s *dockerImageSource) fetchManifest(tagOrDigest string) ([]byte, string, error) {
-	url := fmt.Sprintf(manifestURL, s.ref.ref.RemoteName(), tagOrDigest)
+	url := fmt.Sprintf(manifestURL, reference.Path(s.ref.ref), tagOrDigest)
 	headers := make(map[string][]string)
 	headers["Accept"] = s.requestedManifestMIMETypes
 	res, err := s.c.makeRequest("GET", url, headers, nil)
@@ -177,7 +179,7 @@ func (s *dockerImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, 
 		return s.getExternalBlob(info.URLs)
 	}
 
-	url := fmt.Sprintf(blobsURL, s.ref.ref.RemoteName(), info.Digest.String())
+	url := fmt.Sprintf(blobsURL, reference.Path(s.ref.ref), info.Digest.String())
 	logrus.Debugf("Downloading %s", url)
 	res, err := s.c.makeRequest("GET", url, nil, nil)
 	if err != nil {
@@ -271,11 +273,11 @@ func deleteImage(ctx *types.SystemContext, ref dockerReference) error {
 	headers := make(map[string][]string)
 	headers["Accept"] = []string{manifest.DockerV2Schema2MediaType}
 
-	reference, err := ref.tagOrDigest()
+	refTail, err := ref.tagOrDigest()
 	if err != nil {
 		return err
 	}
-	getURL := fmt.Sprintf(manifestURL, ref.ref.RemoteName(), reference)
+	getURL := fmt.Sprintf(manifestURL, reference.Path(ref.ref), refTail)
 	get, err := c.makeRequest("GET", getURL, headers, nil)
 	if err != nil {
 		return err
@@ -294,7 +296,7 @@ func deleteImage(ctx *types.SystemContext, ref dockerReference) error {
 	}
 
 	digest := get.Header.Get("Docker-Content-Digest")
-	deleteURL := fmt.Sprintf(manifestURL, ref.ref.RemoteName(), digest)
+	deleteURL := fmt.Sprintf(manifestURL, reference.Path(ref.ref), digest)
 
 	// When retrieving the digest from a registry >= 2.3 use the following header:
 	//   "Accept": "application/vnd.docker.distribution.manifest.v2+json"

@@ -42,18 +42,16 @@ func TestParseReference(t *testing.T) {
 // testParseReference is a test shared for Transport.ParseReference and ParseReference.
 func testParseReference(t *testing.T, fn func(string) (types.ImageReference, error)) {
 	for _, c := range []struct{ input, expected string }{
-		{"busybox", ""},                                        // Missing // prefix
-		{"//busybox:notlatest", "busybox:notlatest"},           // Explicit tag
-		{"//busybox" + sha256digest, "busybox" + sha256digest}, // Explicit digest
-		{"//busybox", "busybox:latest"},                        // Default tag
+		{"busybox", ""}, // Missing // prefix
+		{"//busybox:notlatest", "docker.io/library/busybox:notlatest"},           // Explicit tag
+		{"//busybox" + sha256digest, "docker.io/library/busybox" + sha256digest}, // Explicit digest
+		{"//busybox", "docker.io/library/busybox:latest"},                        // Default tag
 		// A github.com/distribution/reference value can have a tag and a digest at the same time!
-		// github.com/docker/reference handles that by dropping the tag. That is not obviously the
-		// right thing to do, but it is at least reasonable, so test that we keep behaving reasonably.
-		// This test case should not be construed to make this an API promise.
-		// FIXME? Instead work extra hard to reject such input?
-		{"//busybox:latest" + sha256digest, "busybox" + sha256digest}, // Both tag and digest
-		{"//docker.io/library/busybox:latest", "busybox:latest"},      // All implied values explicitly specified
-		{"//UPPERCASEISINVALID", ""},                                  // Invalid input
+		// The docker/distribution API does not really support that (we can’t ask for an image with a specific
+		// tag and digest), so fail.  This MAY be accepted in the future.
+		{"//busybox:latest" + sha256digest, ""},                                    // Both tag and digest
+		{"//docker.io/library/busybox:latest", "docker.io/library/busybox:latest"}, // All implied values explicitly specified
+		{"//UPPERCASEISINVALID", ""},                                               // Invalid input
 	} {
 		ref, err := fn(c.input)
 		if c.expected == "" {
@@ -67,24 +65,17 @@ func testParseReference(t *testing.T, fn func(string) (types.ImageReference, err
 	}
 }
 
-// refWithTagAndDigest is a reference.NamedTagged and reference.Canonical at the same time.
-type refWithTagAndDigest struct{ reference.Canonical }
-
-func (ref refWithTagAndDigest) Tag() string {
-	return "notLatest"
-}
-
 // A common list of reference formats to test for the various ImageReference methods.
 var validReferenceTestCases = []struct{ input, dockerRef, stringWithinTransport string }{
-	{"busybox:notlatest", "busybox:notlatest", "//busybox:notlatest"},                // Explicit tag
-	{"busybox" + sha256digest, "busybox" + sha256digest, "//busybox" + sha256digest}, // Explicit digest
-	{"docker.io/library/busybox:latest", "busybox:latest", "//busybox:latest"},       // All implied values explicitly specified
-	{"example.com/ns/foo:bar", "example.com/ns/foo:bar", "//example.com/ns/foo:bar"}, // All values explicitly specified
+	{"busybox:notlatest", "docker.io/library/busybox:notlatest", "//busybox:notlatest"},                // Explicit tag
+	{"busybox" + sha256digest, "docker.io/library/busybox" + sha256digest, "//busybox" + sha256digest}, // Explicit digest
+	{"docker.io/library/busybox:latest", "docker.io/library/busybox:latest", "//busybox:latest"},       // All implied values explicitly specified
+	{"example.com/ns/foo:bar", "example.com/ns/foo:bar", "//example.com/ns/foo:bar"},                   // All values explicitly specified
 }
 
 func TestNewReference(t *testing.T) {
 	for _, c := range validReferenceTestCases {
-		parsed, err := reference.ParseNamed(c.input)
+		parsed, err := reference.ParseNormalizedNamed(c.input)
 		require.NoError(t, err)
 		ref, err := NewReference(parsed)
 		require.NoError(t, err, c.input)
@@ -94,18 +85,19 @@ func TestNewReference(t *testing.T) {
 	}
 
 	// Neither a tag nor digest
-	parsed, err := reference.ParseNamed("busybox")
+	parsed, err := reference.ParseNormalizedNamed("busybox")
 	require.NoError(t, err)
 	_, err = NewReference(parsed)
 	assert.Error(t, err)
 
 	// A github.com/distribution/reference value can have a tag and a digest at the same time!
-	parsed, err = reference.ParseNamed("busybox" + sha256digest)
+	parsed, err = reference.ParseNormalizedNamed("busybox:notlatest" + sha256digest)
 	require.NoError(t, err)
-	refDigested, ok := parsed.(reference.Canonical)
+	_, ok := parsed.(reference.Canonical)
 	require.True(t, ok)
-	tagDigestRef := refWithTagAndDigest{refDigested}
-	_, err = NewReference(tagDigestRef)
+	_, ok = parsed.(reference.NamedTagged)
+	require.True(t, ok)
+	_, err = NewReference(parsed)
 	assert.Error(t, err)
 }
 
@@ -196,7 +188,7 @@ func TestReferenceTagOrDigest(t *testing.T) {
 	}
 
 	// Invalid input
-	ref, err := reference.ParseNamed("busybox")
+	ref, err := reference.ParseNormalizedNamed("busybox")
 	require.NoError(t, err)
 	dockerRef := dockerReference{ref: ref}
 	_, err = dockerRef.tagOrDigest()

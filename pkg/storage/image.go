@@ -4,7 +4,7 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/signature"
 	istorage "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
+	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/storage"
 )
@@ -64,7 +64,7 @@ func (svc *imageService) ListImages(filter string) ([]ImageResult, error) {
 }
 
 func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrID string) (*ImageResult, error) {
-	ref, err := transports.ParseImageName(nameOrID)
+	ref, err := alltransports.ParseImageName(nameOrID)
 	if err != nil {
 		ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+nameOrID)
 		if err2 != nil {
@@ -118,12 +118,12 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	if options == nil {
 		options = &copy.Options{}
 	}
-	srcRef, err := transports.ParseImageName(imageName)
+	srcRef, err := alltransports.ParseImageName(imageName)
 	if err != nil {
 		if svc.defaultTransport == "" {
 			return nil, err
 		}
-		srcRef2, err2 := transports.ParseImageName(svc.defaultTransport + imageName)
+		srcRef2, err2 := alltransports.ParseImageName(svc.defaultTransport + imageName)
 		if err2 != nil {
 			return nil, err
 		}
@@ -131,7 +131,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	}
 	dest := imageName
 	if srcRef.DockerReference() != nil {
-		dest = srcRef.DockerReference().FullName()
+		dest = srcRef.DockerReference().Name()
 	}
 	destRef, err := istorage.Transport.ParseStoreReference(svc.store, dest)
 	if err != nil {
@@ -157,7 +157,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 }
 
 func (svc *imageService) RemoveImage(systemContext *types.SystemContext, nameOrID string) error {
-	ref, err := transports.ParseImageName(nameOrID)
+	ref, err := alltransports.ParseImageName(nameOrID)
 	if err != nil {
 		ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+nameOrID)
 		if err2 != nil {

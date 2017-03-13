@@ -5,8 +5,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/containers/image/docker"
 	"github.com/containers/image/docker/policyconfiguration"
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -103,6 +105,37 @@ func (ref pcImageReferenceMock) DeleteImage(ctx *types.SystemContext) error {
 	panic("unexpected call to a mock function")
 }
 
+func TestPolicyContextRequirementsForImageRefNotRegisteredTransport(t *testing.T) {
+	transports.Delete("docker")
+	assert.Nil(t, transports.Get("docker"))
+
+	defer func() {
+		assert.Nil(t, transports.Get("docker"))
+		transports.Register(docker.Transport)
+		assert.NotNil(t, transports.Get("docker"))
+	}()
+
+	pr := []PolicyRequirement{
+		xNewPRSignedByKeyData(SBKeyTypeSignedByGPGKeys, []byte("RH"), NewPRMMatchRepository()),
+	}
+	policy := &Policy{
+		Default: PolicyRequirements{NewPRReject()},
+		Transports: map[string]PolicyTransportScopes{
+			"docker": {
+				"registry.access.redhat.com": pr,
+			},
+		},
+	}
+	pc, err := NewPolicyContext(policy)
+	require.NoError(t, err)
+	ref, err := reference.ParseNormalizedNamed("registry.access.redhat.com/rhel7:latest")
+	require.NoError(t, err)
+	reqs := pc.requirementsForImageRef(pcImageReferenceMock{"docker", ref})
+	assert.True(t, &(reqs[0]) == &(pr[0]))
+	assert.True(t, len(reqs) == len(pr))
+
+}
+
 func TestPolicyContextRequirementsForImageRef(t *testing.T) {
 	ktGPG := SBKeyTypeGPGKeys
 	prm := NewPRMMatchRepoDigestOrExact()
@@ -159,7 +192,7 @@ func TestPolicyContextRequirementsForImageRef(t *testing.T) {
 			expected = policy.Default
 		}
 
-		ref, err := reference.ParseNamed(c.input)
+		ref, err := reference.ParseNormalizedNamed(c.input)
 		require.NoError(t, err)
 		reqs := pc.requirementsForImageRef(pcImageReferenceMock{c.inputTransport, ref})
 		comment := fmt.Sprintf("case %s:%s: %#v", c.inputTransport, c.input, reqs[0])
@@ -174,7 +207,7 @@ func TestPolicyContextRequirementsForImageRef(t *testing.T) {
 // pcImageMock returns a types.UnparsedImage for a directory, claiming a specified dockerReference and implementing PolicyConfigurationIdentity/PolicyConfigurationNamespaces.
 // The caller must call .Close() on the returned Image.
 func pcImageMock(t *testing.T, dir, dockerReference string) types.UnparsedImage {
-	ref, err := reference.ParseNamed(dockerReference)
+	ref, err := reference.ParseNormalizedNamed(dockerReference)
 	require.NoError(t, err)
 	return dirImageMockWithRef(t, dir, pcImageReferenceMock{"docker", ref})
 }

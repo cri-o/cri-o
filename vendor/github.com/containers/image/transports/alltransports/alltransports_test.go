@@ -1,16 +1,12 @@
-package transports
+package alltransports
 
 import (
 	"testing"
 
+	"github.com/containers/image/transports"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestKnownTransports(t *testing.T) {
-	assert.NotNil(t, KnownTransports) // Ensure that the initialization has actually been run
-	assert.True(t, len(KnownTransports) > 1)
-}
 
 func TestParseImageName(t *testing.T) {
 	// This primarily tests error handling, TestImageNameHandling is a table-driven
@@ -36,11 +32,12 @@ func TestImageNameHandling(t *testing.T) {
 		{"docker-daemon", "busybox:latest", "busybox:latest"},
 		{"oci", "/etc:sometag", "/etc:sometag"},
 		// "atomic" not tested here because it depends on per-user configuration for the default cluster.
+		// "containers-storage" not tested here because it needs to initialize various directories on the fs.
 	} {
 		fullInput := c.transport + ":" + c.input
 		ref, err := ParseImageName(fullInput)
 		require.NoError(t, err, fullInput)
-		s := ImageName(ref)
+		s := transports.ImageName(ref)
 		assert.Equal(t, c.transport+":"+c.roundtrip, s, fullInput)
 	}
 }

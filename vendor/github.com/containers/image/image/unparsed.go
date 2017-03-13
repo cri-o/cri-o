@@ -4,6 +4,7 @@ import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
+	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
 
@@ -35,8 +36,8 @@ func (i *UnparsedImage) Reference() types.ImageReference {
 }
 
 // Close removes resources associated with an initialized UnparsedImage, if any.
-func (i *UnparsedImage) Close() {
-	i.src.Close()
+func (i *UnparsedImage) Close() error {
+	return i.src.Close()
 }
 
 // Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
@@ -52,7 +53,7 @@ func (i *UnparsedImage) Manifest() ([]byte, string, error) {
 		ref := i.Reference().DockerReference()
 		if ref != nil {
 			if canonical, ok := ref.(reference.Canonical); ok {
-				digest := canonical.Digest()
+				digest := digest.Digest(canonical.Digest())
 				matches, err := manifest.MatchesDigest(m, digest)
 				if err != nil {
 					return nil, "", errors.Wrap(err, "Error computing manifest digest")
