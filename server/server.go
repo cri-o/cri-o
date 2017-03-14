@@ -25,6 +25,7 @@ import (
 
 const (
 	runtimeAPIVersion = "v1alpha1"
+	shutdownFile      = "/var/lib/ocid/ocid.shutdown"
 )
 
 // Server implements the RuntimeService and ImageService
@@ -431,8 +432,23 @@ func (s *Server) releaseContainerName(name string) {
 	s.ctrNameIndex.Release(name)
 }
 
+// cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
+func (s *Server) cleanupSandboxesOnShutdown() {
+	_, err := os.Stat(shutdownFile)
+	if err == nil || !os.IsNotExist(err) {
+		logrus.Debugf("shutting down all sandboxes, on shutdown")
+		s.RemoveAllPodSandboxes()
+		err = os.Remove(shutdownFile)
+		if err != nil {
+			logrus.Warnf("Failed to remove %q", shutdownFile)
+		}
+
+	}
+}
+
 // Shutdown attempts to shut down the server's storage cleanly
 func (s *Server) Shutdown() error {
+	s.cleanupSandboxesOnShutdown()
 	_, err := s.store.Shutdown(false)
 	return err
 }
@@ -511,6 +527,7 @@ func New(config *Config) (*Server, error) {
 	}
 
 	s.restore()
+	s.cleanupSandboxesOnShutdown()
 
 	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
 	logrus.Debugf("containers: %v", s.state.containers)

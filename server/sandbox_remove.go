@@ -40,7 +40,8 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		cState := s.runtime.ContainerStatus(c)
 		if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
 			if err := s.runtime.StopContainer(c); err != nil {
-				return nil, fmt.Errorf("failed to stop container %s: %v", c.Name(), err)
+				// Assume container is already stopped
+				logrus.Warnf("failed to stop container %s: %v", c.Name(), err)
 			}
 		}
 
@@ -106,4 +107,18 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	resp := &pb.RemovePodSandboxResponse{}
 	logrus.Debugf("RemovePodSandboxResponse %+v", resp)
 	return resp, nil
+}
+
+// RemoveAllPodSandboxes removes all pod sandboxes
+func (s *Server) RemoveAllPodSandboxes() {
+	logrus.Debugf("RemoveAllPodSandboxes")
+	s.Update()
+	for _, sb := range s.state.sandboxes {
+		pod := &pb.RemovePodSandboxRequest{
+			PodSandboxId: sb.id,
+		}
+		if _, err := s.RemovePodSandbox(nil, pod); err != nil {
+			logrus.Warnf("could not RemovePodSandbox %s: %v", sb.id, err)
+		}
+	}
 }

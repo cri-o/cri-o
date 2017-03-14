@@ -134,6 +134,7 @@ install.completions:
 
 install.systemd:
 	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system/ocid.service
+	install -D -m 644 contrib/systemd/ocid-shutdown.service $(PREFIX)/lib/systemd/system/ocid-shutdown.service
 
 uninstall:
 	rm -f $(BINDIR)/ocid
