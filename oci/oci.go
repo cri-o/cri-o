@@ -429,20 +429,22 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 		exitFilePath := filepath.Join(c.bundlePath, "exit")
 		fi, err := os.Stat(exitFilePath)
 		if err != nil {
-			return fmt.Errorf("failed to find container exit file: %v", err)
-		}
-		st := fi.Sys().(*syscall.Stat_t)
-		c.state.Finished = time.Unix(st.Ctim.Sec, st.Ctim.Nsec)
+			logrus.Warnf("failed to find container exit file: %v", err)
+			c.state.ExitCode = -1
+		} else {
+			st := fi.Sys().(*syscall.Stat_t)
+			c.state.Finished = time.Unix(st.Ctim.Sec, st.Ctim.Nsec)
 
-		statusCodeStr, err := ioutil.ReadFile(exitFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to read exit file: %v", err)
+			statusCodeStr, err := ioutil.ReadFile(exitFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to read exit file: %v", err)
+			}
+			statusCode, err := strconv.Atoi(string(statusCodeStr))
+			if err != nil {
+				return fmt.Errorf("status code conversion failed: %v", err)
+			}
+			c.state.ExitCode = int32(statusCode)
 		}
-		statusCode, err := strconv.Atoi(string(statusCodeStr))
-		if err != nil {
-			return fmt.Errorf("status code conversion failed: %v", err)
-		}
-		c.state.ExitCode = int32(statusCode)
 	}
 
 	return nil
