@@ -10,8 +10,8 @@ import (
 
 // Default paths if none are specified
 const (
-	ocidRoot            = "/var/lib/ocid"
-	ocidRunRoot         = "/var/run/containers"
+	ocidRoot            = "/var/lib/containers/storage"
+	ocidRunRoot         = "/var/run/containers/storage"
 	conmonPath          = "/usr/libexec/ocid/conmon"
 	pauseImage          = "kubernetes/pause"
 	pauseCommand        = "/pause"

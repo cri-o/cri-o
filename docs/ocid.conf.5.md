@@ -30,10 +30,10 @@ The `ocid` table supports the following options:
 
 
 **root**=""
-  OCID root dir (default: "/var/lib/containers")
+  OCID root dir (default: "/var/lib/containers/storage")
 
 **runroot**=""
-  OCID state dir (default: "/var/run/containers")
+  OCID state dir (default: "/var/run/containers/storage")
 
 **storage_driver**=""
   OCID storage driver (default is "devicemapper")
