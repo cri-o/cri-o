@@ -69,10 +69,8 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
 	properties = append(properties, newProp("Delegate", true))
 	properties = append(properties, newProp("DefaultDependencies", false))
-	if _, err := conn.StartTransientUnit(unitName, "replace", properties, nil); err != nil {
-		return err
-	}
-	return nil
+	_, err = conn.StartTransientUnit(unitName, "replace", properties, nil)
+	return err
 }
 
 func newProp(name string, units interface{}) systemdDbus.Property {

@@ -201,6 +201,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 		g.SetProcessSelinuxLabel(processLabel)
+		g.SetLinuxMountLabel(mountLabel)
 	}
 
 	// create shm mount for the pod containers.
