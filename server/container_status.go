@@ -16,17 +16,26 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		return nil, err
 	}
 
-	if err := s.runtime.UpdateStatus(c); err != nil {
+	if err = s.runtime.UpdateStatus(c); err != nil {
 		return nil, err
 	}
 
 	containerID := c.ID()
+	image := c.Image()
 	resp := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
 			Id:       containerID,
 			Metadata: c.Metadata(),
+			Image:    image,
 		},
 	}
+
+	status, err := s.images.ImageStatus(s.imageContext, image.Image)
+	if err != nil {
+		return nil, err
+	}
+
+	resp.Status.ImageRef = status.ID
 
 	cState := s.runtime.ContainerStatus(c)
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
