@@ -150,7 +150,7 @@ var launchCommand = cli.Command{
 
 		logrus.Debugf("Going to create container named %v with image %v", cliConfig.containerName, cliConfig.image)
 
-		var sandboxId string
+		var sandboxID string
 		var sandboxConfig *pb.PodSandboxConfig
 
 		sandboxSecurityConfig, containerSecurityConfig, err := generateLinuxSecurityConfigs(cliConfig)
@@ -161,21 +161,21 @@ var launchCommand = cli.Command{
 		if cliConfig.pod != "" {
 			// We were passed a pod to join
 			// Don't create our own
-			sandboxId = cliConfig.pod
+			sandboxID = cliConfig.pod
 
-			logrus.Debugf("Joining existing sandbox with ID %v", sandboxId)
+			logrus.Debugf("Joining existing sandbox with ID %v", sandboxID)
 
 			// Get status of pod - verify it exists
 			sandboxStatusRequest := pb.PodSandboxStatusRequest{
-				PodSandboxId: sandboxId,
+				PodSandboxId: sandboxID,
 			}
 			sandboxStatusResp, err := server.PodSandboxStatus(context.Background(), &sandboxStatusRequest)
 			if err != nil {
-				return fmt.Errorf("error getting status of sandbox %v: %v", sandboxId, err)
+				return fmt.Errorf("error getting status of sandbox %v: %v", sandboxID, err)
 			}
 
 			if sandboxStatusResp.Status.State != pb.PodSandboxState_SANDBOX_READY {
-				return fmt.Errorf("cannot attach to sandbox %v as it is not ready", sandboxId)
+				return fmt.Errorf("cannot attach to sandbox %v as it is not ready", sandboxID)
 			}
 
 			// TODO - Before this can work, we need a way of getting the PodSandboxConfig from the server
@@ -199,12 +199,12 @@ var launchCommand = cli.Command{
 			if err != nil {
 				return fmt.Errorf("error creating sandbox: %v", err)
 			}
-			sandboxId = sandboxResp.PodSandboxId
+			sandboxID = sandboxResp.PodSandboxId
 
-			logrus.Infof("Successfully created sandbox with ID %v", sandboxId)
+			logrus.Infof("Successfully created sandbox with ID %v", sandboxID)
 		}
 
-		createRequest, err := makeContainerCreateRequest(cliConfig, containerSecurityConfig, sandboxId, sandboxConfig)
+		createRequest, err := makeContainerCreateRequest(cliConfig, containerSecurityConfig, sandboxID, sandboxConfig)
 		if err != nil {
 			return fmt.Errorf("error creating ContainerCreateRequest: %v", err)
 		}
@@ -215,11 +215,11 @@ var launchCommand = cli.Command{
 				// If we did not join an existing pod, clean up the sandbox we made
 				defer func() {
 					removeRequest := pb.RemovePodSandboxRequest{
-						PodSandboxId: sandboxId,
+						PodSandboxId: sandboxID,
 					}
 					_, err = server.RemovePodSandbox(context.Background(), &removeRequest)
 					if err != nil {
-						logrus.Fatalf("Failed to remove sandbox %v: %v", sandboxId, err)
+						logrus.Fatalf("Failed to remove sandbox %v: %v", sandboxID, err)
 					}
 				}()
 			}
@@ -227,12 +227,12 @@ var launchCommand = cli.Command{
 			return fmt.Errorf("error creating container: %v", err)
 		}
 
-		containerId := containerResp.ContainerId
+		containerID := containerResp.ContainerId
 
-		logrus.Debugf("Successfully created container with ID %v in sandbox %v", sandboxId, containerId)
+		logrus.Debugf("Successfully created container with ID %v in sandbox %v", sandboxID, containerID)
 
 		startRequest := pb.StartContainerRequest{
-			ContainerId: containerId,
+			ContainerId: containerID,
 		}
 
 		// StartContainerResponse is an empty struct, just ignore it
@@ -241,7 +241,7 @@ var launchCommand = cli.Command{
 			return fmt.Errorf("error starting container: %v", err)
 		}
 
-		logrus.Infof("Successfully started container with ID %v", containerId)
+		logrus.Infof("Successfully started container with ID %v", containerID)
 
 		return nil
 	},
@@ -348,9 +348,8 @@ func parseLaunchCLI(ctx *cli.Context) (*launchConfig, error) {
 	if ctx.IsSet("labels") {
 		// TODO label parsing code
 		return nil, fmt.Errorf("label parsing is not yet implemented")
-	} else {
-		config.labels = new(map[string]string)
 	}
+	config.labels = new(map[string]string)
 	// TODO should set some default label values - indicate we were launched by kpod, maybe?
 
 	if ctx.IsSet("limits") {
@@ -413,13 +412,13 @@ func parseLaunchCLI(ctx *cli.Context) (*launchConfig, error) {
 }
 
 func makePodSandboxConfig(cliConfig *launchConfig, securityConfig *pb.LinuxSandboxSecurityContext) (*pb.PodSandboxConfig, error) {
-	sandboxId, err := getRandomId()
+	sandboxID, err := getRandomID()
 	if err != nil {
 		return nil, fmt.Errorf("error generating sandbox id: %v", err)
 	}
 
 	metadata := pb.PodSandboxMetadata{
-		Name:      "kpod_launch_" + sandboxId,
+		Name:      "kpod_launch_" + sandboxID,
 		Uid:       "kpod_default",
 		Namespace: "kpod_default",
 		Attempt:   0,
@@ -433,7 +432,7 @@ func makePodSandboxConfig(cliConfig *launchConfig, securityConfig *pb.LinuxSandb
 
 	config := pb.PodSandboxConfig{
 		Metadata: &metadata,
-		Hostname: "kpod_launch_" + sandboxId,
+		Hostname: "kpod_launch_" + sandboxID,
 		// TODO Logging
 		LogDirectory: "",
 		DnsConfig:    cliConfig.dns,
@@ -448,7 +447,7 @@ func makePodSandboxConfig(cliConfig *launchConfig, securityConfig *pb.LinuxSandb
 	return &config, nil
 }
 
-func makeContainerCreateRequest(cliConfig *launchConfig, securityConfig *pb.LinuxContainerSecurityContext, sandboxId string, sandboxConfig *pb.PodSandboxConfig) (*pb.CreateContainerRequest, error) {
+func makeContainerCreateRequest(cliConfig *launchConfig, securityConfig *pb.LinuxContainerSecurityContext, sandboxID string, sandboxConfig *pb.PodSandboxConfig) (*pb.CreateContainerRequest, error) {
 	metadata := pb.ContainerMetadata{
 		Name:    cliConfig.containerName,
 		Attempt: 0,
@@ -489,7 +488,7 @@ func makeContainerCreateRequest(cliConfig *launchConfig, securityConfig *pb.Linu
 	}
 
 	req := pb.CreateContainerRequest{
-		PodSandboxId:  sandboxId,
+		PodSandboxId:  sandboxID,
 		Config:        &config,
 		SandboxConfig: sandboxConfig,
 	}
@@ -534,7 +533,7 @@ func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecu
 }
 
 // Generate and hex-encode 128-bit random ID
-func getRandomId() (string, error) {
+func getRandomID() (string, error) {
 	urandom, err := os.Open("/dev/urandom")
 	if err != nil {
 		return "", fmt.Errorf("could not open urandom for reading: %v", err)
