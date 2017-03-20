@@ -13,6 +13,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer/label"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
@@ -54,6 +55,69 @@ func addOciBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen 
 	}
 
 	return nil
+}
+
+// buildOCIProcessArgs build an OCI compatible process arguments slice.
+func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
+	processArgs := []string{}
+
+	kubeCommands := containerKubeConfig.Command
+	kubeArgs := containerKubeConfig.Args
+
+	if imageOCIConfig == nil {
+		// HACK We should error out here, not being able to get an Image config is fatal.
+		// When https://github.com/kubernetes-incubator/cri-o/issues/395 is fixed
+		// we'll remove that one and return an error here.
+		if containerKubeConfig.Metadata != nil {
+			logrus.Errorf("empty image config for %s", containerKubeConfig.Metadata.Name)
+
+			// HACK until https://github.com/kubernetes-incubator/cri-o/issues/395 is fixed.
+			// If the container is kubeadm's dummy, imageOCIConfig is nil, and both
+			// kubeCommands and kubeArgs are empty. So we set processArgs to /pause as the
+			// dummy container is just a pause one.
+			// (See https://github.com/kubernetes/kubernetes/blob/master/cmd/kubeadm/app/master/templates.go)
+			if containerKubeConfig.Metadata.Name == "dummy" {
+				return []string{podInfraCommand}, nil
+			}
+		} else {
+			logrus.Errorf("empty image config for %s", containerKubeConfig.Image.Image)
+		}
+	}
+
+	// We got an OCI Image configuration.
+	// We will only use it if the kubelet information is incomplete.
+	if kubeCommands == nil {
+		if imageOCIConfig != nil && imageOCIConfig.Config.Entrypoint != nil {
+			processArgs = append(processArgs, imageOCIConfig.Config.Entrypoint...)
+		}
+	} else {
+		processArgs = append(processArgs, kubeCommands...)
+	}
+
+	if kubeArgs == nil {
+		// Our kubelet command arguments slice is empty.
+		// We will use the OCI Image configuration only if we already
+		// have found a process command, i.e. if processArgs is no
+		// longer empty. No doing so will have us create a process
+		// arguments slice starting with the OCI Image command arguments
+		// as the entry point.
+		if processArgs != nil &&
+			imageOCIConfig != nil &&
+			imageOCIConfig.Config.Entrypoint != nil && imageOCIConfig.Config.Cmd != nil {
+			processArgs = append(processArgs, imageOCIConfig.Config.Cmd...)
+		}
+	} else {
+		processArgs = append(processArgs, kubeArgs...)
+	}
+
+	if processArgs == nil {
+		// Use a reasonable default if everything failed.
+		processArgs = []string{"/bin/sh"}
+	}
+
+	logrus.Debugf("OCI process args %v", processArgs)
+
+	return processArgs, nil
 }
 
 // CreateContainer creates a new container in specified PodSandbox
@@ -144,19 +208,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// creates a spec Generator with the default spec.
 	specgen := generate.New()
-
-	processArgs := []string{}
-	commands := containerConfig.Command
-	args := containerConfig.Args
-	if commands == nil && args == nil {
-		processArgs = nil
-	}
-	if commands != nil {
-		processArgs = append(processArgs, commands...)
-	}
-	if args != nil {
-		processArgs = append(processArgs, args...)
-	}
 
 	cwd := containerConfig.WorkingDir
 	if cwd == "" {
@@ -372,12 +423,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
 
-	if processArgs == nil {
-		if containerInfo.Config != nil && len(containerInfo.Config.Config.Cmd) > 0 {
-			processArgs = containerInfo.Config.Config.Cmd
-		} else {
-			processArgs = []string{"/bin/sh"}
-		}
+	processArgs, err := buildOCIProcessArgs(containerConfig, containerInfo.Config)
+	if err != nil {
+		return nil, err
 	}
 	specgen.SetProcessArgs(processArgs)
 
