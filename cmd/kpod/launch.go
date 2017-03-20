@@ -9,6 +9,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/opencontainers/runc/libcontainer/selinux"
+	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -112,6 +113,11 @@ var launchCommand = cli.Command{
 		cli.BoolFlag{
 			Name:  "host-pid",
 			Usage: "don't join a PID namespace, and use the host's PID namespace",
+		},
+		cli.StringFlag{
+			Name:  "group-add",
+			Value: "",
+			Usage: "comma-separated list of additional groups to run as",
 		},
 	},
 	Action: func(ctx *cli.Context) error {
@@ -257,29 +263,30 @@ var launchCommand = cli.Command{
 // - cgroup config
 // - Maybe working directory of container?
 type launchConfig struct {
-	configPath    string
-	containerName string
-	command       string
-	args          *[]string
-	image         string
-	attach        bool
-	env           []*pb.KeyValue
-	labels        *map[string]string // TODO - right now we set same labels for both pod and container. Worth splitting?
-	limits        *pb.LinuxContainerResources
-	ports         []*pb.PortMapping
-	remove        bool
-	stdin         bool
-	stdinOnce     bool
-	tty           bool
-	mount         []*pb.Mount
-	devices       []*pb.Device
-	dns           *pb.DNSConfig
-	pod           string
-	privileged    bool
-	readOnlyRoot  bool
-	hostNet       bool
-	hostIpc       bool
-	hostPid       bool
+	configPath       string
+	containerName    string
+	command          string
+	args             *[]string // TODO - this and labels should not be pointers. Made sense before, but nothing else is.
+	image            string
+	attach           bool
+	env              []*pb.KeyValue
+	labels           *map[string]string // TODO - right now we set same labels for both pod and container. Worth splitting?
+	limits           *pb.LinuxContainerResources
+	ports            []*pb.PortMapping
+	remove           bool
+	stdin            bool
+	stdinOnce        bool
+	tty              bool
+	mount            []*pb.Mount
+	devices          []*pb.Device
+	dns              *pb.DNSConfig
+	pod              string
+	privileged       bool
+	readOnlyRoot     bool
+	hostNet          bool
+	hostIpc          bool
+	hostPid          bool
+	additionalGroups []int64
 }
 
 func parseLaunchCLI(ctx *cli.Context) (*launchConfig, error) {
@@ -402,6 +409,20 @@ func parseLaunchCLI(ctx *cli.Context) (*launchConfig, error) {
 	config.hostIpc = ctx.Bool("host-ipc")
 	config.hostPid = ctx.Bool("host-pid")
 
+	if ctx.IsSet("group-add") {
+		groupsAsStrings := strings.Split(ctx.String("group-add"), ",")
+
+		groupsAsInts, err := user.GetAdditionalGroupsPath(groupsAsStrings, "/etc/group")
+		if err != nil {
+			return nil, fmt.Errorf("error parsing groups from group-add: %v", err)
+		}
+
+		config.additionalGroups = make([]int64, len(groupsAsInts))
+		for i := 0; i < len(groupsAsInts); i++ {
+			config.additionalGroups[i] = int64(groupsAsInts[i])
+		}
+	}
+
 	if ctx.IsSet("pod") {
 		// TODO implement joining existing pods
 		// Needs modifications to server code to support
@@ -496,7 +517,7 @@ func makeContainerCreateRequest(cliConfig *launchConfig, securityConfig *pb.Linu
 	return &req, nil
 }
 
-// TODO: Capabilities, SELinux, set non-root user, add additional groups
+// TODO: Capabilities, SELinux, set non-root user
 func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecurityContext, *pb.LinuxContainerSecurityContext, error) {
 	linuxNamespaceOption := pb.NamespaceOption{
 		HostNetwork: cliConfig.hostNet,
@@ -514,7 +535,7 @@ func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecu
 		SelinuxOptions:     nil,
 		RunAsUser:          &runAsUser, // Probably not strictly necessary to set this here if we're doing it below
 		ReadonlyRootfs:     cliConfig.readOnlyRoot,
-		SupplementalGroups: []int64{},
+		SupplementalGroups: cliConfig.additionalGroups,
 		Privileged:         cliConfig.privileged,
 	}
 
@@ -526,7 +547,7 @@ func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecu
 		RunAsUser:          &runAsUser,
 		RunAsUsername:      "",
 		ReadonlyRootfs:     cliConfig.readOnlyRoot,
-		SupplementalGroups: []int64{},
+		SupplementalGroups: cliConfig.additionalGroups,
 	}
 
 	return &sandboxConfig, &containerConfig, nil
