@@ -31,6 +31,8 @@ const (
 	ContainerStateRunning = "running"
 	// ContainerStateStopped represents the stopped state of a container
 	ContainerStateStopped = "stopped"
+	// ContainerCreateTimeout represents the value of container creating timeout
+	ContainerCreateTimeout = 3 * time.Second
 )
 
 // New creates a new Runtime with options provided
@@ -154,12 +156,29 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	}
 
 	// Wait to get container pid from conmon
-	// TODO(mrunalp): Add a timeout here
-	var si *syncInfo
-	if err := json.NewDecoder(parentPipe).Decode(&si); err != nil {
-		return fmt.Errorf("reading pid from init pipe: %v", err)
+	type syncStruct struct {
+		si  *syncInfo
+		err error
 	}
-	logrus.Infof("Received container pid: %v", si.Pid)
+	ch := make(chan syncStruct)
+	go func() {
+		var si *syncInfo
+		if err = json.NewDecoder(parentPipe).Decode(&si); err != nil {
+			ch <- syncStruct{err: err}
+			return
+		}
+		ch <- syncStruct{si: si}
+	}()
+
+	select {
+	case ss := <-ch:
+		if ss.err != nil {
+			return err
+		}
+		logrus.Infof("Received container pid: %q", ss.si.Pid)
+	case <-time.After(ContainerCreateTimeout):
+		return fmt.Errorf("create container timeout")
+	}
 	return nil
 }
 
