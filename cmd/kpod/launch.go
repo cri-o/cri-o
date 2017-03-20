@@ -23,7 +23,7 @@ import (
 // Sanely populate metadata for sandbox
 // Missing parsing in CLI handling - DNS, port forwards, mounts, devices, resource limits etc
 // Labels and Annotations (pod & container)
-// Security & confinement - SELinux, AppArmor, seccomp, capabilities, run as users
+// Security & confinement - SELinux, AppArmor, seccomp, capabilities
 // Interface with crio daemon - locking to prevent trampling pod status
 // Launch containers in existing sandboxes
 // Integration tests
@@ -118,6 +118,11 @@ var launchCommand = cli.Command{
 			Name:  "group-add",
 			Value: "",
 			Usage: "comma-separated list of additional groups to run as",
+		},
+		cli.StringFlag{
+			Name:  "user",
+			Value: "",
+			Usage: "specify user to run container as",
 		},
 	},
 	Action: func(ctx *cli.Context) error {
@@ -287,6 +292,7 @@ type launchConfig struct {
 	hostIpc          bool
 	hostPid          bool
 	additionalGroups []int64
+	runAsUser        int64
 }
 
 func parseLaunchCLI(ctx *cli.Context) (*launchConfig, error) {
@@ -423,6 +429,18 @@ func parseLaunchCLI(ctx *cli.Context) (*launchConfig, error) {
 		}
 	}
 
+	if ctx.IsSet("user") {
+		user, err := user.GetExecUserPath(ctx.String("user"), nil, "/etc/passwd", "/etc/group")
+		if err != nil {
+			return nil, fmt.Errorf("error setting container user: %v", err)
+		}
+
+		config.runAsUser = int64(user.Uid)
+	} else {
+		// Default to root
+		config.runAsUser = 0
+	}
+
 	if ctx.IsSet("pod") {
 		// TODO implement joining existing pods
 		// Needs modifications to server code to support
@@ -517,7 +535,7 @@ func makeContainerCreateRequest(cliConfig *launchConfig, securityConfig *pb.Linu
 	return &req, nil
 }
 
-// TODO: Capabilities, SELinux, set non-root user
+// TODO: Capabilities, SELinux
 func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecurityContext, *pb.LinuxContainerSecurityContext, error) {
 	linuxNamespaceOption := pb.NamespaceOption{
 		HostNetwork: cliConfig.hostNet,
@@ -525,9 +543,8 @@ func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecu
 		HostIpc:     cliConfig.hostIpc,
 	}
 
-	// Just run as root for now
 	runAsUser := pb.Int64Value{
-		Value: 0,
+		Value: cliConfig.runAsUser,
 	}
 
 	sandboxConfig := pb.LinuxSandboxSecurityContext{
@@ -539,6 +556,8 @@ func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecu
 		Privileged:         cliConfig.privileged,
 	}
 
+	// TODO: We can't get group independently of user. SupplementalGroups helps alleviate this, but it's desirable.
+	// Adding this would require changes to the server, so it's not really worth it for now
 	containerConfig := pb.LinuxContainerSecurityContext{
 		Capabilities:       &pb.Capability{},
 		Privileged:         cliConfig.privileged,
