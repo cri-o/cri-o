@@ -20,7 +20,6 @@ import (
 // Terminal attach implementation (kpod attach command?)
 // Logging (interaction with crio daemon?)
 // Properly place created containers in cgroups
-// Sanely populate metadata for sandbox
 // Missing parsing in CLI handling - DNS, port forwards, mounts, devices, resource limits etc
 // Labels and Annotations (pod & container)
 // Security & confinement - SELinux, AppArmor, seccomp, capabilities
@@ -31,76 +30,76 @@ import (
 
 var launchCommand = cli.Command{
 	Name:  "launch",
-	Usage: "launch a pod",
+	Usage: "launch a pod or insert a container into an existing pod",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "image",
 			Value: "",
-			Usage: "image to launch",
+			Usage: "`image` to launch",
 		},
 		cli.BoolFlag{
 			Name:  "attach",
-			Usage: "attach to the container once it is created",
+			Usage: "`attach` to the primary container once it is created",
 		},
 		cli.StringSliceFlag{
 			Name:  "env",
-			Usage: "specify environment variables to be set inside launched container, specified as KEY=VALUE",
+			Usage: "specify environment `variable`s to be set inside the primary container, specified as `VARIABLE=VALUE`",
 		},
 		cli.StringFlag{
 			Name:  "labels, l",
 			Value: "",
-			Usage: "specify labels to be set on launched container",
+			Usage: "specify `label`s to be set on launched pod",
 		},
 		cli.StringFlag{
 			Name:  "limits",
 			Value: "",
-			Usage: "specify resource limits for launched container",
+			Usage: "specify resource `limit`s for the primary container",
 		},
 		cli.StringFlag{
 			Name:  "ports",
 			Value: "",
-			Usage: "specify ports to be forwarded to launched container",
+			Usage: "specify `port`s to be forwarded to the launched pod",
 		},
 		cli.BoolFlag{
 			Name:  "rm",
-			Usage: "remove launched container (and pod, if a new pod was created) after it exits",
+			Usage: "`remove` launched container (and pod, if a new pod was created) after it exits",
 		},
 		cli.BoolFlag{
 			Name:  "stdin, i",
-			Usage: "keep stdin open on launched container",
+			Usage: "keep `stdin` open on primary container",
 		},
 		cli.BoolFlag{
 			Name:  "tty, t",
-			Usage: "allocate a TTY for launched container",
+			Usage: "allocate a `TTY` for primary container",
 		},
 		cli.StringSliceFlag{
 			Name:  "mount",
-			Usage: "attach mounts on the host to created container",
+			Usage: "attach `mount`s on the host to primary container",
 		},
 		cli.StringSliceFlag{
 			Name:  "device",
-			Usage: "make host devices available inside the container",
+			Usage: "make host `device`s available inside the primary container",
 		},
 		cli.StringSliceFlag{
 			Name:  "dns",
-			Usage: "set DNS servers for container",
+			Usage: "set `DNS server`s for pod",
 		},
 		cli.StringSliceFlag{
 			Name:  "dns-search",
-			Usage: "set DNS search domains for container",
+			Usage: "set `DNS search domain`s for pod",
 		},
 		cli.StringFlag{
 			Name:  "pod",
 			Value: "",
-			Usage: "launch container inside an existing pod",
+			Usage: "launch container inside an `existing pod`",
 		},
 		cli.BoolFlag{
 			Name:  "privileged",
-			Usage: "launch a privileged container",
+			Usage: "launch a `privileged` pod",
 		},
 		cli.BoolFlag{
 			Name:  "read-only",
-			Usage: "mount root of created container as read only",
+			Usage: "mount root of primary container as `read only`",
 		},
 		cli.BoolFlag{
 			Name:  "host-network",
@@ -117,12 +116,12 @@ var launchCommand = cli.Command{
 		cli.StringFlag{
 			Name:  "group-add",
 			Value: "",
-			Usage: "comma-separated list of additional groups to run as",
+			Usage: "comma-separated list of additional `group`s to run as",
 		},
 		cli.StringFlag{
 			Name:  "user",
 			Value: "",
-			Usage: "specify user to run container as",
+			Usage: "specify `user` to run primary container as",
 		},
 	},
 	Action: func(ctx *cli.Context) error {
@@ -576,7 +575,7 @@ func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecu
 func getRandomID() (string, error) {
 	urandom, err := os.Open("/dev/urandom")
 	if err != nil {
-		return "", fmt.Errorf("could not open urandom for reading: %v", err)
+		return "", fmt.Errorf("could not open /dev/urandom for reading: %v", err)
 	}
 
 	defer urandom.Close()
@@ -584,9 +583,9 @@ func getRandomID() (string, error) {
 	data := make([]byte, 16)
 	count, err := urandom.Read(data)
 	if err != nil {
-		return "", fmt.Errorf("error reading from urandom: %v", err)
+		return "", fmt.Errorf("error reading from /dev/urandom: %v", err)
 	} else if count != 16 {
-		return "", fmt.Errorf("read too few bytes from urandom")
+		return "", fmt.Errorf("read too few bytes from /dev/urandom")
 	}
 
 	return hex.EncodeToString(data), nil
