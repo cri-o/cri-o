@@ -196,6 +196,14 @@
             ]
         },
         {
+            "name": "github.com/fsnotify/fsnotify",
+            "branch": "master",
+            "revision": "7d7316ed6e1ed2de075aab8dfc76de5d158d66e1",
+            "packages": [
+                "."
+            ]
+        },
+        {
             "name": "github.com/ghodss/yaml",
             "branch": "master",
             "revision": "04f313413ffd65ce25f2541bfd2b2ceec5c0908c",
@@ -220,14 +228,6 @@
                 "proto",
                 "protoc-gen-gogo/descriptor",
                 "sortkeys"
-            ]
-        },
-        {
-            "name": "github.com/golang/glog",
-            "branch": "master",
-            "revision": "23def4e6c14b4da8ac2ed8007337bc5eb5007998",
-            "packages": [
-                "."
             ]
         },
         {

@@ -9,6 +9,9 @@
         "github.com/docker/distribution": {
             "branch": "master"
         },
+        "github.com/fsnotify/fsnotify": {
+            "branch": "master"
+        },
         "github.com/godbus/dbus": {
             "version": "^4.0.0"
         },
