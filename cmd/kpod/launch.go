@@ -1,12 +1,12 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/pkg/stringid"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/opencontainers/runc/libcontainer/selinux"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -450,10 +450,7 @@ func parseLaunchCLI(ctx *cli.Context) (*launchConfig, error) {
 }
 
 func makePodSandboxConfig(cliConfig *launchConfig, securityConfig *pb.LinuxSandboxSecurityContext) (*pb.PodSandboxConfig, error) {
-	sandboxID, err := getRandomID()
-	if err != nil {
-		return nil, fmt.Errorf("error generating sandbox id: %v", err)
-	}
+	sandboxID := stringid.GenerateNonCryptoID()
 
 	metadata := pb.PodSandboxMetadata{
 		Name:      "kpod_launch_" + sandboxID,
@@ -569,24 +566,4 @@ func generateLinuxSecurityConfigs(cliConfig *launchConfig) (*pb.LinuxSandboxSecu
 	}
 
 	return &sandboxConfig, &containerConfig, nil
-}
-
-// Generate and hex-encode 128-bit random ID
-func getRandomID() (string, error) {
-	urandom, err := os.Open("/dev/urandom")
-	if err != nil {
-		return "", fmt.Errorf("could not open /dev/urandom for reading: %v", err)
-	}
-
-	defer urandom.Close()
-
-	data := make([]byte, 16)
-	count, err := urandom.Read(data)
-	if err != nil {
-		return "", fmt.Errorf("error reading from /dev/urandom: %v", err)
-	} else if count != 16 {
-		return "", fmt.Errorf("read too few bytes from /dev/urandom")
-	}
-
-	return hex.EncodeToString(data), nil
 }
