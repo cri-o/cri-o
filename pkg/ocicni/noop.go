@@ -7,7 +7,7 @@ func (noop *cniNoOp) Name() string {
 	return "CNINoOp"
 }
 
-func (noop *cniNoOp) SetUpPod(netnsPath string, namespace string, name string, containerID string) error {
+func (noop *cniNoOp) SetUpPod(netnsPath string, namespace string, name string, containerID string, cb SetUpCallback, data interface{}) error {
 	return nil
 }
 

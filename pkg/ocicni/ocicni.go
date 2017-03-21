@@ -11,6 +11,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/libcni"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	"github.com/fsnotify/fsnotify"
 )
 
 type cniNetworkPlugin struct {
@@ -23,12 +24,63 @@ type cniNetworkPlugin struct {
 	pluginDir          string
 	cniDirs            []string
 	vendorCNIDirPrefix string
+
+	cniReadyListeners []chan error
+
+	monitorNetDirChan chan error
+	monitorNetDirDone bool
 }
 
 type cniNetwork struct {
 	name          string
 	NetworkConfig *libcni.NetworkConfig
 	CNIConfig     libcni.CNI
+}
+
+var (
+	errMissingDefaultNetwork       = errors.New("Missing CNI default network")
+	errDefaultNetworkAlreadyExists = errors.New("CNI default network already exists")
+	errMonitoringTimeout           = errors.New("CNI monitoring timeout")
+)
+
+func (plugin *cniNetworkPlugin) monitorNetDir() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logrus.Errorf("could not create new watcher %v", err)
+		plugin.notifyCniReadyListeners(err)
+		return
+	}
+	defer watcher.Close()
+
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logrus.Debugf("CNI monitoring event %v", event)
+				if event.Op&fsnotify.Create != fsnotify.Create {
+					continue
+				}
+
+				logrus.Debugf("CNI asynchronous setting succeeded")
+				plugin.terminateMonitorNetDir(nil)
+				return
+
+			case err1 := <-watcher.Errors:
+				logrus.Errorf("CNI monitoring error %v", err1)
+				plugin.terminateMonitorNetDir(err1)
+				return
+			}
+		}
+	}()
+
+	if err = watcher.Add(plugin.pluginDir); err != nil {
+		logrus.Error(err)
+		plugin.notifyCniReadyListeners(err)
+		return
+	}
+
+	err = <-plugin.monitorNetDirChan
+	plugin.notifyCniReadyListeners(err)
 }
 
 // InitCNI takes the plugin directory and cni directories where the cni files should be searched for
@@ -44,19 +96,16 @@ func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
 	// check if a default network exists, otherwise dump the CNI search and return a noop plugin
 	_, err = getDefaultCNINetwork(plugin.pluginDir, plugin.cniDirs, plugin.vendorCNIDirPrefix)
 	if err != nil {
+		if err == errMissingDefaultNetwork {
+			go plugin.monitorNetDir()
+			return plugin, nil
+		}
+
 		logrus.Warningf("Error in finding usable CNI plugin - %v", err)
 		// create a noop plugin instead
 		return &cniNoOp{}, nil
 	}
 
-	// sync network config from pluginDir periodically to detect network config updates
-	go func() {
-		t := time.NewTimer(10 * time.Second)
-		for {
-			plugin.syncNetworkConfig()
-			<-t.C
-		}
-	}()
 	return plugin, nil
 }
 
@@ -67,6 +116,8 @@ func probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir string, cniDirs []strin
 		pluginDir:          pluginDir,
 		cniDirs:            cniDirs,
 		vendorCNIDirPrefix: vendorCNIDirPrefix,
+		monitorNetDirChan:  make(chan error),
+		monitorNetDirDone:  false,
 	}
 
 	// sync NetworkConfig in best effort during probing.
@@ -87,7 +138,7 @@ func getDefaultCNINetwork(pluginDir string, cniDirs []string, vendorCNIDirPrefix
 	case err != nil:
 		return nil, err
 	case len(files) == 0:
-		return nil, fmt.Errorf("No networks found in %s", pluginDir)
+		return nil, errMissingDefaultNetwork
 	}
 
 	sort.Strings(files)
@@ -163,9 +214,59 @@ func (plugin *cniNetworkPlugin) setDefaultNetwork(n *cniNetwork) {
 	plugin.defaultNetwork = n
 }
 
+func (plugin *cniNetworkPlugin) terminateMonitorNetDir(err error) {
+	plugin.Lock()
+	defer plugin.Unlock()
+	if !plugin.monitorNetDirDone {
+		plugin.monitorNetDirChan <- err
+		plugin.monitorNetDirDone = true
+	}
+}
+
+func (plugin *cniNetworkPlugin) addCniReadyListener() (chan error, error) {
+	plugin.Lock()
+	defer plugin.Unlock()
+
+	if plugin.defaultNetwork != nil {
+		return nil, errDefaultNetworkAlreadyExists
+	}
+
+	c := make(chan error)
+	plugin.cniReadyListeners = append(plugin.cniReadyListeners, c)
+
+	return c, nil
+}
+
+func (plugin *cniNetworkPlugin) removeCniReadyListener(c chan error) {
+	plugin.Lock()
+	defer plugin.Unlock()
+
+	for i, ch := range plugin.cniReadyListeners {
+		if c != ch {
+			continue
+		}
+
+		plugin.cniReadyListeners = append(plugin.cniReadyListeners[:i], plugin.cniReadyListeners[i+1:]...)
+		break
+	}
+
+	return
+}
+
+func (plugin *cniNetworkPlugin) notifyCniReadyListeners(err error) {
+	plugin.Lock()
+	defer plugin.Unlock()
+
+	for _, c := range plugin.cniReadyListeners {
+		c <- err
+	}
+
+	plugin.cniReadyListeners = nil
+}
+
 func (plugin *cniNetworkPlugin) checkInitialized() error {
 	if plugin.getDefaultNetwork() == nil {
-		return errors.New("cni config uninitialized")
+		return errMissingDefaultNetwork
 	}
 	return nil
 }
@@ -197,8 +298,41 @@ func (plugin *cniNetworkPlugin) setUpPod(netnsPath string, namespace string, nam
 
 }
 
-func (plugin *cniNetworkPlugin) SetUpPod(netnsPath string, namespace string, name string, id string) error {
+func (plugin *cniNetworkPlugin) SetUpPod(netnsPath string, namespace string, name string, id string, cb SetUpCallback, data interface{}) error {
+	// First let's sync with the latest configuration files
+	plugin.syncNetworkConfig()
+
+	// Now we can check if we really have a default network
 	if err := plugin.checkInitialized(); err != nil {
+		if err == errMissingDefaultNetwork {
+			// We are missing a default network.
+			// Let's add ourselves to the listeners list and
+			// wait 30s for a new configuration file to show up.
+			c, err1 := plugin.addCniReadyListener()
+			if err1 != nil {
+				// The CNI default network showed up
+				if err1 == errDefaultNetworkAlreadyExists {
+					return plugin.setUpPod(netnsPath, namespace, name, id)
+				}
+
+				return err1
+			}
+
+			go func() {
+				select {
+				case err2 := <-c:
+					cb(data, err2)
+
+				case <-time.After(time.Second * 30):
+					cb(data, errMonitoringTimeout)
+				}
+
+				plugin.removeCniReadyListener(c)
+			}()
+
+			return nil
+		}
+
 		return err
 	}
 
@@ -207,6 +341,14 @@ func (plugin *cniNetworkPlugin) SetUpPod(netnsPath string, namespace string, nam
 
 func (plugin *cniNetworkPlugin) TearDownPod(netnsPath string, namespace string, name string, id string) error {
 	if err := plugin.checkInitialized(); err != nil {
+		if err == errMissingDefaultNetwork {
+			// We are missing a default network but someone is still
+			// trying to tear us down. We will try to kill the monitoring
+			// thread if it's still running.
+			plugin.terminateMonitorNetDir(nil)
+			return nil
+		}
+
 		return err
 	}
 
