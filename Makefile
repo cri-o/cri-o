@@ -66,7 +66,9 @@ ocic: check-gopath
 	$(GO) build -o $@ $(PROJECT)/cmd/ocic
 
 kpod: check-gopath
-	$(GO) build -o $@ $(PROJECT)/cmd/kpod
+	$(GO) build -o $@ \
+		-tags "$(BUILDTAGS)" \
+		$(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
 	./ocid --config="" config --default > ocid.conf
