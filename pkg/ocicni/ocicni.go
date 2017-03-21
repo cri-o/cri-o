@@ -174,7 +174,9 @@ func (plugin *cniNetworkPlugin) Name() string {
 	return CNIPluginName
 }
 
-func (plugin *cniNetworkPlugin) SetUpPod(netnsPath string, namespace string, name string, id string) error {
+func (plugin *cniNetworkPlugin) setUpPod(netnsPath string, namespace string, name string, id string) error {
+	plugin.syncNetworkConfig()
+
 	if err := plugin.checkInitialized(); err != nil {
 		return err
 	}
@@ -192,6 +194,15 @@ func (plugin *cniNetworkPlugin) SetUpPod(netnsPath string, namespace string, nam
 	}
 
 	return err
+
+}
+
+func (plugin *cniNetworkPlugin) SetUpPod(netnsPath string, namespace string, name string, id string) error {
+	if err := plugin.checkInitialized(); err != nil {
+		return err
+	}
+
+	return plugin.setUpPod(netnsPath, namespace, name, id)
 }
 
 func (plugin *cniNetworkPlugin) TearDownPod(netnsPath string, namespace string, name string, id string) error {
