@@ -12,7 +12,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/server"
-	"github.com/opencontainers/runc/libcontainer/selinux"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
