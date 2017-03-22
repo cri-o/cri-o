@@ -1,5 +1,5 @@
 {
-    "memo": "f9f05813d58aa8fce2eed8aae7f05fd12d1f2965afb0fea7ed0ead9a70836e53",
+    "memo": "982a27b328719863bc88dcd24142002eee29fab7f48fdc71340a0620fd5c3ebe",
     "projects": [
         {
             "name": "github.com/BurntSushi/toml",
@@ -338,6 +338,15 @@
             "packages": [
                 "generate",
                 "generate/seccomp"
+            ]
+        },
+        {
+            "name": "github.com/opencontainers/selinux",
+            "branch": "master",
+            "revision": "ba1aefe8057f1d0cfb8e88d0ec1dc85925ef987d",
+            "packages": [
+                "go-selinux",
+                "go-selinux/label"
             ]
         },
         {

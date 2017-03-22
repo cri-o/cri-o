@@ -18,6 +18,9 @@
         "github.com/opencontainers/runtime-spec": {
             "branch": "master"
         },
+        "github.com/opencontainers/selinux": {
+            "branch": "master"
+        },
         "google.golang.org/grpc": {
             "version": "v1.0.1-GA"
         },
