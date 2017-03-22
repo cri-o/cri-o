@@ -99,6 +99,103 @@ function teardown() {
 	stop_ocid
 }
 
+@test "ctr logging" {
+	start_ocid
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run ocic pod list
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	# Create a new container.
+	newconfig=$(mktemp --tmpdir ocid-config.XXXXXX.json)
+	cp "$TESTDATA"/container_config_logging.json "$newconfig"
+	sed -i 's|"%echooutput%"|"here", "is", "some", "output"|' "$newconfig"
+	run ocic ctr create --config "$newconfig" --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run ocic ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic ctr stop --id "$ctr_id"
+	echo "$output"
+	# Ignore errors on stop.
+	run ocic ctr status --id "$ctr_id"
+	[ "$status" -eq 0 ]
+	run ocic ctr remove --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	# Check that the output is what we expect.
+	run cat "$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
+	echo "$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log ::" "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"here is some output" ]]
+
+	run ocic pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_ocid
+}
+
+@test "ctr logging [tty=true]" {
+	start_ocid
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run ocic pod list
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	# Create a new container.
+	newconfig=$(mktemp --tmpdir ocid-config.XXXXXX.json)
+	cp "$TESTDATA"/container_config_logging.json "$newconfig"
+	sed -i 's|"%echooutput%"|"here", "is", "some", "output"|' "$newconfig"
+	sed -i 's|"tty": false,|"tty": true,|' "$newconfig"
+	run ocic ctr create --config "$newconfig" --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run ocic ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic ctr stop --id "$ctr_id"
+	echo "$output"
+	# Ignore errors on stop.
+	run ocic ctr status --id "$ctr_id"
+	[ "$status" -eq 0 ]
+	run ocic ctr remove --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	# Check that the output is what we expect.
+	run cat "$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
+	echo "$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log ::" "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"here is some output" ]]
+
+	run ocic pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_ocid
+}
+
 # regression test for #127
 @test "ctrs status for a pod" {
 	start_ocid

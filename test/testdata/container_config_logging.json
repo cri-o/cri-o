@@ -4,13 +4,13 @@
 		"attempt": 1
 	},
 	"image": {
-		"image": "docker://redis:latest"
+		"image": "docker://busybox:latest"
 	},
 	"command": [
-		"/bin/bash"
+		"/bin/echo"
 	],
 	"args": [
-		"/bin/chmod", "777", "."
+		"%echooutput%"
 	],
 	"working_dir": "/",
 	"envs": [
@@ -66,8 +66,8 @@
 		"selinux_options": {
 			"user": "system_u",
 			"role": "system_r",
-			"type": "svirt_lxc_net_t",
-			"level": "s0:c4-c5"
+			"type": "container_t",
+			"level": "s0:c4,c5"
 		},
 		"user": {
 			"uid": 5,
