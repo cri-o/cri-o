@@ -44,6 +44,7 @@ func New(runtimePath string, runtimeHostPrivilegedPath string, conmonPath string
 		conmonPath:     conmonPath,
 		conmonEnv:      conmonEnv,
 		cgroupManager:  cgroupManager,
+		networkReady:   true,
 	}
 	return r, nil
 }
@@ -56,6 +57,7 @@ type Runtime struct {
 	conmonPath     string
 	conmonEnv      []string
 	cgroupManager  string
+	networkReady   bool
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -579,5 +581,10 @@ func (r *Runtime) RuntimeReady() (bool, error) {
 // NetworkReady checks if the runtime network is up and ready to
 // accept containers which require container network.
 func (r *Runtime) NetworkReady() (bool, error) {
-	return true, nil
+	return r.networkReady, nil
+}
+
+// SetNetworkReady sets the runtime network readiness.
+func (r *Runtime) SetNetworkReady(ready bool) {
+	r.networkReady = ready
 }
