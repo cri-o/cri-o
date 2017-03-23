@@ -32,32 +32,30 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	s.Update()
 	var ctrs []*pb.Container
 	filter := req.Filter
-	ctrList := s.state.containers.List()
+	ctrList, _ := s.state.GetAllContainers()
 
 	// Filter using container id and pod id first.
 	if filter != nil {
 		if filter.Id != "" {
-			id, err := s.ctrIDIndex.Get(filter.Id)
+			c, err := s.state.LookupContainerByID(filter.Id)
 			if err != nil {
 				return nil, err
 			}
-			c := s.state.containers.Get(id)
-			if c != nil {
-				if filter.PodSandboxId != "" {
-					if c.Sandbox() == filter.PodSandboxId {
-						ctrList = []*oci.Container{c}
-					} else {
-						ctrList = []*oci.Container{}
-					}
-
-				} else {
+			if filter.PodSandboxId != "" {
+				if c.Sandbox() == filter.PodSandboxId {
 					ctrList = []*oci.Container{c}
+				} else {
+					ctrList = []*oci.Container{}
 				}
+
+			} else {
+				ctrList = []*oci.Container{c}
 			}
 		} else {
 			if filter.PodSandboxId != "" {
-				pod := s.state.sandboxes[filter.PodSandboxId]
-				if pod == nil {
+				pod, err := s.state.GetSandbox(filter.PodSandboxId)
+				// TODO check if this is a pod not found error, if not we should error out here
+				if err != nil {
 					ctrList = []*oci.Container{}
 				} else {
 					ctrList = pod.containers.List()

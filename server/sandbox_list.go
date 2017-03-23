@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
@@ -32,7 +34,13 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	s.Update()
 	var pods []*pb.PodSandbox
 	var podList []*sandbox
-	for _, sb := range s.state.sandboxes {
+
+	sandboxes, err := s.state.GetAllSandboxes()
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving sandboxes: %v", err)
+	}
+
+	for _, sb := range sandboxes {
 		podList = append(podList, sb)
 	}
 
@@ -40,12 +48,9 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	// Filter by pod id first.
 	if filter != nil {
 		if filter.Id != "" {
-			id, err := s.podIDIndex.Get(filter.Id)
+			sb, err := s.state.LookupSandboxByID(filter.Id)
+			// TODO if we return something other than a No Such Sandbox should we throw an error instead?
 			if err != nil {
-				return nil, err
-			}
-			sb := s.getSandbox(id)
-			if sb == nil {
 				podList = []*sandbox{}
 			} else {
 				podList = []*sandbox{sb}

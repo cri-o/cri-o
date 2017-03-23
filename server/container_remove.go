@@ -34,7 +34,9 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, fmt.Errorf("failed to delete container %s: %v", c.ID(), err)
 	}
 
-	s.removeContainer(c)
+	if err := s.removeContainer(c); err != nil {
+		return nil, fmt.Errorf("failed to remove container %s: %v", c.ID(), err)
+	}
 
 	if err := s.storage.StopContainer(c.ID()); err != nil {
 		return nil, fmt.Errorf("failed to unmount container %s: %v", c.ID(), err)
@@ -42,12 +44,6 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 
 	if err := s.storage.DeleteContainer(c.ID()); err != nil {
 		return nil, fmt.Errorf("failed to delete storage for container %s: %v", c.ID(), err)
-	}
-
-	s.releaseContainerName(c.Name())
-
-	if err := s.ctrIDIndex.Delete(c.ID()); err != nil {
-		return nil, err
 	}
 
 	resp := &pb.RemoveContainerResponse{}

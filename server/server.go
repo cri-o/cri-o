@@ -11,8 +11,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage/storage"
-	"github.com/docker/docker/pkg/registrar"
-	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
@@ -34,14 +32,9 @@ type Server struct {
 	store        sstorage.Store
 	images       storage.ImageServer
 	storage      storage.RuntimeServer
-	stateLock    sync.Mutex
 	updateLock   sync.RWMutex
-	state        *serverState
+	state        StateStore
 	netPlugin    ocicni.CNIPlugin
-	podNameIndex *registrar.Registrar
-	podIDIndex   *truncindex.TruncIndex
-	ctrNameIndex *registrar.Registrar
-	ctrIDIndex   *truncindex.TruncIndex
 	imageContext *types.SystemContext
 
 	seccompEnabled bool
@@ -65,23 +58,13 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 	name := m.Annotations["ocid/name"]
-	name, err = s.reserveContainerName(id, name)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(name)
-		}
-	}()
 
 	var metadata pb.ContainerMetadata
 	if err = json.Unmarshal([]byte(m.Annotations["ocid/metadata"]), &metadata); err != nil {
 		return err
 	}
-	sb := s.getSandbox(m.Annotations["ocid/sandbox_id"])
-	if sb == nil {
+	sb, err := s.getSandbox(m.Annotations["ocid/sandbox_id"])
+	if err != nil {
 		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations["ocid/sandbox_id"])
 	}
 
@@ -114,8 +97,7 @@ func (s *Server) loadContainer(id string) error {
 	if err = s.runtime.UpdateStatus(ctr); err != nil {
 		return fmt.Errorf("error updating status for container %s: %v", ctr.ID(), err)
 	}
-	s.addContainer(ctr)
-	return s.ctrIDIndex.Add(id)
+	return s.addContainer(ctr)
 }
 
 func configNetNsPath(spec rspec.Spec) (string, error) {
@@ -148,15 +130,6 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 	name := m.Annotations["ocid/name"]
-	name, err = s.reservePodName(id, name)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			s.releasePodName(name)
-		}
-	}()
 	var metadata pb.PodSandboxMetadata
 	if err = json.Unmarshal([]byte(m.Annotations["ocid/metadata"]), &metadata); err != nil {
 		return err
@@ -204,30 +177,12 @@ func (s *Server) loadSandbox(id string) error {
 		sb.netns = netNS
 	}
 
-	s.addSandbox(sb)
-
-	defer func() {
-		if err != nil {
-			s.removeSandbox(sb.id)
-		}
-	}()
-
 	sandboxPath, err := s.store.GetContainerRunDirectory(id)
 	if err != nil {
 		return err
 	}
 
-	cname, err := s.reserveContainerName(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"])
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(cname)
-		}
-	}()
-
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"], sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
 	if err != nil {
 		return err
 	}
@@ -238,13 +193,8 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 	sb.infraContainer = scontainer
-	if err = s.ctrIDIndex.Add(scontainer.ID()); err != nil {
-		return err
-	}
-	if err = s.podIDIndex.Add(id); err != nil {
-		return err
-	}
-	return nil
+
+	return s.addSandbox(sb)
 }
 
 func (s *Server) restore() {
@@ -310,7 +260,7 @@ func (s *Server) update() error {
 			oldPodContainers[container.ID] = container.ID
 			continue
 		}
-		if s.getContainer(container.ID) != nil {
+		if _, err := s.getContainer(container.ID); err == nil {
 			// FIXME: do we need to reload/update any info about the container?
 			oldPodContainers[container.ID] = container.ID
 			continue
@@ -327,51 +277,54 @@ func (s *Server) update() error {
 			newPodContainers[container.ID] = &metadata
 		}
 	}
-	s.ctrIDIndex.Iterate(func(id string) {
-		if _, ok := oldPodContainers[id]; !ok {
+
+	// TODO this will not check pod infra containers - should we care about this?
+	stateContainers, err := s.state.GetAllContainers()
+	if err != nil {
+		return fmt.Errorf("error retrieving containers list: %v", err)
+	}
+	for _, ctr := range stateContainers {
+		if _, ok := oldPodContainers[ctr.ID()]; !ok {
 			// this container's ID wasn't in the updated list -> removed
-			removedPodContainers[id] = id
+			removedPodContainers[ctr.ID()] = ctr.ID()
 		}
-	})
+	}
+
 	for removedPodContainer := range removedPodContainers {
 		// forget this container
-		c := s.getContainer(removedPodContainer)
-		if c == nil {
+		c, err := s.getContainer(removedPodContainer)
+		if err != nil {
 			logrus.Warnf("bad state when getting container removed %+v", removedPodContainer)
 			continue
 		}
-		s.releaseContainerName(c.Name())
-		s.removeContainer(c)
-		if err = s.ctrIDIndex.Delete(c.ID()); err != nil {
-			return err
+		if err := s.removeContainer(c); err != nil {
+			return fmt.Errorf("error forgetting removed pod container %s: %v", c.ID(), err)
 		}
 		logrus.Debugf("forgetting removed pod container %s", c.ID())
 	}
-	s.podIDIndex.Iterate(func(id string) {
-		if _, ok := oldPods[id]; !ok {
+
+	pods, err := s.state.GetAllSandboxes()
+	if err != nil {
+		return fmt.Errorf("error retrieving pods list: %v", err)
+	}
+	for _, pod := range pods {
+		if _, ok := oldPods[pod.id]; !ok {
 			// this pod's ID wasn't in the updated list -> removed
-			removedPods[id] = id
+			removedPods[pod.id] = pod.id
 		}
-	})
+	}
+
 	for removedPod := range removedPods {
 		// forget this pod
-		sb := s.getSandbox(removedPod)
-		if sb == nil {
+		sb, err := s.getSandbox(removedPod)
+		if err != nil {
 			logrus.Warnf("bad state when getting pod to remove %+v", removedPod)
 			continue
 		}
-		podInfraContainer := sb.infraContainer
-		s.releaseContainerName(podInfraContainer.Name())
-		s.removeContainer(podInfraContainer)
-		if err = s.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
-			return err
+		if err := s.removeSandbox(sb.id); err != nil {
+			return fmt.Errorf("error removing sandbox %s: %v", sb.id, err)
 		}
 		sb.infraContainer = nil
-		s.releasePodName(sb.name)
-		s.removeSandbox(sb.id)
-		if err = s.podIDIndex.Delete(sb.id); err != nil {
-			return err
-		}
 		logrus.Debugf("forgetting removed pod %s", sb.id)
 	}
 	for sandboxID := range newPods {
@@ -391,44 +344,6 @@ func (s *Server) update() error {
 		}
 	}
 	return nil
-}
-
-func (s *Server) reservePodName(id, name string) (string, error) {
-	if err := s.podNameIndex.Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := s.podNameIndex.Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, pod name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for pod %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving pod name %q", name)
-	}
-	return name, nil
-}
-
-func (s *Server) releasePodName(name string) {
-	s.podNameIndex.Release(name)
-}
-
-func (s *Server) reserveContainerName(id, name string) (string, error) {
-	if err := s.ctrNameIndex.Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := s.ctrNameIndex.Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, ctr name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for ctr %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving ctr name %s", name)
-	}
-	return name, nil
-}
-
-func (s *Server) releaseContainerName(name string) {
-	s.ctrNameIndex.Release(name)
 }
 
 // Shutdown attempts to shut down the server's storage cleanly
@@ -463,23 +378,18 @@ func New(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	sandboxes := make(map[string]*sandbox)
-	containers := oci.NewMemoryStore()
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {
 		return nil, err
 	}
 	s := &Server{
-		runtime:   r,
-		store:     store,
-		images:    imageService,
-		storage:   storageRuntimeService,
-		netPlugin: netPlugin,
-		config:    *config,
-		state: &serverState{
-			sandboxes:  sandboxes,
-			containers: containers,
-		},
+		runtime:         r,
+		store:           store,
+		images:          imageService,
+		storage:         storageRuntimeService,
+		netPlugin:       netPlugin,
+		config:          *config,
+		state:           NewInMemoryState(),
 		seccompEnabled:  seccomp.IsEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
 		appArmorProfile: config.ApparmorProfile,
@@ -502,72 +412,44 @@ func New(config *Config) (*Server, error) {
 		}
 	}
 
-	s.podIDIndex = truncindex.NewTruncIndex([]string{})
-	s.podNameIndex = registrar.NewRegistrar()
-	s.ctrIDIndex = truncindex.NewTruncIndex([]string{})
-	s.ctrNameIndex = registrar.NewRegistrar()
 	s.imageContext = &types.SystemContext{
 		SignaturePolicyPath: config.ImageConfig.SignaturePolicyPath,
 	}
 
 	s.restore()
 
-	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
-	logrus.Debugf("containers: %v", s.state.containers)
 	return s, nil
 }
 
-type serverState struct {
-	sandboxes  map[string]*sandbox
-	containers oci.Store
+func (s *Server) addSandbox(sb *sandbox) error {
+	return s.state.AddSandbox(sb)
 }
 
-func (s *Server) addSandbox(sb *sandbox) {
-	s.stateLock.Lock()
-	s.state.sandboxes[sb.id] = sb
-	s.stateLock.Unlock()
-}
-
-func (s *Server) getSandbox(id string) *sandbox {
-	s.stateLock.Lock()
-	sb := s.state.sandboxes[id]
-	s.stateLock.Unlock()
-	return sb
+func (s *Server) getSandbox(id string) (*sandbox, error) {
+	return s.state.GetSandbox(id)
 }
 
 func (s *Server) hasSandbox(id string) bool {
-	s.stateLock.Lock()
-	_, ok := s.state.sandboxes[id]
-	s.stateLock.Unlock()
-	return ok
+	return s.state.HasSandbox(id)
 }
 
-func (s *Server) removeSandbox(id string) {
-	s.stateLock.Lock()
-	delete(s.state.sandboxes, id)
-	s.stateLock.Unlock()
+func (s *Server) removeSandbox(id string) error {
+	return s.state.DeleteSandbox(id)
 }
 
-func (s *Server) addContainer(c *oci.Container) {
-	s.stateLock.Lock()
-	sandbox := s.state.sandboxes[c.Sandbox()]
-	// TODO(runcom): handle !ok above!!! otherwise it panics!
-	sandbox.addContainer(c)
-	s.state.containers.Add(c.ID(), c)
-	s.stateLock.Unlock()
+func (s *Server) addContainer(c *oci.Container) error {
+	return s.state.AddContainer(c, c.Sandbox())
 }
 
-func (s *Server) getContainer(id string) *oci.Container {
-	s.stateLock.Lock()
-	c := s.state.containers.Get(id)
-	s.stateLock.Unlock()
-	return c
+func (s *Server) getContainer(id string) (*oci.Container, error) {
+	sbID, err := s.state.GetContainerSandbox(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.state.GetContainer(id, sbID)
 }
 
-func (s *Server) removeContainer(c *oci.Container) {
-	s.stateLock.Lock()
-	sandbox := s.state.sandboxes[c.Sandbox()]
-	sandbox.removeContainer(c)
-	s.state.containers.Delete(c.ID())
-	s.stateLock.Unlock()
+func (s *Server) removeContainer(c *oci.Container) error {
+	return s.state.DeleteContainer(c.ID(), c.Sandbox())
 }

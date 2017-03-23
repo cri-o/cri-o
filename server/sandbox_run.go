@@ -88,12 +88,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			s.releasePodName(name)
-		}
-	}()
-
 	podContainer, err := s.storage.CreatePodSandbox(s.imageContext,
 		name, id,
 		s.config.PauseImage, "",
@@ -225,24 +219,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(containerName)
-		}
-	}()
-
-	if err = s.ctrIDIndex.Add(id); err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := s.ctrIDIndex.Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete ctr id %s from idIndex", id)
-			}
-		}
-	}()
-
 	// set log path inside log directory
 	logPath := filepath.Join(logDir, id+".log")
 
@@ -280,20 +256,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		privileged:   privileged,
 		resolvPath:   resolvPath,
 		hostname:     hostname,
-	}
-
-	defer func() {
-		if err != nil {
-			s.removeSandbox(id)
-			if err2 := s.podIDIndex.Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
-			}
-		}
-	}()
-
-	s.addSandbox(sb)
-	if err = s.podIDIndex.Add(id); err != nil {
-		return nil, err
 	}
 
 	for k, v := range annotations {
@@ -402,6 +364,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	sb.infraContainer = container
+
+	// Only register the sandbox after infra container has been added
+	if err = s.addSandbox(sb); err != nil {
+		return nil, err
+	}
 
 	// setup the network
 	if !hostNetwork {

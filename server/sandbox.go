@@ -257,10 +257,7 @@ func (s *Server) generatePodIDandName(name string, namespace string, attempt uin
 		namespace = podDefaultNamespace
 	}
 
-	if name, err = s.reservePodName(id, fmt.Sprintf("%s-%s-%v", namespace, name, attempt)); err != nil {
-		return "", "", err
-	}
-	return id, name, err
+	return id, fmt.Sprintf("%s-%s-%v", namespace, name, attempt), err
 }
 
 func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox, error) {
@@ -268,14 +265,10 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox, error)
 		return nil, errSandboxIDEmpty
 	}
 
-	sandboxID, err := s.podIDIndex.Get(podSandboxID)
+	sb, err := s.state.LookupSandboxByID(podSandboxID)
 	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
+		return nil, fmt.Errorf("could not retrieve pod sandbox with ID starting with %v: %v", podSandboxID, err)
 	}
 
-	sb := s.getSandbox(sandboxID)
-	if sb == nil {
-		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
-	}
 	return sb, nil
 }
