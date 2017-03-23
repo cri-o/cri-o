@@ -60,6 +60,7 @@ func addOciBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
 func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
 	processArgs := []string{}
+	var processEntryPoint, processCmd []string
 
 	kubeCommands := containerKubeConfig.Command
 	kubeArgs := containerKubeConfig.Args
@@ -86,34 +87,66 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 
 	// We got an OCI Image configuration.
 	// We will only use it if the kubelet information is incomplete.
-	if kubeCommands == nil {
-		if imageOCIConfig != nil && imageOCIConfig.Config.Entrypoint != nil {
-			processArgs = append(processArgs, imageOCIConfig.Config.Entrypoint...)
-		}
+
+	// First we set the process entry point.
+	if kubeCommands != nil {
+		// The kubelet command slice is prioritized.
+		processEntryPoint = kubeCommands
 	} else {
-		processArgs = append(processArgs, kubeCommands...)
+		// Here the kubelet command slice is empty.
+		if imageOCIConfig != nil {
+			// If the OCI image config has an ENTRYPOINT we
+			// use it as our process command.
+			// Otherwise we use the CMD slice if it's not
+			// empty.
+			if imageOCIConfig.Config.Entrypoint != nil {
+				processEntryPoint = imageOCIConfig.Config.Entrypoint
+			} else if imageOCIConfig.Config.Cmd != nil {
+				processEntryPoint = imageOCIConfig.Config.Cmd
+			}
+		} else {
+			// We neither have a kubelet command not an image OCI config.
+			// Missing an image OCI config will no longer be supported after
+			// https://github.com/kubernetes-incubator/cri-o/issues/395 is fixed.
+			processEntryPoint = []string{"/bin/sh", "-c"}
+		}
 	}
 
-	if kubeArgs == nil {
-		// Our kubelet command arguments slice is empty.
-		// We will use the OCI Image configuration only if we already
-		// have found a process command, i.e. if processArgs is no
-		// longer empty. No doing so will have us create a process
-		// arguments slice starting with the OCI Image command arguments
-		// as the entry point.
-		if processArgs != nil &&
-			imageOCIConfig != nil &&
-			imageOCIConfig.Config.Entrypoint != nil && imageOCIConfig.Config.Cmd != nil {
-			processArgs = append(processArgs, imageOCIConfig.Config.Cmd...)
-		}
+	// Then we build the process command arguments
+	if kubeArgs != nil {
+		// The kubelet command arguments slice is prioritized.
+		processCmd = kubeArgs
 	} else {
-		processArgs = append(processArgs, kubeArgs...)
+		if kubeCommands != nil {
+			// kubelet gave us a command slice but explicitely
+			// left the arguments slice empty. We should keep
+			// it that way.
+			processCmd = []string{}
+		} else {
+			// Here kubelet kept both the command and arguments
+			// slices empty. We should try building the process
+			// arguments slice from the OCI image config.
+			// If the OCI image config has an ENTRYPOINT slice,
+			// we use the CMD slice as the process arguments.
+			// Otherwise, we already picked CMD as our process
+			// command and we must not add the CMD slice twice.
+			if imageOCIConfig != nil {
+				if imageOCIConfig.Config.Entrypoint != nil {
+					processCmd = imageOCIConfig.Config.Cmd
+				} else {
+					processCmd = []string{}
+				}
+			} else {
+				// Missing an image OCI config will no longer
+				// be supported after https://github.com/kubernetes-incubator/cri-o/issues/395
+				// is fixed.
+				processCmd = []string{}
+			}
+		}
 	}
 
-	if processArgs == nil {
-		// Use a reasonable default if everything failed.
-		processArgs = []string{"/bin/sh"}
-	}
+	processArgs = append(processArgs, processEntryPoint...)
+	processArgs = append(processArgs, processCmd...)
 
 	logrus.Debugf("OCI process args %v", processArgs)
 
