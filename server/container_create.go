@@ -236,14 +236,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
 
-	sandboxID, err := s.podIDIndex.Get(sbID)
+	sb, err := s.state.LookupSandboxByID(sbID)
 	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
-	}
-
-	sb := s.getSandbox(sandboxID)
-	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
+		return nil, fmt.Errorf("error retrieving PodSandbox with ID starting with %s: %v", sbID, err)
 	}
 
 	// The config of the container
@@ -261,12 +256,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	if err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(containerName)
-		}
-	}()
 
 	container, err := s.createSandboxContainer(ctx, containerID, containerName, sb, req.GetSandboxConfig(), containerConfig)
 	if err != nil {
@@ -289,10 +278,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	s.addContainer(container)
-
-	if err = s.ctrIDIndex.Add(containerID); err != nil {
-		s.removeContainer(container)
+	if err := s.addContainer(container); err != nil {
 		return nil, err
 	}
 

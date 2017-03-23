@@ -135,22 +135,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	defer func() {
-		if err != nil {
-			s.releasePodName(name)
-		}
-	}()
-
 	_, containerName, err := s.generateContainerIDandNameForSandbox(req.GetConfig())
 	if err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(containerName)
-		}
-	}()
 
 	podContainer, err := s.storageRuntimeServer.CreatePodSandbox(s.imageContext,
 		name, id,
@@ -283,18 +271,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if err = s.ctrIDIndex.Add(id); err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := s.ctrIDIndex.Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete ctr id %s from idIndex", id)
-			}
-		}
-	}()
-
 	// set log path inside log directory
 	logPath := filepath.Join(logDir, id+".log")
 
@@ -349,25 +325,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		hostname:     hostname,
 		portMappings: portMappings,
 	}
-
-	s.addSandbox(sb)
-	defer func() {
-		if err != nil {
-			s.removeSandbox(id)
-		}
-	}()
-
-	if err = s.podIDIndex.Add(id); err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			if err := s.podIDIndex.Delete(id); err != nil {
-				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
-			}
-		}
-	}()
 
 	for k, v := range kubeAnnotations {
 		g.AddAnnotation(k, v)
@@ -481,6 +438,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	sb.infraContainer = container
+
+	// Only register the sandbox after infra container has been added
+	if err = s.addSandbox(sb); err != nil {
+		return nil, err
+	}
 
 	// setup the network
 	if !hostNetwork {

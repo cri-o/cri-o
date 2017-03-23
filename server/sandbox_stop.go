@@ -119,7 +119,12 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 // StopAllPodSandboxes removes all pod sandboxes
 func (s *Server) StopAllPodSandboxes() {
 	logrus.Debugf("StopAllPodSandboxes")
-	for _, sb := range s.state.sandboxes {
+	sandboxes, err := s.state.GetAllSandboxes()
+	if err != nil {
+		logrus.Errorf("error retrieving sandboxes: %v", err)
+		return
+	}
+	for _, sb := range sandboxes {
 		pod := &pb.StopPodSandboxRequest{
 			PodSandboxId: sb.id,
 		}
