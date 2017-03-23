@@ -32,7 +32,7 @@ const (
 	// ContainerStateStopped represents the stopped state of a container
 	ContainerStateStopped = "stopped"
 	// ContainerCreateTimeout represents the value of container creating timeout
-	ContainerCreateTimeout = 3 * time.Second
+	ContainerCreateTimeout = 10 * time.Second
 )
 
 // New creates a new Runtime with options provided
