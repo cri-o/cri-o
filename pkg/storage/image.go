@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/containers/image/copy"
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/signature"
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
@@ -132,6 +133,9 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	dest := imageName
 	if srcRef.DockerReference() != nil {
 		dest = srcRef.DockerReference().Name()
+		if tagged, ok := srcRef.DockerReference().(reference.NamedTagged); ok {
+			dest = dest + ":" + tagged.Tag()
+		}
 	}
 	destRef, err := istorage.Transport.ParseStoreReference(svc.store, dest)
 	if err != nil {
