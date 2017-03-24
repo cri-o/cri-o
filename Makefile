@@ -101,13 +101,13 @@ MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 docs/%.1: docs/%.1.md check-gopath
-	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.5: docs/%.5.md check-gopath
-	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.8: docs/%.8.md check-gopath
-	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES)
 
@@ -163,14 +163,14 @@ endif
 
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
-.install.gitvalidation:
+.install.gitvalidation: check-gopath
 	go get -u github.com/vbatts/git-validation
 
-.install.gometalinter:
+.install.gometalinter: check-gopath
 	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install
+	$(GOPATH)/bin/gometalinter --install
 
-.install.md2man:
+.install.md2man: check-gopath
 	go get -u github.com/cpuguy83/go-md2man
 
 .PHONY: \
