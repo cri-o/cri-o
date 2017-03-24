@@ -43,14 +43,18 @@ It is currently in active development in the Kubernetes community through the [d
 
 ### Build
 
-`btrfs-progs-devel`, `device-mapper-devel`, `glib2-devel`, `glibc-devel`, `glibc-static`,  `gpgme-devel`, `libassuan-devel`, `libgpg-error-devel`, and `pkgconfig` packages on CentOS/Fedora or `btrfs-tools`, `libassuan-dev`, `libc6-dev`, `libdevmapper-dev`, `libglib2.0-dev`, `libgpg-error-dev`, `libgpgme11-dev`, and `pkg-config` on Ubuntu or equivalent is required.
-In order to enable seccomp support you will need to install development files for `libseccomp` on your platform.
-> e.g. `libseccomp-devel` for CentOS/Fedora, or `libseccomp-dev` for Ubuntu
-In order to enable apparmor support you will need to install development files for `libapparmor` on your platform.
-> e.g. `libapparmor-dev` for Ubuntu
+On Fedora/Centos/RHEL:
+```bash
+dnf install -y btrfs-progs-devel device-mapper-devel libseccomp-devel glib2-devel glibc-devel glibc-static  gpgme-devel libassuan-devel libgpg-error-devel pkgconfig libselinux-devel
+```
+
+On Ubuntu/Debian:
+```bash
+apt install btrfs-tools libassuan-dev libc6-dev libdevmapper-dev libglib2.0-dev libgpg-error-dev libgpgme11-dev pkg-config libseccomp-dev libapparmor-dev
+```
 
 ```bash
-$ GOPATH=/path/to/gopath
+$ export GOPATH=~/go
 $ mkdir $GOPATH
 $ go get -d github.com/kubernetes-incubator/cri-o
 $ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
