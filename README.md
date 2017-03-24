@@ -39,37 +39,102 @@ It is currently in active development in the Kubernetes community through the [d
 ## Getting started
 
 ### Prerequisites
+
 `runc` version 1.0.0.rc1 or greater is expected to be installed on the system. It is picked up as the default runtime by ocid.
+
+### Build Dependencies
+
+**Required**
+
+Fedora, CentOS, RHEL, and related distributions:
+
+```bash
+yum install -y \
+  btrfs-progs-devel \
+  device-mapper-devel \
+  glib2-devel \
+  glibc-devel \
+  glibc-static \
+  gpgme-devel \
+  libassuan-devel \
+  libgpg-error-devel \
+  libseccomp-devel \
+  libselinux-devel \
+  pkgconfig \
+  runc
+```
+
+Debian, Ubuntu, and related distributions:
+
+```bash
+apt install -y \
+  btrfs-tools \
+  libassuan-dev \
+  libdevmapper-dev \
+  libglib2.0-dev \
+  libc6-dev \
+  libgpgme11-dev \
+  libgpg-error-dev \
+  libseccomp-dev \
+  libselinux1-dev \
+  pkg-config \
+  runc
+```
+
+If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough, or else build your own.
+
+**Optional**
+
+Fedora, CentOS, RHEL, and related distributions:
+
+(no optional packages)
+
+Debian, Ubuntu, and related distributions:
+
+```bash
+apt install -y \
+  libapparmor-dev
+```
+
+### Get Source Code
+
+As with other Go projects, cri-o must be cloned into a directory structure like:
+
+```
+GOPATH
+└── src
+    └── github.com
+        └── kubernetes-incubator
+            └── cri-o
+```
+
+First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`).
+
+```bash
+export GOPATH=~/go
+mkdir -p $GOPATH
+```
+
+Next, clone the source code using:
+
+```bash
+mkdir -p $GOPATH/src/github.com/kubernetes-incubator
+cd $_ # or cd $GOPATH/src/github.com/kubernetes-incubator
+git clone https://github.com/kubernetes-incubator/cri-o # or your fork
+cd cri-o
+```
 
 ### Build
 
-On Fedora/Centos/RHEL:
 ```bash
-dnf install -y btrfs-progs-devel device-mapper-devel libseccomp-devel glib2-devel glibc-devel glibc-static  gpgme-devel libassuan-devel libgpg-error-devel pkgconfig libselinux-devel
+make install.tools
+make
+sudo make install
 ```
 
-On Ubuntu/Debian:
-```bash
-apt install btrfs-tools libassuan-dev libc6-dev libdevmapper-dev libglib2.0-dev libgpg-error-dev libgpgme11-dev pkg-config libseccomp-dev libapparmor-dev
-```
-
-```bash
-$ export GOPATH=~/go
-$ mkdir $GOPATH
-$ go get -d github.com/kubernetes-incubator/cri-o
-$ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
-$ make install.tools
-$ make
-$ sudo make install
-```
 Otherwise, if you do not want to build `cri-o` with seccomp support you can add `BUILDTAGS=""` when running make.
 
 ```bash
-# create a 'github.com/kubernetes-incubator' in your $GOPATH/src
-cd github.com/kubernetes-incubator
-git clone https://github.com/kubernetes-incubator/cri-o
-cd cri-o
-
 make BUILDTAGS=""
 sudo make install
 ```
@@ -86,7 +151,7 @@ make BUILDTAGS='seccomp apparmor'
 | Build Tag | Feature                            | Dependency  |
 |-----------|------------------------------------|-------------|
 | seccomp   | syscall filtering                  | libseccomp  |
-| selinux   | selinux process and mount labeling | <none>      |
+| selinux   | selinux process and mount labeling | libselinux  |
 | apparmor  | apparmor profile support           | libapparmor |
 
 ### Running pods and containers
@@ -101,12 +166,14 @@ have some basic network configurations enabled and CNI plugins installed on
 your system.
 
 ### Running with kubernetes
-You can run the local version of kubernetes using `local-up-cluster.sh`. After starting `ocid` daemon:
-```sh
-EXPERIMENTAL_CRI=true CONTAINER_RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT='/var/run/ocid.sock --runtime-request-timeout=15m' ./hack/local-up-cluster.sh
-```
-For running on kubernetes cluster - see the [instruction](kubernetes.md)
 
+You can run a local version of kubernetes with cri-o using `local-up-cluster.sh`:
+
+1. Clone the [kubernetes repository](https://github.com/kubernetes/kubernetes)
+1. Start the cri-o daemon (`ocid`)
+1. From the kubernetes project directory, run: `CONTAINER_RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT='/var/run/ocid.sock --runtime-request-timeout=15m' ./hack/local-up-cluster.sh`
+
+To run a full cluster, see [the instructions](kubernetes.md).
 
 ### Current Roadmap
 
