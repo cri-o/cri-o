@@ -140,6 +140,7 @@ type sandbox struct {
 	shmPath        string
 	cgroupParent   string
 	privileged     bool
+	resolvPath     string
 }
 
 const (

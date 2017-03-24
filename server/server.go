@@ -187,6 +187,7 @@ func (s *Server) loadSandbox(id string) error {
 		metadata:     &metadata,
 		shmPath:      m.Annotations["ocid/shm_path"],
 		privileged:   privileged,
+		resolvPath:   m.Annotations["ocid/resolv_path"],
 	}
 
 	// We add a netNS only if we can load a permanent one.
