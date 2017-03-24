@@ -66,7 +66,7 @@ func (s *Server) runContainer(container *oci.Container, cgroupParent string) err
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
-	var processLabel, mountLabel, netNsPath string
+	var processLabel, mountLabel, netNsPath, resolvPath string
 	// process req.Name
 	name := req.GetConfig().GetMetadata().Name
 	if name == "" {
@@ -160,7 +160,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		dnsServers := req.GetConfig().GetDnsConfig().Servers
 		dnsSearches := req.GetConfig().GetDnsConfig().Searches
 		dnsOptions := req.GetConfig().GetDnsConfig().Options
-		resolvPath := fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
+		resolvPath = fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
 		err = parseDNSOptions(dnsServers, dnsSearches, dnsOptions, resolvPath)
 		if err != nil {
 			err1 := removeFile(resolvPath)
@@ -258,6 +258,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/container_id", id)
 	g.AddAnnotation("ocid/shm_path", shmPath)
 	g.AddAnnotation("ocid/privileged_runtime", fmt.Sprintf("%v", privileged))
+	g.AddAnnotation("ocid/resolv_path", resolvPath)
 
 	sb := &sandbox{
 		id:           id,
@@ -271,6 +272,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		metadata:     metadata,
 		shmPath:      shmPath,
 		privileged:   privileged,
+		resolvPath:   resolvPath,
 	}
 
 	s.addSandbox(sb)
