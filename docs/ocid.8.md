@@ -81,10 +81,10 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
   Image which contains the pause executable (default: "kubernetes/pause")
 
 **--root**=""
-  OCID root dir (default: "/var/lib/containers")
+  OCID root dir (default: "/var/lib/containers/storage")
 
 **--runroot**=""
-  OCID state dir (default: "/var/run/containers")
+  OCID state dir (default: "/var/run/containers/storage")
 
 **--runtime**=""
   OCI runtime path (default: "/usr/bin/runc")
