@@ -110,7 +110,9 @@ func main() {
 				logrus.Errorf("error opening storage: %v", err)
 				os.Exit(1)
 			}
-			defer store.Shutdown(false)
+			defer func() {
+				_, _ = store.Shutdown(false)
+			}()
 
 			storage.Transport.SetStore(store)
 			ref, err = storage.Transport.ParseStoreReference(store, imageName)
@@ -133,7 +135,9 @@ func main() {
 			logrus.Errorf("error loading signature policy: %v", err)
 			os.Exit(1)
 		}
-		defer policyContext.Destroy()
+		defer func() {
+			_ = policyContext.Destroy()
+		}()
 		options := &copy.Options{}
 
 		if importFrom != "" {
@@ -161,9 +165,9 @@ func main() {
 				}
 			}
 			if addName != "" {
-				destImage, err := storage.Transport.GetStoreImage(store, ref)
-				if err != nil {
-					logrus.Errorf("error finding image: %v", err)
+				destImage, err1 := storage.Transport.GetStoreImage(store, ref)
+				if err1 != nil {
+					logrus.Errorf("error finding image: %v", err1)
 					os.Exit(1)
 				}
 				names := append(destImage.Names, imageName, addName)

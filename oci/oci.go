@@ -149,7 +149,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	if cgroupParent != "" {
 		if r.cgroupManager == "systemd" {
 			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("ocid", c.name))
-			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("ocid", c.name)); err != nil {
+			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("ocid", c.name)); err != nil {
 				logrus.Warnf("Failed to add conmon to sandbox cgroup: %v", err)
 			}
 		}

@@ -44,7 +44,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	resp := &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
 			Id:        sandboxID,
-			CreatedAt: int64(created),
+			CreatedAt: created,
 			Linux: &pb.LinuxPodSandboxStatus{
 				Namespaces: &pb.Namespace{
 					Network: netNsPath,

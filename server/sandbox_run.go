@@ -407,11 +407,7 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 		return err
 	}
 	storageMetadata.SetMountLabel(mountLabel)
-	err = s.storage.SetContainerMetadata(id, storageMetadata)
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.storage.SetContainerMetadata(id, storageMetadata)
 }
 
 func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mountLabel string, err error) {

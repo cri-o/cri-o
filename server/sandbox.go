@@ -201,8 +201,8 @@ func (s *sandbox) netNsCreate() error {
 	if err := s.netns.symlinkCreate(s.name); err != nil {
 		logrus.Warnf("Could not create nentns symlink %v", err)
 
-		if err := s.netns.ns.Close(); err != nil {
-			return err
+		if err1 := s.netns.ns.Close(); err1 != nil {
+			return err1
 		}
 
 		return err

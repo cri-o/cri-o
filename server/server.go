@@ -113,10 +113,7 @@ func (s *Server) loadContainer(id string) error {
 		return fmt.Errorf("error updating status for container %s: %v", ctr.ID(), err)
 	}
 	s.addContainer(ctr)
-	if err = s.ctrIDIndex.Add(id); err != nil {
-		return err
-	}
-	return nil
+	return s.ctrIDIndex.Add(id)
 }
 
 func configNetNsPath(spec rspec.Spec) (string, error) {
