@@ -510,20 +510,20 @@ func New(config *Config) (*Server, error) {
 		appArmorProfile: config.ApparmorProfile,
 	}
 	if s.seccompEnabled {
-		seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
-		if err != nil {
-			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, err)
+		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
+		if fileErr != nil {
+			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, fileErr)
 		}
 		var seccompConfig seccomp.Seccomp
-		if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
-			return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
+		if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
+			return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
 		}
 		s.seccompProfile = seccompConfig
 	}
 
 	if s.appArmorEnabled && s.appArmorProfile == apparmor.DefaultApparmorProfile {
-		if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
-			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", err)
+		if apparmorErr := apparmor.EnsureDefaultApparmorProfile(); apparmorErr != nil {
+			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", apparmorErr)
 		}
 	}
 
