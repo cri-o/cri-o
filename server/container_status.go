@@ -44,22 +44,22 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	case oci.ContainerStateCreated:
 		rStatus = pb.ContainerState_CONTAINER_CREATED
 		created := cState.Created.UnixNano()
-		resp.Status.CreatedAt = int64(created)
+		resp.Status.CreatedAt = created
 	case oci.ContainerStateRunning:
 		rStatus = pb.ContainerState_CONTAINER_RUNNING
 		created := cState.Created.UnixNano()
-		resp.Status.CreatedAt = int64(created)
+		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
-		resp.Status.StartedAt = int64(started)
+		resp.Status.StartedAt = started
 	case oci.ContainerStateStopped:
 		rStatus = pb.ContainerState_CONTAINER_EXITED
 		created := cState.Created.UnixNano()
-		resp.Status.CreatedAt = int64(created)
+		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
-		resp.Status.StartedAt = int64(started)
+		resp.Status.StartedAt = started
 		finished := cState.Finished.UnixNano()
-		resp.Status.FinishedAt = int64(finished)
-		resp.Status.ExitCode = int32(cState.ExitCode)
+		resp.Status.FinishedAt = finished
+		resp.Status.ExitCode = cState.ExitCode
 	}
 
 	resp.Status.State = rStatus

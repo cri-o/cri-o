@@ -80,7 +80,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		c := &pb.Container{
 			Id:           cID,
 			PodSandboxId: podSandboxID,
-			CreatedAt:    int64(created),
+			CreatedAt:    created,
 			Labels:       ctr.Labels(),
 			Metadata:     ctr.Metadata(),
 			Annotations:  ctr.Annotations(),

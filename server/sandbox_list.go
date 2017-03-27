@@ -72,7 +72,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 
 		pod := &pb.PodSandbox{
 			Id:          sb.id,
-			CreatedAt:   int64(created),
+			CreatedAt:   created,
 			State:       rStatus,
 			Labels:      sb.labels,
 			Annotations: sb.annotations,
