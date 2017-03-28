@@ -17,6 +17,7 @@ set -e
 
 set -o pipefail
 
+export PATH=/usr/local/go/bin:${PATH}
 export PKG='github.com/containers/storage'
 export SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export MAKEDIR="$SCRIPTDIR/make"
@@ -71,22 +72,16 @@ else
 	exit 1
 fi
 
-if [ "$AUTO_GOPATH" ]; then
-	rm -rf .gopath
-	mkdir -p .gopath/src/"$(dirname "${PKG}")"
-	ln -sf ../../../.. .gopath/src/"${PKG}"
-	export GOPATH="${PWD}/.gopath:${PWD}/vendor"
+export GOPATH="${GOPATH:-/go}"
 
-	if [ "$(go env GOOS)" = 'solaris' ]; then
-		# sys/unix is installed outside the standard library on solaris
-		# TODO need to allow for version change, need to get version from go
-		export GOPATH="${GOPATH}:/usr/lib/gocode/1.6.2"
-	fi
+if [ "$(go env GOOS)" = 'solaris' ]; then
+  # sys/unix is installed outside the standard library on solaris
+  # TODO need to allow for version change, need to get version from go
+  export GOPATH="${GOPATH}:/usr/lib/gocode/1.6.2"
 fi
 
 if [ ! "$GOPATH" ]; then
 	echo >&2 'error: missing GOPATH; please see https://golang.org/doc/code.html#GOPATH'
-	echo >&2 '  alternatively, set AUTO_GOPATH=1'
 	exit 1
 fi
 
@@ -186,7 +181,7 @@ test_env() {
 		GOPATH="$GOPATH" \
 		GOTRACEBACK=all \
 		HOME="$ABS_DEST/fake-HOME" \
-		PATH="$PATH" \
+		PATH="${GOPATH}/bin:/usr/local/go/bin:$PATH" \
 		TEMP="$TEMP" \
 		"$@"
 }

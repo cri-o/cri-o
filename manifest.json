@@ -6,6 +6,9 @@
         "github.com/containers/image": {
             "branch": "master"
         },
+        "github.com/containers/storage": {
+            "branch": "master"
+        },
         "github.com/docker/distribution": {
             "branch": "master"
         },

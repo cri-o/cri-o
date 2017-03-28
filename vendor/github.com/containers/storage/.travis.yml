@@ -9,10 +9,10 @@ before_install:
     - sudo apt-get -qq update
     - sudo apt-get -qq install btrfs-tools libdevmapper-dev
 script:
-    - AUTO_GOPATH=1 make install.tools
-    - AUTO_GOPATH=1 ./hack/make.sh validate-gofmt validate-pkg validate-lint validate-test validate-toml validate-vet validate-vendor
-    - AUTO_GOPATH=1 make .gitvalidation
-    - AUTO_GOPATH=1 make build-binary
-    - AUTO_GOPATH=1 ./hack/make.sh cross
-    - sudo env AUTO_GOPATH=1 PATH="$PATH" ./hack/make.sh test-unit
-    - AUTO_GOPATH=1 make docs
+    - make install.tools
+    - ./hack/make.sh validate-gofmt validate-pkg validate-lint validate-test validate-toml validate-vet
+    - make .gitvalidation
+    - make build-binary
+    - ./hack/make.sh cross
+    - sudo -E env "PATH=${PATH}" ./hack/make.sh test-unit
+    - make docs

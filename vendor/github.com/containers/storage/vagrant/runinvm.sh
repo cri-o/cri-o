@@ -3,18 +3,20 @@ set -e
 export PKG='github.com/containers/storage'
 export VAGRANT_MACHINES="fedora debian"
 if test -z "$VAGRANT_PROVIDER" ; then
-	if lsmod | grep -q '^kvm ' ; then
-		VAGRANT_PROVIDER=libvirt
-	elif lsmod | grep -q '^vboxdrv ' ; then
+	if lsmod | grep -q '^vboxdrv ' ; then
 		VAGRANT_PROVIDER=virtualbox
+	elif lsmod | grep -q '^kvm ' ; then
+		VAGRANT_PROVIDER=libvirt
 	fi
 fi
 export VAGRANT_PROVIDER=${VAGRANT_PROVIDER:-libvirt}
 export VAGRANT_PROVIDER=${VAGRANT_PROVIDER:-virtualbox}
 if ${IN_VAGRANT_MACHINE:-false} ; then
 	unset AUTO_GOPATH
-	export GOPATH=/go:/go/src/${PKG}/vendor
-	export PATH=/usr/lib/go-1.6/bin:/go/src/${PKG}/vendor/src/github.com/golang/lint/golint:${PATH}
+	export GOPATH=/go
+	export PATH=${GOPATH}/bin:/go/src/${PKG}/vendor/src/github.com/golang/lint/golint:${PATH}
+	sudo modprobe aufs || true
+	sudo modprobe zfs || true
 	"$@"
 else
 	vagrant up --provider ${VAGRANT_PROVIDER}
