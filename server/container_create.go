@@ -242,24 +242,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// creates a spec Generator with the default spec.
 	specgen := generate.New()
 
-	cwd := containerConfig.WorkingDir
-	if cwd == "" {
-		cwd = "/"
-	}
-	specgen.SetProcessCwd(cwd)
-
-	envs := containerConfig.GetEnvs()
-	if envs != nil {
-		for _, item := range envs {
-			key := item.Key
-			value := item.Value
-			if key == "" {
-				continue
-			}
-			specgen.AddProcessEnv(key, value)
-		}
-	}
-
 	if err := addOciBindMounts(sb, containerConfig, &specgen); err != nil {
 		return nil, err
 	}
@@ -466,6 +448,40 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 	specgen.SetProcessArgs(processArgs)
+
+	// Add environment variables from CRI and image config
+	envs := containerConfig.GetEnvs()
+	if envs != nil {
+		for _, item := range envs {
+			key := item.Key
+			value := item.Value
+			if key == "" {
+				continue
+			}
+			specgen.AddProcessEnv(key, value)
+		}
+	}
+	for _, item := range containerInfo.Config.Config.Env {
+		parts := strings.SplitN(item, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid env from image: %s", item)
+		}
+
+		if parts[0] == "" {
+			continue
+		}
+		specgen.AddProcessEnv(parts[0], parts[1])
+	}
+
+	// Set working directory
+	// Pick it up from image config first and override if specified in CRI
+	imageCwd := containerInfo.Config.Config.WorkingDir
+	specgen.SetProcessCwd(imageCwd)
+
+	cwd := containerConfig.WorkingDir
+	if cwd != "" {
+		specgen.SetProcessCwd(cwd)
+	}
 
 	// by default, the root path is an empty string. set it now.
 	specgen.SetRootPath(mountPoint)
