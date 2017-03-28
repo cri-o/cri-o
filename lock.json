@@ -1,5 +1,5 @@
 {
-    "memo": "982a27b328719863bc88dcd24142002eee29fab7f48fdc71340a0620fd5c3ebe",
+    "memo": "c69b3d661a6a19376099d94142598a44f109f155bc519d9b7943ac86e8ebcb8a",
     "projects": [
         {
             "name": "github.com/BurntSushi/toml",
@@ -75,13 +75,12 @@
         {
             "name": "github.com/containers/storage",
             "branch": "master",
-            "revision": "5cbbc6bafb45bd7ef10486b673deb3b81bb3b787",
+            "revision": "ff48947baaf205756dd67a00ac688d694a778ef6",
             "packages": [
                 "drivers",
                 "drivers/aufs",
                 "drivers/btrfs",
                 "drivers/devmapper",
-                "drivers/overlay",
                 "drivers/overlay2",
                 "drivers/register",
                 "drivers/vfs",
@@ -317,8 +316,6 @@
             "revision": "b263a43430ac6996a4302b891688544225197294",
             "packages": [
                 "libcontainer/apparmor",
-                "libcontainer/label",
-                "libcontainer/selinux",
                 "libcontainer/system",
                 "libcontainer/user"
             ]

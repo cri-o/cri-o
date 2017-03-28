@@ -7,6 +7,7 @@ BINARY_FULLNAME="$BINARY_NAME$BINARY_EXTENSION"
 
 source "${MAKEDIR}/.go-autogen"
 
+export GCCGO=${SCRIPTDIR}/../vagrant/gccgo-wrapper.sh
 # gccgo require explicit flag -pthread to allow goroutines to work.
 go build -compiler=gccgo \
 	-o "$DEST/$BINARY_FULLNAME" \

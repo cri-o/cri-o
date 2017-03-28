@@ -8,7 +8,7 @@ unset IFS
 
 errors=()
 for f in "${files[@]}"; do
-	failedLint=$(golint "$f")
+  failedLint=$(golint "$f")
 	if [ "$failedLint" ]; then
 		errors+=( "$failedLint" )
 	fi
