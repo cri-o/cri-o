@@ -17,6 +17,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
@@ -578,4 +579,33 @@ func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return os.Open(fp)
+}
+
+// getUserInfo returns UID, GID and additional groups for specified user
+// by looking them up in /etc/passwd and /etc/group
+func getUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, error) {
+	// We don't care if we can't open the file because
+	// not all images will have these files
+	passwdFile, err := openContainerFile(rootfs, "/etc/passwd")
+	if err == nil {
+		defer passwdFile.Close()
+	}
+	groupFile, err := openContainerFile(rootfs, "/etc/group")
+	if err == nil {
+		defer groupFile.Close()
+	}
+
+	execUser, err := user.GetExecUser(userName, nil, passwdFile, groupFile)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	uid := uint32(execUser.Uid)
+	gid := uint32(execUser.Gid)
+	var additionalGids []uint32
+	for _, g := range execUser.Sgids {
+		additionalGids = append(additionalGids, uint32(g))
+	}
+
+	return uid, gid, additionalGids, nil
 }
