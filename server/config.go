@@ -12,7 +12,7 @@ import (
 const (
 	ocidRoot            = "/var/lib/containers/storage"
 	ocidRunRoot         = "/var/run/containers/storage"
-	conmonPath          = "/usr/libexec/ocid/conmon"
+	conmonPath          = "/usr/local/libexec/ocid/conmon"
 	pauseImage          = "kubernetes/pause"
 	pauseCommand        = "/pause"
 	defaultTransport    = "docker://"

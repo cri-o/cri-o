@@ -15,15 +15,15 @@ Below, you can find an instruction how to switch one or more nodes on running ku
 
 You must prepare and install `ocid` on each node you would like to switch. Here's the list of files that must be provided:
 
-| File path                            | Description                | Location                                            |
-|--------------------------------------|----------------------------|-----------------------------------------------------|
-| `/etc/ocid/ocid.conf`                | ocid configuration         | Generated on cri-o `make install`                   |
-| `/etc/ocid/seccomp.conf`             | seccomp config             | Example stored in cri-o repository                  |
-| `/etc/containers/policy.json`        | containers policy          | Example stored in cri-o repository                  |
-| `/bin/{ocid, runc}`                  | `ocid` and `runc` binaries | Built from cri-o repository                         |
-| `/usr/libexec/ocid/conmon`           | `conmon` binary            | Built from cri-o repository                         |
-| `/opt/cni/bin/{flannel, bridge,...}` | CNI plugins binaries       | Can be built from sources `containernetworking/cni` |
-| `/etc/cni/net.d/10-mynet.conf`       | Network config             | Example stored in [README file](README.md)          |
+| File path                                  | Description                | Location                                            |
+|--------------------------------------------|----------------------------|-----------------------------------------------------|
+| `/etc/ocid/ocid.conf`                      | ocid configuration         | Generated on cri-o `make install`                   |
+| `/etc/ocid/seccomp.conf`                   | seccomp config             | Example stored in cri-o repository                  |
+| `/etc/containers/policy.json`              | containers policy          | Example stored in cri-o repository                  |
+| `/bin/{ocid, runc}`                        | `ocid` and `runc` binaries | Built from cri-o repository                         |
+| `/usr/local/libexec/ocid/conmon`           | `conmon` binary            | Built from cri-o repository                         |
+| `/opt/cni/bin/{flannel, bridge,...}`       | CNI plugins binaries       | Can be built from sources `containernetworking/cni` |
+| `/etc/cni/net.d/10-mynet.conf`             | Network config             | Example stored in [README file](README.md)          |
 
 `ocid` binary can be executed directly on host, inside the container or in any way.
 However, recommended way is to set it as a systemd service.
