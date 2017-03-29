@@ -394,6 +394,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddBindMount(sb.resolvPath, "/etc/resolv.conf", []string{"ro"})
 	}
 
+	if sb.hostname != "" {
+		specgen.SetHostname(sb.hostname)
+	}
+
 	specgen.AddAnnotation("ocid/name", containerName)
 	specgen.AddAnnotation("ocid/sandbox_id", sb.id)
 	specgen.AddAnnotation("ocid/sandbox_name", sb.infraContainer.Name())

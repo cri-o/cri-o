@@ -259,6 +259,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/shm_path", shmPath)
 	g.AddAnnotation("ocid/privileged_runtime", fmt.Sprintf("%v", privileged))
 	g.AddAnnotation("ocid/resolv_path", resolvPath)
+	g.AddAnnotation("ocid/hostname", hostname)
 
 	sb := &sandbox{
 		id:           id,
@@ -273,6 +274,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		shmPath:      shmPath,
 		privileged:   privileged,
 		resolvPath:   resolvPath,
+		hostname:     hostname,
 	}
 
 	s.addSandbox(sb)
