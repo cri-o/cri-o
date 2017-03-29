@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -155,6 +156,51 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 	logrus.Debugf("OCI process args %v", processArgs)
 
 	return processArgs, nil
+}
+
+// setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
+func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
+	if sc != nil {
+		containerUser := ""
+		// Case 1: run as user is set by kubelet
+		if sc.RunAsUser != nil {
+			containerUser = strconv.FormatInt(sc.GetRunAsUser().Value, 10)
+		} else {
+			// Case 2: run as username is set by kubelet
+			userName := sc.RunAsUsername
+			if userName != "" {
+				containerUser = userName
+			} else {
+				// Case 3: get user from image config
+				imageUser := imageConfig.Config.User
+				if imageUser != "" {
+					containerUser = imageUser
+				}
+			}
+		}
+
+		logrus.Debugf("CONTAINER USER: %+v", containerUser)
+
+		// Add uid, gid and groups from user
+		uid, gid, addGroups, err1 := getUserInfo(rootfs, containerUser)
+		if err1 != nil {
+			return err1
+		}
+
+		logrus.Debugf("UID: %v, GID: %v, Groups: %+v", uid, gid, addGroups)
+		specgen.SetProcessUID(uid)
+		specgen.SetProcessGID(gid)
+		for _, group := range addGroups {
+			specgen.AddProcessAdditionalGid(group)
+		}
+
+		// Add groups from CRI
+		groups := sc.SupplementalGroups
+		for _, group := range groups {
+			specgen.AddProcessAdditionalGid(uint32(group))
+		}
+	}
+	return nil
 }
 
 // CreateContainer creates a new container in specified PodSandbox
@@ -349,15 +395,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.SetProcessSelinuxLabel(sb.processLabel)
 		specgen.SetLinuxMountLabel(sb.mountLabel)
 
-		if linux.GetSecurityContext() != nil {
-			user := linux.GetSecurityContext().GetRunAsUser()
-			specgen.SetProcessUID(uint32(user.Value))
-			specgen.SetProcessGID(uint32(user.Value))
-			groups := linux.GetSecurityContext().SupplementalGroups
-			for _, group := range groups {
-				specgen.AddProcessAdditionalGid(uint32(group))
-			}
-		}
 	}
 	// Join the namespace paths for the pod sandbox container.
 	podInfraState := s.runtime.ContainerStatus(sb.infraContainer)
@@ -487,6 +524,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.SetProcessCwd(cwd)
 	}
 
+	// Setup user and groups
+	if linux != nil {
+		if err = setupContainerUser(&specgen, mountPoint, linux.GetSecurityContext(), containerInfo.Config); err != nil {
+			return nil, err
+		}
+	}
+
 	// by default, the root path is an empty string. set it now.
 	specgen.SetRootPath(mountPoint)
 
@@ -587,11 +631,16 @@ func getUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, erro
 	// We don't care if we can't open the file because
 	// not all images will have these files
 	passwdFile, err := openContainerFile(rootfs, "/etc/passwd")
-	if err == nil {
+	if err != nil {
+		logrus.Warnf("Failed to open /etc/passwd: %v", err)
+	} else {
 		defer passwdFile.Close()
 	}
+
 	groupFile, err := openContainerFile(rootfs, "/etc/group")
-	if err == nil {
+	if err != nil {
+		logrus.Warnf("Failed to open /etc/group: %v", err)
+	} else {
 		defer groupFile.Close()
 	}
 
