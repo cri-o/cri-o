@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
@@ -566,4 +569,13 @@ func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName s
 	}
 
 	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
+}
+
+// openContainerFile opens a file inside a container rootfs safely
+func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
+	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, path), rootfs)
+	if err != nil {
+		return nil, err
+	}
+	return os.Open(fp)
 }
