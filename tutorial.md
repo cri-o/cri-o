@@ -142,6 +142,19 @@ install -D -m 644 ocid.conf /etc/ocid/ocid.conf
 install -D -m 644 seccomp.json /etc/ocid/seccomp.json
 ```
 
+If you are installing for the first time, generate config as follows:
+
+```
+make install.config
+```
+
+Output:
+
+```
+install -D -m 644 ocid.conf /etc/ocid/ocid.conf
+install -D -m 644 seccomp.json /etc/ocid/seccomp.json
+```
+
 #### Start the ocid system daemon
 
 ```
