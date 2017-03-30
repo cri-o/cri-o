@@ -5,6 +5,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -32,16 +33,14 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
 	logrus.Debugf("ListPodSandboxRequest %+v", req)
 	var pods []*pb.PodSandbox
-	var podList []*sandbox
+	var podList []*sandbox.Sandbox
 
 	sandboxes, err := s.state.GetAllSandboxes()
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving sandboxes: %v", err)
 	}
 
-	for _, sb := range sandboxes {
-		podList = append(podList, sb)
-	}
+	podList = append(podList, sandboxes...)
 
 	filter := req.Filter
 	// Filter by pod id first.
@@ -50,15 +49,15 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 			sb, err := s.state.LookupSandboxByID(filter.Id)
 			// TODO if we return something other than a No Such Sandbox should we throw an error instead?
 			if err != nil {
-				podList = []*sandbox{}
+				podList = []*sandbox.Sandbox{}
 			} else {
-				podList = []*sandbox{sb}
+				podList = []*sandbox.Sandbox{sb}
 			}
 		}
 	}
 
 	for _, sb := range podList {
-		podInfraContainer := sb.infraContainer
+		podInfraContainer := sb.InfraContainer()
 		if podInfraContainer == nil {
 			// this can't really happen, but if it does because of a bug
 			// it's better not to panic
@@ -76,12 +75,12 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		}
 
 		pod := &pb.PodSandbox{
-			Id:          sb.id,
+			Id:          sb.ID(),
 			CreatedAt:   created,
 			State:       rStatus,
-			Labels:      sb.labels,
-			Annotations: sb.annotations,
-			Metadata:    sb.metadata,
+			Labels:      sb.Labels(),
+			Annotations: sb.Annotations(),
+			Metadata:    sb.Metadata(),
 		}
 
 		// Filter by other criteria such as state and labels.

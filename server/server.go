@@ -19,7 +19,9 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
+	"github.com/kubernetes-incubator/cri-o/server/state"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	knet "k8s.io/apimachinery/pkg/util/net"
@@ -56,7 +58,7 @@ type Server struct {
 	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
 	updateLock           sync.RWMutex
-	state                StateStore
+	state                state.Store
 	netPlugin            ocicni.CNIPlugin
 	hostportManager      hostport.HostPortManager
 	imageContext         *types.SystemContext
@@ -141,7 +143,7 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, stdin, stdinOnce, sb.privileged, sb.trusted, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, img, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.Trusted(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -221,39 +223,30 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
+	portMappings := []*hostport.PortMapping{}
+	if err = json.Unmarshal([]byte(m.Annotations[annotations.PortMappings]), &portMappings); err != nil {
+		return err
+	}
+
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	trusted := isTrue(m.Annotations[annotations.TrustedSandbox])
 
-	sb := &sandbox{
-		id:           id,
-		name:         name,
-		kubeName:     m.Annotations[annotations.KubeName],
-		logDir:       filepath.Dir(m.Annotations[annotations.LogPath]),
-		labels:       labels,
-		containers:   oci.NewMemoryStore(),
-		processLabel: processLabel,
-		mountLabel:   mountLabel,
-		annotations:  kubeAnnotations,
-		metadata:     &metadata,
-		shmPath:      m.Annotations[annotations.ShmPath],
-		privileged:   privileged,
-		trusted:      trusted,
-		resolvPath:   m.Annotations[annotations.ResolvPath],
+	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Linux.CgroupsPath, privileged, trusted, m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings)
+	if err != nil {
+		return err
 	}
 
 	// We add a netNS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
 	netNsPath, err := configNetNsPath(m)
 	if err == nil {
-		netNS, nsErr := netNsGet(netNsPath, sb.name)
 		// If we can't load the networking namespace
-		// because it's closed, we just set the sb netns
-		// pointer to nil. Otherwise we return an error.
-		if nsErr != nil && nsErr != errSandboxClosedNetNS {
-			return nsErr
+		// because it's closed, just leave the sandbox's netns pointer as nil
+		if nsErr := sb.NetNsJoin(netNsPath, sb.Name()); err != nil {
+			if nsErr != sandbox.ErrSandboxClosedNetNS {
+				return nsErr
+			}
 		}
-
-		sb.netns = netNS
 	}
 
 	sandboxPath, err := s.store.ContainerRunDirectory(id)
@@ -271,7 +264,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName], sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName], sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -281,7 +274,9 @@ func (s *Server) loadSandbox(id string) error {
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
-	sb.infraContainer = scontainer
+	if err = sb.SetInfraContainer(scontainer); err != nil {
+		return err
+	}
 
 	return s.addSandbox(sb)
 }
@@ -397,9 +392,9 @@ func (s *Server) update() error {
 		return fmt.Errorf("error retrieving pods list: %v", err)
 	}
 	for _, pod := range pods {
-		if _, ok := oldPods[pod.id]; !ok {
+		if _, ok := oldPods[pod.ID()]; !ok {
 			// this pod's ID wasn't in the updated list -> removed
-			removedPods[pod.id] = pod.id
+			removedPods[pod.ID()] = pod.ID()
 		}
 	}
 
@@ -410,11 +405,10 @@ func (s *Server) update() error {
 			logrus.Warnf("bad state when getting pod to remove %+v", removedPod)
 			continue
 		}
-		if err := s.removeSandbox(sb.id); err != nil {
-			return fmt.Errorf("error removing sandbox %s: %v", sb.id, err)
+		if err := s.removeSandbox(sb.ID()); err != nil {
+			return fmt.Errorf("error removing sandbox %s: %v", sb.ID(), err)
 		}
-		sb.infraContainer = nil
-		logrus.Debugf("forgetting removed pod %s", sb.id)
+		logrus.Debugf("forgetting removed pod %s", sb.ID())
 	}
 	for sandboxID := range newPods {
 		// load this pod
@@ -505,7 +499,7 @@ func New(config *Config) (*Server, error) {
 		netPlugin:            netPlugin,
 		hostportManager:      hostportManager,
 		config:               *config,
-		state:                NewInMemoryState(),
+		state:                state.NewInMemoryState(),
 		seccompEnabled:       seccomp.IsEnabled(),
 		appArmorEnabled:      apparmor.IsEnabled(),
 		appArmorProfile:      config.ApparmorProfile,
@@ -565,11 +559,11 @@ func New(config *Config) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) addSandbox(sb *sandbox) error {
+func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
 	return s.state.AddSandbox(sb)
 }
 
-func (s *Server) getSandbox(id string) (*sandbox, error) {
+func (s *Server) getSandbox(id string) (*sandbox.Sandbox, error) {
 	return s.state.GetSandbox(id)
 }
 
@@ -601,7 +595,7 @@ func (s *Server) GetSandboxContainer(id string) (*oci.Container, error) {
 		return nil, err
 	}
 
-	return sb.infraContainer, nil
+	return sb.InfraContainer(), nil
 }
 
 // GetContainer returns a container by its ID
@@ -611,4 +605,17 @@ func (s *Server) GetContainer(id string) (*oci.Container, error) {
 
 func (s *Server) removeContainer(c *oci.Container) error {
 	return s.state.DeleteContainer(c.ID(), c.Sandbox())
+}
+
+func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox, error) {
+	if podSandboxID == "" {
+		return nil, sandbox.ErrSandboxIDEmpty
+	}
+
+	sb, err := s.state.LookupSandboxByID(podSandboxID)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve pod sandbox with ID starting with %v: %v", podSandboxID, err)
+	}
+
+	return sb, nil
 }
