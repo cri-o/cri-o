@@ -116,7 +116,6 @@ func (s *InMemoryState) DeleteSandbox(id string) error {
 		return fmt.Errorf("error removing infra container %v from mappings: %v", infraContainer.ID(), err)
 	}
 
-
 	return nil
 }
 
@@ -202,7 +201,6 @@ func (s *InMemoryState) AddContainer(c *oci.Container, sandboxID string) error {
 	if ctr := sandbox.containers.Get(c.ID()); ctr != nil {
 		return fmt.Errorf("container with ID %v already exists in sandbox %v", c.ID(), sandboxID)
 	}
-
 
 	sandbox.containers.Add(c.ID(), c)
 
