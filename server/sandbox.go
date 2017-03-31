@@ -141,6 +141,7 @@ type sandbox struct {
 	cgroupParent   string
 	privileged     bool
 	resolvPath     string
+	hostname       string
 }
 
 const (
