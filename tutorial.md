@@ -132,7 +132,7 @@ Output:
 install -D -m 755 kpod /usr/bin/kpod
 install -D -m 755 ocid /usr/bin/ocid
 install -D -m 755 ocic /usr/bin/ocic
-install -D -m 755 conmon/conmon /usr/libexec/ocid/conmon
+install -D -m 755 conmon/conmon /usr/local/libexec/ocid/conmon
 install -D -m 755 pause/pause /usr/libexec/ocid/pause
 install -d -m 755 /usr/share/man/man{1,5,8}
 install -m 644 docs/kpod.1 docs/kpod-launch.1 -t /usr/share/man/man1

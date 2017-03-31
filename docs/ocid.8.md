@@ -54,7 +54,7 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
   path to configuration file
 
 **--conmon**=""
-  path to the conmon executable (default: "/usr/libexec/ocid/conmon")
+  path to the conmon executable (default: "/usr/local/libexec/ocid/conmon")
 
 **--debug**
   Enable debug output for logging
