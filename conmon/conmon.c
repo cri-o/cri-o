@@ -93,6 +93,29 @@ static GOptionEntry entries[] =
   { NULL }
 };
 
+int set_k8s_timestamp(char *buf, ssize_t buflen, const char *stream_type)
+{
+	time_t now = time(NULL);
+	struct tm *tm;
+	char off_sign = '+';
+	int off;
+
+	if ((tm = localtime(&now)) == NULL) {
+		return -1;
+	}
+	off = (int) tm->tm_gmtoff;
+	if (tm->tm_gmtoff < 0) {
+		off_sign = '-';
+		off = -off;
+	}
+	snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d %s ",
+		tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+		tm->tm_hour, tm->tm_min, tm->tm_sec,
+		off_sign, off / 3600, off % 3600, stream_type);
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret, runtime_status;
@@ -372,6 +395,9 @@ int main(int argc, char *argv[])
 		pexit("Failed to add console master fd to epoll");
 	}
 
+	#define TSBUFLEN 34
+	char tsbuf[TSBUFLEN];
+
 	/*
 	 * Log all of the container's output and pipe STDIN into it. Currently
 	 * nothing using the STDIN setup (which makes its inclusion here a bit
@@ -403,6 +429,23 @@ int main(int argc, char *argv[])
 
 					ninfo("read a chunk: (fd=%d) '%s'", mfd, buf);
 
+
+					/* Prepend the CRI-mandated timestamp and other metadata. */
+					/*
+					 * FIXME: Currently this code makes the assumption that
+					 *        @buf doesn't contain any newlines (since the CRI
+					 *        requires each line to contain a timestamp). This
+					 *        is an /okay/ assumption in most cases because
+					 *        ptys generally have newline-buffered output.
+					 */
+					int rc = set_k8s_timestamp(tsbuf, TSBUFLEN, "stdout");
+					if (rc < 0) {
+						nwarn("failed to set timestamp");
+					} else {
+						if (write(logfd, tsbuf, TSBUFLEN) != TSBUFLEN) {
+							nwarn("partial/failed write ts (logFd)");
+						}
+					}
 					/* Log all output to logfd. */
 					if (write(logfd, buf, num_read) != num_read) {
 						nwarn("partial/failed write (logFd)");
