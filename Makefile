@@ -68,15 +68,15 @@ copyimg: .gopathok $(wildcard test/copyimg/*.go)
 checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	go build -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
 
-ocid: .gopathok
+ocid: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/ocid $(PROJECT))
 	$(GO) build -o $@ \
 		-tags "$(BUILDTAGS)" \
 		$(PROJECT)/cmd/ocid
 
-ocic: .gopathok
+ocic: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/ocic $(PROJECT))
 	$(GO) build -o $@ $(PROJECT)/cmd/ocic
 
-kpod: .gopathok
+kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
 	$(GO) build -o $@ $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
