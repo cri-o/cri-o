@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/containernetworking/cni/libcni"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
@@ -44,19 +43,10 @@ func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
 	// check if a default network exists, otherwise dump the CNI search and return a noop plugin
 	_, err = getDefaultCNINetwork(plugin.pluginDir, plugin.cniDirs, plugin.vendorCNIDirPrefix)
 	if err != nil {
-		glog.Warningf("Error in finding usable CNI plugin - %v", err)
-		// create a noop plugin instead
-		return &cniNoOp{}, nil
+		glog.Warningf("Error in finding usable CNI plugin; waiting for CNI network configuration")
 	}
 
-	// sync network config from pluginDir periodically to detect network config updates
-	go func() {
-		t := time.NewTimer(10 * time.Second)
-		for {
-			plugin.syncNetworkConfig()
-			<-t.C
-		}
-	}()
+	plugin.syncNetworkConfig()
 	return plugin, nil
 }
 
@@ -268,5 +258,6 @@ func buildCNIRuntimeConf(podName string, podNs string, podInfraContainerID strin
 }
 
 func (plugin *cniNetworkPlugin) Status() error {
+	plugin.syncNetworkConfig()
 	return plugin.checkInitialized()
 }

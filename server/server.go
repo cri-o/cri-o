@@ -454,16 +454,18 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	r, err := oci.New(config.Runtime, config.RuntimeHostPrivileged, config.Conmon, config.ConmonEnv, config.CgroupManager)
-	if err != nil {
-		return nil, err
-	}
 	sandboxes := make(map[string]*sandbox)
 	containers := oci.NewMemoryStore()
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {
 		return nil, err
 	}
+
+	r, err := oci.New(config.Runtime, config.RuntimeHostPrivileged, config.Conmon, config.ConmonEnv, config.CgroupManager, netPlugin)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Server{
 		runtime:   r,
 		store:     store,

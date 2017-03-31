@@ -19,6 +19,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -36,7 +37,7 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, runtimeHostPrivilegedPath string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
+func New(runtimePath string, runtimeHostPrivilegedPath string, conmonPath string, conmonEnv []string, cgroupManager string, netPlugin ocicni.CNIPlugin) (*Runtime, error) {
 	r := &Runtime{
 		name:           filepath.Base(runtimePath),
 		path:           runtimePath,
@@ -44,6 +45,7 @@ func New(runtimePath string, runtimeHostPrivilegedPath string, conmonPath string
 		conmonPath:     conmonPath,
 		conmonEnv:      conmonEnv,
 		cgroupManager:  cgroupManager,
+		netPlugin:      netPlugin,
 	}
 	return r, nil
 }
@@ -56,6 +58,7 @@ type Runtime struct {
 	conmonPath     string
 	conmonEnv      []string
 	cgroupManager  string
+	netPlugin      ocicni.CNIPlugin
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -579,5 +582,8 @@ func (r *Runtime) RuntimeReady() (bool, error) {
 // NetworkReady checks if the runtime network is up and ready to
 // accept containers which require container network.
 func (r *Runtime) NetworkReady() (bool, error) {
+	if err := r.netPlugin.Status(); err != nil {
+		return false, err
+	}
 	return true, nil
 }
