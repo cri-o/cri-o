@@ -520,13 +520,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// Set working directory
 	// Pick it up from image config first and override if specified in CRI
+	containerCwd := "/"
 	imageCwd := containerInfo.Config.Config.WorkingDir
-	specgen.SetProcessCwd(imageCwd)
-
-	cwd := containerConfig.WorkingDir
-	if cwd != "" {
-		specgen.SetProcessCwd(cwd)
+	if imageCwd != "" {
+		containerCwd = imageCwd
 	}
+	runtimeCwd := containerConfig.WorkingDir
+	if runtimeCwd != "" {
+		containerCwd = runtimeCwd
+	}
+	specgen.SetProcessCwd(containerCwd)
 
 	// Setup user and groups
 	if linux != nil {
