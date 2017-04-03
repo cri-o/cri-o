@@ -46,7 +46,7 @@ func TestConfiguredSignatureStorageBase(t *testing.T) {
 		dockerRefFromString(t, "//example.com/my/project"), false)
 	assert.NoError(t, err)
 	require.NotNil(t, base)
-	assert.Equal(t, "https://sigstore.example.com/example.com/my/project", (*url.URL)(base).String())
+	assert.Equal(t, "https://sigstore.example.com/my/project", (*url.URL)(base).String())
 }
 
 func TestRegistriesDirPath(t *testing.T) {
@@ -252,26 +252,27 @@ func TestRegistryNamespaceSignatureTopLevel(t *testing.T) {
 }
 
 func TestSignatureStorageBaseSignatureStorageURL(t *testing.T) {
-	const md = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	const mdInput = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	const mdMapped = "sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-	assert.True(t, signatureStorageURL(nil, md, 0) == nil)
+	assert.True(t, signatureStorageURL(nil, mdInput, 0) == nil)
 	for _, c := range []struct {
 		base     string
 		index    int
 		expected string
 	}{
-		{"file:///tmp", 0, "file:///tmp@" + md + "/signature-1"},
-		{"file:///tmp", 1, "file:///tmp@" + md + "/signature-2"},
-		{"https://localhost:5555/root", 0, "https://localhost:5555/root@" + md + "/signature-1"},
-		{"https://localhost:5555/root", 1, "https://localhost:5555/root@" + md + "/signature-2"},
-		{"http://localhost:5555/root", 0, "http://localhost:5555/root@" + md + "/signature-1"},
-		{"http://localhost:5555/root", 1, "http://localhost:5555/root@" + md + "/signature-2"},
+		{"file:///tmp", 0, "file:///tmp@" + mdMapped + "/signature-1"},
+		{"file:///tmp", 1, "file:///tmp@" + mdMapped + "/signature-2"},
+		{"https://localhost:5555/root", 0, "https://localhost:5555/root@" + mdMapped + "/signature-1"},
+		{"https://localhost:5555/root", 1, "https://localhost:5555/root@" + mdMapped + "/signature-2"},
+		{"http://localhost:5555/root", 0, "http://localhost:5555/root@" + mdMapped + "/signature-1"},
+		{"http://localhost:5555/root", 1, "http://localhost:5555/root@" + mdMapped + "/signature-2"},
 	} {
 		url, err := url.Parse(c.base)
 		require.NoError(t, err)
 		expectedURL, err := url.Parse(c.expected)
 		require.NoError(t, err)
-		res := signatureStorageURL(url, md, c.index)
+		res := signatureStorageURL(url, mdInput, c.index)
 		assert.Equal(t, expectedURL, res, c.expected)
 	}
 }

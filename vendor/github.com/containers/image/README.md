@@ -32,6 +32,16 @@ libraries you should use with this package in your own projects.
 What this project tests against dependencies-wise is located
 [here](https://github.com/containers/image/blob/master/vendor.conf).
 
+## Building
+
+For ordinary use, `go build ./...` is sufficient.
+
+When developing this library, please use `make` to take advantage of the tests and validation.
+
+Optionally, you can use the `containers_image_openpgp` build tag (using `go build -tags …`, or `make … BUILDTAGS=…`).
+This will use a Golang-only OpenPGP implementation for signature verification instead of the default cgo/gpgme-based implementation;
+the primary downside is that creating new signatures with the Golang-only implementation is not supported.
+
 ## License
 
 ASL 2.0

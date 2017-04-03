@@ -5,7 +5,10 @@
     email: false
   go:
     - 1.7
-  script: make tools .gitvalidation validate test test-skopeo
+  env:
+    - BUILDTAGS='btrfs_noversion libdm_no_deferred_remove'
+    - BUILDTAGS='btrfs_noversion libdm_no_deferred_remove containers_image_openpgp'
+  script: make tools .gitvalidation validate test test-skopeo BUILDTAGS="$BUILDTAGS"
   dist: trusty
   os:
     - linux

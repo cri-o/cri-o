@@ -153,6 +153,7 @@ func TestUnmarshalJSON(t *testing.T) {
 		func(v mSI) { x(v, "optional")["creator"] = 1 },
 		// Invalid "timestamp"
 		func(v mSI) { x(v, "optional")["timestamp"] = "unexpected" },
+		func(v mSI) { x(v, "optional")["timestamp"] = 0.5 }, // Fractional input
 	}
 	for _, fn := range breakFns {
 		err = tryUnmarshalModifiedSignature(t, &s, validJSON, fn)
@@ -188,6 +189,11 @@ func TestUnmarshalJSON(t *testing.T) {
 func TestSign(t *testing.T) {
 	mech, err := newGPGSigningMechanismInDirectory(testGPGHomeDirectory)
 	require.NoError(t, err)
+	defer mech.Close()
+
+	if err := mech.SupportsSigning(); err != nil {
+		t.Skipf("Signing not supported: %v", err)
+	}
 
 	sig := newUntrustedSignature("digest!@#", "reference#@!")
 
@@ -232,6 +238,7 @@ func TestSign(t *testing.T) {
 func TestVerifyAndExtractSignature(t *testing.T) {
 	mech, err := newGPGSigningMechanismInDirectory(testGPGHomeDirectory)
 	require.NoError(t, err)
+	defer mech.Close()
 
 	type triple struct {
 		keyIdentity                string

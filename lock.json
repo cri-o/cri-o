@@ -1,5 +1,5 @@
 {
-    "memo": "c69b3d661a6a19376099d94142598a44f109f155bc519d9b7943ac86e8ebcb8a",
+    "memo": "1290be673a75036ce5bea81021073dd7041dc3f421446912b6b7ae0ed511fe93",
     "projects": [
         {
             "name": "github.com/BurntSushi/toml",
@@ -50,7 +50,7 @@
         {
             "name": "github.com/containers/image",
             "branch": "master",
-            "revision": "1d7e25b91705e4d1cddb5396baf112caeb1119f3",
+            "revision": "9fcd2ba2c6983f74026db5f2c0f79b529a098dee",
             "packages": [
                 "copy",
                 "directory",
@@ -159,10 +159,13 @@
                 "api/types/versions",
                 "api/types/volume",
                 "client",
+                "pkg/longpath",
                 "pkg/random",
                 "pkg/registrar",
                 "pkg/stringid",
                 "pkg/stringutils",
+                "pkg/symlink",
+                "pkg/system",
                 "pkg/tlsconfig",
                 "pkg/truncindex",
                 "utils/templates"
