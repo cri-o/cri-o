@@ -24,9 +24,11 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	image := c.Image()
 	resp := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
-			Id:       containerID,
-			Metadata: c.Metadata(),
-			Image:    image,
+			Id:          containerID,
+			Metadata:    c.Metadata(),
+			Labels:      c.Labels(),
+			Annotations: c.Annotations(),
+			Image:       image,
 		},
 	}
 
