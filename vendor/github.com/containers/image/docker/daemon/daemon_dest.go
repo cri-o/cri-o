@@ -151,7 +151,11 @@ func (d *daemonImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 		return types.BlobInfo{}, errors.Errorf(`Can not stream a blob with unknown digest to "docker-daemon:"`)
 	}
 
-	if ok, size, err := d.HasBlob(inputInfo); err == nil && ok {
+	ok, size, err := d.HasBlob(inputInfo)
+	if err != nil {
+		return types.BlobInfo{}, err
+	}
+	if ok {
 		return types.BlobInfo{Digest: inputInfo.Digest, Size: size}, nil
 	}
 
@@ -186,6 +190,10 @@ func (d *daemonImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	return types.BlobInfo{Digest: digester.Digest(), Size: inputInfo.Size}, nil
 }
 
+// HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob.
+// Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.
+// If the destination does not contain the blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil);
+// it returns a non-nil error only on an unexpected failure.
 func (d *daemonImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
 	if info.Digest == "" {
 		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
@@ -193,7 +201,7 @@ func (d *daemonImageDestination) HasBlob(info types.BlobInfo) (bool, int64, erro
 	if blob, ok := d.blobs[info.Digest]; ok {
 		return true, blob.Size, nil
 	}
-	return false, -1, types.ErrBlobNotFound
+	return false, -1, nil
 }
 
 func (d *daemonImageDestination) ReapplyBlob(info types.BlobInfo) (types.BlobInfo, error) {

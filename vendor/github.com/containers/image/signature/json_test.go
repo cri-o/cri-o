@@ -2,8 +2,6 @@ package signature
 
 import (
 	"encoding/json"
-	"fmt"
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,91 +20,6 @@ func x(m mSI, fields ...string) mSI {
 		m = m[field].(map[string]interface{})
 	}
 	return m
-}
-
-func TestValidateExactMapKeys(t *testing.T) {
-	// Empty map and keys
-	err := validateExactMapKeys(mSI{})
-	assert.NoError(t, err)
-
-	// Success
-	err = validateExactMapKeys(mSI{"a": nil, "b": 1}, "b", "a")
-	assert.NoError(t, err)
-
-	// Extra map keys
-	err = validateExactMapKeys(mSI{"a": nil, "b": 1}, "a")
-	assert.Error(t, err)
-
-	// Extra expected keys
-	err = validateExactMapKeys(mSI{"a": 1}, "b", "a")
-	assert.Error(t, err)
-
-	// Unexpected key values
-	err = validateExactMapKeys(mSI{"a": 1}, "b")
-	assert.Error(t, err)
-}
-
-func TestInt64Field(t *testing.T) {
-	// Field not found
-	_, err := int64Field(mSI{"a": "x"}, "b")
-	assert.Error(t, err)
-
-	// Field has a wrong type
-	_, err = int64Field(mSI{"a": "string"}, "a")
-	assert.Error(t, err)
-
-	for _, value := range []float64{
-		0.5,         // Fractional input
-		math.Inf(1), // Infinity
-		math.NaN(),  // NaN
-	} {
-		_, err = int64Field(mSI{"a": value}, "a")
-		assert.Error(t, err, fmt.Sprintf("%f", value))
-	}
-
-	// Success
-	// The float64 type has 53 bits of effective precision, so ±1FFFFFFFFFFFFF is the
-	// range of integer values which can all be represented exactly (beyond that,
-	// some are representable if they are divisible by a high enough power of 2,
-	// but most are not).
-	for _, value := range []int64{0, 1, -1, 0x1FFFFFFFFFFFFF, -0x1FFFFFFFFFFFFF} {
-		testName := fmt.Sprintf("%d", value)
-		v, err := int64Field(mSI{"a": float64(value), "b": nil}, "a")
-		require.NoError(t, err, testName)
-		assert.Equal(t, value, v, testName)
-	}
-}
-
-func TestMapField(t *testing.T) {
-	// Field not found
-	_, err := mapField(mSI{"a": mSI{}}, "b")
-	assert.Error(t, err)
-
-	// Field has a wrong type
-	_, err = mapField(mSI{"a": 1}, "a")
-	assert.Error(t, err)
-
-	// Success
-	// FIXME? We can't use mSI as the type of child, that type apparently can't be converted to the raw map type.
-	child := map[string]interface{}{"b": mSI{}}
-	m, err := mapField(mSI{"a": child, "b": nil}, "a")
-	require.NoError(t, err)
-	assert.Equal(t, child, m)
-}
-
-func TestStringField(t *testing.T) {
-	// Field not found
-	_, err := stringField(mSI{"a": "x"}, "b")
-	assert.Error(t, err)
-
-	// Field has a wrong type
-	_, err = stringField(mSI{"a": 1}, "a")
-	assert.Error(t, err)
-
-	// Success
-	s, err := stringField(mSI{"a": "x", "b": nil}, "a")
-	require.NoError(t, err)
-	assert.Equal(t, "x", s)
 }
 
 // implementsUnmarshalJSON is a minimalistic type used to detect that
@@ -177,6 +90,48 @@ func TestParanoidUnmarshalJSONObject(t *testing.T) {
 	} {
 		ts = testStruct{}
 		err := paranoidUnmarshalJSONObject([]byte(input), tsResolver)
+		assert.Error(t, err, input)
+	}
+}
+
+func TestParanoidUnmarshalJSONObjectExactFields(t *testing.T) {
+	var stringValue string
+	var float64Value float64
+	var rawValue json.RawMessage
+	var unmarshallCalled implementsUnmarshalJSON
+	exactFields := map[string]interface{}{
+		"string":       &stringValue,
+		"float64":      &float64Value,
+		"raw":          &rawValue,
+		"unmarshaller": &unmarshallCalled,
+	}
+
+	// Empty object
+	err := paranoidUnmarshalJSONObjectExactFields([]byte(`{}`), map[string]interface{}{})
+	require.NoError(t, err)
+
+	// Success
+	err = paranoidUnmarshalJSONObjectExactFields([]byte(`{"string": "a", "float64": 3.5, "raw": {"a":"b"}, "unmarshaller": true}`), exactFields)
+	require.NoError(t, err)
+	assert.Equal(t, "a", stringValue)
+	assert.Equal(t, 3.5, float64Value)
+	assert.Equal(t, json.RawMessage(`{"a":"b"}`), rawValue)
+	assert.Equal(t, implementsUnmarshalJSON(true), unmarshallCalled)
+
+	// Various kinds of invalid input
+	for _, input := range []string{
+		``,      // Empty input
+		`&`,     // Entirely invalid JSON
+		`1`,     // Not an object
+		`{&}`,   // Invalid key JSON
+		`{1:1}`, // Key not a string
+		`{"string": "a", "string": "a", "float64": 3.5, "raw": {"a":"b"}, "unmarshaller": true}`,      // Duplicate key
+		`{"string": "a", "float64": 3.5, "raw": {"a":"b"}, "unmarshaller": true, "thisisunknown", 1}`, // Unknown key
+		`{"string": &, "float64": 3.5, "raw": {"a":"b"}, "unmarshaller": true}`,                       // Invalid value JSON
+		`{"string": 1, "float64": 3.5, "raw": {"a":"b"}, "unmarshaller": true}`,                       // Type mismatch
+		`{"string": "a", "float64": 3.5, "raw": {"a":"b"}, "unmarshaller": true}{}`,                   // Extra data after object
+	} {
+		err := paranoidUnmarshalJSONObjectExactFields([]byte(input), exactFields)
 		assert.Error(t, err, input)
 	}
 }

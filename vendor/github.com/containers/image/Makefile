@@ -44,7 +44,7 @@ test-skopeo:
 		rm -rf $${vendor_path} && cp -r . $${vendor_path} && rm -rf $${vendor_path}/vendor && \
 		cd $${skopeo_path} && \
 		make BUILDTAGS="$(BUILDTAGS)" binary-local test-all-local && \
-		$(SUDO) make check && \
+		$(SUDO) make BUILDTAGS="$(BUILDTAGS)" check && \
 		rm -rf $${skopeo_path}
 
 validate: lint

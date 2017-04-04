@@ -297,8 +297,8 @@ func TestPolicyUnmarshalJSON(t *testing.T) {
 
 	// Various allowed modifications to the policy
 	allowedModificationFns := []func(mSI){
-		// Delete the map of specific policies
-		func(v mSI) { delete(v, "specific") },
+		// Delete the map of transport-specific scopes
+		func(v mSI) { delete(v, "transports") },
 		// Use an empty map of transport-specific scopes
 		func(v mSI) { v["transports"] = map[string]PolicyTransportScopes{} },
 	}

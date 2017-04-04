@@ -210,18 +210,10 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		return ContainerInfo{}, err
 	}
 	defer image.Close()
-	var imageConfig *v1.Image
-	configBlob, err := image.ConfigBlob()
+
+	imageConfig, err := image.OCIConfig()
 	if err != nil {
 		return ContainerInfo{}, err
-	}
-	if len(configBlob) > 0 {
-		config := v1.Image{}
-		err = json.Unmarshal(configBlob, &config)
-		if err != nil {
-			return ContainerInfo{}, err
-		}
-		imageConfig = &config
 	}
 
 	// Update the image name and ID.

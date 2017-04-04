@@ -11,6 +11,12 @@ import (
 func TestSignDockerManifest(t *testing.T) {
 	mech, err := newGPGSigningMechanismInDirectory(testGPGHomeDirectory)
 	require.NoError(t, err)
+	defer mech.Close()
+
+	if err := mech.SupportsSigning(); err != nil {
+		t.Skipf("Signing not supported: %v", err)
+	}
+
 	manifest, err := ioutil.ReadFile("fixtures/image.manifest.json")
 	require.NoError(t, err)
 
@@ -41,6 +47,7 @@ func TestSignDockerManifest(t *testing.T) {
 func TestVerifyDockerManifestSignature(t *testing.T) {
 	mech, err := newGPGSigningMechanismInDirectory(testGPGHomeDirectory)
 	require.NoError(t, err)
+	defer mech.Close()
 	manifest, err := ioutil.ReadFile("fixtures/image.manifest.json")
 	require.NoError(t, err)
 	signature, err := ioutil.ReadFile("fixtures/image.signature")
