@@ -255,6 +255,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// set log path inside log directory
 	logPath := filepath.Join(logDir, id+".log")
 
+	// Handle https://issues.k8s.io/44043
+	if err := ensureSaneLogPath(logPath); err != nil {
+		return nil, err
+	}
+
 	privileged := s.privilegedSandbox(req)
 	g.AddAnnotation("ocid/metadata", string(metadataJSON))
 	g.AddAnnotation("ocid/labels", string(labelsJSON))

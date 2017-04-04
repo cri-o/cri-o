@@ -203,6 +203,29 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	return nil
 }
 
+// ensureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes
+// logPath to be a broken symlink to some magical Docker path. Ideally we
+// wouldn't have to deal with this, but until that issue is fixed we have to
+// remove the path if it's a broken symlink.
+func ensureSaneLogPath(logPath string) error {
+	// If the path exists but the resolved path does not, then we have a broken
+	// symlink and we need to remove it.
+	fi, err := os.Lstat(logPath)
+	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		// Non-existant files and non-symlinks aren't our problem.
+		return nil
+	}
+
+	_, err = os.Stat(logPath)
+	if os.IsNotExist(err) {
+		err = os.RemoveAll(logPath)
+		if err != nil {
+			return fmt.Errorf("ensureSaneLogPath remove bad logPath: %s", err)
+		}
+	}
+	return nil
+}
+
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
 	logrus.Debugf("CreateContainerRequest %+v", req)
@@ -340,6 +363,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		// XXX: It's not really clear what this should be versus the sbox logDirectory.
 		logrus.Warnf("requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
 		logPath = filepath.Join(sb.logDir, logPath)
+	}
+
+	// Handle https://issues.k8s.io/44043
+	if err := ensureSaneLogPath(logPath); err != nil {
+		return nil, err
 	}
 
 	logrus.WithFields(logrus.Fields{
