@@ -1,4 +1,4 @@
-package server
+package state
 
 import (
 	"encoding/json"
@@ -12,6 +12,7 @@ import (
 	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/containers/storage/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
@@ -28,7 +29,7 @@ import (
 type FileState struct {
 	rootPath    string
 	lockfile    storage.Locker
-	memoryState StateStore
+	memoryState Store
 }
 
 // Net namespace is taken from enclosing sandbox
@@ -65,6 +66,8 @@ type sandboxFile struct {
 	ShmPath          string                 `json:"shmPath"`
 	CgroupParent     string                 `json:"cgroupParent"`
 	Privileged       bool                   `json:"privileged"`
+	ResolvPath       string                 `json:"resolvPath"`
+	Hostname         string                 `json:"hostname"`
 }
 
 // Sync the in-memory state and the state on disk
@@ -111,96 +114,61 @@ func (s *FileState) syncWithDisk() error {
 }
 
 // Convert a sandbox to on-disk format
-func sandboxToSandboxFile(sb *sandbox) *sandboxFile {
+func sandboxToSandboxFile(sb *sandbox.Sandbox) *sandboxFile {
 	sbFile := sandboxFile{
-		ID:               sb.id,
-		Name:             sb.name,
-		LogDir:           sb.logDir,
-		Labels:           sb.labels,
-		Annotations:      sb.annotations,
-		Containers:       make([]string, 0, len(sb.containers.List())),
-		ProcessLabel:     sb.processLabel,
-		MountLabel:       sb.mountLabel,
-		Metadata:         sb.metadata,
-		ShmPath:          sb.shmPath,
-		CgroupParent:     sb.cgroupParent,
-		Privileged:       sb.privileged,
+		ID:           sb.ID(),
+		Name:         sb.Name(),
+		LogDir:       sb.LogDir(),
+		Labels:       sb.Labels(),
+		Annotations:  sb.Annotations(),
+		Containers:   make([]string, 0, len(sb.Containers())),
+		ProcessLabel: sb.ProcessLabel(),
+		MountLabel:   sb.MountLabel(),
+		Metadata:     sb.Metadata(),
+		ShmPath:      sb.ShmPath(),
+		CgroupParent: sb.CgroupParent(),
+		Privileged:   sb.Privileged(),
+		ResolvPath:   sb.ResolvPath(),
+		Hostname:     sb.Hostname(),
 	}
 
-	if sb.netns != nil {
-		sbFile.NetNsPath = sb.netNsPath()
-		sbFile.NetNsClosed = sb.netns.closed
-		sbFile.NetNsRestored = sb.netns.restored
-
-		if sb.netns.symlink != nil {
-			sbFile.NetNsSymlinkPath = sb.netns.symlink.Name()
-		}
-	}
-
-	for _, ctr := range sb.containers.List() {
+	for _, ctr := range sb.Containers() {
 		sbFile.Containers = append(sbFile.Containers, ctr.ID())
 	}
 
-	sbFile.InfraContainer = sb.infraContainer.ID()
+	sbFile.InfraContainer = sb.InfraContainer().ID()
 
 	return &sbFile
 }
 
 // Convert a sandbox from on-disk format to normal format
-func (s *FileState) sandboxFileToSandbox(sbFile *sandboxFile) (*sandbox, error) {
-	sb := sandbox{
-		id:           sbFile.ID,
-		name:         sbFile.Name,
-		logDir:       sbFile.LogDir,
-		labels:       sbFile.Labels,
-		annotations:  sbFile.Annotations,
-		containers:   oci.NewMemoryStore(),
-		processLabel: sbFile.ProcessLabel,
-		mountLabel:   sbFile.MountLabel,
-		metadata:     sbFile.Metadata,
-		shmPath:      sbFile.ShmPath,
-		cgroupParent: sbFile.CgroupParent,
-		privileged:   sbFile.Privileged,
-	}
-
-	ns, err := ns.GetNS(sbFile.NetNsPath)
+func (s *FileState) sandboxFileToSandbox(sbFile *sandboxFile) (*sandbox.Sandbox, error) {
+	sb, err := sandbox.New(sbFile.ID, sbFile.Name, sbFile.LogDir, sbFile.Labels, sbFile.Annotations, sbFile.ProcessLabel, sbFile.MountLabel, sbFile.Metadata, sbFile.ShmPath, sbFile.CgroupParent, sbFile.Privileged, sbFile.ResolvPath, sbFile.Hostname)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving network namespace %v: %v", sbFile.NetNsPath, err)
+		return nil, fmt.Errorf("error creating sandbox with ID %v: %v", sbFile.ID, err)
 	}
-	var symlink *os.File
-	if sbFile.NetNsSymlinkPath != "" {
-		symlink, err = os.Open(sbFile.NetNsSymlinkPath)
-		if err != nil {
-			return nil, fmt.Errorf("error retrieving network namespace symlink %v: %v", sbFile.NetNsSymlinkPath, err)
-		}
-	}
-	netns := sandboxNetNs{
-		ns:       ns,
-		symlink:  symlink,
-		closed:   sbFile.NetNsClosed,
-		restored: sbFile.NetNsRestored,
-	}
-	sb.netns = &netns
 
-	infraCtr, err := s.getContainerFromDisk(sbFile.InfraContainer, sbFile.ID, &netns)
+	infraCtr, err := s.getContainerFromDisk(sbFile.InfraContainer, sbFile.ID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving infra container for pod %v: %v", sbFile.ID, err)
 	}
-	sb.infraContainer = infraCtr
+	if err := sb.SetInfraContainer(infraCtr); err != nil {
+		return nil, fmt.Errorf("error setting infra container for pod %v: %v", sbFile.ID, err)
+	}
 
 	for _, id := range sbFile.Containers {
-		ctr, err := s.getContainerFromDisk(id, sbFile.ID, &netns)
+		ctr, err := s.getContainerFromDisk(id, sbFile.ID, nil)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving container ID %v in pod ID %v: %v", id, sbFile.ID, err)
 		}
-		sb.containers.Add(ctr.ID(), ctr)
+		sb.AddContainer(ctr)
 	}
 
-	return &sb, nil
+	return sb, nil
 }
 
 // Retrieve a sandbox and all associated containers from disk
-func (s *FileState) getSandboxFromDisk(id string) (*sandbox, error) {
+func (s *FileState) getSandboxFromDisk(id string) (*sandbox.Sandbox, error) {
 	sbFile, err := s.getSandboxFileFromDisk(id)
 	if err != nil {
 		return nil, err
@@ -230,7 +198,7 @@ func (s *FileState) getSandboxFileFromDisk(id string) (*sandboxFile, error) {
 
 // Save a sandbox to disk
 // Will save all associated containers, including infra container, as well
-func (s *FileState) putSandboxToDisk(sb *sandbox) error {
+func (s *FileState) putSandboxToDisk(sb *sandbox.Sandbox) error {
 	sbFile := sandboxToSandboxFile(sb)
 
 	if err := s.putSandboxFileToDisk(sbFile); err != nil {
@@ -238,13 +206,13 @@ func (s *FileState) putSandboxToDisk(sb *sandbox) error {
 	}
 
 	// Need to put infra container and any additional containers to disk as well
-	if err := s.putContainerToDisk(sb.infraContainer, false); err != nil {
-		return fmt.Errorf("error storing sandbox %v infra container: %v", sb.id, err)
+	if err := s.putContainerToDisk(sb.InfraContainer(), false); err != nil {
+		return fmt.Errorf("error storing sandbox %v infra container: %v", sb.ID(), err)
 	}
 
-	for _, ctr := range sb.containers.List() {
+	for _, ctr := range sb.Containers() {
 		if err := s.putContainerToDisk(ctr, false); err != nil {
-			return fmt.Errorf("error storing container %v in sandbox %v: %v", ctr.ID(), sb.id, err)
+			return fmt.Errorf("error storing container %v in sandbox %v: %v", ctr.ID(), sb.ID(), err)
 		}
 	}
 
@@ -388,12 +356,12 @@ func getContainerFileFromContainer(ctr *oci.Container) *containerFile {
 }
 
 // Convert on-disk container format to normal oci.Container
-func getContainerFromContainerFile(ctrFile *containerFile, netNs *sandboxNetNs) (*oci.Container, error) {
-	return oci.NewContainer(ctrFile.ID, ctrFile.Name, ctrFile.BundlePath, ctrFile.LogPath, netNs.ns, ctrFile.Labels, ctrFile.Annotations, ctrFile.Image, ctrFile.Metadata, ctrFile.Sandbox, ctrFile.Terminal, ctrFile.Privileged)
+func getContainerFromContainerFile(ctrFile *containerFile, ns ns.NetNS) (*oci.Container, error) {
+	return oci.NewContainer(ctrFile.ID, ctrFile.Name, ctrFile.BundlePath, ctrFile.LogPath, ns, ctrFile.Labels, ctrFile.Annotations, ctrFile.Image, ctrFile.Metadata, ctrFile.Sandbox, ctrFile.Terminal, ctrFile.Privileged)
 }
 
 // Get a container from disk
-func (s *FileState) getContainerFromDisk(id, sandboxID string, netNs *sandboxNetNs) (*oci.Container, error) {
+func (s *FileState) getContainerFromDisk(id, sandboxID string, netNs ns.NetNS) (*oci.Container, error) {
 	ctrFile, err := s.getContainerFileFromDisk(id, sandboxID)
 	if err != nil {
 		return nil, err
@@ -578,7 +546,7 @@ func decodeFromFile(fileName string, decodeInto interface{}) error {
 // NewFileState makes a new file-based state store at the given directory
 // TODO: Should we attempt to populate the state based on the directory that exists,
 // or should we let server's sync() handle that?
-func NewFileState(statePath string) (StateStore, error) {
+func NewFileState(statePath string) (Store, error) {
 	state := new(FileState)
 	state.rootPath = statePath
 	state.memoryState = NewInMemoryState()
@@ -632,7 +600,7 @@ func NewFileState(statePath string) (StateStore, error) {
 }
 
 // AddSandbox adds a sandbox and any containers in it to the state
-func (s *FileState) AddSandbox(sb *sandbox) error {
+func (s *FileState) AddSandbox(sb *sandbox.Sandbox) error {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 
@@ -640,8 +608,8 @@ func (s *FileState) AddSandbox(sb *sandbox) error {
 		return fmt.Errorf("error syncing with on-disk state: %v", err)
 	}
 
-	if s.memoryState.HasSandbox(sb.id) {
-		return fmt.Errorf("sandbox with ID %v already exists", sb.id)
+	if s.memoryState.HasSandbox(sb.ID()) {
+		return fmt.Errorf("sandbox with ID %v already exists", sb.ID())
 	}
 
 	if err := s.putSandboxToDisk(sb); err != nil {
@@ -649,7 +617,7 @@ func (s *FileState) AddSandbox(sb *sandbox) error {
 	}
 
 	if err := s.memoryState.AddSandbox(sb); err != nil {
-		return fmt.Errorf("error adding sandbox %v to in-memory state: %v", sb.id, err)
+		return fmt.Errorf("error adding sandbox %v to in-memory state: %v", sb.ID(), err)
 	}
 
 	return nil
@@ -693,7 +661,7 @@ func (s *FileState) DeleteSandbox(id string) error {
 }
 
 // GetSandbox retrieves the given sandbox from the state
-func (s *FileState) GetSandbox(id string) (*sandbox, error) {
+func (s *FileState) GetSandbox(id string) (*sandbox.Sandbox, error) {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 
@@ -705,7 +673,7 @@ func (s *FileState) GetSandbox(id string) (*sandbox, error) {
 }
 
 // LookupSandboxByName returns a sandbox given its full or partial name
-func (s *FileState) LookupSandboxByName(name string) (*sandbox, error) {
+func (s *FileState) LookupSandboxByName(name string) (*sandbox.Sandbox, error) {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 
@@ -718,7 +686,7 @@ func (s *FileState) LookupSandboxByName(name string) (*sandbox, error) {
 
 // LookupSandboxByID returns a sandbox given its full or partial ID
 // An error will be returned if the partial ID given is not unique
-func (s *FileState) LookupSandboxByID(id string) (*sandbox, error) {
+func (s *FileState) LookupSandboxByID(id string) (*sandbox.Sandbox, error) {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 
@@ -730,7 +698,7 @@ func (s *FileState) LookupSandboxByID(id string) (*sandbox, error) {
 }
 
 // GetAllSandboxes returns all sandboxes in the state
-func (s *FileState) GetAllSandboxes() ([]*sandbox, error) {
+func (s *FileState) GetAllSandboxes() ([]*sandbox.Sandbox, error) {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 

@@ -1,4 +1,4 @@
-package server
+package state
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 )
 
 // TODO: make operations atomic to greatest extent possible
@@ -15,7 +16,7 @@ import (
 // programs are expected to interact with the server
 type InMemoryState struct {
 	lock         sync.Mutex
-	sandboxes    map[string]*sandbox
+	sandboxes    map[string]*sandbox.Sandbox
 	containers   oci.Store
 	podNameIndex *registrar.Registrar
 	podIDIndex   *truncindex.TruncIndex
@@ -24,9 +25,9 @@ type InMemoryState struct {
 }
 
 // NewInMemoryState creates a new, empty server state
-func NewInMemoryState() StateStore {
+func NewInMemoryState() Store {
 	state := new(InMemoryState)
-	state.sandboxes = make(map[string]*sandbox)
+	state.sandboxes = make(map[string]*sandbox.Sandbox)
 	state.containers = oci.NewMemoryStore()
 	state.podNameIndex = registrar.NewRegistrar()
 	state.podIDIndex = truncindex.NewTruncIndex([]string{})
@@ -37,39 +38,40 @@ func NewInMemoryState() StateStore {
 }
 
 // AddSandbox adds a sandbox and any containers in it to the state
-func (s *InMemoryState) AddSandbox(sandbox *sandbox) error {
+func (s *InMemoryState) AddSandbox(sandbox *sandbox.Sandbox) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if _, exist := s.sandboxes[sandbox.id]; exist {
-		return fmt.Errorf("sandbox with ID %v already exists", sandbox.id)
+	if _, exist := s.sandboxes[sandbox.ID()]; exist {
+		return fmt.Errorf("sandbox with ID %v already exists", sandbox.ID())
 	}
 
 	// We shouldn't share ID with any containers, either
-	if ctrCheck := s.containers.Get(sandbox.id); ctrCheck != nil {
-		return fmt.Errorf("requested sandbox ID %v conflicts with existing container ID", sandbox.id)
+	// Our pod infra container will share our ID and we don't want it to conflict with anything
+	if ctrCheck := s.containers.Get(sandbox.ID()); ctrCheck != nil {
+		return fmt.Errorf("requested sandbox ID %v conflicts with existing container ID", sandbox.ID())
 	}
 
-	s.sandboxes[sandbox.id] = sandbox
-	if err := s.podNameIndex.Reserve(sandbox.name, sandbox.id); err != nil {
+	s.sandboxes[sandbox.ID()] = sandbox
+	if err := s.podNameIndex.Reserve(sandbox.Name(), sandbox.ID()); err != nil {
 		return fmt.Errorf("error registering sandbox name: %v", err)
 	}
-	if err := s.podIDIndex.Add(sandbox.id); err != nil {
+	if err := s.podIDIndex.Add(sandbox.ID()); err != nil {
 		return fmt.Errorf("error registering sandbox ID: %v", err)
 	}
 
 	// If there are containers in the sandbox add them to the mapping
-	containers := sandbox.containers.List()
+	containers := sandbox.Containers()
 	for _, ctr := range containers {
 		if err := s.addContainerMappings(ctr, true); err != nil {
-			return fmt.Errorf("error adding container %v mappings in sandbox %v", ctr.ID(), sandbox.id)
+			return fmt.Errorf("error adding container %v mappings in sandbox %v", ctr.ID(), sandbox.ID())
 		}
 	}
 
 	// Add the pod infrastructure container to mappings
 	// TODO: Right now, we don't add it to the all containers listing. We may want to change this.
-	if err := s.addContainerMappings(sandbox.infraContainer, false); err != nil {
-		return fmt.Errorf("error adding infrastructure container %v to mappings: %v", sandbox.infraContainer.ID(), err)
+	if err := s.addContainerMappings(sandbox.InfraContainer(), false); err != nil {
+		return fmt.Errorf("error adding infrastructure container %v to mappings: %v", sandbox.InfraContainer().ID(), err)
 	}
 
 	return nil
@@ -94,9 +96,9 @@ func (s *InMemoryState) DeleteSandbox(id string) error {
 		return fmt.Errorf("no sandbox with ID %v exists, cannot delete", id)
 	}
 
-	name := s.sandboxes[id].name
-	containers := s.sandboxes[id].containers.List()
-	infraContainer := s.sandboxes[id].infraContainer
+	name := s.sandboxes[id].Name()
+	containers := s.sandboxes[id].Containers()
+	infraContainer := s.sandboxes[id].InfraContainer()
 
 	delete(s.sandboxes, id)
 	s.podNameIndex.Release(name)
@@ -120,7 +122,7 @@ func (s *InMemoryState) DeleteSandbox(id string) error {
 }
 
 // GetSandbox returns a sandbox given its full ID
-func (s *InMemoryState) GetSandbox(id string) (*sandbox, error) {
+func (s *InMemoryState) GetSandbox(id string) (*sandbox.Sandbox, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -133,7 +135,7 @@ func (s *InMemoryState) GetSandbox(id string) (*sandbox, error) {
 }
 
 // LookupSandboxByName returns a sandbox given its full or partial name
-func (s *InMemoryState) LookupSandboxByName(name string) (*sandbox, error) {
+func (s *InMemoryState) LookupSandboxByName(name string) (*sandbox.Sandbox, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -153,7 +155,7 @@ func (s *InMemoryState) LookupSandboxByName(name string) (*sandbox, error) {
 
 // LookupSandboxByID returns a sandbox given its full or partial ID
 // An error will be returned if the partial ID given is not unique
-func (s *InMemoryState) LookupSandboxByID(id string) (*sandbox, error) {
+func (s *InMemoryState) LookupSandboxByID(id string) (*sandbox.Sandbox, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -172,11 +174,11 @@ func (s *InMemoryState) LookupSandboxByID(id string) (*sandbox, error) {
 }
 
 // GetAllSandboxes returns all sandboxes in the state
-func (s *InMemoryState) GetAllSandboxes() ([]*sandbox, error) {
+func (s *InMemoryState) GetAllSandboxes() ([]*sandbox.Sandbox, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	sandboxes := make([]*sandbox, 0, len(s.sandboxes))
+	sandboxes := make([]*sandbox.Sandbox, 0, len(s.sandboxes))
 	for _, sb := range s.sandboxes {
 		sandboxes = append(sandboxes, sb)
 	}
@@ -198,11 +200,11 @@ func (s *InMemoryState) AddContainer(c *oci.Container, sandboxID string) error {
 		return fmt.Errorf("sandbox with ID %v does not exist, cannot add container", sandboxID)
 	}
 
-	if ctr := sandbox.containers.Get(c.ID()); ctr != nil {
+	if ctr := sandbox.GetContainer(c.ID()); ctr != nil {
 		return fmt.Errorf("container with ID %v already exists in sandbox %v", c.ID(), sandboxID)
 	}
 
-	sandbox.containers.Add(c.ID(), c)
+	sandbox.AddContainer(c)
 
 	return s.addContainerMappings(c, true)
 }
@@ -242,7 +244,7 @@ func (s *InMemoryState) HasContainer(id, sandboxID string) bool {
 		return false
 	}
 
-	ctr := sandbox.containers.Get(id)
+	ctr := sandbox.GetContainer(id)
 
 	return ctr != nil
 }
@@ -257,12 +259,12 @@ func (s *InMemoryState) DeleteContainer(id, sandboxID string) error {
 		return fmt.Errorf("sandbox with ID %v does not exist", sandboxID)
 	}
 
-	ctr := sandbox.containers.Get(id)
+	ctr := sandbox.GetContainer(id)
 	if ctr == nil {
 		return fmt.Errorf("sandbox %v has no container with ID %v", sandboxID, id)
 	}
 
-	sandbox.containers.Delete(id)
+	sandbox.RemoveContainer(id)
 
 	return s.deleteContainerMappings(ctr, true)
 }
@@ -358,7 +360,7 @@ func (s *InMemoryState) getContainerFromSandbox(id, sandboxID string) (*oci.Cont
 		return nil, fmt.Errorf("sandbox with ID %v does not exist", sandboxID)
 	}
 
-	ctr := sandbox.containers.Get(id)
+	ctr := sandbox.GetContainer(id)
 	if ctr == nil {
 		return nil, fmt.Errorf("cannot find container %v in sandbox %v", id, sandboxID)
 	}

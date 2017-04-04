@@ -11,6 +11,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
@@ -122,7 +123,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if podContainer.Config != nil {
 			g.SetProcessArgs(podContainer.Config.Config.Cmd)
 		} else {
-			g.SetProcessArgs([]string{podInfraCommand})
+			g.SetProcessArgs([]string{sandbox.PodInfraCommand})
 		}
 	} else {
 		g.SetProcessArgs([]string{s.config.PauseCommand})
@@ -242,22 +243,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/resolv_path", resolvPath)
 	g.AddAnnotation("ocid/hostname", hostname)
 
-	sb := &sandbox{
-		id:           id,
-		name:         name,
-		logDir:       logDir,
-		labels:       labels,
-		annotations:  annotations,
-		containers:   oci.NewMemoryStore(),
-		processLabel: processLabel,
-		mountLabel:   mountLabel,
-		metadata:     metadata,
-		shmPath:      shmPath,
-		privileged:   privileged,
-		resolvPath:   resolvPath,
-		hostname:     hostname,
-	}
-
 	for k, v := range annotations {
 		g.AddAnnotation(k, v)
 	}
@@ -283,9 +268,12 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 		} else {
 			g.SetLinuxCgroupsPath(cgroupParent + "/" + id)
-
 		}
-		sb.cgroupParent = cgroupParent
+	}
+
+	sb, err := sandbox.New(id, name, logDir, labels, annotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, resolvPath, hostname)
+	if err != nil {
+		return nil, err
 	}
 
 	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
@@ -297,13 +285,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 
-		netNsPath, err = hostNetNsPath()
+		netNsPath, err = sandbox.HostNetNsPath()
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		// Create the sandbox network namespace
-		if err = sb.netNsCreate(); err != nil {
+		if err = sb.NetNsCreate(); err != nil {
 			return nil, err
 		}
 
@@ -312,18 +300,18 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				return
 			}
 
-			if netnsErr := sb.netNsRemove(); netnsErr != nil {
+			if netnsErr := sb.NetNsRemove(); netnsErr != nil {
 				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
 			}
 		}()
 
 		// Pass the created namespace path to the runtime
-		err = g.AddOrReplaceLinuxNamespace("network", sb.netNsPath())
+		err = g.AddOrReplaceLinuxNamespace("network", sb.NetNsPath())
 		if err != nil {
 			return nil, err
 		}
 
-		netNsPath = sb.netNsPath()
+		netNsPath = sb.NetNsPath()
 	}
 
 	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid {
@@ -347,25 +335,25 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	saveOptions := generate.ExportOptions{}
 	mountPoint, err := s.storage.StartContainer(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.name, id, err)
+		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, name, id, err)
 	}
 	g.SetRootPath(mountPoint)
 	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.name, id, err)
+		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", name, id, err)
 	}
 	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
-		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
+		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, annotations, nil, nil, id, false, sb.Privileged())
 	if err != nil {
 		return nil, err
 	}
+	if err := sb.SetInfraContainer(container); err != nil {
+		return nil, err
+	}
 
-	sb.infraContainer = container
-
-	// Only register the sandbox after infra container has been added
 	if err = s.addSandbox(sb); err != nil {
 		return nil, err
 	}
@@ -378,7 +366,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if err = s.runContainer(container, sb.cgroupParent); err != nil {
+	if err = s.runContainer(container, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
@@ -428,7 +416,7 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 	if err = os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
 	}
-	shmOptions := "mode=1777,size=" + strconv.Itoa(defaultShmSize)
+	shmOptions := "mode=1777,size=" + strconv.Itoa(sandbox.DefaultShmSize)
 	if err = syscall.Mount("shm", shmPath, "tmpfs", uintptr(syscall.MS_NOEXEC|syscall.MS_NOSUID|syscall.MS_NODEV),
 		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
