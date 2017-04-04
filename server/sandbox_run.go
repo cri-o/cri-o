@@ -65,6 +65,9 @@ func (s *Server) runContainer(container *oci.Container, cgroupParent string) err
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
+	s.updateLock.RLock()
+	defer s.updateLock.RUnlock()
+
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
 	var processLabel, mountLabel, netNsPath, resolvPath string
 	// process req.Name
@@ -88,18 +91,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer func() {
 		if err != nil {
 			s.releasePodName(name)
-		}
-	}()
-
-	if err = s.podIDIndex.Add(id); err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := s.podIDIndex.Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
-			}
 		}
 	}()
 
@@ -292,6 +283,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	s.addSandbox(sb)
+	if err = s.podIDIndex.Add(id); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			if err2 := s.podIDIndex.Delete(id); err2 != nil {
+				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
+			}
+		}
+	}()
 
 	for k, v := range annotations {
 		g.AddAnnotation(k, v)
