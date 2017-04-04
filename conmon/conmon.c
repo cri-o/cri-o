@@ -212,10 +212,12 @@ int main(int argc, char *argv[])
 		 * both cases. The runtime_mfd will be closed after we dup over
 		 * everything.
 		 *
-		 * TODO: Maybe this should be done with pipe(2)s?
+		 * We use pipes here because open(/dev/std{out,err}) will fail if we
+		 * used anything else (and it wouldn't be a good idea to create a new
+		 * pty pair in the host).
 		 */
-		if (socketpair(AF_LOCAL, SOCK_STREAM, 0, fds) < 0)
-			pexit("Failed to create runtime_mfd socketpair");
+		if (pipe(fds) < 0)
+			pexit("Failed to create runtime_mfd pipes");
 
 		mfd = fds[0];
 		runtime_mfd = fds[1];
