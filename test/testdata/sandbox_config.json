@@ -6,7 +6,7 @@
 		"attempt": 1
 	},
 	"hostname": "ocic_host",
-	"log_directory": ".",
+	"log_directory": "",
 	"dns_options": {
 		"servers": [
 			"server1.redhat.com",

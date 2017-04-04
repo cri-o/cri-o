@@ -15,7 +15,7 @@
 		}
 	],
 	"readonly_rootfs": true,
-	"log_path": "container.log",
+	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
 	"tty": false,

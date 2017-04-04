@@ -45,6 +45,8 @@ COPYIMG_BINARY=${COPYIMG_BINARY:-${OCID_ROOT}/cri-o/test/copyimg/copyimg}
 ARTIFACTS_PATH=${ARTIFACTS_PATH:-${OCID_ROOT}/cri-o/.artifacts}
 # Path of the checkseccomp binary.
 CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${OCID_ROOT}/cri-o/test/checkseccomp/checkseccomp}
+# XXX: This is hardcoded inside cri-o at the moment.
+DEFAULT_LOG_PATH=/var/log/ocid/pods
 
 TESTDIR=$(mktemp -d)
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -71,6 +73,16 @@ if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     if ! "$COPYIMG_BINARY" --import-from=docker://redis --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
         echo "Error pulling docker://redis"
         rm -fr "$ARTIFACTS_PATH"/redis-image
+        exit 1
+    fi
+fi
+
+# Make sure we have a copy of the busybox:latest image.
+if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
+    mkdir -p "$ARTIFACTS_PATH"/busybox-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://busybox --export-to=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://busybox"
+        rm -fr "$ARTIFACTS_PATH"/busybox-image
         exit 1
     fi
 fi
@@ -145,6 +157,11 @@ function start_ocid() {
 		ocic image pull redis:latest
 	fi
 	REDIS_IMAGEID=$(ocic image status --id=redis | head -1 | sed -e "s/ID: //g")
+	run ocic image status --id=busybox
+	if [ "$status" -ne 0 ] ; then
+		ocic image pull busybox:latest
+	fi
+	BUSYBOX_IMAGEID=$(ocic image status --id=busybox | head -1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {

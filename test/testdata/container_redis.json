@@ -39,7 +39,7 @@
 		"pod": "podsandbox1"
 	},
 	"readonly_rootfs": false,
-	"log_path": "container.log",
+	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
 	"tty": false,

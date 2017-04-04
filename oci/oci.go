@@ -120,9 +120,13 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	args = append(args, "-r", r.Path(c))
 	args = append(args, "-b", c.bundlePath)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
+	args = append(args, "-l", c.logPath)
 	if c.terminal {
 		args = append(args, "-t")
 	}
+	logrus.WithFields(logrus.Fields{
+		"args": args,
+	}).Debugf("running conmon: %s", r.conmonPath)
 
 	cmd := exec.Command(r.conmonPath, args...)
 	cmd.Dir = c.bundlePath
@@ -248,6 +252,19 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}()
 
+	logFile, err := ioutil.TempFile("", "ocid-log-"+c.name)
+	if err != nil {
+		return nil, ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+	logPath := logFile.Name()
+	defer func() {
+		logFile.Close()
+		os.RemoveAll(logPath)
+	}()
+
 	var args []string
 	args = append(args, "-c", c.name)
 	args = append(args, "-r", r.Path(c))
@@ -256,6 +273,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	if c.terminal {
 		args = append(args, "-t")
 	}
+	args = append(args, "-l", logPath)
 
 	args = append(args, command...)
 
@@ -371,9 +389,25 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}
 
+	// The actual logged output is not the same as stdoutBuf and stderrBuf,
+	// which are used for getting error information. For the actual
+	// ExecSyncResponse we have to read the logfile.
+	// XXX: Currently runC dups the same console over both stdout and stderr,
+	//      so we can't differentiate between the two.
+
+	outputBytes, err := ioutil.ReadFile(logPath)
+	if err != nil {
+		return nil, ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+
 	return &ExecSyncResponse{
-		Stdout:   stdoutBuf.Bytes(),
-		Stderr:   stderrBuf.Bytes(),
+		Stdout:   outputBytes,
+		Stderr:   nil,
 		ExitCode: 0,
 	}, nil
 }

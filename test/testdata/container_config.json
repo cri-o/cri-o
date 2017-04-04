@@ -7,11 +7,9 @@
 		"image": "docker://redis:latest"
 	},
 	"command": [
-		"/bin/bash"
-	],
-	"args": [
 		"/bin/ls"
 	],
+	"args": [],
 	"working_dir": "/",
 	"envs": [
 		{
@@ -41,7 +39,7 @@
 	},
 	"privileged": true,
 	"readonly_rootfs": true,
-	"log_path": "container.log",
+	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
 	"tty": false,

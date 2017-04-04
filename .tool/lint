@@ -6,7 +6,8 @@ set -o pipefail
 
 for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -not -iwholename '*vendor*'); do
 	${GOPATH}/bin/gometalinter \
-		 --exclude='error return value not checked.*(Close|Log|Print).*\(errcheck\)$' \
+		 --exclude='error return value not checked.*(Close|Log|Print|RemoveAll).*\(errcheck\)$' \
+		 --exclude='declaration of.*err.*shadows declaration.*\(vetshadow\)$' \
 		 --exclude='.*_test\.go:.*error return value not checked.*\(errcheck\)$' \
 		 --exclude='duplicate of.*_test.go.*\(dupl\)$' \
 		 --exclude='cmd\/client\/.*\.go.*\(dupl\)$' \
@@ -15,7 +16,7 @@ for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -n
 		 --disable=aligncheck \
 		 --disable=gotype \
 		 --disable=gas \
-		 --cyclo-over=60 \
+		 --cyclo-over=80 \
 		 --dupl-threshold=100 \
 		 --tests \
 		 --deadline=60s "${d}"

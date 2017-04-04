@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/Sirupsen/logrus"
@@ -175,7 +176,7 @@ func (s *Server) loadSandbox(id string) error {
 	sb := &sandbox{
 		id:           id,
 		name:         name,
-		logDir:       m.Annotations["ocid/log_path"],
+		logDir:       filepath.Dir(m.Annotations["ocid/log_path"]),
 		labels:       labels,
 		containers:   oci.NewMemoryStore(),
 		processLabel: processLabel,
@@ -225,7 +226,7 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, sandboxPath, sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
 	if err != nil {
 		return err
 	}

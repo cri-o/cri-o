@@ -56,8 +56,6 @@ type RootConfig struct {
 
 	// LogDir is the default log directory were all logs will go unless kubelet
 	// tells us to put them somewhere else.
-	//
-	// TODO: This is currently unused until the conmon logging rewrite is done.
 	LogDir string `toml:"log_dir"`
 }
 
