@@ -65,6 +65,9 @@ func (s *Server) runContainer(container *oci.Container, cgroupParent string) err
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
+	s.updateLock.RLock()
+	defer s.updateLock.RUnlock()
+
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
 	var processLabel, mountLabel, netNsPath, resolvPath string
 	// process req.Name

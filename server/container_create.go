@@ -207,6 +207,10 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
 	logrus.Debugf("CreateContainerRequest %+v", req)
 	s.Update()
+
+	s.updateLock.RLock()
+	defer s.updateLock.RUnlock()
+
 	sbID := req.PodSandboxId
 	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
