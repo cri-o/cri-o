@@ -91,18 +91,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	if err = s.podIDIndex.Add(id); err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := s.podIDIndex.Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
-			}
-		}
-	}()
-
 	podContainer, err := s.storage.CreatePodSandbox(s.imageContext,
 		name, id,
 		s.config.PauseImage, "",
@@ -278,6 +266,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	s.addSandbox(sb)
+	if err = s.podIDIndex.Add(id); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			if err2 := s.podIDIndex.Delete(id); err2 != nil {
+				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
+			}
+		}
+	}()
 
 	for k, v := range annotations {
 		g.AddAnnotation(k, v)
