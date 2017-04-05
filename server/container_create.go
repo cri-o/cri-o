@@ -142,9 +142,11 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 				containerUser = userName
 			} else {
 				// Case 3: get user from image config
-				imageUser := imageConfig.Config.User
-				if imageUser != "" {
-					containerUser = imageUser
+				if imageConfig != nil {
+					imageUser := imageConfig.Config.User
+					if imageUser != "" {
+						containerUser = imageUser
+					}
 				}
 			}
 		}
@@ -506,7 +508,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
 
-	processArgs, err := buildOCIProcessArgs(containerConfig, containerInfo.Config)
+	containerImageConfig := containerInfo.Config
+
+	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -524,24 +528,28 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.AddProcessEnv(key, value)
 		}
 	}
-	for _, item := range containerInfo.Config.Config.Env {
-		parts := strings.SplitN(item, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid env from image: %s", item)
-		}
+	if containerImageConfig != nil {
+		for _, item := range containerImageConfig.Config.Env {
+			parts := strings.SplitN(item, "=", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("invalid env from image: %s", item)
+			}
 
-		if parts[0] == "" {
-			continue
+			if parts[0] == "" {
+				continue
+			}
+			specgen.AddProcessEnv(parts[0], parts[1])
 		}
-		specgen.AddProcessEnv(parts[0], parts[1])
 	}
 
 	// Set working directory
 	// Pick it up from image config first and override if specified in CRI
 	containerCwd := "/"
-	imageCwd := containerInfo.Config.Config.WorkingDir
-	if imageCwd != "" {
-		containerCwd = imageCwd
+	if containerImageConfig != nil {
+		imageCwd := containerImageConfig.Config.WorkingDir
+		if imageCwd != "" {
+			containerCwd = imageCwd
+		}
 	}
 	runtimeCwd := containerConfig.WorkingDir
 	if runtimeCwd != "" {
@@ -551,7 +559,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// Setup user and groups
 	if linux != nil {
-		if err = setupContainerUser(&specgen, mountPoint, linux.GetSecurityContext(), containerInfo.Config); err != nil {
+		if err = setupContainerUser(&specgen, mountPoint, linux.GetSecurityContext(), containerImageConfig); err != nil {
 			return nil, err
 		}
 	}
