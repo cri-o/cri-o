@@ -100,6 +100,12 @@ func (s *Server) loadContainer(id string) error {
 	if err = s.runtime.UpdateStatus(ctr); err != nil {
 		return fmt.Errorf("error updating status for container %s: %v", ctr.ID(), err)
 	}
+	if s.state.HasContainer(ctr.ID(), ctr.Sandbox()) {
+		logrus.Debugf("using on-disk version of container %s over version in state", ctr.ID())
+		if err := s.removeContainer(ctr); err != nil {
+			return fmt.Errorf("error updating container %s in state: %v", ctr.ID(), err)
+		}
+	}
 	return s.addContainer(ctr)
 }
 
@@ -185,6 +191,13 @@ func (s *Server) loadSandbox(id string) error {
 	}
 	if err = sb.SetInfraContainer(scontainer); err != nil {
 		return err
+	}
+
+	if s.state.HasSandbox(sb.ID()) {
+		logrus.Debugf("using on-disk version of sandbox %s over version in state", sb.ID())
+		if err := s.removeSandbox(sb.ID()); err != nil {
+			return fmt.Errorf("error updating sandbox %s in state: %v", sb.ID(), err)
+		}
 	}
 
 	return s.addSandbox(sb)
@@ -374,6 +387,11 @@ func New(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	// HACK HACK HACK TODO MAKE CONFIGURABLE
+	state, err := state.NewFileState("/tmp/crio_state_test", r)
+	if err != nil {
+		return nil, err
+	}
 	s := &Server{
 		runtime:         r,
 		store:           store,
@@ -381,7 +399,7 @@ func New(config *Config) (*Server, error) {
 		storage:         storageRuntimeService,
 		netPlugin:       netPlugin,
 		config:          *config,
-		state:           state.NewInMemoryState(),
+		state:           state,
 		seccompEnabled:  seccomp.IsEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
 		appArmorProfile: config.ApparmorProfile,

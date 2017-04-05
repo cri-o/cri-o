@@ -204,6 +204,10 @@ func (s *InMemoryState) AddContainer(c *oci.Container, sandboxID string) error {
 		return fmt.Errorf("container with ID %v already exists in sandbox %v", c.ID(), sandboxID)
 	}
 
+	if sandbox.InfraContainer().ID() == c.ID() {
+		return fmt.Errorf("container is infra container of sandbox %s, refusing to add to containers list", sandboxID)
+	}
+
 	sandbox.AddContainer(c)
 
 	return s.addContainerMappings(c, true)

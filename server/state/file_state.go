@@ -30,6 +30,7 @@ type FileState struct {
 	rootPath    string
 	lockfile    storage.Locker
 	memoryState Store
+	runtime     *oci.Runtime
 }
 
 // Net namespace is taken from enclosing sandbox
@@ -49,40 +50,48 @@ type containerFile struct {
 }
 
 type sandboxFile struct {
-	ID               string                 `json:"id"`
-	Name             string                 `json:"name"`
-	LogDir           string                 `json:"logDir"`
-	Labels           fields.Set             `json:"labels"`
-	Annotations      map[string]string      `json:"annotations"`
-	InfraContainer   string                 `json:"infraContainer"` // ID of infra container
-	Containers       []string               `json:"containers"`     // List of IDs
-	ProcessLabel     string                 `json:"processLabel"`
-	MountLabel       string                 `json:"mountLabel"`
-	NetNsPath        string                 `json:"netNsPath"`
-	NetNsSymlinkPath string                 `json:"netNsSymlinkPath"`
-	NetNsClosed      bool                   `json:"netNsClosed"`
-	NetNsRestored    bool                   `json:"netNsRestored"`
-	Metadata         *pb.PodSandboxMetadata `json:"metadata"`
-	ShmPath          string                 `json:"shmPath"`
-	CgroupParent     string                 `json:"cgroupParent"`
-	Privileged       bool                   `json:"privileged"`
-	ResolvPath       string                 `json:"resolvPath"`
-	Hostname         string                 `json:"hostname"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	LogDir         string                 `json:"logDir"`
+	Labels         fields.Set             `json:"labels"`
+	Annotations    map[string]string      `json:"annotations"`
+	InfraContainer string                 `json:"infraContainer"` // ID of infra container
+	Containers     []string               `json:"containers"`     // List of IDs
+	ProcessLabel   string                 `json:"processLabel"`
+	MountLabel     string                 `json:"mountLabel"`
+	NetNsPath      string                 `json:"netNsPath"`
+	Metadata       *pb.PodSandboxMetadata `json:"metadata"`
+	ShmPath        string                 `json:"shmPath"`
+	CgroupParent   string                 `json:"cgroupParent"`
+	Privileged     bool                   `json:"privileged"`
+	ResolvPath     string                 `json:"resolvPath"`
+	Hostname       string                 `json:"hostname"`
 }
 
 // Sync the in-memory state and the state on disk
 // Conditional on state being modified
-// For now, this uses a brute-force approach - when on-disk state is modified,
-// throw away the in-memory state and rebuild it entirely from on-disk state
 func (s *FileState) syncWithDisk() error {
 	modified, err := s.lockfile.Modified()
 	if err != nil {
 		return fmt.Errorf("file locking error: %v", err)
 	} else if !modified {
+		logrus.Debugf("on-disk state unmodified, leaving state unchanged")
 		// On-disk state unmodified, don't need to do anything
 		return nil
 	}
 
+	logrus.Debugf("on-disk state modified, going to rebuild from disk")
+
+	return s.forceSyncWithDisk()
+}
+
+// Force an unconditional sync of on-disk and in-memory state
+// Mostly just called by normal syncWithDisk(), but also to force a sync on startup
+// For now, this uses a brute-force approach - when on-disk state is modified,
+// throw away the in-memory state and rebuild it entirely from on-disk state
+// TODO: More efficient algorithm, only replacing sandboxes if they've been modified
+// (Might need to retain this implementation for initial sync)
+func (s *FileState) forceSyncWithDisk() error {
 	// Get a list of all directories under the root path - each should be a sandbox
 	dirListing, err := ioutil.ReadDir(s.rootPath)
 	if err != nil {
@@ -106,9 +115,29 @@ func (s *FileState) syncWithDisk() error {
 		if err := newState.AddSandbox(sandbox); err != nil {
 			return fmt.Errorf("error populating new state: %v", err)
 		}
+
+		logrus.Debugf("synced sandbox %s from disk", sandbox.ID())
+	}
+
+	// Loop through the old state, looking for removed sandboxes
+	// Close their network namespaces to make sure we don't leak FDs
+	// (We can assume that whoever removed them did the rest of the cleanup)
+	oldSandboxes, err := s.memoryState.GetAllSandboxes()
+	if err != nil {
+		return fmt.Errorf("error retrieving old sandboxes to close netns: %v", err)
+	}
+	for _, sb := range oldSandboxes {
+		if !newState.HasSandbox(sb.ID()) && sb.NetNs() != nil {
+
+			if err := sb.NetNsRemove(); err != nil {
+				return fmt.Errorf("error closing network namespace of sandbox %v: %v", sb.ID(), err)
+			}
+		}
 	}
 
 	s.memoryState = newState
+
+	logrus.Debugf("successfully rebuilt state from disk")
 
 	return nil
 }
@@ -132,6 +161,11 @@ func sandboxToSandboxFile(sb *sandbox.Sandbox) *sandboxFile {
 		Hostname:     sb.Hostname(),
 	}
 
+	netNs := sb.NetNs()
+	if netNs != nil {
+		sbFile.NetNsPath = netNs.Path()
+	}
+
 	for _, ctr := range sb.Containers() {
 		sbFile.Containers = append(sbFile.Containers, ctr.ID())
 	}
@@ -148,7 +182,19 @@ func (s *FileState) sandboxFileToSandbox(sbFile *sandboxFile) (*sandbox.Sandbox,
 		return nil, fmt.Errorf("error creating sandbox with ID %v: %v", sbFile.ID, err)
 	}
 
-	infraCtr, err := s.getContainerFromDisk(sbFile.InfraContainer, sbFile.ID, nil)
+	if sbFile.NetNsPath != "" {
+		// TODO: Should we error out on ErrSandboxClosedNetNS?
+		if err := sb.NetNsJoin(sbFile.NetNsPath, sbFile.Name); err != nil {
+			if err != sandbox.ErrSandboxClosedNetNS {
+				return nil, fmt.Errorf("error joining network NS %v for sandbox ID %v: %v", sbFile.NetNsPath, sbFile.ID, err)
+			}
+			logrus.Debugf("error opening network namespace %v for sandbox %s - namespace is closed", sbFile.NetNsPath, sbFile.ID)
+		}
+	}
+
+	logrus.Debugf("got network namespace for sandbox %s: %v", sbFile.ID, sb.NetNsPath())
+
+	infraCtr, err := s.getContainerFromDisk(sbFile.InfraContainer, sbFile.ID, sb.NetNs())
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving infra container for pod %v: %v", sbFile.ID, err)
 	}
@@ -157,7 +203,7 @@ func (s *FileState) sandboxFileToSandbox(sbFile *sandboxFile) (*sandbox.Sandbox,
 	}
 
 	for _, id := range sbFile.Containers {
-		ctr, err := s.getContainerFromDisk(id, sbFile.ID, nil)
+		ctr, err := s.getContainerFromDisk(id, sbFile.ID, sb.NetNs())
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving container ID %v in pod ID %v: %v", id, sbFile.ID, err)
 		}
@@ -173,6 +219,8 @@ func (s *FileState) getSandboxFromDisk(id string) (*sandbox.Sandbox, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	logrus.Debugf("Loading sandbox from disk: %+v", sbFile)
 
 	return s.sandboxFileToSandbox(sbFile)
 }
@@ -198,8 +246,11 @@ func (s *FileState) getSandboxFileFromDisk(id string) (*sandboxFile, error) {
 
 // Save a sandbox to disk
 // Will save all associated containers, including infra container, as well
+// TODO: This is not in any way atomic. This should be remedied.
 func (s *FileState) putSandboxToDisk(sb *sandbox.Sandbox) error {
 	sbFile := sandboxToSandboxFile(sb)
+
+	logrus.Debugf("Syncing sandbox to disk: %+v", sbFile)
 
 	if err := s.putSandboxFileToDisk(sbFile); err != nil {
 		return err
@@ -367,7 +418,17 @@ func (s *FileState) getContainerFromDisk(id, sandboxID string, netNs ns.NetNS) (
 		return nil, err
 	}
 
-	return getContainerFromContainerFile(ctrFile, netNs)
+	ctr, err := getContainerFromContainerFile(ctrFile, netNs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sync the container with the runtime to get current state
+	if err := s.runtime.UpdateStatus(ctr); err != nil {
+		return nil, fmt.Errorf("error getting status of container %s: %v", ctr.ID(), err)
+	}
+
+	return ctr, nil
 }
 
 // Retrieve a container file from disk
@@ -544,12 +605,15 @@ func decodeFromFile(fileName string, decodeInto interface{}) error {
 // Public API
 
 // NewFileState makes a new file-based state store at the given directory
-// TODO: Should we attempt to populate the state based on the directory that exists,
-// or should we let server's sync() handle that?
-func NewFileState(statePath string) (Store, error) {
+func NewFileState(statePath string, runtime *oci.Runtime) (Store, error) {
 	state := new(FileState)
 	state.rootPath = statePath
 	state.memoryState = NewInMemoryState()
+	state.runtime = runtime
+
+	if runtime == nil {
+		return nil, fmt.Errorf("must pass non-nil runtime to create state")
+	}
 
 	// Make the root path if it does not exist
 	pathStat, err := os.Stat(statePath)
@@ -591,8 +655,7 @@ func NewFileState(statePath string) (Store, error) {
 	}
 
 	// Perform an initial sync with the disk
-	// Should be a no-op if we set ourself as the writer above
-	if err := state.syncWithDisk(); err != nil {
+	if err := state.forceSyncWithDisk(); err != nil {
 		return nil, fmt.Errorf("error syncing on-disk state: %v", err)
 	}
 
@@ -720,6 +783,14 @@ func (s *FileState) AddContainer(c *oci.Container, sandboxID string) error {
 
 	if s.memoryState.HasContainer(c.ID(), sandboxID) {
 		return fmt.Errorf("container with id %v in sandbox %v already exists", c.ID(), sandboxID)
+	}
+
+	sb, err := s.memoryState.GetSandbox(sandboxID)
+	if err != nil {
+		return err
+	}
+	if sb.InfraContainer().ID() == c.ID() {
+		return fmt.Errorf("container is already infra container of sandbox %v, refusing to add", sandboxID)
 	}
 
 	if err := s.putContainerToDisk(c, true); err != nil {
