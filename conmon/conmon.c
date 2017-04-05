@@ -116,6 +116,65 @@ int set_k8s_timestamp(char *buf, ssize_t buflen, const char *stream_type)
 	return 0;
 }
 
+
+/*
+ * splits buf into lines and inserts timestamps at the beginning of
+ * the line written to logfd.
+ */
+int write_with_timestamps(int logfd, const char *buf, ssize_t buflen)
+{
+	#define TSBUFLEN 34
+	char tsbuf[TSBUFLEN];
+	static bool last_buf_ended_with_newline = TRUE;
+
+	g_auto(GStrv) lines = g_strsplit(buf, "\n", -1);
+	ssize_t num_lines = g_strv_length(lines);
+	for (ssize_t i = 0; i < num_lines; i++)
+	{
+		const char *line = lines[i];
+
+		ninfo("Processing line: %ld, %s", i, line);
+
+		/* Skip last line if it is empty */
+		if (i == (num_lines - 1) && buf[buflen-1] == '\n' && !strcmp("", line)) {
+			ninfo("Skipping last line");
+			break;
+		}
+
+		/*
+		 * Only add timestamps for first line if last buffer's last
+		 * line ended with newline. Add it for all other lines.
+		 */
+		if (i != 0 || (i == 0 && last_buf_ended_with_newline)) {
+			ninfo("Adding timestamp");
+			int rc = set_k8s_timestamp(tsbuf, TSBUFLEN, "stdout");
+			if (rc < 0) {
+				nwarn("failed to set timestamp");
+			} else {
+				if (write(logfd, tsbuf, TSBUFLEN) != TSBUFLEN) {
+					nwarn("partial/failed write ts (logFd)");
+				}
+			}
+		}
+
+		/* Log output to logfd. */
+		ssize_t len = strlen(line);
+		if (write(logfd, line, len) != len) {
+			nwarn("partial/failed write (logFd)");
+			return -1;
+		}
+		/* Write the line ending */
+		if (write(logfd, "\n", 1) != 1) {
+			nwarn("failed to write line ending");
+			return -1;
+		}
+	}
+
+	last_buf_ended_with_newline = buf[buflen-1] == '\n';
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret, runtime_status;
@@ -395,9 +454,6 @@ int main(int argc, char *argv[])
 		pexit("Failed to add console master fd to epoll");
 	}
 
-	#define TSBUFLEN 34
-	char tsbuf[TSBUFLEN];
-
 	/*
 	 * Log all of the container's output and pipe STDIN into it. Currently
 	 * nothing using the STDIN setup (which makes its inclusion here a bit
@@ -427,28 +483,12 @@ int main(int argc, char *argv[])
 					if (num_read <= 0)
 						goto out;
 
+					buf[num_read] = '\0';
 					ninfo("read a chunk: (fd=%d) '%s'", mfd, buf);
 
-
-					/* Prepend the CRI-mandated timestamp and other metadata. */
-					/*
-					 * FIXME: Currently this code makes the assumption that
-					 *        @buf doesn't contain any newlines (since the CRI
-					 *        requires each line to contain a timestamp). This
-					 *        is an /okay/ assumption in most cases because
-					 *        ptys generally have newline-buffered output.
-					 */
-					int rc = set_k8s_timestamp(tsbuf, TSBUFLEN, "stdout");
+					/* Insert CRI mandated timestamps in the buffer for each line */
+					int rc = write_with_timestamps(logfd, buf, num_read);
 					if (rc < 0) {
-						nwarn("failed to set timestamp");
-					} else {
-						if (write(logfd, tsbuf, TSBUFLEN) != TSBUFLEN) {
-							nwarn("partial/failed write ts (logFd)");
-						}
-					}
-					/* Log all output to logfd. */
-					if (write(logfd, buf, num_read) != num_read) {
-						nwarn("partial/failed write (logFd)");
 						goto out;
 					}
 				}
