@@ -207,7 +207,7 @@ cd $GOPATH/src/github.com/containernetworking/cni
 Build the `cni` binaries:
 
 ```
-./build
+./build.sh
 ```
 
 Output:
