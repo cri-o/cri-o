@@ -63,8 +63,6 @@ POD_CIDR_MASK="10.88.*.*"
 
 cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
-mkdir -p $OCID_CNI_CONFIG
-
 PATH=$PATH:$TESTDIR
 
 # Make sure we have a copy of the redis:latest image.
@@ -149,6 +147,10 @@ function start_ocid() {
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
+
+	# Prepare the CNI configuration files, we're running with non host networking by default
+	prepare_network_conf $POD_CIDR
+
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
 
@@ -209,6 +211,8 @@ function stop_ocid() {
 		wait "$OCID_PID"
 		rm -f "$OCID_CONFIG"
 	fi
+
+	cleanup_network_conf
 }
 
 function restart_ocid() {
@@ -255,6 +259,7 @@ function is_apparmor_enabled() {
 }
 
 function prepare_network_conf() {
+	mkdir -p $OCID_CNI_CONFIG
 	cat >$OCID_CNI_CONFIG/10-ocid.conf <<-EOF
 {
     "cniVersion": "0.2.0",
