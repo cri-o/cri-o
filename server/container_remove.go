@@ -13,7 +13,6 @@ import (
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (*pb.RemoveContainerResponse, error) {
 	logrus.Debugf("RemoveContainerRequest %+v", req)
-	s.Update()
 	c, err := s.getContainerFromRequest(req.ContainerId)
 	if err != nil {
 		return nil, err
