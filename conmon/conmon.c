@@ -93,25 +93,95 @@ static GOptionEntry entries[] =
   { NULL }
 };
 
-int set_k8s_timestamp(char *buf, ssize_t buflen, const char *stream_type)
+/* strlen("1997-03-25T13:20:42+01:00") + 1 */
+#define TSBUFLEN 26
+
+int set_k8s_timestamp(char *buf, ssize_t buflen)
 {
 	time_t now = time(NULL);
 	struct tm *tm;
 	char off_sign = '+';
-	int off;
+	int off, len, err = -1;
 
-	if ((tm = localtime(&now)) == NULL) {
-		return -1;
-	}
+	if ((tm = localtime(&now)) == NULL)
+		return err;
+
 	off = (int) tm->tm_gmtoff;
 	if (tm->tm_gmtoff < 0) {
 		off_sign = '-';
 		off = -off;
 	}
-	snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d %s ",
-		tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-		tm->tm_hour, tm->tm_min, tm->tm_sec,
-		off_sign, off / 3600, off % 3600, stream_type);
+
+	len = snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d",
+		       tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+		       tm->tm_hour, tm->tm_min, tm->tm_sec,
+		       off_sign, off / 3600, off % 3600);
+
+	if (len < buflen)
+		err = 0;
+	return err;
+}
+
+/*
+ * The CRI requires us to write logs with a (timestamp, stream, line) format
+ * for every newline-separated line. write_k8s_log writes said format for every
+ * line in buf, and will partially write the final line of the log if buf is
+ * not terminated by a newline.
+ *
+ * TODO: The above trick (partially writing the last line) won't work if we
+ *       ever switch to having different streams for std{out,err}. Luckily at
+ *       the moment that isn't an issue for us, but we need to fix this in the
+ *       future.
+ */
+int write_k8s_log(int fd, const char *stream_type, const char *buf, ssize_t buflen)
+{
+	char tsbuf[TSBUFLEN];
+	static bool trailing_line = false;
+
+	/*
+	 * Use the same timestamp for every line of the log in this buffer.
+	 * There is no practical difference in the output since write(2) is
+	 * fast.
+	 */
+	if (set_k8s_timestamp(tsbuf, TSBUFLEN))
+		/* TODO: We should handle failures much more cleanly than this. */
+		return -1;
+
+	while (buflen > 0) {
+		const char *line_end = NULL;
+		ptrdiff_t line_len = 0;
+
+		/* Find the end of the line, or alternatively the end of the buffer. */
+		line_end = memchr(buf, '\n', buflen);
+		if (line_end == NULL)
+			line_end = &buf[buflen-1];
+		line_len = line_end - buf + 1;
+
+		/*
+		 * Write the (timestamp, stream) tuple if there isn't any trailing
+		 * input from the previous line.
+		 */
+		if (!trailing_line) {
+			if (dprintf(fd, "%s %s ", tsbuf, stream_type) < 0) {
+				nwarn("failed to write (timestamp, stream) to log");
+				goto next;
+			}
+		}
+
+		/* Output the actual contents. */
+		if (write(fd, buf, line_len) < 0) {
+			nwarn("failed to write buffer to log");
+			goto next;
+		}
+
+		/* If we did not output a full line, then we are a trailing_line. */
+		trailing_line = *line_end != '\n';
+
+next:
+		/* Update the head of the buffer remaining to output. */
+		buf += line_len;
+		buflen -= line_len;
+	}
 
 	return 0;
 }
@@ -395,9 +465,6 @@ int main(int argc, char *argv[])
 		pexit("Failed to add console master fd to epoll");
 	}
 
-	#define TSBUFLEN 34
-	char tsbuf[TSBUFLEN];
-
 	/*
 	 * Log all of the container's output and pipe STDIN into it. Currently
 	 * nothing using the STDIN setup (which makes its inclusion here a bit
@@ -427,29 +494,24 @@ int main(int argc, char *argv[])
 					if (num_read <= 0)
 						goto out;
 
-					ninfo("read a chunk: (fd=%d) '%s'", mfd, buf);
-
-
-					/* Prepend the CRI-mandated timestamp and other metadata. */
-					/*
-					 * FIXME: Currently this code makes the assumption that
-					 *        @buf doesn't contain any newlines (since the CRI
-					 *        requires each line to contain a timestamp). This
-					 *        is an /okay/ assumption in most cases because
-					 *        ptys generally have newline-buffered output.
-					 */
-					int rc = set_k8s_timestamp(tsbuf, TSBUFLEN, "stdout");
-					if (rc < 0) {
-						nwarn("failed to set timestamp");
-					} else {
-						if (write(logfd, tsbuf, TSBUFLEN) != TSBUFLEN) {
-							nwarn("partial/failed write ts (logFd)");
+					if (exec) {
+						/*
+						 * If we're in ExecSync we don't output the k8s log
+						 * format. TODO(cyphar): This code really should be
+						 * rewritten so that we have a single conmon per
+						 * container and the conmon is logging the main
+						 * container process as a separate piece of logic to
+						 * the streaming to Exec[Sync] clients.
+						 */
+						if (write(logfd, buf, num_read) < 0) {
+							nwarn("write failed");
+							goto out;
 						}
-					}
-					/* Log all output to logfd. */
-					if (write(logfd, buf, num_read) != num_read) {
-						nwarn("partial/failed write (logFd)");
-						goto out;
+					} else {
+						if (write_k8s_log(logfd, "stdout", buf, num_read) < 0) {
+							nwarn("write_k8s_log failed");
+							goto out;
+						}
 					}
 				}
 			} else if (evlist[i].events & (EPOLLHUP | EPOLLERR)) {
