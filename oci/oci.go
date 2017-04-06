@@ -179,7 +179,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 		if ss.err != nil {
 			return err
 		}
-		logrus.Infof("Received container pid: %q", ss.si.Pid)
+		logrus.Infof("Received container pid: %d", ss.si.Pid)
 	case <-time.After(ContainerCreateTimeout):
 		return fmt.Errorf("create container timeout")
 	}
