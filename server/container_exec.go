@@ -7,5 +7,5 @@ import (
 
 // Exec prepares a streaming endpoint to execute a command in the container.
 func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (*pb.ExecResponse, error) {
-	return nil, nil
+	return &pb.ExecResponse{}, nil
 }
