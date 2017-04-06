@@ -6,11 +6,11 @@ import (
 	"os/exec"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/libcni"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	"github.com/fsnotify/fsnotify"
 )
 
 type cniNetworkPlugin struct {
@@ -23,12 +23,57 @@ type cniNetworkPlugin struct {
 	pluginDir          string
 	cniDirs            []string
 	vendorCNIDirPrefix string
+
+	monitorNetDirChan chan struct{}
 }
 
 type cniNetwork struct {
 	name          string
 	NetworkConfig *libcni.NetworkConfig
 	CNIConfig     libcni.CNI
+}
+
+var errMissingDefaultNetwork = errors.New("Missing CNI default network")
+
+func (plugin *cniNetworkPlugin) monitorNetDir() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logrus.Errorf("could not create new watcher %v", err)
+		return
+	}
+	defer watcher.Close()
+
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logrus.Debugf("CNI monitoring event %v", event)
+				if event.Op&fsnotify.Create != fsnotify.Create {
+					continue
+				}
+
+				if err = plugin.syncNetworkConfig(); err == nil {
+					logrus.Debugf("CNI asynchronous setting succeeded")
+					close(plugin.monitorNetDirChan)
+					return
+				}
+
+				logrus.Errorf("CNI setting failed, continue monitoring: %v", err)
+
+			case err := <-watcher.Errors:
+				logrus.Errorf("CNI monitoring error %v", err)
+				close(plugin.monitorNetDirChan)
+				return
+			}
+		}
+	}()
+
+	if err = watcher.Add(plugin.pluginDir); err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	<-plugin.monitorNetDirChan
 }
 
 // InitCNI takes the plugin directory and cni directories where the cni files should be searched for
@@ -44,19 +89,16 @@ func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
 	// check if a default network exists, otherwise dump the CNI search and return a noop plugin
 	_, err = getDefaultCNINetwork(plugin.pluginDir, plugin.cniDirs, plugin.vendorCNIDirPrefix)
 	if err != nil {
-		logrus.Warningf("Error in finding usable CNI plugin - %v", err)
-		// create a noop plugin instead
-		return &cniNoOp{}, nil
+		if err != errMissingDefaultNetwork {
+			logrus.Warningf("Error in finding usable CNI plugin - %v", err)
+			// create a noop plugin instead
+			return &cniNoOp{}, nil
+		}
+
+		// We do not have a default network, we start the monitoring thread.
+		go plugin.monitorNetDir()
 	}
 
-	// sync network config from pluginDir periodically to detect network config updates
-	go func() {
-		t := time.NewTimer(10 * time.Second)
-		for {
-			plugin.syncNetworkConfig()
-			<-t.C
-		}
-	}()
 	return plugin, nil
 }
 
@@ -67,10 +109,13 @@ func probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir string, cniDirs []strin
 		pluginDir:          pluginDir,
 		cniDirs:            cniDirs,
 		vendorCNIDirPrefix: vendorCNIDirPrefix,
+		monitorNetDirChan:  make(chan struct{}),
 	}
 
 	// sync NetworkConfig in best effort during probing.
-	plugin.syncNetworkConfig()
+	if err := plugin.syncNetworkConfig(); err != nil {
+		logrus.Error(err)
+	}
 	return plugin
 }
 
@@ -87,7 +132,7 @@ func getDefaultCNINetwork(pluginDir string, cniDirs []string, vendorCNIDirPrefix
 	case err != nil:
 		return nil, err
 	case len(files) == 0:
-		return nil, fmt.Errorf("No networks found in %s", pluginDir)
+		return nil, errMissingDefaultNetwork
 	}
 
 	sort.Strings(files)
@@ -142,13 +187,15 @@ func getLoNetwork(cniDirs []string, vendorDirPrefix string) *cniNetwork {
 	return loNetwork
 }
 
-func (plugin *cniNetworkPlugin) syncNetworkConfig() {
+func (plugin *cniNetworkPlugin) syncNetworkConfig() error {
 	network, err := getDefaultCNINetwork(plugin.pluginDir, plugin.cniDirs, plugin.vendorCNIDirPrefix)
 	if err != nil {
 		logrus.Errorf("error updating cni config: %s", err)
-		return
+		return err
 	}
 	plugin.setDefaultNetwork(network)
+
+	return nil
 }
 
 func (plugin *cniNetworkPlugin) getDefaultNetwork() *cniNetwork {
