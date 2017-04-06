@@ -160,18 +160,6 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	if err != nil {
 		return nil, err
 	}
-	// Go find the image, and attach the requested name to it, so that we
-	// can more easily find it later, even if the destination reference
-	// looks different.
-	destImage, err := istorage.Transport.GetStoreImage(svc.store, destRef)
-	if err != nil {
-		return nil, err
-	}
-	names := append(destImage.Names, imageName, dest)
-	err = svc.store.SetNames(destImage.ID, names)
-	if err != nil {
-		return nil, err
-	}
 	return destRef, nil
 }
 
