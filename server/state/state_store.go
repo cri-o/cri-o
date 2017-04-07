@@ -11,7 +11,7 @@ type Store interface {
 	HasSandbox(id string) bool
 	DeleteSandbox(id string) error
 	// These should modify the associated sandbox without prompting
-	AddContainer(c *oci.Container, sandboxID string) error
+	AddContainer(c *oci.Container) error
 	HasContainer(id, sandboxID string) bool
 	DeleteContainer(id, sandboxID string) error
 	// These two require full, explicit ID

@@ -128,7 +128,6 @@ func (s *FileState) forceSyncWithDisk() error {
 	}
 	for _, sb := range oldSandboxes {
 		if !newState.HasSandbox(sb.ID()) && sb.NetNs() != nil {
-
 			if err := sb.NetNsRemove(); err != nil {
 				return fmt.Errorf("error closing network namespace of sandbox %v: %v", sb.ID(), err)
 			}
@@ -656,7 +655,7 @@ func NewFileState(statePath string, runtime *oci.Runtime) (Store, error) {
 
 	// Perform an initial sync with the disk
 	if err := state.forceSyncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return state, nil
@@ -668,18 +667,18 @@ func (s *FileState) AddSandbox(sb *sandbox.Sandbox) error {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return fmt.Errorf("error syncing with on-disk state: %v", err)
+		return errSyncWithDisk(err)
 	}
 
 	if err := s.memoryState.AddSandbox(sb); err != nil {
-		return fmt.Errorf("error adding sandbox %v to in-memory state: %v", sb.ID(), err)
+		return err
 	}
 
 	if err := s.putSandboxToDisk(sb); err != nil {
 		if err2 := s.memoryState.DeleteSandbox(sb.ID()); err2 != nil {
 			logrus.Errorf("error removing sandbox %s from in-memory state, states are desynced: %v", sb.ID(), err)
 		}
-		return err
+		return fmt.Errorf("error saving sandbox %s to disk: %v", sb.ID(), err)
 	}
 
 	return nil
@@ -705,15 +704,15 @@ func (s *FileState) DeleteSandbox(id string) error {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return fmt.Errorf("error syncing with on-disk state: %v", err)
+		return errSyncWithDisk(err)
 	}
 
 	if err := s.memoryState.DeleteSandbox(id); err != nil {
-		return fmt.Errorf("error removing sandbox %v from in-memory state: %v", id, err)
+		return err
 	}
 
 	if err := s.removeSandboxFromDisk(id); err != nil {
-		return err
+		return fmt.Errorf("error removing sandbox ID %s from disk: %v", id, err)
 	}
 
 	return nil
@@ -725,7 +724,7 @@ func (s *FileState) GetSandbox(id string) (*sandbox.Sandbox, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing with on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return s.memoryState.GetSandbox(id)
@@ -737,7 +736,7 @@ func (s *FileState) LookupSandboxByName(name string) (*sandbox.Sandbox, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing with on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return s.memoryState.LookupSandboxByName(name)
@@ -750,7 +749,7 @@ func (s *FileState) LookupSandboxByID(id string) (*sandbox.Sandbox, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing with on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return s.memoryState.LookupSandboxByID(id)
@@ -762,30 +761,30 @@ func (s *FileState) GetAllSandboxes() ([]*sandbox.Sandbox, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing with on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return s.memoryState.GetAllSandboxes()
 }
 
 // AddContainer adds a container to the state
-func (s *FileState) AddContainer(c *oci.Container, sandboxID string) error {
+func (s *FileState) AddContainer(c *oci.Container) error {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return fmt.Errorf("error syncing with on-disk state: %v", err)
+		return errSyncWithDisk(err)
 	}
 
-	if err := s.memoryState.AddContainer(c, sandboxID); err != nil {
-		return fmt.Errorf("error adding container %v to in-memory state: %v", c.ID(), err)
+	if err := s.memoryState.AddContainer(c); err != nil {
+		return err
 	}
 
 	if err := s.putContainerToDisk(c, true); err != nil {
-		if err2 := s.memoryState.DeleteContainer(c.ID(), sandboxID); err2 != nil {
+		if err2 := s.memoryState.DeleteContainer(c.ID(), c.Sandbox()); err2 != nil {
 			logrus.Errorf("error removing container %v from in-memory state, states are desynced: %v", c.ID(), err2)
 		}
-		return err
+		return fmt.Errorf("error adding container %s to on-disk state: %v", c.ID(), err)
 	}
 
 	return nil
@@ -811,15 +810,15 @@ func (s *FileState) DeleteContainer(id, sandboxID string) error {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return fmt.Errorf("error syncing with on-disk state: %v", err)
+		return errSyncWithDisk(err)
 	}
 
 	if err := s.memoryState.DeleteContainer(id, sandboxID); err != nil {
-		return fmt.Errorf("error removing container %v from in-memory state: %v", id, err)
+		return err
 	}
 
 	if err := s.removeContainerFromDisk(id, sandboxID); err != nil {
-		return err
+		return fmt.Errorf("error removing container %s from on-disk state: %v", id, err)
 	}
 
 	return nil
@@ -831,7 +830,7 @@ func (s *FileState) GetContainer(id, sandboxID string) (*oci.Container, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing with on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return s.memoryState.GetContainer(id, sandboxID)
@@ -843,7 +842,7 @@ func (s *FileState) GetContainerSandbox(id string) (string, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return "", fmt.Errorf("error syncing with on-disk state: %v", err)
+		return "", errSyncWithDisk(err)
 	}
 
 	return s.memoryState.GetContainerSandbox(id)
@@ -855,7 +854,7 @@ func (s *FileState) LookupContainerByName(name string) (*oci.Container, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing with on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return s.memoryState.LookupContainerByName(name)
@@ -868,7 +867,7 @@ func (s *FileState) LookupContainerByID(id string) (*oci.Container, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing with on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return s.memoryState.LookupContainerByID(id)
@@ -881,8 +880,12 @@ func (s *FileState) GetAllContainers() ([]*oci.Container, error) {
 	defer s.lockfile.Unlock()
 
 	if err := s.syncWithDisk(); err != nil {
-		return nil, fmt.Errorf("error syncing with on-disk state: %v", err)
+		return nil, errSyncWithDisk(err)
 	}
 
 	return s.memoryState.GetAllContainers()
+}
+
+func errSyncWithDisk(err error) error {
+	return fmt.Errorf("error syncing on-disk state: %v", err)
 }

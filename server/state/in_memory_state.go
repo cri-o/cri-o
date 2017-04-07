@@ -42,6 +42,10 @@ func (s *InMemoryState) AddSandbox(sandbox *sandbox.Sandbox) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	if sandbox == nil {
+		return fmt.Errorf("nil passed as sandbox to AddSandbox")
+	}
+
 	if _, exist := s.sandboxes[sandbox.ID()]; exist {
 		return fmt.Errorf("sandbox with ID %v already exists", sandbox.ID())
 	}
@@ -93,7 +97,7 @@ func (s *InMemoryState) DeleteSandbox(id string) error {
 	defer s.lock.Unlock()
 
 	if _, exist := s.sandboxes[id]; !exist {
-		return fmt.Errorf("no sandbox with ID %v exists, cannot delete", id)
+		return errNoSuchSandbox(id)
 	}
 
 	name := s.sandboxes[id].Name()
@@ -128,7 +132,7 @@ func (s *InMemoryState) GetSandbox(id string) (*sandbox.Sandbox, error) {
 
 	sandbox, ok := s.sandboxes[id]
 	if !ok {
-		return nil, fmt.Errorf("no sandbox with id %v exists", id)
+		return nil, errNoSuchSandbox(id)
 	}
 
 	return sandbox, nil
@@ -146,7 +150,7 @@ func (s *InMemoryState) LookupSandboxByName(name string) (*sandbox.Sandbox, erro
 
 	sandbox, ok := s.sandboxes[id]
 	if !ok {
-		// This should never happen
+		// This should never happen - our internal state must be desynced
 		return nil, fmt.Errorf("cannot find sandbox %v in sandboxes map", id)
 	}
 
@@ -166,7 +170,7 @@ func (s *InMemoryState) LookupSandboxByID(id string) (*sandbox.Sandbox, error) {
 
 	sandbox, ok := s.sandboxes[fullID]
 	if !ok {
-		// This should never happen
+		// This should never happen, internal state must be desynced
 		return nil, fmt.Errorf("cannot find sandbox %v in sandboxes map", fullID)
 	}
 
@@ -187,25 +191,25 @@ func (s *InMemoryState) GetAllSandboxes() ([]*sandbox.Sandbox, error) {
 }
 
 // AddContainer adds a single container to a given sandbox in the state
-func (s *InMemoryState) AddContainer(c *oci.Container, sandboxID string) error {
+func (s *InMemoryState) AddContainer(c *oci.Container) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if c.Sandbox() != sandboxID {
-		return fmt.Errorf("cannot add container to sandbox %v as it is part of sandbox %v", sandboxID, c.Sandbox())
+	if c == nil {
+		return fmt.Errorf("nil passed as container to AddContainer")
 	}
 
-	sandbox, ok := s.sandboxes[sandboxID]
+	sandbox, ok := s.sandboxes[c.Sandbox()]
 	if !ok {
-		return fmt.Errorf("sandbox with ID %v does not exist, cannot add container", sandboxID)
+		return errNoSuchSandbox(c.Sandbox())
 	}
 
 	if ctr := sandbox.GetContainer(c.ID()); ctr != nil {
-		return fmt.Errorf("container with ID %v already exists in sandbox %v", c.ID(), sandboxID)
+		return fmt.Errorf("container with ID %v already exists in sandbox %v", c.ID(), c.Sandbox())
 	}
 
 	if sandbox.InfraContainer().ID() == c.ID() {
-		return fmt.Errorf("container is infra container of sandbox %s, refusing to add to containers list", sandboxID)
+		return fmt.Errorf("container is infra container of sandbox %s, refusing to add to containers list", c.Sandbox())
 	}
 
 	sandbox.AddContainer(c)
@@ -260,12 +264,12 @@ func (s *InMemoryState) DeleteContainer(id, sandboxID string) error {
 
 	sandbox, ok := s.sandboxes[sandboxID]
 	if !ok {
-		return fmt.Errorf("sandbox with ID %v does not exist", sandboxID)
+		return errNoSuchSandbox(sandboxID)
 	}
 
 	ctr := sandbox.GetContainer(id)
 	if ctr == nil {
-		return fmt.Errorf("sandbox %v has no container with ID %v", sandboxID, id)
+		return errNoSuchContainerInSandbox(id, sandboxID)
 	}
 
 	sandbox.RemoveContainer(id)
@@ -306,7 +310,7 @@ func (s *InMemoryState) GetContainerSandbox(id string) (string, error) {
 
 	ctr := s.containers.Get(id)
 	if ctr == nil {
-		return "", fmt.Errorf("no container with ID %v found", id)
+		return "", errNoSuchContainer(id)
 	}
 
 	return ctr.Sandbox(), nil
@@ -350,7 +354,7 @@ func (s *InMemoryState) GetAllContainers() ([]*oci.Container, error) {
 func (s *InMemoryState) getContainer(id string) (*oci.Container, error) {
 	ctr := s.containers.Get(id)
 	if ctr == nil {
-		return nil, fmt.Errorf("cannot find container with ID %v", id)
+		return nil, errNoSuchContainer(id)
 	}
 
 	return s.getContainerFromSandbox(id, ctr.Sandbox())
@@ -361,13 +365,25 @@ func (s *InMemoryState) getContainer(id string) (*oci.Container, error) {
 func (s *InMemoryState) getContainerFromSandbox(id, sandboxID string) (*oci.Container, error) {
 	sandbox, ok := s.sandboxes[sandboxID]
 	if !ok {
-		return nil, fmt.Errorf("sandbox with ID %v does not exist", sandboxID)
+		return nil, errNoSuchSandbox(sandboxID)
 	}
 
 	ctr := sandbox.GetContainer(id)
 	if ctr == nil {
-		return nil, fmt.Errorf("cannot find container %v in sandbox %v", id, sandboxID)
+		return nil, errNoSuchContainerInSandbox(id, sandboxID)
 	}
 
 	return ctr, nil
+}
+
+func errNoSuchSandbox(id string) error {
+	return fmt.Errorf("no sandbox with ID %s found", id)
+}
+
+func errNoSuchContainer(id string) error {
+	return fmt.Errorf("no container with ID %s found", id)
+}
+
+func errNoSuchContainerInSandbox(id string, sandboxID string) error {
+	return fmt.Errorf("no container with ID %s in sandbox %s", id, sandboxID)
 }
