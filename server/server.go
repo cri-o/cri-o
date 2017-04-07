@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage/storage"
@@ -75,8 +76,8 @@ func New(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	// HACK HACK HACK TODO MAKE CONFIGURABLE
-	state, err := state.NewFileState("/tmp/crio_state_test", r)
+	// TODO: Should we put this elsewhere? Separate directory specified in the config?
+	state, err := state.NewFileState(filepath.Join(config.RunRoot, "ocid_state"), r)
 	if err != nil {
 		return nil, err
 	}
