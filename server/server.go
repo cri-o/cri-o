@@ -576,7 +576,7 @@ func (s *Server) removeSandbox(id string) error {
 }
 
 func (s *Server) addContainer(c *oci.Container) error {
-	return s.state.AddContainer(c, c.Sandbox())
+	return s.state.AddContainer(c)
 }
 
 func (s *Server) getContainer(id string) (*oci.Container, error) {
