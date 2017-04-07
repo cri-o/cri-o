@@ -151,7 +151,8 @@ int write_with_timestamps(int logfd, const char *buf, ssize_t buflen)
 			if (rc < 0) {
 				nwarn("failed to set timestamp");
 			} else {
-				if (write(logfd, tsbuf, TSBUFLEN) != TSBUFLEN) {
+				/* Exclude the \0 while writing */
+				if (write(logfd, tsbuf, TSBUFLEN - 1) != (TSBUFLEN - 1)) {
 					nwarn("partial/failed write ts (logFd)");
 				}
 			}
@@ -164,9 +165,11 @@ int write_with_timestamps(int logfd, const char *buf, ssize_t buflen)
 			return -1;
 		}
 		/* Write the line ending */
-		if (write(logfd, "\n", 1) != 1) {
-			nwarn("failed to write line ending");
-			return -1;
+		if ((i < num_lines - 1) || (i == (num_lines - 1) && buf[buflen - 1] == '\n')) {
+			if (write(logfd, "\n", 1) != 1) {
+				nwarn("failed to write line ending");
+				return -1;
+			}
 		}
 	}
 
