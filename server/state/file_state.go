@@ -671,16 +671,15 @@ func (s *FileState) AddSandbox(sb *sandbox.Sandbox) error {
 		return fmt.Errorf("error syncing with on-disk state: %v", err)
 	}
 
-	if s.memoryState.HasSandbox(sb.ID()) {
-		return fmt.Errorf("sandbox with ID %v already exists", sb.ID())
+	if err := s.memoryState.AddSandbox(sb); err != nil {
+		return fmt.Errorf("error adding sandbox %v to in-memory state: %v", sb.ID(), err)
 	}
 
 	if err := s.putSandboxToDisk(sb); err != nil {
+		if err2 := s.memoryState.DeleteSandbox(sb.ID()); err2 != nil {
+			logrus.Errorf("error removing sandbox %s from in-memory state, states are desynced: %v", sb.ID(), err)
+		}
 		return err
-	}
-
-	if err := s.memoryState.AddSandbox(sb); err != nil {
-		return fmt.Errorf("error adding sandbox %v to in-memory state: %v", sb.ID(), err)
 	}
 
 	return nil
@@ -700,6 +699,7 @@ func (s *FileState) HasSandbox(id string) bool {
 }
 
 // DeleteSandbox removes the given sandbox from the state
+// TODO make atomic
 func (s *FileState) DeleteSandbox(id string) error {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
@@ -708,16 +708,12 @@ func (s *FileState) DeleteSandbox(id string) error {
 		return fmt.Errorf("error syncing with on-disk state: %v", err)
 	}
 
-	if !s.memoryState.HasSandbox(id) {
-		return fmt.Errorf("cannot remove sandbox %v as it does not exist", id)
+	if err := s.memoryState.DeleteSandbox(id); err != nil {
+		return fmt.Errorf("error removing sandbox %v from in-memory state: %v", id, err)
 	}
 
 	if err := s.removeSandboxFromDisk(id); err != nil {
 		return err
-	}
-
-	if err := s.memoryState.DeleteSandbox(id); err != nil {
-		return fmt.Errorf("error removing sandbox %v from in-memory state: %v", id, err)
 	}
 
 	return nil
@@ -781,24 +777,15 @@ func (s *FileState) AddContainer(c *oci.Container, sandboxID string) error {
 		return fmt.Errorf("error syncing with on-disk state: %v", err)
 	}
 
-	if s.memoryState.HasContainer(c.ID(), sandboxID) {
-		return fmt.Errorf("container with id %v in sandbox %v already exists", c.ID(), sandboxID)
-	}
-
-	sb, err := s.memoryState.GetSandbox(sandboxID)
-	if err != nil {
-		return err
-	}
-	if sb.InfraContainer().ID() == c.ID() {
-		return fmt.Errorf("container is already infra container of sandbox %v, refusing to add", sandboxID)
+	if err := s.memoryState.AddContainer(c, sandboxID); err != nil {
+		return fmt.Errorf("error adding container %v to in-memory state: %v", c.ID(), err)
 	}
 
 	if err := s.putContainerToDisk(c, true); err != nil {
+		if err2 := s.memoryState.DeleteContainer(c.ID(), sandboxID); err2 != nil {
+			logrus.Errorf("error removing container %v from in-memory state, states are desynced: %v", c.ID(), err2)
+		}
 		return err
-	}
-
-	if err := s.memoryState.AddContainer(c, sandboxID); err != nil {
-		return fmt.Errorf("error adding container %v to in-memory state: %v", c.ID(), err)
 	}
 
 	return nil
@@ -818,6 +805,7 @@ func (s *FileState) HasContainer(id, sandboxID string) bool {
 }
 
 // DeleteContainer removes a container from a given sandbox in the state
+// TODO make atomic
 func (s *FileState) DeleteContainer(id, sandboxID string) error {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
@@ -826,16 +814,12 @@ func (s *FileState) DeleteContainer(id, sandboxID string) error {
 		return fmt.Errorf("error syncing with on-disk state: %v", err)
 	}
 
-	if !s.memoryState.HasContainer(id, sandboxID) {
-		return fmt.Errorf("cannot remove container %v in sandbox %v as it does not exist", id, sandboxID)
+	if err := s.memoryState.DeleteContainer(id, sandboxID); err != nil {
+		return fmt.Errorf("error removing container %v from in-memory state: %v", id, err)
 	}
 
 	if err := s.removeContainerFromDisk(id, sandboxID); err != nil {
 		return err
-	}
-
-	if err := s.memoryState.DeleteContainer(id, sandboxID); err != nil {
-		return fmt.Errorf("error removing container %v from in-memory state: %v", id, err)
 	}
 
 	return nil
