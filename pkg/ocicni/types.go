@@ -13,6 +13,11 @@ const (
 	VendorCNIDirTemplate = "%s/opt/%s/bin"
 )
 
+// SetUpCallback is a callback function that the SetUpPod
+// implementation can call to notify ocicni users about
+// the result of asynchronous networking pod setup.
+type SetUpCallback func(data interface{}, err error)
+
 // CNIPlugin is the interface that needs to be implemented by a plugin
 type CNIPlugin interface {
 	// Name returns the plugin's name. This will be used when searching
@@ -22,7 +27,7 @@ type CNIPlugin interface {
 	// SetUpPod is the method called after the infra container of
 	// the pod has been created but before the other containers of the
 	// pod are launched.
-	SetUpPod(netnsPath string, namespace string, name string, containerID string) error
+	SetUpPod(netnsPath string, namespace string, name string, containerID string, cb SetUpCallback, data interface{}) error
 
 	// TearDownPod is the method called before a pod's infra container will be deleted
 	TearDownPod(netnsPath string, namespace string, name string, containerID string) error

@@ -63,6 +63,26 @@ func (s *Server) runContainer(container *oci.Container, cgroupParent string) err
 	return nil
 }
 
+func setNetworkReadiness(data interface{}, err error) {
+	s, ok := data.(*Server)
+	if !ok {
+		logrus.Errorf("invalid networking callback cookie")
+		return
+	}
+
+	if s == nil {
+		return
+	}
+
+	if err != nil {
+		logrus.Errorf("pod networking setup callback error %v", err)
+		s.runtime.SetNetworkReady(false)
+		return
+	}
+
+	s.runtime.SetNetworkReady(true)
+}
+
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	s.updateLock.RLock()
@@ -406,7 +426,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// setup the network
 	if !hostNetwork {
 		podNamespace := ""
-		if err = s.netPlugin.SetUpPod(netNsPath, podNamespace, id, containerName); err != nil {
+		if err = s.netPlugin.SetUpPod(netNsPath, podNamespace, id, containerName, setNetworkReadiness, s.runtime); err != nil {
 			return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
 		}
 	}
