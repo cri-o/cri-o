@@ -71,7 +71,8 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run ocic ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
-	[ "$status" -ne 0 ]
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Exit code: 1" ]]
 	[[ "$output" =~ "Operation not permitted" ]]
 
 	cleanup_ctrs
@@ -158,7 +159,8 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run ocic ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
-	[ "$status" -ne 0 ]
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Exit code: 1" ]]
 	[[ "$output" =~ "Operation not permitted" ]]
 
 	cleanup_ctrs
@@ -269,7 +271,8 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run ocic ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
-	[ "$status" -ne 0 ]
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Exit code: 1" ]]
 	[[ "$output" =~ "Operation not permitted" ]]
 
 	cleanup_ctrs
