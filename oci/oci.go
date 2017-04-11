@@ -236,6 +236,42 @@ func prepareExec() (pidFile, parentPipe, childPipe *os.File, err error) {
 	return
 }
 
+func parseLog(log []byte) (stdout, stderr []byte) {
+	// Split the log on newlines, which is what separates entries.
+	lines := bytes.SplitAfter(log, []byte{'\n'})
+	for _, line := range lines {
+		// Ignore empty lines.
+		if len(line) == 0 {
+			continue
+		}
+
+		// The format of log lines is "DATE pipe REST".
+		parts := bytes.SplitN(line, []byte{' '}, 3)
+		if len(parts) < 3 {
+			// Ignore the line if it's formatted incorrectly, but complain
+			// about it so it can be debugged.
+			logrus.Warnf("hit invalid log format: %q", string(line))
+			continue
+		}
+
+		pipe := string(parts[1])
+		content := parts[2]
+
+		switch pipe {
+		case "stdout":
+			stdout = append(stdout, content...)
+		case "stderr":
+			stderr = append(stderr, content...)
+		default:
+			// Complain about unknown pipes.
+			logrus.Warnf("hit invalid log format [unknown pipe %s]: %q", pipe, string(line))
+			continue
+		}
+	}
+
+	return stdout, stderr
+}
+
 // ExecSync execs a command in a container and returns it's stdout, stderr and return code.
 func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	pidFile, parentPipe, childPipe, err := prepareExec()
@@ -386,7 +422,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	// XXX: Currently runC dups the same console over both stdout and stderr,
 	//      so we can't differentiate between the two.
 
-	outputBytes, err := ioutil.ReadFile(logPath)
+	logBytes, err := ioutil.ReadFile(logPath)
 	if err != nil {
 		return nil, ExecSyncError{
 			Stdout:   stdoutBuf,
@@ -396,9 +432,11 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}
 
+	// We have to parse the log output into {stdout, stderr} buffers.
+	stdoutBytes, stderrBytes := parseLog(logBytes)
 	return &ExecSyncResponse{
-		Stdout:   outputBytes,
-		Stderr:   nil,
+		Stdout:   stdoutBytes,
+		Stderr:   stderrBytes,
 		ExitCode: ec.ExitCode,
 	}, nil
 }

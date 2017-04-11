@@ -533,24 +533,9 @@ int main(int argc, char *argv[])
 				if (num_read <= 0)
 					goto out;
 
-				if (exec) {
-					/*
-					 * If we're in ExecSync we don't output the k8s log
-					 * format. TODO(cyphar): This code really should be
-					 * rewritten so that we have a single conmon per
-					 * container and the conmon is logging the main
-					 * container process as a separate piece of logic to
-					 * the streaming to Exec[Sync] clients.
-					 */
-					if (write(logfd, buf, num_read) < 0) {
-						nwarn("write failed");
-						goto out;
-					}
-				} else {
-					if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
-						nwarn("write_k8s_log failed");
-						goto out;
-					}
+				if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
+					nwarn("write_k8s_log failed");
+					goto out;
 				}
 			} else if (evlist[i].events & (EPOLLHUP | EPOLLERR)) {
 				printf("closing fd %d\n", evlist[i].data.fd);
