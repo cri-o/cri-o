@@ -1,8 +1,11 @@
 package server
 
 import (
+	"encoding/json"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
@@ -31,6 +34,12 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 			Image:       image,
 		},
 	}
+
+	mounts, err := s.getMounts(containerID)
+	if err != nil {
+		return nil, err
+	}
+	resp.Status.Mounts = mounts
 
 	status, err := s.images.ImageStatus(s.imageContext, image.Image)
 	if err != nil {
@@ -68,4 +77,47 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 
 	logrus.Debugf("ContainerStatusResponse: %+v", resp)
 	return resp, nil
+}
+
+func (s *Server) getMounts(id string) ([]*pb.Mount, error) {
+	config, err := s.store.GetFromContainerDirectory(id, "config.json")
+	if err != nil {
+		return nil, err
+	}
+	var m rspec.Spec
+	if err = json.Unmarshal(config, &m); err != nil {
+		return nil, err
+	}
+	isRO := func(m rspec.Mount) bool {
+		var ro bool
+		for _, o := range m.Options {
+			if o == "ro" {
+				ro = true
+				break
+			}
+		}
+		return ro
+	}
+	isBind := func(m rspec.Mount) bool {
+		var bind bool
+		for _, o := range m.Options {
+			if o == "bind" || o == "rbind" {
+				bind = true
+				break
+			}
+		}
+		return bind
+	}
+	mounts := []*pb.Mount{}
+	for _, b := range m.Mounts {
+		if !isBind(b) {
+			continue
+		}
+		mounts = append(mounts, &pb.Mount{
+			ContainerPath: b.Destination,
+			HostPath:      b.Source,
+			Readonly:      isRO(b),
+		})
+	}
+	return mounts, nil
 }
