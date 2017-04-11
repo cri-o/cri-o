@@ -380,15 +380,6 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 
 	logrus.Infof("Received container exit code: %v", ec.ExitCode)
 
-	if ec.ExitCode != 0 {
-		return nil, ExecSyncError{
-			Stdout:   stdoutBuf,
-			Stderr:   stderrBuf,
-			ExitCode: ec.ExitCode,
-			Err:      fmt.Errorf("container workload exited with error %v", ec.ExitCode),
-		}
-	}
-
 	// The actual logged output is not the same as stdoutBuf and stderrBuf,
 	// which are used for getting error information. For the actual
 	// ExecSyncResponse we have to read the logfile.
@@ -408,7 +399,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	return &ExecSyncResponse{
 		Stdout:   outputBytes,
 		Stderr:   nil,
-		ExitCode: 0,
+		ExitCode: ec.ExitCode,
 	}, nil
 }
 
