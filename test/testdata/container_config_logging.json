@@ -7,10 +7,10 @@
 		"image": "docker://busybox:latest"
 	},
 	"command": [
-		"/bin/echo"
+		"/bin/sh", "-c"
 	],
 	"args": [
-		"%echooutput%"
+		"%shellcommand%"
 	],
 	"working_dir": "/",
 	"envs": [

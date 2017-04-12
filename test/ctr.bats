@@ -112,7 +112,7 @@ function teardown() {
 	# Create a new container.
 	newconfig=$(mktemp --tmpdir ocid-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%echooutput%"|"here", "is", "some", "output"|' "$newconfig"
+	sed -i 's|"%shellcommand%"|"echo here is some output \&\& echo and some from stderr >\&2"|' "$newconfig"
 	run ocic ctr create --config "$newconfig" --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -130,10 +130,11 @@ function teardown() {
 	[ "$status" -eq 0 ]
 
 	# Check that the output is what we expect.
-	run cat "$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
-	echo "$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log ::" "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == *"here is some output" ]]
+	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
+	[ -f "$logpath" ]
+	echo "$logpath :: $(cat "$logpath")"
+	grep -E "^[^\n]+ stdout here is some output$" "$logpath"
+	grep -E "^[^\n]+ stderr and some from stderr$" "$logpath"
 
 	run ocic pod stop --id "$pod_id"
 	echo "$output"
@@ -160,7 +161,7 @@ function teardown() {
 	# Create a new container.
 	newconfig=$(mktemp --tmpdir ocid-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%echooutput%"|"here", "is", "some", "output"|' "$newconfig"
+	sed -i 's|"%shellcommand%"|"echo here is some output"|' "$newconfig"
 	sed -i 's|"tty": false,|"tty": true,|' "$newconfig"
 	run ocic ctr create --config "$newconfig" --pod "$pod_id"
 	echo "$output"
@@ -179,10 +180,10 @@ function teardown() {
 	[ "$status" -eq 0 ]
 
 	# Check that the output is what we expect.
-	run cat "$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
-	echo "$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log ::" "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == *"here is some output" ]]
+	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
+	[ -f "$logpath" ]
+	echo "$logpath :: $(cat "$logpath")"
+	grep -E "^[^\n]+ stdout here is some output$" "$logpath"
 
 	run ocic pod stop --id "$pod_id"
 	echo "$output"
@@ -445,6 +446,62 @@ function teardown() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 
+	cleanup_ctrs
+	cleanup_pods
+	stop_ocid
+}
+
+@test "ctr execsync exit code" {
+	start_ocid
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run ocic ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic ctr execsync --id "$ctr_id" false
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Exit code: 1" ]]
+	cleanup_ctrs
+	cleanup_pods
+	stop_ocid
+}
+
+@test "ctr execsync std{out,err}" {
+	start_ocid
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run ocic ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic ctr execsync --id "$ctr_id" "echo hello0 stdout"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"$(printf "Stdout:\nhello0 stdout")"* ]]
+	run ocic ctr execsync --id "$ctr_id" "echo hello1 stderr >&2"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"$(printf "Stderr:\nhello1 stderr")"* ]]
+	run ocic ctr execsync --id "$ctr_id" "echo hello2 stderr >&2; echo hello3 stdout"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"$(printf "Stderr:\nhello2 stderr")"* ]]
+	[[ "$output" == *"$(printf "Stdout:\nhello3 stdout")"* ]]
+	run ocic pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	cleanup_ctrs
 	cleanup_pods
 	stop_ocid

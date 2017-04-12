@@ -122,21 +122,38 @@ int set_k8s_timestamp(char *buf, ssize_t buflen)
 	return err;
 }
 
+/* stdpipe_t represents one of the std pipes (or NONE). */
+typedef enum {
+	NO_PIPE,
+	STDIN_PIPE, /* unused */
+	STDOUT_PIPE,
+	STDERR_PIPE,
+} stdpipe_t;
+
+const char *stdpipe_name(stdpipe_t pipe)
+{
+	switch (pipe) {
+	case STDIN_PIPE:
+		return "stdin";
+	case STDOUT_PIPE:
+		return "stdout";
+	case STDERR_PIPE:
+		return "stderr";
+	default:
+		return "NONE";
+	}
+}
+
 /*
  * The CRI requires us to write logs with a (timestamp, stream, line) format
  * for every newline-separated line. write_k8s_log writes said format for every
  * line in buf, and will partially write the final line of the log if buf is
  * not terminated by a newline.
- *
- * TODO: The above trick (partially writing the last line) won't work if we
- *       ever switch to having different streams for std{out,err}. Luckily at
- *       the moment that isn't an issue for us, but we need to fix this in the
- *       future.
  */
-int write_k8s_log(int fd, const char *stream_type, const char *buf, ssize_t buflen)
+int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
 {
 	char tsbuf[TSBUFLEN];
-	static bool trailing_line = false;
+	static stdpipe_t trailing_line = NO_PIPE;
 
 	/*
 	 * Use the same timestamp for every line of the log in this buffer.
@@ -159,10 +176,22 @@ int write_k8s_log(int fd, const char *stream_type, const char *buf, ssize_t bufl
 
 		/*
 		 * Write the (timestamp, stream) tuple if there isn't any trailing
-		 * input from the previous line.
+		 * output from the previous line (or if there is trailing output but
+		 * the current buffer being printed is from a different pipe).
 		 */
-		if (!trailing_line) {
-			if (dprintf(fd, "%s %s ", tsbuf, stream_type) < 0) {
+		if (trailing_line != pipe) {
+			/*
+			 * If there was a trailing line from a different pipe, prepend a
+			 * newline to split it properly. This technically breaks the flow
+			 * of the previous line (adding a newline in the log where there
+			 * wasn't one output) but without modifying the file in a
+			 * non-append-only way there's not much we can do.
+			 */
+			char *leading = "";
+			if (trailing_line != NO_PIPE)
+				leading = "\n";
+
+			if (dprintf(fd, "%s%s %s ", leading, tsbuf, stdpipe_name(pipe)) < 0) {
 				nwarn("failed to write (timestamp, stream) to log");
 				goto next;
 			}
@@ -175,7 +204,7 @@ int write_k8s_log(int fd, const char *stream_type, const char *buf, ssize_t bufl
 		}
 
 		/* If we did not output a full line, then we are a trailing_line. */
-		trailing_line = *line_end != '\n';
+		trailing_line = (*line_end == '\n') ? NO_PIPE : pipe;
 
 next:
 		/* Update the head of the buffer remaining to output. */
@@ -197,10 +226,13 @@ int main(int argc, char *argv[])
 	int status;
 	pid_t pid, create_pid;
 	_cleanup_close_ int logfd = -1;
-	_cleanup_close_ int mfd = -1;
+	_cleanup_close_ int masterfd_stdout = -1;
+	_cleanup_close_ int masterfd_stderr = -1;
 	_cleanup_close_ int epfd = -1;
 	_cleanup_close_ int csfd = -1;
-	int runtime_mfd = -1;
+	/* Used for !terminal cases. */
+	int slavefd_stdout = -1;
+	int slavefd_stderr = -1;
 	char csname[PATH_MAX] = "/tmp/conmon-term.XXXXXXXX";
 	char buf[BUF_SIZE];
 	int num_read;
@@ -209,6 +241,7 @@ int main(int argc, char *argv[])
 	int sync_pipe_fd = -1;
 	char *sync_pipe, *endptr;
 	int len;
+	int num_stdio_fds = 0;
 	GError *error = NULL;
 	GOptionContext *context;
 	_cleanup_gstring_ GString *cmd = NULL;
@@ -302,7 +335,7 @@ int main(int argc, char *argv[])
 
 		/*
 		 * Create a "fake" master fd so that we can use the same epoll code in
-		 * both cases. The runtime_mfd will be closed after we dup over
+		 * both cases. The slavefd_*s will be closed after we dup over
 		 * everything.
 		 *
 		 * We use pipes here because open(/dev/std{out,err}) will fail if we
@@ -310,10 +343,16 @@ int main(int argc, char *argv[])
 		 * pty pair in the host).
 		 */
 		if (pipe(fds) < 0)
-			pexit("Failed to create runtime_mfd pipes");
+			pexit("Failed to create !terminal stdout pipe");
 
-		mfd = fds[0];
-		runtime_mfd = fds[1];
+		masterfd_stdout = fds[0];
+		slavefd_stdout = fds[1];
+
+		if (pipe(fds) < 0)
+			pexit("Failed to create !terminal stderr pipe");
+
+		masterfd_stderr = fds[0];
+		slavefd_stderr = fds[1];
 	}
 
 	cmd = g_string_new(runtime_path);
@@ -364,12 +403,12 @@ int main(int argc, char *argv[])
 
 		/* We only need to touch the stdio if we have terminal=false. */
 		/* FIXME: This results in us not outputting runc error messages to ocid's log. */
-		if (runtime_mfd >= 0) {
-			if (dup2(runtime_mfd, STDIN_FILENO) < 0)
-				pexit("Failed to dup over stdin");
-			if (dup2(runtime_mfd, STDOUT_FILENO) < 0)
+		if (slavefd_stdout >= 0) {
+			if (dup2(slavefd_stdout, STDOUT_FILENO) < 0)
 				pexit("Failed to dup over stdout");
-			if (dup2(runtime_mfd, STDERR_FILENO) < 0)
+		}
+		if (slavefd_stderr >= 0) {
+			if (dup2(slavefd_stderr, STDERR_FILENO) < 0)
 				pexit("Failed to dup over stderr");
 		}
 
@@ -379,7 +418,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* The runtime has that fd now. We don't need to touch it anymore. */
-	close(runtime_mfd);
+	close(slavefd_stdout);
+	close(slavefd_stderr);
 
 	/* Get the console fd. */
 	/*
@@ -407,7 +447,10 @@ int main(int argc, char *argv[])
 		ninfo("console = {.name = '%s'; .fd = %d}", console.name, console.fd);
 		free(console.name);
 
-		mfd = console.fd;
+		/* We only have a single fd for both pipes, so we just treat it as
+		 * stdout. stderr is ignored. */
+		masterfd_stdout = console.fd;
+		masterfd_stderr = -1;
 
 		/* Clean up everything */
 		close(connfd);
@@ -454,71 +497,51 @@ int main(int argc, char *argv[])
 	if (epfd < 0)
 		pexit("epoll_create");
 	ev.events = EPOLLIN;
-	/*
-	ev.data.fd = STDIN_FILENO;
-	if (epoll_ctl(epfd, EPOLL_CTL_ADD, STDIN_FILENO, &ev) < 0) {
-		pexit("Failed to add stdin to epoll");
+	if (masterfd_stdout >= 0) {
+		ev.data.fd = masterfd_stdout;
+		if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) < 0)
+			pexit("Failed to add console masterfd_stdout to epoll");
+		num_stdio_fds++;
 	}
-	*/
-	ev.data.fd = mfd;
-	if (epoll_ctl(epfd, EPOLL_CTL_ADD, mfd, &ev) < 0) {
-		pexit("Failed to add console master fd to epoll");
+	if (masterfd_stderr >= 0) {
+		ev.data.fd = masterfd_stderr;
+		if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) < 0)
+			pexit("Failed to add console masterfd_stderr to epoll");
+		num_stdio_fds++;
 	}
 
-	/*
-	 * Log all of the container's output and pipe STDIN into it. Currently
-	 * nothing using the STDIN setup (which makes its inclusion here a bit
-	 * questionable but we need to rewrite this code soon anyway TODO).
-	 */
-	while (true) {
+	/* Log all of the container's output. */
+	while (num_stdio_fds > 0) {
 		int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
-		int i = 0;
-		for (i = 0; i < ready; i++) {
+		if (ready < 0)
+			continue;
+
+		for (int i = 0; i < ready; i++) {
 			if (evlist[i].events & EPOLLIN) {
-				if (evlist[i].data.fd == STDIN_FILENO) {
-					/*
-					 * TODO: We need to replace STDIN_FILENO with something
-					 *       more sophisticated so that attach actually works
-					 *       properly.
-					 */
-					num_read = read(STDIN_FILENO, buf, BUF_SIZE);
-					if (num_read <= 0)
-						goto out;
+				int masterfd = evlist[i].data.fd;
+				stdpipe_t pipe;
+				if (masterfd == masterfd_stdout)
+					pipe = STDOUT_PIPE;
+				else if (masterfd == masterfd_stderr)
+					pipe = STDERR_PIPE;
+				else {
+					nwarn("unknown pipe fd");
+					goto out;
+				}
 
-					if (write(mfd, buf, num_read) != num_read) {
-						nwarn("partial/failed write (masterFd)");
-						goto out;
-					}
-				} else if (evlist[i].data.fd == mfd) {
-					num_read = read(mfd, buf, BUF_SIZE);
-					if (num_read <= 0)
-						goto out;
+				num_read = read(masterfd, buf, BUF_SIZE);
+				if (num_read <= 0)
+					goto out;
 
-					if (exec) {
-						/*
-						 * If we're in ExecSync we don't output the k8s log
-						 * format. TODO(cyphar): This code really should be
-						 * rewritten so that we have a single conmon per
-						 * container and the conmon is logging the main
-						 * container process as a separate piece of logic to
-						 * the streaming to Exec[Sync] clients.
-						 */
-						if (write(logfd, buf, num_read) < 0) {
-							nwarn("write failed");
-							goto out;
-						}
-					} else {
-						if (write_k8s_log(logfd, "stdout", buf, num_read) < 0) {
-							nwarn("write_k8s_log failed");
-							goto out;
-						}
-					}
+				if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
+					nwarn("write_k8s_log failed");
+					goto out;
 				}
 			} else if (evlist[i].events & (EPOLLHUP | EPOLLERR)) {
 				printf("closing fd %d\n", evlist[i].data.fd);
 				if (close(evlist[i].data.fd) < 0)
 					pexit("close");
-				goto out;
+				num_stdio_fds--;
 			}
 		}
 	}
