@@ -6,11 +6,11 @@ import (
 	"os/exec"
 	"sort"
 	"sync"
-	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/libcni"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
-	"github.com/golang/glog"
+	"github.com/fsnotify/fsnotify"
 )
 
 type cniNetworkPlugin struct {
@@ -23,12 +23,57 @@ type cniNetworkPlugin struct {
 	pluginDir          string
 	cniDirs            []string
 	vendorCNIDirPrefix string
+
+	monitorNetDirChan chan struct{}
 }
 
 type cniNetwork struct {
 	name          string
 	NetworkConfig *libcni.NetworkConfig
 	CNIConfig     libcni.CNI
+}
+
+var errMissingDefaultNetwork = errors.New("Missing CNI default network")
+
+func (plugin *cniNetworkPlugin) monitorNetDir() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logrus.Errorf("could not create new watcher %v", err)
+		return
+	}
+	defer watcher.Close()
+
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logrus.Debugf("CNI monitoring event %v", event)
+				if event.Op&fsnotify.Create != fsnotify.Create {
+					continue
+				}
+
+				if err = plugin.syncNetworkConfig(); err == nil {
+					logrus.Debugf("CNI asynchronous setting succeeded")
+					close(plugin.monitorNetDirChan)
+					return
+				}
+
+				logrus.Errorf("CNI setting failed, continue monitoring: %v", err)
+
+			case err := <-watcher.Errors:
+				logrus.Errorf("CNI monitoring error %v", err)
+				close(plugin.monitorNetDirChan)
+				return
+			}
+		}
+	}()
+
+	if err = watcher.Add(plugin.pluginDir); err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	<-plugin.monitorNetDirChan
 }
 
 // InitCNI takes the plugin directory and cni directories where the cni files should be searched for
@@ -44,19 +89,16 @@ func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
 	// check if a default network exists, otherwise dump the CNI search and return a noop plugin
 	_, err = getDefaultCNINetwork(plugin.pluginDir, plugin.cniDirs, plugin.vendorCNIDirPrefix)
 	if err != nil {
-		glog.Warningf("Error in finding usable CNI plugin - %v", err)
-		// create a noop plugin instead
-		return &cniNoOp{}, nil
+		if err != errMissingDefaultNetwork {
+			logrus.Warningf("Error in finding usable CNI plugin - %v", err)
+			// create a noop plugin instead
+			return &cniNoOp{}, nil
+		}
+
+		// We do not have a default network, we start the monitoring thread.
+		go plugin.monitorNetDir()
 	}
 
-	// sync network config from pluginDir periodically to detect network config updates
-	go func() {
-		t := time.NewTimer(10 * time.Second)
-		for {
-			plugin.syncNetworkConfig()
-			<-t.C
-		}
-	}()
 	return plugin, nil
 }
 
@@ -67,10 +109,13 @@ func probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir string, cniDirs []strin
 		pluginDir:          pluginDir,
 		cniDirs:            cniDirs,
 		vendorCNIDirPrefix: vendorCNIDirPrefix,
+		monitorNetDirChan:  make(chan struct{}),
 	}
 
 	// sync NetworkConfig in best effort during probing.
-	plugin.syncNetworkConfig()
+	if err := plugin.syncNetworkConfig(); err != nil {
+		logrus.Error(err)
+	}
 	return plugin
 }
 
@@ -87,14 +132,14 @@ func getDefaultCNINetwork(pluginDir string, cniDirs []string, vendorCNIDirPrefix
 	case err != nil:
 		return nil, err
 	case len(files) == 0:
-		return nil, fmt.Errorf("No networks found in %s", pluginDir)
+		return nil, errMissingDefaultNetwork
 	}
 
 	sort.Strings(files)
 	for _, confFile := range files {
 		conf, err := libcni.ConfFromFile(confFile)
 		if err != nil {
-			glog.Warningf("Error loading CNI config file %s: %v", confFile, err)
+			logrus.Warningf("Error loading CNI config file %s: %v", confFile, err)
 			continue
 		}
 
@@ -142,13 +187,15 @@ func getLoNetwork(cniDirs []string, vendorDirPrefix string) *cniNetwork {
 	return loNetwork
 }
 
-func (plugin *cniNetworkPlugin) syncNetworkConfig() {
+func (plugin *cniNetworkPlugin) syncNetworkConfig() error {
 	network, err := getDefaultCNINetwork(plugin.pluginDir, plugin.cniDirs, plugin.vendorCNIDirPrefix)
 	if err != nil {
-		glog.Errorf("error updating cni config: %s", err)
-		return
+		logrus.Errorf("error updating cni config: %s", err)
+		return err
 	}
 	plugin.setDefaultNetwork(network)
+
+	return nil
 }
 
 func (plugin *cniNetworkPlugin) getDefaultNetwork() *cniNetwork {
@@ -181,13 +228,13 @@ func (plugin *cniNetworkPlugin) SetUpPod(netnsPath string, namespace string, nam
 
 	_, err := plugin.loNetwork.addToNetwork(name, namespace, id, netnsPath)
 	if err != nil {
-		glog.Errorf("Error while adding to cni lo network: %s", err)
+		logrus.Errorf("Error while adding to cni lo network: %s", err)
 		return err
 	}
 
 	_, err = plugin.getDefaultNetwork().addToNetwork(name, namespace, id, netnsPath)
 	if err != nil {
-		glog.Errorf("Error while adding to cni network: %s", err)
+		logrus.Errorf("Error while adding to cni network: %s", err)
 		return err
 	}
 
@@ -216,15 +263,15 @@ func (plugin *cniNetworkPlugin) GetContainerNetworkStatus(netnsPath string, name
 func (network *cniNetwork) addToNetwork(podName string, podNamespace string, podInfraContainerID string, podNetnsPath string) (*cnitypes.Result, error) {
 	rt, err := buildCNIRuntimeConf(podName, podNamespace, podInfraContainerID, podNetnsPath)
 	if err != nil {
-		glog.Errorf("Error adding network: %v", err)
+		logrus.Errorf("Error adding network: %v", err)
 		return nil, err
 	}
 
 	netconf, cninet := network.NetworkConfig, network.CNIConfig
-	glog.V(4).Infof("About to run with conf.Network.Type=%v", netconf.Network.Type)
+	logrus.Infof("About to run with conf.Network.Type=%v", netconf.Network.Type)
 	res, err := cninet.AddNetwork(netconf, rt)
 	if err != nil {
-		glog.Errorf("Error adding network: %v", err)
+		logrus.Errorf("Error adding network: %v", err)
 		return nil, err
 	}
 
@@ -234,23 +281,23 @@ func (network *cniNetwork) addToNetwork(podName string, podNamespace string, pod
 func (network *cniNetwork) deleteFromNetwork(podName string, podNamespace string, podInfraContainerID string, podNetnsPath string) error {
 	rt, err := buildCNIRuntimeConf(podName, podNamespace, podInfraContainerID, podNetnsPath)
 	if err != nil {
-		glog.Errorf("Error deleting network: %v", err)
+		logrus.Errorf("Error deleting network: %v", err)
 		return err
 	}
 
 	netconf, cninet := network.NetworkConfig, network.CNIConfig
-	glog.V(4).Infof("About to run with conf.Network.Type=%v", netconf.Network.Type)
+	logrus.Infof("About to run with conf.Network.Type=%v", netconf.Network.Type)
 	err = cninet.DelNetwork(netconf, rt)
 	if err != nil {
-		glog.Errorf("Error deleting network: %v", err)
+		logrus.Errorf("Error deleting network: %v", err)
 		return err
 	}
 	return nil
 }
 
 func buildCNIRuntimeConf(podName string, podNs string, podInfraContainerID string, podNetnsPath string) (*libcni.RuntimeConf, error) {
-	glog.V(4).Infof("Got netns path %v", podNetnsPath)
-	glog.V(4).Infof("Using netns path %v", podNs)
+	logrus.Infof("Got netns path %v", podNetnsPath)
+	logrus.Infof("Using netns path %v", podNs)
 
 	rt := &libcni.RuntimeConf{
 		ContainerID: podInfraContainerID,
