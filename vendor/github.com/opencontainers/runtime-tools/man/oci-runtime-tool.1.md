@@ -38,11 +38,11 @@ oci-runtime-tool is a collection of tools for working with the [OCI runtime spec
 # COMMANDS
 **validate**
   Validating OCI bundle
-  See **oci-runtime-tool-validate(1)** for full documentation on the **validate** command.
+  See **oci-runtime-tool-validate**(1) for full documentation on the **validate** command.
 
 **generate**
   Generating OCI runtime spec configuration files
-  See **oci-runtime-tool-generate(1)** for full documentation on the **generate** command.
+  See **oci-runtime-tool-generate**(1) for full documentation on the **generate** command.
 
 # SEE ALSO
 **oci-runtime-tool-validate**(1), **oci-runtime-tool-generate**(1)

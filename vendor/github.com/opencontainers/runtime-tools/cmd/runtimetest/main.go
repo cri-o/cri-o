@@ -29,13 +29,6 @@ const PR_GET_NO_NEW_PRIVS = 39
 const specConfig = "config.json"
 
 var (
-	defaultFS = map[string]string{
-		"/proc":    "proc",
-		"/sys":     "sysfs",
-		"/dev/pts": "devpts",
-		"/dev/shm": "tmpfs",
-	}
-
 	defaultSymlinks = map[string]string{
 		"/dev/fd":     "/proc/self/fd",
 		"/dev/stdin":  "/proc/self/fd/0",
@@ -129,7 +122,7 @@ func validateLinuxProcess(spec *rspec.Spec) error {
 		}
 	}
 
-	cmdlineBytes, err := ioutil.ReadFile("/proc/1/cmdline")
+	cmdlineBytes, err := ioutil.ReadFile("/proc/self/cmdline")
 	if err != nil {
 		return err
 	}
@@ -167,14 +160,30 @@ func validateCapabilities(spec *rspec.Spec) error {
 		last = capability.CAP_BLOCK_SUSPEND
 	}
 
-	processCaps, err := capability.NewPid(1)
+	processCaps, err := capability.NewPid(0)
 	if err != nil {
 		return err
 	}
 
-	expectedCaps := make(map[string]bool)
-	for _, ec := range spec.Process.Capabilities {
-		expectedCaps[ec] = true
+	expectedCaps1 := make(map[string]bool)
+	expectedCaps2 := make(map[string]bool)
+	expectedCaps3 := make(map[string]bool)
+	expectedCaps4 := make(map[string]bool)
+	expectedCaps5 := make(map[string]bool)
+	for _, ec := range spec.Process.Capabilities.Bounding {
+		expectedCaps1[ec] = true
+	}
+	for _, ec := range spec.Process.Capabilities.Effective {
+		expectedCaps2[ec] = true
+	}
+	for _, ec := range spec.Process.Capabilities.Inheritable {
+		expectedCaps3[ec] = true
+	}
+	for _, ec := range spec.Process.Capabilities.Permitted {
+		expectedCaps4[ec] = true
+	}
+	for _, ec := range spec.Process.Capabilities.Ambient {
+		expectedCaps5[ec] = true
 	}
 
 	for _, cap := range capability.List() {
@@ -183,13 +192,45 @@ func validateCapabilities(spec *rspec.Spec) error {
 		}
 
 		capKey := fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String()))
-		expectedSet := expectedCaps[capKey]
-		actuallySet := processCaps.Get(capability.EFFECTIVE, cap)
+		expectedSet := expectedCaps1[capKey]
+		actuallySet := processCaps.Get(capability.BOUNDING, cap)
 		if expectedSet != actuallySet {
 			if expectedSet {
-				return fmt.Errorf("Expected Capability %v not set for process", cap.String())
+				return fmt.Errorf("Expected bounding capability %v not set for process", cap.String())
 			}
-			return fmt.Errorf("Unexpected Capability %v set for process", cap.String())
+			return fmt.Errorf("Unexpected bounding capability %v set for process", cap.String())
+		}
+		expectedSet = expectedCaps2[capKey]
+		actuallySet = processCaps.Get(capability.EFFECTIVE, cap)
+		if expectedSet != actuallySet {
+			if expectedSet {
+				return fmt.Errorf("Expected effective capability %v not set for process", cap.String())
+			}
+			return fmt.Errorf("Unexpected effective capability %v set for process", cap.String())
+		}
+		expectedSet = expectedCaps3[capKey]
+		actuallySet = processCaps.Get(capability.INHERITABLE, cap)
+		if expectedSet != actuallySet {
+			if expectedSet {
+				return fmt.Errorf("Expected inheritable capability %v not set for process", cap.String())
+			}
+			return fmt.Errorf("Unexpected inheritable capability %v set for process", cap.String())
+		}
+		expectedSet = expectedCaps4[capKey]
+		actuallySet = processCaps.Get(capability.PERMITTED, cap)
+		if expectedSet != actuallySet {
+			if expectedSet {
+				return fmt.Errorf("Expected permitted capability %v not set for process", cap.String())
+			}
+			return fmt.Errorf("Unexpected permitted capability %v set for process", cap.String())
+		}
+		expectedSet = expectedCaps5[capKey]
+		actuallySet = processCaps.Get(capability.AMBIENT, cap)
+		if expectedSet != actuallySet {
+			if expectedSet {
+				return fmt.Errorf("Expected ambient capability %v not set for process", cap.String())
+			}
+			return fmt.Errorf("Unexpected ambient capability %v set for process", cap.String())
 		}
 	}
 
@@ -271,28 +312,6 @@ func validateRootFS(spec *rspec.Spec) error {
 	return nil
 }
 
-func validateDefaultFS(spec *rspec.Spec) error {
-	logrus.Debugf("validating linux default filesystem")
-
-	mountInfos, err := mount.GetMounts()
-	if err != nil {
-		return err
-	}
-
-	mountsMap := make(map[string]string)
-	for _, mountInfo := range mountInfos {
-		mountsMap[mountInfo.Mountpoint] = mountInfo.Fstype
-	}
-
-	for fs, fstype := range defaultFS {
-		if !(mountsMap[fs] == fstype) {
-			return fmt.Errorf("%v must exist and expected type is %v", fs, fstype)
-		}
-	}
-
-	return nil
-}
-
 func validateLinuxDevices(spec *rspec.Spec) error {
 	logrus.Debugf("validating linux devices")
 
@@ -309,13 +328,10 @@ func validateLinuxDevices(spec *rspec.Spec) error {
 		switch fStat.Mode & syscall.S_IFMT {
 		case syscall.S_IFCHR:
 			devType = "c"
-			break
 		case syscall.S_IFBLK:
 			devType = "b"
-			break
 		case syscall.S_IFIFO:
 			devType = "p"
-			break
 		default:
 			devType = "unmatched"
 		}
@@ -455,8 +471,8 @@ func validateOOMScoreAdj(spec *rspec.Spec) error {
 	return nil
 }
 
-func getIDMappings(path string) ([]rspec.IDMapping, error) {
-	var idMaps []rspec.IDMapping
+func getIDMappings(path string) ([]rspec.LinuxIDMapping, error) {
+	var idMaps []rspec.LinuxIDMapping
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -483,7 +499,7 @@ func getIDMappings(path string) ([]rspec.IDMapping, error) {
 			if err != nil {
 				return nil, err
 			}
-			idMaps = append(idMaps, rspec.IDMapping{HostID: uint32(hostID), ContainerID: uint32(containerID), Size: uint32(mapSize)})
+			idMaps = append(idMaps, rspec.LinuxIDMapping{HostID: uint32(hostID), ContainerID: uint32(containerID), Size: uint32(mapSize)})
 		} else {
 			return nil, fmt.Errorf("invalid format in %v", path)
 		}
@@ -492,7 +508,7 @@ func getIDMappings(path string) ([]rspec.IDMapping, error) {
 	return idMaps, nil
 }
 
-func validateIDMappings(mappings []rspec.IDMapping, path string, property string) error {
+func validateIDMappings(mappings []rspec.LinuxIDMapping, path string, property string) error {
 	idMaps, err := getIDMappings(path)
 	if err != nil {
 		return fmt.Errorf("can not get items: %v", err)
@@ -614,10 +630,6 @@ func validate(context *cli.Context) error {
 		{
 			test:        validateDefaultSymlinks,
 			description: "default symlinks",
-		},
-		{
-			test:        validateDefaultFS,
-			description: "default file system",
 		},
 		{
 			test:        validateDefaultDevices,

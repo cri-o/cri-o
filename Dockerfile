@@ -43,13 +43,12 @@ RUN mkdir -p /usr/src/criu \
     && rm -rf /usr/src/criu
 
 # Install runc
-# TODO: This should actually be v1.0.0-rc3 but we first need to switch to
-#       v1.0.0-rc5 runtime config generation.
-ENV RUNC_COMMIT 31980a53ae7887b2c8f8715d13c3eb486c27b6cf
+ENV RUNC_COMMIT v1.0.0-rc3
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
 	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
+	&& git fetch origin --tags \
 	&& git checkout -q "$RUNC_COMMIT" \
 	&& make static BUILDTAGS="seccomp selinux" \
 	&& cp runc /usr/local/bin/runc \

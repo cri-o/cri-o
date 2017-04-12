@@ -94,12 +94,12 @@ __oci-runtime-tool_subcommands() {
 
 # List groups
 __oci-runtime-tool_groups() {
-    cat /etc/group | cut -d: -f 1
+	cut -d: -f 1 /etc/group
 }
 
 # List installed hooks
 __oci-runtime-tool_hooks() {
-     ls /usr/libexec/oci/hooks.d/*
+	ls /usr/libexec/oci/hooks.d/*
 }
 
 # suppress trailing whitespace
@@ -137,6 +137,14 @@ __oci-runtime-tool_complete_arches() {
 		386
 		amd64
 		arm
+		arm64
+		mips
+		mips64
+		mips64le
+		mipsle
+		ppc64
+		ppc64le
+		s390x
 	" -- "$cur" ) )
 }
 
@@ -160,6 +168,8 @@ __oci-runtime-tool_complete_seccomp_arches() {
 		ppc64le
 		s390
 		s390x
+		parisc
+		parisc64
 	" -- "$cur" ) )
 }
 
@@ -227,8 +237,7 @@ _oci-runtime-tool_oci-runtime-tool() {
 	"
 
 	local boolean_options="
-		$global_boolean_options
-		--help
+		--help -h
 		--host-specific
 		--version -v
 	"
@@ -236,23 +245,18 @@ _oci-runtime-tool_oci-runtime-tool() {
 	local all_options="$options_with_args $boolean_options"
 
 	case "$prev" in
-		$(__oci-runtime-tool_to_extglob "$global_options_with_args") )
-			return
-			;;
-
 		--log-level)
 			__oci-runtime-tool_complete_log_level
 			return
 			;;
-
 	esac
 
 	case "$cur" in
 		-*)
-			COMPREPLY=( $( compgen -W "$all_options $global_options_with_args" -- "$cur" ) )
+			COMPREPLY=( $( compgen -W "$all_options" -- "$cur" ) )
 			;;
 		*)
-			local counter=$( __oci-runtime-tool_pos_first_nonflag $(__oci-runtime-tool_to_extglob "$global_options_with_args") )
+			local counter=$( __oci-runtime-tool_pos_first_nonflag $(__oci-runtime-tool_to_extglob "$options_with_args") )
 			if [ $cword -eq $counter ]; then
 				COMPREPLY=( $( compgen -W "${commands[*]} help" -- "$cur" ) )
 			fi
@@ -282,7 +286,7 @@ _oci-runtime-tool_validate() {
 
 	case "$cur" in
 		-*)
-			COMPREPLY=( $( compgen -W "--path --help" -- "$cur" ) )
+			COMPREPLY=( $( compgen -W "--path --help -h" -- "$cur" ) )
 			;;
 	esac
 
@@ -305,6 +309,8 @@ _oci-runtime-tool_generate() {
 		--cap-drop
 		--cgroups-path
 		--cwd
+		--device-add
+		--device-remove
 		--env
 		--env-file
 		--gid
@@ -362,7 +368,9 @@ _oci-runtime-tool_generate() {
 	"
 
 	local boolean_options="
+		--device-remove-all
 		--disable-oom-kill
+		--help -h
 		--linux-namespace-remove-all
 		--no-new-privileges
 		--privileged
@@ -376,23 +384,8 @@ _oci-runtime-tool_generate() {
 	local all_options="$options_with_args $boolean_options"
 
 	case "$prev" in
-		--seccomp-arch)
-		    __oci-runtime-tool_complete_seccomp_arches
-			return
-			;;
-
 		--arch)
-		    __oci-runtime-tool_complete_arches
-			return
-			;;
-
-		--seccomp-default)
-			__oci-runtime-tool_complete_seccomp_actions
-			return
-			;;
-
-		--root-propagation)
-			__oci-runtime-tool_complete_propagations
+			__oci-runtime-tool_complete_arches
 			return
 			;;
 
@@ -401,13 +394,20 @@ _oci-runtime-tool_generate() {
 			return
 			;;
 
-		--mount-cgroups)
-			COMPREPLY=( $( compgen -W "ro" -- "$cur" ) )
+		--env|-e)
+			COMPREPLY=( $( compgen -e -- "$cur" ) )
+			__oci-runtime-tool_nospace
 			return
 			;;
 
-		--os)
-			COMPREPLY=( $( compgen -W "linux windows" -- "$cur" ) )
+		--env-file)
+			_filedir
+			__oci-runtime-tool_nospace
+			return
+			;;
+
+		--gid)
+			_gids
 			return
 			;;
 
@@ -417,9 +417,24 @@ _oci-runtime-tool_generate() {
 			return
 			;;
 
+		--mount-cgroups)
+			COMPREPLY=( $( compgen -W "no ro rw" -- "$cur" ) )
+			return
+			;;
+
+		--os)
+			COMPREPLY=( $( compgen -W "linux windows" -- "$cur" ) )
+			return
+			;;
+
 		--poststart|--poststop|--prestart)
 			COMPREPLY=( $( compgen -W "$( __oci-runtime-tool_hooks )" -- "$cur" ) )
 			__oci-runtime-tool_nospace
+			return
+			;;
+
+		--root-propagation)
+			__oci-runtime-tool_complete_propagations
 			return
 			;;
 
@@ -439,17 +454,19 @@ _oci-runtime-tool_generate() {
 			esac
 			return
 			;;
-		--env|-e)
-			COMPREPLY=( $( compgen -e -- "$cur" ) )
-			__oci-runtime-tool_nospace
+
+		--seccomp-arch)
+			__oci-runtime-tool_complete_seccomp_arches
 			return
 			;;
-		--env-file)
-		    _filedir
-			__oci-runtime-tool_nospace
-		    return
-		    ;;
-		$(__oci-runtime-tool_to_extglob "$options_with_args") )
+
+		--seccomp-default)
+			__oci-runtime-tool_complete_seccomp_actions
+			return
+			;;
+
+		--uid)
+			_uids
 			return
 			;;
 	esac
@@ -469,17 +486,6 @@ _oci-runtime-tool() {
 		validate
 		generate
 	)
-
-	# These options are valid as global options for all client commands
-	# and valid as command options for `oci-runtime-tool daemon`
-	local global_boolean_options="
-		--help -h
-		--version -v
-	"
-
-	local global_options_with_args="
-		--help
-	"
 
 	COMPREPLY=()
 	local cur prev words cword

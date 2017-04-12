@@ -22,6 +22,9 @@
             "branch": "master"
         },
         "github.com/opencontainers/runtime-spec": {
+            "version": "v1.0.0-rc5"
+        },
+        "github.com/opencontainers/runtime-tools": {
             "branch": "master"
         },
         "github.com/opencontainers/selinux": {

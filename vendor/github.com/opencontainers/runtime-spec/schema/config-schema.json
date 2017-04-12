@@ -56,9 +56,12 @@
             }
         },
         "root": {
-            "description": "The path to the root filesystem for the container.",
+            "description": "Configures the container's root filesystem.",
             "id": "https://opencontainers.org/schema/bundle/root",
             "type": "object",
+            "required": [
+                "path"
+            ],
             "properties": {
                 "path": {
                     "id": "https://opencontainers.org/schema/bundle/root/path",
@@ -81,6 +84,24 @@
                 "args": {
                     "id": "https://opencontainers.org/schema/bundle/process/args",
                     "$ref": "defs.json#/definitions/ArrayOfStrings"
+                },
+                "consoleSize": {
+                    "id": "https://opencontainers.org/schema/bundle/process/consoleSize",
+                    "type": "object",
+                    "required": [
+                        "height",
+                        "width"
+                    ],
+                    "properties": {
+                        "height": {
+                            "id": "https://opencontainers.org/schema/bundle/process/consoleSize/height",
+                            "$ref": "defs.json#/definitions/uint64"
+                        },
+                        "width": {
+                            "id": "https://opencontainers.org/schema/bundle/process/consoleSize/width",
+                            "$ref": "defs.json#/definitions/uint64"
+                        }
+                    }
                 },
                 "cwd": {
                     "id": "https://opencontainers.org/schema/bundle/process/cwd",
@@ -114,9 +135,43 @@
                 },
                 "capabilities": {
                     "id": "https://opencontainers.org/schema/bundle/process/linux/capabilities",
-                    "type": "array",
-                    "items": {
-                        "$ref": "defs-linux.json#/definitions/Capability"
+                    "type": "object",
+                    "properties": {
+                        "bounding": {
+                            "id": "https://opencontainers.org/schema/bundle/process/linux/capabilities/bounding",
+                            "type": "array",
+                            "items": {
+                                "$ref": "defs-linux.json#/definitions/Capability"
+                            }
+                        },
+                        "permitted": {
+                            "id": "https://opencontainers.org/schema/bundle/process/linux/capabilities/permitted",
+                            "type": "array",
+                            "items": {
+                                "$ref": "defs-linux.json#/definitions/Capability"
+                            }
+                        },
+                        "effective": {
+                            "id": "https://opencontainers.org/schema/bundle/process/linux/capabilities/effective",
+                            "type": "array",
+                            "items": {
+                                "$ref": "defs-linux.json#/definitions/Capability"
+                            }
+                        },
+                        "inheritable": {
+                            "id": "https://opencontainers.org/schema/bundle/process/linux/capabilities/inheritable",
+                            "type": "array",
+                            "items": {
+                                "$ref": "defs-linux.json#/definitions/Capability"
+                            }
+                        },
+                        "ambient": {
+                            "id": "https://opencontainers.org/schema/bundle/process/linux/capabilities/ambient",
+                            "type": "array",
+                            "items": {
+                                "$ref": "defs-linux.json#/definitions/Capability"
+                            }
+                        }
                     }
                 },
                 "apparmorProfile": {
@@ -137,6 +192,11 @@
                     "items": {
                         "id": "https://opencontainers.org/schema/bundle/linux/rlimits/0",
                         "type": "object",
+                        "required": [
+                            "type",
+                            "soft",
+                            "hard"
+                        ],
                         "properties": {
                             "hard": {
                                 "id": "https://opencontainers.org/schema/bundle/linux/rlimits/0/hard",
@@ -161,14 +221,15 @@
         },
         "solaris": {
             "$ref": "config-solaris.json#/solaris"
+        },
+        "windows": {
+            "$ref": "config-windows.json#/windows"
         }
     },
     "required": [
         "ociVersion",
         "platform",
         "process",
-        "root",
-        "mounts",
-        "hooks"
+        "root"
     ]
 }

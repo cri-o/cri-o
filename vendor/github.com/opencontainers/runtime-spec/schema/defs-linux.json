@@ -18,7 +18,9 @@
                 "SCMP_ARCH_PPC64",
                 "SCMP_ARCH_PPC64LE",
                 "SCMP_ARCH_S390",
-                "SCMP_ARCH_S390X"
+                "SCMP_ARCH_S390X",
+                "SCMP_ARCH_PARISC",
+                "SCMP_ARCH_PARISC64"
             ]
         },
         "SeccompAction": {
@@ -44,6 +46,7 @@
             ]
         },
         "SyscallArg": {
+            "type": "object",
             "properties": {
                 "index": {
                     "$ref": "defs.json#/definitions/uint32"
@@ -60,9 +63,12 @@
             }
         },
         "Syscall": {
+            "type": "object",
             "properties": {
-                "name": {
-                    "type": "string"
+                "names": {
+                    "type": [
+                        "string"
+                    ]
                 },
                 "action": {
                     "$ref": "#/definitions/SeccompAction"
@@ -76,17 +82,17 @@
             }
         },
         "Capability": {
-            "description": "Linux process permissions",
+            "description": "Linux process capabilities",
             "type": "string",
             "pattern": "^CAP_([A-Z]|_)+$"
         },
         "Major": {
             "description": "major device number",
-            "$ref": "defs.json#/definitions/uint16"
+            "$ref": "defs.json#/definitions/int64"
         },
         "Minor": {
             "description": "minor device number",
-            "$ref": "defs.json#/definitions/uint16"
+            "$ref": "defs.json#/definitions/int64"
         },
         "FileMode": {
             "description": "File permissions mode (typically an octal value)",
@@ -94,21 +100,20 @@
             "minimum": 0,
             "maximum": 512
         },
-        "FilePermissions": {
-            "type": "string"
-        },
         "FileType": {
             "description": "Type of a block or special character device",
             "type": "string",
             "pattern": "^[cbup]$"
         },
         "Device": {
+            "type": "object",
+            "required": [
+                "type",
+                "path"
+            ],
             "properties": {
                 "type": {
                     "$ref": "#/definitions/FileType"
-                },
-                "permissions": {
-                    "$ref": "#/definitions/FilePermissions"
                 },
                 "path": {
                     "$ref": "defs.json#/definitions/FilePath"
@@ -135,17 +140,8 @@
             "minimum": 10,
             "maximum": 1000
         },
-        "blkioWeightPointer": {
-            "oneOf": [
-                {
-                    "$ref": "#/definitions/blkioWeight"
-                },
-                {
-                    "type": "null"
-                }
-            ]
-        },
         "blockIODevice": {
+            "type": "object",
             "properties": {
                 "major": {
                     "$ref": "#/definitions/Major"
@@ -166,24 +162,15 @@
                     "$ref": "#/definitions/blockIODevice"
                 },
                 {
+                    "type": "object",
                     "properties": {
                         "weight": {
-                            "$ref": "#/definitions/blkioWeightPointer"
+                            "$ref": "#/definitions/blkioWeight"
                         },
                         "leafWeight": {
-                            "$ref": "#/definitions/blkioWeightPointer"
+                            "$ref": "#/definitions/blkioWeight"
                         }
                     }
-                }
-            ]
-        },
-        "blockIODeviceWeightPointer": {
-            "oneOf": [
-                {
-                    "$ref": "#/definitions/blockIODeviceWeight"
-                },
-                {
-                    "type": "null"
                 }
             ]
         },
@@ -193,25 +180,40 @@
                     "$ref": "#/definitions/blockIODevice"
                 },
                 {
+                    "type": "object",
                     "properties": {
                         "rate": {
-                            "$ref": "defs.json#/definitions/uint64Pointer"
+                            "$ref": "defs.json#/definitions/uint64"
                         }
                     }
                 }
             ]
         },
-        "blockIODeviceThrottlePointer": {
-            "oneOf": [
-                {
-                    "$ref": "#/definitions/blockIODeviceThrottle"
+        "DeviceCgroup": {
+            "type": "object",
+            "properties": {
+                "allow": {
+                    "type": "boolean"
                 },
-                {
-                    "type": "null"
+                "type": {
+                    "type": "string"
+                },
+                "major": {
+                    "$ref": "#/definitions/Major"
+                },
+                "minor": {
+                    "$ref": "#/definitions/Minor"
+                },
+                "access": {
+                    "type": "string"
                 }
+            },
+            "required": [
+                "allow"
             ]
         },
         "NetworkInterfacePriority": {
+            "type": "object",
             "properties": {
                 "name": {
                     "type": "string"
@@ -219,7 +221,11 @@
                 "priority": {
                     "$ref": "defs.json#/definitions/uint32"
                 }
-            }
+            },
+            "required": [
+                "name",
+                "priority"
+            ]
         },
         "NamespaceType": {
             "type": "string",
@@ -234,6 +240,7 @@
             ]
         },
         "NamespaceReference": {
+            "type": "object",
             "properties": {
                 "type": {
                     "$ref": "#/definitions/NamespaceType"
@@ -241,7 +248,10 @@
                 "path": {
                     "$ref": "defs.json#/definitions/FilePath"
                 }
-            }
+            },
+            "required": [
+                "type"
+            ]
         }
     }
 }

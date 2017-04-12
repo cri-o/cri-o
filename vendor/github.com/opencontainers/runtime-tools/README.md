@@ -30,18 +30,48 @@ INFO[0000] Bundle validation succeeded.
 ## Testing OCI runtimes
 
 ```sh
-$ make
-$ sudo make install
-$ sudo ./test_runtime.sh -r runc
------------------------------------------------------------------------------------
-VALIDATING RUNTIME: runc
------------------------------------------------------------------------------------
-validating container process
-validating capabilities
-validating hostname
-validating rlimits
-validating sysctls
-Runtime runc passed validation
+$ sudo make RUNTIME=runc localvalidation
+RUNTIME=runc go test -tags ""  -v github.com/opencontainers/runtime-tools/validation
+=== RUN   TestValidateBasic
+TAP version 13
+ok 1 - root filesystem
+ok 2 - hostname
+ok 3 - mounts
+ok 4 - capabilities
+ok 5 - default symlinks
+ok 6 - default devices
+ok 7 - linux devices
+ok 8 - linux process
+ok 9 - masked paths
+ok 10 - oom score adj
+ok 11 - read only paths
+ok 12 - rlimits
+ok 13 - sysctls
+ok 14 - uid mappings
+ok 15 - gid mappings
+1..15
+--- PASS: TestValidateBasic (0.08s)
+=== RUN   TestValidateSysctls
+TAP version 13
+ok 1 - root filesystem
+ok 2 - hostname
+ok 3 - mounts
+ok 4 - capabilities
+ok 5 - default symlinks
+ok 6 - default devices
+ok 7 - linux devices
+ok 8 - linux process
+ok 9 - masked paths
+ok 10 - oom score adj
+ok 11 - read only paths
+ok 12 - rlimits
+ok 13 - sysctls
+ok 14 - uid mappings
+ok 15 - gid mappings
+1..15
+--- PASS: TestValidateSysctls (0.20s)
+PASS
+ok      github.com/opencontainers/runtime-tools/validation      0.281s
 ```
 
 [bundle]: https://github.com/opencontainers/runtime-spec/blob/master/bundle.md

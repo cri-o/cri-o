@@ -1,5 +1,5 @@
 {
-    "memo": "1290be673a75036ce5bea81021073dd7041dc3f421446912b6b7ae0ed511fe93",
+    "memo": "0d3077faf280e4e13e18e56f085053d4ced593c2fcfcb09d7df1aea8f0bba403",
     "projects": [
         {
             "name": "github.com/BurntSushi/toml",
@@ -31,6 +31,14 @@
             "name": "github.com/Sirupsen/logrus",
             "branch": "master",
             "revision": "61e43dc76f7ee59a82bdf3d71033dc12bea4c77d",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/blang/semver",
+            "version": "v3.5.0",
+            "revision": "b38d23b8782a487059e8fc8773e9a5b228a77cb6",
             "packages": [
                 "."
             ]
@@ -325,8 +333,8 @@
         },
         {
             "name": "github.com/opencontainers/runtime-spec",
-            "branch": "master",
-            "revision": "bb6925ea99f0e366a3f7d1c975f6577475ca25f0",
+            "version": "v1.0.0-rc5",
+            "revision": "035da1dca3dfbb00d752eb58b0b158d6129f3776",
             "packages": [
                 "specs-go"
             ]
@@ -334,10 +342,11 @@
         {
             "name": "github.com/opencontainers/runtime-tools",
             "branch": "master",
-            "revision": "2d92f6557e64d4f9a0e799a75fdf153cec13dffa",
+            "revision": "18a122b45a71765b09c6a451008a63687040b74a",
             "packages": [
                 "generate",
-                "generate/seccomp"
+                "generate/seccomp",
+                "validate"
             ]
         },
         {
