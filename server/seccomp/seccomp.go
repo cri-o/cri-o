@@ -75,7 +75,7 @@ func setupSeccomp(config *Seccomp, specgen *generate.Generator) error {
 	}
 
 	customspec := specgen.Spec()
-	customspec.Linux.Seccomp = &specs.Seccomp{}
+	customspec.Linux.Seccomp = &specs.LinuxSeccomp{}
 
 	// if config.Architectures == 0 then libseccomp will figure out the architecture to use
 	if len(config.Architectures) != 0 {
@@ -99,7 +99,7 @@ func setupSeccomp(config *Seccomp, specgen *generate.Generator) error {
 		}
 	}
 
-	customspec.Linux.Seccomp.DefaultAction = specs.Action(config.DefaultAction)
+	customspec.Linux.Seccomp.DefaultAction = specs.LinuxSeccompAction(config.DefaultAction)
 
 Loop:
 	// Loop through all syscall blocks and convert them to libcontainer format after filtering them
@@ -111,7 +111,7 @@ Loop:
 		}
 		if len(call.Excludes.Caps) > 0 {
 			for _, c := range call.Excludes.Caps {
-				if stringutils.InSlice(customspec.Process.Capabilities, c) {
+				if stringutils.InSlice(customspec.Process.Capabilities.Permitted, c) {
 					continue Loop
 				}
 			}
@@ -123,7 +123,7 @@ Loop:
 		}
 		if len(call.Includes.Caps) > 0 {
 			for _, c := range call.Includes.Caps {
-				if !stringutils.InSlice(customspec.Process.Capabilities, c) {
+				if !stringutils.InSlice(customspec.Process.Capabilities.Permitted, c) {
 					continue Loop
 				}
 			}
@@ -145,19 +145,19 @@ Loop:
 	return nil
 }
 
-func createSpecsSyscall(name string, action Action, args []*Arg) specs.Syscall {
-	newCall := specs.Syscall{
-		Name:   name,
-		Action: specs.Action(action),
+func createSpecsSyscall(name string, action Action, args []*Arg) specs.LinuxSyscall {
+	newCall := specs.LinuxSyscall{
+		Names:  []string{name},
+		Action: specs.LinuxSeccompAction(action),
 	}
 
 	// Loop through all the arguments of the syscall and convert them
 	for _, arg := range args {
-		newArg := specs.Arg{
+		newArg := specs.LinuxSeccompArg{
 			Index:    arg.Index,
 			Value:    arg.Value,
 			ValueTwo: arg.ValueTwo,
-			Op:       specs.Operator(arg.Op),
+			Op:       specs.LinuxSeccompOperator(arg.Op),
 		}
 
 		newCall.Args = append(newCall.Args, newArg)

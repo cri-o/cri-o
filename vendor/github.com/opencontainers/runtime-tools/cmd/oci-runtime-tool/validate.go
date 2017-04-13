@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/urfave/cli"
-
 	"github.com/opencontainers/runtime-tools/validate"
+	"github.com/urfave/cli"
 )
 
 var bundleValidateFlags = []cli.Flag{

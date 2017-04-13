@@ -2,6 +2,7 @@ PREFIX ?= $(DESTDIR)/usr
 BINDIR ?= $(DESTDIR)/usr/bin
 
 BUILDTAGS=
+RUNTIME ?= runc
 RUNTIME_TOOLS_LINK := $(CURDIR)/Godeps/_workspace/src/github.com/opencontainers/runtime-tools
 export GOPATH:=$(CURDIR)/Godeps/_workspace:$(GOPATH)
 
@@ -34,6 +35,10 @@ clean:
 
 $(RUNTIME_TOOLS_LINK):
 	ln -sf $(CURDIR) $(RUNTIME_TOOLS_LINK)
+
+localvalidation:
+	RUNTIME=$(RUNTIME) go test -tags "$(BUILDTAGS)" ${TESTFLAGS} -v github.com/opencontainers/runtime-tools/validation
+
 
 .PHONY: test .gofmt .govet .golint
 

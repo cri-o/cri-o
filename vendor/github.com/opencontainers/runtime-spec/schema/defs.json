@@ -1,5 +1,5 @@
 {
-    "description": "Definitions used throughout the OpenContainer Specification",
+    "description": "Definitions used throughout the Open Container Runtime Specification",
     "definitions": {
         "int8": {
             "type": "integer",
@@ -41,35 +41,10 @@
             "minimum": 0,
             "maximum": 18446744073709552000
         },
-        "uint16Pointer": {
-            "oneOf": [
-                {
-                    "$ref": "#/definitions/uint16"
-                },
-                {
-                    "type": "null"
-                }
-            ]
-        },
-        "uint64Pointer": {
-            "oneOf": [
-                {
-                    "$ref": "#/definitions/uint64"
-                },
-                {
-                    "type": "null"
-                }
-            ]
-        },
-        "stringPointer": {
-            "oneOf": [
-                {
-                    "type": "string"
-                },
-                {
-                    "type": "null"
-                }
-            ]
+        "percent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
         },
         "mapStringString": {
             "type": "object",
@@ -104,6 +79,7 @@
             "$ref": "#/definitions/ArrayOfStrings"
         },
         "Hook": {
+            "type": "object",
             "properties": {
                 "path": {
                     "$ref": "#/definitions/FilePath"
@@ -113,8 +89,14 @@
                 },
                 "env": {
                     "$ref": "#/definitions/Env"
+                },
+                "timeout": {
+                    "type": "integer"
                 }
-            }
+            },
+            "required": [
+                "path"
+            ]
         },
         "ArrayOfHooks": {
             "type": "array",
@@ -123,6 +105,7 @@
             }
         },
         "IDMapping": {
+            "type": "object",
             "properties": {
                 "hostID": {
                     "$ref": "#/definitions/uint32"
@@ -133,9 +116,15 @@
                 "size": {
                     "$ref": "#/definitions/uint32"
                 }
-            }
+            },
+            "required": [
+                "hostID",
+                "containerID",
+                "size"
+            ]
         },
         "Mount": {
+            "type": "object",
             "properties": {
                 "source": {
                     "$ref": "#/definitions/FilePath"
@@ -151,9 +140,7 @@
                 }
             },
             "required": [
-                "destination",
-                "source",
-                "type"
+                "destination"
             ]
         },
         "ociVersion": {
@@ -161,14 +148,7 @@
             "type": "string"
         },
         "annotations": {
-            "oneOf": [
-                {
-                    "$ref": "#/definitions/mapStringString"
-                },
-                {
-                    "type": "null"
-                }
-            ]
+            "$ref": "#/definitions/mapStringString"
         }
     }
 }

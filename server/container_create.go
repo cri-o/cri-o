@@ -365,7 +365,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 			cpuQuota := resources.CpuQuota
 			if cpuQuota != 0 {
-				specgen.SetLinuxResourcesCPUQuota(uint64(cpuQuota))
+				specgen.SetLinuxResourcesCPUQuota(cpuQuota)
 			}
 
 			cpuShares := resources.CpuShares
