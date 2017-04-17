@@ -13,6 +13,15 @@ ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_OCID ?= ${ETCDIR}/ocid
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
+BINARIES := \
+	ocid \
+	ocic \
+	kpod \
+	conmon \
+	pause \
+	bin2img \
+	copyimg \
+	checkseccomp
 
 all: binaries ocid.conf docs
 
@@ -30,12 +39,14 @@ help:
 
 .PHONY: check-gopath
 
-check-gopath:
-ifndef GOPATH
-	$(error GOPATH is not set)
-endif
+check-gopath =					\
+if [ -z "GOPATH" ] ; then		\
+	echo "GOPATH is not set";	\
+	exit 1;						\
+fi
 
-lint: check-gopath
+lint:
+	@$(call check-gopath)
 	@echo "checking lint"
 	@./.tool/lint
 
@@ -54,18 +65,22 @@ bin2img:
 copyimg:
 	$(MAKE) -C test/$@ BUILDTAGS="$(BUILDTAGS)"
 
-checkseccomp: check-gopath
+checkseccomp:
+	@$(check-gopath)
 	$(MAKE) -C test/$@
 
-ocid: check-gopath
+ocid:
+	@$(check-gopath)
 	$(GO) build -o $@ \
 		-tags "$(BUILDTAGS)" \
 		$(PROJECT)/cmd/ocid
 
-ocic: check-gopath
+ocic:
+	@$(check-gopath)
 	$(GO) build -o $@ $(PROJECT)/cmd/ocic
 
-kpod: check-gopath
+kpod:
+	@$(check-gopath)
 	$(GO) build -o $@ $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
@@ -95,7 +110,7 @@ integration: ocidimage
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: ocid ocic kpod conmon pause bin2img copyimg checkseccomp
+binaries: $(BINARIES)
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
@@ -111,7 +126,7 @@ docs/%.8: docs/%.8.md check-gopath
 
 docs: $(MANPAGES)
 
-install: check-gopath
+install:
 	install -D -m 755 ocid $(BINDIR)/ocid
 	install -D -m 755 ocic $(BINDIR)/ocic
 	install -D -m 755 kpod $(BINDIR)/kpod
