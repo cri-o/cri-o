@@ -131,7 +131,7 @@ type sandbox struct {
 	labels         fields.Set
 	annotations    map[string]string
 	infraContainer *oci.Container
-	containers     oci.Store
+	containers     oci.ContainerStorer
 	processLabel   string
 	mountLabel     string
 	netns          *sandboxNetNs

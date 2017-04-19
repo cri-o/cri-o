@@ -519,7 +519,7 @@ func New(config *Config) (*Server, error) {
 
 type serverState struct {
 	sandboxes  map[string]*sandbox
-	containers oci.Store
+	containers oci.ContainerStorer
 }
 
 func (s *Server) addSandbox(sb *sandbox) {

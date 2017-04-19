@@ -8,9 +8,8 @@ type StoreFilter func(*Container) bool
 // manipulate containers in the store
 type StoreReducer func(*Container)
 
-// Store defines an interface that
-// any container store must implement.
-type Store interface {
+// ContainerStorer defines an interface that any container store must implement.
+type ContainerStorer interface {
 	// Add appends a new container to the store.
 	Add(string, *Container)
 	// Get returns a container from the store by the identifier it was stored with.

@@ -9,7 +9,7 @@ type memoryStore struct {
 }
 
 // NewMemoryStore initializes a new memory store.
-func NewMemoryStore() Store {
+func NewMemoryStore() ContainerStorer {
 	return &memoryStore{
 		s: make(map[string]*Container),
 	}
@@ -89,4 +89,4 @@ func (c *memoryStore) all() []*Container {
 	return containers
 }
 
-var _ Store = &memoryStore{}
+var _ ContainerStorer = &memoryStore{}
