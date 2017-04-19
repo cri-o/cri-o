@@ -250,7 +250,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
-			err2 := s.storage.DeleteContainer(containerID)
+			err2 := s.storageRuntimeServer.DeleteContainer(containerID)
 			if err2 != nil {
 				logrus.Warnf("Failed to cleanup container directory: %v", err2)
 			}
@@ -491,7 +491,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	metaname := metadata.Name
 	attempt := metadata.Attempt
-	containerInfo, err := s.storage.CreateContainer(s.imageContext,
+	containerInfo, err := s.storageRuntimeServer.CreateContainer(s.imageContext,
 		sb.name, sb.id,
 		image, image,
 		containerName, containerID,
@@ -503,7 +503,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	mountPoint, err := s.storage.StartContainer(containerID)
+	mountPoint, err := s.storageRuntimeServer.StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}

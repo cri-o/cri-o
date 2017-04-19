@@ -29,20 +29,20 @@ const (
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	config       Config
-	runtime      *oci.Runtime
-	store        sstorage.Store
-	images       storage.ImageServer
-	storage      storage.RuntimeServer
-	stateLock    sync.Mutex
-	updateLock   sync.RWMutex
-	state        *serverState
-	netPlugin    ocicni.CNIPlugin
-	podNameIndex *registrar.Registrar
-	podIDIndex   *truncindex.TruncIndex
-	ctrNameIndex *registrar.Registrar
-	ctrIDIndex   *truncindex.TruncIndex
-	imageContext *types.SystemContext
+	config               Config
+	runtime              *oci.Runtime
+	store                sstorage.Store
+	storageImageServer   storage.ImageServer
+	storageRuntimeServer storage.RuntimeServer
+	stateLock            sync.Mutex
+	updateLock           sync.RWMutex
+	state                *serverState
+	netPlugin            ocicni.CNIPlugin
+	podNameIndex         *registrar.Registrar
+	podIDIndex           *truncindex.TruncIndex
+	ctrNameIndex         *registrar.Registrar
+	ctrIDIndex           *truncindex.TruncIndex
+	imageContext         *types.SystemContext
 
 	seccompEnabled bool
 	seccompProfile seccomp.Seccomp
@@ -255,7 +255,7 @@ func (s *Server) restore() {
 	pods := map[string]*storage.RuntimeContainerMetadata{}
 	podContainers := map[string]*storage.RuntimeContainerMetadata{}
 	for _, container := range containers {
-		metadata, err2 := s.storage.GetContainerMetadata(container.ID)
+		metadata, err2 := s.storageRuntimeServer.GetContainerMetadata(container.ID)
 		if err2 != nil {
 			logrus.Warnf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
 			continue
@@ -316,7 +316,7 @@ func (s *Server) update() error {
 			continue
 		}
 		// not previously known, so figure out what it is
-		metadata, err2 := s.storage.GetContainerMetadata(container.ID)
+		metadata, err2 := s.storageRuntimeServer.GetContainerMetadata(container.ID)
 		if err2 != nil {
 			logrus.Errorf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
 			continue
@@ -470,12 +470,12 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{
-		runtime:   r,
-		store:     store,
-		images:    imageService,
-		storage:   storageRuntimeService,
-		netPlugin: netPlugin,
-		config:    *config,
+		runtime:              r,
+		store:                store,
+		storageImageServer:   imageService,
+		storageRuntimeServer: storageRuntimeService,
+		netPlugin:            netPlugin,
+		config:               *config,
 		state: &serverState{
 			sandboxes:  sandboxes,
 			containers: containers,
