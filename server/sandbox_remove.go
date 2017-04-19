@@ -15,7 +15,6 @@ import (
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
 	logrus.Debugf("RemovePodSandboxRequest %+v", req)
-	s.Update()
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == errSandboxIDEmpty {
