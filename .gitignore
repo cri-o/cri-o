@@ -1,4 +1,5 @@
 /.artifacts/
+/_output/
 /conmon/conmon
 /conmon/conmon.o
 /docs/*.[158]

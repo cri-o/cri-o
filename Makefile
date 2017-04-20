@@ -14,6 +14,17 @@ ETCDIR_OCID ?= ${ETCDIR}/ocid
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 
+# If GOPATH not specified, use one in the local directory
+ifeq ($(GOPATH),)
+export GOPATH := $(CURDIR)/_output
+unexport GOBIN
+endif
+GOPKGDIR := $(GOPATH)/src/$(PROJECT)
+GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
+
+# Update VPATH so make finds .gopathok
+VPATH := $(VPATH):$(GOPATH)
+
 all: binaries ocid.conf docs
 
 default: help
@@ -28,14 +39,14 @@ help:
 	@echo " * 'lint' - Execute the source code linter"
 	@echo " * 'gofmt' - Verify the source code gofmt"
 
-.PHONY: check-gopath
-
-check-gopath:
-ifndef GOPATH
-	$(error GOPATH is not set)
+.gopathok:
+ifeq ("$(wildcard $(GOPKGDIR))","")
+	mkdir -p "$(GOPKGBASEDIR)"
+	ln -s "$(CURDIR)" "$(GOPKGBASEDIR)"
 endif
+	touch "$(GOPATH)/.gopathok"
 
-lint: check-gopath
+lint: .gopathok
 	@echo "checking lint"
 	@./.tool/lint
 
@@ -48,30 +59,34 @@ conmon:
 pause:
 	$(MAKE) -C $@
 
-bin2img:
-	$(MAKE) -C test/$@ BUILDTAGS="$(BUILDTAGS)"
+bin2img: .gopathok $(wildcard test/bin2img/*.go)
+	go build -tags "$(BUILDTAGS)" -o test/bin2img/$@ $(PROJECT)/test/bin2img
 
-copyimg:
-	$(MAKE) -C test/$@ BUILDTAGS="$(BUILDTAGS)"
+copyimg: .gopathok $(wildcard test/copyimg/*.go)
+	go build -tags "$(BUILDTAGS)" -o test/copyimg/$@ $(PROJECT)/test/copyimg
 
-checkseccomp: check-gopath
-	$(MAKE) -C test/$@
+checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
+	go build -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
 
-ocid: check-gopath
+ocid: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/ocid $(PROJECT))
 	$(GO) build -o $@ \
 		-tags "$(BUILDTAGS)" \
 		$(PROJECT)/cmd/ocid
 
-ocic: check-gopath
+ocic: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/ocic $(PROJECT))
 	$(GO) build -o $@ $(PROJECT)/cmd/ocic
 
-kpod: check-gopath
+kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
 	$(GO) build -o $@ $(PROJECT)/cmd/kpod
 
 ocid.conf: ocid
 	./ocid --config="" config --default > ocid.conf
 
 clean:
+ifneq ($(GOPATH),)
+	rm -f "$(GOPATH)/.gopathok"
+endif
+	rm -rf _output
 	rm -f docs/*.1 docs/*.5 docs/*.8
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
@@ -79,9 +94,9 @@ clean:
 	rm -f ocic ocid kpod
 	make -C conmon clean
 	make -C pause clean
-	make -C test/bin2img clean
-	make -C test/copyimg clean
-	make -C test/checkseccomp clean
+	rm -f test/bin2img/bin2img
+	rm -f test/copyimg/copyimg
+	rm -f test/checkseccomp/checkseccomp
 
 ocidimage:
 	docker build -t ${OCID_IMAGE} .
@@ -100,18 +115,18 @@ binaries: ocid ocic kpod conmon pause bin2img copyimg checkseccomp
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
-docs/%.1: docs/%.1.md check-gopath
+docs/%.1: docs/%.1.md .gopathok
 	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs/%.5: docs/%.5.md check-gopath
+docs/%.5: docs/%.5.md .gopathok
 	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
-docs/%.8: docs/%.8.md check-gopath
+docs/%.8: docs/%.8.md .gopathok
 	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES)
 
-install: check-gopath
+install: .gopathok
 	install -D -m 755 ocid $(BINDIR)/ocid
 	install -D -m 755 ocic $(BINDIR)/ocic
 	install -D -m 755 kpod $(BINDIR)/kpod
@@ -152,26 +167,32 @@ uninstall:
 
 .PHONY: .gitvalidation
 # When this is running in travis, it will only check the travis commit range
-.gitvalidation: check-gopath
+.gitvalidation: .gopathok
 ifeq ($(TRAVIS),true)
-	git-validation -q -run DCO,short-subject
+	$(GOPATH)/bin/git-validation -q -run DCO,short-subject
 else
-	git-validation -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
+	$(GOPATH)/bin/git-validation -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
 .PHONY: install.tools
 
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
-.install.gitvalidation: check-gopath
-	go get -u github.com/vbatts/git-validation
+.install.gitvalidation: .gopathok
+	if [ ! -x "$(GOPATH)/bin/git-validation" ]; then \
+		go get -u github.com/vbatts/git-validation; \
+	fi
 
-.install.gometalinter: check-gopath
-	go get -u github.com/alecthomas/gometalinter
-	$(GOPATH)/bin/gometalinter --install
+.install.gometalinter: .gopathok
+	if [ ! -x "$(GOPATH)/bin/gometalinter" ]; then \
+		go get -u github.com/alecthomas/gometalinter; \
+		$(GOPATH)/bin/gometalinter --install; \
+	fi
 
-.install.md2man: check-gopath
-	go get -u github.com/cpuguy83/go-md2man
+.install.md2man: .gopathok
+	if [ ! -x "$(GOPATH)/bin/go-md2man" ]; then \
+		go get -u github.com/cpuguy83/go-md2man; \
+	fi
 
 .PHONY: \
 	bin2img \
