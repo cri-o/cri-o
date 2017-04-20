@@ -1,0 +1,14 @@
+[Unit]
+Description=Shutdown OCID containers before shutting down the system
+Wants=ocid.service
+After=ocid.service
+Documentation=man:ocid(8)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/true
+ExecStop=mkdir -p /var/lib/ocid; touch /var/lib/ocid/ocid.shutdown
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
