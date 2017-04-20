@@ -52,10 +52,10 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			continue
 		}
 
-		if err := s.storage.StopContainer(c.ID()); err != nil {
+		if err := s.storageRuntimeServer.StopContainer(c.ID()); err != nil {
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
 		}
-		if err := s.storage.DeleteContainer(c.ID()); err != nil {
+		if err := s.storageRuntimeServer.DeleteContainer(c.ID()); err != nil {
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
 		}
 
@@ -85,10 +85,10 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	sb.infraContainer = nil
 
 	// Remove the files related to the sandbox
-	if err := s.storage.StopContainer(sb.id); err != nil {
+	if err := s.storageRuntimeServer.StopContainer(sb.id); err != nil {
 		return nil, fmt.Errorf("failed to delete sandbox container in pod sandbox %s: %v", sb.id, err)
 	}
-	if err := s.storage.RemovePodSandbox(sb.id); err != nil {
+	if err := s.storageRuntimeServer.RemovePodSandbox(sb.id); err != nil {
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.id, err)
 	}
 

@@ -47,7 +47,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 			},
 		}
 	}
-	_, err := s.images.PullImage(s.imageContext, image, options)
+	_, err := s.storageImageServer.PullImage(s.imageContext, image, options)
 	if err != nil {
 		return nil, err
 	}
