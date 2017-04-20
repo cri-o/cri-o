@@ -3,12 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 )
 
 var containerCommand = cli.Command{
@@ -497,16 +502,34 @@ func Exec(client pb.RuntimeServiceClient, ID string, tty bool, stdin bool, urlOn
 		return err
 	}
 
-	url := r.Url
-
 	if urlOnly {
 		fmt.Println("URL:")
-		fmt.Println(url)
+		fmt.Println(r.Url)
 		return nil
 	}
 
-	// Do exec here
-	return nil
+	execURL, err := url.Parse(r.Url)
+	if err != nil {
+		return err
+	}
+
+	streamExec, err := remotecommand.NewExecutor(&restclient.Config{}, "GET", execURL)
+	if err != nil {
+		return err
+	}
+
+	options := remotecommand.StreamOptions{
+		SupportedProtocols: remotecommandserver.SupportedStreamingProtocols,
+		Stdout:             os.Stdout,
+		Stderr:             os.Stderr,
+		Tty:                tty,
+	}
+
+	if stdin {
+		options.Stdin = os.Stdin
+	}
+
+	return streamExec.Stream(options)
 }
 
 // ListContainers sends a ListContainerRequest to the server, and parses
