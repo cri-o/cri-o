@@ -606,6 +606,16 @@ func (c *Container) Sandbox() string {
 	return c.sandbox
 }
 
+// Terminal returns whether the container has a TTY attached
+func (c *Container) Terminal() bool {
+	return c.terminal
+}
+
+// Privileged returns whether the container is privileged
+func (c *Container) Privileged() bool {
+	return c.privileged
+}
+
 // NetNsPath returns the path to the network namespace of the container.
 func (c *Container) NetNsPath() (string, error) {
 	if c.state == nil {

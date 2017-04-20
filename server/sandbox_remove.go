@@ -6,6 +6,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -15,10 +16,9 @@ import (
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
 	logrus.Debugf("RemovePodSandboxRequest %+v", req)
-	s.Update()
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
-		if err == errSandboxIDEmpty {
+		if err == sandbox.ErrSandboxIDEmpty {
 			return nil, err
 		}
 
@@ -27,8 +27,8 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		return resp, nil
 	}
 
-	podInfraContainer := sb.infraContainer
-	containers := sb.containers.List()
+	podInfraContainer := sb.InfraContainer()
+	containers := sb.Containers()
 	containers = append(containers, podInfraContainer)
 
 	// Delete all the containers in the sandbox
@@ -45,7 +45,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 
 		if err := s.runtime.DeleteContainer(c); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
+			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 		}
 
 		if c == podInfraContainer {
@@ -53,54 +53,42 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 
 		if err := s.storage.StopContainer(c.ID()); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
+			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 		}
 		if err := s.storage.DeleteContainer(c.ID()); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
+			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 		}
 
-		s.releaseContainerName(c.Name())
-		s.removeContainer(c)
-		if err := s.ctrIDIndex.Delete(c.ID()); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.id, err)
+		if err := s.removeContainer(c); err != nil {
+			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 		}
 	}
 
-	if err := label.ReleaseLabel(sb.processLabel); err != nil {
+	if err := label.ReleaseLabel(sb.ProcessLabel()); err != nil {
 		return nil, err
 	}
 
 	// unmount the shm for the pod
-	if sb.shmPath != "/dev/shm" {
-		if err := syscall.Unmount(sb.shmPath, syscall.MNT_DETACH); err != nil {
+	if sb.ShmPath() != "/dev/shm" {
+		if err := syscall.Unmount(sb.ShmPath(), syscall.MNT_DETACH); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := sb.netNsRemove(); err != nil {
-		return nil, fmt.Errorf("failed to remove networking namespace for sandbox %s: %v", sb.id, err)
+	if err := sb.NetNsRemove(); err != nil {
+		return nil, fmt.Errorf("failed to remove networking namespace for sandbox %s: %v", sb.ID(), err)
 	}
 
-	s.removeContainer(podInfraContainer)
-	sb.infraContainer = nil
+	if err := s.removeSandbox(sb.ID()); err != nil {
+		return nil, fmt.Errorf("error removing sandbox %s: %v", sb.ID(), err)
+	}
 
 	// Remove the files related to the sandbox
-	if err := s.storage.StopContainer(sb.id); err != nil {
-		return nil, fmt.Errorf("failed to delete sandbox container in pod sandbox %s: %v", sb.id, err)
+	if err := s.storage.StopContainer(sb.ID()); err != nil {
+		return nil, fmt.Errorf("failed to delete sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
-	if err := s.storage.RemovePodSandbox(sb.id); err != nil {
-		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.id, err)
-	}
-
-	s.releaseContainerName(podInfraContainer.Name())
-	if err := s.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
-		return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.id, err)
-	}
-
-	s.releasePodName(sb.name)
-	s.removeSandbox(sb.id)
-	if err := s.podIDIndex.Delete(sb.id); err != nil {
-		return nil, fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.id, err)
+	if err := s.storage.RemovePodSandbox(sb.ID()); err != nil {
+		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.ID(), err)
 	}
 
 	resp := &pb.RemovePodSandboxResponse{}

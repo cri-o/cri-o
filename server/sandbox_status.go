@@ -10,13 +10,12 @@ import (
 // PodSandboxStatus returns the Status of the PodSandbox.
 func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
 	logrus.Debugf("PodSandboxStatusRequest %+v", req)
-	s.Update()
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		return nil, err
 	}
 
-	podInfraContainer := sb.infraContainer
+	podInfraContainer := sb.InfraContainer()
 	if err = s.runtime.UpdateStatus(podInfraContainer); err != nil {
 		return nil, err
 	}
@@ -29,7 +28,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		return nil, err
 	}
 	podNamespace := ""
-	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, sb.id, podInfraContainer.Name())
+	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, sb.ID(), podInfraContainer.Name())
 	if err != nil {
 		// ignore the error on network status
 		ip = ""
@@ -40,7 +39,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		rStatus = pb.PodSandboxState_SANDBOX_READY
 	}
 
-	sandboxID := sb.id
+	sandboxID := sb.ID()
 	resp := &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
 			Id:        sandboxID,
@@ -52,9 +51,9 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 			},
 			Network:     &pb.PodSandboxNetworkStatus{Ip: ip},
 			State:       rStatus,
-			Labels:      sb.labels,
-			Annotations: sb.annotations,
-			Metadata:    sb.metadata,
+			Labels:      sb.Labels(),
+			Annotations: sb.Annotations(),
+			Metadata:    sb.Metadata(),
 		},
 	}
 

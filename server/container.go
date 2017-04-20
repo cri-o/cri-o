@@ -18,14 +18,10 @@ func (s *Server) getContainerFromRequest(containerID string) (*oci.Container, er
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
 
-	containerID, err := s.ctrIDIndex.Get(containerID)
+	c, err := s.state.LookupContainerByID(containerID)
 	if err != nil {
-		return nil, fmt.Errorf("container with ID starting with %s not found: %v", containerID, err)
+		return nil, fmt.Errorf("container with ID starting with %v could not be retrieved: %v", containerID, err)
 	}
 
-	c := s.state.containers.Get(containerID)
-	if c == nil {
-		return nil, fmt.Errorf("specified container not found: %s", containerID)
-	}
 	return c, nil
 }

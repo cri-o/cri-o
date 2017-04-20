@@ -14,34 +14,33 @@ import (
 // sandbox, they should be force terminated.
 func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
 	logrus.Debugf("StopPodSandboxRequest %+v", req)
-	s.Update()
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		return nil, err
 	}
 
 	podNamespace := ""
-	podInfraContainer := sb.infraContainer
+	podInfraContainer := sb.InfraContainer()
 	netnsPath, err := podInfraContainer.NetNsPath()
 	if err != nil {
 		return nil, err
 	}
 	if _, err := os.Stat(netnsPath); err == nil {
-		if err2 := s.netPlugin.TearDownPod(netnsPath, podNamespace, sb.id, podInfraContainer.Name()); err2 != nil {
+		if err2 := s.netPlugin.TearDownPod(netnsPath, podNamespace, sb.ID(), podInfraContainer.Name()); err2 != nil {
 			return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v",
-				podInfraContainer.Name(), sb.id, err2)
+				podInfraContainer.Name(), sb.ID(), err2)
 		}
 	} else if !os.IsNotExist(err) { // it's ok for netnsPath to *not* exist
 		return nil, fmt.Errorf("failed to stat netns path for container %s in sandbox %s before tearing down the network: %v",
-			podInfraContainer.Name(), sb.id, err)
+			podInfraContainer.Name(), sb.ID(), err)
 	}
 
 	// Close the sandbox networking namespace.
-	if err := sb.netNsRemove(); err != nil {
+	if err := sb.NetNsRemove(); err != nil {
 		return nil, err
 	}
 
-	containers := sb.containers.List()
+	containers := sb.Containers()
 	containers = append(containers, podInfraContainer)
 
 	for _, c := range containers {
@@ -51,7 +50,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		cStatus := s.runtime.ContainerStatus(c)
 		if cStatus.Status != oci.ContainerStateStopped {
 			if err := s.runtime.StopContainer(c); err != nil {
-				return nil, fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
+				return nil, fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 			}
 		}
 	}

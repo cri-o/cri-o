@@ -1,8 +1,11 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -29,32 +32,32 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 // ListPodSandbox returns a list of SandBoxes.
 func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
 	logrus.Debugf("ListPodSandboxRequest %+v", req)
-	s.Update()
 	var pods []*pb.PodSandbox
-	var podList []*sandbox
-	for _, sb := range s.state.sandboxes {
-		podList = append(podList, sb)
+	var podList []*sandbox.Sandbox
+
+	sandboxes, err := s.state.GetAllSandboxes()
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving sandboxes: %v", err)
 	}
+
+	podList = append(podList, sandboxes...)
 
 	filter := req.Filter
 	// Filter by pod id first.
 	if filter != nil {
 		if filter.Id != "" {
-			id, err := s.podIDIndex.Get(filter.Id)
+			sb, err := s.state.LookupSandboxByID(filter.Id)
+			// TODO if we return something other than a No Such Sandbox should we throw an error instead?
 			if err != nil {
-				return nil, err
-			}
-			sb := s.getSandbox(id)
-			if sb == nil {
-				podList = []*sandbox{}
+				podList = []*sandbox.Sandbox{}
 			} else {
-				podList = []*sandbox{sb}
+				podList = []*sandbox.Sandbox{sb}
 			}
 		}
 	}
 
 	for _, sb := range podList {
-		podInfraContainer := sb.infraContainer
+		podInfraContainer := sb.InfraContainer()
 		if podInfraContainer == nil {
 			// this can't really happen, but if it does because of a bug
 			// it's better not to panic
@@ -71,12 +74,12 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		}
 
 		pod := &pb.PodSandbox{
-			Id:          sb.id,
+			Id:          sb.ID(),
 			CreatedAt:   created,
 			State:       rStatus,
-			Labels:      sb.labels,
-			Annotations: sb.annotations,
-			Metadata:    sb.metadata,
+			Labels:      sb.Labels(),
+			Annotations: sb.Annotations(),
+			Metadata:    sb.Metadata(),
 		}
 
 		// Filter by other criteria such as state and labels.
