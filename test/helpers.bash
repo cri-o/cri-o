@@ -292,9 +292,10 @@ function check_pod_cidr() {
         fullnetns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
 	netns=`basename $fullnetns`
 
-	ip netns exec $netns ip addr show dev eth0 scope global | grep $POD_CIDR_MASK
-
-	echo $?
+	run ip netns exec $netns ip addr show dev eth0 scope global 2>&1
+	echo "$output"
+	[ "$status" -eq 0  ]
+	[[ "$output" =~ $POD_CIDR_MASK  ]]
 }
 
 function parse_pod_ip() {
