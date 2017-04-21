@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -not -iwholename '*vendor*'); do
+for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -not -iwholename '*vendor*' -a -not -iwholename '*.artifacts*' -a -not -iwholename '*contrib*' -a -not -iwholename '*test*' -a -not -iwholename '*logo*' -a -not -iwholename '*conmon*' -a -not -iwholename '*completions*' -a -not -iwholename '*docs*' -a -not -iwholename '*pause*'); do
 	${GOPATH}/bin/gometalinter \
 		 --exclude='error return value not checked.*(Close|Log|Print|RemoveAll).*\(errcheck\)$' \
 		 --exclude='declaration of.*err.*shadows declaration.*\(vetshadow\)$' \
@@ -19,5 +19,5 @@ for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -n
 		 --cyclo-over=80 \
 		 --dupl-threshold=100 \
 		 --tests \
-		 --deadline=60s "${d}"
+		 --deadline=120s "${d}"
 done
