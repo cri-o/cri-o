@@ -5,8 +5,8 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 )
 
-// Store stores the state of the CRI-O server, including active pods and containers
-type Store interface {
+// RuntimeStateStorer stores the state of the CRI-O server, including active pods and containers
+type RuntimeStateStorer interface {
 	AddSandbox(s *sandbox.Sandbox) error
 	HasSandbox(id string) bool
 	DeleteSandbox(id string) error

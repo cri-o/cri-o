@@ -58,7 +58,7 @@ type Server struct {
 	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
 	updateLock           sync.RWMutex
-	state                state.Store
+	state                state.RuntimeStateStorer
 	netPlugin            ocicni.CNIPlugin
 	hostportManager      hostport.HostPortManager
 	imageContext         *types.SystemContext

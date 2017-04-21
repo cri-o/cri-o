@@ -26,7 +26,7 @@ type InMemoryState struct {
 }
 
 // NewInMemoryState creates a new, empty server state
-func NewInMemoryState() Store {
+func NewInMemoryState() RuntimeStateStorer {
 	state := new(InMemoryState)
 	state.sandboxes = make(map[string]*sandbox.Sandbox)
 	state.containers = oci.NewMemoryStore()
