@@ -143,10 +143,10 @@ function start_ocid() {
 
 	# Don't forget: bin2img, copyimg, and ocid have their own default drivers, so if you override any, you probably need to override them all
 	if ! [ "$3" = "--no-pause-image" ] ; then
-		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
+		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" $STORAGE_OPTS --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
 	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
+	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" $STORAGE_OPTS --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	prepare_network_conf $POD_CIDR
