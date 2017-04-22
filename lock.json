@@ -2,6 +2,15 @@
     "memo": "0d3077faf280e4e13e18e56f085053d4ced593c2fcfcb09d7df1aea8f0bba403",
     "projects": [
         {
+            "name": "github.com/Azure/go-ansiterm",
+            "branch": "master",
+            "revision": "fa152c58bc15761d0200cb75fe958b89a9d4888e",
+            "packages": [
+                ".",
+                "winterm"
+            ]
+        },
+        {
             "name": "github.com/BurntSushi/toml",
             "version": "v0.2.0",
             "revision": "bbd5bb678321a0d6e58f1099321dfa73391c1b6f",
@@ -23,6 +32,22 @@
             "name": "github.com/Microsoft/hcsshim",
             "version": "v0.5.11",
             "revision": "0f615c198a84e0344b4ed49c464d8833d4648dfc",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/PuerkitoBio/purell",
+            "version": "v1.1.0",
+            "revision": "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/PuerkitoBio/urlesc",
+            "branch": "master",
+            "revision": "5bd2802263f21d8788851d5305584c82a5c75d7e",
             "packages": [
                 "."
             ]
@@ -129,6 +154,14 @@
             ]
         },
         {
+            "name": "github.com/davecgh/go-spew",
+            "version": "v1.1.0",
+            "revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+            "packages": [
+                "spew"
+            ]
+        },
+        {
             "name": "github.com/docker/distribution",
             "branch": "master",
             "revision": "fb0bebc4b64e3881cc52a2478d749845ed76d2a8",
@@ -175,6 +208,7 @@
                 "pkg/symlink",
                 "pkg/system",
                 "pkg/tlsconfig",
+                "pkg/term",
                 "pkg/truncindex",
                 "utils/templates"
             ]
@@ -205,11 +239,26 @@
                 "."
             ]
         },
+            "name": "github.com/docker/spdystream",
+            "branch": "master",
+            "revision": "ed496381df8283605c435b86d4fdd6f4f20b8c6e",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/emicklei/go-restful",
+            "version": "2.0.0",
+            "revision": "24f362968e4ac4f9f0a7f6c74ac4d66369716e16",
+            "packages": [
+                "."
+            ]
+        },
         {
             "name": "github.com/fsnotify/fsnotify",
             "branch": "master",
             "revision": "7d7316ed6e1ed2de075aab8dfc76de5d158d66e1",
-            "packages": [
+	    "packages": [
                 "."
             ]
         },
@@ -225,6 +274,37 @@
             "name": "github.com/godbus/dbus",
             "version": "v4.0.0",
             "revision": "5f6efc7ef2759c81b7ba876593971bfce311eab3",
+            "packages": [
+                "."
+            ]
+        },
+            "name": "github.com/go-openapi/jsonpointer",
+            "branch": "master",
+            "revision": "779f45308c19820f1a69e9a4cd965f496e0da10f",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/go-openapi/jsonreference",
+            "branch": "master",
+            "revision": "36d33bfe519efae5632669801b180bf1a245da3b",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/go-openapi/spec",
+            "branch": "master",
+            "revision": "02fb9cd3430ed0581e0ceb4804d5d4b3cc702694",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/go-openapi/swag",
+            "branch": "master",
+            "revision": "d5f8ebc3b1c55a4cf6489eeae7354f338cfe299e",
             "packages": [
                 "."
             ]
@@ -246,6 +326,14 @@
             "revision": "8ee79997227bf9b34611aee7946ae64735e6fd93",
             "packages": [
                 "proto"
+            ]
+        },
+        {
+            "name": "github.com/google/gofuzz",
+            "branch": "master",
+            "revision": "44d81051d367757e1c7c6a5a86423ece9afcf63c",
+            "packages": [
+                "."
             ]
         },
         {
@@ -273,6 +361,15 @@
             ]
         },
         {
+            "name": "github.com/mailru/easyjson",
+            "branch": "master",
+            "revision": "99e922cf9de1bc0ab38310c277cff32c2147e747",
+            "packages": [
+                "jlexer",
+                "jwriter"
+            ]
+        },
+        {
             "name": "github.com/mattn/go-runewidth",
             "version": "v0.0.1",
             "revision": "d6bea18f789704b5f83375793155289da36a3c7f",
@@ -292,6 +389,14 @@
             "name": "github.com/mistifyio/go-zfs",
             "version": "v2.1.1",
             "revision": "cdc0f941c4d0e0e94d85348285568d921891e138",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mitchellh/go-wordwrap",
+            "branch": "master",
+            "revision": "ad45545899c7b13c020ea92b2072220eefad42b8",
             "packages": [
                 "."
             ]
@@ -375,6 +480,14 @@
             ]
         },
         {
+            "name": "github.com/spf13/pflag",
+            "branch": "master",
+            "revision": "9ff6c6923cfffbcd502984b8e0c80539a94968b7",
+            "packages": [
+                "."
+            ]
+        },
+        {
             "name": "github.com/syndtr/gocapability",
             "branch": "master",
             "revision": "e7cb7fa329f456b3855136a2642b197bad7366ba",
@@ -388,6 +501,14 @@
             "revision": "666120de432aea38ab06bd5c818f04f4129882c9",
             "packages": [
                 "patricia"
+            ]
+        },
+        {
+            "name": "github.com/ugorji/go",
+            "branch": "master",
+            "revision": "d23841a297e5489e787e72fceffabf9d2994b52a",
+            "packages": [
+                "codec"
             ]
         },
         {
@@ -435,7 +556,8 @@
                 "internal/timeseries",
                 "lex/httplex",
                 "proxy",
-                "trace"
+                "trace",
+                "websocket"
             ]
         },
         {
@@ -445,6 +567,15 @@
             "packages": [
                 "unix",
                 "windows"
+            ]
+        },
+        {
+            "name": "golang.org/x/text",
+            "branch": "master",
+            "revision": "dafb3384ad25363d928a9e97ce4ad3a2f0667e34",
+            "packages": [
+                "unicode/norm",
+                "width"
             ]
         },
         {
@@ -472,6 +603,14 @@
             ]
         },
         {
+            "name": "gopkg.in/inf.v0",
+            "version": "v0.9.0",
+            "revision": "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4",
+            "packages": [
+                "."
+            ]
+        },
+        {
             "name": "gopkg.in/yaml.v2",
             "branch": "v2",
             "revision": "4c78c975fe7c825c6d1466c42be594d1d6f3aba6",
@@ -484,8 +623,31 @@
             "branch": "master",
             "revision": "21807b270ec15d19215659a5caa08b17f66d6f44",
             "packages": [
+                "pkg/api/errors",
+                "pkg/api/meta",
+                "pkg/apimachinery/announced",
+                "pkg/apimachinery/registered",
+                "pkg/apis/meta/v1",
+                "pkg/conversion",
                 "pkg/fields",
-                "pkg/selection"
+                "pkg/labels",
+                "pkg/openapi",
+                "pkg/runtime",
+                "pkg/runtime/schema",
+                "pkg/runtime/serializer",
+                "pkg/selection",
+                "pkg/types",
+                "pkg/util/runtime",
+                "pkg/util/sets"
+            ]
+        },
+        {
+            "name": "k8s.io/apiserver",
+            "branch": "master",
+            "revision": "18254ddaaab8024609bdf570493103036d72f86d",
+            "packages": [
+                "pkg/server/httplog",
+                "pkg/util/wsstream"
             ]
         },
         {
@@ -493,6 +655,7 @@
             "branch": "master",
             "revision": "b766ef93a46ce6dc863462254658ca2861a53314",
             "packages": [
+                "util/clock",
                 "util/homedir"
             ]
         },
@@ -501,7 +664,9 @@
             "branch": "master",
             "revision": "760d8e98e8f6ad27aaf50b1a030cb9e7b6859aab",
             "packages": [
-                "pkg/kubelet/api/v1alpha1/runtime"
+                "pkg/kubelet/api/v1alpha1/runtime",
+                "pkg/kubelet/server/streaming",
+                "staging/src/k8s.io/apimachinery/pkg/fields"
             ]
         }
     ]
