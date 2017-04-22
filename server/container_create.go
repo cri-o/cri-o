@@ -175,6 +175,15 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	return nil
 }
 
+func hostNetwork(containerConfig *pb.ContainerConfig) bool {
+	securityContext := containerConfig.GetLinux().GetSecurityContext()
+	if securityContext == nil || securityContext.GetNamespaceOptions() == nil {
+		return false
+	}
+
+	return securityContext.GetNamespaceOptions().HostNetwork
+}
+
 // ensureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes
 // logPath to be a broken symlink to some magical Docker path. Ideally we
 // wouldn't have to deal with this, but until that issue is fixed we have to
@@ -453,6 +462,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if sb.resolvPath != "" {
 		// bind mount the pod resolver file
 		specgen.AddBindMount(sb.resolvPath, "/etc/resolv.conf", []string{"ro"})
+	}
+
+	// Bind mount /etc/hosts for host networking containers
+	if hostNetwork(containerConfig) {
+		specgen.AddBindMount("/etc/hosts", "/etc/hosts", []string{"ro"})
 	}
 
 	if sb.hostname != "" {
