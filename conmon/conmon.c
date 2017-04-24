@@ -358,7 +358,7 @@ int main(int argc, char *argv[])
 	cmd = g_string_new(runtime_path);
 
 	/* Generate the cmdline. */
-	if (exec && systemd_cgroup)
+	if (!exec && systemd_cgroup)
 		g_string_append_printf(cmd, " --systemd-cgroup");
 
 	if (exec)
