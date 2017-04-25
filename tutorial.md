@@ -46,7 +46,7 @@ chmod +x runc-linux-amd64
 ```
 
 ```
-sudo mv runc-linux-amd64 /usr/bin/runc
+sudo mv runc-linux-amd64 /usr/local/sbin/runc
 ```
 
 Print the `runc` version:

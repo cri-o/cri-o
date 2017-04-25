@@ -207,7 +207,7 @@ func DefaultConfig() *Config {
 			Listen: "/var/run/ocid.sock",
 		},
 		RuntimeConfig: RuntimeConfig{
-			Runtime:               "/usr/bin/runc",
+			Runtime:               "/usr/local/sbin/runc",
 			RuntimeHostPrivileged: "",
 			Conmon:                conmonPath,
 			ConmonEnv: []string{
