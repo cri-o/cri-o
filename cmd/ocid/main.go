@@ -9,6 +9,8 @@ import (
 	"strings"
 	"syscall"
 
+	"runtime/pprof"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/server"
@@ -210,6 +212,10 @@ func main() {
 			Name:  "cni-plugin-dir",
 			Usage: "CNI plugin binaries directory",
 		},
+		cli.StringFlag{
+			Name:  "cpu-profile",
+			Usage: "set the CPU profile file path",
+		},
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))
@@ -258,6 +264,15 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
+		if cp := c.GlobalString("cpu-profile"); cp != "" {
+			f, err := os.Create(cp)
+			if err != nil {
+				return fmt.Errorf("invalid --cpu-profile value %q", err)
+			}
+			pprof.StartCPUProfile(f)
+			defer pprof.StopCPUProfile()
+		}
+
 		config := c.App.Metadata["config"].(*server.Config)
 
 		if !config.SELinux {
