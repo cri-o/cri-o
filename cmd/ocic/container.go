@@ -3,12 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 )
 
 var containerCommand = cli.Command{
@@ -22,6 +27,7 @@ var containerCommand = cli.Command{
 		containerStatusCommand,
 		listContainersCommand,
 		execSyncCommand,
+		execCommand,
 	},
 }
 
@@ -236,6 +242,45 @@ var execSyncCommand = cli.Command{
 	},
 }
 
+var execCommand = cli.Command{
+	Name:  "exec",
+	Usage: "prepare a streaming endpoint to execute a command in the container",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "id of the container",
+		},
+		cli.BoolFlag{
+			Name:  "tty",
+			Usage: "whether to use tty",
+		},
+		cli.BoolFlag{
+			Name:  "stdin",
+			Usage: "whether to stream to stdin",
+		},
+		cli.BoolFlag{
+			Name:  "url",
+			Usage: "do not exec command, just prepare streaming endpoint",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		// Set up a connection to the server.
+		conn, err := getClientConnection(context)
+		if err != nil {
+			return fmt.Errorf("failed to connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewRuntimeServiceClient(conn)
+
+		err = Exec(client, context.String("id"), context.Bool("tty"), context.Bool("stdin"), context.Bool("url"), context.Args())
+		if err != nil {
+			return fmt.Errorf("execing command in container failed: %v", err)
+		}
+		return nil
+	},
+}
+
 type listOptions struct {
 	// id of the container
 	id string
@@ -439,6 +484,52 @@ func ExecSync(client pb.RuntimeServiceClient, ID string, cmd []string, timeout i
 	fmt.Printf("Exit code: %v\n", r.ExitCode)
 
 	return nil
+}
+
+// Exec sends an ExecRequest to the server, and parses
+// the returned ExecResponse.
+func Exec(client pb.RuntimeServiceClient, ID string, tty bool, stdin bool, urlOnly bool, cmd []string) error {
+	if ID == "" {
+		return fmt.Errorf("ID cannot be empty")
+	}
+	r, err := client.Exec(context.Background(), &pb.ExecRequest{
+		ContainerId: ID,
+		Cmd:         cmd,
+		Tty:         tty,
+		Stdin:       stdin,
+	})
+	if err != nil {
+		return err
+	}
+
+	if urlOnly {
+		fmt.Println("URL:")
+		fmt.Println(r.Url)
+		return nil
+	}
+
+	execURL, err := url.Parse(r.Url)
+	if err != nil {
+		return err
+	}
+
+	streamExec, err := remotecommand.NewExecutor(&restclient.Config{}, "GET", execURL)
+	if err != nil {
+		return err
+	}
+
+	options := remotecommand.StreamOptions{
+		SupportedProtocols: remotecommandserver.SupportedStreamingProtocols,
+		Stdout:             os.Stdout,
+		Stderr:             os.Stderr,
+		Tty:                tty,
+	}
+
+	if stdin {
+		options.Stdin = os.Stdin
+	}
+
+	return streamExec.Stream(options)
 }
 
 // ListContainers sends a ListContainerRequest to the server, and parses

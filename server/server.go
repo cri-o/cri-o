@@ -21,12 +21,20 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 )
 
 const (
 	runtimeAPIVersion = "v1alpha1"
 	shutdownFile      = "/var/lib/ocid/ocid.shutdown"
 )
+
+// streamService implements streaming.Runtime.
+type streamService struct {
+	runtimeServer *Server // needed by Exec() endpoint
+	streamServer  streaming.Server
+	streaming.Runtime
+}
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
@@ -50,6 +58,23 @@ type Server struct {
 
 	appArmorEnabled bool
 	appArmorProfile string
+
+	stream streamService
+}
+
+// GetExec returns exec stream request
+func (s *Server) GetExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
+	return s.stream.streamServer.GetExec(req)
+}
+
+// GetAttach returns attach stream request
+func (s *Server) GetAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
+	return s.stream.streamServer.GetAttach(req)
+}
+
+// GetPortForward returns port forward stream request
+func (s *Server) GetPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+	return s.stream.streamServer.GetPortForward(req)
 }
 
 func (s *Server) loadContainer(id string) error {
@@ -501,20 +526,20 @@ func New(config *Config) (*Server, error) {
 		appArmorProfile: config.ApparmorProfile,
 	}
 	if s.seccompEnabled {
-		seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
-		if err != nil {
-			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, err)
+		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
+		if fileErr != nil {
+			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, fileErr)
 		}
 		var seccompConfig seccomp.Seccomp
-		if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
-			return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
+		if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
+			return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
 		}
 		s.seccompProfile = seccompConfig
 	}
 
 	if s.appArmorEnabled && s.appArmorProfile == apparmor.DefaultApparmorProfile {
-		if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
-			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", err)
+		if apparmorErr := apparmor.EnsureDefaultApparmorProfile(); apparmorErr != nil {
+			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", apparmorErr)
 		}
 	}
 
@@ -528,6 +553,20 @@ func New(config *Config) (*Server, error) {
 
 	s.restore()
 	s.cleanupSandboxesOnShutdown()
+
+	// Prepare streaming server
+	streamServerConfig := streaming.DefaultConfig
+	streamServerConfig.Addr = "0.0.0.0:10101"
+	s.stream.runtimeServer = s
+	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create streaming server")
+	}
+
+	// TODO: Is it should be started somewhere else?
+	go func() {
+		s.stream.streamServer.Start(true)
+	}()
 
 	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
 	logrus.Debugf("containers: %v", s.state.containers)
