@@ -104,6 +104,9 @@ ocidimage:
 dbuild: ocidimage
 	docker run --name=${OCID_INSTANCE} --privileged ${OCID_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm make binaries
 
+ginkgo:
+	$(GO) test -v ./test/integration/integration_test.go
+
 integration: ocidimage
 	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
 
@@ -204,6 +207,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	copyimg \
 	default \
 	docs \
+	ginkgo \
 	gofmt \
 	help \
 	install \
