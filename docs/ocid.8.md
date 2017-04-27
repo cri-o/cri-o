@@ -110,6 +110,9 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 **--cni-plugin-dir**=""
   CNI plugin binaries directory (default: "/opt/cni/bin/")
 
+**--cpu-profile**
+  Set the CPU profile file path
+
 **--version, -v**
   Print the version
 
