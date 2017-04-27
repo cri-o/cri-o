@@ -34,10 +34,10 @@ func TestTransportParseStoreReference(t *testing.T) {
 		{"busybox:notlatest", "docker.io/library/busybox:notlatest", ""},                   // Valid single-component name, explicit tag
 		{"docker.io/library/busybox:notlatest", "docker.io/library/busybox:notlatest", ""}, // Valid single-component name, everything explicit
 
-		{"UPPERCASEISINVALID@" + sha256digestHex, "", ""},                                                                  // Invalid name in name@ID
-		{"busybox@ab", "", ""},                                                                                             // Invalid ID in name@ID
-		{"busybox@", "", ""},                                                                                               // Empty ID in name@ID
-		{"busybox@sha256:" + sha256digestHex, "", ""},                                                                      // This (a digested docker/docker reference format) is also invalid, since it's an invalid ID in name@ID
+		{"UPPERCASEISINVALID@" + sha256digestHex, "", ""}, // Invalid name in name@ID
+		{"busybox@ab", "", ""},                            // Invalid ID in name@ID
+		{"busybox@", "", ""},                              // Empty ID in name@ID
+		{"busybox@sha256:" + sha256digestHex, "docker.io/library/busybox:latest", sha256digestHex},                         // Valid two-component name, with ID using "sha256:" prefix
 		{"@" + sha256digestHex, "", sha256digestHex},                                                                       // Valid two-component name, with ID only
 		{"busybox@" + sha256digestHex, "docker.io/library/busybox:latest", sha256digestHex},                                // Valid two-component name, implicit tag
 		{"busybox:notlatest@" + sha256digestHex, "docker.io/library/busybox:notlatest", sha256digestHex},                   // Valid two-component name, explicit tag

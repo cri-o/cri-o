@@ -8,9 +8,11 @@ import (
 	// a transport.
 	_ "github.com/containers/image/directory"
 	_ "github.com/containers/image/docker"
+	_ "github.com/containers/image/docker/archive"
 	_ "github.com/containers/image/docker/daemon"
 	_ "github.com/containers/image/oci/layout"
 	_ "github.com/containers/image/openshift"
+	_ "github.com/containers/image/ostree"
 	_ "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
