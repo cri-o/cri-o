@@ -32,6 +32,36 @@ function teardown() {
 	stop_ocid
 }
 
+@test "image pull and list by digest" {
+	start_ocid "" "" --no-pause-image
+	run ocic image pull nginx@sha256:4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run ocic image list --quiet nginx@sha256:4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	run ocic image list --quiet nginx@4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	run ocic image list --quiet @4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	run ocic image list --quiet 4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	cleanup_images
+	stop_ocid
+}
+
 @test "image list with filter" {
 	start_ocid "" "" --no-pause-image
 	run ocic image pull "$IMAGE"
@@ -64,6 +94,7 @@ function teardown() {
 	run ocic image list --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
+	[ "$output" != "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
 		run ocic image remove --id "$id"
 		echo "$output"
@@ -72,6 +103,7 @@ function teardown() {
 	run ocic image list --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
+	[ "$output" = "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
 		echo "$id"
 		status=1
@@ -88,10 +120,12 @@ function teardown() {
 	run ocic image list --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
+	[ "$output" != "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
 		run ocic image status --id "$id"
 		echo "$output"
 		[ "$status" -eq 0 ]
+		[ "$output" != "" ]
 		run ocic image remove --id "$id"
 		echo "$output"
 		[ "$status" -eq 0 ]
@@ -99,6 +133,7 @@ function teardown() {
 	run ocic image list --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
+	[ "$output" = "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
 		echo "$id"
 		status=1

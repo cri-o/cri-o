@@ -43,7 +43,19 @@ type ImageServer interface {
 func (svc *imageService) ListImages(filter string) ([]ImageResult, error) {
 	results := []ImageResult{}
 	if filter != "" {
-		if image, err := svc.store.GetImage(filter); err == nil {
+		ref, err := alltransports.ParseImageName(filter)
+		if err != nil {
+			ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+filter)
+			if err2 != nil {
+				ref3, err3 := istorage.Transport.ParseStoreReference(svc.store, filter)
+				if err3 != nil {
+					return nil, err
+				}
+				ref2 = ref3
+			}
+			ref = ref2
+		}
+		if image, err := istorage.Transport.GetStoreImage(svc.store, ref); err == nil {
 			results = append(results, ImageResult{
 				ID:    image.ID,
 				Names: image.Names,
@@ -136,24 +148,15 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 		if tagged, ok := srcRef.DockerReference().(reference.NamedTagged); ok {
 			dest = dest + ":" + tagged.Tag()
 		}
+		if canonical, ok := srcRef.DockerReference().(reference.Canonical); ok {
+			dest = dest + "@" + canonical.Digest().String()
+		}
 	}
 	destRef, err := istorage.Transport.ParseStoreReference(svc.store, dest)
 	if err != nil {
 		return nil, err
 	}
 	err = copy.Image(policyContext, destRef, srcRef, options)
-	if err != nil {
-		return nil, err
-	}
-	// Go find the image, and attach the requested name to it, so that we
-	// can more easily find it later, even if the destination reference
-	// looks different.
-	destImage, err := istorage.Transport.GetStoreImage(svc.store, destRef)
-	if err != nil {
-		return nil, err
-	}
-	names := append(destImage.Names, imageName, dest)
-	err = svc.store.SetNames(destImage.ID, names)
 	if err != nil {
 		return nil, err
 	}

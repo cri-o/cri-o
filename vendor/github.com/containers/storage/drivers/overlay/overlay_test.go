@@ -1,6 +1,6 @@
 // +build linux
 
-package overlay2
+package overlay
 
 import (
 	"os"
@@ -12,6 +12,8 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/reexec"
 )
+
+const driverName = "overlay"
 
 func init() {
 	// Do not sure chroot to speed run time and allow archive

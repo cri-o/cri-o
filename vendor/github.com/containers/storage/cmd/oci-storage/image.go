@@ -15,25 +15,10 @@ var (
 )
 
 func image(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	images, err := m.Images()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	matched := []storage.Image{}
-	for _, image := range images {
-	nextImage:
-		for _, arg := range args {
-			if image.ID == arg {
-				matched = append(matched, image)
-				break nextImage
-			}
-			for _, name := range image.Names {
-				if name == arg {
-					matched = append(matched, image)
-					break nextImage
-				}
-			}
+	matched := []*storage.Image{}
+	for _, arg := range args {
+		if image, err := m.GetImage(arg); err == nil {
+			matched = append(matched, image)
 		}
 	}
 	if jsonOutput {
