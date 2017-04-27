@@ -210,7 +210,6 @@ func ensureSaneLogPath(logPath string) error {
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
 	logrus.Debugf("CreateContainerRequest %+v", req)
-	s.Update()
 
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
