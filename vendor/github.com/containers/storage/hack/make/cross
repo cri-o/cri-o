@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-CROSSPLATFORMS="linux/amd64 linux/386 linux/arm"
+CROSSPLATFORMS="linux/amd64 linux/386 linux/arm darwin/amd64"
 BUILDTAGS+=" exclude_graphdriver_devicemapper"
 
 for platform in $CROSSPLATFORMS; do

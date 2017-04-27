@@ -1,5 +1,5 @@
 {
-    "memo": "e99fe9f7a283d8fb8e0ec8b05fa68d01a7dfa4c7c48b6e85a84986a079685711",
+    "memo": "5791d48b7e77e9f18a26535dfb184838f1d863f5d364fc9907cf16b6013e9846",
     "projects": [
         {
             "name": "cloud.google.com/go",
@@ -117,13 +117,13 @@
         {
             "name": "github.com/containers/storage",
             "branch": "master",
-            "revision": "ff48947baaf205756dd67a00ac688d694a778ef6",
+            "revision": "d10d8680af74070b362637408a7fe28c4b1f1eff",
             "packages": [
                 "drivers",
                 "drivers/aufs",
                 "drivers/btrfs",
                 "drivers/devmapper",
-                "drivers/overlay2",
+                "drivers/overlay",
                 "drivers/register",
                 "drivers/vfs",
                 "drivers/windows",
@@ -149,6 +149,7 @@
                 "pkg/reexec",
                 "pkg/stringid",
                 "pkg/system",
+                "pkg/truncindex",
                 "storage",
                 "storageversion"
             ]

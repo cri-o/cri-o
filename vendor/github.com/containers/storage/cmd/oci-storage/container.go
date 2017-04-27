@@ -20,25 +20,10 @@ func container(flags *mflag.FlagSet, action string, m storage.Store, args []stri
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
 	}
-	containers, err := m.Containers()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	matches := []storage.Container{}
-	for _, container := range containers {
-	nextContainer:
-		for _, arg := range args {
-			if container.ID == arg {
-				matches = append(matches, container)
-				break nextContainer
-			}
-			for _, name := range container.Names {
-				if name == arg {
-					matches = append(matches, container)
-					break nextContainer
-				}
-			}
+	matches := []*storage.Container{}
+	for _, arg := range args {
+		if container, err := m.GetContainer(arg); err == nil {
+			matches = append(matches, container)
 		}
 	}
 	if jsonOutput {
