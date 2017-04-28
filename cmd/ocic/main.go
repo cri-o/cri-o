@@ -67,7 +67,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "ocic"
 	app.Usage = "client for ocid"
-	app.Version = "0.2"
+	app.Version = "0.3"
 
 	app.Commands = []cli.Command{
 		podSandboxCommand,

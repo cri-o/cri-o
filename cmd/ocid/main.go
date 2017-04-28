@@ -119,7 +119,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "ocid"
 	app.Usage = "ocid server"
-	app.Version = "0.2"
+	app.Version = "0.3"
 	app.Metadata = map[string]interface{}{
 		"config": server.DefaultConfig(),
 	}
