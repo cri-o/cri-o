@@ -16,21 +16,37 @@ filegroup(
 )
 
 config_setting(
-    name = "embed_license_targets",
+    name = "package_src",
     values = {
-        "define": "EMBED_LICENSE_TARGETS=true",
+        "define": "PACKAGE_SRC=true",
     },
     visibility = ["//visibility:private"],
+)
+
+genrule(
+    name = "kubernetes-src-readme",
+    outs = ["README-src.txt"],
+    cmd = """
+echo For build efficiency, the src was not included in this release.>$@
+echo The full source code can be viewed at >>$@
+echo -n https://github.com/kubernetes/kubernetes/tree/ >>$@
+grep ^STABLE_BUILD_GIT_COMMIT bazel-out/stable-status.txt | cut -d' ' -f2 >>$@
+""",
+    stamp = 1,
 )
 
 pkg_tar(
     name = "kubernetes-src",
     extension = "tar.gz",
-    files = [
-        "//:all-srcs",
-    ],
+    files = select({
+        ":package_src": ["//:all-srcs"],
+        "//conditions:default": ["README-src.txt"],
+    }),
     package_dir = "kubernetes",
-    strip_prefix = "//",
+    strip_prefix = select({
+        ":package_src": "//",
+        "//conditions:default": ".",
+    }),
 )
 
 # FIXME: this should be configurable/auto-detected
@@ -53,10 +69,8 @@ NODE_TARGETS = [
 # since we include them in the actual build rule.
 SERVER_TARGETS = [
     "//cmd/hyperkube",
-    "//cmd/kube-aggregator",
     "//cmd/kube-apiserver",
     "//cmd/kube-controller-manager",
-    "//cmd/kube-discovery",
     "//cmd/kubeadm",
     "//plugin/cmd/kube-scheduler",
 ]
@@ -124,10 +138,7 @@ pkg_tar(
 pkg_tar(
     name = "kubernetes-node-%s" % PLATFORM_ARCH_STRING,
     extension = "tar.gz",
-    files = select({
-        ":embed_license_targets": LICENSE_TARGETS,
-        "//conditions:default": [],
-    }),
+    files = LICENSE_TARGETS,
     mode = "0644",
     package_dir = "kubernetes",
     deps = [
@@ -164,10 +175,7 @@ pkg_tar(
 pkg_tar(
     name = "kubernetes-server-%s" % PLATFORM_ARCH_STRING,
     extension = "tar.gz",
-    files = select({
-        ":embed_license_targets": LICENSE_TARGETS,
-        "//conditions:default": [],
-    }),
+    files = LICENSE_TARGETS,
     mode = "0644",
     package_dir = "kubernetes",
     deps = [
@@ -211,17 +219,15 @@ pkg_tar(
     name = "kubernetes",
     extension = "tar.gz",
     files = [
-        # TODO: the version file
+        "//:Godeps/LICENSES",
         "//:README.md",
         "//:Vagrantfile",
+        "//:version",
         "//cluster:all-srcs",
         "//docs:all-srcs",
         "//examples:all-srcs",
         "//third_party/htpasswd:all-srcs",
-    ] + select({
-        ":embed_license_targets": ["//:Godeps/LICENSES"],
-        "//conditions:default": [],
-    }),
+    ],
     package_dir = "kubernetes",
     strip_prefix = "//",
     deps = [

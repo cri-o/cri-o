@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -27,54 +26,39 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/strategicpatch"
 )
 
-func generateNodeAndTaintedNode(oldTaints []v1.Taint, newTaints []v1.Taint) (*api.Node, *api.Node) {
-	var taintedNode *api.Node
+func generateNodeAndTaintedNode(oldTaints []v1.Taint, newTaints []v1.Taint) (*v1.Node, *v1.Node) {
+	var taintedNode *v1.Node
 
-	oldTaintsData, _ := json.Marshal(oldTaints)
 	// Create a node.
-	node := &api.Node{
+	node := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "node-name",
 			CreationTimestamp: metav1.Time{Time: time.Now()},
-			Annotations: map[string]string{
-				v1.TaintsAnnotationKey: string(oldTaintsData),
-			},
 		},
-		Spec: api.NodeSpec{
+		Spec: v1.NodeSpec{
 			ExternalID: "node-name",
+			Taints:     oldTaints,
 		},
-		Status: api.NodeStatus{},
+		Status: v1.NodeStatus{},
 	}
 	clone, _ := api.Scheme.DeepCopy(node)
 
-	newTaintsData, _ := json.Marshal(newTaints)
 	// A copy of the same node, but tainted.
-	taintedNode = clone.(*api.Node)
-	taintedNode.Annotations = map[string]string{
-		v1.TaintsAnnotationKey: string(newTaintsData),
-	}
+	taintedNode = clone.(*v1.Node)
+	taintedNode.Spec.Taints = newTaints
 
 	return node, taintedNode
 }
 
-func AnnotationsHaveEqualTaints(annotationA map[string]string, annotationB map[string]string) bool {
-	taintsA, err := v1.GetTaintsFromNodeAnnotations(annotationA)
-	if err != nil {
-		return false
-	}
-	taintsB, err := v1.GetTaintsFromNodeAnnotations(annotationB)
-	if err != nil {
-		return false
-	}
-
+func equalTaints(taintsA, taintsB []v1.Taint) bool {
 	if len(taintsA) != len(taintsB) {
 		return false
 	}
@@ -254,11 +238,12 @@ func TestTaint(t *testing.T) {
 	for _, test := range tests {
 		oldNode, expectNewNode := generateNodeAndTaintedNode(test.oldTaints, test.newTaints)
 
-		new_node := &api.Node{}
+		new_node := &v1.Node{}
 		tainted := false
 		f, tf, codec, ns := cmdtesting.NewAPIFactory()
 
 		tf.Client = &fake.RESTClient{
+			APIRegistry:          api.Registry,
 			NegotiatedSerializer: ns,
 			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 				m := &MyReq{req}
@@ -287,8 +272,8 @@ func TestTaint(t *testing.T) {
 					if err := runtime.DecodeInto(codec, appliedPatch, new_node); err != nil {
 						t.Fatalf("%s: unexpected error: %v", test.description, err)
 					}
-					if !AnnotationsHaveEqualTaints(expectNewNode.Annotations, new_node.Annotations) {
-						t.Fatalf("%s: expected:\n%v\nsaw:\n%v\n", test.description, expectNewNode.Annotations, new_node.Annotations)
+					if !equalTaints(expectNewNode.Spec.Taints, new_node.Spec.Taints) {
+						t.Fatalf("%s: expected:\n%v\nsaw:\n%v\n", test.description, expectNewNode.Spec.Taints, new_node.Spec.Taints)
 					}
 					return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, new_node)}, nil
 				case m.isFor("PUT", "/nodes/node-name"):
@@ -301,8 +286,8 @@ func TestTaint(t *testing.T) {
 					if err := runtime.DecodeInto(codec, data, new_node); err != nil {
 						t.Fatalf("%s: unexpected error: %v", test.description, err)
 					}
-					if !AnnotationsHaveEqualTaints(expectNewNode.Annotations, new_node.Annotations) {
-						t.Fatalf("%s: expected:\n%v\nsaw:\n%v\n", test.description, expectNewNode.Annotations, new_node.Annotations)
+					if !equalTaints(expectNewNode.Spec.Taints, new_node.Spec.Taints) {
+						t.Fatalf("%s: expected:\n%v\nsaw:\n%v\n", test.description, expectNewNode.Spec.Taints, new_node.Spec.Taints)
 					}
 					return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, new_node)}, nil
 				default:

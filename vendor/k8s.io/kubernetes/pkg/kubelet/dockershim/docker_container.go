@@ -32,6 +32,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 )
 
+const (
+	dockerDefaultLoggingDriver = "json-file"
+)
+
 // ListContainers lists all containers matching the filter.
 func (ds *dockerService) ListContainers(filter *runtimeapi.ContainerFilter) ([]*runtimeapi.Container, error) {
 	opts := dockertypes.ContainerListOptions{All: true}
@@ -75,6 +79,15 @@ func (ds *dockerService) ListContainers(filter *runtimeapi.ContainerFilter) ([]*
 
 		result = append(result, converted)
 	}
+	// Include legacy containers if there are still legacy containers not cleaned up yet.
+	if !ds.legacyCleanup.Done() {
+		legacyContainers, err := ds.ListLegacyContainers(filter)
+		if err != nil {
+			return nil, err
+		}
+		// Legacy containers are always older, so we can safely append them to the end.
+		result = append(result, legacyContainers...)
+	}
 	return result, nil
 }
 
@@ -97,6 +110,12 @@ func (ds *dockerService) CreateContainer(podSandboxID string, config *runtimeapi
 	labels[containerLogPathLabelKey] = filepath.Join(sandboxConfig.LogDirectory, config.LogPath)
 	// Write the sandbox ID in the labels.
 	labels[sandboxIDLabelKey] = podSandboxID
+
+	apiVersion, err := ds.getDockerAPIVersion()
+	if err != nil {
+		return "", fmt.Errorf("unable to get the docker API version: %v", err)
+	}
+	securityOptSep := getSecurityOptSeparator(apiVersion)
 
 	image := ""
 	if iSpec := config.GetImage(); iSpec != nil {
@@ -143,7 +162,7 @@ func (ds *dockerService) CreateContainer(podSandboxID string, config *runtimeapi
 		// Note: ShmSize is handled in kube_docker_client.go
 
 		// Apply security context.
-		applyContainerSecurityContext(lc, podSandboxID, createConfig.Config, hc)
+		applyContainerSecurityContext(lc, podSandboxID, createConfig.Config, hc, securityOptSep)
 	}
 
 	// Apply cgroupsParent derived from the sandbox config.
@@ -168,7 +187,7 @@ func (ds *dockerService) CreateContainer(podSandboxID string, config *runtimeapi
 	hc.Resources.Devices = devices
 
 	// Apply appArmor and seccomp options.
-	securityOpts, err := getContainerSecurityOpts(config.Metadata.Name, sandboxConfig, ds.seccompProfileRoot)
+	securityOpts, err := getContainerSecurityOpts(config.Metadata.Name, sandboxConfig, ds.seccompProfileRoot, securityOptSep)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate container security options for container %q: %v", config.Metadata.Name, err)
 	}
@@ -176,7 +195,9 @@ func (ds *dockerService) CreateContainer(podSandboxID string, config *runtimeapi
 
 	createConfig.HostConfig = hc
 	createResp, err := ds.client.CreateContainer(createConfig)
-	recoverFromConflictIfNeeded(ds.client, err)
+	if err != nil {
+		createResp, err = recoverFromCreationConflictIfNeeded(ds.client, createConfig, err)
+	}
 
 	if createResp != nil {
 		return createResp.ID, err
@@ -200,13 +221,35 @@ func (ds *dockerService) createContainerLogSymlink(containerID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get container %q log path: %v", containerID, err)
 	}
-	if path != "" {
-		// Only create the symlink when container log path is specified.
+
+	if path == "" {
+		glog.V(5).Infof("Container %s log path isn't specified, will not create the symlink", containerID)
+		return nil
+	}
+
+	if realPath != "" {
+		// Only create the symlink when container log path is specified and log file exists.
 		if err = ds.os.Symlink(realPath, path); err != nil {
 			return fmt.Errorf("failed to create symbolic link %q to the container log file %q for container %q: %v",
 				path, realPath, containerID, err)
 		}
+	} else {
+		dockerLoggingDriver := ""
+		dockerInfo, err := ds.client.Info()
+		if err != nil {
+			glog.Errorf("Failed to execute Info() call to the Docker client: %v", err)
+		} else {
+			dockerLoggingDriver = dockerInfo.LoggingDriver
+			glog.V(10).Infof("Docker logging driver is %s", dockerLoggingDriver)
+		}
+
+		if dockerLoggingDriver == dockerDefaultLoggingDriver {
+			glog.Errorf("Cannot create symbolic link because container log file doesn't exist!")
+		} else {
+			glog.V(5).Infof("Unsupported logging driver: %s", dockerLoggingDriver)
+		}
 	}
+
 	return nil
 }
 
@@ -357,6 +400,15 @@ func (ds *dockerService) ContainerStatus(containerID string) (*runtimeapi.Contai
 	// Convert to unix timestamps.
 	ct, st, ft := createdAt.UnixNano(), startedAt.UnixNano(), finishedAt.UnixNano()
 	exitCode := int32(r.State.ExitCode)
+
+	// If the container has no containerTypeLabelKey label, treat it as a legacy container.
+	if _, ok := r.Config.Labels[containerTypeLabelKey]; !ok {
+		names, labels, err := convertLegacyNameAndLabels([]string{r.Name}, r.Config.Labels)
+		if err != nil {
+			return nil, err
+		}
+		r.Name, r.Config.Labels = names[0], labels
+	}
 
 	metadata, err := parseContainerName(r.Name)
 	if err != nil {

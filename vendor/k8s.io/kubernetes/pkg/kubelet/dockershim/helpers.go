@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	dockertypes "github.com/docker/engine-api/types"
 	dockerfilters "github.com/docker/engine-api/types/filters"
-	dockerapiversion "github.com/docker/engine-api/types/versions"
 	dockernat "github.com/docker/go-connections/nat"
 	"github.com/golang/glog"
 
@@ -40,25 +40,11 @@ const (
 
 var (
 	conflictRE = regexp.MustCompile(`Conflict. (?:.)+ is already in use by container ([0-9a-z]+)`)
+
+	// Docker changes the security option separator from ':' to '=' in the 1.23
+	// API version.
+	optsSeparatorChangeVersion = semver.MustParse(dockertools.SecurityOptSeparatorChangeVersion)
 )
-
-// apiVersion implements kubecontainer.Version interface by implementing
-// Compare() and String(). It uses the compare function of engine-api to
-// compare docker apiversions.
-type apiVersion string
-
-func (v apiVersion) String() string {
-	return string(v)
-}
-
-func (v apiVersion) Compare(other string) (int, error) {
-	if dockerapiversion.LessThan(string(v), other) {
-		return -1, nil
-	} else if dockerapiversion.GreaterThan(string(v), other) {
-		return 1, nil
-	}
-	return 0, nil
-}
 
 // generateEnvList converts KeyValue list to a list of strings, in the form of
 // '<key>=<value>', which can be understood by docker.
@@ -163,10 +149,10 @@ func makePortsAndBindings(pm []*runtimeapi.PortMapping) (map[dockernat.Port]stru
 		// Some of this port stuff is under-documented voodoo.
 		// See http://stackoverflow.com/questions/20428302/binding-a-port-to-a-host-interface-using-the-rest-api
 		var protocol string
-		switch strings.ToUpper(string(port.Protocol)) {
-		case "UDP":
+		switch port.Protocol {
+		case runtimeapi.Protocol_UDP:
 			protocol = "/udp"
-		case "TCP":
+		case runtimeapi.Protocol_TCP:
 			protocol = "/tcp"
 		default:
 			glog.Warningf("Unknown protocol %q: defaulting to TCP", port.Protocol)
@@ -198,7 +184,7 @@ func makePortsAndBindings(pm []*runtimeapi.PortMapping) (map[dockernat.Port]stru
 // getContainerSecurityOpt gets container security options from container and sandbox config, currently from sandbox
 // annotations.
 // It is an experimental feature and may be promoted to official runtime api in the future.
-func getContainerSecurityOpts(containerName string, sandboxConfig *runtimeapi.PodSandboxConfig, seccompProfileRoot string) ([]string, error) {
+func getContainerSecurityOpts(containerName string, sandboxConfig *runtimeapi.PodSandboxConfig, seccompProfileRoot string, separator rune) ([]string, error) {
 	appArmorOpts, err := dockertools.GetAppArmorOpts(sandboxConfig.GetAnnotations(), containerName)
 	if err != nil {
 		return nil, err
@@ -208,17 +194,13 @@ func getContainerSecurityOpts(containerName string, sandboxConfig *runtimeapi.Po
 		return nil, err
 	}
 	securityOpts := append(appArmorOpts, seccompOpts...)
-	var opts []string
-	for _, securityOpt := range securityOpts {
-		k, v := securityOpt.GetKV()
-		opts = append(opts, fmt.Sprintf("%s=%s", k, v))
-	}
-	return opts, nil
+	fmtOpts := dockertools.FmtDockerOpts(securityOpts, separator)
+	return fmtOpts, nil
 }
 
-func getSandboxSecurityOpts(sandboxConfig *runtimeapi.PodSandboxConfig, seccompProfileRoot string) ([]string, error) {
+func getSandboxSecurityOpts(sandboxConfig *runtimeapi.PodSandboxConfig, seccompProfileRoot string, separator rune) ([]string, error) {
 	// sandboxContainerName doesn't exist in the pod, so pod security options will be returned by default.
-	return getContainerSecurityOpts(sandboxContainerName, sandboxConfig, seccompProfileRoot)
+	return getContainerSecurityOpts(sandboxContainerName, sandboxConfig, seccompProfileRoot, separator)
 }
 
 func getNetworkNamespace(c *dockertypes.ContainerJSON) string {
@@ -295,22 +277,62 @@ func getUserFromImageUser(imageUser string) (*int64, string) {
 // create a new container named FOO. To work around this, we parse the error
 // message to identify failure caused by naming conflict, and try to remove
 // the old container FOO.
+// See #40443. Sometimes even removal may fail with "no such container" error.
+// In that case we have to create the container with a randomized name.
+// TODO(random-liu): Remove this work around after docker 1.11 is deprecated.
 // TODO(#33189): Monitor the tests to see if the fix is sufficent.
-func recoverFromConflictIfNeeded(client dockertools.DockerInterface, err error) {
-	if err == nil {
-		return
-	}
-
+func recoverFromCreationConflictIfNeeded(client dockertools.DockerInterface, createConfig dockertypes.ContainerCreateConfig, err error) (*dockertypes.ContainerCreateResponse, error) {
 	matches := conflictRE.FindStringSubmatch(err.Error())
 	if len(matches) != 2 {
-		return
+		return nil, err
 	}
 
 	id := matches[1]
 	glog.Warningf("Unable to create pod sandbox due to conflict. Attempting to remove sandbox %q", id)
-	if err := client.RemoveContainer(id, dockertypes.ContainerRemoveOptions{RemoveVolumes: true}); err != nil {
-		glog.Errorf("Failed to remove the conflicting sandbox container: %v", err)
+	if rmErr := client.RemoveContainer(id, dockertypes.ContainerRemoveOptions{RemoveVolumes: true}); rmErr == nil {
+		glog.V(2).Infof("Successfully removed conflicting container %q", id)
+		return nil, err
 	} else {
-		glog.V(2).Infof("Successfully removed conflicting sandbox %q", id)
+		glog.Errorf("Failed to remove the conflicting container %q: %v", id, rmErr)
+		// Return if the error is not container not found error.
+		if !dockertools.IsContainerNotFoundError(rmErr) {
+			return nil, err
+		}
 	}
+
+	// randomize the name to avoid conflict.
+	createConfig.Name = randomizeName(createConfig.Name)
+	glog.V(2).Infof("Create the container with randomized name %s", createConfig.Name)
+	return client.CreateContainer(createConfig)
+}
+
+// getSecurityOptSeparator returns the security option separator based on the
+// docker API version.
+// TODO: Remove this function along with the relevant code when we no longer
+// need to support docker 1.10.
+func getSecurityOptSeparator(v *semver.Version) rune {
+	switch v.Compare(optsSeparatorChangeVersion) {
+	case -1:
+		// Current version is less than the API change version; use the old
+		// separator.
+		return dockertools.SecurityOptSeparatorOld
+	default:
+		return dockertools.SecurityOptSeparatorNew
+	}
+}
+
+// ensureSandboxImageExists pulls the sandbox image when it's not present.
+func ensureSandboxImageExists(client dockertools.DockerInterface, image string) error {
+	_, err := client.InspectImageByRef(image)
+	if err == nil {
+		return nil
+	}
+	if !dockertools.IsImageNotFoundError(err) {
+		return fmt.Errorf("failed to inspect sandbox image %q: %v", image, err)
+	}
+	err = client.PullImage(image, dockertypes.AuthConfig{}, dockertypes.ImagePullOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to pull sandbox image %q: %v", image, err)
+	}
+	return nil
 }

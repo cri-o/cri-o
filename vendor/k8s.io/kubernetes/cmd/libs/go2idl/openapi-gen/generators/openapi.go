@@ -40,15 +40,17 @@ const tagOptional = "optional"
 
 // Known values for the tag.
 const (
-	tagValueTrue  = "true"
-	tagValueFalse = "false"
+	tagValueTrue       = "true"
+	tagValueFalse      = "false"
+	tagExtensionPrefix = "x-kubernetes-"
 )
 
+func getOpenAPITagValue(comments []string) []string {
+	return types.ExtractCommentTags("+", comments)[tagName]
+}
+
 func hasOpenAPITagValue(comments []string, value string) bool {
-	tagValues := types.ExtractCommentTags("+", comments)[tagName]
-	if tagValues == nil {
-		return false
-	}
+	tagValues := getOpenAPITagValue(comments)
 	for _, val := range tagValues {
 		if val == value {
 			return true
@@ -67,17 +69,26 @@ func hasOptionalTag(m *types.Member) bool {
 	return hasOptionalCommentTag || hasOptionalJsonTag
 }
 
+type identityNamer struct{}
+
+func (_ identityNamer) Name(t *types.Type) string {
+	return t.Name.String()
+}
+
+var _ namer.Namer = identityNamer{}
+
 // NameSystems returns the name system used by the generators in this package.
 func NameSystems() namer.NameSystems {
 	return namer.NameSystems{
-		"raw": namer.NewRawNamer("", nil),
+		"raw":           namer.NewRawNamer("", nil),
+		"sorting_namer": identityNamer{},
 	}
 }
 
 // DefaultNameSystem returns the default name system for ordering the types to be
 // processed by the generators in this package.
 func DefaultNameSystem() string {
-	return "raw"
+	return "sorting_namer"
 }
 
 func Packages(context *generator.Context, arguments *args.GeneratorArgs) generator.Packages {
@@ -133,7 +144,7 @@ const (
 // openApiGen produces a file with auto-generated OpenAPI functions.
 type openAPIGen struct {
 	generator.DefaultGen
-	// TargetPackage is the package that will get OpenAPIDefinitions variable contains all open API definitions.
+	// TargetPackage is the package that will get GetOpenAPIDefinitions function returns all open API definitions.
 	targetPackage *types.Package
 	imports       namer.ImportTracker
 	context       *generator.Context
@@ -185,22 +196,23 @@ func (g *openAPIGen) Imports(c *generator.Context) []string {
 
 func argsFromType(t *types.Type) generator.Args {
 	return generator.Args{
-		"type":               t,
-		"OpenAPIDefinitions": types.Ref(openAPICommonPackagePath, "OpenAPIDefinitions"),
-		"OpenAPIDefinition":  types.Ref(openAPICommonPackagePath, "OpenAPIDefinition"),
-		"SpecSchemaType":     types.Ref(specPackagePath, "Schema"),
+		"type":              t,
+		"ReferenceCallback": types.Ref(openAPICommonPackagePath, "ReferenceCallback"),
+		"OpenAPIDefinition": types.Ref(openAPICommonPackagePath, "OpenAPIDefinition"),
+		"SpecSchemaType":    types.Ref(specPackagePath, "Schema"),
 	}
 }
 
 func (g *openAPIGen) Init(c *generator.Context, w io.Writer) error {
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
-	sw.Do("var OpenAPIDefinitions *$.OpenAPIDefinitions|raw$ = ", argsFromType(nil))
-	sw.Do("&$.OpenAPIDefinitions|raw${\n", argsFromType(nil))
+	sw.Do("func GetOpenAPIDefinitions(ref $.ReferenceCallback|raw$) map[string]$.OpenAPIDefinition|raw$ {\n", argsFromType(nil))
+	sw.Do("return map[string]$.OpenAPIDefinition|raw${\n", argsFromType(nil))
 	return sw.Error()
 }
 
 func (g *openAPIGen) Finalize(c *generator.Context, w io.Writer) error {
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
+	sw.Do("}\n", nil)
 	sw.Do("}\n", nil)
 	return sw.Error()
 }
@@ -308,9 +320,9 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	switch t.Kind {
 	case types.Struct:
 		args := argsFromType(t)
-		g.Do("\"$.$\": ", typeShortName(t))
+		g.Do("\"$.$\": ", t.Name)
 		if hasOpenAPIDefinitionMethod(t) {
-			g.Do("$.type|raw${}.OpenAPIDefinition(),", args)
+			g.Do("$.type|raw${}.OpenAPIDefinition(),\n", args)
 			return nil
 		}
 		g.Do("{\nSchema: spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
@@ -341,6 +353,33 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			}
 			g.Do("\"$.$\",", k)
 		}
+		g.Do("},\n", nil)
+		if err := g.generateExtensions(t.CommentLines); err != nil {
+			return err
+		}
+		g.Do("},\n", nil)
+	}
+	return nil
+}
+
+func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
+	tagValues := getOpenAPITagValue(CommentLines)
+	anyExtension := false
+	for _, val := range tagValues {
+		if strings.HasPrefix(val, tagExtensionPrefix) {
+			if !anyExtension {
+				g.Do("spec.VendorExtensible: {\nExtensions: spec.Extensions{\n", nil)
+				anyExtension = true
+			}
+			parts := strings.SplitN(val, ":", 2)
+			if len(parts) != 2 {
+				return fmt.Errorf("Invalid extension value: %v", val)
+			}
+			g.Do("\"$.$\": ", parts[0])
+			g.Do("\"$.$\",\n", parts[1])
+		}
+	}
+	if anyExtension {
 		g.Do("},\n},\n", nil)
 	}
 	return nil
@@ -395,6 +434,9 @@ func (g openAPITypeWriter) generateProperty(m *types.Member) error {
 		return nil
 	}
 	g.Do("\"$.$\": {\n", name)
+	if err := g.generateExtensions(m.CommentLines); err != nil {
+		return err
+	}
 	g.Do("SchemaProps: spec.SchemaProps{\n", nil)
 	g.generateDescription(m.CommentLines)
 	jsonTags := getJsonTags(m)
@@ -413,7 +455,7 @@ func (g openAPITypeWriter) generateProperty(m *types.Member) error {
 	}
 	switch t.Kind {
 	case types.Builtin:
-		return fmt.Errorf("please add type %v to getOpenAPITypeFormat function.", t)
+		return fmt.Errorf("please add type %v to getOpenAPITypeFormat function", t)
 	case types.Map:
 		if err := g.generateMapProperty(t); err != nil {
 			return err
@@ -425,7 +467,7 @@ func (g openAPITypeWriter) generateProperty(m *types.Member) error {
 	case types.Struct, types.Interface:
 		g.generateReferenceProperty(t)
 	default:
-		return fmt.Errorf("cannot generate spec for type %v.", t)
+		return fmt.Errorf("cannot generate spec for type %v", t)
 	}
 	g.Do("},\n},\n", nil)
 	return g.Error()
@@ -437,14 +479,8 @@ func (g openAPITypeWriter) generateSimpleProperty(typeString, format string) {
 }
 
 func (g openAPITypeWriter) generateReferenceProperty(t *types.Type) {
-	var name string
-	if t.Name.Package == "" {
-		name = t.Name.Name
-	} else {
-		name = filepath.Base(t.Name.Package) + "." + t.Name.Name
-	}
-	g.refTypes[name] = t
-	g.Do("Ref: spec.MustCreateRef(\"#/definitions/$.$\"),\n", name)
+	g.refTypes[t.Name.String()] = t
+	g.Do("Ref: ref(\"$.$\"),\n", t.Name.String())
 }
 
 func resolveAliasAndPtrType(t *types.Type) *types.Type {

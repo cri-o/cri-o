@@ -33,6 +33,17 @@ const (
 	// of fluentd running on a node, kubelet need to mark node on which
 	// fluentd in not running as a manifest pod with LabelFluentdDsReady.
 	LabelFluentdDsReady = "alpha.kubernetes.io/fluentd-ds-ready"
+
+	// When feature-gate for TaintBasedEvictions=true flag is enabled,
+	// TaintNodeNotReady would be automatically added by node controller
+	// when node is not ready, and removed when node becomes ready.
+	TaintNodeNotReady = "node.alpha.kubernetes.io/notReady"
+
+	// When feature-gate for TaintBasedEvictions=true flag is enabled,
+	// TaintNodeUnreachable would be automatically added by node controller
+	// when node becomes unreachable (corresponding to NodeReady status ConditionUnknown)
+	// and removed when node becomes reachable (NodeReady status ConditionTrue).
+	TaintNodeUnreachable = "node.alpha.kubernetes.io/unreachable"
 )
 
 // Role labels are applied to Nodes to mark their purpose.  In particular, we

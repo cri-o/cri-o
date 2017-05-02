@@ -41,6 +41,8 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/httpstream"
+	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -50,10 +52,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kubecontainertesting "k8s.io/kubernetes/pkg/kubelet/container/testing"
+	"k8s.io/kubernetes/pkg/kubelet/server/portforward"
 	"k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
-	"k8s.io/kubernetes/pkg/util/httpstream"
-	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
 	"k8s.io/kubernetes/pkg/util/term"
 	"k8s.io/kubernetes/pkg/volume"
 )
@@ -73,7 +74,7 @@ type fakeKubelet struct {
 	runFunc                            func(podFullName string, uid types.UID, containerName string, cmd []string) ([]byte, error)
 	execFunc                           func(pod string, uid types.UID, container string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool) error
 	attachFunc                         func(pod string, uid types.UID, container string, in io.Reader, out, err io.WriteCloser, tty bool) error
-	portForwardFunc                    func(name string, uid types.UID, port uint16, stream io.ReadWriteCloser) error
+	portForwardFunc                    func(name string, uid types.UID, port int32, stream io.ReadWriteCloser) error
 	containerLogsFunc                  func(podFullName, containerName string, logOptions *v1.PodLogOptions, stdout, stderr io.Writer) error
 	streamingConnectionIdleTimeoutFunc func() time.Duration
 	hostnameFunc                       func() string
@@ -139,7 +140,7 @@ func (fk *fakeKubelet) AttachContainer(name string, uid types.UID, container str
 	return fk.attachFunc(name, uid, container, in, out, err, tty)
 }
 
-func (fk *fakeKubelet) PortForward(name string, uid types.UID, port uint16, stream io.ReadWriteCloser) error {
+func (fk *fakeKubelet) PortForward(name string, uid types.UID, port int32, stream io.ReadWriteCloser) error {
 	return fk.portForwardFunc(name, uid, port, stream)
 }
 
@@ -151,7 +152,7 @@ func (fk *fakeKubelet) GetAttach(podFullName string, podUID types.UID, container
 	return fk.redirectURL, nil
 }
 
-func (fk *fakeKubelet) GetPortForward(podName, podNamespace string, podUID types.UID) (*url.URL, error) {
+func (fk *fakeKubelet) GetPortForward(podName, podNamespace string, podUID types.UID, portForwardOpts portforward.V4Options) (*url.URL, error) {
 	return fk.redirectURL, nil
 }
 
@@ -239,6 +240,7 @@ func newServerTest() *serverTestFramework {
 		stats.NewResourceAnalyzer(fw.fakeKubelet, time.Minute, &kubecontainertesting.FakeRuntime{}),
 		fw.fakeAuth,
 		true,
+		false,
 		&kubecontainertesting.Mock{},
 		fw.criHandler)
 	fw.serverUnderTest = &server
@@ -1503,7 +1505,7 @@ func TestServePortForward(t *testing.T) {
 
 		portForwardFuncDone := make(chan struct{})
 
-		fw.fakeKubelet.portForwardFunc = func(name string, uid types.UID, port uint16, stream io.ReadWriteCloser) error {
+		fw.fakeKubelet.portForwardFunc = func(name string, uid types.UID, port int32, stream io.ReadWriteCloser) error {
 			defer close(portForwardFuncDone)
 
 			if e, a := expectedPodName, name; e != a {
@@ -1514,11 +1516,11 @@ func TestServePortForward(t *testing.T) {
 				t.Fatalf("%d: uid: expected '%v', got '%v'", i, e, a)
 			}
 
-			p, err := strconv.ParseUint(test.port, 10, 16)
+			p, err := strconv.ParseInt(test.port, 10, 32)
 			if err != nil {
 				t.Fatalf("%d: error parsing port string '%s': %v", i, test.port, err)
 			}
-			if e, a := uint16(p), port; e != a {
+			if e, a := int32(p), port; e != a {
 				t.Fatalf("%d: port: expected '%v', got '%v'", i, e, a)
 			}
 

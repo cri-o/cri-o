@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/pkg/api/v1"
 )
 
 // GroupName is the group name use in this package
@@ -42,15 +41,13 @@ var (
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
+		&Deployment{},
+		&DeploymentList{},
+		&DeploymentRollback{},
+		&Scale{},
 		&StatefulSet{},
 		&StatefulSetList{},
-		&v1.DeleteOptions{},
-		&metav1.ExportOptions{},
-		&metav1.GetOptions{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
-
-func (obj *StatefulSet) GetObjectKind() schema.ObjectKind     { return &obj.TypeMeta }
-func (obj *StatefulSetList) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

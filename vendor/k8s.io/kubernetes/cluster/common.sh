@@ -30,15 +30,15 @@ source "${KUBE_ROOT}/cluster/lib/logging.sh"
 #
 # NOTE This must match the version_regex in build/common.sh
 # kube::release::parse_and_validate_release_version()
-KUBE_RELEASE_VERSION_REGEX="^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(beta|alpha)\\.(0|[1-9][0-9]*))?$"
-KUBE_RELEASE_VERSION_DASHED_REGEX="v(0|[1-9][0-9]*)-(0|[1-9][0-9]*)-(0|[1-9][0-9]*)(-(beta|alpha)-(0|[1-9][0-9]*))?"
+KUBE_RELEASE_VERSION_REGEX="^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(beta|alpha|rc)\\.(0|[1-9][0-9]*))?$"
+KUBE_RELEASE_VERSION_DASHED_REGEX="v(0|[1-9][0-9]*)-(0|[1-9][0-9]*)-(0|[1-9][0-9]*)(-(beta|alpha|rc)-(0|[1-9][0-9]*))?"
 
 # KUBE_CI_VERSION_REGEX matches things like "v1.2.3-alpha.4.56+abcdefg" This
 #
 # NOTE This must match the version_regex in build/common.sh
 # kube::release::parse_and_validate_ci_version()
-KUBE_CI_VERSION_REGEX="^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)-(beta|alpha)\\.(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*)\\+[-0-9a-z]*)?$"
-KUBE_CI_VERSION_DASHED_REGEX="^v(0|[1-9][0-9]*)-(0|[1-9][0-9]*)-(0|[1-9][0-9]*)-(beta|alpha)-(0|[1-9][0-9]*)(-(0|[1-9][0-9]*)\\+[-0-9a-z]*)?"
+KUBE_CI_VERSION_REGEX="^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)-(beta|alpha|rc)\\.(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*)\\+[-0-9a-z]*)?$"
+KUBE_CI_VERSION_DASHED_REGEX="^v(0|[1-9][0-9]*)-(0|[1-9][0-9]*)-(0|[1-9][0-9]*)-(beta|alpha|rc)-(0|[1-9][0-9]*)(-(0|[1-9][0-9]*)\\+[-0-9a-z]*)?"
 
 # Generate kubeconfig data for the created cluster.
 # Assumed vars:
@@ -314,7 +314,7 @@ function load-or-gen-kube-bearertoken() {
 #   KUBE_TEMP
 function ensure-temp-dir {
   if [[ -z ${KUBE_TEMP-} ]]; then
-    KUBE_TEMP=$(mktemp -d -t kubernetes.XXXXXX)
+    export KUBE_TEMP=$(mktemp -d -t kubernetes.XXXXXX)
     trap 'rm -rf "${KUBE_TEMP}"' EXIT
   fi
 }
@@ -585,7 +585,6 @@ function build-kube-master-certs {
   cat >$file <<EOF
 KUBEAPISERVER_CERT: $(yaml-quote ${KUBEAPISERVER_CERT_BASE64:-})
 KUBEAPISERVER_KEY: $(yaml-quote ${KUBEAPISERVER_KEY_BASE64:-})
-KUBELET_AUTH_CA_CERT: $(yaml-quote ${KUBELET_AUTH_CA_CERT_BASE64:-})
 CA_KEY: $(yaml-quote ${CA_KEY_BASE64:-})
 EOF
 }
@@ -628,7 +627,7 @@ DOCKER_REGISTRY_MIRROR_URL: $(yaml-quote ${DOCKER_REGISTRY_MIRROR_URL:-})
 ENABLE_L7_LOADBALANCING: $(yaml-quote ${ENABLE_L7_LOADBALANCING:-none})
 ENABLE_CLUSTER_LOGGING: $(yaml-quote ${ENABLE_CLUSTER_LOGGING:-false})
 ENABLE_CLUSTER_UI: $(yaml-quote ${ENABLE_CLUSTER_UI:-false})
-ENABLE_NODE_PROBLEM_DETECTOR: $(yaml-quote ${ENABLE_NODE_PROBLEM_DETECTOR:-false})
+ENABLE_NODE_PROBLEM_DETECTOR: $(yaml-quote ${ENABLE_NODE_PROBLEM_DETECTOR:-none})
 ENABLE_NODE_LOGGING: $(yaml-quote ${ENABLE_NODE_LOGGING:-false})
 ENABLE_RESCHEDULER: $(yaml-quote ${ENABLE_RESCHEDULER:-false})
 LOGGING_DESTINATION: $(yaml-quote ${LOGGING_DESTINATION:-})
@@ -642,6 +641,7 @@ DNS_DOMAIN: $(yaml-quote ${DNS_DOMAIN:-})
 ENABLE_DNS_HORIZONTAL_AUTOSCALER: $(yaml-quote ${ENABLE_DNS_HORIZONTAL_AUTOSCALER:-false})
 KUBELET_TOKEN: $(yaml-quote ${KUBELET_TOKEN:-})
 KUBE_PROXY_TOKEN: $(yaml-quote ${KUBE_PROXY_TOKEN:-})
+NODE_PROBLEM_DETECTOR_TOKEN: $(yaml-quote ${NODE_PROBLEM_DETECTOR_TOKEN:-})
 ADMISSION_CONTROL: $(yaml-quote ${ADMISSION_CONTROL:-})
 MASTER_IP_RANGE: $(yaml-quote ${MASTER_IP_RANGE})
 RUNTIME_CONFIG: $(yaml-quote ${RUNTIME_CONFIG})
@@ -664,6 +664,8 @@ MULTIZONE: $(yaml-quote ${MULTIZONE:-})
 NON_MASQUERADE_CIDR: $(yaml-quote ${NON_MASQUERADE_CIDR:-})
 KUBE_UID: $(yaml-quote ${KUBE_UID:-})
 ENABLE_DEFAULT_STORAGE_CLASS: $(yaml-quote ${ENABLE_DEFAULT_STORAGE_CLASS:-})
+ENABLE_APISERVER_BASIC_AUDIT: $(yaml-quote ${ENABLE_APISERVER_BASIC_AUDIT:-})
+ENABLE_CACHE_MUTATION_DETECTOR: $(yaml-quote ${ENABLE_CACHE_MUTATION_DETECTOR:-false})
 EOF
   if [ -n "${KUBELET_PORT:-}" ]; then
     cat >>$file <<EOF
@@ -707,6 +709,21 @@ EOF
 DOCKER_TEST_LOG_LEVEL: $(yaml-quote ${DOCKER_TEST_LOG_LEVEL})
 EOF
   fi
+  if [ -n "${DOCKER_LOG_DRIVER:-}" ]; then
+      cat >>$file <<EOF
+DOCKER_LOG_DRIVER: $(yaml-quote ${DOCKER_LOG_DRIVER})
+EOF
+  fi
+  if [ -n "${DOCKER_LOG_MAX_SIZE:-}" ]; then
+      cat >>$file <<EOF
+DOCKER_LOG_MAX_SIZE: $(yaml-quote ${DOCKER_LOG_MAX_SIZE})
+EOF
+  fi
+  if [ -n "${DOCKER_LOG_MAX_FILE:-}" ]; then
+      cat >>$file <<EOF
+DOCKER_LOG_MAX_FILE: $(yaml-quote ${DOCKER_LOG_MAX_FILE})
+EOF
+  fi
   if [ -n "${ENABLE_CUSTOM_METRICS:-}" ]; then
     cat >>$file <<EOF
 ENABLE_CUSTOM_METRICS: $(yaml-quote ${ENABLE_CUSTOM_METRICS})
@@ -734,7 +751,9 @@ MANIFEST_URL: $(yaml-quote ${MANIFEST_URL:-})
 MANIFEST_URL_HEADER: $(yaml-quote ${MANIFEST_URL_HEADER:-})
 NUM_NODES: $(yaml-quote ${NUM_NODES})
 STORAGE_BACKEND: $(yaml-quote ${STORAGE_BACKEND:-etcd3})
+STORAGE_MEDIA_TYPE: $(yaml-quote ${STORAGE_MEDIA_TYPE:-})
 ENABLE_GARBAGE_COLLECTOR: $(yaml-quote ${ENABLE_GARBAGE_COLLECTOR:-})
+ENABLE_LEGACY_ABAC: $(yaml-quote ${ENABLE_LEGACY_ABAC:-})
 MASTER_ADVERTISE_ADDRESS: $(yaml-quote ${MASTER_ADVERTISE_ADDRESS:-})
 ETCD_CA_KEY: $(yaml-quote ${ETCD_CA_KEY_BASE64:-})
 ETCD_CA_CERT: $(yaml-quote ${ETCD_CA_CERT_BASE64:-})
@@ -790,6 +809,11 @@ EOF
 INITIAL_ETCD_CLUSTER: $(yaml-quote ${INITIAL_ETCD_CLUSTER})
 EOF
     fi
+    if [ -n "${INITIAL_ETCD_CLUSTER_STATE:-}" ]; then
+      cat >>$file <<EOF
+INITIAL_ETCD_CLUSTER_STATE: $(yaml-quote ${INITIAL_ETCD_CLUSTER_STATE})
+EOF
+    fi
     if [ -n "${ETCD_QUORUM_READ:-}" ]; then
       cat >>$file <<EOF
 ETCD_QUORUM_READ: $(yaml-quote ${ETCD_QUORUM_READ})
@@ -802,7 +826,6 @@ EOF
 KUBERNETES_MASTER: $(yaml-quote "false")
 ZONE: $(yaml-quote ${ZONE})
 EXTRA_DOCKER_OPTS: $(yaml-quote ${EXTRA_DOCKER_OPTS:-})
-KUBELET_AUTH_CA_CERT: $(yaml-quote ${KUBELET_AUTH_CA_CERT_BASE64:-})
 EOF
     if [ -n "${KUBEPROXY_TEST_ARGS:-}" ]; then
       cat >>$file <<EOF
@@ -970,9 +993,8 @@ function create-certs {
   KUBELET_KEY_BASE64=$(cat "${CERT_DIR}/pki/private/kubelet.key" | base64 | tr -d '\r\n')
   KUBECFG_CERT_BASE64=$(cat "${CERT_DIR}/pki/issued/kubecfg.crt" | base64 | tr -d '\r\n')
   KUBECFG_KEY_BASE64=$(cat "${CERT_DIR}/pki/private/kubecfg.key" | base64 | tr -d '\r\n')
-  KUBELET_AUTH_CA_CERT_BASE64=$(cat "${KUBE_TEMP}/easy-rsa-master/kubelet/pki/ca.crt" | base64 | tr -d '\r\n')
-  KUBEAPISERVER_CERT_BASE64=$(cat "${KUBE_TEMP}/easy-rsa-master/kubelet/pki/issued/kube-apiserver.crt" | base64 | tr -d '\r\n')
-  KUBEAPISERVER_KEY_BASE64=$(cat "${KUBE_TEMP}/easy-rsa-master/kubelet/pki/private/kube-apiserver.key" | base64 | tr -d '\r\n')
+  KUBEAPISERVER_CERT_BASE64=$(cat "${CERT_DIR}/pki/issued/kube-apiserver.crt" | base64 | tr -d '\r\n')
+  KUBEAPISERVER_KEY_BASE64=$(cat "${CERT_DIR}/pki/private/kube-apiserver.key" | base64 | tr -d '\r\n')
 }
 
 # Runs the easy RSA commands to generate certificate files.
@@ -999,6 +1021,7 @@ function generate-certs {
     # this puts the cert into pki/ca.crt and the key into pki/private/ca.key
     ./easyrsa --batch "--req-cn=${PRIMARY_CN}@$(date +%s)" build-ca nopass
     ./easyrsa --subject-alt-name="${SANS}" build-server-full "${MASTER_NAME}" nopass
+    ./easyrsa build-client-full kube-apiserver nopass
 
     download-cfssl
 
@@ -1014,12 +1037,7 @@ function generate-certs {
     ./easyrsa --dn-mode=org \
       --req-cn=kubecfg --req-org=system:masters \
       --req-c= --req-st= --req-city= --req-email= --req-ou= \
-      build-client-full kubecfg nopass
-
-    cd ../kubelet
-    ./easyrsa init-pki
-    ./easyrsa --batch "--req-cn=kubelet@$(date +%s)" build-ca nopass
-    ./easyrsa build-client-full kube-apiserver nopass) &>${cert_create_debug_output} || {
+      build-client-full kubecfg nopass) &>${cert_create_debug_output} || {
     # If there was an error in the subshell, just die.
     # TODO(roberthbailey): add better error handling here
     cat "${cert_create_debug_output}" >&2
@@ -1035,7 +1053,7 @@ function generate-certs {
 # $1 master env (kube-env of master; result of calling get-master-env)
 # $2 env key to use
 function get-env-val() {
-  local match=`(echo "${1}" | grep ${2}) || echo ""`
+  local match=`(echo "${1}" | grep -E "^${2}:") || echo ""`
   if [[ -z ${match} ]]; then
     echo ""
   fi
@@ -1048,10 +1066,16 @@ function parse-master-env() {
   local master_env=$(get-master-env)
   KUBELET_TOKEN=$(get-env-val "${master_env}" "KUBELET_TOKEN")
   KUBE_PROXY_TOKEN=$(get-env-val "${master_env}" "KUBE_PROXY_TOKEN")
+  NODE_PROBLEM_DETECTOR_TOKEN=$(get-env-val "${master_env}" "NODE_PROBLEM_DETECTOR_TOKEN")
   CA_CERT_BASE64=$(get-env-val "${master_env}" "CA_CERT")
+  CA_KEY_BASE64=$(get-env-val "${master_env}" "CA_KEY")
+  KUBEAPISERVER_CERT_BASE64=$(get-env-val "${master_env}" "KUBEAPISERVER_CERT")
+  KUBEAPISERVER_KEY_BASE64=$(get-env-val "${master_env}" "KUBEAPISERVER_KEY")
   EXTRA_DOCKER_OPTS=$(get-env-val "${master_env}" "EXTRA_DOCKER_OPTS")
   KUBELET_CERT_BASE64=$(get-env-val "${master_env}" "KUBELET_CERT")
   KUBELET_KEY_BASE64=$(get-env-val "${master_env}" "KUBELET_KEY")
+  MASTER_CERT_BASE64=$(get-env-val "${master_env}" "MASTER_CERT")
+  MASTER_KEY_BASE64=$(get-env-val "${master_env}" "MASTER_KEY")
 }
 
 # Update or verify required gcloud components are installed

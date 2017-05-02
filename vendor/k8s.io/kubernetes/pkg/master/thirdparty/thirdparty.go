@@ -27,18 +27,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	genericapi "k8s.io/apiserver/pkg/endpoints"
+	genericapihandlers "k8s.io/apiserver/pkg/endpoints/handlers"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/rest"
+	genericapiserver "k8s.io/apiserver/pkg/server"
+	serverstorgage "k8s.io/apiserver/pkg/server/storage"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	genericapi "k8s.io/kubernetes/pkg/genericapiserver/endpoints"
-	genericapihandlers "k8s.io/kubernetes/pkg/genericapiserver/endpoints/handlers"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
-	genericapiserver "k8s.io/kubernetes/pkg/genericapiserver/server"
 	extensionsrest "k8s.io/kubernetes/pkg/registry/extensions/rest"
 	"k8s.io/kubernetes/pkg/registry/extensions/thirdpartyresourcedata"
 	thirdpartyresourcedatastore "k8s.io/kubernetes/pkg/registry/extensions/thirdpartyresourcedata/storage"
-	"k8s.io/kubernetes/pkg/storage/storagebackend"
 )
 
 // dynamicLister is used to list resources for dynamic third party
@@ -70,7 +71,7 @@ type ThirdPartyResourceServer struct {
 	disableThirdPartyControllerForTesting bool
 }
 
-func NewThirdPartyResourceServer(genericAPIServer *genericapiserver.GenericAPIServer, storageFactory genericapiserver.StorageFactory) *ThirdPartyResourceServer {
+func NewThirdPartyResourceServer(genericAPIServer *genericapiserver.GenericAPIServer, storageFactory serverstorgage.StorageFactory) *ThirdPartyResourceServer {
 	ret := &ThirdPartyResourceServer{
 		genericAPIServer:    genericAPIServer,
 		thirdPartyResources: map[string]*thirdPartyEntry{},
@@ -174,7 +175,7 @@ func (m *ThirdPartyResourceServer) removeAllThirdPartyResources(registry *thirdp
 	}
 	for ix := range list.Items {
 		item := &list.Items[ix]
-		if _, err := registry.Delete(ctx, item.Name, nil); err != nil {
+		if _, _, err := registry.Delete(ctx, item.Name, nil); err != nil {
 			return err
 		}
 	}
@@ -317,6 +318,7 @@ func (m *ThirdPartyResourceServer) thirdpartyapi(group, kind, version, pluralRes
 		Creater:   thirdpartyresourcedata.NewObjectCreator(group, version, api.Scheme),
 		Convertor: api.Scheme,
 		Copier:    api.Scheme,
+		Defaulter: api.Scheme,
 		Typer:     api.Scheme,
 
 		Mapper:                 thirdpartyresourcedata.NewMapper(api.Registry.GroupOrDie(extensions.GroupName).RESTMapper, kind, version, group),

@@ -34,7 +34,10 @@
             "version": "v1.0.1-GA"
         },
         "k8s.io/kubernetes": {
-            "branch": "master"
+            "version": "v1.6.1"
+        },
+        "k8s.io/apimachinery": {
+            "revision": "ae33df8bd0294deb6f1853cc107816dd181e0146"
         }
     }
 }

@@ -1,8 +1,10 @@
 apiVersion: v1
 items:
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -46,9 +48,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -77,9 +81,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -126,9 +132,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -163,6 +171,7 @@ items:
     - create
     - delete
     - list
+    - patch
     - watch
   - apiGroups:
     - ""
@@ -178,15 +187,18 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:deployment-controller
   rules:
   - apiGroups:
+    - apps
     - extensions
     resources:
     - deployments
@@ -196,6 +208,7 @@ items:
     - update
     - watch
   - apiGroups:
+    - apps
     - extensions
     resources:
     - deployments/status
@@ -230,15 +243,18 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:disruption-controller
   rules:
   - apiGroups:
+    - apps
     - extensions
     resources:
     - deployments
@@ -292,9 +308,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -333,9 +351,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -360,9 +380,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -370,7 +392,6 @@ items:
   rules:
   - apiGroups:
     - autoscaling
-    - extensions
     resources:
     - horizontalpodautoscalers
     verbs:
@@ -379,7 +400,6 @@ items:
     - watch
   - apiGroups:
     - autoscaling
-    - extensions
     resources:
     - horizontalpodautoscalers/status
     verbs:
@@ -399,6 +419,7 @@ items:
     - get
     - update
   - apiGroups:
+    - apps
     - extensions
     resources:
     - deployments/scale
@@ -423,15 +444,26 @@ items:
     - proxy
   - apiGroups:
     - ""
+    resourceNames:
+    - 'http:heapster:'
+    - 'https:heapster:'
+    resources:
+    - services/proxy
+    verbs:
+    - get
+  - apiGroups:
+    - ""
     resources:
     - events
     verbs:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -469,9 +501,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -502,9 +536,11 @@ items:
     - deletecollection
     - get
     - list
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -518,6 +554,7 @@ items:
     - delete
     - get
     - list
+    - patch
     - update
   - apiGroups:
     - ""
@@ -546,9 +583,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -633,9 +672,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -655,9 +696,11 @@ items:
     - nodes
     verbs:
     - list
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -696,9 +739,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -737,9 +782,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -766,9 +813,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -795,9 +844,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -817,9 +868,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -854,9 +907,11 @@ items:
     - create
     - patch
     - update
-- apiVersion: rbac.authorization.k8s.io/v1alpha1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -891,6 +946,7 @@ items:
     - create
     - delete
     - get
+    - patch
     - update
   - apiGroups:
     - ""
@@ -899,6 +955,33 @@ items:
     verbs:
     - create
     - get
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:controller:ttl-controller
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - nodes
+    verbs:
+    - list
+    - patch
+    - update
+    - watch
   - apiGroups:
     - ""
     resources:

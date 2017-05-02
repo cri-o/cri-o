@@ -23,13 +23,54 @@ source "${KUBE_ROOT}/hack/lib/init.sh"
 
 kube::golang::setup_env
 
+function print_forbidden_imports () {
+    set -o errexit # this was unset by ||
+    local PACKAGE="$1"
+    shift
+    local RE=""
+    local SEP=""
+    for CLAUSE in "$@"; do
+        RE+="${SEP}${CLAUSE}"
+        SEP='\|'
+    done
+    local FORBIDDEN=$(
+        go list -f $'{{with $package := .ImportPath}}{{range $.Imports}}{{$package}} imports {{.}}\n{{end}}{{end}}' ./vendor/k8s.io/${PACKAGE}/... |
+        sed 's|^k8s.io/kubernetes/vendor/||;s| k8s.io/kubernetes/vendor/| |' |
+        grep -v " k8s.io/${PACKAGE}" |
+        grep -e "imports \(${RE}\)"
+    )
+    if [ -n "${FORBIDDEN}" ]; then
+        echo "${PACKAGE} has a forbidden dependency:"
+        echo
+        echo "${FORBIDDEN}" | sed 's/^/  /'
+        echo
+        return 1
+    fi
+    local TEST_FORBIDDEN=$(
+        go list -f $'{{with $package := .ImportPath}}{{range $.TestImports}}{{$package}} imports {{.}}\n{{end}}{{end}}' ./vendor/k8s.io/${PACKAGE}/... |
+        sed 's|^k8s.io/kubernetes/vendor/||;s| k8s.io/kubernetes/vendor/| |' |
+        grep -v " k8s.io/${PACKAGE}" |
+        grep -e "imports \(${RE}\)"
+    )
+    if [ -n "${TEST_FORBIDDEN}" ]; then
+        echo "${PACKAGE} has a forbidden dependency in test code:"
+        echo
+        echo "${TEST_FORBIDDEN}" | sed 's/^/  /'
+        echo
+        return 1
+    fi
+    return 0
+}
 
-for dep in $(ls -1 ${KUBE_ROOT}/staging/src/k8s.io/); do
-	if go list -f {{.Deps}} ./vendor/k8s.io/${dep}/... | tr " " '\n' | grep k8s.io/kubernetes | grep -v 'k8s.io/kubernetes/vendor' | LC_ALL=C sort -u | grep -e "."; then
-		echo "${dep} has a cyclical dependency"
-		exit 1
-	fi
-done
+RC=0
+print_forbidden_imports apimachinery k8s.io/ || RC=1
+print_forbidden_imports apiserver k8s.io/kubernetes k8s.io/sample-apiserver k8s.io/kube-aggregator || RC=1
+print_forbidden_imports client-go k8s.io/kubernetes k8s.io/apiserver k8s.io/sample-apiserver k8s.io/kube-aggregator || RC=1
+print_forbidden_imports kube-aggregator k8s.io/kubernetes k8s.io/sample-apiserver || RC=1
+print_forbidden_imports sample-apiserver k8s.io/kubernetes k8s.io/kube-aggregator || RC=1
+if [ ${RC} != 0 ]; then
+    exit ${RC}
+fi
 
 if grep -rq '// import "k8s.io/kubernetes/' 'staging/'; then
 	echo 'file has "// import "k8s.io/kubernetes/"'

@@ -34,14 +34,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/watch"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/api"
 	apiservice "k8s.io/kubernetes/pkg/api/service"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/portallocator"
-	featuregate "k8s.io/kubernetes/pkg/util/config"
 )
 
 // ServiceRest includes storage for services and all sub resources
@@ -92,9 +93,6 @@ func (rs *REST) Create(ctx genericapirequest.Context, obj runtime.Object) (runti
 		}
 	}()
 
-	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts)
-	defer nodePortOp.Finish()
-
 	if api.IsServiceIPRequested(service) {
 		// Allocate next available.
 		ip, err := rs.serviceIPs.AllocateNext()
@@ -115,6 +113,9 @@ func (rs *REST) Create(ctx genericapirequest.Context, obj runtime.Object) (runti
 		}
 		releaseServiceIP = true
 	}
+
+	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts)
+	defer nodePortOp.Finish()
 
 	assignNodePorts := shouldAssignNodePorts(service)
 	svcPortToNodePort := map[int]int{}
@@ -435,7 +436,7 @@ func (rs *REST) Update(ctx genericapirequest.Context, name string, objInfo rest.
 	// The comparison loops are O(N^2), but we don't expect N to be huge
 	// (there's a hard-limit at 2^16, because they're ports; and even 4 ports would be a lot)
 	for _, oldNodePort := range oldNodePorts {
-		if !contains(newNodePorts, oldNodePort) {
+		if contains(newNodePorts, oldNodePort) {
 			continue
 		}
 		nodePortOp.ReleaseDeferred(oldNodePort)
@@ -556,6 +557,8 @@ func shouldAssignNodePorts(service *api.Service) bool {
 		return true
 	case api.ServiceTypeClusterIP:
 		return false
+	case api.ServiceTypeExternalName:
+		return false
 	default:
 		glog.Errorf("Unknown service type: %v", service.Spec.Type)
 		return false
@@ -565,7 +568,7 @@ func shouldAssignNodePorts(service *api.Service) bool {
 func shouldCheckOrAssignHealthCheckNodePort(service *api.Service) bool {
 	if service.Spec.Type == api.ServiceTypeLoadBalancer {
 		// True if Service-type == LoadBalancer AND annotation AnnotationExternalTraffic present
-		return (featuregate.DefaultFeatureGate.ExternalTrafficLocalOnly() && apiservice.NeedsHealthCheck(service))
+		return (utilfeature.DefaultFeatureGate.Enabled(features.ExternalTrafficLocalOnly) && apiservice.NeedsHealthCheck(service))
 	}
 	glog.V(4).Infof("Service type: %v does not need health check node port", service.Spec.Type)
 	return false

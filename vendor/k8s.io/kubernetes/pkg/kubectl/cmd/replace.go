@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
 var (
@@ -67,7 +68,7 @@ func NewCmdReplace(f cmdutil.Factory, out io.Writer) *cobra.Command {
 		Use: "replace -f FILENAME",
 		// update is deprecated.
 		Aliases: []string{"update"},
-		Short:   "Replace a resource by filename or stdin",
+		Short:   i18n.T("Replace a resource by filename or stdin"),
 		Long:    replace_long,
 		Example: replace_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -150,7 +151,7 @@ func RunReplace(f cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 		}
 
 		if cmdutil.ShouldRecord(cmd, info) {
-			if err := cmdutil.RecordChangeCause(info.Object, f.Command()); err != nil {
+			if err := cmdutil.RecordChangeCause(info.Object, f.Command(cmd, false)); err != nil {
 				return cmdutil.AddSourceToErr("replacing", info.Source, err)
 			}
 		}
@@ -271,7 +272,7 @@ func forceReplace(f cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []s
 		}
 
 		if cmdutil.ShouldRecord(cmd, info) {
-			if err := cmdutil.RecordChangeCause(info.Object, f.Command()); err != nil {
+			if err := cmdutil.RecordChangeCause(info.Object, f.Command(cmd, false)); err != nil {
 				return cmdutil.AddSourceToErr("replacing", info.Source, err)
 			}
 		}

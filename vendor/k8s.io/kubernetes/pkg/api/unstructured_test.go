@@ -21,11 +21,15 @@ import (
 	"reflect"
 	"testing"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	apitesting "k8s.io/apimachinery/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	apitesting "k8s.io/kubernetes/pkg/api/testing"
+	kapitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/v1"
 
+	"k8s.io/apimachinery/pkg/conversion/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/json"
 
@@ -41,7 +45,7 @@ func doRoundTrip(t *testing.T, group testapi.TestGroup, kind string) {
 		t.Fatalf("Couldn't create internal object %v: %v", kind, err)
 	}
 	seed := rand.Int63()
-	apitesting.FuzzerFor(t, group.InternalGroupVersion(), rand.NewSource(seed)).
+	apitesting.FuzzerFor(kapitesting.FuzzerFuncs(t, api.Codecs), rand.NewSource(seed)).
 		// We are explicitly overwriting custom fuzzing functions, to ensure
 		// that InitContainers and their statuses are not generated. This is
 		// because in thise test we are simply doing json operations, in which
@@ -88,32 +92,28 @@ func doRoundTrip(t *testing.T, group testapi.TestGroup, kind string) {
 		t.Errorf("Error when unmarshaling to object: %v", err)
 		return
 	}
-	if !api.Semantic.DeepEqual(item, unmarshalledObj) {
+	if !apiequality.Semantic.DeepEqual(item, unmarshalledObj) {
 		t.Errorf("Object changed during JSON operations, diff: %v", diff.ObjectReflectDiff(item, unmarshalledObj))
 		return
 	}
 
-	// TODO; Enable the following part of test once to/from unstructured
-	// format conversions are implemented.
-	/*
-		newUnstr := make(map[string]interface{})
-		err = unstructured.NewConverter().ToUnstructured(item, &newUnstr)
-		if err != nil {
-			t.Errorf("ToUnstructured failed: %v", err)
-			return
-		}
+	newUnstr := make(map[string]interface{})
+	err = unstructured.DefaultConverter.ToUnstructured(item, &newUnstr)
+	if err != nil {
+		t.Errorf("ToUnstructured failed: %v", err)
+		return
+	}
 
-		newObj := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
-		err = unstructured.NewConverter().FromUnstructured(newUnstr, newObj)
-		if err != nil {
-			t.Errorf("FromUnstructured failed: %v", err)
-			return
-		}
+	newObj := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
+	err = unstructured.DefaultConverter.FromUnstructured(newUnstr, newObj)
+	if err != nil {
+		t.Errorf("FromUnstructured failed: %v", err)
+		return
+	}
 
-		if !api.Semantic.DeepEqual(item, newObj) {
-			t.Errorf("Object changed, diff: %v", diff.ObjectReflectDiff(item, newObj))
-		}
-	*/
+	if !apiequality.Semantic.DeepEqual(item, newObj) {
+		t.Errorf("Object changed, diff: %v", diff.ObjectReflectDiff(item, newObj))
+	}
 }
 
 func TestRoundTrip(t *testing.T) {
@@ -133,29 +133,25 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
-// TODO; Enable the following benchmark once to/from unstructured
-// format conversions are implemented.
-/*
 func BenchmarkToFromUnstructured(b *testing.B) {
-	items := benchmarkItems()
+	items := benchmarkItems(b)
 	size := len(items)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		unstr := map[string]interface{}{}
-		if err := unstructured.NewConverter().ToUnstructured(&items[i%size], &unstr); err != nil {
+		if err := unstructured.DefaultConverter.ToUnstructured(&items[i%size], &unstr); err != nil {
 			b.Fatalf("unexpected error: %v", err)
 		}
 		obj := v1.Pod{}
-		if err := unstructured.NewConverter().FromUnstructured(unstr, &obj); err != nil {
+		if err := unstructured.DefaultConverter.FromUnstructured(unstr, &obj); err != nil {
 			b.Fatalf("unexpected error: %v", err)
 		}
 	}
 	b.StopTimer()
 }
-*/
 
 func BenchmarkToFromUnstructuredViaJSON(b *testing.B) {
-	items := benchmarkItems()
+	items := benchmarkItems(b)
 	size := len(items)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

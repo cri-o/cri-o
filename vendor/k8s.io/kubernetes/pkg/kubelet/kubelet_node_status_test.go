@@ -28,21 +28,22 @@ import (
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
+	core "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/util/sliceutils"
-	"k8s.io/kubernetes/pkg/util/strategicpatch"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
@@ -109,6 +110,15 @@ func applyNodeStatusPatch(originalNode *v1.Node, patch []byte) (*v1.Node, error)
 	return updatedNode, nil
 }
 
+type localCM struct {
+	cm.ContainerManager
+	allocatable v1.ResourceList
+}
+
+func (lcm *localCM) GetNodeAllocatableReservation() v1.ResourceList {
+	return lcm.allocatable
+}
+
 func TestUpdateNewNodeStatus(t *testing.T) {
 	// generate one more than maxImagesInNodeStatus in inputImageList
 	inputImageList, expectedImageList := generateTestingImageList(maxImagesInNodeStatus + 1)
@@ -116,6 +126,13 @@ func TestUpdateNewNodeStatus(t *testing.T) {
 		t, inputImageList, false /* controllerAttachDetachEnabled */)
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
+	kubelet.containerManager = &localCM{
+		ContainerManager: cm.NewStubContainerManager(),
+		allocatable: v1.ResourceList{
+			v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
+			v1.ResourceMemory: *resource.NewQuantity(100E6, resource.BinarySI),
+		},
+	}
 	kubeClient := testKubelet.fakeKubeClient
 	existingNode := v1.Node{ObjectMeta: metav1.ObjectMeta{Name: testKubeletHostname}}
 	kubeClient.ReactionChain = fake.NewSimpleClientset(&v1.NodeList{Items: []v1.Node{existingNode}}).ReactionChain
@@ -191,16 +208,14 @@ func TestUpdateNewNodeStatus(t *testing.T) {
 				KubeProxyVersion:        version.Get().String(),
 			},
 			Capacity: v1.ResourceList{
-				v1.ResourceCPU:       *resource.NewMilliQuantity(2000, resource.DecimalSI),
-				v1.ResourceMemory:    *resource.NewQuantity(10E9, resource.BinarySI),
-				v1.ResourcePods:      *resource.NewQuantity(0, resource.DecimalSI),
-				v1.ResourceNvidiaGPU: *resource.NewQuantity(0, resource.DecimalSI),
+				v1.ResourceCPU:    *resource.NewMilliQuantity(2000, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(10E9, resource.BinarySI),
+				v1.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
 			Allocatable: v1.ResourceList{
-				v1.ResourceCPU:       *resource.NewMilliQuantity(1800, resource.DecimalSI),
-				v1.ResourceMemory:    *resource.NewQuantity(9900E6, resource.BinarySI),
-				v1.ResourcePods:      *resource.NewQuantity(0, resource.DecimalSI),
-				v1.ResourceNvidiaGPU: *resource.NewQuantity(0, resource.DecimalSI),
+				v1.ResourceCPU:    *resource.NewMilliQuantity(1800, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(9900E6, resource.BinarySI),
+				v1.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
 			Addresses: []v1.NodeAddress{
 				{Type: v1.NodeLegacyHostIP, Address: "127.0.0.1"},
@@ -245,7 +260,7 @@ func TestUpdateNewNodeStatus(t *testing.T) {
 	if maxImagesInNodeStatus != len(updatedNode.Status.Images) {
 		t.Errorf("unexpected image list length in node status, expected: %v, got: %v", maxImagesInNodeStatus, len(updatedNode.Status.Images))
 	} else {
-		if !api.Semantic.DeepEqual(expectedNode, updatedNode) {
+		if !apiequality.Semantic.DeepEqual(expectedNode, updatedNode) {
 			t.Errorf("unexpected objects: %s", diff.ObjectDiff(expectedNode, updatedNode))
 		}
 	}
@@ -332,6 +347,14 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
+	kubelet.containerManager = &localCM{
+		ContainerManager: cm.NewStubContainerManager(),
+		allocatable: v1.ResourceList{
+			v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
+			v1.ResourceMemory: *resource.NewQuantity(100E6, resource.BinarySI),
+		},
+	}
+
 	kubeClient := testKubelet.fakeKubeClient
 	existingNode := v1.Node{
 		ObjectMeta: metav1.ObjectMeta{Name: testKubeletHostname},
@@ -456,16 +479,14 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 				KubeProxyVersion:        version.Get().String(),
 			},
 			Capacity: v1.ResourceList{
-				v1.ResourceCPU:       *resource.NewMilliQuantity(2000, resource.DecimalSI),
-				v1.ResourceMemory:    *resource.NewQuantity(20E9, resource.BinarySI),
-				v1.ResourcePods:      *resource.NewQuantity(0, resource.DecimalSI),
-				v1.ResourceNvidiaGPU: *resource.NewQuantity(0, resource.DecimalSI),
+				v1.ResourceCPU:    *resource.NewMilliQuantity(2000, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(20E9, resource.BinarySI),
+				v1.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
 			Allocatable: v1.ResourceList{
-				v1.ResourceCPU:       *resource.NewMilliQuantity(1800, resource.DecimalSI),
-				v1.ResourceMemory:    *resource.NewQuantity(19900E6, resource.BinarySI),
-				v1.ResourcePods:      *resource.NewQuantity(0, resource.DecimalSI),
-				v1.ResourceNvidiaGPU: *resource.NewQuantity(0, resource.DecimalSI),
+				v1.ResourceCPU:    *resource.NewMilliQuantity(1800, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(19900E6, resource.BinarySI),
+				v1.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
 			Addresses: []v1.NodeAddress{
 				{Type: v1.NodeLegacyHostIP, Address: "127.0.0.1"},
@@ -519,7 +540,7 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 		t.Errorf("unexpected node condition order. NodeReady should be last.")
 	}
 
-	if !api.Semantic.DeepEqual(expectedNode, updatedNode) {
+	if !apiequality.Semantic.DeepEqual(expectedNode, updatedNode) {
 		t.Errorf("unexpected objects: %s", diff.ObjectDiff(expectedNode, updatedNode))
 	}
 }
@@ -687,6 +708,14 @@ func TestUpdateNodeStatusWithRuntimeStateError(t *testing.T) {
 	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
+	kubelet.containerManager = &localCM{
+		ContainerManager: cm.NewStubContainerManager(),
+		allocatable: v1.ResourceList{
+			v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
+			v1.ResourceMemory: *resource.NewQuantity(100E6, resource.BinarySI),
+		},
+	}
+
 	clock := testKubelet.fakeClock
 	kubeClient := testKubelet.fakeKubeClient
 	existingNode := v1.Node{ObjectMeta: metav1.ObjectMeta{Name: testKubeletHostname}}
@@ -756,16 +785,14 @@ func TestUpdateNodeStatusWithRuntimeStateError(t *testing.T) {
 				KubeProxyVersion:        version.Get().String(),
 			},
 			Capacity: v1.ResourceList{
-				v1.ResourceCPU:       *resource.NewMilliQuantity(2000, resource.DecimalSI),
-				v1.ResourceMemory:    *resource.NewQuantity(10E9, resource.BinarySI),
-				v1.ResourcePods:      *resource.NewQuantity(0, resource.DecimalSI),
-				v1.ResourceNvidiaGPU: *resource.NewQuantity(0, resource.DecimalSI),
+				v1.ResourceCPU:    *resource.NewMilliQuantity(2000, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(10E9, resource.BinarySI),
+				v1.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
 			Allocatable: v1.ResourceList{
-				v1.ResourceCPU:       *resource.NewMilliQuantity(1800, resource.DecimalSI),
-				v1.ResourceMemory:    *resource.NewQuantity(9900E6, resource.BinarySI),
-				v1.ResourcePods:      *resource.NewQuantity(0, resource.DecimalSI),
-				v1.ResourceNvidiaGPU: *resource.NewQuantity(0, resource.DecimalSI),
+				v1.ResourceCPU:    *resource.NewMilliQuantity(1800, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(9900E6, resource.BinarySI),
+				v1.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
 			Addresses: []v1.NodeAddress{
 				{Type: v1.NodeLegacyHostIP, Address: "127.0.0.1"},
@@ -829,7 +856,7 @@ func TestUpdateNodeStatusWithRuntimeStateError(t *testing.T) {
 			LastHeartbeatTime:  metav1.Time{},
 			LastTransitionTime: metav1.Time{},
 		}
-		if !api.Semantic.DeepEqual(expectedNode, updatedNode) {
+		if !apiequality.Semantic.DeepEqual(expectedNode, updatedNode) {
 			t.Errorf("unexpected objects: %s", diff.ObjectDiff(expectedNode, updatedNode))
 		}
 	}

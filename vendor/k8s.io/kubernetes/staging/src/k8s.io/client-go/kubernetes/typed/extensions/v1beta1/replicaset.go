@@ -17,11 +17,10 @@ limitations under the License.
 package v1beta1
 
 import (
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
-	v1 "k8s.io/client-go/pkg/api/v1"
+	scheme "k8s.io/client-go/kubernetes/scheme"
 	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	rest "k8s.io/client-go/rest"
 )
@@ -38,10 +37,10 @@ type ReplicaSetInterface interface {
 	Update(*v1beta1.ReplicaSet) (*v1beta1.ReplicaSet, error)
 	UpdateStatus(*v1beta1.ReplicaSet) (*v1beta1.ReplicaSet, error)
 	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1beta1.ReplicaSet, error)
-	List(opts meta_v1.ListOptions) (*v1beta1.ReplicaSetList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
+	Get(name string, options v1.GetOptions) (*v1beta1.ReplicaSet, error)
+	List(opts v1.ListOptions) (*v1beta1.ReplicaSetList, error)
+	Watch(opts v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ReplicaSet, err error)
 	ReplicaSetExpansion
 }
@@ -113,48 +112,48 @@ func (c *replicaSets) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *replicaSets) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *replicaSets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("replicasets").
-		VersionedParams(&listOptions, api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the replicaSet, and returns the corresponding replicaSet object, and an error if there is any.
-func (c *replicaSets) Get(name string, options meta_v1.GetOptions) (result *v1beta1.ReplicaSet, err error) {
+func (c *replicaSets) Get(name string, options v1.GetOptions) (result *v1beta1.ReplicaSet, err error) {
 	result = &v1beta1.ReplicaSet{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("replicasets").
 		Name(name).
-		VersionedParams(&options, api.ParameterCodec).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ReplicaSets that match those selectors.
-func (c *replicaSets) List(opts meta_v1.ListOptions) (result *v1beta1.ReplicaSetList, err error) {
+func (c *replicaSets) List(opts v1.ListOptions) (result *v1beta1.ReplicaSetList, err error) {
 	result = &v1beta1.ReplicaSetList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("replicasets").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested replicaSets.
-func (c *replicaSets) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *replicaSets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("replicasets").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 

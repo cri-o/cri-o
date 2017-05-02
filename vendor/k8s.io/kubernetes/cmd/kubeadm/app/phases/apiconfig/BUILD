@@ -9,13 +9,21 @@ load(
 
 go_library(
     name = "go_default_library",
-    srcs = ["clusterroles.go"],
+    srcs = [
+        "clusterroles.go",
+        "setupmaster.go",
+    ],
     tags = ["automanaged"],
     deps = [
-        "//cmd/kubeadm/app/master:go_default_library",
-        "//pkg/apis/rbac/v1beta1:go_default_library",
-        "//pkg/client/clientset_generated/clientset:go_default_library",
+        "//cmd/kubeadm/app/constants:go_default_library",
+        "//pkg/bootstrap/api:go_default_library",
+        "//vendor:k8s.io/apimachinery/pkg/api/errors",
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
+        "//vendor:k8s.io/apimachinery/pkg/types",
+        "//vendor:k8s.io/apimachinery/pkg/util/strategicpatch",
+        "//vendor:k8s.io/client-go/kubernetes",
+        "//vendor:k8s.io/client-go/pkg/api/v1",
+        "//vendor:k8s.io/client-go/pkg/apis/rbac/v1beta1",
     ],
 )
 

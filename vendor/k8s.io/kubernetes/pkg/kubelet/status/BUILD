@@ -25,6 +25,7 @@ go_library(
         "//pkg/kubelet/types:go_default_library",
         "//pkg/kubelet/util/format:go_default_library",
         "//vendor:github.com/golang/glog",
+        "//vendor:k8s.io/apimachinery/pkg/api/equality",
         "//vendor:k8s.io/apimachinery/pkg/api/errors",
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
         "//vendor:k8s.io/apimachinery/pkg/types",
@@ -46,17 +47,18 @@ go_test(
         "//pkg/api/v1:go_default_library",
         "//pkg/client/clientset_generated/clientset:go_default_library",
         "//pkg/client/clientset_generated/clientset/fake:go_default_library",
-        "//pkg/client/testing/core:go_default_library",
         "//pkg/kubelet/container:go_default_library",
         "//pkg/kubelet/pod:go_default_library",
         "//pkg/kubelet/pod/testing:go_default_library",
         "//pkg/kubelet/secret:go_default_library",
+        "//pkg/kubelet/status/testing:go_default_library",
         "//pkg/kubelet/types:go_default_library",
         "//vendor:github.com/stretchr/testify/assert",
         "//vendor:k8s.io/apimachinery/pkg/api/errors",
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
         "//vendor:k8s.io/apimachinery/pkg/runtime",
         "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
+        "//vendor:k8s.io/client-go/testing",
     ],
 )
 
@@ -69,6 +71,9 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [":package-srcs"],
+    srcs = [
+        ":package-srcs",
+        "//pkg/kubelet/status/testing:all-srcs",
+    ],
     tags = ["automanaged"],
 )

@@ -23,9 +23,9 @@ import (
 	"path"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/openstack"
@@ -96,6 +96,14 @@ func (plugin *cinderPlugin) CanSupport(spec *volume.Spec) bool {
 }
 
 func (plugin *cinderPlugin) RequiresRemount() bool {
+	return false
+}
+
+func (plugin *cinderPlugin) SupportsMountOption() bool {
+	return true
+
+}
+func (plugin *cinderPlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 

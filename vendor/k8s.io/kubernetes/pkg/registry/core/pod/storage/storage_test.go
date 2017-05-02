@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"golang.org/x/net/context"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -28,14 +29,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/storage"
+	storeerr "k8s.io/apiserver/pkg/storage/errors"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api"
-	storeerr "k8s.io/kubernetes/pkg/api/errors/storage"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/securitycontext"
-	"k8s.io/kubernetes/pkg/storage"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
 
 func newStorage(t *testing.T) (*REST, *BindingREST, *StatusREST, *etcdtesting.EtcdTestServer) {
@@ -175,7 +176,7 @@ func TestIgnoreDeleteNotFound(t *testing.T) {
 	defer registry.Store.DestroyFunc()
 
 	// should fail if pod A is not created yet.
-	_, err := registry.Delete(testContext, pod.Name, nil)
+	_, _, err := registry.Delete(testContext, pod.Name, nil)
 	if !errors.IsNotFound(err) {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -190,7 +191,7 @@ func TestIgnoreDeleteNotFound(t *testing.T) {
 	// registry shouldn't get any error since we ignore the NotFound error.
 	zero := int64(0)
 	opt := &metav1.DeleteOptions{GracePeriodSeconds: &zero}
-	obj, err := registry.Delete(testContext, pod.Name, opt)
+	obj, _, err := registry.Delete(testContext, pod.Name, opt)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -209,7 +210,7 @@ func TestIgnoreDeleteNotFound(t *testing.T) {
 		t.Fatalf("expect the DeletionGracePeriodSeconds to be set")
 	}
 	if *deletedPod.DeletionGracePeriodSeconds != 0 {
-		t.Errorf("expect the DeletionGracePeriodSeconds to be 0, got %d", *deletedPod.DeletionTimestamp)
+		t.Errorf("expect the DeletionGracePeriodSeconds to be 0, got %v", *deletedPod.DeletionTimestamp)
 	}
 }
 
@@ -634,7 +635,7 @@ func TestEtcdUpdateNotScheduled(t *testing.T) {
 	}
 	podOut := obj.(*api.Pod)
 	// validChangedPod only changes the Labels, so were checking the update was valid
-	if !api.Semantic.DeepEqual(podIn.Labels, podOut.Labels) {
+	if !apiequality.Semantic.DeepEqual(podIn.Labels, podOut.Labels) {
 		t.Errorf("objects differ: %v", diff.ObjectDiff(podOut, podIn))
 	}
 }
@@ -705,7 +706,7 @@ func TestEtcdUpdateScheduled(t *testing.T) {
 	}
 	podOut := obj.(*api.Pod)
 	// Check to verify the Spec and Label updates match from change above.  Those are the fields changed.
-	if !api.Semantic.DeepEqual(podOut.Spec, podIn.Spec) || !api.Semantic.DeepEqual(podOut.Labels, podIn.Labels) {
+	if !apiequality.Semantic.DeepEqual(podOut.Spec, podIn.Spec) || !apiequality.Semantic.DeepEqual(podOut.Labels, podIn.Labels) {
 		t.Errorf("objects differ: %v", diff.ObjectDiff(podOut, podIn))
 	}
 
@@ -788,9 +789,17 @@ func TestEtcdUpdateStatus(t *testing.T) {
 	}
 	podOut := obj.(*api.Pod)
 	// Check to verify the Label, and Status updates match from change above.  Those are the fields changed.
-	if !api.Semantic.DeepEqual(podOut.Spec, expected.Spec) ||
-		!api.Semantic.DeepEqual(podOut.Labels, expected.Labels) ||
-		!api.Semantic.DeepEqual(podOut.Status, expected.Status) {
+	if !apiequality.Semantic.DeepEqual(podOut.Spec, expected.Spec) ||
+		!apiequality.Semantic.DeepEqual(podOut.Labels, expected.Labels) ||
+		!apiequality.Semantic.DeepEqual(podOut.Status, expected.Status) {
 		t.Errorf("objects differ: %v", diff.ObjectDiff(podOut, expected))
 	}
+}
+
+func TestShortNames(t *testing.T) {
+	storage, _, _, server := newStorage(t)
+	defer server.Terminate(t)
+	defer storage.Store.DestroyFunc()
+	expected := []string{"po"}
+	registrytest.AssertShortNames(t, storage, expected)
 }

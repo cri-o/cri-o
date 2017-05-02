@@ -20,7 +20,9 @@ set -o pipefail
 export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
-go get -u gopkg.in/mikedanese/gazel.v13/gazel
+git config http.https://gopkg.in.followRedirects true
+
+go get -u gopkg.in/mikedanese/gazel.v14/gazel
 if ! "${GOPATH}/bin/gazel" -validate -print-diff -root="$(kube::realpath ${KUBE_ROOT})" ; then
   echo
   echo "Run ./hack/update-bazel.sh"

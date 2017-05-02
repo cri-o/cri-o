@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
 var (
@@ -98,7 +99,7 @@ func NewCmdResources(f cmdutil.Factory, out io.Writer, errOut io.Writer) *cobra.
 
 	cmd := &cobra.Command{
 		Use:     "resources (-f FILENAME | TYPE NAME)  ([--limits=LIMITS & --requests=REQUESTS]",
-		Short:   "Update resource requests/limits on objects with pod templates",
+		Short:   i18n.T("Update resource requests/limits on objects with pod templates"),
 		Long:    fmt.Sprintf(resources_long, strings.Join(resourceTypesWithPodTemplate, ", ")),
 		Example: resources_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -130,7 +131,7 @@ func (o *ResourcesOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args 
 	o.Encoder = f.JSONEncoder()
 	o.ShortOutput = cmdutil.GetFlagString(cmd, "output") == "name"
 	o.Record = cmdutil.GetRecordFlag(cmd)
-	o.ChangeCause = f.Command()
+	o.ChangeCause = f.Command(cmd, false)
 	o.PrintObject = f.PrintObject
 	o.Cmd = cmd
 

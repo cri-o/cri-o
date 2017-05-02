@@ -50,6 +50,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	vsphere "k8s.io/kubernetes/pkg/cloudprovider/providers/vsphere"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/golang/glog"
@@ -130,7 +131,8 @@ func startVolumeServer(client clientset.Interface, config VolumeTestConfig) *v1.
 		i++
 	}
 
-	By(fmt.Sprint("creating ", config.prefix, " server pod"))
+	serverPodName := fmt.Sprintf("%s-server", config.prefix)
+	By(fmt.Sprint("creating ", serverPodName, " pod"))
 	privileged := new(bool)
 	*privileged = true
 	serverPod := &v1.Pod{
@@ -139,16 +141,16 @@ func startVolumeServer(client clientset.Interface, config VolumeTestConfig) *v1.
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.prefix + "-server",
+			Name: serverPodName,
 			Labels: map[string]string{
-				"role": config.prefix + "-server",
+				"role": serverPodName,
 			},
 		},
 
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				{
-					Name:  config.prefix + "-server",
+					Name:  serverPodName,
 					Image: config.serverImage,
 					SecurityContext: &v1.SecurityContext{
 						Privileged: privileged,
@@ -161,17 +163,29 @@ func startVolumeServer(client clientset.Interface, config VolumeTestConfig) *v1.
 			Volumes: volumes,
 		},
 	}
-	serverPod, err := podClient.Create(serverPod)
-	framework.ExpectNoError(err, "Failed to create %s pod: %v", serverPod.Name, err)
 
+	var pod *v1.Pod
+	serverPod, err := podClient.Create(serverPod)
+	// ok if the server pod already exists. TODO: make this controllable by callers
+	if err != nil {
+		if apierrs.IsAlreadyExists(err) {
+			framework.Logf("Ignore \"already-exists\" error, re-get pod...")
+			By(fmt.Sprintf("re-getting the %q server pod", serverPodName))
+			serverPod, err = podClient.Get(serverPodName, metav1.GetOptions{})
+			framework.ExpectNoError(err, "Cannot re-get the server pod %q: %v", serverPodName, err)
+			pod = serverPod
+		} else {
+			framework.ExpectNoError(err, "Failed to create %q pod: %v", serverPodName, err)
+		}
+	}
 	framework.ExpectNoError(framework.WaitForPodRunningInNamespace(client, serverPod))
 
-	By("locating the server pod")
-	pod, err := podClient.Get(serverPod.Name, metav1.GetOptions{})
-	framework.ExpectNoError(err, "Cannot locate the server pod %v: %v", serverPod.Name, err)
+	if pod == nil {
+		By(fmt.Sprintf("locating the %q server pod", serverPodName))
+		pod, err = podClient.Get(serverPodName, metav1.GetOptions{})
+		framework.ExpectNoError(err, "Cannot locate the server pod %q: %v", serverPodName, err)
+	}
 
-	By("sleeping a bit to give the server time to start")
-	time.Sleep(20 * time.Second)
 	return pod
 }
 
@@ -801,11 +815,11 @@ var _ = framework.KubeDescribe("Volumes [Feature:Volumes]", func() {
 			}
 
 			By("creating a test gce pd volume")
-			volumeName, err := createPDWithRetry()
+			volumeName, err := framework.CreatePDWithRetry()
 			Expect(err).NotTo(HaveOccurred())
 
 			defer func() {
-				deletePDWithRetry(volumeName)
+				framework.DeletePDWithRetry(volumeName)
 			}()
 
 			defer func() {
@@ -913,6 +927,60 @@ var _ = framework.KubeDescribe("Volumes [Feature:Volumes]", func() {
 				},
 			}
 			testVolumeClient(cs, config, nil, tests)
+		})
+	})
+
+	////////////////////////////////////////////////////////////////////////
+	// vSphere
+	////////////////////////////////////////////////////////////////////////
+
+	framework.KubeDescribe("vsphere", func() {
+		It("should be mountable", func() {
+			framework.SkipUnlessProviderIs("vsphere")
+			var (
+				volumePath string
+			)
+			config := VolumeTestConfig{
+				namespace: namespace.Name,
+				prefix:    "vsphere",
+			}
+			By("creating a test vsphere volume")
+			vsp, err := vsphere.GetVSphere()
+			Expect(err).NotTo(HaveOccurred())
+
+			volumePath, err = createVSphereVolume(vsp, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			defer func() {
+				vsp.DeleteVolume(volumePath)
+			}()
+
+			defer func() {
+				if clean {
+					framework.Logf("Running volumeTestCleanup")
+					volumeTestCleanup(f, config)
+				}
+			}()
+
+			tests := []VolumeTest{
+				{
+					volume: v1.VolumeSource{
+						VsphereVolume: &v1.VsphereVirtualDiskVolumeSource{
+							VolumePath: volumePath,
+							FSType:     "ext4",
+						},
+					},
+					file: "index.html",
+					// Randomize index.html to make sure we don't see the
+					// content from previous test runs.
+					expectedContent: "Hello from vSphere from namespace " + namespace.Name,
+				},
+			}
+
+			injectHtml(cs, config, tests[0].volume, tests[0].expectedContent)
+
+			fsGroup := int64(1234)
+			testVolumeClient(cs, config, &fsGroup, tests)
 		})
 	})
 })

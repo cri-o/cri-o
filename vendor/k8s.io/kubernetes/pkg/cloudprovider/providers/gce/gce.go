@@ -2484,7 +2484,12 @@ func (gce *GCECloud) CreateDisk(name string, diskType string, zone string, sizeG
 		return err
 	}
 
-	return gce.waitForZoneOp(createOp, zone)
+	err = gce.waitForZoneOp(createOp, zone)
+	if isGCEError(err, "alreadyExists") {
+		glog.Warningf("GCE PD %q already exists, reusing", name)
+		return nil
+	}
+	return err
 }
 
 func (gce *GCECloud) doDeleteDisk(diskToDelete string) error {
@@ -2505,6 +2510,10 @@ func (gce *GCECloud) DeleteDisk(diskToDelete string) error {
 	err := gce.doDeleteDisk(diskToDelete)
 	if isGCEError(err, "resourceInUseByAnotherResource") {
 		return volume.NewDeletedVolumeInUseError(err.Error())
+	}
+
+	if err == cloudprovider.DiskNotFound {
+		return nil
 	}
 	return err
 }
@@ -2588,7 +2597,7 @@ func (gce *GCECloud) AttachDisk(diskName string, nodeName types.NodeName, readOn
 	}
 	attachedDisk := gce.convertDiskToAttachedDisk(disk, readWrite)
 
-	attachOp, err := gce.service.Instances.AttachDisk(gce.projectID, disk.Zone, instanceName, attachedDisk).Do()
+	attachOp, err := gce.service.Instances.AttachDisk(gce.projectID, disk.Zone, instance.Name, attachedDisk).Do()
 	if err != nil {
 		return err
 	}
@@ -2707,6 +2716,7 @@ func (gce *GCECloud) getDiskByName(diskName string, zone string) (*gceDisk, erro
 
 // Scans all managed zones to return the GCE PD
 // Prefer getDiskByName, if the zone can be established
+// Return cloudprovider.DiskNotFound if the given disk cannot be found in any zone
 func (gce *GCECloud) getDiskByNameUnknownZone(diskName string) (*gceDisk, error) {
 	// Note: this is the gotcha right now with GCE PD support:
 	// disk names are not unique per-region.
@@ -2737,7 +2747,8 @@ func (gce *GCECloud) getDiskByNameUnknownZone(diskName string) (*gceDisk, error)
 	if found != nil {
 		return found, nil
 	}
-	return nil, fmt.Errorf("GCE persistent disk %q not found in managed zones (%s)", diskName, strings.Join(gce.managedZones, ","))
+	glog.Warningf("GCE persistent disk %q not found in managed zones (%s)", diskName, strings.Join(gce.managedZones, ","))
+	return nil, cloudprovider.DiskNotFound
 }
 
 // GetGCERegion returns region of the gce zone. Zone names
@@ -2889,14 +2900,13 @@ func (gce *GCECloud) getInstancesByNames(names []string) ([]*gceInstance, error)
 // Gets the named instance, returning cloudprovider.InstanceNotFound if the instance is not found
 func (gce *GCECloud) getInstanceByName(name string) (*gceInstance, error) {
 	// Avoid changing behaviour when not managing multiple zones
-	if len(gce.managedZones) == 1 {
+	for _, zone := range gce.managedZones {
 		name = canonicalizeInstanceName(name)
-		zone := gce.managedZones[0]
 		res, err := gce.service.Instances.Get(gce.projectID, zone, name).Do()
 		if err != nil {
-			glog.Errorf("getInstanceByName/single-zone: failed to get instance %s; err: %v", name, err)
+			glog.Errorf("getInstanceByName: failed to get instance %s; err: %v", name, err)
 			if isHTTPErrorCode(err, http.StatusNotFound) {
-				return nil, cloudprovider.InstanceNotFound
+				continue
 			}
 			return nil, err
 		}
@@ -2909,16 +2919,7 @@ func (gce *GCECloud) getInstanceByName(name string) (*gceInstance, error) {
 		}, nil
 	}
 
-	instances, err := gce.getInstancesByNames([]string{name})
-	if err != nil {
-		glog.Errorf("getInstanceByName/multiple-zones: failed to get instance %s; err: %v", name, err)
-		return nil, err
-	}
-	if len(instances) != 1 || instances[0] == nil {
-		// getInstancesByNames not obeying its contract
-		return nil, fmt.Errorf("unexpected return value from getInstancesByNames: %v", instances)
-	}
-	return instances[0], nil
+	return nil, cloudprovider.InstanceNotFound
 }
 
 // Returns the last component of a URL, i.e. anything after the last slash

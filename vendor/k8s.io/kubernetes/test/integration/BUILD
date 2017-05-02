@@ -34,7 +34,6 @@ filegroup(
     name = "all-srcs",
     srcs = [
         ":package-srcs",
-        "//test/integration/discoverysummarizer:all-srcs",
         "//test/integration/examples:all-srcs",
         "//test/integration/federation:all-srcs",
         "//test/integration/framework:all-srcs",

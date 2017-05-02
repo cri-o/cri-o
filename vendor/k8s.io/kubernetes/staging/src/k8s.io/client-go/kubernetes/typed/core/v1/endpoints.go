@@ -20,7 +20,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
+	scheme "k8s.io/client-go/kubernetes/scheme"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	rest "k8s.io/client-go/rest"
 )
@@ -35,8 +35,8 @@ type EndpointsGetter interface {
 type EndpointsInterface interface {
 	Create(*v1.Endpoints) (*v1.Endpoints, error)
 	Update(*v1.Endpoints) (*v1.Endpoints, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error
+	Delete(name string, options *meta_v1.DeleteOptions) error
+	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
 	Get(name string, options meta_v1.GetOptions) (*v1.Endpoints, error)
 	List(opts meta_v1.ListOptions) (*v1.EndpointsList, error)
 	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
@@ -84,7 +84,7 @@ func (c *endpoints) Update(endpoints *v1.Endpoints) (result *v1.Endpoints, err e
 }
 
 // Delete takes name of the endpoints and deletes it. Returns an error if one occurs.
-func (c *endpoints) Delete(name string, options *v1.DeleteOptions) error {
+func (c *endpoints) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("endpoints").
@@ -95,11 +95,11 @@ func (c *endpoints) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *endpoints) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *endpoints) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("endpoints").
-		VersionedParams(&listOptions, api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
@@ -112,7 +112,7 @@ func (c *endpoints) Get(name string, options meta_v1.GetOptions) (result *v1.End
 		Namespace(c.ns).
 		Resource("endpoints").
 		Name(name).
-		VersionedParams(&options, api.ParameterCodec).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -124,7 +124,7 @@ func (c *endpoints) List(opts meta_v1.ListOptions) (result *v1.EndpointsList, er
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("endpoints").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -132,11 +132,11 @@ func (c *endpoints) List(opts meta_v1.ListOptions) (result *v1.EndpointsList, er
 
 // Watch returns a watch.Interface that watches the requested endpoints.
 func (c *endpoints) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("endpoints").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
