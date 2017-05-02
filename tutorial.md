@@ -163,7 +163,7 @@ Description=OCI-based implementation of Kubernetes Container Runtime Interface
 Documentation=https://github.com/kubernetes-incubator/cri-o
 
 [Service]
-ExecStart=/usr/local/bin/ocid --debug
+ExecStart=/usr/bin/ocid --debug
 Restart=on-failure
 RestartSec=5
 
