@@ -8,7 +8,7 @@ Type=notify
 EnvironmentFile=-/etc/sysconfig/ocid-storage
 EnvironmentFile=-/etc/sysconfig/ocid-network
 Environment=GOTRACEBACK=crash
-ExecStart=/usr/bin/ocid \
+ExecStart=/usr/local/bin/ocid \
           $OCID_STORAGE_OPTIONS \
           $OCID_NETWORK_OPTIONS \
 ExecReload=/bin/kill -s HUP $MAINPID
