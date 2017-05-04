@@ -66,6 +66,8 @@ RUN set -x \
        && cp bin/* /opt/cni/bin/ \
        && rm -rf "$GOPATH"
 
+COPY test/plugin_test_args.bash /opt/cni/bin/plugin_test_args.bash
+
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json

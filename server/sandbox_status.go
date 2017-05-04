@@ -27,8 +27,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	if err != nil {
 		return nil, err
 	}
-	podNamespace := ""
-	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, podNamespace, sb.id, podInfraContainer.Name())
+	ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, sb.namespace, sb.kubeName, sb.id)
 	if err != nil {
 		// ignore the error on network status
 		ip = ""
