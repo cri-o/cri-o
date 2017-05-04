@@ -71,15 +71,15 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
 	var processLabel, mountLabel, netNsPath, resolvPath string
 	// process req.Name
-	name := req.GetConfig().GetMetadata().Name
-	if name == "" {
+	kubeName := req.GetConfig().GetMetadata().Name
+	if kubeName == "" {
 		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
 	}
 
 	namespace := req.GetConfig().GetMetadata().Namespace
 	attempt := req.GetConfig().GetMetadata().Attempt
 
-	id, name, err := s.generatePodIDandName(name, namespace, attempt)
+	id, name, err := s.generatePodIDandName(kubeName, namespace, attempt)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +268,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb := &sandbox{
 		id:           id,
+		namespace:    namespace,
 		name:         name,
+		kubeName:     kubeName,
 		logDir:       logDir,
 		labels:       labels,
 		annotations:  annotations,
@@ -405,8 +407,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// setup the network
 	if !hostNetwork {
-		podNamespace := ""
-		if err = s.netPlugin.SetUpPod(netNsPath, podNamespace, id, containerName); err != nil {
+		if err = s.netPlugin.SetUpPod(netNsPath, namespace, kubeName, id); err != nil {
 			return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
 		}
 	}

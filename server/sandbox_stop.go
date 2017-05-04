@@ -19,20 +19,19 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		return nil, err
 	}
 
-	podNamespace := ""
 	podInfraContainer := sb.infraContainer
 	netnsPath, err := podInfraContainer.NetNsPath()
 	if err != nil {
 		return nil, err
 	}
 	if _, err := os.Stat(netnsPath); err == nil {
-		if err2 := s.netPlugin.TearDownPod(netnsPath, podNamespace, sb.id, podInfraContainer.Name()); err2 != nil {
+		if err2 := s.netPlugin.TearDownPod(netnsPath, sb.namespace, sb.kubeName, sb.id); err2 != nil {
 			return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v",
 				podInfraContainer.Name(), sb.id, err2)
 		}
 	} else if !os.IsNotExist(err) { // it's ok for netnsPath to *not* exist
 		return nil, fmt.Errorf("failed to stat netns path for container %s in sandbox %s before tearing down the network: %v",
-			podInfraContainer.Name(), sb.id, err)
+			sb.name, sb.id, err)
 	}
 
 	// Close the sandbox networking namespace.

@@ -51,3 +51,19 @@ load helpers
 	cleanup_pods
 	stop_ocid
 }
+
+@test "Ensure correct CNI plugin namespace/name/container-id arguments" {
+	start_ocid "" "" "" "prepare_plugin_test_args_network_conf"
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
+	[ "$status" -eq 0 ]
+
+	. /tmp/plugin_test_args.out
+
+	[ "$FOUND_CNI_CONTAINERID" != "redhat.test.ocid" ]
+	[ "$FOUND_CNI_CONTAINERID" != "podsandbox1" ]
+	[ "$FOUND_K8S_POD_NAMESPACE" = "redhat.test.ocid" ]
+	[ "$FOUND_K8S_POD_NAME" = "podsandbox1" ]
+
+	cleanup_pods
+	stop_ocid
+}
