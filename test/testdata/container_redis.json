@@ -3,7 +3,7 @@
 		"name": "podsandbox1-redis"
 	},
 	"image": {
-		"image": "docker://redis:latest"
+		"image": "redis:alpine"
 	},
 	"args": [
                 "docker-entrypoint.sh",
