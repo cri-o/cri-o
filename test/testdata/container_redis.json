@@ -51,14 +51,12 @@
 			"memory_limit_in_bytes": 88000000,
 			"oom_score_adj": 30
 		},
-		"capabilities": {
-			"add_capabilities": [
-				"sys_admin"
-			]
-		},
-		"user": {
-			"uid": 0,
-			"gid": 0
+		"security_context": {
+			"capabilities": {
+				"add_capabilities": [
+					"sys_admin"
+				]
+			}
 		}
 	}
 }
