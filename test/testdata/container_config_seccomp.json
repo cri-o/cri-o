@@ -4,7 +4,7 @@
 		"attempt": 1
 	},
 	"image": {
-		"image": "docker://redis:latest"
+		"image": "redis:alpine"
 	},
 	"command": [
 		"/bin/bash"
@@ -53,30 +53,22 @@
 			"memory_limit_in_bytes": 88000000,
 			"oom_score_adj": 30
 		},
-		"capabilities": {
-			"add_capabilities": [
-				"setuid",
-				"setgid"
-			],
-			"drop_capabilities": [
-				"audit_write",
-				"audit_read"
-			]
-		},
-		"selinux_options": {
-			"user": "system_u",
-			"role": "system_r",
-			"type": "svirt_lxc_net_t",
-			"level": "s0:c4-c5"
-		},
-		"user": {
-			"uid": 5,
-			"gid": 300,
-			"additional_gids": [
-				400,
-				401,
-				402
-			]
+		"security_context": {
+			"capabilities": {
+				"add_capabilities": [
+					"setuid",
+					"setgid"
+				],
+				"drop_capabilities": [
+					"audit_read"
+				]
+			},
+			"selinux_options": {
+				"user": "system_u",
+				"role": "system_r",
+				"type": "svirt_lxc_net_t",
+				"level": "s0:c4-c5"
+			}
 		}
 	}
 }
