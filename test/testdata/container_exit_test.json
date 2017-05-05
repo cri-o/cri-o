@@ -18,11 +18,5 @@
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
-	"tty": false,
-	"linux": {
-		"user": {
-			"uid": 0,
-			"gid": 0
-		}
-	}
+	"tty": false
 }

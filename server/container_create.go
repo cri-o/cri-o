@@ -400,11 +400,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 
 		capabilities := linux.GetSecurityContext().GetCapabilities()
+		toCAPPrefixed := func(cap string) string {
+			if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
+				return "CAP_" + cap
+			}
+			return cap
+		}
 		if capabilities != nil {
 			addCaps := capabilities.AddCapabilities
 			if addCaps != nil {
 				for _, cap := range addCaps {
-					if err := specgen.AddProcessCapability(cap); err != nil {
+					if err := specgen.AddProcessCapability(toCAPPrefixed(cap)); err != nil {
 						return nil, err
 					}
 				}
@@ -413,7 +419,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			dropCaps := capabilities.DropCapabilities
 			if dropCaps != nil {
 				for _, cap := range dropCaps {
-					if err := specgen.DropProcessCapability(cap); err != nil {
+					if err := specgen.DropProcessCapability(toCAPPrefixed(cap)); err != nil {
 						return nil, err
 					}
 				}
