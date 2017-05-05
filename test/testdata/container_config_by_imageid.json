@@ -7,11 +7,9 @@
 		"image": "%VALUE%"
 	},
 	"command": [
-		"/bin/bash"
-	],
-	"args": [
 		"/bin/ls"
 	],
+	"args": [],
 	"working_dir": "/",
 	"envs": [
 		{
