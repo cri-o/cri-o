@@ -116,13 +116,13 @@ MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 docs/%.1: docs/%.1.md .gopathok
-	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@ || $(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.5: docs/%.5.md .gopathok
-	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@ || $(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs/%.8: docs/%.8.md .gopathok
-	$(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
+	go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@ || $(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@
 
 docs: $(MANPAGES)
 
