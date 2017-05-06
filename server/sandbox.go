@@ -125,8 +125,12 @@ func hostNetNsPath() (string, error) {
 }
 
 type sandbox struct {
-	id             string
-	name           string
+	id        string
+	namespace string
+	// OCI pod name (eg "<namespace>-<name>-<attempt>")
+	name string
+	// Kubernetes pod name (eg, "<name>")
+	kubeName       string
 	logDir         string
 	labels         fields.Set
 	annotations    map[string]string
@@ -144,10 +148,9 @@ type sandbox struct {
 }
 
 const (
-	podDefaultNamespace = "default"
-	defaultShmSize      = 64 * 1024 * 1024
-	nsRunDir            = "/var/run/netns"
-	podInfraCommand     = "/pause"
+	defaultShmSize  = 64 * 1024 * 1024
+	nsRunDir        = "/var/run/netns"
+	podInfraCommand = "/pause"
 )
 
 var (
@@ -254,7 +257,7 @@ func (s *Server) generatePodIDandName(name string, namespace string, attempt uin
 		id  = stringid.GenerateNonCryptoID()
 	)
 	if namespace == "" {
-		namespace = podDefaultNamespace
+		return "", "", fmt.Errorf("cannot generate pod ID without namespace")
 	}
 
 	if name, err = s.reservePodName(id, fmt.Sprintf("%s-%s-%v", namespace, name, attempt)); err != nil {

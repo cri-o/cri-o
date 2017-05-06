@@ -149,7 +149,12 @@ function start_ocid() {
 	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
-	prepare_network_conf $POD_CIDR
+	if [[ -n "$4" ]]; then
+		netfunc="$4"
+	else
+		netfunc="prepare_network_conf"
+	fi
+	${netfunc} $POD_CIDR
 
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
@@ -282,6 +287,19 @@ EOF
 {
     "cniVersion": "0.2.0",
     "type": "loopback"
+}
+EOF
+
+	echo 0
+}
+
+function prepare_plugin_test_args_network_conf() {
+	mkdir -p $OCID_CNI_CONFIG
+	cat >$OCID_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
+{
+    "cniVersion": "0.2.0",
+    "name": "ocidnet",
+    "type": "plugin_test_args.bash"
 }
 EOF
 
