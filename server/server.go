@@ -133,12 +133,18 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged)
+	cDir, err := s.store.GetContainerDirectory(id)
 	if err != nil {
 		return err
 	}
+
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged, cDir)
+	if err != nil {
+		return err
+	}
+	ctr.FromDisk()
 	if err = s.runtime.UpdateStatus(ctr); err != nil {
-		return fmt.Errorf("error updating status for container %s: %v", ctr.ID(), err)
+		logrus.Debugf("error updating status for container %s: %v", ctr.ID(), err)
 	}
 	s.addContainer(ctr)
 	return s.ctrIDIndex.Add(id)
@@ -253,12 +259,18 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
+	cDir, err := s.store.GetContainerDirectory(id)
 	if err != nil {
 		return err
 	}
+
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged, cDir)
+	if err != nil {
+		return err
+	}
+	scontainer.FromDisk()
 	if err = s.runtime.UpdateStatus(scontainer); err != nil {
-		return fmt.Errorf("error updating status for pod sandbox infra container %s: %v", scontainer.ID(), err)
+		logrus.Debugf("error updating status for pod sandbox infra container %s: %v", scontainer.ID(), err)
 	}
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
@@ -366,7 +378,7 @@ func (s *Server) update() error {
 			logrus.Warnf("bad state when getting container removed %+v", removedPodContainer)
 			continue
 		}
-		s.releaseContainerName(c.Name())
+		s.releaseContainerName(c.Name)
 		s.removeContainer(c)
 		if err = s.ctrIDIndex.Delete(c.ID()); err != nil {
 			return err
@@ -387,7 +399,7 @@ func (s *Server) update() error {
 			continue
 		}
 		podInfraContainer := sb.infraContainer
-		s.releaseContainerName(podInfraContainer.Name())
+		s.releaseContainerName(podInfraContainer.Name)
 		s.removeContainer(podInfraContainer)
 		if err = s.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
 			return err
@@ -462,7 +474,7 @@ func (s *Server) cleanupSandboxesOnShutdown() {
 	_, err := os.Stat(shutdownFile)
 	if err == nil || !os.IsNotExist(err) {
 		logrus.Debugf("shutting down all sandboxes, on shutdown")
-		s.RemoveAllPodSandboxes()
+		s.stopAllPodSandboxes()
 		err = os.Remove(shutdownFile)
 		if err != nil {
 			logrus.Warnf("Failed to remove %q", shutdownFile)
@@ -606,7 +618,7 @@ func (s *Server) removeSandbox(id string) {
 
 func (s *Server) addContainer(c *oci.Container) {
 	s.stateLock.Lock()
-	sandbox := s.state.sandboxes[c.Sandbox()]
+	sandbox := s.state.sandboxes[c.Sandbox]
 	// TODO(runcom): handle !ok above!!! otherwise it panics!
 	sandbox.addContainer(c)
 	s.state.containers.Add(c.ID(), c)
@@ -622,7 +634,7 @@ func (s *Server) getContainer(id string) *oci.Container {
 
 func (s *Server) removeContainer(c *oci.Container) {
 	s.stateLock.Lock()
-	sandbox := s.state.sandboxes[c.Sandbox()]
+	sandbox := s.state.sandboxes[c.Sandbox]
 	sandbox.removeContainer(c)
 	s.state.containers.Delete(c.ID())
 	s.stateLock.Unlock()

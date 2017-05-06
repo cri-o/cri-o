@@ -19,7 +19,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 	}
 
 	if err := s.runtime.UpdateStatus(c); err != nil {
-		return nil, fmt.Errorf("failed to update container state: %v", err)
+		logrus.Debugf("failed to update container %s state: %v", c.ID, err)
 	}
 
 	cState := s.runtime.ContainerStatus(c)
@@ -43,10 +43,14 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, fmt.Errorf("failed to delete storage for container %s: %v", c.ID(), err)
 	}
 
-	s.releaseContainerName(c.Name())
+	s.releaseContainerName(c.Name)
 
 	if err := s.ctrIDIndex.Delete(c.ID()); err != nil {
 		return nil, err
+	}
+
+	if err := s.runtime.UpdateStatus(c); err != nil {
+		logrus.Debugf("failed to update container %s state: %v", c.ID, err)
 	}
 
 	resp := &pb.RemoveContainerResponse{}

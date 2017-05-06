@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"syscall"
 
@@ -15,6 +16,10 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+)
+
+var (
+	podConflictRE = regexp.MustCompile(`already reserved for pod "([0-9a-z]+)"`)
 )
 
 // privilegedSandbox returns true if the sandbox configuration
@@ -81,8 +86,21 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	id, name, err := s.generatePodIDandName(kubeName, namespace, attempt)
 	if err != nil {
-		return nil, err
+		matches := podConflictRE.FindStringSubmatch(err.Error())
+		if len(matches) != 2 {
+			return nil, err
+		}
+		podID := matches[1]
+		_, err = s.RemovePodSandbox(ctx, &pb.RemovePodSandboxRequest{PodSandboxId: podID})
+		if err != nil {
+			return nil, err
+		}
+		id, name, err = s.generatePodIDandName(kubeName, namespace, attempt)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	_, containerName, err := s.generateContainerIDandName(name, "infra", attempt)
 	if err != nil {
 		return nil, err
@@ -398,7 +416,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged, podContainer.Dir)
 	if err != nil {
 		return nil, err
 	}

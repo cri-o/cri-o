@@ -480,7 +480,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	specgen.AddAnnotation("ocid/name", containerName)
 	specgen.AddAnnotation("ocid/sandbox_id", sb.id)
-	specgen.AddAnnotation("ocid/sandbox_name", sb.infraContainer.Name())
+	specgen.AddAnnotation("ocid/sandbox_name", sb.infraContainer.Name)
 	specgen.AddAnnotation("ocid/container_type", containerTypeContainer)
 	specgen.AddAnnotation("ocid/log_path", logPath)
 	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.Tty))
@@ -594,7 +594,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged, containerInfo.Dir)
 	if err != nil {
 		return nil, err
 	}

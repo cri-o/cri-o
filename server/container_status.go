@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -19,17 +20,17 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 
 	if err = s.runtime.UpdateStatus(c); err != nil {
-		return nil, err
+		logrus.Debugf("failed to get container status for %s: %v", c.ID, err)
 	}
 
 	containerID := c.ID()
-	image := c.Image()
+	image := c.Image
 	resp := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
 			Id:          containerID,
-			Metadata:    c.Metadata(),
-			Labels:      c.Labels(),
-			Annotations: c.Annotations(),
+			Metadata:    c.Metadata,
+			Labels:      c.Labels,
+			Annotations: c.Annotations,
 			Image:       image,
 		},
 	}
@@ -50,26 +51,31 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	cState := s.runtime.ContainerStatus(c)
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
-	switch cState.Status {
-	case oci.ContainerStateCreated:
-		rStatus = pb.ContainerState_CONTAINER_CREATED
-		created := cState.Created.UnixNano()
-		resp.Status.CreatedAt = created
-	case oci.ContainerStateRunning:
-		rStatus = pb.ContainerState_CONTAINER_RUNNING
-		created := cState.Created.UnixNano()
-		resp.Status.CreatedAt = created
-		started := cState.Started.UnixNano()
-		resp.Status.StartedAt = started
-	case oci.ContainerStateStopped:
-		rStatus = pb.ContainerState_CONTAINER_EXITED
-		created := cState.Created.UnixNano()
-		resp.Status.CreatedAt = created
-		started := cState.Started.UnixNano()
-		resp.Status.StartedAt = started
-		finished := cState.Finished.UnixNano()
-		resp.Status.FinishedAt = finished
-		resp.Status.ExitCode = cState.ExitCode
+	if cState != nil {
+		switch cState.Status {
+		case oci.ContainerStateCreated:
+			rStatus = pb.ContainerState_CONTAINER_CREATED
+			created := cState.Created.UnixNano()
+			resp.Status.CreatedAt = created
+		case oci.ContainerStateRunning:
+			rStatus = pb.ContainerState_CONTAINER_RUNNING
+			created := cState.Created.UnixNano()
+			resp.Status.CreatedAt = created
+			started := cState.Started.UnixNano()
+			resp.Status.StartedAt = started
+		case oci.ContainerStateStopped:
+			rStatus = pb.ContainerState_CONTAINER_EXITED
+			created := cState.Created.UnixNano()
+			resp.Status.CreatedAt = created
+			started := cState.Started.UnixNano()
+			resp.Status.StartedAt = started
+			finished := cState.Finished.UnixNano()
+			resp.Status.FinishedAt = finished
+			resp.Status.ExitCode = cState.ExitCode
+		default:
+			resp.Status.CreatedAt = time.Time{}.UnixNano()
+			resp.Status.StartedAt = time.Time{}.UnixNano()
+		}
 	}
 
 	resp.Status.State = rStatus
