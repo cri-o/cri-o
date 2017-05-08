@@ -265,6 +265,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/privileged_runtime", fmt.Sprintf("%v", privileged))
 	g.AddAnnotation("ocid/resolv_path", resolvPath)
 	g.AddAnnotation("ocid/hostname", hostname)
+	g.AddAnnotation("ocid/kube_name", kubeName)
 
 	sb := &sandbox{
 		id:           id,
