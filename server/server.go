@@ -203,6 +203,7 @@ func (s *Server) loadSandbox(id string) error {
 	sb := &sandbox{
 		id:           id,
 		name:         name,
+		kubeName:     m.Annotations["ocid/kube_name"],
 		logDir:       filepath.Dir(m.Annotations["ocid/log_path"]),
 		labels:       labels,
 		containers:   oci.NewMemoryStore(),
