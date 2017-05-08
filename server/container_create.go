@@ -87,7 +87,6 @@ func addDevices(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *gener
 			Minor:  &dev.Minor,
 			Access: dev.Permissions,
 		})
-
 	}
 	return nil
 }
@@ -330,6 +329,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen := generate.New()
 
 	if err := addOciBindMounts(sb, containerConfig, &specgen); err != nil {
+		return nil, err
+	}
+
+	if err := addDevices(sb, containerConfig, &specgen); err != nil {
 		return nil, err
 	}
 
