@@ -20,6 +20,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 
 	// best effort if container is still in runc store...
 	s.runtime.UpdateStatus(c)
+	s.containerStateToDisk(c)
 
 	containerID := c.ID()
 	image := c.Image()

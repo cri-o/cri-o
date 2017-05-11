@@ -66,9 +66,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	}
 
 	for _, ctr := range ctrList {
-		if err := s.runtime.UpdateStatus(ctr); err != nil {
-			return nil, err
-		}
+		s.runtime.UpdateStatus(ctr)
 
 		podSandboxID := ctr.Sandbox()
 		cState := s.runtime.ContainerStatus(ctr)

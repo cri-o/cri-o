@@ -18,6 +18,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	podInfraContainer := sb.infraContainer
 	// best effort if container is still in runc store...
 	s.runtime.UpdateStatus(podInfraContainer)
+	s.containerStateToDisk(podInfraContainer)
 
 	cState := s.runtime.ContainerStatus(podInfraContainer)
 
@@ -32,6 +33,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
+
 	if cState.Status == oci.ContainerStateRunning {
 		rStatus = pb.PodSandboxState_SANDBOX_READY
 	}
