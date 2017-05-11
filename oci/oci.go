@@ -474,7 +474,10 @@ func (r *Runtime) StopContainer(c *Container) error {
 func (r *Runtime) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "delete", c.name)
+	if _, err := utils.ExecCmd(r.Path(c), "delete", c.name); err != nil && !strings.Contains(err.Error(), "does not exist") {
+		return err
+	}
+	return nil
 }
 
 // UpdateStatus refreshes the status of the container.
