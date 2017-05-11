@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/storage"
@@ -267,6 +268,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("ocid/hostname", hostname)
 	g.AddAnnotation("ocid/kube_name", kubeName)
 
+	created := time.Now()
+	g.AddAnnotation("ocid/created", created.Format(time.RFC3339Nano))
+
 	sb := &sandbox{
 		id:           id,
 		namespace:    namespace,
@@ -283,6 +287,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		privileged:   privileged,
 		resolvPath:   resolvPath,
 		hostname:     hostname,
+		created:      created,
 	}
 
 	defer func() {
