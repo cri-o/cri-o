@@ -510,7 +510,8 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 func (r *Runtime) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "delete", c.name)
+	_, err := utils.ExecCmd(r.Path(c), "delete", "--force", c.name)
+	return err
 }
 
 // UpdateStatus refreshes the status of the container.
