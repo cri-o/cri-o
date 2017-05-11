@@ -271,7 +271,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("crio/kube_name", kubeName)
 
 	created := time.Now()
-	g.AddAnnotation("ocid/created", created.Format(time.RFC3339Nano))
+	g.AddAnnotation("crio/created", created.Format(time.RFC3339Nano))
 
 	sb := &sandbox{
 		id:           id,
