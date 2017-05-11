@@ -68,7 +68,7 @@ PATH=$PATH:$TESTDIR
 # Make sure we have a copy of the redis:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/redis-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://redis --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+    if ! "$COPYIMG_BINARY" --import-from=docker://redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
         echo "Error pulling docker://redis"
         rm -fr "$ARTIFACTS_PATH"/redis-image
         exit 1
@@ -145,7 +145,7 @@ function start_ocid() {
 	if ! [ "$3" = "--no-pause-image" ] ; then
 		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" $STORAGE_OPTS --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
 	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" $STORAGE_OPTS --runroot "$TESTDIR/ocid-run" --image-name=redis --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" $STORAGE_OPTS --runroot "$TESTDIR/ocid-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
@@ -159,11 +159,11 @@ function start_ocid() {
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
 
-	run ocic image status --id=redis
+	run ocic image status --id=redis:alpine
 	if [ "$status" -ne 0 ] ; then
-		ocic image pull redis:latest
+		ocic image pull redis:alpine
 	fi
-	REDIS_IMAGEID=$(ocic image status --id=redis | head -1 | sed -e "s/ID: //g")
+	REDIS_IMAGEID=$(ocic image status --id=redis:alpine | head -1 | sed -e "s/ID: //g")
 	run ocic image status --id=busybox
 	if [ "$status" -ne 0 ] ; then
 		ocic image pull busybox:latest

@@ -129,15 +129,15 @@ sudo make install
 Output:
 
 ```
-install -D -m 755 kpod /usr/bin/kpod
-install -D -m 755 ocid /usr/bin/ocid
-install -D -m 755 ocic /usr/bin/ocic
+install -D -m 755 kpod /usr/local/bin/kpod
+install -D -m 755 ocid /usr/local/bin/ocid
+install -D -m 755 ocic /usr/local/bin/ocic
 install -D -m 755 conmon/conmon /usr/local/libexec/ocid/conmon
-install -D -m 755 pause/pause /usr/libexec/ocid/pause
-install -d -m 755 /usr/share/man/man{1,5,8}
-install -m 644 docs/kpod.1 docs/kpod-launch.1 -t /usr/share/man/man1
-install -m 644 docs/ocid.conf.5 -t /usr/share/man/man5
-install -m 644 docs/ocid.8 -t /usr/share/man/man8
+install -D -m 755 pause/pause /usr/local/libexec/ocid/pause
+install -d -m 755 /usr/local/share/man/man{1,5,8}
+install -m 644 docs/kpod.1 docs/kpod-launch.1 -t /usr/local/share/man/man1
+install -m 644 docs/ocid.conf.5 -t /usr/local/share/man/man5
+install -m 644 docs/ocid.8 -t /usr/local/share/man/man8
 install -D -m 644 ocid.conf /etc/ocid/ocid.conf
 install -D -m 644 seccomp.json /etc/ocid/seccomp.json
 ```
@@ -163,7 +163,7 @@ Description=OCI-based implementation of Kubernetes Container Runtime Interface
 Documentation=https://github.com/kubernetes-incubator/cri-o
 
 [Service]
-ExecStart=/usr/bin/ocid --debug
+ExecStart=/usr/local/bin/ocid --debug
 Restart=on-failure
 RestartSec=5
 

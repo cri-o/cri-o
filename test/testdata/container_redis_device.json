@@ -32,6 +32,13 @@
 			"value": "92d6d93ef2efc91e595c8bf578bf72baff397507"
 		}
 	],
+	"devices": [
+		{
+			"host_path": "/dev/null",
+			"container_path": "/dev/mynull",
+			"permissions": "rwm"
+		}
+	],
 	"labels": {
 		"tier": "backend"
 	},

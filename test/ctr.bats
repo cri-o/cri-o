@@ -429,6 +429,31 @@ function teardown() {
 	stop_ocid
 }
 
+@test "ctr device add" {
+	start_ocid
+	run ocic pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run ocic ctr create --config "$TESTDATA"/container_redis_device.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run ocic ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ocic ctr execsync --id "$ctr_id" ls /dev/mynull
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "/dev/mynull" ]]
+	run ocic pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_ocid
+}
+
 @test "ctr execsync failure" {
 	start_ocid
 	run ocic pod run --config "$TESTDATA"/sandbox_config.json

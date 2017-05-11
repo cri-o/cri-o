@@ -7,10 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage/storage"
+	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -120,6 +122,11 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
+	containerDir, err := s.store.GetContainerDirectory(id)
+	if err != nil {
+		return err
+	}
+
 	var img *pb.ImageSpec
 	image, ok := m.Annotations["ocid/image"]
 	if ok {
@@ -133,15 +140,45 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged)
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations["ocid/created"])
 	if err != nil {
 		return err
 	}
-	if err = s.runtime.UpdateStatus(ctr); err != nil {
-		return fmt.Errorf("error updating status for container %s: %v", ctr.ID(), err)
+
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged, containerDir, created)
+	if err != nil {
+		return err
 	}
+
+	s.containerStateFromDisk(ctr)
+
 	s.addContainer(ctr)
 	return s.ctrIDIndex.Add(id)
+}
+
+func (s *Server) containerStateFromDisk(c *oci.Container) error {
+	if err := c.FromDisk(); err != nil {
+		return err
+	}
+	// ignore errors, this is a best effort to have up-to-date info about
+	// a given container before its state gets stored
+	s.runtime.UpdateStatus(c)
+
+	return nil
+}
+
+func (s *Server) containerStateToDisk(c *oci.Container) error {
+	// ignore errors, this is a best effort to have up-to-date info about
+	// a given container before its state gets stored
+	s.runtime.UpdateStatus(c)
+
+	jsonSource, err := ioutils.NewAtomicFileWriter(c.StatePath(), 0644)
+	if err != nil {
+		return err
+	}
+	defer jsonSource.Close()
+	enc := json.NewEncoder(jsonSource)
+	return enc.Encode(s.runtime.ContainerStatus(c))
 }
 
 func configNetNsPath(spec rspec.Spec) (string, error) {
@@ -244,6 +281,11 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
+	sandboxDir, err := s.store.GetContainerDirectory(id)
+	if err != nil {
+		return err
+	}
+
 	cname, err := s.reserveContainerName(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"])
 	if err != nil {
 		return err
@@ -254,13 +296,18 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations["ocid/created"])
 	if err != nil {
 		return err
 	}
-	if err = s.runtime.UpdateStatus(scontainer); err != nil {
-		return fmt.Errorf("error updating status for pod sandbox infra container %s: %v", scontainer.ID(), err)
+
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged, sandboxDir, created)
+	if err != nil {
+		return err
 	}
+
+	s.containerStateFromDisk(scontainer)
+
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
 	}

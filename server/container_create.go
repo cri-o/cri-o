@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
@@ -18,7 +19,9 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/runc/libcontainer/user"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
@@ -59,6 +62,33 @@ func addOciBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen 
 		specgen.AddBindMount(src, dest, options)
 	}
 
+	return nil
+}
+
+func addDevices(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+	sp := specgen.Spec()
+	for _, device := range containerConfig.GetDevices() {
+		dev, err := devices.DeviceFromPath(device.HostPath, device.Permissions)
+		if err != nil {
+			return fmt.Errorf("failed to add device: %v", err)
+		}
+		rd := rspec.LinuxDevice{
+			Path:  device.ContainerPath,
+			Type:  string(dev.Type),
+			Major: dev.Major,
+			Minor: dev.Minor,
+			UID:   &dev.Uid,
+			GID:   &dev.Gid,
+		}
+		specgen.AddDevice(rd)
+		sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
+			Allow:  true,
+			Type:   string(dev.Type),
+			Major:  &dev.Major,
+			Minor:  &dev.Minor,
+			Access: dev.Permissions,
+		})
+	}
 	return nil
 }
 
@@ -280,6 +310,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
+	s.containerStateToDisk(container)
+
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
 	}
@@ -300,6 +332,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen := generate.New()
 
 	if err := addOciBindMounts(sb, containerConfig, &specgen); err != nil {
+		return nil, err
+	}
+
+	if err := addDevices(sb, containerConfig, &specgen); err != nil {
 		return nil, err
 	}
 
@@ -486,6 +522,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.Tty))
 	specgen.AddAnnotation("ocid/image", image)
 
+	created := time.Now()
+	specgen.AddAnnotation("ocid/created", created.Format(time.RFC3339Nano))
+
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
@@ -594,7 +633,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged, containerInfo.Dir, created)
 	if err != nil {
 		return nil, err
 	}
