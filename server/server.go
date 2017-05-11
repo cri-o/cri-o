@@ -12,6 +12,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage/storage"
+	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -19,7 +20,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
-	"github.com/moby/moby/pkg/ioutils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -149,11 +149,22 @@ func (s *Server) loadContainer(id string) error {
 	if err != nil {
 		return err
 	}
-	if err = s.runtime.UpdateStatus(ctr); err != nil {
-		return fmt.Errorf("error updating status for container %s: %v", ctr.ID(), err)
-	}
+
+	s.containerStateFromDisk(ctr)
+
 	s.addContainer(ctr)
 	return s.ctrIDIndex.Add(id)
+}
+
+func (s *Server) containerStateFromDisk(c *oci.Container) error {
+	if err := c.FromDisk(); err != nil {
+		return err
+	}
+	// ignore errors, this is a best effort to have up-to-date info about
+	// a given container before its state gets stored
+	s.runtime.UpdateStatus(c)
+
+	return nil
 }
 
 func (s *Server) containerStateToDisk(c *oci.Container) error {
@@ -294,9 +305,9 @@ func (s *Server) loadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
-	if err = s.runtime.UpdateStatus(scontainer); err != nil {
-		return fmt.Errorf("error updating status for pod sandbox infra container %s: %v", scontainer.ID(), err)
-	}
+
+	s.containerStateFromDisk(scontainer)
+
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
