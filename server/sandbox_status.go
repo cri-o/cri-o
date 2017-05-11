@@ -16,9 +16,8 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	podInfraContainer := sb.infraContainer
-	if err = s.runtime.UpdateStatus(podInfraContainer); err != nil {
-		return nil, err
-	}
+	// best effort if container is still in runc store...
+	s.runtime.UpdateStatus(podInfraContainer)
 
 	cState := s.runtime.ContainerStatus(podInfraContainer)
 

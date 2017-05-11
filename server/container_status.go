@@ -18,9 +18,8 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		return nil, err
 	}
 
-	if err = s.runtime.UpdateStatus(c); err != nil {
-		return nil, err
-	}
+	// best effort if container is still in runc store...
+	s.runtime.UpdateStatus(c)
 
 	containerID := c.ID()
 	image := c.Image()
