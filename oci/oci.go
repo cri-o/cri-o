@@ -501,6 +501,8 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 		}
 	}
 
+	c.state.Finished = time.Now()
+
 	return nil
 }
 
