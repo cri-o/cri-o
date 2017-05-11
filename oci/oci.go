@@ -460,6 +460,8 @@ func (r *Runtime) StopContainer(c *Container) error {
 		i++
 	}
 
+	c.state.Finished = time.Now()
+
 	return nil
 }
 
