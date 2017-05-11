@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
@@ -199,6 +200,10 @@ func (s *Server) loadSandbox(id string) error {
 	}
 
 	privileged := m.Annotations["ocid/privileged_runtime"] == "true"
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations["ocid/created"])
+	if err != nil {
+		return err
+	}
 
 	sb := &sandbox{
 		id:           id,
@@ -214,6 +219,7 @@ func (s *Server) loadSandbox(id string) error {
 		shmPath:      m.Annotations["ocid/shm_path"],
 		privileged:   privileged,
 		resolvPath:   m.Annotations["ocid/resolv_path"],
+		created:      created,
 	}
 
 	// We add a netNS only if we can load a permanent one.
