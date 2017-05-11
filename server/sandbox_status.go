@@ -21,7 +21,6 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	cState := s.runtime.ContainerStatus(podInfraContainer)
-	created := cState.Created.UnixNano()
 
 	netNsPath, err := podInfraContainer.NetNsPath()
 	if err != nil {
@@ -42,7 +41,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	resp := &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
 			Id:        sandboxID,
-			CreatedAt: created,
+			CreatedAt: sb.created.UnixNano(),
 			Linux: &pb.LinuxPodSandboxStatus{
 				Namespaces: &pb.Namespace{
 					Network: netNsPath,
