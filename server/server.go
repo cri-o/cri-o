@@ -121,6 +121,11 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
+	containerDir, err := s.store.GetContainerDirectory(id)
+	if err != nil {
+		return err
+	}
+
 	var img *pb.ImageSpec
 	image, ok := m.Annotations["ocid/image"]
 	if ok {
@@ -134,7 +139,7 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged)
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged, containerDir)
 	if err != nil {
 		return err
 	}
@@ -250,6 +255,11 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
+	sandboxDir, err := s.store.GetContainerDirectory(id)
+	if err != nil {
+		return err
+	}
+
 	cname, err := s.reserveContainerName(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"])
 	if err != nil {
 		return err
@@ -260,7 +270,7 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged, sandboxDir)
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,6 @@ import (
 type Container struct {
 	id          string
 	name        string
-	bundlePath  string
 	logPath     string
 	labels      fields.Set
 	annotations fields.Set
@@ -27,6 +26,10 @@ type Container struct {
 	state       *ContainerState
 	metadata    *pb.ContainerMetadata
 	opLock      sync.Mutex
+	// this is the /var/run/storage/... directory, erased on reboot
+	bundlePath string
+	// this is the /var/lib/storage/... directory
+	dir string
 }
 
 // ContainerState represents the status of a container.
@@ -39,7 +42,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, privileged bool) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, privileged bool, dir string) (*Container, error) {
 	c := &Container{
 		id:          id,
 		name:        name,
@@ -53,6 +56,7 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		metadata:    metadata,
 		annotations: annotations,
 		image:       image,
+		dir:         dir,
 	}
 	return c, nil
 }
