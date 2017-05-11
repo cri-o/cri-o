@@ -139,7 +139,12 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged, containerDir)
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations["ocid/created"])
+	if err != nil {
+		return err
+	}
+
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged, containerDir, created)
 	if err != nil {
 		return err
 	}
@@ -205,10 +210,6 @@ func (s *Server) loadSandbox(id string) error {
 	}
 
 	privileged := m.Annotations["ocid/privileged_runtime"] == "true"
-	created, err := time.Parse(time.RFC3339Nano, m.Annotations["ocid/created"])
-	if err != nil {
-		return err
-	}
 
 	sb := &sandbox{
 		id:           id,
@@ -224,7 +225,6 @@ func (s *Server) loadSandbox(id string) error {
 		shmPath:      m.Annotations["ocid/shm_path"],
 		privileged:   privileged,
 		resolvPath:   m.Annotations["ocid/resolv_path"],
-		created:      created,
 	}
 
 	// We add a netNS only if we can load a permanent one.
@@ -270,7 +270,12 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged, sandboxDir)
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations["ocid/created"])
+	if err != nil {
+		return err
+	}
+
+	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged, sandboxDir, created)
 	if err != nil {
 		return err
 	}
