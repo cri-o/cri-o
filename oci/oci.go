@@ -439,6 +439,11 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 func (r *Runtime) StopContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	if c.state.Status != ContainerStateRunning {
+		return nil
+	}
+
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.name, "TERM"); err != nil {
 		return err
 	}
