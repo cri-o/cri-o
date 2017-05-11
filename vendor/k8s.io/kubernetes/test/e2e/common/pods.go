@@ -28,12 +28,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/kubelet"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -233,18 +233,21 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("verifying pod deletion was observed")
 		deleted := false
-		timeout := false
 		var lastPod *v1.Pod
-		timer := time.After(30 * time.Second)
-		for !deleted && !timeout {
+		timer := time.After(framework.DefaultPodDeletionTimeout)
+		for !deleted {
 			select {
 			case event, _ := <-w.ResultChan():
-				if event.Type == watch.Deleted {
+				switch event.Type {
+				case watch.Deleted:
 					lastPod = event.Object.(*v1.Pod)
 					deleted = true
+				case watch.Error:
+					framework.Logf("received a watch error: %v", event.Object)
+					Fail("watch closed with error")
 				}
 			case <-timer:
-				timeout = true
+				Fail("timed out waiting for pod deletion")
 			}
 		}
 		if !deleted {

@@ -18,22 +18,26 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
+
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/printers"
 	"k8s.io/kubernetes/pkg/util/i18n"
-	"k8s.io/kubernetes/pkg/util/strategicpatch"
 )
 
 // AnnotateOptions have the data required to perform the annotate operation
@@ -98,7 +102,7 @@ func NewCmdAnnotate(f cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	// retrieve a list of handled resources from printer as valid args
 	validArgs, argAliases := []string{}, []string{}
-	p, err := f.Printer(nil, kubectl.PrintOptions{
+	p, err := f.Printer(nil, printers.PrintOptions{
 		ColumnLabels: []string{},
 	})
 	cmdutil.CheckErr(err)
@@ -129,7 +133,7 @@ func NewCmdAnnotate(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().Bool("local", false, "If true, annotation will NOT contact api-server but run locally.")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.")
 	cmd.Flags().Bool("all", false, "select all resources in the namespace of the specified resource types")
-	cmd.Flags().String("resource-version", "", "If non-empty, the annotation update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
+	cmd.Flags().String("resource-version", "", i18n.T("If non-empty, the annotation update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource."))
 	usage := "identifying the resource to update the annotation"
 	cmdutil.AddFilenameOptionFlags(cmd, &options.FilenameOptions, usage)
 	cmdutil.AddDryRunFlag(cmd)
@@ -180,9 +184,13 @@ func (o AnnotateOptions) RunAnnotate(f cmdutil.Factory, cmd *cobra.Command) erro
 		return err
 	}
 
-	changeCause := f.Command()
-	mapper, typer := f.Object()
-	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	changeCause := f.Command(cmd, false)
+
+	mapper, typer, err := f.UnstructuredObject()
+	if err != nil {
+		return err
+	}
+	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.UnstructuredClientForMapping), unstructured.UnstructuredJSONScheme).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.FilenameOptions).
@@ -241,21 +249,21 @@ func (o AnnotateOptions) RunAnnotate(f cmdutil.Factory, cmd *cobra.Command) erro
 			if err != nil {
 				return err
 			}
-			patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, obj)
+			patchBytes, err := jsonpatch.CreateMergePatch(oldData, newData)
 			createdPatch := err == nil
 			if err != nil {
 				glog.V(2).Infof("couldn't compute patch: %v", err)
 			}
 
 			mapping := info.ResourceMapping()
-			client, err := f.ClientForMapping(mapping)
+			client, err := f.UnstructuredClientForMapping(mapping)
 			if err != nil {
 				return err
 			}
 			helper := resource.NewHelper(client, mapping)
 
 			if createdPatch {
-				outputObj, err = helper.Patch(namespace, name, types.StrategicMergePatchType, patchBytes)
+				outputObj, err = helper.Patch(namespace, name, types.MergePatchType, patchBytes)
 			} else {
 				outputObj, err = helper.Replace(namespace, name, false, obj)
 			}

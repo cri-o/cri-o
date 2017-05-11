@@ -24,9 +24,9 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -237,7 +237,7 @@ var _ = framework.KubeDescribe("Nodes [Disruptive]", func() {
 			// Many e2e tests assume that the cluster is fully healthy before they start.  Wait until
 			// the cluster is restored to health.
 			By("waiting for system pods to successfully restart")
-			err := framework.WaitForPodsRunningReady(c, metav1.NamespaceSystem, systemPodsNo, framework.PodReadyBeforeTimeout, ignoreLabels, true)
+			err := framework.WaitForPodsRunningReady(c, metav1.NamespaceSystem, systemPodsNo, 0, framework.PodReadyBeforeTimeout, ignoreLabels)
 			Expect(err).NotTo(HaveOccurred())
 			By("waiting for image prepulling pods to complete")
 			framework.WaitForPodsSuccess(c, metav1.NamespaceSystem, framework.ImagePullerLabels, imagePrePullingTimeout)

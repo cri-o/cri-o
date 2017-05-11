@@ -22,12 +22,16 @@ import (
 	"time"
 
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	genericoptions "k8s.io/kubernetes/pkg/genericapiserver/server/options"
 	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master/ports"
+
+	// add the kubernetes feature gates
+	_ "k8s.io/kubernetes/pkg/features"
 
 	"github.com/spf13/pflag"
 )
@@ -41,9 +45,13 @@ type ServerRunOptions struct {
 	Etcd                    *genericoptions.EtcdOptions
 	SecureServing           *genericoptions.SecureServingOptions
 	InsecureServing         *genericoptions.ServingOptions
+	Audit                   *genericoptions.AuditLogOptions
+	Features                *genericoptions.FeatureOptions
 	Authentication          *kubeoptions.BuiltInAuthenticationOptions
 	Authorization           *kubeoptions.BuiltInAuthorizationOptions
 	CloudProvider           *kubeoptions.CloudProviderOptions
+	StorageSerialization    *kubeoptions.StorageSerializationOptions
+	APIEnablement           *kubeoptions.APIEnablementOptions
 
 	AllowPrivileged           bool
 	EventTTL                  time.Duration
@@ -61,12 +69,16 @@ type ServerRunOptions struct {
 func NewServerRunOptions() *ServerRunOptions {
 	s := ServerRunOptions{
 		GenericServerRunOptions: genericoptions.NewServerRunOptions(),
-		Etcd:            genericoptions.NewEtcdOptions(),
-		SecureServing:   genericoptions.NewSecureServingOptions(),
-		InsecureServing: genericoptions.NewInsecureServingOptions(),
-		Authentication:  kubeoptions.NewBuiltInAuthenticationOptions().WithAll(),
-		Authorization:   kubeoptions.NewBuiltInAuthorizationOptions(),
-		CloudProvider:   kubeoptions.NewCloudProviderOptions(),
+		Etcd:                 genericoptions.NewEtcdOptions(storagebackend.NewDefaultConfig(kubeoptions.DefaultEtcdPathPrefix, api.Scheme, nil)),
+		SecureServing:        kubeoptions.NewSecureServingOptions(),
+		InsecureServing:      genericoptions.NewInsecureServingOptions(),
+		Audit:                genericoptions.NewAuditLogOptions(),
+		Features:             genericoptions.NewFeatureOptions(),
+		Authentication:       kubeoptions.NewBuiltInAuthenticationOptions().WithAll(),
+		Authorization:        kubeoptions.NewBuiltInAuthorizationOptions(),
+		CloudProvider:        kubeoptions.NewCloudProviderOptions(),
+		StorageSerialization: kubeoptions.NewStorageSerializationOptions(),
+		APIEnablement:        kubeoptions.NewAPIEnablementOptions(),
 
 		EventTTL:    1 * time.Hour,
 		MasterCount: 1,
@@ -74,9 +86,17 @@ func NewServerRunOptions() *ServerRunOptions {
 			Port:         ports.KubeletPort,
 			ReadOnlyPort: ports.KubeletReadOnlyPort,
 			PreferredAddressTypes: []string{
+				// --override-hostname
 				string(api.NodeHostName),
+
+				// internal, preferring DNS if reported
+				string(api.NodeInternalDNS),
 				string(api.NodeInternalIP),
+
+				// external, preferring DNS if reported
+				string(api.NodeExternalDNS),
 				string(api.NodeExternalIP),
+
 				string(api.NodeLegacyHostIP),
 			},
 			EnableHttps: true,
@@ -84,6 +104,8 @@ func NewServerRunOptions() *ServerRunOptions {
 		},
 		ServiceNodePortRange: DefaultServiceNodePortRange,
 	}
+	// Overwrite the default for storage data format.
+	s.Etcd.DefaultStorageMediaType = "application/vnd.kubernetes.protobuf"
 	return &s
 }
 
@@ -91,15 +113,18 @@ func NewServerRunOptions() *ServerRunOptions {
 func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	// Add the generic flags.
 	s.GenericServerRunOptions.AddUniversalFlags(fs)
-
 	s.Etcd.AddFlags(fs)
 	s.SecureServing.AddFlags(fs)
 	s.SecureServing.AddDeprecatedFlags(fs)
 	s.InsecureServing.AddFlags(fs)
 	s.InsecureServing.AddDeprecatedFlags(fs)
+	s.Audit.AddFlags(fs)
+	s.Features.AddFlags(fs)
 	s.Authentication.AddFlags(fs)
 	s.Authorization.AddFlags(fs)
 	s.CloudProvider.AddFlags(fs)
+	s.StorageSerialization.AddFlags(fs)
+	s.APIEnablement.AddFlags(fs)
 
 	// Note: the weird ""+ in below lines seems to be the only way to get gofmt to
 	// arrange these text blocks sensibly. Grrr.

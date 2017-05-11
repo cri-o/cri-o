@@ -31,11 +31,11 @@ import (
 	rktapi "github.com/coreos/rkt/api/v1alpha"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubetypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
 	utiltesting "k8s.io/client-go/util/testing"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	containertesting "k8s.io/kubernetes/pkg/kubelet/container/testing"
@@ -43,7 +43,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/kubelet/network/kubenet"
-	"k8s.io/kubernetes/pkg/kubelet/network/mock_network"
+	nettest "k8s.io/kubernetes/pkg/kubelet/network/testing"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 )
@@ -583,15 +583,15 @@ func TestGetPodStatus(t *testing.T) {
 	defer ctrl.Finish()
 	fr := newFakeRktInterface()
 	fs := newFakeSystemd()
-	fnp := mock_network.NewMockNetworkPlugin(ctrl)
+	fnp := nettest.NewMockNetworkPlugin(ctrl)
 	fos := &containertesting.FakeOS{}
-	frh := &fakeRuntimeHelper{}
+	frh := &containertesting.FakeRuntimeHelper{}
 	r := &Runtime{
 		apisvc:        fr,
 		systemd:       fs,
 		runtimeHelper: frh,
 		os:            fos,
-		networkPlugin: fnp,
+		network:       network.NewPluginManager(fnp),
 	}
 
 	ns := func(seconds int64) int64 {
@@ -826,6 +826,8 @@ func TestGetPodStatus(t *testing.T) {
 			} else {
 				fnp.EXPECT().GetPodNetworkStatus("default", "guestbook", kubecontainer.ContainerID{ID: "42"}).
 					Return(nil, fmt.Errorf("no such network"))
+				// Plugin name only requested again in error case
+				fnp.EXPECT().Name().Return(tt.networkPluginName)
 			}
 		}
 
@@ -845,7 +847,11 @@ func generateCapRetainIsolator(t *testing.T, caps ...string) appctypes.Isolator 
 	if err != nil {
 		t.Fatalf("Error generating cap retain isolator: %v", err)
 	}
-	return retain.AsIsolator()
+	isolator, err := retain.AsIsolator()
+	if err != nil {
+		t.Fatalf("Error generating cap retain isolator: %v", err)
+	}
+	return *isolator
 }
 
 func generateCapRevokeIsolator(t *testing.T, caps ...string) appctypes.Isolator {
@@ -853,7 +859,11 @@ func generateCapRevokeIsolator(t *testing.T, caps ...string) appctypes.Isolator 
 	if err != nil {
 		t.Fatalf("Error generating cap revoke isolator: %v", err)
 	}
-	return revoke.AsIsolator()
+	isolator, err := revoke.AsIsolator()
+	if err != nil {
+		t.Fatalf("Error generating cap revoke isolator: %v", err)
+	}
+	return *isolator
 }
 
 func generateCPUIsolator(t *testing.T, request, limit string) appctypes.Isolator {
@@ -1380,8 +1390,13 @@ func TestGenerateRunCommand(t *testing.T) {
 
 	for i, tt := range tests {
 		testCaseHint := fmt.Sprintf("test case #%d", i)
-		rkt.networkPlugin = tt.networkPlugin
-		rkt.runtimeHelper = &fakeRuntimeHelper{tt.dnsServers, tt.dnsSearches, tt.hostName, "", tt.err}
+		rkt.network = network.NewPluginManager(tt.networkPlugin)
+		rkt.runtimeHelper = &containertesting.FakeRuntimeHelper{
+			DNSServers:  tt.dnsServers,
+			DNSSearches: tt.dnsSearches,
+			HostName:    tt.hostName,
+			Err:         tt.err,
+		}
 		rkt.execer = &utilexec.FakeExec{CommandScript: []utilexec.FakeCommandAction{func(cmd string, args ...string) utilexec.Cmd {
 			return utilexec.InitFakeCmd(&utilexec.FakeCmd{}, cmd, args...)
 		}}}
@@ -1951,5 +1966,33 @@ func TestPreparePodArgs(t *testing.T) {
 		r.config.Stage1Image = testCase.stage1Config
 		cmd := r.preparePodArgs(&testCase.manifest, "file")
 		assert.Equal(t, testCase.cmd, cmd, fmt.Sprintf("Test case #%d", i))
+	}
+}
+
+func TestConstructSyslogIdentifier(t *testing.T) {
+	testCases := []struct {
+		podName         string
+		podGenerateName string
+		identifier      string
+	}{
+		{
+			"prometheus-node-exporter-rv90m",
+			"prometheus-node-exporter-",
+			"prometheus-node-exporter",
+		},
+		{
+			"simplepod",
+			"",
+			"simplepod",
+		},
+		{
+			"p",
+			"",
+			"p",
+		},
+	}
+	for i, testCase := range testCases {
+		identifier := constructSyslogIdentifier(testCase.podGenerateName, testCase.podName)
+		assert.Equal(t, testCase.identifier, identifier, fmt.Sprintf("Test case #%d", i))
 	}
 }

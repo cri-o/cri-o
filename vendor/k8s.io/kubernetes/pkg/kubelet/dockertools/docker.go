@@ -290,7 +290,7 @@ func (p dockerPuller) GetImageRef(image string) (string, error) {
 		}
 		return imageRef, nil
 	}
-	if _, ok := err.(imageNotFoundError); ok {
+	if IsImageNotFoundError(err) {
 		return "", nil
 	}
 	return "", err
@@ -302,7 +302,7 @@ func (p dockerPuller) GetImageRef(image string) (string, error) {
 // only occur when instances of the same container in the same pod have the same UID. The
 // chance is really slim.
 func BuildDockerName(dockerName KubeletContainerName, container *v1.Container) (string, string, string) {
-	containerName := dockerName.ContainerName + "." + strconv.FormatUint(kubecontainer.HashContainer(container), 16)
+	containerName := dockerName.ContainerName + "." + strconv.FormatUint(kubecontainer.HashContainerLegacy(container), 16)
 	stableName := fmt.Sprintf("%s_%s_%s_%s",
 		containerNamePrefix,
 		containerName,

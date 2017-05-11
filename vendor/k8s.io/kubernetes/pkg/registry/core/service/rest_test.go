@@ -24,20 +24,21 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/service"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/portallocator"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	featuregate "k8s.io/kubernetes/pkg/util/config"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 func init() {
-	featuregate.DefaultFeatureGate.Set("AllowExtTrafficLocalEndpoints=true")
+	utilfeature.DefaultFeatureGate.Set(string(features.ExternalTrafficLocalOnly) + "=true")
 }
 
 // TODO(wojtek-t): Cleanup this file.
@@ -97,7 +98,7 @@ func TestServiceRegistryCreate(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	created_service := created_svc.(*api.Service)
-	if !api.HasObjectMetaSystemFieldValues(&created_service.ObjectMeta) {
+	if !metav1.HasObjectMetaSystemFieldValues(&created_service.ObjectMeta) {
 		t.Errorf("storage did not populate object meta field values")
 	}
 	if created_service.Name != "foo" {
@@ -217,7 +218,7 @@ func TestServiceRegistryCreateMultiNodePortsService(t *testing.T) {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		created_service := created_svc.(*api.Service)
-		if !api.HasObjectMetaSystemFieldValues(&created_service.ObjectMeta) {
+		if !metav1.HasObjectMetaSystemFieldValues(&created_service.ObjectMeta) {
 			t.Errorf("storage did not populate object meta field values")
 		}
 		if created_service.Name != test.name {

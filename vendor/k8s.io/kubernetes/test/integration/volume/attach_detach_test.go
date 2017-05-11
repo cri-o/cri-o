@@ -26,13 +26,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	fakecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
-	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach"
+	volumecache "k8s.io/kubernetes/pkg/controller/volume/attachdetach/cache"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
@@ -94,7 +95,7 @@ func TestPodDeletionWithDswp(t *testing.T) {
 	ns := framework.CreateTestingNamespace(namespaceName, server, t)
 	defer framework.DeleteTestingNamespace(ns, server, t)
 
-	testClient, ctrl, podInformer, nodeInformer := createAdClients(ns, t, server, defaultSyncPeriod)
+	testClient, ctrl, informers := createAdClients(ns, t, server, defaultSyncPeriod)
 
 	pod := fakePodWithVol(namespaceName)
 	podStopCh := make(chan struct{})
@@ -103,12 +104,13 @@ func TestPodDeletionWithDswp(t *testing.T) {
 		t.Fatalf("Failed to created node : %v", err)
 	}
 
-	go nodeInformer.Run(podStopCh)
+	go informers.Core().V1().Nodes().Informer().Run(podStopCh)
 
 	if _, err := testClient.Core().Pods(ns.Name).Create(pod); err != nil {
 		t.Errorf("Failed to create pod : %v", err)
 	}
 
+	podInformer := informers.Core().V1().Pods().Informer()
 	go podInformer.Run(podStopCh)
 
 	// start controller loop
@@ -127,11 +129,7 @@ func TestPodDeletionWithDswp(t *testing.T) {
 		t.Fatalf("Pod not found in Pod Informer cache : %v", err)
 	}
 
-	podsToAdd := ctrl.GetDesiredStateOfWorld().GetPodToAdd()
-
-	if len(podsToAdd) == 0 {
-		t.Fatalf("Pod not added to desired state of world")
-	}
+	waitForPodsInDSWP(t, ctrl.GetDesiredStateOfWorld())
 
 	// let's stop pod events from getting triggered
 	close(podStopCh)
@@ -143,7 +141,7 @@ func TestPodDeletionWithDswp(t *testing.T) {
 	waitToObservePods(t, podInformer, 0)
 	// the populator loop turns every 1 minute
 	time.Sleep(80 * time.Second)
-	podsToAdd = ctrl.GetDesiredStateOfWorld().GetPodToAdd()
+	podsToAdd := ctrl.GetDesiredStateOfWorld().GetPodToAdd()
 	if len(podsToAdd) != 0 {
 		t.Fatalf("All pods should have been removed")
 	}
@@ -167,7 +165,20 @@ func waitToObservePods(t *testing.T, podInformer cache.SharedIndexInformer, podN
 	}
 }
 
-func createAdClients(ns *v1.Namespace, t *testing.T, server *httptest.Server, syncPeriod time.Duration) (*clientset.Clientset, attachdetach.AttachDetachController, cache.SharedIndexInformer, cache.SharedIndexInformer) {
+// wait for pods to be observed in desired state of world
+func waitForPodsInDSWP(t *testing.T, dswp volumecache.DesiredStateOfWorld) {
+	if err := wait.Poll(time.Millisecond*500, wait.ForeverTestTimeout, func() (bool, error) {
+		pods := dswp.GetPodToAdd()
+		if len(pods) > 0 {
+			return true, nil
+		}
+		return false, nil
+	}); err != nil {
+		t.Fatalf("Pod not added to desired state of world : %v", err)
+	}
+}
+
+func createAdClients(ns *v1.Namespace, t *testing.T, server *httptest.Server, syncPeriod time.Duration) (*clientset.Clientset, attachdetach.AttachDetachController, informers.SharedInformerFactory) {
 	config := restclient.Config{
 		Host:          server.URL,
 		ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(v1.GroupName).GroupVersion},
@@ -192,13 +203,20 @@ func createAdClients(ns *v1.Namespace, t *testing.T, server *httptest.Server, sy
 	}
 	plugins := []volume.VolumePlugin{plugin}
 	cloud := &fakecloud.FakeCloud{}
-	podInformer := informers.NewPodInformer(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "pod-informer")), resyncPeriod)
-	nodeInformer := informers.NewNodeInformer(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "node-informer")), resyncPeriod)
-	pvcInformer := informers.NewNodeInformer(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "pvc-informer")), resyncPeriod)
-	pvInformer := informers.NewNodeInformer(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "pv-informer")), resyncPeriod)
-	ctrl, err := attachdetach.NewAttachDetachController(testClient, podInformer, nodeInformer, pvcInformer, pvInformer, cloud, plugins, false, time.Second*5)
+	informers := informers.NewSharedInformerFactory(testClient, resyncPeriod)
+	ctrl, err := attachdetach.NewAttachDetachController(
+		testClient,
+		informers.Core().V1().Pods(),
+		informers.Core().V1().Nodes(),
+		informers.Core().V1().PersistentVolumeClaims(),
+		informers.Core().V1().PersistentVolumes(),
+		cloud,
+		plugins,
+		false,
+		time.Second*5,
+	)
 	if err != nil {
 		t.Fatalf("Error creating AttachDetach : %v", err)
 	}
-	return testClient, ctrl, podInformer, nodeInformer
+	return testClient, ctrl, informers
 }

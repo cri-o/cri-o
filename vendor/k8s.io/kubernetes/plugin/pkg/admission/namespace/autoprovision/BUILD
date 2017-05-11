@@ -14,9 +14,9 @@ go_library(
     tags = ["automanaged"],
     deps = [
         "//pkg/api:go_default_library",
-        "//pkg/client/cache:go_default_library",
         "//pkg/client/clientset_generated/internalclientset:go_default_library",
-        "//pkg/controller/informers:go_default_library",
+        "//pkg/client/informers/informers_generated/internalversion:go_default_library",
+        "//pkg/client/listers/core/internalversion:go_default_library",
         "//pkg/kubeapiserver/admission:go_default_library",
         "//vendor:k8s.io/apimachinery/pkg/api/errors",
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
@@ -33,14 +33,14 @@ go_test(
         "//pkg/api:go_default_library",
         "//pkg/client/clientset_generated/internalclientset:go_default_library",
         "//pkg/client/clientset_generated/internalclientset/fake:go_default_library",
-        "//pkg/client/testing/core:go_default_library",
-        "//pkg/controller/informers:go_default_library",
+        "//pkg/client/informers/informers_generated/internalversion:go_default_library",
         "//pkg/kubeapiserver/admission:go_default_library",
         "//vendor:k8s.io/apimachinery/pkg/api/errors",
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
         "//vendor:k8s.io/apimachinery/pkg/runtime",
         "//vendor:k8s.io/apimachinery/pkg/util/wait",
         "//vendor:k8s.io/apiserver/pkg/admission",
+        "//vendor:k8s.io/client-go/testing",
     ],
 )
 

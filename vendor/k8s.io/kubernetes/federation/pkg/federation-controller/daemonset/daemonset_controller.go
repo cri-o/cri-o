@@ -24,8 +24,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	clientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
 	federationapi "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	federationclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
@@ -33,11 +37,8 @@ import (
 	"k8s.io/kubernetes/federation/pkg/federation-controller/util/deletionhelper"
 	"k8s.io/kubernetes/federation/pkg/federation-controller/util/eventsink"
 	"k8s.io/kubernetes/pkg/api"
-	apiv1 "k8s.io/kubernetes/pkg/api/v1"
 	extensionsv1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/golang/glog"
@@ -45,6 +46,11 @@ import (
 
 const (
 	allClustersKey = "ALL_CLUSTERS"
+	ControllerName = "daemonsets"
+)
+
+var (
+	RequiredResources = []schema.GroupVersionResource{extensionsv1.SchemeGroupVersion.WithResource("daemonsets")}
 )
 
 type DaemonSetController struct {
@@ -87,7 +93,7 @@ type DaemonSetController struct {
 func NewDaemonSetController(client federationclientset.Interface) *DaemonSetController {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(eventsink.NewFederatedEventSink(client))
-	recorder := broadcaster.NewRecorder(apiv1.EventSource{Component: "federated-daemonset-controller"})
+	recorder := broadcaster.NewRecorder(api.Scheme, clientv1.EventSource{Component: "federated-daemonset-controller"})
 
 	daemonsetcontroller := &DaemonSetController{
 		federatedApiClient:    client,
@@ -158,7 +164,7 @@ func NewDaemonSetController(client federationclientset.Interface) *DaemonSetCont
 			if err != nil {
 				glog.Errorf("Error creating daemonset %s/%s/: %v", daemonset.Namespace, daemonset.Name, err)
 			} else {
-				glog.V(4).Infof("Successfully created deamonset %s/%s", daemonset.Namespace, daemonset.Name)
+				glog.V(4).Infof("Successfully created daemonset %s/%s", daemonset.Namespace, daemonset.Name)
 			}
 			return err
 		},
@@ -169,7 +175,7 @@ func NewDaemonSetController(client federationclientset.Interface) *DaemonSetCont
 			if err != nil {
 				glog.Errorf("Error updating daemonset %s/%s/: %v", daemonset.Namespace, daemonset.Name, err)
 			} else {
-				glog.V(4).Infof("Successfully updating deamonset %s/%s", daemonset.Namespace, daemonset.Name)
+				glog.V(4).Infof("Successfully updating daemonset %s/%s", daemonset.Namespace, daemonset.Name)
 			}
 			return err
 		},
@@ -180,7 +186,7 @@ func NewDaemonSetController(client federationclientset.Interface) *DaemonSetCont
 			if err != nil {
 				glog.Errorf("Error deleting daemonset %s/%s/: %v", daemonset.Namespace, daemonset.Name, err)
 			} else {
-				glog.V(4).Infof("Successfully deleting deamonset %s/%s", daemonset.Namespace, daemonset.Name)
+				glog.V(4).Infof("Successfully deleting daemonset %s/%s", daemonset.Namespace, daemonset.Name)
 			}
 			return err
 		})
@@ -239,20 +245,20 @@ func (daemonsetcontroller *DaemonSetController) removeFinalizerFunc(obj pkgrunti
 	return daemonset, nil
 }
 
-// Adds the given finalizer to the given objects ObjectMeta.
+// Adds the given finalizers to the given objects ObjectMeta.
 // Assumes that the given object is a daemonset.
-func (daemonsetcontroller *DaemonSetController) addFinalizerFunc(obj pkgruntime.Object, finalizer string) (pkgruntime.Object, error) {
+func (daemonsetcontroller *DaemonSetController) addFinalizerFunc(obj pkgruntime.Object, finalizers []string) (pkgruntime.Object, error) {
 	daemonset := obj.(*extensionsv1.DaemonSet)
-	daemonset.ObjectMeta.Finalizers = append(daemonset.ObjectMeta.Finalizers, finalizer)
+	daemonset.ObjectMeta.Finalizers = append(daemonset.ObjectMeta.Finalizers, finalizers...)
 	daemonset, err := daemonsetcontroller.federatedApiClient.Extensions().DaemonSets(daemonset.Namespace).Update(daemonset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add finalizer %s to daemonset %s: %v", finalizer, daemonset.Name, err)
+		return nil, fmt.Errorf("failed to add finalizers %v to daemonset %s: %v", finalizers, daemonset.Name, err)
 	}
 	return daemonset, nil
 }
 
 func (daemonsetcontroller *DaemonSetController) Run(stopChan <-chan struct{}) {
-	glog.V(1).Infof("Starting daemonset controllr")
+	glog.V(1).Infof("Starting daemonset controller")
 	go daemonsetcontroller.daemonsetInformerController.Run(stopChan)
 
 	glog.V(1).Infof("Starting daemonset federated informer")

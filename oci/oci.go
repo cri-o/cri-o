@@ -439,6 +439,11 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 func (r *Runtime) StopContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	if c.state.Status != ContainerStateRunning {
+		return nil
+	}
+
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.name, "TERM"); err != nil {
 		return err
 	}
@@ -460,6 +465,8 @@ func (r *Runtime) StopContainer(c *Container) error {
 		i++
 	}
 
+	c.state.Finished = time.Now()
+
 	return nil
 }
 
@@ -467,7 +474,10 @@ func (r *Runtime) StopContainer(c *Container) error {
 func (r *Runtime) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "delete", c.name)
+	if _, err := utils.ExecCmd(r.Path(c), "delete", c.name); err != nil && !strings.Contains(err.Error(), "does not exist") {
+		return err
+	}
+	return nil
 }
 
 // UpdateStatus refreshes the status of the container.
@@ -476,6 +486,9 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 	defer c.opLock.Unlock()
 	out, err := exec.Command(r.Path(c), "state", c.name).CombinedOutput()
 	if err != nil {
+		if strings.Contains(string(out), "does not exist") {
+			return nil
+		}
 		return fmt.Errorf("error getting container state for %s: %s: %q", c.name, err, out)
 	}
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {

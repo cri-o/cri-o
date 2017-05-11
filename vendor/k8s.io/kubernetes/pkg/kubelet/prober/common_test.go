@@ -21,13 +21,14 @@ import (
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	"k8s.io/kubernetes/pkg/client/record"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kubepod "k8s.io/kubernetes/pkg/kubelet/pod"
 	"k8s.io/kubernetes/pkg/kubelet/prober/results"
 	"k8s.io/kubernetes/pkg/kubelet/status"
+	statustest "k8s.io/kubernetes/pkg/kubelet/status/testing"
 	"k8s.io/kubernetes/pkg/probe"
 	"k8s.io/kubernetes/pkg/util/exec"
 )
@@ -102,7 +103,7 @@ func newTestManager() *manager {
 	// Add test pod to pod manager, so that status manager can get the pod from pod manager if needed.
 	podManager.AddPod(getTestPod())
 	m := NewManager(
-		status.NewManager(&fake.Clientset{}, podManager),
+		status.NewManager(&fake.Clientset{}, podManager, &statustest.FakePodDeletionSafetyProvider{}),
 		results.NewManager(),
 		nil, // runner
 		refManager,
@@ -124,7 +125,7 @@ type fakeExecProber struct {
 	err    error
 }
 
-func (p fakeExecProber) Probe(_ exec.Cmd) (probe.Result, string, error) {
+func (p fakeExecProber) Probe(c exec.Cmd) (probe.Result, string, error) {
 	return p.result, "", p.err
 }
 

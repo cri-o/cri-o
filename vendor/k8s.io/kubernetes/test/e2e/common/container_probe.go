@@ -21,9 +21,9 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"
 
@@ -361,7 +361,7 @@ func runLivenessTest(f *framework.Framework, pod *v1.Pod, expectNumRestarts int,
 	// Wait until the pod is not pending. (Here we need to check for something other than
 	// 'Pending' other than checking for 'Running', since when failures occur, we go to
 	// 'Terminated' which can cause indefinite blocking.)
-	framework.ExpectNoError(framework.WaitForPodNotPending(f.ClientSet, ns, pod.Name, pod.ResourceVersion),
+	framework.ExpectNoError(framework.WaitForPodNotPending(f.ClientSet, ns, pod.Name),
 		fmt.Sprintf("starting pod %s in namespace %s", pod.Name, ns))
 	framework.Logf("Started pod %s in namespace %s", pod.Name, ns)
 

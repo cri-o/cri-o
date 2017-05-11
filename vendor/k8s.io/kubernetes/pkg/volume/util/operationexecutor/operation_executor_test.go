@@ -23,9 +23,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/util/mount"
-	"k8s.io/kubernetes/pkg/util/uuid"
+	"k8s.io/kubernetes/pkg/volume"
 	volumetypes "k8s.io/kubernetes/pkg/volume/util/types"
 )
 
@@ -197,7 +198,7 @@ func TestOperationExecutor_VerifyVolumesAreAttachedConcurrently(t *testing.T) {
 
 	// Act
 	for i := 0; i < numVolumesToVerifyAttached; i++ {
-		oe.VerifyVolumesAreAttached(nil /* attachedVolumes */, "node-name", nil /* actualStateOfWorldAttacherUpdater */)
+		oe.VerifyVolumesAreAttachedPerNode(nil /* attachedVolumes */, "node-name", nil /* actualStateOfWorldAttacherUpdater */)
 	}
 
 	// Assert
@@ -281,6 +282,21 @@ func (fopg *fakeOperationGenerator) GenerateVerifyControllerAttachedVolumeFunc(v
 	}, nil
 }
 
+func (fopg *fakeOperationGenerator) GenerateBulkVolumeVerifyFunc(
+	pluginNodeVolumes map[types.NodeName][]*volume.Spec,
+	pluginNane string,
+	volumeSpecMap map[*volume.Spec]v1.UniqueVolumeName,
+	actualStateOfWorldAttacherUpdater ActualStateOfWorldAttacherUpdater) (func() error, error) {
+	return func() error {
+		startOperationAndBlock(fopg.ch, fopg.quit)
+		return nil
+	}, nil
+}
+
+func (fopg *fakeOperationGenerator) GetVolumePluginMgr() *volume.VolumePluginMgr {
+	return nil
+}
+
 func getTestPodWithSecret(podName, secretName string) *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -301,7 +317,7 @@ func getTestPodWithSecret(podName, secretName string) *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:  "secret-volume-test",
-					Image: "gcr.io/google_containers/mounttest:0.7",
+					Image: "gcr.io/google_containers/mounttest:0.8",
 					Args: []string{
 						"--file_content=/etc/secret-volume/data-1",
 						"--file_mode=/etc/secret-volume/data-1"},
@@ -340,7 +356,7 @@ func getTestPodWithGCEPD(podName, pdName string) *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:  "pd-volume-test",
-					Image: "gcr.io/google_containers/mounttest:0.7",
+					Image: "gcr.io/google_containers/mounttest:0.8",
 					Args: []string{
 						"--file_content=/etc/pd-volume/data-1",
 					},

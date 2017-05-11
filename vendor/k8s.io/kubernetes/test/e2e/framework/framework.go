@@ -30,8 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	staging "k8s.io/client-go/kubernetes"
 	clientreporestclient "k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
@@ -39,9 +41,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/pkg/metrics"
-	"k8s.io/kubernetes/pkg/util/intstr"
 	testutils "k8s.io/kubernetes/test/utils"
 
 	. "github.com/onsi/ginkgo"
@@ -84,7 +84,7 @@ type Framework struct {
 	cleanupHandle CleanupActionHandle
 
 	// configuration for framework's client
-	options FrameworkOptions
+	Options FrameworkOptions
 }
 
 type TestDataSummary interface {
@@ -108,17 +108,11 @@ func NewDefaultFramework(baseName string) *Framework {
 	return NewFramework(baseName, options, nil)
 }
 
-func NewDefaultGroupVersionFramework(baseName string, groupVersion schema.GroupVersion) *Framework {
-	f := NewDefaultFramework(baseName)
-	f.options.GroupVersion = &groupVersion
-	return f
-}
-
 func NewFramework(baseName string, options FrameworkOptions, client clientset.Interface) *Framework {
 	f := &Framework{
 		BaseName:                 baseName,
 		AddonResourceConstraints: make(map[string]ResourceConstraint),
-		options:                  options,
+		Options:                  options,
 		ClientSet:                client,
 	}
 
@@ -169,10 +163,10 @@ func (f *Framework) BeforeEach() {
 		By("Creating a kubernetes client")
 		config, err := LoadConfig()
 		Expect(err).NotTo(HaveOccurred())
-		config.QPS = f.options.ClientQPS
-		config.Burst = f.options.ClientBurst
-		if f.options.GroupVersion != nil {
-			config.GroupVersion = f.options.GroupVersion
+		config.QPS = f.Options.ClientQPS
+		config.Burst = f.Options.ClientBurst
+		if f.Options.GroupVersion != nil {
+			config.GroupVersion = f.Options.GroupVersion
 		}
 		if TestContext.KubeAPIContentType != "" {
 			config.ContentType = TestContext.KubeAPIContentType
@@ -369,19 +363,19 @@ func (f *Framework) WaitForPodRunning(podName string) error {
 
 // WaitForPodReady waits for the pod to flip to ready in the namespace.
 func (f *Framework) WaitForPodReady(podName string) error {
-	return waitTimeoutForPodReadyInNamespace(f.ClientSet, podName, f.Namespace.Name, "", PodStartTimeout)
+	return waitTimeoutForPodReadyInNamespace(f.ClientSet, podName, f.Namespace.Name, PodStartTimeout)
 }
 
 // WaitForPodRunningSlow waits for the pod to run in the namespace.
 // It has a longer timeout then WaitForPodRunning (util.slowPodStartTimeout).
 func (f *Framework) WaitForPodRunningSlow(podName string) error {
-	return waitForPodRunningInNamespaceSlow(f.ClientSet, podName, f.Namespace.Name, "")
+	return waitForPodRunningInNamespaceSlow(f.ClientSet, podName, f.Namespace.Name)
 }
 
 // WaitForPodNoLongerRunning waits for the pod to no longer be running in the namespace, for either
 // success or failure.
 func (f *Framework) WaitForPodNoLongerRunning(podName string) error {
-	return WaitForPodNoLongerRunningInNamespace(f.ClientSet, podName, f.Namespace.Name, "")
+	return WaitForPodNoLongerRunningInNamespace(f.ClientSet, podName, f.Namespace.Name)
 }
 
 // TestContainerOutput runs the given pod in the given namespace and waits

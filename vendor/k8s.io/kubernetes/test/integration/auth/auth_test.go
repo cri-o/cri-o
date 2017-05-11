@@ -43,6 +43,9 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
+	"k8s.io/apiserver/plugin/pkg/authenticator/token/tokentest"
+	"k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	"k8s.io/client-go/tools/clientcmd/api/v1"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
@@ -50,10 +53,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/auth/authorizer/abac"
-	apiserverauthorizer "k8s.io/kubernetes/pkg/genericapiserver/authorizer"
 	"k8s.io/kubernetes/plugin/pkg/admission/admit"
-	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/tokentest"
-	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/webhook"
 	"k8s.io/kubernetes/test/integration"
 	"k8s.io/kubernetes/test/integration/framework"
 )
@@ -502,7 +502,7 @@ func getPreviousResourceVersionKey(url, id string) string {
 func TestAuthModeAlwaysDeny(t *testing.T) {
 	// Set up a master
 	masterConfig := framework.NewIntegrationTestMasterConfig()
-	masterConfig.GenericConfig.Authorizer = apiserverauthorizer.NewAlwaysDenyAuthorizer()
+	masterConfig.GenericConfig.Authorizer = authorizerfactory.NewAlwaysDenyAuthorizer()
 	_, s := framework.RunAMaster(masterConfig)
 	defer s.Close()
 

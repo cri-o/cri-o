@@ -26,10 +26,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	core "k8s.io/client-go/testing"
 	utiltesting "k8s.io/client-go/util/testing"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
@@ -254,7 +254,7 @@ func TestParseClassParameters(t *testing.T) {
 		parameters   map[string]string
 		secret       *v1.Secret
 		expectError  bool
-		expectConfig *provisioningConfig
+		expectConfig *provisionerConfig
 	}{
 		{
 			"password",
@@ -265,7 +265,7 @@ func TestParseClassParameters(t *testing.T) {
 			},
 			nil,   // secret
 			false, // expect error
-			&provisioningConfig{
+			&provisionerConfig{
 				url:         "https://localhost:8080",
 				user:        "admin",
 				userKey:     "password",
@@ -285,7 +285,7 @@ func TestParseClassParameters(t *testing.T) {
 			},
 			&secret,
 			false, // expect error
-			&provisioningConfig{
+			&provisionerConfig{
 				url:             "https://localhost:8080",
 				user:            "admin",
 				secretName:      "mysecret",
@@ -304,7 +304,7 @@ func TestParseClassParameters(t *testing.T) {
 			},
 			&secret,
 			false, // expect error
-			&provisioningConfig{
+			&provisionerConfig{
 				url:        "https://localhost:8080",
 				gidMin:     2000,
 				gidMax:     2147483647,
@@ -441,7 +441,7 @@ func TestParseClassParameters(t *testing.T) {
 			},
 			&secret,
 			false, // expect error
-			&provisioningConfig{
+			&provisionerConfig{
 				url:        "https://localhost:8080",
 				gidMin:     4000,
 				gidMax:     2147483647,
@@ -457,7 +457,7 @@ func TestParseClassParameters(t *testing.T) {
 			},
 			&secret,
 			false, // expect error
-			&provisioningConfig{
+			&provisionerConfig{
 				url:        "https://localhost:8080",
 				gidMin:     2000,
 				gidMax:     5000,
@@ -474,7 +474,7 @@ func TestParseClassParameters(t *testing.T) {
 			},
 			&secret,
 			false, // expect error
-			&provisioningConfig{
+			&provisionerConfig{
 				url:        "https://localhost:8080",
 				gidMin:     4000,
 				gidMax:     5000,
@@ -493,7 +493,7 @@ func TestParseClassParameters(t *testing.T) {
 			},
 			&secret,
 			false, // expect error
-			&provisioningConfig{
+			&provisionerConfig{
 				url:        "https://localhost:8080",
 				gidMin:     4000,
 				gidMax:     5000,
@@ -512,7 +512,7 @@ func TestParseClassParameters(t *testing.T) {
 			},
 			&secret,
 			false, // expect error
-			&provisioningConfig{
+			&provisionerConfig{
 				url:        "https://localhost:8080",
 				gidMin:     4000,
 				gidMax:     5000,

@@ -43,25 +43,26 @@ import (
 	"github.com/ghodss/yaml"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/api/annotations"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	rbacv1beta1 "k8s.io/kubernetes/pkg/apis/rbac/v1beta1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/controller"
-	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	uexec "k8s.io/kubernetes/pkg/util/exec"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	utilversion "k8s.io/kubernetes/pkg/util/version"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/generated"
+	"k8s.io/kubernetes/test/e2e/scheduling"
 	testutils "k8s.io/kubernetes/test/utils"
 
 	. "github.com/onsi/ginkgo"
@@ -178,7 +179,7 @@ func runKubectlRetryOrDie(args ...string) string {
 // duplicated setup to avoid polluting "normal" clients with alpha features which confuses the generated clients
 var _ = framework.KubeDescribe("Kubectl alpha client", func() {
 	defer GinkgoRecover()
-	f := framework.NewDefaultGroupVersionFramework("kubectl", BatchV2Alpha1GroupVersion)
+	f := framework.NewDefaultFramework("kubectl")
 
 	var c clientset.Interface
 	var ns string
@@ -583,26 +584,36 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			framework.BindClusterRole(f.ClientSet.Rbac(), "view", f.Namespace.Name,
 				rbacv1beta1.Subject{Kind: rbacv1beta1.ServiceAccountKind, Namespace: f.Namespace.Name, Name: "default"})
 
-			err := framework.WaitForAuthorizationUpdate(f.ClientSet.Authorization(),
+			err := framework.WaitForAuthorizationUpdate(f.ClientSet.AuthorizationV1beta1(),
 				serviceaccount.MakeUsername(f.Namespace.Name, "default"),
 				f.Namespace.Name, "list", schema.GroupResource{Resource: "pods"}, true)
 			framework.ExpectNoError(err)
 
 			By("overriding icc with values provided by flags")
 			kubectlPath := framework.TestContext.KubectlPath
+			// we need the actual kubectl binary, not the script wrapper
+			kubectlPathNormalizer := exec.Command("which", kubectlPath)
+			if strings.HasSuffix(kubectlPath, "kubectl.sh") {
+				kubectlPathNormalizer = exec.Command(kubectlPath, "path")
+			}
+			kubectlPathNormalized, err := kubectlPathNormalizer.Output()
+			framework.ExpectNoError(err)
+			kubectlPath = strings.TrimSpace(string(kubectlPathNormalized))
 
 			inClusterHost := strings.TrimSpace(framework.RunHostCmdOrDie(ns, simplePodName, "printenv KUBERNETES_SERVICE_HOST"))
 			inClusterPort := strings.TrimSpace(framework.RunHostCmdOrDie(ns, simplePodName, "printenv KUBERNETES_SERVICE_PORT"))
-			framework.RunKubectlOrDie("cp", kubectlPath, ns+"/"+simplePodName+":/")
+
+			framework.Logf("copying %s to the %s pod", kubectlPath, simplePodName)
+			framework.RunKubectlOrDie("cp", kubectlPath, ns+"/"+simplePodName+":/tmp/")
 
 			By("getting pods with in-cluster configs")
-			execOutput := framework.RunHostCmdOrDie(ns, simplePodName, "/kubectl get pods")
+			execOutput := framework.RunHostCmdOrDie(ns, simplePodName, "/tmp/kubectl get pods")
 			if matched, err := regexp.MatchString("nginx +1/1 +Running", execOutput); err != nil || !matched {
 				framework.Failf("Unexpected kubectl exec output: ", execOutput)
 			}
 
 			By("trying to use kubectl with invalid token")
-			_, err = framework.RunHostCmd(ns, simplePodName, "/kubectl get pods --token=invalid --v=7 2>&1")
+			_, err = framework.RunHostCmd(ns, simplePodName, "/tmp/kubectl get pods --token=invalid --v=7 2>&1")
 			framework.Logf("got err %v", err)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(ContainSubstring("Using in-cluster namespace"))
@@ -611,14 +622,14 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			Expect(err).To(ContainSubstring("Response Status: 401 Unauthorized"))
 
 			By("trying to use kubectl with invalid server")
-			_, err = framework.RunHostCmd(ns, simplePodName, "/kubectl get pods --server=invalid --v=6 2>&1")
+			_, err = framework.RunHostCmd(ns, simplePodName, "/tmp/kubectl get pods --server=invalid --v=6 2>&1")
 			framework.Logf("got err %v", err)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(ContainSubstring("Unable to connect to the server"))
 			Expect(err).To(ContainSubstring("GET http://invalid/api"))
 
 			By("trying to use kubectl with invalid namespace")
-			output, _ := framework.RunHostCmd(ns, simplePodName, "/kubectl get pods --namespace=invalid --v=6 2>&1")
+			output, _ := framework.RunHostCmd(ns, simplePodName, "/tmp/kubectl get pods --namespace=invalid --v=6 2>&1")
 			Expect(output).To(ContainSubstring("No resources found"))
 			Expect(output).ToNot(ContainSubstring("Using in-cluster namespace"))
 			Expect(output).To(ContainSubstring("Using in-cluster configuration"))
@@ -718,6 +729,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 					{"Node:"},
 					{"Labels:", "app=redis"},
 					{"role=master"},
+					{"Annotations:"},
 					{"Status:", "Running"},
 					{"IP:"},
 					{"Controllers:", "ReplicationController/redis-master"},
@@ -733,18 +745,15 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			requiredStrings := [][]string{
 				{"Name:", "redis-master"},
 				{"Namespace:", ns},
-				{"Image(s):", redisImage},
 				{"Selector:", "app=redis,role=master"},
 				{"Labels:", "app=redis"},
 				{"role=master"},
+				{"Annotations:"},
 				{"Replicas:", "1 current", "1 desired"},
 				{"Pods Status:", "1 Running", "0 Waiting", "0 Succeeded", "0 Failed"},
-				// {"Events:"} would ordinarily go in the list
-				// here, but in some rare circumstances the
-				// events are delayed, and instead kubectl
-				// prints "No events." This string will match
-				// either way.
-				{"vents"}}
+				{"Pod Template:"},
+				{"Image:", redisImage},
+				{"Events:"}}
 			checkOutput(output, requiredStrings)
 
 			// Service
@@ -754,6 +763,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 				{"Namespace:", ns},
 				{"Labels:", "app=redis"},
 				{"role=master"},
+				{"Annotations:"},
 				{"Selector:", "app=redis", "role=master"},
 				{"Type:", "ClusterIP"},
 				{"IP:"},
@@ -771,6 +781,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			requiredStrings = [][]string{
 				{"Name:", node.Name},
 				{"Labels:"},
+				{"Annotations:"},
 				{"CreationTimestamp:"},
 				{"Conditions:"},
 				{"Type", "Status", "LastHeartbeatTime", "LastTransitionTime", "Reason", "Message"},
@@ -790,6 +801,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			requiredStrings = [][]string{
 				{"Name:", ns},
 				{"Labels:"},
+				{"Annotations:"},
 				{"Status:", "Active"}}
 			checkOutput(output, requiredStrings)
 
@@ -1395,7 +1407,9 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 		})
 	})
 
-	framework.KubeDescribe("Kubectl taint", func() {
+	// This test must run [Serial] because it modifies the node so it doesn't allow pods to execute on
+	// it, which will affect anything else running in parallel.
+	framework.KubeDescribe("Kubectl taint [Serial]", func() {
 		It("should update the taint on a node", func() {
 			testTaint := v1.Taint{
 				Key:    fmt.Sprintf("kubernetes.io/e2e-taint-key-001-%s", string(uuid.NewUUID())),
@@ -1403,7 +1417,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 				Effect: v1.TaintEffectNoSchedule,
 			}
 
-			nodeName := getNodeThatCanRunPod(f)
+			nodeName := scheduling.GetNodeThatCanRunPod(f)
 
 			By("adding the taint " + testTaint.ToString() + " to a node")
 			runKubectlRetryOrDie("taint", "nodes", nodeName, testTaint.ToString())
@@ -1434,7 +1448,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 				Effect: v1.TaintEffectNoSchedule,
 			}
 
-			nodeName := getNodeThatCanRunPod(f)
+			nodeName := scheduling.GetNodeThatCanRunPod(f)
 
 			By("adding the taint " + testTaint.ToString() + " to a node")
 			runKubectlRetryOrDie("taint", "nodes", nodeName, testTaint.ToString())
@@ -1464,6 +1478,24 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 				{"Name:", nodeName},
 				{"Taints:"},
 				{newTestTaint.ToString()},
+			}
+			checkOutput(output, requiredStrings)
+
+			noExecuteTaint := v1.Taint{
+				Key:    testTaint.Key,
+				Value:  "testing-taint-value-no-execute",
+				Effect: v1.TaintEffectNoExecute,
+			}
+			By("adding NoExecute taint " + noExecuteTaint.ToString() + " to the node")
+			runKubectlRetryOrDie("taint", "nodes", nodeName, noExecuteTaint.ToString())
+			defer framework.RemoveTaintOffNode(f.ClientSet, nodeName, noExecuteTaint)
+
+			By("verifying the node has the taint " + noExecuteTaint.ToString())
+			output = runKubectlRetryOrDie("describe", "node", nodeName)
+			requiredStrings = [][]string{
+				{"Name:", nodeName},
+				{"Taints:"},
+				{noExecuteTaint.ToString()},
 			}
 			checkOutput(output, requiredStrings)
 

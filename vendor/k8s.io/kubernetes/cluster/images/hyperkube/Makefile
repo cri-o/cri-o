@@ -20,8 +20,9 @@
 REGISTRY?=gcr.io/google_containers
 ARCH?=amd64
 TEMP_DIR:=$(shell mktemp -d -t hyperkubeXXXXXX)
-CNI_RELEASE=07a8a28637e97b22eb8dfe710eeae1344f69d16e
+CNI_RELEASE=0799f5732f2a11b329d9e3d51b9c8f2e3759f2ff
 CACHEBUST?=1
+QEMUVERSION=v2.7.0
 
 UNAME_S:=$(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -35,7 +36,7 @@ ifeq ($(ARCH),amd64)
 	BASEIMAGE?=debian:jessie
 endif
 ifeq ($(ARCH),arm)
-	BASEIMAGE?=armel/debian:jessie
+	BASEIMAGE?=armhf/debian:jessie
 	QEMUARCH=arm
 endif
 ifeq ($(ARCH),arm64)
@@ -65,6 +66,8 @@ endif
 	# Singlenode addons
 	cp ../../addons/dns/kubedns-controller.yaml.base ${TEMP_DIR}/addons/singlenode/kubedns-controller.yaml
 	cp ../../addons/dns/kubedns-svc.yaml.base ${TEMP_DIR}/addons/singlenode/kubedns-svc.yaml
+	cp ../../addons/dns/kubedns-sa.yaml ${TEMP_DIR}/addons/singlenode/kubedns-sa.yaml
+	cp ../../addons/dns/kubedns-cm.yaml ${TEMP_DIR}/addons/singlenode/kubedns-cm.yaml
 	cp ../../addons/dashboard/dashboard-controller.yaml ${TEMP_DIR}/addons/singlenode/
 	cp ../../addons/dashboard/dashboard-service.yaml ${TEMP_DIR}/addons/singlenode/
 
@@ -104,7 +107,7 @@ else
 	# When cross-building, only the placeholder "CROSS_BUILD_" should be removed
 	# Register /usr/bin/qemu-ARCH-static as the handler for ARM binaries in the kernel
 	docker run --rm --privileged multiarch/qemu-user-static:register --reset
-	curl -sSL --retry 5 https://github.com/multiarch/qemu-user-static/releases/download/v2.5.0/x86_64_qemu-${QEMUARCH}-static.tar.xz | tar -xJ -C ${TEMP_DIR}
+	curl -sSL --retry 5 https://github.com/multiarch/qemu-user-static/releases/download/$(QEMUVERSION)/x86_64_qemu-${QEMUARCH}-static.tar.gz | tar -xz -C ${TEMP_DIR}
 endif
 	# Download CNI
 	curl -sSL --retry 5 https://storage.googleapis.com/kubernetes-release/network-plugins/cni-${ARCH}-${CNI_RELEASE}.tar.gz | tar -xz -C ${TEMP_DIR}/cni-bin

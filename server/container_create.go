@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
@@ -309,6 +310,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
+	s.containerStateToDisk(container)
+
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
 	}
@@ -432,32 +435,32 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			}
 		}
 
-		capabilities := linux.GetSecurityContext().GetCapabilities()
-		toCAPPrefixed := func(cap string) string {
-			if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
-				return "CAP_" + cap
-			}
-			return cap
-		}
-		if capabilities != nil {
-			addCaps := capabilities.AddCapabilities
-			if addCaps != nil {
-				for _, cap := range addCaps {
-					if err := specgen.AddProcessCapability(toCAPPrefixed(cap)); err != nil {
-						return nil, err
-					}
-				}
-			}
+		//capabilities := linux.GetSecurityContext().GetCapabilities()
+		//toCAPPrefixed := func(cap string) string {
+		//if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
+		//return "CAP_" + cap
+		//}
+		//return cap
+		//}
+		//if capabilities != nil {
+		//addCaps := capabilities.AddCapabilities
+		//if addCaps != nil {
+		//for _, cap := range addCaps {
+		//if err := specgen.AddProcessCapability(toCAPPrefixed(cap)); err != nil {
+		//return nil, err
+		//}
+		//}
+		//}
 
-			dropCaps := capabilities.DropCapabilities
-			if dropCaps != nil {
-				for _, cap := range dropCaps {
-					if err := specgen.DropProcessCapability(toCAPPrefixed(cap)); err != nil {
-						return nil, err
-					}
-				}
-			}
-		}
+		//dropCaps := capabilities.DropCapabilities
+		//if dropCaps != nil {
+		//for _, cap := range dropCaps {
+		//if err := specgen.DropProcessCapability(toCAPPrefixed(cap)); err != nil {
+		//return nil, err
+		//}
+		//}
+		//}
+		//}
 
 		specgen.SetProcessSelinuxLabel(sb.processLabel)
 		specgen.SetLinuxMountLabel(sb.mountLabel)
@@ -518,6 +521,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.AddAnnotation("ocid/log_path", logPath)
 	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.Tty))
 	specgen.AddAnnotation("ocid/image", image)
+
+	created := time.Now()
+	specgen.AddAnnotation("ocid/created", created.Format(time.RFC3339Nano))
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
@@ -627,7 +633,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged, containerInfo.Dir, created)
 	if err != nil {
 		return nil, err
 	}

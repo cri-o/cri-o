@@ -13,8 +13,6 @@ go_library(
     srcs = ["testapi.go"],
     tags = ["automanaged"],
     deps = [
-        "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
-        "//cmd/kubeadm/app/apis/kubeadm/install:go_default_library",
         "//federation/apis/federation:go_default_library",
         "//federation/apis/federation/install:go_default_library",
         "//pkg/api:go_default_library",
@@ -39,6 +37,8 @@ go_library(
         "//pkg/apis/policy/install:go_default_library",
         "//pkg/apis/rbac:go_default_library",
         "//pkg/apis/rbac/install:go_default_library",
+        "//pkg/apis/settings:go_default_library",
+        "//pkg/apis/settings/install:go_default_library",
         "//pkg/apis/storage:go_default_library",
         "//pkg/apis/storage/install:go_default_library",
         "//vendor:k8s.io/apimachinery/pkg/api/meta",

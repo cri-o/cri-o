@@ -108,12 +108,16 @@ func (e *E2EServices) startKubelet() (*server, error) {
 		// sense to test it that way
 		isSystemd = true
 		unitName := fmt.Sprintf("kubelet-%d.service", rand.Int31())
-		cmdArgs = append(cmdArgs, systemdRun, "--unit="+unitName, "--remain-after-exit", builder.GetKubeletServerBin())
+		cmdArgs = append(cmdArgs, systemdRun, "--unit="+unitName, "--slice=runtime.slice", "--remain-after-exit", builder.GetKubeletServerBin())
 		killCommand = exec.Command("systemctl", "kill", unitName)
 		restartCommand = exec.Command("systemctl", "restart", unitName)
 		e.logFiles["kubelet.log"] = logFileData{
 			journalctlCommand: []string{"-u", unitName},
 		}
+		cmdArgs = append(cmdArgs,
+			"--kubelet-cgroups=/kubelet.slice",
+			"--cgroup-root=/",
+		)
 	} else {
 		cmdArgs = append(cmdArgs, builder.GetKubeletServerBin())
 		cmdArgs = append(cmdArgs,
@@ -131,7 +135,7 @@ func (e *E2EServices) startKubelet() (*server, error) {
 		"--volume-stats-agg-period", "10s", // Aggregate volumes frequently so tests don't need to wait as long
 		"--allow-privileged", "true",
 		"--serialize-image-pulls", "false",
-		"--config", manifestPath,
+		"--pod-manifest-path", manifestPath,
 		"--file-check-frequency", "10s", // Check file frequently so tests won't wait too long
 		"--pod-cidr", "10.180.0.0/24", // Assign a fixed CIDR to the node because there is no node controller.
 		"--eviction-pressure-transition-period", "30s",

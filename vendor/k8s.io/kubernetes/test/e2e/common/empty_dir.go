@@ -21,17 +21,17 @@ import (
 	"path"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 )
 
 const (
-	testImageRootUid    = "gcr.io/google_containers/mounttest:0.7"
-	testImageNonRootUid = "gcr.io/google_containers/mounttest-user:0.3"
+	testImageRootUid    = "gcr.io/google_containers/mounttest:0.8"
+	testImageNonRootUid = "gcr.io/google_containers/mounttest-user:0.5"
 )
 
 var _ = framework.KubeDescribe("EmptyDir volumes", func() {

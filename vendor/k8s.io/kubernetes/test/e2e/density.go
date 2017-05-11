@@ -25,23 +25,23 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	utiluuid "k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	utiluuid "k8s.io/kubernetes/pkg/util/uuid"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"
 
@@ -143,8 +143,13 @@ func density30AddonResourceVerifier(numNodes int) map[string]framework.ResourceC
 		MemoryConstraint: 100 * (1024 * 1024),
 	}
 	constraints["kube-proxy"] = framework.ResourceConstraint{
-		CPUConstraint:    0.15,
-		MemoryConstraint: 30 * (1024 * 1024),
+		CPUConstraint: 0.15,
+		// When we are running purely density test, 30MB seems to be enough.
+		// However, we are usually running Density together with Load test.
+		// Thus, if Density is running after Load (which is creating and
+		// propagating a bunch of services), kubeproxy is using much more
+		// memory and not releasing it afterwards.
+		MemoryConstraint: 60 * (1024 * 1024),
 	}
 	constraints["l7-lb-controller"] = framework.ResourceConstraint{
 		CPUConstraint:    0.15,
@@ -334,9 +339,13 @@ var _ = framework.KubeDescribe("Density", func() {
 		}
 	})
 
+	options := framework.FrameworkOptions{
+		ClientQPS:   50.0,
+		ClientBurst: 100,
+	}
 	// Explicitly put here, to delete namespace at the end of the test
 	// (after measuring latency metrics, etc.).
-	f := framework.NewDefaultFramework("density")
+	f := framework.NewFramework("density", options, nil)
 	f.NamespaceDeletionTimeout = time.Hour
 
 	BeforeEach(func() {
@@ -727,7 +736,7 @@ var _ = framework.KubeDescribe("Density", func() {
 					name := additionalPodsPrefix + "-" + strconv.Itoa(i+1)
 					framework.ExpectNoError(framework.DeleteRCAndWaitForGC(c, rcNameToNsMap[name], name))
 				}
-				workqueue.Parallelize(16, nodeCount, deleteRC)
+				workqueue.Parallelize(25, nodeCount, deleteRC)
 			}
 
 			cleanupDensityTest(dConfig)

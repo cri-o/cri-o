@@ -28,9 +28,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	clientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/client-go/util/workqueue"
 	fed "k8s.io/kubernetes/federation/apis/federation"
 	fedv1 "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	fedclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
@@ -42,20 +47,19 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	apiv1 "k8s.io/kubernetes/pkg/api/v1"
 	extensionsv1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 )
 
 const (
 	FedDeploymentPreferencesAnnotation = "federation.kubernetes.io/deployment-preferences"
 	allClustersKey                     = "THE_ALL_CLUSTER_KEY"
 	UserAgentName                      = "Federation-Deployment-Controller"
+	ControllerName                     = "deployments"
 )
 
 var (
+	RequiredResources        = []schema.GroupVersionResource{extensionsv1.SchemeGroupVersion.WithResource("deployments")}
 	deploymentReviewDelay    = 10 * time.Second
 	clusterAvailableDelay    = 20 * time.Second
 	clusterUnavailableDelay  = 60 * time.Second
@@ -104,7 +108,7 @@ type DeploymentController struct {
 func NewDeploymentController(federationClient fedclientset.Interface) *DeploymentController {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(eventsink.NewFederatedEventSink(federationClient))
-	recorder := broadcaster.NewRecorder(apiv1.EventSource{Component: "federated-deployment-controller"})
+	recorder := broadcaster.NewRecorder(api.Scheme, clientv1.EventSource{Component: "federated-deployment-controller"})
 
 	fdc := &DeploymentController{
 		fedClient:           federationClient,
@@ -255,14 +259,14 @@ func (fdc *DeploymentController) removeFinalizerFunc(obj runtime.Object, finaliz
 	return deployment, nil
 }
 
-// Adds the given finalizer to the given objects ObjectMeta.
+// Adds the given finalizers to the given objects ObjectMeta.
 // Assumes that the given object is a deployment.
-func (fdc *DeploymentController) addFinalizerFunc(obj runtime.Object, finalizer string) (runtime.Object, error) {
+func (fdc *DeploymentController) addFinalizerFunc(obj runtime.Object, finalizers []string) (runtime.Object, error) {
 	deployment := obj.(*extensionsv1.Deployment)
-	deployment.ObjectMeta.Finalizers = append(deployment.ObjectMeta.Finalizers, finalizer)
+	deployment.ObjectMeta.Finalizers = append(deployment.ObjectMeta.Finalizers, finalizers...)
 	deployment, err := fdc.fedClient.Extensions().Deployments(deployment.Namespace).Update(deployment)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add finalizer %s to deployment %s: %v", finalizer, deployment.Name, err)
+		return nil, fmt.Errorf("failed to add finalizers %v to deployment %s: %v", finalizers, deployment.Name, err)
 	}
 	return deployment, nil
 }
@@ -419,8 +423,10 @@ func (fdc *DeploymentController) schedule(fd *extensionsv1.Deployment, clusters 
 	if fdPref != nil { // create a new planner if user specified a preference
 		plannerToBeUsed = planner.NewPlanner(fdPref)
 	}
-
-	replicas := int64(*fd.Spec.Replicas)
+	replicas := int64(0)
+	if fd.Spec.Replicas != nil {
+		replicas = int64(*fd.Spec.Replicas)
+	}
 	var clusterNames []string
 	for _, cluster := range clusters {
 		clusterNames = append(clusterNames, cluster.Name)
@@ -590,11 +596,13 @@ func (fdc *DeploymentController) reconcileDeployment(key string) (reconciliation
 			fedStatus.Replicas += currentLd.Status.Replicas
 			fedStatus.AvailableReplicas += currentLd.Status.AvailableReplicas
 			fedStatus.UnavailableReplicas += currentLd.Status.UnavailableReplicas
+			fedStatus.ReadyReplicas += currentLd.Status.ReadyReplicas
 		}
 	}
 	if fedStatus.Replicas != fd.Status.Replicas ||
 		fedStatus.AvailableReplicas != fd.Status.AvailableReplicas ||
-		fedStatus.UnavailableReplicas != fd.Status.UnavailableReplicas {
+		fedStatus.UnavailableReplicas != fd.Status.UnavailableReplicas ||
+		fedStatus.ReadyReplicas != fd.Status.ReadyReplicas {
 		fd.Status = fedStatus
 		_, err = fdc.fedClient.Extensions().Deployments(fd.Namespace).UpdateStatus(fd)
 		if err != nil {
