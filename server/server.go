@@ -19,6 +19,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
+	"github.com/moby/moby/pkg/ioutils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -153,6 +154,20 @@ func (s *Server) loadContainer(id string) error {
 	}
 	s.addContainer(ctr)
 	return s.ctrIDIndex.Add(id)
+}
+
+func (s *Server) containerStateToDisk(c *oci.Container) error {
+	// ignore errors, this is a best effort to have up-to-date info about
+	// a given container before its state gets stored
+	s.runtime.UpdateStatus(c)
+
+	jsonSource, err := ioutils.NewAtomicFileWriter(c.StatePath(), 0644)
+	if err != nil {
+		return err
+	}
+	defer jsonSource.Close()
+	enc := json.NewEncoder(jsonSource)
+	return enc.Encode(s.runtime.ContainerStatus(c))
 }
 
 func configNetNsPath(spec rspec.Spec) (string, error) {

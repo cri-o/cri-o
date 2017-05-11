@@ -36,7 +36,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 
 		if err := s.runtime.StopContainer(c); err != nil {
-			return fmt.Errorf("failed to stop container %s: %v", c.Name(), err)
+			return nil, fmt.Errorf("failed to stop container %s: %v", c.Name(), err)
 		}
 
 		if err := s.runtime.DeleteContainer(c); err != nil {

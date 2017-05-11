@@ -2,6 +2,7 @@ package oci
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -62,6 +63,11 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		state:       state,
 	}
 	return c, nil
+}
+
+// StatePath returns the containers state.json path
+func (c *Container) StatePath() string {
+	return filepath.Join(c.dir, "state.json")
 }
 
 // CreatedAt returns the container creation time

@@ -23,6 +23,8 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 	}
 
+	s.containerStateToDisk(c)
+
 	resp := &pb.StopContainerResponse{}
 	logrus.Debugf("StopContainerResponse: %+v", resp)
 	return resp, nil
