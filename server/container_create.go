@@ -18,7 +18,9 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/runc/libcontainer/user"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
@@ -59,6 +61,33 @@ func addOciBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen 
 		specgen.AddBindMount(src, dest, options)
 	}
 
+	return nil
+}
+
+func addDevices(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+	sp := specgen.Spec()
+	for _, device := range containerConfig.GetDevices() {
+		dev, err := devices.DeviceFromPath(device.HostPath, device.Permissions)
+		if err != nil {
+			return fmt.Errorf("failed to add device: %v", err)
+		}
+		rd := rspec.LinuxDevice{
+			Path:  device.ContainerPath,
+			Type:  string(dev.Type),
+			Major: dev.Major,
+			Minor: dev.Minor,
+			UID:   &dev.Uid,
+			GID:   &dev.Gid,
+		}
+		specgen.AddDevice(rd)
+		sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
+			Allow:  true,
+			Type:   string(dev.Type),
+			Major:  &dev.Major,
+			Minor:  &dev.Minor,
+			Access: dev.Permissions,
+		})
+	}
 	return nil
 }
 
@@ -300,6 +329,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen := generate.New()
 
 	if err := addOciBindMounts(sb, containerConfig, &specgen); err != nil {
+		return nil, err
+	}
+
+	if err := addDevices(sb, containerConfig, &specgen); err != nil {
 		return nil, err
 	}
 
