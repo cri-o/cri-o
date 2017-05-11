@@ -1,7 +1,9 @@
 package oci
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -63,6 +65,18 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		state:       state,
 	}
 	return c, nil
+}
+
+// FromDisk restores container's state from disk
+func (c *Container) FromDisk() error {
+	jsonSource, err := os.Open(c.StatePath())
+	if err != nil {
+		return err
+	}
+	defer jsonSource.Close()
+
+	dec := json.NewDecoder(jsonSource)
+	return dec.Decode(c.state)
 }
 
 // StatePath returns the containers state.json path
