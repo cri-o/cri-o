@@ -62,6 +62,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		if err := s.runtime.UpdateStatus(podInfraContainer); err != nil {
 			return nil, err
 		}
+
 		cState := s.runtime.ContainerStatus(podInfraContainer)
 		created := cState.Created.UnixNano()
 		rStatus := pb.PodSandboxState_SANDBOX_NOTREADY

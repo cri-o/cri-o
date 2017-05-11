@@ -520,6 +520,9 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 	defer c.opLock.Unlock()
 	out, err := exec.Command(r.Path(c), "state", c.name).CombinedOutput()
 	if err != nil {
+		if err := unix.Kill(c.state.Pid, 0); err == syscall.ESRCH {
+			return nil
+		}
 		return fmt.Errorf("error getting container state for %s: %s: %q", c.name, err, out)
 	}
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {

@@ -19,6 +19,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	if err = s.runtime.UpdateStatus(podInfraContainer); err != nil {
 		return nil, err
 	}
+	s.containerStateToDisk(podInfraContainer)
 
 	cState := s.runtime.ContainerStatus(podInfraContainer)
 
