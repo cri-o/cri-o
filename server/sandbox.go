@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/pkg/ns"
@@ -146,7 +145,6 @@ type sandbox struct {
 	privileged     bool
 	resolvPath     string
 	hostname       string
-	created        time.Time
 }
 
 const (

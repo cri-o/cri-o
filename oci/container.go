@@ -42,7 +42,9 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, privileged bool, dir string) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, privileged bool, dir string, created time.Time) (*Container, error) {
+	state := &ContainerState{}
+	state.Created = created
 	c := &Container{
 		id:          id,
 		name:        name,
@@ -57,8 +59,14 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		annotations: annotations,
 		image:       image,
 		dir:         dir,
+		state:       state,
 	}
 	return c, nil
+}
+
+// CreatedAt returns the container creation time
+func (c *Container) CreatedAt() time.Time {
+	return c.state.Created
 }
 
 // Name returns the name of the container.
