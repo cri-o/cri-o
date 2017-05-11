@@ -5,7 +5,6 @@ import (
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -36,12 +35,8 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			return nil, fmt.Errorf("failed to update container state: %v", err)
 		}
 
-		cState := s.runtime.ContainerStatus(c)
-		if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
-			if err := s.runtime.StopContainer(c); err != nil {
-				// Assume container is already stopped
-				logrus.Warnf("failed to stop container %s: %v", c.Name(), err)
-			}
+		if err := s.runtime.StopContainer(c); err != nil {
+			return fmt.Errorf("failed to stop container %s: %v", c.Name(), err)
 		}
 
 		if err := s.runtime.DeleteContainer(c); err != nil {
