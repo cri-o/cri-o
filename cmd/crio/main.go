@@ -20,7 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
-const ociConfigPath = "/etc/ocid/ocid.conf"
+const ociConfigPath = "/etc/crio/crio.conf"
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
@@ -117,8 +117,8 @@ func main() {
 		return
 	}
 	app := cli.NewApp()
-	app.Name = "ocid"
-	app.Usage = "ocid server"
+	app.Name = "crio"
+	app.Usage = "crio server"
 	app.Version = "0.3"
 	app.Metadata = map[string]interface{}{
 		"config": server.DefaultConfig(),
@@ -140,7 +140,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "listen",
-			Usage: "path to ocid socket",
+			Usage: "path to crio socket",
 		},
 		cli.StringFlag{
 			Name:  "log",
@@ -166,11 +166,11 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "root",
-			Usage: "ocid root dir",
+			Usage: "crio root dir",
 		},
 		cli.StringFlag{
 			Name:  "runroot",
-			Usage: "ocid state dir",
+			Usage: "crio state dir",
 		},
 		cli.StringFlag{
 			Name:  "storage-driver",
@@ -194,7 +194,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "apparmor-profile",
-			Usage: "default apparmor profile name (default: \"ocid-default\")",
+			Usage: "default apparmor profile name (default: \"crio-default\")",
 		},
 		cli.BoolFlag{
 			Name:  "selinux",

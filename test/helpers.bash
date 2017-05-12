@@ -9,10 +9,10 @@ TESTDATA="${INTEGRATION_ROOT}/testdata"
 # Root directory of the repository.
 OCID_ROOT=${OCID_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
-# Path of the ocid binary.
-OCID_BINARY=${OCID_BINARY:-${OCID_ROOT}/cri-o/ocid}
-# Path of the ocic binary.
-OCIC_BINARY=${OCIC_BINARY:-${OCID_ROOT}/cri-o/ocic}
+# Path of the crio binary.
+OCID_BINARY=${OCID_BINARY:-${OCID_ROOT}/cri-o/crio}
+# Path of the crioctl binary.
+OCIC_BINARY=${OCIC_BINARY:-${OCID_ROOT}/cri-o/crioctl}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${OCID_ROOT}/cri-o/conmon/conmon}
 # Path of the pause binary.
@@ -20,7 +20,7 @@ PAUSE_BINARY=${PAUSE_BINARY:-${OCID_ROOT}/cri-o/pause/pause}
 # Path of the default seccomp profile.
 SECCOMP_PROFILE=${SECCOMP_PROFILE:-${OCID_ROOT}/cri-o/seccomp.json}
 # Name of the default apparmor profile.
-APPARMOR_PROFILE=${APPARMOR_PROFILE:-ocid-default}
+APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
 # Runtime
 RUNTIME=${RUNTIME:-runc}
 RUNTIME_PATH=$(command -v $RUNTIME || true)
@@ -29,8 +29,8 @@ RUNTIME_BINARY=${RUNTIME_PATH:-/usr/local/sbin/runc}
 APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
 # Path of the apparmor profile for test.
 APPARMOR_TEST_PROFILE_PATH=${APPARMOR_TEST_PROFILE_PATH:-${TESTDATA}/apparmor_test_deny_write}
-# Path of the apparmor profile for unloading ocid-default.
-FAKE_OCID_DEFAULT_PROFILE_PATH=${FAKE_OCID_DEFAULT_PROFILE_PATH:-${TESTDATA}/fake_ocid_default}
+# Path of the apparmor profile for unloading crio-default.
+FAKE_OCID_DEFAULT_PROFILE_PATH=${FAKE_OCID_DEFAULT_PROFILE_PATH:-${TESTDATA}/fake_crio_default}
 # Name of the apparmor profile for test.
 APPARMOR_TEST_PROFILE_NAME=${APPARMOR_TEST_PROFILE_NAME:-apparmor-test-deny-write}
 # Path of boot config.
@@ -46,7 +46,7 @@ ARTIFACTS_PATH=${ARTIFACTS_PATH:-${OCID_ROOT}/cri-o/.artifacts}
 # Path of the checkseccomp binary.
 CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${OCID_ROOT}/cri-o/test/checkseccomp/checkseccomp}
 # XXX: This is hardcoded inside cri-o at the moment.
-DEFAULT_LOG_PATH=/var/log/ocid/pods
+DEFAULT_LOG_PATH=/var/log/crio/pods
 
 TESTDIR=$(mktemp -d)
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -54,8 +54,8 @@ if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
     filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
     chcon -R ${filelabel} $TESTDIR
 fi
-OCID_SOCKET="$TESTDIR/ocid.sock"
-OCID_CONFIG="$TESTDIR/ocid.conf"
+OCID_SOCKET="$TESTDIR/crio.sock"
+OCID_CONFIG="$TESTDIR/crio.conf"
 OCID_CNI_CONFIG="$TESTDIR/cni/net.d/"
 OCID_CNI_PLUGIN="/opt/cni/bin/"
 POD_CIDR="10.88.0.0/16"
@@ -85,14 +85,14 @@ if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
     fi
 fi
 
-# Run ocid using the binary specified by $OCID_BINARY.
-# This must ONLY be run on engines created with `start_ocid`.
-function ocid() {
+# Run crio using the binary specified by $OCID_BINARY.
+# This must ONLY be run on engines created with `start_crio`.
+function crio() {
 	"$OCID_BINARY" --listen "$OCID_SOCKET" "$@"
 }
 
-# Run ocic using the binary specified by $OCIC_BINARY.
-function ocic() {
+# Run crioctl using the binary specified by $OCIC_BINARY.
+function crioctl() {
 	"$OCIC_BINARY" --connect "$OCID_SOCKET" "$@"
 }
 
@@ -122,13 +122,13 @@ function retry() {
 	false
 }
 
-# Waits until the given ocid becomes reachable.
+# Waits until the given crio becomes reachable.
 function wait_until_reachable() {
-	retry 15 1 ocic runtimeversion
+	retry 15 1 crioctl runtimeversion
 }
 
-# Start ocid.
-function start_ocid() {
+# Start crio.
+function start_crio() {
 	if [[ -n "$1" ]]; then
 		seccomp="$1"
 	else
@@ -141,12 +141,12 @@ function start_ocid() {
 		apparmor="$APPARMOR_PROFILE"
 	fi
 
-	# Don't forget: bin2img, copyimg, and ocid have their own default drivers, so if you override any, you probably need to override them all
+	# Don't forget: bin2img, copyimg, and crio have their own default drivers, so if you override any, you probably need to override them all
 	if ! [ "$3" = "--no-pause-image" ] ; then
-		"$BIN2IMG_BINARY" --root "$TESTDIR/ocid" $STORAGE_OPTS --runroot "$TESTDIR/ocid-run" --source-binary "$PAUSE_BINARY"
+		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/ocid" $STORAGE_OPTS --runroot "$TESTDIR/ocid-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/ocid" --runroot "$TESTDIR/ocid-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$4" ]]; then
@@ -159,58 +159,58 @@ function start_ocid() {
 	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
 	wait_until_reachable
 
-	run ocic image status --id=redis:alpine
+	run crioctl image status --id=redis:alpine
 	if [ "$status" -ne 0 ] ; then
-		ocic image pull redis:alpine
+		crioctl image pull redis:alpine
 	fi
-	REDIS_IMAGEID=$(ocic image status --id=redis:alpine | head -1 | sed -e "s/ID: //g")
-	run ocic image status --id=busybox
+	REDIS_IMAGEID=$(crioctl image status --id=redis:alpine | head -1 | sed -e "s/ID: //g")
+	run crioctl image status --id=busybox
 	if [ "$status" -ne 0 ] ; then
-		ocic image pull busybox:latest
+		crioctl image pull busybox:latest
 	fi
-	BUSYBOX_IMAGEID=$(ocic image status --id=busybox | head -1 | sed -e "s/ID: //g")
+	BUSYBOX_IMAGEID=$(crioctl image status --id=busybox | head -1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {
-	run ocic ctr list --quiet
+	run crioctl ctr list --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   ocic ctr stop --id "$line" || true
-			   ocic ctr remove --id "$line"
+			   crioctl ctr stop --id "$line" || true
+			   crioctl ctr remove --id "$line"
 			done
 		fi
 	fi
 }
 
 function cleanup_images() {
-	run ocic image list --quiet
+	run crioctl image list --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   ocic image remove --id "$line"
+			   crioctl image remove --id "$line"
 			done
 		fi
 	fi
 }
 
 function cleanup_pods() {
-	run ocic pod list --quiet
+	run crioctl pod list --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   ocic pod stop --id "$line" || true
-			   ocic pod remove --id "$line"
+			   crioctl pod stop --id "$line" || true
+			   crioctl pod remove --id "$line"
 			done
 		fi
 	fi
 }
 
-# Stop ocid.
-function stop_ocid() {
+# Stop crio.
+function stop_crio() {
 	if [ "$OCID_PID" != "" ]; then
 		kill "$OCID_PID" >/dev/null 2>&1
 		wait "$OCID_PID"
@@ -220,13 +220,13 @@ function stop_ocid() {
 	cleanup_network_conf
 }
 
-function restart_ocid() {
+function restart_crio() {
 	if [ "$OCID_PID" != "" ]; then
 		kill "$OCID_PID" >/dev/null 2>&1
 		wait "$OCID_PID"
-		start_ocid
+		start_crio
 	else
-		echo "you must start ocid first"
+		echo "you must start crio first"
 		exit 1
 	fi
 }
@@ -265,10 +265,10 @@ function is_apparmor_enabled() {
 
 function prepare_network_conf() {
 	mkdir -p $OCID_CNI_CONFIG
-	cat >$OCID_CNI_CONFIG/10-ocid.conf <<-EOF
+	cat >$OCID_CNI_CONFIG/10-crio.conf <<-EOF
 {
     "cniVersion": "0.2.0",
-    "name": "ocidnet",
+    "name": "crionet",
     "type": "bridge",
     "bridge": "cni0",
     "isGateway": true,
@@ -298,7 +298,7 @@ function prepare_plugin_test_args_network_conf() {
 	cat >$OCID_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
     "cniVersion": "0.2.0",
-    "name": "ocidnet",
+    "name": "crionet",
     "type": "plugin_test_args.bash"
 }
 EOF
@@ -307,7 +307,7 @@ EOF
 }
 
 function check_pod_cidr() {
-        fullnetns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
+        fullnetns=`crioctl pod status --id $1 | grep namespace | cut -d ' ' -f 3`
 	netns=`basename $fullnetns`
 
 	run ip netns exec $netns ip addr show dev eth0 scope global 2>&1
@@ -328,7 +328,7 @@ function parse_pod_ip() {
 }
 
 function ping_pod() {
-	netns=`ocic pod status --id $1 | grep namespace | cut -d ' ' -f 3`
+	netns=`crioctl pod status --id $1 | grep namespace | cut -d ' ' -f 3`
 	inet=`ip netns exec \`basename $netns\` ip addr show dev eth0 scope global | grep inet`
 
 	IFS=" "
@@ -340,8 +340,8 @@ function ping_pod() {
 }
 
 function ping_pod_from_pod() {
-	pod_ip=`ocic pod status --id $1 | grep "IP Address" | cut -d ' ' -f 3`
-	netns=`ocic pod status --id $2 | grep namespace | cut -d ' ' -f 3`
+	pod_ip=`crioctl pod status --id $1 | grep "IP Address" | cut -d ' ' -f 3`
+	netns=`crioctl pod status --id $2 | grep namespace | cut -d ' ' -f 3`
 
 	ip netns exec `basename $netns` ping -W 1 -c 2 $pod_ip
 

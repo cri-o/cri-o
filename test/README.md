@@ -79,7 +79,7 @@ make localintegration RUNTIME=cc-oci-runtime
 ## Writing integration tests
 
 [Helper functions]
-(https://github.com/kubernetes-incubator/ocid/blob/master/test/helpers.bash)
+(https://github.com/kubernetes-incubator/crio/blob/master/test/helpers.bash)
 are provided in order to facilitate writing tests.
 
 ```sh
@@ -97,9 +97,9 @@ function teardown() {
 	cleanup_test
 }
 
-@test "ocic runtimeversion" {
-	start_ocid
-	ocic runtimeversion
+@test "crioctl runtimeversion" {
+	start_crio
+	crioctl runtimeversion
 	[ "$status" -eq 0 ]
 }
 

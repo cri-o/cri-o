@@ -425,7 +425,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 		if sb.cgroupParent != "" {
 			if s.config.CgroupManager == "systemd" {
-				cgPath := sb.cgroupParent + ":" + "ocid" + ":" + containerID
+				cgPath := sb.cgroupParent + ":" + "crio" + ":" + containerID
 				specgen.SetLinuxCgroupsPath(cgPath)
 			} else {
 				specgen.SetLinuxCgroupsPath(sb.cgroupParent + "/" + containerID)
@@ -511,31 +511,31 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.SetHostname(sb.hostname)
 	}
 
-	specgen.AddAnnotation("ocid/name", containerName)
-	specgen.AddAnnotation("ocid/sandbox_id", sb.id)
-	specgen.AddAnnotation("ocid/sandbox_name", sb.infraContainer.Name())
-	specgen.AddAnnotation("ocid/container_type", containerTypeContainer)
-	specgen.AddAnnotation("ocid/log_path", logPath)
-	specgen.AddAnnotation("ocid/tty", fmt.Sprintf("%v", containerConfig.Tty))
-	specgen.AddAnnotation("ocid/image", image)
+	specgen.AddAnnotation("crio/name", containerName)
+	specgen.AddAnnotation("crio/sandbox_id", sb.id)
+	specgen.AddAnnotation("crio/sandbox_name", sb.infraContainer.Name())
+	specgen.AddAnnotation("crio/container_type", containerTypeContainer)
+	specgen.AddAnnotation("crio/log_path", logPath)
+	specgen.AddAnnotation("crio/tty", fmt.Sprintf("%v", containerConfig.Tty))
+	specgen.AddAnnotation("crio/image", image)
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}
-	specgen.AddAnnotation("ocid/metadata", string(metadataJSON))
+	specgen.AddAnnotation("crio/metadata", string(metadataJSON))
 
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
 	}
-	specgen.AddAnnotation("ocid/labels", string(labelsJSON))
+	specgen.AddAnnotation("crio/labels", string(labelsJSON))
 
 	annotationsJSON, err := json.Marshal(annotations)
 	if err != nil {
 		return nil, err
 	}
-	specgen.AddAnnotation("ocid/annotations", string(annotationsJSON))
+	specgen.AddAnnotation("crio/annotations", string(annotationsJSON))
 
 	if err = s.setupSeccomp(&specgen, containerName, sb.annotations); err != nil {
 		return nil, err

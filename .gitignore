@@ -6,8 +6,8 @@
 /docs/*.[158].gz
 /kpod
 /ocic
-/ocid
-/ocid.conf
+/crio
+/crio.conf
 *.o
 *.orig
 /pause/pause

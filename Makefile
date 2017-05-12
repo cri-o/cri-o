@@ -3,14 +3,14 @@ EPOCH_TEST_COMMIT ?= 78aae688e2932f0cfc2a23e28ad30b58c6b8577f
 PROJECT := github.com/kubernetes-incubator/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
-OCID_IMAGE := ocid_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
-OCID_INSTANCE := ocid_dev
+OCID_IMAGE := crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
+OCID_INSTANCE := crio_dev
 PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
-ETCDIR_OCID ?= ${ETCDIR}/ocid
+ETCDIR_OCID ?= ${ETCDIR}/crio
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 
@@ -25,7 +25,7 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 
-all: binaries ocid.conf docs
+all: binaries crio.conf docs
 
 default: help
 
@@ -33,7 +33,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build ocid, conmon and ocic"
+	@echo " * 'binaries' - Build crio, conmon and crioctl"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
@@ -68,19 +68,19 @@ copyimg: .gopathok $(wildcard test/copyimg/*.go)
 checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	go build -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
 
-ocid: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/ocid $(PROJECT))
+crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
 	$(GO) build -o $@ \
 		-tags "$(BUILDTAGS)" \
-		$(PROJECT)/cmd/ocid
+		$(PROJECT)/cmd/crio
 
-ocic: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/ocic $(PROJECT))
-	$(GO) build -o $@ $(PROJECT)/cmd/ocic
+crioctl: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crioctl $(PROJECT))
+	$(GO) build -o $@ $(PROJECT)/cmd/crioctl
 
 kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
 	$(GO) build -o $@ $(PROJECT)/cmd/kpod
 
-ocid.conf: ocid
-	./ocid --config="" config --default > ocid.conf
+crio.conf: crio
+	./crio --config="" config --default > crio.conf
 
 clean:
 ifneq ($(GOPATH),)
@@ -91,26 +91,26 @@ endif
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
-	rm -f ocic ocid kpod
+	rm -f crioctl crio kpod
 	make -C conmon clean
 	make -C pause clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 
-ocidimage:
+crioimage:
 	docker build -t ${OCID_IMAGE} .
 
-dbuild: ocidimage
+dbuild: crioimage
 	docker run --name=${OCID_INSTANCE} --privileged ${OCID_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm make binaries
 
-integration: ocidimage
+integration: crioimage
 	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
 
 localintegration: binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: ocid ocic kpod conmon pause bin2img copyimg checkseccomp
+binaries: crio crioctl kpod conmon pause bin2img copyimg checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
@@ -127,11 +127,11 @@ docs/%.8: docs/%.8.md .gopathok
 docs: $(MANPAGES)
 
 install: .gopathok
-	install -D -m 755 ocid $(BINDIR)/ocid
-	install -D -m 755 ocic $(BINDIR)/ocic
+	install -D -m 755 crio $(BINDIR)/crio
+	install -D -m 755 crioctl $(BINDIR)/crioctl
 	install -D -m 755 kpod $(BINDIR)/kpod
-	install -D -m 755 conmon/conmon $(LIBEXECDIR)/ocid/conmon
-	install -D -m 755 pause/pause $(LIBEXECDIR)/ocid/pause
+	install -D -m 755 conmon/conmon $(LIBEXECDIR)/crio/conmon
+	install -D -m 755 pause/pause $(LIBEXECDIR)/crio/pause
 	install -d -m 755 $(MANDIR)/man1
 	install -d -m 755 $(MANDIR)/man5
 	install -d -m 755 $(MANDIR)/man8
@@ -140,7 +140,7 @@ install: .gopathok
 	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
 install.config:
-	install -D -m 644 ocid.conf $(ETCDIR_OCID)/ocid.conf
+	install -D -m 644 crio.conf $(ETCDIR_OCID)/crio.conf
 	install -D -m 644 seccomp.json $(ETCDIR_OCID)/seccomp.json
 
 install.completions:
@@ -148,14 +148,14 @@ install.completions:
 	install -m 644 -D completions/bash/kpod ${BASHINSTALLDIR}
 
 install.systemd:
-	install -D -m 644 contrib/systemd/ocid.service $(PREFIX)/lib/systemd/system/ocid.service
-	install -D -m 644 contrib/systemd/ocid-shutdown.service $(PREFIX)/lib/systemd/system/ocid-shutdown.service
+	install -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
+	install -D -m 644 contrib/systemd/crio-shutdown.service $(PREFIX)/lib/systemd/system/crio-shutdown.service
 
 uninstall:
-	rm -f $(BINDIR)/ocid
-	rm -f $(BINDIR)/ocic
-	rm -f $(LIBEXECDIR)/ocid/conmon
-	rm -f $(LIBEXECDIR)/ocid/pause
+	rm -f $(BINDIR)/crio
+	rm -f $(BINDIR)/crioctl
+	rm -f $(LIBEXECDIR)/crio/conmon
+	rm -f $(LIBEXECDIR)/crio/pause
 	for i in $(filter %.1,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done

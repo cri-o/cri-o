@@ -9,8 +9,8 @@ import (
 )
 
 var commentedConfigTemplate = template.Must(template.New("config").Parse(`
-# The "ocid" table contains all of the server options.
-[ocid]
+# The "crio" table contains all of the server options.
+[crio]
 
 # root is a path to the "root directory". OCID stores all of its data,
 # including container images, in this directory.
@@ -28,23 +28,23 @@ storage_driver = "{{ .Storage }}"
 storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
-# The "ocid.api" table contains settings for the kubelet/gRPC
-# interface (which is also used by ocic).
-[ocid.api]
+# The "crio.api" table contains settings for the kubelet/gRPC
+# interface (which is also used by crioctl).
+[crio.api]
 
-# listen is the path to the AF_LOCAL socket on which ocid will listen.
+# listen is the path to the AF_LOCAL socket on which crio will listen.
 listen = "{{ .Listen }}"
 
-# The "ocid.runtime" table contains settings pertaining to the OCI
+# The "crio.runtime" table contains settings pertaining to the OCI
 # runtime used and options for how to set up and manage the OCI runtime.
-[ocid.runtime]
+[crio.runtime]
 
-# runtime is a path to the OCI runtime which ocid will be using.
+# runtime is a path to the OCI runtime which crio will be using.
 runtime = "{{ .Runtime }}"
 
-# runtime_host_privileged is a path to the OCI runtime which ocid
+# runtime_host_privileged is a path to the OCI runtime which crio
 # will be using for host privileged operations.
-# If this string is empty, ocid will not try to use the "runtime"
+# If this string is empty, crio will not try to use the "runtime"
 # for all operations.
 runtime_host_privileged = "{{ .RuntimeHostPrivileged }}"
 
@@ -73,9 +73,9 @@ apparmor_profile = "{{ .ApparmorProfile }}"
 # for the runtime.
 cgroup_manager = "{{ .CgroupManager }}"
 
-# The "ocid.image" table contains settings pertaining to the
+# The "crio.image" table contains settings pertaining to the
 # management of OCI images.
-[ocid.image]
+[crio.image]
 
 # default_transport is the prefix we try prepending to an image name if the
 # image name as we receive it can't be parsed as a valid source reference
@@ -95,9 +95,9 @@ pause_command = "{{ .PauseCommand }}"
 # unspecified so that the default system-wide policy will be used.
 signature_policy = "{{ .SignaturePolicyPath }}"
 
-# The "ocid.network" table contains settings pertaining to the
+# The "crio.network" table contains settings pertaining to the
 # management of CNI plugins.
-[ocid.network]
+[crio.network]
 
 # network_dir is is where CNI network configuration
 # files are stored.
@@ -112,7 +112,7 @@ plugin_dir = "{{ .PluginDir }}"
 
 var configCommand = cli.Command{
 	Name:  "config",
-	Usage: "generate ocid configuration files",
+	Usage: "generate crio configuration files",
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "default",

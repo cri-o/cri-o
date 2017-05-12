@@ -65,8 +65,8 @@ func loadContainerConfig(path string) (*pb.ContainerConfig, error) {
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "ocic"
-	app.Usage = "client for ocid"
+	app.Name = "crioctl"
+	app.Usage = "client for crio"
 	app.Version = "0.3"
 
 	app.Commands = []cli.Command{
@@ -79,7 +79,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "connect",
-			Value: "/var/run/ocid.sock",
+			Value: "/var/run/crio.sock",
 			Usage: "Socket to connect to",
 		},
 		cli.DurationFlag{
