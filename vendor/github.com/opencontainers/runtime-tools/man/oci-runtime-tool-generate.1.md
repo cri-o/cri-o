@@ -45,6 +45,9 @@ read the configuration from `config.json`.
 **--cap-drop**=[]
   Drop Linux capabilities
 
+**--cap-drop-all**true|false
+  Drop all Linux capabilities
+
 **--cgroups-path**=""
   Specifies the path to the cgroups relative to the cgroups mount point.
 

@@ -368,6 +368,7 @@ _oci-runtime-tool_generate() {
 	"
 
 	local boolean_options="
+		--cap-drop-all
 		--device-remove-all
 		--disable-oom-kill
 		--help -h
