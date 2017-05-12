@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
@@ -60,13 +62,17 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 			continue
 		}
 		if err := s.runtime.UpdateStatus(podInfraContainer); err != nil {
-			return nil, err
+			logrus.Warnf("error updating status for pod %s: %v", sb.id, err)
 		}
 		cState := s.runtime.ContainerStatus(podInfraContainer)
-		created := cState.Created.UnixNano()
+		// TODO: we must be saving pod creation somewhere on disk for when we restore
+		created := time.Time{}.UnixNano()
 		rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
-		if cState.Status == oci.ContainerStateRunning {
-			rStatus = pb.PodSandboxState_SANDBOX_READY
+		if cState != nil {
+			created = cState.Created.UnixNano()
+			if cState.Status == oci.ContainerStateRunning {
+				rStatus = pb.PodSandboxState_SANDBOX_READY
+			}
 		}
 
 		pod := &pb.PodSandbox{

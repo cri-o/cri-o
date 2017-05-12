@@ -159,7 +159,7 @@ var (
 )
 
 func (s *sandbox) addContainer(c *oci.Container) {
-	s.containers.Add(c.Name(), c)
+	s.containers.Add(c.Name, c)
 }
 
 func (s *sandbox) getContainer(name string) *oci.Container {
@@ -167,7 +167,7 @@ func (s *sandbox) getContainer(name string) *oci.Container {
 }
 
 func (s *sandbox) removeContainer(c *oci.Container) {
-	s.containers.Delete(c.Name())
+	s.containers.Delete(c.Name)
 }
 
 func (s *sandbox) netNs() ns.NetNS {

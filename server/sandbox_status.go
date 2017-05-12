@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
@@ -17,11 +19,14 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 
 	podInfraContainer := sb.infraContainer
 	if err = s.runtime.UpdateStatus(podInfraContainer); err != nil {
-		return nil, err
+		logrus.Debugf("failed to get sandbox status for %s: %v", sb.id, err)
 	}
 
 	cState := s.runtime.ContainerStatus(podInfraContainer)
-	created := cState.Created.UnixNano()
+	created := time.Time{}.UnixNano()
+	if cState != nil {
+		created = cState.Created.UnixNano()
+	}
 
 	netNsPath, err := podInfraContainer.NetNsPath()
 	if err != nil {
@@ -34,7 +39,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
-	if cState.Status == oci.ContainerStateRunning {
+	if cState != nil && cState.Status == oci.ContainerStateRunning {
 		rStatus = pb.PodSandboxState_SANDBOX_READY
 	}
 

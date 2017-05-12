@@ -18,13 +18,16 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	}
 
 	if err := s.runtime.UpdateStatus(c); err != nil {
-		return nil, err
+		logrus.Debugf("failed to update container %s state: %v", c.ID, err)
 	}
 	cStatus := s.runtime.ContainerStatus(c)
-	if cStatus.Status != oci.ContainerStateStopped {
+	if cStatus != nil && cStatus.Status != oci.ContainerStateStopped {
 		if err := s.runtime.StopContainer(c); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 		}
+	}
+	if err := s.runtime.UpdateStatus(c); err != nil {
+		logrus.Debugf("failed to update container %s state: %v", c.ID, err)
 	}
 
 	resp := &pb.StopContainerResponse{}

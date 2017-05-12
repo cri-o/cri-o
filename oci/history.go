@@ -16,7 +16,7 @@ func (history *History) Len() int {
 func (history *History) Less(i, j int) bool {
 	containers := *history
 	// FIXME: state access should be serialized
-	return containers[j].state.Created.Before(containers[i].state.Created)
+	return containers[j].State.Created.Before(containers[i].State.Created)
 }
 
 // Swap switches containers i and j positions in the history.

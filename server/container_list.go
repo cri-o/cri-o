@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
@@ -43,7 +45,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			c := s.state.containers.Get(id)
 			if c != nil {
 				if filter.PodSandboxId != "" {
-					if c.Sandbox() == filter.PodSandboxId {
+					if c.Sandbox == filter.PodSandboxId {
 						ctrList = []*oci.Container{c}
 					} else {
 						ctrList = []*oci.Container{}
@@ -67,23 +69,27 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 
 	for _, ctr := range ctrList {
 		if err := s.runtime.UpdateStatus(ctr); err != nil {
-			return nil, err
+			logrus.Warnf("error updating status for ctr %s: %v", ctr.ID, err)
 		}
 
-		podSandboxID := ctr.Sandbox()
+		podSandboxID := ctr.Sandbox
 		cState := s.runtime.ContainerStatus(ctr)
-		created := cState.Created.UnixNano()
+		// TODO: we must be saving container creation somewhere on disk for when we restore
+		created := time.Time{}.UnixNano()
 		rState := pb.ContainerState_CONTAINER_UNKNOWN
+		if cState != nil {
+			created = cState.Created.UnixNano()
+		}
 		cID := ctr.ID()
 
 		c := &pb.Container{
 			Id:           cID,
 			PodSandboxId: podSandboxID,
 			CreatedAt:    created,
-			Labels:       ctr.Labels(),
-			Metadata:     ctr.Metadata(),
-			Annotations:  ctr.Annotations(),
-			Image:        ctr.Image(),
+			Labels:       ctr.Labels,
+			Metadata:     ctr.Metadata,
+			Annotations:  ctr.Annotations,
+			Image:        ctr.Image,
 		}
 
 		switch cState.Status {

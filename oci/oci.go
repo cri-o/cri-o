@@ -71,7 +71,7 @@ func (r *Runtime) Name() string {
 // Depending if the container is privileged, it will return
 // the privileged runtime or not.
 func (r *Runtime) Path(c *Container) string {
-	if c.privileged && r.privilegedPath != "" {
+	if c.Privileged && r.privilegedPath != "" {
 		return r.privilegedPath
 	}
 
@@ -110,12 +110,12 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	if r.cgroupManager == "systemd" {
 		args = append(args, "-s")
 	}
-	args = append(args, "-c", c.name)
+	args = append(args, "-c", c.Name)
 	args = append(args, "-r", r.Path(c))
-	args = append(args, "-b", c.bundlePath)
-	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
-	args = append(args, "-l", c.logPath)
-	if c.terminal {
+	args = append(args, "-b", c.BundlePath)
+	args = append(args, "-p", filepath.Join(c.BundlePath, "pidfile"))
+	args = append(args, "-l", c.LogPath)
+	if c.Terminal {
 		args = append(args, "-t")
 	}
 	logrus.WithFields(logrus.Fields{
@@ -123,7 +123,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	}).Debugf("running conmon: %s", r.conmonPath)
 
 	cmd := exec.Command(r.conmonPath, args...)
-	cmd.Dir = c.bundlePath
+	cmd.Dir = c.BundlePath
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
@@ -146,8 +146,8 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	// Move conmon to specified cgroup
 	if cgroupParent != "" {
 		if r.cgroupManager == "systemd" {
-			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("ocid", c.name))
-			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("ocid", c.name)); err != nil {
+			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("ocid", c.Name))
+			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("ocid", c.Name)); err != nil {
 				logrus.Warnf("Failed to add conmon to sandbox cgroup: %v", err)
 			}
 		}
@@ -177,6 +177,10 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	case <-time.After(ContainerCreateTimeout):
 		return fmt.Errorf("create container timeout")
 	}
+
+	c.State = &ContainerState{}
+	c.State.Created = time.Now()
+
 	return nil
 }
 
@@ -188,10 +192,10 @@ func createUnitName(prefix string, name string) string {
 func (r *Runtime) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "start", c.name); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "start", c.Name); err != nil {
 		return err
 	}
-	c.state.Started = time.Now()
+	c.State.Started = time.Now()
 	return nil
 }
 
@@ -282,7 +286,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}()
 
-	logFile, err := ioutil.TempFile("", "ocid-log-"+c.name)
+	logFile, err := ioutil.TempFile("", "ocid-log-"+c.Name)
 	if err != nil {
 		return nil, ExecSyncError{
 			ExitCode: -1,
@@ -296,11 +300,11 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	}()
 
 	var args []string
-	args = append(args, "-c", c.name)
+	args = append(args, "-c", c.Name)
 	args = append(args, "-r", r.Path(c))
 	args = append(args, "-p", pidFile.Name())
 	args = append(args, "-e")
-	if c.terminal {
+	if c.Terminal {
 		args = append(args, "-t")
 	}
 	args = append(args, "-l", logPath)
@@ -439,26 +443,31 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 func (r *Runtime) StopContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.name, "TERM"); err != nil {
+	if _, err := utils.ExecCmd(r.Path(c), "kill", c.Name, "TERM"); err != nil {
+		if strings.Contains(err.Error(), "does not exist") {
+			return nil
+		}
 		return err
 	}
 	i := 0
 	for {
 		if i == 1000 {
-			err := unix.Kill(c.state.Pid, syscall.SIGKILL)
+			err := unix.Kill(c.State.Pid, syscall.SIGKILL)
 			if err != nil && err != syscall.ESRCH {
 				return fmt.Errorf("failed to kill process: %v", err)
 			}
 			break
 		}
 		// Check if the process is still around
-		err := unix.Kill(c.state.Pid, 0)
+		err := unix.Kill(c.State.Pid, 0)
 		if err == syscall.ESRCH {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 		i++
 	}
+
+	c.State.Finished = time.Now()
 
 	return nil
 }
@@ -467,30 +476,34 @@ func (r *Runtime) StopContainer(c *Container) error {
 func (r *Runtime) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "delete", c.name)
+	_, err := utils.ExecCmd(r.Path(c), "delete", c.Name)
+	if err != nil && !strings.Contains(err.Error(), "does not exist") {
+		return err
+	}
+	return nil
 }
 
 // UpdateStatus refreshes the status of the container.
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	out, err := exec.Command(r.Path(c), "state", c.name).CombinedOutput()
+	out, err := exec.Command(r.Path(c), "state", c.Name).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("error getting container state for %s: %s: %q", c.name, err, out)
+		return fmt.Errorf("error getting container state for %s: %s: %q", c.Name, err, out)
 	}
-	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {
-		return fmt.Errorf("failed to decode container status for %s: %s", c.name, err)
+	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.State); err != nil {
+		return fmt.Errorf("failed to decode container status for %s: %s", c.Name, err)
 	}
 
-	if c.state.Status == ContainerStateStopped {
-		exitFilePath := filepath.Join(c.bundlePath, "exit")
+	if c.State.Status == ContainerStateStopped {
+		exitFilePath := filepath.Join(c.BundlePath, "exit")
 		fi, err := os.Stat(exitFilePath)
 		if err != nil {
 			logrus.Warnf("failed to find container exit file: %v", err)
-			c.state.ExitCode = -1
+			c.State.ExitCode = -1
 		} else {
 			st := fi.Sys().(*syscall.Stat_t)
-			c.state.Finished = time.Unix(st.Ctim.Sec, st.Ctim.Nsec)
+			c.State.Finished = time.Unix(st.Ctim.Sec, st.Ctim.Nsec)
 
 			statusCodeStr, err := ioutil.ReadFile(exitFilePath)
 			if err != nil {
@@ -500,9 +513,11 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 			if err != nil {
 				return fmt.Errorf("status code conversion failed: %v", err)
 			}
-			c.state.ExitCode = int32(statusCode)
+			c.State.ExitCode = int32(statusCode)
 		}
 	}
+
+	c.toDisk()
 
 	return nil
 }
@@ -511,7 +526,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return c.state
+	return c.State
 }
 
 // newPipe creates a unix socket pair for communication

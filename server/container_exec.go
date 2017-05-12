@@ -45,7 +45,7 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 	if tty {
 		args = append(args, "-t")
 	}
-	args = append(args, c.Name())
+	args = append(args, c.Name)
 	args = append(args, cmd...)
 	execCmd := exec.Command(ss.runtimeServer.runtime.Path(c), args...)
 	var cmdErr error
