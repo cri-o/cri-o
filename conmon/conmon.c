@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include <glib.h>
+#include <json-glib/json-glib.h>
 
 #include "cmsg.h"
 
@@ -475,8 +476,55 @@ int main(int argc, char *argv[])
 		errno = old_errno;
 		pexit("Failed to wait for `runtime %s`", exec ? "exec" : "create");
 	}
-	if (!WIFEXITED(runtime_status) || WEXITSTATUS(runtime_status) != 0)
+	if (!WIFEXITED(runtime_status) || WEXITSTATUS(runtime_status) != 0) {
+		if (sync_pipe_fd > 0 && !exec) {
+			if (terminal) {
+				/* 
+				 * For this case, the stderr is captured in the parent when terminal is passed down.
+			         * We send -1 as pid to signal to parent that create container has failed.
+				 */
+				len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", -1);
+				if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+					pexit("unable to send container pid to parent");
+				}
+			} else {
+				/*
+				 * Read from container stderr for any error and send it to parent
+			         * We send -1 as pid to signal to parent that create container has failed.
+				 */
+				num_read = read(masterfd_stderr, buf, BUF_SIZE);
+				if (num_read > 0) {
+					buf[num_read] = '\0';
+					JsonGenerator *generator = json_generator_new();
+					JsonNode *root;
+					JsonObject *object;
+					gchar *data;
+					gsize len;
+
+					root = json_node_new(JSON_NODE_OBJECT);
+					object = json_object_new();
+
+					json_object_set_int_member(object, "pid", -1);
+					json_object_set_string_member(object, "message", buf);
+
+					json_node_take_object(root, object);
+					json_generator_set_root(generator, root);
+
+					g_object_set(generator, "pretty", FALSE, NULL);
+					data = json_generator_to_data (generator, &len);
+					fprintf(stderr, "%s\n", data);
+					if (write(sync_pipe_fd, data, len) != (int)len) {
+						ninfo("Unable to send container stderr message to parent");
+					}
+
+					g_free(data);
+					json_node_free(root);
+					g_object_unref(generator);
+				}
+			}
+		}
 		nexit("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
+	}
 
 	/* Read the pid so we can wait for the process to exit */
 	g_file_get_contents(pid_file, &contents, NULL, &err);
