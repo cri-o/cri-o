@@ -24,6 +24,7 @@ var generateFlags = []cli.Flag{
 	cli.StringSliceFlag{Name: "bind", Usage: "bind mount directories src:dest[:options...]"},
 	cli.StringSliceFlag{Name: "cap-add", Usage: "add Linux capabilities"},
 	cli.StringSliceFlag{Name: "cap-drop", Usage: "drop Linux capabilities"},
+	cli.BoolFlag{Name: "cap-drop-all", Usage: "drop all Linux capabilities"},
 	cli.StringFlag{Name: "cgroups-path", Usage: "specify the path to the cgroups"},
 	cli.StringFlag{Name: "cwd", Value: "/", Usage: "current working directory for the process"},
 	cli.StringSliceFlag{Name: "device-add", Usage: "add a device which must be made available in the container"},
@@ -277,6 +278,10 @@ func setupSpec(g *generate.Generator, context *cli.Context) error {
 				return err
 			}
 		}
+	}
+
+	if context.Bool("cap-drop-all") {
+		g.ClearProcessCapabilities()
 	}
 
 	var uidMaps, gidMaps []string
