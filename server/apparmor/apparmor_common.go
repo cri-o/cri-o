@@ -2,7 +2,7 @@ package apparmor
 
 const (
 	// DefaultApparmorProfile is the name of default apparmor profile name.
-	DefaultApparmorProfile = "ocid-default"
+	DefaultApparmorProfile = "crio-default"
 
 	// ContainerAnnotationKeyPrefix is the prefix to an annotation key specifying a container profile.
 	ContainerAnnotationKeyPrefix = "container.apparmor.security.beta.kubernetes.io/"

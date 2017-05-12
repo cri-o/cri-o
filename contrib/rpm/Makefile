@@ -1,11 +1,11 @@
 .PHONY: dist
-dist: ocid.spec
-	spectool -g ocid.spec
+dist: crio.spec
+	spectool -g crio.spec
 
 .PHONY: rpm
 rpm: dist
 	rpmbuild --define "_sourcedir `pwd`" --define "_specdir `pwd`" \
-	--define "_rpmdir `pwd`" --define "_srcrpmdir `pwd`" -ba ocid.spec
+	--define "_rpmdir `pwd`" --define "_srcrpmdir `pwd`" -ba crio.spec
 
 all: rpm
 

@@ -1,11 +1,11 @@
-% ocid(8) Open Container Initiative Daemon
+% crio(8) Open Container Initiative Daemon
 % Dan Walsh
 % SEPTEMBER 2016
 # NAME
-ocid - Enable OCI Kubernetes Container Runtime daemon
+crio - Enable OCI Kubernetes Container Runtime daemon
 
 # SYNOPSIS
-**ocid**
+**crio**
 [**--config**=[*value*]]
 [**--conmon**=[*value*]]
 [**--debug**]
@@ -32,7 +32,7 @@ ocid - Enable OCI Kubernetes Container Runtime daemon
 # DESCRIPTION
 OCI-based implementation of Kubernetes Container Runtime Interface Daemon
 
-ocid is meant to provide an integration path between OCI conformant runtimes and the kubelet. Specifically, it implements the Kubelet Container Runtime Interface (CRI) using OCI conformant runtimes. The scope of ocid is tied to the scope of the CRI.
+crio is meant to provide an integration path between OCI conformant runtimes and the kubelet. Specifically, it implements the Kubelet Container Runtime Interface (CRI) using OCI conformant runtimes. The scope of crio is tied to the scope of the CRI.
 
 	* Support multiple image formats including the existing Docker image format
 	* Support for multiple means to download images including trust & image verification
@@ -41,20 +41,20 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
 	* Monitoring and logging required to satisfy the CRI
 	* Resource isolation as required by the CRI
 
-**ocid [GLOBAL OPTIONS]**
+**crio [GLOBAL OPTIONS]**
 
-**ocid [GLOBAL OPTIONS] config [OPTIONS]**
+**crio [GLOBAL OPTIONS] config [OPTIONS]**
 
 # GLOBAL OPTIONS
 
 **--apparmor_profile**=""
-  Name of the apparmor profile to be used as the runtime's default (default: "ocid-default")
+  Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
 
 **--config**=""
   path to configuration file
 
 **--conmon**=""
-  path to the conmon executable (default: "/usr/local/libexec/ocid/conmon")
+  path to the conmon executable (default: "/usr/local/libexec/crio/conmon")
 
 **--debug**
   Enable debug output for logging
@@ -66,7 +66,7 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
   Print usage statement
 
 **--listen**=""
-  Path to ocid socket (default: "/var/run/ocid.sock")
+  Path to crio socket (default: "/var/run/crio.sock")
 
 **--log**=""
   Set the log file path where internal debug information is written
@@ -93,7 +93,7 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
   Enable selinux support (default: false)
 
 **--seccomp-profile**=""
-  Path to the seccomp json profile to be used as the runtime's default (default: "/etc/ocid/seccomp.json")
+  Path to the seccomp json profile to be used as the runtime's default (default: "/etc/crio/seccomp.json")
 
 **--signature-policy**=""
   Path to the signature policy json file (default: "", to use the system-wide default)
@@ -130,7 +130,7 @@ it later with **--config**. Global options will modify the output.
   Output the default configuration (without taking into account any configuration options).
 
 # SEE ALSO
-ocid.conf(5)
+crio.conf(5)
 
 # HISTORY
 Sept 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com> and Aleksa Sarai <asarai@suse.de>

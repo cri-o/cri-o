@@ -19,27 +19,27 @@ function teardown() {
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_ocid "$TESTDIR"/seccomp_profile1.json
+	start_crio "$TESTDIR"/seccomp_profile1.json
 
-	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp1-1-testname-0": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run ocic pod run --name seccomp1 --config "$TESTDIR"/seccomp1.json
+	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.crio-seccomp1-1-testname-0": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
+	run crioctl pod run --name seccomp1 --config "$TESTDIR"/seccomp1.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --name testname --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run crioctl ctr create --name testname --config "$TESTDATA"/container_redis.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run ocic ctr start --id "$ctr_id"
+	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ocic ctr execsync --id "$ctr_id" chmod 777 .
+	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
 
 # 2. test running with ctr runtime/default
@@ -55,21 +55,21 @@ function teardown() {
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_ocid "$TESTDIR"/seccomp_profile1.json
+	start_crio "$TESTDIR"/seccomp_profile1.json
 
-	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp2-1-testname2-0": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
-	run ocic pod run --name seccomp2 --config "$TESTDIR"/seccomp2.json
+	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.crio-seccomp2-1-testname2-0": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
+	run crioctl pod run --name seccomp2 --config "$TESTDIR"/seccomp2.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --name testname2 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run crioctl ctr create --name testname2 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run ocic ctr start --id "$ctr_id"
+	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ocic ctr execsync --id "$ctr_id" chmod 777 .
+	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "Exit code: 1" ]]
@@ -77,7 +77,7 @@ function teardown() {
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
 
 # 3. test running with ctr wrong profile name
@@ -92,14 +92,14 @@ function teardown() {
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_ocid "$TESTDIR"/seccomp_profile1.json
+	start_crio "$TESTDIR"/seccomp_profile1.json
 
-	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp3-1-testname3-1": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
-	run ocic pod run --name seccomp3 --config "$TESTDIR"/seccomp3.json
+	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.crio-seccomp3-1-testname3-1": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
+	run crioctl pod run --name seccomp3 --config "$TESTDIR"/seccomp3.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --name testname3 --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	run crioctl ctr create --name testname3 --config "$TESTDATA"/container_config.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -ne 0 ]
 	[[ "$output" =~ "unknown seccomp profile option:" ]]
@@ -107,7 +107,7 @@ function teardown() {
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
 
 # TODO(runcom): need https://issues.k8s.io/36997
@@ -123,7 +123,7 @@ function teardown() {
 	#sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	#start_ocid "$TESTDIR"/seccomp_profile1.json
+	#start_crio "$TESTDIR"/seccomp_profile1.json
 
 	skip "need https://issues.k8s.io/36997"
 }
@@ -143,21 +143,21 @@ function teardown() {
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_ocid "$TESTDIR"/seccomp_profile1.json
+	start_crio "$TESTDIR"/seccomp_profile1.json
 
-	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp2-1-testname2-0-not-exists": "unconfined", "security\.alpha\.kubernetes\.io\/seccomp\/pod": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp5.json
-	run ocic pod run --name seccomp5 --config "$TESTDIR"/seccomp5.json
+	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.crio-seccomp2-1-testname2-0-not-exists": "unconfined", "security\.alpha\.kubernetes\.io\/seccomp\/pod": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp5.json
+	run crioctl pod run --name seccomp5 --config "$TESTDIR"/seccomp5.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run ocic ctr start --id "$ctr_id"
+	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ocic ctr execsync --id "$ctr_id" chmod 777 .
+	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "Exit code: 1" ]]
@@ -165,7 +165,7 @@ function teardown() {
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
 
 # 6. test running with unkwown ctr profile and no pod, falls back to unconfined
@@ -183,27 +183,27 @@ function teardown() {
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_ocid "$TESTDIR"/seccomp_profile1.json
+	start_crio "$TESTDIR"/seccomp_profile1.json
 
-	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.ocid-seccomp6-1-testname6-0-not-exists": "runtime-default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp6.json
-	run ocic pod run --name seccomp6 --config "$TESTDIR"/seccomp6.json
+	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.crio-seccomp6-1-testname6-0-not-exists": "runtime-default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp6.json
+	run crioctl pod run --name seccomp6 --config "$TESTDIR"/seccomp6.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --name testname6 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run crioctl ctr create --name testname6 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run ocic ctr start --id "$ctr_id"
+	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ocic ctr execsync --id "$ctr_id" chmod 777 .
+	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
 
 # 1. test running with pod unconfined
@@ -219,27 +219,27 @@ function teardown() {
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_ocid "$TESTDIR"/seccomp_profile1.json
+	start_crio "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run ocic pod run --name seccomp1 --config "$TESTDIR"/seccomp1.json
+	run crioctl pod run --name seccomp1 --config "$TESTDIR"/seccomp1.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run ocic ctr start --id "$ctr_id"
+	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ocic ctr execsync --id "$ctr_id" chmod 777 .
+	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
 
 # 2. test running with pod runtime/default
@@ -255,21 +255,21 @@ function teardown() {
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_ocid "$TESTDIR"/seccomp_profile1.json
+	start_crio "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
-	run ocic pod run --name seccomp2 --config "$TESTDIR"/seccomp2.json
+	run crioctl pod run --name seccomp2 --config "$TESTDIR"/seccomp2.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run ocic ctr start --id "$ctr_id"
+	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ocic ctr execsync --id "$ctr_id" chmod 777 .
+	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "Exit code: 1" ]]
@@ -277,7 +277,7 @@ function teardown() {
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
 
 # 3. test running with pod wrong profile name
@@ -292,15 +292,15 @@ function teardown() {
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_ocid "$TESTDIR"/seccomp_profile1.json
+	start_crio "$TESTDIR"/seccomp_profile1.json
 
 	# 3. test running with pod wrong profile name
 	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/pod": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
-	run ocic pod run --name seccomp3 --config "$TESTDIR"/seccomp3.json
+	run crioctl pod run --name seccomp3 --config "$TESTDIR"/seccomp3.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run ocic ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -ne 0 ]
 	[[ "$output" =~ "unknown seccomp profile option:" ]]
@@ -308,7 +308,7 @@ function teardown() {
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
 
 # TODO(runcom): need https://issues.k8s.io/36997
@@ -324,7 +324,7 @@ function teardown() {
 	#sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	#start_ocid "$TESTDIR"/seccomp_profile1.json
+	#start_crio "$TESTDIR"/seccomp_profile1.json
 
 	skip "need https://issues.k8s.io/36997"
 }

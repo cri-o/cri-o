@@ -37,7 +37,7 @@
 	},
 	"annotations": {
 		"owner": "dragon",
-		"daemon": "ocid"
+		"daemon": "crio"
 	},
 	"privileged": true,
 	"readonly_rootfs": true,

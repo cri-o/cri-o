@@ -40,7 +40,7 @@ It is currently in active development in the Kubernetes community through the [d
 
 ### Prerequisites
 
-`runc` version 1.0.0.rc1 or greater is expected to be installed on the system. It is picked up as the default runtime by ocid.
+`runc` version 1.0.0.rc1 or greater is expected to be installed on the system. It is picked up as the default runtime by crio.
 
 ### Build Dependencies
 
@@ -170,8 +170,8 @@ your system.
 You can run a local version of kubernetes with cri-o using `local-up-cluster.sh`:
 
 1. Clone the [kubernetes repository](https://github.com/kubernetes/kubernetes)
-1. Start the cri-o daemon (`ocid`)
-1. From the kubernetes project directory, run: `CONTAINER_RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT='/var/run/ocid.sock --runtime-request-timeout=15m' ./hack/local-up-cluster.sh`
+1. Start the cri-o daemon (`crio`)
+1. From the kubernetes project directory, run: `CONTAINER_RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT='/var/run/crio.sock --runtime-request-timeout=15m' ./hack/local-up-cluster.sh`
 
 To run a full cluster, see [the instructions](kubernetes.md).
 

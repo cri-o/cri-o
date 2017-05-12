@@ -1,11 +1,11 @@
 {
 	"metadata": {
 		"name": "podsandbox1",
-		"uid": "redhat-test-ocid",
-		"namespace": "redhat.test.ocid",
+		"uid": "redhat-test-crio",
+		"namespace": "redhat.test.crio",
 		"attempt": 1
 	},
-	"hostname": "ocic_host",
+	"hostname": "crioctl_host",
 	"log_directory": "",
 	"dns_options": {
 		"servers": [

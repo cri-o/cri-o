@@ -146,8 +146,8 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	// Move conmon to specified cgroup
 	if cgroupParent != "" {
 		if r.cgroupManager == "systemd" {
-			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("ocid", c.name))
-			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("ocid", c.name)); err != nil {
+			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio", c.name))
+			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("crio", c.name)); err != nil {
 				logrus.Warnf("Failed to add conmon to sandbox cgroup: %v", err)
 			}
 		}
@@ -282,7 +282,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}()
 
-	logFile, err := ioutil.TempFile("", "ocid-log-"+c.name)
+	logFile, err := ioutil.TempFile("", "crio-log-"+c.name)
 	if err != nil {
 		return nil, ExecSyncError{
 			ExitCode: -1,

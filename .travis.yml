@@ -29,4 +29,4 @@ script:
   - make
 
 notifications:
-  irc: "chat.freenode.net#ocid"
+  irc: "chat.freenode.net#crio"

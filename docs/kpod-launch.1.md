@@ -36,7 +36,7 @@ pull** IMAGE, before it starts the container from that image.
 Launch a pod
 
 # SEE ALSO
-kpod(1), ocid(8), ocid.conf(5)
+kpod(1), crio(8), crio.conf(5)
 
 # HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>

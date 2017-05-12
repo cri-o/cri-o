@@ -10,14 +10,14 @@ import (
 
 // Default paths if none are specified
 const (
-	ocidRoot            = "/var/lib/containers/storage"
-	ocidRunRoot         = "/var/run/containers/storage"
-	conmonPath          = "/usr/local/libexec/ocid/conmon"
+	crioRoot            = "/var/lib/containers/storage"
+	crioRunRoot         = "/var/run/containers/storage"
+	conmonPath          = "/usr/local/libexec/crio/conmon"
 	pauseImage          = "kubernetes/pause"
 	pauseCommand        = "/pause"
 	defaultTransport    = "docker://"
-	seccompProfilePath  = "/etc/ocid/seccomp.json"
-	apparmorProfileName = "ocid-default"
+	seccompProfilePath  = "/etc/crio/seccomp.json"
+	apparmorProfileName = "crio-default"
 	cniConfigDir        = "/etc/cni/net.d/"
 	cniBinDir           = "/opt/cni/bin/"
 	cgroupManager       = "cgroupfs"
@@ -37,7 +37,7 @@ type Config struct {
 // while also not requiring a bunch of layered structs for no good
 // reason.
 
-// RootConfig represents the root of the "ocid" TOML config table.
+// RootConfig represents the root of the "crio" TOML config table.
 type RootConfig struct {
 	// Root is a path to the "root directory" where data not
 	// explicitly handled by other options will be stored.
@@ -59,7 +59,7 @@ type RootConfig struct {
 	LogDir string `toml:"log_dir"`
 }
 
-// APIConfig represents the "ocid.api" TOML config table.
+// APIConfig represents the "crio.api" TOML config table.
 type APIConfig struct {
 	// Listen is the path to the AF_LOCAL socket on which cri-o will listen.
 	// This may support proto://addr formats later, but currently this is just
@@ -67,14 +67,14 @@ type APIConfig struct {
 	Listen string `toml:"listen"`
 }
 
-// RuntimeConfig represents the "ocid.runtime" TOML config table.
+// RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
-	// Runtime is a path to the OCI runtime which ocid will be using. Currently
+	// Runtime is a path to the OCI runtime which crio will be using. Currently
 	// the only known working choice is runC, simply because the OCI has not
 	// yet merged a CLI API (so we assume runC's API here).
 	Runtime string `toml:"runtime"`
 
-	// RuntimeHostPrivileged is a path to the OCI runtime which ocid will be
+	// RuntimeHostPrivileged is a path to the OCI runtime which crio will be
 	// using for host privileged operations.
 	RuntimeHostPrivileged string `toml:"runtime_host_privileged"`
 
@@ -100,7 +100,7 @@ type RuntimeConfig struct {
 	CgroupManager string `toml:"cgroup_manager"`
 }
 
-// ImageConfig represents the "ocid.image" TOML config table.
+// ImageConfig represents the "crio.image" TOML config table.
 type ImageConfig struct {
 	// DefaultTransport is a value we prefix to image names that fail to
 	// validate source references.
@@ -119,7 +119,7 @@ type ImageConfig struct {
 	SignaturePolicyPath string `toml:"signature_policy"`
 }
 
-// NetworkConfig represents the "ocid.network" TOML config table
+// NetworkConfig represents the "crio.network" TOML config table
 type NetworkConfig struct {
 	// NetworkDir is where CNI network configuration files are stored.
 	NetworkDir string `toml:"network_dir"`
@@ -138,7 +138,7 @@ type tomlConfig struct {
 		Runtime struct{ RuntimeConfig } `toml:"runtime"`
 		Image   struct{ ImageConfig }   `toml:"image"`
 		Network struct{ NetworkConfig } `toml:"network"`
-	} `toml:"ocid"`
+	} `toml:"crio"`
 }
 
 func (t *tomlConfig) toConfig(c *Config) {
@@ -195,16 +195,16 @@ func (c *Config) ToFile(path string) error {
 	return ioutil.WriteFile(path, w.Bytes(), 0644)
 }
 
-// DefaultConfig returns the default configuration for ocid.
+// DefaultConfig returns the default configuration for crio.
 func DefaultConfig() *Config {
 	return &Config{
 		RootConfig: RootConfig{
-			Root:    ocidRoot,
-			RunRoot: ocidRunRoot,
-			LogDir:  "/var/log/ocid/pods",
+			Root:    crioRoot,
+			RunRoot: crioRunRoot,
+			LogDir:  "/var/log/crio/pods",
 		},
 		APIConfig: APIConfig{
-			Listen: "/var/run/ocid.sock",
+			Listen: "/var/run/crio.sock",
 		},
 		RuntimeConfig: RuntimeConfig{
 			Runtime:               "/usr/bin/runc",

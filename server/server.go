@@ -26,7 +26,7 @@ import (
 
 const (
 	runtimeAPIVersion = "v1alpha1"
-	shutdownFile      = "/var/lib/ocid/ocid.shutdown"
+	shutdownFile      = "/var/lib/crio/crio.shutdown"
 )
 
 // streamService implements streaming.Runtime.
@@ -87,10 +87,10 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 	labels := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations["ocid/labels"]), &labels); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations["crio/labels"]), &labels); err != nil {
 		return err
 	}
-	name := m.Annotations["ocid/name"]
+	name := m.Annotations["crio/name"]
 	name, err = s.reserveContainerName(id, name)
 	if err != nil {
 		return err
@@ -103,16 +103,16 @@ func (s *Server) loadContainer(id string) error {
 	}()
 
 	var metadata pb.ContainerMetadata
-	if err = json.Unmarshal([]byte(m.Annotations["ocid/metadata"]), &metadata); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations["crio/metadata"]), &metadata); err != nil {
 		return err
 	}
-	sb := s.getSandbox(m.Annotations["ocid/sandbox_id"])
+	sb := s.getSandbox(m.Annotations["crio/sandbox_id"])
 	if sb == nil {
-		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations["ocid/sandbox_id"])
+		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations["crio/sandbox_id"])
 	}
 
 	var tty bool
-	if v := m.Annotations["ocid/tty"]; v == "true" {
+	if v := m.Annotations["crio/tty"]; v == "true" {
 		tty = true
 	}
 	containerPath, err := s.store.GetContainerRunDirectory(id)
@@ -121,7 +121,7 @@ func (s *Server) loadContainer(id string) error {
 	}
 
 	var img *pb.ImageSpec
-	image, ok := m.Annotations["ocid/image"]
+	image, ok := m.Annotations["crio/image"]
 	if ok {
 		img = &pb.ImageSpec{
 			Image: image,
@@ -129,11 +129,11 @@ func (s *Server) loadContainer(id string) error {
 	}
 
 	annotations := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations["ocid/annotations"]), &annotations); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations["crio/annotations"]), &annotations); err != nil {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged)
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["crio/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged)
 	if err != nil {
 		return err
 	}
@@ -170,10 +170,10 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 	labels := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations["ocid/labels"]), &labels); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations["crio/labels"]), &labels); err != nil {
 		return err
 	}
-	name := m.Annotations["ocid/name"]
+	name := m.Annotations["crio/name"]
 	name, err = s.reservePodName(id, name)
 	if err != nil {
 		return err
@@ -184,7 +184,7 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 	var metadata pb.PodSandboxMetadata
-	if err = json.Unmarshal([]byte(m.Annotations["ocid/metadata"]), &metadata); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations["crio/metadata"]), &metadata); err != nil {
 		return err
 	}
 
@@ -194,26 +194,26 @@ func (s *Server) loadSandbox(id string) error {
 	}
 
 	annotations := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations["ocid/annotations"]), &annotations); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations["crio/annotations"]), &annotations); err != nil {
 		return err
 	}
 
-	privileged := m.Annotations["ocid/privileged_runtime"] == "true"
+	privileged := m.Annotations["crio/privileged_runtime"] == "true"
 
 	sb := &sandbox{
 		id:           id,
 		name:         name,
-		kubeName:     m.Annotations["ocid/kube_name"],
-		logDir:       filepath.Dir(m.Annotations["ocid/log_path"]),
+		kubeName:     m.Annotations["crio/kube_name"],
+		logDir:       filepath.Dir(m.Annotations["crio/log_path"]),
 		labels:       labels,
 		containers:   oci.NewMemoryStore(),
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
 		annotations:  annotations,
 		metadata:     &metadata,
-		shmPath:      m.Annotations["ocid/shm_path"],
+		shmPath:      m.Annotations["crio/shm_path"],
 		privileged:   privileged,
-		resolvPath:   m.Annotations["ocid/resolv_path"],
+		resolvPath:   m.Annotations["crio/resolv_path"],
 	}
 
 	// We add a netNS only if we can load a permanent one.
@@ -244,7 +244,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	cname, err := s.reserveContainerName(m.Annotations["ocid/container_id"], m.Annotations["ocid/container_name"])
+	cname, err := s.reserveContainerName(m.Annotations["crio/container_id"], m.Annotations["crio/container_name"])
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	scontainer, err := oci.NewContainer(m.Annotations["ocid/container_id"], cname, sandboxPath, m.Annotations["ocid/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
+	scontainer, err := oci.NewContainer(m.Annotations["crio/container_id"], cname, sandboxPath, m.Annotations["crio/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged)
 	if err != nil {
 		return err
 	}

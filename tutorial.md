@@ -25,8 +25,8 @@ gcloud compute ssh cri-o
 
 This section will walk you through installing the following components:
 
-* ocid - The implementation of the Kubernetes CRI, which manages Pods.
-* ocic - The ocid client for testing.
+* crio - The implementation of the Kubernetes CRI, which manages Pods.
+* crioctl - The crio client for testing.
 * cni - The Container Network Interface
 * runc - The OCI runtime to launch the container
 
@@ -60,9 +60,9 @@ commit: c91b5bea4830a57eac7882d7455d59518cdf70ec
 spec: 1.0.0-rc2-dev
 ```
 
-### ocid
+### crio
 
-The `ocid` project does not ship binary releases so you'll need to build it from source.
+The `crio` project does not ship binary releases so you'll need to build it from source.
 
 #### Install the Go runtime and tool chain
 
@@ -100,7 +100,7 @@ go version
 go version go1.7.4 linux/amd64
 ```
 
-#### Build ocid from source
+#### Build crio from source
 
 ```
 sudo apt-get install -y libglib2.0-dev libseccomp-dev libapparmor-dev
@@ -129,17 +129,17 @@ sudo make install
 Output:
 
 ```
-install -D -m 755 kpod /usr/bin/kpod
-install -D -m 755 ocid /usr/bin/ocid
-install -D -m 755 ocic /usr/bin/ocic
-install -D -m 755 conmon/conmon /usr/local/libexec/ocid/conmon
-install -D -m 755 pause/pause /usr/libexec/ocid/pause
-install -d -m 755 /usr/share/man/man{1,5,8}
-install -m 644 docs/kpod.1 docs/kpod-launch.1 -t /usr/share/man/man1
-install -m 644 docs/ocid.conf.5 -t /usr/share/man/man5
-install -m 644 docs/ocid.8 -t /usr/share/man/man8
-install -D -m 644 ocid.conf /etc/ocid/ocid.conf
-install -D -m 644 seccomp.json /etc/ocid/seccomp.json
+install -D -m 755 kpod /usr/local/bin/kpod
+install -D -m 755 crio /usr/local/bin/crio
+install -D -m 755 crioctl /usr/local/bin/crioctl
+install -D -m 755 conmon/conmon /usr/local/libexec/crio/conmon
+install -D -m 755 pause/pause /usr/local/libexec/crio/pause
+install -d -m 755 /usr/local/share/man/man{1,5,8}
+install -m 644 docs/kpod.1 docs/kpod-launch.1 -t /usr/local/share/man/man1
+install -m 644 docs/crio.conf.5 -t /usr/local/share/man/man5
+install -m 644 docs/crio.8 -t /usr/local/share/man/man8
+install -D -m 644 crio.conf /etc/crio/crio.conf
+install -D -m 644 seccomp.json /etc/crio/seccomp.json
 ```
 
 If you are installing for the first time, generate config as follows:
@@ -151,11 +151,11 @@ make install.config
 Output:
 
 ```
-install -D -m 644 ocid.conf /etc/ocid/ocid.conf
-install -D -m 644 seccomp.json /etc/ocid/seccomp.json
+install -D -m 644 crio.conf /etc/crio/crio.conf
+install -D -m 644 seccomp.json /etc/crio/seccomp.json
 ```
 
-#### Start the ocid system daemon
+#### Start the crio system daemon
 
 ```
 sudo sh -c 'echo "[Unit]
@@ -163,28 +163,28 @@ Description=OCI-based implementation of Kubernetes Container Runtime Interface
 Documentation=https://github.com/kubernetes-incubator/cri-o
 
 [Service]
-ExecStart=/usr/bin/ocid --debug
+ExecStart=/usr/local/bin/crio --debug
 Restart=on-failure
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target" > /etc/systemd/system/ocid.service'
+WantedBy=multi-user.target" > /etc/systemd/system/crio.service'
 ```
 
 ```
 sudo systemctl daemon-reload
 ```
 ```
-sudo systemctl enable ocid
+sudo systemctl enable crio
 ```
 ```
-sudo systemctl start ocid
+sudo systemctl start crio
 ```
 
-#### Ensure the ocid service is running
+#### Ensure the crio service is running
 
 ```
-sudo ocic runtimeversion
+sudo crioctl runtimeversion
 ```
 ```
 VersionResponse: Version: 0.1.0, RuntimeName: runc, RuntimeVersion: 1.0.0-rc2, RuntimeApiVersion: v1alpha1
@@ -290,15 +290,15 @@ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
 Next create the Pod and capture the Pod ID for later use:
 
 ```
-POD_ID=$(sudo ocic pod run --config test/testdata/sandbox_config.json)
+POD_ID=$(sudo crioctl pod run --config test/testdata/sandbox_config.json)
 ```
 
-> sudo ocic pod run --config test/testdata/sandbox_config.json
+> sudo crioctl pod run --config test/testdata/sandbox_config.json
 
-Use the `ocic` command to get the status of the Pod:
+Use the `crioctl` command to get the status of the Pod:
 
 ```
-sudo ocic pod status --id $POD_ID
+sudo crioctl pod status --id $POD_ID
 ```
 
 Output:
@@ -306,8 +306,8 @@ Output:
 ```
 ID: cd6c0883663c6f4f99697aaa15af8219e351e03696bd866bc3ac055ef289702a
 Name: podsandbox1
-UID: redhat-test-ocid
-Namespace: redhat.test.ocid
+UID: redhat-test-crio
+Namespace: redhat.test.crio
 Attempt: 1
 Status: SANDBOX_READY
 Created: 2016-12-14 15:59:04.373680832 +0000 UTC
@@ -324,26 +324,26 @@ Annotations:
 
 ### Create a Redis container inside the Pod
 
-Use the `ocic` command to create a redis container from a container configuration and attach it to the Pod created earlier:
+Use the `crioctl` command to create a redis container from a container configuration and attach it to the Pod created earlier:
 
 ```
-CONTAINER_ID=$(sudo ocic ctr create --pod $POD_ID --config test/testdata/container_redis.json)
+CONTAINER_ID=$(sudo crioctl ctr create --pod $POD_ID --config test/testdata/container_redis.json)
 ```
 
-> sudo ocic ctr create --pod $POD_ID --config test/testdata/container_redis.json
+> sudo crioctl ctr create --pod $POD_ID --config test/testdata/container_redis.json
 
-The `ocic ctr create` command  will take a few seconds to return because the redis container needs to be pulled.
+The `crioctl ctr create` command  will take a few seconds to return because the redis container needs to be pulled.
 
 Start the Redis container:
 
 ```
-sudo ocic ctr start --id $CONTAINER_ID
+sudo crioctl ctr start --id $CONTAINER_ID
 ```
 
 Get the status for the Redis container:
 
 ```
-sudo ocic ctr status --id $CONTAINER_ID
+sudo crioctl ctr status --id $CONTAINER_ID
 ```
 
 Output:
@@ -391,34 +391,34 @@ Connection closed.
 
 #### Viewing the Redis logs
 
-The Redis logs are logged to the stderr of the ocid service, which can be viewed using `journalctl`:
+The Redis logs are logged to the stderr of the crio service, which can be viewed using `journalctl`:
 
 ```
-sudo journalctl -u ocid --no-pager
+sudo journalctl -u crio --no-pager
 ```
 
 ### Stop the redis container and delete the Pod
 
 ```
-sudo ocic ctr stop --id $CONTAINER_ID
+sudo crioctl ctr stop --id $CONTAINER_ID
 ```
 
 ```
-sudo ocic ctr remove --id $CONTAINER_ID
+sudo crioctl ctr remove --id $CONTAINER_ID
 ```
 
 ```
-sudo ocic pod stop --id $POD_ID
+sudo crioctl pod stop --id $POD_ID
 ```
 
 ```
-sudo ocic pod remove --id $POD_ID
+sudo crioctl pod remove --id $POD_ID
 ```
 
 ```
-sudo ocic pod list
+sudo crioctl pod list
 ```
 
 ```
-sudo ocic ctr list
+sudo crioctl ctr list
 ```

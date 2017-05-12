@@ -252,20 +252,20 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	privileged := s.privilegedSandbox(req)
-	g.AddAnnotation("ocid/metadata", string(metadataJSON))
-	g.AddAnnotation("ocid/labels", string(labelsJSON))
-	g.AddAnnotation("ocid/annotations", string(annotationsJSON))
-	g.AddAnnotation("ocid/log_path", logPath)
-	g.AddAnnotation("ocid/name", name)
-	g.AddAnnotation("ocid/container_type", containerTypeSandbox)
-	g.AddAnnotation("ocid/sandbox_id", id)
-	g.AddAnnotation("ocid/container_name", containerName)
-	g.AddAnnotation("ocid/container_id", id)
-	g.AddAnnotation("ocid/shm_path", shmPath)
-	g.AddAnnotation("ocid/privileged_runtime", fmt.Sprintf("%v", privileged))
-	g.AddAnnotation("ocid/resolv_path", resolvPath)
-	g.AddAnnotation("ocid/hostname", hostname)
-	g.AddAnnotation("ocid/kube_name", kubeName)
+	g.AddAnnotation("crio/metadata", string(metadataJSON))
+	g.AddAnnotation("crio/labels", string(labelsJSON))
+	g.AddAnnotation("crio/annotations", string(annotationsJSON))
+	g.AddAnnotation("crio/log_path", logPath)
+	g.AddAnnotation("crio/name", name)
+	g.AddAnnotation("crio/container_type", containerTypeSandbox)
+	g.AddAnnotation("crio/sandbox_id", id)
+	g.AddAnnotation("crio/container_name", containerName)
+	g.AddAnnotation("crio/container_id", id)
+	g.AddAnnotation("crio/shm_path", shmPath)
+	g.AddAnnotation("crio/privileged_runtime", fmt.Sprintf("%v", privileged))
+	g.AddAnnotation("crio/resolv_path", resolvPath)
+	g.AddAnnotation("crio/hostname", hostname)
+	g.AddAnnotation("crio/kube_name", kubeName)
 
 	sb := &sandbox{
 		id:           id,
@@ -319,7 +319,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cgroupParent := req.GetConfig().GetLinux().CgroupParent
 	if cgroupParent != "" {
 		if s.config.CgroupManager == "systemd" {
-			cgPath := cgroupParent + ":" + "ocid" + ":" + id
+			cgPath := cgroupParent + ":" + "crio" + ":" + id
 			g.SetLinuxCgroupsPath(cgPath)
 
 		} else {
