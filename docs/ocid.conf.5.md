@@ -55,7 +55,7 @@ The `ocid` table supports the following options:
   Environment variable list for conmon process (default: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",])
 
 **runtime**=""
-  OCI runtime path (default: "/usr/bin/runc")
+  OCI runtime path (default: "/usr/local/sbin/runc")
 
 **selinux**=*true*|*false*
   Enable selinux support (default: false)

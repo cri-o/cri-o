@@ -87,7 +87,7 @@ ocid is meant to provide an integration path between OCI conformant runtimes and
   OCID state dir (default: "/var/run/containers/storage")
 
 **--runtime**=""
-  OCI runtime path (default: "/usr/bin/runc")
+  OCI runtime path (default: "/usr/local/sbin/runc")
 
 **--selinux**=*true*|*false*
   Enable selinux support (default: false)
