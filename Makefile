@@ -107,7 +107,7 @@ dbuild: ocidimage
 integration: ocidimage
 	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
 
-localintegration: binaries
+localintegration: clean binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
 binaries: ocid ocic kpod conmon pause bin2img copyimg checkseccomp
