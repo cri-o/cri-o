@@ -40,22 +40,6 @@ var (
 		"RLIMIT_SIGPENDING",
 		"RLIMIT_STACK",
 	}
-	defaultCaps = []string{
-		"CAP_CHOWN",
-		"CAP_DAC_OVERRIDE",
-		"CAP_FSETID",
-		"CAP_FOWNER",
-		"CAP_MKNOD",
-		"CAP_NET_RAW",
-		"CAP_SETGID",
-		"CAP_SETUID",
-		"CAP_SETFCAP",
-		"CAP_SETPCAP",
-		"CAP_NET_BIND_SERVICE",
-		"CAP_SYS_CHROOT",
-		"CAP_KILL",
-		"CAP_AUDIT_WRITE",
-	}
 )
 
 // Validator represents a validator for runtime bundle
@@ -174,7 +158,7 @@ func (v *Validator) CheckPlatform() (msgs []string) {
 		"darwin":    {"386", "amd64", "arm", "arm64"},
 		"dragonfly": {"amd64"},
 		"freebsd":   {"386", "amd64", "arm"},
-		"linux":     {"386", "amd64", "arm", "arm64", "ppc64", "ppc64le", "mips64", "mips64le", "s390x"},
+		"linux":     {"386", "amd64", "arm", "arm64", "mips", "mipsle", "mips64", "mips64le", "ppc64", "ppc64le", "s390x"},
 		"netbsd":    {"386", "amd64", "arm"},
 		"openbsd":   {"386", "amd64", "arm"},
 		"plan9":     {"386", "amd64"},
@@ -275,7 +259,7 @@ func (v *Validator) CheckProcess() (msgs []string) {
 		}
 	}
 
-	msgs = append(msgs, v.CheckCapablities()...)
+	msgs = append(msgs, v.CheckCapabilities()...)
 	msgs = append(msgs, v.CheckRlimits()...)
 
 	if v.spec.Platform.OS == "linux" {
@@ -292,7 +276,8 @@ func (v *Validator) CheckProcess() (msgs []string) {
 	return
 }
 
-func (v *Validator) CheckCapablities() (msgs []string) {
+// CheckCapabilities checks v.spec.Process.Capabilities
+func (v *Validator) CheckCapabilities() (msgs []string) {
 	process := v.spec.Process
 	if v.spec.Platform.OS == "linux" {
 		var caps []string
@@ -325,6 +310,7 @@ func (v *Validator) CheckCapablities() (msgs []string) {
 	return
 }
 
+// CheckRlimits checks v.spec.Process.Rlimits
 func (v *Validator) CheckRlimits() (msgs []string) {
 	process := v.spec.Process
 	for index, rlimit := range process.Rlimits {
@@ -525,13 +511,13 @@ func (v *Validator) CheckLinux() (msgs []string) {
 
 	for _, maskedPath := range v.spec.Linux.MaskedPaths {
 		if !strings.HasPrefix(maskedPath, "/") {
-			msgs = append(msgs, "maskedPath %v is not an absolute path", maskedPath)
+			msgs = append(msgs, fmt.Sprintf("maskedPath %v is not an absolute path", maskedPath))
 		}
 	}
 
 	for _, readonlyPath := range v.spec.Linux.ReadonlyPaths {
 		if !strings.HasPrefix(readonlyPath, "/") {
-			msgs = append(msgs, "readonlyPath %v is not an absolute path", readonlyPath)
+			msgs = append(msgs, fmt.Sprintf("readonlyPath %v is not an absolute path", readonlyPath))
 		}
 	}
 
@@ -700,13 +686,8 @@ func namespaceValid(ns rspec.LinuxNamespace) bool {
 
 func deviceValid(d rspec.LinuxDevice) bool {
 	switch d.Type {
-	case "b":
-	case "c":
-	case "u":
-		if d.Major <= 0 {
-			return false
-		}
-		if d.Minor <= 0 {
+	case "b", "c", "u":
+		if d.Major <= 0 || d.Minor <= 0 {
 			return false
 		}
 	case "p":

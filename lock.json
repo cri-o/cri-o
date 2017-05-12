@@ -1,5 +1,5 @@
 {
-    "memo": "348395ad5cf0e6c04bd9b6bd3265db1c2c3c0d2f42710bf3f0cc64e58f1aa269",
+    "memo": "3487610714d3936576aec97198a3843b7304fd35737e5c10b984698069d64447",
     "projects": [
         {
             "name": "cloud.google.com/go",
@@ -523,6 +523,8 @@
             "revision": "b263a43430ac6996a4302b891688544225197294",
             "packages": [
                 "libcontainer/apparmor",
+                "libcontainer/configs",
+                "libcontainer/devices",
                 "libcontainer/system",
                 "libcontainer/user"
             ]
@@ -538,7 +540,7 @@
         {
             "name": "github.com/opencontainers/runtime-tools",
             "branch": "master",
-            "revision": "18a122b45a71765b09c6a451008a63687040b74a",
+            "revision": "69b94fd47d1fe49ddb416dde90f0507259622a11",
             "packages": [
                 "generate",
                 "generate/seccomp",
