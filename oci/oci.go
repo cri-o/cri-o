@@ -54,7 +54,8 @@ type Runtime struct {
 
 // syncInfo is used to return data from monitor process to daemon
 type syncInfo struct {
-	Pid int `json:"pid"`
+	Pid     int    `json:"pid"`
+	Message string `json:"message,omitempty"`
 }
 
 // exitCodeInfo is used to return the monitored process exit code to the daemon
@@ -100,6 +101,7 @@ func getOCIVersion(name string, args ...string) (string, error) {
 
 // CreateContainer creates a container.
 func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
+	var stderrBuf bytes.Buffer
 	parentPipe, childPipe, err := newPipe()
 	if err != nil {
 		return fmt.Errorf("error creating socket pair: %v", err)
@@ -130,6 +132,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	if c.terminal {
+		cmd.Stderr = &stderrBuf
+	}
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
@@ -171,13 +176,42 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
-			return err
+			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
 		}
 		logrus.Infof("Received container pid: %d", ss.si.Pid)
+		errorMessage := ""
+		if c.terminal {
+			errorMessage = stderrBuf.String()
+			fmt.Fprintf(os.Stderr, errorMessage)
+			errorMessage = sanitizeConmonErrorMessage(errorMessage)
+		} else {
+			if ss.si.Message != "" {
+				errorMessage = ss.si.Message
+			}
+		}
+
+		if ss.si.Pid == -1 {
+			if errorMessage != "" {
+				return fmt.Errorf("container create failed: %s", errorMessage)
+			}
+			return fmt.Errorf("container create failed")
+		}
 	case <-time.After(ContainerCreateTimeout):
 		return fmt.Errorf("create container timeout")
 	}
 	return nil
+}
+
+// sanitizeConmonErrorMessage removes conmon debug messages from error string
+func sanitizeConmonErrorMessage(errString string) string {
+	var sanitizedLines []string
+	lines := strings.Split(errString, "\n")
+	for _, line := range lines {
+		if !strings.HasPrefix(line, "[conmon") {
+			sanitizedLines = append(sanitizedLines, line)
+		}
+	}
+	return strings.Join(sanitizedLines, "\n")
 }
 
 func createUnitName(prefix string, name string) string {
