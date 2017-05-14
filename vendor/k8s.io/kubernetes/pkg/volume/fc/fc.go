@@ -78,6 +78,14 @@ func (plugin *fcPlugin) RequiresRemount() bool {
 	return false
 }
 
+func (plugin *fcPlugin) SupportsMountOption() bool {
+	return false
+}
+
+func (plugin *fcPlugin) SupportsBulkVolumeVerification() bool {
+	return false
+}
+
 func (plugin *fcPlugin) GetAccessModes() []v1.PersistentVolumeAccessMode {
 	return []v1.PersistentVolumeAccessMode{
 		v1.ReadWriteOnce,
@@ -196,11 +204,11 @@ func (b *fcDiskMounter) CanMount() error {
 	return nil
 }
 
-func (b *fcDiskMounter) SetUp(fsGroup *int64) error {
+func (b *fcDiskMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
-func (b *fcDiskMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (b *fcDiskMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	// diskSetUp checks mountpoints and prevent repeated calls
 	err := diskSetUp(b.manager, *b, dir, b.mounter, fsGroup)
 	if err != nil {

@@ -25,18 +25,21 @@ import (
 	"os"
 	"os/user"
 	"path"
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/util/flag"
+	manualfake "k8s.io/client-go/rest/fake"
+	testcore "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/api"
@@ -45,12 +48,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	manualfake "k8s.io/kubernetes/pkg/client/restclient/fake"
-	testcore "k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util/flag"
 )
 
 func TestNewFactoryDefaultFlagBindings(t *testing.T) {
@@ -268,6 +268,7 @@ func TestRefetchSchemaWhenValidationFails(t *testing.T) {
 	requests := map[string]int{}
 
 	c := &manualfake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		Client: manualfake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -280,8 +281,11 @@ func TestRefetchSchemaWhenValidationFails(t *testing.T) {
 			}
 		}),
 	}
-	dir := os.TempDir() + "/schemaCache"
-	os.RemoveAll(dir)
+	dir, err := ioutil.TempDir("", "schemaCache")
+	if err != nil {
+		t.Fatalf("Error getting tempDir: %v", err)
+	}
+	defer os.RemoveAll(dir)
 
 	fullDir, err := substituteUserHome(dir)
 	if err != nil {
@@ -325,6 +329,7 @@ func TestValidateCachesSchema(t *testing.T) {
 	requests := map[string]int{}
 
 	c := &manualfake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		Client: manualfake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -337,8 +342,11 @@ func TestValidateCachesSchema(t *testing.T) {
 			}
 		}),
 	}
-	dir := os.TempDir() + "/schemaCache"
-	os.RemoveAll(dir)
+	dir, err := ioutil.TempDir("", "schemaCache")
+	if err != nil {
+		t.Fatalf("Error getting tempDir: %v", err)
+	}
+	defer os.RemoveAll(dir)
 
 	obj := &api.Pod{}
 	data, err := runtime.Encode(testapi.Default.Codec(), obj)
@@ -621,7 +629,7 @@ func TestGetFirstPod(t *testing.T) {
 			t.Errorf("%s: expected %d pods, got %d", test.name, test.expectedNum, numPods)
 			continue
 		}
-		if !reflect.DeepEqual(test.expected, pod) {
+		if !apiequality.Semantic.DeepEqual(test.expected, pod) {
 			t.Errorf("%s:\nexpected pod:\n%#v\ngot:\n%#v\n\n", test.name, test.expected, pod)
 		}
 	}
@@ -738,17 +746,21 @@ func TestDiscoveryReplaceAliases(t *testing.T) {
 		{
 			name:     "all-replacement",
 			arg:      "all",
-			expected: "pods,replicationcontrollers,services,statefulsets,horizontalpodautoscalers,jobs,deployments,replicasets",
+			expected: "pods,replicationcontrollers,services,statefulsets.apps,horizontalpodautoscalers.autoscaling,jobs.batch,deployments.extensions,replicasets.extensions",
 		},
 		{
 			name:     "alias-in-comma-separated-arg",
 			arg:      "all,secrets",
-			expected: "pods,replicationcontrollers,services,statefulsets,horizontalpodautoscalers,jobs,deployments,replicasets,secrets",
+			expected: "pods,replicationcontrollers,services,statefulsets.apps,horizontalpodautoscalers.autoscaling,jobs.batch,deployments.extensions,replicasets.extensions,secrets",
 		},
 	}
 
-	mapper := NewShortcutExpander(testapi.Default.RESTMapper(), nil)
-	b := resource.NewBuilder(mapper, api.Scheme, fakeClient(), testapi.Default.Codec())
+	ds := &fakeDiscoveryClient{}
+	mapper, err := NewShortcutExpander(testapi.Default.RESTMapper(), ds)
+	if err != nil {
+		t.Fatalf("Unable to create shortcut expander, err = %s", err.Error())
+	}
+	b := resource.NewBuilder(mapper, resource.LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec())
 
 	for _, test := range tests {
 		replaced := b.ReplaceAliases(test.arg)

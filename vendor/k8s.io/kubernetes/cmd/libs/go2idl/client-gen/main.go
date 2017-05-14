@@ -36,6 +36,7 @@ var (
 	test          = flag.BoolP("test", "t", false, "set this flag to generate the client code for the testdata")
 	inputVersions = flag.StringSlice("input", []string{
 		"api/",
+		"admissionregistration/",
 		"authentication/",
 		"authorization/",
 		"autoscaling/",
@@ -46,12 +47,14 @@ var (
 		"storage/",
 		"apps/",
 		"policy/",
-	}, "group/versions that client-gen will generate clients for. At most one version per group is allowed. Specified in the format \"group1/version1,group2/version2...\". Default to \"api/,extensions/,autoscaling/,batch/,rbac/\"")
+		"settings/",
+		"networking/",
+	}, "group/versions that client-gen will generate clients for. At most one version per group is allowed. Specified in the format \"group1/version1,group2/version2...\".")
 	includedTypesOverrides = flag.StringSlice("included-types-overrides", []string{}, "list of group/version/type for which client should be generated. By default, client is generated for all types which have genclient=true in types.go. This overrides that. For each groupVersion in this list, only the types mentioned here will be included. The default check of genclient=true will be used for other group versions.")
-	basePath               = flag.String("input-base", "k8s.io/kubernetes/pkg/apis", "base path to look for the api group. Default to \"k8s.io/kubernetes/pkg/apis\"")
+	basePath               = flag.String("input-base", "k8s.io/kubernetes/pkg/apis", "base path to look for the api group.")
 	clientsetName          = flag.StringP("clientset-name", "n", "internalclientset", "the name of the generated clientset package.")
 	clientsetAPIPath       = flag.StringP("clientset-api-path", "", "", "the value of default API path.")
-	clientsetPath          = flag.String("clientset-path", "k8s.io/kubernetes/pkg/client/clientset_generated/", "the generated clientset will be output to <clientset-path>/<clientset-name>. Default to \"k8s.io/kubernetes/pkg/client/clientset_generated/\"")
+	clientsetPath          = flag.String("clientset-path", "k8s.io/kubernetes/pkg/client/clientset_generated/", "the generated clientset will be output to <clientset-path>/<clientset-name>.")
 	clientsetOnly          = flag.Bool("clientset-only", false, "when set, client-gen only generates the clientset shell, without generating the individual typed clients")
 	fakeClient             = flag.Bool("fake-clientset", true, "when set, client-gen will generate the fake clientset that can be used in tests")
 )
@@ -173,7 +176,7 @@ func main() {
 		arguments.CustomArgs = clientgenargs.Args{
 			Groups: []types.GroupVersions{{Group: "testgroup", Versions: []types.Version{""}}},
 			GroupVersionToInputPath: map[types.GroupVersion]string{
-				types.GroupVersion{Group: "testgroup", Version: ""}: "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup",
+				{Group: "testgroup", Version: ""}: "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup",
 			},
 			ClientsetName:       "test_internalclientset",
 			ClientsetOutputPath: "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/testoutput/clientset_generated/",

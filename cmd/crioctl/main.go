@@ -10,7 +10,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 )
 
 func getClientConnection(context *cli.Context) (*grpc.ClientConn, error) {

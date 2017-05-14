@@ -18,12 +18,24 @@ package fake
 
 import (
 	rest "k8s.io/client-go/rest"
+	testing "k8s.io/client-go/testing"
 	v1beta1 "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/apps/v1beta1"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
 
 type FakeAppsV1beta1 struct {
-	*core.Fake
+	*testing.Fake
+}
+
+func (c *FakeAppsV1beta1) ControllerRevisions(namespace string) v1beta1.ControllerRevisionInterface {
+	return &FakeControllerRevisions{c, namespace}
+}
+
+func (c *FakeAppsV1beta1) Deployments(namespace string) v1beta1.DeploymentInterface {
+	return &FakeDeployments{c, namespace}
+}
+
+func (c *FakeAppsV1beta1) Scales(namespace string) v1beta1.ScaleInterface {
+	return &FakeScales{c, namespace}
 }
 
 func (c *FakeAppsV1beta1) StatefulSets(namespace string) v1beta1.StatefulSetInterface {

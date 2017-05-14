@@ -19,7 +19,6 @@ package e2e_node
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/davecgh/go-spew/spew"
@@ -51,7 +50,7 @@ var _ = framework.KubeDescribe("ImageID", func() {
 		pod := f.PodClient().Create(podDesc)
 
 		framework.ExpectNoError(framework.WaitTimeoutForPodNoLongerRunningInNamespace(
-			f.ClientSet, pod.Name, f.Namespace.Name, "", framework.PodStartTimeout))
+			f.ClientSet, pod.Name, f.Namespace.Name, framework.PodStartTimeout))
 		runningPod, err := f.PodClient().Get(pod.Name, metav1.GetOptions{})
 		framework.ExpectNoError(err)
 
@@ -62,6 +61,6 @@ var _ = framework.KubeDescribe("ImageID", func() {
 			return
 		}
 
-		Expect(status.ContainerStatuses[0].ImageID).To(Equal(dockertools.DockerPullablePrefix + busyBoxImage))
+		Expect(status.ContainerStatuses[0].ImageID).To(ContainSubstring(busyBoxImage))
 	})
 })

@@ -1,6 +1,7 @@
 approvers:
 - chakri-nelluri
 - saad-ali
+- MikaelCluseau
 reviewers:
 - ivan4th
 - rata
@@ -17,6 +18,6 @@ reviewers:
 - jsafrane
 - rootfs
 - jingxu97
-- rkouj
 - msau42
 - chakri-nelluri
+- MikaelCluseau

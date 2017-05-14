@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/kubelet/qos"
+	v1qos "k8s.io/kubernetes/pkg/api/v1/helper/qos"
 )
 
 const (
@@ -38,8 +38,6 @@ const (
 // It is the general implementation which allows pod level container
 // management if qos Cgroup is enabled.
 type podContainerManagerImpl struct {
-	// nodeInfo stores information about the node resource capacity
-	nodeInfo *v1.Node
 	// qosContainersInfo hold absolute paths of the top level qos containers
 	qosContainersInfo QOSContainersInfo
 	// Stores the mounted cgroup subsystems
@@ -95,7 +93,7 @@ func (m *podContainerManagerImpl) EnsureExists(pod *v1.Pod) error {
 
 // GetPodContainerName returns the CgroupName identifer, and its literal cgroupfs form on the host.
 func (m *podContainerManagerImpl) GetPodContainerName(pod *v1.Pod) (CgroupName, string) {
-	podQOS := qos.GetPodQOS(pod)
+	podQOS := v1qos.GetPodQOS(pod)
 	// Get the parent QOS container name
 	var parentContainer string
 	switch podQOS {
@@ -177,7 +175,7 @@ func (m *podContainerManagerImpl) ReduceCPULimits(podCgroup CgroupName) error {
 	return m.cgroupManager.ReduceCPULimits(podCgroup)
 }
 
-// GetAllPodsFromCgroups scans through all the subsytems of pod cgroups
+// GetAllPodsFromCgroups scans through all the subsystems of pod cgroups
 // Get list of pods whose cgroup still exist on the cgroup mounts
 func (m *podContainerManagerImpl) GetAllPodsFromCgroups() (map[types.UID]CgroupName, error) {
 	// Map for storing all the found pods on the disk
@@ -194,27 +192,37 @@ func (m *podContainerManagerImpl) GetAllPodsFromCgroups() (map[types.UID]CgroupN
 			qc := path.Join(val, qcConversion)
 			dirInfo, err := ioutil.ReadDir(qc)
 			if err != nil {
+				if os.IsNotExist(err) {
+					continue
+				}
 				return nil, fmt.Errorf("failed to read the cgroup directory %v : %v", qc, err)
 			}
 			for i := range dirInfo {
-				// note: we do a contains check because on systemd, the literal cgroupfs name will prefix the qos as well.
-				if dirInfo[i].IsDir() && strings.Contains(dirInfo[i].Name(), podCgroupNamePrefix) {
-					// we need to convert the name to an internal identifier
-					internalName := m.cgroupManager.CgroupName(dirInfo[i].Name())
-					// we then split the name on the pod prefix to determine the uid
-					parts := strings.Split(string(internalName), podCgroupNamePrefix)
-					// the uid is missing, so we log the unexpected cgroup not of form pod<uid>
-					if len(parts) != 2 {
-						location := path.Join(qc, dirInfo[i].Name())
-						glog.Errorf("pod cgroup manager ignoring unexpected cgroup %v because it is not a pod", location)
-						continue
-					}
-					podUID := parts[1]
-					// because the literal cgroupfs name could encode the qos tier (on systemd), we avoid double encoding
-					// by just rebuilding the fully qualified CgroupName according to our internal convention.
-					cgroupName := CgroupName(path.Join(qosContainerName, podCgroupNamePrefix+podUID))
-					foundPods[types.UID(podUID)] = cgroupName
+				// its not a directory, so continue on...
+				if !dirInfo[i].IsDir() {
+					continue
 				}
+				// convert the concrete cgroupfs name back to an internal identifier
+				// this is needed to handle path conversion for systemd environments.
+				// we pass the fully qualified path so decoding can work as expected
+				// since systemd encodes the path in each segment.
+				cgroupfsPath := path.Join(qcConversion, dirInfo[i].Name())
+				internalPath := m.cgroupManager.CgroupName(cgroupfsPath)
+				// we only care about base segment of the converted path since that
+				// is what we are reading currently to know if it is a pod or not.
+				basePath := path.Base(string(internalPath))
+				if !strings.Contains(basePath, podCgroupNamePrefix) {
+					continue
+				}
+				// we then split the name on the pod prefix to determine the uid
+				parts := strings.Split(basePath, podCgroupNamePrefix)
+				// the uid is missing, so we log the unexpected cgroup not of form pod<uid>
+				if len(parts) != 2 {
+					glog.Errorf("pod cgroup manager ignoring unexpected cgroup %v because it is not a pod", cgroupfsPath)
+					continue
+				}
+				podUID := parts[1]
+				foundPods[types.UID(podUID)] = internalPath
 			}
 		}
 	}

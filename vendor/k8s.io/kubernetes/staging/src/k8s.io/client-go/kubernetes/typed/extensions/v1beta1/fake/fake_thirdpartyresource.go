@@ -17,12 +17,11 @@ limitations under the License.
 package fake
 
 import (
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	v1 "k8s.io/client-go/pkg/api/v1"
 	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	testing "k8s.io/client-go/testing"
 )
@@ -33,6 +32,8 @@ type FakeThirdPartyResources struct {
 }
 
 var thirdpartyresourcesResource = schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "thirdpartyresources"}
+
+var thirdpartyresourcesKind = schema.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "ThirdPartyResource"}
 
 func (c *FakeThirdPartyResources) Create(thirdPartyResource *v1beta1.ThirdPartyResource) (result *v1beta1.ThirdPartyResource, err error) {
 	obj, err := c.Fake.
@@ -58,14 +59,14 @@ func (c *FakeThirdPartyResources) Delete(name string, options *v1.DeleteOptions)
 	return err
 }
 
-func (c *FakeThirdPartyResources) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeThirdPartyResources) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(thirdpartyresourcesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.ThirdPartyResourceList{})
 	return err
 }
 
-func (c *FakeThirdPartyResources) Get(name string, options meta_v1.GetOptions) (result *v1beta1.ThirdPartyResource, err error) {
+func (c *FakeThirdPartyResources) Get(name string, options v1.GetOptions) (result *v1beta1.ThirdPartyResource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(thirdpartyresourcesResource, name), &v1beta1.ThirdPartyResource{})
 	if obj == nil {
@@ -74,9 +75,9 @@ func (c *FakeThirdPartyResources) Get(name string, options meta_v1.GetOptions) (
 	return obj.(*v1beta1.ThirdPartyResource), err
 }
 
-func (c *FakeThirdPartyResources) List(opts meta_v1.ListOptions) (result *v1beta1.ThirdPartyResourceList, err error) {
+func (c *FakeThirdPartyResources) List(opts v1.ListOptions) (result *v1beta1.ThirdPartyResourceList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(thirdpartyresourcesResource, opts), &v1beta1.ThirdPartyResourceList{})
+		Invokes(testing.NewRootListAction(thirdpartyresourcesResource, thirdpartyresourcesKind, opts), &v1beta1.ThirdPartyResourceList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func (c *FakeThirdPartyResources) List(opts meta_v1.ListOptions) (result *v1beta
 }
 
 // Watch returns a watch.Interface that watches the requested thirdPartyResources.
-func (c *FakeThirdPartyResources) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *FakeThirdPartyResources) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(thirdpartyresourcesResource, opts))
 }

@@ -18,19 +18,19 @@ package ingress
 
 import (
 	"fmt"
-	"reflect"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/extensions/validation"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // ingressStrategy implements verification logic for Replication Ingresss.
@@ -66,7 +66,7 @@ func (ingressStrategy) PrepareForUpdate(ctx genericapirequest.Context, obj, old 
 	// Any changes to the spec increment the generation number, any changes to the
 	// status should reflect the generation number of the corresponding object.
 	// See metav1.ObjectMeta description for more information on Generation.
-	if !reflect.DeepEqual(oldIngress.Spec, newIngress.Spec) {
+	if !apiequality.Semantic.DeepEqual(oldIngress.Spec, newIngress.Spec) {
 		newIngress.Generation = oldIngress.Generation + 1
 	}
 

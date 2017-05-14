@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/stats"
+	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -142,7 +142,7 @@ func runResourceUsageTest(f *framework.Framework, rc *ResourceCollector, testArg
 		// sleep for an interval here to measure steady data
 		sleepAfterCreatePods = 10 * time.Second
 	)
-	pods := newTestPods(testArg.podsNr, framework.GetPauseImageNameForHostArch(), "test_pod")
+	pods := newTestPods(testArg.podsNr, true, framework.GetPauseImageNameForHostArch(), "test_pod")
 
 	rc.Start()
 	// Explicitly delete pods to prevent namespace controller cleanning up timeout

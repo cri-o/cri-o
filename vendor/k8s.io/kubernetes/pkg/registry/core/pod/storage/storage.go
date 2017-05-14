@@ -25,17 +25,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/storage"
+	storeerr "k8s.io/apiserver/pkg/storage/errors"
 	"k8s.io/kubernetes/pkg/api"
-	storeerr "k8s.io/kubernetes/pkg/api/errors/storage"
+	podutil "k8s.io/kubernetes/pkg/api/pod"
 	"k8s.io/kubernetes/pkg/api/validation"
 	policyclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/policy/internalversion"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 	"k8s.io/kubernetes/pkg/kubelet/client"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 	podrest "k8s.io/kubernetes/pkg/registry/core/pod/rest"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // PodStorage includes storage for pods and all sub resources
@@ -60,13 +62,12 @@ type REST struct {
 // NewStorage returns a RESTStorage object that will work against pods.
 func NewStorage(optsGetter generic.RESTOptionsGetter, k client.ConnectionInfoGetter, proxyTransport http.RoundTripper, podDisruptionBudgetClient policyclient.PodDisruptionBudgetsGetter) PodStorage {
 	store := &genericregistry.Store{
-		NewFunc:     func() runtime.Object { return &api.Pod{} },
-		NewListFunc: func() runtime.Object { return &api.PodList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.Pod).Name, nil
-		},
+		Copier:            api.Scheme,
+		NewFunc:           func() runtime.Object { return &api.Pod{} },
+		NewListFunc:       func() runtime.Object { return &api.PodList{} },
 		PredicateFunc:     pod.MatchPod,
 		QualifiedResource: api.Resource("pods"),
+		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("pods"),
 
 		CreateStrategy:      pod.Strategy,
 		UpdateStrategy:      pod.Strategy,
@@ -100,6 +101,14 @@ var _ = rest.Redirector(&REST{})
 // ResourceLocation returns a pods location from its HostIP
 func (r *REST) ResourceLocation(ctx genericapirequest.Context, name string) (*url.URL, http.RoundTripper, error) {
 	return pod.ResourceLocation(r, r.proxyTransport, ctx, name)
+}
+
+// Implement ShortNamesProvider
+var _ rest.ShortNamesProvider = &REST{}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"po"}
 }
 
 // BindingREST implements the REST endpoint for binding pods to nodes when etcd is in use.
@@ -154,7 +163,7 @@ func (r *BindingREST) setPodHostAndAnnotations(ctx genericapirequest.Context, po
 		for k, v := range annotations {
 			pod.Annotations[k] = v
 		}
-		api.UpdatePodCondition(&pod.Status, &api.PodCondition{
+		podutil.UpdatePodCondition(&pod.Status, &api.PodCondition{
 			Type:   api.PodScheduled,
 			Status: api.ConditionTrue,
 		})

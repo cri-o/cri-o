@@ -14,10 +14,7 @@ go_library(
         "types.go",
     ],
     tags = ["automanaged"],
-    deps = [
-        "//pkg/api:go_default_library",
-        "//vendor:k8s.io/apimachinery/pkg/types",
-    ],
+    deps = ["//vendor/k8s.io/apimachinery/pkg/types:go_default_library"],
 )
 
 filegroup(
@@ -35,6 +32,7 @@ filegroup(
         "//pkg/proxy/healthcheck:all-srcs",
         "//pkg/proxy/iptables:all-srcs",
         "//pkg/proxy/userspace:all-srcs",
+        "//pkg/proxy/util:all-srcs",
         "//pkg/proxy/winuserspace:all-srcs",
     ],
     tags = ["automanaged"],

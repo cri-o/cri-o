@@ -17,45 +17,104 @@ limitations under the License.
 package componentconfig
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
-	utilconfig "k8s.io/kubernetes/pkg/util/config"
 )
 
+// ClientConnectionConfiguration contains details for constructing a client.
+type ClientConnectionConfiguration struct {
+	// kubeConfigFile is the path to a kubeconfig file.
+	KubeConfigFile string
+	// acceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the
+	// default value of 'application/json'. This field will control all connections to the server used by a particular
+	// client.
+	AcceptContentTypes string
+	// contentType is the content type used when sending data to the server from this client.
+	ContentType string
+	// qps controls the number of queries per second allowed for this connection.
+	QPS float32
+	// burst allows extra queries to accumulate when a client is exceeding its rate.
+	Burst int
+}
+
+// KubeProxyIPTablesConfiguration contains iptables-related configuration
+// details for the Kubernetes proxy server.
+type KubeProxyIPTablesConfiguration struct {
+	// masqueradeBit is the bit of the iptables fwmark space to use for SNAT if using
+	// the pure iptables proxy mode. Values must be within the range [0, 31].
+	MasqueradeBit *int32
+	// masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode.
+	MasqueradeAll bool
+	// syncPeriod is the period that iptables rules are refreshed (e.g. '5s', '1m',
+	// '2h22m').  Must be greater than 0.
+	SyncPeriod metav1.Duration
+	// minSyncPeriod is the minimum period that iptables rules are refreshed (e.g. '5s', '1m',
+	// '2h22m').
+	MinSyncPeriod metav1.Duration
+}
+
+// KubeProxyConntrackConfiguration contains conntrack settings for
+// the Kubernetes proxy server.
+type KubeProxyConntrackConfiguration struct {
+	// max is the maximum number of NAT connections to track (0 to
+	// leave as-is).  This takes precedence over conntrackMaxPerCore and conntrackMin.
+	Max int32
+	// maxPerCore is the maximum number of NAT connections to track
+	// per CPU core (0 to leave the limit as-is and ignore conntrackMin).
+	MaxPerCore int32
+	// min is the minimum value of connect-tracking records to allocate,
+	// regardless of conntrackMaxPerCore (set conntrackMaxPerCore=0 to leave the limit as-is).
+	Min int32
+	// tcpEstablishedTimeout is how long an idle TCP connection will be kept open
+	// (e.g. '2s').  Must be greater than 0.
+	TCPEstablishedTimeout metav1.Duration
+	// tcpCloseWaitTimeout is how long an idle conntrack entry
+	// in CLOSE_WAIT state will remain in the conntrack
+	// table. (e.g. '60s'). Must be greater than 0 to set.
+	TCPCloseWaitTimeout metav1.Duration
+}
+
+// KubeProxyConfiguration contains everything necessary to configure the
+// Kubernetes proxy server.
 type KubeProxyConfiguration struct {
 	metav1.TypeMeta
+
+	// featureGates is a comma-separated list of key=value pairs that control
+	// which alpha/beta features are enabled.
+	//
+	// TODO this really should be a map but that requires refactoring all
+	// components to use config files because local-up-cluster.sh only supports
+	// the --feature-gates flag right now, which is comma-separated key=value
+	// pairs.
+	FeatureGates string
 
 	// bindAddress is the IP address for the proxy server to serve on (set to 0.0.0.0
 	// for all interfaces)
 	BindAddress string
+	// healthzBindAddress is the IP address and port for the health check server to serve on,
+	// defaulting to 0.0.0.0:10256
+	HealthzBindAddress string
+	// metricsBindAddress is the IP address and port for the metrics server to serve on,
+	// defaulting to 127.0.0.1:10249 (set to 0.0.0.0 for all interfaces)
+	MetricsBindAddress string
+	// enableProfiling enables profiling via web interface on /debug/pprof handler.
+	// Profiling handlers will be handled by metrics server.
+	EnableProfiling bool
 	// clusterCIDR is the CIDR range of the pods in the cluster. It is used to
 	// bridge traffic coming from outside of the cluster. If not provided,
 	// no off-cluster bridging will be performed.
 	ClusterCIDR string
-	// healthzBindAddress is the IP address for the health check server to serve on,
-	// defaulting to 127.0.0.1 (set to 0.0.0.0 for all interfaces)
-	HealthzBindAddress string
-	// healthzPort is the port to bind the health check server. Use 0 to disable.
-	HealthzPort int32
 	// hostnameOverride, if non-empty, will be used as the identity instead of the actual hostname.
 	HostnameOverride string
-	// iptablesMasqueradeBit is the bit of the iptables fwmark space to use for SNAT if using
-	// the pure iptables proxy mode. Values must be within the range [0, 31].
-	IPTablesMasqueradeBit *int32
-	// iptablesSyncPeriod is the period that iptables rules are refreshed (e.g. '5s', '1m',
-	// '2h22m').  Must be greater than 0.
-	IPTablesSyncPeriod metav1.Duration
-	// iptablesMinSyncPeriod is the minimum period that iptables rules are refreshed (e.g. '5s', '1m',
-	// '2h22m').
-	IPTablesMinSyncPeriod metav1.Duration
-	// kubeconfigPath is the path to the kubeconfig file with authorization information (the
-	// master location is set by the master flag).
-	KubeconfigPath string
-	// masqueradeAll tells kube-proxy to SNAT everything if using the pure iptables proxy mode.
-	MasqueradeAll bool
-	// master is the address of the Kubernetes API server (overrides any value in kubeconfig)
-	Master string
+	// clientConnection specifies the kubeconfig file and client connection settings for the proxy
+	// server to use when communicating with the apiserver.
+	ClientConnection ClientConnectionConfiguration
+	// iptables contains iptables-related configuration options.
+	IPTables KubeProxyIPTablesConfiguration
 	// oomScoreAdj is the oom-score-adj value for kube-proxy process. Values must be within
 	// the range [-1000, 1000]
 	OOMScoreAdj *int32
@@ -70,30 +129,18 @@ type KubeProxyConfiguration struct {
 	// udpIdleTimeout is how long an idle UDP connection will be kept open (e.g. '250ms', '2s').
 	// Must be greater than 0. Only applicable for proxyMode=userspace.
 	UDPIdleTimeout metav1.Duration
-	// conntrackMax is the maximum number of NAT connections to track (0 to
-	// leave as-is).  This takes precedence over conntrackMaxPerCore and conntrackMin.
-	ConntrackMax int32
-	// conntrackMaxPerCore is the maximum number of NAT connections to track
-	// per CPU core (0 to leave the limit as-is and ignore conntrackMin).
-	ConntrackMaxPerCore int32
-	// conntrackMin is the minimum value of connect-tracking records to allocate,
-	// regardless of conntrackMaxPerCore (set conntrackMaxPerCore=0 to leave the limit as-is).
-	ConntrackMin int32
-	// conntrackTCPEstablishedTimeout is how long an idle TCP connection will be kept open
-	// (e.g. '2s').  Must be greater than 0.
-	ConntrackTCPEstablishedTimeout metav1.Duration
-	// conntrackTCPCloseWaitTimeout is how long an idle conntrack entry
-	// in CLOSE_WAIT state will remain in the conntrack
-	// table. (e.g. '60s'). Must be greater than 0 to set.
-	ConntrackTCPCloseWaitTimeout metav1.Duration
+	// conntrack contains conntrack-related configuration options.
+	Conntrack KubeProxyConntrackConfiguration
+	// configSyncPeriod is how often configuration from the apiserver is refreshed. Must be greater
+	// than 0.
+	ConfigSyncPeriod metav1.Duration
 }
 
 // Currently two modes of proxying are available: 'userspace' (older, stable) or 'iptables'
-// (newer, faster). If blank, look at the Node object on the Kubernetes API and respect the
-// 'net.experimental.kubernetes.io/proxy-mode' annotation if provided.  Otherwise use the
-// best-available proxy (currently iptables, but may change in future versions).  If the
-// iptables proxy is selected, regardless of how, but the system's kernel or iptables
-// versions are insufficient, this always falls back to the userspace proxy.
+// (newer, faster). If blank, use the best-available proxy (currently iptables, but may
+// change in future versions).  If the iptables proxy is selected, regardless of how, but
+// the system's kernel or iptables versions are insufficient, this always falls back to the
+// userspace proxy.
 type ProxyMode string
 
 const (
@@ -119,6 +166,12 @@ const (
 	HairpinNone = "none"
 )
 
+// A configuration field should go in KubeletFlags instead of KubeletConfiguration if any of these are true:
+// - its value will never, or cannot safely be changed during the lifetime of a node
+// - its value cannot be safely shared between nodes at the same time (e.g. a hostname)
+//   KubeletConfiguration is intended to be shared between nodes
+// In general, please try to avoid adding flags or configuration fields,
+// we already have a confusingly large amount of them.
 // TODO: curate the ordering and structure of this config object
 type KubeletConfiguration struct {
 	metav1.TypeMeta
@@ -166,9 +219,6 @@ type KubeletConfiguration struct {
 	Authentication KubeletAuthentication
 	// authorization specifies how requests to the Kubelet's server are authorized
 	Authorization KubeletAuthorization
-	// hostnameOverride is the hostname used to identify the kubelet instead
-	// of the actual hostname.
-	HostnameOverride string
 	// podInfraContainerImage is the image whose network/ipc namespaces
 	// containers in each pod will use.
 	PodInfraContainerImage string
@@ -209,6 +259,8 @@ type KubeletConfiguration struct {
 	// enableDebuggingHandlers enables server endpoints for log collection
 	// and local running of containers and commands
 	EnableDebuggingHandlers bool
+	// enableContentionProfiling enables lock contention profiling, if enableDebuggingHandlers is true.
+	EnableContentionProfiling bool
 	// minimumGCAge is the minimum age for a finished container before it is
 	// garbage collected.
 	MinimumGCAge metav1.Duration
@@ -237,10 +289,10 @@ type KubeletConfiguration struct {
 	// masterServiceNamespace is The namespace from which the kubernetes
 	// master services should be injected into pods.
 	MasterServiceNamespace string
-	// clusterDNS is the IP address for a cluster DNS server.  If set, kubelet
-	// will configure all containers to use this for DNS resolution in
-	// addition to the host's DNS servers
-	ClusterDNS string
+	// clusterDNS is a list of IP address for a cluster DNS server.  If set,
+	// kubelet will configure all containers to use this for DNS resolution
+	// instead of the host's DNS servers
+	ClusterDNS []string
 	// streamingConnectionIdleTimeout is the maximum time a streaming connection
 	// can be idle before the connection is automatically closed.
 	StreamingConnectionIdleTimeout metav1.Duration
@@ -296,7 +348,7 @@ type KubeletConfiguration struct {
 	// And all Burstable and BestEffort pods are brought up under their
 	// specific top level QoS cgroup.
 	// +optional
-	ExperimentalCgroupsPerQOS bool
+	CgroupsPerQOS bool
 	// driver that the kubelet uses to manipulate cgroups on the host (cgroupfs or systemd)
 	// +optional
 	CgroupDriver string
@@ -309,7 +361,7 @@ type KubeletConfiguration struct {
 	// +optional
 	SystemCgroups string
 	// CgroupRoot is the root cgroup to use for pods.
-	// If ExperimentalCgroupsPerQOS is enabled, this is the root of the QoS cgroup hierarchy.
+	// If CgroupsPerQOS is enabled, this is the root of the QoS cgroup hierarchy.
 	// +optional
 	CgroupRoot string
 	// containerRuntime is the container runtime to use.
@@ -357,12 +409,8 @@ type KubeletConfiguration struct {
 	// Generally, one must set --hairpin-mode=veth-flag to achieve hairpin NAT,
 	// because promiscous-bridge assumes the existence of a container bridge named cbr0.
 	HairpinMode string
-	// The node has babysitter process monitoring docker and kubelet.
-	BabysitDaemons bool
 	// maxPods is the number of pods that can run on this Kubelet.
 	MaxPods int32
-	// nvidiaGPUs is the number of NVIDIA GPU devices on this node.
-	NvidiaGPUs int32
 	// dockerExecHandlerName is the handler to use when executing a command
 	// in a container. Valid values are 'native' and 'nsenter'. Defaults to
 	// 'native'.
@@ -404,10 +452,6 @@ type KubeletConfiguration struct {
 	// wait before transitioning out of out-of-disk node condition status.
 	// +optional
 	OutOfDiskTransitionFrequency metav1.Duration
-	// nodeIP is IP address of the node. If set, kubelet will use this IP
-	// address for the node.
-	// +optional
-	NodeIP string
 	// nodeLabels to add when registering the node in the cluster.
 	NodeLabels map[string]string
 	// nonMasqueradeCIDR configures masquerading: traffic to IPs outside this range will use IP masquerade.
@@ -441,16 +485,10 @@ type KubeletConfiguration struct {
 	// manage attachment/detachment of volumes scheduled to this node, and
 	// disables kubelet from executing any attach/detach operations
 	EnableControllerAttachDetach bool
-	// A set of ResourceName=ResourceQuantity (e.g. cpu=200m,memory=150G) pairs
-	// that describe resources reserved for non-kubernetes components.
-	// Currently only cpu and memory are supported. [default=none]
-	// See http://kubernetes.io/docs/user-guide/compute-resources for more detail.
-	SystemReserved utilconfig.ConfigurationMap
-	// A set of ResourceName=ResourceQuantity (e.g. cpu=200m,memory=150G) pairs
-	// that describe resources reserved for kubernetes system components.
-	// Currently only cpu and memory are supported. [default=none]
-	// See http://kubernetes.io/docs/user-guide/compute-resources for more detail.
-	KubeReserved utilconfig.ConfigurationMap
+	// A set of ResourceName=Percentage (e.g. memory=50%) pairs that describe
+	// how pod resource requests are reserved at the QoS level.
+	// Currently only memory is supported. [default=none]"
+	ExperimentalQOSReserved ConfigurationMap
 	// Default behaviour for kernel tuning
 	ProtectKernelDefaults bool
 	// If true, Kubelet ensures a set of iptables rules are present on host.
@@ -471,9 +509,9 @@ type KubeletConfiguration struct {
 	// featureGates is a string of comma-separated key=value pairs that describe feature
 	// gates for alpha/experimental features.
 	FeatureGates string
-	// Enable Container Runtime Interface (CRI) integration.
+	// Enable dockershim only mode.
 	// +optional
-	EnableCRI bool
+	ExperimentalDockershim bool
 	// TODO(#34726:1.8.0): Remove the opt-in for failing when swap is enabled.
 	// Tells the Kubelet to fail to start if swap is enabled on the node.
 	ExperimentalFailSwapOn bool
@@ -484,6 +522,37 @@ type KubeletConfiguration struct {
 	// This flag, if set, instructs the kubelet to keep volumes from terminated pods mounted to the node.
 	// This can be useful for debugging volume related issues.
 	KeepTerminatedPodVolumes bool
+	// This flag, if set, disables use of a shared PID namespace for pods running in the docker CRI runtime.
+	// A shared PID namespace is the only option in non-docker runtimes and is required by the CRI. The ability to
+	// disable it for docker will be removed unless a compelling use case is discovered with widespread use.
+	// TODO: Remove once we no longer support disabling shared PID namespace (https://issues.k8s.io/41938)
+	DockerDisableSharedPID bool
+
+	/* following flags are meant for Node Allocatable */
+
+	// A set of ResourceName=ResourceQuantity (e.g. cpu=200m,memory=150G) pairs
+	// that describe resources reserved for non-kubernetes components.
+	// Currently only cpu and memory are supported. [default=none]
+	// See http://kubernetes.io/docs/user-guide/compute-resources for more detail.
+	SystemReserved ConfigurationMap
+	// A set of ResourceName=ResourceQuantity (e.g. cpu=200m,memory=150G) pairs
+	// that describe resources reserved for kubernetes system components.
+	// Currently only cpu and memory are supported. [default=none]
+	// See http://kubernetes.io/docs/user-guide/compute-resources for more detail.
+	KubeReserved ConfigurationMap
+	// This flag helps kubelet identify absolute name of top level cgroup used to enforce `SystemReserved` compute resource reservation for OS system daemons.
+	// Refer to [Node Allocatable](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node-allocatable.md) doc for more information.
+	SystemReservedCgroup string
+	// This flag helps kubelet identify absolute name of top level cgroup used to enforce `KubeReserved` compute resource reservation for Kubernetes node system daemons.
+	// Refer to [Node Allocatable](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node-allocatable.md) doc for more information.
+	KubeReservedCgroup string
+	// This flag specifies the various Node Allocatable enforcements that Kubelet needs to perform.
+	// This flag accepts a list of options. Acceptible options are `pods`, `system-reserved` & `kube-reserved`.
+	// Refer to [Node Allocatable](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node-allocatable.md) doc for more information.
+	EnforceNodeAllocatable []string
+	// This flag, if set, will avoid including `EvictionHard` limits while computing Node Allocatable.
+	// Refer to [Node Allocatable](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node-allocatable.md) doc for more information.
+	ExperimentalNodeAllocatableIgnoreEvictionThreshold bool
 }
 
 type KubeletAuthorizationMode string
@@ -571,9 +640,27 @@ type KubeSchedulerConfiguration struct {
 	// HardPodAffinitySymmetricWeight represents the weight of implicit PreferredDuringScheduling affinity rule, in the range 0-100.
 	HardPodAffinitySymmetricWeight int
 	// Indicate the "all topologies" set for empty topologyKey when it's used for PreferredDuringScheduling pod anti-affinity.
+	// DEPRECATED: This is no longer used.
 	FailureDomains string
 	// leaderElection defines the configuration of leader election client.
 	LeaderElection LeaderElectionConfiguration
+	// LockObjectNamespace defines the namespace of the lock object
+	LockObjectNamespace string
+	// LockObjectName defines the lock object name
+	LockObjectName string
+	// PolicyConfigMapName is the name of the ConfigMap object that specifies
+	// the scheduler's policy config. If UseLegacyPolicyConfig is true, scheduler
+	// uses PolicyConfigFile. If UseLegacyPolicyConfig is false and
+	// PolicyConfigMapName is not empty, the ConfigMap object with this name must
+	// exist in PolicyConfigMapNamespace before scheduler initialization.
+	PolicyConfigMapName string
+	// PolicyConfigMapNamespace is the namespace where the above policy config map
+	// is located. If none is provided default system namespace ("kube-system")
+	// will be used.
+	PolicyConfigMapNamespace string
+	// UseLegacyPolicyConfig tells the scheduler to ignore Policy ConfigMap and
+	// to use PolicyConfigFile if available.
+	UseLegacyPolicyConfig bool
 }
 
 // LeaderElectionConfiguration defines the configuration of leader election
@@ -599,6 +686,16 @@ type LeaderElectionConfiguration struct {
 	// acquisition and renewal of a leadership. This is only applicable if
 	// leader election is enabled.
 	RetryPeriod metav1.Duration
+	// resourceLock indicates the resource object type that will be used to lock
+	// during leader election cycles.
+	ResourceLock string
+}
+
+type GroupResource struct {
+	// group is the group portion of the GroupResource.
+	Group string
+	// resource is the resource portion of the GroupResource.
+	Resource string
 }
 
 type KubeControllerManagerConfiguration struct {
@@ -662,12 +759,18 @@ type KubeControllerManagerConfiguration struct {
 	ConcurrentSATokenSyncs int32
 	// lookupCacheSizeForRC is the size of lookup cache for replication controllers.
 	// Larger number = more responsive replica management, but more MEM load.
+	// TODO(#43388): Remove the following flag 6 months after v1.6.0 is released.
+	// DEPRECATED: This is no longer used.
 	LookupCacheSizeForRC int32
 	// lookupCacheSizeForRS is the size of lookup cache for replicatsets.
 	// Larger number = more responsive replica management, but more MEM load.
+	// TODO(#43388): Remove the following flag 6 months after v1.6.0 is released.
+	// DEPRECATED: This is no longer used.
 	LookupCacheSizeForRS int32
 	// lookupCacheSizeForDaemonSet is the size of lookup cache for daemonsets.
 	// Larger number = more responsive daemonset, but more MEM load.
+	// TODO(#43388): Remove the following flag 6 months after v1.6.0 is released.
+	// DEPRECATED: This is no longer used.
 	LookupCacheSizeForDaemonSet int32
 	// serviceSyncPeriod is the period for syncing services with their external
 	// load balancers.
@@ -697,6 +800,10 @@ type KubeControllerManagerConfiguration struct {
 	// horizontalPodAutoscalerSyncPeriod is the period for syncing the number of
 	// pods in horizontal pod autoscaler.
 	HorizontalPodAutoscalerSyncPeriod metav1.Duration
+	// horizontalPodAutoscalerUpscaleForbiddenWindow is a period after which next upscale allowed.
+	HorizontalPodAutoscalerUpscaleForbiddenWindow metav1.Duration
+	// horizontalPodAutoscalerDownscaleForbiddenWindow is a period after which next downscale allowed.
+	HorizontalPodAutoscalerDownscaleForbiddenWindow metav1.Duration
 	// deploymentControllerSyncPeriod is the period for syncing the deployments.
 	DeploymentControllerSyncPeriod metav1.Duration
 	// podEvictionTimeout is the grace period for deleting pods on failed nodes.
@@ -729,6 +836,9 @@ type KubeControllerManagerConfiguration struct {
 	// clusterSigningCertFile is the filename containing a PEM-encoded
 	// RSA or ECDSA private key used to issue cluster-scoped certificates
 	ClusterSigningKeyFile string
+	// clusterSigningDuration is the length of duration signed certificates
+	// will be given.
+	ClusterSigningDuration metav1.Duration
 	// approveAllKubeletCSRs tells the CSR controller to approve all CSRs originating
 	// from the kubelet bootstrapping group automatically.
 	// WARNING: this grants all users with access to the certificates API group
@@ -737,6 +847,8 @@ type KubeControllerManagerConfiguration struct {
 	ApproveAllKubeletCSRsForGroup string
 	// enableProfiling enables profiling via web interface host:port/debug/pprof/
 	EnableProfiling bool
+	// enableContentionProfiling enables lock contention profiling, if enableProfiling is true.
+	EnableContentionProfiling bool
 	// clusterName is the instance prefix for the cluster.
 	ClusterName string
 	// clusterCIDR is CIDR Range for Pods in cluster.
@@ -745,9 +857,11 @@ type KubeControllerManagerConfiguration struct {
 	ServiceCIDR string
 	// NodeCIDRMaskSize is the mask size for node cidr in cluster.
 	NodeCIDRMaskSize int32
-	// allocateNodeCIDRs enables CIDRs for Pods to be allocated and, if
+	// AllocateNodeCIDRs enables CIDRs for Pods to be allocated and, if
 	// ConfigureCloudRoutes is true, to be set on the cloud provider.
 	AllocateNodeCIDRs bool
+	// CIDRAllocatorType determines what kind of pod CIDR allocator will be used.
+	CIDRAllocatorType string
 	// configureCloudRoutes enables CIDRs allocated with allocateNodeCIDRs
 	// to be configured on the cloud provider.
 	ConfigureCloudRoutes bool
@@ -773,6 +887,8 @@ type KubeControllerManagerConfiguration struct {
 	// concurrentGCSyncs is the number of garbage collector workers that are
 	// allowed to sync concurrently.
 	ConcurrentGCSyncs int32
+	// gcIgnoredResources is the list of GroupResources that garbage collection should ignore.
+	GCIgnoredResources []GroupResource
 	// nodeEvictionRate is the number of nodes per second on which pods are deleted in case of node failure when a zone is healthy
 	NodeEvictionRate float32
 	// secondaryNodeEvictionRate is the number of nodes per second on which pods are deleted in case of node failure when a zone is unhealty
@@ -789,6 +905,13 @@ type KubeControllerManagerConfiguration struct {
 	// ReconcilerSyncLoopPeriod is the amount of time the reconciler sync states loop
 	// wait between successive executions. Is set to 5 sec by default.
 	ReconcilerSyncLoopPeriod metav1.Duration
+	// If set to true enables NoExecute Taints and will evict all not-tolerating
+	// Pod running on Nodes tainted with this kind of Taints.
+	EnableTaintManager bool
+	// HorizontalPodAutoscalerUseRESTClients causes the HPA controller to use REST clients
+	// through the kube-aggregator when enabled, instead of using the legacy metrics client
+	// through the API server proxy.
+	HorizontalPodAutoscalerUseRESTClients bool
 }
 
 // VolumeConfiguration contains *all* enumerated flags meant to configure all volume
@@ -839,27 +962,40 @@ type PersistentVolumeRecyclerConfiguration struct {
 	IncrementTimeoutHostPath int32
 }
 
-// AdmissionConfiguration provides versioned configuration for admission controllers.
-type AdmissionConfiguration struct {
-	metav1.TypeMeta
+type ConfigurationMap map[string]string
 
-	// Plugins allows specifying a configuration per admission control plugin.
-	Plugins []AdmissionPluginConfiguration
+func (m *ConfigurationMap) String() string {
+	pairs := []string{}
+	for k, v := range *m {
+		pairs = append(pairs, fmt.Sprintf("%s=%s", k, v))
+	}
+	sort.Strings(pairs)
+	return strings.Join(pairs, ",")
 }
 
-// AdmissionPluginConfiguration provides the configuration for a single plug-in.
-type AdmissionPluginConfiguration struct {
-	// Name is the name of the admission controller.
-	// It must match the registered admission plugin name.
-	Name string
-
-	// Path is the path to a configuration file that contains the plugin's
-	// configuration
-	// +optional
-	Path string
-
-	// Configuration is an embedded configuration object to be used as the plugin's
-	// configuration. If present, it will be used instead of the path to the configuration file.
-	// +optional
-	Configuration runtime.Object
+func (m *ConfigurationMap) Set(value string) error {
+	for _, s := range strings.Split(value, ",") {
+		if len(s) == 0 {
+			continue
+		}
+		arr := strings.SplitN(s, "=", 2)
+		if len(arr) == 2 {
+			(*m)[strings.TrimSpace(arr[0])] = strings.TrimSpace(arr[1])
+		} else {
+			(*m)[strings.TrimSpace(arr[0])] = ""
+		}
+	}
+	return nil
 }
+
+func (*ConfigurationMap) Type() string {
+	return "mapStringString"
+}
+
+const (
+	// "kube-system" is the default scheduler lock object namespace
+	SchedulerDefaultLockObjectNamespace string = "kube-system"
+
+	// "kube-scheduler" is the default scheduler lock object name
+	SchedulerDefaultLockObjectName = "kube-scheduler"
+)

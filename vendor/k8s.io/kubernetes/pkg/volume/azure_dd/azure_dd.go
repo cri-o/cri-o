@@ -103,6 +103,14 @@ func (plugin *azureDataDiskPlugin) RequiresRemount() bool {
 	return false
 }
 
+func (plugin *azureDataDiskPlugin) SupportsMountOption() bool {
+	return true
+}
+
+func (plugin *azureDataDiskPlugin) SupportsBulkVolumeVerification() bool {
+	return false
+}
+
 func (plugin *azureDataDiskPlugin) GetAccessModes() []v1.PersistentVolumeAccessMode {
 	return []v1.PersistentVolumeAccessMode{
 		v1.ReadWriteOnce,
@@ -226,12 +234,12 @@ func (b *azureDiskMounter) CanMount() error {
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (b *azureDiskMounter) SetUp(fsGroup *int64) error {
+func (b *azureDiskMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
 // SetUpAt attaches the disk and bind mounts to the volume path.
-func (b *azureDiskMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (b *azureDiskMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	b.plugin.volumeLocks.LockKey(b.diskName)
 	defer b.plugin.volumeLocks.UnlockKey(b.diskName)
 

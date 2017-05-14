@@ -34,6 +34,8 @@ type FakeServiceAccounts struct {
 
 var serviceaccountsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "serviceaccounts"}
 
+var serviceaccountsKind = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ServiceAccount"}
+
 func (c *FakeServiceAccounts) Create(serviceAccount *v1.ServiceAccount) (result *v1.ServiceAccount, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(serviceaccountsResource, c.ns, serviceAccount), &v1.ServiceAccount{})
@@ -54,14 +56,14 @@ func (c *FakeServiceAccounts) Update(serviceAccount *v1.ServiceAccount) (result 
 	return obj.(*v1.ServiceAccount), err
 }
 
-func (c *FakeServiceAccounts) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeServiceAccounts) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(serviceaccountsResource, c.ns, name), &v1.ServiceAccount{})
 
 	return err
 }
 
-func (c *FakeServiceAccounts) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeServiceAccounts) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(serviceaccountsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.ServiceAccountList{})
@@ -80,7 +82,7 @@ func (c *FakeServiceAccounts) Get(name string, options meta_v1.GetOptions) (resu
 
 func (c *FakeServiceAccounts) List(opts meta_v1.ListOptions) (result *v1.ServiceAccountList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(serviceaccountsResource, c.ns, opts), &v1.ServiceAccountList{})
+		Invokes(testing.NewListAction(serviceaccountsResource, serviceaccountsKind, c.ns, opts), &v1.ServiceAccountList{})
 
 	if obj == nil {
 		return nil, err

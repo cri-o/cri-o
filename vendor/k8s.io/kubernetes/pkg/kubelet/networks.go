@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/kubernetes/pkg/kubelet/network"
 )
 
 // This just exports required functions from kubelet proper, for use by network
@@ -54,6 +55,8 @@ func (nh *networkHost) SupportsLegacyFeatures() bool {
 // methods, because networkHost is slated for deletion.
 type criNetworkHost struct {
 	*networkHost
+	// criNetworkHost currently support legacy features. Hence no need to support PortMappingGetter
+	*network.NoopPortMappingGetter
 }
 
 // GetNetNS returns the network namespace of the given containerID.
@@ -69,20 +72,20 @@ func (c *criNetworkHost) GetNetNS(containerID string) (string, error) {
 // noOpLegacyHost implements the network.LegacyHost interface for the remote
 // runtime shim by just returning empties. It doesn't support legacy features
 // like host port and bandwidth shaping.
-type noOpLegacyHost struct{}
+type NoOpLegacyHost struct{}
 
-func (n *noOpLegacyHost) GetPodByName(namespace, name string) (*v1.Pod, bool) {
+func (n *NoOpLegacyHost) GetPodByName(namespace, name string) (*v1.Pod, bool) {
 	return nil, true
 }
 
-func (n *noOpLegacyHost) GetKubeClient() clientset.Interface {
+func (n *NoOpLegacyHost) GetKubeClient() clientset.Interface {
 	return nil
 }
 
-func (n *noOpLegacyHost) GetRuntime() kubecontainer.Runtime {
+func (n *NoOpLegacyHost) GetRuntime() kubecontainer.Runtime {
 	return nil
 }
 
-func (nh *noOpLegacyHost) SupportsLegacyFeatures() bool {
+func (nh *NoOpLegacyHost) SupportsLegacyFeatures() bool {
 	return false
 }

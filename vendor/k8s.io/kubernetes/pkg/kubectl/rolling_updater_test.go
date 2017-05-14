@@ -26,20 +26,22 @@ import (
 	"testing"
 	"time"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
+	manualfake "k8s.io/client-go/rest/fake"
+	testcore "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	manualfake "k8s.io/kubernetes/pkg/client/restclient/fake"
-	testcore "k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/kubectl/util"
 )
 
 func oldRc(replicas int, original int) *api.ReplicationController {
@@ -1075,7 +1077,7 @@ func TestRollingUpdater_multipleContainersInPod(t *testing.T) {
 
 		codec := testapi.Default.Codec()
 
-		deploymentHash, err := api.HashObject(test.newRc, codec)
+		deploymentHash, err := util.HashObject(test.newRc, codec)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -1466,6 +1468,7 @@ func TestUpdateRcWithRetries(t *testing.T) {
 		{StatusCode: 200, Header: header, Body: objBody(codec, rc)},
 	}
 	fakeClient := &manualfake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		Client: manualfake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -1474,7 +1477,7 @@ func TestUpdateRcWithRetries(t *testing.T) {
 				updates = updates[1:]
 				// We should always get an update with a valid rc even when the get fails. The rc should always
 				// contain the update.
-				if c, ok := readOrDie(t, req, codec).(*api.ReplicationController); !ok || !reflect.DeepEqual(rc, c) {
+				if c, ok := readOrDie(t, req, codec).(*api.ReplicationController); !ok || !apiequality.Semantic.DeepEqual(rc, c) {
 					t.Errorf("Unexpected update body, got %+v expected %+v", c, rc)
 				} else if sel, ok := c.Spec.Selector["baz"]; !ok || sel != "foobar" {
 					t.Errorf("Expected selector label update, got %+v", c.Spec.Selector)
@@ -1558,6 +1561,7 @@ func TestAddDeploymentHash(t *testing.T) {
 	seen := sets.String{}
 	updatedRc := false
 	fakeClient := &manualfake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		Client: manualfake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			header := http.Header{}
@@ -1651,7 +1655,7 @@ func TestRollingUpdater_readyPods(t *testing.T) {
 		oldPods []bool
 		newPods []bool
 		// deletions - should be less then the size of the respective slice above
-		// eg. len(oldPods) > oldPodDeletions && len(newPods) > newPodDeletions
+		// e.g. len(oldPods) > oldPodDeletions && len(newPods) > newPodDeletions
 		oldPodDeletions int
 		newPodDeletions int
 		// specify additional time to wait for deployment to wait on top of the

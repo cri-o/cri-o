@@ -60,9 +60,6 @@ const (
 	ServiceAccounts            Resource = "serviceaccounts"
 	Services                   Resource = "services"
 	StorageClasses             Resource = "storageclasses"
-
-	// Default value of watch cache size for a resource if not specified.
-	defaultWatchCacheSize = 100
 )
 
 // TODO: This shouldn't be a global variable.
@@ -112,11 +109,13 @@ func SetWatchCacheSizes(cacheSizes []string) {
 	}
 }
 
-func GetWatchCacheSizeByResource(resource Resource) int { // TODO this should use schema.GroupResource for lookups
-	if value, found := watchCacheSizes[resource]; found {
-		return value
+// GetWatchCacheSizeByResource returns the configured watch cache size for the given resource.
+// A nil value means to use a default size, zero means to disable caching.
+func GetWatchCacheSizeByResource(resource string) (ret *int) { // TODO this should use schema.GroupResource for lookups
+	if value, found := watchCacheSizes[Resource(resource)]; found {
+		return &value
 	}
-	return defaultWatchCacheSize
+	return nil
 }
 
 func maxInt(a, b int) int {

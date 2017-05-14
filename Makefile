@@ -60,13 +60,13 @@ pause:
 	$(MAKE) -C $@
 
 bin2img: .gopathok $(wildcard test/bin2img/*.go)
-	go build -tags "$(BUILDTAGS)" -o test/bin2img/$@ $(PROJECT)/test/bin2img
+	$(GO) build -tags "$(BUILDTAGS)" -o test/bin2img/$@ $(PROJECT)/test/bin2img
 
 copyimg: .gopathok $(wildcard test/copyimg/*.go)
-	go build -tags "$(BUILDTAGS)" -o test/copyimg/$@ $(PROJECT)/test/copyimg
+	$(GO) build -tags "$(BUILDTAGS)" -o test/copyimg/$@ $(PROJECT)/test/copyimg
 
 checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	go build -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
+	$(GO) build -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
 
 crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
 	$(GO) build -o $@ \

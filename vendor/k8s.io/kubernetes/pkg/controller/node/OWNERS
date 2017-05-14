@@ -1,3 +1,6 @@
+approvers:
+- gmarek
+- bowei
 reviewers:
 - gmarek
 - smarterclayton

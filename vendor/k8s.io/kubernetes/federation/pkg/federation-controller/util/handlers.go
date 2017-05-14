@@ -22,7 +22,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/client-go/tools/cache"
 )
 
 // Returns cache.ResourceEventHandlerFuncs that trigger the given function
@@ -72,6 +72,38 @@ func NewTriggerOnMetaAndSpecChanges(triggerFunc func(pkgruntime.Object)) *cache.
 			curMeta := getFieldOrPanic(cur, "ObjectMeta").(metav1.ObjectMeta)
 			if !ObjectMetaEquivalent(oldMeta, curMeta) ||
 				!reflect.DeepEqual(getFieldOrPanic(old, "Spec"), getFieldOrPanic(cur, "Spec")) {
+				triggerFunc(curObj)
+			}
+		},
+	}
+}
+
+// Returns cache.ResourceEventHandlerFuncs that trigger the given function
+// on object add/delete or ObjectMeta or given field is updated.
+func NewTriggerOnMetaAndFieldChanges(field string, triggerFunc func(pkgruntime.Object)) *cache.ResourceEventHandlerFuncs {
+	getFieldOrPanic := func(obj interface{}, fieldName string) interface{} {
+		val := reflect.ValueOf(obj).Elem().FieldByName(fieldName)
+		if val.IsValid() {
+			return val.Interface()
+		} else {
+			panic(fmt.Errorf("field not found: %s", fieldName))
+		}
+	}
+	return &cache.ResourceEventHandlerFuncs{
+		DeleteFunc: func(old interface{}) {
+			oldObj := old.(pkgruntime.Object)
+			triggerFunc(oldObj)
+		},
+		AddFunc: func(cur interface{}) {
+			curObj := cur.(pkgruntime.Object)
+			triggerFunc(curObj)
+		},
+		UpdateFunc: func(old, cur interface{}) {
+			curObj := cur.(pkgruntime.Object)
+			oldMeta := getFieldOrPanic(old, "ObjectMeta").(metav1.ObjectMeta)
+			curMeta := getFieldOrPanic(cur, "ObjectMeta").(metav1.ObjectMeta)
+			if !ObjectMetaEquivalent(oldMeta, curMeta) ||
+				!reflect.DeepEqual(getFieldOrPanic(old, field), getFieldOrPanic(cur, field)) {
 				triggerFunc(curObj)
 			}
 		},

@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/metricsutil"
+	"k8s.io/kubernetes/pkg/util/i18n"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -49,15 +50,15 @@ type TopPodOptions struct {
 const metricsCreationDelay = 2 * time.Minute
 
 var (
-	topPodLong = templates.LongDesc(`
+	topPodLong = templates.LongDesc(i18n.T(`
 		Display Resource (CPU/Memory/Storage) usage of pods.
 
 		The 'top pod' command allows you to see the resource consumption of pods.
 
 		Due to the metrics pipeline delay, they may be unavailable for a few minutes
-		since pod creation.`)
+		since pod creation.`))
 
-	topPodExample = templates.Examples(`
+	topPodExample = templates.Examples(i18n.T(`
 		# Show metrics for all pods in the default namespace
 		kubectl top pod
 
@@ -68,7 +69,7 @@ var (
 		kubectl top pod POD_NAME --containers
 
 		# Show metrics for the pods defined by label name=myLabel
-		kubectl top pod -l name=myLabel`)
+		kubectl top pod -l name=myLabel`))
 )
 
 func NewCmdTopPod(f cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -76,7 +77,7 @@ func NewCmdTopPod(f cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "pod [NAME | -l label]",
-		Short:   "Display Resource (CPU/Memory/Storage) usage of pods",
+		Short:   i18n.T("Display Resource (CPU/Memory/Storage) usage of pods"),
 		Long:    topPodLong,
 		Example: topPodExample,
 		Run: func(cmd *cobra.Command, args []string) {

@@ -27,18 +27,19 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	utiltesting "k8s.io/client-go/util/testing"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
 	utilstrings "k8s.io/kubernetes/pkg/util/strings"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	. "k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
 
 // fakeVolumeHost is useful for testing volume plugins.
@@ -203,6 +204,14 @@ func (plugin *FakeVolumePlugin) RequiresRemount() bool {
 	return false
 }
 
+func (plugin *FakeVolumePlugin) SupportsMountOption() bool {
+	return true
+}
+
+func (plugin *FakeVolumePlugin) SupportsBulkVolumeVerification() bool {
+	return false
+}
+
 func (plugin *FakeVolumePlugin) NewMounter(spec *Spec, pod *v1.Pod, opts VolumeOptions) (Mounter, error) {
 	plugin.Lock()
 	defer plugin.Unlock()
@@ -275,8 +284,8 @@ func (plugin *FakeVolumePlugin) GetNewDetacherCallCount() int {
 	return plugin.NewDetacherCallCount
 }
 
-func (plugin *FakeVolumePlugin) NewRecycler(pvName string, spec *Spec, eventRecorder RecycleEventRecorder) (Recycler, error) {
-	return &fakeRecycler{"/attributesTransferredFromSpec", MetricsNil{}}, nil
+func (plugin *FakeVolumePlugin) Recycle(pvName string, spec *Spec, eventRecorder RecycleEventRecorder) error {
+	return nil
 }
 
 func (plugin *FakeVolumePlugin) NewDeleter(spec *Spec) (Deleter, error) {
@@ -295,7 +304,11 @@ func (plugin *FakeVolumePlugin) GetAccessModes() []v1.PersistentVolumeAccessMode
 }
 
 func (plugin *FakeVolumePlugin) ConstructVolumeSpec(volumeName, mountPath string) (*Spec, error) {
-	return nil, nil
+	return &Spec{
+		Volume: &v1.Volume{
+			Name: volumeName,
+		},
+	}, nil
 }
 
 func (plugin *FakeVolumePlugin) GetDeviceMountRefs(deviceMountPath string) ([]string, error) {
@@ -331,7 +344,7 @@ func (fv *FakeVolume) CanMount() error {
 	return nil
 }
 
-func (fv *FakeVolume) SetUp(fsGroup *int64) error {
+func (fv *FakeVolume) SetUp(fsGroup *types.UnixGroupID) error {
 	fv.Lock()
 	defer fv.Unlock()
 	fv.SetUpCallCount++
@@ -344,7 +357,7 @@ func (fv *FakeVolume) GetSetUpCallCount() int {
 	return fv.SetUpCallCount
 }
 
-func (fv *FakeVolume) SetUpAt(dir string, fsGroup *int64) error {
+func (fv *FakeVolume) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	return os.MkdirAll(dir, 0750)
 }
 
@@ -379,7 +392,7 @@ func (fv *FakeVolume) Attach(spec *Spec, nodeName types.NodeName) (string, error
 	fv.Lock()
 	defer fv.Unlock()
 	fv.AttachCallCount++
-	return "", nil
+	return "/dev/vdb-test", nil
 }
 
 func (fv *FakeVolume) GetAttachCallCount() int {
@@ -447,20 +460,6 @@ func (fv *FakeVolume) UnmountDevice(globalMountPath string) error {
 	return nil
 }
 
-type fakeRecycler struct {
-	path string
-	MetricsNil
-}
-
-func (fr *fakeRecycler) Recycle() error {
-	// nil is success, else error
-	return nil
-}
-
-func (fr *fakeRecycler) GetPath() string {
-	return fr.path
-}
-
 type FakeDeleter struct {
 	path string
 	MetricsNil
@@ -487,7 +486,7 @@ func (fc *FakeProvisioner) Provision() (*v1.PersistentVolume, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fc.Options.PVName,
 			Annotations: map[string]string{
-				"kubernetes.io/createdby": "fakeplugin-provisioner",
+				volumehelper.VolumeDynamicallyCreatedByKey: "fakeplugin-provisioner",
 			},
 		},
 		Spec: v1.PersistentVolumeSpec{
@@ -759,4 +758,14 @@ func CreateTestPVC(capacity string, accessModes []v1.PersistentVolumeAccessMode)
 		},
 	}
 	return &claim
+}
+
+func MetricsEqualIgnoreTimestamp(a *Metrics, b *Metrics) bool {
+	available := a.Available == b.Available
+	capacity := a.Capacity == b.Capacity
+	used := a.Used == b.Used
+	inodes := a.Inodes == b.Inodes
+	inodesFree := a.InodesFree == b.InodesFree
+	inodesUsed := a.InodesUsed == b.InodesUsed
+	return available && capacity && used && inodes && inodesFree && inodesUsed
 }

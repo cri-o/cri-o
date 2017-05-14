@@ -21,9 +21,10 @@ import (
 	"path"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/kubelet/images"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -129,8 +130,8 @@ while true; do sleep 1; done
 				}
 			})
 
-			rootUser := int64(0)
-			nonRootUser := int64(10000)
+			rootUser := types.UnixUserID(0)
+			nonRootUser := types.UnixUserID(10000)
 			for _, testCase := range []struct {
 				name      string
 				container v1.Container

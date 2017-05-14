@@ -21,19 +21,19 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	testclient "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/record"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	"k8s.io/kubernetes/pkg/client/record"
-	testclient "k8s.io/kubernetes/pkg/client/testing/core"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
-	"k8s.io/kubernetes/pkg/controller/informers"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
-func maxSurge(val int) *intstr.IntOrString {
-	surge := intstr.FromInt(val)
-	return &surge
+func intOrStrP(val int) *intstr.IntOrString {
+	intOrStr := intstr.FromInt(val)
+	return &intOrStr
 }
 
 func TestScale(t *testing.T) {
@@ -218,8 +218,8 @@ func TestScale(t *testing.T) {
 		},
 		{
 			name:          "deployment with surge pods",
-			deployment:    newDeployment("foo", 20, nil, maxSurge(2), nil, nil),
-			oldDeployment: newDeployment("foo", 10, nil, maxSurge(2), nil, nil),
+			deployment:    newDeployment("foo", 20, nil, intOrStrP(2), nil, nil),
+			oldDeployment: newDeployment("foo", 10, nil, intOrStrP(2), nil, nil),
 
 			newRS:  rs("foo-v2", 6, nil, newTimestamp),
 			oldRSs: []*extensions.ReplicaSet{rs("foo-v1", 6, nil, oldTimestamp)},
@@ -229,8 +229,8 @@ func TestScale(t *testing.T) {
 		},
 		{
 			name:          "change both surge and size",
-			deployment:    newDeployment("foo", 50, nil, maxSurge(6), nil, nil),
-			oldDeployment: newDeployment("foo", 10, nil, maxSurge(3), nil, nil),
+			deployment:    newDeployment("foo", 50, nil, intOrStrP(6), nil, nil),
+			oldDeployment: newDeployment("foo", 10, nil, intOrStrP(3), nil, nil),
 
 			newRS:  rs("foo-v2", 5, nil, newTimestamp),
 			oldRSs: []*extensions.ReplicaSet{rs("foo-v1", 8, nil, oldTimestamp)},
@@ -248,6 +248,21 @@ func TestScale(t *testing.T) {
 
 			expectedNew: nil,
 			expectedOld: []*extensions.ReplicaSet{rs("foo-v2", 10, nil, newTimestamp), rs("foo-v1", 4, nil, oldTimestamp)},
+		},
+		{
+			name:          "saturated but broken new replica set does not affect old pods",
+			deployment:    newDeployment("foo", 2, nil, intOrStrP(1), intOrStrP(1), nil),
+			oldDeployment: newDeployment("foo", 2, nil, intOrStrP(1), intOrStrP(1), nil),
+
+			newRS: func() *extensions.ReplicaSet {
+				rs := rs("foo-v2", 2, nil, newTimestamp)
+				rs.Status.AvailableReplicas = 0
+				return rs
+			}(),
+			oldRSs: []*extensions.ReplicaSet{rs("foo-v1", 1, nil, oldTimestamp)},
+
+			expectedNew: rs("foo-v2", 2, nil, newTimestamp),
+			expectedOld: []*extensions.ReplicaSet{rs("foo-v1", 1, nil, oldTimestamp)},
 		},
 	}
 
@@ -323,6 +338,9 @@ func TestScale(t *testing.T) {
 
 func TestDeploymentController_cleanupDeployment(t *testing.T) {
 	selector := map[string]string{"foo": "bar"}
+	alreadyDeleted := newRSWithStatus("foo-1", 0, 0, selector)
+	now := metav1.Now()
+	alreadyDeleted.DeletionTimestamp = &now
 
 	tests := []struct {
 		oldRSs               []*extensions.ReplicaSet
@@ -366,20 +384,29 @@ func TestDeploymentController_cleanupDeployment(t *testing.T) {
 			revisionHistoryLimit: 0,
 			expectedDeletions:    0,
 		},
+		{
+			oldRSs: []*extensions.ReplicaSet{
+				alreadyDeleted,
+			},
+			revisionHistoryLimit: 0,
+			expectedDeletions:    0,
+		},
 	}
 
 	for i := range tests {
 		test := tests[i]
+		t.Logf("scenario %d", i)
+
 		fake := &fake.Clientset{}
-		informers := informers.NewSharedInformerFactory(fake, nil, controller.NoResyncPeriodFunc())
-		controller := NewDeploymentController(informers.Deployments(), informers.ReplicaSets(), informers.Pods(), fake)
+		informers := informers.NewSharedInformerFactory(fake, controller.NoResyncPeriodFunc())
+		controller := NewDeploymentController(informers.Extensions().V1beta1().Deployments(), informers.Extensions().V1beta1().ReplicaSets(), informers.Core().V1().Pods(), fake)
 
 		controller.eventRecorder = &record.FakeRecorder{}
 		controller.dListerSynced = alwaysReady
 		controller.rsListerSynced = alwaysReady
 		controller.podListerSynced = alwaysReady
 		for _, rs := range test.oldRSs {
-			controller.rsLister.Indexer.Add(rs)
+			informers.Extensions().V1beta1().ReplicaSets().Informer().GetIndexer().Add(rs)
 		}
 
 		stopCh := make(chan struct{})

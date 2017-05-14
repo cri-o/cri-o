@@ -55,6 +55,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapEnvSource, InType: reflect.TypeOf(&ConfigMapEnvSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapKeySelector, InType: reflect.TypeOf(&ConfigMapKeySelector{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapList, InType: reflect.TypeOf(&ConfigMapList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapProjection, InType: reflect.TypeOf(&ConfigMapProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapVolumeSource, InType: reflect.TypeOf(&ConfigMapVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Container, InType: reflect.TypeOf(&Container{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ContainerImage, InType: reflect.TypeOf(&ContainerImage{})},
@@ -64,9 +65,9 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ContainerStateTerminated, InType: reflect.TypeOf(&ContainerStateTerminated{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ContainerStateWaiting, InType: reflect.TypeOf(&ContainerStateWaiting{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ContainerStatus, InType: reflect.TypeOf(&ContainerStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConversionError, InType: reflect.TypeOf(&ConversionError{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DaemonEndpoint, InType: reflect.TypeOf(&DaemonEndpoint{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DeleteOptions, InType: reflect.TypeOf(&DeleteOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DownwardAPIProjection, InType: reflect.TypeOf(&DownwardAPIProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DownwardAPIVolumeFile, InType: reflect.TypeOf(&DownwardAPIVolumeFile{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DownwardAPIVolumeSource, InType: reflect.TypeOf(&DownwardAPIVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EmptyDirVolumeSource, InType: reflect.TypeOf(&EmptyDirVolumeSource{})},
@@ -91,6 +92,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_HTTPGetAction, InType: reflect.TypeOf(&HTTPGetAction{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_HTTPHeader, InType: reflect.TypeOf(&HTTPHeader{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Handler, InType: reflect.TypeOf(&Handler{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_HostAlias, InType: reflect.TypeOf(&HostAlias{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_HostPathVolumeSource, InType: reflect.TypeOf(&HostPathVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ISCSIVolumeSource, InType: reflect.TypeOf(&ISCSIVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_KeyToPath, InType: reflect.TypeOf(&KeyToPath{})},
@@ -104,6 +106,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_LoadBalancerIngress, InType: reflect.TypeOf(&LoadBalancerIngress{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_LoadBalancerStatus, InType: reflect.TypeOf(&LoadBalancerStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_LocalObjectReference, InType: reflect.TypeOf(&LocalObjectReference{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_LocalVolumeSource, InType: reflect.TypeOf(&LocalVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_NFSVolumeSource, InType: reflect.TypeOf(&NFSVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Namespace, InType: reflect.TypeOf(&Namespace{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_NamespaceList, InType: reflect.TypeOf(&NamespaceList{})},
@@ -156,10 +159,12 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodTemplate, InType: reflect.TypeOf(&PodTemplate{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodTemplateList, InType: reflect.TypeOf(&PodTemplateList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodTemplateSpec, InType: reflect.TypeOf(&PodTemplateSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PortworxVolumeSource, InType: reflect.TypeOf(&PortworxVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Preconditions, InType: reflect.TypeOf(&Preconditions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PreferAvoidPodsEntry, InType: reflect.TypeOf(&PreferAvoidPodsEntry{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PreferredSchedulingTerm, InType: reflect.TypeOf(&PreferredSchedulingTerm{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Probe, InType: reflect.TypeOf(&Probe{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ProjectedVolumeSource, InType: reflect.TypeOf(&ProjectedVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_QuobyteVolumeSource, InType: reflect.TypeOf(&QuobyteVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_RBDVolumeSource, InType: reflect.TypeOf(&RBDVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_RangeAllocation, InType: reflect.TypeOf(&RangeAllocation{})},
@@ -175,10 +180,12 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ResourceQuotaStatus, InType: reflect.TypeOf(&ResourceQuotaStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ResourceRequirements, InType: reflect.TypeOf(&ResourceRequirements{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SELinuxOptions, InType: reflect.TypeOf(&SELinuxOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ScaleIOVolumeSource, InType: reflect.TypeOf(&ScaleIOVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Secret, InType: reflect.TypeOf(&Secret{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretEnvSource, InType: reflect.TypeOf(&SecretEnvSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretKeySelector, InType: reflect.TypeOf(&SecretKeySelector{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretList, InType: reflect.TypeOf(&SecretList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretProjection, InType: reflect.TypeOf(&SecretProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretVolumeSource, InType: reflect.TypeOf(&SecretVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecurityContext, InType: reflect.TypeOf(&SecurityContext{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SerializedReference, InType: reflect.TypeOf(&SerializedReference{})},
@@ -196,12 +203,14 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Toleration, InType: reflect.TypeOf(&Toleration{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Volume, InType: reflect.TypeOf(&Volume{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_VolumeMount, InType: reflect.TypeOf(&VolumeMount{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_VolumeProjection, InType: reflect.TypeOf(&VolumeProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_VolumeSource, InType: reflect.TypeOf(&VolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_VsphereVirtualDiskVolumeSource, InType: reflect.TypeOf(&VsphereVirtualDiskVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_WeightedPodAffinityTerm, InType: reflect.TypeOf(&WeightedPodAffinityTerm{})},
 	)
 }
 
+// DeepCopy_api_AWSElasticBlockStoreVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_AWSElasticBlockStoreVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*AWSElasticBlockStoreVolumeSource)
@@ -211,6 +220,7 @@ func DeepCopy_api_AWSElasticBlockStoreVolumeSource(in interface{}, out interface
 	}
 }
 
+// DeepCopy_api_Affinity is an autogenerated deepcopy function.
 func DeepCopy_api_Affinity(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Affinity)
@@ -241,6 +251,7 @@ func DeepCopy_api_Affinity(in interface{}, out interface{}, c *conversion.Cloner
 	}
 }
 
+// DeepCopy_api_AttachedVolume is an autogenerated deepcopy function.
 func DeepCopy_api_AttachedVolume(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*AttachedVolume)
@@ -250,6 +261,7 @@ func DeepCopy_api_AttachedVolume(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_AvoidPods is an autogenerated deepcopy function.
 func DeepCopy_api_AvoidPods(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*AvoidPods)
@@ -268,6 +280,7 @@ func DeepCopy_api_AvoidPods(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_AzureDiskVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_AzureDiskVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*AzureDiskVolumeSource)
@@ -288,10 +301,16 @@ func DeepCopy_api_AzureDiskVolumeSource(in interface{}, out interface{}, c *conv
 			*out = new(bool)
 			**out = **in
 		}
+		if in.Kind != nil {
+			in, out := &in.Kind, &out.Kind
+			*out = new(AzureDataDiskKind)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_AzureFileVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_AzureFileVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*AzureFileVolumeSource)
@@ -301,6 +320,7 @@ func DeepCopy_api_AzureFileVolumeSource(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_Binding is an autogenerated deepcopy function.
 func DeepCopy_api_Binding(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Binding)
@@ -315,6 +335,7 @@ func DeepCopy_api_Binding(in interface{}, out interface{}, c *conversion.Cloner)
 	}
 }
 
+// DeepCopy_api_Capabilities is an autogenerated deepcopy function.
 func DeepCopy_api_Capabilities(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Capabilities)
@@ -334,6 +355,7 @@ func DeepCopy_api_Capabilities(in interface{}, out interface{}, c *conversion.Cl
 	}
 }
 
+// DeepCopy_api_CephFSVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_CephFSVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*CephFSVolumeSource)
@@ -353,6 +375,7 @@ func DeepCopy_api_CephFSVolumeSource(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_api_CinderVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_CinderVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*CinderVolumeSource)
@@ -362,6 +385,7 @@ func DeepCopy_api_CinderVolumeSource(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_api_ComponentCondition is an autogenerated deepcopy function.
 func DeepCopy_api_ComponentCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ComponentCondition)
@@ -371,6 +395,7 @@ func DeepCopy_api_ComponentCondition(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_api_ComponentStatus is an autogenerated deepcopy function.
 func DeepCopy_api_ComponentStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ComponentStatus)
@@ -390,6 +415,7 @@ func DeepCopy_api_ComponentStatus(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_ComponentStatusList is an autogenerated deepcopy function.
 func DeepCopy_api_ComponentStatusList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ComponentStatusList)
@@ -408,6 +434,7 @@ func DeepCopy_api_ComponentStatusList(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_ConfigMap is an autogenerated deepcopy function.
 func DeepCopy_api_ConfigMap(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ConfigMap)
@@ -429,24 +456,37 @@ func DeepCopy_api_ConfigMap(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_ConfigMapEnvSource is an autogenerated deepcopy function.
 func DeepCopy_api_ConfigMapEnvSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ConfigMapEnvSource)
 		out := out.(*ConfigMapEnvSource)
 		*out = *in
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_ConfigMapKeySelector is an autogenerated deepcopy function.
 func DeepCopy_api_ConfigMapKeySelector(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ConfigMapKeySelector)
 		out := out.(*ConfigMapKeySelector)
 		*out = *in
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_ConfigMapList is an autogenerated deepcopy function.
 func DeepCopy_api_ConfigMapList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ConfigMapList)
@@ -465,6 +505,31 @@ func DeepCopy_api_ConfigMapList(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_ConfigMapProjection is an autogenerated deepcopy function.
+func DeepCopy_api_ConfigMapProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ConfigMapProjection)
+		out := out.(*ConfigMapProjection)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]KeyToPath, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_KeyToPath(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_api_ConfigMapVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_ConfigMapVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ConfigMapVolumeSource)
@@ -484,10 +549,16 @@ func DeepCopy_api_ConfigMapVolumeSource(in interface{}, out interface{}, c *conv
 			*out = new(int32)
 			**out = **in
 		}
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_Container is an autogenerated deepcopy function.
 func DeepCopy_api_Container(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Container)
@@ -566,6 +637,7 @@ func DeepCopy_api_Container(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_ContainerImage is an autogenerated deepcopy function.
 func DeepCopy_api_ContainerImage(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ContainerImage)
@@ -580,6 +652,7 @@ func DeepCopy_api_ContainerImage(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_ContainerPort is an autogenerated deepcopy function.
 func DeepCopy_api_ContainerPort(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ContainerPort)
@@ -589,6 +662,7 @@ func DeepCopy_api_ContainerPort(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_ContainerState is an autogenerated deepcopy function.
 func DeepCopy_api_ContainerState(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ContainerState)
@@ -617,6 +691,7 @@ func DeepCopy_api_ContainerState(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_ContainerStateRunning is an autogenerated deepcopy function.
 func DeepCopy_api_ContainerStateRunning(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ContainerStateRunning)
@@ -627,6 +702,7 @@ func DeepCopy_api_ContainerStateRunning(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_ContainerStateTerminated is an autogenerated deepcopy function.
 func DeepCopy_api_ContainerStateTerminated(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ContainerStateTerminated)
@@ -638,6 +714,7 @@ func DeepCopy_api_ContainerStateTerminated(in interface{}, out interface{}, c *c
 	}
 }
 
+// DeepCopy_api_ContainerStateWaiting is an autogenerated deepcopy function.
 func DeepCopy_api_ContainerStateWaiting(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ContainerStateWaiting)
@@ -647,6 +724,7 @@ func DeepCopy_api_ContainerStateWaiting(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_ContainerStatus is an autogenerated deepcopy function.
 func DeepCopy_api_ContainerStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ContainerStatus)
@@ -662,31 +740,7 @@ func DeepCopy_api_ContainerStatus(in interface{}, out interface{}, c *conversion
 	}
 }
 
-func DeepCopy_api_ConversionError(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ConversionError)
-		out := out.(*ConversionError)
-		*out = *in
-		// in.In is kind 'Interface'
-		if in.In != nil {
-			if newVal, err := c.DeepCopy(&in.In); err != nil {
-				return err
-			} else {
-				out.In = *newVal.(*interface{})
-			}
-		}
-		// in.Out is kind 'Interface'
-		if in.Out != nil {
-			if newVal, err := c.DeepCopy(&in.Out); err != nil {
-				return err
-			} else {
-				out.Out = *newVal.(*interface{})
-			}
-		}
-		return nil
-	}
-}
-
+// DeepCopy_api_DaemonEndpoint is an autogenerated deepcopy function.
 func DeepCopy_api_DaemonEndpoint(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DaemonEndpoint)
@@ -696,6 +750,7 @@ func DeepCopy_api_DaemonEndpoint(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_DeleteOptions is an autogenerated deepcopy function.
 func DeepCopy_api_DeleteOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DeleteOptions)
@@ -718,10 +773,35 @@ func DeepCopy_api_DeleteOptions(in interface{}, out interface{}, c *conversion.C
 			*out = new(bool)
 			**out = **in
 		}
+		if in.PropagationPolicy != nil {
+			in, out := &in.PropagationPolicy, &out.PropagationPolicy
+			*out = new(DeletionPropagation)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_DownwardAPIProjection is an autogenerated deepcopy function.
+func DeepCopy_api_DownwardAPIProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*DownwardAPIProjection)
+		out := out.(*DownwardAPIProjection)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]DownwardAPIVolumeFile, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_DownwardAPIVolumeFile(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
+// DeepCopy_api_DownwardAPIVolumeFile is an autogenerated deepcopy function.
 func DeepCopy_api_DownwardAPIVolumeFile(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DownwardAPIVolumeFile)
@@ -748,6 +828,7 @@ func DeepCopy_api_DownwardAPIVolumeFile(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_DownwardAPIVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_DownwardAPIVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DownwardAPIVolumeSource)
@@ -771,6 +852,7 @@ func DeepCopy_api_DownwardAPIVolumeSource(in interface{}, out interface{}, c *co
 	}
 }
 
+// DeepCopy_api_EmptyDirVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_EmptyDirVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EmptyDirVolumeSource)
@@ -780,6 +862,7 @@ func DeepCopy_api_EmptyDirVolumeSource(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_api_EndpointAddress is an autogenerated deepcopy function.
 func DeepCopy_api_EndpointAddress(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EndpointAddress)
@@ -799,6 +882,7 @@ func DeepCopy_api_EndpointAddress(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_EndpointPort is an autogenerated deepcopy function.
 func DeepCopy_api_EndpointPort(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EndpointPort)
@@ -808,6 +892,7 @@ func DeepCopy_api_EndpointPort(in interface{}, out interface{}, c *conversion.Cl
 	}
 }
 
+// DeepCopy_api_EndpointSubset is an autogenerated deepcopy function.
 func DeepCopy_api_EndpointSubset(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EndpointSubset)
@@ -840,6 +925,7 @@ func DeepCopy_api_EndpointSubset(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_Endpoints is an autogenerated deepcopy function.
 func DeepCopy_api_Endpoints(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Endpoints)
@@ -863,6 +949,7 @@ func DeepCopy_api_Endpoints(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_EndpointsList is an autogenerated deepcopy function.
 func DeepCopy_api_EndpointsList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EndpointsList)
@@ -881,6 +968,7 @@ func DeepCopy_api_EndpointsList(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_EnvFromSource is an autogenerated deepcopy function.
 func DeepCopy_api_EnvFromSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EnvFromSource)
@@ -889,17 +977,22 @@ func DeepCopy_api_EnvFromSource(in interface{}, out interface{}, c *conversion.C
 		if in.ConfigMapRef != nil {
 			in, out := &in.ConfigMapRef, &out.ConfigMapRef
 			*out = new(ConfigMapEnvSource)
-			**out = **in
+			if err := DeepCopy_api_ConfigMapEnvSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		if in.SecretRef != nil {
 			in, out := &in.SecretRef, &out.SecretRef
 			*out = new(SecretEnvSource)
-			**out = **in
+			if err := DeepCopy_api_SecretEnvSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
 }
 
+// DeepCopy_api_EnvVar is an autogenerated deepcopy function.
 func DeepCopy_api_EnvVar(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EnvVar)
@@ -916,6 +1009,7 @@ func DeepCopy_api_EnvVar(in interface{}, out interface{}, c *conversion.Cloner) 
 	}
 }
 
+// DeepCopy_api_EnvVarSource is an autogenerated deepcopy function.
 func DeepCopy_api_EnvVarSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EnvVarSource)
@@ -936,17 +1030,22 @@ func DeepCopy_api_EnvVarSource(in interface{}, out interface{}, c *conversion.Cl
 		if in.ConfigMapKeyRef != nil {
 			in, out := &in.ConfigMapKeyRef, &out.ConfigMapKeyRef
 			*out = new(ConfigMapKeySelector)
-			**out = **in
+			if err := DeepCopy_api_ConfigMapKeySelector(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		if in.SecretKeyRef != nil {
 			in, out := &in.SecretKeyRef, &out.SecretKeyRef
 			*out = new(SecretKeySelector)
-			**out = **in
+			if err := DeepCopy_api_SecretKeySelector(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
 }
 
+// DeepCopy_api_Event is an autogenerated deepcopy function.
 func DeepCopy_api_Event(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Event)
@@ -963,6 +1062,7 @@ func DeepCopy_api_Event(in interface{}, out interface{}, c *conversion.Cloner) e
 	}
 }
 
+// DeepCopy_api_EventList is an autogenerated deepcopy function.
 func DeepCopy_api_EventList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EventList)
@@ -981,6 +1081,7 @@ func DeepCopy_api_EventList(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_EventSource is an autogenerated deepcopy function.
 func DeepCopy_api_EventSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*EventSource)
@@ -990,6 +1091,7 @@ func DeepCopy_api_EventSource(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_ExecAction is an autogenerated deepcopy function.
 func DeepCopy_api_ExecAction(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ExecAction)
@@ -1004,6 +1106,7 @@ func DeepCopy_api_ExecAction(in interface{}, out interface{}, c *conversion.Clon
 	}
 }
 
+// DeepCopy_api_FCVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_FCVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*FCVolumeSource)
@@ -1023,6 +1126,7 @@ func DeepCopy_api_FCVolumeSource(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_FlexVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_FlexVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*FlexVolumeSource)
@@ -1044,6 +1148,7 @@ func DeepCopy_api_FlexVolumeSource(in interface{}, out interface{}, c *conversio
 	}
 }
 
+// DeepCopy_api_FlockerVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_FlockerVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*FlockerVolumeSource)
@@ -1053,6 +1158,7 @@ func DeepCopy_api_FlockerVolumeSource(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_GCEPersistentDiskVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_GCEPersistentDiskVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*GCEPersistentDiskVolumeSource)
@@ -1062,6 +1168,7 @@ func DeepCopy_api_GCEPersistentDiskVolumeSource(in interface{}, out interface{},
 	}
 }
 
+// DeepCopy_api_GitRepoVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_GitRepoVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*GitRepoVolumeSource)
@@ -1071,6 +1178,7 @@ func DeepCopy_api_GitRepoVolumeSource(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_GlusterfsVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_GlusterfsVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*GlusterfsVolumeSource)
@@ -1080,6 +1188,7 @@ func DeepCopy_api_GlusterfsVolumeSource(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_HTTPGetAction is an autogenerated deepcopy function.
 func DeepCopy_api_HTTPGetAction(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*HTTPGetAction)
@@ -1094,6 +1203,7 @@ func DeepCopy_api_HTTPGetAction(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_HTTPHeader is an autogenerated deepcopy function.
 func DeepCopy_api_HTTPHeader(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*HTTPHeader)
@@ -1103,6 +1213,7 @@ func DeepCopy_api_HTTPHeader(in interface{}, out interface{}, c *conversion.Clon
 	}
 }
 
+// DeepCopy_api_Handler is an autogenerated deepcopy function.
 func DeepCopy_api_Handler(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Handler)
@@ -1131,6 +1242,22 @@ func DeepCopy_api_Handler(in interface{}, out interface{}, c *conversion.Cloner)
 	}
 }
 
+// DeepCopy_api_HostAlias is an autogenerated deepcopy function.
+func DeepCopy_api_HostAlias(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*HostAlias)
+		out := out.(*HostAlias)
+		*out = *in
+		if in.Hostnames != nil {
+			in, out := &in.Hostnames, &out.Hostnames
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		return nil
+	}
+}
+
+// DeepCopy_api_HostPathVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_HostPathVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*HostPathVolumeSource)
@@ -1140,15 +1267,27 @@ func DeepCopy_api_HostPathVolumeSource(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_api_ISCSIVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_ISCSIVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ISCSIVolumeSource)
 		out := out.(*ISCSIVolumeSource)
 		*out = *in
+		if in.Portals != nil {
+			in, out := &in.Portals, &out.Portals
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		if in.SecretRef != nil {
+			in, out := &in.SecretRef, &out.SecretRef
+			*out = new(LocalObjectReference)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_KeyToPath is an autogenerated deepcopy function.
 func DeepCopy_api_KeyToPath(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*KeyToPath)
@@ -1163,6 +1302,7 @@ func DeepCopy_api_KeyToPath(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_Lifecycle is an autogenerated deepcopy function.
 func DeepCopy_api_Lifecycle(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Lifecycle)
@@ -1186,6 +1326,7 @@ func DeepCopy_api_Lifecycle(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_LimitRange is an autogenerated deepcopy function.
 func DeepCopy_api_LimitRange(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*LimitRange)
@@ -1203,6 +1344,7 @@ func DeepCopy_api_LimitRange(in interface{}, out interface{}, c *conversion.Clon
 	}
 }
 
+// DeepCopy_api_LimitRangeItem is an autogenerated deepcopy function.
 func DeepCopy_api_LimitRangeItem(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*LimitRangeItem)
@@ -1247,6 +1389,7 @@ func DeepCopy_api_LimitRangeItem(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_LimitRangeList is an autogenerated deepcopy function.
 func DeepCopy_api_LimitRangeList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*LimitRangeList)
@@ -1265,6 +1408,7 @@ func DeepCopy_api_LimitRangeList(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_LimitRangeSpec is an autogenerated deepcopy function.
 func DeepCopy_api_LimitRangeSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*LimitRangeSpec)
@@ -1283,6 +1427,7 @@ func DeepCopy_api_LimitRangeSpec(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_List is an autogenerated deepcopy function.
 func DeepCopy_api_List(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*List)
@@ -1303,6 +1448,7 @@ func DeepCopy_api_List(in interface{}, out interface{}, c *conversion.Cloner) er
 	}
 }
 
+// DeepCopy_api_ListOptions is an autogenerated deepcopy function.
 func DeepCopy_api_ListOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ListOptions)
@@ -1333,6 +1479,7 @@ func DeepCopy_api_ListOptions(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_LoadBalancerIngress is an autogenerated deepcopy function.
 func DeepCopy_api_LoadBalancerIngress(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*LoadBalancerIngress)
@@ -1342,6 +1489,7 @@ func DeepCopy_api_LoadBalancerIngress(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_LoadBalancerStatus is an autogenerated deepcopy function.
 func DeepCopy_api_LoadBalancerStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*LoadBalancerStatus)
@@ -1356,6 +1504,7 @@ func DeepCopy_api_LoadBalancerStatus(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_api_LocalObjectReference is an autogenerated deepcopy function.
 func DeepCopy_api_LocalObjectReference(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*LocalObjectReference)
@@ -1365,6 +1514,17 @@ func DeepCopy_api_LocalObjectReference(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_api_LocalVolumeSource is an autogenerated deepcopy function.
+func DeepCopy_api_LocalVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*LocalVolumeSource)
+		out := out.(*LocalVolumeSource)
+		*out = *in
+		return nil
+	}
+}
+
+// DeepCopy_api_NFSVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_NFSVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NFSVolumeSource)
@@ -1374,6 +1534,7 @@ func DeepCopy_api_NFSVolumeSource(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_Namespace is an autogenerated deepcopy function.
 func DeepCopy_api_Namespace(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Namespace)
@@ -1391,6 +1552,7 @@ func DeepCopy_api_Namespace(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_NamespaceList is an autogenerated deepcopy function.
 func DeepCopy_api_NamespaceList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NamespaceList)
@@ -1409,6 +1571,7 @@ func DeepCopy_api_NamespaceList(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_NamespaceSpec is an autogenerated deepcopy function.
 func DeepCopy_api_NamespaceSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NamespaceSpec)
@@ -1423,6 +1586,7 @@ func DeepCopy_api_NamespaceSpec(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_NamespaceStatus is an autogenerated deepcopy function.
 func DeepCopy_api_NamespaceStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NamespaceStatus)
@@ -1432,6 +1596,7 @@ func DeepCopy_api_NamespaceStatus(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_Node is an autogenerated deepcopy function.
 func DeepCopy_api_Node(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Node)
@@ -1442,6 +1607,9 @@ func DeepCopy_api_Node(in interface{}, out interface{}, c *conversion.Cloner) er
 		} else {
 			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
+		if err := DeepCopy_api_NodeSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
 		if err := DeepCopy_api_NodeStatus(&in.Status, &out.Status, c); err != nil {
 			return err
 		}
@@ -1449,6 +1617,7 @@ func DeepCopy_api_Node(in interface{}, out interface{}, c *conversion.Cloner) er
 	}
 }
 
+// DeepCopy_api_NodeAddress is an autogenerated deepcopy function.
 func DeepCopy_api_NodeAddress(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeAddress)
@@ -1458,6 +1627,7 @@ func DeepCopy_api_NodeAddress(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_NodeAffinity is an autogenerated deepcopy function.
 func DeepCopy_api_NodeAffinity(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeAffinity)
@@ -1483,6 +1653,7 @@ func DeepCopy_api_NodeAffinity(in interface{}, out interface{}, c *conversion.Cl
 	}
 }
 
+// DeepCopy_api_NodeCondition is an autogenerated deepcopy function.
 func DeepCopy_api_NodeCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeCondition)
@@ -1494,6 +1665,7 @@ func DeepCopy_api_NodeCondition(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_NodeDaemonEndpoints is an autogenerated deepcopy function.
 func DeepCopy_api_NodeDaemonEndpoints(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeDaemonEndpoints)
@@ -1503,6 +1675,7 @@ func DeepCopy_api_NodeDaemonEndpoints(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_NodeList is an autogenerated deepcopy function.
 func DeepCopy_api_NodeList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeList)
@@ -1521,6 +1694,7 @@ func DeepCopy_api_NodeList(in interface{}, out interface{}, c *conversion.Cloner
 	}
 }
 
+// DeepCopy_api_NodeProxyOptions is an autogenerated deepcopy function.
 func DeepCopy_api_NodeProxyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeProxyOptions)
@@ -1530,6 +1704,7 @@ func DeepCopy_api_NodeProxyOptions(in interface{}, out interface{}, c *conversio
 	}
 }
 
+// DeepCopy_api_NodeResources is an autogenerated deepcopy function.
 func DeepCopy_api_NodeResources(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeResources)
@@ -1546,6 +1721,7 @@ func DeepCopy_api_NodeResources(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_NodeSelector is an autogenerated deepcopy function.
 func DeepCopy_api_NodeSelector(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeSelector)
@@ -1564,6 +1740,7 @@ func DeepCopy_api_NodeSelector(in interface{}, out interface{}, c *conversion.Cl
 	}
 }
 
+// DeepCopy_api_NodeSelectorRequirement is an autogenerated deepcopy function.
 func DeepCopy_api_NodeSelectorRequirement(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeSelectorRequirement)
@@ -1578,6 +1755,7 @@ func DeepCopy_api_NodeSelectorRequirement(in interface{}, out interface{}, c *co
 	}
 }
 
+// DeepCopy_api_NodeSelectorTerm is an autogenerated deepcopy function.
 func DeepCopy_api_NodeSelectorTerm(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeSelectorTerm)
@@ -1596,15 +1774,26 @@ func DeepCopy_api_NodeSelectorTerm(in interface{}, out interface{}, c *conversio
 	}
 }
 
+// DeepCopy_api_NodeSpec is an autogenerated deepcopy function.
 func DeepCopy_api_NodeSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeSpec)
 		out := out.(*NodeSpec)
 		*out = *in
+		if in.Taints != nil {
+			in, out := &in.Taints, &out.Taints
+			*out = make([]Taint, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_Taint(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_NodeStatus is an autogenerated deepcopy function.
 func DeepCopy_api_NodeStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeStatus)
@@ -1661,6 +1850,7 @@ func DeepCopy_api_NodeStatus(in interface{}, out interface{}, c *conversion.Clon
 	}
 }
 
+// DeepCopy_api_NodeSystemInfo is an autogenerated deepcopy function.
 func DeepCopy_api_NodeSystemInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NodeSystemInfo)
@@ -1670,6 +1860,7 @@ func DeepCopy_api_NodeSystemInfo(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_ObjectFieldSelector is an autogenerated deepcopy function.
 func DeepCopy_api_ObjectFieldSelector(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ObjectFieldSelector)
@@ -1679,6 +1870,7 @@ func DeepCopy_api_ObjectFieldSelector(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_ObjectMeta is an autogenerated deepcopy function.
 func DeepCopy_api_ObjectMeta(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ObjectMeta)
@@ -1720,6 +1912,14 @@ func DeepCopy_api_ObjectMeta(in interface{}, out interface{}, c *conversion.Clon
 				}
 			}
 		}
+		if in.Initializers != nil {
+			in, out := &in.Initializers, &out.Initializers
+			if newVal, err := c.DeepCopy(*in); err != nil {
+				return err
+			} else {
+				*out = newVal.(*v1.Initializers)
+			}
+		}
 		if in.Finalizers != nil {
 			in, out := &in.Finalizers, &out.Finalizers
 			*out = make([]string, len(*in))
@@ -1729,6 +1929,7 @@ func DeepCopy_api_ObjectMeta(in interface{}, out interface{}, c *conversion.Clon
 	}
 }
 
+// DeepCopy_api_ObjectReference is an autogenerated deepcopy function.
 func DeepCopy_api_ObjectReference(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ObjectReference)
@@ -1738,6 +1939,7 @@ func DeepCopy_api_ObjectReference(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_PersistentVolume is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolume(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolume)
@@ -1755,6 +1957,7 @@ func DeepCopy_api_PersistentVolume(in interface{}, out interface{}, c *conversio
 	}
 }
 
+// DeepCopy_api_PersistentVolumeClaim is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeClaim(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeClaim)
@@ -1775,6 +1978,7 @@ func DeepCopy_api_PersistentVolumeClaim(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_PersistentVolumeClaimList is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeClaimList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeClaimList)
@@ -1793,6 +1997,7 @@ func DeepCopy_api_PersistentVolumeClaimList(in interface{}, out interface{}, c *
 	}
 }
 
+// DeepCopy_api_PersistentVolumeClaimSpec is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeClaimSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeClaimSpec)
@@ -1814,10 +2019,16 @@ func DeepCopy_api_PersistentVolumeClaimSpec(in interface{}, out interface{}, c *
 		if err := DeepCopy_api_ResourceRequirements(&in.Resources, &out.Resources, c); err != nil {
 			return err
 		}
+		if in.StorageClassName != nil {
+			in, out := &in.StorageClassName, &out.StorageClassName
+			*out = new(string)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_PersistentVolumeClaimStatus is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeClaimStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeClaimStatus)
@@ -1839,6 +2050,7 @@ func DeepCopy_api_PersistentVolumeClaimStatus(in interface{}, out interface{}, c
 	}
 }
 
+// DeepCopy_api_PersistentVolumeClaimVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeClaimVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeClaimVolumeSource)
@@ -1848,6 +2060,7 @@ func DeepCopy_api_PersistentVolumeClaimVolumeSource(in interface{}, out interfac
 	}
 }
 
+// DeepCopy_api_PersistentVolumeList is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeList)
@@ -1866,6 +2079,7 @@ func DeepCopy_api_PersistentVolumeList(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_api_PersistentVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeSource)
@@ -1911,7 +2125,9 @@ func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *con
 		if in.ISCSI != nil {
 			in, out := &in.ISCSI, &out.ISCSI
 			*out = new(ISCSIVolumeSource)
-			**out = **in
+			if err := DeepCopy_api_ISCSIVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		if in.FlexVolume != nil {
 			in, out := &in.FlexVolume, &out.FlexVolume
@@ -1966,10 +2182,28 @@ func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *con
 			*out = new(PhotonPersistentDiskVolumeSource)
 			**out = **in
 		}
+		if in.PortworxVolume != nil {
+			in, out := &in.PortworxVolume, &out.PortworxVolume
+			*out = new(PortworxVolumeSource)
+			**out = **in
+		}
+		if in.ScaleIO != nil {
+			in, out := &in.ScaleIO, &out.ScaleIO
+			*out = new(ScaleIOVolumeSource)
+			if err := DeepCopy_api_ScaleIOVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.Local != nil {
+			in, out := &in.Local, &out.Local
+			*out = new(LocalVolumeSource)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_PersistentVolumeSpec is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeSpec)
@@ -1999,6 +2233,7 @@ func DeepCopy_api_PersistentVolumeSpec(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_api_PersistentVolumeStatus is an autogenerated deepcopy function.
 func DeepCopy_api_PersistentVolumeStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PersistentVolumeStatus)
@@ -2008,6 +2243,7 @@ func DeepCopy_api_PersistentVolumeStatus(in interface{}, out interface{}, c *con
 	}
 }
 
+// DeepCopy_api_PhotonPersistentDiskVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_PhotonPersistentDiskVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PhotonPersistentDiskVolumeSource)
@@ -2017,6 +2253,7 @@ func DeepCopy_api_PhotonPersistentDiskVolumeSource(in interface{}, out interface
 	}
 }
 
+// DeepCopy_api_Pod is an autogenerated deepcopy function.
 func DeepCopy_api_Pod(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Pod)
@@ -2037,6 +2274,7 @@ func DeepCopy_api_Pod(in interface{}, out interface{}, c *conversion.Cloner) err
 	}
 }
 
+// DeepCopy_api_PodAffinity is an autogenerated deepcopy function.
 func DeepCopy_api_PodAffinity(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodAffinity)
@@ -2064,6 +2302,7 @@ func DeepCopy_api_PodAffinity(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_PodAffinityTerm is an autogenerated deepcopy function.
 func DeepCopy_api_PodAffinityTerm(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodAffinityTerm)
@@ -2086,6 +2325,7 @@ func DeepCopy_api_PodAffinityTerm(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_PodAntiAffinity is an autogenerated deepcopy function.
 func DeepCopy_api_PodAntiAffinity(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodAntiAffinity)
@@ -2113,6 +2353,7 @@ func DeepCopy_api_PodAntiAffinity(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_PodAttachOptions is an autogenerated deepcopy function.
 func DeepCopy_api_PodAttachOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodAttachOptions)
@@ -2122,6 +2363,7 @@ func DeepCopy_api_PodAttachOptions(in interface{}, out interface{}, c *conversio
 	}
 }
 
+// DeepCopy_api_PodCondition is an autogenerated deepcopy function.
 func DeepCopy_api_PodCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodCondition)
@@ -2133,6 +2375,7 @@ func DeepCopy_api_PodCondition(in interface{}, out interface{}, c *conversion.Cl
 	}
 }
 
+// DeepCopy_api_PodExecOptions is an autogenerated deepcopy function.
 func DeepCopy_api_PodExecOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodExecOptions)
@@ -2147,6 +2390,7 @@ func DeepCopy_api_PodExecOptions(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_PodList is an autogenerated deepcopy function.
 func DeepCopy_api_PodList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodList)
@@ -2165,6 +2409,7 @@ func DeepCopy_api_PodList(in interface{}, out interface{}, c *conversion.Cloner)
 	}
 }
 
+// DeepCopy_api_PodLogOptions is an autogenerated deepcopy function.
 func DeepCopy_api_PodLogOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodLogOptions)
@@ -2194,6 +2439,7 @@ func DeepCopy_api_PodLogOptions(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_PodPortForwardOptions is an autogenerated deepcopy function.
 func DeepCopy_api_PodPortForwardOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodPortForwardOptions)
@@ -2208,6 +2454,7 @@ func DeepCopy_api_PodPortForwardOptions(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_PodProxyOptions is an autogenerated deepcopy function.
 func DeepCopy_api_PodProxyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodProxyOptions)
@@ -2217,6 +2464,7 @@ func DeepCopy_api_PodProxyOptions(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_PodSecurityContext is an autogenerated deepcopy function.
 func DeepCopy_api_PodSecurityContext(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodSecurityContext)
@@ -2229,7 +2477,7 @@ func DeepCopy_api_PodSecurityContext(in interface{}, out interface{}, c *convers
 		}
 		if in.RunAsUser != nil {
 			in, out := &in.RunAsUser, &out.RunAsUser
-			*out = new(int64)
+			*out = new(types.UnixUserID)
 			**out = **in
 		}
 		if in.RunAsNonRoot != nil {
@@ -2239,18 +2487,19 @@ func DeepCopy_api_PodSecurityContext(in interface{}, out interface{}, c *convers
 		}
 		if in.SupplementalGroups != nil {
 			in, out := &in.SupplementalGroups, &out.SupplementalGroups
-			*out = make([]int64, len(*in))
+			*out = make([]types.UnixGroupID, len(*in))
 			copy(*out, *in)
 		}
 		if in.FSGroup != nil {
 			in, out := &in.FSGroup, &out.FSGroup
-			*out = new(int64)
+			*out = new(types.UnixGroupID)
 			**out = **in
 		}
 		return nil
 	}
 }
 
+// DeepCopy_api_PodSignature is an autogenerated deepcopy function.
 func DeepCopy_api_PodSignature(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodSignature)
@@ -2268,6 +2517,7 @@ func DeepCopy_api_PodSignature(in interface{}, out interface{}, c *conversion.Cl
 	}
 }
 
+// DeepCopy_api_PodSpec is an autogenerated deepcopy function.
 func DeepCopy_api_PodSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodSpec)
@@ -2317,6 +2567,11 @@ func DeepCopy_api_PodSpec(in interface{}, out interface{}, c *conversion.Cloner)
 				(*out)[key] = val
 			}
 		}
+		if in.AutomountServiceAccountToken != nil {
+			in, out := &in.AutomountServiceAccountToken, &out.AutomountServiceAccountToken
+			*out = new(bool)
+			**out = **in
+		}
 		if in.SecurityContext != nil {
 			in, out := &in.SecurityContext, &out.SecurityContext
 			*out = new(PodSecurityContext)
@@ -2336,10 +2591,29 @@ func DeepCopy_api_PodSpec(in interface{}, out interface{}, c *conversion.Cloner)
 				return err
 			}
 		}
+		if in.Tolerations != nil {
+			in, out := &in.Tolerations, &out.Tolerations
+			*out = make([]Toleration, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_Toleration(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.HostAliases != nil {
+			in, out := &in.HostAliases, &out.HostAliases
+			*out = make([]HostAlias, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_HostAlias(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_PodStatus is an autogenerated deepcopy function.
 func DeepCopy_api_PodStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodStatus)
@@ -2381,6 +2655,7 @@ func DeepCopy_api_PodStatus(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_api_PodStatusResult is an autogenerated deepcopy function.
 func DeepCopy_api_PodStatusResult(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodStatusResult)
@@ -2398,6 +2673,7 @@ func DeepCopy_api_PodStatusResult(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_PodTemplate is an autogenerated deepcopy function.
 func DeepCopy_api_PodTemplate(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodTemplate)
@@ -2415,6 +2691,7 @@ func DeepCopy_api_PodTemplate(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_PodTemplateList is an autogenerated deepcopy function.
 func DeepCopy_api_PodTemplateList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodTemplateList)
@@ -2433,6 +2710,7 @@ func DeepCopy_api_PodTemplateList(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_PodTemplateSpec is an autogenerated deepcopy function.
 func DeepCopy_api_PodTemplateSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodTemplateSpec)
@@ -2450,6 +2728,17 @@ func DeepCopy_api_PodTemplateSpec(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_PortworxVolumeSource is an autogenerated deepcopy function.
+func DeepCopy_api_PortworxVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*PortworxVolumeSource)
+		out := out.(*PortworxVolumeSource)
+		*out = *in
+		return nil
+	}
+}
+
+// DeepCopy_api_Preconditions is an autogenerated deepcopy function.
 func DeepCopy_api_Preconditions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Preconditions)
@@ -2464,6 +2753,7 @@ func DeepCopy_api_Preconditions(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_PreferAvoidPodsEntry is an autogenerated deepcopy function.
 func DeepCopy_api_PreferAvoidPodsEntry(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PreferAvoidPodsEntry)
@@ -2477,6 +2767,7 @@ func DeepCopy_api_PreferAvoidPodsEntry(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_api_PreferredSchedulingTerm is an autogenerated deepcopy function.
 func DeepCopy_api_PreferredSchedulingTerm(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PreferredSchedulingTerm)
@@ -2489,6 +2780,7 @@ func DeepCopy_api_PreferredSchedulingTerm(in interface{}, out interface{}, c *co
 	}
 }
 
+// DeepCopy_api_Probe is an autogenerated deepcopy function.
 func DeepCopy_api_Probe(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Probe)
@@ -2501,6 +2793,31 @@ func DeepCopy_api_Probe(in interface{}, out interface{}, c *conversion.Cloner) e
 	}
 }
 
+// DeepCopy_api_ProjectedVolumeSource is an autogenerated deepcopy function.
+func DeepCopy_api_ProjectedVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ProjectedVolumeSource)
+		out := out.(*ProjectedVolumeSource)
+		*out = *in
+		if in.Sources != nil {
+			in, out := &in.Sources, &out.Sources
+			*out = make([]VolumeProjection, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_VolumeProjection(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.DefaultMode != nil {
+			in, out := &in.DefaultMode, &out.DefaultMode
+			*out = new(int32)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_api_QuobyteVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_QuobyteVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*QuobyteVolumeSource)
@@ -2510,6 +2827,7 @@ func DeepCopy_api_QuobyteVolumeSource(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_RBDVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_RBDVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*RBDVolumeSource)
@@ -2529,6 +2847,7 @@ func DeepCopy_api_RBDVolumeSource(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_RangeAllocation is an autogenerated deepcopy function.
 func DeepCopy_api_RangeAllocation(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*RangeAllocation)
@@ -2548,6 +2867,7 @@ func DeepCopy_api_RangeAllocation(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_ReplicationController is an autogenerated deepcopy function.
 func DeepCopy_api_ReplicationController(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicationController)
@@ -2568,6 +2888,7 @@ func DeepCopy_api_ReplicationController(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_ReplicationControllerCondition is an autogenerated deepcopy function.
 func DeepCopy_api_ReplicationControllerCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicationControllerCondition)
@@ -2578,6 +2899,7 @@ func DeepCopy_api_ReplicationControllerCondition(in interface{}, out interface{}
 	}
 }
 
+// DeepCopy_api_ReplicationControllerList is an autogenerated deepcopy function.
 func DeepCopy_api_ReplicationControllerList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicationControllerList)
@@ -2596,6 +2918,7 @@ func DeepCopy_api_ReplicationControllerList(in interface{}, out interface{}, c *
 	}
 }
 
+// DeepCopy_api_ReplicationControllerSpec is an autogenerated deepcopy function.
 func DeepCopy_api_ReplicationControllerSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicationControllerSpec)
@@ -2619,6 +2942,7 @@ func DeepCopy_api_ReplicationControllerSpec(in interface{}, out interface{}, c *
 	}
 }
 
+// DeepCopy_api_ReplicationControllerStatus is an autogenerated deepcopy function.
 func DeepCopy_api_ReplicationControllerStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicationControllerStatus)
@@ -2637,6 +2961,7 @@ func DeepCopy_api_ReplicationControllerStatus(in interface{}, out interface{}, c
 	}
 }
 
+// DeepCopy_api_ResourceFieldSelector is an autogenerated deepcopy function.
 func DeepCopy_api_ResourceFieldSelector(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ResourceFieldSelector)
@@ -2647,6 +2972,7 @@ func DeepCopy_api_ResourceFieldSelector(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_api_ResourceQuota is an autogenerated deepcopy function.
 func DeepCopy_api_ResourceQuota(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ResourceQuota)
@@ -2667,6 +2993,7 @@ func DeepCopy_api_ResourceQuota(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_ResourceQuotaList is an autogenerated deepcopy function.
 func DeepCopy_api_ResourceQuotaList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ResourceQuotaList)
@@ -2685,6 +3012,7 @@ func DeepCopy_api_ResourceQuotaList(in interface{}, out interface{}, c *conversi
 	}
 }
 
+// DeepCopy_api_ResourceQuotaSpec is an autogenerated deepcopy function.
 func DeepCopy_api_ResourceQuotaSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ResourceQuotaSpec)
@@ -2706,6 +3034,7 @@ func DeepCopy_api_ResourceQuotaSpec(in interface{}, out interface{}, c *conversi
 	}
 }
 
+// DeepCopy_api_ResourceQuotaStatus is an autogenerated deepcopy function.
 func DeepCopy_api_ResourceQuotaStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ResourceQuotaStatus)
@@ -2729,6 +3058,7 @@ func DeepCopy_api_ResourceQuotaStatus(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_ResourceRequirements is an autogenerated deepcopy function.
 func DeepCopy_api_ResourceRequirements(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ResourceRequirements)
@@ -2752,6 +3082,7 @@ func DeepCopy_api_ResourceRequirements(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_api_SELinuxOptions is an autogenerated deepcopy function.
 func DeepCopy_api_SELinuxOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SELinuxOptions)
@@ -2761,6 +3092,22 @@ func DeepCopy_api_SELinuxOptions(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_api_ScaleIOVolumeSource is an autogenerated deepcopy function.
+func DeepCopy_api_ScaleIOVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ScaleIOVolumeSource)
+		out := out.(*ScaleIOVolumeSource)
+		*out = *in
+		if in.SecretRef != nil {
+			in, out := &in.SecretRef, &out.SecretRef
+			*out = new(LocalObjectReference)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_api_Secret is an autogenerated deepcopy function.
 func DeepCopy_api_Secret(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Secret)
@@ -2786,24 +3133,37 @@ func DeepCopy_api_Secret(in interface{}, out interface{}, c *conversion.Cloner) 
 	}
 }
 
+// DeepCopy_api_SecretEnvSource is an autogenerated deepcopy function.
 func DeepCopy_api_SecretEnvSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SecretEnvSource)
 		out := out.(*SecretEnvSource)
 		*out = *in
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_SecretKeySelector is an autogenerated deepcopy function.
 func DeepCopy_api_SecretKeySelector(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SecretKeySelector)
 		out := out.(*SecretKeySelector)
 		*out = *in
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_SecretList is an autogenerated deepcopy function.
 func DeepCopy_api_SecretList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SecretList)
@@ -2822,6 +3182,31 @@ func DeepCopy_api_SecretList(in interface{}, out interface{}, c *conversion.Clon
 	}
 }
 
+// DeepCopy_api_SecretProjection is an autogenerated deepcopy function.
+func DeepCopy_api_SecretProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SecretProjection)
+		out := out.(*SecretProjection)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]KeyToPath, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_KeyToPath(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_api_SecretVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_SecretVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SecretVolumeSource)
@@ -2841,10 +3226,16 @@ func DeepCopy_api_SecretVolumeSource(in interface{}, out interface{}, c *convers
 			*out = new(int32)
 			**out = **in
 		}
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_SecurityContext is an autogenerated deepcopy function.
 func DeepCopy_api_SecurityContext(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SecurityContext)
@@ -2869,7 +3260,7 @@ func DeepCopy_api_SecurityContext(in interface{}, out interface{}, c *conversion
 		}
 		if in.RunAsUser != nil {
 			in, out := &in.RunAsUser, &out.RunAsUser
-			*out = new(int64)
+			*out = new(types.UnixUserID)
 			**out = **in
 		}
 		if in.RunAsNonRoot != nil {
@@ -2886,6 +3277,7 @@ func DeepCopy_api_SecurityContext(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_SerializedReference is an autogenerated deepcopy function.
 func DeepCopy_api_SerializedReference(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SerializedReference)
@@ -2895,6 +3287,7 @@ func DeepCopy_api_SerializedReference(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_Service is an autogenerated deepcopy function.
 func DeepCopy_api_Service(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Service)
@@ -2915,6 +3308,7 @@ func DeepCopy_api_Service(in interface{}, out interface{}, c *conversion.Cloner)
 	}
 }
 
+// DeepCopy_api_ServiceAccount is an autogenerated deepcopy function.
 func DeepCopy_api_ServiceAccount(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ServiceAccount)
@@ -2935,10 +3329,16 @@ func DeepCopy_api_ServiceAccount(in interface{}, out interface{}, c *conversion.
 			*out = make([]LocalObjectReference, len(*in))
 			copy(*out, *in)
 		}
+		if in.AutomountServiceAccountToken != nil {
+			in, out := &in.AutomountServiceAccountToken, &out.AutomountServiceAccountToken
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_ServiceAccountList is an autogenerated deepcopy function.
 func DeepCopy_api_ServiceAccountList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ServiceAccountList)
@@ -2957,6 +3357,7 @@ func DeepCopy_api_ServiceAccountList(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_api_ServiceList is an autogenerated deepcopy function.
 func DeepCopy_api_ServiceList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ServiceList)
@@ -2975,6 +3376,7 @@ func DeepCopy_api_ServiceList(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_ServicePort is an autogenerated deepcopy function.
 func DeepCopy_api_ServicePort(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ServicePort)
@@ -2984,6 +3386,7 @@ func DeepCopy_api_ServicePort(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_ServiceProxyOptions is an autogenerated deepcopy function.
 func DeepCopy_api_ServiceProxyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ServiceProxyOptions)
@@ -2993,6 +3396,7 @@ func DeepCopy_api_ServiceProxyOptions(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_api_ServiceSpec is an autogenerated deepcopy function.
 func DeepCopy_api_ServiceSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ServiceSpec)
@@ -3024,6 +3428,7 @@ func DeepCopy_api_ServiceSpec(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_ServiceStatus is an autogenerated deepcopy function.
 func DeepCopy_api_ServiceStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ServiceStatus)
@@ -3036,6 +3441,7 @@ func DeepCopy_api_ServiceStatus(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_api_Sysctl is an autogenerated deepcopy function.
 func DeepCopy_api_Sysctl(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Sysctl)
@@ -3045,6 +3451,7 @@ func DeepCopy_api_Sysctl(in interface{}, out interface{}, c *conversion.Cloner) 
 	}
 }
 
+// DeepCopy_api_TCPSocketAction is an autogenerated deepcopy function.
 func DeepCopy_api_TCPSocketAction(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*TCPSocketAction)
@@ -3054,24 +3461,33 @@ func DeepCopy_api_TCPSocketAction(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_api_Taint is an autogenerated deepcopy function.
 func DeepCopy_api_Taint(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Taint)
 		out := out.(*Taint)
 		*out = *in
+		out.TimeAdded = in.TimeAdded.DeepCopy()
 		return nil
 	}
 }
 
+// DeepCopy_api_Toleration is an autogenerated deepcopy function.
 func DeepCopy_api_Toleration(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Toleration)
 		out := out.(*Toleration)
 		*out = *in
+		if in.TolerationSeconds != nil {
+			in, out := &in.TolerationSeconds, &out.TolerationSeconds
+			*out = new(int64)
+			**out = **in
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_Volume is an autogenerated deepcopy function.
 func DeepCopy_api_Volume(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Volume)
@@ -3084,6 +3500,7 @@ func DeepCopy_api_Volume(in interface{}, out interface{}, c *conversion.Cloner) 
 	}
 }
 
+// DeepCopy_api_VolumeMount is an autogenerated deepcopy function.
 func DeepCopy_api_VolumeMount(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*VolumeMount)
@@ -3093,6 +3510,38 @@ func DeepCopy_api_VolumeMount(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_api_VolumeProjection is an autogenerated deepcopy function.
+func DeepCopy_api_VolumeProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*VolumeProjection)
+		out := out.(*VolumeProjection)
+		*out = *in
+		if in.Secret != nil {
+			in, out := &in.Secret, &out.Secret
+			*out = new(SecretProjection)
+			if err := DeepCopy_api_SecretProjection(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.DownwardAPI != nil {
+			in, out := &in.DownwardAPI, &out.DownwardAPI
+			*out = new(DownwardAPIProjection)
+			if err := DeepCopy_api_DownwardAPIProjection(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.ConfigMap != nil {
+			in, out := &in.ConfigMap, &out.ConfigMap
+			*out = new(ConfigMapProjection)
+			if err := DeepCopy_api_ConfigMapProjection(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+// DeepCopy_api_VolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*VolumeSource)
@@ -3138,7 +3587,9 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 		if in.ISCSI != nil {
 			in, out := &in.ISCSI, &out.ISCSI
 			*out = new(ISCSIVolumeSource)
-			**out = **in
+			if err := DeepCopy_api_ISCSIVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		if in.Glusterfs != nil {
 			in, out := &in.Glusterfs, &out.Glusterfs
@@ -3229,10 +3680,30 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			*out = new(PhotonPersistentDiskVolumeSource)
 			**out = **in
 		}
+		if in.Projected != nil {
+			in, out := &in.Projected, &out.Projected
+			*out = new(ProjectedVolumeSource)
+			if err := DeepCopy_api_ProjectedVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.PortworxVolume != nil {
+			in, out := &in.PortworxVolume, &out.PortworxVolume
+			*out = new(PortworxVolumeSource)
+			**out = **in
+		}
+		if in.ScaleIO != nil {
+			in, out := &in.ScaleIO, &out.ScaleIO
+			*out = new(ScaleIOVolumeSource)
+			if err := DeepCopy_api_ScaleIOVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 }
 
+// DeepCopy_api_VsphereVirtualDiskVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_api_VsphereVirtualDiskVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*VsphereVirtualDiskVolumeSource)
@@ -3242,6 +3713,7 @@ func DeepCopy_api_VsphereVirtualDiskVolumeSource(in interface{}, out interface{}
 	}
 }
 
+// DeepCopy_api_WeightedPodAffinityTerm is an autogenerated deepcopy function.
 func DeepCopy_api_WeightedPodAffinityTerm(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*WeightedPodAffinityTerm)

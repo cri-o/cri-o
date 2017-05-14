@@ -112,6 +112,14 @@ func (p *flockerPlugin) RequiresRemount() bool {
 	return false
 }
 
+func (p *flockerPlugin) SupportsMountOption() bool {
+	return false
+}
+
+func (plugin *flockerPlugin) SupportsBulkVolumeVerification() bool {
+	return false
+}
+
 func (plugin *flockerPlugin) GetAccessModes() []v1.PersistentVolumeAccessMode {
 	return []v1.PersistentVolumeAccessMode{
 		v1.ReadWriteOnce,
@@ -224,7 +232,7 @@ func (b *flockerVolumeMounter) GetPath() string {
 }
 
 // SetUp bind mounts the disk global mount to the volume path.
-func (b *flockerVolumeMounter) SetUp(fsGroup *int64) error {
+func (b *flockerVolumeMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
@@ -266,7 +274,7 @@ control service:
    need to update the Primary UUID for this volume.
 5. Wait until the Primary UUID was updated or timeout.
 */
-func (b *flockerVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (b *flockerVolumeMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	var err error
 	if b.flockerClient == nil {
 		b.flockerClient, err = b.newFlockerClient()

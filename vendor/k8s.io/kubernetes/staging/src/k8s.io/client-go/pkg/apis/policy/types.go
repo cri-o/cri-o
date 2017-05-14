@@ -18,8 +18,7 @@ package policy
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // PodDisruptionBudgetSpec is a description of a PodDisruptionBudget.
@@ -29,12 +28,19 @@ type PodDisruptionBudgetSpec struct {
 	// absence of the evicted pod.  So for example you can prevent all voluntary
 	// evictions by specifying "100%".
 	// +optional
-	MinAvailable intstr.IntOrString
+	MinAvailable *intstr.IntOrString
 
 	// Label query over pods whose evictions are managed by the disruption
 	// budget.
 	// +optional
 	Selector *metav1.LabelSelector
+
+	// An eviction is allowed if at most "maxUnavailable" pods selected by
+	// "selector" are unavailable after the eviction, i.e. even in absence of
+	// the evicted pod. For example, one can prevent all voluntary evictions
+	// by specifying 0. This is a mutually exclusive setting with "minAvailable".
+	// +optional
+	MaxUnavailable *intstr.IntOrString
 }
 
 // PodDisruptionBudgetStatus represents information about the status of a
@@ -110,5 +116,5 @@ type Eviction struct {
 
 	// DeleteOptions may be provided
 	// +optional
-	DeleteOptions *api.DeleteOptions
+	DeleteOptions *metav1.DeleteOptions
 }

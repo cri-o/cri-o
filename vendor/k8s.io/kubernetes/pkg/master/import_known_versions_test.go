@@ -25,10 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 func TestGroupVersions(t *testing.T) {
@@ -71,18 +71,20 @@ func TestTypeTags(t *testing.T) {
 // but are also registered in internal versions (or referenced from internal types),
 // so we explicitly allow tags for them
 var typesAllowedTags = map[reflect.Type]bool{
-	reflect.TypeOf(intstr.IntOrString{}):    true,
-	reflect.TypeOf(metav1.Time{}):           true,
-	reflect.TypeOf(metav1.Duration{}):       true,
-	reflect.TypeOf(metav1.TypeMeta{}):       true,
-	reflect.TypeOf(metav1.ListMeta{}):       true,
-	reflect.TypeOf(metav1.ObjectMeta{}):     true,
-	reflect.TypeOf(metav1.OwnerReference{}): true,
-	reflect.TypeOf(metav1.LabelSelector{}):  true,
-	reflect.TypeOf(metav1.GetOptions{}):     true,
-	reflect.TypeOf(metav1.ExportOptions{}):  true,
-	reflect.TypeOf(metav1.ListOptions{}):    true,
-	reflect.TypeOf(metav1.DeleteOptions{}):  true,
+	reflect.TypeOf(intstr.IntOrString{}):          true,
+	reflect.TypeOf(metav1.Time{}):                 true,
+	reflect.TypeOf(metav1.Duration{}):             true,
+	reflect.TypeOf(metav1.TypeMeta{}):             true,
+	reflect.TypeOf(metav1.ListMeta{}):             true,
+	reflect.TypeOf(metav1.ObjectMeta{}):           true,
+	reflect.TypeOf(metav1.OwnerReference{}):       true,
+	reflect.TypeOf(metav1.LabelSelector{}):        true,
+	reflect.TypeOf(metav1.GetOptions{}):           true,
+	reflect.TypeOf(metav1.ExportOptions{}):        true,
+	reflect.TypeOf(metav1.ListOptions{}):          true,
+	reflect.TypeOf(metav1.DeleteOptions{}):        true,
+	reflect.TypeOf(metav1.GroupVersionKind{}):     true,
+	reflect.TypeOf(metav1.GroupVersionResource{}): true,
 }
 
 func ensureNoTags(t *testing.T, gvk schema.GroupVersionKind, tp reflect.Type, parents []reflect.Type) {

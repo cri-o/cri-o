@@ -23,10 +23,10 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
@@ -47,8 +47,8 @@ func validNewNamespace() *api.Namespace {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	defer storage.store.DestroyFunc()
+	test := registrytest.New(t, storage.store).ClusterScope()
 	namespace := validNewNamespace()
 	namespace.ObjectMeta = metav1.ObjectMeta{GenerateName: "foo"}
 	test.TestCreate(
@@ -64,7 +64,7 @@ func TestCreate(t *testing.T) {
 func TestCreateSetsFields(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	defer storage.Store.DestroyFunc()
+	defer storage.store.DestroyFunc()
 	namespace := validNewNamespace()
 	ctx := genericapirequest.NewContext()
 	_, err := storage.Create(ctx, namespace)
@@ -91,32 +91,32 @@ func TestCreateSetsFields(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope().ReturnDeletedObject()
+	defer storage.store.DestroyFunc()
+	test := registrytest.New(t, storage.store).ClusterScope().ReturnDeletedObject()
 	test.TestDelete(validNewNamespace())
 }
 
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	defer storage.store.DestroyFunc()
+	test := registrytest.New(t, storage.store).ClusterScope()
 	test.TestGet(validNewNamespace())
 }
 
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	defer storage.store.DestroyFunc()
+	test := registrytest.New(t, storage.store).ClusterScope()
 	test.TestList(validNewNamespace())
 }
 
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	defer storage.store.DestroyFunc()
+	test := registrytest.New(t, storage.store).ClusterScope()
 	test.TestWatch(
 		validNewNamespace(),
 		// matching labels
@@ -140,7 +140,7 @@ func TestWatch(t *testing.T) {
 func TestDeleteNamespaceWithIncompleteFinalizers(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	defer storage.Store.DestroyFunc()
+	defer storage.store.DestroyFunc()
 	key := "namespaces/foo"
 	ctx := genericapirequest.NewContext()
 	now := metav1.Now()
@@ -154,10 +154,10 @@ func TestDeleteNamespaceWithIncompleteFinalizers(t *testing.T) {
 		},
 		Status: api.NamespaceStatus{Phase: api.NamespaceActive},
 	}
-	if err := storage.Storage.Create(ctx, key, namespace, nil, 0); err != nil {
+	if err := storage.store.Storage.Create(ctx, key, namespace, nil, 0); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := storage.Delete(ctx, "foo", nil); err == nil {
+	if _, _, err := storage.Delete(ctx, "foo", nil); err == nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
@@ -165,7 +165,7 @@ func TestDeleteNamespaceWithIncompleteFinalizers(t *testing.T) {
 func TestDeleteNamespaceWithCompleteFinalizers(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	defer storage.Store.DestroyFunc()
+	defer storage.store.DestroyFunc()
 	key := "namespaces/foo"
 	ctx := genericapirequest.NewContext()
 	now := metav1.Now()
@@ -179,10 +179,18 @@ func TestDeleteNamespaceWithCompleteFinalizers(t *testing.T) {
 		},
 		Status: api.NamespaceStatus{Phase: api.NamespaceActive},
 	}
-	if err := storage.Storage.Create(ctx, key, namespace, nil, 0); err != nil {
+	if err := storage.store.Storage.Create(ctx, key, namespace, nil, 0); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := storage.Delete(ctx, "foo", nil); err != nil {
+	if _, _, err := storage.Delete(ctx, "foo", nil); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+}
+
+func TestShortNames(t *testing.T) {
+	storage, server := newStorage(t)
+	defer server.Terminate(t)
+	defer storage.store.DestroyFunc()
+	expected := []string{"ns"}
+	registrytest.AssertShortNames(t, storage, expected)
 }

@@ -23,10 +23,10 @@ import (
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api/v1"
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 func TestPodResourceLimitsDefaulting(t *testing.T) {
@@ -41,18 +41,21 @@ func TestPodResourceLimitsDefaulting(t *testing.T) {
 	}, nil)
 	tk.fakeCadvisor.On("ImagesFsInfo").Return(cadvisorapiv2.FsInfo{}, nil)
 	tk.fakeCadvisor.On("RootFsInfo").Return(cadvisorapiv2.FsInfo{}, nil)
-
-	tk.kubelet.reservation = kubetypes.Reservation{
-		Kubernetes: v1.ResourceList{
-			v1.ResourceCPU:    resource.MustParse("3"),
-			v1.ResourceMemory: resource.MustParse("4Gi"),
-		},
-		System: v1.ResourceList{
-			v1.ResourceCPU:    resource.MustParse("1"),
-			v1.ResourceMemory: resource.MustParse("2Gi"),
+	tk.kubelet.nodeInfo = &testNodeInfo{
+		nodes: []*v1.Node{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: string(tk.kubelet.nodeName),
+				},
+				Status: v1.NodeStatus{
+					Allocatable: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("6"),
+						v1.ResourceMemory: resource.MustParse("4Gi"),
+					},
+				},
+			},
 		},
 	}
-
 	cases := []struct {
 		pod      *v1.Pod
 		expected *v1.Pod
@@ -78,7 +81,7 @@ func TestPodResourceLimitsDefaulting(t *testing.T) {
 	for idx, tc := range cases {
 		actual, _, err := tk.kubelet.defaultPodLimitsForDownwardApi(tc.pod, nil)
 		as.Nil(err, "failed to default pod limits: %v", err)
-		if !api.Semantic.DeepEqual(tc.expected, actual) {
+		if !apiequality.Semantic.DeepEqual(tc.expected, actual) {
 			as.Fail("test case [%d] failed.  Expected: %+v, Got: %+v", idx, tc.expected, actual)
 		}
 	}

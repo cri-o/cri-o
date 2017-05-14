@@ -72,6 +72,14 @@ func (plugin *cephfsPlugin) RequiresRemount() bool {
 	return false
 }
 
+func (plugin *cephfsPlugin) SupportsMountOption() bool {
+	return true
+}
+
+func (plugin *cephfsPlugin) SupportsBulkVolumeVerification() bool {
+	return false
+}
+
 func (plugin *cephfsPlugin) GetAccessModes() []v1.PersistentVolumeAccessMode {
 	return []v1.PersistentVolumeAccessMode{
 		v1.ReadWriteOnce,
@@ -129,16 +137,18 @@ func (plugin *cephfsPlugin) newMounterInternal(spec *volume.Spec, podUID types.U
 
 	return &cephfsMounter{
 		cephfs: &cephfs{
-			podUID:      podUID,
-			volName:     spec.Name(),
-			mon:         cephvs.Monitors,
-			path:        path,
-			secret:      secret,
-			id:          id,
-			secret_file: secret_file,
-			readonly:    cephvs.ReadOnly,
-			mounter:     mounter,
-			plugin:      plugin},
+			podUID:       podUID,
+			volName:      spec.Name(),
+			mon:          cephvs.Monitors,
+			path:         path,
+			secret:       secret,
+			id:           id,
+			secret_file:  secret_file,
+			readonly:     cephvs.ReadOnly,
+			mounter:      mounter,
+			plugin:       plugin,
+			mountOptions: volume.MountOptionFromSpec(spec),
+		},
 	}, nil
 }
 
@@ -182,6 +192,7 @@ type cephfs struct {
 	mounter     mount.Interface
 	plugin      *cephfsPlugin
 	volume.MetricsNil
+	mountOptions []string
 }
 
 type cephfsMounter struct {
@@ -201,17 +212,17 @@ func (cephfsVolume *cephfsMounter) GetAttributes() volume.Attributes {
 // Checks prior to mount operations to verify that the required components (binaries, etc.)
 // to mount the volume are available on the underlying node.
 // If not, it returns an error
-func (caphfsMounter *cephfsMounter) CanMount() error {
+func (cephfsMounter *cephfsMounter) CanMount() error {
 	return nil
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (cephfsVolume *cephfsMounter) SetUp(fsGroup *int64) error {
+func (cephfsVolume *cephfsMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	return cephfsVolume.SetUpAt(cephfsVolume.GetPath(), fsGroup)
 }
 
 // SetUpAt attaches the disk and bind mounts to the volume path.
-func (cephfsVolume *cephfsMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (cephfsVolume *cephfsMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	notMnt, err := cephfsVolume.mounter.IsLikelyNotMountPoint(dir)
 	glog.V(4).Infof("CephFS mount set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
@@ -282,7 +293,8 @@ func (cephfsVolume *cephfs) execMount(mountpoint string) error {
 	}
 	src += hosts[i] + ":" + cephfsVolume.path
 
-	if err := cephfsVolume.mounter.Mount(src, mountpoint, "ceph", opt); err != nil {
+	mountOptions := volume.JoinMountOptions(cephfsVolume.mountOptions, opt)
+	if err := cephfsVolume.mounter.Mount(src, mountpoint, "ceph", mountOptions); err != nil {
 		return fmt.Errorf("CephFS: mount failed: %v", err)
 	}
 

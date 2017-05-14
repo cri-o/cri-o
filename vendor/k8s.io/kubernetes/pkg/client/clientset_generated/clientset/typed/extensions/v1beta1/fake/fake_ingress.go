@@ -22,8 +22,8 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 	v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
 
 // FakeIngresses implements IngressInterface
@@ -34,9 +34,11 @@ type FakeIngresses struct {
 
 var ingressesResource = schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "ingresses"}
 
+var ingressesKind = schema.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "Ingress"}
+
 func (c *FakeIngresses) Create(ingress *v1beta1.Ingress) (result *v1beta1.Ingress, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(ingressesResource, c.ns, ingress), &v1beta1.Ingress{})
+		Invokes(testing.NewCreateAction(ingressesResource, c.ns, ingress), &v1beta1.Ingress{})
 
 	if obj == nil {
 		return nil, err
@@ -46,7 +48,7 @@ func (c *FakeIngresses) Create(ingress *v1beta1.Ingress) (result *v1beta1.Ingres
 
 func (c *FakeIngresses) Update(ingress *v1beta1.Ingress) (result *v1beta1.Ingress, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(ingressesResource, c.ns, ingress), &v1beta1.Ingress{})
+		Invokes(testing.NewUpdateAction(ingressesResource, c.ns, ingress), &v1beta1.Ingress{})
 
 	if obj == nil {
 		return nil, err
@@ -56,7 +58,7 @@ func (c *FakeIngresses) Update(ingress *v1beta1.Ingress) (result *v1beta1.Ingres
 
 func (c *FakeIngresses) UpdateStatus(ingress *v1beta1.Ingress) (*v1beta1.Ingress, error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateSubresourceAction(ingressesResource, "status", c.ns, ingress), &v1beta1.Ingress{})
+		Invokes(testing.NewUpdateSubresourceAction(ingressesResource, "status", c.ns, ingress), &v1beta1.Ingress{})
 
 	if obj == nil {
 		return nil, err
@@ -66,13 +68,13 @@ func (c *FakeIngresses) UpdateStatus(ingress *v1beta1.Ingress) (*v1beta1.Ingress
 
 func (c *FakeIngresses) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(ingressesResource, c.ns, name), &v1beta1.Ingress{})
+		Invokes(testing.NewDeleteAction(ingressesResource, c.ns, name), &v1beta1.Ingress{})
 
 	return err
 }
 
 func (c *FakeIngresses) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := core.NewDeleteCollectionAction(ingressesResource, c.ns, listOptions)
+	action := testing.NewDeleteCollectionAction(ingressesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.IngressList{})
 	return err
@@ -80,7 +82,7 @@ func (c *FakeIngresses) DeleteCollection(options *v1.DeleteOptions, listOptions 
 
 func (c *FakeIngresses) Get(name string, options v1.GetOptions) (result *v1beta1.Ingress, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(ingressesResource, c.ns, name), &v1beta1.Ingress{})
+		Invokes(testing.NewGetAction(ingressesResource, c.ns, name), &v1beta1.Ingress{})
 
 	if obj == nil {
 		return nil, err
@@ -90,13 +92,13 @@ func (c *FakeIngresses) Get(name string, options v1.GetOptions) (result *v1beta1
 
 func (c *FakeIngresses) List(opts v1.ListOptions) (result *v1beta1.IngressList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(ingressesResource, c.ns, opts), &v1beta1.IngressList{})
+		Invokes(testing.NewListAction(ingressesResource, ingressesKind, c.ns, opts), &v1beta1.IngressList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -112,14 +114,14 @@ func (c *FakeIngresses) List(opts v1.ListOptions) (result *v1beta1.IngressList, 
 // Watch returns a watch.Interface that watches the requested ingresses.
 func (c *FakeIngresses) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(ingressesResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(ingressesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched ingress.
 func (c *FakeIngresses) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Ingress, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(ingressesResource, c.ns, name, data, subresources...), &v1beta1.Ingress{})
+		Invokes(testing.NewPatchSubresourceAction(ingressesResource, c.ns, name, data, subresources...), &v1beta1.Ingress{})
 
 	if obj == nil {
 		return nil, err

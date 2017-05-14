@@ -21,8 +21,11 @@ limitations under the License.
 package operationexecutor
 
 import (
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -59,12 +62,16 @@ type OperationExecutor interface {
 	// It then updates the actual state of the world to reflect that.
 	AttachVolume(volumeToAttach VolumeToAttach, actualStateOfWorld ActualStateOfWorldAttacherUpdater) error
 
-	// VerifyVolumesAreAttached verifies the given list of volumes to see whether they are still attached to the node.
+	// VerifyVolumesAreAttachedPerNode verifies the given list of volumes to see whether they are still attached to the node.
 	// If any volume is not attached right now, it will update the actual state of the world to reflect that.
 	// Note that this operation could be operated concurrently with other attach/detach operations.
 	// In theory (but very unlikely in practise), race condition among these operations might mark volume as detached
 	// even if it is attached. But reconciler can correct this in a short period of time.
-	VerifyVolumesAreAttached(AttachedVolumes []AttachedVolume, nodeName types.NodeName, actualStateOfWorld ActualStateOfWorldAttacherUpdater) error
+	VerifyVolumesAreAttachedPerNode(AttachedVolumes []AttachedVolume, nodeName types.NodeName, actualStateOfWorld ActualStateOfWorldAttacherUpdater) error
+
+	// VerifyVolumesAreAttached verifies volumes being used in entire cluster and if they are still attached to the node
+	// If any volume is not attached right now, it will update actual state of world to reflect that.
+	VerifyVolumesAreAttached(volumesToVerify map[types.NodeName][]AttachedVolume, actualStateOfWorld ActualStateOfWorldAttacherUpdater)
 
 	// DetachVolume detaches the volume from the node specified in
 	// volumeToDetach, and updates the actual state of the world to reflect
@@ -82,7 +89,10 @@ type OperationExecutor interface {
 	// * Mount the volume to the pod specific path.
 	// * Update actual state of world to reflect volume is mounted to the pod
 	//   path.
-	MountVolume(waitForAttachTimeout time.Duration, volumeToMount VolumeToMount, actualStateOfWorld ActualStateOfWorldMounterUpdater) error
+	// The parameter "isRemount" is informational and used to adjust logging
+	// verbosity. An initial mount is more log-worthy than a remount, for
+	// example.
+	MountVolume(waitForAttachTimeout time.Duration, volumeToMount VolumeToMount, actualStateOfWorld ActualStateOfWorldMounterUpdater, isRemount bool) error
 
 	// UnmountVolume unmounts the volume from the pod specified in
 	// volumeToUnmount and updates the actual state of the world to reflect that.
@@ -153,16 +163,61 @@ type ActualStateOfWorldAttacherUpdater interface {
 	MarkVolumeAsDetached(volumeName v1.UniqueVolumeName, nodeName types.NodeName)
 
 	// Marks desire to detach the specified volume (remove the volume from the node's
-	// volumesToReportedAsAttached list)
+	// volumesToReportAsAttached list)
 	RemoveVolumeFromReportAsAttached(volumeName v1.UniqueVolumeName, nodeName types.NodeName) error
 
 	// Unmarks the desire to detach for the specified volume (add the volume back to
-	// the node's volumesToReportedAsAttached list)
+	// the node's volumesToReportAsAttached list)
 	AddVolumeToReportAsAttached(volumeName v1.UniqueVolumeName, nodeName types.NodeName)
+}
+
+// VolumeLogger defines a set of operations for generating volume-related logging and error msgs
+type VolumeLogger interface {
+	// Creates a detailed msg that can be used in logs
+	// The msg format follows the pattern "<prefixMsg> <volume details> <suffixMsg>",
+	// where each implementation provides the volume details
+	GenerateMsgDetailed(prefixMsg, suffixMsg string) (detailedMsg string)
+
+	// Creates a detailed error that can be used in logs.
+	// The msg format follows the pattern "<prefixMsg> <volume details>: <err> ",
+	GenerateErrorDetailed(prefixMsg string, err error) (detailedErr error)
+
+	// Creates a simple msg that is user friendly and a detailed msg that can be used in logs
+	// The msg format follows the pattern "<prefixMsg> <volume details> <suffixMsg>",
+	// where each implementation provides the volume details
+	GenerateMsg(prefixMsg, suffixMsg string) (simpleMsg, detailedMsg string)
+
+	// Creates a simple error that is user friendly and a detailed error that can be used in logs.
+	// The msg format follows the pattern "<prefixMsg> <volume details>: <err> ",
+	GenerateError(prefixMsg string, err error) (simpleErr, detailedErr error)
+}
+
+// Generates an error string with the format ": <err>" if err exists
+func errSuffix(err error) string {
+	errStr := ""
+	if err != nil {
+		errStr = fmt.Sprintf(": %v", err)
+	}
+	return errStr
+}
+
+// Generate a detailed error msg for logs
+func generateVolumeMsgDetailed(prefixMsg, suffixMsg, volumeName, details string) (detailedMsg string) {
+	return fmt.Sprintf("%v for volume %q %v %v", prefixMsg, volumeName, details, suffixMsg)
+}
+
+// Generate a simplified error msg for events and a detailed error msg for logs
+func generateVolumeMsg(prefixMsg, suffixMsg, volumeName, details string) (simpleMsg, detailedMsg string) {
+	simpleMsg = fmt.Sprintf("%v for volume %q %v", prefixMsg, volumeName, suffixMsg)
+	return simpleMsg, generateVolumeMsgDetailed(prefixMsg, suffixMsg, volumeName, details)
 }
 
 // VolumeToAttach represents a volume that should be attached to a node.
 type VolumeToAttach struct {
+	// MultiAttachErrorReported indicates whether the multi-attach error has been reported for the given volume.
+	// It is used to to prevent reporting the error from being reported more than once for a given volume.
+	MultiAttachErrorReported bool
+
 	// VolumeName is the unique identifier for the volume that should be
 	// attached.
 	VolumeName v1.UniqueVolumeName
@@ -180,6 +235,37 @@ type VolumeToAttach struct {
 	// the name of the pod and the value is a pod object containing more
 	// information about the pod.
 	ScheduledPods []*v1.Pod
+}
+
+// GenerateMsgDetailed returns detailed msgs for volumes to attach
+func (volume *VolumeToAttach) GenerateMsgDetailed(prefixMsg, suffixMsg string) (detailedMsg string) {
+	detailedStr := fmt.Sprintf("(UniqueName: %q) from node %q", volume.VolumeName, volume.NodeName)
+	volumeSpecName := "nil"
+	if volume.VolumeSpec != nil {
+		volumeSpecName = volume.VolumeSpec.Name()
+	}
+	return generateVolumeMsgDetailed(prefixMsg, suffixMsg, volumeSpecName, detailedStr)
+}
+
+// GenerateMsg returns simple and detailed msgs for volumes to attach
+func (volume *VolumeToAttach) GenerateMsg(prefixMsg, suffixMsg string) (simpleMsg, detailedMsg string) {
+	detailedStr := fmt.Sprintf("(UniqueName: %q) from node %q", volume.VolumeName, volume.NodeName)
+	volumeSpecName := "nil"
+	if volume.VolumeSpec != nil {
+		volumeSpecName = volume.VolumeSpec.Name()
+	}
+	return generateVolumeMsg(prefixMsg, suffixMsg, volumeSpecName, detailedStr)
+}
+
+// GenerateErrorDetailed returns detailed errors for volumes to attach
+func (volume *VolumeToAttach) GenerateErrorDetailed(prefixMsg string, err error) (detailedErr error) {
+	return fmt.Errorf(volume.GenerateMsgDetailed(prefixMsg, errSuffix(err)))
+}
+
+// GenerateError returns simple and detailed errors for volumes to attach
+func (volume *VolumeToAttach) GenerateError(prefixMsg string, err error) (simpleErr, detailedErr error) {
+	simpleMsg, detailedMsg := volume.GenerateMsg(prefixMsg, errSuffix(err))
+	return fmt.Errorf(simpleMsg), fmt.Errorf(detailedMsg)
 }
 
 // VolumeToMount represents a volume that should be attached to this node and
@@ -222,6 +308,37 @@ type VolumeToMount struct {
 	ReportedInUse bool
 }
 
+// GenerateMsgDetailed returns detailed msgs for volumes to mount
+func (volume *VolumeToMount) GenerateMsgDetailed(prefixMsg, suffixMsg string) (detailedMsg string) {
+	detailedStr := fmt.Sprintf("(UniqueName: %q) pod %q (UID: %q)", volume.VolumeName, volume.Pod.Name, volume.Pod.UID)
+	volumeSpecName := "nil"
+	if volume.VolumeSpec != nil {
+		volumeSpecName = volume.VolumeSpec.Name()
+	}
+	return generateVolumeMsgDetailed(prefixMsg, suffixMsg, volumeSpecName, detailedStr)
+}
+
+// GenerateMsg returns simple and detailed msgs for volumes to mount
+func (volume *VolumeToMount) GenerateMsg(prefixMsg, suffixMsg string) (simpleMsg, detailedMsg string) {
+	detailedStr := fmt.Sprintf("(UniqueName: %q) pod %q (UID: %q)", volume.VolumeName, volume.Pod.Name, volume.Pod.UID)
+	volumeSpecName := "nil"
+	if volume.VolumeSpec != nil {
+		volumeSpecName = volume.VolumeSpec.Name()
+	}
+	return generateVolumeMsg(prefixMsg, suffixMsg, volumeSpecName, detailedStr)
+}
+
+// GenerateErrorDetailed returns detailed errors for volumes to mount
+func (volume *VolumeToMount) GenerateErrorDetailed(prefixMsg string, err error) (detailedErr error) {
+	return fmt.Errorf(volume.GenerateMsgDetailed(prefixMsg, errSuffix(err)))
+}
+
+// GenerateError returns simple and detailed errors for volumes to mount
+func (volume *VolumeToMount) GenerateError(prefixMsg string, err error) (simpleErr, detailedErr error) {
+	simpleMsg, detailedMsg := volume.GenerateMsg(prefixMsg, errSuffix(err))
+	return fmt.Errorf(simpleMsg), fmt.Errorf(detailedMsg)
+}
+
 // AttachedVolume represents a volume that is attached to a node.
 type AttachedVolume struct {
 	// VolumeName is the unique identifier for the volume that is attached.
@@ -241,6 +358,37 @@ type AttachedVolume struct {
 	// DevicePath contains the path on the node where the volume is attached.
 	// For non-attachable volumes this is empty.
 	DevicePath string
+}
+
+// GenerateMsgDetailed returns detailed msgs for attached volumes
+func (volume *AttachedVolume) GenerateMsgDetailed(prefixMsg, suffixMsg string) (detailedMsg string) {
+	detailedStr := fmt.Sprintf("(UniqueName: %q) on node %q", volume.VolumeName, volume.NodeName)
+	volumeSpecName := "nil"
+	if volume.VolumeSpec != nil {
+		volumeSpecName = volume.VolumeSpec.Name()
+	}
+	return generateVolumeMsgDetailed(prefixMsg, suffixMsg, volumeSpecName, detailedStr)
+}
+
+// GenerateMsg returns simple and detailed msgs for attached volumes
+func (volume *AttachedVolume) GenerateMsg(prefixMsg, suffixMsg string) (simpleMsg, detailedMsg string) {
+	detailedStr := fmt.Sprintf("(UniqueName: %q) on node %q", volume.VolumeName, volume.NodeName)
+	volumeSpecName := "nil"
+	if volume.VolumeSpec != nil {
+		volumeSpecName = volume.VolumeSpec.Name()
+	}
+	return generateVolumeMsg(prefixMsg, suffixMsg, volumeSpecName, detailedStr)
+}
+
+// GenerateErrorDetailed returns detailed errors for attached volumes
+func (volume *AttachedVolume) GenerateErrorDetailed(prefixMsg string, err error) (detailedErr error) {
+	return fmt.Errorf(volume.GenerateMsgDetailed(prefixMsg, errSuffix(err)))
+}
+
+// GenerateError returns simple and detailed errors for attached volumes
+func (volume *AttachedVolume) GenerateError(prefixMsg string, err error) (simpleErr, detailedErr error) {
+	simpleMsg, detailedMsg := volume.GenerateMsg(prefixMsg, errSuffix(err))
+	return fmt.Errorf(simpleMsg), fmt.Errorf(detailedMsg)
 }
 
 // MountedVolume represents a volume that has successfully been mounted to a pod.
@@ -347,6 +495,29 @@ type MountedVolume struct {
 	VolumeGidValue string
 }
 
+// GenerateMsgDetailed returns detailed msgs for mounted volumes
+func (volume *MountedVolume) GenerateMsgDetailed(prefixMsg, suffixMsg string) (detailedMsg string) {
+	detailedStr := fmt.Sprintf("(UniqueName: %q) pod %q (UID: %q)", volume.VolumeName, volume.PodName, volume.PodUID)
+	return generateVolumeMsgDetailed(prefixMsg, suffixMsg, volume.OuterVolumeSpecName, detailedStr)
+}
+
+// GenerateMsg returns simple and detailed msgs for mounted volumes
+func (volume *MountedVolume) GenerateMsg(prefixMsg, suffixMsg string) (simpleMsg, detailedMsg string) {
+	detailedStr := fmt.Sprintf("(UniqueName: %q) pod %q (UID: %q)", volume.VolumeName, volume.PodName, volume.PodUID)
+	return generateVolumeMsg(prefixMsg, suffixMsg, volume.OuterVolumeSpecName, detailedStr)
+}
+
+// GenerateErrorDetailed returns simple and detailed errors for mounted volumes
+func (volume *MountedVolume) GenerateErrorDetailed(prefixMsg string, err error) (detailedErr error) {
+	return fmt.Errorf(volume.GenerateMsgDetailed(prefixMsg, errSuffix(err)))
+}
+
+// GenerateError returns simple and detailed errors for mounted volumes
+func (volume *MountedVolume) GenerateError(prefixMsg string, err error) (simpleErr, detailedErr error) {
+	simpleMsg, detailedMsg := volume.GenerateMsg(prefixMsg, errSuffix(err))
+	return fmt.Errorf(simpleMsg), fmt.Errorf(detailedMsg)
+}
+
 type operationExecutor struct {
 	// pendingOperations keeps track of pending attach and detach operations so
 	// multiple operations are not started on the same volume
@@ -387,8 +558,88 @@ func (oe *operationExecutor) DetachVolume(
 	return oe.pendingOperations.Run(
 		volumeToDetach.VolumeName, "" /* podName */, detachFunc)
 }
-
 func (oe *operationExecutor) VerifyVolumesAreAttached(
+	attachedVolumes map[types.NodeName][]AttachedVolume,
+	actualStateOfWorld ActualStateOfWorldAttacherUpdater) {
+
+	// A map of plugin names and nodes on which they exist with volumes they manage
+	bulkVerifyPluginsByNode := make(map[string]map[types.NodeName][]*volume.Spec)
+	volumeSpecMapByPlugin := make(map[string]map[*volume.Spec]v1.UniqueVolumeName)
+
+	for node, nodeAttachedVolumes := range attachedVolumes {
+		for _, volumeAttached := range nodeAttachedVolumes {
+			if volumeAttached.VolumeSpec == nil {
+				glog.Errorf("VerifyVolumesAreAttached: nil spec for volume %s", volumeAttached.VolumeName)
+				continue
+			}
+			volumePlugin, err :=
+				oe.operationGenerator.GetVolumePluginMgr().FindPluginBySpec(volumeAttached.VolumeSpec)
+
+			if err != nil || volumePlugin == nil {
+				glog.Errorf(
+					"VolumesAreAttached.FindPluginBySpec failed for volume %q (spec.Name: %q) on node %q with error: %v",
+					volumeAttached.VolumeName,
+					volumeAttached.VolumeSpec.Name(),
+					volumeAttached.NodeName,
+					err)
+				continue
+			}
+
+			pluginName := volumePlugin.GetPluginName()
+
+			if volumePlugin.SupportsBulkVolumeVerification() {
+				pluginNodes, pluginNodesExist := bulkVerifyPluginsByNode[pluginName]
+
+				if !pluginNodesExist {
+					pluginNodes = make(map[types.NodeName][]*volume.Spec)
+				}
+
+				volumeSpecList, nodeExists := pluginNodes[node]
+				if !nodeExists {
+					volumeSpecList = []*volume.Spec{}
+				}
+				volumeSpecList = append(volumeSpecList, volumeAttached.VolumeSpec)
+				pluginNodes[node] = volumeSpecList
+
+				bulkVerifyPluginsByNode[pluginName] = pluginNodes
+				volumeSpecMap, mapExists := volumeSpecMapByPlugin[pluginName]
+
+				if !mapExists {
+					volumeSpecMap = make(map[*volume.Spec]v1.UniqueVolumeName)
+				}
+				volumeSpecMap[volumeAttached.VolumeSpec] = volumeAttached.VolumeName
+				volumeSpecMapByPlugin[pluginName] = volumeSpecMap
+				continue
+			}
+
+			// If node doesn't support Bulk volume polling it is best to poll individually
+			nodeError := oe.VerifyVolumesAreAttachedPerNode(nodeAttachedVolumes, node, actualStateOfWorld)
+			if nodeError != nil {
+				glog.Errorf("BulkVerifyVolumes.VerifyVolumesAreAttached verifying volumes on node %q with %v", node, nodeError)
+			}
+			break
+		}
+	}
+
+	for pluginName, pluginNodeVolumes := range bulkVerifyPluginsByNode {
+		bulkVerifyVolumeFunc, err := oe.operationGenerator.GenerateBulkVolumeVerifyFunc(
+			pluginNodeVolumes,
+			pluginName,
+			volumeSpecMapByPlugin[pluginName],
+			actualStateOfWorld)
+		if err != nil {
+			glog.Errorf("BulkVerifyVolumes.GenerateBulkVolumeVerifyFunc error bulk verifying volumes for plugin %q with  %v", pluginName, err)
+		}
+		// Ugly hack to ensure - we don't do parallel bulk polling of same volume plugin
+		uniquePluginName := v1.UniqueVolumeName(pluginName)
+		err = oe.pendingOperations.Run(uniquePluginName, "" /* Pod Name */, bulkVerifyVolumeFunc)
+		if err != nil {
+			glog.Errorf("BulkVerifyVolumes.Run Error bulk volume verification for plugin %q  with %v", pluginName, err)
+		}
+	}
+}
+
+func (oe *operationExecutor) VerifyVolumesAreAttachedPerNode(
 	attachedVolumes []AttachedVolume,
 	nodeName types.NodeName,
 	actualStateOfWorld ActualStateOfWorldAttacherUpdater) error {
@@ -404,14 +655,15 @@ func (oe *operationExecutor) VerifyVolumesAreAttached(
 func (oe *operationExecutor) MountVolume(
 	waitForAttachTimeout time.Duration,
 	volumeToMount VolumeToMount,
-	actualStateOfWorld ActualStateOfWorldMounterUpdater) error {
+	actualStateOfWorld ActualStateOfWorldMounterUpdater,
+	isRemount bool) error {
 	mountFunc, err := oe.operationGenerator.GenerateMountVolumeFunc(
-		waitForAttachTimeout, volumeToMount, actualStateOfWorld)
+		waitForAttachTimeout, volumeToMount, actualStateOfWorld, isRemount)
 	if err != nil {
 		return err
 	}
 
-	podName := volumetypes.UniquePodName("")
+	podName := nestedpendingoperations.EmptyUniquePodName
 	// TODO: remove this -- not necessary
 	if !volumeToMount.PluginIsAttachable {
 		// Non-attachable volume plugins can execute mount for multiple pods

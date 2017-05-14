@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )
@@ -27,10 +28,12 @@ func NewKubeAPIServer() *Server {
 	s := options.NewServerRunOptions()
 
 	hks := Server{
-		SimpleUsage: "apiserver",
-		Long:        "The main API entrypoint and interface to the storage system.  The API server is also the focal point for all authorization decisions.",
+		name:            "apiserver",
+		AlternativeName: "kube-apiserver",
+		SimpleUsage:     "apiserver",
+		Long:            "The main API entrypoint and interface to the storage system.  The API server is also the focal point for all authorization decisions.",
 		Run: func(_ *Server, args []string) error {
-			return app.Run(s)
+			return app.Run(s, wait.NeverStop)
 		},
 	}
 	s.AddFlags(hks.Flags())

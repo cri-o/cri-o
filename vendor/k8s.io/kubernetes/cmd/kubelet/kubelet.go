@@ -24,12 +24,12 @@ import (
 	"fmt"
 	"os"
 
+	"k8s.io/apiserver/pkg/util/flag"
+	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/cmd/kubelet/app/options"
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus" // for client metric registration
-	"k8s.io/kubernetes/pkg/util/flag"
-	"k8s.io/kubernetes/pkg/util/logs"
-	_ "k8s.io/kubernetes/pkg/version/prometheus" // for version metric registration
+	_ "k8s.io/kubernetes/pkg/version/prometheus"        // for version metric registration
 	"k8s.io/kubernetes/pkg/version/verflag"
 
 	"github.com/spf13/pflag"
@@ -44,6 +44,13 @@ func main() {
 	defer logs.FlushLogs()
 
 	verflag.PrintAndExitIfRequested()
+
+	if s.ExperimentalDockershim {
+		if err := app.RunDockershim(&s.KubeletConfiguration, s.DockershimRootDirectory); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	}
 
 	if err := app.Run(s, nil); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

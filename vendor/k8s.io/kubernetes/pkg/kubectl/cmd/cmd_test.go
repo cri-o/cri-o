@@ -25,19 +25,23 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	stdstrings "strings"
 	"testing"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
-	"k8s.io/kubernetes/pkg/kubectl"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/printers"
+	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
 	"k8s.io/kubernetes/pkg/util/strings"
 )
 
@@ -97,12 +101,12 @@ func (t *testPrinter) AfterPrint(output io.Writer, res string) error {
 
 type testDescriber struct {
 	Name, Namespace string
-	Settings        kubectl.DescriberSettings
+	Settings        printers.DescriberSettings
 	Output          string
 	Err             error
 }
 
-func (t *testDescriber) Describe(namespace, name string, describerSettings kubectl.DescriberSettings) (output string, err error) {
+func (t *testDescriber) Describe(namespace, name string, describerSettings printers.DescriberSettings) (output string, err error) {
 	t.Namespace, t.Name = namespace, name
 	t.Settings = describerSettings
 	return t.Output, t.Err
@@ -146,11 +150,14 @@ func stringBody(body string) io.ReadCloser {
 
 func Example_printReplicationControllerWithNamespace() {
 	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Printer = kubectl.NewHumanReadablePrinter(kubectl.PrintOptions{
+	p := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{
 		WithNamespace: true,
 		ColumnLabels:  []string{},
 	})
+	printersinternal.AddHandlers(p)
+	tf.Printer = p
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client:               nil,
 	}
@@ -196,11 +203,14 @@ func Example_printReplicationControllerWithNamespace() {
 
 func Example_printMultiContainersReplicationControllerWithWide() {
 	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Printer = kubectl.NewHumanReadablePrinter(kubectl.PrintOptions{
+	p := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{
 		Wide:         true,
 		ColumnLabels: []string{},
 	})
+	printersinternal.AddHandlers(p)
+	tf.Printer = p
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client:               nil,
 	}
@@ -248,10 +258,13 @@ func Example_printMultiContainersReplicationControllerWithWide() {
 
 func Example_printReplicationController() {
 	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Printer = kubectl.NewHumanReadablePrinter(kubectl.PrintOptions{
+	p := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{
 		ColumnLabels: []string{},
 	})
+	printersinternal.AddHandlers(p)
+	tf.Printer = p
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client:               nil,
 	}
@@ -299,11 +312,14 @@ func Example_printReplicationController() {
 
 func Example_printPodWithWideFormat() {
 	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Printer = kubectl.NewHumanReadablePrinter(kubectl.PrintOptions{
+	p := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{
 		Wide:         true,
 		ColumnLabels: []string{},
 	})
+	printersinternal.AddHandlers(p)
+	tf.Printer = p
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client:               nil,
 	}
@@ -339,11 +355,14 @@ func Example_printPodWithWideFormat() {
 
 func Example_printPodWithShowLabels() {
 	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Printer = kubectl.NewHumanReadablePrinter(kubectl.PrintOptions{
+	p := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{
 		ShowLabels:   true,
 		ColumnLabels: []string{},
 	})
+	printersinternal.AddHandlers(p)
+	tf.Printer = p
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client:               nil,
 	}
@@ -474,10 +493,13 @@ func newAllPhasePodList() *api.PodList {
 
 func Example_printPodHideTerminated() {
 	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Printer = kubectl.NewHumanReadablePrinter(kubectl.PrintOptions{
+	p := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{
 		ColumnLabels: []string{},
 	})
+	printersinternal.AddHandlers(p)
+	tf.Printer = p
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client:               nil,
 	}
@@ -506,11 +528,14 @@ func Example_printPodHideTerminated() {
 
 func Example_printPodShowAll() {
 	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Printer = kubectl.NewHumanReadablePrinter(kubectl.PrintOptions{
+	p := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{
 		ShowAll:      true,
 		ColumnLabels: []string{},
 	})
+	printersinternal.AddHandlers(p)
+	tf.Printer = p
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client:               nil,
 	}
@@ -532,11 +557,14 @@ func Example_printPodShowAll() {
 
 func Example_printServiceWithNamespacesAndLabels() {
 	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Printer = kubectl.NewHumanReadablePrinter(kubectl.PrintOptions{
+	p := printers.NewHumanReadablePrinter(nil, nil, printers.PrintOptions{
 		WithNamespace: true,
 		ColumnLabels:  []string{"l1"},
 	})
+	printersinternal.AddHandlers(p)
+	tf.Printer = p
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client:               nil,
 	}
@@ -633,4 +661,54 @@ func genResponseWithJsonEncodedBody(bodyStruct interface{}) (*http.Response, err
 		return nil, err
 	}
 	return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: bytesBody(jsonBytes)}, nil
+}
+
+func Test_deprecatedAlias(t *testing.T) {
+	var correctCommandCalled bool
+	makeCobraCommand := func() *cobra.Command {
+		cobraCmd := new(cobra.Command)
+		cobraCmd.Use = "print five lines"
+		cobraCmd.Run = func(*cobra.Command, []string) {
+			correctCommandCalled = true
+		}
+		return cobraCmd
+	}
+
+	original := makeCobraCommand()
+	alias := deprecatedAlias("echo", makeCobraCommand())
+
+	if len(alias.Deprecated) == 0 {
+		t.Error("deprecatedAlias should always have a non-empty .Deprecated")
+	}
+	if !stdstrings.Contains(alias.Deprecated, "print") {
+		t.Error("deprecatedAlias should give the name of the new function in its .Deprecated field")
+	}
+	if !alias.Hidden {
+		t.Error("deprecatedAlias should never have .Hidden == false (deprecated aliases should be hidden)")
+	}
+
+	if alias.Name() != "echo" {
+		t.Errorf("deprecatedAlias has name %q, expected %q",
+			alias.Name(), "echo")
+	}
+	if original.Name() != "print" {
+		t.Errorf("original command has name %q, expected %q",
+			original.Name(), "print")
+	}
+
+	buffer := new(bytes.Buffer)
+	alias.SetOutput(buffer)
+	alias.Execute()
+	str := buffer.String()
+	if !stdstrings.Contains(str, "deprecated") || !stdstrings.Contains(str, "print") {
+		t.Errorf("deprecation warning %q does not include enough information", str)
+	}
+
+	// It would be nice to test to see that original.Run == alias.Run
+	// Unfortunately Golang does not allow comparing functions. I could do
+	// this with reflect, but that's technically invoking undefined
+	// behavior. Best we can do is make sure that the function is called.
+	if !correctCommandCalled {
+		t.Errorf("original function doesn't appear to have been called by alias")
+	}
 }

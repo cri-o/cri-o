@@ -25,9 +25,9 @@ import (
 	"os"
 	"path"
 
+	utilflag "k8s.io/apiserver/pkg/util/flag"
+	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kubernetes/pkg/util"
-	utilflag "k8s.io/kubernetes/pkg/util/flag"
-	"k8s.io/kubernetes/pkg/util/logs"
 	"k8s.io/kubernetes/pkg/version/verflag"
 
 	"github.com/spf13/pflag"
@@ -55,7 +55,7 @@ func (hk *HyperKube) AddServer(s *Server) {
 // FindServer will find a specific server named name.
 func (hk *HyperKube) FindServer(name string) (*Server, error) {
 	for _, s := range hk.servers {
-		if s.Name() == name {
+		if s.Name() == name || s.AlternativeName == name {
 			return &s, nil
 		}
 	}
@@ -119,8 +119,7 @@ func (hk *HyperKube) Run(args []string) error {
 	// If we are called directly, parse all flags up to the first real
 	// argument.  That should be the server to run.
 	command := args[0]
-	baseCommand := path.Base(command)
-	serverName := baseCommand
+	serverName := path.Base(command)
 	args = args[1:]
 	if serverName == hk.Name {
 
@@ -144,7 +143,6 @@ func (hk *HyperKube) Run(args []string) error {
 		args = baseFlags.Args()
 		if len(args) > 0 && len(args[0]) > 0 {
 			serverName = args[0]
-			baseCommand = baseCommand + " " + serverName
 			args = args[1:]
 		} else {
 			err = errors.New("no server specified")

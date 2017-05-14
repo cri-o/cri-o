@@ -22,8 +22,8 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -34,9 +34,6 @@ import (
 const (
 	// podCheckInterval is the interval seconds between pod status checks.
 	podCheckInterval = time.Second * 2
-
-	// podDisappearTimeout is the timeout to wait node disappear.
-	podDisappearTimeout = time.Minute * 2
 
 	// containerGCPeriod is the period of container garbage collect loop. It should be the same
 	// with ContainerGCPeriod in kubelet.go. However we don't want to include kubelet package
@@ -97,9 +94,9 @@ var _ = framework.KubeDescribe("Kubelet Eviction Manager [Serial] [Disruptive]",
 				if !isImageSupported() || !evictionOptionIsSet() { // Skip the after each
 					return
 				}
-				podClient.DeleteSync(busyPodName, &metav1.DeleteOptions{}, podDisappearTimeout)
-				podClient.DeleteSync(idlePodName, &metav1.DeleteOptions{}, podDisappearTimeout)
-				podClient.DeleteSync(verifyPodName, &metav1.DeleteOptions{}, podDisappearTimeout)
+				podClient.DeleteSync(busyPodName, &metav1.DeleteOptions{}, framework.DefaultPodDeletionTimeout)
+				podClient.DeleteSync(idlePodName, &metav1.DeleteOptions{}, framework.DefaultPodDeletionTimeout)
+				podClient.DeleteSync(verifyPodName, &metav1.DeleteOptions{}, framework.DefaultPodDeletionTimeout)
 
 				// Wait for 2 container gc loop to ensure that the containers are deleted. The containers
 				// created in this test consume a lot of disk, we don't want them to trigger disk eviction

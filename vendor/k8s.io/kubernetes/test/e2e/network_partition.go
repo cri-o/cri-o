@@ -27,48 +27,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+
+	"k8s.io/client-go/tools/cache"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	nodepkg "k8s.io/kubernetes/pkg/controller/node"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-// Blocks outgoing network traffic on 'node'. Then runs testFunc and returns its status.
-// At the end (even in case of errors), the network traffic is brought back to normal.
-// This function executes commands on a node so it will work only for some
-// environments.
-func testUnderTemporaryNetworkFailure(c clientset.Interface, ns string, node *v1.Node, testFunc func()) {
-	host := framework.GetNodeExternalIP(node)
-	master := framework.GetMasterAddress(c)
-	By(fmt.Sprintf("block network traffic from node %s to the master", node.Name))
-	defer func() {
-		// This code will execute even if setting the iptables rule failed.
-		// It is on purpose because we may have an error even if the new rule
-		// had been inserted. (yes, we could look at the error code and ssh error
-		// separately, but I prefer to stay on the safe side).
-		By(fmt.Sprintf("Unblock network traffic from node %s to the master", node.Name))
-		framework.UnblockNetwork(host, master)
-	}()
-
-	framework.Logf("Waiting %v to ensure node %s is ready before beginning test...", resizeNodeReadyTimeout, node.Name)
-	if !framework.WaitForNodeToBe(c, node.Name, v1.NodeReady, true, resizeNodeReadyTimeout) {
-		framework.Failf("Node %s did not become ready within %v", node.Name, resizeNodeReadyTimeout)
-	}
-	framework.BlockNetwork(host, master)
-
-	framework.Logf("Waiting %v for node %s to be not ready after simulated network failure", resizeNodeNotReadyTimeout, node.Name)
-	if !framework.WaitForNodeToBe(c, node.Name, v1.NodeReady, false, resizeNodeNotReadyTimeout) {
-		framework.Failf("Node %s did not become not-ready within %v", node.Name, resizeNodeNotReadyTimeout)
-	}
-
-	testFunc()
-	// network traffic is unblocked in a deferred function
-}
 
 func expectNodeReadiness(isReady bool, newNode chan *v1.Node) {
 	timeout := false
@@ -114,7 +85,7 @@ func podOnNode(podName, nodeName string, image string) *v1.Pod {
 }
 
 func newPodOnNode(c clientset.Interface, namespace, podName, nodeName string) error {
-	pod, err := c.Core().Pods(namespace).Create(podOnNode(podName, nodeName, serveHostnameImage))
+	pod, err := c.Core().Pods(namespace).Create(podOnNode(podName, nodeName, framework.ServeHostnameImage))
 	if err == nil {
 		framework.Logf("Created pod %s on node %s", pod.ObjectMeta.Name, nodeName)
 	} else {
@@ -278,7 +249,7 @@ var _ = framework.KubeDescribe("Network Partition [Disruptive] [Slow]", func() {
 			// Finally, it checks that the replication controller recreates the
 			// pods on another node and that now the number of replicas is equal 'replicas'.
 			By(fmt.Sprintf("blocking network traffic from node %s", node.Name))
-			testUnderTemporaryNetworkFailure(c, ns, node, func() {
+			framework.TestUnderTemporaryNetworkFailure(c, ns, node, func() {
 				framework.Logf("Waiting for pod %s to be removed", pods.Items[0].Name)
 				err := framework.WaitForRCPodToDisappear(c, ns, name, pods.Items[0].Name)
 				Expect(err).NotTo(HaveOccurred())
@@ -343,7 +314,7 @@ var _ = framework.KubeDescribe("Network Partition [Disruptive] [Slow]", func() {
 			// Finally, it checks that the replication controller recreates the
 			// pods on another node and that now the number of replicas is equal 'replicas + 1'.
 			By(fmt.Sprintf("blocking network traffic from node %s", node.Name))
-			testUnderTemporaryNetworkFailure(c, ns, node, func() {
+			framework.TestUnderTemporaryNetworkFailure(c, ns, node, func() {
 				framework.Logf("Waiting for pod %s to be removed", pods.Items[0].Name)
 				err := framework.WaitForRCPodToDisappear(c, ns, name, pods.Items[0].Name)
 				Expect(err).To(Equal(wait.ErrWaitTimeout), "Pod was not deleted during network partition.")
@@ -382,17 +353,17 @@ var _ = framework.KubeDescribe("Network Partition [Disruptive] [Slow]", func() {
 				dumpDebugInfo(c, ns)
 			}
 			framework.Logf("Deleting all stateful set in ns %v", ns)
-			deleteAllStatefulSets(c, ns)
+			framework.DeleteAllStatefulSets(c, ns)
 		})
 
 		It("should come back up if node goes down [Slow] [Disruptive]", func() {
 			petMounts := []v1.VolumeMount{{Name: "datadir", MountPath: "/data/"}}
 			podMounts := []v1.VolumeMount{{Name: "home", MountPath: "/home"}}
-			ps := newStatefulSet(psName, ns, headlessSvcName, 3, petMounts, podMounts, labels)
+			ps := framework.NewStatefulSet(psName, ns, headlessSvcName, 3, petMounts, podMounts, labels)
 			_, err := c.Apps().StatefulSets(ns).Create(ps)
 			Expect(err).NotTo(HaveOccurred())
 
-			pst := statefulSetTester{c: c}
+			pst := framework.NewStatefulSetTester(c)
 
 			nn := framework.TestContext.CloudConfig.NumNodes
 			nodeNames, err := framework.CheckNodesReady(f.ClientSet, framework.NodeReadyInitialTimeout, nn)
@@ -400,27 +371,27 @@ var _ = framework.KubeDescribe("Network Partition [Disruptive] [Slow]", func() {
 			restartNodes(f, nodeNames)
 
 			By("waiting for pods to be running again")
-			pst.waitForRunningAndReady(*ps.Spec.Replicas, ps)
+			pst.WaitForRunningAndReady(*ps.Spec.Replicas, ps)
 		})
 
 		It("should not reschedule stateful pods if there is a network partition [Slow] [Disruptive]", func() {
-			ps := newStatefulSet(psName, ns, headlessSvcName, 3, []v1.VolumeMount{}, []v1.VolumeMount{}, labels)
+			ps := framework.NewStatefulSet(psName, ns, headlessSvcName, 3, []v1.VolumeMount{}, []v1.VolumeMount{}, labels)
 			_, err := c.Apps().StatefulSets(ns).Create(ps)
 			Expect(err).NotTo(HaveOccurred())
 
-			pst := statefulSetTester{c: c}
-			pst.waitForRunningAndReady(*ps.Spec.Replicas, ps)
+			pst := framework.NewStatefulSetTester(c)
+			pst.WaitForRunningAndReady(*ps.Spec.Replicas, ps)
 
-			pod := pst.getPodList(ps).Items[0]
+			pod := pst.GetPodList(ps).Items[0]
 			node, err := c.Core().Nodes().Get(pod.Spec.NodeName, metav1.GetOptions{})
 			framework.ExpectNoError(err)
 
 			// Blocks outgoing network traffic on 'node'. Then verifies that 'podNameToDisappear',
 			// that belongs to StatefulSet 'statefulSetName', **does not** disappear due to forced deletion from the apiserver.
 			// The grace period on the stateful pods is set to a value > 0.
-			testUnderTemporaryNetworkFailure(c, ns, node, func() {
+			framework.TestUnderTemporaryNetworkFailure(c, ns, node, func() {
 				framework.Logf("Checking that the NodeController does not force delete stateful pods %v", pod.Name)
-				err := framework.WaitTimeoutForPodNoLongerRunningInNamespace(c, pod.Name, ns, pod.ResourceVersion, 10*time.Minute)
+				err := framework.WaitTimeoutForPodNoLongerRunningInNamespace(c, pod.Name, ns, 10*time.Minute)
 				Expect(err).To(Equal(wait.ErrWaitTimeout), "Pod was not deleted during network partition.")
 			})
 
@@ -430,7 +401,7 @@ var _ = framework.KubeDescribe("Network Partition [Disruptive] [Slow]", func() {
 			}
 
 			By("waiting for pods to be running again")
-			pst.waitForRunningAndReady(*ps.Spec.Replicas, ps)
+			pst.WaitForRunningAndReady(*ps.Spec.Replicas, ps)
 		})
 	})
 
@@ -439,10 +410,11 @@ var _ = framework.KubeDescribe("Network Partition [Disruptive] [Slow]", func() {
 			parallelism := int32(2)
 			completions := int32(4)
 
-			job := newTestJob("notTerminate", "network-partition", v1.RestartPolicyNever, parallelism, completions)
-			job, err := createJob(f.ClientSet, f.Namespace.Name, job)
+			job := framework.NewTestJob("notTerminate", "network-partition", v1.RestartPolicyNever,
+				parallelism, completions)
+			job, err := framework.CreateJob(f.ClientSet, f.Namespace.Name, job)
 			Expect(err).NotTo(HaveOccurred())
-			label := labels.SelectorFromSet(labels.Set(map[string]string{jobSelectorKey: job.Name}))
+			label := labels.SelectorFromSet(labels.Set(map[string]string{framework.JobSelectorKey: job.Name}))
 
 			By(fmt.Sprintf("verifying that there are now %v running pods", parallelism))
 			_, err = framework.PodsCreatedByLabel(c, ns, job.Name, parallelism, label)
@@ -460,7 +432,7 @@ var _ = framework.KubeDescribe("Network Partition [Disruptive] [Slow]", func() {
 			// This creates a temporary network partition, verifies that the job has 'parallelism' number of
 			// running pods after the node-controller detects node unreachable.
 			By(fmt.Sprintf("blocking network traffic from node %s", node.Name))
-			testUnderTemporaryNetworkFailure(c, ns, node, func() {
+			framework.TestUnderTemporaryNetworkFailure(c, ns, node, func() {
 				framework.Logf("Waiting for pod %s to be removed", pods.Items[0].Name)
 				err := framework.WaitForPodToDisappear(c, ns, pods.Items[0].Name, label, 20*time.Second, 10*time.Minute)
 				Expect(err).To(Equal(wait.ErrWaitTimeout), "Pod was not deleted during network partition.")
@@ -474,6 +446,183 @@ var _ = framework.KubeDescribe("Network Partition [Disruptive] [Slow]", func() {
 			if !framework.WaitForNodeToBeReady(c, node.Name, resizeNodeReadyTimeout) {
 				framework.Failf("Node %s did not become ready within %v", node.Name, resizeNodeReadyTimeout)
 			}
+		})
+	})
+
+	framework.KubeDescribe("Pods", func() {
+		Context("should be evicted from unready Node", func() {
+			BeforeEach(func() {
+				framework.SkipUnlessProviderIs("gce", "gke", "aws")
+				framework.SkipUnlessNodeCountIsAtLeast(2)
+			})
+
+			// What happens in this test:
+			//	Network traffic from a node to master is cut off to simulate network partition
+			// Expect to observe:
+			// 1. Node is marked NotReady after timeout by nodecontroller (40seconds)
+			// 2. All pods on node are marked NotReady shortly after #1
+			// 3. After enough time passess all Pods are evicted from the given Node
+			It("[Feature:TaintEviction] All pods on the unreachable node should be marked as NotReady upon the node turn NotReady "+
+				"AND all pods should be evicted after eviction timeout passes", func() {
+				By("choose a node - we will block all network traffic on this node")
+				var podOpts metav1.ListOptions
+				nodes := framework.GetReadySchedulableNodesOrDie(c)
+				framework.FilterNodes(nodes, func(node v1.Node) bool {
+					if !framework.IsNodeConditionSetAsExpected(&node, v1.NodeReady, true) {
+						return false
+					}
+					podOpts = metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.PodHostField, node.Name).String()}
+					pods, err := c.Core().Pods(metav1.NamespaceAll).List(podOpts)
+					if err != nil || len(pods.Items) <= 0 {
+						return false
+					}
+					return true
+				})
+				if len(nodes.Items) <= 0 {
+					framework.Failf("No eligible node were found: %d", len(nodes.Items))
+				}
+				node := nodes.Items[0]
+				podOpts = metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.PodHostField, node.Name).String()}
+				if err := framework.WaitForMatchPodsCondition(c, podOpts, "Running and Ready", podReadyTimeout, testutils.PodRunningReadyOrSucceeded); err != nil {
+					framework.Failf("Pods on node %s are not ready and running within %v: %v", node.Name, podReadyTimeout, err)
+				}
+				pods, err := c.Core().Pods(metav1.NamespaceAll).List(podOpts)
+				framework.ExpectNoError(err)
+				podTolerationTimes := map[string]time.Duration{}
+				// This test doesn't add tolerations by itself, but because they may be present in the cluster
+				// it needs to account for that.
+				for _, pod := range pods.Items {
+					namespacedName := fmt.Sprintf("%v/%v", pod.Namespace, pod.Name)
+					tolerations := pod.Spec.Tolerations
+					framework.ExpectNoError(err)
+					for _, toleration := range tolerations {
+						if toleration.ToleratesTaint(nodepkg.UnreachableTaintTemplate) {
+							if toleration.TolerationSeconds != nil {
+								podTolerationTimes[namespacedName] = time.Duration(*toleration.TolerationSeconds) * time.Second
+								break
+							} else {
+								podTolerationTimes[namespacedName] = -1
+							}
+						}
+					}
+					if _, ok := podTolerationTimes[namespacedName]; !ok {
+						podTolerationTimes[namespacedName] = 0
+					}
+				}
+				neverEvictedPods := []string{}
+				maxTolerationTime := time.Duration(0)
+				for podName, tolerationTime := range podTolerationTimes {
+					if tolerationTime < 0 {
+						neverEvictedPods = append(neverEvictedPods, podName)
+					} else {
+						if tolerationTime > maxTolerationTime {
+							maxTolerationTime = tolerationTime
+						}
+					}
+				}
+				framework.Logf(
+					"Only %v should be running after partition. Maximum TolerationSeconds among other Pods is %v",
+					neverEvictedPods,
+					maxTolerationTime,
+				)
+
+				By("Set up watch on node status")
+				nodeSelector := fields.OneTermEqualSelector("metadata.name", node.Name)
+				stopCh := make(chan struct{})
+				newNode := make(chan *v1.Node)
+				var controller cache.Controller
+				_, controller = cache.NewInformer(
+					&cache.ListWatch{
+						ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+							options.FieldSelector = nodeSelector.String()
+							obj, err := f.ClientSet.Core().Nodes().List(options)
+							return runtime.Object(obj), err
+						},
+						WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+							options.FieldSelector = nodeSelector.String()
+							return f.ClientSet.Core().Nodes().Watch(options)
+						},
+					},
+					&v1.Node{},
+					0,
+					cache.ResourceEventHandlerFuncs{
+						UpdateFunc: func(oldObj, newObj interface{}) {
+							n, ok := newObj.(*v1.Node)
+							Expect(ok).To(Equal(true))
+							newNode <- n
+
+						},
+					},
+				)
+
+				defer func() {
+					// Will not explicitly close newNode channel here due to
+					// race condition where stopCh and newNode are closed but informer onUpdate still executes.
+					close(stopCh)
+				}()
+				go controller.Run(stopCh)
+
+				By(fmt.Sprintf("Block traffic from node %s to the master", node.Name))
+				host := framework.GetNodeExternalIP(&node)
+				master := framework.GetMasterAddress(c)
+				defer func() {
+					By(fmt.Sprintf("Unblock traffic from node %s to the master", node.Name))
+					framework.UnblockNetwork(host, master)
+
+					if CurrentGinkgoTestDescription().Failed {
+						return
+					}
+
+					By("Expect to observe node status change from NotReady to Ready after network connectivity recovers")
+					expectNodeReadiness(true, newNode)
+				}()
+
+				framework.BlockNetwork(host, master)
+
+				By("Expect to observe node and pod status change from Ready to NotReady after network partition")
+				expectNodeReadiness(false, newNode)
+				framework.ExpectNoError(wait.Poll(1*time.Second, timeout, func() (bool, error) {
+					return framework.NodeHasTaint(c, node.Name, nodepkg.UnreachableTaintTemplate)
+				}))
+				if err = framework.WaitForMatchPodsCondition(c, podOpts, "NotReady", podNotReadyTimeout, testutils.PodNotReady); err != nil {
+					framework.Failf("Pods on node %s did not become NotReady within %v: %v", node.Name, podNotReadyTimeout, err)
+				}
+
+				sleepTime := maxTolerationTime + 20*time.Second
+				By(fmt.Sprintf("Sleeping for %v and checking if all Pods were evicted", sleepTime))
+				time.Sleep(sleepTime)
+				pods, err = c.Core().Pods(v1.NamespaceAll).List(podOpts)
+				framework.ExpectNoError(err)
+				seenRunning := []string{}
+				for _, pod := range pods.Items {
+					namespacedName := fmt.Sprintf("%v/%v", pod.Namespace, pod.Name)
+					shouldBeTerminating := true
+					for _, neverEvictedPod := range neverEvictedPods {
+						if neverEvictedPod == namespacedName {
+							shouldBeTerminating = false
+						}
+					}
+					if pod.DeletionTimestamp == nil {
+						seenRunning = append(seenRunning, namespacedName)
+						if shouldBeTerminating {
+							framework.Failf("Pod %v should have been deleted but was seen running", namespacedName)
+						}
+					}
+				}
+
+				for _, neverEvictedPod := range neverEvictedPods {
+					running := false
+					for _, runningPod := range seenRunning {
+						if runningPod == neverEvictedPod {
+							running = true
+							break
+						}
+					}
+					if !running {
+						framework.Failf("Pod %v was evicted even though it shouldn't", neverEvictedPod)
+					}
+				}
+			})
 		})
 	})
 })

@@ -24,12 +24,13 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	corelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/cache"
-	"k8s.io/kubernetes/pkg/util/strategicpatch"
 )
 
 // NodeStatusUpdater defines a set of operations for updating the
@@ -43,18 +44,18 @@ type NodeStatusUpdater interface {
 // NewNodeStatusUpdater returns a new instance of NodeStatusUpdater.
 func NewNodeStatusUpdater(
 	kubeClient clientset.Interface,
-	nodeInformer kcache.SharedInformer,
+	nodeLister corelisters.NodeLister,
 	actualStateOfWorld cache.ActualStateOfWorld) NodeStatusUpdater {
 	return &nodeStatusUpdater{
 		actualStateOfWorld: actualStateOfWorld,
-		nodeInformer:       nodeInformer,
+		nodeLister:         nodeLister,
 		kubeClient:         kubeClient,
 	}
 }
 
 type nodeStatusUpdater struct {
 	kubeClient         clientset.Interface
-	nodeInformer       kcache.SharedInformer
+	nodeLister         corelisters.NodeLister
 	actualStateOfWorld cache.ActualStateOfWorld
 }
 
@@ -63,15 +64,21 @@ func (nsu *nodeStatusUpdater) UpdateNodeStatuses() error {
 	// kubernetes/kubernetes/issues/37777
 	nodesToUpdate := nsu.actualStateOfWorld.GetVolumesToReportAttached()
 	for nodeName, attachedVolumes := range nodesToUpdate {
-		nodeObj, exists, err := nsu.nodeInformer.GetStore().GetByKey(string(nodeName))
-		if nodeObj == nil || !exists || err != nil {
-			// If node does not exist, its status cannot be updated, log error and
-			// reset flag statusUpdateNeeded back to true to indicate this node status
-			// needs to be updated again
+		nodeObj, err := nsu.nodeLister.Get(string(nodeName))
+		if errors.IsNotFound(err) {
+			// If node does not exist, its status cannot be updated.
+			// Remove the node entry from the collection of attach updates, preventing the
+			// status updater from unnecessarily updating the node.
 			glog.V(2).Infof(
-				"Could not update node status. Failed to find node %q in NodeInformer cache. %v",
+				"Could not update node status. Failed to find node %q in NodeInformer cache. Error: '%v'",
 				nodeName,
 				err)
+			nsu.actualStateOfWorld.RemoveNodeFromAttachUpdates(nodeName)
+			continue
+		} else if err != nil {
+			// For all other errors, log error and reset flag statusUpdateNeeded
+			// back to true to indicate this node status needs to be updated again.
+			glog.V(2).Infof("Error retrieving nodes from node lister. Error: %v", err)
 			nsu.actualStateOfWorld.SetNodeStatusUpdateNeeded(nodeName)
 			continue
 		}
