@@ -22,6 +22,8 @@ set -o nounset
 set -o pipefail
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+source "${KUBE_ROOT}/hack/lib/test.sh"
 source "${KUBE_ROOT}/hack/make-rules/test-cmd-util.sh"
 
 function run_kube_apiserver() {
@@ -34,10 +36,14 @@ function run_kube_apiserver() {
   # Admission Controllers to invoke prior to persisting objects in cluster
   ADMISSION_CONTROL="NamespaceLifecycle,LimitRanger,ResourceQuota"
 
+  # Include RBAC (to exercise bootstrapping), and AlwaysAllow to allow all actions
+  AUTHORIZATION_MODE="RBAC,AlwaysAllow"
+
   "${KUBE_OUTPUT_HOSTBIN}/kube-apiserver" \
     --address="127.0.0.1" \
     --public-address-override="127.0.0.1" \
     --port="${API_PORT}" \
+    --authorization-mode="${AUTHORIZATION_MODE}" \
     --admission-control="${ADMISSION_CONTROL}" \
     --etcd-servers="http://${ETCD_HOST}:${ETCD_PORT}" \
     --public-address-override="127.0.0.1" \
@@ -66,51 +72,10 @@ function run_kube_controller_manager() {
   kube::util::wait_for_url "http://127.0.0.1:${CTLRMGR_PORT}/healthz" "controller-manager"
 }
 
-function run_kubelet() {
-  # Only run kubelet on platforms it supports
-  if [[ "$(go env GOHOSTOS)" == "linux" ]]; then
-    kube::log::status "Building kubelet"
-    make -C "${KUBE_ROOT}" WHAT="cmd/kubelet"
-
-    kube::log::status "Starting kubelet in masterless mode"
-    "${KUBE_OUTPUT_HOSTBIN}/kubelet" \
-      --really-crash-for-testing=true \
-      --root-dir=/tmp/kubelet.$$ \
-      --cert-dir="${TMPDIR:-/tmp/}" \
-      --docker-endpoint="fake://" \
-      --hostname-override="127.0.0.1" \
-      --address="127.0.0.1" \
-      --port="$KUBELET_PORT" \
-      --healthz-port="${KUBELET_HEALTHZ_PORT}" 1>&2 &
-    KUBELET_PID=$!
-    kube::util::wait_for_url "http://127.0.0.1:${KUBELET_HEALTHZ_PORT}/healthz" "kubelet(masterless)"
-    kill ${KUBELET_PID} 1>&2 2>/dev/null
-
-    kube::log::status "Starting kubelet in masterful mode"
-    "${KUBE_OUTPUT_HOSTBIN}/kubelet" \
-      --really-crash-for-testing=true \
-      --root-dir=/tmp/kubelet.$$ \
-      --cert-dir="${TMPDIR:-/tmp/}" \
-      --docker-endpoint="fake://" \
-      --hostname-override="127.0.0.1" \
-      --address="127.0.0.1" \
-      --api-servers="${API_HOST}:${API_PORT}" \
-      --port="$KUBELET_PORT" \
-      --healthz-port="${KUBELET_HEALTHZ_PORT}" 1>&2 &
-    KUBELET_PID=$!
-
-    kube::util::wait_for_url "http://127.0.0.1:${KUBELET_HEALTHZ_PORT}/healthz" "kubelet"
-  fi
-}
-
-# Creates a node object with name 127.0.0.1 if it doesnt exist already.
-# This is required for non-linux platforms where we do not run kubelet.
+# Creates a node object with name 127.0.0.1. This is required because we do not
+# run kubelet.
 function create_node() {
-  if [[ "$(go env GOHOSTOS)" == "linux" ]]; then
-    kube::util::wait_for_url "http://127.0.0.1:${API_PORT}/api/v1/nodes/127.0.0.1" "apiserver(nodes)"
-  else
-    # create a fake node
-    kubectl create -f - -s "http://127.0.0.1:${API_PORT}" << __EOF__
+  kubectl create -f - -s "http://127.0.0.1:${API_PORT}" << __EOF__
 {
   "kind": "Node",
   "apiVersion": "v1",
@@ -124,7 +89,6 @@ function create_node() {
   }
 }
 __EOF__
-  fi
 }
 
 kube::log::status "Running kubectl tests for kube-apiserver"
@@ -132,13 +96,10 @@ kube::log::status "Running kubectl tests for kube-apiserver"
 setup
 run_kube_apiserver
 run_kube_controller_manager
-run_kubelet
 create_node
 SUPPORTED_RESOURCES=("*")
-output_message=$(runTests "SUPPORTED_RESOURCES=${SUPPORTED_RESOURCES[@]}")
-# Ensure that tests were run. We cannot check all resources here. We check a few
-# to catch bugs due to which no tests run.
-kube::test::if_has_string "${output_message}" "Testing kubectl(v1:pods)"
-kube::test::if_has_string "${output_message}" "Testing kubectl(v1:services)"
+# WARNING: Do not wrap this call in a subshell to capture output, e.g. output=$(runTests)
+# Doing so will suppress errexit behavior inside runTests
+runTests
 
 kube::log::status "TESTS PASSED"

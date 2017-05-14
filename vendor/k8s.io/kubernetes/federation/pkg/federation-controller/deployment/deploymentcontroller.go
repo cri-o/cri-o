@@ -28,9 +28,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	clientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/client-go/util/workqueue"
 	fed "k8s.io/kubernetes/federation/apis/federation"
 	fedv1 "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	fedclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
@@ -42,20 +47,19 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	apiv1 "k8s.io/kubernetes/pkg/api/v1"
 	extensionsv1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 )
 
 const (
 	FedDeploymentPreferencesAnnotation = "federation.kubernetes.io/deployment-preferences"
 	allClustersKey                     = "THE_ALL_CLUSTER_KEY"
-	UserAgentName                      = "Federation-Deployment-Controller"
+	UserAgentName                      = "federation-deployment-controller"
+	ControllerName                     = "deployments"
 )
 
 var (
+	RequiredResources        = []schema.GroupVersionResource{extensionsv1.SchemeGroupVersion.WithResource("deployments")}
 	deploymentReviewDelay    = 10 * time.Second
 	clusterAvailableDelay    = 20 * time.Second
 	clusterUnavailableDelay  = 60 * time.Second
@@ -100,11 +104,11 @@ type DeploymentController struct {
 	defaultPlanner *planner.Planner
 }
 
-// NewclusterController returns a new cluster controller
+// NewDeploymentController returns a new deployment controller
 func NewDeploymentController(federationClient fedclientset.Interface) *DeploymentController {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(eventsink.NewFederatedEventSink(federationClient))
-	recorder := broadcaster.NewRecorder(apiv1.EventSource{Component: "federated-deployment-controller"})
+	recorder := broadcaster.NewRecorder(api.Scheme, clientv1.EventSource{Component: UserAgentName})
 
 	fdc := &DeploymentController{
 		fedClient:           federationClient,
@@ -184,7 +188,7 @@ func NewDeploymentController(federationClient fedclientset.Interface) *Deploymen
 		),
 	)
 
-	fdc.fedUpdater = fedutil.NewFederatedUpdater(fdc.fedDeploymentInformer,
+	fdc.fedUpdater = fedutil.NewFederatedUpdater(fdc.fedDeploymentInformer, "deployment", updateTimeout, fdc.eventRecorder,
 		func(client kubeclientset.Interface, obj runtime.Object) error {
 			rs := obj.(*extensionsv1.Deployment)
 			_, err := client.Extensions().Deployments(rs.Namespace).Create(rs)
@@ -197,21 +201,18 @@ func NewDeploymentController(federationClient fedclientset.Interface) *Deploymen
 		},
 		func(client kubeclientset.Interface, obj runtime.Object) error {
 			rs := obj.(*extensionsv1.Deployment)
-			err := client.Extensions().Deployments(rs.Namespace).Delete(rs.Name, &metav1.DeleteOptions{})
+			orphanDependents := false
+			err := client.Extensions().Deployments(rs.Namespace).Delete(rs.Name, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
 			return err
 		})
 
 	fdc.deletionHelper = deletionhelper.NewDeletionHelper(
-		fdc.hasFinalizerFunc,
-		fdc.removeFinalizerFunc,
-		fdc.addFinalizerFunc,
+		fdc.updateDeployment,
 		// objNameFunc
 		func(obj runtime.Object) string {
 			deployment := obj.(*extensionsv1.Deployment)
-			return deployment.Name
+			return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
 		},
-		updateTimeout,
-		fdc.eventRecorder,
 		fdc.fedDeploymentInformer,
 		fdc.fedUpdater,
 	)
@@ -219,52 +220,11 @@ func NewDeploymentController(federationClient fedclientset.Interface) *Deploymen
 	return fdc
 }
 
-// Returns true if the given object has the given finalizer in its ObjectMeta.
-func (fdc *DeploymentController) hasFinalizerFunc(obj runtime.Object, finalizer string) bool {
-	deployment := obj.(*extensionsv1.Deployment)
-	for i := range deployment.ObjectMeta.Finalizers {
-		if string(deployment.ObjectMeta.Finalizers[i]) == finalizer {
-			return true
-		}
-	}
-	return false
-}
-
-// Removes the finalizer from the given objects ObjectMeta.
+// Sends the given updated object to apiserver.
 // Assumes that the given object is a deployment.
-func (fdc *DeploymentController) removeFinalizerFunc(obj runtime.Object, finalizer string) (runtime.Object, error) {
+func (fdc *DeploymentController) updateDeployment(obj runtime.Object) (runtime.Object, error) {
 	deployment := obj.(*extensionsv1.Deployment)
-	newFinalizers := []string{}
-	hasFinalizer := false
-	for i := range deployment.ObjectMeta.Finalizers {
-		if string(deployment.ObjectMeta.Finalizers[i]) != finalizer {
-			newFinalizers = append(newFinalizers, deployment.ObjectMeta.Finalizers[i])
-		} else {
-			hasFinalizer = true
-		}
-	}
-	if !hasFinalizer {
-		// Nothing to do.
-		return obj, nil
-	}
-	deployment.ObjectMeta.Finalizers = newFinalizers
-	deployment, err := fdc.fedClient.Extensions().Deployments(deployment.Namespace).Update(deployment)
-	if err != nil {
-		return nil, fmt.Errorf("failed to remove finalizer %s from deployment %s: %v", finalizer, deployment.Name, err)
-	}
-	return deployment, nil
-}
-
-// Adds the given finalizer to the given objects ObjectMeta.
-// Assumes that the given object is a deployment.
-func (fdc *DeploymentController) addFinalizerFunc(obj runtime.Object, finalizer string) (runtime.Object, error) {
-	deployment := obj.(*extensionsv1.Deployment)
-	deployment.ObjectMeta.Finalizers = append(deployment.ObjectMeta.Finalizers, finalizer)
-	deployment, err := fdc.fedClient.Extensions().Deployments(deployment.Namespace).Update(deployment)
-	if err != nil {
-		return nil, fmt.Errorf("failed to add finalizer %s to deployment %s: %v", finalizer, deployment.Name, err)
-	}
-	return deployment, nil
+	return fdc.fedClient.Extensions().Deployments(deployment.Namespace).Update(deployment)
 }
 
 func (fdc *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
@@ -419,8 +379,10 @@ func (fdc *DeploymentController) schedule(fd *extensionsv1.Deployment, clusters 
 	if fdPref != nil { // create a new planner if user specified a preference
 		plannerToBeUsed = planner.NewPlanner(fdPref)
 	}
-
-	replicas := int64(*fd.Spec.Replicas)
+	replicas := int64(0)
+	if fd.Spec.Replicas != nil {
+		replicas = int64(*fd.Spec.Replicas)
+	}
 	var clusterNames []string
 	for _, cluster := range clusters {
 		clusterNames = append(clusterNames, cluster.Name)
@@ -494,7 +456,7 @@ func (fdc *DeploymentController) reconcileDeployment(key string) (reconciliation
 	if fd.DeletionTimestamp != nil {
 		if err := fdc.delete(fd); err != nil {
 			glog.Errorf("Failed to delete %s: %v", fd.Name, err)
-			fdc.eventRecorder.Eventf(fd, api.EventTypeNormal, "DeleteFailed",
+			fdc.eventRecorder.Eventf(fd, api.EventTypeWarning, "DeleteFailed",
 				"Deployment delete failed: %v", err)
 			return statusError, err
 		}
@@ -562,13 +524,11 @@ func (fdc *DeploymentController) reconcileDeployment(key string) (reconciliation
 
 		if !exists {
 			if replicas > 0 {
-				fdc.eventRecorder.Eventf(fd, api.EventTypeNormal, "CreateInCluster",
-					"Creating deployment in cluster %s", clusterName)
-
 				operations = append(operations, fedutil.FederatedOperation{
 					Type:        fedutil.OperationTypeAdd,
 					Obj:         ld,
 					ClusterName: clusterName,
+					Key:         key,
 				})
 			}
 		} else {
@@ -577,24 +537,24 @@ func (fdc *DeploymentController) reconcileDeployment(key string) (reconciliation
 			currentLd := ldObj.(*extensionsv1.Deployment)
 			// Update existing replica set, if needed.
 			if !fedutil.DeploymentEquivalent(ld, currentLd) {
-				fdc.eventRecorder.Eventf(fd, api.EventTypeNormal, "UpdateInCluster",
-					"Updating deployment in cluster %s", clusterName)
-
 				operations = append(operations, fedutil.FederatedOperation{
 					Type:        fedutil.OperationTypeUpdate,
 					Obj:         ld,
 					ClusterName: clusterName,
+					Key:         key,
 				})
 				glog.Infof("Updating %s in %s", currentLd.Name, clusterName)
 			}
 			fedStatus.Replicas += currentLd.Status.Replicas
 			fedStatus.AvailableReplicas += currentLd.Status.AvailableReplicas
 			fedStatus.UnavailableReplicas += currentLd.Status.UnavailableReplicas
+			fedStatus.ReadyReplicas += currentLd.Status.ReadyReplicas
 		}
 	}
 	if fedStatus.Replicas != fd.Status.Replicas ||
 		fedStatus.AvailableReplicas != fd.Status.AvailableReplicas ||
-		fedStatus.UnavailableReplicas != fd.Status.UnavailableReplicas {
+		fedStatus.UnavailableReplicas != fd.Status.UnavailableReplicas ||
+		fedStatus.ReadyReplicas != fd.Status.ReadyReplicas {
 		fd.Status = fedStatus
 		_, err = fdc.fedClient.Extensions().Deployments(fd.Namespace).UpdateStatus(fd)
 		if err != nil {
@@ -606,10 +566,7 @@ func (fdc *DeploymentController) reconcileDeployment(key string) (reconciliation
 		// Everything is in order
 		return statusAllOk, nil
 	}
-	err = fdc.fedUpdater.UpdateWithOnError(operations, updateTimeout, func(op fedutil.FederatedOperation, operror error) {
-		fdc.eventRecorder.Eventf(fd, api.EventTypeNormal, "FailedUpdateInCluster",
-			"Deployment update in cluster %s failed: %v", op.ClusterName, operror)
-	})
+	err = fdc.fedUpdater.Update(operations)
 	if err != nil {
 		glog.Errorf("Failed to execute updates for %s: %v", key, err)
 		return statusError, err

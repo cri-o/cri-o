@@ -1,6 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
-load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+load("@io_bazel//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+load("@io_kubernetes_build//defs:build.bzl", "release_filegroup")
 
 pkg_tar(
     name = "gci-trusty-manifests",
@@ -9,7 +10,6 @@ pkg_tar(
         "gci/configure-helper.sh",
         "gci/health-monitor.sh",
         "gci/mounter/mounter",
-        "trusty/configure-helper.sh",
     ],
     mode = "0755",
     strip_prefix = ".",
@@ -34,4 +34,17 @@ filegroup(
     name = "all-srcs",
     srcs = [":package-srcs"],
     tags = ["automanaged"],
+)
+
+# Having the configure-vm.sh script and and trusty code from the GCE cluster
+# deploy hosted with the release is useful for GKE.
+# This list should match the list in kubernetes/release/lib/releaselib.sh.
+release_filegroup(
+    name = "gcs-release-artifacts",
+    srcs = [
+        "configure-vm.sh",
+        "gci/configure.sh",
+        "gci/master.yaml",
+        "gci/node.yaml",
+    ],
 )

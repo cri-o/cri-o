@@ -70,6 +70,13 @@ func NewClientPool(config *restclient.Config, mapper meta.RESTMapper, apiPathRes
 	}
 }
 
+// Instantiates a new dynamic client pool with the given config.
+func NewDynamicClientPool(cfg *restclient.Config) ClientPool {
+	// restMapper is not needed when using LegacyAPIPathResolverFunc
+	emptyMapper := meta.MultiRESTMapper{}
+	return NewClientPool(cfg, emptyMapper, LegacyAPIPathResolverFunc)
+}
+
 // ClientForGroupVersionResource uses the provided RESTMapper to identify the appropriate resource. Resource may
 // be empty. If no matching kind is found the underlying client for that group is still returned.
 func (c *clientPoolImpl) ClientForGroupVersionResource(resource schema.GroupVersionResource) (*Client, error) {

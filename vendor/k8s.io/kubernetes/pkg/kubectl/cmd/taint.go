@@ -25,20 +25,26 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/api/v1"
+	v1helper "k8s.io/kubernetes/pkg/api/v1/helper"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util/strategicpatch"
+	"k8s.io/kubernetes/pkg/util/i18n"
 	utiltaints "k8s.io/kubernetes/pkg/util/taints"
+)
+
+const (
+	MODIFIED  = "modified"
+	TAINTED   = "tainted"
+	UNTAINTED = "untainted"
 )
 
 // TaintOptions have the data required to perform the taint operation
@@ -56,16 +62,16 @@ type TaintOptions struct {
 }
 
 var (
-	taint_long = templates.LongDesc(`
+	taintLong = templates.LongDesc(i18n.T(`
 		Update the taints on one or more nodes.
 
 		* A taint consists of a key, value, and effect. As an argument here, it is expressed as key=value:effect.
 		* The key must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to %[1]d characters.
 		* The value must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to %[2]d characters.
-		* The effect must be NoSchedule or PreferNoSchedule.
-		* Currently taint can only apply to node.`)
+		* The effect must be NoSchedule, PreferNoSchedule or NoExecute.
+		* Currently taint can only apply to node.`))
 
-	taint_example = templates.Examples(`
+	taintExample = templates.Examples(i18n.T(`
 		# Update node 'foo' with a taint with key 'dedicated' and value 'special-user' and effect 'NoSchedule'.
 		# If a taint with that key and effect already exists, its value is replaced as specified.
 		kubectl taint nodes foo dedicated=special-user:NoSchedule
@@ -74,7 +80,10 @@ var (
 		kubectl taint nodes foo dedicated:NoSchedule-
 
 		# Remove from node 'foo' all the taints with key 'dedicated'
-		kubectl taint nodes foo dedicated-`)
+		kubectl taint nodes foo dedicated-
+
+		# Add a taint with key 'dedicated' on nodes having label mylabel=X
+		kubectl taint node -l myLabel=X  dedicated=foo:PreferNoSchedule`))
 )
 
 func NewCmdTaint(f cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -85,14 +94,14 @@ func NewCmdTaint(f cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "taint NODE NAME KEY_1=VAL_1:TAINT_EFFECT_1 ... KEY_N=VAL_N:TAINT_EFFECT_N",
-		Short:   "Update the taints on one or more nodes",
-		Long:    fmt.Sprintf(taint_long, validation.DNS1123SubdomainMaxLength, validation.LabelValueMaxLength),
-		Example: taint_example,
+		Short:   i18n.T("Update the taints on one or more nodes"),
+		Long:    fmt.Sprintf(taintLong, validation.DNS1123SubdomainMaxLength, validation.LabelValueMaxLength),
+		Example: taintExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, out, cmd, args); err != nil {
 				cmdutil.CheckErr(err)
 			}
-			if err := options.Validate(args); err != nil {
+			if err := options.Validate(); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
 			}
 			if err := options.RunTaint(); err != nil {
@@ -112,60 +121,56 @@ func NewCmdTaint(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func deleteTaint(taints []v1.Taint, taintToDelete v1.Taint) ([]v1.Taint, error) {
-	newTaints := []v1.Taint{}
-	found := false
-	for _, taint := range taints {
-		if taint.Key == taintToDelete.Key &&
-			(len(taintToDelete.Effect) == 0 || taint.Effect == taintToDelete.Effect) {
-			found = true
-			continue
-		}
-		newTaints = append(newTaints, taint)
-	}
-
-	if !found {
-		return nil, fmt.Errorf("taint key=\"%s\" and effect=\"%s\" not found.", taintToDelete.Key, taintToDelete.Effect)
-	}
-	return newTaints, nil
-}
-
 // reorganizeTaints returns the updated set of taints, taking into account old taints that were not updated,
 // old taints that were updated, old taints that were deleted, and new taints.
-func reorganizeTaints(accessor metav1.Object, overwrite bool, taintsToAdd []v1.Taint, taintsToRemove []v1.Taint) ([]v1.Taint, error) {
+func reorganizeTaints(node *v1.Node, overwrite bool, taintsToAdd []v1.Taint, taintsToRemove []v1.Taint) (string, []v1.Taint, error) {
 	newTaints := append([]v1.Taint{}, taintsToAdd...)
+	oldTaints := node.Spec.Taints
+	// add taints that already existing but not updated to newTaints
+	added := addTaints(oldTaints, &newTaints)
+	allErrs, deleted := deleteTaints(taintsToRemove, &newTaints)
+	if (added && deleted) || overwrite {
+		return MODIFIED, newTaints, utilerrors.NewAggregate(allErrs)
+	} else if added {
+		return TAINTED, newTaints, utilerrors.NewAggregate(allErrs)
+	}
+	return UNTAINTED, newTaints, utilerrors.NewAggregate(allErrs)
+}
 
-	var oldTaints []v1.Taint
-	var err error
-	annotations := accessor.GetAnnotations()
-	if annotations != nil {
-		if oldTaints, err = v1.GetTaintsFromNodeAnnotations(annotations); err != nil {
-			return nil, err
+// deleteTaints deletes the given taints from the node's taintlist.
+func deleteTaints(taintsToRemove []v1.Taint, newTaints *[]v1.Taint) ([]error, bool) {
+	allErrs := []error{}
+	var removed bool
+	for _, taintToRemove := range taintsToRemove {
+		removed = false
+		if len(taintToRemove.Effect) > 0 {
+			*newTaints, removed = v1helper.DeleteTaint(*newTaints, &taintToRemove)
+		} else {
+			*newTaints, removed = v1helper.DeleteTaintsByKey(*newTaints, taintToRemove.Key)
+		}
+		if !removed {
+			allErrs = append(allErrs, fmt.Errorf("taint %q not found", taintToRemove.ToString()))
 		}
 	}
+	return allErrs, removed
+}
 
-	// add taints that already existing but not updated to newTaints
+// addTaints adds the newTaints list to existing ones and updates the newTaints List.
+// TODO: This needs a rewrite to take only the new values instead of appended newTaints list to be consistent.
+func addTaints(oldTaints []v1.Taint, newTaints *[]v1.Taint) bool {
 	for _, oldTaint := range oldTaints {
 		existsInNew := false
-		for _, taint := range newTaints {
-			if taint.MatchTaint(oldTaint) {
+		for _, taint := range *newTaints {
+			if taint.MatchTaint(&oldTaint) {
 				existsInNew = true
 				break
 			}
 		}
 		if !existsInNew {
-			newTaints = append(newTaints, oldTaint)
+			*newTaints = append(*newTaints, oldTaint)
 		}
 	}
-
-	allErrs := []error{}
-	for _, taintToRemove := range taintsToRemove {
-		newTaints, err = deleteTaint(newTaints, taintToRemove)
-		if err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
-	return newTaints, utilerrors.NewAggregate(allErrs)
+	return len(oldTaints) != len(*newTaints)
 }
 
 func parseTaints(spec []string) ([]v1.Taint, []v1.Taint, error) {
@@ -241,32 +246,47 @@ func (o *TaintOptions) Complete(f cmdutil.Factory, out io.Writer, cmd *cobra.Com
 	if o.taintsToAdd, o.taintsToRemove, err = parseTaints(taintArgs); err != nil {
 		return cmdutil.UsageError(cmd, err.Error())
 	}
-
 	mapper, typer := f.Object()
-	o.builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	o.builder = resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace()
+	if o.selector != "" {
+		o.builder = o.builder.SelectorParam(o.selector).ResourceTypes("node")
+	}
 	if o.all {
-		o.builder = o.builder.SelectAllParam(o.all).ResourceTypes("node")
-	} else {
-		if len(o.resources) < 2 {
-			return fmt.Errorf("at least one resource name must be specified since 'all' parameter is not set")
-		}
+		o.builder = o.builder.SelectAllParam(o.all).ResourceTypes("node").Flatten().Latest()
+	}
+	if !o.all && o.selector == "" && len(o.resources) >= 2 {
 		o.builder = o.builder.ResourceNames("node", o.resources[1:]...)
 	}
 	o.builder = o.builder.SelectorParam(o.selector).
 		Flatten().
 		Latest()
-
 	o.f = f
 	o.out = out
 	o.cmd = cmd
+	return nil
+}
 
+// validateFlags checks for the validation of flags for kubectl taints.
+func (o TaintOptions) validateFlags() error {
+	// Cannot have a non-empty selector and all flag set. They are mutually exclusive.
+	if o.all && o.selector != "" {
+		return fmt.Errorf("setting 'all' parameter with a non empty selector is prohibited.")
+	}
+	// If both selector and all are not set.
+	if !o.all && o.selector == "" {
+		if len(o.resources) < 2 {
+			return fmt.Errorf("at least one resource name must be specified since 'all' parameter is not set")
+		} else {
+			return nil
+		}
+	}
 	return nil
 }
 
 // Validate checks to the TaintOptions to see if there is sufficient information run the command.
-func (o TaintOptions) Validate(args []string) error {
+func (o TaintOptions) Validate() error {
 	resourceType := strings.ToLower(o.resources[0])
 	validResources, isValidResource := append(kubectl.ResourceAliases([]string{"node"}), "node"), false
 	for _, validResource := range validResources {
@@ -295,8 +315,7 @@ func (o TaintOptions) Validate(args []string) error {
 	if len(conflictTaints) > 0 {
 		return fmt.Errorf("can not both modify and remove the following taint(s) in the same command: %s", strings.Join(conflictTaints, ", "))
 	}
-
-	return nil
+	return o.validateFlags()
 }
 
 // RunTaint does the work
@@ -320,8 +339,8 @@ func (o TaintOptions) RunTaint() error {
 		if err != nil {
 			return err
 		}
-
-		if err := o.updateTaints(obj); err != nil {
+		operation, err := o.updateTaints(obj)
+		if err != nil {
 			return err
 		}
 		newData, err := json.Marshal(obj)
@@ -357,29 +376,19 @@ func (o TaintOptions) RunTaint() error {
 			return o.f.PrintObject(o.cmd, mapper, outputObj, o.out)
 		}
 
-		cmdutil.PrintSuccess(mapper, false, o.out, info.Mapping.Resource, info.Name, false, "tainted")
+		cmdutil.PrintSuccess(mapper, false, o.out, info.Mapping.Resource, info.Name, false, operation)
 		return nil
 	})
 }
 
 // validateNoTaintOverwrites validates that when overwrite is false, to-be-updated taints don't exist in the node taint list (yet)
-func validateNoTaintOverwrites(accessor metav1.Object, taints []v1.Taint) error {
-	annotations := accessor.GetAnnotations()
-	if annotations == nil {
-		return nil
-	}
-
+func validateNoTaintOverwrites(node *v1.Node, taints []v1.Taint) error {
 	allErrs := []error{}
-	oldTaints, err := v1.GetTaintsFromNodeAnnotations(annotations)
-	if err != nil {
-		allErrs = append(allErrs, err)
-		return utilerrors.NewAggregate(allErrs)
-	}
-
+	oldTaints := node.Spec.Taints
 	for _, taint := range taints {
 		for _, oldTaint := range oldTaints {
 			if taint.Key == oldTaint.Key && taint.Effect == oldTaint.Effect {
-				allErrs = append(allErrs, fmt.Errorf("Node '%s' already has a taint with key (%s) and effect (%v), and --overwrite is false", accessor.GetName(), taint.Key, taint.Effect))
+				allErrs = append(allErrs, fmt.Errorf("Node '%s' already has a taint with key (%s) and effect (%v), and --overwrite is false", node.Name, taint.Key, taint.Effect))
 				break
 			}
 		}
@@ -387,33 +396,21 @@ func validateNoTaintOverwrites(accessor metav1.Object, taints []v1.Taint) error 
 	return utilerrors.NewAggregate(allErrs)
 }
 
-// updateTaints updates taints of obj
-func (o TaintOptions) updateTaints(obj runtime.Object) error {
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return err
+// updateTaints applies a taint option(o) to a node in cluster after computing the net effect of operation(i.e. does it result in an overwrite?), it reports back the end result in a way that user can easily interpret.
+func (o TaintOptions) updateTaints(obj runtime.Object) (string, error) {
+	node, ok := obj.(*v1.Node)
+	if !ok {
+		return "", fmt.Errorf("unexpected type %T, expected Node", obj)
 	}
 	if !o.overwrite {
-		if err := validateNoTaintOverwrites(accessor, o.taintsToAdd); err != nil {
-			return err
+		if err := validateNoTaintOverwrites(node, o.taintsToAdd); err != nil {
+			return "", err
 		}
 	}
-
-	annotations := accessor.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-
-	newTaints, err := reorganizeTaints(accessor, o.overwrite, o.taintsToAdd, o.taintsToRemove)
+	operation, newTaints, err := reorganizeTaints(node, o.overwrite, o.taintsToAdd, o.taintsToRemove)
 	if err != nil {
-		return err
+		return "", err
 	}
-	taintsData, err := json.Marshal(newTaints)
-	if err != nil {
-		return err
-	}
-	annotations[v1.TaintsAnnotationKey] = string(taintsData)
-	accessor.SetAnnotations(annotations)
-
-	return nil
+	node.Spec.Taints = newTaints
+	return operation, nil
 }

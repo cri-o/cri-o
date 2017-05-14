@@ -20,10 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api"
 	policyapi "k8s.io/kubernetes/pkg/apis/policy"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/policy/poddisruptionbudget"
 )
 
@@ -35,13 +37,12 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against pod disruption budgets.
 func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 	store := &genericregistry.Store{
-		NewFunc:     func() runtime.Object { return &policyapi.PodDisruptionBudget{} },
-		NewListFunc: func() runtime.Object { return &policyapi.PodDisruptionBudgetList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*policyapi.PodDisruptionBudget).Name, nil
-		},
+		Copier:            api.Scheme,
+		NewFunc:           func() runtime.Object { return &policyapi.PodDisruptionBudget{} },
+		NewListFunc:       func() runtime.Object { return &policyapi.PodDisruptionBudgetList{} },
 		PredicateFunc:     poddisruptionbudget.MatchPodDisruptionBudget,
 		QualifiedResource: policyapi.Resource("poddisruptionbudgets"),
+		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("poddisruptionbudgets"),
 
 		CreateStrategy: poddisruptionbudget.Strategy,
 		UpdateStrategy: poddisruptionbudget.Strategy,
@@ -55,6 +56,11 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 	statusStore := *store
 	statusStore.UpdateStrategy = poddisruptionbudget.StatusStrategy
 	return &REST{store}, &StatusREST{store: &statusStore}
+}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"pdb"}
 }
 
 // StatusREST implements the REST endpoint for changing the status of an podDisruptionBudget

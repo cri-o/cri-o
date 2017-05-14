@@ -7,7 +7,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 )
 
 // ContainerStatus returns status of the container.

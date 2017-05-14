@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"k8s.io/kubernetes/cmd/kubeadm/app/phases/kubeconfig"
+	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/preflight"
 )
 
@@ -61,11 +61,11 @@ func TestConfigDirCleaner(t *testing.T) {
 				"pki",
 			},
 			setupFiles: []string{
-				"manifests/etcd.json",
-				"manifests/kube-apiserver.json",
+				"manifests/etcd.yaml",
+				"manifests/kube-apiserver.yaml",
 				"pki/ca.pem",
-				kubeconfig.AdminKubeConfigFileName,
-				kubeconfig.KubeletKubeConfigFileName,
+				kubeadmconstants.AdminKubeConfigFileName,
+				kubeadmconstants.KubeletKubeConfigFileName,
 			},
 			verifyExists: []string{
 				"manifests",
@@ -78,7 +78,7 @@ func TestConfigDirCleaner(t *testing.T) {
 			},
 			setupFiles: []string{
 				"pki/ca.pem",
-				kubeconfig.KubeletKubeConfigFileName,
+				kubeadmconstants.KubeletKubeConfigFileName,
 			},
 			verifyExists: []string{
 				"pki",
@@ -93,11 +93,11 @@ func TestConfigDirCleaner(t *testing.T) {
 				"pki",
 			},
 			setupFiles: []string{
-				"manifests/etcd.json",
-				"manifests/kube-apiserver.json",
+				"manifests/etcd.yaml",
+				"manifests/kube-apiserver.yaml",
 				"pki/ca.pem",
-				kubeconfig.AdminKubeConfigFileName,
-				kubeconfig.KubeletKubeConfigFileName,
+				kubeadmconstants.AdminKubeConfigFileName,
+				kubeadmconstants.KubeletKubeConfigFileName,
 				"cloud-config",
 			},
 			verifyExists: []string{
@@ -113,11 +113,11 @@ func TestConfigDirCleaner(t *testing.T) {
 				".mydir",
 			},
 			setupFiles: []string{
-				"manifests/etcd.json",
-				"manifests/kube-apiserver.json",
+				"manifests/etcd.yaml",
+				"manifests/kube-apiserver.yaml",
 				"pki/ca.pem",
-				kubeconfig.AdminKubeConfigFileName,
-				kubeconfig.KubeletKubeConfigFileName,
+				kubeadmconstants.AdminKubeConfigFileName,
+				kubeadmconstants.KubeletKubeConfigFileName,
 				".cloud-config",
 				".mydir/.myfile",
 			},
@@ -157,18 +157,18 @@ func TestConfigDirCleaner(t *testing.T) {
 		for _, createFile := range test.setupFiles {
 			fullPath := filepath.Join(tmpDir, createFile)
 			f, err := os.Create(fullPath)
-			defer f.Close()
 			if err != nil {
 				t.Errorf("Unable to create test file: %s", err)
 			}
+			defer f.Close()
 		}
 
 		resetConfigDir(tmpDir, filepath.Join(tmpDir, "pki"))
 
 		// Verify the files we cleanup implicitly in every test:
 		assertExists(t, tmpDir)
-		assertNotExists(t, filepath.Join(tmpDir, kubeconfig.AdminKubeConfigFileName))
-		assertNotExists(t, filepath.Join(tmpDir, kubeconfig.KubeletKubeConfigFileName))
+		assertNotExists(t, filepath.Join(tmpDir, kubeadmconstants.AdminKubeConfigFileName))
+		assertNotExists(t, filepath.Join(tmpDir, kubeadmconstants.KubeletKubeConfigFileName))
 		assertDirEmpty(t, filepath.Join(tmpDir, "manifests"))
 		assertDirEmpty(t, filepath.Join(tmpDir, "pki"))
 

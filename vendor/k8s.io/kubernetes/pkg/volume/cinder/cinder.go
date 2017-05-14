@@ -23,9 +23,9 @@ import (
 	"path"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/openstack"
@@ -47,7 +47,7 @@ type CinderProvider interface {
 	AttachDisk(instanceID string, diskName string) (string, error)
 	DetachDisk(instanceID string, partialDiskId string) error
 	DeleteVolume(volumeName string) error
-	CreateVolume(name string, size int, vtype, availability string, tags *map[string]string) (volumeName string, err error)
+	CreateVolume(name string, size int, vtype, availability string, tags *map[string]string) (string, string, error)
 	GetDevicePath(diskId string) string
 	InstanceID() (string, error)
 	GetAttachmentDiskPath(instanceID string, diskName string) (string, error)
@@ -96,6 +96,14 @@ func (plugin *cinderPlugin) CanSupport(spec *volume.Spec) bool {
 }
 
 func (plugin *cinderPlugin) RequiresRemount() bool {
+	return false
+}
+
+func (plugin *cinderPlugin) SupportsMountOption() bool {
+	return true
+
+}
+func (plugin *cinderPlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
@@ -231,7 +239,7 @@ type cdManager interface {
 	// Detaches the disk from the kubelet's host machine.
 	DetachDisk(unmounter *cinderVolumeUnmounter) error
 	// Creates a volume
-	CreateVolume(provisioner *cinderVolumeProvisioner) (volumeID string, volumeSizeGB int, err error)
+	CreateVolume(provisioner *cinderVolumeProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error)
 	// Deletes a volume
 	DeleteVolume(deleter *cinderVolumeDeleter) error
 }
@@ -290,12 +298,12 @@ func (b *cinderVolumeMounter) CanMount() error {
 	return nil
 }
 
-func (b *cinderVolumeMounter) SetUp(fsGroup *int64) error {
+func (b *cinderVolumeMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
 // SetUp bind mounts to the volume path.
-func (b *cinderVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (b *cinderVolumeMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	glog.V(5).Infof("Cinder SetUp %s to %s", b.pdName, dir)
 
 	b.plugin.volumeLocks.LockKey(b.pdName)
@@ -474,7 +482,7 @@ type cinderVolumeProvisioner struct {
 var _ volume.Provisioner = &cinderVolumeProvisioner{}
 
 func (c *cinderVolumeProvisioner) Provision() (*v1.PersistentVolume, error) {
-	volumeID, sizeGB, err := c.manager.CreateVolume(c)
+	volumeID, sizeGB, labels, err := c.manager.CreateVolume(c)
 	if err != nil {
 		return nil, err
 	}
@@ -482,7 +490,7 @@ func (c *cinderVolumeProvisioner) Provision() (*v1.PersistentVolume, error) {
 	pv := &v1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   c.options.PVName,
-			Labels: map[string]string{},
+			Labels: labels,
 			Annotations: map[string]string{
 				"kubernetes.io/createdby": "cinder-dynamic-provisioner",
 			},

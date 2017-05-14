@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,11 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/kubelet/qos"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
@@ -71,7 +71,7 @@ func listPodsByNamespaceFuncUsingClient(kubeClient clientset.Interface) generic.
 func NewPodEvaluator(kubeClient clientset.Interface, f informers.SharedInformerFactory) quota.Evaluator {
 	listFuncByNamespace := listPodsByNamespaceFuncUsingClient(kubeClient)
 	if f != nil {
-		listFuncByNamespace = generic.ListResourceUsingInformerFunc(f, schema.GroupResource{Resource: "pods"})
+		listFuncByNamespace = generic.ListResourceUsingInformerFunc(f, v1.SchemeGroupVersion.WithResource("pods"))
 	}
 	return &podEvaluator{
 		listFuncByNamespace: listFuncByNamespace,
@@ -130,7 +130,7 @@ func (p *podEvaluator) GroupKind() schema.GroupKind {
 	return api.Kind("Pod")
 }
 
-// Handles returns true of the evalutor should handle the specified operation.
+// Handles returns true of the evaluator should handle the specified operation.
 func (p *podEvaluator) Handles(operation admission.Operation) bool {
 	// TODO: update this if/when pods support resizing resource requirements.
 	return admission.Create == operation

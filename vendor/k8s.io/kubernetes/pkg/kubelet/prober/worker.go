@@ -23,6 +23,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/v1"
+	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/prober/results"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
@@ -155,7 +156,7 @@ func (w *worker) doProbe() (keepGoing bool) {
 		return false
 	}
 
-	c, ok := v1.GetContainerStatus(status.ContainerStatuses, w.container.Name)
+	c, ok := podutil.GetContainerStatus(status.ContainerStatuses, w.container.Name)
 	if !ok || len(c.ContainerID) == 0 {
 		// Either the container has not been created yet, or it was deleted.
 		glog.V(3).Infof("Probe target container not found: %v - %v",
@@ -193,6 +194,9 @@ func (w *worker) doProbe() (keepGoing bool) {
 		return true
 	}
 
+	// TODO: in order for exec probes to correctly handle downward API env, we must be able to reconstruct
+	// the full container environment here, OR we must make a call to the CRI in order to get those environment
+	// values from the running container.
 	result, err := w.probeManager.prober.probe(w.probeType, w.pod, status, w.container, w.containerID)
 	if err != nil {
 		// Prober error, throw away the result.
@@ -215,7 +219,7 @@ func (w *worker) doProbe() (keepGoing bool) {
 	w.resultsManager.Set(w.containerID, result, w.pod)
 
 	if w.probeType == liveness && result == results.Failure {
-		// The container fails a liveness check, it will need to be restared.
+		// The container fails a liveness check, it will need to be restarted.
 		// Stop probing until we see a new container ID. This is to reduce the
 		// chance of hitting #21751, where running `docker exec` when a
 		// container is being stopped may lead to corrupted container state.

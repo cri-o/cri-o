@@ -35,9 +35,10 @@ func init() {
 // to allow building arbitrary schemes.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_AdmissionConfiguration, InType: reflect.TypeOf(&AdmissionConfiguration{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_AdmissionPluginConfiguration, InType: reflect.TypeOf(&AdmissionPluginConfiguration{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_ClientConnectionConfiguration, InType: reflect.TypeOf(&ClientConnectionConfiguration{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_KubeProxyConfiguration, InType: reflect.TypeOf(&KubeProxyConfiguration{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_KubeProxyConntrackConfiguration, InType: reflect.TypeOf(&KubeProxyConntrackConfiguration{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_KubeProxyIPTablesConfiguration, InType: reflect.TypeOf(&KubeProxyIPTablesConfiguration{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_KubeSchedulerConfiguration, InType: reflect.TypeOf(&KubeSchedulerConfiguration{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_KubeletAnonymousAuthentication, InType: reflect.TypeOf(&KubeletAnonymousAuthentication{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1alpha1_KubeletAuthentication, InType: reflect.TypeOf(&KubeletAuthentication{})},
@@ -50,34 +51,11 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	)
 }
 
-func DeepCopy_v1alpha1_AdmissionConfiguration(in interface{}, out interface{}, c *conversion.Cloner) error {
+func DeepCopy_v1alpha1_ClientConnectionConfiguration(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*AdmissionConfiguration)
-		out := out.(*AdmissionConfiguration)
+		in := in.(*ClientConnectionConfiguration)
+		out := out.(*ClientConnectionConfiguration)
 		*out = *in
-		if in.Plugins != nil {
-			in, out := &in.Plugins, &out.Plugins
-			*out = make([]AdmissionPluginConfiguration, len(*in))
-			for i := range *in {
-				if err := DeepCopy_v1alpha1_AdmissionPluginConfiguration(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-func DeepCopy_v1alpha1_AdmissionPluginConfiguration(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*AdmissionPluginConfiguration)
-		out := out.(*AdmissionPluginConfiguration)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.Configuration); err != nil {
-			return err
-		} else {
-			out.Configuration = *newVal.(*runtime.RawExtension)
-		}
 		return nil
 	}
 }
@@ -87,13 +65,34 @@ func DeepCopy_v1alpha1_KubeProxyConfiguration(in interface{}, out interface{}, c
 		in := in.(*KubeProxyConfiguration)
 		out := out.(*KubeProxyConfiguration)
 		*out = *in
-		if in.IPTablesMasqueradeBit != nil {
-			in, out := &in.IPTablesMasqueradeBit, &out.IPTablesMasqueradeBit
-			*out = new(int32)
-			**out = **in
+		if err := DeepCopy_v1alpha1_KubeProxyIPTablesConfiguration(&in.IPTables, &out.IPTables, c); err != nil {
+			return err
 		}
 		if in.OOMScoreAdj != nil {
 			in, out := &in.OOMScoreAdj, &out.OOMScoreAdj
+			*out = new(int32)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1alpha1_KubeProxyConntrackConfiguration(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*KubeProxyConntrackConfiguration)
+		out := out.(*KubeProxyConntrackConfiguration)
+		*out = *in
+		return nil
+	}
+}
+
+func DeepCopy_v1alpha1_KubeProxyIPTablesConfiguration(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*KubeProxyIPTablesConfiguration)
+		out := out.(*KubeProxyIPTablesConfiguration)
+		*out = *in
+		if in.MasqueradeBit != nil {
+			in, out := &in.MasqueradeBit, &out.MasqueradeBit
 			*out = new(int32)
 			**out = **in
 		}
@@ -219,6 +218,11 @@ func DeepCopy_v1alpha1_KubeletConfiguration(in interface{}, out interface{}, c *
 			*out = new(bool)
 			**out = **in
 		}
+		if in.ClusterDNS != nil {
+			in, out := &in.ClusterDNS, &out.ClusterDNS
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 		if in.ImageGCHighThresholdPercent != nil {
 			in, out := &in.ImageGCHighThresholdPercent, &out.ImageGCHighThresholdPercent
 			*out = new(int32)
@@ -229,8 +233,8 @@ func DeepCopy_v1alpha1_KubeletConfiguration(in interface{}, out interface{}, c *
 			*out = new(int32)
 			**out = **in
 		}
-		if in.ExperimentalCgroupsPerQOS != nil {
-			in, out := &in.ExperimentalCgroupsPerQOS, &out.ExperimentalCgroupsPerQOS
+		if in.CgroupsPerQOS != nil {
+			in, out := &in.CgroupsPerQOS, &out.CgroupsPerQOS
 			*out = new(bool)
 			**out = **in
 		}
@@ -257,7 +261,11 @@ func DeepCopy_v1alpha1_KubeletConfiguration(in interface{}, out interface{}, c *
 		if in.RegisterWithTaints != nil {
 			in, out := &in.RegisterWithTaints, &out.RegisterWithTaints
 			*out = make([]v1.Taint, len(*in))
-			copy(*out, *in)
+			for i := range *in {
+				if err := v1.DeepCopy_v1_Taint(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
 		}
 		if in.KubeAPIQPS != nil {
 			in, out := &in.KubeAPIQPS, &out.KubeAPIQPS
@@ -291,15 +299,8 @@ func DeepCopy_v1alpha1_KubeletConfiguration(in interface{}, out interface{}, c *
 			*out = new(bool)
 			**out = **in
 		}
-		if in.SystemReserved != nil {
-			in, out := &in.SystemReserved, &out.SystemReserved
-			*out = make(map[string]string)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
-		if in.KubeReserved != nil {
-			in, out := &in.KubeReserved, &out.KubeReserved
+		if in.ExperimentalQOSReserved != nil {
+			in, out := &in.ExperimentalQOSReserved, &out.ExperimentalQOSReserved
 			*out = make(map[string]string)
 			for key, val := range *in {
 				(*out)[key] = val
@@ -322,6 +323,35 @@ func DeepCopy_v1alpha1_KubeletConfiguration(in interface{}, out interface{}, c *
 		}
 		if in.AllowedUnsafeSysctls != nil {
 			in, out := &in.AllowedUnsafeSysctls, &out.AllowedUnsafeSysctls
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		if in.ExperimentalDockershim != nil {
+			in, out := &in.ExperimentalDockershim, &out.ExperimentalDockershim
+			*out = new(bool)
+			**out = **in
+		}
+		if in.DockerDisableSharedPID != nil {
+			in, out := &in.DockerDisableSharedPID, &out.DockerDisableSharedPID
+			*out = new(bool)
+			**out = **in
+		}
+		if in.SystemReserved != nil {
+			in, out := &in.SystemReserved, &out.SystemReserved
+			*out = make(map[string]string)
+			for key, val := range *in {
+				(*out)[key] = val
+			}
+		}
+		if in.KubeReserved != nil {
+			in, out := &in.KubeReserved, &out.KubeReserved
+			*out = make(map[string]string)
+			for key, val := range *in {
+				(*out)[key] = val
+			}
+		}
+		if in.EnforceNodeAllocatable != nil {
+			in, out := &in.EnforceNodeAllocatable, &out.EnforceNodeAllocatable
 			*out = make([]string, len(*in))
 			copy(*out, *in)
 		}

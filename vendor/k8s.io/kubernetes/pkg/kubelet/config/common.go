@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/validation"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -72,6 +73,15 @@ func applyDefaults(pod *api.Pod, source string, isFile bool, nodeName types.Node
 	}
 	// The generated UID is the hash of the file.
 	pod.Annotations[kubetypes.ConfigHashAnnotationKey] = string(pod.UID)
+
+	if isFile {
+		// Applying the default Taint tolerations to static pods,
+		// so they are not evicted when there are node problems.
+		helper.AddOrUpdateTolerationInPod(pod, &api.Toleration{
+			Operator: "Exists",
+			Effect:   api.TaintEffectNoExecute,
+		})
+	}
 
 	// Set the default status to pending.
 	pod.Status.Phase = api.PodPending

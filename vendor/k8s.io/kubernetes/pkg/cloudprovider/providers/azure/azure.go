@@ -17,14 +17,17 @@ limitations under the License.
 package azure
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/version"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/ghodss/yaml"
 	"time"
@@ -34,21 +37,37 @@ import (
 const CloudProviderName = "azure"
 
 // Config holds the configuration parsed from the --cloud-config flag
+// All fields are required unless otherwise specified
 type Config struct {
-	Cloud                      string `json:"cloud" yaml:"cloud"`
-	TenantID                   string `json:"tenantId" yaml:"tenantId"`
-	SubscriptionID             string `json:"subscriptionId" yaml:"subscriptionId"`
-	ResourceGroup              string `json:"resourceGroup" yaml:"resourceGroup"`
-	Location                   string `json:"location" yaml:"location"`
-	VnetName                   string `json:"vnetName" yaml:"vnetName"`
-	SubnetName                 string `json:"subnetName" yaml:"subnetName"`
-	SecurityGroupName          string `json:"securityGroupName" yaml:"securityGroupName"`
-	RouteTableName             string `json:"routeTableName" yaml:"routeTableName"`
+	// The cloud environment identifier. Takes values from https://github.com/Azure/go-autorest/blob/ec5f4903f77ed9927ac95b19ab8e44ada64c1356/autorest/azure/environments.go#L13
+	Cloud string `json:"cloud" yaml:"cloud"`
+	// The AAD Tenant ID for the Subscription that the cluster is deployed in
+	TenantID string `json:"tenantId" yaml:"tenantId"`
+	// The ID of the Azure Subscription that the cluster is deployed in
+	SubscriptionID string `json:"subscriptionId" yaml:"subscriptionId"`
+	// The name of the resource group that the cluster is deployed in
+	ResourceGroup string `json:"resourceGroup" yaml:"resourceGroup"`
+	// The location of the resource group that the cluster is deployed in
+	Location string `json:"location" yaml:"location"`
+	// The name of the VNet that the cluster is deployed in
+	VnetName string `json:"vnetName" yaml:"vnetName"`
+	// The name of the subnet that the cluster is deployed in
+	SubnetName string `json:"subnetName" yaml:"subnetName"`
+	// The name of the security group attached to the cluster's subnet
+	SecurityGroupName string `json:"securityGroupName" yaml:"securityGroupName"`
+	// (Optional in 1.6) The name of the route table attached to the subnet that the cluster is deployed in
+	RouteTableName string `json:"routeTableName" yaml:"routeTableName"`
+	// (Optional) The name of the availability set that should be used as the load balancer backend
+	// If this is set, the Azure cloudprovider will only add nodes from that availability set to the load
+	// balancer backend pool. If this is not set, and multiple agent pools (availability sets) are used, then
+	// the cloudprovider will try to add all nodes to a single backend pool which is forbidden.
+	// In other words, if you use multiple agent pools (availability sets), you MUST set this field.
 	PrimaryAvailabilitySetName string `json:"primaryAvailabilitySetName" yaml:"primaryAvailabilitySetName"`
 
-	AADClientID     string `json:"aadClientId" yaml:"aadClientId"`
+	// The ClientID for an AAD application with RBAC access to talk to Azure RM APIs
+	AADClientID string `json:"aadClientId" yaml:"aadClientId"`
+	// The ClientSecret for an AAD application with RBAC access to talk to Azure RM APIs
 	AADClientSecret string `json:"aadClientSecret" yaml:"aadClientSecret"`
-	AADTenantID     string `json:"aadTenantId" yaml:"aadTenantId"`
 }
 
 // Cloud holds the config and clients
@@ -109,38 +128,54 @@ func NewCloud(configReader io.Reader) (cloudprovider.Interface, error) {
 	az.SubnetsClient = network.NewSubnetsClient(az.SubscriptionID)
 	az.SubnetsClient.BaseURI = az.Environment.ResourceManagerEndpoint
 	az.SubnetsClient.Authorizer = servicePrincipalToken
+	az.SubnetsClient.PollingDelay = 5 * time.Second
+	configureUserAgent(&az.SubnetsClient.Client)
 
 	az.RouteTablesClient = network.NewRouteTablesClient(az.SubscriptionID)
 	az.RouteTablesClient.BaseURI = az.Environment.ResourceManagerEndpoint
 	az.RouteTablesClient.Authorizer = servicePrincipalToken
+	az.RouteTablesClient.PollingDelay = 5 * time.Second
+	configureUserAgent(&az.RouteTablesClient.Client)
 
 	az.RoutesClient = network.NewRoutesClient(az.SubscriptionID)
 	az.RoutesClient.BaseURI = az.Environment.ResourceManagerEndpoint
 	az.RoutesClient.Authorizer = servicePrincipalToken
+	az.RoutesClient.PollingDelay = 5 * time.Second
+	configureUserAgent(&az.RoutesClient.Client)
 
 	az.InterfacesClient = network.NewInterfacesClient(az.SubscriptionID)
 	az.InterfacesClient.BaseURI = az.Environment.ResourceManagerEndpoint
 	az.InterfacesClient.Authorizer = servicePrincipalToken
+	az.InterfacesClient.PollingDelay = 5 * time.Second
+	configureUserAgent(&az.InterfacesClient.Client)
 
 	az.LoadBalancerClient = network.NewLoadBalancersClient(az.SubscriptionID)
 	az.LoadBalancerClient.BaseURI = az.Environment.ResourceManagerEndpoint
 	az.LoadBalancerClient.Authorizer = servicePrincipalToken
+	az.LoadBalancerClient.PollingDelay = 5 * time.Second
+	configureUserAgent(&az.LoadBalancerClient.Client)
 
 	az.VirtualMachinesClient = compute.NewVirtualMachinesClient(az.SubscriptionID)
 	az.VirtualMachinesClient.BaseURI = az.Environment.ResourceManagerEndpoint
 	az.VirtualMachinesClient.Authorizer = servicePrincipalToken
 	az.VirtualMachinesClient.PollingDelay = 5 * time.Second
+	configureUserAgent(&az.VirtualMachinesClient.Client)
 
 	az.PublicIPAddressesClient = network.NewPublicIPAddressesClient(az.SubscriptionID)
 	az.PublicIPAddressesClient.BaseURI = az.Environment.ResourceManagerEndpoint
 	az.PublicIPAddressesClient.Authorizer = servicePrincipalToken
+	az.PublicIPAddressesClient.PollingDelay = 5 * time.Second
+	configureUserAgent(&az.PublicIPAddressesClient.Client)
 
 	az.SecurityGroupsClient = network.NewSecurityGroupsClient(az.SubscriptionID)
 	az.SecurityGroupsClient.BaseURI = az.Environment.ResourceManagerEndpoint
 	az.SecurityGroupsClient.Authorizer = servicePrincipalToken
+	az.SecurityGroupsClient.PollingDelay = 5 * time.Second
+	configureUserAgent(&az.SecurityGroupsClient.Client)
 
 	az.StorageAccountClient = storage.NewAccountsClientWithBaseURI(az.Environment.ResourceManagerEndpoint, az.SubscriptionID)
 	az.StorageAccountClient.Authorizer = servicePrincipalToken
+
 	return &az, nil
 }
 
@@ -177,4 +212,13 @@ func (az *Cloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []stri
 // ProviderName returns the cloud provider ID.
 func (az *Cloud) ProviderName() string {
 	return CloudProviderName
+}
+
+// configureUserAgent configures the autorest client with a user agent that
+// includes "kubernetes" and the full kubernetes git version string
+// example:
+// Azure-SDK-for-Go/7.0.1-beta arm-network/2016-09-01; kubernetes-cloudprovider/v1.7.0-alpha.2.711+a2fadef8170bb0-dirty;
+func configureUserAgent(client *autorest.Client) {
+	k8sVersion := version.Get().GitVersion
+	client.UserAgent = fmt.Sprintf("%s; kubernetes-cloudprovider/%s", client.UserAgent, k8sVersion)
 }

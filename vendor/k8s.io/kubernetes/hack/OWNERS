@@ -1,16 +1,19 @@
 reviewers:
   - eparis
-  - ihmccreery
+  - fejta
   - ixdy
   - jbeda
   - lavalamp
   - spxtr
   - zmerlynn
 approvers:
+  - deads2k
   - eparis
-  - ihmccreery
+  - fejta
   - ixdy
   - jbeda
   - lavalamp
+  - madhusudancs
+  - shashidharatd
   - spxtr
   - zmerlynn

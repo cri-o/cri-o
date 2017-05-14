@@ -24,9 +24,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
@@ -61,10 +61,6 @@ var _ volume.Deleter = &quobyteVolumeDeleter{}
 
 const (
 	quobytePluginName = "kubernetes.io/quobyte"
-
-	annotationQuobyteAPIServer          = "quobyte.kubernetes.io/api"
-	annotationQuobyteAPISecret          = "quobyte.kubernetes.io/apiuser"
-	annotationQuobyteAPISecretNamespace = "quobyte.kubernetes.io/apipassword"
 )
 
 func (plugin *quobytePlugin) Init(host volume.VolumeHost) error {
@@ -115,6 +111,14 @@ func (plugin *quobytePlugin) CanSupport(spec *volume.Spec) bool {
 }
 
 func (plugin *quobytePlugin) RequiresRemount() bool {
+	return false
+}
+
+func (plugin *quobytePlugin) SupportsMountOption() bool {
+	return true
+}
+
+func (plugin *quobytePlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
@@ -169,8 +173,9 @@ func (plugin *quobytePlugin) newMounterInternal(spec *volume.Spec, pod *v1.Pod, 
 			volume:  source.Volume,
 			plugin:  plugin,
 		},
-		registry: source.Registry,
-		readOnly: readOnly,
+		registry:     source.Registry,
+		readOnly:     readOnly,
+		mountOptions: volume.MountOptionFromSpec(spec),
 	}, nil
 }
 
@@ -205,8 +210,9 @@ type quobyte struct {
 
 type quobyteMounter struct {
 	*quobyte
-	registry string
-	readOnly bool
+	registry     string
+	readOnly     bool
+	mountOptions []string
 }
 
 var _ volume.Mounter = &quobyteMounter{}
@@ -227,12 +233,12 @@ func (mounter *quobyteMounter) CanMount() error {
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (mounter *quobyteMounter) SetUp(fsGroup *int64) error {
+func (mounter *quobyteMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	pluginDir := mounter.plugin.host.GetPluginDir(strings.EscapeQualifiedNameForDisk(quobytePluginName))
 	return mounter.SetUpAt(pluginDir, fsGroup)
 }
 
-func (mounter *quobyteMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (mounter *quobyteMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	// Check if Quobyte is already mounted on the host in the Plugin Dir
 	// if so we can use this mountpoint instead of creating a new one
 	// IsLikelyNotMountPoint wouldn't check the mount type
@@ -249,7 +255,8 @@ func (mounter *quobyteMounter) SetUpAt(dir string, fsGroup *int64) error {
 	}
 
 	//if a trailing slash is missing we add it here
-	if err := mounter.mounter.Mount(mounter.correctTraillingSlash(mounter.registry), dir, "quobyte", options); err != nil {
+	mountOptions := volume.JoinMountOptions(mounter.mountOptions, options)
+	if err := mounter.mounter.Mount(mounter.correctTraillingSlash(mounter.registry), dir, "quobyte", mountOptions); err != nil {
 		return fmt.Errorf("quobyte: mount failed: %v", err)
 	}
 

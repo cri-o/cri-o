@@ -33,6 +33,8 @@ type FakeNodes struct {
 
 var nodesResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "nodes"}
 
+var nodesKind = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Node"}
+
 func (c *FakeNodes) Create(node *v1.Node) (result *v1.Node, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(nodesResource, node), &v1.Node{})
@@ -60,13 +62,13 @@ func (c *FakeNodes) UpdateStatus(node *v1.Node) (*v1.Node, error) {
 	return obj.(*v1.Node), err
 }
 
-func (c *FakeNodes) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeNodes) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(nodesResource, name), &v1.Node{})
 	return err
 }
 
-func (c *FakeNodes) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeNodes) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(nodesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.NodeList{})
@@ -84,7 +86,7 @@ func (c *FakeNodes) Get(name string, options meta_v1.GetOptions) (result *v1.Nod
 
 func (c *FakeNodes) List(opts meta_v1.ListOptions) (result *v1.NodeList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(nodesResource, opts), &v1.NodeList{})
+		Invokes(testing.NewRootListAction(nodesResource, nodesKind, opts), &v1.NodeList{})
 	if obj == nil {
 		return nil, err
 	}

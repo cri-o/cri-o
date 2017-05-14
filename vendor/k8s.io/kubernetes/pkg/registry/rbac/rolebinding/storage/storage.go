@@ -18,9 +18,11 @@ package storage
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/rbac/rolebinding"
 )
 
@@ -32,13 +34,12 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against RoleBinding objects.
 func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
-		NewFunc:     func() runtime.Object { return &rbac.RoleBinding{} },
-		NewListFunc: func() runtime.Object { return &rbac.RoleBindingList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*rbac.RoleBinding).Name, nil
-		},
+		Copier:            api.Scheme,
+		NewFunc:           func() runtime.Object { return &rbac.RoleBinding{} },
+		NewListFunc:       func() runtime.Object { return &rbac.RoleBindingList{} },
 		PredicateFunc:     rolebinding.Matcher,
 		QualifiedResource: rbac.Resource("rolebindings"),
+		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("rolebindings"),
 
 		CreateStrategy: rolebinding.Strategy,
 		UpdateStrategy: rolebinding.Strategy,

@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/pkg/api"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/pkg/api/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
@@ -112,7 +112,7 @@ type ResourceClient struct {
 }
 
 // List returns a list of objects for this resource.
-func (rc *ResourceClient) List(opts runtime.Object) (runtime.Object, error) {
+func (rc *ResourceClient) List(opts metav1.ListOptions) (runtime.Object, error) {
 	parameterEncoder := rc.parameterCodec
 	if parameterEncoder == nil {
 		parameterEncoder = defaultParameterEncoder
@@ -120,7 +120,7 @@ func (rc *ResourceClient) List(opts runtime.Object) (runtime.Object, error) {
 	return rc.cl.Get().
 		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
-		VersionedParams(opts, parameterEncoder).
+		VersionedParams(&opts, parameterEncoder).
 		Do().
 		Get()
 }
@@ -149,7 +149,7 @@ func (rc *ResourceClient) Delete(name string, opts *metav1.DeleteOptions) error 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (rc *ResourceClient) DeleteCollection(deleteOptions *metav1.DeleteOptions, listOptions runtime.Object) error {
+func (rc *ResourceClient) DeleteCollection(deleteOptions *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
 	parameterEncoder := rc.parameterCodec
 	if parameterEncoder == nil {
 		parameterEncoder = defaultParameterEncoder
@@ -157,7 +157,7 @@ func (rc *ResourceClient) DeleteCollection(deleteOptions *metav1.DeleteOptions, 
 	return rc.cl.Delete().
 		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
-		VersionedParams(listOptions, parameterEncoder).
+		VersionedParams(&listOptions, parameterEncoder).
 		Body(deleteOptions).
 		Do().
 		Error()
@@ -192,16 +192,16 @@ func (rc *ResourceClient) Update(obj *unstructured.Unstructured) (*unstructured.
 }
 
 // Watch returns a watch.Interface that watches the resource.
-func (rc *ResourceClient) Watch(opts runtime.Object) (watch.Interface, error) {
+func (rc *ResourceClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	parameterEncoder := rc.parameterCodec
 	if parameterEncoder == nil {
 		parameterEncoder = defaultParameterEncoder
 	}
+	opts.Watch = true
 	return rc.cl.Get().
-		Prefix("watch").
 		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
-		VersionedParams(opts, parameterEncoder).
+		VersionedParams(&opts, parameterEncoder).
 		Watch()
 }
 
@@ -245,9 +245,9 @@ func (dynamicCodec) Encode(obj runtime.Object, w io.Writer) error {
 // ContentConfig returns a restclient.ContentConfig for dynamic types.
 func ContentConfig() restclient.ContentConfig {
 	var jsonInfo runtime.SerializerInfo
-	// TODO: api.Codecs here should become "pkg/apis/server/scheme" which is the minimal core you need
+	// TODO: scheme.Codecs here should become "pkg/apis/server/scheme" which is the minimal core you need
 	// to talk to a kubernetes server
-	for _, info := range api.Codecs.SupportedMediaTypes() {
+	for _, info := range scheme.Codecs.SupportedMediaTypes() {
 		if info.MediaType == runtime.ContentTypeJSON {
 			jsonInfo = info
 			break
@@ -280,10 +280,10 @@ var defaultParameterEncoder runtime.ParameterCodec = parameterCodec{}
 type versionedParameterEncoderWithV1Fallback struct{}
 
 func (versionedParameterEncoderWithV1Fallback) EncodeParameters(obj runtime.Object, to schema.GroupVersion) (url.Values, error) {
-	ret, err := api.ParameterCodec.EncodeParameters(obj, to)
+	ret, err := scheme.ParameterCodec.EncodeParameters(obj, to)
 	if err != nil && runtime.IsNotRegisteredError(err) {
 		// fallback to v1
-		return api.ParameterCodec.EncodeParameters(obj, v1.SchemeGroupVersion)
+		return scheme.ParameterCodec.EncodeParameters(obj, v1.SchemeGroupVersion)
 	}
 	return ret, err
 }

@@ -73,7 +73,7 @@ func (attacher *photonPersistentDiskAttacher) Attach(spec *volume.Spec, nodeName
 	// TODO: if disk is already attached?
 	err = attacher.photonDisks.AttachDisk(volumeSource.PdID, nodeName)
 	if err != nil {
-		glog.Errorf("Error attaching volume %q: %+v", volumeSource.PdID, err)
+		glog.Errorf("Error attaching volume %q to node %q: %+v", volumeSource.PdID, nodeName, err)
 		return "", err
 	}
 
@@ -203,7 +203,8 @@ func (attacher *photonPersistentDiskAttacher) MountDevice(spec *volume.Spec, dev
 
 	if notMnt {
 		diskMounter := &mount.SafeFormatAndMount{Interface: mounter, Runner: exec.New()}
-		err = diskMounter.FormatAndMount(devicePath, deviceMountPath, volumeSource.FSType, options)
+		mountOptions := volume.MountOptionFromSpec(spec)
+		err = diskMounter.FormatAndMount(devicePath, deviceMountPath, volumeSource.FSType, mountOptions)
 		if err != nil {
 			os.Remove(deviceMountPath)
 			return err

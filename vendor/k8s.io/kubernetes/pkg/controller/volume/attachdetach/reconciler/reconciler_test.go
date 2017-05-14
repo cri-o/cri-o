@@ -22,9 +22,10 @@ import (
 
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/record"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/cache"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/statusupdater"
 	controllervolumetesting "k8s.io/kubernetes/pkg/controller/volume/attachdetach/testing"
@@ -50,10 +51,9 @@ func Test_Run_Positive_DoNothing(t *testing.T) {
 	fakeKubeClient := controllervolumetesting.CreateTestClient()
 	fakeRecorder := &record.FakeRecorder{}
 	ad := operationexecutor.NewOperationExecutor(operationexecutor.NewOperationGenerator(fakeKubeClient, volumePluginMgr, fakeRecorder, false /* checkNodeCapabilitiesBeforeMount */))
-	nodeInformer := informers.NewNodeInformer(
-		fakeKubeClient, resyncPeriod)
+	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, controller.NoResyncPeriodFunc())
 	nsu := statusupdater.NewNodeStatusUpdater(
-		fakeKubeClient, nodeInformer, asw)
+		fakeKubeClient, informerFactory.Core().V1().Nodes().Lister(), asw)
 	reconciler := NewReconciler(
 		reconcilerLoopPeriod, maxWaitForUnmountDuration, syncLoopPeriod, false, dsw, asw, ad, nsu)
 
@@ -88,7 +88,7 @@ func Test_Run_Positive_OneDesiredVolumeAttach(t *testing.T) {
 	volumeName := v1.UniqueVolumeName("volume-name")
 	volumeSpec := controllervolumetesting.GetTestVolumeSpec(string(volumeName), volumeName)
 	nodeName := k8stypes.NodeName("node-name")
-	dsw.AddNode(nodeName)
+	dsw.AddNode(nodeName, false /*keepTerminatedPodVolumes*/)
 	volumeExists := dsw.VolumeExists(volumeName, nodeName)
 	if volumeExists {
 		t.Fatalf(
@@ -134,7 +134,7 @@ func Test_Run_Positive_OneDesiredVolumeAttachThenDetachWithUnmountedVolume(t *te
 	volumeName := v1.UniqueVolumeName("volume-name")
 	volumeSpec := controllervolumetesting.GetTestVolumeSpec(string(volumeName), volumeName)
 	nodeName := k8stypes.NodeName("node-name")
-	dsw.AddNode(nodeName)
+	dsw.AddNode(nodeName, false /*keepTerminatedPodVolumes*/)
 	volumeExists := dsw.VolumeExists(volumeName, nodeName)
 	if volumeExists {
 		t.Fatalf(
@@ -170,8 +170,8 @@ func Test_Run_Positive_OneDesiredVolumeAttachThenDetachWithUnmountedVolume(t *te
 			generatedVolumeName,
 			nodeName)
 	}
-	asw.SetVolumeMountedByNode(generatedVolumeName, nodeName, true /* mounted */)
-	asw.SetVolumeMountedByNode(generatedVolumeName, nodeName, false /* mounted */)
+	asw.SetVolumeMountedByNode(generatedVolumeName, nodeName, true /* mounted */, false)
+	asw.SetVolumeMountedByNode(generatedVolumeName, nodeName, false /* mounted */, false)
 
 	// Assert
 	waitForNewDetacherCallCount(t, 1 /* expectedCallCount */, fakePlugin)
@@ -201,7 +201,7 @@ func Test_Run_Positive_OneDesiredVolumeAttachThenDetachWithMountedVolume(t *test
 	volumeName := v1.UniqueVolumeName("volume-name")
 	volumeSpec := controllervolumetesting.GetTestVolumeSpec(string(volumeName), volumeName)
 	nodeName := k8stypes.NodeName("node-name")
-	dsw.AddNode(nodeName)
+	dsw.AddNode(nodeName, false /*keepTerminatedPodVolumes*/)
 	volumeExists := dsw.VolumeExists(volumeName, nodeName)
 	if volumeExists {
 		t.Fatalf(
@@ -268,7 +268,7 @@ func Test_Run_Negative_OneDesiredVolumeAttachThenDetachWithUnmountedVolumeUpdate
 	volumeName := v1.UniqueVolumeName("volume-name")
 	volumeSpec := controllervolumetesting.GetTestVolumeSpec(string(volumeName), volumeName)
 	nodeName := k8stypes.NodeName("node-name")
-	dsw.AddNode(nodeName)
+	dsw.AddNode(nodeName, false /*keepTerminatedPodVolumes*/)
 	volumeExists := dsw.VolumeExists(volumeName, nodeName)
 	if volumeExists {
 		t.Fatalf(
@@ -302,8 +302,8 @@ func Test_Run_Negative_OneDesiredVolumeAttachThenDetachWithUnmountedVolumeUpdate
 			generatedVolumeName,
 			nodeName)
 	}
-	asw.SetVolumeMountedByNode(generatedVolumeName, nodeName, true /* mounted */)
-	asw.SetVolumeMountedByNode(generatedVolumeName, nodeName, false /* mounted */)
+	asw.SetVolumeMountedByNode(generatedVolumeName, nodeName, true /* mounted */, false)
+	asw.SetVolumeMountedByNode(generatedVolumeName, nodeName, false /* mounted */, false)
 
 	// Assert
 	verifyNewDetacherCallCount(t, true /* expectZeroNewDetacherCallCount */, fakePlugin)

@@ -28,15 +28,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/api/v1/service"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/uuid"
+	"k8s.io/kubernetes/pkg/client/retry"
 	testutils "k8s.io/kubernetes/test/utils"
 
 	. "github.com/onsi/ginkgo"
@@ -188,15 +188,15 @@ func (j *ServiceTestJig) ChangeServiceType(namespace, name string, newType v1.Se
 	}
 }
 
-// CreateOnlyLocalNodePortService creates a loadbalancer service and sanity checks its
-// nodePort. If createPod is true, it also creates an RC with 1 replica of
+// CreateOnlyLocalNodePortService creates a NodePort service with
+// ExternalTrafficPolicy set to Local and sanity checks its nodePort.
+// If createPod is true, it also creates an RC with 1 replica of
 // the standard netexec container used everywhere in this test.
 func (j *ServiceTestJig) CreateOnlyLocalNodePortService(namespace, serviceName string, createPod bool) *v1.Service {
-	By("creating a service " + namespace + "/" + serviceName + " with type=NodePort and annotation for local-traffic-only")
+	By("creating a service " + namespace + "/" + serviceName + " with type=NodePort and ExternalTrafficPolicy=Local")
 	svc := j.CreateTCPServiceOrFail(namespace, func(svc *v1.Service) {
 		svc.Spec.Type = v1.ServiceTypeNodePort
-		svc.ObjectMeta.Annotations = map[string]string{
-			service.BetaAnnotationExternalTraffic: service.AnnotationValueExternalTrafficLocal}
+		svc.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeLocal
 		svc.Spec.Ports = []v1.ServicePort{{Protocol: "TCP", Port: 80}}
 	})
 
@@ -208,18 +208,18 @@ func (j *ServiceTestJig) CreateOnlyLocalNodePortService(namespace, serviceName s
 	return svc
 }
 
-// CreateOnlyLocalLoadBalancerService creates a loadbalancer service and waits for it to
-// acquire an ingress IP. If createPod is true, it also creates an RC with 1
-// replica of the standard netexec container used everywhere in this test.
+// CreateOnlyLocalLoadBalancerService creates a loadbalancer service with
+// ExternalTrafficPolicy set to Local and waits for it to acquire an ingress IP.
+// If createPod is true, it also creates an RC with 1 replica of
+// the standard netexec container used everywhere in this test.
 func (j *ServiceTestJig) CreateOnlyLocalLoadBalancerService(namespace, serviceName string, timeout time.Duration, createPod bool,
 	tweak func(svc *v1.Service)) *v1.Service {
-	By("creating a service " + namespace + "/" + serviceName + " with type=LoadBalancer and annotation for local-traffic-only")
+	By("creating a service " + namespace + "/" + serviceName + " with type=LoadBalancer and ExternalTrafficPolicy=Local")
 	svc := j.CreateTCPServiceOrFail(namespace, func(svc *v1.Service) {
 		svc.Spec.Type = v1.ServiceTypeLoadBalancer
 		// We need to turn affinity off for our LB distribution tests
 		svc.Spec.SessionAffinity = v1.ServiceAffinityNone
-		svc.ObjectMeta.Annotations = map[string]string{
-			service.BetaAnnotationExternalTraffic: service.AnnotationValueExternalTrafficLocal}
+		svc.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeLocal
 		if tweak != nil {
 			tweak(svc)
 		}
@@ -257,9 +257,6 @@ func GetNodePublicIps(c clientset.Interface) ([]string, error) {
 	nodes := GetReadySchedulableNodesOrDie(c)
 
 	ips := CollectAddresses(nodes, v1.NodeExternalIP)
-	if len(ips) == 0 {
-		ips = CollectAddresses(nodes, v1.NodeLegacyHostIP)
-	}
 	return ips, nil
 }
 
@@ -843,20 +840,34 @@ func (t *ServiceTestFixture) Cleanup() []error {
 	var errs []error
 	for rcName := range t.rcs {
 		By("stopping RC " + rcName + " in namespace " + t.Namespace)
-		// First, resize the RC to 0.
-		old, err := t.Client.Core().ReplicationControllers(t.Namespace).Get(rcName, metav1.GetOptions{})
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			// First, resize the RC to 0.
+			old, err := t.Client.Core().ReplicationControllers(t.Namespace).Get(rcName, metav1.GetOptions{})
+			if err != nil {
+				if errors.IsNotFound(err) {
+					return nil
+				}
+				return err
+			}
+			x := int32(0)
+			old.Spec.Replicas = &x
+			if _, err := t.Client.Core().ReplicationControllers(t.Namespace).Update(old); err != nil {
+				if errors.IsNotFound(err) {
+					return nil
+				}
+				return err
+			}
+			return nil
+		})
 		if err != nil {
-			errs = append(errs, err)
-		}
-		x := int32(0)
-		old.Spec.Replicas = &x
-		if _, err := t.Client.Core().ReplicationControllers(t.Namespace).Update(old); err != nil {
 			errs = append(errs, err)
 		}
 		// TODO(mikedanese): Wait.
 		// Then, delete the RC altogether.
 		if err := t.Client.Core().ReplicationControllers(t.Namespace).Delete(rcName, nil); err != nil {
-			errs = append(errs, err)
+			if !errors.IsNotFound(err) {
+				errs = append(errs, err)
+			}
 		}
 	}
 
@@ -864,7 +875,9 @@ func (t *ServiceTestFixture) Cleanup() []error {
 		By("deleting service " + serviceName + " in namespace " + t.Namespace)
 		err := t.Client.Core().Services(t.Namespace).Delete(serviceName, nil)
 		if err != nil {
-			errs = append(errs, err)
+			if !errors.IsNotFound(err) {
+				errs = append(errs, err)
+			}
 		}
 	}
 
@@ -1040,7 +1053,7 @@ func StartServeHostnameService(c clientset.Interface, internalClient internalcli
 	config := testutils.RCConfig{
 		Client:               c,
 		InternalClient:       internalClient,
-		Image:                "gcr.io/google_containers/serve_hostname:v1.4",
+		Image:                ServeHostnameImage,
 		Name:                 name,
 		Namespace:            ns,
 		PollInterval:         3 * time.Second,

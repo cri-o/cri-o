@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
 // SelectorOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
@@ -78,11 +79,11 @@ func NewCmdSelector(f cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "selector (-f FILENAME | TYPE NAME) EXPRESSIONS [--resource-version=version]",
-		Short:   "Set the selector on a resource",
+		Short:   i18n.T("Set the selector on a resource"),
 		Long:    fmt.Sprintf(selectorLong, validation.LabelValueMaxLength),
 		Example: selectorExample,
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(options.Complete(f, cmd, args, out))
+			cmdutil.CheckErr(options.Complete(f, cmd, args))
 			cmdutil.CheckErr(options.Validate())
 			cmdutil.CheckErr(options.RunSelector())
 		},
@@ -100,7 +101,7 @@ func NewCmdSelector(f cmdutil.Factory, out io.Writer) *cobra.Command {
 }
 
 // Complete assigns the SelectorOptions from args.
-func (o *SelectorOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *SelectorOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
 	o.local = cmdutil.GetFlagBool(cmd, "local")
 	o.all = cmdutil.GetFlagBool(cmd, "all")
 	o.record = cmdutil.GetRecordFlag(cmd)
@@ -111,7 +112,7 @@ func (o *SelectorOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args [
 		return err
 	}
 
-	o.changeCause = f.Command()
+	o.changeCause = f.Command(cmd, false)
 	mapper, _ := f.Object()
 	o.mapper = mapper
 	o.encoder = f.JSONEncoder()

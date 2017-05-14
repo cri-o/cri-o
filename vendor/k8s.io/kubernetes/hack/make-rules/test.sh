@@ -27,12 +27,23 @@ kube::golang::setup_env
 KUBE_CACHE_MUTATION_DETECTOR="${KUBE_CACHE_MUTATION_DETECTOR:-true}"
 export KUBE_CACHE_MUTATION_DETECTOR
 
+# Handle case where OS has sha#sum commands, instead of shasum.
+if which shasum >/dev/null 2>&1; then
+  SHA1SUM="shasum -a1"
+elif which sha1sum >/dev/null 2>&1; then
+  SHA1SUM="sha1sum"
+else
+  echo "Failed to find shasum or sha1sum utility." >&2
+  exit 1
+fi
+
 kube::test::find_dirs() {
   (
     cd ${KUBE_ROOT}
     find -L . -not \( \
         \( \
           -path './_artifacts/*' \
+          -o -path './bazel-*/*' \
           -o -path './_output/*' \
           -o -path './_gopath/*' \
           -o -path './cmd/kubeadm/test/*' \
@@ -43,7 +54,6 @@ kube::test::find_dirs() {
           -o -path './test/e2e/*' \
           -o -path './test/e2e_node/*' \
           -o -path './test/integration/*' \
-          -o -path './test/component/scheduler/perf/*' \
           -o -path './third_party/*' \
           -o -path './staging/*' \
           -o -path './vendor/*' \
@@ -67,6 +77,19 @@ kube::test::find_dirs() {
 
     # run tests for apimachinery
     find ./staging/src/k8s.io/apimachinery -name '*_test.go' \
+      -name '*_test.go' -print0 | xargs -0n1 dirname | sed 's|^\./staging/src/|./vendor/|' | LC_ALL=C sort -u
+
+    find ./staging/src/k8s.io/kube-aggregator -name '*_test.go' \
+      -name '*_test.go' -print0 | xargs -0n1 dirname | sed 's|^\./staging/src/|./vendor/|' | LC_ALL=C sort -u
+
+    find ./staging/src/k8s.io/kube-apiextensions-server -not \( \
+        \( \
+          -o -path './test/integration/*' \
+        \) -prune \
+      \) -name '*_test.go' \
+      -name '*_test.go' -print0 | xargs -0n1 dirname | sed 's|^\./staging/src/|./vendor/|' | LC_ALL=C sort -u
+
+    find ./staging/src/k8s.io/sample-apiserver -name '*_test.go' \
       -name '*_test.go' -print0 | xargs -0n1 dirname | sed 's|^\./staging/src/|./vendor/|' | LC_ALL=C sort -u
   )
 }
@@ -179,8 +202,8 @@ junitFilenamePrefix() {
   # exceeding 255 character filename limit. KUBE_TEST_API
   # barely fits there and in coverage mode test names are
   # appended to generated file names, easily exceeding
-  # 255 chars in length. So let's just sha1sum it.
-  local KUBE_TEST_API_HASH="$(echo -n "${KUBE_TEST_API//\//-}"|sha1sum|awk '{print $1}')"
+  # 255 chars in length. So let's just use a sha1 hash of it.
+  local KUBE_TEST_API_HASH="$(echo -n "${KUBE_TEST_API//\//-}"| ${SHA1SUM} |awk '{print $1}')"
   echo "${KUBE_JUNIT_REPORT_DIR}/junit_${KUBE_TEST_API_HASH}_$(kube::util::sortable_date)"
 }
 
@@ -230,7 +253,8 @@ runTests() {
   fi
 
   # Create coverage report directories.
-  cover_report_dir="/tmp/k8s_coverage/${KUBE_TEST_API}/$(kube::util::sortable_date)"
+  KUBE_TEST_API_HASH="$(echo -n "${KUBE_TEST_API//\//-}"| ${SHA1SUM} |awk '{print $1}')"
+  cover_report_dir="/tmp/k8s_coverage/${KUBE_TEST_API_HASH}/$(kube::util::sortable_date)"
   cover_profile="coverage.out"  # Name for each individual coverage profile
   kube::log::status "Saving coverage output in '${cover_report_dir}'"
   mkdir -p "${@+${@/#/${cover_report_dir}/}}"

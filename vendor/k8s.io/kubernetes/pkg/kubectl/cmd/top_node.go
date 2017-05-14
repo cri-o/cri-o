@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/metricsutil"
+	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
 // TopNodeOptions contains all the options for running the top-node cli command.
@@ -56,17 +57,17 @@ func (o *HeapsterTopOptions) Bind(flags *pflag.FlagSet) {
 }
 
 var (
-	topNodeLong = templates.LongDesc(`
+	topNodeLong = templates.LongDesc(i18n.T(`
 		Display Resource (CPU/Memory/Storage) usage of nodes.
 
-		The top-node command allows you to see the resource consumption of nodes.`)
+		The top-node command allows you to see the resource consumption of nodes.`))
 
-	topNodeExample = templates.Examples(`
+	topNodeExample = templates.Examples(i18n.T(`
 		  # Show metrics for all nodes
 		  kubectl top node
 
 		  # Show metrics for a given node
-		  kubectl top node NODE_NAME`)
+		  kubectl top node NODE_NAME`))
 )
 
 func NewCmdTopNode(f cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -74,7 +75,7 @@ func NewCmdTopNode(f cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "node [NAME | -l label]",
-		Short:   "Display Resource (CPU/Memory/Storage) usage of nodes",
+		Short:   i18n.T("Display Resource (CPU/Memory/Storage) usage of nodes"),
 		Long:    topNodeLong,
 		Example: topNodeExample,
 		Run: func(cmd *cobra.Command, args []string) {

@@ -28,6 +28,9 @@ skip=${SKIP-"\[Flaky\]|\[Slow\]|\[Serial\]"}
 parallelism=${PARALLELISM:-8}
 artifacts=${ARTIFACTS:-"/tmp/_artifacts/`date +%y%m%dT%H%M%S`"}
 remote=${REMOTE:-"false"}
+runtime=${RUNTIME:-"docker"}
+container_runtime_endpoint=${CONTAINER_RUNTIME_ENDPOINT:-""}
+image_service_endpoint=${IMAGE_SERVICE_ENDPOINT:-""}
 run_until_failure=${RUN_UNTIL_FAILURE:-"false"}
 test_args=${TEST_ARGS:-""}
 
@@ -68,7 +71,8 @@ if [ $remote = true ] ; then
     exit 0
   fi
   gubernator=${GUBERNATOR:-"false"}
-  if [[ $hosts == "" && $images == "" ]]; then
+  image_config_file=${IMAGE_CONFIG_FILE:-""}
+  if [[ $hosts == "" && $images == "" && $image_config_file == "" ]]; then
     image_project=${IMAGE_PROJECT:-"google-containers"}
     gci_image=$(gcloud compute images list --project $image_project \
     --no-standard-images --regexp="gci-dev.*" --format="table[no-heading](name)")
@@ -123,6 +127,7 @@ if [ $remote = true ] ; then
   echo "Hosts: $hosts"
   echo "Ginkgo Flags: $ginkgoflags"
   echo "Instance Metadata: $metadata"
+  echo "Image Config File: $image_config_file"
   # Invoke the runner
   go run test/e2e_node/runner/remote/run_remote.go  --logtostderr --vmodule=*=4 --ssh-env="gce" \
     --zone="$zone" --project="$project" --gubernator="$gubernator" \
@@ -130,6 +135,7 @@ if [ $remote = true ] ; then
     --results-dir="$artifacts" --ginkgo-flags="$ginkgoflags" \
     --image-project="$image_project" --instance-name-prefix="$instance_prefix" \
     --delete-instances="$delete_instances" --test_args="$test_args" --instance-metadata="$metadata" \
+    --image-config-file="$image_config_file" \
     2>&1 | tee -i "${artifacts}/build-log.txt"
   exit $?
 
@@ -144,10 +150,25 @@ else
   # test_args.
   test_args='--kubelet-flags="--network-plugin= --network-plugin-dir=" '$test_args
 
+  # Runtime flags
+  test_args='--kubelet-flags="--container-runtime='$runtime'" '$test_args
+  if [[ $runtime == "remote" ]] ; then
+      test_args='--kubelet-flags="--experimental-cri=true" '$test_args
+      if [[ ! -z $container_runtime_endpoint ]] ; then
+	      test_args='--kubelet-flags="--container-runtime-endpoint='$container_runtime_endpoint'" '$test_args
+      fi
+      if [[ ! -z $image_service_endpoint ]] ; then
+	      test_args='--kubelet-flags="--image-service-endpoint='$image_service_endpoint'" '$test_args
+      fi
+  fi
+
   # Test using the host the script was run on
   # Provided for backwards compatibility
   go run test/e2e_node/runner/local/run_local.go --ginkgo-flags="$ginkgoflags" \
-    --test-flags="--alsologtostderr --v 4 --report-dir=${artifacts} --node-name $(hostname) \
+    --test-flags="--container-runtime=${runtime} \
+    --container-runtime-endpoint=${container_runtime_endpoint} \
+    --image-service-endpoint=${image_service_endpoint} \
+    --alsologtostderr --v 4 --report-dir=${artifacts} --node-name $(hostname) \
     $test_args" --build-dependencies=true 2>&1 | tee -i "${artifacts}/build-log.txt"
   exit $?
 fi

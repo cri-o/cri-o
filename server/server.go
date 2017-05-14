@@ -22,7 +22,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 )
 

@@ -19,13 +19,13 @@ package kubefed
 import (
 	"io"
 
+	"k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/tools/clientcmd"
 	kubefedinit "k8s.io/kubernetes/federation/pkg/kubefed/init"
 	"k8s.io/kubernetes/federation/pkg/kubefed/util"
 	kubectl "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/flag"
 
 	"github.com/spf13/cobra"
 )
@@ -67,7 +67,7 @@ func NewKubeFedCommand(f cmdutil.Factory, in io.Reader, out, err io.Writer) *cob
 	templates.ActsAsRootCommand(cmds, filters, groups...)
 
 	cmds.AddCommand(kubectl.NewCmdVersion(f, out))
-	cmds.AddCommand(kubectl.NewCmdOptions(out))
+	cmds.AddCommand(kubectl.NewCmdOptions())
 
 	return cmds
 }

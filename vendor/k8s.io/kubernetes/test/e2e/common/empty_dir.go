@@ -21,17 +21,18 @@ import (
 	"path"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
-	testImageRootUid    = "gcr.io/google_containers/mounttest:0.7"
-	testImageNonRootUid = "gcr.io/google_containers/mounttest-user:0.3"
+	testImageRootUid    = "gcr.io/google_containers/mounttest:0.8"
+	testImageNonRootUid = "gcr.io/google_containers/mounttest-user:0.5"
 )
 
 var _ = framework.KubeDescribe("EmptyDir volumes", func() {
@@ -137,7 +138,7 @@ func doTestSetgidFSGroup(f *framework.Framework, image string, medium v1.Storage
 		fmt.Sprintf("--file_owner=%v", filePath),
 	}
 
-	fsGroup := int64(123)
+	fsGroup := types.UnixGroupID(123)
 	pod.Spec.SecurityContext.FSGroup = &fsGroup
 
 	msg := fmt.Sprintf("emptydir 0644 on %v", formatMedium(medium))
@@ -164,7 +165,7 @@ func doTestVolumeModeFSGroup(f *framework.Framework, image string, medium v1.Sto
 		fmt.Sprintf("--file_perm=%v", volumePath),
 	}
 
-	fsGroup := int64(1001)
+	fsGroup := types.UnixGroupID(1001)
 	pod.Spec.SecurityContext.FSGroup = &fsGroup
 
 	msg := fmt.Sprintf("emptydir volume type on %v", formatMedium(medium))
@@ -191,7 +192,7 @@ func doTest0644FSGroup(f *framework.Framework, image string, medium v1.StorageMe
 		fmt.Sprintf("--file_perm=%v", filePath),
 	}
 
-	fsGroup := int64(123)
+	fsGroup := types.UnixGroupID(123)
 	pod.Spec.SecurityContext.FSGroup = &fsGroup
 
 	msg := fmt.Sprintf("emptydir 0644 on %v", formatMedium(medium))

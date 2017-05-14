@@ -31,8 +31,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
+	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	"k8s.io/kubernetes/pkg/util/term"
 )
@@ -43,7 +44,7 @@ type fakeRemoteExecutor struct {
 	execErr error
 }
 
-func (f *fakeRemoteExecutor) Execute(method string, url *url.URL, config *restclient.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool, terminalSizeQueue term.TerminalSizeQueue) error {
+func (f *fakeRemoteExecutor) Execute(method string, url *url.URL, config *restclient.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool, terminalSizeQueue remotecommand.TerminalSizeQueue) error {
 	f.method = method
 	f.url = url
 	return f.execErr
@@ -129,6 +130,7 @@ func TestPodAndContainer(t *testing.T) {
 	for _, test := range tests {
 		f, tf, _, ns := cmdtesting.NewAPIFactory()
 		tf.Client = &fake.RESTClient{
+			APIRegistry:          api.Registry,
 			NegotiatedSerializer: ns,
 			Client:               fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) { return nil, nil }),
 		}
@@ -183,6 +185,7 @@ func TestExec(t *testing.T) {
 	for _, test := range tests {
 		f, tf, codec, ns := cmdtesting.NewAPIFactory()
 		tf.Client = &fake.RESTClient{
+			APIRegistry:          api.Registry,
 			NegotiatedSerializer: ns,
 			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {

@@ -17,12 +17,11 @@ limitations under the License.
 package fake
 
 import (
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	v1 "k8s.io/client-go/pkg/api/v1"
 	v1alpha1 "k8s.io/client-go/pkg/apis/rbac/v1alpha1"
 	testing "k8s.io/client-go/testing"
 )
@@ -33,6 +32,8 @@ type FakeClusterRoleBindings struct {
 }
 
 var clusterrolebindingsResource = schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1alpha1", Resource: "clusterrolebindings"}
+
+var clusterrolebindingsKind = schema.GroupVersionKind{Group: "rbac.authorization.k8s.io", Version: "v1alpha1", Kind: "ClusterRoleBinding"}
 
 func (c *FakeClusterRoleBindings) Create(clusterRoleBinding *v1alpha1.ClusterRoleBinding) (result *v1alpha1.ClusterRoleBinding, err error) {
 	obj, err := c.Fake.
@@ -58,14 +59,14 @@ func (c *FakeClusterRoleBindings) Delete(name string, options *v1.DeleteOptions)
 	return err
 }
 
-func (c *FakeClusterRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeClusterRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(clusterrolebindingsResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.ClusterRoleBindingList{})
 	return err
 }
 
-func (c *FakeClusterRoleBindings) Get(name string, options meta_v1.GetOptions) (result *v1alpha1.ClusterRoleBinding, err error) {
+func (c *FakeClusterRoleBindings) Get(name string, options v1.GetOptions) (result *v1alpha1.ClusterRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(clusterrolebindingsResource, name), &v1alpha1.ClusterRoleBinding{})
 	if obj == nil {
@@ -74,9 +75,9 @@ func (c *FakeClusterRoleBindings) Get(name string, options meta_v1.GetOptions) (
 	return obj.(*v1alpha1.ClusterRoleBinding), err
 }
 
-func (c *FakeClusterRoleBindings) List(opts meta_v1.ListOptions) (result *v1alpha1.ClusterRoleBindingList, err error) {
+func (c *FakeClusterRoleBindings) List(opts v1.ListOptions) (result *v1alpha1.ClusterRoleBindingList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterrolebindingsResource, opts), &v1alpha1.ClusterRoleBindingList{})
+		Invokes(testing.NewRootListAction(clusterrolebindingsResource, clusterrolebindingsKind, opts), &v1alpha1.ClusterRoleBindingList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func (c *FakeClusterRoleBindings) List(opts meta_v1.ListOptions) (result *v1alph
 }
 
 // Watch returns a watch.Interface that watches the requested clusterRoleBindings.
-func (c *FakeClusterRoleBindings) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *FakeClusterRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(clusterrolebindingsResource, opts))
 }

@@ -22,6 +22,8 @@ set -o nounset
 set -o pipefail
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+source "${KUBE_ROOT}/hack/lib/test.sh"
 source "${KUBE_ROOT}/hack/make-rules/test-cmd-util.sh"
 
 function run_federation_apiserver() {
@@ -56,16 +58,28 @@ function run_federation_controller_manager() {
   kubectl config set-context "context" --cluster="apiserver" --kubeconfig="${kubeconfig}"
   kubectl config use-context "context" --kubeconfig="${kubeconfig}"
 
+  cat << EOF > /tmp/dns-provider.conf
+[Global]
+etcd-endpoints = http://127.0.0.1:2379
+zones = f8n.io
+EOF
+
   # Start controller manager
   kube::log::status "Starting federation-controller-manager"
   "${KUBE_OUTPUT_HOSTBIN}/federation-controller-manager" \
     --port="${CTLRMGR_PORT}" \
     --kubeconfig="${kubeconfig}" \
     --kube-api-content-type="${KUBE_TEST_API_TYPE-}" \
+    --federation-name=federation \
+    --dns-provider=coredns \
+    --dns-provider-config=/tmp/dns-provider.conf \
+    --zone-name=f8n.io \
     --master="127.0.0.1:${API_PORT}" 1>&2 &
   CTLRMGR_PID=$!
 
   kube::util::wait_for_url "http://127.0.0.1:${CTLRMGR_PORT}/healthz" "controller-manager"
+
+  rm -rf /tmp/dns-provider.conf
 }
 
 kube::log::status "Running kubectl tests for federation-apiserver"
@@ -74,11 +88,13 @@ setup
 run_federation_apiserver
 run_federation_controller_manager
 # TODO: Fix for replicasets and deployments.
-SUPPORTED_RESOURCES=("configmaps" "daemonsets" "events" "ingress" "namespaces" "secrets" "services")
-output_message=$(runTests "SUPPORTED_RESOURCES=${SUPPORTED_RESOURCES[@]}")
-# Ensure that tests were run. We cannot check all resources here. We check a few
-# to catch bugs due to which no tests run.
-kube::test::if_has_string "${output_message}" "Testing kubectl(v1:namespaces)"
-kube::test::if_has_string "${output_message}" "Testing kubectl(v1:services)"
+SUPPORTED_RESOURCES=("configmaps" "daemonsets" "events" "ingress" "namespaces" "services" "secrets")
+# Set wait for deletion to true for federation apiserver since resources are
+# deleted asynchronously.
+# This is a temporary workaround until https://github.com/kubernetes/kubernetes/issues/42594 is fixed.
+WAIT_FOR_DELETION="true"
+# WARNING: Do not wrap this call in a subshell to capture output, e.g. output=$(runTests)
+# Doing so will suppress errexit behavior inside runTests
+runTests
 
 kube::log::status "TESTS PASSED"

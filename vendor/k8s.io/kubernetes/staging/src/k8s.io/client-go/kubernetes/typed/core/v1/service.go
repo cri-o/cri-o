@@ -20,7 +20,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
+	scheme "k8s.io/client-go/kubernetes/scheme"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	rest "k8s.io/client-go/rest"
 )
@@ -36,8 +36,8 @@ type ServiceInterface interface {
 	Create(*v1.Service) (*v1.Service, error)
 	Update(*v1.Service) (*v1.Service, error)
 	UpdateStatus(*v1.Service) (*v1.Service, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error
+	Delete(name string, options *meta_v1.DeleteOptions) error
+	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
 	Get(name string, options meta_v1.GetOptions) (*v1.Service, error)
 	List(opts meta_v1.ListOptions) (*v1.ServiceList, error)
 	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
@@ -101,7 +101,7 @@ func (c *services) UpdateStatus(service *v1.Service) (result *v1.Service, err er
 }
 
 // Delete takes name of the service and deletes it. Returns an error if one occurs.
-func (c *services) Delete(name string, options *v1.DeleteOptions) error {
+func (c *services) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("services").
@@ -112,11 +112,11 @@ func (c *services) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *services) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *services) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("services").
-		VersionedParams(&listOptions, api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
@@ -129,7 +129,7 @@ func (c *services) Get(name string, options meta_v1.GetOptions) (result *v1.Serv
 		Namespace(c.ns).
 		Resource("services").
 		Name(name).
-		VersionedParams(&options, api.ParameterCodec).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -141,7 +141,7 @@ func (c *services) List(opts meta_v1.ListOptions) (result *v1.ServiceList, err e
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("services").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -149,11 +149,11 @@ func (c *services) List(opts meta_v1.ListOptions) (result *v1.ServiceList, err e
 
 // Watch returns a watch.Interface that watches the requested services.
 func (c *services) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("services").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 

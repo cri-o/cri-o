@@ -22,7 +22,6 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api_v1 "k8s.io/client-go/pkg/api/v1"
 	v1 "k8s.io/client-go/pkg/apis/autoscaling/v1"
 	testing "k8s.io/client-go/testing"
 )
@@ -34,6 +33,8 @@ type FakeHorizontalPodAutoscalers struct {
 }
 
 var horizontalpodautoscalersResource = schema.GroupVersionResource{Group: "autoscaling", Version: "v1", Resource: "horizontalpodautoscalers"}
+
+var horizontalpodautoscalersKind = schema.GroupVersionKind{Group: "autoscaling", Version: "v1", Kind: "HorizontalPodAutoscaler"}
 
 func (c *FakeHorizontalPodAutoscalers) Create(horizontalPodAutoscaler *v1.HorizontalPodAutoscaler) (result *v1.HorizontalPodAutoscaler, err error) {
 	obj, err := c.Fake.
@@ -65,14 +66,14 @@ func (c *FakeHorizontalPodAutoscalers) UpdateStatus(horizontalPodAutoscaler *v1.
 	return obj.(*v1.HorizontalPodAutoscaler), err
 }
 
-func (c *FakeHorizontalPodAutoscalers) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *FakeHorizontalPodAutoscalers) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(horizontalpodautoscalersResource, c.ns, name), &v1.HorizontalPodAutoscaler{})
 
 	return err
 }
 
-func (c *FakeHorizontalPodAutoscalers) DeleteCollection(options *api_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeHorizontalPodAutoscalers) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(horizontalpodautoscalersResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.HorizontalPodAutoscalerList{})
@@ -91,7 +92,7 @@ func (c *FakeHorizontalPodAutoscalers) Get(name string, options meta_v1.GetOptio
 
 func (c *FakeHorizontalPodAutoscalers) List(opts meta_v1.ListOptions) (result *v1.HorizontalPodAutoscalerList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(horizontalpodautoscalersResource, c.ns, opts), &v1.HorizontalPodAutoscalerList{})
+		Invokes(testing.NewListAction(horizontalpodautoscalersResource, horizontalpodautoscalersKind, c.ns, opts), &v1.HorizontalPodAutoscalerList{})
 
 	if obj == nil {
 		return nil, err

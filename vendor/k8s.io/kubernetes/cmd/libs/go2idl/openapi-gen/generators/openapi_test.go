@@ -71,7 +71,8 @@ func TestSimple(t *testing.T) {
 package foo
 
 // Blah is a test.
-// +k8s:openapi=true
+// +k8s:openapi-gen=true
+// +k8s:openapi-gen=x-kubernetes-type-tag:type_test
 type Blah struct {
 	// A simple string
 	String string
@@ -107,12 +108,19 @@ type Blah struct {
 	Float32 float32
 	// a base64 encoded characters
 	ByteArray []byte
+	// a member with an extension
+	// +k8s:openapi-gen=x-kubernetes-member-tag:member_test
+	WithExtension string
+	// a member with struct tag as extension
+	// +patchStrategy=ps
+	// +patchMergeKey=pmk
+	WithStructTagExtension string `+"`"+`patchStrategy:"ps" patchMergeKey:"pmk"`+"`"+`
 }
 		`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(`"foo.Blah": {
+	assert.Equal(`"base/foo.Blah": {
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
 Description: "Blah is a test.",
@@ -222,8 +230,38 @@ Type: []string{"string"},
 Format: "byte",
 },
 },
+"WithExtension": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-member-tag": "member_test",
 },
-Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray"},
+},
+SchemaProps: spec.SchemaProps{
+Description: "a member with an extension",
+Type: []string{"string"},
+Format: "",
+},
+},
+"WithStructTagExtension": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-patch-merge-key": "pmk",
+"x-kubernetes-patch-strategy": "ps",
+},
+},
+SchemaProps: spec.SchemaProps{
+Description: "a member with struct tag as extension",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension"},
+},
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-type-tag": "type_test",
+},
 },
 },
 Dependencies: []string{
@@ -280,7 +318,7 @@ type Blah struct {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(`"foo.Blah": {
+	assert.Equal(`"base/foo.Blah": {
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
 Description: "PointerSample demonstrate pointer's properties",
@@ -295,7 +333,7 @@ Format: "",
 "StructPointer": {
 SchemaProps: spec.SchemaProps{
 Description: "A struct pointer",
-Ref: spec.MustCreateRef("#/definitions/foo.Blah"),
+Ref: ref("base/foo.Blah"),
 },
 },
 "SlicePointer": {
@@ -331,7 +369,7 @@ Required: []string{"StringPointer","StructPointer","SlicePointer","MapPointer"},
 },
 },
 Dependencies: []string{
-"foo.Blah",},
+"base/foo.Blah",},
 },
 `, buffer.String())
 }

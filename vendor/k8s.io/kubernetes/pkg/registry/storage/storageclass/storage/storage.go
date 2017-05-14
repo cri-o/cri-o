@@ -18,9 +18,12 @@ package storage
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api"
 	storageapi "k8s.io/kubernetes/pkg/apis/storage"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/storage/storageclass"
 )
 
@@ -31,13 +34,12 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against persistent volumes.
 func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
-		NewFunc:     func() runtime.Object { return &storageapi.StorageClass{} },
-		NewListFunc: func() runtime.Object { return &storageapi.StorageClassList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*storageapi.StorageClass).Name, nil
-		},
+		Copier:            api.Scheme,
+		NewFunc:           func() runtime.Object { return &storageapi.StorageClass{} },
+		NewListFunc:       func() runtime.Object { return &storageapi.StorageClassList{} },
 		PredicateFunc:     storageclass.MatchStorageClasses,
 		QualifiedResource: storageapi.Resource("storageclasses"),
+		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("storageclass"),
 
 		CreateStrategy:      storageclass.Strategy,
 		UpdateStrategy:      storageclass.Strategy,
@@ -50,4 +52,12 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	}
 
 	return &REST{store}
+}
+
+// Implement ShortNamesProvider
+var _ rest.ShortNamesProvider = &REST{}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"sc"}
 }

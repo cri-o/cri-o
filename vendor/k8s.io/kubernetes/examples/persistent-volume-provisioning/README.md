@@ -11,13 +11,15 @@ scripts that launch kube-controller-manager.
 
 The admin must define `StorageClass` objects that describe named "classes" of storage offered in a cluster. Different classes might map to arbitrary levels or policies determined by the admin. When configuring a `StorageClass` object for persistent volume provisioning, the admin will need to describe the type of provisioner to use and the parameters that will be used by the provisioner when it provisions a `PersistentVolume` belonging to the class.
 
-The name of a StorageClass object is significant, and is how users can request a particular class, by specifying the name in their `PersistentVolumeClaim`. The `provisioner` field must be specified as it determines what volume plugin is used for provisioning PVs. 2 cloud providers will be provided in the beta version of this feature: EBS and GCE. The `parameters` field contains the parameters that describe volumes belonging to the storage class. Different parameters may be accepted depending on the `provisioner`. For example, the value `io1`, for the parameter `type`, and the parameter `iopsPerGB` are specific to EBS . When a parameter is omitted, some default is used.
+The name of a StorageClass object is significant, and is how users can request a particular class, by specifying the name in their `PersistentVolumeClaim`. The `provisioner` field must be specified as it determines what volume plugin is used for provisioning PVs. The `parameters` field contains the parameters that describe volumes belonging to the storage class. Different parameters may be accepted depending on the `provisioner`. For example, the value `io1`, for the parameter `type`, and the parameter `iopsPerGB` are specific to EBS . When a parameter is omitted, some default is used.
+
+See [Kubernetes StorageClass documentation](https://kubernetes.io/docs/user-guide/persistent-volumes/#storageclasses) for complete reference of all supported parameters.
 
 #### AWS
 
 ```yaml
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: slow
 provisioner: kubernetes.io/aws-ebs
@@ -37,7 +39,7 @@ parameters:
 
 ```yaml
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: slow
 provisioner: kubernetes.io/gce-pd
@@ -53,21 +55,47 @@ parameters:
 
 ```yaml
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: slow
 provisioner: kubernetes.io/vsphere-volume
 parameters:
   diskformat: eagerzeroedthick
+  fstype:     ext3
 ```
 
 * `diskformat`: `thin`, `zeroedthick` and `eagerzeroedthick`. See vSphere docs for details. Default: `"thin"`.
+* `fstype`: fstype that are supported by kubernetes. Default: `"ext4"`.
 
+#### Portworx Volume
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: portworx-io-priority-high
+provisioner: kubernetes.io/portworx-volume
+parameters:
+  repl: "1"
+  snap_interval:   "70"
+  io_priority:  "high"
+
+```
+
+*  `fs`: filesystem to be laid out: [none/xfs/ext4] (default: `ext4`)
+*  `block_size`: block size in Kbytes (default: `32`)
+*  `repl`: replication factor [1..3] (default: `1`)
+*  `io_priority`: IO Priority: [high/medium/low] (default: `low`)
+*  `snap_interval`: snapshot interval in minutes, 0 disables snaps (default: `0`)
+*  `aggregation_level`: specifies the number of chunks the volume would be distributed into, 0 indicates a non-aggregated volume (default: `0`)
+*  `ephemeral`: ephemeral storage [true/false] (default `false`)
+
+For a complete example refer ([Portworx Volume docs](../volumes/portworx/README.md))
 
 #### GLUSTERFS
 
 ```yaml
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: slow
@@ -83,22 +111,30 @@ parameters:
   volumetype: "replicate:3"
 ```
 
+Example storageclass can be found in [glusterfs-storageclass.yaml](glusterfs/glusterfs-storageclass.yaml).
+
 * `resturl` : Gluster REST service/Heketi service url which provision gluster volumes on demand. The general format should be `IPaddress:Port` and this is a mandatory parameter for GlusterFS dynamic provisioner. If Heketi service is exposed as a routable service in openshift/kubernetes setup, this can have a format similar to
 `http://heketi-storage-project.cloudapps.mystorage.com` where the fqdn is a resolvable heketi service url.
+
 * `restauthenabled` : Gluster REST service authentication boolean that enables authentication to the REST server. If this value is 'true', `restuser` and `restuserkey` or `secretNamespace` + `secretName` have to be filled. This option is deprecated, authentication is enabled when any of `restuser`, `restuserkey`, `secretName` or `secretNamespace` is specified.
+
 * `restuser` : Gluster REST service/Heketi user who has access to create volumes in the Gluster Trusted Pool.
+
 * `restuserkey` : Gluster REST service/Heketi user's password which will be used for authentication to the REST server. This parameter is deprecated in favor of `secretNamespace` + `secretName`.
-* `secretNamespace` + `secretName` : Identification of Secret instance that containes user password to use when talking to Gluster REST service. These parameters are optional, empty password will be used when both `secretNamespace` and `secretName` are omitted. The provided secret must have type "kubernetes.io/glusterfs".
+
+* `secretNamespace` + `secretName` : Identification of Secret instance that contains user password to use when talking to Gluster REST service. These parameters are optional, empty password will be used when both `secretNamespace` and `secretName` are omitted. The provided secret must have type "kubernetes.io/glusterfs".
 When both `restuserkey` and `secretNamespace` + `secretName` is specified, the secret will be used.
+
 * `clusterid`: `630372ccdc720a92c681fb928f27b53f` is the ID of the cluster which will be used by Heketi when provisioning the volume. It can also be a list of clusterids, for ex:
 "8452344e2becec931ece4e33c4674e4e,42982310de6c63381718ccfa6d8cf397". This is an optional parameter.
 
-Example of a secret can be found in [glusterfs-provisioning-secret.yaml](glusterfs-provisioning-secret.yaml).
+Example of a secret can be found in [glusterfs-secret.yaml](glusterfs/glusterfs-secret.yaml).
 
 * `gidMin` + `gidMax` : The minimum and maximum value of GID range for the storage class. A unique value (GID) in this range ( gidMin-gidMax ) will be used for dynamically provisioned volumes. These are optional values. If not specified, the volume will be provisioned with a value between 2000-2147483647 which are defaults for gidMin and gidMax respectively.
 
-* `volumetype` : The volume type and it's parameters can be configured with this optional value. If the volume type is not mentioned, it's up to the provisioner to decide the volume type.
+* `volumetype` : The volume type and its parameters can be configured with this optional value. If the volume type is not mentioned, it's up to the provisioner to decide the volume type.
 For example:
+
   'Replica volume':
     `volumetype: replicate:3` where '3' is replica count.
   'Disperse/EC volume':
@@ -106,7 +142,9 @@ For example:
   'Distribute volume':
     `volumetype: none`
 
-For available volume types and it's administration options refer: ([Administration Guide](https://access.redhat.com/documentation/en-US/Red_Hat_Storage/3.1/html/Administration_Guide/part-Overview.html))
+For available volume types and its administration options refer: ([Administration Guide](https://access.redhat.com/documentation/en-US/Red_Hat_Storage/3.1/html/Administration_Guide/part-Overview.html))
+
+Reference : ([How to configure Gluster on Kubernetes](https://github.com/gluster/gluster-kubernetes/blob/master/docs/setup-guide.md))
 
 Reference : ([How to configure Heketi](https://github.com/heketi/heketi/wiki/Setting-up-the-topology))
 
@@ -117,7 +155,7 @@ When the persistent volumes are dynamically provisioned, the Gluster plugin auto
 
 ```yaml
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: gold
 provisioner: kubernetes.io/cinder
@@ -132,12 +170,12 @@ parameters:
 #### Ceph RBD
 
 ```yaml
-  apiVersion: storage.k8s.io/v1beta1
+  apiVersion: storage.k8s.io/v1
   kind: StorageClass
   metadata:
     name: fast
-    provisioner: kubernetes.io/rbd
-    parameters:
+  provisioner: kubernetes.io/rbd
+  parameters:
     monitors: 10.16.153.105:6789
     adminId: kube
     adminSecretName: ceph-secret
@@ -160,7 +198,7 @@ parameters:
 <!-- BEGIN MUNGE: EXAMPLE quobyte/quobyte-storage-class.yaml -->
 
 ```yaml
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
    name: slow
@@ -180,13 +218,13 @@ parameters:
 <!-- END MUNGE: EXAMPLE quobyte/quobyte-storage-class.yaml -->
 
 * **quobyteAPIServer** API Server of Quobyte in the format http(s)://api-server:7860
-* **registry** Quobyte registry to use to mount the volume. You can specifiy the registry as <host>:<port> pair or if you want to specify multiple registries you just have to put a comma between them e.q. <host1>:<port>,<host2>:<port>,<host3>:<port>. The host can be an IP address or if you have a working DNS you can also provide the DNS names.
-* **adminSecretName** secret that holds information about the Quobyte user and the password to authenticate agains the API server. The provided secret must have type "kubernetes.io/quobyte".
+* **registry** Quobyte registry to use to mount the volume. You can specify the registry as <host>:<port> pair or if you want to specify multiple registries you just have to put a comma between them e.q. <host1>:<port>,<host2>:<port>,<host3>:<port>. The host can be an IP address or if you have a working DNS you can also provide the DNS names.
+* **adminSecretName** secret that holds information about the Quobyte user and the password to authenticate against the API server. The provided secret must have type "kubernetes.io/quobyte".
 * **adminSecretNamespace** The namespace for **adminSecretName**. Default is `default`.
 * **user** maps all access to this user. Default is `root`.
 * **group** maps all access to this group. Default is `nfsnobody`.
 * **quobyteConfig** use the specified configuration to create the volume. You can create a new configuration or modify an existing one with the Web console or the quobyte CLI. Default is `BASE`
-* **quobyteTenant** use the specified tenant ID to create/delete the volume. This Quobyte tenant has to be already present in Quobyte. Default is `DEFAULT`
+* **quobyteTenant** use the specified tenant ID to create/delete the volume. This Quobyte tenant has to be already present in Quobyte. For Quobyte < 1.4 use an empty string `""` as `DEFAULT` tenant. Default is `DEFAULT`
 
 First create Quobyte admin's Secret in the system namespace. Here the Secret is created in `kube-system`:
 
@@ -242,11 +280,11 @@ Create a Pod to use the PVC:
 $ kubectl create -f examples/persistent-volume-provisioning/quobyte/example-pod.yaml
 ```
 
-#### Azure Disk
+#### <a name="azure-disk">Azure Disk</a>
 
 ```yaml
 kind: StorageClass
-apiVersion: storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1
 metadata:
   name: slow
 provisioner: kubernetes.io/azure-disk
@@ -258,23 +296,35 @@ parameters:
 
 * `skuName`: Azure storage account Sku tier. Default is empty.
 * `location`: Azure storage account location. Default is empty.
-* `storageAccount`: Azure storage account name. If storage account is not provided, all storage accounts associated with the resource group are searched to find one that matches `skuName` and `location`. If storage account is provided, `skuName` and `location` are ignored.
+* `storageAccount`: Azure storage account name. If storage account is not provided, all storage accounts associated with the resource group are searched to find one that matches `skuName` and `location`. If storage account is provided, it must reside in the same resource group as the cluster, and `skuName` and `location` are ignored.
+
+#### Azure File
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: slow
+provisioner: kubernetes.io/azure-file
+parameters:
+  skuName: Standard_LRS
+  location: eastus
+  storageAccount: azure_storage_account_name
+```
+
+The parameters are the same as those used by [Azure Disk](#azure-disk)
 
 ### User provisioning requests
 
-Users request dynamically provisioned storage by including a storage class in their `PersistentVolumeClaim`.
-The annotation `volume.beta.kubernetes.io/storage-class` is used to access this feature. It is required that this value matches the name of a `StorageClass` configured by the administrator.
-In the future, the storage class may remain in an annotation or become a field on the claim itself.
+Users request dynamically provisioned storage by including a storage class in their `PersistentVolumeClaim` using `spec.storageClassName` attribute.
+It is required that this value matches the name of a `StorageClass` configured by the administrator.
 
 ```
 {
   "kind": "PersistentVolumeClaim",
   "apiVersion": "v1",
   "metadata": {
-    "name": "claim1",
-    "annotations": {
-        "volume.beta.kubernetes.io/storage-class": "slow"
-    }
+    "name": "claim1"
   },
   "spec": {
     "accessModes": [
@@ -284,7 +334,8 @@ In the future, the storage class may remain in an annotation or become a field o
       "requests": {
         "storage": "3Gi"
       }
-    }
+    },
+    "storageClassName": "slow"
   }
 }
 ```

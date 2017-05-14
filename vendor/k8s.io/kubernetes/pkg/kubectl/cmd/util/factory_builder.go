@@ -19,14 +19,18 @@ limitations under the License.
 package util
 
 import (
+	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubectl/plugins"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/printers"
 )
 
 type ring2Factory struct {
@@ -43,8 +47,72 @@ func NewBuilderFactory(clientAccessFactory ClientAccessFactory, objectMappingFac
 	return f
 }
 
+func (f *ring2Factory) PrinterForCommand(cmd *cobra.Command) (printers.ResourcePrinter, bool, error) {
+	mapper, typer, err := f.objectMappingFactory.UnstructuredObject()
+	if err != nil {
+		return nil, false, err
+	}
+	// TODO: used by the custom column implementation and the name implementation, break this dependency
+	decoders := []runtime.Decoder{f.clientAccessFactory.Decoder(true), unstructured.UnstructuredJSONScheme}
+	return PrinterForCommand(cmd, mapper, typer, decoders)
+}
+
+func (f *ring2Factory) PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMapping, withNamespace bool) (printers.ResourcePrinter, error) {
+	printer, generic, err := f.PrinterForCommand(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make sure we output versioned data for generic printers
+	if generic {
+		if mapping == nil {
+			return nil, fmt.Errorf("no serialization format found")
+		}
+		version := mapping.GroupVersionKind.GroupVersion()
+		if version.Empty() {
+			return nil, fmt.Errorf("no serialization format found")
+		}
+
+		printer = printers.NewVersionedPrinter(printer, mapping.ObjectConvertor, version, mapping.GroupVersionKind.GroupVersion())
+	} else {
+		// Some callers do not have "label-columns" so we can't use the GetFlagStringSlice() helper
+		columnLabel, err := cmd.Flags().GetStringSlice("label-columns")
+		if err != nil {
+			columnLabel = []string{}
+		}
+		printer, err = f.clientAccessFactory.Printer(mapping, printers.PrintOptions{
+			NoHeaders:          GetFlagBool(cmd, "no-headers"),
+			WithNamespace:      withNamespace,
+			Wide:               GetWideFlag(cmd),
+			ShowAll:            GetFlagBool(cmd, "show-all"),
+			ShowLabels:         GetFlagBool(cmd, "show-labels"),
+			AbsoluteTimestamps: isWatch(cmd),
+			ColumnLabels:       columnLabel,
+		})
+		if err != nil {
+			return nil, err
+		}
+		printer = maybeWrapSortingPrinter(cmd, printer)
+	}
+
+	return printer, nil
+}
+
 func (f *ring2Factory) PrintObject(cmd *cobra.Command, mapper meta.RESTMapper, obj runtime.Object, out io.Writer) error {
-	gvks, _, err := api.Scheme.ObjectKinds(obj)
+	// try to get a typed object
+	_, typer := f.objectMappingFactory.Object()
+	gvks, _, err := typer.ObjectKinds(obj)
+
+	// fall back to an unstructured object if we get something unregistered
+	if runtime.IsNotRegisteredError(err) {
+		_, typer, unstructuredErr := f.objectMappingFactory.UnstructuredObject()
+		if unstructuredErr != nil {
+			// if we can't get an unstructured typer, return the original error
+			return err
+		}
+		gvks, _, err = typer.ObjectKinds(obj)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -54,7 +122,7 @@ func (f *ring2Factory) PrintObject(cmd *cobra.Command, mapper meta.RESTMapper, o
 		return err
 	}
 
-	printer, err := f.objectMappingFactory.PrinterForMapping(cmd, mapping, false)
+	printer, err := f.PrinterForMapping(cmd, mapping, false)
 	if err != nil {
 		return err
 	}
@@ -63,6 +131,26 @@ func (f *ring2Factory) PrintObject(cmd *cobra.Command, mapper meta.RESTMapper, o
 
 func (f *ring2Factory) NewBuilder() *resource.Builder {
 	mapper, typer := f.objectMappingFactory.Object()
+	categoryExpander := f.objectMappingFactory.CategoryExpander()
 
-	return resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.objectMappingFactory.ClientForMapping), f.clientAccessFactory.Decoder(true))
+	return resource.NewBuilder(mapper, categoryExpander, typer, resource.ClientMapperFunc(f.objectMappingFactory.ClientForMapping), f.clientAccessFactory.Decoder(true))
+}
+
+// PluginLoader loads plugins from a path set by the KUBECTL_PLUGINS_PATH env var.
+// If this env var is not set, it defaults to
+//   "~/.kube/plugins", plus
+//  "./kubectl/plugins" directory under the "data dir" directory specified by the XDG
+// system directory structure spec for the given platform.
+func (f *ring2Factory) PluginLoader() plugins.PluginLoader {
+	if len(os.Getenv("KUBECTL_PLUGINS_PATH")) > 0 {
+		return plugins.PluginsEnvVarPluginLoader()
+	}
+	return plugins.TolerantMultiPluginLoader{
+		plugins.XDGDataPluginLoader(),
+		plugins.UserDirPluginLoader(),
+	}
+}
+
+func (f *ring2Factory) PluginRunner() plugins.PluginRunner {
+	return &plugins.ExecPluginRunner{}
 }

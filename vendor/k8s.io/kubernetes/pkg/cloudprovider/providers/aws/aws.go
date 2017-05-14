@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/gcfg.v1"
+	gcfg "gopkg.in/gcfg.v1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -40,6 +40,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -53,10 +54,6 @@ import (
 
 // ProviderName is the name of this cloud provider.
 const ProviderName = "aws"
-
-// TagNameKubernetesCluster is the tag name we use to differentiate multiple
-// logically independent clusters running in the same AZ
-const TagNameKubernetesCluster = "KubernetesCluster"
 
 // TagNameKubernetesService is the tag name we use to differentiate multiple
 // services. Used currently for ELBs only.
@@ -72,8 +69,6 @@ const TagNameSubnetPublicELB = "kubernetes.io/role/elb"
 
 // ServiceAnnotationLoadBalancerInternal is the annotation used on the service
 // to indicate that we want an internal ELB.
-// Currently we accept only the value "0.0.0.0/0" - other values are an error.
-// This lets us define more advanced semantics in future.
 const ServiceAnnotationLoadBalancerInternal = "service.beta.kubernetes.io/aws-load-balancer-internal"
 
 // ServiceAnnotationLoadBalancerProxyProtocol is the annotation used on the
@@ -156,6 +151,10 @@ const (
 	createTagFactor       = 2.0
 	createTagSteps        = 9
 )
+
+// awsTagNameMasterRoles is a set of well-known AWS tag names that indicate the instance is a master
+// The major consequence is that it is then not considered for AWS zone discovery for dynamic volume creation.
+var awsTagNameMasterRoles = sets.NewString("kubernetes.io/role/master", "k8s.io/role/master")
 
 // Maps from backend protocol to ELB protocol
 var backendProtocolMapping = map[string]string{
@@ -330,8 +329,8 @@ type Volumes interface {
 	// Check if the volume is already attached to the node with the specified NodeName
 	DiskIsAttached(diskName KubernetesVolumeID, nodeName types.NodeName) (bool, error)
 
-	// Check if a list of volumes are attached to the node with the specified NodeName
-	DisksAreAttached(diskNames []KubernetesVolumeID, nodeName types.NodeName) (map[KubernetesVolumeID]bool, error)
+	// Check if disks specified in argument map are still attached to their respective nodes.
+	DisksAreAttached(map[types.NodeName][]KubernetesVolumeID) (map[types.NodeName]map[KubernetesVolumeID]bool, error)
 }
 
 // InstanceGroups is an interface for managing cloud-managed instance groups / autoscaling instance groups
@@ -359,7 +358,7 @@ type Cloud struct {
 	region   string
 	vpcID    string
 
-	filterTags map[string]string
+	tagging awsTagging
 
 	// The AWS instance that we are running on
 	// Note that we cache some state in awsInstance (mountpoints), so we must preserve the instance
@@ -388,7 +387,19 @@ type CloudConfig struct {
 		// Maybe if we're not running on AWS, e.g. bootstrap; for now it is not very useful
 		Zone string
 
+		// The AWS VPC flag enables the possibility to run the master components
+		// on a different aws account, on a different cloud provider or on-premise.
+		// If the flag is set also the KubernetesClusterTag must be provided
+		VPC string
+		// SubnetID enables using a specific subnet to use for ELB's
+		SubnetID string
+		// RouteTableID enables using a specific RouteTable
+		RouteTableID string
+
+		// KubernetesClusterTag is the legacy cluster id we'll use to identify our cluster resources
 		KubernetesClusterTag string
+		// KubernetesClusterTag is the cluster id we'll use to identify our cluster resources
+		KubernetesClusterID string
 
 		//The aws provider creates an inbound rule per load balancer on the node security
 		//group. However, this can run into the AWS security group rule limit of 50 if
@@ -523,7 +534,7 @@ func stringPointerArray(orig []string) []*string {
 }
 
 // isNilOrEmpty returns true if the value is nil or ""
-// Deprecated: prefer aws.StringValue(x) == "" (and elimination of this check altogether whrere possible)
+// Deprecated: prefer aws.StringValue(x) == "" (and elimination of this check altogether where possible)
 func isNilOrEmpty(s *string) bool {
 	return s == nil || *s == ""
 }
@@ -534,12 +545,12 @@ func orEmpty(s *string) string {
 	return aws.StringValue(s)
 }
 
-func newEc2Filter(name string, value string) *ec2.Filter {
+func newEc2Filter(name string, values ...string) *ec2.Filter {
 	filter := &ec2.Filter{
 		Name: aws.String(name),
-		Values: []*string{
-			aws.String(value),
-		},
+	}
+	for _, value := range values {
+		filter.Values = append(filter.Values, aws.String(value))
 	}
 	return filter
 }
@@ -559,10 +570,11 @@ func (s *awsSdkEC2) DescribeInstances(request *ec2.DescribeInstancesInput) ([]*e
 	// Instances are paged
 	results := []*ec2.Instance{}
 	var nextToken *string
-
+	requestTime := time.Now()
 	for {
 		response, err := s.ec2.DescribeInstances(request)
 		if err != nil {
+			recordAwsMetric("describe_instance", 0, err)
 			return nil, fmt.Errorf("error listing AWS instances: %v", err)
 		}
 
@@ -576,7 +588,8 @@ func (s *awsSdkEC2) DescribeInstances(request *ec2.DescribeInstancesInput) ([]*e
 		}
 		request.NextToken = nextToken
 	}
-
+	timeTaken := time.Since(requestTime).Seconds()
+	recordAwsMetric("describe_instance", timeTaken, nil)
 	return results, nil
 }
 
@@ -591,22 +604,31 @@ func (s *awsSdkEC2) DescribeSecurityGroups(request *ec2.DescribeSecurityGroupsIn
 }
 
 func (s *awsSdkEC2) AttachVolume(request *ec2.AttachVolumeInput) (*ec2.VolumeAttachment, error) {
-	return s.ec2.AttachVolume(request)
+	requestTime := time.Now()
+	resp, err := s.ec2.AttachVolume(request)
+	timeTaken := time.Since(requestTime).Seconds()
+	recordAwsMetric("attach_volume", timeTaken, err)
+	return resp, err
 }
 
 func (s *awsSdkEC2) DetachVolume(request *ec2.DetachVolumeInput) (*ec2.VolumeAttachment, error) {
-	return s.ec2.DetachVolume(request)
+	requestTime := time.Now()
+	resp, err := s.ec2.DetachVolume(request)
+	timeTaken := time.Since(requestTime).Seconds()
+	recordAwsMetric("detach_volume", timeTaken, err)
+	return resp, err
 }
 
 func (s *awsSdkEC2) DescribeVolumes(request *ec2.DescribeVolumesInput) ([]*ec2.Volume, error) {
 	// Volumes are paged
 	results := []*ec2.Volume{}
 	var nextToken *string
-
+	requestTime := time.Now()
 	for {
 		response, err := s.ec2.DescribeVolumes(request)
 
 		if err != nil {
+			recordAwsMetric("describe_volume", 0, err)
 			return nil, fmt.Errorf("error listing AWS volumes: %v", err)
 		}
 
@@ -618,16 +640,25 @@ func (s *awsSdkEC2) DescribeVolumes(request *ec2.DescribeVolumesInput) ([]*ec2.V
 		}
 		request.NextToken = nextToken
 	}
-
+	timeTaken := time.Since(requestTime).Seconds()
+	recordAwsMetric("describe_volume", timeTaken, nil)
 	return results, nil
 }
 
-func (s *awsSdkEC2) CreateVolume(request *ec2.CreateVolumeInput) (resp *ec2.Volume, err error) {
-	return s.ec2.CreateVolume(request)
+func (s *awsSdkEC2) CreateVolume(request *ec2.CreateVolumeInput) (*ec2.Volume, error) {
+	requestTime := time.Now()
+	resp, err := s.ec2.CreateVolume(request)
+	timeTaken := time.Since(requestTime).Seconds()
+	recordAwsMetric("create_volume", timeTaken, err)
+	return resp, err
 }
 
 func (s *awsSdkEC2) DeleteVolume(request *ec2.DeleteVolumeInput) (*ec2.DeleteVolumeOutput, error) {
-	return s.ec2.DeleteVolume(request)
+	requestTime := time.Now()
+	resp, err := s.ec2.DeleteVolume(request)
+	timeTaken := time.Since(requestTime).Seconds()
+	recordAwsMetric("delete_volume", timeTaken, err)
+	return resp, err
 }
 
 func (s *awsSdkEC2) DescribeSubnets(request *ec2.DescribeSubnetsInput) ([]*ec2.Subnet, error) {
@@ -656,7 +687,11 @@ func (s *awsSdkEC2) RevokeSecurityGroupIngress(request *ec2.RevokeSecurityGroupI
 }
 
 func (s *awsSdkEC2) CreateTags(request *ec2.CreateTagsInput) (*ec2.CreateTagsOutput, error) {
-	return s.ec2.CreateTags(request)
+	requestTime := time.Now()
+	resp, err := s.ec2.CreateTags(request)
+	timeTaken := time.Since(requestTime).Seconds()
+	recordAwsMetric("create_tags", timeTaken, err)
+	return resp, err
 }
 
 func (s *awsSdkEC2) DescribeRouteTables(request *ec2.DescribeRouteTablesInput) ([]*ec2.RouteTable, error) {
@@ -681,6 +716,7 @@ func (s *awsSdkEC2) ModifyInstanceAttribute(request *ec2.ModifyInstanceAttribute
 }
 
 func init() {
+	registerMetrics()
 	cloudprovider.RegisterCloudProvider(ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
 		creds := credentials.NewChainCredentials(
 			[]credentials.Provider{
@@ -809,39 +845,39 @@ func newAWSCloud(config io.Reader, awsServices Services) (*Cloud, error) {
 		deviceAllocators: make(map[types.NodeName]DeviceAllocator),
 	}
 
-	selfAWSInstance, err := awsCloud.buildSelfAWSInstance()
-	if err != nil {
-		return nil, err
-	}
-
-	awsCloud.selfAWSInstance = selfAWSInstance
-	awsCloud.vpcID = selfAWSInstance.vpcID
-
-	filterTags := map[string]string{}
-	if cfg.Global.KubernetesClusterTag != "" {
-		filterTags[TagNameKubernetesCluster] = cfg.Global.KubernetesClusterTag
+	if cfg.Global.VPC != "" && cfg.Global.SubnetID != "" && (cfg.Global.KubernetesClusterTag != "" || cfg.Global.KubernetesClusterID != "") {
+		// When the master is running on a different AWS account, cloud provider or on-premise
+		// build up a dummy instance and use the VPC from the nodes account
+		glog.Info("Master is configured to run on a different AWS account, different cloud provider or on-premise")
+		awsCloud.selfAWSInstance = &awsInstance{
+			nodeName: "master-dummy",
+			vpcID:    cfg.Global.VPC,
+			subnetID: cfg.Global.SubnetID,
+		}
+		awsCloud.vpcID = cfg.Global.VPC
 	} else {
-		// TODO: Clean up double-API query
-		info, err := selfAWSInstance.describeInstance()
+		selfAWSInstance, err := awsCloud.buildSelfAWSInstance()
 		if err != nil {
 			return nil, err
 		}
-		for _, tag := range info.Tags {
-			if orEmpty(tag.Key) == TagNameKubernetesCluster {
-				filterTags[TagNameKubernetesCluster] = orEmpty(tag.Value)
-			}
+		awsCloud.selfAWSInstance = selfAWSInstance
+		awsCloud.vpcID = selfAWSInstance.vpcID
+
+	}
+
+	if cfg.Global.KubernetesClusterTag != "" || cfg.Global.KubernetesClusterID != "" {
+		if err := awsCloud.tagging.init(cfg.Global.KubernetesClusterTag, cfg.Global.KubernetesClusterID); err != nil {
+			return nil, err
 		}
-	}
-
-	if filterTags[TagNameKubernetesCluster] == "" {
-		glog.Errorf("Tag %q not found; Kubernetes may behave unexpectedly.", TagNameKubernetesCluster)
-	}
-
-	awsCloud.filterTags = filterTags
-	if len(filterTags) > 0 {
-		glog.Infof("AWS cloud filtering on tags: %v", filterTags)
 	} else {
-		glog.Infof("AWS cloud - no tag filtering")
+		// TODO: Clean up double-API query
+		info, err := awsCloud.selfAWSInstance.describeInstance()
+		if err != nil {
+			return nil, err
+		}
+		if err := awsCloud.tagging.initFromTags(info.Tags); err != nil {
+			return nil, err
+		}
 	}
 
 	// Register regions, in particular for ECR credentials
@@ -897,16 +933,32 @@ func (c *Cloud) NodeAddresses(name types.NodeName) ([]v1.NodeAddress, error) {
 			return nil, err
 		}
 		addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: internalIP})
-		// Legacy compatibility: the private ip was the legacy host ip
-		addresses = append(addresses, v1.NodeAddress{Type: v1.NodeLegacyHostIP, Address: internalIP})
 
 		externalIP, err := c.metadata.GetMetadata("public-ipv4")
 		if err != nil {
 			//TODO: It would be nice to be able to determine the reason for the failure,
 			// but the AWS client masks all failures with the same error description.
-			glog.V(2).Info("Could not determine public IP from AWS metadata.")
+			glog.V(4).Info("Could not determine public IP from AWS metadata.")
 		} else {
 			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: externalIP})
+		}
+
+		internalDNS, err := c.metadata.GetMetadata("local-hostname")
+		if err != nil || len(internalDNS) == 0 {
+			//TODO: It would be nice to be able to determine the reason for the failure,
+			// but the AWS client masks all failures with the same error description.
+			glog.V(2).Info("Could not determine private DNS from AWS metadata.")
+		} else {
+			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalDNS, Address: internalDNS})
+		}
+
+		externalDNS, err := c.metadata.GetMetadata("public-hostname")
+		if err != nil || len(externalDNS) == 0 {
+			//TODO: It would be nice to be able to determine the reason for the failure,
+			// but the AWS client masks all failures with the same error description.
+			glog.V(2).Info("Could not determine public DNS from AWS metadata.")
+		} else {
+			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalDNS, Address: externalDNS})
 		}
 
 		return addresses, nil
@@ -925,9 +977,6 @@ func (c *Cloud) NodeAddresses(name types.NodeName) ([]v1.NodeAddress, error) {
 			return nil, fmt.Errorf("EC2 instance had invalid private address: %s (%s)", orEmpty(instance.InstanceId), ipAddress)
 		}
 		addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: ip.String()})
-
-		// Legacy compatibility: the private ip was the legacy host ip
-		addresses = append(addresses, v1.NodeAddress{Type: v1.NodeLegacyHostIP, Address: ip.String()})
 	}
 
 	// TODO: Other IP addresses (multiple ips)?
@@ -940,7 +989,22 @@ func (c *Cloud) NodeAddresses(name types.NodeName) ([]v1.NodeAddress, error) {
 		addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: ip.String()})
 	}
 
+	if !isNilOrEmpty(instance.PrivateDnsName) {
+		addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalDNS, Address: *instance.PrivateDnsName})
+	}
+
+	if !isNilOrEmpty(instance.PublicDnsName) {
+		addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalDNS, Address: *instance.PublicDnsName})
+	}
+
 	return addresses, nil
+}
+
+// NodeAddressesByProviderID returns the node addresses of an instances with the specified unique providerID
+// This method will not be called from the node that is requesting this ID. i.e. metadata service
+// and other local methods cannot be used here
+func (c *Cloud) NodeAddressesByProviderID(providerID string) ([]v1.NodeAddress, error) {
+	return []v1.NodeAddress{}, errors.New("unimplemented")
 }
 
 // ExternalID returns the cloud provider ID of the node with the specified nodeName (deprecated).
@@ -975,6 +1039,13 @@ func (c *Cloud) InstanceID(nodeName types.NodeName) (string, error) {
 	return "/" + orEmpty(inst.Placement.AvailabilityZone) + "/" + orEmpty(inst.InstanceId), nil
 }
 
+// InstanceTypeByProviderID returns the cloudprovider instance type of the node with the specified unique providerID
+// This method will not be called from the node that is requesting this ID. i.e. metadata service
+// and other local methods cannot be used here
+func (c *Cloud) InstanceTypeByProviderID(providerID string) (string, error) {
+	return "", errors.New("unimplemented")
+}
+
 // InstanceType returns the type of the node with the specified nodeName.
 func (c *Cloud) InstanceType(nodeName types.NodeName) (string, error) {
 	if c.selfAWSInstance.nodeName == nodeName {
@@ -990,15 +1061,12 @@ func (c *Cloud) InstanceType(nodeName types.NodeName) (string, error) {
 // Return a list of instances matching regex string.
 func (c *Cloud) getInstancesByRegex(regex string) ([]types.NodeName, error) {
 	filters := []*ec2.Filter{newEc2Filter("instance-state-name", "running")}
-	filters = c.addFilters(filters)
-	request := &ec2.DescribeInstancesInput{
-		Filters: filters,
-	}
 
-	instances, err := c.ec2.DescribeInstances(request)
+	instances, err := c.describeInstances(filters)
 	if err != nil {
 		return []types.NodeName{}, err
 	}
+
 	if len(instances) == 0 {
 		return []types.NodeName{}, fmt.Errorf("no instances returned")
 	}
@@ -1040,9 +1108,9 @@ func (c *Cloud) getInstancesByRegex(regex string) ([]types.NodeName, error) {
 	return matchingInstances, nil
 }
 
-// getAllZones retrieves  a list of all the zones in which nodes are running
+// getCandidateZonesForDynamicVolume retrieves  a list of all the zones in which nodes are running
 // It currently involves querying all instances
-func (c *Cloud) getAllZones() (sets.String, error) {
+func (c *Cloud) getCandidateZonesForDynamicVolume() (sets.String, error) {
 	// We don't currently cache this; it is currently used only in volume
 	// creation which is expected to be a comparatively rare occurrence.
 
@@ -1050,15 +1118,12 @@ func (c *Cloud) getAllZones() (sets.String, error) {
 	// TODO: We could also query for subnets, I think
 
 	filters := []*ec2.Filter{newEc2Filter("instance-state-name", "running")}
-	filters = c.addFilters(filters)
-	request := &ec2.DescribeInstancesInput{
-		Filters: filters,
-	}
 
-	instances, err := c.ec2.DescribeInstances(request)
+	instances, err := c.describeInstances(filters)
 	if err != nil {
 		return nil, err
 	}
+
 	if len(instances) == 0 {
 		return nil, fmt.Errorf("no instances returned")
 	}
@@ -1066,10 +1131,19 @@ func (c *Cloud) getAllZones() (sets.String, error) {
 	zones := sets.NewString()
 
 	for _, instance := range instances {
-		// Only return fully-ready instances when listing instances
-		// (vs a query by name, where we will return it if we find it)
-		if orEmpty(instance.State.Name) == "pending" {
-			glog.V(2).Infof("Skipping EC2 instance (pending): %s", *instance.InstanceId)
+		// We skip over master nodes, if the installation tool labels them with one of the well-known master labels
+		// This avoids creating a volume in a zone where only the master is running - e.g. #34583
+		// This is a short-term workaround until the scheduler takes care of zone selection
+		master := false
+		for _, tag := range instance.Tags {
+			tagKey := aws.StringValue(tag.Key)
+			if awsTagNameMasterRoles.Has(tagKey) {
+				master = true
+			}
+		}
+
+		if master {
+			glog.V(4).Infof("Ignoring master instance %q in zone discovery", aws.StringValue(instance.InstanceId))
 			continue
 		}
 
@@ -1223,11 +1297,16 @@ func (c *Cloud) getMountDevice(
 	// Find the next unused device name
 	deviceAllocator := c.deviceAllocators[i.nodeName]
 	if deviceAllocator == nil {
-		// we want device names with two significant characters, starting with
-		// /dev/xvdba (leaving xvda - xvdz and xvdaa-xvdaz to the system)
-		deviceAllocator = NewDeviceAllocator(2, "ba")
+		// we want device names with two significant characters, starting with /dev/xvdbb
+		// the allowed range is /dev/xvd[b-c][a-z]
+		// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
+		deviceAllocator = NewDeviceAllocator()
 		c.deviceAllocators[i.nodeName] = deviceAllocator
 	}
+	// We need to lock deviceAllocator to prevent possible race with Deprioritize function
+	deviceAllocator.Lock()
+	defer deviceAllocator.Unlock()
+
 	chosen, err := deviceAllocator.GetNext(deviceMappings)
 	if err != nil {
 		glog.Warningf("Could not assign a mount device.  mappings=%v, error: %v", deviceMappings, err)
@@ -1488,7 +1567,9 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName,
 			// TODO: Check if the volume was concurrently attached?
 			return "", fmt.Errorf("Error attaching EBS volume %q to instance %q: %v", disk.awsID, awsInstance.awsID, err)
 		}
-
+		if da, ok := c.deviceAllocators[awsInstance.nodeName]; ok {
+			da.Deprioritize(mountDevice)
+		}
 		glog.V(2).Infof("AttachVolume volume=%q instance=%q request returned %v", disk.awsID, awsInstance.awsID, attachResponse)
 	}
 
@@ -1565,6 +1646,9 @@ func (c *Cloud) DetachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 	if err != nil {
 		return "", err
 	}
+	if da, ok := c.deviceAllocators[awsInstance.nodeName]; ok {
+		da.Deprioritize(mountDevice)
+	}
 	if attachment != nil {
 		// We expect it to be nil, it is (maybe) interesting if it is not
 		glog.V(2).Infof("waitForAttachmentStatus returned non-nil attachment with state=detached: %v", attachment)
@@ -1582,7 +1666,7 @@ func (c *Cloud) DetachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 
 // CreateDisk implements Volumes.CreateDisk
 func (c *Cloud) CreateDisk(volumeOptions *VolumeOptions) (KubernetesVolumeID, error) {
-	allZones, err := c.getAllZones()
+	allZones, err := c.getCandidateZonesForDynamicVolume()
 	if err != nil {
 		return "", fmt.Errorf("error querying for all zones: %v", err)
 	}
@@ -1646,26 +1730,16 @@ func (c *Cloud) CreateDisk(volumeOptions *VolumeOptions) (KubernetesVolumeID, er
 	volumeName := KubernetesVolumeID("aws://" + aws.StringValue(response.AvailabilityZone) + "/" + string(awsID))
 
 	// apply tags
-	tags := make(map[string]string)
-	for k, v := range volumeOptions.Tags {
-		tags[k] = v
-	}
-
-	if c.getClusterName() != "" {
-		tags[TagNameKubernetesCluster] = c.getClusterName()
-	}
-
-	if len(tags) != 0 {
-		if err := c.createTags(string(awsID), tags); err != nil {
-			// delete the volume and hope it succeeds
-			_, delerr := c.DeleteDisk(volumeName)
-			if delerr != nil {
-				// delete did not succeed, we have a stray volume!
-				return "", fmt.Errorf("error tagging volume %s, could not delete the volume: %v", volumeName, delerr)
-			}
-			return "", fmt.Errorf("error tagging volume %s: %v", volumeName, err)
+	if err := c.tagging.createTags(c.ec2, string(awsID), ResourceLifecycleOwned, volumeOptions.Tags); err != nil {
+		// delete the volume and hope it succeeds
+		_, delerr := c.DeleteDisk(volumeName)
+		if delerr != nil {
+			// delete did not succeed, we have a stray volume!
+			return "", fmt.Errorf("error tagging volume %s, could not delete the volume: %v", volumeName, delerr)
 		}
+		return "", fmt.Errorf("error tagging volume %s: %v", volumeName, err)
 	}
+
 	return volumeName, nil
 }
 
@@ -1750,36 +1824,66 @@ func (c *Cloud) DiskIsAttached(diskName KubernetesVolumeID, nodeName types.NodeN
 	return false, nil
 }
 
-func (c *Cloud) DisksAreAttached(diskNames []KubernetesVolumeID, nodeName types.NodeName) (map[KubernetesVolumeID]bool, error) {
-	idToDiskName := make(map[awsVolumeID]KubernetesVolumeID)
-	attached := make(map[KubernetesVolumeID]bool)
-	for _, diskName := range diskNames {
-		volumeID, err := diskName.mapToAWSVolumeID()
-		if err != nil {
-			return nil, fmt.Errorf("error mapping volume spec %q to aws id: %v", diskName, err)
-		}
-		idToDiskName[volumeID] = diskName
-		attached[diskName] = false
+func (c *Cloud) DisksAreAttached(nodeDisks map[types.NodeName][]KubernetesVolumeID) (map[types.NodeName]map[KubernetesVolumeID]bool, error) {
+	attached := make(map[types.NodeName]map[KubernetesVolumeID]bool)
+
+	if len(nodeDisks) == 0 {
+		return attached, nil
 	}
-	_, instance, err := c.getFullInstance(nodeName)
+
+	dnsNameSlice := []string{}
+	for nodeName, diskNames := range nodeDisks {
+		for _, diskName := range diskNames {
+			setNodeDisk(attached, diskName, nodeName, false)
+		}
+		dnsNameSlice = append(dnsNameSlice, mapNodeNameToPrivateDNSName(nodeName))
+	}
+
+	awsInstances, err := c.getInstancesByNodeNames(dnsNameSlice)
 	if err != nil {
-		if err == cloudprovider.InstanceNotFound {
+		// When there is an error fetching instance information
+		// it is safer to return nil and let volume information not be touched.
+		return nil, err
+	}
+
+	if len(awsInstances) == 0 {
+		glog.V(2).Infof("DisksAreAttached will assume no disks are attached to any node on AWS cluster.")
+		return attached, nil
+	}
+
+	awsInstanceMap := make(map[types.NodeName]*ec2.Instance)
+	for _, awsInstance := range awsInstances {
+		awsInstanceMap[mapInstanceToNodeName(awsInstance)] = awsInstance
+	}
+
+	// Note that we check that the volume is attached to the correct node, not that it is attached to _a_ node
+	for nodeName, diskNames := range nodeDisks {
+		awsInstance := awsInstanceMap[nodeName]
+		if awsInstance == nil {
 			// If instance no longer exists, safe to assume volume is not attached.
 			glog.Warningf(
 				"Node %q does not exist. DisksAreAttached will assume disks %v are not attached to it.",
 				nodeName,
 				diskNames)
-			return attached, nil
+			continue
 		}
 
-		return attached, err
-	}
-	for _, blockDevice := range instance.BlockDeviceMappings {
-		volumeID := awsVolumeID(aws.StringValue(blockDevice.Ebs.VolumeId))
-		diskName, found := idToDiskName[volumeID]
-		if found {
-			// Disk is still attached to node
-			attached[diskName] = true
+		idToDiskName := make(map[awsVolumeID]KubernetesVolumeID)
+		for _, diskName := range diskNames {
+			volumeID, err := diskName.mapToAWSVolumeID()
+			if err != nil {
+				return nil, fmt.Errorf("error mapping volume spec %q to aws id: %v", diskName, err)
+			}
+			idToDiskName[volumeID] = diskName
+		}
+
+		for _, blockDevice := range awsInstance.BlockDeviceMappings {
+			volumeID := awsVolumeID(aws.StringValue(blockDevice.Ebs.VolumeId))
+			diskName, found := idToDiskName[volumeID]
+			if found {
+				// Disk is still attached to node
+				setNodeDisk(attached, diskName, nodeName, true)
+			}
 		}
 	}
 
@@ -2114,36 +2218,6 @@ func (c *Cloud) removeSecurityGroupIngress(securityGroupID string, removePermiss
 	return true, nil
 }
 
-// Ensure that a resource has the correct tags
-// If it has no tags, we assume that this was a problem caused by an error in between creation and tagging,
-// and we add the tags.  If it has a different cluster's tags, that is an error.
-func (c *Cloud) ensureClusterTags(resourceID string, tags []*ec2.Tag) error {
-	actualTags := make(map[string]string)
-	for _, tag := range tags {
-		actualTags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
-	}
-
-	addTags := make(map[string]string)
-	for k, expected := range c.filterTags {
-		actual := actualTags[k]
-		if actual == expected {
-			continue
-		}
-		if actual == "" {
-			glog.Warningf("Resource %q was missing expected cluster tag %q.  Will add (with value %q)", resourceID, k, expected)
-			addTags[k] = expected
-		} else {
-			return fmt.Errorf("resource %q has tag belonging to another cluster: %q=%q (expected %q)", resourceID, k, actual, expected)
-		}
-	}
-
-	if err := c.createTags(resourceID, addTags); err != nil {
-		return fmt.Errorf("error adding missing tags to resource %q: %v", resourceID, err)
-	}
-
-	return nil
-}
-
 // Makes sure the security group exists.
 // For multi-cluster isolation, name must be globally unique, for example derived from the service UUID.
 // Returns the security group id or error
@@ -2174,7 +2248,9 @@ func (c *Cloud) ensureSecurityGroup(name string, description string) (string, er
 			if len(securityGroups) > 1 {
 				glog.Warningf("Found multiple security groups with name: %q", name)
 			}
-			err := c.ensureClusterTags(aws.StringValue(securityGroups[0].GroupId), securityGroups[0].Tags)
+			err := c.tagging.readRepairClusterTags(
+				c.ec2, aws.StringValue(securityGroups[0].GroupId),
+				ResourceLifecycleOwned, nil, securityGroups[0].Tags)
 			if err != nil {
 				return "", err
 			}
@@ -2211,7 +2287,7 @@ func (c *Cloud) ensureSecurityGroup(name string, description string) (string, er
 		return "", fmt.Errorf("created security group, but id was not returned: %s", name)
 	}
 
-	err := c.createTags(groupID, c.filterTags)
+	err := c.tagging.createTags(c.ec2, groupID, ResourceLifecycleOwned, nil)
 	if err != nil {
 		// If we retry, ensureClusterTags will recover from this - it
 		// will add the missing tags.  We could delete the security
@@ -2220,52 +2296,6 @@ func (c *Cloud) ensureSecurityGroup(name string, description string) (string, er
 		return "", fmt.Errorf("error tagging security group: %v", err)
 	}
 	return groupID, nil
-}
-
-// createTags calls EC2 CreateTags, but adds retry-on-failure logic
-// We retry mainly because if we create an object, we cannot tag it until it is "fully created" (eventual consistency)
-// The error code varies though (depending on what we are tagging), so we simply retry on all errors
-func (c *Cloud) createTags(resourceID string, tags map[string]string) error {
-	if tags == nil || len(tags) == 0 {
-		return nil
-	}
-
-	var awsTags []*ec2.Tag
-	for k, v := range tags {
-		tag := &ec2.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		}
-		awsTags = append(awsTags, tag)
-	}
-
-	backoff := wait.Backoff{
-		Duration: createTagInitialDelay,
-		Factor:   createTagFactor,
-		Steps:    createTagSteps,
-	}
-	request := &ec2.CreateTagsInput{}
-	request.Resources = []*string{&resourceID}
-	request.Tags = awsTags
-
-	var lastErr error
-	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		_, err := c.ec2.CreateTags(request)
-		if err == nil {
-			return true, nil
-		}
-
-		// We could check that the error is retryable, but the error code changes based on what we are tagging
-		// SecurityGroup: InvalidGroup.NotFound
-		glog.V(2).Infof("Failed to create tags; will retry.  Error was %v", err)
-		lastErr = err
-		return false, nil
-	})
-	if err == wait.ErrWaitTimeout {
-		// return real CreateTags error instead of timeout
-		err = lastErr
-	}
-	return err
 }
 
 // Finds the value for a given tag.
@@ -2283,18 +2313,23 @@ func findTag(tags []*ec2.Tag, key string) (string, bool) {
 // However, in future this will likely be treated as an error.
 func (c *Cloud) findSubnets() ([]*ec2.Subnet, error) {
 	request := &ec2.DescribeSubnetsInput{}
-	vpcIDFilter := newEc2Filter("vpc-id", c.vpcID)
-	filters := []*ec2.Filter{vpcIDFilter}
-	filters = c.addFilters(filters)
-	request.Filters = filters
+	filters := []*ec2.Filter{newEc2Filter("vpc-id", c.vpcID)}
+	request.Filters = c.tagging.addFilters(filters)
 
 	subnets, err := c.ec2.DescribeSubnets(request)
 	if err != nil {
 		return nil, fmt.Errorf("error describing subnets: %v", err)
 	}
 
-	if len(subnets) != 0 {
-		return subnets, nil
+	var matches []*ec2.Subnet
+	for _, subnet := range subnets {
+		if c.tagging.hasClusterTag(subnet.Tags) {
+			matches = append(matches, subnet)
+		}
+	}
+
+	if len(matches) != 0 {
+		return matches, nil
 	}
 
 	// Fall back to the current instance subnets, if nothing is tagged
@@ -2552,13 +2587,6 @@ func (c *Cloud) EnsureLoadBalancer(clusterName string, apiService *v1.Service, n
 	internalELB := false
 	internalAnnotation := apiService.Annotations[ServiceAnnotationLoadBalancerInternal]
 	if internalAnnotation != "" {
-		if internalAnnotation != "0.0.0.0/0" {
-			return nil, fmt.Errorf("annotation %q=%q detected, but the only value supported currently is 0.0.0.0/0", ServiceAnnotationLoadBalancerInternal, internalAnnotation)
-		}
-		if !service.IsAllowAll(sourceRanges) {
-			// TODO: Unify the two annotations
-			return nil, fmt.Errorf("source-range annotation cannot be combined with the internal-elb annotation")
-		}
 		internalELB = true
 	}
 
@@ -2849,7 +2877,7 @@ func findSecurityGroupForInstance(instance *ec2.Instance, taggedSecurityGroups m
 // Return all the security groups that are tagged as being part of our cluster
 func (c *Cloud) getTaggedSecurityGroups() (map[string]*ec2.SecurityGroup, error) {
 	request := &ec2.DescribeSecurityGroupsInput{}
-	request.Filters = c.addFilters(nil)
+	request.Filters = c.tagging.addFilters(nil)
 	groups, err := c.ec2.DescribeSecurityGroups(request)
 	if err != nil {
 		return nil, fmt.Errorf("error querying security groups: %v", err)
@@ -2857,6 +2885,10 @@ func (c *Cloud) getTaggedSecurityGroups() (map[string]*ec2.SecurityGroup, error)
 
 	m := make(map[string]*ec2.SecurityGroup)
 	for _, group := range groups {
+		if !c.tagging.hasClusterTag(group.Tags) {
+			continue
+		}
+
 		id := aws.StringValue(group.GroupId)
 		if id == "" {
 			glog.Warningf("Ignoring group without id: %v", group)
@@ -2891,13 +2923,23 @@ func (c *Cloud) updateInstanceSecurityGroupsForLoadBalancer(lb *elb.LoadBalancer
 	}
 
 	// Get the actual list of groups that allow ingress from the load-balancer
-	describeRequest := &ec2.DescribeSecurityGroupsInput{}
-	filters := []*ec2.Filter{}
-	filters = append(filters, newEc2Filter("ip-permission.group-id", loadBalancerSecurityGroupID))
-	describeRequest.Filters = c.addFilters(filters)
-	actualGroups, err := c.ec2.DescribeSecurityGroups(describeRequest)
-	if err != nil {
-		return fmt.Errorf("error querying security groups for ELB: %v", err)
+	var actualGroups []*ec2.SecurityGroup
+	{
+		describeRequest := &ec2.DescribeSecurityGroupsInput{}
+		filters := []*ec2.Filter{
+			newEc2Filter("ip-permission.group-id", loadBalancerSecurityGroupID),
+		}
+		describeRequest.Filters = c.tagging.addFilters(filters)
+		response, err := c.ec2.DescribeSecurityGroups(describeRequest)
+		if err != nil {
+			return fmt.Errorf("error querying security groups for ELB: %v", err)
+		}
+		for _, sg := range response {
+			if !c.tagging.hasClusterTag(sg.Tags) {
+				continue
+			}
+			actualGroups = append(actualGroups, sg)
+		}
 	}
 
 	taggedSecurityGroups, err := c.getTaggedSecurityGroups()
@@ -3174,7 +3216,24 @@ func (c *Cloud) getInstancesByNodeNamesCached(nodeNames sets.String) ([]*ec2.Ins
 			return c.lastInstancesByNodeNames, nil
 		}
 	}
-	names := aws.StringSlice(nodeNames.List())
+	instances, err := c.getInstancesByNodeNames(nodeNames.List())
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(instances) == 0 {
+		return nil, nil
+	}
+
+	glog.V(2).Infof("Caching instances for %v", nodeNames)
+	c.lastNodeNames = nodeNames
+	c.lastInstancesByNodeNames = instances
+	return instances, nil
+}
+
+func (c *Cloud) getInstancesByNodeNames(nodeNames []string) ([]*ec2.Instance, error) {
+	names := aws.StringSlice(nodeNames)
 
 	nodeNameFilter := &ec2.Filter{
 		Name:   aws.String("private-dns-name"),
@@ -3186,12 +3245,7 @@ func (c *Cloud) getInstancesByNodeNamesCached(nodeNames sets.String) ([]*ec2.Ins
 		newEc2Filter("instance-state-name", "running"),
 	}
 
-	filters = c.addFilters(filters)
-	request := &ec2.DescribeInstancesInput{
-		Filters: filters,
-	}
-
-	instances, err := c.ec2.DescribeInstances(request)
+	instances, err := c.describeInstances(filters)
 	if err != nil {
 		glog.V(2).Infof("Failed to describe instances %v", nodeNames)
 		return nil, err
@@ -3201,11 +3255,27 @@ func (c *Cloud) getInstancesByNodeNamesCached(nodeNames sets.String) ([]*ec2.Ins
 		glog.V(3).Infof("Failed to find any instances %v", nodeNames)
 		return nil, nil
 	}
-
-	glog.V(2).Infof("Caching instances for %v", nodeNames)
-	c.lastNodeNames = nodeNames
-	c.lastInstancesByNodeNames = instances
 	return instances, nil
+}
+
+func (c *Cloud) describeInstances(filters []*ec2.Filter) ([]*ec2.Instance, error) {
+	filters = c.tagging.addFilters(filters)
+	request := &ec2.DescribeInstancesInput{
+		Filters: filters,
+	}
+
+	response, err := c.ec2.DescribeInstances(request)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []*ec2.Instance
+	for _, instance := range response {
+		if c.tagging.hasClusterTag(instance.Tags) {
+			matches = append(matches, instance)
+		}
+	}
+	return matches, nil
 }
 
 // mapNodeNameToPrivateDNSName maps a k8s NodeName to an AWS Instance PrivateDNSName
@@ -3227,15 +3297,12 @@ func (c *Cloud) findInstanceByNodeName(nodeName types.NodeName) (*ec2.Instance, 
 		newEc2Filter("private-dns-name", privateDNSName),
 		newEc2Filter("instance-state-name", "running"),
 	}
-	filters = c.addFilters(filters)
-	request := &ec2.DescribeInstancesInput{
-		Filters: filters,
-	}
 
-	instances, err := c.ec2.DescribeInstances(request)
+	instances, err := c.describeInstances(filters)
 	if err != nil {
 		return nil, err
 	}
+
 	if len(instances) == 0 {
 		return nil, nil
 	}
@@ -3268,22 +3335,26 @@ func (c *Cloud) getFullInstance(nodeName types.NodeName) (*awsInstance, *ec2.Ins
 	return awsInstance, instance, err
 }
 
-// Add additional filters, to match on our tags
-// This lets us run multiple k8s clusters in a single EC2 AZ
-func (c *Cloud) addFilters(filters []*ec2.Filter) []*ec2.Filter {
-	for k, v := range c.filterTags {
-		filters = append(filters, newEc2Filter("tag:"+k, v))
-	}
-	if len(filters) == 0 {
-		// We can't pass a zero-length Filters to AWS (it's an error)
-		// So if we end up with no filters; just return nil
-		return nil
-	}
+func setNodeDisk(
+	nodeDiskMap map[types.NodeName]map[KubernetesVolumeID]bool,
+	volumeID KubernetesVolumeID,
+	nodeName types.NodeName,
+	check bool) {
 
-	return filters
+	volumeMap := nodeDiskMap[nodeName]
+
+	if volumeMap == nil {
+		volumeMap = make(map[KubernetesVolumeID]bool)
+		nodeDiskMap[nodeName] = volumeMap
+	}
+	volumeMap[volumeID] = check
 }
 
-// Returns the cluster name or an empty string
-func (c *Cloud) getClusterName() string {
-	return c.filterTags[TagNameKubernetesCluster]
+func recordAwsMetric(actionName string, timeTaken float64, err error) {
+	if err != nil {
+		awsApiErrorMetric.With(prometheus.Labels{"request": actionName}).Inc()
+	} else {
+		awsApiMetric.With(prometheus.Labels{"request": actionName}).Observe(timeTaken)
+	}
+
 }

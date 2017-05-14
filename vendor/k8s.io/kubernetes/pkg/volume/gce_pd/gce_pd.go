@@ -23,9 +23,9 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/strings"
@@ -79,6 +79,14 @@ func (plugin *gcePersistentDiskPlugin) CanSupport(spec *volume.Spec) bool {
 }
 
 func (plugin *gcePersistentDiskPlugin) RequiresRemount() bool {
+	return false
+}
+
+func (plugin *gcePersistentDiskPlugin) SupportsMountOption() bool {
+	return true
+}
+
+func (plugin *gcePersistentDiskPlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
@@ -248,12 +256,12 @@ func (b *gcePersistentDiskMounter) CanMount() error {
 }
 
 // SetUp bind mounts the disk global mount to the volume path.
-func (b *gcePersistentDiskMounter) SetUp(fsGroup *int64) error {
+func (b *gcePersistentDiskMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
 // SetUp bind mounts the disk global mount to the give volume path.
-func (b *gcePersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (b *gcePersistentDiskMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	// TODO: handle failed mounts here.
 	notMnt, err := b.mounter.IsLikelyNotMountPoint(dir)
 	glog.V(4).Infof("GCE PersistentDisk set up: Dir (%s) PD name (%q) Mounted (%t) Error (%v), ReadOnly (%t)", dir, b.pdName, !notMnt, err, b.readOnly)

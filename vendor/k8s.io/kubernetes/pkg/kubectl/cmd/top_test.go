@@ -25,17 +25,17 @@ import (
 
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metricsapi "k8s.io/heapster/metrics/apis/metrics/v1alpha1"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	v1 "k8s.io/kubernetes/pkg/api/v1"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
 
 const (
-	baseHeapsterServiceAddress = "/api/v1/proxy/namespaces/kube-system/services/http:heapster:"
+	baseHeapsterServiceAddress = "/api/v1/namespaces/kube-system/services/http:heapster:/proxy"
 	baseMetricsAddress         = baseHeapsterServiceAddress + "/apis/metrics"
 	metricsApiVersion          = "v1alpha1"
 )

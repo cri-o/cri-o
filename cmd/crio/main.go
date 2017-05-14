@@ -17,7 +17,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
-	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 )
 
 const crioConfigPath = "/etc/crio/crio.conf"
@@ -304,8 +304,8 @@ func main() {
 
 		graceful := false
 		catchShutdown(s, service, &graceful)
-		runtime.RegisterRuntimeServiceServer(s, service)
-		runtime.RegisterImageServiceServer(s, service)
+		v1alpha1.RegisterRuntimeServiceServer(s, service)
+		v1alpha1.RegisterImageServiceServer(s, service)
 
 		// after the daemon is done setting up we can notify systemd api
 		notifySystem()

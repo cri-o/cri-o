@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	. "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/util/term"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
@@ -73,7 +73,7 @@ type FakeDirectStreamingRuntime struct {
 		TTY         bool
 		// Port-forward args
 		Pod    *Pod
-		Port   uint16
+		Port   int32
 		Stream io.ReadWriteCloser
 	}
 }
@@ -311,7 +311,7 @@ func (f *FakeRuntime) GetPodStatus(uid types.UID, name, namespace string) (*PodS
 	return &status, f.Err
 }
 
-func (f *FakeDirectStreamingRuntime) ExecInContainer(containerID ContainerID, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan term.Size, timeout time.Duration) error {
+func (f *FakeDirectStreamingRuntime) ExecInContainer(containerID ContainerID, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize, timeout time.Duration) error {
 	f.Lock()
 	defer f.Unlock()
 
@@ -326,7 +326,7 @@ func (f *FakeDirectStreamingRuntime) ExecInContainer(containerID ContainerID, cm
 	return f.Err
 }
 
-func (f *FakeDirectStreamingRuntime) AttachContainer(containerID ContainerID, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan term.Size) error {
+func (f *FakeDirectStreamingRuntime) AttachContainer(containerID ContainerID, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	f.Lock()
 	defer f.Unlock()
 
@@ -394,7 +394,7 @@ func (f *FakeRuntime) RemoveImage(image ImageSpec) error {
 	return f.Err
 }
 
-func (f *FakeDirectStreamingRuntime) PortForward(pod *Pod, port uint16, stream io.ReadWriteCloser) error {
+func (f *FakeDirectStreamingRuntime) PortForward(pod *Pod, port int32, stream io.ReadWriteCloser) error {
 	f.Lock()
 	defer f.Unlock()
 
@@ -471,7 +471,7 @@ func (f *FakeIndirectStreamingRuntime) GetAttach(id ContainerID, stdin, stdout, 
 	return &url.URL{Host: FakeHost}, f.Err
 }
 
-func (f *FakeIndirectStreamingRuntime) GetPortForward(podName, podNamespace string, podUID types.UID) (*url.URL, error) {
+func (f *FakeIndirectStreamingRuntime) GetPortForward(podName, podNamespace string, podUID types.UID, ports []int32) (*url.URL, error) {
 	f.Lock()
 	defer f.Unlock()
 

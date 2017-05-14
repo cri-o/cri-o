@@ -34,6 +34,8 @@ type FakeReplicationControllers struct {
 
 var replicationcontrollersResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "replicationcontrollers"}
 
+var replicationcontrollersKind = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ReplicationController"}
+
 func (c *FakeReplicationControllers) Create(replicationController *v1.ReplicationController) (result *v1.ReplicationController, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(replicationcontrollersResource, c.ns, replicationController), &v1.ReplicationController{})
@@ -64,14 +66,14 @@ func (c *FakeReplicationControllers) UpdateStatus(replicationController *v1.Repl
 	return obj.(*v1.ReplicationController), err
 }
 
-func (c *FakeReplicationControllers) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeReplicationControllers) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(replicationcontrollersResource, c.ns, name), &v1.ReplicationController{})
 
 	return err
 }
 
-func (c *FakeReplicationControllers) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeReplicationControllers) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(replicationcontrollersResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.ReplicationControllerList{})
@@ -90,7 +92,7 @@ func (c *FakeReplicationControllers) Get(name string, options meta_v1.GetOptions
 
 func (c *FakeReplicationControllers) List(opts meta_v1.ListOptions) (result *v1.ReplicationControllerList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(replicationcontrollersResource, c.ns, opts), &v1.ReplicationControllerList{})
+		Invokes(testing.NewListAction(replicationcontrollersResource, replicationcontrollersKind, c.ns, opts), &v1.ReplicationControllerList{})
 
 	if obj == nil {
 		return nil, err

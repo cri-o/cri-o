@@ -698,7 +698,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -1503,7 +1511,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -2308,7 +2324,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -3113,7 +3137,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -3862,7 +3894,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -4631,7 +4671,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -4845,6 +4893,36 @@
      },
      {
       "type": "string",
+      "method": "PATCH",
+      "summary": "proxy PATCH requests to Node",
+      "nickname": "proxyPATCHNodeWithPath",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Node",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "path",
+        "description": "path to the resource",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
       "method": "DELETE",
       "summary": "proxy DELETE requests to Node",
       "nickname": "proxyDELETENodeWithPath",
@@ -5007,6 +5085,28 @@
      },
      {
       "type": "string",
+      "method": "PATCH",
+      "summary": "proxy PATCH requests to Node",
+      "nickname": "proxyPATCHNode",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Node",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
       "method": "DELETE",
       "summary": "proxy DELETE requests to Node",
       "nickname": "proxyDELETENode",
@@ -5142,6 +5242,36 @@
       "method": "PUT",
       "summary": "connect PUT requests to proxy of Node",
       "nickname": "connectPutNodeProxy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "path",
+        "description": "Path is the URL path to use for the current proxy request to node.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Node",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
+      "method": "PATCH",
+      "summary": "connect PATCH requests to proxy of Node",
+      "nickname": "connectPatchNodeProxy",
       "parameters": [
        {
         "type": "string",
@@ -5344,6 +5474,44 @@
       "method": "PUT",
       "summary": "connect PUT requests to proxy of Node",
       "nickname": "connectPutNodeProxyWithPath",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "path",
+        "description": "Path is the URL path to use for the current proxy request to node.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Node",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "path",
+        "description": "path to the resource",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
+      "method": "PATCH",
+      "summary": "connect PATCH requests to proxy of Node",
+      "nickname": "connectPatchNodeProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -6147,7 +6315,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -7061,7 +7237,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -7833,7 +8017,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -8087,6 +8279,44 @@
      },
      {
       "type": "string",
+      "method": "PATCH",
+      "summary": "proxy PATCH requests to Pod",
+      "nickname": "proxyPATCHNamespacedPodWithPath",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Pod",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "path",
+        "description": "path to the resource",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
       "method": "DELETE",
       "summary": "proxy DELETE requests to Pod",
       "nickname": "proxyDELETENamespacedPodWithPath",
@@ -8270,6 +8500,36 @@
       "method": "POST",
       "summary": "proxy POST requests to Pod",
       "nickname": "proxyPOSTNamespacedPod",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Pod",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
+      "method": "PATCH",
+      "summary": "proxy PATCH requests to Pod",
+      "nickname": "proxyPATCHNamespacedPod",
       "parameters": [
        {
         "type": "string",
@@ -9096,6 +9356,14 @@
       "nickname": "connectGetNamespacedPodPortforward",
       "parameters": [
        {
+        "type": "integer",
+        "paramType": "query",
+        "name": "ports",
+        "description": "List of ports to forward Required when using WebSockets",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -9125,6 +9393,14 @@
       "summary": "connect POST requests to portforward of Pod",
       "nickname": "connectPostNamespacedPodPortforward",
       "parameters": [
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "ports",
+        "description": "List of ports to forward Required when using WebSockets",
+        "required": false,
+        "allowMultiple": false
+       },
        {
         "type": "string",
         "paramType": "path",
@@ -9236,6 +9512,44 @@
       "method": "PUT",
       "summary": "connect PUT requests to proxy of Pod",
       "nickname": "connectPutNamespacedPodProxy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "path",
+        "description": "Path is the URL path to use for the current proxy request to pod.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Pod",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
+      "method": "PATCH",
+      "summary": "connect PATCH requests to proxy of Pod",
+      "nickname": "connectPatchNamespacedPodProxy",
       "parameters": [
        {
         "type": "string",
@@ -9486,6 +9800,52 @@
       "method": "PUT",
       "summary": "connect PUT requests to proxy of Pod",
       "nickname": "connectPutNamespacedPodProxyWithPath",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "path",
+        "description": "Path is the URL path to use for the current proxy request to pod.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Pod",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "path",
+        "description": "path to the resource",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
+      "method": "PATCH",
+      "summary": "connect PATCH requests to proxy of Pod",
+      "nickname": "connectPatchNamespacedPodProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -10345,7 +10705,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -11150,7 +11518,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -12285,7 +12661,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -13255,7 +13639,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -14060,7 +14452,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -15016,6 +15416,44 @@
      },
      {
       "type": "string",
+      "method": "PATCH",
+      "summary": "proxy PATCH requests to Service",
+      "nickname": "proxyPATCHNamespacedServiceWithPath",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Service",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "path",
+        "description": "path to the resource",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
       "method": "DELETE",
       "summary": "proxy DELETE requests to Service",
       "nickname": "proxyDELETENamespacedServiceWithPath",
@@ -15199,6 +15637,36 @@
       "method": "POST",
       "summary": "proxy POST requests to Service",
       "nickname": "proxyPOSTNamespacedService",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Service",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
+      "method": "PATCH",
+      "summary": "proxy PATCH requests to Service",
+      "nickname": "proxyPATCHNamespacedService",
       "parameters": [
        {
         "type": "string",
@@ -15594,6 +16062,44 @@
      },
      {
       "type": "string",
+      "method": "PATCH",
+      "summary": "connect PATCH requests to proxy of Service",
+      "nickname": "connectPatchNamespacedServiceProxy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "path",
+        "description": "Path is the part of URLs that include service endpoints, suffixes, and parameters to use for the current proxy request to service. For example, the whole request URL is http://localhost/api/v1/namespaces/kube-system/services/elasticsearch-logging/_search?q=user:kimchy. Path is _search?q=user:kimchy.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Service",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
       "method": "DELETE",
       "summary": "connect DELETE requests to proxy of Service",
       "nickname": "connectDeleteNamespacedServiceProxy",
@@ -15809,6 +16315,52 @@
       "method": "PUT",
       "summary": "connect PUT requests to proxy of Service",
       "nickname": "connectPutNamespacedServiceProxyWithPath",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "path",
+        "description": "Path is the part of URLs that include service endpoints, suffixes, and parameters to use for the current proxy request to service. For example, the whole request URL is http://localhost/api/v1/namespaces/kube-system/services/elasticsearch-logging/_search?q=user:kimchy. Path is _search?q=user:kimchy.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Service",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "path",
+        "description": "path to the resource",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "produces": [
+       "*/*"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "string",
+      "method": "PATCH",
+      "summary": "connect PATCH requests to proxy of Service",
+      "nickname": "connectPatchNamespacedServiceProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -16308,6 +16860,10 @@
      "controller": {
       "type": "boolean",
       "description": "If true, this reference points to the managing controller."
+     },
+     "blockOwnerDeletion": {
+      "type": "boolean",
+      "description": "If true, AND if the owner has the \"foregroundDeletion\" finalizer, then the owner cannot be deleted from the key-value store until this reference is removed. Defaults to false. To set this field, a user needs \"delete\" permission of the owner, otherwise 422 (Unprocessable Entity) will be returned."
      }
     }
    },
@@ -16484,7 +17040,7 @@
      },
      "data": {
       "type": "object",
-      "description": "Data contains the configuration data. Each key must be a valid DNS_SUBDOMAIN with an optional leading dot."
+      "description": "Data contains the configuration data. Each key must consist of alphanumeric characters, '-', '_' or '.'."
      }
     }
    },
@@ -16618,7 +17174,11 @@
      },
      "orphanDependents": {
       "type": "boolean",
-      "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list."
+      "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both."
+     },
+     "propagationPolicy": {
+      "$ref": "v1.DeletionPropagation",
+      "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy."
      }
     }
    },
@@ -16634,6 +17194,10 @@
    },
    "types.UID": {
     "id": "types.UID",
+    "properties": {}
+   },
+   "v1.DeletionPropagation": {
+    "id": "v1.DeletionPropagation",
     "properties": {}
    },
    "v1.EndpointsList": {
@@ -17113,6 +17677,39 @@
      "unschedulable": {
       "type": "boolean",
       "description": "Unschedulable controls node schedulability of new pods. By default, node is schedulable. More info: http://releases.k8s.io/HEAD/docs/admin/node.md#manual-node-administration"
+     },
+     "taints": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Taint"
+      },
+      "description": "If specified, the node's taints."
+     }
+    }
+   },
+   "v1.Taint": {
+    "id": "v1.Taint",
+    "description": "The node this Taint is attached to has the effect \"effect\" on any pod that that does not tolerate the Taint.",
+    "required": [
+     "key",
+     "effect"
+    ],
+    "properties": {
+     "key": {
+      "type": "string",
+      "description": "Required. The taint key to be applied to a node."
+     },
+     "value": {
+      "type": "string",
+      "description": "Required. The taint value corresponding to the taint key."
+     },
+     "effect": {
+      "type": "string",
+      "description": "Required. The effect of the taint on pods that do not tolerate the taint. Valid effects are NoSchedule, PreferNoSchedule and NoExecute."
+     },
+     "timeAdded": {
+      "type": "string",
+      "description": "TimeAdded represents the time at which the taint was added. It is only written for NoExecute taints."
      }
     }
    },
@@ -17430,6 +18027,10 @@
      "volumeName": {
       "type": "string",
       "description": "VolumeName is the binding reference to the PersistentVolume backing this claim."
+     },
+     "storageClassName": {
+      "type": "string",
+      "description": "Name of the StorageClass required by the claim. More info: http://kubernetes.io/docs/user-guide/persistent-volumes#class-1"
      }
     }
    },
@@ -17644,6 +18245,14 @@
       "$ref": "v1.PhotonPersistentDiskVolumeSource",
       "description": "PhotonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine"
      },
+     "portworxVolume": {
+      "$ref": "v1.PortworxVolumeSource",
+      "description": "PortworxVolume represents a portworx volume attached and mounted on kubelets host machine"
+     },
+     "scaleIO": {
+      "$ref": "v1.ScaleIOVolumeSource",
+      "description": "ScaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes."
+     },
      "accessModes": {
       "type": "array",
       "items": {
@@ -17658,6 +18267,10 @@
      "persistentVolumeReclaimPolicy": {
       "type": "string",
       "description": "What happens to a persistent volume when released from its claim. Valid options are Retain (default) and Recycle. Recycling must be supported by the volume plugin underlying this persistent volume. More info: http://kubernetes.io/docs/user-guide/persistent-volumes#recycling-policy"
+     },
+     "storageClassName": {
+      "type": "string",
+      "description": "Name of StorageClass to which this persistent volume belongs. Empty value means that this volume does not belong to any StorageClass."
      }
     }
    },
@@ -17858,6 +18471,25 @@
      "readOnly": {
       "type": "boolean",
       "description": "ReadOnly here will force the ReadOnly setting in VolumeMounts. Defaults to false."
+     },
+     "portals": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "iSCSI target portal List. The portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260)."
+     },
+     "chapAuthDiscovery": {
+      "type": "boolean",
+      "description": "whether support iSCSI Discovery CHAP authentication"
+     },
+     "chapAuthSession": {
+      "type": "boolean",
+      "description": "whether support iSCSI Session CHAP authentication"
+     },
+     "secretRef": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "CHAP secret for iSCSI target and initiator authentication"
      }
     }
    },
@@ -18111,6 +18743,78 @@
      }
     }
    },
+   "v1.PortworxVolumeSource": {
+    "id": "v1.PortworxVolumeSource",
+    "description": "PortworxVolumeSource represents a Portworx volume resource.",
+    "required": [
+     "volumeID"
+    ],
+    "properties": {
+     "volumeID": {
+      "type": "string",
+      "description": "VolumeID uniquely identifies a Portworx volume"
+     },
+     "fsType": {
+      "type": "string",
+      "description": "FSType represents the filesystem type to mount Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\". Implicitly inferred to be \"ext4\" if unspecified."
+     },
+     "readOnly": {
+      "type": "boolean",
+      "description": "Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts."
+     }
+    }
+   },
+   "v1.ScaleIOVolumeSource": {
+    "id": "v1.ScaleIOVolumeSource",
+    "description": "ScaleIOVolumeSource represents a persistent ScaleIO volume",
+    "required": [
+     "gateway",
+     "system",
+     "secretRef"
+    ],
+    "properties": {
+     "gateway": {
+      "type": "string",
+      "description": "The host address of the ScaleIO API Gateway."
+     },
+     "system": {
+      "type": "string",
+      "description": "The name of the storage system as configured in ScaleIO."
+     },
+     "secretRef": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "SecretRef references to the secret for ScaleIO user and other sensitive information. If this is not provided, Login operation will fail."
+     },
+     "sslEnabled": {
+      "type": "boolean",
+      "description": "Flag to enable/disable SSL communication with Gateway, default false"
+     },
+     "protectionDomain": {
+      "type": "string",
+      "description": "The name of the Protection Domain for the configured storage (defaults to \"default\")."
+     },
+     "storagePool": {
+      "type": "string",
+      "description": "The Storage Pool associated with the protection domain (defaults to \"default\")."
+     },
+     "storageMode": {
+      "type": "string",
+      "description": "Indicates whether the storage for a volume should be thick or thin (defaults to \"thin\")."
+     },
+     "volumeName": {
+      "type": "string",
+      "description": "The name of a volume already created in the ScaleIO system that is associated with this volume source."
+     },
+     "fsType": {
+      "type": "string",
+      "description": "Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified."
+     },
+     "readOnly": {
+      "type": "boolean",
+      "description": "Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts."
+     }
+    }
+   },
    "v1.PersistentVolumeStatus": {
     "id": "v1.PersistentVolumeStatus",
     "description": "PersistentVolumeStatus is the current status of a persistent volume.",
@@ -18197,6 +18901,13 @@
       },
       "description": "List of volumes that can be mounted by containers belonging to the pod. More info: http://kubernetes.io/docs/user-guide/volumes"
      },
+     "initContainers": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Container"
+      },
+      "description": "List of initialization containers belonging to the pod. Init containers are executed in order prior to containers being started. If any init container fails, the pod is considered to have failed and is handled according to its restartPolicy. The name for an init container or normal container must be unique among all containers. Init containers may not have Lifecycle actions, Readiness probes, or Liveness probes. The resourceRequirements of an init container are taken into account during scheduling by finding the highest request/limit for each resource type, and then using the max of of that value or the sum of the normal containers. Limits are applied to init containers in a similar fashion. Init containers cannot currently be added or removed. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/containers"
+     },
      "containers": {
       "type": "array",
       "items": {
@@ -18220,11 +18931,11 @@
      },
      "dnsPolicy": {
       "type": "string",
-      "description": "Set DNS policy for containers within the pod. One of 'ClusterFirst' or 'Default'. Defaults to \"ClusterFirst\"."
+      "description": "Set DNS policy for containers within the pod. One of 'ClusterFirstWithHostNet', 'ClusterFirst' or 'Default'. Defaults to \"ClusterFirst\". To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly to 'ClusterFirstWithHostNet'."
      },
      "nodeSelector": {
       "type": "object",
-      "description": "NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: http://kubernetes.io/docs/user-guide/node-selection/README"
+      "description": "NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: http://kubernetes.io/docs/user-guide/node-selection/README.md"
      },
      "serviceAccountName": {
       "type": "string",
@@ -18233,6 +18944,10 @@
      "serviceAccount": {
       "type": "string",
       "description": "DeprecatedServiceAccount is a depreciated alias for ServiceAccountName. Deprecated: Use serviceAccountName instead."
+     },
+     "automountServiceAccountToken": {
+      "type": "boolean",
+      "description": "AutomountServiceAccountToken indicates whether a service account token should be automatically mounted."
      },
      "nodeName": {
       "type": "string",
@@ -18273,9 +18988,23 @@
       "$ref": "v1.Affinity",
       "description": "If specified, the pod's scheduling constraints"
      },
-     "schedulername": {
+     "schedulerName": {
       "type": "string",
       "description": "If specified, the pod will be dispatched by specified scheduler. If not specified, the pod will be dispatched by default scheduler."
+     },
+     "tolerations": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Toleration"
+      },
+      "description": "If specified, the pod's tolerations."
+     },
+     "hostMappings": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.HostAlias"
+      },
+      "description": "HostAliases is an optional list of hosts and IPs that will be injected into the pod's hosts file if specified. This is only valid for non-hostNetwork pods."
      }
     }
    },
@@ -18381,6 +19110,18 @@
      "photonPersistentDisk": {
       "$ref": "v1.PhotonPersistentDiskVolumeSource",
       "description": "PhotonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine"
+     },
+     "projected": {
+      "$ref": "v1.ProjectedVolumeSource",
+      "description": "Items for all in one resources secrets, configmaps, and downward API"
+     },
+     "portworxVolume": {
+      "$ref": "v1.PortworxVolumeSource",
+      "description": "PortworxVolume represents a portworx volume attached and mounted on kubelets host machine"
+     },
+     "scaleIO": {
+      "$ref": "v1.ScaleIOVolumeSource",
+      "description": "ScaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes."
      }
     }
    },
@@ -18589,6 +19330,100 @@
      }
     }
    },
+   "v1.ProjectedVolumeSource": {
+    "id": "v1.ProjectedVolumeSource",
+    "description": "Represents a projected volume source",
+    "required": [
+     "sources"
+    ],
+    "properties": {
+     "sources": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.VolumeProjection"
+      },
+      "description": "list of volume projections"
+     },
+     "defaultMode": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Mode bits to use on created files by default. Must be a value between 0 and 0777. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set."
+     }
+    }
+   },
+   "v1.VolumeProjection": {
+    "id": "v1.VolumeProjection",
+    "description": "Projection that may be projected along with other supported volume types",
+    "properties": {
+     "secret": {
+      "$ref": "v1.SecretProjection",
+      "description": "information about the secret data to project"
+     },
+     "downwardAPI": {
+      "$ref": "v1.DownwardAPIProjection",
+      "description": "information about the downwardAPI data to project"
+     },
+     "configMap": {
+      "$ref": "v1.ConfigMapProjection",
+      "description": "information about the configMap data to project"
+     }
+    }
+   },
+   "v1.SecretProjection": {
+    "id": "v1.SecretProjection",
+    "description": "Adapts a secret into a projected volume.\n\nThe contents of the target Secret's Data field will be presented in a projected volume as files using the keys in the Data field as the file names. Note that this is identical to a secret volume source without the default mode.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.KeyToPath"
+      },
+      "description": "If unspecified, each key-value pair in the Data field of the referenced Secret will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the Secret, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'."
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the Secret or its key must be defined"
+     }
+    }
+   },
+   "v1.DownwardAPIProjection": {
+    "id": "v1.DownwardAPIProjection",
+    "description": "Represents downward API info for projecting into a projected volume. Note that this is identical to a downwardAPI volume source without the default mode.",
+    "properties": {
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.DownwardAPIVolumeFile"
+      },
+      "description": "Items is a list of DownwardAPIVolume file"
+     }
+    }
+   },
+   "v1.ConfigMapProjection": {
+    "id": "v1.ConfigMapProjection",
+    "description": "Adapts a ConfigMap into a projected volume.\n\nThe contents of the target ConfigMap's Data field will be presented in a projected volume as files using the keys in the Data field as the file names, unless the items element is populated with specific mappings of keys to paths. Note that this is identical to a configmap volume source without the default mode.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.KeyToPath"
+      },
+      "description": "If unspecified, each key-value pair in the Data field of the referenced ConfigMap will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the ConfigMap, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'."
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the ConfigMap or it's keys must be defined"
+     }
+    }
+   },
    "v1.Container": {
     "id": "v1.Container",
     "description": "A single application container that you want to run within a pod.",
@@ -18634,7 +19469,7 @@
       "items": {
        "$ref": "v1.EnvFromSource"
       },
-      "description": "List of sources to populate environment variables in the container. The keys defined within a source must be a C_IDENTIFIER. An invalid key will prevent the container from starting. When a key exists in multiple sources, the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Cannot be updated."
+      "description": "List of sources to populate environment variables in the container. The keys defined within a source must be a C_IDENTIFIER. All invalid keys will be reported as an event when the container is starting. When a key exists in multiple sources, the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Cannot be updated."
      },
      "env": {
       "type": "array",
@@ -18800,7 +19635,7 @@
     "properties": {
      "fieldRef": {
       "$ref": "v1.ObjectFieldSelector",
-      "description": "Selects a field of the pod: supports metadata.name, metadata.namespace, metadata.labels, metadata.annotations, spec.nodeName, spec.serviceAccountName, status.podIP."
+      "description": "Selects a field of the pod: supports metadata.name, metadata.namespace, metadata.labels, metadata.annotations, spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP."
      },
      "resourceFieldRef": {
       "$ref": "v1.ResourceFieldSelector",
@@ -19000,6 +19835,10 @@
      "port": {
       "type": "string",
       "description": "Number or name of the port to access on the container. Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME."
+     },
+     "host": {
+      "type": "string",
+      "description": "Optional: Host name to connect to, defaults to the pod IP."
      }
     }
    },
@@ -19052,8 +19891,7 @@
       "description": "The SELinux context to be applied to the container. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence."
      },
      "runAsUser": {
-      "type": "integer",
-      "format": "int64",
+      "$ref": "types.UnixUserID",
       "description": "The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in PodSecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence."
      },
      "runAsNonRoot": {
@@ -19112,6 +19950,10 @@
      }
     }
    },
+   "types.UnixUserID": {
+    "id": "types.UnixUserID",
+    "properties": {}
+   },
    "v1.PodSecurityContext": {
     "id": "v1.PodSecurityContext",
     "description": "PodSecurityContext holds pod-level security attributes and common container settings. Some fields are also present in container.securityContext.  Field values of container.securityContext take precedence over field values of PodSecurityContext.",
@@ -19121,8 +19963,7 @@
       "description": "The SELinux context to be applied to all containers. If unspecified, the container runtime will allocate a random SELinux context for each container.  May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container."
      },
      "runAsUser": {
-      "type": "integer",
-      "format": "int64",
+      "$ref": "types.UnixUserID",
       "description": "The UID to run the entrypoint of the container process. Defaults to user specified in image metadata if unspecified. May also be set in SecurityContext.  If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence for that container."
      },
      "runAsNonRoot": {
@@ -19132,16 +19973,19 @@
      "supplementalGroups": {
       "type": "array",
       "items": {
-       "type": "integer"
+       "$ref": "types.UnixGroupID"
       },
       "description": "A list of groups applied to the first process run in each container, in addition to the container's primary GID.  If unspecified, no groups will be added to any container."
      },
      "fsGroup": {
-      "type": "integer",
-      "format": "int64",
+      "$ref": "types.UnixGroupID",
       "description": "A special supplemental group that applies to all containers in a pod. Some volume types allow the Kubelet to change the ownership of that volume to be owned by the pod:\n\n1. The owning GID will be the FSGroup 2. The setgid bit is set (new files created in the volume will be owned by FSGroup) 3. The permission bits are OR'd with rw-rw "
      }
     }
+   },
+   "types.UnixGroupID": {
+    "id": "types.UnixGroupID",
+    "properties": {}
    },
    "v1.Affinity": {
     "id": "v1.Affinity",
@@ -19277,9 +20121,6 @@
    "v1.PodAffinityTerm": {
     "id": "v1.PodAffinityTerm",
     "description": "Defines a set of pods (namely those matching the labelSelector relative to the given namespace(s)) that this pod should be co-located (affinity) or not co-located (anti-affinity) with, where co-located is defined as running on a node whose value of the label with key \u003ctopologyKey\u003e tches that of any node on which a pod of the set of pods is running",
-    "required": [
-     "namespaces"
-    ],
     "properties": {
      "labelSelector": {
       "$ref": "v1.LabelSelector",
@@ -19290,7 +20131,7 @@
       "items": {
        "type": "string"
       },
-      "description": "namespaces specifies which namespaces the labelSelector applies to (matches against); nil list means \"this pod's namespace,\" empty list means \"all namespaces\" The json tag here is not \"omitempty\" since we need to distinguish nil and empty. See https://golang.org/pkg/encoding/json/#Marshal for more details."
+      "description": "namespaces specifies which namespaces the labelSelector applies to (matches against); null or empty list means \"this pod's namespace\""
      },
      "topologyKey": {
       "type": "string",
@@ -19337,6 +20178,50 @@
      }
     }
    },
+   "v1.Toleration": {
+    "id": "v1.Toleration",
+    "description": "The pod this Toleration is attached to tolerates any taint that matches the triple \u003ckey,value,effect\u003e using the matching operator \u003coperator\u003e.",
+    "properties": {
+     "key": {
+      "type": "string",
+      "description": "Key is the taint key that the toleration applies to. Empty means match all taint keys. If the key is empty, operator must be Exists; this combination means to match all values and all keys."
+     },
+     "operator": {
+      "type": "string",
+      "description": "Operator represents a key's relationship to the value. Valid operators are Exists and Equal. Defaults to Equal. Exists is equivalent to wildcard for value, so that a pod can tolerate all taints of a particular category."
+     },
+     "value": {
+      "type": "string",
+      "description": "Value is the taint value the toleration matches to. If the operator is Exists, the value should be empty, otherwise just a regular string."
+     },
+     "effect": {
+      "type": "string",
+      "description": "Effect indicates the taint effect to match. Empty means match all taint effects. When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute."
+     },
+     "tolerationSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "TolerationSeconds represents the period of time the toleration (which must be of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately) by the system."
+     }
+    }
+   },
+   "v1.HostAlias": {
+    "id": "v1.HostAlias",
+    "description": "HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the pod's hosts file.",
+    "properties": {
+     "ip": {
+      "type": "string",
+      "description": "IP address of the host file entry."
+     },
+     "hostnames": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Hostnames for the the above IP address."
+     }
+    }
+   },
    "v1.PodStatus": {
     "id": "v1.PodStatus",
     "description": "PodStatus represents information about the status of a pod. Status may trail the actual state of a system.",
@@ -19371,6 +20256,13 @@
      "startTime": {
       "type": "string",
       "description": "RFC 3339 date and time at which the object was acknowledged by the Kubelet. This is before the Kubelet pulled the container image(s) for the pod."
+     },
+     "initContainerStatuses": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ContainerStatus"
+      },
+      "description": "The list has one entry per init container in the manifest. The most recent successful init container will have ready = true, the most recently started container will have startTime set. More info: http://kubernetes.io/docs/user-guide/pod-states#container-statuses"
      },
      "containerStatuses": {
       "type": "array",
@@ -19971,7 +20863,7 @@
      },
      "data": {
       "type": "object",
-      "description": "Data contains the secret data. Each key must be a valid DNS_SUBDOMAIN or leading dot followed by valid DNS_SUBDOMAIN. The serialized form of the secret data is a base64 encoded string, representing the arbitrary (possibly non-string) data value here. Described in https://tools.ietf.org/html/rfc4648#section-4"
+      "description": "Data contains the secret data. Each key must consist of alphanumeric characters, '-', '_' or '.'. The serialized form of the secret data is a base64 encoded string, representing the arbitrary (possibly non-string) data value here. Described in https://tools.ietf.org/html/rfc4648#section-4"
      },
      "stringData": {
       "type": "object",
@@ -20040,6 +20932,10 @@
        "$ref": "v1.LocalObjectReference"
       },
       "description": "ImagePullSecrets is a list of references to secrets in the same namespace to use for pulling any images in pods that reference this ServiceAccount. ImagePullSecrets are distinct from Secrets because Secrets can be mounted in the pod, but ImagePullSecrets are only accessed by the kubelet. More info: http://kubernetes.io/docs/user-guide/secrets#manually-specifying-an-imagepullsecret"
+     },
+     "automountServiceAccountToken": {
+      "type": "boolean",
+      "description": "AutomountServiceAccountToken indicates whether pods running as this service account should have an API token automatically mounted. Can be overridden at the pod level."
      }
     }
    },
@@ -20125,14 +21021,7 @@
       "items": {
        "type": "string"
       },
-      "description": "externalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service.  These IPs are not managed by Kubernetes.  The user is responsible for ensuring that traffic arrives at a node with this IP.  A common example is external load-balancers that are not part of the Kubernetes system.  A previous form of this functionality exists as the deprecatedPublicIPs field.  When using this field, callers should also clear the deprecatedPublicIPs field."
-     },
-     "deprecatedPublicIPs": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      },
-      "description": "deprecatedPublicIPs is deprecated and replaced by the externalIPs field with almost the exact same semantics.  This field is retained in the v1 API for compatibility until at least 8/20/2016.  It will be removed from any new API revisions.  If both deprecatedPublicIPs *and* externalIPs are set, deprecatedPublicIPs is used."
+      "description": "externalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service.  These IPs are not managed by Kubernetes.  The user is responsible for ensuring that traffic arrives at a node with this IP.  A common example is external load-balancers that are not part of the Kubernetes system."
      },
      "sessionAffinity": {
       "type": "string",
@@ -20152,6 +21041,15 @@
      "externalName": {
       "type": "string",
       "description": "externalName is the external reference that kubedns or equivalent will return as a CNAME record for this service. No proxying will be involved. Must be a valid DNS name and requires Type to be ExternalName."
+     },
+     "externalTrafficPolicy": {
+      "type": "string",
+      "description": "externalTrafficPolicy denotes if this Service desires to route external traffic to local endpoints only. This preserves Source IP and avoids a second hop for LoadBalancer and Nodeport type services."
+     },
+     "healthCheckNodePort": {
+      "type": "integer",
+      "format": "int32",
+      "description": "healthCheckNodePort specifies the healthcheck nodePort for the service. If not specified, HealthCheckNodePort is created by the service api backend with the allocated nodePort. Will use user-specified nodePort value if specified by the client. Only effects when Type is set to LoadBalancer and ExternalTrafficPolicy is set to Local."
      }
     }
    },
@@ -20257,6 +21155,7 @@
     "description": "APIResource specifies the name of a resource and whether it is namespaced.",
     "required": [
      "name",
+     "singularName",
      "namespaced",
      "kind",
      "verbs"
@@ -20264,7 +21163,11 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "name is the name of the resource."
+      "description": "name is the plural name of the resource."
+     },
+     "singularName": {
+      "type": "string",
+      "description": "singularName is the singular name of the resource.  This allows clients to handle plural and singular opaquely. The singularName is more correct for reporting status on a single item and both singular and plural are allowed from the kubectl CLI interface."
      },
      "namespaced": {
       "type": "boolean",
@@ -20280,6 +21183,13 @@
        "type": "string"
       },
       "description": "verbs is a list of supported kube verbs (this includes get, list, watch, create, update, patch, delete, deletecollection, and proxy)"
+     },
+     "shortNames": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "shortNames is a list of suggested short names of the resource."
      }
     }
    }

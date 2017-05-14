@@ -22,13 +22,13 @@ import (
 	"path"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/uuid"
-	"k8s.io/kubernetes/test/e2e/framework"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = framework.KubeDescribe("ConfigMap", func() {
@@ -122,7 +122,7 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 				Containers: []v1.Container{
 					{
 						Name:    containerName,
-						Image:   "gcr.io/google_containers/mounttest:0.7",
+						Image:   "gcr.io/google_containers/mounttest:0.8",
 						Command: []string{"/mt", "--break_on_expected_content=false", "--retry_time=120", "--file_content_in_loop=/etc/configmap-volume/data-1"},
 						VolumeMounts: []v1.VolumeMount{
 							{
@@ -259,7 +259,7 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 				Containers: []v1.Container{
 					{
 						Name:    deleteContainerName,
-						Image:   "gcr.io/google_containers/mounttest:0.7",
+						Image:   "gcr.io/google_containers/mounttest:0.8",
 						Command: []string{"/mt", "--break_on_expected_content=false", "--retry_time=120", "--file_content_in_loop=/etc/configmap-volumes/delete/data-1"},
 						VolumeMounts: []v1.VolumeMount{
 							{
@@ -271,7 +271,7 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 					},
 					{
 						Name:    updateContainerName,
-						Image:   "gcr.io/google_containers/mounttest:0.7",
+						Image:   "gcr.io/google_containers/mounttest:0.8",
 						Command: []string{"/mt", "--break_on_expected_content=false", "--retry_time=120", "--file_content_in_loop=/etc/configmap-volumes/update/data-3"},
 						VolumeMounts: []v1.VolumeMount{
 							{
@@ -283,7 +283,7 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 					},
 					{
 						Name:    createContainerName,
-						Image:   "gcr.io/google_containers/mounttest:0.7",
+						Image:   "gcr.io/google_containers/mounttest:0.8",
 						Command: []string{"/mt", "--break_on_expected_content=false", "--retry_time=120", "--file_content_in_loop=/etc/configmap-volumes/create/data-1"},
 						VolumeMounts: []v1.VolumeMount{
 							{
@@ -467,7 +467,7 @@ var _ = framework.KubeDescribe("ConfigMap", func() {
 				Containers: []v1.Container{
 					{
 						Name:  "configmap-volume-test",
-						Image: "gcr.io/google_containers/mounttest:0.7",
+						Image: "gcr.io/google_containers/mounttest:0.8",
 						Args:  []string{"--file_content=/etc/configmap-volume/data-1"},
 						VolumeMounts: []v1.VolumeMount{
 							{
@@ -523,6 +523,9 @@ func newEnvFromConfigMap(f *framework.Framework, name string) *v1.ConfigMap {
 }
 
 func doConfigMapE2EWithoutMappings(f *framework.Framework, uid, fsGroup int64, defaultMode *int32) {
+	userID := types.UnixUserID(uid)
+	groupID := types.UnixGroupID(fsGroup)
+
 	var (
 		name            = "configmap-test-volume-" + string(uuid.NewUUID())
 		volumeName      = "configmap-volume"
@@ -557,7 +560,7 @@ func doConfigMapE2EWithoutMappings(f *framework.Framework, uid, fsGroup int64, d
 			Containers: []v1.Container{
 				{
 					Name:  "configmap-volume-test",
-					Image: "gcr.io/google_containers/mounttest:0.7",
+					Image: "gcr.io/google_containers/mounttest:0.8",
 					Args: []string{
 						"--file_content=/etc/configmap-volume/data-1",
 						"--file_mode=/etc/configmap-volume/data-1"},
@@ -573,13 +576,14 @@ func doConfigMapE2EWithoutMappings(f *framework.Framework, uid, fsGroup int64, d
 		},
 	}
 
-	if uid != 0 {
-		pod.Spec.SecurityContext.RunAsUser = &uid
+	if userID != 0 {
+		pod.Spec.SecurityContext.RunAsUser = &userID
 	}
 
-	if fsGroup != 0 {
-		pod.Spec.SecurityContext.FSGroup = &fsGroup
+	if groupID != 0 {
+		pod.Spec.SecurityContext.FSGroup = &groupID
 	}
+
 	if defaultMode != nil {
 		pod.Spec.Volumes[0].VolumeSource.ConfigMap.DefaultMode = defaultMode
 	} else {
@@ -596,6 +600,9 @@ func doConfigMapE2EWithoutMappings(f *framework.Framework, uid, fsGroup int64, d
 }
 
 func doConfigMapE2EWithMappings(f *framework.Framework, uid, fsGroup int64, itemMode *int32) {
+	userID := types.UnixUserID(uid)
+	groupID := types.UnixGroupID(fsGroup)
+
 	var (
 		name            = "configmap-test-volume-map-" + string(uuid.NewUUID())
 		volumeName      = "configmap-volume"
@@ -637,7 +644,7 @@ func doConfigMapE2EWithMappings(f *framework.Framework, uid, fsGroup int64, item
 			Containers: []v1.Container{
 				{
 					Name:  "configmap-volume-test",
-					Image: "gcr.io/google_containers/mounttest:0.7",
+					Image: "gcr.io/google_containers/mounttest:0.8",
 					Args: []string{"--file_content=/etc/configmap-volume/path/to/data-2",
 						"--file_mode=/etc/configmap-volume/path/to/data-2"},
 					VolumeMounts: []v1.VolumeMount{
@@ -653,13 +660,14 @@ func doConfigMapE2EWithMappings(f *framework.Framework, uid, fsGroup int64, item
 		},
 	}
 
-	if uid != 0 {
-		pod.Spec.SecurityContext.RunAsUser = &uid
+	if userID != 0 {
+		pod.Spec.SecurityContext.RunAsUser = &userID
 	}
 
-	if fsGroup != 0 {
-		pod.Spec.SecurityContext.FSGroup = &fsGroup
+	if groupID != 0 {
+		pod.Spec.SecurityContext.FSGroup = &groupID
 	}
+
 	if itemMode != nil {
 		pod.Spec.Volumes[0].VolumeSource.ConfigMap.Items[0].Mode = itemMode
 	} else {

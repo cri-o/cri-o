@@ -25,22 +25,23 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
 var (
-	clusterRoleBindingLong = templates.LongDesc(`
-		Create a ClusterRoleBinding for a particular ClusterRole.`)
+	clusterRoleBindingLong = templates.LongDesc(i18n.T(`
+		Create a ClusterRoleBinding for a particular ClusterRole.`))
 
-	clusterRoleBindingExample = templates.Examples(`
+	clusterRoleBindingExample = templates.Examples(i18n.T(`
 		  # Create a ClusterRoleBinding for user1, user2, and group1 using the cluster-admin ClusterRole
-		  kubectl create clusterrolebinding cluster-admin --clusterrole=cluster-admin --user=user1 --user=user2 --group=group1`)
+		  kubectl create clusterrolebinding cluster-admin --clusterrole=cluster-admin --user=user1 --user=user2 --group=group1`))
 )
 
 // ClusterRoleBinding is a command to ease creating ClusterRoleBindings.
 func NewCmdCreateClusterRoleBinding(f cmdutil.Factory, cmdOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "clusterrolebinding NAME --clusterrole=NAME [--user=username] [--group=groupname] [--serviceaccount=namespace:serviceaccountname] [--dry-run]",
-		Short:   "Create a ClusterRoleBinding for a particular ClusterRole",
+		Short:   i18n.T("Create a ClusterRoleBinding for a particular ClusterRole"),
 		Long:    clusterRoleBindingLong,
 		Example: clusterRoleBindingExample,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -52,10 +53,10 @@ func NewCmdCreateClusterRoleBinding(f cmdutil.Factory, cmdOut io.Writer) *cobra.
 	cmdutil.AddValidateFlags(cmd)
 	cmdutil.AddPrinterFlags(cmd)
 	cmdutil.AddGeneratorFlags(cmd, cmdutil.ClusterRoleBindingV1GeneratorName)
-	cmd.Flags().String("clusterrole", "", "ClusterRole this ClusterRoleBinding should reference")
-	cmd.Flags().StringSlice("user", []string{}, "usernames to bind to the role")
-	cmd.Flags().StringSlice("group", []string{}, "groups to bind to the role")
-	cmd.Flags().StringSlice("serviceaccount", []string{}, "service accounts to bind to the role")
+	cmd.Flags().String("clusterrole", "", i18n.T("ClusterRole this ClusterRoleBinding should reference"))
+	cmd.Flags().StringArray("user", []string{}, "usernames to bind to the role")
+	cmd.Flags().StringArray("group", []string{}, "groups to bind to the role")
+	cmd.Flags().StringArray("serviceaccount", []string{}, "service accounts to bind to the role, in the format <namespace>:<name>")
 	return cmd
 }
 
@@ -71,9 +72,9 @@ func CreateClusterRoleBinding(f cmdutil.Factory, cmdOut io.Writer, cmd *cobra.Co
 		generator = &kubectl.ClusterRoleBindingGeneratorV1{
 			Name:            name,
 			ClusterRole:     cmdutil.GetFlagString(cmd, "clusterrole"),
-			Users:           cmdutil.GetFlagStringSlice(cmd, "user"),
-			Groups:          cmdutil.GetFlagStringSlice(cmd, "group"),
-			ServiceAccounts: cmdutil.GetFlagStringSlice(cmd, "serviceaccount"),
+			Users:           cmdutil.GetFlagStringArray(cmd, "user"),
+			Groups:          cmdutil.GetFlagStringArray(cmd, "group"),
+			ServiceAccounts: cmdutil.GetFlagStringArray(cmd, "serviceaccount"),
 		}
 	default:
 		return cmdutil.UsageError(cmd, fmt.Sprintf("Generator: %s not supported.", generatorName))

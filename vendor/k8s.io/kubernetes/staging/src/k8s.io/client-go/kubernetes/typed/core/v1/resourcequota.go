@@ -20,7 +20,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
+	scheme "k8s.io/client-go/kubernetes/scheme"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	rest "k8s.io/client-go/rest"
 )
@@ -36,8 +36,8 @@ type ResourceQuotaInterface interface {
 	Create(*v1.ResourceQuota) (*v1.ResourceQuota, error)
 	Update(*v1.ResourceQuota) (*v1.ResourceQuota, error)
 	UpdateStatus(*v1.ResourceQuota) (*v1.ResourceQuota, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error
+	Delete(name string, options *meta_v1.DeleteOptions) error
+	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
 	Get(name string, options meta_v1.GetOptions) (*v1.ResourceQuota, error)
 	List(opts meta_v1.ListOptions) (*v1.ResourceQuotaList, error)
 	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
@@ -101,7 +101,7 @@ func (c *resourceQuotas) UpdateStatus(resourceQuota *v1.ResourceQuota) (result *
 }
 
 // Delete takes name of the resourceQuota and deletes it. Returns an error if one occurs.
-func (c *resourceQuotas) Delete(name string, options *v1.DeleteOptions) error {
+func (c *resourceQuotas) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("resourcequotas").
@@ -112,11 +112,11 @@ func (c *resourceQuotas) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *resourceQuotas) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *resourceQuotas) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("resourcequotas").
-		VersionedParams(&listOptions, api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
@@ -129,7 +129,7 @@ func (c *resourceQuotas) Get(name string, options meta_v1.GetOptions) (result *v
 		Namespace(c.ns).
 		Resource("resourcequotas").
 		Name(name).
-		VersionedParams(&options, api.ParameterCodec).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -141,7 +141,7 @@ func (c *resourceQuotas) List(opts meta_v1.ListOptions) (result *v1.ResourceQuot
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("resourcequotas").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -149,11 +149,11 @@ func (c *resourceQuotas) List(opts meta_v1.ListOptions) (result *v1.ResourceQuot
 
 // Watch returns a watch.Interface that watches the requested resourceQuotas.
 func (c *resourceQuotas) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("resourcequotas").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 

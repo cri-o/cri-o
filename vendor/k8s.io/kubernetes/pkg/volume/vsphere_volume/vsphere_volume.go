@@ -23,9 +23,9 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
@@ -77,6 +77,14 @@ func (plugin *vsphereVolumePlugin) CanSupport(spec *volume.Spec) bool {
 }
 
 func (plugin *vsphereVolumePlugin) RequiresRemount() bool {
+	return false
+}
+
+func (plugin *vsphereVolumePlugin) SupportsMountOption() bool {
+	return true
+}
+
+func (plugin *vsphereVolumePlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
@@ -144,7 +152,7 @@ func (plugin *vsphereVolumePlugin) ConstructVolumeSpec(volumeName, mountPath str
 // Abstract interface to disk operations.
 type vdManager interface {
 	// Creates a volume
-	CreateVolume(provisioner *vsphereVolumeProvisioner) (vmDiskPath string, volumeSizeGB int, err error)
+	CreateVolume(provisioner *vsphereVolumeProvisioner) (vmDiskPath string, volumeSizeGB int, fstype string, err error)
 	// Deletes a volume
 	DeleteVolume(deleter *vsphereVolumeDeleter) error
 }
@@ -180,11 +188,12 @@ type vsphereVolumeMounter struct {
 func (b *vsphereVolumeMounter) GetAttributes() volume.Attributes {
 	return volume.Attributes{
 		SupportsSELinux: true,
+		Managed:         true,
 	}
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (b *vsphereVolumeMounter) SetUp(fsGroup *int64) error {
+func (b *vsphereVolumeMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
@@ -196,7 +205,7 @@ func (b *vsphereVolumeMounter) CanMount() error {
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (b *vsphereVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (b *vsphereVolumeMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	glog.V(5).Infof("vSphere volume setup %s to %s", b.volPath, dir)
 
 	// TODO: handle failed mounts here.
@@ -335,9 +344,13 @@ func (plugin *vsphereVolumePlugin) newProvisionerInternal(options volume.VolumeO
 }
 
 func (v *vsphereVolumeProvisioner) Provision() (*v1.PersistentVolume, error) {
-	vmDiskPath, sizeKB, err := v.manager.CreateVolume(v)
+	vmDiskPath, sizeKB, fstype, err := v.manager.CreateVolume(v)
 	if err != nil {
 		return nil, err
+	}
+
+	if fstype == "" {
+		fstype = "ext4"
 	}
 
 	pv := &v1.PersistentVolume{
@@ -357,7 +370,7 @@ func (v *vsphereVolumeProvisioner) Provision() (*v1.PersistentVolume, error) {
 			PersistentVolumeSource: v1.PersistentVolumeSource{
 				VsphereVolume: &v1.VsphereVirtualDiskVolumeSource{
 					VolumePath: vmDiskPath,
-					FSType:     "ext4",
+					FSType:     fstype,
 				},
 			},
 		},

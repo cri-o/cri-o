@@ -32,6 +32,7 @@ const (
 	PodStartLatencyKey            = "pod_start_latency_microseconds"
 	PodStatusLatencyKey           = "generate_pod_status_latency_microseconds"
 	ContainerManagerOperationsKey = "container_manager_latency_microseconds"
+	CgroupManagerOperationsKey    = "cgroup_manager_latency_microseconds"
 	DockerOperationsLatencyKey    = "docker_operations_latency_microseconds"
 	DockerOperationsKey           = "docker_operations"
 	DockerOperationsErrorsKey     = "docker_operations_errors"
@@ -39,6 +40,7 @@ const (
 	PodWorkerStartLatencyKey      = "pod_worker_start_latency_microseconds"
 	PLEGRelistLatencyKey          = "pleg_relist_latency_microseconds"
 	PLEGRelistIntervalKey         = "pleg_relist_interval_microseconds"
+	EvictionStatsAgeKey           = "eviction_stats_age_microseconds"
 	// Metrics keys of remote runtime operations
 	RuntimeOperationsKey        = "runtime_operations"
 	RuntimeOperationsLatencyKey = "runtime_operations_latency_microseconds"
@@ -87,6 +89,14 @@ var (
 			Subsystem: KubeletSubsystem,
 			Name:      ContainerManagerOperationsKey,
 			Help:      "Latency in microseconds for container manager operations. Broken down by method.",
+		},
+		[]string{"operation_type"},
+	)
+	CgroupManagerLatency = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Subsystem: KubeletSubsystem,
+			Name:      CgroupManagerOperationsKey,
+			Help:      "Latency in microseconds for cgroup manager operations. Broken down by method.",
 		},
 		[]string{"operation_type"},
 	)
@@ -169,6 +179,14 @@ var (
 		},
 		[]string{"operation_type"},
 	)
+	EvictionStatsAge = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Subsystem: KubeletSubsystem,
+			Name:      EvictionStatsAgeKey,
+			Help:      "Time between when stats are collected, and when pod is evicted based on those stats by eviction signal",
+		},
+		[]string{"eviction_signal"},
+	)
 )
 
 var registerMetrics sync.Once
@@ -182,6 +200,7 @@ func Register(containerCache kubecontainer.RuntimeCache) {
 		prometheus.MustRegister(PodStatusLatency)
 		prometheus.MustRegister(DockerOperationsLatency)
 		prometheus.MustRegister(ContainerManagerLatency)
+		prometheus.MustRegister(CgroupManagerLatency)
 		prometheus.MustRegister(SyncPodsLatency)
 		prometheus.MustRegister(PodWorkerStartLatency)
 		prometheus.MustRegister(ContainersPerPodCount)
@@ -194,6 +213,7 @@ func Register(containerCache kubecontainer.RuntimeCache) {
 		prometheus.MustRegister(RuntimeOperations)
 		prometheus.MustRegister(RuntimeOperationsLatency)
 		prometheus.MustRegister(RuntimeOperationsErrors)
+		prometheus.MustRegister(EvictionStatsAge)
 	})
 }
 
