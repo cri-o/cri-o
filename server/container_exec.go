@@ -9,7 +9,8 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/client-go/tools/remotecommand"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/term"
@@ -28,7 +29,8 @@ func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (*pb.ExecRespons
 }
 
 // Exec endpoint for streaming.Runtime
-func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan term.Size) error {
+func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	fmt.Println(containerID, cmd, stdin, stdout, stderr, tty, resize)
 	c := ss.runtimeServer.GetContainer(containerID)
 
 	if c == nil {
@@ -62,7 +64,7 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 		// make sure to close the stdout stream
 		defer stdout.Close()
 
-		kubecontainer.HandleResizing(resize, func(size term.Size) {
+		kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 			term.SetSize(p.Fd(), size)
 		})
 

@@ -24,7 +24,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/emicklei/go-restful/swagger"
+	"github.com/emicklei/go-restful-swagger12"
 	ejson "github.com/exponent-io/jsonpath"
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -281,7 +281,7 @@ func (s *SwaggerSchema) ValidateObject(obj interface{}, fieldName, typeName stri
 	// handle required fields
 	for _, requiredKey := range model.Required {
 		if _, ok := fields[requiredKey]; !ok {
-			allErrs = append(allErrs, fmt.Errorf("field %s for %s: is required", requiredKey, typeName))
+			allErrs = append(allErrs, fmt.Errorf("field %s%s for %s is required", fieldName, requiredKey, typeName))
 		}
 	}
 	for key, value := range fields {
@@ -302,7 +302,7 @@ func (s *SwaggerSchema) ValidateObject(obj interface{}, fieldName, typeName stri
 			continue
 		}
 		if details.Type == nil && details.Ref == nil {
-			allErrs = append(allErrs, fmt.Errorf("could not find the type of %s from object: %v", key, details))
+			allErrs = append(allErrs, fmt.Errorf("could not find the type of %s%s from object %v", fieldName, key, details))
 		}
 		var fieldType string
 		if details.Type != nil {
@@ -311,7 +311,7 @@ func (s *SwaggerSchema) ValidateObject(obj interface{}, fieldName, typeName stri
 			fieldType = *details.Ref
 		}
 		if value == nil {
-			glog.V(2).Infof("Skipping nil field: %s", key)
+			glog.V(2).Infof("Skipping nil field: %s%s", fieldName, key)
 			continue
 		}
 		errs := s.validateField(value, fieldName+key, fieldType, &details)
@@ -359,7 +359,7 @@ func (s *SwaggerSchema) isGenericArray(p swagger.ModelProperty) bool {
 }
 
 // This matches type name in the swagger spec, such as "v1.Binding".
-var versionRegexp = regexp.MustCompile(`^(v.+|unversioned)\..*`)
+var versionRegexp = regexp.MustCompile(`^(v.+|unversioned|types)\..*`)
 
 func (s *SwaggerSchema) validateField(value interface{}, fieldName, fieldType string, fieldDetails *swagger.ModelProperty) []error {
 	allErrs := []error{}

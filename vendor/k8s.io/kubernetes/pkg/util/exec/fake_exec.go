@@ -52,6 +52,7 @@ type FakeCmd struct {
 	Dirs                 []string
 	Stdin                io.Reader
 	Stdout               io.Writer
+	Stderr               io.Writer
 }
 
 func InitFakeCmd(fake *FakeCmd, cmd string, args ...string) Cmd {
@@ -73,6 +74,14 @@ func (fake *FakeCmd) SetStdout(out io.Writer) {
 	fake.Stdout = out
 }
 
+func (fake *FakeCmd) SetStderr(out io.Writer) {
+	fake.Stderr = out
+}
+
+func (fake *FakeCmd) Run() error {
+	return fmt.Errorf("unimplemented")
+}
+
 func (fake *FakeCmd) CombinedOutput() ([]byte, error) {
 	if fake.CombinedOutputCalls > len(fake.CombinedOutputScript)-1 {
 		panic("ran out of CombinedOutput() actions")
@@ -88,6 +97,10 @@ func (fake *FakeCmd) CombinedOutput() ([]byte, error) {
 
 func (fake *FakeCmd) Output() ([]byte, error) {
 	return nil, fmt.Errorf("unimplemented")
+}
+
+func (fake *FakeCmd) Stop() {
+	// no-op
 }
 
 // A simple fake ExitError type.

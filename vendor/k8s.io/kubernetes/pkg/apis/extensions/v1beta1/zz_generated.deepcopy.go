@@ -24,8 +24,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	intstr "k8s.io/kubernetes/pkg/util/intstr"
 	reflect "reflect"
 )
 
@@ -38,7 +38,6 @@ func init() {
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_APIVersion, InType: reflect.TypeOf(&APIVersion{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CPUTargetUtilization, InType: reflect.TypeOf(&CPUTargetUtilization{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CustomMetricCurrentStatus, InType: reflect.TypeOf(&CustomMetricCurrentStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CustomMetricCurrentStatusList, InType: reflect.TypeOf(&CustomMetricCurrentStatusList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CustomMetricTarget, InType: reflect.TypeOf(&CustomMetricTarget{})},
@@ -47,6 +46,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_DaemonSetList, InType: reflect.TypeOf(&DaemonSetList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_DaemonSetSpec, InType: reflect.TypeOf(&DaemonSetSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_DaemonSetStatus, InType: reflect.TypeOf(&DaemonSetStatus{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_DaemonSetUpdateStrategy, InType: reflect.TypeOf(&DaemonSetUpdateStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_Deployment, InType: reflect.TypeOf(&Deployment{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_DeploymentCondition, InType: reflect.TypeOf(&DeploymentCondition{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_DeploymentList, InType: reflect.TypeOf(&DeploymentList{})},
@@ -57,10 +57,6 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_FSGroupStrategyOptions, InType: reflect.TypeOf(&FSGroupStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HTTPIngressPath, InType: reflect.TypeOf(&HTTPIngressPath{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HTTPIngressRuleValue, InType: reflect.TypeOf(&HTTPIngressRuleValue{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HorizontalPodAutoscaler, InType: reflect.TypeOf(&HorizontalPodAutoscaler{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HorizontalPodAutoscalerList, InType: reflect.TypeOf(&HorizontalPodAutoscalerList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HorizontalPodAutoscalerSpec, InType: reflect.TypeOf(&HorizontalPodAutoscalerSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HorizontalPodAutoscalerStatus, InType: reflect.TypeOf(&HorizontalPodAutoscalerStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HostPortRange, InType: reflect.TypeOf(&HostPortRange{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_IDRange, InType: reflect.TypeOf(&IDRange{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_Ingress, InType: reflect.TypeOf(&Ingress{})},
@@ -87,13 +83,13 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ReplicaSetStatus, InType: reflect.TypeOf(&ReplicaSetStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ReplicationControllerDummy, InType: reflect.TypeOf(&ReplicationControllerDummy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_RollbackConfig, InType: reflect.TypeOf(&RollbackConfig{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_RollingUpdateDaemonSet, InType: reflect.TypeOf(&RollingUpdateDaemonSet{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_RollingUpdateDeployment, InType: reflect.TypeOf(&RollingUpdateDeployment{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_RunAsUserStrategyOptions, InType: reflect.TypeOf(&RunAsUserStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_SELinuxStrategyOptions, InType: reflect.TypeOf(&SELinuxStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_Scale, InType: reflect.TypeOf(&Scale{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ScaleSpec, InType: reflect.TypeOf(&ScaleSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ScaleStatus, InType: reflect.TypeOf(&ScaleStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_SubresourceReference, InType: reflect.TypeOf(&SubresourceReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_SupplementalGroupsStrategyOptions, InType: reflect.TypeOf(&SupplementalGroupsStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ThirdPartyResource, InType: reflect.TypeOf(&ThirdPartyResource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ThirdPartyResourceData, InType: reflect.TypeOf(&ThirdPartyResourceData{})},
@@ -102,6 +98,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	)
 }
 
+// DeepCopy_v1beta1_APIVersion is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_APIVersion(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*APIVersion)
@@ -111,15 +108,7 @@ func DeepCopy_v1beta1_APIVersion(in interface{}, out interface{}, c *conversion.
 	}
 }
 
-func DeepCopy_v1beta1_CPUTargetUtilization(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*CPUTargetUtilization)
-		out := out.(*CPUTargetUtilization)
-		*out = *in
-		return nil
-	}
-}
-
+// DeepCopy_v1beta1_CustomMetricCurrentStatus is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_CustomMetricCurrentStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*CustomMetricCurrentStatus)
@@ -130,6 +119,7 @@ func DeepCopy_v1beta1_CustomMetricCurrentStatus(in interface{}, out interface{},
 	}
 }
 
+// DeepCopy_v1beta1_CustomMetricCurrentStatusList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_CustomMetricCurrentStatusList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*CustomMetricCurrentStatusList)
@@ -148,6 +138,7 @@ func DeepCopy_v1beta1_CustomMetricCurrentStatusList(in interface{}, out interfac
 	}
 }
 
+// DeepCopy_v1beta1_CustomMetricTarget is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_CustomMetricTarget(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*CustomMetricTarget)
@@ -158,6 +149,7 @@ func DeepCopy_v1beta1_CustomMetricTarget(in interface{}, out interface{}, c *con
 	}
 }
 
+// DeepCopy_v1beta1_CustomMetricTargetList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_CustomMetricTargetList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*CustomMetricTargetList)
@@ -176,6 +168,7 @@ func DeepCopy_v1beta1_CustomMetricTargetList(in interface{}, out interface{}, c 
 	}
 }
 
+// DeepCopy_v1beta1_DaemonSet is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DaemonSet(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DaemonSet)
@@ -193,6 +186,7 @@ func DeepCopy_v1beta1_DaemonSet(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_v1beta1_DaemonSetList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DaemonSetList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DaemonSetList)
@@ -211,6 +205,7 @@ func DeepCopy_v1beta1_DaemonSetList(in interface{}, out interface{}, c *conversi
 	}
 }
 
+// DeepCopy_v1beta1_DaemonSetSpec is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DaemonSetSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DaemonSetSpec)
@@ -227,10 +222,14 @@ func DeepCopy_v1beta1_DaemonSetSpec(in interface{}, out interface{}, c *conversi
 		if err := api_v1.DeepCopy_v1_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
 			return err
 		}
+		if err := DeepCopy_v1beta1_DaemonSetUpdateStrategy(&in.UpdateStrategy, &out.UpdateStrategy, c); err != nil {
+			return err
+		}
 		return nil
 	}
 }
 
+// DeepCopy_v1beta1_DaemonSetStatus is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DaemonSetStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DaemonSetStatus)
@@ -240,6 +239,24 @@ func DeepCopy_v1beta1_DaemonSetStatus(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_v1beta1_DaemonSetUpdateStrategy is an autogenerated deepcopy function.
+func DeepCopy_v1beta1_DaemonSetUpdateStrategy(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*DaemonSetUpdateStrategy)
+		out := out.(*DaemonSetUpdateStrategy)
+		*out = *in
+		if in.RollingUpdate != nil {
+			in, out := &in.RollingUpdate, &out.RollingUpdate
+			*out = new(RollingUpdateDaemonSet)
+			if err := DeepCopy_v1beta1_RollingUpdateDaemonSet(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+// DeepCopy_v1beta1_Deployment is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_Deployment(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Deployment)
@@ -260,6 +277,7 @@ func DeepCopy_v1beta1_Deployment(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_v1beta1_DeploymentCondition is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DeploymentCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DeploymentCondition)
@@ -271,6 +289,7 @@ func DeepCopy_v1beta1_DeploymentCondition(in interface{}, out interface{}, c *co
 	}
 }
 
+// DeepCopy_v1beta1_DeploymentList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DeploymentList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DeploymentList)
@@ -289,6 +308,7 @@ func DeepCopy_v1beta1_DeploymentList(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_v1beta1_DeploymentRollback is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DeploymentRollback(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DeploymentRollback)
@@ -305,6 +325,7 @@ func DeepCopy_v1beta1_DeploymentRollback(in interface{}, out interface{}, c *con
 	}
 }
 
+// DeepCopy_v1beta1_DeploymentSpec is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DeploymentSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DeploymentSpec)
@@ -348,6 +369,7 @@ func DeepCopy_v1beta1_DeploymentSpec(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_v1beta1_DeploymentStatus is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DeploymentStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DeploymentStatus)
@@ -366,6 +388,7 @@ func DeepCopy_v1beta1_DeploymentStatus(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_v1beta1_DeploymentStrategy is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_DeploymentStrategy(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*DeploymentStrategy)
@@ -382,6 +405,7 @@ func DeepCopy_v1beta1_DeploymentStrategy(in interface{}, out interface{}, c *con
 	}
 }
 
+// DeepCopy_v1beta1_FSGroupStrategyOptions is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_FSGroupStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*FSGroupStrategyOptions)
@@ -396,6 +420,7 @@ func DeepCopy_v1beta1_FSGroupStrategyOptions(in interface{}, out interface{}, c 
 	}
 }
 
+// DeepCopy_v1beta1_HTTPIngressPath is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_HTTPIngressPath(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*HTTPIngressPath)
@@ -405,6 +430,7 @@ func DeepCopy_v1beta1_HTTPIngressPath(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_v1beta1_HTTPIngressRuleValue is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_HTTPIngressRuleValue(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*HTTPIngressRuleValue)
@@ -419,87 +445,7 @@ func DeepCopy_v1beta1_HTTPIngressRuleValue(in interface{}, out interface{}, c *c
 	}
 }
 
-func DeepCopy_v1beta1_HorizontalPodAutoscaler(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*HorizontalPodAutoscaler)
-		out := out.(*HorizontalPodAutoscaler)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if err := DeepCopy_v1beta1_HorizontalPodAutoscalerSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_v1beta1_HorizontalPodAutoscalerStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-func DeepCopy_v1beta1_HorizontalPodAutoscalerList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*HorizontalPodAutoscalerList)
-		out := out.(*HorizontalPodAutoscalerList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]HorizontalPodAutoscaler, len(*in))
-			for i := range *in {
-				if err := DeepCopy_v1beta1_HorizontalPodAutoscaler(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-func DeepCopy_v1beta1_HorizontalPodAutoscalerSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*HorizontalPodAutoscalerSpec)
-		out := out.(*HorizontalPodAutoscalerSpec)
-		*out = *in
-		if in.MinReplicas != nil {
-			in, out := &in.MinReplicas, &out.MinReplicas
-			*out = new(int32)
-			**out = **in
-		}
-		if in.CPUUtilization != nil {
-			in, out := &in.CPUUtilization, &out.CPUUtilization
-			*out = new(CPUTargetUtilization)
-			**out = **in
-		}
-		return nil
-	}
-}
-
-func DeepCopy_v1beta1_HorizontalPodAutoscalerStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*HorizontalPodAutoscalerStatus)
-		out := out.(*HorizontalPodAutoscalerStatus)
-		*out = *in
-		if in.ObservedGeneration != nil {
-			in, out := &in.ObservedGeneration, &out.ObservedGeneration
-			*out = new(int64)
-			**out = **in
-		}
-		if in.LastScaleTime != nil {
-			in, out := &in.LastScaleTime, &out.LastScaleTime
-			*out = new(v1.Time)
-			**out = (*in).DeepCopy()
-		}
-		if in.CurrentCPUUtilizationPercentage != nil {
-			in, out := &in.CurrentCPUUtilizationPercentage, &out.CurrentCPUUtilizationPercentage
-			*out = new(int32)
-			**out = **in
-		}
-		return nil
-	}
-}
-
+// DeepCopy_v1beta1_HostPortRange is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_HostPortRange(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*HostPortRange)
@@ -509,6 +455,7 @@ func DeepCopy_v1beta1_HostPortRange(in interface{}, out interface{}, c *conversi
 	}
 }
 
+// DeepCopy_v1beta1_IDRange is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_IDRange(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*IDRange)
@@ -518,6 +465,7 @@ func DeepCopy_v1beta1_IDRange(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_v1beta1_Ingress is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_Ingress(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Ingress)
@@ -538,6 +486,7 @@ func DeepCopy_v1beta1_Ingress(in interface{}, out interface{}, c *conversion.Clo
 	}
 }
 
+// DeepCopy_v1beta1_IngressBackend is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_IngressBackend(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*IngressBackend)
@@ -547,6 +496,7 @@ func DeepCopy_v1beta1_IngressBackend(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_v1beta1_IngressList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_IngressList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*IngressList)
@@ -565,6 +515,7 @@ func DeepCopy_v1beta1_IngressList(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_v1beta1_IngressRule is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_IngressRule(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*IngressRule)
@@ -577,6 +528,7 @@ func DeepCopy_v1beta1_IngressRule(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_v1beta1_IngressRuleValue is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_IngressRuleValue(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*IngressRuleValue)
@@ -593,6 +545,7 @@ func DeepCopy_v1beta1_IngressRuleValue(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_v1beta1_IngressSpec is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_IngressSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*IngressSpec)
@@ -625,6 +578,7 @@ func DeepCopy_v1beta1_IngressSpec(in interface{}, out interface{}, c *conversion
 	}
 }
 
+// DeepCopy_v1beta1_IngressStatus is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_IngressStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*IngressStatus)
@@ -637,6 +591,7 @@ func DeepCopy_v1beta1_IngressStatus(in interface{}, out interface{}, c *conversi
 	}
 }
 
+// DeepCopy_v1beta1_IngressTLS is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_IngressTLS(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*IngressTLS)
@@ -651,6 +606,7 @@ func DeepCopy_v1beta1_IngressTLS(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_v1beta1_NetworkPolicy is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_NetworkPolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NetworkPolicy)
@@ -668,6 +624,7 @@ func DeepCopy_v1beta1_NetworkPolicy(in interface{}, out interface{}, c *conversi
 	}
 }
 
+// DeepCopy_v1beta1_NetworkPolicyIngressRule is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_NetworkPolicyIngressRule(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NetworkPolicyIngressRule)
@@ -695,6 +652,7 @@ func DeepCopy_v1beta1_NetworkPolicyIngressRule(in interface{}, out interface{}, 
 	}
 }
 
+// DeepCopy_v1beta1_NetworkPolicyList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_NetworkPolicyList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NetworkPolicyList)
@@ -713,6 +671,7 @@ func DeepCopy_v1beta1_NetworkPolicyList(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_v1beta1_NetworkPolicyPeer is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_NetworkPolicyPeer(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NetworkPolicyPeer)
@@ -738,6 +697,7 @@ func DeepCopy_v1beta1_NetworkPolicyPeer(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_v1beta1_NetworkPolicyPort is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_NetworkPolicyPort(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NetworkPolicyPort)
@@ -757,6 +717,7 @@ func DeepCopy_v1beta1_NetworkPolicyPort(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_v1beta1_NetworkPolicySpec is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_NetworkPolicySpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NetworkPolicySpec)
@@ -780,6 +741,7 @@ func DeepCopy_v1beta1_NetworkPolicySpec(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_v1beta1_PodSecurityPolicy is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_PodSecurityPolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodSecurityPolicy)
@@ -797,6 +759,7 @@ func DeepCopy_v1beta1_PodSecurityPolicy(in interface{}, out interface{}, c *conv
 	}
 }
 
+// DeepCopy_v1beta1_PodSecurityPolicyList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_PodSecurityPolicyList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodSecurityPolicyList)
@@ -815,6 +778,7 @@ func DeepCopy_v1beta1_PodSecurityPolicyList(in interface{}, out interface{}, c *
 	}
 }
 
+// DeepCopy_v1beta1_PodSecurityPolicySpec is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_PodSecurityPolicySpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodSecurityPolicySpec)
@@ -861,6 +825,7 @@ func DeepCopy_v1beta1_PodSecurityPolicySpec(in interface{}, out interface{}, c *
 	}
 }
 
+// DeepCopy_v1beta1_ReplicaSet is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ReplicaSet(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicaSet)
@@ -881,6 +846,7 @@ func DeepCopy_v1beta1_ReplicaSet(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_v1beta1_ReplicaSetCondition is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ReplicaSetCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicaSetCondition)
@@ -891,6 +857,7 @@ func DeepCopy_v1beta1_ReplicaSetCondition(in interface{}, out interface{}, c *co
 	}
 }
 
+// DeepCopy_v1beta1_ReplicaSetList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ReplicaSetList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicaSetList)
@@ -909,6 +876,7 @@ func DeepCopy_v1beta1_ReplicaSetList(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_v1beta1_ReplicaSetSpec is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ReplicaSetSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicaSetSpec)
@@ -934,6 +902,7 @@ func DeepCopy_v1beta1_ReplicaSetSpec(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_v1beta1_ReplicaSetStatus is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ReplicaSetStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicaSetStatus)
@@ -952,6 +921,7 @@ func DeepCopy_v1beta1_ReplicaSetStatus(in interface{}, out interface{}, c *conve
 	}
 }
 
+// DeepCopy_v1beta1_ReplicationControllerDummy is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ReplicationControllerDummy(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ReplicationControllerDummy)
@@ -961,6 +931,7 @@ func DeepCopy_v1beta1_ReplicationControllerDummy(in interface{}, out interface{}
 	}
 }
 
+// DeepCopy_v1beta1_RollbackConfig is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_RollbackConfig(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*RollbackConfig)
@@ -970,6 +941,22 @@ func DeepCopy_v1beta1_RollbackConfig(in interface{}, out interface{}, c *convers
 	}
 }
 
+// DeepCopy_v1beta1_RollingUpdateDaemonSet is an autogenerated deepcopy function.
+func DeepCopy_v1beta1_RollingUpdateDaemonSet(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*RollingUpdateDaemonSet)
+		out := out.(*RollingUpdateDaemonSet)
+		*out = *in
+		if in.MaxUnavailable != nil {
+			in, out := &in.MaxUnavailable, &out.MaxUnavailable
+			*out = new(intstr.IntOrString)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_v1beta1_RollingUpdateDeployment is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_RollingUpdateDeployment(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*RollingUpdateDeployment)
@@ -989,6 +976,7 @@ func DeepCopy_v1beta1_RollingUpdateDeployment(in interface{}, out interface{}, c
 	}
 }
 
+// DeepCopy_v1beta1_RunAsUserStrategyOptions is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_RunAsUserStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*RunAsUserStrategyOptions)
@@ -1003,6 +991,7 @@ func DeepCopy_v1beta1_RunAsUserStrategyOptions(in interface{}, out interface{}, 
 	}
 }
 
+// DeepCopy_v1beta1_SELinuxStrategyOptions is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_SELinuxStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SELinuxStrategyOptions)
@@ -1017,6 +1006,7 @@ func DeepCopy_v1beta1_SELinuxStrategyOptions(in interface{}, out interface{}, c 
 	}
 }
 
+// DeepCopy_v1beta1_Scale is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_Scale(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Scale)
@@ -1034,6 +1024,7 @@ func DeepCopy_v1beta1_Scale(in interface{}, out interface{}, c *conversion.Clone
 	}
 }
 
+// DeepCopy_v1beta1_ScaleSpec is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ScaleSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ScaleSpec)
@@ -1043,6 +1034,7 @@ func DeepCopy_v1beta1_ScaleSpec(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_v1beta1_ScaleStatus is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ScaleStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ScaleStatus)
@@ -1059,15 +1051,7 @@ func DeepCopy_v1beta1_ScaleStatus(in interface{}, out interface{}, c *conversion
 	}
 }
 
-func DeepCopy_v1beta1_SubresourceReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SubresourceReference)
-		out := out.(*SubresourceReference)
-		*out = *in
-		return nil
-	}
-}
-
+// DeepCopy_v1beta1_SupplementalGroupsStrategyOptions is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_SupplementalGroupsStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*SupplementalGroupsStrategyOptions)
@@ -1082,6 +1066,7 @@ func DeepCopy_v1beta1_SupplementalGroupsStrategyOptions(in interface{}, out inte
 	}
 }
 
+// DeepCopy_v1beta1_ThirdPartyResource is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ThirdPartyResource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ThirdPartyResource)
@@ -1101,6 +1086,7 @@ func DeepCopy_v1beta1_ThirdPartyResource(in interface{}, out interface{}, c *con
 	}
 }
 
+// DeepCopy_v1beta1_ThirdPartyResourceData is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ThirdPartyResourceData(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ThirdPartyResourceData)
@@ -1120,6 +1106,7 @@ func DeepCopy_v1beta1_ThirdPartyResourceData(in interface{}, out interface{}, c 
 	}
 }
 
+// DeepCopy_v1beta1_ThirdPartyResourceDataList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ThirdPartyResourceDataList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ThirdPartyResourceDataList)
@@ -1138,6 +1125,7 @@ func DeepCopy_v1beta1_ThirdPartyResourceDataList(in interface{}, out interface{}
 	}
 }
 
+// DeepCopy_v1beta1_ThirdPartyResourceList is an autogenerated deepcopy function.
 func DeepCopy_v1beta1_ThirdPartyResourceList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*ThirdPartyResourceList)

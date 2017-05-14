@@ -24,11 +24,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/clock"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/api/v1/ref"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/client-go/util/clock"
 
 	"net/http"
 
@@ -90,7 +91,7 @@ type EventBroadcaster interface {
 
 	// NewRecorder returns an EventRecorder that can be used to send events to this EventBroadcaster
 	// with the event source set to the given event source.
-	NewRecorder(source v1.EventSource) EventRecorder
+	NewRecorder(scheme *runtime.Scheme, source v1.EventSource) EventRecorder
 }
 
 // Creates a new event broadcaster.
@@ -242,18 +243,19 @@ func (eventBroadcaster *eventBroadcasterImpl) StartEventWatcher(eventHandler fun
 }
 
 // NewRecorder returns an EventRecorder that records events with the given event source.
-func (eventBroadcaster *eventBroadcasterImpl) NewRecorder(source v1.EventSource) EventRecorder {
-	return &recorderImpl{source, eventBroadcaster.Broadcaster, clock.RealClock{}}
+func (eventBroadcaster *eventBroadcasterImpl) NewRecorder(scheme *runtime.Scheme, source v1.EventSource) EventRecorder {
+	return &recorderImpl{scheme, source, eventBroadcaster.Broadcaster, clock.RealClock{}}
 }
 
 type recorderImpl struct {
+	scheme *runtime.Scheme
 	source v1.EventSource
 	*watch.Broadcaster
 	clock clock.Clock
 }
 
 func (recorder *recorderImpl) generateEvent(object runtime.Object, timestamp metav1.Time, eventtype, reason, message string) {
-	ref, err := v1.GetReference(object)
+	ref, err := ref.GetReference(recorder.scheme, object)
 	if err != nil {
 		glog.Errorf("Could not construct reference to: '%#v' due to: '%v'. Will not report event: '%v' '%v' '%v'", object, err, eventtype, reason, message)
 		return
