@@ -39,9 +39,9 @@ type Container struct {
 type ContainerState struct {
 	specs.State
 	Created  time.Time `json:"created"`
-	Started  time.Time `json:"started"`
-	Finished time.Time `json:"finished"`
-	ExitCode int32     `json:"exitCode"`
+	Started  time.Time `json:"started,omitempty"`
+	Finished time.Time `json:"finished,omitempty"`
+	ExitCode int32     `json:"exitCode,omitempty"`
 }
 
 // NewContainer creates a container object.
