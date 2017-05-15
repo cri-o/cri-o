@@ -144,7 +144,7 @@ function teardown() {
     fi
 
     start_crio
-    remove_apparmor_profile "$FAKE_OCID_DEFAULT_PROFILE_PATH"
+    remove_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname5": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor5.json
 

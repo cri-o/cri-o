@@ -12,11 +12,11 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 # The "crio" table contains all of the server options.
 [crio]
 
-# root is a path to the "root directory". OCID stores all of its data,
+# root is a path to the "root directory". CRIO stores all of its data,
 # including container images, in this directory.
 root = "{{ .Root }}"
 
-# run is a path to the "run directory". OCID stores all of its state
+# run is a path to the "run directory". CRIO stores all of its state
 # in this directory.
 runroot = "{{ .RunRoot }}"
 
