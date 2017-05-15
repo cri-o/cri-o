@@ -13,6 +13,7 @@ ExecStart=/usr/local/bin/ocid \
           $OCID_NETWORK_OPTIONS \
 ExecReload=/bin/kill -s HUP $MAINPID
 TasksMax=8192
+KillMode=process
 LimitNOFILE=1048576
 LimitNPROC=1048576
 LimitCORE=infinity
