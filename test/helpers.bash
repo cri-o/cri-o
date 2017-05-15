@@ -7,18 +7,18 @@ INTEGRATION_ROOT=$(dirname "$(readlink -f "$BASH_SOURCE")")
 TESTDATA="${INTEGRATION_ROOT}/testdata"
 
 # Root directory of the repository.
-OCID_ROOT=${OCID_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
+CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
 # Path of the crio binary.
-OCID_BINARY=${OCID_BINARY:-${OCID_ROOT}/cri-o/crio}
+CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/crio}
 # Path of the crioctl binary.
-OCIC_BINARY=${OCIC_BINARY:-${OCID_ROOT}/cri-o/crioctl}
+OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/crioctl}
 # Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${OCID_ROOT}/cri-o/conmon/conmon}
+CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/conmon/conmon}
 # Path of the pause binary.
-PAUSE_BINARY=${PAUSE_BINARY:-${OCID_ROOT}/cri-o/pause/pause}
+PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/cri-o/pause/pause}
 # Path of the default seccomp profile.
-SECCOMP_PROFILE=${SECCOMP_PROFILE:-${OCID_ROOT}/cri-o/seccomp.json}
+SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/cri-o/seccomp.json}
 # Name of the default apparmor profile.
 APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
 # Runtime
@@ -30,7 +30,7 @@ APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
 # Path of the apparmor profile for test.
 APPARMOR_TEST_PROFILE_PATH=${APPARMOR_TEST_PROFILE_PATH:-${TESTDATA}/apparmor_test_deny_write}
 # Path of the apparmor profile for unloading crio-default.
-FAKE_OCID_DEFAULT_PROFILE_PATH=${FAKE_OCID_DEFAULT_PROFILE_PATH:-${TESTDATA}/fake_crio_default}
+FAKE_CRIO_DEFAULT_PROFILE_PATH=${FAKE_CRIO_DEFAULT_PROFILE_PATH:-${TESTDATA}/fake_crio_default}
 # Name of the apparmor profile for test.
 APPARMOR_TEST_PROFILE_NAME=${APPARMOR_TEST_PROFILE_NAME:-apparmor-test-deny-write}
 # Path of boot config.
@@ -38,13 +38,13 @@ BOOT_CONFIG_FILE_PATH=${BOOT_CONFIG_FILE_PATH:-/boot/config-`uname -r`}
 # Path of apparmor parameters file.
 APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/apparmor/parameters/enabled}
 # Path of the bin2img binary.
-BIN2IMG_BINARY=${BIN2IMG_BINARY:-${OCID_ROOT}/cri-o/test/bin2img/bin2img}
+BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/cri-o/test/bin2img/bin2img}
 # Path of the copyimg binary.
-COPYIMG_BINARY=${COPYIMG_BINARY:-${OCID_ROOT}/cri-o/test/copyimg/copyimg}
+COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/cri-o/test/copyimg/copyimg}
 # Path of tests artifacts.
-ARTIFACTS_PATH=${ARTIFACTS_PATH:-${OCID_ROOT}/cri-o/.artifacts}
+ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/cri-o/.artifacts}
 # Path of the checkseccomp binary.
-CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${OCID_ROOT}/cri-o/test/checkseccomp/checkseccomp}
+CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/cri-o/test/checkseccomp/checkseccomp}
 # XXX: This is hardcoded inside cri-o at the moment.
 DEFAULT_LOG_PATH=/var/log/crio/pods
 
@@ -54,10 +54,10 @@ if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
     filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
     chcon -R ${filelabel} $TESTDIR
 fi
-OCID_SOCKET="$TESTDIR/crio.sock"
-OCID_CONFIG="$TESTDIR/crio.conf"
-OCID_CNI_CONFIG="$TESTDIR/cni/net.d/"
-OCID_CNI_PLUGIN="/opt/cni/bin/"
+CRIO_SOCKET="$TESTDIR/crio.sock"
+CRIO_CONFIG="$TESTDIR/crio.conf"
+CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
+CRIO_CNI_PLUGIN="/opt/cni/bin/"
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
@@ -85,15 +85,15 @@ if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
     fi
 fi
 
-# Run crio using the binary specified by $OCID_BINARY.
+# Run crio using the binary specified by $CRIO_BINARY.
 # This must ONLY be run on engines created with `start_crio`.
 function crio() {
-	"$OCID_BINARY" --listen "$OCID_SOCKET" "$@"
+	"$CRIO_BINARY" --listen "$CRIO_SOCKET" "$@"
 }
 
 # Run crioctl using the binary specified by $OCIC_BINARY.
 function crioctl() {
-	"$OCIC_BINARY" --connect "$OCID_SOCKET" "$@"
+	"$OCIC_BINARY" --connect "$CRIO_SOCKET" "$@"
 }
 
 # Communicate with Docker on the host machine.
@@ -146,7 +146,7 @@ function start_crio() {
 		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$OCID_BINARY" --conmon "$CONMON_BINARY" --listen "$OCID_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$OCID_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$OCID_CONFIG
+	"$CRIO_BINARY" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$CRIO_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$4" ]]; then
@@ -156,7 +156,7 @@ function start_crio() {
 	fi
 	${netfunc} $POD_CIDR
 
-	"$OCID_BINARY" --debug --config "$OCID_CONFIG" & OCID_PID=$!
+	"$CRIO_BINARY" --debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 
 	run crioctl image status --id=redis:alpine
@@ -211,19 +211,19 @@ function cleanup_pods() {
 
 # Stop crio.
 function stop_crio() {
-	if [ "$OCID_PID" != "" ]; then
-		kill "$OCID_PID" >/dev/null 2>&1
-		wait "$OCID_PID"
-		rm -f "$OCID_CONFIG"
+	if [ "$CRIO_PID" != "" ]; then
+		kill "$CRIO_PID" >/dev/null 2>&1
+		wait "$CRIO_PID"
+		rm -f "$CRIO_CONFIG"
 	fi
 
 	cleanup_network_conf
 }
 
 function restart_crio() {
-	if [ "$OCID_PID" != "" ]; then
-		kill "$OCID_PID" >/dev/null 2>&1
-		wait "$OCID_PID"
+	if [ "$CRIO_PID" != "" ]; then
+		kill "$CRIO_PID" >/dev/null 2>&1
+		wait "$CRIO_PID"
 		start_crio
 	else
 		echo "you must start crio first"
@@ -264,8 +264,8 @@ function is_apparmor_enabled() {
 }
 
 function prepare_network_conf() {
-	mkdir -p $OCID_CNI_CONFIG
-	cat >$OCID_CNI_CONFIG/10-crio.conf <<-EOF
+	mkdir -p $CRIO_CNI_CONFIG
+	cat >$CRIO_CNI_CONFIG/10-crio.conf <<-EOF
 {
     "cniVersion": "0.2.0",
     "name": "crionet",
@@ -283,7 +283,7 @@ function prepare_network_conf() {
 }
 EOF
 
-	cat >$OCID_CNI_CONFIG/99-loopback.conf <<-EOF
+	cat >$CRIO_CNI_CONFIG/99-loopback.conf <<-EOF
 {
     "cniVersion": "0.2.0",
     "type": "loopback"
@@ -294,8 +294,8 @@ EOF
 }
 
 function prepare_plugin_test_args_network_conf() {
-	mkdir -p $OCID_CNI_CONFIG
-	cat >$OCID_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
+	mkdir -p $CRIO_CNI_CONFIG
+	cat >$CRIO_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
     "cniVersion": "0.2.0",
     "name": "crionet",
@@ -350,7 +350,7 @@ function ping_pod_from_pod() {
 
 
 function cleanup_network_conf() {
-	rm -rf $OCID_CNI_CONFIG
+	rm -rf $CRIO_CNI_CONFIG
 
 	echo 0
 }

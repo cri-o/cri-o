@@ -9,8 +9,8 @@ EnvironmentFile=-/etc/sysconfig/crio-storage
 EnvironmentFile=-/etc/sysconfig/crio-network
 Environment=GOTRACEBACK=crash
 ExecStart=/usr/local/bin/crio \
-          $OCID_STORAGE_OPTIONS \
-          $OCID_NETWORK_OPTIONS \
+          $CRIO_STORAGE_OPTIONS \
+          $CRIO_NETWORK_OPTIONS \
 ExecReload=/bin/kill -s HUP $MAINPID
 TasksMax=8192
 LimitNOFILE=1048576

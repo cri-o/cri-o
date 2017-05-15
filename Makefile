@@ -3,14 +3,14 @@ EPOCH_TEST_COMMIT ?= 78aae688e2932f0cfc2a23e28ad30b58c6b8577f
 PROJECT := github.com/kubernetes-incubator/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
-OCID_IMAGE := crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
-OCID_INSTANCE := crio_dev
+CRIO_IMAGE := crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
+CRIO_INSTANCE := crio_dev
 PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
-ETCDIR_OCID ?= ${ETCDIR}/crio
+ETCDIR_CRIO ?= ${ETCDIR}/crio
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 
@@ -99,13 +99,13 @@ endif
 	rm -f test/checkseccomp/checkseccomp
 
 crioimage:
-	docker build -t ${OCID_IMAGE} .
+	docker build -t ${CRIO_IMAGE} .
 
 dbuild: crioimage
-	docker run --name=${OCID_INSTANCE} --privileged ${OCID_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm make binaries
+	docker run --name=${CRIO_INSTANCE} --privileged ${CRIO_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm make binaries
 
 integration: crioimage
-	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${OCID_IMAGE} make localintegration
+	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
 localintegration: clean binaries
 	./test/test_runner.sh ${TESTFLAGS}
@@ -140,8 +140,8 @@ install: .gopathok
 	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
 install.config:
-	install -D -m 644 crio.conf $(ETCDIR_OCID)/crio.conf
-	install -D -m 644 seccomp.json $(ETCDIR_OCID)/seccomp.json
+	install -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
+	install -D -m 644 seccomp.json $(ETCDIR_CRIO)/seccomp.json
 
 install.completions:
 	install -d -m 755 ${BASHINSTALLDIR}
