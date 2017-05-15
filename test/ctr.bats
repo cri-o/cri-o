@@ -558,18 +558,18 @@ function teardown() {
 }
 
 @test "ctr caps drop" {
-	start_ocid
-	run ocic pod run --config "$TESTDATA"/sandbox_config.json
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 	capsconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["capabilities"] = {u"add_capabilities": [], u"drop_capabilities": [u"mknod", u"kill", u"sys_chroot", u"setuid", u"setgid"]}; json.dump(obj, sys.stdout)')
 	echo "$capsconfig" > "$TESTDIR"/container_config_caps.json
-	run ocic ctr create --config "$TESTDIR"/container_config_caps.json --pod "$pod_id"
+	run crioctl ctr create --config "$TESTDIR"/container_config_caps.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
 	cleanup_ctrs
 	cleanup_pods
-	stop_ocid
+	stop_crio
 }
