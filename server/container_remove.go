@@ -24,7 +24,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 
 	cState := s.runtime.ContainerStatus(c)
 	if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
-		if err := s.runtime.StopContainer(c); err != nil {
+		if err := s.runtime.StopContainer(c, -1); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 		}
 	}
