@@ -510,7 +510,7 @@ func (s *Server) cleanupSandboxesOnShutdown() {
 	_, err := os.Stat(shutdownFile)
 	if err == nil || !os.IsNotExist(err) {
 		logrus.Debugf("shutting down all sandboxes, on shutdown")
-		s.RemoveAllPodSandboxes()
+		s.StopAllPodSandboxes()
 		err = os.Remove(shutdownFile)
 		if err != nil {
 			logrus.Warnf("Failed to remove %q", shutdownFile)
