@@ -3,7 +3,7 @@
 %global provider_tld    com
 %global project         kubernetes-incubator
 %global repo            cri-o
-%global Name            ocid
+%global Name            crio
 # https://github.com/kubernetes-incubator/cri-o
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path     %{provider_prefix}
@@ -22,10 +22,10 @@ Source0:        https://%{provider_prefix}/archive/%{commit}/%{repo}-%{shortcomm
 BuildRequires:  golang-github-cpuguy83-go-md2man
 
 %description
-The ocid package provides an implementation of the
+The crio package provides an implementation of the
 Kubelet Container Runtime Interface (CRI) using OCI conformant runtimes.
 
-ocid provides following functionalities:
+crio provides following functionalities:
 
     Support multiple image formats including the existing Docker image format
     Support for multiple means to download images including trust & image verification
@@ -47,15 +47,15 @@ make all
 #define license tag if not already defined
 %{!?_licensedir:%global license %doc}
 %files
-%{_bindir}/ocid
-%{_bindir}/ocic
-%{_mandir}/man5/ocid.conf.5*
-%{_mandir}/man8/ocid.8*
-%{_sysconfdir}/ocid.conf
-%dir /%{_libexecdir}/ocid
-/%{_libexecdir}/ocid/conmon
-/%{_libexecdir}/ocid/pause
-%{_unitdir}/ocid.service
+%{_bindir}/crio
+%{_bindir}/crioctl
+%{_mandir}/man5/crio.conf.5*
+%{_mandir}/man8/crio.8*
+%{_sysconfdir}/crio.conf
+%dir /%{_libexecdir}/crio
+/%{_libexecdir}/crio/conmon
+/%{_libexecdir}/crio/pause
+%{_unitdir}/crio.service
 %doc README.md
 %license LICENSE
 

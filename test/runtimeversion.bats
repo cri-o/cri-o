@@ -6,10 +6,10 @@ function teardown() {
 	cleanup_test
 }
 
-@test "ocic runtimeversion" {
-	start_ocid
-	run ocic runtimeversion
+@test "crioctl runtimeversion" {
+	start_crio
+	run crioctl runtimeversion
 	echo "$output"
 	[ "$status" -eq 0 ]
-	stop_ocid
+	stop_crio
 }

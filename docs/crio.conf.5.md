@@ -1,18 +1,18 @@
-% ocid.conf(5) Open Container Initiative Daemon
+% crio.conf(5) Open Container Initiative Daemon
 % Aleksa Sarai
 % OCTOBER 2016
 
 # NAME
-ocid.conf - Syntax of OCID configuration file
+crio.conf - Syntax of OCID configuration file
 
 # DESCRIPTION
 The OCID configuration file specifies all of the available command-line options
-for the ocid(8) program, but in a TOML format that can be more easily modified
+for the crio(8) program, but in a TOML format that can be more easily modified
 and versioned.
 
 # FORMAT
 The [TOML format][toml] is used as the encoding of the configuration file.
-Every option and subtable listed here is nested under a global "ocid" table.
+Every option and subtable listed here is nested under a global "crio" table.
 No bare options are used. The format of TOML can be simplified to:
 
     [table]
@@ -26,7 +26,7 @@ No bare options are used. The format of TOML can be simplified to:
 
 ## OCID TABLE
 
-The `ocid` table supports the following options:
+The `crio` table supports the following options:
 
 
 **root**=""
@@ -44,12 +44,12 @@ The `ocid` table supports the following options:
 ## OCID.API TABLE
 
 **listen**=""
-  Path to ocid socket (default: "/var/run/ocid.sock")
+  Path to crio socket (default: "/var/run/crio.sock")
 
 ## OCID.RUNTIME TABLE
 
 **conmon**=""
-  Path to the conmon executable (default: "/usr/local/libexec/ocid/conmon")
+  Path to the conmon executable (default: "/usr/local/libexec/crio/conmon")
 
 **conmon_env**=[]
   Environment variable list for conmon process (default: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",])
@@ -64,10 +64,10 @@ The `ocid` table supports the following options:
   Path to the signature policy json file (default: "", to use the system-wide default)
 
 **seccomp_profile**=""
-  Path to the seccomp json profile to be used as the runtime's default (default: "/etc/ocid/seccomp.json")
+  Path to the seccomp json profile to be used as the runtime's default (default: "/etc/crio/seccomp.json")
 
 **apparmor_profile**=""
-  Name of the apparmor profile to be used as the runtime's default (default: "ocid-default")
+  Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
 
 ## OCID.IMAGE TABLE
 
@@ -89,7 +89,7 @@ The `ocid` table supports the following options:
   Path to CNI plugin binaries (default: "/opt/cni/bin/")
 
 # SEE ALSO
-ocid(8)
+crio(8)
 
 # HISTORY
 Oct 2016, Originally compiled by Aleksa Sarai <asarai@suse.de>

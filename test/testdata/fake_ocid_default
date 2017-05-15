@@ -1,1 +1,1 @@
-profile ocid-default flags=(attach_disconnected) {}
+profile crio-default flags=(attach_disconnected) {}

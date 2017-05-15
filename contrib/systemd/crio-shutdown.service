@@ -1,13 +1,13 @@
 [Unit]
 Description=Shutdown OCID containers before shutting down the system
-Wants=ocid.service
-After=ocid.service
-Documentation=man:ocid(8)
+Wants=crio.service
+After=crio.service
+Documentation=man:crio(8)
 
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/true
-ExecStop=mkdir -p /var/lib/ocid; touch /var/lib/ocid/ocid.shutdown
+ExecStop=mkdir -p /var/lib/crio; touch /var/lib/crio/crio.shutdown
 RemainAfterExit=yes
 
 [Install]

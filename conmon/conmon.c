@@ -412,7 +412,7 @@ int main(int argc, char *argv[])
 		char *argv[] = {"sh", "-c", cmd->str, NULL};
 
 		/* We only need to touch the stdio if we have terminal=false. */
-		/* FIXME: This results in us not outputting runc error messages to ocid's log. */
+		/* FIXME: This results in us not outputting runc error messages to crio's log. */
 		if (slavefd_stdout >= 0) {
 			if (dup2(slavefd_stdout, STDOUT_FILENO) < 0)
 				pexit("Failed to dup over stdout");
