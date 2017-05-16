@@ -1,3 +1,6 @@
+## This playbook expects --extra-vars "commit=<commit>"
+## and either --extra-vars "pullrequest=<PR #>" or
+## --skip-tags pr
 - hosts: all
   remote_user: root
   vars:
@@ -195,6 +198,14 @@
     poll: 10
     ignore_errors: yes
     when: ansible_distribution == 'RedHat'
+  - name: run integration tests RHEL with xunit results
+    shell: 'STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration'
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 3600
+    poll: 10
+    ignore_errors: yes
+    when: (ansible_distribution == 'RedHat' and xunit)
   - name: run integration tests Fedora
     shell: 'STORAGE_OPTS="--storage-driver=overlay2" make localintegration > testout.txt'
     args:
@@ -203,6 +214,14 @@
     poll: 10
     ignore_errors: yes
     when: ansible_distribution == 'Fedora'
+  - name: run integration tests Fedora with xunit results
+    shell: 'STORAGE_OPTS="--storage-driver=overlay2" make localintegration'
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 3600
+    poll: 10
+    ignore_errors: yes
+    when: (ansible_distribution == 'Fedora' and xunit)
   - name: run integration tests with devicemapper
     shell: 'make localintegration > testout.txt'
     args:
@@ -211,6 +230,14 @@
     poll: 10
     ignore_errors: yes
     when: ansible_distribution == 'CentOS'
+  - name: run integration tests with devicemapper with xunit results
+    shell: 'make localintegration'
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 3600
+    poll: 10
+    ignore_errors: yes
+    when: (ansible_distribution == 'CentOS' and xunit)
   - name: Make testing output directory
     file:
       path: /root/src/github.com/kubernetes-incubator/cri-o/reports
