@@ -61,7 +61,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" != "" ]]
-	[[ "${output}" =~ "${pod_id}" ]]
+	[[ "${output}" =~ "${ctr_id}" ]]
 
 	run crioctl ctr list --id "$ctr_id"
 	echo "$output"
