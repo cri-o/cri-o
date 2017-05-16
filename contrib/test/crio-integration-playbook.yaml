@@ -1,0 +1,222 @@
+- hosts: all
+  remote_user: root
+  vars:
+    xunit: false
+  tasks:
+  - name: Update all packages
+    yum:
+      name: '*'
+      state: latest
+    async: 600
+    poll: 10
+    when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS')
+    ignore_errors: true
+  - name: Update all packages on Fedora
+    dnf:
+      name: '*'
+      state: latest
+    async: 600
+    poll: 10
+    when: ansible_distribution == 'Fedora'
+  - name: Make sure we have all required packages
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - wget
+      - git
+      - make
+      - gcc
+      - tar
+      - libseccomp-devel
+      - golang
+      - glib2-devel
+      - glibc-static
+      - container-selinux
+      - btrfs-progs-devel
+      - device-mapper-devel
+      - glibc-devel
+      - gpgme-devel
+      - libassuan-devel
+      - libgpg-error-devel
+      - pkgconfig
+      - json-glib-devel
+    async: 600
+    poll: 10
+    when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS')
+  - name: Make sure we have all required packages on Fedora
+    dnf:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - wget
+      - git
+      - make
+      - gcc
+      - tar
+      - libseccomp-devel
+      - golang
+      - glib2-devel
+      - glibc-static
+      - container-selinux
+      - btrfs-progs-devel
+      - device-mapper-devel
+      - glibc-devel
+      - gpgme-devel
+      - libassuan-devel
+      - libgpg-error-devel
+      - pkgconfig
+      - json-glib-devel
+    async: 600
+    poll: 10
+    when: ansible_distribution == 'Fedora'
+  - name: Make testing directories to conform to testing standards
+    file:
+      path: "{{ item }}"
+      state: directory
+    with_items:
+      - /root/src/github.com/kubernetes-incubator
+      - /root/src/github.com/opencontainers
+      - /opt/cni/bin
+      - /etc/cni/net.d
+  - name: git clone bats repo
+    git:
+      repo: https://github.com/sstephenson/bats.git
+      dest: /root/src/bats
+    async: 600
+    poll: 10
+  - name: Fetch the xunit feature PR for bats
+    shell: "git fetch origin +refs/pull/161/head:refs/remotes/origin/pr/161"
+    args:
+      chdir: /root/src/bats
+    async: 600
+    poll: 10
+    when: xunit
+  - name: Git checkout the xunit PR for bats
+    shell: "git checkout origin/pr/161"
+    args:
+      chdir: /root/src/bats
+    async: 600
+    poll: 10
+    when: xunit
+  - name: git clone runc repo
+    git:
+      repo: https://github.com/opencontainers/runc
+      dest: /root/src/github.com/opencontainers/runc
+    async: 600
+    poll: 10
+  - name: git clone cri-o repo
+    git:
+      repo: https://github.com/kubernetes-incubator/cri-o
+      dest: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 600
+    poll: 10
+  - name: git clone cni repo
+    git:
+      repo: https://github.com/containernetworking/cni
+      dest: /root/src/github.com/containernetworking/cni
+    async: 600
+    poll: 10
+  - name: Git fetch the PR
+    shell: "git fetch origin +refs/pull/{{ pullrequest }}/head:refs/remotes/origin/pr/{{ pullrequest }}"
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    tags:
+      - pr
+    async: 600
+    poll: 10
+  - name: Git checkout the commit into working branch
+    shell: "git checkout {{ commit }}"
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 600
+    poll: 10
+  - name: Install bats
+    command: bats/install.sh /usr/local
+    args:
+      chdir: /root/src
+  - name: Add go testing dir to bashrc files
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export GOPATH=/root'
+      insertafter: 'EOF'
+      regexp: 'export GOPATH=/root'
+      state: present
+  - name: Source the bashrc file
+    shell: source /root/.bashrc
+  - name: Build cni networking
+    shell: ./build.sh
+    args:
+      chdir: /root/src/github.com/containernetworking/cni
+  - name: cp bin to cni bin dir
+    shell: cp /root/src/github.com/containernetworking/cni/bin/* /opt/cni/bin
+  - name: curl ocid bridge conf file for cni networking
+    get_url:
+      url: https://raw.githubusercontent.com/kubernetes-incubator/cri-o/master/contrib/cni/10-ocid-bridge.conf
+      dest: /etc/cni/net.d/10-ocid-bridge.conf
+  - name: curl loopback conf for cni networking
+    get_url:
+      url: https://raw.githubusercontent.com/kubernetes-incubator/cri-o/master/contrib/cni/99-loopback.conf
+      dest: /etc/cni/net.d/99-loopback.conf
+  - name: make clean
+    make:
+      target: clean
+      chdir: /root/src/github.com/opencontainers/runc
+    async: 600
+    poll: 10
+  - name: make runc
+    make:
+      params: BUILDTAGS="seccomp selinux"
+      chdir: /root/src/github.com/opencontainers/runc
+    async: 600
+    poll: 10
+  - name: install runc
+    make:
+      target: install
+      chdir: /root/src/github.com/opencontainers/runc
+    async: 600
+    poll: 10
+  - name: Change test_runner.sh to use bats xunit output
+    lineinfile:
+      dest: /root/src/github.com/kubernetes-incubator/cri-o/test/test_runner.sh
+      line: 'execute time bats --tap --junit $TESTS'
+      regexp: 'execute time bats --tap \$TESTS'
+      state: present
+    when: xunit
+  - name: Copy plugin args so tests dont hang
+    shell: "cp test/plugin_test_args.bash /opt/cni/bin/"
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o/
+  - name: run integration tests RHEL
+    shell: 'STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration > testout.txt'
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 3600
+    poll: 10
+    ignore_errors: yes
+    when: ansible_distribution == 'RedHat'
+  - name: run integration tests Fedora
+    shell: 'STORAGE_OPTS="--storage-driver=overlay2" make localintegration > testout.txt'
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 3600
+    poll: 10
+    ignore_errors: yes
+    when: ansible_distribution == 'Fedora'
+  - name: run integration tests with devicemapper
+    shell: 'make localintegration > testout.txt'
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 3600
+    poll: 10
+    ignore_errors: yes
+    when: ansible_distribution == 'CentOS'
+  - name: Make testing output directory
+    file:
+      path: /root/src/github.com/kubernetes-incubator/cri-o/reports
+      state: directory
+    ignore_errors: yes
+    when: xunit
+  - name: Move all xunit files into one dir to scp
+    shell: 'mv /root/src/github.com/kubernetes-incubator/cri-o/test/TestReport-bats*.xml /root/src/github.com/kubernetes-incubator/cri-o/reports/'
+    when: xunit
