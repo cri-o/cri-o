@@ -1,5 +1,5 @@
 GO ?= go
-EPOCH_TEST_COMMIT ?= 78aae688e2932f0cfc2a23e28ad30b58c6b8577f
+EPOCH_TEST_COMMIT ?= 05194ac
 PROJECT := github.com/kubernetes-incubator/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
@@ -170,9 +170,9 @@ uninstall:
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation: .gopathok
 ifeq ($(TRAVIS),true)
-	$(GOPATH)/bin/git-validation -q -run DCO,short-subject
+	$(GOPATH)/bin/git-validation -q -run DCO,short-subject,dangling-whitespace
 else
-	$(GOPATH)/bin/git-validation -v -run DCO,short-subject -range $(EPOCH_TEST_COMMIT)..HEAD
+	$(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
 .PHONY: install.tools
