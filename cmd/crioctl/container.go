@@ -148,7 +148,7 @@ var stopContainerCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
-		err = StopContainer(client, context.String("id"))
+		err = StopContainer(client, context.String("id"), -1)
 		if err != nil {
 			return fmt.Errorf("Stopping the container failed: %v", err)
 		}
@@ -402,12 +402,13 @@ func StartContainer(client pb.RuntimeServiceClient, ID string) error {
 
 // StopContainer sends a StopContainerRequest to the server, and parses
 // the returned StopContainerResponse.
-func StopContainer(client pb.RuntimeServiceClient, ID string) error {
+func StopContainer(client pb.RuntimeServiceClient, ID string, timeout int64) error {
 	if ID == "" {
 		return fmt.Errorf("ID cannot be empty")
 	}
 	_, err := client.StopContainer(context.Background(), &pb.StopContainerRequest{
 		ContainerId: ID,
+		Timeout:     timeout,
 	})
 	if err != nil {
 		return err

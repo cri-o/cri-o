@@ -469,29 +469,36 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	}, nil
 }
 
-// StopContainer stops a container.
-func (r *Runtime) StopContainer(c *Container) error {
+// StopContainer stops a container. Timeout is given in seconds.
+func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.name, "TERM"); err != nil {
 		return err
 	}
-	i := 0
-	for {
-		if i == 1000 {
-			err := unix.Kill(c.state.Pid, syscall.SIGKILL)
-			if err != nil && err != syscall.ESRCH {
-				return fmt.Errorf("failed to kill process: %v", err)
+	if timeout == -1 {
+		// default 10 seconds delay
+		timeout = 10
+	}
+	done := make(chan struct{})
+	go func() {
+		for {
+			// Check if the process is still around
+			err := unix.Kill(c.state.Pid, 0)
+			if err == syscall.ESRCH {
+				close(done)
+				break
 			}
-			break
 		}
-		// Check if the process is still around
-		err := unix.Kill(c.state.Pid, 0)
-		if err == syscall.ESRCH {
-			break
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-time.After(time.Duration(timeout) * time.Second):
+		err := unix.Kill(c.state.Pid, syscall.SIGKILL)
+		if err != nil && err != syscall.ESRCH {
+			return fmt.Errorf("failed to kill process: %v", err)
 		}
-		time.Sleep(10 * time.Millisecond)
-		i++
 	}
 
 	return nil
