@@ -15,7 +15,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -51,7 +51,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -88,7 +88,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -119,7 +119,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	#sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	#sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -139,7 +139,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -179,7 +179,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -215,7 +215,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -251,7 +251,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -288,7 +288,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -320,7 +320,7 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	#sed -e 's/"chmod",//' "$OCID_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
+	#sed -e 's/"chmod",//' "$CRIO_ROOT"/cri-o/seccomp.json > "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	#sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 

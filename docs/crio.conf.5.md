@@ -3,10 +3,10 @@
 % OCTOBER 2016
 
 # NAME
-crio.conf - Syntax of OCID configuration file
+crio.conf - Syntax of CRIO configuration file
 
 # DESCRIPTION
-The OCID configuration file specifies all of the available command-line options
+The CRIO configuration file specifies all of the available command-line options
 for the crio(8) program, but in a TOML format that can be more easily modified
 and versioned.
 
@@ -24,29 +24,29 @@ No bare options are used. The format of TOML can be simplified to:
     [table.subtable2]
     option = value
 
-## OCID TABLE
+## CRIO TABLE
 
 The `crio` table supports the following options:
 
 
 **root**=""
-  OCID root dir (default: "/var/lib/containers/storage")
+  CRIO root dir (default: "/var/lib/containers/storage")
 
 **runroot**=""
-  OCID state dir (default: "/var/run/containers/storage")
+  CRIO state dir (default: "/var/run/containers/storage")
 
 **storage_driver**=""
-  OCID storage driver (default is "devicemapper")
+  CRIO storage driver (default is "devicemapper")
 
 **storage_option**=[]
-  OCID storage driver option list (no default)
+  CRIO storage driver option list (no default)
 
-## OCID.API TABLE
+## CRIO.API TABLE
 
 **listen**=""
   Path to crio socket (default: "/var/run/crio.sock")
 
-## OCID.RUNTIME TABLE
+## CRIO.RUNTIME TABLE
 
 **conmon**=""
   Path to the conmon executable (default: "/usr/local/libexec/crio/conmon")
@@ -69,7 +69,7 @@ The `crio` table supports the following options:
 **apparmor_profile**=""
   Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
 
-## OCID.IMAGE TABLE
+## CRIO.IMAGE TABLE
 
 **default_transport**
   A prefix to prepend to image names that can't be pulled as-is (default: "docker://")
@@ -80,7 +80,7 @@ The `crio` table supports the following options:
 **pause_image**=""
   Image which contains the pause executable (default: "kubernetes/pause")
 
-## OCID.NETWORK TABLE
+## CRIO.NETWORK TABLE
 
 **network_dir**=""
   Path to CNI configuration files (default: "/etc/cni/net.d/")

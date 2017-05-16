@@ -81,10 +81,10 @@ crio is meant to provide an integration path between OCI conformant runtimes and
   Image which contains the pause executable (default: "kubernetes/pause")
 
 **--root**=""
-  OCID root dir (default: "/var/lib/containers/storage")
+  CRIO root dir (default: "/var/lib/containers/storage")
 
 **--runroot**=""
-  OCID state dir (default: "/var/run/containers/storage")
+  CRIO state dir (default: "/var/run/containers/storage")
 
 **--runtime**=""
   OCI runtime path (default: "/usr/bin/runc")
@@ -117,13 +117,13 @@ crio is meant to provide an integration path between OCI conformant runtimes and
   Print the version
 
 # COMMANDS
-OCID's default command is to start the daemon. However, it currently offers a
+CRIO's default command is to start the daemon. However, it currently offers a
 single additional subcommand.
 
 ## config
 
 Outputs a commented version of the configuration file that would've been used
-by OCID. This allows you to save you current configuration setup and then load
+by CRIO. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.
 
 **--default**

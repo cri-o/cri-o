@@ -1,6 +1,6 @@
-# OCID Integration Tests
+# CRIO Integration Tests
 
-Integration tests provide end-to-end testing of OCID.
+Integration tests provide end-to-end testing of CRIO.
 
 Note that integration tests do **not** replace unit tests.
 
