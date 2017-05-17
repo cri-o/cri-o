@@ -9,8 +9,8 @@ import (
 	"github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
+	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	sstorage "github.com/containers/storage/storage"
 	"github.com/urfave/cli"
 )
 

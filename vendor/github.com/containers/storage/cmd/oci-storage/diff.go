@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mflag"
-	"github.com/containers/storage/storage"
 )
 
 var (
@@ -63,13 +63,13 @@ func diff(flags *mflag.FlagSet, action string, m storage.Store, args []string) i
 	}
 	diffStream := io.Writer(os.Stdout)
 	if diffFile != "" {
-		if f, err := os.Create(diffFile); err != nil {
+		f, err := os.Create(diffFile)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			return 1
-		} else {
-			diffStream = f
-			defer f.Close()
 		}
+		diffStream = f
+		defer f.Close()
 	}
 	reader, err := m.Diff(from, to)
 	if err != nil {
@@ -108,13 +108,13 @@ func applyDiff(flags *mflag.FlagSet, action string, m storage.Store, args []stri
 	}
 	diffStream := io.Reader(os.Stdin)
 	if applyDiffFile != "" {
-		if f, err := os.Open(applyDiffFile); err != nil {
+		f, err := os.Open(applyDiffFile)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			return 1
-		} else {
-			diffStream = f
-			defer f.Close()
 		}
+		diffStream = f
+		defer f.Close()
 	}
 	_, err := m.ApplyDiff(args[0], diffStream)
 	if err != nil {

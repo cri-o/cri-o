@@ -1,17 +1,19 @@
-# OCI Image Manifest List Specification
+# OCI Image Index Specification
 
-The manifest list is a higher-level manifest which points to specific [image manifests](manifest.md) for one or more platforms.
-While the use of a manifest list is OPTIONAL for image providers, image consumers SHOULD be prepared to process them.
+The image index is a higher-level manifest which points to specific [image manifests](manifest.md), ideal for one or more platforms.
+While the use of an image index is OPTIONAL for image providers, image consumers SHOULD be prepared to process them.
 
-This section defines the `application/vnd.oci.image.manifest.list.v1+json` [media type](media-types.md).
+This section defines the `application/vnd.oci.image.index.v1+json` [media type](media-types.md).
 For the media type(s) that this document is compatible with, see the [matrix][matrix].
 
-## *Manifest List* Property Descriptions
+## *Image Index* Property Descriptions
 
 - **`schemaVersion`** *int*
 
   This REQUIRED property specifies the image manifest schema version.
-  For this version of the specification, this MUST be `2` to ensure backward compatibility with older versions of Docker. The value of this field will not change. This field MAY be removed in a future version of the specification.
+  For this version of the specification, this MUST be `2` to ensure backward compatibility with older versions of Docker.
+  The value of this field will not change.
+  This field MAY be removed in a future version of the specification.
 
 - **`mediaType`** *string*
 
@@ -20,10 +22,10 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 
 - **`manifests`** *array of objects*
 
-  This REQUIRED property contains a list of manifests for specific platforms.
-  While the property MUST be present, the size of the array MAY be zero.
+  This REQUIRED property contains a list of [manifests](manifest.md) for specific platforms.
+  While this property MUST be present, the size of the array MAY be zero.
 
-  Each object in `manifests` is a [descriptor](descriptor.md) with the following additional properties and restrictions:
+  Each object in `manifests` has the base properties of [descriptor](descriptor.md) with the following additional properties and restrictions:
 
   - **`mediaType`** *string*
 
@@ -32,21 +34,24 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 
     - [`application/vnd.oci.image.manifest.v1+json`](manifest.md)
 
-    Manifest lists concerned with portability SHOULD use one of the above media types.
+    Image indexes concerned with portability SHOULD use one of the above media types.
+    Future versions of the spec MAY use a different mediatype (i.e. a new versioned format).
+    An encountered `mediaType` that is unknown SHOULD be safely ignored.
 
   - **`platform`** *object*
 
-    This REQUIRED property describes the platform which the image in the manifest runs on.
+    This OPTIONAL property describes the platform which the image in the manifest runs on.
+    This property SHOULD be present if its target is platform-specific.
 
     - **`architecture`** *string*
 
         This REQUIRED property specifies the CPU architecture.
-        Manifest lists SHOULD use, and implementations SHOULD understand, values [supported by runtime-spec's `platform.arch`][runtime-platform2].
+        Image indexes SHOULD use, and implementations SHOULD understand, values [supported by runtime-spec's `platform.arch`][runtime-platform2].
 
     - **`os`** *string*
 
         This REQUIRED property specifies the operating system.
-        Manifest lists SHOULD use, and implementations SHOULD understand, values [supported by runtime-spec's `platform.os`][runtime-platform2].
+        Image indexes SHOULD use, and implementations SHOULD understand, values [supported by runtime-spec's `platform.os`][runtime-platform2].
 
     - **`os.version`** *string*
 
@@ -66,15 +71,15 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 
 - **`annotations`** *string-string map*
 
-    This OPTIONAL property contains arbitrary metadata for the manifest list.
+    This OPTIONAL property contains arbitrary metadata for the image index.
     This OPTIONAL property MUST use the [annotation rules](annotations.md#rules).
 
     See [Pre-Defined Annotation Keys](annotations.md#pre-defined-annotation-keys).
 
-## Example Manifest List
+## Example Image Index
 
-*Example showing a simple manifest list pointing to image manifests for two platforms:*
-```json,title=Manifest%20List&mediatype=application/vnd.oci.image.manifest.list.v1%2Bjson
+*Example showing a simple image index pointing to image manifests for two platforms:*
+```json,title=Image%20Index&mediatype=application/vnd.oci.image.index.v1%2Bjson
 {
   "schemaVersion": 2,
   "manifests": [
@@ -107,5 +112,5 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 }
 ```
 
-[runtime-platform2]: https://github.com/opencontainers/runtime-spec/blob/v1.0.0-rc2/config.md#platform
+[runtime-platform2]: https://github.com/opencontainers/runtime-spec/blob/v1.0.0-rc3/config.md#platform
 [matrix]: media-types.md#compatibility-matrix

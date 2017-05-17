@@ -58,8 +58,8 @@ func (d *Driver) Status() [][2]string {
 	return nil
 }
 
-// GetMetadata is used for implementing the graphdriver.ProtoDriver interface. VFS does not currently have any meta data.
-func (d *Driver) GetMetadata(id string) (map[string]string, error) {
+// Metadata is used for implementing the graphdriver.ProtoDriver interface. VFS does not currently have any meta data.
+func (d *Driver) Metadata(id string) (map[string]string, error) {
 	return nil, nil
 }
 

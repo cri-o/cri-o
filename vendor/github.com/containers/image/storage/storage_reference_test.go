@@ -57,7 +57,7 @@ var validReferenceTestCases = []struct {
 
 func TestStorageReferenceStringWithinTransport(t *testing.T) {
 	store := newStore(t)
-	storeSpec := fmt.Sprintf("[%s@%s]", store.GetGraphDriverName(), store.GetGraphRoot())
+	storeSpec := fmt.Sprintf("[%s@%s]", store.GraphDriverName(), store.GraphRoot())
 
 	for _, c := range validReferenceTestCases {
 		ref, err := Transport.ParseReference(c.input)
@@ -68,7 +68,7 @@ func TestStorageReferenceStringWithinTransport(t *testing.T) {
 
 func TestStorageReferencePolicyConfigurationIdentity(t *testing.T) {
 	store := newStore(t)
-	storeSpec := fmt.Sprintf("[%s@%s]", store.GetGraphDriverName(), store.GetGraphRoot())
+	storeSpec := fmt.Sprintf("[%s@%s]", store.GraphDriverName(), store.GraphRoot())
 
 	for _, c := range validReferenceTestCases {
 		ref, err := Transport.ParseReference(c.input)
@@ -79,7 +79,7 @@ func TestStorageReferencePolicyConfigurationIdentity(t *testing.T) {
 
 func TestStorageReferencePolicyConfigurationNamespaces(t *testing.T) {
 	store := newStore(t)
-	storeSpec := fmt.Sprintf("[%s@%s]", store.GetGraphDriverName(), store.GetGraphRoot())
+	storeSpec := fmt.Sprintf("[%s@%s]", store.GraphDriverName(), store.GraphRoot())
 
 	for _, c := range validReferenceTestCases {
 		ref, err := Transport.ParseReference(c.input)
@@ -89,7 +89,7 @@ func TestStorageReferencePolicyConfigurationNamespaces(t *testing.T) {
 			expectedNS = append(expectedNS, storeSpec+ns)
 		}
 		expectedNS = append(expectedNS, storeSpec)
-		expectedNS = append(expectedNS, fmt.Sprintf("[%s]", store.GetGraphRoot()))
+		expectedNS = append(expectedNS, fmt.Sprintf("[%s]", store.GraphRoot()))
 		assert.Equal(t, expectedNS, ref.PolicyConfigurationNamespaces())
 	}
 }

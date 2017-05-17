@@ -207,6 +207,20 @@ func TestManifestOCI1LayerInfo(t *testing.T) {
 	}
 }
 
+func TestManifestOCI1EmbeddedDockerReferenceConflicts(t *testing.T) {
+	for _, m := range []genericManifest{
+		manifestOCI1FromFixture(t, unusedImageSource{}, "oci1.json"),
+		manifestOCI1FromComponentsLikeFixture(nil),
+	} {
+		for _, name := range []string{"busybox", "example.com:5555/ns/repo:tag"} {
+			ref, err := reference.ParseNormalizedNamed(name)
+			require.NoError(t, err)
+			conflicts := m.EmbeddedDockerReferenceConflicts(ref)
+			assert.False(t, conflicts)
+		}
+	}
+}
+
 func TestManifestOCI1ImageInspectInfo(t *testing.T) {
 	configJSON, err := ioutil.ReadFile("fixtures/oci1-config.json")
 	require.NoError(t, err)
@@ -287,6 +301,19 @@ func TestManifestOCI1UpdatedImage(t *testing.T) {
 		LayerInfos: append(layerInfos, layerInfos[0]),
 	})
 	assert.Error(t, err)
+
+	// EmbeddedDockerReference:
+	// … is ignored
+	embeddedRef, err := reference.ParseNormalizedNamed("busybox")
+	require.NoError(t, err)
+	res, err = original.UpdatedImage(types.ManifestUpdateOptions{
+		EmbeddedDockerReference: embeddedRef,
+	})
+	require.NoError(t, err)
+	nonEmbeddedRef, err := reference.ParseNormalizedNamed("notbusybox:notlatest")
+	require.NoError(t, err)
+	conflicts := res.EmbeddedDockerReferenceConflicts(nonEmbeddedRef)
+	assert.False(t, conflicts)
 
 	// ManifestMIMEType:
 	// Only smoke-test the valid conversions, detailed tests are below. (This also verifies that “original” is not affected.)

@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/containers/storage/opts"
 	"github.com/containers/storage/pkg/mflag"
-	"github.com/containers/storage/storage"
 )
 
 var (
@@ -51,13 +51,13 @@ func importLayer(flags *mflag.FlagSet, action string, m storage.Store, args []st
 	}
 	diffStream := io.Reader(os.Stdin)
 	if applyDiffFile != "" {
-		if f, err := os.Open(applyDiffFile); err != nil {
+		f, err := os.Open(applyDiffFile)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			return 1
-		} else {
-			diffStream = f
-			defer f.Close()
 		}
+		diffStream = f
+		defer f.Close()
 	}
 	layer, _, err := m.PutLayer(paramID, parent, paramNames, paramMountLabel, !paramCreateRO, diffStream)
 	if err != nil {

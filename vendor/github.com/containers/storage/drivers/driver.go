@@ -69,7 +69,7 @@ type ProtoDriver interface {
 	Status() [][2]string
 	// Returns a set of key-value pairs which give low level information
 	// about the image/container driver is managing.
-	GetMetadata(id string) (map[string]string, error)
+	Metadata(id string) (map[string]string, error)
 	// Cleanup performs necessary tasks to release resources
 	// held by the driver, e.g., unmounting all layered filesystems
 	// known to this driver.

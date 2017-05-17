@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/mflag"
-	"github.com/containers/storage/storage"
 )
 
 var (
@@ -26,17 +26,17 @@ func exist(flags *mflag.FlagSet, action string, m storage.Store, args []string) 
 		exists := m.Exists(what)
 		existDict[what] = exists
 		if existContainer {
-			if c, err := m.GetContainer(what); c == nil || err != nil {
+			if c, err := m.Container(what); c == nil || err != nil {
 				exists = false
 			}
 		}
 		if existImage {
-			if i, err := m.GetImage(what); i == nil || err != nil {
+			if i, err := m.Image(what); i == nil || err != nil {
 				exists = false
 			}
 		}
 		if existLayer {
-			if l, err := m.GetLayer(what); l == nil || err != nil {
+			if l, err := m.Layer(what); l == nil || err != nil {
 				exists = false
 			}
 		}

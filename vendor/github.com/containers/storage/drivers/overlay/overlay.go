@@ -226,9 +226,9 @@ func (d *Driver) Status() [][2]string {
 	}
 }
 
-// GetMetadata returns meta data about the overlay driver such as
+// Metadata returns meta data about the overlay driver such as
 // LowerDir, UpperDir, WorkDir and MergeDir used to store data.
-func (d *Driver) GetMetadata(id string) (map[string]string, error) {
+func (d *Driver) Metadata(id string) (map[string]string, error) {
 	dir := d.dir(id)
 	if _, err := os.Stat(dir); err != nil {
 		return nil, err

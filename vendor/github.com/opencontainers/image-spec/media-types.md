@@ -3,7 +3,7 @@
 The following media types identify the formats described here and their referenced resources:
 
 - `application/vnd.oci.descriptor.v1+json`: [Content Descriptor](descriptor.md)
-- `application/vnd.oci.image.manifest.list.v1+json`: [Manifest list](manifest-list.md#manifest-list)
+- `application/vnd.oci.image.index.v1+json`: [Image Index](image-index.md)
 - `application/vnd.oci.image.manifest.v1+json`: [Image manifest](manifest.md#image-manifest)
 - `application/vnd.oci.image.config.v1+json`: [Image config](config.md)
 - `application/vnd.oci.image.layer.v1.tar`: ["Layer", as a tar archive](layer.md)
@@ -31,7 +31,7 @@ The OCI Image Specification strives to be backwards and forwards compatible when
 Breaking compatibility with existing systems creates a burden on users whether they are build systems, distribution systems, container engines, etc.
 This section shows where the OCI Image Specification is compatible with formats external to the OCI Image and different versions of this specification.
 
-### application/vnd.oci.image.manifest.list.v1+json
+### application/vnd.oci.image.index.v1+json
 
 **Similar/related schema**
 
@@ -62,6 +62,6 @@ The following figure shows how the above media types reference each other:
 ![](img/media-types.png)
 
 [Descriptors](descriptor.md) are used for all references.
-The manifest list being a "fat manifest" references one or more image manifests per target platform. An image manifest references exactly one target configuration and possibly many layers.
+The image-index being a "fat manifest" references one or more image manifests per target platform. An image manifest references exactly one target configuration and possibly many layers.
 
 [rfc1952]: https://tools.ietf.org/html/rfc1952
