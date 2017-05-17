@@ -82,6 +82,28 @@
       - /root/src/github.com/opencontainers
       - /opt/cni/bin
       - /etc/cni/net.d
+      - /usr/local/go
+  - name: install Golang upstream in CentOS
+    shell: |
+            curl -fsSL "https://golang.org/dl/go1.8.1.linux-amd64.tar.gz" \
+            | tar -xzC /usr/local
+    when: ansible_distribution == 'CentOS'
+  - name: Set custom Golang path for CentOS
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export PATH=/usr/local/go/bin:$PATH'
+      insertafter: 'EOF'
+      regexp: 'export PATH=/usr/local/go/bin:$PATH'
+      state: present
+    when: ansible_distribution == 'CentOS'
+  - name: set sysctl vm.overcommit_memory=1 for CentOS
+    shell: |
+            sysctl -w vm.overcommit_memory=1
+    when: ansible_distribution == 'CentOS'
+  - name: disable selinux on CentOS :(
+    shell: |
+            setenforce 0
+    when: ansible_distribution == 'CentOS'
   - name: git clone bats repo
     git:
       repo: https://github.com/sstephenson/bats.git
@@ -197,7 +219,7 @@
     async: 3600
     poll: 10
     ignore_errors: yes
-    when: ansible_distribution == 'RedHat'
+    when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
   - name: run integration tests RHEL with xunit results
     shell: 'STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration'
     args:
@@ -205,7 +227,7 @@
     async: 3600
     poll: 10
     ignore_errors: yes
-    when: (ansible_distribution == 'RedHat' and xunit)
+    when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS') and xunit
   - name: run integration tests Fedora
     shell: 'STORAGE_OPTS="--storage-driver=overlay2" make localintegration > testout.txt'
     args:
@@ -222,22 +244,6 @@
     poll: 10
     ignore_errors: yes
     when: (ansible_distribution == 'Fedora' and xunit)
-  - name: run integration tests with devicemapper
-    shell: 'make localintegration > testout.txt'
-    args:
-      chdir: /root/src/github.com/kubernetes-incubator/cri-o
-    async: 3600
-    poll: 10
-    ignore_errors: yes
-    when: ansible_distribution == 'CentOS'
-  - name: run integration tests with devicemapper with xunit results
-    shell: 'make localintegration'
-    args:
-      chdir: /root/src/github.com/kubernetes-incubator/cri-o
-    async: 3600
-    poll: 10
-    ignore_errors: yes
-    when: (ansible_distribution == 'CentOS' and xunit)
   - name: Make testing output directory
     file:
       path: /root/src/github.com/kubernetes-incubator/cri-o/reports

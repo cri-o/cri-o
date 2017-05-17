@@ -48,7 +48,6 @@
 			"cpu_period": 10000,
 			"cpu_quota": 20000,
 			"cpu_shares": 512,
-			"memory_limit_in_bytes": 88000000,
 			"oom_score_adj": 30
 		},
 		"security_context": {
