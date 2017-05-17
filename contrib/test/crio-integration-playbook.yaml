@@ -44,6 +44,7 @@
       - libgpg-error-devel
       - pkgconfig
       - json-glib-devel
+      - skopeo-containers
     async: 600
     poll: 10
     when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS')
@@ -70,6 +71,7 @@
       - libgpg-error-devel
       - pkgconfig
       - json-glib-devel
+      - skopeo-containers
     async: 600
     poll: 10
     when: ansible_distribution == 'Fedora'
@@ -253,3 +255,104 @@
   - name: Move all xunit files into one dir to scp
     shell: 'mv /root/src/github.com/kubernetes-incubator/cri-o/test/TestReport-bats*.xml /root/src/github.com/kubernetes-incubator/cri-o/reports/'
     when: xunit
+  # XXX: kube tests from now on
+  - name: git clone k8s repo
+    git:
+      repo: https://github.com/kubernetes/kubernetes
+      dest: /root/src/k8s.io/kubernetes
+      version: 2899f47bc
+      force: yes
+    async: 600
+    poll: 10
+  - name: make and install CRI-O
+    shell: |
+            make install.tools && \
+            make && \
+            make install && \
+            make install.systemd && \
+            make install.config
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o
+    async: 600
+    poll: 10
+  - name: link runc
+    file: src=/usr/local/sbin/runc dest=/usr/bin/runc state=link
+  - name: run CRI-O with systemd cgroup manager
+    replace:
+      regexp: 'cgroupfs'
+      replace: 'systemd'
+      name: /etc/crio/crio.conf
+      backup: yes
+  - name: run with overlay2
+    replace:
+      regexp: 'storage_driver = ""'
+      replace: 'storage_driver = "overlay2"'
+      name: /etc/crio/crio.conf
+      backup: yes
+  - name: add overlay2 storage opts on RHEL/CentOS
+    lineinfile:
+      dest: /etc/crio/crio.conf
+      line: '"overlay2.override_kernel_check=1"'
+      insertafter: 'storage_option = \['
+      regexp: 'overlay2\.override_kernel_check=1'
+      state: present
+    when: ansible_distribution == 'RHEL' or ansible_distribution == 'CentOS'
+  - name: enable and start CRI-O
+    systemd:
+      name: crio
+      state: started
+      enabled: yes
+      daemon_reload: yes
+    async: 600
+    poll: 10
+  - name: disable selinux for k8s conformance tests
+    shell: |
+            setenforce 0
+    async: 600
+    poll: 10
+  - name: Go get the go-bindata file
+    shell: go get -u github.com/jteeuwen/go-bindata/go-bindata
+    args:
+      chdir: /root/src/k8s.io/kubernetes
+    async: 600
+    poll: 10
+  - name: Install etcd
+    command: hack/install-etcd.sh
+    args:
+      chdir: /root/src/k8s.io/kubernetes
+    async: 600
+    poll: 10
+  - name: Install necessary github go packages
+    shell: go get github.com/onsi/ginkgo/ginkgo ; go get github.com/onsi/gomega ; go get -u github.com/cloudflare/cfssl/cmd/...
+    args:
+      chdir: /root/src/k8s.io/kubernetes
+    async: 600
+    poll: 10
+  - name: Add path to bashrc files
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export PATH=$PATH:/root/src/k8s.io/kubernetes/third_party/etcd'
+      insertafter: 'EOF'
+      regexp: 'export PATH=\$PATH:/root/src/k8s.io/kubernetes/third_party/etcd'
+      state: present
+  - name: gather correct hostname
+    shell: |
+            cat /etc/hostname
+    register: hostname
+  - name: inject hostname into /etc/hosts
+    lineinfile:
+      dest: /etc/hosts
+      line: '127.0.0.1 {{ hostname.stdout }}'
+      insertafter: 'EOF'
+      regexp: '127\.0\.0\.1\s+{{ hostname.stdout }}'
+      state: present
+  - name: run k8s tests
+    shell: |
+            make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio.sock TEST_ARGS="--prepull-images=true" FOCUS="\[Conformance\]" >> node-e2e.log
+    args:
+      chdir: /root/src/k8s.io/kubernetes
+    async: 7200
+    poll: 10
+    ignore_errors: true
+    # XXX: tests on RHEL/CentOS are unreliable fow now
+    when: ansible_distribution == 'Fedora'
