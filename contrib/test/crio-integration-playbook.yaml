@@ -82,6 +82,20 @@
       - /root/src/github.com/opencontainers
       - /opt/cni/bin
       - /etc/cni/net.d
+      - /usr/local/go
+  - name: install Golang upstream in CentOS
+    shell: |
+            curl -fsSL "https://golang.org/dl/go1.8.1.linux-amd64.tar.gz" \
+            | tar -xzC /usr/local
+    when: ansible_distribution == 'CentOS'
+  - name: Set custom Golang path for CentOS
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export PATH=/usr/local/go/bin:$PATH'
+      insertafter: 'EOF'
+      regexp: 'export PATH=/usr/local/go/bin:$PATH'
+      state: present
+    when: ansible_distribution == 'CentOS'
   - name: git clone bats repo
     git:
       repo: https://github.com/sstephenson/bats.git
