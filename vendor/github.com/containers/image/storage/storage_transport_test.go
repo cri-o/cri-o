@@ -65,8 +65,8 @@ func TestTransportParseStoreReference(t *testing.T) {
 
 func TestTransportParseReference(t *testing.T) {
 	store := newStore(t)
-	driver := store.GetGraphDriverName()
-	root := store.GetGraphRoot()
+	driver := store.GraphDriverName()
+	root := store.GraphRoot()
 
 	for _, c := range []struct{ prefix, expectedDriver, expectedRoot string }{
 		{"", driver, root},                              // Implicit store location prefix
@@ -93,16 +93,16 @@ func TestTransportParseReference(t *testing.T) {
 			require.NoError(t, err, c.prefix)
 			storageRef, ok := ref.(*storageReference)
 			require.True(t, ok, c.prefix)
-			assert.Equal(t, c.expectedDriver, storageRef.transport.store.GetGraphDriverName(), c.prefix)
-			assert.Equal(t, c.expectedRoot, storageRef.transport.store.GetGraphRoot(), c.prefix)
+			assert.Equal(t, c.expectedDriver, storageRef.transport.store.GraphDriverName(), c.prefix)
+			assert.Equal(t, c.expectedRoot, storageRef.transport.store.GraphRoot(), c.prefix)
 		}
 	}
 }
 
 func TestTransportValidatePolicyConfigurationScope(t *testing.T) {
 	store := newStore(t)
-	driver := store.GetGraphDriverName()
-	root := store.GetGraphRoot()
+	driver := store.GraphDriverName()
+	root := store.GraphRoot()
 	storeSpec := fmt.Sprintf("[%s@%s]", driver, root) // As computed in PolicyConfigurationNamespaces
 
 	// Valid inputs

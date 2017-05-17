@@ -26,7 +26,7 @@ DOC_FILES := \
 	descriptor.md \
 	image-layout.md \
 	manifest.md \
-	manifest-list.md \
+	image-index.md \
 	layer.md \
 	config.md \
 	annotations.md \
@@ -40,7 +40,7 @@ DOC_FILENAME	?= oci-image-spec
 
 EPOCH_TEST_COMMIT ?= v0.2.0
 
-default: help
+default: check-license lint test
 
 help:
 	@echo "Usage: make <target>"
@@ -75,12 +75,14 @@ $(OUTPUT_DIRNAME)/$(DOC_FILENAME).html: $(DOC_FILES) $(FIGURE_FILES)
 	ls -sh $(shell readlink -f $@)
 endif
 
-validate-examples:
+validate-examples: schema/fs.go
 	go test -run TestValidate ./schema
 
-schema-fs:
+schema/fs.go: $(wildcard schema/*.json) schema/gen.go
+	cd schema && printf "%s\n\n%s\n" "$$(cat ../.header)" "$$(go generate)" > fs.go
+
+schema-fs: schema/fs.go
 	@echo "generating schema fs"
-	@cd schema && printf "%s\n\n%s\n" "$$(cat ../.header)" "$$(go generate)" > fs.go
 
 check-license:
 	@echo "checking license headers"
@@ -90,7 +92,7 @@ lint:
 	@echo "checking lint"
 	@./.tool/lint
 
-test:
+test: schema/fs.go
 	go test -race -cover $(shell go list ./... | grep -v /vendor/)
 
 img/%.png: img/%.dot
@@ -129,4 +131,5 @@ clean:
 	clean \
 	lint \
 	docs \
-	test
+	test \
+	schema-fs

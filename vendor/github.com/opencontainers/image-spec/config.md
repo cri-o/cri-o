@@ -229,4 +229,4 @@ Here is an example image configuration JSON document:
 ```
 
 [rfc3339-s5.6]: https://tools.ietf.org/html/rfc3339#section-5.6
-[runtime-platform]: https://github.com/opencontainers/runtime-spec/blob/v1.0.0-rc2/config.md#platform
+[runtime-platform]: https://github.com/opencontainers/runtime-spec/blob/v1.0.0-rc3/config.md#platform

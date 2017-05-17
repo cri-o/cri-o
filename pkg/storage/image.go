@@ -7,7 +7,7 @@ import (
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/storage/storage"
+	"github.com/containers/storage"
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,

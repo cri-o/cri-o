@@ -115,6 +115,25 @@ func TestNewReference(t *testing.T) {
 func refToTempOCI(t *testing.T) (ref types.ImageReference, tmpDir string) {
 	tmpDir, err := ioutil.TempDir("", "oci-transport-test")
 	require.NoError(t, err)
+	m := `{
+		"schemaVersion": 2,
+		"manifests": [
+		{
+			"mediaType": "application/vnd.oci.image.manifest.v1+json",
+			"size": 7143,
+			"digest": "sha256:e692418e4cbaf90ca69d05a66403747baa33ee08806650b51fab815ad7fc331f",
+			"platform": {
+				"architecture": "ppc64le",
+				"os": "linux"
+			},
+			"annotations": {
+				"org.opencontainers.ref.name": "tagValue"
+			}
+		}
+		]
+	}
+`
+	ioutil.WriteFile(filepath.Join(tmpDir, "index.json"), []byte(m), 0644)
 	ref, err = NewReference(tmpDir, "tagValue")
 	require.NoError(t, err)
 	return ref, tmpDir
@@ -239,6 +258,14 @@ func TestReferenceOCILayoutPath(t *testing.T) {
 	assert.Equal(t, tmpDir+"/oci-layout", ociRef.ociLayoutPath())
 }
 
+func TestReferenceIndexPath(t *testing.T) {
+	ref, tmpDir := refToTempOCI(t)
+	defer os.RemoveAll(tmpDir)
+	ociRef, ok := ref.(ociReference)
+	require.True(t, ok)
+	assert.Equal(t, tmpDir+"/index.json", ociRef.indexPath())
+}
+
 func TestReferenceBlobPath(t *testing.T) {
 	const hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
@@ -261,12 +288,4 @@ func TestReferenceBlobPathInvalid(t *testing.T) {
 	_, err := ociRef.blobPath(hex)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unexpected digest reference "+hex)
-}
-
-func TestReferenceDescriptorPath(t *testing.T) {
-	ref, tmpDir := refToTempOCI(t)
-	defer os.RemoveAll(tmpDir)
-	ociRef, ok := ref.(ociReference)
-	require.True(t, ok)
-	assert.Equal(t, tmpDir+"/refs/notlatest", ociRef.descriptorPath("notlatest"))
 }

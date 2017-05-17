@@ -79,7 +79,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 }
 
 func (s *Server) getMounts(id string) ([]*pb.Mount, error) {
-	config, err := s.store.GetFromContainerDirectory(id, "config.json")
+	config, err := s.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return nil, err
 	}

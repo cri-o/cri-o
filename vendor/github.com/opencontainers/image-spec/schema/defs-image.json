@@ -17,8 +17,7 @@
       "required": [
         "mediaType",
         "size",
-        "digest",
-        "platform"
+        "digest"
       ],
       "properties": {
         "mediaType": {
@@ -78,6 +77,10 @@
               }
             }
           }
+        },
+        "annotations": {
+          "id": "https://opencontainers.org/schema/image/descriptor/annotations",
+          "$ref": "#/definitions/annotations"
         }
       }
     },
