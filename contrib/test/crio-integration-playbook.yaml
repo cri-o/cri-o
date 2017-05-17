@@ -96,6 +96,14 @@
       regexp: 'export PATH=/usr/local/go/bin:$PATH'
       state: present
     when: ansible_distribution == 'CentOS'
+  - name: set sysctl vm.overcommit_memory=1 for CentOS
+    shell: |
+            sysctl -w vm.overcommit_memory=1
+    when: ansible_distribution == 'CentOS'
+  - name: disable selinux on CentOS :(
+    shell: |
+            setenforce 0
+    when: ansible_distribution == 'CentOS'
   - name: git clone bats repo
     git:
       repo: https://github.com/sstephenson/bats.git
