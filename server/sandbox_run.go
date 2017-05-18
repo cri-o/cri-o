@@ -6,11 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
@@ -469,4 +471,42 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
 	}
 	return shmPath, nil
+}
+
+// convertCgroupNameToSystemd converts the internal cgroup name to a systemd name.
+// For example, the name /Burstable/pod_123-456 becomes Burstable-pod_123_456.slice
+// If outputToCgroupFs is true, it expands the systemd name into the cgroupfs form.
+// For example, it will return /Burstable.slice/Burstable-pod_123_456.slice in above scenario.
+func convertCgroupNameToSystemd(name string, outputToCgroupFs bool) (systemdCgroup string, err error) {
+	result := ""
+	if name != "" && name != "/" {
+		// systemd treats - as a step in the hierarchy, we convert all - to _
+		name = strings.Replace(name, "-", "_", -1)
+		parts := strings.Split(name, "/")
+		for _, part := range parts {
+			// ignore leading stuff for now
+			if part == "" {
+				continue
+			}
+			if len(result) > 0 {
+				result = result + "-"
+			}
+			result = result + part
+		}
+	} else {
+		// root converts to -
+		result = "-"
+	}
+	// always have a .slice suffix
+	result = result + ".slice"
+
+	// if the caller desired the result in cgroupfs format...
+	if outputToCgroupFs {
+		var err error
+		result, err = systemd.ExpandSlice(result)
+		if err != nil {
+			return "", fmt.Errorf("error adapting cgroup name, input: %v, err: %v", name, err)
+		}
+	}
+	return result, nil
 }
