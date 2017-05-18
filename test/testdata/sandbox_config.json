@@ -52,7 +52,7 @@
 		"security.alpha.kubernetes.io/seccomp/pod": "unconfined"
 	},
 	"linux": {
-		"cgroup_parent": "/crio-podsandbox1",
+		"cgroup_parent": "/Burstable/pod_123-456",
 		"security_context": {
 			"namespace_options": {
 				"host_network": false,
