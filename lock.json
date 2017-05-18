@@ -1,5 +1,5 @@
 {
-    "memo": "3487610714d3936576aec97198a3843b7304fd35737e5c10b984698069d64447",
+    "memo": "c0b6d8274a7286341387dd0a060d5f1c171bf8658cc76602c6e026880a951a08",
     "projects": [
         {
             "name": "cloud.google.com/go",
@@ -92,7 +92,7 @@
         {
             "name": "github.com/containers/image",
             "branch": "master",
-            "revision": "efae29995d4846ffa6163eb4d466fd61bda43aae",
+            "revision": "11dfba3e17bbb9c1ef50ee3687e5525e56dbd151",
             "packages": [
                 "copy",
                 "directory",
@@ -121,8 +121,9 @@
         {
             "name": "github.com/containers/storage",
             "branch": "master",
-            "revision": "d10d8680af74070b362637408a7fe28c4b1f1eff",
+            "revision": "2c75d14b978bff468e7d5ec3ff8a003eca443209",
             "packages": [
+                ".",
                 "drivers",
                 "drivers/aufs",
                 "drivers/btrfs",
@@ -154,7 +155,6 @@
                 "pkg/stringid",
                 "pkg/system",
                 "pkg/truncindex",
-                "storage",
                 "storageversion"
             ]
         },
@@ -510,8 +510,8 @@
         },
         {
             "name": "github.com/opencontainers/image-spec",
-            "branch": "master",
-            "revision": "5fccf471dfc2e02d5509daf0feddeab86f80510a",
+            "version": "v1.0.0-rc5",
+            "revision": "5faaada8762b465d5ce8a8da27b92d577a1aa576",
             "packages": [
                 "specs-go",
                 "specs-go/v1"

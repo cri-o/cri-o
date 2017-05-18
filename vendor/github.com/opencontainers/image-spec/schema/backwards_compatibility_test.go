@@ -25,7 +25,7 @@ import (
 )
 
 var compatMap = map[string]string{
-	"application/vnd.docker.distribution.manifest.list.v2+json": v1.MediaTypeImageManifestList,
+	"application/vnd.docker.distribution.manifest.list.v2+json": v1.MediaTypeImageIndex,
 	"application/vnd.docker.distribution.manifest.v2+json":      v1.MediaTypeImageManifest,
 	"application/vnd.docker.image.rootfs.diff.tar.gzip":         v1.MediaTypeImageLayer,
 	"application/vnd.docker.container.image.v1+json":            v1.MediaTypeImageConfig,
@@ -42,15 +42,15 @@ func convertFormats(input string) string {
 	return out
 }
 
-func TestBackwardsCompatibilityManifestList(t *testing.T) {
+func TestBackwardsCompatibilityImageIndex(t *testing.T) {
 	for i, tt := range []struct {
-		manifestlist string
-		digest       digest.Digest
-		fail         bool
+		imageIndex string
+		digest     digest.Digest
+		fail       bool
 	}{
 		{
 			digest: "sha256:219f4b61132fe9d09b0ec5c15517be2ca712e4744b0e0cc3be71295b35b2a467",
-			manifestlist: `{
+			imageIndex: `{
    "schemaVersion": 2,
    "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
    "manifests": [
@@ -109,14 +109,14 @@ func TestBackwardsCompatibilityManifestList(t *testing.T) {
 			fail: false,
 		},
 	} {
-		got := digest.FromString(tt.manifestlist)
+		got := digest.FromString(tt.imageIndex)
 		if tt.digest != got {
 			t.Errorf("test %d: expected digest %s but got %s", i, tt.digest, got)
 		}
 
-		manifestlist := convertFormats(tt.manifestlist)
-		r := strings.NewReader(manifestlist)
-		err := schema.MediaTypeManifestList.Validate(r)
+		imageIndex := convertFormats(tt.imageIndex)
+		r := strings.NewReader(imageIndex)
+		err := schema.ValidatorMediaTypeImageIndex.Validate(r)
 
 		if got := err != nil; tt.fail != got {
 			t.Errorf("test %d: expected validation failure %t but got %t, err %v", i, tt.fail, got, err)
@@ -178,7 +178,7 @@ func TestBackwardsCompatibilityManifest(t *testing.T) {
 
 		manifest := convertFormats(tt.manifest)
 		r := strings.NewReader(manifest)
-		err := schema.MediaTypeManifest.Validate(r)
+		err := schema.ValidatorMediaTypeManifest.Validate(r)
 
 		if got := err != nil; tt.fail != got {
 			t.Errorf("test %d: expected validation failure %t but got %t, err %v", i, tt.fail, got, err)
@@ -217,7 +217,7 @@ func TestBackwardsCompatibilityConfig(t *testing.T) {
 
 		config := convertFormats(tt.config)
 		r := strings.NewReader(config)
-		err := schema.MediaTypeImageConfig.Validate(r)
+		err := schema.ValidatorMediaTypeImageConfig.Validate(r)
 
 		if got := err != nil; tt.fail != got {
 			t.Errorf("test %d: expected validation failure %t but got %t, err %v", i, tt.fail, got, err)

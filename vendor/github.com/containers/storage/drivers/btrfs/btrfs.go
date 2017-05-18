@@ -143,8 +143,8 @@ func (d *Driver) Status() [][2]string {
 	return status
 }
 
-// GetMetadata returns empty metadata for this driver.
-func (d *Driver) GetMetadata(id string) (map[string]string, error) {
+// Metadata returns empty metadata for this driver.
+func (d *Driver) Metadata(id string) (map[string]string, error) {
 	return nil, nil
 }
 

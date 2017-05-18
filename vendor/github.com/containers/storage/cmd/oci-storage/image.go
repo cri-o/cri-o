@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/mflag"
-	"github.com/containers/storage/storage"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 func image(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
 	matched := []*storage.Image{}
 	for _, arg := range args {
-		if image, err := m.GetImage(arg); err == nil {
+		if image, err := m.Image(arg); err == nil {
 			matched = append(matched, image)
 		}
 	}
@@ -42,7 +42,7 @@ func image(flags *mflag.FlagSet, action string, m storage.Store, args []string) 
 }
 
 func listImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	image, err := m.GetImage(args[0])
+	image, err := m.Image(args[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -59,7 +59,7 @@ func listImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args
 }
 
 func getImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	image, err := m.GetImage(args[0])
+	image, err := m.Image(args[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -73,7 +73,7 @@ func getImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args 
 		}
 		output = f
 	}
-	b, err := m.GetImageBigData(image.ID, args[1])
+	b, err := m.ImageBigData(image.ID, args[1])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -84,7 +84,7 @@ func getImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args 
 }
 
 func setImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	image, err := m.GetImage(args[0])
+	image, err := m.Image(args[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1

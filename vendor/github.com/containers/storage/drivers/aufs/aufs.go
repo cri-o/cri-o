@@ -185,8 +185,8 @@ func (a *Driver) Status() [][2]string {
 	}
 }
 
-// GetMetadata not implemented
-func (a *Driver) GetMetadata(id string) (map[string]string, error) {
+// Metadata not implemented
+func (a *Driver) Metadata(id string) (map[string]string, error) {
 	return nil, nil
 }
 

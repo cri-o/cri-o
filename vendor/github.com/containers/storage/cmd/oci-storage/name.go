@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/containers/storage/opts"
 	"github.com/containers/storage/pkg/mflag"
-	"github.com/containers/storage/storage"
 )
 
 func addNames(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
@@ -19,7 +19,7 @@ func addNames(flags *mflag.FlagSet, action string, m storage.Store, args []strin
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
 	}
-	oldnames, err := m.GetNames(id)
+	oldnames, err := m.Names(id)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -35,7 +35,7 @@ func addNames(flags *mflag.FlagSet, action string, m storage.Store, args []strin
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
 	}
-	names, err := m.GetNames(id)
+	names, err := m.Names(id)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -59,7 +59,7 @@ func setNames(flags *mflag.FlagSet, action string, m storage.Store, args []strin
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
 	}
-	names, err := m.GetNames(id)
+	names, err := m.Names(id)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1

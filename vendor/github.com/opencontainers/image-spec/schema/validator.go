@@ -33,7 +33,7 @@ type Validator string
 type validateDescendantsFunc func(r io.Reader) error
 
 var mapValidateDescendants = map[Validator]validateDescendantsFunc{
-	MediaTypeManifest: validateManifestDescendants,
+	ValidatorMediaTypeManifest: validateManifestDescendants,
 }
 
 // ValidationError contains all the errors that happened during validation.

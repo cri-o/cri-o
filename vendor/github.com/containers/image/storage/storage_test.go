@@ -17,11 +17,11 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/storage"
 	ddigest "github.com/opencontainers/go-digest"
 )
 

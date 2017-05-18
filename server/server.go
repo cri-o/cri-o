@@ -10,7 +10,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
-	sstorage "github.com/containers/storage/storage"
+	sstorage "github.com/containers/storage"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -78,7 +78,7 @@ func (s *Server) GetPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResp
 }
 
 func (s *Server) loadContainer(id string) error {
-	config, err := s.store.GetFromContainerDirectory(id, "config.json")
+	config, err := s.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (s *Server) loadContainer(id string) error {
 	if v := m.Annotations["crio/tty"]; v == "true" {
 		tty = true
 	}
-	containerPath, err := s.store.GetContainerRunDirectory(id)
+	containerPath, err := s.store.ContainerRunDirectory(id)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func configNetNsPath(spec rspec.Spec) (string, error) {
 }
 
 func (s *Server) loadSandbox(id string) error {
-	config, err := s.store.GetFromContainerDirectory(id, "config.json")
+	config, err := s.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
 	}
@@ -239,7 +239,7 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	sandboxPath, err := s.store.GetContainerRunDirectory(id)
+	sandboxPath, err := s.store.ContainerRunDirectory(id)
 	if err != nil {
 		return err
 	}

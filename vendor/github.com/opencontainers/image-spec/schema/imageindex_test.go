@@ -21,14 +21,14 @@ import (
 	"github.com/opencontainers/image-spec/schema"
 )
 
-func TestManifestList(t *testing.T) {
+func TestImageIndex(t *testing.T) {
 	for i, tt := range []struct {
-		manifestList string
-		fail         bool
+		imageIndex string
+		fail       bool
 	}{
 		// expected failure: mediaType does not match pattern
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -49,7 +49,7 @@ func TestManifestList(t *testing.T) {
 
 		// expected failure: manifest.size is string, expected integer
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -73,7 +73,7 @@ func TestManifestList(t *testing.T) {
 
 		// expected failure: manifest.digest is missing, expected required
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -94,9 +94,9 @@ func TestManifestList(t *testing.T) {
 			fail: true,
 		},
 
-		// expected failure: manifest.platform is missing, expected required
+		// expected pass: manifest.platform is optional
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -108,12 +108,12 @@ func TestManifestList(t *testing.T) {
   ]
 }
 `,
-			fail: true,
+			fail: false,
 		},
 
 		// expected failure: invalid referenced manifest media type
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -137,7 +137,7 @@ func TestManifestList(t *testing.T) {
 
 		// expected failure: empty referenced manifest media type
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -159,9 +159,9 @@ func TestManifestList(t *testing.T) {
 			fail: true,
 		},
 
-		// valid manifest list, with optional fields
+		// valid image index, with optional fields
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -196,9 +196,9 @@ func TestManifestList(t *testing.T) {
 			fail: false,
 		},
 
-		// valid manifest list, with required fields only
+		// valid image index, with required fields only
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -217,9 +217,9 @@ func TestManifestList(t *testing.T) {
 			fail: false,
 		},
 
-		// valid manifest list, with customized media type of referenced manifest
+		// valid image index, with customized media type of referenced manifest
 		{
-			manifestList: `
+			imageIndex: `
 {
   "schemaVersion": 2,
   "manifests": [
@@ -238,8 +238,8 @@ func TestManifestList(t *testing.T) {
 			fail: false,
 		},
 	} {
-		r := strings.NewReader(tt.manifestList)
-		err := schema.MediaTypeManifestList.Validate(r)
+		r := strings.NewReader(tt.imageIndex)
+		err := schema.ValidatorMediaTypeImageIndex.Validate(r)
 
 		if got := err != nil; tt.fail != got {
 			t.Errorf("test %d: expected validation failure %t but got %t, err %v", i, tt.fail, got, err)

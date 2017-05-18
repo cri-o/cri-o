@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/containers/storage/storage"
+	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"

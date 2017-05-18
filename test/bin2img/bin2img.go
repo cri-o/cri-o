@@ -12,7 +12,7 @@ import (
 	"github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/reexec"
-	sstorage "github.com/containers/storage/storage"
+	sstorage "github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
 	"github.com/opencontainers/image-spec/specs-go/v1"

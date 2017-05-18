@@ -23,6 +23,10 @@
         "type": "string",
         "format": "uri"
       }
+    },
+    "annotations": {
+      "id": "https://opencontainers.org/schema/image/descriptor/annotations",
+      "$ref": "defs-image.json#/definitions/annotations"
     }
   },
   "required": [

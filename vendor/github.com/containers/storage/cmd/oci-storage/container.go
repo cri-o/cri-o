@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/mflag"
-	"github.com/containers/storage/storage"
 )
 
 var (
@@ -22,7 +22,7 @@ func container(flags *mflag.FlagSet, action string, m storage.Store, args []stri
 	}
 	matches := []*storage.Container{}
 	for _, arg := range args {
-		if container, err := m.GetContainer(arg); err == nil {
+		if container, err := m.Container(arg); err == nil {
 			matches = append(matches, container)
 		}
 	}
@@ -56,7 +56,7 @@ func container(flags *mflag.FlagSet, action string, m storage.Store, args []stri
 }
 
 func listContainerBigData(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	container, err := m.GetContainer(args[0])
+	container, err := m.Container(args[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -73,7 +73,7 @@ func listContainerBigData(flags *mflag.FlagSet, action string, m storage.Store, 
 }
 
 func getContainerBigData(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	container, err := m.GetContainer(args[0])
+	container, err := m.Container(args[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -87,7 +87,7 @@ func getContainerBigData(flags *mflag.FlagSet, action string, m storage.Store, a
 		}
 		output = f
 	}
-	b, err := m.GetContainerBigData(container.ID, args[1])
+	b, err := m.ContainerBigData(container.ID, args[1])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -98,7 +98,7 @@ func getContainerBigData(flags *mflag.FlagSet, action string, m storage.Store, a
 }
 
 func setContainerBigData(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	container, err := m.GetContainer(args[0])
+	container, err := m.Container(args[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -126,7 +126,7 @@ func setContainerBigData(flags *mflag.FlagSet, action string, m storage.Store, a
 }
 
 func getContainerDir(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	path, err := m.GetContainerDirectory(args[0])
+	path, err := m.ContainerDirectory(args[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -136,7 +136,7 @@ func getContainerDir(flags *mflag.FlagSet, action string, m storage.Store, args 
 }
 
 func getContainerRunDir(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
-	path, err := m.GetContainerRunDirectory(args[0])
+	path, err := m.ContainerRunDirectory(args[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1

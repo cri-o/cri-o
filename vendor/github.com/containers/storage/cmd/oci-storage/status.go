@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/mflag"
-	"github.com/containers/storage/storage"
 )
 
 func status(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
