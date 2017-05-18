@@ -321,14 +321,16 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cgroupParent := req.GetConfig().GetLinux().CgroupParent
 	if cgroupParent != "" {
 		if s.config.CgroupManager == "systemd" {
-			cgPath := cgroupParent + ":" + "crio" + ":" + id
-			g.SetLinuxCgroupsPath(cgPath)
-
+			cgPath, err := convertCgroupNameToSystemd(cgroupParent, false)
+			if err != nil {
+				return nil, err
+			}
+			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
+			sb.cgroupParent = cgPath
 		} else {
 			g.SetLinuxCgroupsPath(cgroupParent + "/" + id)
-
+			sb.cgroupParent = cgroupParent
 		}
-		sb.cgroupParent = cgroupParent
 	}
 
 	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
