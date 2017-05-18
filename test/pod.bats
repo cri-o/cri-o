@@ -287,3 +287,42 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "invalid systemd cgroup_parent fail" {
+	if [[ "$CGROUP_MANAGER" != "systemd" ]]; then
+		skip "need systemd cgroup manager"
+	fi
+
+	wrong_cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "podsandbox1.slice:container:infra"; json.dump(obj, sys.stdout)')
+	echo "$wrong_cgroup_parent_config" > "$TESTDIR"/sandbox_wrong_cgroup_parent.json
+
+	start_crio
+	run crioctl pod run --config "$TESTDIR"/sandbox_wrong_cgroup_parent.json
+	echo "$output"
+	[ "$status" -eq 1 ]
+
+	stop_crio
+}
+
+@test "systemd cgroup_parent correctly set" {
+	if [[ "$CGROUP_MANAGER" != "systemd" ]]; then
+		skip "need systemd cgroup manager"
+	fi
+
+	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "/Burstable/pod_integration_tests-123"; json.dump(obj, sys.stdout)')
+	echo "$cgroup_parent_config" > "$TESTDIR"/sandbox_systemd_cgroup_parent.json
+
+	start_crio
+	run crioctl pod run --config "$TESTDIR"/sandbox_systemd_cgroup_parent.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run systemctl list-units --type=slice
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Burstable-pod_integration_tests_123.slice" ]]
+
+	cleanup_pods
+	stop_crio
+}
