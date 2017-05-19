@@ -21,6 +21,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	if err = s.runtime.UpdateStatus(c); err != nil {
 		return nil, err
 	}
+	s.containerStateToDisk(c)
 
 	containerID := c.ID()
 	image := c.Image()

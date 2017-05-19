@@ -501,6 +501,8 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 		}
 	}
 
+	c.state.Finished = time.Now()
+
 	return nil
 }
 
@@ -508,7 +510,8 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 func (r *Runtime) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "delete", c.name)
+	_, err := utils.ExecCmd(r.Path(c), "delete", "--force", c.name)
+	return err
 }
 
 // UpdateStatus refreshes the status of the container.
@@ -517,6 +520,12 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 	defer c.opLock.Unlock()
 	out, err := exec.Command(r.Path(c), "state", c.name).CombinedOutput()
 	if err != nil {
+		if err := unix.Kill(c.state.Pid, 0); err == syscall.ESRCH {
+			c.state.Status = ContainerStateStopped
+			c.state.Finished = time.Now()
+			c.state.ExitCode = 255
+			return nil
+		}
 		return fmt.Errorf("error getting container state for %s: %s: %q", c.name, err, out)
 	}
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {

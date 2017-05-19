@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage"
@@ -269,6 +270,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("crio/hostname", hostname)
 	g.AddAnnotation("crio/kube_name", kubeName)
 
+	created := time.Now()
+	g.AddAnnotation("crio/created", created.Format(time.RFC3339Nano))
+
 	sb := &sandbox{
 		id:           id,
 		namespace:    namespace,
@@ -403,7 +407,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged, podContainer.Dir, created)
 	if err != nil {
 		return nil, err
 	}
@@ -420,6 +424,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err = s.runContainer(container, sb.cgroupParent); err != nil {
 		return nil, err
 	}
+
+	s.containerStateToDisk(container)
 
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
