@@ -86,26 +86,26 @@ function teardown() {
 
 @test "image pull and list by digest" {
 	start_crio "" "" --no-pause-image
-	run crioctl image pull nginx@sha256:4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	run crioctl image pull nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crioctl image list --quiet nginx@sha256:4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-
-	run crioctl image list --quiet nginx@4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	run crioctl image list --quiet nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
 
-	run crioctl image list --quiet @4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	run crioctl image list --quiet nginx@33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
 
-	run crioctl image list --quiet 4aacdcf186934dcb02f642579314075910f1855590fd3039d8fa4c9f96e48315
+	run crioctl image list --quiet @33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	run crioctl image list --quiet 33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
