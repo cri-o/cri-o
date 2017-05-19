@@ -179,13 +179,13 @@
       chdir: /root/src/github.com/containernetworking/plugins
   - name: cp bin to cni bin dir
     shell: cp /root/src/github.com/containernetworking/plugins/bin/* /opt/cni/bin
-  - name: curl ocid bridge conf file for cni networking
+  - name: curl crio bridge conf file for cni networking
     get_url:
-      url: https://raw.githubusercontent.com/kubernetes-incubator/cri-o/master/contrib/cni/10-ocid-bridge.conf
-      dest: /etc/cni/net.d/10-ocid-bridge.conf
+      url: https://raw.githubusercontent.com/kubernetes-incubator/cri-o/{{ commit }}/contrib/cni/10-crio-bridge.conf
+      dest: /etc/cni/net.d/10-crio-bridge.conf
   - name: curl loopback conf for cni networking
     get_url:
-      url: https://raw.githubusercontent.com/kubernetes-incubator/cri-o/master/contrib/cni/99-loopback.conf
+      url: https://raw.githubusercontent.com/kubernetes-incubator/cri-o/{{ commit }}/contrib/cni/99-loopback.conf
       dest: /etc/cni/net.d/99-loopback.conf
   - name: make clean
     make:
@@ -258,11 +258,14 @@
     shell: 'mv /root/src/github.com/kubernetes-incubator/cri-o/test/TestReport-bats*.xml /root/src/github.com/kubernetes-incubator/cri-o/reports/'
     when: xunit
   # XXX: kube tests from now on
+  # TODO: remove custom repo origin and put kube master back after PR #510
+  #       we need this because of node-e2e tests failing on RHEL otherwise
+  #       For more info see issue #529
   - name: git clone k8s repo
     git:
-      repo: https://github.com/kubernetes/kubernetes
+      repo: https://github.com/runcom/kubernetes
       dest: /root/src/k8s.io/kubernetes
-      version: 2899f47bc
+      version: custom-RHEL-node-e2e
       force: yes
     async: 600
     poll: 10
@@ -298,7 +301,7 @@
       insertafter: 'storage_option = \['
       regexp: 'overlay2\.override_kernel_check=1'
       state: present
-    when: ansible_distribution == 'RHEL' or ansible_distribution == 'CentOS'
+    when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
   - name: enable and start CRI-O
     systemd:
       name: crio
@@ -307,6 +310,7 @@
       daemon_reload: yes
     async: 600
     poll: 10
+  # see https://github.com/kubernetes-incubator/cri-o/issues/528
   - name: disable selinux for k8s conformance tests
     shell: |
             setenforce 0
@@ -357,4 +361,4 @@
     poll: 10
     ignore_errors: true
     # XXX: tests on RHEL/CentOS are unreliable fow now
-    when: ansible_distribution == 'Fedora'
+    when: ansible_distribution == 'Fedora' or ansible_distribution == 'RedHat'
