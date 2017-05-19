@@ -47,6 +47,8 @@ ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/cri-o/.artifacts}
 CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/cri-o/test/checkseccomp/checkseccomp}
 # XXX: This is hardcoded inside cri-o at the moment.
 DEFAULT_LOG_PATH=/var/log/crio/pods
+# Cgroup manager to be used
+CGROUP_MANAGER=${CGROUP_MANAGER:-cgroupfs}
 
 TESTDIR=$(mktemp -d)
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -146,7 +148,7 @@ function start_crio() {
 		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$CRIO_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$4" ]]; then
