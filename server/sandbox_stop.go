@@ -16,7 +16,17 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	logrus.Debugf("StopPodSandboxRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
-		return nil, err
+		if err == errSandboxIDEmpty {
+			return nil, err
+		}
+
+		// If the sandbox isn't found we just return an empty response to adhere
+		// the the CRI interface which expects to not error out in not found
+		// cases.
+
+		resp := &pb.StopPodSandboxResponse{}
+		logrus.Warnf("could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
+		return resp, nil
 	}
 
 	podInfraContainer := sb.infraContainer
