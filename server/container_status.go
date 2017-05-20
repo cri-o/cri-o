@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/distribution/reference"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
@@ -24,14 +26,12 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	s.containerStateToDisk(c)
 
 	containerID := c.ID()
-	image := c.Image()
 	resp := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
 			Id:          containerID,
 			Metadata:    c.Metadata(),
 			Labels:      c.Labels(),
 			Annotations: c.Annotations(),
-			Image:       image,
 		},
 	}
 
@@ -41,12 +41,27 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 	resp.Status.Mounts = mounts
 
-	status, err := s.storageImageServer.ImageStatus(s.imageContext, image.Image)
+	imageName := c.Image().Image
+	status, err := s.storageImageServer.ImageStatus(s.imageContext, imageName)
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO: use status.ID only if no digested names!!!
+	// need to modify ImageStatus to split tagged and digested!
 	resp.Status.ImageRef = status.ID
+
+	for _, n := range status.Names {
+		r, err := reference.ParseNormalizedNamed(n)
+		if err != nil {
+			return nil, fmt.Errorf("failed to normalize image name for Image: %v", err)
+		}
+		if tagged, isTagged := r.(reference.Tagged); isTagged {
+			imageName = reference.FamiliarString(tagged)
+			break
+		}
+	}
+	resp.Status.Image = &pb.ImageSpec{Image: imageName}
 
 	cState := s.runtime.ContainerStatus(c)
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
