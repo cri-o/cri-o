@@ -460,6 +460,9 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 	ftm := time.Unix(0, r.Status.FinishedAt)
 	fmt.Printf("Finished: %v\n", ftm)
 	fmt.Printf("Exit Code: %v\n", r.Status.ExitCode)
+	if r.Status.Image != nil {
+		fmt.Printf("Image: %v\n", r.Status.Image.Image)
+	}
 
 	return nil
 }
