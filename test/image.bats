@@ -48,6 +48,33 @@ function teardown() {
 	stop_crio
 }
 
+@test "container status return image@digest if created by image ID and digest available" {
+	skip "depends on https://github.com/kubernetes-incubator/cri-o/issues/531"
+
+	start_crio
+
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	sed -e "s/%VALUE%/$REDIS_IMAGEID_DIGESTED/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
+
+	run crioctl ctr create --config "$TESTDIR"/ctr_by_imageid.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	run crioctl ctr status --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "ImageRef: redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "image pull" {
 	start_crio "" "" --no-pause-image
 	run crioctl image pull "$IMAGE"
