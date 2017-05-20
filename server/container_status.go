@@ -47,9 +47,21 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		return nil, err
 	}
 
-	// TODO: use status.ID only if no digested names!!!
-	// need to modify ImageStatus to split tagged and digested!
-	resp.Status.ImageRef = status.ID
+	imageRef := status.ID
+	//
+	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
+	//
+	//for _, n := range status.Names {
+	//r, err := reference.ParseNormalizedNamed(n)
+	//if err != nil {
+	//return nil, fmt.Errorf("failed to normalize image name for ImageRef: %v", err)
+	//}
+	//if digested, isDigested := r.(reference.Canonical); isDigested {
+	//imageRef = reference.FamiliarString(digested)
+	//break
+	//}
+	//}
+	resp.Status.ImageRef = imageRef
 
 	for _, n := range status.Names {
 		r, err := reference.ParseNormalizedNamed(n)
