@@ -16,7 +16,6 @@ function teardown() {
 	run crioctl pod stop --id "$id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	echo "$output"
 	run crioctl pod remove --id "$id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -46,6 +45,9 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl pod stop --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod_id"
@@ -155,10 +157,19 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "" ]]
+	run crioctl pod stop --id "$pod1_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod1_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run crioctl pod stop --id "$pod2_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod2_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl pod stop --id "$pod3_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod3_id"
@@ -256,6 +267,9 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]

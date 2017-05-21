@@ -10,7 +10,9 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/pkg/ns"
+	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
@@ -238,8 +240,18 @@ func (s *sandbox) netNsRemove() error {
 	}
 
 	if s.netns.restored {
-		if err := unix.Unmount(s.netns.ns.Path(), unix.MNT_DETACH); err != nil {
+		// we got namespaces in the form of
+		// /var/run/netns/cni-0d08effa-06eb-a963-f51a-e2b0eceffc5d
+		// but /var/run on most system is symlinked to /run so we first resolve
+		// the symlink and then try and see if it's mounted
+		fp, err := symlink.FollowSymlinkInScope(s.netns.ns.Path(), "/")
+		if err != nil {
 			return err
+		}
+		if mounted, err := mount.Mounted(fp); err == nil && mounted {
+			if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
+				return err
+			}
 		}
 
 		if err := os.RemoveAll(s.netns.ns.Path()); err != nil {
