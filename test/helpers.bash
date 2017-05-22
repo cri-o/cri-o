@@ -147,7 +147,7 @@ function start_crio() {
 	if ! [ "$3" = "--no-pause-image" ] ; then
 		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker://docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$CRIO_BINARY" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$CRIO_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
@@ -170,6 +170,24 @@ function start_crio() {
 	if [ "$status" -ne 0 ] ; then
 		crioctl image pull busybox:latest
 	fi
+	#
+	#
+	#
+	# TODO: remove the code below for redis digested image id when
+	#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+	#       as the digested reference will be auto-stored when pulling the tag
+	#       above
+	#
+	#
+	#
+	REDIS_IMAGEID_DIGESTED="redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
+	run crioctl image status --id $REDIS_IMAGEID_DIGESTED
+	if [ "$status" -ne 0 ]; then
+		crioctl image pull $REDIS_IMAGEID_DIGESTED
+	fi
+	#
+	#
+	#
 	BUSYBOX_IMAGEID=$(crioctl image status --id=busybox | head -1 | sed -e "s/ID: //g")
 }
 

@@ -21,6 +21,10 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			return nil, err
 		}
 
+		// If the sandbox isn't found we just return an empty response to adhere
+		// the the CRI interface which expects to not error out in not found
+		// cases.
+
 		resp := &pb.RemovePodSandboxResponse{}
 		logrus.Warnf("could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
 		return resp, nil
