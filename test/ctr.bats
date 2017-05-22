@@ -573,3 +573,23 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "run ctr with image with Config.Volumes" {
+	start_crio
+	run crioctl image pull gcr.io/k8s-testimages/redis:e2e
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	volumesconfig=$(cat "$TESTDATA"/container_redis.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "gcr.io/k8s-testimages/redis:e2e"; json.dump(obj, sys.stdout)')
+	echo "$volumesconfig" > "$TESTDIR"/container_config_volumes.json
+	run crioctl ctr create --config "$TESTDIR"/container_config_volumes.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
