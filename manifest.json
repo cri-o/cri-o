@@ -9,9 +9,6 @@
         "github.com/containers/storage": {
             "branch": "master"
         },
-        "github.com/opencontainers/image-spec": {
-            "version": "v1.0.0-rc5"
-        },
         "github.com/docker/distribution": {
             "branch": "master"
         },
@@ -20,6 +17,9 @@
         },
         "github.com/godbus/dbus": {
             "version": "^4.0.0"
+        },
+        "github.com/opencontainers/image-spec": {
+            "version": "v1.0.0-rc5"
         },
         "github.com/opencontainers/runc": {
             "branch": "master"
@@ -36,11 +36,11 @@
         "google.golang.org/grpc": {
             "version": "v1.0.1-GA"
         },
-        "k8s.io/kubernetes": {
-            "version": "v1.6.1"
-        },
         "k8s.io/apimachinery": {
             "revision": "ae33df8bd0294deb6f1853cc107816dd181e0146"
+        },
+        "k8s.io/kubernetes": {
+            "version": "~v1.6.1"
         }
     }
 }

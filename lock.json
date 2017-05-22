@@ -1,5 +1,5 @@
 {
-    "memo": "c0b6d8274a7286341387dd0a060d5f1c171bf8658cc76602c6e026880a951a08",
+    "memo": "88a7bc044db73c7ab2adc009d3780db88e39e36cbb96e0f1f4b0636929481543",
     "projects": [
         {
             "name": "cloud.google.com/go",
@@ -176,7 +176,8 @@
             "revision": "48702e0da86bd25e76cfef347e2adeb434a0d0a6",
             "packages": [
                 "daemon",
-                "dbus"
+                "dbus",
+                "util"
             ]
         },
         {
@@ -184,6 +185,7 @@
             "version": "v3",
             "revision": "3ac0863d7acf3bc44daf49afef8919af12f704ef",
             "packages": [
+                "dlopen",
                 "health",
                 "httputil",
                 "timeutil"
@@ -523,10 +525,14 @@
             "revision": "b263a43430ac6996a4302b891688544225197294",
             "packages": [
                 "libcontainer/apparmor",
+                "libcontainer/cgroups",
+                "libcontainer/cgroups/fs",
+                "libcontainer/cgroups/systemd",
                 "libcontainer/configs",
                 "libcontainer/devices",
                 "libcontainer/system",
-                "libcontainer/user"
+                "libcontainer/user",
+                "libcontainer/utils"
             ]
         },
         {
@@ -840,8 +846,8 @@
         },
         {
             "name": "k8s.io/kubernetes",
-            "version": "v1.6.1",
-            "revision": "b0b7a323cc5a4a2019b2e9520c21c7830b7f708e",
+            "version": "v1.6.4",
+            "revision": "d6f433224538d4f9ca2f7ae19b252e6fcb66a3ae",
             "packages": [
                 "pkg/api",
                 "pkg/api/install",
