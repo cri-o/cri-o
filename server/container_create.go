@@ -589,6 +589,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	containerImageConfig := containerInfo.Config
 
+	// TODO: volume handling in CRI-O
+	//       right now, we do just mount tmpfs in order to have images like
+	//       gcr.io/k8s-testimages/redis:e2e to work with CRI-O
+	for dest := range containerImageConfig.Config.Volumes {
+		destOptions := []string{"mode=1777", "size=" + strconv.Itoa(64*1024*1024)}
+		specgen.AddTmpfsMount(dest, destOptions)
+	}
+
 	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
 	if err != nil {
 		return nil, err
