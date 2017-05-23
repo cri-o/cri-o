@@ -687,18 +687,28 @@ int main(int argc, char *argv[])
 					pipe = STDOUT_PIPE;
 				else if (masterfd == masterfd_stderr)
 					pipe = STDERR_PIPE;
+				else if (masterfd == efd) {
+					if (read(efd, &oom_event, sizeof(uint64_t)) != sizeof(uint64_t))
+						nwarn("Failed to read event from eventfd");
+					ninfo("OOM received");
+					if (open("oom", O_CREAT, 0666) < 0) {
+						nwarn("Failed to write oom file");
+					}
+				}
 				else {
 					nwarn("unknown pipe fd");
 					goto out;
 				}
 
-				num_read = read(masterfd, buf, BUF_SIZE);
-				if (num_read <= 0)
-					goto out;
+				if (masterfd == masterfd_stdout || masterfd == masterfd_stderr) {
+					num_read = read(masterfd, buf, BUF_SIZE);
+					if (num_read <= 0)
+						goto out;
 
-				if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
-					nwarn("write_k8s_log failed");
-					goto out;
+					if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
+						nwarn("write_k8s_log failed");
+						goto out;
+					}
 				}
 			} else if (evlist[i].events & (EPOLLHUP | EPOLLERR)) {
 				printf("closing fd %d\n", evlist[i].data.fd);
