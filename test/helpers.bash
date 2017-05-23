@@ -87,6 +87,16 @@ if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
     fi
 fi
 
+# Make sure we have a copy of the mrunalp/oom:latest image.
+if ! [ -d "$ARTIFACTS_PATH"/oom-image ]; then
+    mkdir -p "$ARTIFACTS_PATH"/oom-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://mrunalp/oom --export-to=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://mrunalp/oom"
+        rm -fr "$ARTIFACTS_PATH"/oom-image
+        exit 1
+    fi
+fi
+
 # Run crio using the binary specified by $CRIO_BINARY.
 # This must ONLY be run on engines created with `start_crio`.
 function crio() {
@@ -148,6 +158,7 @@ function start_crio() {
 		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --add-name=docker.io/library/mrunalp/oom --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$CRIO_BINARY" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$CRIO_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
@@ -170,6 +181,11 @@ function start_crio() {
 	if [ "$status" -ne 0 ] ; then
 		crioctl image pull busybox:latest
 	fi
+	run crioctl image status --id=mrunalp/oom
+	if [ "$status" -ne 0 ] ; then
+		  crioctl image pull mrunalp/oom
+	fi
+
 	#
 	#
 	#
