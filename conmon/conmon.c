@@ -104,6 +104,8 @@ static GOptionEntry entries[] =
 /* strlen("1997-03-25T13:20:42.999999999+01:00") + 1 */
 #define TSBUFLEN 36
 
+#define CGROUP_ROOT "/sys/fs/cgroup"
+
 int set_k8s_timestamp(char *buf, ssize_t buflen)
 {
 	struct tm *tm;
@@ -231,6 +233,66 @@ next:
 	}
 
 	return 0;
+}
+
+/*
+ * Returns the path for specified controller name for a pid.
+ * Returns NULL on error.
+ */
+static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
+	_cleanup_free_ char *cgroups_file_path = NULL;
+	int rc;
+	rc = asprintf(&cgroups_file_path, "/proc/%d/cgroup", pid);
+	if (rc < 0) {
+		nwarn("Failed to allocate memory for cgroups file path");
+		return NULL;
+	}
+
+	_cleanup_fclose_ FILE *fp = NULL;
+	fp = fopen(cgroups_file_path, "r");
+	if (fp == NULL) {
+		nwarn("Failed to open cgroups file: %s", cgroups_file_path);
+		return NULL;
+	}
+
+	_cleanup_free_ char *line = NULL;
+	ssize_t read;
+	size_t len = 0;
+	char *ptr;
+	char *subsystem_path = NULL;
+	while ((read = getline(&line, &len, fp)) != -1) {
+		ptr = strchr(line, ':');
+		if (ptr == NULL) {
+			nwarn("Error parsing cgroup, ':' not found: %s", line);
+			return NULL;
+		}
+		ptr++;
+		if (!strncmp(ptr, subsystem, strlen(subsystem))) {
+			char *path = strchr(ptr, '/');
+			if (path == NULL) {
+				nwarn("Error finding path in cgroup: %s", line);
+				return NULL;
+			}
+			ninfo("PATH: %s", path);
+			const char *subpath = strchr(subsystem, '=');
+			if (subpath == NULL) {
+				subpath = subsystem;
+			} else {
+				subpath++;
+			}
+
+			rc = asprintf(&subsystem_path, "%s/%s%s", CGROUP_ROOT, subpath, path);
+			if (rc < 0) {
+				nwarn("Failed to allocate memory for subsystemd path");
+				return NULL;
+			}
+			ninfo("SUBSYSTEM_PATH: %s", subsystem_path);
+			subsystem_path[strlen(subsystem_path) - 1] = '\0';
+			return subsystem_path;
+		}
+	}
+
+	return NULL;
 }
 
 int main(int argc, char *argv[])
