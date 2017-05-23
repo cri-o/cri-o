@@ -629,21 +629,26 @@ int main(int argc, char *argv[])
 		nexit("Failed to get memory cgroup path");
 	}
 
+	bool oom_handling_enabled = true;
 	char memory_cgroup_file_path[PATH_MAX];
 	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/cgroup.event_control", memory_cgroup_path);
-	if ((cfd = open(memory_cgroup_file_path, O_WRONLY)) == -1)
-		pexit("Failed to open %s", memory_cgroup_file_path);
+	if ((cfd = open(memory_cgroup_file_path, O_WRONLY)) == -1) {
+		nwarn("Failed to open %s", memory_cgroup_file_path);
+		oom_handling_enabled = false;
+	}
 
-	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/memory.oom_control", memory_cgroup_path);
-	if ((ofd = open(memory_cgroup_file_path, O_RDONLY)) == -1)
-		pexit("Failed to open %s", memory_cgroup_file_path);
+	if (oom_handling_enabled) {
+		snprintf(memory_cgroup_file_path, PATH_MAX, "%s/memory.oom_control", memory_cgroup_path);
+		if ((ofd = open(memory_cgroup_file_path, O_RDONLY)) == -1)
+			pexit("Failed to open %s", memory_cgroup_file_path);
 
-	if ((efd = eventfd(0, 0)) == -1)
-		pexit("Failed to create eventfd");
+		if ((efd = eventfd(0, 0)) == -1)
+			pexit("Failed to create eventfd");
 
-	wb = snprintf(buf, BUF_SIZE, "%d %d", efd, ofd);
-	if (write(cfd, buf, wb) < 0)
-		pexit("Failed to write to cgroup.event_control");
+		wb = snprintf(buf, BUF_SIZE, "%d %d", efd, ofd);
+		if (write(cfd, buf, wb) < 0)
+			pexit("Failed to write to cgroup.event_control");
+	}
 
 	/* Create epoll_ctl so that we can handle read/write events. */
 	/*
@@ -669,9 +674,11 @@ int main(int argc, char *argv[])
 	}
 
 	/* Add the OOM event fd to epoll */
-	ev.data.fd = efd;
-	if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) < 0)
-		pexit("Failed to add OOM eventfd to epoll");
+	if (oom_handling_enabled) {
+		ev.data.fd = efd;
+		if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) < 0)
+			pexit("Failed to add OOM eventfd to epoll");
+	}
 
 	/* Log all of the container's output. */
 	while (num_stdio_fds > 0) {
@@ -687,7 +694,7 @@ int main(int argc, char *argv[])
 					pipe = STDOUT_PIPE;
 				else if (masterfd == masterfd_stderr)
 					pipe = STDERR_PIPE;
-				else if (masterfd == efd) {
+				else if (oom_handling_enabled && masterfd == efd) {
 					if (read(efd, &oom_event, sizeof(uint64_t)) != sizeof(uint64_t))
 						nwarn("Failed to read event from eventfd");
 					ninfo("OOM received");
