@@ -668,6 +668,11 @@ int main(int argc, char *argv[])
 		num_stdio_fds++;
 	}
 
+	/* Add the OOM event fd to epoll */
+	ev.data.fd = efd;
+	if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) < 0)
+		pexit("Failed to add OOM eventfd to epoll");
+
 	/* Log all of the container's output. */
 	while (num_stdio_fds > 0) {
 		int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
