@@ -552,6 +552,11 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 			}
 			c.state.ExitCode = int32(statusCode)
 		}
+
+		oomFilePath := filepath.Join(c.bundlePath, "oom")
+		if _, err = os.Stat(oomFilePath); err == nil {
+			c.state.OOMKilled = true
+		}
 	}
 
 	return nil
