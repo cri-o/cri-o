@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+#include <sys/eventfd.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -326,6 +327,14 @@ int main(int argc, char *argv[])
 	GOptionContext *context;
 	_cleanup_gstring_ GString *cmd = NULL;
 
+	/* Used for OOM notification API */
+	_cleanup_close_ int efd = -1;
+	_cleanup_close_ int cfd = -1;
+	_cleanup_close_ int ofd = -1;
+	_cleanup_free_ char *memory_cgroup_path = NULL;
+	int wb;
+	uint64_t oom_event;
+
 	/* Command line parameters */
 	context = g_option_context_new("- conmon utility");
 	g_option_context_add_main_entries(context, entries, "conmon");
@@ -613,6 +622,28 @@ int main(int argc, char *argv[])
 			pexit("unable to send container pid to parent");
 		}
 	}
+
+	/* Setup OOM notification for container process */
+	memory_cgroup_path = process_cgroup_subsystem_path(cpid, "memory");
+	if (!memory_cgroup_path) {
+		nexit("Failed to get memory cgroup path");
+	}
+
+	char memory_cgroup_file_path[PATH_MAX];
+	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/cgroup.event_control", memory_cgroup_path);
+	if ((cfd = open(memory_cgroup_file_path, O_WRONLY)) == -1)
+		pexit("Failed to open %s", memory_cgroup_file_path);
+
+	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/memory.oom_control", memory_cgroup_path);
+	if ((ofd = open(memory_cgroup_file_path, O_RDONLY)) == -1)
+		pexit("Failed to open %s", memory_cgroup_file_path);
+
+	if ((efd = eventfd(0, 0)) == -1)
+		pexit("Failed to create eventfd");
+
+	wb = snprintf(buf, BUF_SIZE, "%d %d", efd, ofd);
+	if (write(cfd, buf, wb) < 0)
+		pexit("Failed to write to cgroup.event_control");
 
 	/* Create epoll_ctl so that we can handle read/write events. */
 	/*
