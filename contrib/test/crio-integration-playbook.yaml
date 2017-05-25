@@ -5,6 +5,7 @@
   remote_user: root
   vars:
     xunit: false
+    cni_commit: dcf7368eeab15e2affc6256f0bb1e84dd46a34de
   tasks:
   - name: Update all packages
     yum:
@@ -140,8 +141,9 @@
     poll: 10
   - name: git clone cni repo
     git:
-      repo: https://github.com/containernetworking/cni
-      dest: /root/src/github.com/containernetworking/cni
+      repo: https://github.com/containernetworking/plugins
+      dest: /root/src/github.com/containernetworking/plugins
+      version: "{{ cni_commit }}"
     async: 600
     poll: 10
   - name: Git fetch the PR
@@ -174,9 +176,9 @@
   - name: Build cni networking
     shell: ./build.sh
     args:
-      chdir: /root/src/github.com/containernetworking/cni
+      chdir: /root/src/github.com/containernetworking/plugins
   - name: cp bin to cni bin dir
-    shell: cp /root/src/github.com/containernetworking/cni/bin/* /opt/cni/bin
+    shell: cp /root/src/github.com/containernetworking/plugins/bin/* /opt/cni/bin
   - name: curl ocid bridge conf file for cni networking
     get_url:
       url: https://raw.githubusercontent.com/kubernetes-incubator/cri-o/master/contrib/cni/10-ocid-bridge.conf
