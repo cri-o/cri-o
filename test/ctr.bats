@@ -401,6 +401,28 @@ function teardown() {
 	stop_crio
 }
 
+@test "ctr execsync conflicting with conmon flags parsing" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "echo hello world"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "hello world" ]]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "ctr execsync" {
 	start_crio
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
@@ -511,19 +533,22 @@ function teardown() {
 	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl ctr execsync --id "$ctr_id" "echo hello0 stdout"
+	run crioctl ctr execsync --id "$ctr_id" echo hello0 stdout
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"$(printf "Stdout:\nhello0 stdout")"* ]]
-	run crioctl ctr execsync --id "$ctr_id" "echo hello1 stderr >&2"
+
+	stderrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "runcom/stderr-test"; json.dump(obj, sys.stdout)')
+	echo "$stderrconfig" > "$TESTDIR"/container_config_stderr.json
+	run crioctl ctr create --config "$TESTDIR"/container_config_stderr.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"$(printf "Stderr:\nhello1 stderr")"* ]]
-	run crioctl ctr execsync --id "$ctr_id" "echo hello2 stderr >&2; echo hello3 stdout"
+	ctr_id="$output"
+	run crioctl ctr execsync --id "$ctr_id" stderr
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"$(printf "Stderr:\nhello2 stderr")"* ]]
-	[[ "$output" == *"$(printf "Stdout:\nhello3 stdout")"* ]]
+	[[ "$output" == *"$(printf "Stderr:\nthis goes to stderr")"* ]]
+
 	run crioctl pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]

@@ -87,6 +87,7 @@ static char *runtime_path = NULL;
 static char *bundle_path = NULL;
 static char *pid_file = NULL;
 static bool systemd_cgroup = false;
+static char *exec_process_spec = NULL;
 static bool exec = false;
 static char *log_path = NULL;
 static GOptionEntry entries[] =
@@ -98,6 +99,7 @@ static GOptionEntry entries[] =
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &pid_file, "PID file", NULL },
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &systemd_cgroup, "Enable systemd cgroup manager", NULL },
   { "exec", 'e', 0, G_OPTION_ARG_NONE, &exec, "Exec a command in a running container", NULL },
+  { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &exec_process_spec, "Path to the process spec for exec", NULL },
   { "log-path", 'l', 0, G_OPTION_ARG_STRING, &log_path, "Log file path", NULL },
   { NULL }
 };
@@ -356,6 +358,10 @@ int main(int argc, char *argv[])
 		bundle_path = cwd;
 	}
 
+	if (exec && exec_process_spec == NULL) {
+		nexit("Exec process spec path not provided. Use --exec-process-spec");
+	}
+
 	if (pid_file == NULL) {
 		if (snprintf(default_pid_file, sizeof(default_pid_file),
 			     "%s/pidfile-%s", cwd, cid) < 0) {
@@ -458,22 +464,13 @@ int main(int argc, char *argv[])
 	if (terminal)
 		g_string_append_printf(cmd, " --console-socket %s", csname);
 
-	/* Container name comes last. */
-	g_string_append_printf(cmd, " %s", cid);
-
 	/* Set the exec arguments. */
 	if (exec) {
-		/*
-		 * FIXME: This code is broken if argv[1] contains spaces or other
-		 *        similar characters that shells don't like. It's a bit silly
-		 *        that we're doing things inside a shell at all -- this should
-		 *        all be done in arrays.
-		 */
-
-		int i;
-		for (i = 1; i < argc; i++)
-			g_string_append_printf(cmd, " %s", argv[i]);
+		g_string_append_printf(cmd, " --process %s", exec_process_spec);
 	}
+
+	/* Container name comes last. */
+	g_string_append_printf(cmd, " %s", cid);
 
 	/*
 	 * We have to fork here because the current runC API dups the stdio of the
