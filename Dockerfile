@@ -56,11 +56,11 @@ RUN set -x \
 	&& rm -rf "$GOPATH"
 
 # Install CNI plugins
-ENV CNI_COMMIT d4bbce1865270cd2d2be558d6a23e63d314fe769
+ENV CNI_COMMIT dcf7368eeab15e2affc6256f0bb1e84dd46a34de
 RUN set -x \
        && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/containernetworking/cni.git "$GOPATH/src/github.com/containernetworking/cni" \
-       && cd "$GOPATH/src/github.com/containernetworking/cni" \
+       && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
+       && cd "$GOPATH/src/github.com/containernetworking/plugins" \
        && git checkout -q "$CNI_COMMIT" \
        && ./build.sh \
        && mkdir -p /opt/cni/bin \
