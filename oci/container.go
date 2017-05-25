@@ -38,10 +38,11 @@ type Container struct {
 // ContainerState represents the status of a container.
 type ContainerState struct {
 	specs.State
-	Created  time.Time `json:"created"`
-	Started  time.Time `json:"started,omitempty"`
-	Finished time.Time `json:"finished,omitempty"`
-	ExitCode int32     `json:"exitCode,omitempty"`
+	Created   time.Time `json:"created"`
+	Started   time.Time `json:"started,omitempty"`
+	Finished  time.Time `json:"finished,omitempty"`
+	ExitCode  int32     `json:"exitCode,omitempty"`
+	OOMKilled bool      `json:"oomKilled,omitempty"`
 }
 
 // NewContainer creates a container object.

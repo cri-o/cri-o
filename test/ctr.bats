@@ -593,3 +593,38 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "ctr oom" {
+	if [[ "$TRAVIS" == "true" ]]; then
+		skip "travis container tests don't support testing OOM"
+	fi
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	oomconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "mrunalp/oom"; obj["linux"]["resources"]["memory_limit_in_bytes"] = 512000; obj["command"] = ["/oom"]; json.dump(obj, sys.stdout)')
+	echo "$oomconfig" > "$TESTDIR"/container_config_oom.json
+	run crioctl ctr create --config "$TESTDIR"/container_config_oom.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+        # Wait for container to OOM
+	run sleep 10
+	run crioctl ctr status --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "OOMKilled" ]]
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}

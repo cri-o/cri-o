@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+#include <sys/eventfd.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -59,6 +60,12 @@ static inline void closep(int *fd)
 	*fd = -1;
 }
 
+static inline void fclosep(FILE **fp) {
+	if (*fp)
+		fclose(*fp);
+	*fp = NULL;
+}
+
 static inline void gstring_free_cleanup(GString **string)
 {
 	if (*string)
@@ -67,6 +74,7 @@ static inline void gstring_free_cleanup(GString **string)
 
 #define _cleanup_free_ _cleanup_(freep)
 #define _cleanup_close_ _cleanup_(closep)
+#define _cleanup_fclose_ _cleanup_(fclosep)
 #define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
 
 #define BUF_SIZE 256
@@ -96,6 +104,8 @@ static GOptionEntry entries[] =
 
 /* strlen("1997-03-25T13:20:42.999999999+01:00") + 1 */
 #define TSBUFLEN 36
+
+#define CGROUP_ROOT "/sys/fs/cgroup"
 
 int set_k8s_timestamp(char *buf, ssize_t buflen)
 {
@@ -226,6 +236,66 @@ next:
 	return 0;
 }
 
+/*
+ * Returns the path for specified controller name for a pid.
+ * Returns NULL on error.
+ */
+static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
+	_cleanup_free_ char *cgroups_file_path = NULL;
+	int rc;
+	rc = asprintf(&cgroups_file_path, "/proc/%d/cgroup", pid);
+	if (rc < 0) {
+		nwarn("Failed to allocate memory for cgroups file path");
+		return NULL;
+	}
+
+	_cleanup_fclose_ FILE *fp = NULL;
+	fp = fopen(cgroups_file_path, "r");
+	if (fp == NULL) {
+		nwarn("Failed to open cgroups file: %s", cgroups_file_path);
+		return NULL;
+	}
+
+	_cleanup_free_ char *line = NULL;
+	ssize_t read;
+	size_t len = 0;
+	char *ptr;
+	char *subsystem_path = NULL;
+	while ((read = getline(&line, &len, fp)) != -1) {
+		ptr = strchr(line, ':');
+		if (ptr == NULL) {
+			nwarn("Error parsing cgroup, ':' not found: %s", line);
+			return NULL;
+		}
+		ptr++;
+		if (!strncmp(ptr, subsystem, strlen(subsystem))) {
+			char *path = strchr(ptr, '/');
+			if (path == NULL) {
+				nwarn("Error finding path in cgroup: %s", line);
+				return NULL;
+			}
+			ninfo("PATH: %s", path);
+			const char *subpath = strchr(subsystem, '=');
+			if (subpath == NULL) {
+				subpath = subsystem;
+			} else {
+				subpath++;
+			}
+
+			rc = asprintf(&subsystem_path, "%s/%s%s", CGROUP_ROOT, subpath, path);
+			if (rc < 0) {
+				nwarn("Failed to allocate memory for subsystemd path");
+				return NULL;
+			}
+			ninfo("SUBSYSTEM_PATH: %s", subsystem_path);
+			subsystem_path[strlen(subsystem_path) - 1] = '\0';
+			return subsystem_path;
+		}
+	}
+
+	return NULL;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret, runtime_status;
@@ -256,6 +326,14 @@ int main(int argc, char *argv[])
 	GError *error = NULL;
 	GOptionContext *context;
 	_cleanup_gstring_ GString *cmd = NULL;
+
+	/* Used for OOM notification API */
+	_cleanup_close_ int efd = -1;
+	_cleanup_close_ int cfd = -1;
+	_cleanup_close_ int ofd = -1;
+	_cleanup_free_ char *memory_cgroup_path = NULL;
+	int wb;
+	uint64_t oom_event;
 
 	/* Command line parameters */
 	context = g_option_context_new("- conmon utility");
@@ -545,6 +623,33 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* Setup OOM notification for container process */
+	memory_cgroup_path = process_cgroup_subsystem_path(cpid, "memory");
+	if (!memory_cgroup_path) {
+		nexit("Failed to get memory cgroup path");
+	}
+
+	bool oom_handling_enabled = true;
+	char memory_cgroup_file_path[PATH_MAX];
+	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/cgroup.event_control", memory_cgroup_path);
+	if ((cfd = open(memory_cgroup_file_path, O_WRONLY)) == -1) {
+		nwarn("Failed to open %s", memory_cgroup_file_path);
+		oom_handling_enabled = false;
+	}
+
+	if (oom_handling_enabled) {
+		snprintf(memory_cgroup_file_path, PATH_MAX, "%s/memory.oom_control", memory_cgroup_path);
+		if ((ofd = open(memory_cgroup_file_path, O_RDONLY)) == -1)
+			pexit("Failed to open %s", memory_cgroup_file_path);
+
+		if ((efd = eventfd(0, 0)) == -1)
+			pexit("Failed to create eventfd");
+
+		wb = snprintf(buf, BUF_SIZE, "%d %d", efd, ofd);
+		if (write(cfd, buf, wb) < 0)
+			pexit("Failed to write to cgroup.event_control");
+	}
+
 	/* Create epoll_ctl so that we can handle read/write events. */
 	/*
 	 * TODO: Switch to libuv so that we can also implement exec as well as
@@ -568,6 +673,13 @@ int main(int argc, char *argv[])
 		num_stdio_fds++;
 	}
 
+	/* Add the OOM event fd to epoll */
+	if (oom_handling_enabled) {
+		ev.data.fd = efd;
+		if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) < 0)
+			pexit("Failed to add OOM eventfd to epoll");
+	}
+
 	/* Log all of the container's output. */
 	while (num_stdio_fds > 0) {
 		int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
@@ -582,18 +694,28 @@ int main(int argc, char *argv[])
 					pipe = STDOUT_PIPE;
 				else if (masterfd == masterfd_stderr)
 					pipe = STDERR_PIPE;
+				else if (oom_handling_enabled && masterfd == efd) {
+					if (read(efd, &oom_event, sizeof(uint64_t)) != sizeof(uint64_t))
+						nwarn("Failed to read event from eventfd");
+					ninfo("OOM received");
+					if (open("oom", O_CREAT, 0666) < 0) {
+						nwarn("Failed to write oom file");
+					}
+				}
 				else {
 					nwarn("unknown pipe fd");
 					goto out;
 				}
 
-				num_read = read(masterfd, buf, BUF_SIZE);
-				if (num_read <= 0)
-					goto out;
+				if (masterfd == masterfd_stdout || masterfd == masterfd_stderr) {
+					num_read = read(masterfd, buf, BUF_SIZE);
+					if (num_read <= 0)
+						goto out;
 
-				if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
-					nwarn("write_k8s_log failed");
-					goto out;
+					if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
+						nwarn("write_k8s_log failed");
+						goto out;
+					}
 				}
 			} else if (evlist[i].events & (EPOLLHUP | EPOLLERR)) {
 				printf("closing fd %d\n", evlist[i].data.fd);
