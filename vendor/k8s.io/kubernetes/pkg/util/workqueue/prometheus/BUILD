@@ -12,8 +12,8 @@ go_library(
     srcs = ["prometheus.go"],
     tags = ["automanaged"],
     deps = [
-        "//pkg/util/workqueue:go_default_library",
-        "//vendor:github.com/prometheus/client_golang/prometheus",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/k8s.io/client-go/util/workqueue:go_default_library",
     ],
 )
 

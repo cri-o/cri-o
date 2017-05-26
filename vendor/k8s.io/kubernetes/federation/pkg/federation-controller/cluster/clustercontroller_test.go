@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -32,7 +33,6 @@ import (
 	controllerutil "k8s.io/kubernetes/federation/pkg/federation-controller/util"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/uuid"
 )
 
 func newCluster(clusterName string, serverUrl string) *federationv1beta1.Cluster {
@@ -132,7 +132,7 @@ func TestUpdateClusterStatusOK(t *testing.T) {
 		}
 	}
 
-	manager := NewclusterController(federationClientSet, 5)
+	manager := newClusterController(federationClientSet, 5)
 	err = manager.UpdateClusterStatus()
 	if err != nil {
 		t.Errorf("Failed to Update Cluster Status: %v", err)

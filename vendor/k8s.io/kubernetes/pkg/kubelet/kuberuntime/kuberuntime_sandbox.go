@@ -25,7 +25,7 @@ import (
 	"github.com/golang/glog"
 	kubetypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api/v1"
-	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
@@ -74,16 +74,19 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxConfig(pod *v1.Pod, attemp
 		Annotations: newPodAnnotations(pod),
 	}
 
+	dnsServers, dnsSearches, useClusterFirstPolicy, err := m.runtimeHelper.GetClusterDNS(pod)
+	if err != nil {
+		return nil, err
+	}
+	podSandboxConfig.DnsConfig = &runtimeapi.DNSConfig{
+		Servers:  dnsServers,
+		Searches: dnsSearches,
+	}
+	if useClusterFirstPolicy {
+		podSandboxConfig.DnsConfig.Options = defaultDNSOptions
+	}
+
 	if !kubecontainer.IsHostNetworkPod(pod) {
-		dnsServers, dnsSearches, err := m.runtimeHelper.GetClusterDNS(pod)
-		if err != nil {
-			return nil, err
-		}
-		podSandboxConfig.DnsConfig = &runtimeapi.DNSConfig{
-			Servers:  dnsServers,
-			Searches: dnsSearches,
-			Options:  defaultDNSOptions,
-		}
 		// TODO: Add domain support in new runtime interface
 		hostname, _, err := m.runtimeHelper.GeneratePodHostNameAndDomain(pod)
 		if err != nil {
@@ -95,17 +98,12 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxConfig(pod *v1.Pod, attemp
 	logDir := buildPodLogsDirectory(pod.UID)
 	podSandboxConfig.LogDirectory = logDir
 
-	cgroupParent := ""
 	portMappings := []*runtimeapi.PortMapping{}
 	for _, c := range pod.Spec.Containers {
-		// TODO: use a separate interface to only generate portmappings
-		opts, err := m.runtimeHelper.GenerateRunContainerOptions(pod, &c, "")
-		if err != nil {
-			return nil, err
-		}
+		containerPortMappings := kubecontainer.MakePortMappings(&c)
 
-		for idx := range opts.PortMappings {
-			port := opts.PortMappings[idx]
+		for idx := range containerPortMappings {
+			port := containerPortMappings[idx]
 			hostPort := int32(port.HostPort)
 			containerPort := int32(port.ContainerPort)
 			protocol := toRuntimeProtocol(port.Protocol)
@@ -117,9 +115,9 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxConfig(pod *v1.Pod, attemp
 			})
 		}
 
-		// TODO: refactor kubelet to get cgroup parent for pod instead of containers
-		cgroupParent = opts.CgroupParent
 	}
+
+	cgroupParent := m.runtimeHelper.GetPodCgroupParent(pod)
 	podSandboxConfig.Linux = m.generatePodSandboxLinuxConfig(pod, cgroupParent)
 	if len(portMappings) > 0 {
 		podSandboxConfig.PortMappings = portMappings
@@ -140,7 +138,7 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxLinuxConfig(pod *v1.Pod, c
 	if pod.Spec.SecurityContext != nil {
 		sc := pod.Spec.SecurityContext
 		if sc.RunAsUser != nil {
-			lc.SecurityContext.RunAsUser = &runtimeapi.Int64Value{Value: *sc.RunAsUser}
+			lc.SecurityContext.RunAsUser = &runtimeapi.Int64Value{Value: int64(*sc.RunAsUser)}
 		}
 		lc.SecurityContext.NamespaceOptions = &runtimeapi.NamespaceOption{
 			HostNetwork: pod.Spec.HostNetwork,
@@ -149,13 +147,15 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxLinuxConfig(pod *v1.Pod, c
 		}
 
 		if sc.FSGroup != nil {
-			lc.SecurityContext.SupplementalGroups = append(lc.SecurityContext.SupplementalGroups, *sc.FSGroup)
+			lc.SecurityContext.SupplementalGroups = append(lc.SecurityContext.SupplementalGroups, int64(*sc.FSGroup))
 		}
 		if groups := m.runtimeHelper.GetExtraSupplementalGroupsForPod(pod); len(groups) > 0 {
 			lc.SecurityContext.SupplementalGroups = append(lc.SecurityContext.SupplementalGroups, groups...)
 		}
 		if sc.SupplementalGroups != nil {
-			lc.SecurityContext.SupplementalGroups = append(lc.SecurityContext.SupplementalGroups, sc.SupplementalGroups...)
+			for _, sg := range sc.SupplementalGroups {
+				lc.SecurityContext.SupplementalGroups = append(lc.SecurityContext.SupplementalGroups, int64(sg))
+			}
 		}
 		if sc.SELinuxOptions != nil {
 			lc.SecurityContext.SelinuxOptions = &runtimeapi.SELinuxOption{
@@ -188,18 +188,7 @@ func (m *kubeGenericRuntimeManager) getKubeletSandboxes(all bool) ([]*runtimeapi
 		return nil, err
 	}
 
-	result := []*runtimeapi.PodSandbox{}
-	for _, s := range resp {
-		if !isManagedByKubelet(s.Labels) {
-			glog.V(5).Infof("Sandbox %s is not managed by kubelet", kubecontainer.BuildPodFullName(
-				s.Metadata.Name, s.Metadata.Namespace))
-			continue
-		}
-
-		result = append(result, s)
-	}
-
-	return result, nil
+	return resp, nil
 }
 
 // determinePodSandboxIP determines the IP address of the given pod sandbox.
@@ -209,7 +198,9 @@ func (m *kubeGenericRuntimeManager) determinePodSandboxIP(podNamespace, podName 
 		return ""
 	}
 	ip := podSandbox.Network.Ip
-	if net.ParseIP(ip) == nil {
+	if len(ip) != 0 && net.ParseIP(ip) == nil {
+		// ip could be an empty string if runtime is not responsible for the
+		// IP (e.g., host networking).
 		glog.Warningf("Pod Sandbox reported an unparseable IP %v", ip)
 		return ""
 	}
@@ -248,7 +239,7 @@ func (m *kubeGenericRuntimeManager) getSandboxIDByPodUID(podUID kubetypes.UID, s
 }
 
 // GetPortForward gets the endpoint the runtime will serve the port-forward request from.
-func (m *kubeGenericRuntimeManager) GetPortForward(podName, podNamespace string, podUID kubetypes.UID) (*url.URL, error) {
+func (m *kubeGenericRuntimeManager) GetPortForward(podName, podNamespace string, podUID kubetypes.UID, ports []int32) (*url.URL, error) {
 	sandboxIDs, err := m.getSandboxIDByPodUID(podUID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find sandboxID for pod %s: %v", format.PodDesc(podName, podNamespace, podUID), err)
@@ -256,9 +247,9 @@ func (m *kubeGenericRuntimeManager) GetPortForward(podName, podNamespace string,
 	if len(sandboxIDs) == 0 {
 		return nil, fmt.Errorf("failed to find sandboxID for pod %s", format.PodDesc(podName, podNamespace, podUID))
 	}
-	// TODO: Port is unused for now, but we may need it in the future.
 	req := &runtimeapi.PortForwardRequest{
 		PodSandboxId: sandboxIDs[0],
+		Port:         ports,
 	}
 	resp, err := m.runtimeService.PortForward(req)
 	if err != nil {

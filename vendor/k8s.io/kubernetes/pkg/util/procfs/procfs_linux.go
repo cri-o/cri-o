@@ -53,7 +53,7 @@ func containerNameFromProcCgroup(content string) (string, error) {
 }
 
 // getFullContainerName gets the container name given the root process id of the container.
-// Eg. If the devices cgroup for the container is stored in /sys/fs/cgroup/devices/docker/nginx,
+// E.g. if the devices cgroup for the container is stored in /sys/fs/cgroup/devices/docker/nginx,
 // return docker/nginx. Assumes that the process is part of exactly one cgroup hierarchy.
 func (pfs *ProcFS) GetFullContainerName(pid int) (string, error) {
 	filePath := path.Join("/proc", strconv.Itoa(pid), "cgroup")
@@ -90,7 +90,7 @@ func PKill(name string, sig syscall.Signal) error {
 	return utilerrors.NewAggregate(errList)
 }
 
-// Find process(es) with a specified name (exact match)
+// Find process(es) with a specified name (regexp match)
 // and return their pid(s)
 func PidOf(name string) ([]int, error) {
 	if len(name) == 0 {

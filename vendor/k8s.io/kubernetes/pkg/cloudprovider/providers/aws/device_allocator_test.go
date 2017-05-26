@@ -22,56 +22,22 @@ func TestDeviceAllocator(t *testing.T) {
 	tests := []struct {
 		name            string
 		existingDevices ExistingDevices
-		length          int
-		firstDevice     mountDevice
-		lastAllocated   mountDevice
+		deviceMap       map[mountDevice]int
 		expectedOutput  mountDevice
 	}{
 		{
-			"empty device list",
-			ExistingDevices{},
-			2,
-			"aa",
-			"aa",
-			"ab",
-		},
-		{
 			"empty device list with wrap",
 			ExistingDevices{},
-			2,
-			"ba",
-			"zz",
-			"ba", // next to 'zz' is the first one, 'ba'
-		},
-		{
-			"device list",
-			ExistingDevices{"aa": "used", "ab": "used", "ac": "used"},
-			2,
-			"aa",
-			"aa",
-			"ad", // all up to "ac" are used
-		},
-		{
-			"device list with wrap",
-			ExistingDevices{"zy": "used", "zz": "used", "ba": "used"},
-			2,
-			"ba",
-			"zx",
-			"bb", // "zy", "zz" and "ba" are used
-		},
-		{
-			"three characters with wrap",
-			ExistingDevices{"zzy": "used", "zzz": "used", "baa": "used"},
-			3,
-			"baa",
-			"zzx",
-			"bab",
+			generateUnsortedDeviceList(),
+			"bd", // next to 'zz' is the first one, 'ba'
 		},
 	}
 
 	for _, test := range tests {
-		allocator := NewDeviceAllocator(test.length, test.firstDevice).(*deviceAllocator)
-		allocator.lastAssignedDevice = test.lastAllocated
+		allocator := NewDeviceAllocator().(*deviceAllocator)
+		for k, v := range test.deviceMap {
+			allocator.possibleDevices[k] = v
+		}
 
 		got, err := allocator.GetNext(test.existingDevices)
 		if err != nil {
@@ -83,13 +49,25 @@ func TestDeviceAllocator(t *testing.T) {
 	}
 }
 
+func generateUnsortedDeviceList() map[mountDevice]int {
+	possibleDevices := make(map[mountDevice]int)
+	for _, firstChar := range []rune{'b', 'c'} {
+		for i := 'a'; i <= 'z'; i++ {
+			dev := mountDevice([]rune{firstChar, i})
+			possibleDevices[dev] = 3
+		}
+	}
+	possibleDevices["bd"] = 0
+	return possibleDevices
+}
+
 func TestDeviceAllocatorError(t *testing.T) {
-	allocator := NewDeviceAllocator(2, "ba").(*deviceAllocator)
+	allocator := NewDeviceAllocator().(*deviceAllocator)
 	existingDevices := ExistingDevices{}
 
 	// make all devices used
 	var first, second byte
-	for first = 'b'; first <= 'z'; first++ {
+	for first = 'b'; first <= 'c'; first++ {
 		for second = 'a'; second <= 'z'; second++ {
 			device := [2]byte{first, second}
 			existingDevices[mountDevice(device[:])] = "used"

@@ -23,20 +23,17 @@ import (
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	federation_v1beta1 "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	"k8s.io/kubernetes/federation/pkg/federation-controller/util"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
 )
 
 const (
-	UserAgentName           = "Cluster-Controller"
-	KubeAPIQPS              = 20.0
-	KubeAPIBurst            = 30
-	KubeconfigSecretDataKey = "kubeconfig"
+	UserAgentName = "Cluster-Controller"
 )
 
 type ClusterClient struct {

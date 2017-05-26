@@ -19,8 +19,8 @@ package kuberuntime
 import (
 	"time"
 
-	internalapi "k8s.io/kubernetes/pkg/kubelet/api"
-	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 )
 
@@ -31,7 +31,7 @@ type instrumentedRuntimeService struct {
 }
 
 // Creates an instrumented RuntimeInterface from an existing RuntimeService.
-func NewInstrumentedRuntimeService(service internalapi.RuntimeService) internalapi.RuntimeService {
+func newInstrumentedRuntimeService(service internalapi.RuntimeService) internalapi.RuntimeService {
 	return &instrumentedRuntimeService{service: service}
 }
 
@@ -42,7 +42,7 @@ type instrumentedImageManagerService struct {
 }
 
 // Creates an instrumented ImageManagerService from an existing ImageManagerService.
-func NewInstrumentedImageManagerService(service internalapi.ImageManagerService) internalapi.ImageManagerService {
+func newInstrumentedImageManagerService(service internalapi.ImageManagerService) internalapi.ImageManagerService {
 	return &instrumentedImageManagerService{service: service}
 }
 
@@ -255,4 +255,13 @@ func (in instrumentedImageManagerService) RemoveImage(image *runtimeapi.ImageSpe
 	err := in.service.RemoveImage(image)
 	recordError(operation, err)
 	return err
+}
+
+func (in instrumentedImageManagerService) ImageFsInfo() (*runtimeapi.FsInfo, error) {
+	const operation = "image_fs_info"
+	defer recordOperation(operation, time.Now())
+
+	fsInfo, err := in.service.ImageFsInfo()
+	recordError(operation, err)
+	return fsInfo, nil
 }

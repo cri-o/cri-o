@@ -81,6 +81,14 @@ func (plugin *gitRepoPlugin) RequiresRemount() bool {
 	return false
 }
 
+func (plugin *gitRepoPlugin) SupportsMountOption() bool {
+	return false
+}
+
+func (plugin *gitRepoPlugin) SupportsBulkVolumeVerification() bool {
+	return false
+}
+
 func (plugin *gitRepoPlugin) NewMounter(spec *volume.Spec, pod *v1.Pod, opts volume.VolumeOptions) (volume.Mounter, error) {
 	return &gitRepoVolumeMounter{
 		gitRepoVolume: &gitRepoVolume{
@@ -163,12 +171,12 @@ func (b *gitRepoVolumeMounter) CanMount() error {
 }
 
 // SetUp creates new directory and clones a git repo.
-func (b *gitRepoVolumeMounter) SetUp(fsGroup *int64) error {
+func (b *gitRepoVolumeMounter) SetUp(fsGroup *types.UnixGroupID) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
 // SetUpAt creates new directory and clones a git repo.
-func (b *gitRepoVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (b *gitRepoVolumeMounter) SetUpAt(dir string, fsGroup *types.UnixGroupID) error {
 	if volumeutil.IsReady(b.getMetaDir()) {
 		return nil
 	}

@@ -31,6 +31,8 @@ MASTER_DISK_TYPE=pd-ssd
 MASTER_DISK_SIZE=${MASTER_DISK_SIZE:-20GB}
 NODE_DISK_TYPE=${NODE_DISK_TYPE:-pd-standard}
 NODE_DISK_SIZE=${NODE_DISK_SIZE:-100GB}
+NODE_LOCAL_SSDS=${NODE_LOCAL_SSDS:-0}
+NODE_ACCELERATORS=${NODE_ACCELERATORS:-""}
 REGISTER_MASTER_KUBELET=${REGISTER_MASTER:-true}
 KUBE_APISERVER_REQUEST_TIMEOUT=300
 PREEMPTIBLE_NODE=${PREEMPTIBLE_NODE:-false}
@@ -55,12 +57,17 @@ if [[ "${NODE_OS_DISTRIBUTION}" == "cos" ]]; then
     NODE_OS_DISTRIBUTION="gci"
 fi
 
+# GPUs supported in GCE do not have compatible drivers in Debian 7.
+if [[ "${NODE_OS_DISTRIBUTION}" == "debian" ]]; then
+    NODE_ACCELERATORS=""
+fi
+
 # By default a cluster will be started with the master on GCI and nodes on
 # containervm. If you are updating the containervm version, update this
 # variable. Also please update corresponding image for node e2e at:
 # https://github.com/kubernetes/kubernetes/blob/master/test/e2e_node/jenkins/image-config.yaml
-CVM_VERSION=${CVM_VERSION:-container-vm-v20170117}
-GCI_VERSION=${KUBE_GCI_VERSION:-gci-dev-56-8977-0-0}
+CVM_VERSION=${CVM_VERSION:-container-vm-v20170214}
+GCI_VERSION=${KUBE_GCI_VERSION:-gci-stable-56-9000-84-2}
 MASTER_IMAGE=${KUBE_GCE_MASTER_IMAGE:-}
 MASTER_IMAGE_PROJECT=${KUBE_GCE_MASTER_PROJECT:-google-containers}
 NODE_IMAGE=${KUBE_GCE_NODE_IMAGE:-${CVM_VERSION}}
@@ -78,12 +85,21 @@ INITIAL_ETCD_CLUSTER="${MASTER_NAME}"
 ETCD_QUORUM_READ="${ENABLE_ETCD_QUORUM_READ:-false}"
 MASTER_TAG="${INSTANCE_PREFIX}-master"
 NODE_TAG="${INSTANCE_PREFIX}-minion"
-CLUSTER_IP_RANGE="${CLUSTER_IP_RANGE:-10.180.0.0/14}"
+
+CLUSTER_IP_RANGE="${CLUSTER_IP_RANGE:-10.100.0.0/14}"
 MASTER_IP_RANGE="${MASTER_IP_RANGE:-10.246.0.0/24}"
+# NODE_IP_RANGE is used when ENABLE_IP_ALIASES=true. It is the primary range in
+# the subnet and is the range used for node instance IPs.
+NODE_IP_RANGE="${NODE_IP_RANGE:-10.40.0.0/22}"
+
 RUNTIME_CONFIG="${KUBE_RUNTIME_CONFIG:-}"
 
 # Optional: set feature gates
-FEATURE_GATES="${KUBE_FEATURE_GATES:-}"
+FEATURE_GATES="${KUBE_FEATURE_GATES:-ExperimentalCriticalPodAnnotation=true}"
+
+if [[ ! -z "${NODE_ACCELERATORS}" ]]; then
+    FEATURE_GATES="${FEATURE_GATES},Accelerators=true"
+fi
 
 TERMINATED_POD_GC_THRESHOLD=${TERMINATED_POD_GC_THRESHOLD:-100}
 
@@ -106,11 +122,12 @@ ENABLE_L7_LOADBALANCING="${KUBE_ENABLE_L7_LOADBALANCING:-glbc}"
 #   none           - No cluster monitoring setup
 #   influxdb       - Heapster, InfluxDB, and Grafana
 #   google         - Heapster, Google Cloud Monitoring, and Google Cloud Logging
+#   stackdriver    - Heapster, Google Cloud Monitoring (schema container), and Google Cloud Logging
 #   googleinfluxdb - Enable influxdb and google (except GCM)
 #   standalone     - Heapster only. Metrics available via Heapster REST API.
 ENABLE_CLUSTER_MONITORING="${KUBE_ENABLE_CLUSTER_MONITORING:-influxdb}"
 
-# Set etcd image (e.g. 3.0.14-experimental.1) version (e.g. 3.0.14) if you need
+# Set etcd image (e.g. 3.0.17-alpha.1) and version (e.g. 3.0.17) if you need
 # non-default version.
 ETCD_IMAGE="${TEST_ETCD_IMAGE:-}"
 ETCD_VERSION="${TEST_ETCD_VERSION:-}"
@@ -130,14 +147,25 @@ TEST_CLUSTER_RESYNC_PERIOD="${TEST_CLUSTER_RESYNC_PERIOD:---min-resync-period=3m
 
 # ContentType used by all components to communicate with apiserver.
 TEST_CLUSTER_API_CONTENT_TYPE="${TEST_CLUSTER_API_CONTENT_TYPE:-}"
-# ContentType used to store objects in underlying database.
-TEST_CLUSTER_STORAGE_CONTENT_TYPE="${TEST_CLUSTER_STORAGE_CONTENT_TYPE:-}"
 
 KUBELET_TEST_ARGS="${KUBELET_TEST_ARGS:-} --max-pods=110 --serialize-image-pulls=false --outofdisk-transition-frequency=0 ${TEST_CLUSTER_API_CONTENT_TYPE}"
-APISERVER_TEST_ARGS="${APISERVER_TEST_ARGS:-} --runtime-config=extensions/v1beta1 ${TEST_CLUSTER_DELETE_COLLECTION_WORKERS} ${TEST_CLUSTER_MAX_REQUESTS_INFLIGHT} ${TEST_CLUSTER_STORAGE_CONTENT_TYPE}"
+if [[ "${NODE_OS_DISTRIBUTION}" == "gci" ]]; then
+  NODE_KUBELET_TEST_ARGS=" --experimental-kernel-memcg-notification=true"
+fi
+if [[ "${MASTER_OS_DISTRIBUTION}" == "gci" ]]; then
+  MASTER_KUBELET_TEST_ARGS=" --experimental-kernel-memcg-notification=true"
+fi
+APISERVER_TEST_ARGS="${APISERVER_TEST_ARGS:-} --runtime-config=extensions/v1beta1 ${TEST_CLUSTER_DELETE_COLLECTION_WORKERS} ${TEST_CLUSTER_MAX_REQUESTS_INFLIGHT}"
 CONTROLLER_MANAGER_TEST_ARGS="${CONTROLLER_MANAGER_TEST_ARGS:-} ${TEST_CLUSTER_RESYNC_PERIOD} ${TEST_CLUSTER_API_CONTENT_TYPE}"
 SCHEDULER_TEST_ARGS="${SCHEDULER_TEST_ARGS:-} ${TEST_CLUSTER_API_CONTENT_TYPE}"
 KUBEPROXY_TEST_ARGS="${KUBEPROXY_TEST_ARGS:-} ${TEST_CLUSTER_API_CONTENT_TYPE}"
+
+# Historically fluentd was a manifest pod and then was migrated to DaemonSet.
+# To avoid situation during cluster upgrade when there are two instances
+# of fluentd running on a node, kubelet need to mark node on which
+# fluentd is not running as a manifest pod with appropriate label.
+# TODO(piosz): remove this in 1.8
+NODE_LABELS="${KUBE_NODE_LABELS:-beta.kubernetes.io/fluentd-ds-ready=true}"
 
 # Optional: Enable node logging.
 ENABLE_NODE_LOGGING="${KUBE_ENABLE_NODE_LOGGING:-true}"
@@ -170,7 +198,15 @@ CLUSTER_REGISTRY_DISK_TYPE_GCE="${CLUSTER_REGISTRY_DISK_TYPE_GCE:-pd-standard}"
 ENABLE_CLUSTER_UI="${KUBE_ENABLE_CLUSTER_UI:-true}"
 
 # Optional: Install node problem detector.
-ENABLE_NODE_PROBLEM_DETECTOR="${KUBE_ENABLE_NODE_PROBLEM_DETECTOR:-true}"
+#   none           - Not run node problem detector.
+#   daemonset      - Run node problem detector as daemonset.
+#   standalone     - Run node problem detector as standalone system daemon.
+if [[ "${NODE_OS_DISTRIBUTION}" == "gci" ]]; then
+  # Enable standalone mode by default for gci.
+  ENABLE_NODE_PROBLEM_DETECTOR="${KUBE_ENABLE_NODE_PROBLEM_DETECTOR:-standalone}"
+else
+  ENABLE_NODE_PROBLEM_DETECTOR="${KUBE_ENABLE_NODE_PROBLEM_DETECTOR:-daemonset}"
+fi
 
 # Optional: Create autoscaler for cluster's nodes.
 ENABLE_CLUSTER_AUTOSCALER="${KUBE_ENABLE_CLUSTER_AUTOSCALER:-false}"
@@ -183,8 +219,27 @@ fi
 # Optional: Enable Rescheduler
 ENABLE_RESCHEDULER="${KUBE_ENABLE_RESCHEDULER:-true}"
 
+# Optional: Enable allocation of pod IPs using IP aliases.
+#
+# ALPHA FEATURE.
+#
+# IP_ALIAS_SIZE is the size of the podCIDR allocated to a node.
+# IP_ALIAS_SUBNETWORK is the subnetwork to allocate from. If empty, a
+#   new subnetwork will be created for the cluster.
+ENABLE_IP_ALIASES=${KUBE_GCE_ENABLE_IP_ALIASES:-false}
+if [ ${ENABLE_IP_ALIASES} = true ]; then
+  # Size of ranges allocated to each node. gcloud alpha supports only /32 and /24.
+  IP_ALIAS_SIZE=${KUBE_GCE_IP_ALIAS_SIZE:-/24}
+  IP_ALIAS_SUBNETWORK=${KUBE_GCE_IP_ALIAS_SUBNETWORK:-${INSTANCE_PREFIX}-subnet-default}
+  # NODE_IP_RANGE is used when ENABLE_IP_ALIASES=true. It is the primary range in
+  # the subnet and is the range used for node instance IPs.
+  NODE_IP_RANGE="${NODE_IP_RANGE:-10.40.0.0/22}"
+  # Add to the provider custom variables.
+  PROVIDER_VARS="${PROVIDER_VARS} ENABLE_IP_ALIASES"
+fi
+
 # If we included ResourceQuota, we should keep it at the end of the list to prevent incrementing quota usage prematurely.
-ADMISSION_CONTROL="${KUBE_ADMISSION_CONTROL:-NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota}"
+ADMISSION_CONTROL="${KUBE_ADMISSION_CONTROL:-NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,PodPreset,DefaultStorageClass,DefaultTolerationSeconds,ResourceQuota}"
 
 # Optional: if set to true kube-up will automatically check for existing resources and clean them up.
 KUBE_UP_AUTOMATIC_CLEANUP=${KUBE_UP_AUTOMATIC_CLEANUP:-false}
@@ -195,8 +250,10 @@ KUBE_UP_AUTOMATIC_CLEANUP=${KUBE_UP_AUTOMATIC_CLEANUP:-false}
 # is only supported in trusty or GCI.
 TEST_CLUSTER="${TEST_CLUSTER:-true}"
 
-# Storage backend. 'etcd2' supported, 'etcd3' experimental.
+# Storage backend. 'etcd2' and 'etcd3' are supported.
 STORAGE_BACKEND=${STORAGE_BACKEND:-}
+# Storage media type: application/json and application/vnd.kubernetes.protobuf are supported.
+STORAGE_MEDIA_TYPE=${STORAGE_MEDIA_TYPE:-}
 
 # OpenContrail networking plugin specific settings
 NETWORK_PROVIDER="${NETWORK_PROVIDER:-kubenet}" # none, opencontrail, kubenet
@@ -225,6 +282,11 @@ SCHEDULING_ALGORITHM_PROVIDER="${SCHEDULING_ALGORITHM_PROVIDER:-}"
 
 # Optional: install a default StorageClass
 ENABLE_DEFAULT_STORAGE_CLASS="${ENABLE_DEFAULT_STORAGE_CLASS:-true}"
+
+# Optional: Enable legacy ABAC policy that makes all service accounts superusers.
+# Disabling this by default in tests ensures default RBAC policies are sufficient from 1.6+
+# Upgrade test jobs that go from a version < 1.6 to a version >= 1.6 should override this to be true.
+ENABLE_LEGACY_ABAC="${ENABLE_LEGACY_ABAC:-false}" # true, false
 
 # TODO(dawn1107): Remove this once the flag is built into CVM image.
 # Kernel panic upon soft lockup issue

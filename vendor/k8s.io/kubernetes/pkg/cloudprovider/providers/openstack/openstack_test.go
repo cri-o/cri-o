@@ -17,6 +17,10 @@ limitations under the License.
 package openstack
 
 import (
+	"fmt"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/apiversions"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"os"
 	"reflect"
 	"sort"
@@ -24,44 +28,57 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api/v1"
 )
 
-const volumeAvailableStatus = "available"
-const volumeInUseStatus = "in-use"
-const volumeCreateTimeoutSeconds = 30
-const testClusterName = "testCluster"
+const (
+	volumeAvailableStatus = "available"
+	volumeInUseStatus     = "in-use"
+	testClusterName       = "testCluster"
 
-func WaitForVolumeStatus(t *testing.T, os *OpenStack, volumeName string, status string, timeoutSeconds int) {
-	timeout := timeoutSeconds
-	start := time.Now().Second()
-	for {
-		time.Sleep(1 * time.Second)
+	volumeStatusTimeoutSeconds = 30
+	// volumeStatus* is configuration of exponential backoff for
+	// waiting for specified volume status. Starting with 1
+	// seconds, multiplying by 1.2 with each step and taking 13 steps at maximum
+	// it will time out after 32s, which roughly corresponds to 30s
+	volumeStatusInitDealy = 1 * time.Second
+	volumeStatusFactor    = 1.2
+	volumeStatusSteps     = 13
+)
 
-		if timeout >= 0 && time.Now().Second()-start >= timeout {
-			t.Logf("Volume (%s) status did not change to %s after %v seconds\n",
-				volumeName,
-				status,
-				timeout)
-			return
-		}
-
+func WaitForVolumeStatus(t *testing.T, os *OpenStack, volumeName string, status string) {
+	backoff := wait.Backoff{
+		Duration: volumeStatusInitDealy,
+		Factor:   volumeStatusFactor,
+		Steps:    volumeStatusSteps,
+	}
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		getVol, err := os.getVolume(volumeName)
 		if err != nil {
-			t.Fatalf("Cannot get existing Cinder volume (%s): %v", volumeName, err)
+			return false, err
 		}
 		if getVol.Status == status {
 			t.Logf("Volume (%s) status changed to %s after %v seconds\n",
 				volumeName,
 				status,
-				timeout)
-			return
+				volumeStatusTimeoutSeconds)
+			return true, nil
+		} else {
+			return false, nil
 		}
+	})
+	if err == wait.ErrWaitTimeout {
+		t.Logf("Volume (%s) status did not change to %s after %v seconds\n",
+			volumeName,
+			status,
+			volumeStatusTimeoutSeconds)
+		return
+	}
+	if err != nil {
+		t.Fatalf("Cannot get existing Cinder volume (%s): %v", volumeName, err)
 	}
 }
 
@@ -81,7 +98,9 @@ func TestReadConfig(t *testing.T) {
  monitor-timeout = 30s
  monitor-max-retries = 3
  [BlockStorage]
+ bs-version = auto
  trust-device-path = yes
+
  `))
 	if err != nil {
 		t.Fatalf("Should succeed when a valid config is provided: %s", err)
@@ -104,6 +123,9 @@ func TestReadConfig(t *testing.T) {
 	}
 	if cfg.BlockStorage.TrustDevicePath != true {
 		t.Errorf("incorrect bs.trustdevicepath: %v", cfg.BlockStorage.TrustDevicePath)
+	}
+	if cfg.BlockStorage.BSVersion != "auto" {
+		t.Errorf("incorrect bs.bs-version: %v", cfg.BlockStorage.BSVersion)
 	}
 }
 
@@ -247,14 +269,13 @@ func configFromEnv() (cfg Config, ok bool) {
 
 	cfg.Global.Username = os.Getenv("OS_USERNAME")
 	cfg.Global.Password = os.Getenv("OS_PASSWORD")
-	cfg.Global.ApiKey = os.Getenv("OS_API_KEY")
 	cfg.Global.Region = os.Getenv("OS_REGION_NAME")
 	cfg.Global.DomainId = os.Getenv("OS_DOMAIN_ID")
 	cfg.Global.DomainName = os.Getenv("OS_DOMAIN_NAME")
 
 	ok = (cfg.Global.AuthUrl != "" &&
 		cfg.Global.Username != "" &&
-		(cfg.Global.Password != "" || cfg.Global.ApiKey != "") &&
+		cfg.Global.Password != "" &&
 		(cfg.Global.TenantId != "" || cfg.Global.TenantName != "" ||
 			cfg.Global.DomainId != "" || cfg.Global.DomainName != ""))
 
@@ -349,13 +370,13 @@ func TestVolumes(t *testing.T) {
 	tags := map[string]string{
 		"test": "value",
 	}
-	vol, err := os.CreateVolume("kubernetes-test-volume-"+rand.String(10), 1, "", "", &tags)
+	vol, _, err := os.CreateVolume("kubernetes-test-volume-"+rand.String(10), 1, "", "", &tags)
 	if err != nil {
 		t.Fatalf("Cannot create a new Cinder volume: %v", err)
 	}
 	t.Logf("Volume (%s) created\n", vol)
 
-	WaitForVolumeStatus(t, os, vol, volumeAvailableStatus, volumeCreateTimeoutSeconds)
+	WaitForVolumeStatus(t, os, vol, volumeAvailableStatus)
 
 	diskId, err := os.AttachDisk(os.localInstanceID, vol)
 	if err != nil {
@@ -363,7 +384,7 @@ func TestVolumes(t *testing.T) {
 	}
 	t.Logf("Volume (%s) attached, disk ID: %s\n", vol, diskId)
 
-	WaitForVolumeStatus(t, os, vol, volumeInUseStatus, volumeCreateTimeoutSeconds)
+	WaitForVolumeStatus(t, os, vol, volumeInUseStatus)
 
 	devicePath := os.GetDevicePath(diskId)
 	if !strings.HasPrefix(devicePath, "/dev/disk/by-id/") {
@@ -377,7 +398,7 @@ func TestVolumes(t *testing.T) {
 	}
 	t.Logf("Volume (%s) detached\n", vol)
 
-	WaitForVolumeStatus(t, os, vol, volumeAvailableStatus, volumeCreateTimeoutSeconds)
+	WaitForVolumeStatus(t, os, vol, volumeAvailableStatus)
 
 	err = os.DeleteVolume(vol)
 	if err != nil {
@@ -385,4 +406,46 @@ func TestVolumes(t *testing.T) {
 	}
 	t.Logf("Volume (%s) deleted\n", vol)
 
+}
+
+func TestCinderAutoDetectApiVersion(t *testing.T) {
+	updated := "" // not relevant to this test, can be set to any value
+	status_current := "CURRENT"
+	status_supported := "SUPpORTED" // lowercase to test regression resitance if api returns different case
+	status_deprecated := "DEPRECATED"
+
+	var result_version, api_version [4]string
+
+	for ver := 0; ver <= 3; ver++ {
+		api_version[ver] = fmt.Sprintf("v%d.0", ver)
+		result_version[ver] = fmt.Sprintf("v%d", ver)
+	}
+	result_version[0] = ""
+	api_current_v1 := apiversions.APIVersion{ID: api_version[1], Status: status_current, Updated: updated}
+	api_current_v2 := apiversions.APIVersion{ID: api_version[2], Status: status_current, Updated: updated}
+	api_current_v3 := apiversions.APIVersion{ID: api_version[3], Status: status_current, Updated: updated}
+
+	api_supported_v1 := apiversions.APIVersion{ID: api_version[1], Status: status_supported, Updated: updated}
+	api_supported_v2 := apiversions.APIVersion{ID: api_version[2], Status: status_supported, Updated: updated}
+
+	api_deprecated_v1 := apiversions.APIVersion{ID: api_version[1], Status: status_deprecated, Updated: updated}
+	api_deprecated_v2 := apiversions.APIVersion{ID: api_version[2], Status: status_deprecated, Updated: updated}
+
+	var testCases = []struct {
+		test_case     []apiversions.APIVersion
+		wanted_result string
+	}{
+		{[]apiversions.APIVersion{api_current_v1}, result_version[1]},
+		{[]apiversions.APIVersion{api_current_v2}, result_version[2]},
+		{[]apiversions.APIVersion{api_supported_v1, api_current_v2}, result_version[2]},                     // current always selected
+		{[]apiversions.APIVersion{api_current_v1, api_supported_v2}, result_version[1]},                     // current always selected
+		{[]apiversions.APIVersion{api_current_v3, api_supported_v2, api_deprecated_v1}, result_version[2]},  // with current v3, but should fall back to v2
+		{[]apiversions.APIVersion{api_current_v3, api_deprecated_v2, api_deprecated_v1}, result_version[0]}, // v3 is not supported
+	}
+
+	for _, suite := range testCases {
+		if autodetectedVersion := doBsApiVersionAutodetect(suite.test_case); autodetectedVersion != suite.wanted_result {
+			t.Fatalf("Autodetect for suite: %s, failed with result: '%s', wanted '%s'", suite.test_case, autodetectedVersion, suite.wanted_result)
+		}
+	}
 }

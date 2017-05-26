@@ -25,13 +25,13 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/master/ports"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"
 
@@ -55,15 +55,6 @@ const (
 	DEL                 = "DEL"
 	UPDATE              = "UPDATE"
 )
-
-// nodeExec execs the given cmd on node via SSH. Note that the nodeName is an sshable name,
-// eg: the name returned by framework.GetMasterHost(). This is also not guaranteed to work across
-// cloud providers since it involves ssh.
-func nodeExec(nodeName, cmd string) (framework.SSHResult, error) {
-	result, err := framework.SSH(cmd, fmt.Sprintf("%v:%v", nodeName, sshPort), framework.TestContext.Provider)
-	Expect(err).NotTo(HaveOccurred())
-	return result, err
-}
 
 // restartDaemonConfig is a config to restart a running daemon on a node, and wait till
 // it comes back up. It uses ssh to send a SIGTERM to the daemon.
@@ -100,7 +91,7 @@ func (r *restartDaemonConfig) waitUp() {
 		"curl -s -o /dev/null -I -w \"%%{http_code}\" http://localhost:%v/healthz", r.healthzPort)
 
 	err := wait.Poll(r.pollInterval, r.pollTimeout, func() (bool, error) {
-		result, err := nodeExec(r.nodeName, healthzCheck)
+		result, err := framework.NodeExec(r.nodeName, healthzCheck)
 		framework.ExpectNoError(err)
 		if result.Code == 0 {
 			httpCode, err := strconv.Atoi(result.Stdout)
@@ -120,7 +111,8 @@ func (r *restartDaemonConfig) waitUp() {
 // kill sends a SIGTERM to the daemon
 func (r *restartDaemonConfig) kill() {
 	framework.Logf("Killing %v", r)
-	nodeExec(r.nodeName, fmt.Sprintf("pgrep %v | xargs -I {} sudo kill {}", r.daemonName))
+	_, err := framework.NodeExec(r.nodeName, fmt.Sprintf("pgrep %v | xargs -I {} sudo kill {}", r.daemonName))
+	Expect(err).NotTo(HaveOccurred())
 }
 
 // Restart checks if the daemon is up, kills it, and waits till it comes back up

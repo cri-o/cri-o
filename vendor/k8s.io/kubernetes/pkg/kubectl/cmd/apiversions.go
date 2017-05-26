@@ -27,12 +27,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
 var (
-	apiversions_example = templates.Examples(`
+	apiversionsExample = templates.Examples(i18n.T(`
 		# Print the supported API versions
-		kubectl api-versions`)
+		kubectl api-versions`))
 )
 
 func NewCmdApiVersions(f cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -42,7 +43,7 @@ func NewCmdApiVersions(f cmdutil.Factory, out io.Writer) *cobra.Command {
 		Aliases: []string{"apiversions"},
 		Short:   "Print the supported API versions on the server, in the form of \"group/version\"",
 		Long:    "Print the supported API versions on the server, in the form of \"group/version\"",
-		Example: apiversions_example,
+		Example: apiversionsExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunApiVersions(f, out)
 			cmdutil.CheckErr(err)
@@ -56,12 +57,12 @@ func RunApiVersions(f cmdutil.Factory, w io.Writer) error {
 		printDeprecationWarning("api-versions", "apiversions")
 	}
 
-	clientset, err := f.ClientSet()
+	discoveryclient, err := f.DiscoveryClient()
 	if err != nil {
 		return err
 	}
 
-	groupList, err := clientset.Discovery().ServerGroups()
+	groupList, err := discoveryclient.ServerGroups()
 	if err != nil {
 		return fmt.Errorf("Couldn't get available api versions from server: %v\n", err)
 	}

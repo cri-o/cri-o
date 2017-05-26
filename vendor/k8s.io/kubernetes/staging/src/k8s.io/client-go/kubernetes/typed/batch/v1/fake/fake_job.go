@@ -22,7 +22,6 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api_v1 "k8s.io/client-go/pkg/api/v1"
 	v1 "k8s.io/client-go/pkg/apis/batch/v1"
 	testing "k8s.io/client-go/testing"
 )
@@ -34,6 +33,8 @@ type FakeJobs struct {
 }
 
 var jobsResource = schema.GroupVersionResource{Group: "batch", Version: "v1", Resource: "jobs"}
+
+var jobsKind = schema.GroupVersionKind{Group: "batch", Version: "v1", Kind: "Job"}
 
 func (c *FakeJobs) Create(job *v1.Job) (result *v1.Job, err error) {
 	obj, err := c.Fake.
@@ -65,14 +66,14 @@ func (c *FakeJobs) UpdateStatus(job *v1.Job) (*v1.Job, error) {
 	return obj.(*v1.Job), err
 }
 
-func (c *FakeJobs) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *FakeJobs) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(jobsResource, c.ns, name), &v1.Job{})
 
 	return err
 }
 
-func (c *FakeJobs) DeleteCollection(options *api_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeJobs) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(jobsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.JobList{})
@@ -91,7 +92,7 @@ func (c *FakeJobs) Get(name string, options meta_v1.GetOptions) (result *v1.Job,
 
 func (c *FakeJobs) List(opts meta_v1.ListOptions) (result *v1.JobList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(jobsResource, c.ns, opts), &v1.JobList{})
+		Invokes(testing.NewListAction(jobsResource, jobsKind, c.ns, opts), &v1.JobList{})
 
 	if obj == nil {
 		return nil, err

@@ -27,19 +27,20 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/util/i18n"
 
 	"github.com/daviddengcn/go-colortext"
 	"github.com/spf13/cobra"
 )
 
 var (
-	longDescr = templates.LongDesc(`
+	longDescr = templates.LongDesc(i18n.T(`
   Display addresses of the master and services with label kubernetes.io/cluster-service=true
-  To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.`)
+  To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.`))
 
-	clusterinfo_example = templates.Examples(`
+	clusterinfoExample = templates.Examples(i18n.T(`
 		# Print the address of the master and cluster services
-		kubectl cluster-info`)
+		kubectl cluster-info`))
 )
 
 func NewCmdClusterInfo(f cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -47,9 +48,9 @@ func NewCmdClusterInfo(f cmdutil.Factory, out io.Writer) *cobra.Command {
 		Use: "cluster-info",
 		// clusterinfo is deprecated.
 		Aliases: []string{"clusterinfo"},
-		Short:   "Display cluster info",
+		Short:   i18n.T("Display cluster info"),
 		Long:    longDescr,
-		Example: clusterinfo_example,
+		Example: clusterinfoExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunClusterInfo(f, out, cmd)
 			cmdutil.CheckErr(err)
@@ -78,7 +79,7 @@ func RunClusterInfo(f cmdutil.Factory, out io.Writer, cmd *cobra.Command) error 
 	}
 
 	// TODO use generalized labels once they are implemented (#341)
-	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	b := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		SelectorParam("kubernetes.io/cluster-service=true").
 		ResourceTypeOrNameArgs(false, []string{"services"}...).
@@ -101,9 +102,9 @@ func RunClusterInfo(f cmdutil.Factory, out io.Writer, cmd *cobra.Command) error 
 				}
 			} else {
 				if len(client.GroupVersion.Group) == 0 {
-					link = client.Host + "/api/" + client.GroupVersion.Version + "/proxy/namespaces/" + service.ObjectMeta.Namespace + "/services/" + service.ObjectMeta.Name
+					link = client.Host + "/api/" + client.GroupVersion.Version + "/namespaces/" + service.ObjectMeta.Namespace + "/services/" + service.ObjectMeta.Name + "/proxy"
 				} else {
-					link = client.Host + "/api/" + client.GroupVersion.Group + "/" + client.GroupVersion.Version + "/proxy/namespaces/" + service.ObjectMeta.Namespace + "/services/" + service.ObjectMeta.Name
+					link = client.Host + "/api/" + client.GroupVersion.Group + "/" + client.GroupVersion.Version + "/namespaces/" + service.ObjectMeta.Namespace + "/services/" + service.ObjectMeta.Name + "/proxy"
 
 				}
 			}

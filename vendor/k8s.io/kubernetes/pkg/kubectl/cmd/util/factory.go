@@ -29,7 +29,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emicklei/go-restful/swagger"
+	"github.com/emicklei/go-restful-swagger12"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -40,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	fedclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_internalclientset"
@@ -48,10 +50,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/util/openapi"
+	"k8s.io/kubernetes/pkg/kubectl/plugins"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/registry/extensions/thirdpartyresourcedata"
+	"k8s.io/kubernetes/pkg/printers"
 )
 
 const (
@@ -86,7 +89,7 @@ type ClientAccessFactory interface {
 	DiscoveryClientFactory
 
 	// ClientSet gives you back an internal, generated clientset
-	ClientSet() (*internalclientset.Clientset, error)
+	ClientSet() (internalclientset.Interface, error)
 	// Returns a RESTClient for accessing Kubernetes resources or an error.
 	RESTClient() (*restclient.RESTClient, error)
 	// Returns a client.Config for accessing the Kubernetes server.
@@ -101,7 +104,7 @@ type ClientAccessFactory interface {
 	// TODO remove this should be rolled into restclient with the right version
 	FederationClientForVersion(version *schema.GroupVersion) (*restclient.RESTClient, error)
 	// TODO remove.  This should be rolled into `ClientSet`
-	ClientSetForVersion(requiredVersion *schema.GroupVersion) (*internalclientset.Clientset, error)
+	ClientSetForVersion(requiredVersion *schema.GroupVersion) (internalclientset.Interface, error)
 	// TODO remove.  This should be rolled into `ClientConfig`
 	ClientConfigForVersion(requiredVersion *schema.GroupVersion) (*restclient.Config, error)
 
@@ -131,13 +134,14 @@ type ClientAccessFactory interface {
 	FlagSet() *pflag.FlagSet
 	// Command will stringify and return all environment arguments ie. a command run by a client
 	// using the factory.
-	Command() string
+	Command(cmd *cobra.Command, showSecrets bool) string
 	// BindFlags adds any flags that are common to all kubectl sub commands.
 	BindFlags(flags *pflag.FlagSet)
 	// BindExternalFlags adds any flags defined by external projects (not part of pflags)
 	BindExternalFlags(flags *pflag.FlagSet)
 
-	DefaultResourceFilterOptions(cmd *cobra.Command, withNamespace bool) *kubectl.PrintOptions
+	// TODO: Break the dependency on cmd here.
+	DefaultResourceFilterOptions(cmd *cobra.Command, withNamespace bool) *printers.PrintOptions
 	// DefaultResourceFilterFunc returns a collection of FilterFuncs suitable for filtering specific resource types.
 	DefaultResourceFilterFunc() kubectl.Filters
 
@@ -145,7 +149,7 @@ type ClientAccessFactory interface {
 	SuggestedPodTemplateResources() []schema.GroupResource
 
 	// Returns a Printer for formatting objects of the given type or an error.
-	Printer(mapping *meta.RESTMapping, options kubectl.PrintOptions) (kubectl.ResourcePrinter, error)
+	Printer(mapping *meta.RESTMapping, options printers.PrintOptions) (printers.ResourcePrinter, error)
 	// Pauser marks the object in the info as paused. Currently supported only for Deployments.
 	// Returns the patched object in bytes and any error that occured during the encoding or
 	// in case the object is already paused.
@@ -188,16 +192,18 @@ type ObjectMappingFactory interface {
 	// Returns interfaces for dealing with arbitrary
 	// runtime.Unstructured. This performs API calls to discover types.
 	UnstructuredObject() (meta.RESTMapper, runtime.ObjectTyper, error)
+	// Returns interface for expanding categories like `all`.
+	CategoryExpander() resource.CategoryExpander
 	// Returns a RESTClient for working with the specified RESTMapping or an error. This is intended
 	// for working with arbitrary resources and is not guaranteed to point to a Kubernetes APIServer.
 	ClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	// Returns a RESTClient for working with Unstructured objects.
 	UnstructuredClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	// Returns a Describer for displaying the specified RESTMapping type or an error.
-	Describer(mapping *meta.RESTMapping) (kubectl.Describer, error)
+	Describer(mapping *meta.RESTMapping) (printers.Describer, error)
 
 	// LogsForObject returns a request for the logs associated with the provided object
-	LogsForObject(object, options runtime.Object) (*restclient.Request, error)
+	LogsForObject(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error)
 	// Returns a Scaler for changing the size of the specified RESTMapping type or an error
 	Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error)
 	// Returns a Reaper for gracefully shutting down resources.
@@ -210,25 +216,35 @@ type ObjectMappingFactory interface {
 	StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusViewer, error)
 
 	// AttachablePodForObject returns the pod to which to attach given an object.
-	AttachablePodForObject(object runtime.Object) (*api.Pod, error)
-
-	// PrinterForMapping returns a printer suitable for displaying the provided resource type.
-	// Requires that printer flags have been added to cmd (see AddPrinterFlags).
-	PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMapping, withNamespace bool) (kubectl.ResourcePrinter, error)
+	AttachablePodForObject(object runtime.Object, timeout time.Duration) (*api.Pod, error)
 
 	// Returns a schema that can validate objects stored on disk.
 	Validator(validate bool, cacheDir string) (validation.Schema, error)
 	// SwaggerSchema returns the schema declaration for the provided group version kind.
 	SwaggerSchema(schema.GroupVersionKind) (*swagger.ApiDeclaration, error)
+	// OpenAPISchema returns the schema openapi schema definiton
+	OpenAPISchema(cacheDir string) (*openapi.Resources, error)
 }
 
 // BuilderFactory holds the second level of factory methods.  These functions depend upon ObjectMappingFactory and ClientAccessFactory methods.
 // Generally they depend upon client mapper functions
 type BuilderFactory interface {
+	// PrinterForCommand returns the default printer for the command. It requires that certain options
+	// are declared on the command (see AddPrinterFlags). Returns a printer, true if the printer is
+	// generic (is not internal), or an error if a printer could not be found.
+	// TODO: Break the dependency on cmd here.
+	PrinterForCommand(cmd *cobra.Command) (printers.ResourcePrinter, bool, error)
+	// PrinterForMapping returns a printer suitable for displaying the provided resource type.
+	// Requires that printer flags have been added to cmd (see AddPrinterFlags).
+	PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMapping, withNamespace bool) (printers.ResourcePrinter, error)
 	// PrintObject prints an api object given command line flags to modify the output format
 	PrintObject(cmd *cobra.Command, mapper meta.RESTMapper, obj runtime.Object, out io.Writer) error
 	// One stop shopping for a Builder
 	NewBuilder() *resource.Builder
+	// PluginLoader provides the implementation to be used to load cli plugins.
+	PluginLoader() plugins.PluginLoader
+	// PluginRunner provides the implementation to be used to run cli plugins.
+	PluginRunner() plugins.PluginRunner
 }
 
 func getGroupVersionKinds(gvks []schema.GroupVersionKind, group string) []schema.GroupVersionKind {
@@ -239,21 +255,6 @@ func getGroupVersionKinds(gvks []schema.GroupVersionKind, group string) []schema
 		}
 	}
 	return result
-}
-
-func makeInterfacesFor(versionList []schema.GroupVersion) func(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
-	accessor := meta.NewAccessor()
-	return func(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
-		for ix := range versionList {
-			if versionList[ix].String() == version.String() {
-				return &meta.VersionInterfaces{
-					ObjectConvertor:  thirdpartyresourcedata.NewThirdPartyObjectConverter(api.Scheme),
-					MetadataAccessor: accessor,
-				}, nil
-			}
-		}
-		return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, versionList)
-	}
 }
 
 type factory struct {
@@ -425,6 +426,7 @@ func writeSchemaFile(schemaData []byte, cacheDir, cacheFile, prefix, groupVersio
 	if _, err := io.Copy(tmpFile, bytes.NewBuffer(schemaData)); err != nil {
 		return err
 	}
+	glog.V(4).Infof("Writing swagger cache (dir %v) file %v (from %v)", cacheDir, cacheFile, tmpFile.Name())
 	if err := os.Link(tmpFile.Name(), cacheFile); err != nil {
 		// If we can't write due to file existing, or permission problems, keep going.
 		if os.IsExist(err) || os.IsPermission(err) {

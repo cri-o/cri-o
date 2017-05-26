@@ -25,12 +25,13 @@ import (
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	clientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/clock"
 	utiltesting "k8s.io/client-go/util/testing"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	"k8s.io/kubernetes/pkg/client/record"
 	cadvisortest "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -43,6 +44,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/secret"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
 	"k8s.io/kubernetes/pkg/kubelet/status"
+	statustest "k8s.io/kubernetes/pkg/kubelet/status/testing"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
@@ -71,23 +73,21 @@ func TestRunOnce(t *testing.T) {
 	}
 	defer os.RemoveAll(basePath)
 	kb := &Kubelet{
-		rootDirectory:       basePath,
-		recorder:            &record.FakeRecorder{},
-		cadvisor:            cadvisor,
-		nodeLister:          testNodeLister{},
-		nodeInfo:            testNodeInfo{},
-		statusManager:       status.NewManager(nil, podManager),
-		containerRefManager: kubecontainer.NewRefManager(),
-		podManager:          podManager,
-		os:                  &containertest.FakeOS{},
-		diskSpaceManager:    diskSpaceManager,
-		containerRuntime:    fakeRuntime,
-		reasonCache:         NewReasonCache(),
-		clock:               clock.RealClock{},
-		kubeClient:          &fake.Clientset{},
-		hostname:            testKubeletHostname,
-		nodeName:            testKubeletHostname,
-		runtimeState:        newRuntimeState(time.Second),
+		rootDirectory:    basePath,
+		recorder:         &record.FakeRecorder{},
+		cadvisor:         cadvisor,
+		nodeInfo:         testNodeInfo{},
+		statusManager:    status.NewManager(nil, podManager, &statustest.FakePodDeletionSafetyProvider{}),
+		podManager:       podManager,
+		os:               &containertest.FakeOS{},
+		diskSpaceManager: diskSpaceManager,
+		containerRuntime: fakeRuntime,
+		reasonCache:      NewReasonCache(),
+		clock:            clock.RealClock{},
+		kubeClient:       &fake.Clientset{},
+		hostname:         testKubeletHostname,
+		nodeName:         testKubeletHostname,
+		runtimeState:     newRuntimeState(time.Second),
 	}
 	kb.containerManager = cm.NewStubContainerManager()
 
@@ -101,6 +101,7 @@ func TestRunOnce(t *testing.T) {
 		true,
 		kb.nodeName,
 		kb.podManager,
+		kb.statusManager,
 		kb.kubeClient,
 		kb.volumePluginMgr,
 		fakeRuntime,
@@ -110,11 +111,11 @@ func TestRunOnce(t *testing.T) {
 		false, /* experimentalCheckNodeCapabilitiesBeforeMount */
 		false /* keepTerminatedPodVolumes */)
 
-	kb.networkPlugin, _ = network.InitNetworkPlugin([]network.NetworkPlugin{}, "", nettest.NewFakeHost(nil), componentconfig.HairpinNone, kb.nonMasqueradeCIDR, network.UseDefaultMTU)
+	kb.networkPlugin, _ = network.InitNetworkPlugin([]network.NetworkPlugin{}, "", nettest.NewFakeHost(nil), componentconfig.HairpinNone, "", network.UseDefaultMTU)
 	// TODO: Factor out "StatsProvider" from Kubelet so we don't have a cyclic dependency
 	volumeStatsAggPeriod := time.Second * 10
 	kb.resourceAnalyzer = stats.NewResourceAnalyzer(kb, volumeStatsAggPeriod, kb.containerRuntime)
-	nodeRef := &v1.ObjectReference{
+	nodeRef := &clientv1.ObjectReference{
 		Kind:      "Node",
 		Name:      string(kb.nodeName),
 		UID:       types.UID(kb.nodeName),

@@ -26,8 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
@@ -325,7 +325,7 @@ func TestLabelErrors(t *testing.T) {
 			cmd.Flags().Set(k, v)
 		}
 		opts := LabelOptions{}
-		err := opts.Complete(f, buf, cmd, testCase.args)
+		err := opts.Complete(buf, cmd, testCase.args)
 		if err == nil {
 			err = opts.Validate()
 		}
@@ -347,9 +347,10 @@ func TestLabelErrors(t *testing.T) {
 
 func TestLabelForResourceFromFile(t *testing.T) {
 	pods, _, _ := testData()
-	f, tf, codec, ns := cmdtesting.NewAPIFactory()
-	tf.Client = &fake.RESTClient{
-		NegotiatedSerializer: ns,
+	f, tf, codec, _ := cmdtesting.NewAPIFactory()
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
+		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch req.Method {
 			case "GET":
@@ -381,7 +382,7 @@ func TestLabelForResourceFromFile(t *testing.T) {
 	cmd := NewCmdLabel(f, buf)
 	opts := LabelOptions{FilenameOptions: resource.FilenameOptions{
 		Filenames: []string{"../../../examples/storage/cassandra/cassandra-controller.yaml"}}}
-	err := opts.Complete(f, buf, cmd, []string{"a=b"})
+	err := opts.Complete(buf, cmd, []string{"a=b"})
 	if err == nil {
 		err = opts.Validate()
 	}
@@ -397,9 +398,10 @@ func TestLabelForResourceFromFile(t *testing.T) {
 }
 
 func TestLabelLocal(t *testing.T) {
-	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Client = &fake.RESTClient{
-		NegotiatedSerializer: ns,
+	f, tf, _, _ := cmdtesting.NewAPIFactory()
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
+		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			t.Fatalf("unexpected request: %s %#v\n%#v", req.Method, req.URL, req)
 			return nil, nil
@@ -413,7 +415,7 @@ func TestLabelLocal(t *testing.T) {
 	cmd.Flags().Set("local", "true")
 	opts := LabelOptions{FilenameOptions: resource.FilenameOptions{
 		Filenames: []string{"../../../examples/storage/cassandra/cassandra-controller.yaml"}}}
-	err := opts.Complete(f, buf, cmd, []string{"a=b"})
+	err := opts.Complete(buf, cmd, []string{"a=b"})
 	if err == nil {
 		err = opts.Validate()
 	}
@@ -430,9 +432,10 @@ func TestLabelLocal(t *testing.T) {
 
 func TestLabelMultipleObjects(t *testing.T) {
 	pods, _, _ := testData()
-	f, tf, codec, ns := cmdtesting.NewAPIFactory()
-	tf.Client = &fake.RESTClient{
-		NegotiatedSerializer: ns,
+	f, tf, codec, _ := cmdtesting.NewAPIFactory()
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
+		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch req.Method {
 			case "GET":
@@ -467,7 +470,7 @@ func TestLabelMultipleObjects(t *testing.T) {
 	cmd.Flags().Set("all", "true")
 
 	opts := LabelOptions{}
-	err := opts.Complete(f, buf, cmd, []string{"pods", "a=b"})
+	err := opts.Complete(buf, cmd, []string{"pods", "a=b"})
 	if err == nil {
 		err = opts.Validate()
 	}

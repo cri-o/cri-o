@@ -19,14 +19,13 @@ set -o nounset
 set -o pipefail
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${KUBE_ROOT}/cluster/lib/util.sh"
+source "${KUBE_ROOT}/hack/lib/util.sh"
 
 # Excluded checks are always skipped.
 EXCLUDED_CHECKS=(
-  "verify-linkcheck.sh"  # runs in separate Jenkins job once per day due to high network usage
-  "verify-govet.sh"      # it has a separate make vet target
-  "verify-staging-client-go.sh" # TODO: enable the script after 1.5 code freeze
-  "verify-test-owners.sh"  # TODO(rmmh): figure out how to avoid endless conflicts
+  "verify-linkcheck.sh"   # runs in separate Jenkins job once per day due to high network usage
+  "verify-govet.sh"       # it has a separate make vet target
+  "verify-test-owners.sh" # TODO(rmmh): figure out how to avoid endless conflicts
   )
 
 function is-excluded {

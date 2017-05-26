@@ -31,8 +31,8 @@ import (
 	"github.com/mesos/mesos-go/detector"
 	mesos "github.com/mesos/mesos-go/mesosproto"
 	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/api/resource"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
 )
 
@@ -256,9 +256,8 @@ func (c *mesosClient) pollMasterForState(ctx context.Context) (*mesosState, erro
 			}
 			defer res.Body.Close()
 			if handler, ok := tt.handlers[res.StatusCode]; ok {
-				err1 := handler(res)
-				if err1 != nil {
-					return err1
+				if err := handler(res); err != nil {
+					return err
 				}
 			}
 			// no handler for this error code, proceed to the next connection type

@@ -1,5 +1,3 @@
-// +build integration,!no-etcd
-
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -26,13 +24,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	fakecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
-	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach"
+	volumecache "k8s.io/kubernetes/pkg/controller/volume/attachdetach/cache"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
@@ -78,8 +77,8 @@ func fakePodWithVol(namespace string) *v1.Pod {
 // event is somehow missed by AttachDetach controller - it still
 // gets cleaned up by Desired State of World populator.
 func TestPodDeletionWithDswp(t *testing.T) {
-	_, server := framework.RunAMaster(nil)
-	defer server.Close()
+	_, server, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
 	namespaceName := "test-pod-deletion"
 
 	node := &v1.Node{
@@ -94,7 +93,7 @@ func TestPodDeletionWithDswp(t *testing.T) {
 	ns := framework.CreateTestingNamespace(namespaceName, server, t)
 	defer framework.DeleteTestingNamespace(ns, server, t)
 
-	testClient, ctrl, podInformer, nodeInformer := createAdClients(ns, t, server, defaultSyncPeriod)
+	testClient, ctrl, informers := createAdClients(ns, t, server, defaultSyncPeriod)
 
 	pod := fakePodWithVol(namespaceName)
 	podStopCh := make(chan struct{})
@@ -103,16 +102,19 @@ func TestPodDeletionWithDswp(t *testing.T) {
 		t.Fatalf("Failed to created node : %v", err)
 	}
 
-	go nodeInformer.Run(podStopCh)
+	go informers.Core().V1().Nodes().Informer().Run(podStopCh)
 
 	if _, err := testClient.Core().Pods(ns.Name).Create(pod); err != nil {
 		t.Errorf("Failed to create pod : %v", err)
 	}
 
+	podInformer := informers.Core().V1().Pods().Informer()
 	go podInformer.Run(podStopCh)
 
 	// start controller loop
 	stopCh := make(chan struct{})
+	go informers.Core().V1().PersistentVolumeClaims().Informer().Run(stopCh)
+	go informers.Core().V1().PersistentVolumes().Informer().Run(stopCh)
 	go ctrl.Run(stopCh)
 
 	waitToObservePods(t, podInformer, 1)
@@ -127,11 +129,7 @@ func TestPodDeletionWithDswp(t *testing.T) {
 		t.Fatalf("Pod not found in Pod Informer cache : %v", err)
 	}
 
-	podsToAdd := ctrl.GetDesiredStateOfWorld().GetPodToAdd()
-
-	if len(podsToAdd) == 0 {
-		t.Fatalf("Pod not added to desired state of world")
-	}
+	waitForPodsInDSWP(t, ctrl.GetDesiredStateOfWorld())
 
 	// let's stop pod events from getting triggered
 	close(podStopCh)
@@ -143,11 +141,154 @@ func TestPodDeletionWithDswp(t *testing.T) {
 	waitToObservePods(t, podInformer, 0)
 	// the populator loop turns every 1 minute
 	time.Sleep(80 * time.Second)
-	podsToAdd = ctrl.GetDesiredStateOfWorld().GetPodToAdd()
+	podsToAdd := ctrl.GetDesiredStateOfWorld().GetPodToAdd()
 	if len(podsToAdd) != 0 {
 		t.Fatalf("All pods should have been removed")
 	}
 
+	close(stopCh)
+}
+
+func TestPodUpdateWithWithADC(t *testing.T) {
+	_, server, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
+	namespaceName := "test-pod-update"
+
+	node := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-sandbox",
+			Annotations: map[string]string{
+				volumehelper.ControllerManagedAttachAnnotation: "true",
+			},
+		},
+	}
+
+	ns := framework.CreateTestingNamespace(namespaceName, server, t)
+	defer framework.DeleteTestingNamespace(ns, server, t)
+
+	testClient, ctrl, informers := createAdClients(ns, t, server, defaultSyncPeriod)
+
+	pod := fakePodWithVol(namespaceName)
+	podStopCh := make(chan struct{})
+
+	if _, err := testClient.Core().Nodes().Create(node); err != nil {
+		t.Fatalf("Failed to created node : %v", err)
+	}
+
+	go informers.Core().V1().Nodes().Informer().Run(podStopCh)
+
+	if _, err := testClient.Core().Pods(ns.Name).Create(pod); err != nil {
+		t.Errorf("Failed to create pod : %v", err)
+	}
+
+	podInformer := informers.Core().V1().Pods().Informer()
+	go podInformer.Run(podStopCh)
+
+	// start controller loop
+	stopCh := make(chan struct{})
+	go informers.Core().V1().PersistentVolumeClaims().Informer().Run(stopCh)
+	go informers.Core().V1().PersistentVolumes().Informer().Run(stopCh)
+	go ctrl.Run(stopCh)
+
+	waitToObservePods(t, podInformer, 1)
+	podKey, err := cache.MetaNamespaceKeyFunc(pod)
+	if err != nil {
+		t.Fatalf("MetaNamespaceKeyFunc failed with : %v", err)
+	}
+
+	_, _, err = podInformer.GetStore().GetByKey(podKey)
+
+	if err != nil {
+		t.Fatalf("Pod not found in Pod Informer cache : %v", err)
+	}
+
+	waitForPodsInDSWP(t, ctrl.GetDesiredStateOfWorld())
+
+	pod.Status.Phase = v1.PodSucceeded
+
+	if _, err := testClient.Core().Pods(ns.Name).UpdateStatus(pod); err != nil {
+		t.Errorf("Failed to update pod : %v", err)
+	}
+
+	time.Sleep(20 * time.Second)
+	podsToAdd := ctrl.GetDesiredStateOfWorld().GetPodToAdd()
+	if len(podsToAdd) != 0 {
+		t.Fatalf("All pods should have been removed")
+	}
+
+	close(podStopCh)
+	close(stopCh)
+}
+
+func TestPodUpdateWithKeepTerminatedPodVolumes(t *testing.T) {
+	_, server, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
+	namespaceName := "test-pod-update"
+
+	node := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-sandbox",
+			Annotations: map[string]string{
+				volumehelper.ControllerManagedAttachAnnotation:  "true",
+				volumehelper.KeepTerminatedPodVolumesAnnotation: "true",
+			},
+		},
+	}
+
+	ns := framework.CreateTestingNamespace(namespaceName, server, t)
+	defer framework.DeleteTestingNamespace(ns, server, t)
+
+	testClient, ctrl, informers := createAdClients(ns, t, server, defaultSyncPeriod)
+
+	pod := fakePodWithVol(namespaceName)
+	podStopCh := make(chan struct{})
+
+	if _, err := testClient.Core().Nodes().Create(node); err != nil {
+		t.Fatalf("Failed to created node : %v", err)
+	}
+
+	go informers.Core().V1().Nodes().Informer().Run(podStopCh)
+
+	if _, err := testClient.Core().Pods(ns.Name).Create(pod); err != nil {
+		t.Errorf("Failed to create pod : %v", err)
+	}
+
+	podInformer := informers.Core().V1().Pods().Informer()
+	go podInformer.Run(podStopCh)
+
+	// start controller loop
+	stopCh := make(chan struct{})
+	go informers.Core().V1().PersistentVolumeClaims().Informer().Run(stopCh)
+	go informers.Core().V1().PersistentVolumes().Informer().Run(stopCh)
+	go ctrl.Run(stopCh)
+
+	waitToObservePods(t, podInformer, 1)
+	podKey, err := cache.MetaNamespaceKeyFunc(pod)
+	if err != nil {
+		t.Fatalf("MetaNamespaceKeyFunc failed with : %v", err)
+	}
+
+	_, _, err = podInformer.GetStore().GetByKey(podKey)
+
+	if err != nil {
+		t.Fatalf("Pod not found in Pod Informer cache : %v", err)
+	}
+
+	waitForPodsInDSWP(t, ctrl.GetDesiredStateOfWorld())
+
+	pod.Status.Phase = v1.PodSucceeded
+
+	if _, err := testClient.Core().Pods(ns.Name).UpdateStatus(pod); err != nil {
+		t.Errorf("Failed to update pod : %v", err)
+	}
+
+	time.Sleep(20 * time.Second)
+	podsToAdd := ctrl.GetDesiredStateOfWorld().GetPodToAdd()
+	if len(podsToAdd) == 0 {
+		t.Fatalf("The pod should not be removed if KeepTerminatedPodVolumesAnnotation is set")
+	}
+
+	close(podStopCh)
 	close(stopCh)
 }
 
@@ -167,7 +308,20 @@ func waitToObservePods(t *testing.T, podInformer cache.SharedIndexInformer, podN
 	}
 }
 
-func createAdClients(ns *v1.Namespace, t *testing.T, server *httptest.Server, syncPeriod time.Duration) (*clientset.Clientset, attachdetach.AttachDetachController, cache.SharedIndexInformer, cache.SharedIndexInformer) {
+// wait for pods to be observed in desired state of world
+func waitForPodsInDSWP(t *testing.T, dswp volumecache.DesiredStateOfWorld) {
+	if err := wait.Poll(time.Millisecond*500, wait.ForeverTestTimeout, func() (bool, error) {
+		pods := dswp.GetPodToAdd()
+		if len(pods) > 0 {
+			return true, nil
+		}
+		return false, nil
+	}); err != nil {
+		t.Fatalf("Pod not added to desired state of world : %v", err)
+	}
+}
+
+func createAdClients(ns *v1.Namespace, t *testing.T, server *httptest.Server, syncPeriod time.Duration) (*clientset.Clientset, attachdetach.AttachDetachController, informers.SharedInformerFactory) {
 	config := restclient.Config{
 		Host:          server.URL,
 		ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(v1.GroupName).GroupVersion},
@@ -192,13 +346,106 @@ func createAdClients(ns *v1.Namespace, t *testing.T, server *httptest.Server, sy
 	}
 	plugins := []volume.VolumePlugin{plugin}
 	cloud := &fakecloud.FakeCloud{}
-	podInformer := informers.NewPodInformer(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "pod-informer")), resyncPeriod)
-	nodeInformer := informers.NewNodeInformer(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "node-informer")), resyncPeriod)
-	pvcInformer := informers.NewNodeInformer(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "pvc-informer")), resyncPeriod)
-	pvInformer := informers.NewNodeInformer(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "pv-informer")), resyncPeriod)
-	ctrl, err := attachdetach.NewAttachDetachController(testClient, podInformer, nodeInformer, pvcInformer, pvInformer, cloud, plugins, false, time.Second*5)
+	informers := informers.NewSharedInformerFactory(testClient, resyncPeriod)
+	ctrl, err := attachdetach.NewAttachDetachController(
+		testClient,
+		informers.Core().V1().Pods(),
+		informers.Core().V1().Nodes(),
+		informers.Core().V1().PersistentVolumeClaims(),
+		informers.Core().V1().PersistentVolumes(),
+		cloud,
+		plugins,
+		false,
+		time.Second*5)
+
 	if err != nil {
 		t.Fatalf("Error creating AttachDetach : %v", err)
 	}
-	return testClient, ctrl, podInformer, nodeInformer
+	return testClient, ctrl, informers
+}
+
+// Via integration test we can verify that if pod add
+// event is somehow missed by AttachDetach controller - it still
+// gets added by Desired State of World populator.
+func TestPodAddedByDswp(t *testing.T) {
+	_, server, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
+	namespaceName := "test-pod-deletion"
+
+	node := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-sandbox",
+			Annotations: map[string]string{
+				volumehelper.ControllerManagedAttachAnnotation: "true",
+			},
+		},
+	}
+
+	ns := framework.CreateTestingNamespace(namespaceName, server, t)
+	defer framework.DeleteTestingNamespace(ns, server, t)
+
+	testClient, ctrl, informers := createAdClients(ns, t, server, defaultSyncPeriod)
+
+	pod := fakePodWithVol(namespaceName)
+	podStopCh := make(chan struct{})
+
+	if _, err := testClient.Core().Nodes().Create(node); err != nil {
+		t.Fatalf("Failed to created node : %v", err)
+	}
+
+	go informers.Core().V1().Nodes().Informer().Run(podStopCh)
+
+	if _, err := testClient.Core().Pods(ns.Name).Create(pod); err != nil {
+		t.Errorf("Failed to create pod : %v", err)
+	}
+
+	podInformer := informers.Core().V1().Pods().Informer()
+	go podInformer.Run(podStopCh)
+
+	// start controller loop
+	stopCh := make(chan struct{})
+	go informers.Core().V1().PersistentVolumeClaims().Informer().Run(stopCh)
+	go informers.Core().V1().PersistentVolumes().Informer().Run(stopCh)
+	go ctrl.Run(stopCh)
+
+	waitToObservePods(t, podInformer, 1)
+	podKey, err := cache.MetaNamespaceKeyFunc(pod)
+	if err != nil {
+		t.Fatalf("MetaNamespaceKeyFunc failed with : %v", err)
+	}
+
+	_, _, err = podInformer.GetStore().GetByKey(podKey)
+
+	if err != nil {
+		t.Fatalf("Pod not found in Pod Informer cache : %v", err)
+	}
+
+	waitForPodsInDSWP(t, ctrl.GetDesiredStateOfWorld())
+
+	// let's stop pod events from getting triggered
+	close(podStopCh)
+	podObj, err := api.Scheme.DeepCopy(pod)
+	if err != nil {
+		t.Fatalf("Error copying pod : %v", err)
+	}
+	podNew, ok := podObj.(*v1.Pod)
+	if !ok {
+		t.Fatalf("Error converting pod : %v", err)
+	}
+	newPodName := "newFakepod"
+	podNew.SetName(newPodName)
+	err = podInformer.GetStore().Add(podNew)
+	if err != nil {
+		t.Fatalf("Error adding pod : %v", err)
+	}
+
+	waitToObservePods(t, podInformer, 2)
+	// the findAndAddActivePods loop turns every 3 minute
+	time.Sleep(200 * time.Second)
+	podsToAdd := ctrl.GetDesiredStateOfWorld().GetPodToAdd()
+	if len(podsToAdd) != 2 {
+		t.Fatalf("DSW should have two pods")
+	}
+
+	close(stopCh)
 }

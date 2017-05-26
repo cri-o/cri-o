@@ -22,16 +22,17 @@ import (
 	"testing"
 	"time"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
+	core "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 )
 
@@ -166,7 +167,7 @@ func TestDefaultContainerResourceRequirements(t *testing.T) {
 	}
 
 	actual := defaultContainerResourceRequirements(&limitRange)
-	if !api.Semantic.DeepEqual(expected, actual) {
+	if !apiequality.Semantic.DeepEqual(expected, actual) {
 		t.Errorf("actual.Limits != expected.Limits; %v != %v", actual.Limits, expected.Limits)
 		t.Errorf("actual.Requests != expected.Requests; %v != %v", actual.Requests, expected.Requests)
 		t.Errorf("expected != actual; %v != %v", expected, actual)
@@ -199,7 +200,7 @@ func TestMergePodResourceRequirements(t *testing.T) {
 	mergePodResourceRequirements(&pod, &defaultRequirements)
 	for i := range pod.Spec.Containers {
 		actual := pod.Spec.Containers[i].Resources
-		if !api.Semantic.DeepEqual(expected, actual) {
+		if !apiequality.Semantic.DeepEqual(expected, actual) {
 			t.Errorf("pod %v, expected != actual; %v != %v", pod.Name, expected, actual)
 		}
 	}
@@ -218,13 +219,13 @@ func TestMergePodResourceRequirements(t *testing.T) {
 	mergePodResourceRequirements(&pod, &defaultRequirements)
 	for i := range pod.Spec.Containers {
 		actual := pod.Spec.Containers[i].Resources
-		if !api.Semantic.DeepEqual(expected, actual) {
+		if !apiequality.Semantic.DeepEqual(expected, actual) {
 			t.Errorf("pod %v, expected != actual; %v != %v", pod.Name, expected, actual)
 		}
 	}
 	for i := range pod.Spec.InitContainers {
 		actual := pod.Spec.InitContainers[i].Resources
-		if !api.Semantic.DeepEqual(expected, actual) {
+		if !apiequality.Semantic.DeepEqual(expected, actual) {
 			t.Errorf("pod %v, expected != actual; %v != %v", pod.Name, expected, actual)
 		}
 	}
@@ -238,13 +239,13 @@ func TestMergePodResourceRequirements(t *testing.T) {
 	mergePodResourceRequirements(&pod, &defaultRequirements)
 	for i := range pod.Spec.Containers {
 		actual := pod.Spec.Containers[i].Resources
-		if !api.Semantic.DeepEqual(expected, actual) {
+		if !apiequality.Semantic.DeepEqual(expected, actual) {
 			t.Errorf("pod %v, expected != actual; %v != %v", pod.Name, expected, actual)
 		}
 	}
 	for i := range pod.Spec.InitContainers {
 		actual := pod.Spec.InitContainers[i].Resources
-		if !api.Semantic.DeepEqual(initInputs[i], actual) {
+		if !apiequality.Semantic.DeepEqual(initInputs[i], actual) {
 			t.Errorf("pod %v, expected != actual; %v != %v", pod.Name, initInputs[i], actual)
 		}
 	}
@@ -589,12 +590,12 @@ func newMockClientForTest(limitRanges []api.LimitRange) *fake.Clientset {
 
 // newHandlerForTest returns a handler configured for testing.
 func newHandlerForTest(c clientset.Interface) (admission.Interface, informers.SharedInformerFactory, error) {
-	f := informers.NewSharedInformerFactory(nil, c, 5*time.Minute)
+	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
 	handler, err := NewLimitRanger(&DefaultLimitRangerActions{})
 	if err != nil {
 		return nil, f, err
 	}
-	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil)
+	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil, nil, nil)
 	pluginInitializer.Initialize(handler)
 	err = admission.Validate(handler)
 	return handler, f, err

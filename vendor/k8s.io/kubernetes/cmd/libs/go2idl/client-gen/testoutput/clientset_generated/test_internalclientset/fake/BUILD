@@ -12,18 +12,22 @@ go_library(
     srcs = [
         "clientset_generated.go",
         "doc.go",
+        "register.go",
     ],
     tags = ["automanaged"],
     deps = [
+        "//cmd/libs/go2idl/client-gen/test_apis/testgroup:go_default_library",
         "//cmd/libs/go2idl/client-gen/testoutput/clientset_generated/test_internalclientset:go_default_library",
         "//cmd/libs/go2idl/client-gen/testoutput/clientset_generated/test_internalclientset/typed/testgroup/internalversion:go_default_library",
         "//cmd/libs/go2idl/client-gen/testoutput/clientset_generated/test_internalclientset/typed/testgroup/internalversion/fake:go_default_library",
-        "//pkg/api:go_default_library",
-        "//pkg/client/testing/core:go_default_library",
-        "//pkg/client/typed/discovery:go_default_library",
-        "//pkg/client/typed/discovery/fake:go_default_library",
-        "//vendor:k8s.io/apimachinery/pkg/runtime",
-        "//vendor:k8s.io/apimachinery/pkg/watch",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/watch:go_default_library",
+        "//vendor/k8s.io/client-go/discovery:go_default_library",
+        "//vendor/k8s.io/client-go/discovery/fake:go_default_library",
+        "//vendor/k8s.io/client-go/testing:go_default_library",
     ],
 )
 

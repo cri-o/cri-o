@@ -26,6 +26,7 @@
 
 set -e
 
+ROOT=$(dirname "${BASH_SOURCE}")/..
 dir=$(mktemp -d "${TMPDIR:-/tmp/}$(basename 0).XXXXXXXXXXXX")
 
 git remote add upstream-kube git@github.com:kubernetes/kubernetes.git  || true
@@ -52,6 +53,9 @@ while read commitSHA; do
 	echo "working ${commitSHA}"
 	git cherry-pick ${commitSHA}
 done <${dir}/commits
+
+# update the vendored godeps
+${ROOT}/hack/godep-deps.sh
 
 # track the k8s.io/kubernetes commit SHA so we can always determine which level of kube this repo matches
 # track the filtered branch commit SHA so that we can determine which commits need to be picked

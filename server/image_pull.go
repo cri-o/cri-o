@@ -8,7 +8,7 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 )
 
 // PullImage pulls a image with authentication config.

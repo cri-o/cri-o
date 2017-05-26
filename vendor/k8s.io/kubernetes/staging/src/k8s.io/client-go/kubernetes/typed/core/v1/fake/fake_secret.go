@@ -34,6 +34,8 @@ type FakeSecrets struct {
 
 var secretsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
 
+var secretsKind = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"}
+
 func (c *FakeSecrets) Create(secret *v1.Secret) (result *v1.Secret, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(secretsResource, c.ns, secret), &v1.Secret{})
@@ -54,14 +56,14 @@ func (c *FakeSecrets) Update(secret *v1.Secret) (result *v1.Secret, err error) {
 	return obj.(*v1.Secret), err
 }
 
-func (c *FakeSecrets) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeSecrets) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(secretsResource, c.ns, name), &v1.Secret{})
 
 	return err
 }
 
-func (c *FakeSecrets) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeSecrets) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(secretsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.SecretList{})
@@ -80,7 +82,7 @@ func (c *FakeSecrets) Get(name string, options meta_v1.GetOptions) (result *v1.S
 
 func (c *FakeSecrets) List(opts meta_v1.ListOptions) (result *v1.SecretList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(secretsResource, c.ns, opts), &v1.SecretList{})
+		Invokes(testing.NewListAction(secretsResource, secretsKind, c.ns, opts), &v1.SecretList{})
 
 	if obj == nil {
 		return nil, err

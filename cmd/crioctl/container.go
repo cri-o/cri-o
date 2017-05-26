@@ -10,10 +10,10 @@ import (
 
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
+	remocommandconsts "k8s.io/apimachinery/pkg/util/remotecommand"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 )
 
 var containerCommand = cli.Command{
@@ -528,7 +528,7 @@ func Exec(client pb.RuntimeServiceClient, ID string, tty bool, stdin bool, urlOn
 	}
 
 	options := remotecommand.StreamOptions{
-		SupportedProtocols: remotecommandserver.SupportedStreamingProtocols,
+		SupportedProtocols: remocommandconsts.SupportedStreamingProtocols,
 		Stdout:             os.Stdout,
 		Stderr:             os.Stderr,
 		Tty:                tty,

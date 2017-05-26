@@ -1,15 +1,6 @@
 {
-    "memo": "2005de643a6067047c2105429c375537db3ff6899467af5f8204d70a2c745fc4",
+    "memo": "f3ac372f10ffbd396c0d3f8f3d5e58084f5f88b4d2c8ade5ac6605bf1f786b97",
     "projects": [
-        {
-            "name": "cloud.google.com/go",
-            "version": "v0.7.0",
-            "revision": "2e6a95edb1071d750f6d7db777bf66cd2997af6c",
-            "packages": [
-                "compute/metadata",
-                "internal"
-            ]
-        },
         {
             "name": "github.com/Azure/go-ansiterm",
             "branch": "master",
@@ -65,6 +56,14 @@
             "name": "github.com/Sirupsen/logrus",
             "branch": "master",
             "revision": "61e43dc76f7ee59a82bdf3d71033dc12bea4c77d",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/asaskevich/govalidator",
+            "version": "v6",
+            "revision": "4918b99a7cb949bb295f3c7bbaf24b577d806e35",
             "packages": [
                 "."
             ]
@@ -159,34 +158,12 @@
             ]
         },
         {
-            "name": "github.com/coreos/go-oidc",
-            "branch": "master",
-            "revision": "be73733bb8cc830d0205609b95d125215f8e9c70",
-            "packages": [
-                "http",
-                "jose",
-                "key",
-                "oauth2",
-                "oidc"
-            ]
-        },
-        {
             "name": "github.com/coreos/go-systemd",
             "version": "v14",
             "revision": "48702e0da86bd25e76cfef347e2adeb434a0d0a6",
             "packages": [
                 "daemon",
                 "dbus"
-            ]
-        },
-        {
-            "name": "github.com/coreos/pkg",
-            "version": "v3",
-            "revision": "3ac0863d7acf3bc44daf49afef8919af12f704ef",
-            "packages": [
-                "health",
-                "httputil",
-                "timeutil"
             ]
         },
         {
@@ -291,8 +268,15 @@
             "revision": "09691a3b6378b740595c1002f40c34dd5f218a22",
             "packages": [
                 ".",
-                "log",
-                "swagger"
+                "log"
+            ]
+        },
+        {
+            "name": "github.com/emicklei/go-restful-swagger12",
+            "version": "1.0.1",
+            "revision": "dcef7f55730566d41eae5db10e7d6981829720f6",
+            "packages": [
+                "."
             ]
         },
         {
@@ -307,6 +291,22 @@
             "name": "github.com/ghodss/yaml",
             "branch": "master",
             "revision": "04f313413ffd65ce25f2541bfd2b2ceec5c0908c",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/go-openapi/analysis",
+            "branch": "master",
+            "revision": "0473cb67199f68b8b7d90e641afd9e79ad36b851",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/go-openapi/errors",
+            "branch": "master",
+            "revision": "03cfca65330da08a5a440053faf994a3c682b5bf",
             "packages": [
                 "."
             ]
@@ -328,6 +328,14 @@
             ]
         },
         {
+            "name": "github.com/go-openapi/loads",
+            "branch": "master",
+            "revision": "ad6217c63d9d12406790ee4acae2aaebd8dc63ec",
+            "packages": [
+                "."
+            ]
+        },
+        {
             "name": "github.com/go-openapi/spec",
             "branch": "master",
             "revision": "02fb9cd3430ed0581e0ceb4804d5d4b3cc702694",
@@ -336,9 +344,17 @@
             ]
         },
         {
+            "name": "github.com/go-openapi/strfmt",
+            "branch": "master",
+            "revision": "93a31ef21ac23f317792fff78f9539219dd74619",
+            "packages": [
+                "."
+            ]
+        },
+        {
             "name": "github.com/go-openapi/swag",
             "branch": "master",
-            "revision": "d5f8ebc3b1c55a4cf6489eeae7354f338cfe299e",
+            "revision": "24ebf76d720bab64f62824d76bced3184a65490d",
             "packages": [
                 "."
             ]
@@ -395,14 +411,6 @@
             ]
         },
         {
-            "name": "github.com/googleapis/gax-go",
-            "branch": "master",
-            "revision": "9af46dd5a1713e8b5cd71106287eba3cefdde50b",
-            "packages": [
-                "."
-            ]
-        },
-        {
             "name": "github.com/gorilla/context",
             "version": "v1.1",
             "revision": "1ea25387ff6f684839d82767c1733ff4d4d15d0a",
@@ -422,14 +430,6 @@
             "name": "github.com/imdario/mergo",
             "version": "0.2.2",
             "revision": "3e95a51e0639b4cf372f2ccf74c86749d747fbdc",
-            "packages": [
-                "."
-            ]
-        },
-        {
-            "name": "github.com/jonboulle/clockwork",
-            "version": "v0.1.0",
-            "revision": "2eee05ed794112d45db504eb05aa693efd2b8b09",
             "packages": [
                 "."
             ]
@@ -488,6 +488,14 @@
             "name": "github.com/mitchellh/go-wordwrap",
             "branch": "master",
             "revision": "ad45545899c7b13c020ea92b2072220eefad42b8",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mitchellh/mapstructure",
+            "branch": "master",
+            "revision": "cc8532a8e9a55ea36402aa21efdf403a60d34096",
             "packages": [
                 "."
             ]
@@ -654,18 +662,6 @@
             ]
         },
         {
-            "name": "golang.org/x/oauth2",
-            "branch": "master",
-            "revision": "a6bd8cefa1811bd24b86f8902872e4e8225f74c4",
-            "packages": [
-                ".",
-                "google",
-                "internal",
-                "jws",
-                "jwt"
-            ]
-        },
-        {
             "name": "golang.org/x/sys",
             "branch": "master",
             "revision": "d75a52659825e75fff6158388dddc6a5b04f9ba5",
@@ -677,7 +673,7 @@
         {
             "name": "golang.org/x/text",
             "branch": "master",
-            "revision": "dafb3384ad25363d928a9e97ce4ad3a2f0667e34",
+            "revision": "19e51611da83d6be54ddafce4a4af510cb3e9ea4",
             "packages": [
                 "internal/gen",
                 "internal/triegen",
@@ -689,26 +685,9 @@
             ]
         },
         {
-            "name": "google.golang.org/appengine",
-            "version": "v1.0.0",
-            "revision": "150dc57a1b433e64154302bdc40b6bb8aefa313a",
-            "packages": [
-                ".",
-                "internal",
-                "internal/app_identity",
-                "internal/base",
-                "internal/datastore",
-                "internal/log",
-                "internal/modules",
-                "internal/remote_api",
-                "internal/urlfetch",
-                "urlfetch"
-            ]
-        },
-        {
             "name": "google.golang.org/grpc",
-            "version": "v1.0.1-GA",
-            "revision": "0032a855ba5c8a3c8e0d71c2deef354b70af1584",
+            "version": "v1.0.4",
+            "revision": "777daa17ff9b5daef1cfdf915088a2ada3332bf0",
             "packages": [
                 ".",
                 "codes",
@@ -738,6 +717,15 @@
             ]
         },
         {
+            "name": "gopkg.in/mgo.v2",
+            "branch": "v2",
+            "revision": "3f83fa5005286a7fe593b055f0d7771a7dce4655",
+            "packages": [
+                "bson",
+                "internal/json"
+            ]
+        },
+        {
             "name": "gopkg.in/yaml.v2",
             "branch": "v2",
             "revision": "4c78c975fe7c825c6d1466c42be594d1d6f3aba6",
@@ -748,10 +736,11 @@
         {
             "name": "k8s.io/apimachinery",
             "branch": "master",
-            "revision": "21807b270ec15d19215659a5caa08b17f66d6f44",
+            "revision": "565bae4589e797e6474096f31f9e70a47132d5e5",
             "packages": [
                 "pkg/api/errors",
                 "pkg/api/meta",
+                "pkg/api/resource",
                 "pkg/apimachinery",
                 "pkg/apimachinery/announced",
                 "pkg/apimachinery/registered",
@@ -774,17 +763,25 @@
                 "pkg/types",
                 "pkg/util/errors",
                 "pkg/util/framer",
+                "pkg/util/httpstream",
+                "pkg/util/httpstream/spdy",
+                "pkg/util/intstr",
                 "pkg/util/json",
+                "pkg/util/mergepatch",
                 "pkg/util/net",
                 "pkg/util/rand",
+                "pkg/util/remotecommand",
                 "pkg/util/runtime",
                 "pkg/util/sets",
+                "pkg/util/strategicpatch",
                 "pkg/util/validation",
                 "pkg/util/validation/field",
                 "pkg/util/wait",
                 "pkg/util/yaml",
                 "pkg/version",
                 "pkg/watch",
+                "third_party/forked/golang/json",
+                "third_party/forked/golang/netutil",
                 "third_party/forked/golang/reflect"
             ]
         },
@@ -800,56 +797,83 @@
         {
             "name": "k8s.io/client-go",
             "branch": "master",
-            "revision": "b766ef93a46ce6dc863462254658ca2861a53314",
+            "revision": "1bf81ae841b909965a0f2b1b7256b8c58307e253",
             "packages": [
+                "discovery",
+                "kubernetes/scheme",
                 "pkg/api",
-                "pkg/api/resource",
                 "pkg/api/v1",
+                "pkg/api/v1/ref",
+                "pkg/apis/apps",
+                "pkg/apis/apps/v1beta1",
+                "pkg/apis/authentication",
+                "pkg/apis/authentication/v1",
+                "pkg/apis/authentication/v1beta1",
+                "pkg/apis/authorization",
+                "pkg/apis/authorization/v1",
+                "pkg/apis/authorization/v1beta1",
                 "pkg/apis/autoscaling",
+                "pkg/apis/autoscaling/v1",
+                "pkg/apis/autoscaling/v2alpha1",
+                "pkg/apis/batch",
+                "pkg/apis/batch/v1",
+                "pkg/apis/batch/v2alpha1",
+                "pkg/apis/certificates",
+                "pkg/apis/certificates/v1beta1",
                 "pkg/apis/extensions",
+                "pkg/apis/extensions/v1beta1",
+                "pkg/apis/policy",
+                "pkg/apis/policy/v1beta1",
+                "pkg/apis/rbac",
+                "pkg/apis/rbac/v1alpha1",
+                "pkg/apis/rbac/v1beta1",
+                "pkg/apis/settings",
+                "pkg/apis/settings/v1alpha1",
+                "pkg/apis/storage",
+                "pkg/apis/storage/v1",
+                "pkg/apis/storage/v1beta1",
                 "pkg/util",
-                "pkg/util/intstr",
-                "pkg/util/labels",
                 "pkg/util/parsers",
                 "pkg/version",
-                "plugin/pkg/client/auth",
-                "plugin/pkg/client/auth/gcp",
-                "plugin/pkg/client/auth/oidc",
                 "rest",
                 "rest/watch",
-                "third_party/forked/golang/template",
                 "tools/clientcmd/api",
                 "tools/metrics",
+                "tools/record",
                 "transport",
                 "util/cert",
                 "util/clock",
                 "util/flowcontrol",
                 "util/homedir",
-                "util/integer",
-                "util/jsonpath"
+                "util/integer"
             ]
         },
         {
             "name": "k8s.io/kubernetes",
             "branch": "master",
-            "revision": "760d8e98e8f6ad27aaf50b1a030cb9e7b6859aab",
+            "revision": "4807e6cadf773cd6c33714e4ab80cfe394cb990d",
             "packages": [
                 "pkg/api",
+                "pkg/api/helper",
                 "pkg/api/install",
-                "pkg/api/resource",
                 "pkg/api/v1",
+                "pkg/api/v1/helper",
+                "pkg/api/v1/ref",
                 "pkg/apis/apps",
                 "pkg/apis/apps/install",
                 "pkg/apis/apps/v1beta1",
                 "pkg/apis/authentication",
                 "pkg/apis/authentication/install",
+                "pkg/apis/authentication/v1",
                 "pkg/apis/authentication/v1beta1",
                 "pkg/apis/authorization",
                 "pkg/apis/authorization/install",
+                "pkg/apis/authorization/v1",
                 "pkg/apis/authorization/v1beta1",
                 "pkg/apis/autoscaling",
                 "pkg/apis/autoscaling/install",
                 "pkg/apis/autoscaling/v1",
+                "pkg/apis/autoscaling/v2alpha1",
                 "pkg/apis/batch",
                 "pkg/apis/batch/install",
                 "pkg/apis/batch/v1",
@@ -867,14 +891,22 @@
                 "pkg/apis/rbac/install",
                 "pkg/apis/rbac/v1alpha1",
                 "pkg/apis/rbac/v1beta1",
+                "pkg/apis/settings",
+                "pkg/apis/settings/install",
+                "pkg/apis/settings/v1alpha1",
                 "pkg/apis/storage",
                 "pkg/apis/storage/install",
+                "pkg/apis/storage/v1",
                 "pkg/apis/storage/v1beta1",
                 "pkg/client/clientset_generated/clientset",
+                "pkg/client/clientset_generated/clientset/scheme",
                 "pkg/client/clientset_generated/clientset/typed/apps/v1beta1",
+                "pkg/client/clientset_generated/clientset/typed/authentication/v1",
                 "pkg/client/clientset_generated/clientset/typed/authentication/v1beta1",
+                "pkg/client/clientset_generated/clientset/typed/authorization/v1",
                 "pkg/client/clientset_generated/clientset/typed/authorization/v1beta1",
                 "pkg/client/clientset_generated/clientset/typed/autoscaling/v1",
+                "pkg/client/clientset_generated/clientset/typed/autoscaling/v2alpha1",
                 "pkg/client/clientset_generated/clientset/typed/batch/v1",
                 "pkg/client/clientset_generated/clientset/typed/batch/v2alpha1",
                 "pkg/client/clientset_generated/clientset/typed/certificates/v1beta1",
@@ -883,39 +915,30 @@
                 "pkg/client/clientset_generated/clientset/typed/policy/v1beta1",
                 "pkg/client/clientset_generated/clientset/typed/rbac/v1alpha1",
                 "pkg/client/clientset_generated/clientset/typed/rbac/v1beta1",
+                "pkg/client/clientset_generated/clientset/typed/settings/v1alpha1",
+                "pkg/client/clientset_generated/clientset/typed/storage/v1",
                 "pkg/client/clientset_generated/clientset/typed/storage/v1beta1",
-                "pkg/client/record",
-                "pkg/client/typed/discovery",
                 "pkg/client/unversioned/remotecommand",
                 "pkg/cloudprovider",
-                "pkg/kubelet/api/v1alpha1/runtime",
+                "pkg/kubelet/apis/cri/v1alpha1",
                 "pkg/kubelet/container",
+                "pkg/kubelet/events",
                 "pkg/kubelet/server/portforward",
                 "pkg/kubelet/server/remotecommand",
                 "pkg/kubelet/server/streaming",
                 "pkg/kubelet/util/format",
                 "pkg/kubelet/util/ioutils",
                 "pkg/util",
-                "pkg/util/chmod",
-                "pkg/util/chown",
                 "pkg/util/exec",
                 "pkg/util/hash",
-                "pkg/util/httpstream",
-                "pkg/util/httpstream/spdy",
                 "pkg/util/interrupt",
-                "pkg/util/intstr",
                 "pkg/util/io",
-                "pkg/util/labels",
                 "pkg/util/mount",
                 "pkg/util/parsers",
-                "pkg/util/strategicpatch",
                 "pkg/util/term",
-                "pkg/version",
                 "pkg/volume",
                 "pkg/volume/util",
-                "third_party/forked/golang/expansion",
-                "third_party/forked/golang/json",
-                "third_party/forked/golang/netutil"
+                "third_party/forked/golang/expansion"
             ]
         }
     ]

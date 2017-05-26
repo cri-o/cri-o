@@ -22,11 +22,10 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"k8s.io/kubernetes/pkg/controller/informers"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/kubeapiserver/authorizer"
+	authzmodes "k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
 )
-
-var AuthorizationModeChoices = []string{authorizer.ModeAlwaysAllow, authorizer.ModeAlwaysDeny, authorizer.ModeABAC, authorizer.ModeWebhook, authorizer.ModeRBAC}
 
 type BuiltInAuthorizationOptions struct {
 	Mode                        string
@@ -38,7 +37,7 @@ type BuiltInAuthorizationOptions struct {
 
 func NewBuiltInAuthorizationOptions() *BuiltInAuthorizationOptions {
 	return &BuiltInAuthorizationOptions{
-		Mode: authorizer.ModeAlwaysAllow,
+		Mode: authzmodes.ModeAlwaysAllow,
 		WebhookCacheAuthorizedTTL:   5 * time.Minute,
 		WebhookCacheUnauthorizedTTL: 30 * time.Second,
 	}
@@ -52,7 +51,7 @@ func (s *BuiltInAuthorizationOptions) Validate() []error {
 func (s *BuiltInAuthorizationOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.Mode, "authorization-mode", s.Mode, ""+
 		"Ordered list of plug-ins to do authorization on secure port. Comma-delimited list of: "+
-		strings.Join(AuthorizationModeChoices, ",")+".")
+		strings.Join(authzmodes.AuthorizationModeChoices, ",")+".")
 
 	fs.StringVar(&s.PolicyFile, "authorization-policy-file", s.PolicyFile, ""+
 		"File with authorization policy in csv format, used with --authorization-mode=ABAC, on the secure port.")
@@ -63,11 +62,11 @@ func (s *BuiltInAuthorizationOptions) AddFlags(fs *pflag.FlagSet) {
 
 	fs.DurationVar(&s.WebhookCacheAuthorizedTTL, "authorization-webhook-cache-authorized-ttl",
 		s.WebhookCacheAuthorizedTTL,
-		"The duration to cache 'authorized' responses from the webhook authorizer. Default is 5m.")
+		"The duration to cache 'authorized' responses from the webhook authorizer.")
 
 	fs.DurationVar(&s.WebhookCacheUnauthorizedTTL,
 		"authorization-webhook-cache-unauthorized-ttl", s.WebhookCacheUnauthorizedTTL,
-		"The duration to cache 'unauthorized' responses from the webhook authorizer. Default is 30s.")
+		"The duration to cache 'unauthorized' responses from the webhook authorizer.")
 
 	fs.String("authorization-rbac-super-user", "", ""+
 		"If specified, a username which avoids RBAC authorization checks and role binding "+
@@ -76,14 +75,17 @@ func (s *BuiltInAuthorizationOptions) AddFlags(fs *pflag.FlagSet) {
 
 }
 
-func (s *BuiltInAuthorizationOptions) ToAuthorizationConfig(informerFactory informers.SharedInformerFactory) authorizer.AuthorizationConfig {
+func (s *BuiltInAuthorizationOptions) Modes() []string {
 	modes := []string{}
 	if len(s.Mode) > 0 {
 		modes = strings.Split(s.Mode, ",")
 	}
+	return modes
+}
 
+func (s *BuiltInAuthorizationOptions) ToAuthorizationConfig(informerFactory informers.SharedInformerFactory) authorizer.AuthorizationConfig {
 	return authorizer.AuthorizationConfig{
-		AuthorizationModes:          modes,
+		AuthorizationModes:          s.Modes(),
 		PolicyFile:                  s.PolicyFile,
 		WebhookConfigFile:           s.WebhookConfigFile,
 		WebhookCacheAuthorizedTTL:   s.WebhookCacheAuthorizedTTL,

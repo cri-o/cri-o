@@ -19,8 +19,8 @@ package core
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	"k8s.io/kubernetes/pkg/quota"
 )
@@ -63,6 +63,23 @@ func TestServiceEvaluatorUsage(t *testing.T) {
 			},
 			usage: api.ResourceList{
 				api.ResourceServicesNodePorts:     resource.MustParse("0"),
+				api.ResourceServicesLoadBalancers: resource.MustParse("1"),
+				api.ResourceServices:              resource.MustParse("1"),
+			},
+		},
+		"loadbalancer_ports": {
+			service: &api.Service{
+				Spec: api.ServiceSpec{
+					Type: api.ServiceTypeLoadBalancer,
+					Ports: []api.ServicePort{
+						{
+							Port: 27443,
+						},
+					},
+				},
+			},
+			usage: api.ResourceList{
+				api.ResourceServicesNodePorts:     resource.MustParse("1"),
 				api.ResourceServicesLoadBalancers: resource.MustParse("1"),
 				api.ResourceServices:              resource.MustParse("1"),
 			},

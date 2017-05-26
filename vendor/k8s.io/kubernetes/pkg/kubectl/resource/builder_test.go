@@ -31,20 +31,21 @@ import (
 
 	"github.com/ghodss/yaml"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/rest/fake"
 	restclientwatch "k8s.io/client-go/rest/watch"
 	utiltesting "k8s.io/client-go/util/testing"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
 )
 
 func stringBody(body string) io.ReadCloser {
@@ -70,6 +71,7 @@ func fakeClient() ClientMapper {
 func fakeClientWith(testName string, t *testing.T, data map[string]string) ClientMapper {
 	return ClientMapperFunc(func(*meta.RESTMapping) (RESTClient, error) {
 		return &fake.RESTClient{
+			APIRegistry:          api.Registry,
 			NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 				p := req.URL.Path
@@ -253,7 +255,7 @@ var aRC string = `
 `
 
 func TestPathBuilderAndVersionedObjectNotDefaulted(t *testing.T) {
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{"../../../test/fixtures/pkg/kubectl/builder/kitten-rc.yaml"}})
 
 	test := &testVisitor{}
@@ -292,7 +294,7 @@ func TestNodeBuilder(t *testing.T) {
 		w.Write([]byte(runtime.EncodeOrDie(testapi.Default.Codec(), node)))
 	}()
 
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		NamespaceParam("test").Stream(r, "STDIN")
 
 	test := &testVisitor{}
@@ -356,7 +358,7 @@ func TestPathBuilderWithMultiple(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+		b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 			FilenameParam(false, &FilenameOptions{Recursive: test.recursive, Filenames: []string{test.directory}}).
 			NamespaceParam("test").DefaultNamespace()
 
@@ -415,7 +417,7 @@ func TestPathBuilderWithMultipleInvalid(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+		b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 			FilenameParam(false, &FilenameOptions{Recursive: test.recursive, Filenames: []string{test.directory}}).
 			NamespaceParam("test").DefaultNamespace()
 
@@ -430,7 +432,7 @@ func TestPathBuilderWithMultipleInvalid(t *testing.T) {
 }
 
 func TestDirectoryBuilder(t *testing.T) {
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{"../../../examples/guestbook/legacy"}}).
 		NamespaceParam("test").DefaultNamespace()
 
@@ -461,7 +463,7 @@ func TestNamespaceOverride(t *testing.T) {
 	}))
 	defer s.Close()
 
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{s.URL}}).
 		NamespaceParam("test")
 
@@ -472,7 +474,7 @@ func TestNamespaceOverride(t *testing.T) {
 		t.Fatalf("unexpected response: %v %#v", err, test.Infos)
 	}
 
-	b = NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b = NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		FilenameParam(true, &FilenameOptions{Recursive: false, Filenames: []string{s.URL}}).
 		NamespaceParam("test")
 
@@ -492,7 +494,7 @@ func TestURLBuilder(t *testing.T) {
 	}))
 	defer s.Close()
 
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{s.URL}}).
 		NamespaceParam("foo")
 
@@ -521,7 +523,7 @@ func TestURLBuilderRequireNamespace(t *testing.T) {
 	}))
 	defer s.Close()
 
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{s.URL}}).
 		NamespaceParam("test").RequireNamespace()
 
@@ -536,7 +538,7 @@ func TestURLBuilderRequireNamespace(t *testing.T) {
 
 func TestResourceByName(t *testing.T) {
 	pods, _ := testData()
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods/foo": runtime.EncodeOrDie(testapi.Default.Codec(), &pods.Items[0]),
 	}), testapi.Default.Codec()).
 		NamespaceParam("test")
@@ -554,7 +556,7 @@ func TestResourceByName(t *testing.T) {
 	if err != nil || !singleItemImplied || len(test.Infos) != 1 {
 		t.Fatalf("unexpected response: %v %t %#v", err, singleItemImplied, test.Infos)
 	}
-	if !reflect.DeepEqual(&pods.Items[0], test.Objects()[0]) {
+	if !apiequality.Semantic.DeepEqual(&pods.Items[0], test.Objects()[0]) {
 		t.Errorf("unexpected object: %#v", test.Objects()[0])
 	}
 
@@ -569,7 +571,7 @@ func TestResourceByName(t *testing.T) {
 
 func TestMultipleResourceByTheSameName(t *testing.T) {
 	pods, svcs := testData()
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods/foo":     runtime.EncodeOrDie(testapi.Default.Codec(), &pods.Items[0]),
 		"/namespaces/test/pods/baz":     runtime.EncodeOrDie(testapi.Default.Codec(), &pods.Items[1]),
 		"/namespaces/test/services/foo": runtime.EncodeOrDie(testapi.Default.Codec(), &svcs.Items[0]),
@@ -590,7 +592,7 @@ func TestMultipleResourceByTheSameName(t *testing.T) {
 	if err != nil || singleItemImplied || len(test.Infos) != 4 {
 		t.Fatalf("unexpected response: %v %t %#v", err, singleItemImplied, test.Infos)
 	}
-	if !api.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &svcs.Items[0], &svcs.Items[0]}, test.Objects()) {
+	if !apiequality.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &svcs.Items[0], &svcs.Items[0]}, test.Objects()) {
 		t.Errorf("unexpected visited objects: %#v", test.Objects())
 	}
 
@@ -601,7 +603,7 @@ func TestMultipleResourceByTheSameName(t *testing.T) {
 
 func TestResourceNames(t *testing.T) {
 	pods, svc := testData()
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods/foo":     runtime.EncodeOrDie(testapi.Default.Codec(), &pods.Items[0]),
 		"/namespaces/test/services/baz": runtime.EncodeOrDie(testapi.Default.Codec(), &svc.Items[0]),
 	}), testapi.Default.Codec()).
@@ -619,17 +621,17 @@ func TestResourceNames(t *testing.T) {
 	if err != nil || len(test.Infos) != 2 {
 		t.Fatalf("unexpected response: %v %#v", err, test.Infos)
 	}
-	if !reflect.DeepEqual(&pods.Items[0], test.Objects()[0]) {
+	if !apiequality.Semantic.DeepEqual(&pods.Items[0], test.Objects()[0]) {
 		t.Errorf("unexpected object: \n%#v, expected: \n%#v", test.Objects()[0], &pods.Items[0])
 	}
-	if !reflect.DeepEqual(&svc.Items[0], test.Objects()[1]) {
+	if !apiequality.Semantic.DeepEqual(&svc.Items[0], test.Objects()[1]) {
 		t.Errorf("unexpected object: \n%#v, expected: \n%#v", test.Objects()[1], &svc.Items[0])
 	}
 }
 
 func TestResourceNamesWithoutResource(t *testing.T) {
 	pods, svc := testData()
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods/foo":     runtime.EncodeOrDie(testapi.Default.Codec(), &pods.Items[0]),
 		"/namespaces/test/services/baz": runtime.EncodeOrDie(testapi.Default.Codec(), &svc.Items[0]),
 	}), testapi.Default.Codec()).
@@ -650,7 +652,7 @@ func TestResourceNamesWithoutResource(t *testing.T) {
 }
 
 func TestResourceByNameWithoutRequireObject(t *testing.T) {
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{}), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{}), testapi.Default.Codec()).
 		NamespaceParam("test")
 
 	test := &testVisitor{}
@@ -684,7 +686,7 @@ func TestResourceByNameWithoutRequireObject(t *testing.T) {
 
 func TestResourceByNameAndEmptySelector(t *testing.T) {
 	pods, _ := testData()
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods/foo": runtime.EncodeOrDie(testapi.Default.Codec(), &pods.Items[0]),
 	}), testapi.Default.Codec()).
 		NamespaceParam("test").
@@ -696,7 +698,7 @@ func TestResourceByNameAndEmptySelector(t *testing.T) {
 	if err != nil || !singleItemImplied || len(infos) != 1 {
 		t.Fatalf("unexpected response: %v %t %#v", err, singleItemImplied, infos)
 	}
-	if !reflect.DeepEqual(&pods.Items[0], infos[0].Object) {
+	if !apiequality.Semantic.DeepEqual(&pods.Items[0], infos[0].Object) {
 		t.Errorf("unexpected object: %#v", infos[0])
 	}
 
@@ -712,7 +714,7 @@ func TestResourceByNameAndEmptySelector(t *testing.T) {
 func TestSelector(t *testing.T) {
 	pods, svc := testData()
 	labelKey := metav1.LabelSelectorQueryParam(api.Registry.GroupOrDie(api.GroupName).GroupVersion.String())
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods?" + labelKey + "=a%3Db":     runtime.EncodeOrDie(testapi.Default.Codec(), pods),
 		"/namespaces/test/services?" + labelKey + "=a%3Db": runtime.EncodeOrDie(testapi.Default.Codec(), svc),
 	}), testapi.Default.Codec()).
@@ -733,7 +735,7 @@ func TestSelector(t *testing.T) {
 	if err != nil || singleItemImplied || len(test.Infos) != 3 {
 		t.Fatalf("unexpected response: %v %t %#v", err, singleItemImplied, test.Infos)
 	}
-	if !api.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &svc.Items[0]}, test.Objects()) {
+	if !apiequality.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &svc.Items[0]}, test.Objects()) {
 		t.Errorf("unexpected visited objects: %#v", test.Objects())
 	}
 
@@ -743,7 +745,7 @@ func TestSelector(t *testing.T) {
 }
 
 func TestSelectorRequiresKnownTypes(t *testing.T) {
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		SelectorParam("a=b").
 		NamespaceParam("test").
 		ResourceTypes("unknown")
@@ -754,7 +756,7 @@ func TestSelectorRequiresKnownTypes(t *testing.T) {
 }
 
 func TestSingleResourceType(t *testing.T) {
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		SelectorParam("a=b").
 		SingleResourceType().
 		ResourceTypeOrNameArgs(true, "pods,services")
@@ -824,7 +826,7 @@ func TestResourceTuple(t *testing.T) {
 				}
 			}
 
-			b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith(k, t, expectedRequests), testapi.Default.Codec()).
+			b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith(k, t, expectedRequests), testapi.Default.Codec()).
 				NamespaceParam("test").DefaultNamespace().
 				ResourceTypeOrNameArgs(true, testCase.args...).RequireObject(requireObject)
 
@@ -855,7 +857,7 @@ func TestResourceTuple(t *testing.T) {
 
 func TestStream(t *testing.T) {
 	r, pods, rc := streamTestData()
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		NamespaceParam("test").Stream(r, "STDIN").Flatten()
 
 	test := &testVisitor{}
@@ -865,14 +867,14 @@ func TestStream(t *testing.T) {
 	if err != nil || singleItemImplied || len(test.Infos) != 3 {
 		t.Fatalf("unexpected response: %v %t %#v", err, singleItemImplied, test.Infos)
 	}
-	if !api.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &rc.Items[0]}, test.Objects()) {
+	if !apiequality.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &rc.Items[0]}, test.Objects()) {
 		t.Errorf("unexpected visited objects: %#v", test.Objects())
 	}
 }
 
 func TestYAMLStream(t *testing.T) {
 	r, pods, rc := streamYAMLTestData()
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		NamespaceParam("test").Stream(r, "STDIN").Flatten()
 
 	test := &testVisitor{}
@@ -882,14 +884,14 @@ func TestYAMLStream(t *testing.T) {
 	if err != nil || singleItemImplied || len(test.Infos) != 3 {
 		t.Fatalf("unexpected response: %v %t %#v", err, singleItemImplied, test.Infos)
 	}
-	if !api.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &rc.Items[0]}, test.Objects()) {
+	if !apiequality.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &rc.Items[0]}, test.Objects()) {
 		t.Errorf("unexpected visited objects: %#v", test.Objects())
 	}
 }
 
 func TestMultipleObject(t *testing.T) {
 	r, pods, svc := streamTestData()
-	obj, err := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	obj, err := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		NamespaceParam("test").Stream(r, "STDIN").Flatten().
 		Do().Object()
 
@@ -904,14 +906,14 @@ func TestMultipleObject(t *testing.T) {
 			&svc.Items[0],
 		},
 	}
-	if !api.Semantic.DeepDerivative(expected, obj) {
+	if !apiequality.Semantic.DeepDerivative(expected, obj) {
 		t.Errorf("unexpected visited objects: %#v", obj)
 	}
 }
 
 func TestContinueOnErrorVisitor(t *testing.T) {
 	r, _, _ := streamTestData()
-	req := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	req := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		ContinueOnError().
 		NamespaceParam("test").Stream(r, "STDIN").Flatten().
 		Do()
@@ -940,7 +942,7 @@ func TestContinueOnErrorVisitor(t *testing.T) {
 }
 
 func TestSingleItemImpliedObject(t *testing.T) {
-	obj, err := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	obj, err := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		NamespaceParam("test").DefaultNamespace().
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{"../../../examples/guestbook/legacy/redis-master-controller.yaml"}}).
 		Flatten().
@@ -960,7 +962,7 @@ func TestSingleItemImpliedObject(t *testing.T) {
 }
 
 func TestSingleItemImpliedObjectNoExtension(t *testing.T) {
-	obj, err := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	obj, err := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		NamespaceParam("test").DefaultNamespace().
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{"../../../examples/pod"}}).
 		Flatten().
@@ -982,7 +984,7 @@ func TestSingleItemImpliedObjectNoExtension(t *testing.T) {
 func TestSingleItemImpliedRootScopedObject(t *testing.T) {
 	node := &api.Node{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: api.NodeSpec{ExternalID: "test"}}
 	r := streamTestObject(node)
-	infos, err := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	infos, err := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		NamespaceParam("test").DefaultNamespace().
 		Stream(r, "STDIN").
 		Flatten().
@@ -1007,7 +1009,7 @@ func TestSingleItemImpliedRootScopedObject(t *testing.T) {
 func TestListObject(t *testing.T) {
 	pods, _ := testData()
 	labelKey := metav1.LabelSelectorQueryParam(api.Registry.GroupOrDie(api.GroupName).GroupVersion.String())
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods?" + labelKey + "=a%3Db": runtime.EncodeOrDie(testapi.Default.Codec(), pods),
 	}), testapi.Default.Codec()).
 		SelectorParam("a=b").
@@ -1040,7 +1042,7 @@ func TestListObject(t *testing.T) {
 func TestListObjectWithDifferentVersions(t *testing.T) {
 	pods, svc := testData()
 	labelKey := metav1.LabelSelectorQueryParam(api.Registry.GroupOrDie(api.GroupName).GroupVersion.String())
-	obj, err := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	obj, err := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods?" + labelKey + "=a%3Db":     runtime.EncodeOrDie(testapi.Default.Codec(), pods),
 		"/namespaces/test/services?" + labelKey + "=a%3Db": runtime.EncodeOrDie(testapi.Default.Codec(), svc),
 	}), testapi.Default.Codec()).
@@ -1066,8 +1068,8 @@ func TestListObjectWithDifferentVersions(t *testing.T) {
 
 func TestWatch(t *testing.T) {
 	_, svc := testData()
-	w, err := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
-		"/watch/namespaces/test/services/redis-master?resourceVersion=12": watchBody(watch.Event{
+	w, err := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
+		"/namespaces/test/services?fieldSelector=metadata.name%3Dredis-master&resourceVersion=12&watch=true": watchBody(watch.Event{
 			Type:   watch.Added,
 			Object: &svc.Items[0],
 		}),
@@ -1098,7 +1100,7 @@ func TestWatch(t *testing.T) {
 }
 
 func TestWatchMultipleError(t *testing.T) {
-	_, err := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	_, err := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		NamespaceParam("test").DefaultNamespace().
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{"../../../examples/guestbook/legacy/redis-master-controller.yaml"}}).Flatten().
 		FilenameParam(false, &FilenameOptions{Recursive: false, Filenames: []string{"../../../examples/guestbook/legacy/redis-master-controller.yaml"}}).Flatten().
@@ -1121,7 +1123,7 @@ func TestLatest(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "baz", Namespace: "test", ResourceVersion: "15"},
 	}
 
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClientWith("", t, map[string]string{
 		"/namespaces/test/pods/foo":     runtime.EncodeOrDie(testapi.Default.Codec(), newPod),
 		"/namespaces/test/pods/bar":     runtime.EncodeOrDie(testapi.Default.Codec(), newPod2),
 		"/namespaces/test/services/baz": runtime.EncodeOrDie(testapi.Default.Codec(), newSvc),
@@ -1135,7 +1137,7 @@ func TestLatest(t *testing.T) {
 	if err != nil || singleItemImplied || len(test.Infos) != 3 {
 		t.Fatalf("unexpected response: %v %t %#v", err, singleItemImplied, test.Infos)
 	}
-	if !api.Semantic.DeepDerivative([]runtime.Object{newPod, newPod2, newSvc}, test.Objects()) {
+	if !apiequality.Semantic.DeepDerivative([]runtime.Object{newPod, newPod2, newSvc}, test.Objects()) {
 		t.Errorf("unexpected visited objects: %#v", test.Objects())
 	}
 }
@@ -1157,7 +1159,7 @@ func TestReceiveMultipleErrors(t *testing.T) {
 		w2.Write([]byte(runtime.EncodeOrDie(testapi.Default.Codec(), &svc.Items[0])))
 	}()
 
-	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClient(), testapi.Default.Codec()).
+	b := NewBuilder(testapi.Default.RESTMapper(), LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec()).
 		Stream(r, "1").Stream(r2, "2").
 		ContinueOnError()
 
@@ -1255,6 +1257,14 @@ func TestMultipleTypesRequested(t *testing.T) {
 			expectedMultipleTypes: false,
 		},
 		{
+			args: []string{"pod,all"},
+			expectedMultipleTypes: true,
+		},
+		{
+			args: []string{"all,rc,pod"},
+			expectedMultipleTypes: true,
+		},
+		{
 			args: []string{"rc,pod,svc"},
 			expectedMultipleTypes: true,
 		},
@@ -1286,7 +1296,7 @@ func TestMultipleTypesRequested(t *testing.T) {
 	for _, test := range tests {
 		hasMultipleTypes := MultipleTypesRequested(test.args)
 		if hasMultipleTypes != test.expectedMultipleTypes {
-			t.Errorf("expected HasName to return %v for %s", test.expectedMultipleTypes, test.args)
+			t.Errorf("expected MultipleTypesRequested to return %v for %s", test.expectedMultipleTypes, test.args)
 		}
 	}
 }

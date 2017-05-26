@@ -22,11 +22,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/api/testapi"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 )
@@ -48,6 +47,8 @@ type RESTClient struct {
 	Client               *http.Client
 	NegotiatedSerializer runtime.NegotiatedSerializer
 	GroupName            string
+	APIRegistry          *registered.APIRegistrationManager
+	VersionedAPIPath     string
 
 	Req  *http.Request
 	Resp *http.Response
@@ -62,8 +63,8 @@ func (c *RESTClient) Put() *restclient.Request {
 	return c.request("PUT")
 }
 
-func (c *RESTClient) Patch(_ types.PatchType) *restclient.Request {
-	return c.request("PATCH")
+func (c *RESTClient) Patch(pt types.PatchType) *restclient.Request {
+	return c.request("PATCH").SetHeader("Content-Type", string(pt))
 }
 
 func (c *RESTClient) Post() *restclient.Request {
@@ -79,7 +80,7 @@ func (c *RESTClient) Verb(verb string) *restclient.Request {
 }
 
 func (c *RESTClient) APIVersion() schema.GroupVersion {
-	return *(testapi.Default.GroupVersion())
+	return c.APIRegistry.GroupOrDie("").GroupVersion
 }
 
 func (c *RESTClient) GetRateLimiter() flowcontrol.RateLimiter {
@@ -88,31 +89,29 @@ func (c *RESTClient) GetRateLimiter() flowcontrol.RateLimiter {
 
 func (c *RESTClient) request(verb string) *restclient.Request {
 	config := restclient.ContentConfig{
-		ContentType:          runtime.ContentTypeJSON,
-		GroupVersion:         &api.Registry.GroupOrDie(api.GroupName).GroupVersion,
+		ContentType: runtime.ContentTypeJSON,
+		// TODO this was hardcoded before, but it doesn't look right
+		GroupVersion:         &c.APIRegistry.GroupOrDie("").GroupVersion,
 		NegotiatedSerializer: c.NegotiatedSerializer,
 	}
 
-	groupName := api.GroupName
-	if c.GroupName != "" {
-		groupName = c.GroupName
-	}
 	ns := c.NegotiatedSerializer
 	info, _ := runtime.SerializerInfoForMediaType(ns.SupportedMediaTypes(), runtime.ContentTypeJSON)
 	internalVersion := schema.GroupVersion{
-		Group:   api.Registry.GroupOrDie(groupName).GroupVersion.Group,
+		Group:   c.APIRegistry.GroupOrDie(c.GroupName).GroupVersion.Group,
 		Version: runtime.APIVersionInternal,
 	}
 	internalVersion.Version = runtime.APIVersionInternal
 	serializers := restclient.Serializers{
-		Encoder: ns.EncoderForVersion(info.Serializer, api.Registry.GroupOrDie(api.GroupName).GroupVersion),
+		// TODO this was hardcoded before, but it doesn't look right
+		Encoder: ns.EncoderForVersion(info.Serializer, c.APIRegistry.GroupOrDie("").GroupVersion),
 		Decoder: ns.DecoderToVersion(info.Serializer, internalVersion),
 	}
 	if info.StreamSerializer != nil {
 		serializers.StreamingSerializer = info.StreamSerializer.Serializer
 		serializers.Framer = info.StreamSerializer.Framer
 	}
-	return restclient.NewRequest(c, verb, &url.URL{Host: "localhost"}, "", config, serializers, nil, nil)
+	return restclient.NewRequest(c, verb, &url.URL{Host: "localhost"}, c.VersionedAPIPath, config, serializers, nil, nil)
 }
 
 func (c *RESTClient) Do(req *http.Request) (*http.Response, error) {

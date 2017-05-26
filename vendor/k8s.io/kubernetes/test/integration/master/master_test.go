@@ -1,5 +1,3 @@
-// +build integration,!no-etcd
-
 /*
 Copyright 2015 The Kubernetes Authors.
 
@@ -47,8 +45,8 @@ import (
 )
 
 func testPrefix(t *testing.T, prefix string) {
-	_, s := framework.RunAMaster(nil)
-	defer s.Close()
+	_, s, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
 
 	resp, err := http.Get(s.URL + prefix)
 	if err != nil {
@@ -76,8 +74,8 @@ func TestExtensionsPrefix(t *testing.T) {
 }
 
 func TestEmptyList(t *testing.T) {
-	_, s := framework.RunAMaster(nil)
-	defer s.Close()
+	_, s, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
 
 	u := s.URL + "/api/v1/namespaces/default/pods"
 	resp, err := http.Get(u)
@@ -104,8 +102,8 @@ func TestEmptyList(t *testing.T) {
 }
 
 func TestWatchSucceedsWithoutArgs(t *testing.T) {
-	_, s := framework.RunAMaster(nil)
-	defer s.Close()
+	_, s, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
 
 	resp, err := http.Get(s.URL + "/api/v1/namespaces?watch=1")
 	if err != nil {
@@ -138,6 +136,60 @@ var hpaV1 string = `
 }
 `
 
+var deploymentExtensions string = `
+{
+  "apiVersion": "extensions/v1beta1",
+  "kind": "Deployment",
+  "metadata": {
+     "name": "test-deployment1",
+     "namespace": "default"
+  },
+  "spec": {
+    "replicas": 1,
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "nginx0"
+        }
+      },
+      "spec": {
+        "containers": [{
+          "name": "nginx",
+          "image": "gcr.io/google-containers/nginx:1.7.9"
+        }]
+      }
+    }
+  }
+}
+`
+
+var deploymentApps string = `
+{
+  "apiVersion": "apps/v1beta1",
+  "kind": "Deployment",
+  "metadata": {
+     "name": "test-deployment2",
+     "namespace": "default"
+  },
+  "spec": {
+    "replicas": 1,
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "nginx0"
+        }
+      },
+      "spec": {
+        "containers": [{
+          "name": "nginx",
+          "image": "gcr.io/google-containers/nginx:1.7.9"
+        }]
+      }
+    }
+  }
+}
+`
+
 func autoscalingPath(resource, namespace, name string) string {
 	return testapi.Autoscaling.ResourcePath(resource, namespace, name)
 }
@@ -150,9 +202,13 @@ func extensionsPath(resource, namespace, name string) string {
 	return testapi.Extensions.ResourcePath(resource, namespace, name)
 }
 
+func appsPath(resource, namespace, name string) string {
+	return testapi.Apps.ResourcePath(resource, namespace, name)
+}
+
 func TestAutoscalingGroupBackwardCompatibility(t *testing.T) {
-	_, s := framework.RunAMaster(nil)
-	defer s.Close()
+	_, s, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
 	transport := http.DefaultTransport
 
 	requests := []struct {
@@ -164,7 +220,59 @@ func TestAutoscalingGroupBackwardCompatibility(t *testing.T) {
 	}{
 		{"POST", autoscalingPath("horizontalpodautoscalers", metav1.NamespaceDefault, ""), hpaV1, integration.Code201, ""},
 		{"GET", autoscalingPath("horizontalpodautoscalers", metav1.NamespaceDefault, ""), "", integration.Code200, testapi.Autoscaling.GroupVersion().String()},
-		{"GET", extensionsPath("horizontalpodautoscalers", metav1.NamespaceDefault, ""), "", integration.Code200, testapi.Extensions.GroupVersion().String()},
+	}
+
+	for _, r := range requests {
+		bodyBytes := bytes.NewReader([]byte(r.body))
+		req, err := http.NewRequest(r.verb, s.URL+r.URL, bodyBytes)
+		if err != nil {
+			t.Logf("case %v", r)
+			t.Fatalf("unexpected error: %v", err)
+		}
+		func() {
+			resp, err := transport.RoundTrip(req)
+			defer resp.Body.Close()
+			if err != nil {
+				t.Logf("case %v", r)
+				t.Fatalf("unexpected error: %v", err)
+			}
+			b, _ := ioutil.ReadAll(resp.Body)
+			body := string(b)
+			if _, ok := r.expectedStatusCodes[resp.StatusCode]; !ok {
+				t.Logf("case %v", r)
+				t.Errorf("Expected status one of %v, but got %v", r.expectedStatusCodes, resp.StatusCode)
+				t.Errorf("Body: %v", body)
+			}
+			if !strings.Contains(body, "\"apiVersion\":\""+r.expectedVersion) {
+				t.Logf("case %v", r)
+				t.Errorf("Expected version %v, got body %v", r.expectedVersion, body)
+			}
+		}()
+	}
+}
+
+func TestAppsGroupBackwardCompatibility(t *testing.T) {
+	_, s, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
+	transport := http.DefaultTransport
+
+	requests := []struct {
+		verb                string
+		URL                 string
+		body                string
+		expectedStatusCodes map[int]bool
+		expectedVersion     string
+	}{
+		// Post to extensions endpoint and get back from both: extensions and apps
+		{"POST", extensionsPath("deployments", metav1.NamespaceDefault, ""), deploymentExtensions, integration.Code201, ""},
+		{"GET", extensionsPath("deployments", metav1.NamespaceDefault, "test-deployment1"), "", integration.Code200, testapi.Extensions.GroupVersion().String()},
+		{"GET", appsPath("deployments", metav1.NamespaceDefault, "test-deployment1"), "", integration.Code200, testapi.Apps.GroupVersion().String()},
+		{"DELETE", extensionsPath("deployments", metav1.NamespaceDefault, "test-deployment1"), "", integration.Code200, testapi.Extensions.GroupVersion().String()},
+		// Post to apps endpoint and get back from both: apps and extensions
+		{"POST", appsPath("deployments", metav1.NamespaceDefault, ""), deploymentApps, integration.Code201, ""},
+		{"GET", appsPath("deployments", metav1.NamespaceDefault, "test-deployment2"), "", integration.Code200, testapi.Apps.GroupVersion().String()},
+		{"GET", extensionsPath("deployments", metav1.NamespaceDefault, "test-deployment2"), "", integration.Code200, testapi.Extensions.GroupVersion().String()},
+		{"DELETE", appsPath("deployments", metav1.NamespaceDefault, "test-deployment2"), "", integration.Code200, testapi.Apps.GroupVersion().String()},
 	}
 
 	for _, r := range requests {
@@ -197,8 +305,8 @@ func TestAutoscalingGroupBackwardCompatibility(t *testing.T) {
 }
 
 func TestAccept(t *testing.T) {
-	_, s := framework.RunAMaster(nil)
-	defer s.Close()
+	_, s, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
 
 	resp, err := http.Get(s.URL + "/api/")
 	if err != nil {
@@ -275,8 +383,8 @@ func countEndpoints(eps *api.Endpoints) int {
 }
 
 func TestMasterService(t *testing.T) {
-	_, s := framework.RunAMaster(framework.NewIntegrationTestMasterConfig())
-	defer s.Close()
+	_, s, closeFn := framework.RunAMaster(framework.NewIntegrationTestMasterConfig())
+	defer closeFn()
 
 	client := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(api.GroupName).GroupVersion}})
 
@@ -317,8 +425,8 @@ func TestServiceAlloc(t *testing.T) {
 		t.Fatalf("bad cidr: %v", err)
 	}
 	cfg.ServiceIPRange = *cidr
-	_, s := framework.RunAMaster(cfg)
-	defer s.Close()
+	_, s, closeFn := framework.RunAMaster(cfg)
+	defer closeFn()
 
 	client := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(api.GroupName).GroupVersion}})
 

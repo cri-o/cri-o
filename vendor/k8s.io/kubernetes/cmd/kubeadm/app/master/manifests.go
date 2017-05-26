@@ -18,54 +18,50 @@ package master
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 	"strings"
 
+	"github.com/ghodss/yaml"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	api "k8s.io/client-go/pkg/api/v1"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+	kubeadmapiext "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/images"
-	"k8s.io/kubernetes/pkg/api/resource"
-	api "k8s.io/kubernetes/pkg/api/v1"
+	bootstrapapi "k8s.io/kubernetes/pkg/bootstrap/api"
+	authzmodes "k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/intstr"
-
-	"github.com/blang/semver"
+	"k8s.io/kubernetes/pkg/util/version"
 )
 
 // Static pod definitions in golang form are included below so that `kubeadm init` can get going.
 const (
-	DefaultClusterName     = "kubernetes"
 	DefaultCloudConfigPath = "/etc/kubernetes/cloud-config"
 
-	etcd                           = "etcd"
-	apiServer                      = "apiserver"
-	controllerManager              = "controller-manager"
-	scheduler                      = "scheduler"
-	proxy                          = "proxy"
-	kubeAPIServer                  = "kube-apiserver"
-	kubeControllerManager          = "kube-controller-manager"
-	kubeScheduler                  = "kube-scheduler"
-	kubeProxy                      = "kube-proxy"
-	authorizationPolicyFile        = "abac_policy.json"
-	authorizationWebhookConfigFile = "webhook_authz.conf"
+	etcd                  = "etcd"
+	apiServer             = "apiserver"
+	controllerManager     = "controller-manager"
+	scheduler             = "scheduler"
+	proxy                 = "proxy"
+	kubeAPIServer         = "kube-apiserver"
+	kubeControllerManager = "kube-controller-manager"
+	kubeScheduler         = "kube-scheduler"
+	kubeProxy             = "kube-proxy"
 )
 
 var (
-	// Minimum version of kube-apiserver that supports --kubelet-preferred-address-types
-	preferredAddressAPIServerMinVersion = semver.MustParse("1.5.0")
-
-	// Minimum version of kube-apiserver that has to have --anonymous-auth=false set
-	anonAuthDisableAPIServerMinVersion = semver.MustParse("1.5.0")
+	v170 = version.MustParseSemantic("v1.7.0-alpha.0")
 )
 
 // WriteStaticPodManifests builds manifest objects based on user provided configuration and then dumps it to disk
 // where kubelet will pick and schedule them.
 func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
-	volumes := []api.Volume{k8sVolume(cfg)}
+	volumes := []api.Volume{k8sVolume()}
 	volumeMounts := []api.VolumeMount{k8sVolumeMount()}
 
 	if isCertsVolumeMountNeeded() {
@@ -74,8 +70,18 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 	}
 
 	if isPkiVolumeMountNeeded() {
-		volumes = append(volumes, pkiVolume(cfg))
+		volumes = append(volumes, pkiVolume())
 		volumeMounts = append(volumeMounts, pkiVolumeMount())
+	}
+
+	if cfg.CertificatesDir != kubeadmapiext.DefaultCertificatesDir {
+		volumes = append(volumes, newVolume("certdir", cfg.CertificatesDir))
+		volumeMounts = append(volumeMounts, newVolumeMount("certdir", cfg.CertificatesDir))
+	}
+
+	k8sVersion, err := version.ParseSemantic(cfg.KubernetesVersion)
+	if err != nil {
+		return err
 	}
 
 	// Prepare static pod specs
@@ -83,9 +89,9 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 		kubeAPIServer: componentPod(api.Container{
 			Name:          kubeAPIServer,
 			Image:         images.GetCoreImage(images.KubeAPIServerImage, cfg, kubeadmapi.GlobalEnvParams.HyperkubeImage),
-			Command:       getAPIServerCommand(cfg, false),
+			Command:       getAPIServerCommand(cfg, false, k8sVersion),
 			VolumeMounts:  volumeMounts,
-			LivenessProbe: componentProbe(8080, "/healthz"),
+			LivenessProbe: componentProbe(int(cfg.API.BindPort), "/healthz", api.URISchemeHTTPS),
 			Resources:     componentResources("250m"),
 			Env:           getProxyEnvVars(),
 		}, volumes...),
@@ -94,7 +100,7 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 			Image:         images.GetCoreImage(images.KubeControllerManagerImage, cfg, kubeadmapi.GlobalEnvParams.HyperkubeImage),
 			Command:       getControllerManagerCommand(cfg, false),
 			VolumeMounts:  volumeMounts,
-			LivenessProbe: componentProbe(10252, "/healthz"),
+			LivenessProbe: componentProbe(10252, "/healthz", api.URISchemeHTTP),
 			Resources:     componentResources("200m"),
 			Env:           getProxyEnvVars(),
 		}, volumes...),
@@ -102,36 +108,31 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 			Name:          kubeScheduler,
 			Image:         images.GetCoreImage(images.KubeSchedulerImage, cfg, kubeadmapi.GlobalEnvParams.HyperkubeImage),
 			Command:       getSchedulerCommand(cfg, false),
-			LivenessProbe: componentProbe(10251, "/healthz"),
+			VolumeMounts:  []api.VolumeMount{k8sVolumeMount()},
+			LivenessProbe: componentProbe(10251, "/healthz", api.URISchemeHTTP),
 			Resources:     componentResources("100m"),
 			Env:           getProxyEnvVars(),
-		}),
+		}, k8sVolume()),
 	}
 
 	// Add etcd static pod spec only if external etcd is not configured
 	if len(cfg.Etcd.Endpoints) == 0 {
-		staticPodSpecs[etcd] = componentPod(api.Container{
-			Name: etcd,
-			Command: []string{
-				"etcd",
-				"--listen-client-urls=http://127.0.0.1:2379",
-				"--advertise-client-urls=http://127.0.0.1:2379",
-				"--data-dir=/var/lib/etcd",
-			},
-			VolumeMounts:  []api.VolumeMount{certsVolumeMount(), etcdVolumeMount(), k8sVolumeMount()},
+		etcdPod := componentPod(api.Container{
+			Name:          etcd,
+			Command:       getEtcdCommand(cfg),
+			VolumeMounts:  []api.VolumeMount{certsVolumeMount(), etcdVolumeMount(cfg.Etcd.DataDir), k8sVolumeMount()},
 			Image:         images.GetCoreImage(images.KubeEtcdImage, cfg, kubeadmapi.GlobalEnvParams.EtcdImage),
-			LivenessProbe: componentProbe(2379, "/health"),
-			Resources:     componentResources("200m"),
-			SecurityContext: &api.SecurityContext{
-				SELinuxOptions: &api.SELinuxOptions{
-					// TODO: This implies our etcd container is not being restricted by
-					// SELinux. This is not optimal and would be nice to adjust in future
-					// so it can create and write /var/lib/etcd, but for now this avoids
-					// recommending setenforce 0 system-wide.
-					Type: "spc_t",
-				},
+			LivenessProbe: componentProbe(2379, "/health", api.URISchemeHTTP),
+		}, certsVolume(cfg), etcdVolume(cfg), k8sVolume())
+
+		etcdPod.Spec.SecurityContext = &api.PodSecurityContext{
+			SELinuxOptions: &api.SELinuxOptions{
+				// Unconfine the etcd container so it can write to the data dir with SELinux enforcing:
+				Type: "spc_t",
 			},
-		}, certsVolume(cfg), etcdVolume(cfg), k8sVolume(cfg))
+		}
+
+		staticPodSpecs[etcd] = etcdPod
 	}
 
 	manifestsPath := path.Join(kubeadmapi.GlobalEnvParams.KubernetesDir, "manifests")
@@ -139,10 +140,10 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 		return fmt.Errorf("failed to create directory %q [%v]", manifestsPath, err)
 	}
 	for name, spec := range staticPodSpecs {
-		filename := path.Join(manifestsPath, name+".json")
-		serialized, err := json.MarshalIndent(spec, "", "  ")
+		filename := path.Join(manifestsPath, name+".yaml")
+		serialized, err := yaml.Marshal(spec)
 		if err != nil {
-			return fmt.Errorf("failed to marshal manifest for %q to JSON [%v]", name, err)
+			return fmt.Errorf("failed to marshal manifest for %q to YAML [%v]", name, err)
 		}
 		if err := cmdutil.DumpReaderToFile(bytes.NewReader(serialized), filename); err != nil {
 			return fmt.Errorf("failed to create static pod manifest file for %q (%q) [%v]", name, filename, err)
@@ -151,20 +152,36 @@ func WriteStaticPodManifests(cfg *kubeadmapi.MasterConfiguration) error {
 	return nil
 }
 
+func newVolume(name, path string) api.Volume {
+	return api.Volume{
+		Name: name,
+		VolumeSource: api.VolumeSource{
+			HostPath: &api.HostPathVolumeSource{Path: path},
+		},
+	}
+}
+
+func newVolumeMount(name, path string) api.VolumeMount {
+	return api.VolumeMount{
+		Name:      name,
+		MountPath: path,
+	}
+}
+
 // etcdVolume exposes a path on the host in order to guarantee data survival during reboot.
 func etcdVolume(cfg *kubeadmapi.MasterConfiguration) api.Volume {
 	return api.Volume{
 		Name: "etcd",
 		VolumeSource: api.VolumeSource{
-			HostPath: &api.HostPathVolumeSource{Path: kubeadmapi.GlobalEnvParams.HostEtcdPath},
+			HostPath: &api.HostPathVolumeSource{Path: cfg.Etcd.DataDir},
 		},
 	}
 }
 
-func etcdVolumeMount() api.VolumeMount {
+func etcdVolumeMount(dataDir string) api.VolumeMount {
 	return api.VolumeMount{
 		Name:      "etcd",
-		MountPath: "/var/lib/etcd",
+		MountPath: dataDir,
 	}
 }
 
@@ -201,7 +218,7 @@ func isPkiVolumeMountNeeded() bool {
 	return false
 }
 
-func pkiVolume(cfg *kubeadmapi.MasterConfiguration) api.Volume {
+func pkiVolume() api.Volume {
 	return api.Volume{
 		Name: "pki",
 		VolumeSource: api.VolumeSource{
@@ -235,7 +252,7 @@ func flockVolumeMount() api.VolumeMount {
 	}
 }
 
-func k8sVolume(cfg *kubeadmapi.MasterConfiguration) api.Volume {
+func k8sVolume() api.Volume {
 	return api.Volume{
 		Name: "k8s",
 		VolumeSource: api.VolumeSource{
@@ -247,7 +264,7 @@ func k8sVolume(cfg *kubeadmapi.MasterConfiguration) api.Volume {
 func k8sVolumeMount() api.VolumeMount {
 	return api.VolumeMount{
 		Name:      "k8s",
-		MountPath: "/etc/kubernetes/",
+		MountPath: kubeadmapi.GlobalEnvParams.KubernetesDir,
 		ReadOnly:  true,
 	}
 }
@@ -260,13 +277,14 @@ func componentResources(cpu string) api.ResourceRequirements {
 	}
 }
 
-func componentProbe(port int, path string) *api.Probe {
+func componentProbe(port int, path string, scheme api.URIScheme) *api.Probe {
 	return &api.Probe{
 		Handler: api.Handler{
 			HTTPGet: &api.HTTPGetAction{
-				Host: "127.0.0.1",
-				Path: path,
-				Port: intstr.FromInt(port),
+				Host:   "127.0.0.1",
+				Path:   path,
+				Port:   intstr.FromInt(port),
+				Scheme: scheme,
 			},
 		},
 		InitialDelaySeconds: 15,
@@ -302,11 +320,7 @@ func getComponentBaseCommand(component string) []string {
 	return []string{"kube-" + component}
 }
 
-func getCertFilePath(certName string) string {
-	return path.Join(kubeadmapi.GlobalEnvParams.HostPKIPath, certName)
-}
-
-func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool) []string {
+func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool, k8sVersion *version.Version) []string {
 	var command []string
 
 	// self-hosted apiserver needs to wait on a lock
@@ -314,56 +328,42 @@ func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool) [
 		command = []string{"/usr/bin/flock", "--exclusive", "--timeout=30", "/var/lock/api-server.lock"}
 	}
 
-	command = append(getComponentBaseCommand(apiServer),
-		"--insecure-bind-address=127.0.0.1",
-		"--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota",
-		"--service-cluster-ip-range="+cfg.Networking.ServiceSubnet,
-		"--service-account-key-file="+getCertFilePath(kubeadmconstants.APIServerKeyName),
-		"--client-ca-file="+getCertFilePath(kubeadmconstants.CACertName),
-		"--tls-cert-file="+getCertFilePath(kubeadmconstants.APIServerCertName),
-		"--tls-private-key-file="+getCertFilePath(kubeadmconstants.APIServerKeyName),
-		"--kubelet-client-certificate="+getCertFilePath(kubeadmconstants.APIServerKubeletClientCertName),
-		"--kubelet-client-key="+getCertFilePath(kubeadmconstants.APIServerKubeletClientKeyName),
-		"--token-auth-file="+kubeadmapi.GlobalEnvParams.HostPKIPath+"/tokens.csv",
-		fmt.Sprintf("--secure-port=%d", cfg.API.Port),
-		"--allow-privileged",
-		"--storage-backend=etcd3",
-	)
-
-	if cfg.AuthorizationMode != "" {
-		command = append(command, "--authorization-mode="+cfg.AuthorizationMode)
-		switch cfg.AuthorizationMode {
-		case "ABAC":
-			command = append(command, "--authorization-policy-file="+path.Join(kubeadmapi.GlobalEnvParams.KubernetesDir, authorizationPolicyFile))
-		case "Webhook":
-			command = append(command, "--authorization-webhook-config-file="+path.Join(kubeadmapi.GlobalEnvParams.KubernetesDir, authorizationWebhookConfigFile))
-		}
+	defaultArguments := map[string]string{
+		"insecure-port":                     "0",
+		"admission-control":                 kubeadmconstants.DefaultAdmissionControl,
+		"service-cluster-ip-range":          cfg.Networking.ServiceSubnet,
+		"service-account-key-file":          path.Join(cfg.CertificatesDir, kubeadmconstants.ServiceAccountPublicKeyName),
+		"client-ca-file":                    path.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
+		"tls-cert-file":                     path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerCertName),
+		"tls-private-key-file":              path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKeyName),
+		"kubelet-client-certificate":        path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKubeletClientCertName),
+		"kubelet-client-key":                path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKubeletClientKeyName),
+		"secure-port":                       fmt.Sprintf("%d", cfg.API.BindPort),
+		"allow-privileged":                  "true",
+		"experimental-bootstrap-token-auth": "true",
+		"kubelet-preferred-address-types":   "InternalIP,ExternalIP,Hostname",
+		// add options to configure the front proxy.  Without the generated client cert, this will never be useable
+		// so add it unconditionally with recommended values
+		"requestheader-username-headers":     "X-Remote-User",
+		"requestheader-group-headers":        "X-Remote-Group",
+		"requestheader-extra-headers-prefix": "X-Remote-Extra-",
+		"requestheader-client-ca-file":       path.Join(cfg.CertificatesDir, kubeadmconstants.FrontProxyCACertName),
+		"requestheader-allowed-names":        "front-proxy-client",
+	}
+	if k8sVersion.AtLeast(v170) {
+		// add options which allow the kube-apiserver to act as a front-proxy to aggregated API servers
+		defaultArguments["proxy-client-cert-file"] = path.Join(cfg.CertificatesDir, kubeadmconstants.FrontProxyClientCertName)
+		defaultArguments["proxy-client-key-file"] = path.Join(cfg.CertificatesDir, kubeadmconstants.FrontProxyClientKeyName)
 	}
 
-	// Use first address we are given
-	if len(cfg.API.AdvertiseAddresses) > 0 {
-		if selfHosted {
-			command = append(command, "--advertise-address=$(POD_IP)")
-		} else {
-			command = append(command, fmt.Sprintf("--advertise-address=%s", cfg.API.AdvertiseAddresses[0]))
-		}
-	}
+	command = getComponentBaseCommand(apiServer)
+	command = append(command, getExtraParameters(cfg.APIServerExtraArgs, defaultArguments)...)
+	command = append(command, getAuthzParameters(cfg.AuthorizationModes)...)
 
-	if len(cfg.KubernetesVersion) != 0 {
-		// If the k8s version is v1.5-something, this argument is set and makes `kubectl logs` and `kubectl exec`
-		// work on bare-metal where hostnames aren't usually resolvable
-		// Omit the "v" in the beginning, otherwise semver will fail
-		k8sVersion, err := semver.Parse(cfg.KubernetesVersion[1:])
-
-		// If the k8s version is greater than this version, it supports telling it which way it should contact kubelets
-		if err == nil && k8sVersion.GTE(preferredAddressAPIServerMinVersion) {
-			command = append(command, "--kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname")
-		}
-
-		// This is a critical "bugfix". Any version above this is vulnarable unless a RBAC/ABAC-authorizer is provided (which kubeadm doesn't for the time being)
-		if err == nil && k8sVersion.GTE(anonAuthDisableAPIServerMinVersion) {
-			command = append(command, "--anonymous-auth=false")
-		}
+	if selfHosted {
+		command = append(command, "--advertise-address=$(POD_IP)")
+	} else {
+		command = append(command, fmt.Sprintf("--advertise-address=%s", cfg.API.AdvertiseAddress))
 	}
 
 	// Check if the user decided to use an external etcd cluster
@@ -395,6 +395,21 @@ func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool) [
 	return command
 }
 
+func getEtcdCommand(cfg *kubeadmapi.MasterConfiguration) []string {
+	var command []string
+
+	defaultArguments := map[string]string{
+		"listen-client-urls":    "http://127.0.0.1:2379",
+		"advertise-client-urls": "http://127.0.0.1:2379",
+		"data-dir":              cfg.Etcd.DataDir,
+	}
+
+	command = append(command, "etcd")
+	command = append(command, getExtraParameters(cfg.Etcd.ExtraArgs, defaultArguments)...)
+
+	return command
+}
+
 func getControllerManagerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool) []string {
 	var command []string
 
@@ -403,17 +418,21 @@ func getControllerManagerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted
 		command = []string{"/usr/bin/flock", "--exclusive", "--timeout=30", "/var/lock/controller-manager.lock"}
 	}
 
-	command = append(getComponentBaseCommand(controllerManager),
-		"--address=127.0.0.1",
-		"--leader-elect",
-		"--master=127.0.0.1:8080",
-		"--cluster-name="+DefaultClusterName,
-		"--root-ca-file="+getCertFilePath(kubeadmconstants.CACertName),
-		"--service-account-private-key-file="+getCertFilePath(kubeadmconstants.APIServerKeyName),
-		"--cluster-signing-cert-file="+getCertFilePath(kubeadmconstants.CACertName),
-		"--cluster-signing-key-file="+getCertFilePath(kubeadmconstants.CAKeyName),
-		"--insecure-experimental-approve-all-kubelet-csrs-for-group="+KubeletBootstrapGroup,
-	)
+	defaultArguments := map[string]string{
+		"address":                                                  "127.0.0.1",
+		"leader-elect":                                             "true",
+		"kubeconfig":                                               path.Join(kubeadmapi.GlobalEnvParams.KubernetesDir, kubeadmconstants.ControllerManagerKubeConfigFileName),
+		"root-ca-file":                                             path.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
+		"service-account-private-key-file":                         path.Join(cfg.CertificatesDir, kubeadmconstants.ServiceAccountPrivateKeyName),
+		"cluster-signing-cert-file":                                path.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
+		"cluster-signing-key-file":                                 path.Join(cfg.CertificatesDir, kubeadmconstants.CAKeyName),
+		"insecure-experimental-approve-all-kubelet-csrs-for-group": bootstrapapi.BootstrapGroup,
+		"use-service-account-credentials":                          "true",
+		"controllers":                                              "*,bootstrapsigner,tokencleaner",
+	}
+
+	command = getComponentBaseCommand(controllerManager)
+	command = append(command, getExtraParameters(cfg.ControllerManagerExtraArgs, defaultArguments)...)
 
 	if cfg.CloudProvider != "" {
 		command = append(command, "--cloud-provider="+cfg.CloudProvider)
@@ -441,17 +460,16 @@ func getSchedulerCommand(cfg *kubeadmapi.MasterConfiguration, selfHosted bool) [
 		command = []string{"/usr/bin/flock", "--exclusive", "--timeout=30", "/var/lock/api-server.lock"}
 	}
 
-	command = append(getComponentBaseCommand(scheduler),
-		"--address=127.0.0.1",
-		"--leader-elect",
-		"--master=127.0.0.1:8080",
-	)
+	defaultArguments := map[string]string{
+		"address":      "127.0.0.1",
+		"leader-elect": "true",
+		"kubeconfig":   path.Join(kubeadmapi.GlobalEnvParams.KubernetesDir, kubeadmconstants.SchedulerKubeConfigFileName),
+	}
+
+	command = getComponentBaseCommand(scheduler)
+	command = append(command, getExtraParameters(cfg.SchedulerExtraArgs, defaultArguments)...)
 
 	return command
-}
-
-func getProxyCommand(cfg *kubeadmapi.MasterConfiguration) []string {
-	return getComponentBaseCommand(proxy)
 }
 
 func getProxyEnvVars() []api.EnvVar {
@@ -483,4 +501,39 @@ func getSelfHostedAPIServerEnv() []api.EnvVar {
 	}
 
 	return append(getProxyEnvVars(), podIPEnvVar)
+}
+
+func getAuthzParameters(modes []string) []string {
+	command := []string{}
+	// RBAC is always on. If the user specified
+	authzModes := []string{authzmodes.ModeRBAC}
+	for _, authzMode := range modes {
+		if len(authzMode) != 0 && authzMode != authzmodes.ModeRBAC {
+			authzModes = append(authzModes, authzMode)
+		}
+		switch authzMode {
+		case authzmodes.ModeABAC:
+			command = append(command, "--authorization-policy-file="+kubeadmconstants.AuthorizationPolicyPath)
+		case authzmodes.ModeWebhook:
+			command = append(command, "--authorization-webhook-config-file="+kubeadmconstants.AuthorizationWebhookConfigPath)
+		}
+	}
+
+	command = append(command, "--authorization-mode="+strings.Join(authzModes, ","))
+	return command
+}
+
+func getExtraParameters(overrides map[string]string, defaults map[string]string) []string {
+	var command []string
+	for k, v := range overrides {
+		if len(v) > 0 {
+			command = append(command, fmt.Sprintf("--%s=%s", k, v))
+		}
+	}
+	for k, v := range defaults {
+		if _, overrideExists := overrides[k]; !overrideExists {
+			command = append(command, fmt.Sprintf("--%s=%s", k, v))
+		}
+	}
+	return command
 }

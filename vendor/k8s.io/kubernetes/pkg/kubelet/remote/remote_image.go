@@ -17,12 +17,15 @@ limitations under the License.
 package remote
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
 	"google.golang.org/grpc"
-	internalapi "k8s.io/kubernetes/pkg/kubelet/api"
-	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 )
 
 // RemoteImageService is a gRPC implementation of internalapi.ImageManagerService.
@@ -32,16 +35,16 @@ type RemoteImageService struct {
 }
 
 // NewRemoteImageService creates a new internalapi.ImageManagerService.
-func NewRemoteImageService(addr string, connectionTimout time.Duration) (internalapi.ImageManagerService, error) {
+func NewRemoteImageService(addr string, connectionTimeout time.Duration) (internalapi.ImageManagerService, error) {
 	glog.V(3).Infof("Connecting to image service %s", addr)
-	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithTimeout(connectionTimout), grpc.WithDialer(dial))
+	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithTimeout(connectionTimeout), grpc.WithDialer(dial))
 	if err != nil {
 		glog.Errorf("Connect remote image service %s failed: %v", addr, err)
 		return nil, err
 	}
 
 	return &RemoteImageService{
-		timeout:     connectionTimout,
+		timeout:     connectionTimeout,
 		imageClient: runtimeapi.NewImageServiceClient(conn),
 	}, nil
 }
@@ -75,12 +78,20 @@ func (r *RemoteImageService) ImageStatus(image *runtimeapi.ImageSpec) (*runtimea
 		return nil, err
 	}
 
+	if resp.Image != nil {
+		if resp.Image.Id == "" || resp.Image.Size_ == 0 {
+			errorMessage := fmt.Sprintf("Id or size of image %q is not set", image.Image)
+			glog.Errorf("ImageStatus failed: %s", errorMessage)
+			return nil, errors.New(errorMessage)
+		}
+	}
+
 	return resp.Image, nil
 }
 
 // PullImage pulls an image with authentication config.
 func (r *RemoteImageService) PullImage(image *runtimeapi.ImageSpec, auth *runtimeapi.AuthConfig) (string, error) {
-	ctx, cancel := getContextWithTimeout(r.timeout)
+	ctx, cancel := getContextWithCancel()
 	defer cancel()
 
 	resp, err := r.imageClient.PullImage(ctx, &runtimeapi.PullImageRequest{
@@ -90,6 +101,12 @@ func (r *RemoteImageService) PullImage(image *runtimeapi.ImageSpec, auth *runtim
 	if err != nil {
 		glog.Errorf("PullImage %q from image service failed: %v", image.Image, err)
 		return "", err
+	}
+
+	if resp.ImageRef == "" {
+		errorMessage := fmt.Sprintf("imageRef of image %q is not set", image.Image)
+		glog.Errorf("PullImage failed: %s", errorMessage)
+		return "", errors.New(errorMessage)
 	}
 
 	return resp.ImageRef, nil
@@ -109,4 +126,9 @@ func (r *RemoteImageService) RemoveImage(image *runtimeapi.ImageSpec) error {
 	}
 
 	return nil
+}
+
+// ImageFsInfo returns information of the filesystem that is used to store images.
+func (r *RemoteImageService) ImageFsInfo() (*runtimeapi.FsInfo, error) {
+	return nil, fmt.Errorf("not implemented")
 }

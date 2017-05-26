@@ -19,16 +19,18 @@ package routes
 import (
 	"net/http"
 
-	"k8s.io/kubernetes/pkg/genericapiserver/server/mux"
+	"k8s.io/apiserver/pkg/server/mux"
 )
 
-const dashboardPath = "/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard"
+const dashboardPath = "/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy"
 
 // UIRediect redirects /ui to the kube-ui proxy path.
 type UIRedirect struct{}
 
-func (r UIRedirect) Install(c *mux.APIContainer) {
-	c.NonSwaggerRoutes.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
+func (r UIRedirect) Install(c *mux.PathRecorderMux) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, dashboardPath, http.StatusTemporaryRedirect)
 	})
+	c.Handle("/ui", handler)
+	c.HandlePrefix("/ui/", handler)
 }

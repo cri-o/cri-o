@@ -28,8 +28,8 @@ import (
 	dockerstrslice "github.com/docker/engine-api/types/strslice"
 	"github.com/golang/glog"
 
-	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 )
 
 // ListContainers lists all containers matching the filter.
@@ -75,6 +75,15 @@ func (ds *dockerService) ListContainers(filter *runtimeapi.ContainerFilter) ([]*
 
 		result = append(result, converted)
 	}
+	// Include legacy containers if there are still legacy containers not cleaned up yet.
+	if !ds.legacyCleanup.Done() {
+		legacyContainers, err := ds.ListLegacyContainers(filter)
+		if err != nil {
+			return nil, err
+		}
+		// Legacy containers are always older, so we can safely append them to the end.
+		result = append(result, legacyContainers...)
+	}
 	return result, nil
 }
 
@@ -97,6 +106,12 @@ func (ds *dockerService) CreateContainer(podSandboxID string, config *runtimeapi
 	labels[containerLogPathLabelKey] = filepath.Join(sandboxConfig.LogDirectory, config.LogPath)
 	// Write the sandbox ID in the labels.
 	labels[sandboxIDLabelKey] = podSandboxID
+
+	apiVersion, err := ds.getDockerAPIVersion()
+	if err != nil {
+		return "", fmt.Errorf("unable to get the docker API version: %v", err)
+	}
+	securityOptSep := getSecurityOptSeparator(apiVersion)
 
 	image := ""
 	if iSpec := config.GetImage(); iSpec != nil {
@@ -126,14 +141,13 @@ func (ds *dockerService) CreateContainer(podSandboxID string, config *runtimeapi
 
 	// Apply Linux-specific options if applicable.
 	if lc := config.GetLinux(); lc != nil {
-		// Apply resource options.
 		// TODO: Check if the units are correct.
 		// TODO: Can we assume the defaults are sane?
 		rOpts := lc.GetResources()
 		if rOpts != nil {
 			hc.Resources = dockercontainer.Resources{
 				Memory:     rOpts.MemoryLimitInBytes,
-				MemorySwap: dockertools.DefaultMemorySwap(),
+				MemorySwap: DefaultMemorySwap(),
 				CPUShares:  rOpts.CpuShares,
 				CPUQuota:   rOpts.CpuQuota,
 				CPUPeriod:  rOpts.CpuPeriod,
@@ -143,7 +157,10 @@ func (ds *dockerService) CreateContainer(podSandboxID string, config *runtimeapi
 		// Note: ShmSize is handled in kube_docker_client.go
 
 		// Apply security context.
-		applyContainerSecurityContext(lc, podSandboxID, createConfig.Config, hc)
+		if err = applyContainerSecurityContext(lc, podSandboxID, createConfig.Config, hc, securityOptSep); err != nil {
+			return "", fmt.Errorf("failed to apply container security context for container %q: %v", config.Metadata.Name, err)
+		}
+		modifyPIDNamespaceOverrides(ds.disableSharedPID, apiVersion, hc)
 	}
 
 	// Apply cgroupsParent derived from the sandbox config.
@@ -167,16 +184,18 @@ func (ds *dockerService) CreateContainer(podSandboxID string, config *runtimeapi
 	}
 	hc.Resources.Devices = devices
 
-	// Apply appArmor and seccomp options.
-	securityOpts, err := getContainerSecurityOpts(config.Metadata.Name, sandboxConfig, ds.seccompProfileRoot)
+	// Apply seccomp options.
+	seccompSecurityOpts, err := getSeccompSecurityOpts(config.Metadata.Name, sandboxConfig, ds.seccompProfileRoot, securityOptSep)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate container security options for container %q: %v", config.Metadata.Name, err)
+		return "", fmt.Errorf("failed to generate seccomp security options for container %q: %v", config.Metadata.Name, err)
 	}
-	hc.SecurityOpt = append(hc.SecurityOpt, securityOpts...)
+	hc.SecurityOpt = append(hc.SecurityOpt, seccompSecurityOpts...)
 
 	createConfig.HostConfig = hc
 	createResp, err := ds.client.CreateContainer(createConfig)
-	recoverFromConflictIfNeeded(ds.client, err)
+	if err != nil {
+		createResp, err = recoverFromCreationConflictIfNeeded(ds.client, createConfig, err)
+	}
 
 	if createResp != nil {
 		return createResp.ID, err
@@ -200,13 +219,32 @@ func (ds *dockerService) createContainerLogSymlink(containerID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get container %q log path: %v", containerID, err)
 	}
-	if path != "" {
-		// Only create the symlink when container log path is specified.
+
+	if path == "" {
+		glog.V(5).Infof("Container %s log path isn't specified, will not create the symlink", containerID)
+		return nil
+	}
+
+	if realPath != "" {
+		// Only create the symlink when container log path is specified and log file exists.
 		if err = ds.os.Symlink(realPath, path); err != nil {
 			return fmt.Errorf("failed to create symbolic link %q to the container log file %q for container %q: %v",
 				path, realPath, containerID, err)
 		}
+	} else {
+		supported, err := IsCRISupportedLogDriver(ds.client)
+		if err != nil {
+			glog.Warningf("Failed to check supported logging driver by CRI: %v", err)
+			return nil
+		}
+
+		if supported {
+			glog.Warningf("Cannot create symbolic link because container log file doesn't exist!")
+		} else {
+			glog.V(5).Infof("Unsupported logging driver by CRI")
+		}
 	}
+
 	return nil
 }
 
@@ -269,15 +307,15 @@ func getContainerTimestamps(r *dockertypes.ContainerJSON) (time.Time, time.Time,
 	var createdAt, startedAt, finishedAt time.Time
 	var err error
 
-	createdAt, err = dockertools.ParseDockerTimestamp(r.Created)
+	createdAt, err = libdocker.ParseDockerTimestamp(r.Created)
 	if err != nil {
 		return createdAt, startedAt, finishedAt, err
 	}
-	startedAt, err = dockertools.ParseDockerTimestamp(r.State.StartedAt)
+	startedAt, err = libdocker.ParseDockerTimestamp(r.State.StartedAt)
 	if err != nil {
 		return createdAt, startedAt, finishedAt, err
 	}
-	finishedAt, err = dockertools.ParseDockerTimestamp(r.State.FinishedAt)
+	finishedAt, err = libdocker.ParseDockerTimestamp(r.State.FinishedAt)
 	if err != nil {
 		return createdAt, startedAt, finishedAt, err
 	}
@@ -358,6 +396,15 @@ func (ds *dockerService) ContainerStatus(containerID string) (*runtimeapi.Contai
 	ct, st, ft := createdAt.UnixNano(), startedAt.UnixNano(), finishedAt.UnixNano()
 	exitCode := int32(r.State.ExitCode)
 
+	// If the container has no containerTypeLabelKey label, treat it as a legacy container.
+	if _, ok := r.Config.Labels[containerTypeLabelKey]; !ok {
+		names, labels, err := convertLegacyNameAndLabels([]string{r.Name}, r.Config.Labels)
+		if err != nil {
+			return nil, err
+		}
+		r.Name, r.Config.Labels = names[0], labels
+	}
+
 	metadata, err := parseContainerName(r.Name)
 	if err != nil {
 		return nil, err
@@ -383,5 +430,6 @@ func (ds *dockerService) ContainerStatus(containerID string) (*runtimeapi.Contai
 		Message:     message,
 		Labels:      labels,
 		Annotations: annotations,
+		LogPath:     r.Config.Labels[containerLogPathLabelKey],
 	}, nil
 }

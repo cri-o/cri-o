@@ -26,8 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
 
@@ -404,7 +404,7 @@ func TestAnnotateErrors(t *testing.T) {
 			cmd.Flags().Set(k, v)
 		}
 		options := &AnnotateOptions{}
-		err := options.Complete(f, buf, cmd, testCase.args)
+		err := options.Complete(buf, cmd, testCase.args)
 		if err == nil {
 			err = options.Validate()
 		}
@@ -424,10 +424,11 @@ func TestAnnotateErrors(t *testing.T) {
 func TestAnnotateObject(t *testing.T) {
 	pods, _, _ := testData()
 
-	f, tf, codec, ns := cmdtesting.NewAPIFactory()
+	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
-		NegotiatedSerializer: ns,
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
+		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch req.Method {
 			case "GET":
@@ -460,7 +461,7 @@ func TestAnnotateObject(t *testing.T) {
 	cmd.SetOutput(buf)
 	options := &AnnotateOptions{}
 	args := []string{"pods/foo", "a=b", "c-"}
-	if err := options.Complete(f, buf, cmd, args); err != nil {
+	if err := options.Complete(buf, cmd, args); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := options.Validate(); err != nil {
@@ -474,10 +475,11 @@ func TestAnnotateObject(t *testing.T) {
 func TestAnnotateObjectFromFile(t *testing.T) {
 	pods, _, _ := testData()
 
-	f, tf, codec, ns := cmdtesting.NewAPIFactory()
+	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
-		NegotiatedSerializer: ns,
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
+		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch req.Method {
 			case "GET":
@@ -511,7 +513,7 @@ func TestAnnotateObjectFromFile(t *testing.T) {
 	options := &AnnotateOptions{}
 	options.Filenames = []string{"../../../examples/storage/cassandra/cassandra-controller.yaml"}
 	args := []string{"a=b", "c-"}
-	if err := options.Complete(f, buf, cmd, args); err != nil {
+	if err := options.Complete(buf, cmd, args); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := options.Validate(); err != nil {
@@ -523,9 +525,10 @@ func TestAnnotateObjectFromFile(t *testing.T) {
 }
 
 func TestAnnotateLocal(t *testing.T) {
-	f, tf, _, ns := cmdtesting.NewAPIFactory()
-	tf.Client = &fake.RESTClient{
-		NegotiatedSerializer: ns,
+	f, tf, _, _ := cmdtesting.NewAPIFactory()
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
+		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			t.Fatalf("unexpected request: %s %#v\n%#v", req.Method, req.URL, req)
 			return nil, nil
@@ -540,7 +543,7 @@ func TestAnnotateLocal(t *testing.T) {
 	options := &AnnotateOptions{}
 	options.Filenames = []string{"../../../examples/storage/cassandra/cassandra-controller.yaml"}
 	args := []string{"a=b"}
-	if err := options.Complete(f, buf, cmd, args); err != nil {
+	if err := options.Complete(buf, cmd, args); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := options.Validate(); err != nil {
@@ -554,10 +557,11 @@ func TestAnnotateLocal(t *testing.T) {
 func TestAnnotateMultipleObjects(t *testing.T) {
 	pods, _, _ := testData()
 
-	f, tf, codec, ns := cmdtesting.NewAPIFactory()
+	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
-		NegotiatedSerializer: ns,
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
+		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch req.Method {
 			case "GET":
@@ -593,7 +597,7 @@ func TestAnnotateMultipleObjects(t *testing.T) {
 	cmd.Flags().Set("all", "true")
 	options := &AnnotateOptions{}
 	args := []string{"pods", "a=b", "c-"}
-	if err := options.Complete(f, buf, cmd, args); err != nil {
+	if err := options.Complete(buf, cmd, args); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := options.Validate(); err != nil {

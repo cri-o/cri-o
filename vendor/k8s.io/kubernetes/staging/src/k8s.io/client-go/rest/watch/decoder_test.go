@@ -22,28 +22,38 @@ import (
 	"testing"
 	"time"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	runtimejson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/api/testapi"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/pkg/api/v1"
 	restclientwatch "k8s.io/client-go/rest/watch"
 )
+
+// getDecoder mimics how k8s.io/client-go/rest.createSerializers creates a decoder
+func getDecoder() runtime.Decoder {
+	jsonSerializer := runtimejson.NewSerializer(runtimejson.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
+	directCodecFactory := serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	return directCodecFactory.DecoderToVersion(jsonSerializer, v1.SchemeGroupVersion)
+}
 
 func TestDecoder(t *testing.T) {
 	table := []watch.EventType{watch.Added, watch.Deleted, watch.Modified, watch.Error}
 
 	for _, eventType := range table {
 		out, in := io.Pipe()
-		codec := testapi.Default.Codec()
-		decoder := restclientwatch.NewDecoder(streaming.NewDecoder(out, codec), codec)
 
-		expect := &api.Pod{ObjectMeta: metav1.ObjectMeta{Name: "foo"}}
+		decoder := restclientwatch.NewDecoder(streaming.NewDecoder(out, getDecoder()), getDecoder())
+
+		expect := &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "foo"}}
 		encoder := json.NewEncoder(in)
 		go func() {
-			data, err := runtime.Encode(testapi.Default.Codec(), expect)
+			data, err := runtime.Encode(scheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), expect)
 			if err != nil {
 				t.Fatalf("Unexpected error %v", err)
 			}
@@ -66,7 +76,7 @@ func TestDecoder(t *testing.T) {
 			if e, a := eventType, action; e != a {
 				t.Errorf("Expected %v, got %v", e, a)
 			}
-			if e, a := expect, got; !api.Semantic.DeepDerivative(e, a) {
+			if e, a := expect, got; !apiequality.Semantic.DeepDerivative(e, a) {
 				t.Errorf("Expected %v, got %v", e, a)
 			}
 			t.Logf("Exited read")
@@ -90,8 +100,7 @@ func TestDecoder(t *testing.T) {
 
 func TestDecoder_SourceClose(t *testing.T) {
 	out, in := io.Pipe()
-	codec := testapi.Default.Codec()
-	decoder := restclientwatch.NewDecoder(streaming.NewDecoder(out, codec), codec)
+	decoder := restclientwatch.NewDecoder(streaming.NewDecoder(out, getDecoder()), getDecoder())
 
 	done := make(chan struct{})
 

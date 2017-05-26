@@ -18,6 +18,9 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -26,10 +29,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
-	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -39,16 +42,25 @@ import (
 var unstructuredSerializer = dynamic.ContentConfig().NegotiatedSerializer
 
 func TestDeleteObjectByTuple(t *testing.T) {
+	initTestErrorHandler(t)
 	_, _, rc := testData()
 
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
+
+			// replication controller with cascade off
 			case p == "/namespaces/test/replicationcontrollers/redis-master-controller" && m == "DELETE":
 				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
+
+			// secret with cascade on, but no client-side reaper
+			case p == "/namespaces/test/secrets/mysecret" && m == "DELETE":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
+
 			default:
 				// Ensures no GET is performed when deleting by name
 				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
@@ -57,30 +69,112 @@ func TestDeleteObjectByTuple(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	buf, errBuf := bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
 
+	buf, errBuf := bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
 	cmd := NewCmdDelete(f, buf, errBuf)
 	cmd.Flags().Set("namespace", "test")
 	cmd.Flags().Set("cascade", "false")
 	cmd.Flags().Set("output", "name")
 	cmd.Run(cmd, []string{"replicationcontrollers/redis-master-controller"})
-
 	if buf.String() != "replicationcontroller/redis-master-controller\n" {
+		t.Errorf("unexpected output: %s", buf.String())
+	}
+
+	// Test cascading delete of object without client-side reaper doesn't make GET requests
+	buf, errBuf = bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
+	cmd = NewCmdDelete(f, buf, errBuf)
+	cmd.Flags().Set("namespace", "test")
+	cmd.Flags().Set("output", "name")
+	cmd.Run(cmd, []string{"secrets/mysecret"})
+	if buf.String() != "secret/mysecret\n" {
+		t.Errorf("unexpected output: %s", buf.String())
+	}
+}
+
+func hasExpectedOrphanDependents(body io.ReadCloser, expectedOrphanDependents *bool) bool {
+	if body == nil || expectedOrphanDependents == nil {
+		return body == nil && expectedOrphanDependents == nil
+	}
+	var parsedBody metav1.DeleteOptions
+	rawBody, _ := ioutil.ReadAll(body)
+	json.Unmarshal(rawBody, &parsedBody)
+	if parsedBody.OrphanDependents == nil {
+		return false
+	}
+	return *expectedOrphanDependents == *parsedBody.OrphanDependents
+}
+
+// Tests that DeleteOptions.OrphanDependents is appropriately set while deleting objects.
+func TestOrphanDependentsInDeleteObject(t *testing.T) {
+	initTestErrorHandler(t)
+	_, _, rc := testData()
+
+	f, tf, codec, _ := cmdtesting.NewAPIFactory()
+	tf.Printer = &testPrinter{}
+	var expectedOrphanDependents *bool
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
+		NegotiatedSerializer: unstructuredSerializer,
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			switch p, m, b := req.URL.Path, req.Method, req.Body; {
+
+			case p == "/namespaces/test/secrets/mysecret" && m == "DELETE" && hasExpectedOrphanDependents(b, expectedOrphanDependents):
+
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
+			default:
+				return nil, nil
+			}
+		}),
+	}
+	tf.Namespace = "test"
+
+	// DeleteOptions.OrphanDependents should be false, when cascade is true (default).
+	falseVar := false
+	expectedOrphanDependents = &falseVar
+	buf, errBuf := bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
+	cmd := NewCmdDelete(f, buf, errBuf)
+	cmd.Flags().Set("namespace", "test")
+	cmd.Flags().Set("output", "name")
+	cmd.Run(cmd, []string{"secrets/mysecret"})
+	if buf.String() != "secret/mysecret\n" {
+		t.Errorf("unexpected output: %s", buf.String())
+	}
+
+	// Test that delete options should be set to orphan when cascade is false.
+	trueVar := true
+	expectedOrphanDependents = &trueVar
+	buf, errBuf = bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
+	cmd = NewCmdDelete(f, buf, errBuf)
+	cmd.Flags().Set("namespace", "test")
+	cmd.Flags().Set("cascade", "false")
+	cmd.Flags().Set("output", "name")
+	cmd.Run(cmd, []string{"secrets/mysecret"})
+	if buf.String() != "secret/mysecret\n" {
 		t.Errorf("unexpected output: %s", buf.String())
 	}
 }
 
 func TestDeleteNamedObject(t *testing.T) {
+	initTestErrorHandler(t)
+	initTestErrorHandler(t)
 	_, _, rc := testData()
 
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
+
+			// replication controller with cascade off
 			case p == "/namespaces/test/replicationcontrollers/redis-master-controller" && m == "DELETE":
 				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
+
+			// secret with cascade on, but no client-side reaper
+			case p == "/namespaces/test/secrets/mysecret" && m == "DELETE":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
+
 			default:
 				// Ensures no GET is performed when deleting by name
 				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
@@ -89,25 +183,37 @@ func TestDeleteNamedObject(t *testing.T) {
 		}),
 	}
 	tf.Namespace = "test"
-	buf, errBuf := bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
 
+	buf, errBuf := bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
 	cmd := NewCmdDelete(f, buf, errBuf)
 	cmd.Flags().Set("namespace", "test")
 	cmd.Flags().Set("cascade", "false")
 	cmd.Flags().Set("output", "name")
 	cmd.Run(cmd, []string{"replicationcontrollers", "redis-master-controller"})
-
 	if buf.String() != "replicationcontroller/redis-master-controller\n" {
+		t.Errorf("unexpected output: %s", buf.String())
+	}
+
+	// Test cascading delete of object without client-side reaper doesn't make GET requests
+	buf, errBuf = bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
+	cmd = NewCmdDelete(f, buf, errBuf)
+	cmd.Flags().Set("namespace", "test")
+	cmd.Flags().Set("cascade", "false")
+	cmd.Flags().Set("output", "name")
+	cmd.Run(cmd, []string{"secrets", "mysecret"})
+	if buf.String() != "secret/mysecret\n" {
 		t.Errorf("unexpected output: %s", buf.String())
 	}
 }
 
 func TestDeleteObject(t *testing.T) {
+	initTestErrorHandler(t)
 	_, _, rc := testData()
 
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -158,13 +264,15 @@ func (f *fakeReaperFactory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, e
 }
 
 func TestDeleteObjectGraceZero(t *testing.T) {
+	initTestErrorHandler(t)
 	pods, _, _ := testData()
 
 	objectDeletionWaitInterval = time.Millisecond
 	count := 0
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			t.Logf("got request %s %s", req.Method, req.URL.Path)
@@ -210,9 +318,11 @@ func TestDeleteObjectGraceZero(t *testing.T) {
 }
 
 func TestDeleteObjectNotFound(t *testing.T) {
+	initTestErrorHandler(t)
 	f, tf, _, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -246,9 +356,11 @@ func TestDeleteObjectNotFound(t *testing.T) {
 }
 
 func TestDeleteObjectIgnoreNotFound(t *testing.T) {
+	initTestErrorHandler(t)
 	f, tf, _, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -276,6 +388,7 @@ func TestDeleteObjectIgnoreNotFound(t *testing.T) {
 }
 
 func TestDeleteAllNotFound(t *testing.T) {
+	initTestErrorHandler(t)
 	_, svc, _ := testData()
 	// Add an item to the list which will result in a 404 on delete
 	svc.Items = append(svc.Items, api.Service{ObjectMeta: metav1.ObjectMeta{Name: "foo"}})
@@ -284,7 +397,8 @@ func TestDeleteAllNotFound(t *testing.T) {
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -323,6 +437,7 @@ func TestDeleteAllNotFound(t *testing.T) {
 }
 
 func TestDeleteAllIgnoreNotFound(t *testing.T) {
+	initTestErrorHandler(t)
 	_, svc, _ := testData()
 
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
@@ -332,7 +447,8 @@ func TestDeleteAllIgnoreNotFound(t *testing.T) {
 	notFoundError := &errors.NewNotFound(api.Resource("services"), "foo").ErrStatus
 
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -363,11 +479,13 @@ func TestDeleteAllIgnoreNotFound(t *testing.T) {
 }
 
 func TestDeleteMultipleObject(t *testing.T) {
+	initTestErrorHandler(t)
 	_, svc, rc := testData()
 
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -397,11 +515,13 @@ func TestDeleteMultipleObject(t *testing.T) {
 }
 
 func TestDeleteMultipleObjectContinueOnMissing(t *testing.T) {
+	initTestErrorHandler(t)
 	_, svc, _ := testData()
 
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -441,10 +561,12 @@ func TestDeleteMultipleObjectContinueOnMissing(t *testing.T) {
 }
 
 func TestDeleteMultipleResourcesWithTheSameName(t *testing.T) {
+	initTestErrorHandler(t)
 	_, svc, rc := testData()
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -477,11 +599,13 @@ func TestDeleteMultipleResourcesWithTheSameName(t *testing.T) {
 }
 
 func TestDeleteDirectory(t *testing.T) {
+	initTestErrorHandler(t)
 	_, _, rc := testData()
 
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -508,11 +632,13 @@ func TestDeleteDirectory(t *testing.T) {
 }
 
 func TestDeleteMultipleSelector(t *testing.T) {
+	initTestErrorHandler(t)
 	pods, svc, _ := testData()
 
 	f, tf, codec, _ := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &fake.RESTClient{
+	tf.UnstructuredClient = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: unstructuredSerializer,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -551,6 +677,7 @@ func TestDeleteMultipleSelector(t *testing.T) {
 }
 
 func TestResourceErrors(t *testing.T) {
+	initTestErrorHandler(t)
 	testCases := map[string]struct {
 		args  []string
 		errFn func(error) bool

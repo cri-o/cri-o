@@ -238,7 +238,7 @@ func TestMakePayload(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		actualPayload, err := makePayload(tc.mappings, tc.configMap, &tc.mode, tc.optional)
+		actualPayload, err := MakePayload(tc.mappings, tc.configMap, &tc.mode, tc.optional)
 		if err != nil && tc.success {
 			t.Errorf("%v: unexpected failure making payload: %v", tc.name, err)
 			continue
@@ -333,7 +333,7 @@ func TestPlugin(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	fsGroup := int64(1001)
+	fsGroup := types.UnixGroupID(1001)
 	err = mounter.SetUp(&fsGroup)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
@@ -391,7 +391,7 @@ func TestPluginReboot(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	fsGroup := int64(1001)
+	fsGroup := types.UnixGroupID(1001)
 	err = mounter.SetUp(&fsGroup)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
@@ -453,7 +453,7 @@ func TestPluginOptional(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	fsGroup := int64(1001)
+	fsGroup := types.UnixGroupID(1001)
 	err = mounter.SetUp(&fsGroup)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
@@ -528,7 +528,7 @@ func TestPluginKeysOptional(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	fsGroup := int64(1001)
+	fsGroup := types.UnixGroupID(1001)
 	err = mounter.SetUp(&fsGroup)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)

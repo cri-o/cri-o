@@ -27,6 +27,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/types"
+	kubetypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api/v1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
@@ -150,35 +151,6 @@ func (f *fakeSystemd) ResetFailedUnit(name string) error {
 	return f.err
 }
 
-// fakeRuntimeHelper implementes kubecontainer.RuntimeHelper interfaces for testing purpose.
-type fakeRuntimeHelper struct {
-	dnsServers  []string
-	dnsSearches []string
-	hostName    string
-	hostDomain  string
-	err         error
-}
-
-func (f *fakeRuntimeHelper) GenerateRunContainerOptions(pod *v1.Pod, container *v1.Container, podIP string) (*kubecontainer.RunContainerOptions, error) {
-	return nil, fmt.Errorf("Not implemented")
-}
-
-func (f *fakeRuntimeHelper) GetClusterDNS(pod *v1.Pod) ([]string, []string, error) {
-	return f.dnsServers, f.dnsSearches, f.err
-}
-
-func (f *fakeRuntimeHelper) GeneratePodHostNameAndDomain(pod *v1.Pod) (string, string, error) {
-	return f.hostName, f.hostDomain, nil
-}
-
-func (f *fakeRuntimeHelper) GetPodDir(podUID types.UID) string {
-	return "/poddir/" + string(podUID)
-}
-
-func (f *fakeRuntimeHelper) GetExtraSupplementalGroupsForPod(pod *v1.Pod) []int64 {
-	return nil
-}
-
 type fakeRktCli struct {
 	sync.Mutex
 	cmds   []string
@@ -218,4 +190,30 @@ func newFakePodGetter() *fakePodGetter {
 func (f fakePodGetter) GetPodByUID(uid types.UID) (*v1.Pod, bool) {
 	p, found := f.pods[uid]
 	return p, found
+}
+
+type fakeUnitGetter struct {
+	networkNamespace kubecontainer.ContainerID
+	callServices     []string
+}
+
+func newfakeUnitGetter() *fakeUnitGetter {
+	return &fakeUnitGetter{
+		networkNamespace: kubecontainer.ContainerID{},
+	}
+}
+
+func (f *fakeUnitGetter) getNetworkNamespace(uid kubetypes.UID, latestPod *rktapi.Pod) (kubecontainer.ContainerID, error) {
+	return kubecontainer.ContainerID{ID: "42"}, nil
+}
+
+func (f *fakeUnitGetter) getKubernetesDirective(serviceFilePath string) (podServiceDirective, error) {
+	podService := podServiceDirective{
+		id:               "fake",
+		name:             "fake",
+		namespace:        "fake",
+		hostNetwork:      true,
+		networkNamespace: kubecontainer.ContainerID{ID: "42"},
+	}
+	return podService, nil
 }

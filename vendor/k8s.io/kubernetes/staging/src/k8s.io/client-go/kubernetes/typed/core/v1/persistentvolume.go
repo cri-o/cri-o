@@ -20,7 +20,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	api "k8s.io/client-go/pkg/api"
+	scheme "k8s.io/client-go/kubernetes/scheme"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	rest "k8s.io/client-go/rest"
 )
@@ -36,8 +36,8 @@ type PersistentVolumeInterface interface {
 	Create(*v1.PersistentVolume) (*v1.PersistentVolume, error)
 	Update(*v1.PersistentVolume) (*v1.PersistentVolume, error)
 	UpdateStatus(*v1.PersistentVolume) (*v1.PersistentVolume, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error
+	Delete(name string, options *meta_v1.DeleteOptions) error
+	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
 	Get(name string, options meta_v1.GetOptions) (*v1.PersistentVolume, error)
 	List(opts meta_v1.ListOptions) (*v1.PersistentVolumeList, error)
 	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
@@ -96,7 +96,7 @@ func (c *persistentVolumes) UpdateStatus(persistentVolume *v1.PersistentVolume) 
 }
 
 // Delete takes name of the persistentVolume and deletes it. Returns an error if one occurs.
-func (c *persistentVolumes) Delete(name string, options *v1.DeleteOptions) error {
+func (c *persistentVolumes) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("persistentvolumes").
 		Name(name).
@@ -106,10 +106,10 @@ func (c *persistentVolumes) Delete(name string, options *v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *persistentVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *persistentVolumes) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
 		Resource("persistentvolumes").
-		VersionedParams(&listOptions, api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
@@ -121,7 +121,7 @@ func (c *persistentVolumes) Get(name string, options meta_v1.GetOptions) (result
 	err = c.client.Get().
 		Resource("persistentvolumes").
 		Name(name).
-		VersionedParams(&options, api.ParameterCodec).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -132,7 +132,7 @@ func (c *persistentVolumes) List(opts meta_v1.ListOptions) (result *v1.Persisten
 	result = &v1.PersistentVolumeList{}
 	err = c.client.Get().
 		Resource("persistentvolumes").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
@@ -140,10 +140,10 @@ func (c *persistentVolumes) List(opts meta_v1.ListOptions) (result *v1.Persisten
 
 // Watch returns a watch.Interface that watches the requested persistentVolumes.
 func (c *persistentVolumes) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Resource("persistentvolumes").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 

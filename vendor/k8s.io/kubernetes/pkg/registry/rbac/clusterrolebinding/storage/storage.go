@@ -18,9 +18,11 @@ package storage
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/rbac/clusterrolebinding"
 )
 
@@ -32,13 +34,12 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against ClusterRoleBinding objects.
 func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
-		NewFunc:     func() runtime.Object { return &rbac.ClusterRoleBinding{} },
-		NewListFunc: func() runtime.Object { return &rbac.ClusterRoleBindingList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*rbac.ClusterRoleBinding).Name, nil
-		},
+		Copier:            api.Scheme,
+		NewFunc:           func() runtime.Object { return &rbac.ClusterRoleBinding{} },
+		NewListFunc:       func() runtime.Object { return &rbac.ClusterRoleBindingList{} },
 		PredicateFunc:     clusterrolebinding.Matcher,
 		QualifiedResource: rbac.Resource("clusterrolebindings"),
+		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("clusterrolebindings"),
 
 		CreateStrategy: clusterrolebinding.Strategy,
 		UpdateStrategy: clusterrolebinding.Strategy,

@@ -29,7 +29,7 @@ func RoleRefGroupKind(roleRef RoleRef) schema.GroupKind {
 	return schema.GroupKind{Group: roleRef.APIGroup, Kind: roleRef.Kind}
 }
 
-func VerbMatches(rule PolicyRule, requestedVerb string) bool {
+func VerbMatches(rule *PolicyRule, requestedVerb string) bool {
 	for _, ruleVerb := range rule.Verbs {
 		if ruleVerb == VerbAll {
 			return true
@@ -42,7 +42,7 @@ func VerbMatches(rule PolicyRule, requestedVerb string) bool {
 	return false
 }
 
-func APIGroupMatches(rule PolicyRule, requestedGroup string) bool {
+func APIGroupMatches(rule *PolicyRule, requestedGroup string) bool {
 	for _, ruleGroup := range rule.APIGroups {
 		if ruleGroup == APIGroupAll {
 			return true
@@ -55,7 +55,7 @@ func APIGroupMatches(rule PolicyRule, requestedGroup string) bool {
 	return false
 }
 
-func ResourceMatches(rule PolicyRule, requestedResource string) bool {
+func ResourceMatches(rule *PolicyRule, requestedResource string) bool {
 	for _, ruleResource := range rule.Resources {
 		if ruleResource == ResourceAll {
 			return true
@@ -68,7 +68,7 @@ func ResourceMatches(rule PolicyRule, requestedResource string) bool {
 	return false
 }
 
-func ResourceNameMatches(rule PolicyRule, requestedName string) bool {
+func ResourceNameMatches(rule *PolicyRule, requestedName string) bool {
 	if len(rule.ResourceNames) == 0 {
 		return true
 	}
@@ -82,7 +82,7 @@ func ResourceNameMatches(rule PolicyRule, requestedName string) bool {
 	return false
 }
 
-func NonResourceURLMatches(rule PolicyRule, requestedURL string) bool {
+func NonResourceURLMatches(rule *PolicyRule, requestedURL string) bool {
 	for _, ruleURL := range rule.NonResourceURLs {
 		if ruleURL == NonResourceAll {
 			return true
@@ -218,14 +218,14 @@ func NewClusterBinding(clusterRoleName string) *ClusterRoleBindingBuilder {
 
 func (r *ClusterRoleBindingBuilder) Groups(groups ...string) *ClusterRoleBindingBuilder {
 	for _, group := range groups {
-		r.ClusterRoleBinding.Subjects = append(r.ClusterRoleBinding.Subjects, Subject{Kind: GroupKind, Name: group})
+		r.ClusterRoleBinding.Subjects = append(r.ClusterRoleBinding.Subjects, Subject{Kind: GroupKind, APIGroup: GroupName, Name: group})
 	}
 	return r
 }
 
 func (r *ClusterRoleBindingBuilder) Users(users ...string) *ClusterRoleBindingBuilder {
 	for _, user := range users {
-		r.ClusterRoleBinding.Subjects = append(r.ClusterRoleBinding.Subjects, Subject{Kind: UserKind, Name: user})
+		r.ClusterRoleBinding.Subjects = append(r.ClusterRoleBinding.Subjects, Subject{Kind: UserKind, APIGroup: GroupName, Name: user})
 	}
 	return r
 }
@@ -251,4 +251,90 @@ func (r *ClusterRoleBindingBuilder) Binding() (ClusterRoleBinding, error) {
 	}
 
 	return r.ClusterRoleBinding, nil
+}
+
+// RoleBindingBuilder let's us attach methods. It is similar to
+// ClusterRoleBindingBuilder above.
+type RoleBindingBuilder struct {
+	RoleBinding RoleBinding
+}
+
+// NewRoleBinding creates a RoleBinding builder that can be used
+// to define the subjects of a role binding. At least one of
+// the `Groups`, `Users` or `SAs` method must be called before
+// calling the `Binding*` methods.
+func NewRoleBinding(roleName, namespace string) *RoleBindingBuilder {
+	return &RoleBindingBuilder{
+		RoleBinding: RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      roleName,
+				Namespace: namespace,
+			},
+			RoleRef: RoleRef{
+				APIGroup: GroupName,
+				Kind:     "Role",
+				Name:     roleName,
+			},
+		},
+	}
+}
+
+func NewRoleBindingForClusterRole(roleName, namespace string) *RoleBindingBuilder {
+	return &RoleBindingBuilder{
+		RoleBinding: RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      roleName,
+				Namespace: namespace,
+			},
+			RoleRef: RoleRef{
+				APIGroup: GroupName,
+				Kind:     "ClusterRole",
+				Name:     roleName,
+			},
+		},
+	}
+}
+
+// Groups adds the specified groups as the subjects of the RoleBinding.
+func (r *RoleBindingBuilder) Groups(groups ...string) *RoleBindingBuilder {
+	for _, group := range groups {
+		r.RoleBinding.Subjects = append(r.RoleBinding.Subjects, Subject{Kind: GroupKind, Name: group})
+	}
+	return r
+}
+
+// Users adds the specified users as the subjects of the RoleBinding.
+func (r *RoleBindingBuilder) Users(users ...string) *RoleBindingBuilder {
+	for _, user := range users {
+		r.RoleBinding.Subjects = append(r.RoleBinding.Subjects, Subject{Kind: UserKind, Name: user})
+	}
+	return r
+}
+
+// SAs adds the specified service accounts as the subjects of the
+// RoleBinding.
+func (r *RoleBindingBuilder) SAs(namespace string, serviceAccountNames ...string) *RoleBindingBuilder {
+	for _, saName := range serviceAccountNames {
+		r.RoleBinding.Subjects = append(r.RoleBinding.Subjects, Subject{Kind: ServiceAccountKind, Namespace: namespace, Name: saName})
+	}
+	return r
+}
+
+// BindingOrDie calls the binding method and panics if there is an error.
+func (r *RoleBindingBuilder) BindingOrDie() RoleBinding {
+	ret, err := r.Binding()
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+// Binding builds and returns the RoleBinding API object from the builder
+// object.
+func (r *RoleBindingBuilder) Binding() (RoleBinding, error) {
+	if len(r.RoleBinding.Subjects) == 0 {
+		return RoleBinding{}, fmt.Errorf("subjects are required: %#v", r.RoleBinding)
+	}
+
+	return r.RoleBinding, nil
 }

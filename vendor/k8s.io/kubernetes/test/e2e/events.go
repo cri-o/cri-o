@@ -24,9 +24,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -55,7 +55,7 @@ var _ = framework.KubeDescribe("Events", func() {
 				Containers: []v1.Container{
 					{
 						Name:  "p",
-						Image: "gcr.io/google_containers/serve_hostname:v1.4",
+						Image: framework.ServeHostnameImage,
 						Ports: []v1.ContainerPort{{ContainerPort: 80}},
 					},
 				},
