@@ -59,11 +59,8 @@ func TestImageIndex(t *testing.T) {
       "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
       "platform": {
         "architecture": "amd64",
-        "os": "linux",
-        "features": [
-          "sse4"
-        ]
-      }
+        "os": "linux"
+	  }
     }
   ]
 }
@@ -82,10 +79,7 @@ func TestImageIndex(t *testing.T) {
       "size": 7682,
       "platform": {
         "architecture": "amd64",
-        "os": "linux",
-        "features": [
-          "sse4"
-        ]
+        "os": "linux"
       }
     }
   ]
@@ -94,7 +88,7 @@ func TestImageIndex(t *testing.T) {
 			fail: true,
 		},
 
-		// expected pass: manifest.platform is optional
+		// expected failure: in the optional field platform platform.architecture is missing, expected required
 		{
 			imageIndex: `
 {
@@ -103,12 +97,15 @@ func TestImageIndex(t *testing.T) {
     {
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
       "size": 7682,
-      "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270"
+      "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
+      "platform": {
+	"os": "linux",
+      }
     }
   ]
 }
 `,
-			fail: false,
+			fail: true,
 		},
 
 		// expected failure: invalid referenced manifest media type
@@ -123,10 +120,7 @@ func TestImageIndex(t *testing.T) {
       "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
       "platform": {
         "architecture": "amd64",
-        "os": "linux",
-        "features": [
-          "sse4"
-        ]
+        "os": "linux"
       }
     }
   ]
@@ -147,10 +141,7 @@ func TestImageIndex(t *testing.T) {
       "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
       "platform": {
         "architecture": "amd64",
-        "os": "linux",
-        "features": [
-          "sse4"
-        ]
+        "os": "linux"
       }
     }
   ]
@@ -180,10 +171,7 @@ func TestImageIndex(t *testing.T) {
       "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
       "platform": {
         "architecture": "amd64",
-        "os": "linux",
-        "features": [
-          "sse4"
-        ]
+        "os": "linux"
       }
     }
   ],
@@ -205,11 +193,7 @@ func TestImageIndex(t *testing.T) {
     {
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
       "size": 7143,
-      "digest": "sha256:e692418e4cbaf90ca69d05a66403747baa33ee08806650b51fab815ad7fc331f",
-      "platform": {
-        "architecture": "ppc64le",
-        "os": "linux"
-      }
+      "digest": "sha256:e692418e4cbaf90ca69d05a66403747baa33ee08806650b51fab815ad7fc331f"
     }
   ]
 }

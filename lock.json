@@ -92,7 +92,7 @@
         {
             "name": "github.com/containers/image",
             "branch": "master",
-            "revision": "11dfba3e17bbb9c1ef50ee3687e5525e56dbd151",
+            "revision": "84d3787ee366601bdb0a31ca26261c20a0a60e64",
             "packages": [
                 "copy",
                 "directory",
@@ -238,6 +238,7 @@
                 "api/types/versions",
                 "api/types/volume",
                 "client",
+                "pkg/ioutils",
                 "pkg/longpath",
                 "pkg/random",
                 "pkg/registrar",
@@ -512,8 +513,8 @@
         },
         {
             "name": "github.com/opencontainers/image-spec",
-            "version": "v1.0.0-rc5",
-            "revision": "5faaada8762b465d5ce8a8da27b92d577a1aa576",
+            "version": "v1.0.0-rc6",
+            "revision": "1a6593ab6c3ab5902072b4694a22ff19425396ae",
             "packages": [
                 "specs-go",
                 "specs-go/v1"

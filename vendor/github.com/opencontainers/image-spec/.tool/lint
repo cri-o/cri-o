@@ -20,5 +20,5 @@ for d in $(find . -type d -not -iwholename '*.git*' -a -not -iname '.tool' -a -n
 		--disable=gas \
 		--cyclo-over=35 \
 		--tests \
-		--deadline=10s "${d}"
+		--deadline=60s "${d}"
 done

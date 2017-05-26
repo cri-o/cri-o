@@ -6,6 +6,9 @@
         "github.com/containers/image": {
             "branch": "master"
         },
+        "github.com/opencontainers/image-spec": {
+            "version": "v1.0.0-rc6"
+        },
         "github.com/containers/storage": {
             "branch": "master"
         },

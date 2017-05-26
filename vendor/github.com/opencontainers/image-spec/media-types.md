@@ -3,6 +3,7 @@
 The following media types identify the formats described here and their referenced resources:
 
 - `application/vnd.oci.descriptor.v1+json`: [Content Descriptor](descriptor.md)
+- `application/vnd.oci.layout.header.v1+json`: [OCI Layout](image-layout.md#oci-layout-file)
 - `application/vnd.oci.image.index.v1+json`: [Image Index](image-index.md)
 - `application/vnd.oci.image.manifest.v1+json`: [Image manifest](manifest.md#image-manifest)
 - `application/vnd.oci.image.config.v1+json`: [Image config](config.md)
@@ -62,6 +63,6 @@ The following figure shows how the above media types reference each other:
 ![](img/media-types.png)
 
 [Descriptors](descriptor.md) are used for all references.
-The image-index being a "fat manifest" references one or more image manifests per target platform. An image manifest references exactly one target configuration and possibly many layers.
+The image-index being a "fat manifest" references a list of image manifests per target platform. An image manifest references exactly one target configuration and possibly many layers.
 
 [rfc1952]: https://tools.ietf.org/html/rfc1952

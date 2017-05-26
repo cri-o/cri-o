@@ -5,13 +5,19 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/containernetworking/cni/pkg/ns"
+	"github.com/docker/docker/pkg/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+)
+
+const (
+	defaultStopSignal = "TERM"
 )
 
 // Container represents a runtime container.
@@ -32,7 +38,8 @@ type Container struct {
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
-	dir string
+	dir        string
+	stopSignal string
 }
 
 // ContainerState represents the status of a container.
@@ -46,7 +53,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, privileged bool, dir string, created time.Time) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, privileged bool, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -64,8 +71,23 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		image:       image,
 		dir:         dir,
 		state:       state,
+		stopSignal:  stopSignal,
 	}
 	return c, nil
+}
+
+// GetStopSignal returns the container's own stop signal configured from the
+// image configuration or the default one.
+func (c *Container) GetStopSignal() string {
+	if c.stopSignal == "" {
+		return defaultStopSignal
+	}
+	cleanSignal := strings.TrimPrefix(strings.ToUpper(c.stopSignal), "SIG")
+	_, ok := signal.SignalMap[cleanSignal]
+	if !ok {
+		return defaultStopSignal
+	}
+	return cleanSignal
 }
 
 // FromDisk restores container's state from disk

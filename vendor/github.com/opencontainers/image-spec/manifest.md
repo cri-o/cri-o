@@ -22,7 +22,7 @@ Unlike the [image index](image-index.md), which contains information about a set
 
 - **`mediaType`** *string*
 
-  This property is *reserved* for use, to [maintain compatibility][matrix].
+  This property is *reserved* for use, to [maintain compatibility](media-types.md#compatibility-matrix).
   When used, this field contains the media type of this document, which differs from the [descriptor](descriptor.md#properties) use of `mediaType`.
 
 - **`config`** *[descriptor](descriptor.md)*
@@ -44,7 +44,7 @@ Unlike the [image index](image-index.md), which contains information about a set
     Each item in the array MUST be a [descriptor](descriptor.md).
     The array MUST have the base layer at index 0.
     Subsequent layers MUST then follow in stack order (i.e. from `layers[0]` to `layers[len(layers)-1]`).
-    The final filesystem layout MUST match the result of [applying](layer.md#applying) the layers to an empty directory.
+    The final filesystem layout MUST match the result of [applying](layer.md#applying-changesets) the layers to an empty directory.
     The [ownership, mode, and other attributes](layer.md#file-attributes) of the initial empty directory are unspecified.
 
     Beyond the [descriptor requirements](descriptor.md#properties), the value has the following additional restrictions:

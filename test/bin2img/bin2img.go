@@ -168,8 +168,8 @@ func main() {
 			},
 			RootFS: v1.RootFS{
 				Type: "layers",
-				DiffIDs: []string{
-					layer.Digest.String(),
+				DiffIDs: []digest.Digest{
+					layer.Digest,
 				},
 			},
 		}

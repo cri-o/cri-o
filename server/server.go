@@ -145,7 +145,7 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["crio/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged, containerDir, created)
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["crio/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations["crio/container_id"], cname, sandboxPath, m.Annotations["crio/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged, sandboxDir, created)
+	scontainer, err := oci.NewContainer(m.Annotations["crio/container_id"], cname, sandboxPath, m.Annotations["crio/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}

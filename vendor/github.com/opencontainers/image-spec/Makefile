@@ -13,7 +13,7 @@ ifeq "$(strip $(PANDOC))" ''
 			-v $(shell pwd)/$(OUTPUT_DIRNAME)/:/$(OUTPUT_DIRNAME)/ \
 			-u $(shell id -u) \
 			--workdir /input \
-			docker.io/vbatts/pandoc:1.16.0.2-1.fc24
+			docker.io/vbatts/pandoc:1.17.0.3-2.fc25.x86_64
 		PANDOC_SRC := /input/
 		PANDOC_DST := /
 	endif
@@ -30,7 +30,8 @@ DOC_FILES := \
 	layer.md \
 	config.md \
 	annotations.md \
-	considerations.md
+	considerations.md \
+	implementations.md
 
 FIGURE_FILES := \
 	img/media-types.png
@@ -39,6 +40,8 @@ OUTPUT_DIRNAME		?= output/
 DOC_FILENAME	?= oci-image-spec
 
 EPOCH_TEST_COMMIT ?= v0.2.0
+
+TOOLS := esc gitvalidation glide glide-vc
 
 default: check-license lint test
 
@@ -65,15 +68,18 @@ $(OUTPUT_DIRNAME)/$(DOC_FILENAME).pdf: $(DOC_FILES) $(FIGURE_FILES)
 else
 $(OUTPUT_DIRNAME)/$(DOC_FILENAME).pdf: $(DOC_FILES) $(FIGURE_FILES)
 	@mkdir -p $(OUTPUT_DIRNAME)/ && \
-	$(PANDOC) -f markdown_github -t latex -o $(PANDOC_DST)$@ $(patsubst %,$(PANDOC_SRC)%,$(DOC_FILES))
+	$(PANDOC) -f markdown_github -t latex --latex-engine=xelatex -o $(PANDOC_DST)$@ $(patsubst %,$(PANDOC_SRC)%,$(DOC_FILES))
 	ls -sh $(shell readlink -f $@)
 
-$(OUTPUT_DIRNAME)/$(DOC_FILENAME).html: $(DOC_FILES) $(FIGURE_FILES)
+$(OUTPUT_DIRNAME)/$(DOC_FILENAME).html: header.html $(DOC_FILES) $(FIGURE_FILES)
 	@mkdir -p $(OUTPUT_DIRNAME)/ && \
 	cp -ap img/ $(shell pwd)/$(OUTPUT_DIRNAME)/&& \
-	$(PANDOC) -f markdown_github -t html5 -o $(PANDOC_DST)$@ $(patsubst %,$(PANDOC_SRC)%,$(DOC_FILES))
+	$(PANDOC) -f markdown_github -t html5 -H $(PANDOC_SRC)header.html --standalone -o $(PANDOC_DST)$@ $(patsubst %,$(PANDOC_SRC)%,$(DOC_FILES))
 	ls -sh $(shell readlink -f $@)
 endif
+
+header.html: .tool/genheader.go specs-go/version.go
+	go run .tool/genheader.go > $@
 
 validate-examples: schema/fs.go
 	go test -run TestValidate ./schema
@@ -98,7 +104,6 @@ test: schema/fs.go
 img/%.png: img/%.dot
 	dot -Tpng $^ > $@
 
-.PHONY: .gitvalidation
 
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation:
@@ -109,9 +114,10 @@ else
 	git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
-.PHONY: install.tools
+install.tools: $(TOOLS:%=.install.%)
 
-install.tools: .install.gitvalidation .install.glide .install.glide-vc
+.install.esc:
+	go get -u github.com/mjibson/esc
 
 .install.gitvalidation:
 	go get -u github.com/vbatts/git-validation
@@ -123,13 +129,17 @@ install.tools: .install.gitvalidation .install.glide .install.glide-vc
 	go get -u github.com/sgotti/glide-vc
 
 clean:
-	rm -rf *~ $(OUTPUT_DIRNAME)
+	rm -rf *~ $(OUTPUT_DIRNAME) header.html
 
 .PHONY: \
+	$(TOOLS:%=.install.%) \
 	validate-examples \
 	check-license \
 	clean \
 	lint \
+	install.tools \
 	docs \
 	test \
+	.gitvalidation \
+	schema/fs.go \
 	schema-fs
