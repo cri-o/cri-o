@@ -77,6 +77,16 @@ if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     fi
 fi
 
+# Make sure we have a copy of the runcom/stderr-test image.
+if ! [ -d "$ARTIFACTS_PATH"/stderr-test ]; then
+    mkdir -p "$ARTIFACTS_PATH"/stderr-test
+    if ! "$COPYIMG_BINARY" --import-from=docker://runcom/stderr-test:latest --export-to=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://stderr-test"
+        rm -fr "$ARTIFACTS_PATH"/stderr-test
+        exit 1
+    fi
+fi
+
 # Make sure we have a copy of the busybox:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/busybox-image
@@ -159,6 +169,8 @@ function start_crio() {
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --add-name=docker.io/library/mrunalp/oom --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --add-name=docker.io/library/busybox:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --add-name=docker.io/runcom/stderr-test:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$CRIO_BINARY" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$CRIO_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
@@ -177,15 +189,10 @@ function start_crio() {
 		crioctl image pull redis:alpine
 	fi
 	REDIS_IMAGEID=$(crioctl image status --id=redis:alpine | head -1 | sed -e "s/ID: //g")
-	run crioctl image status --id=busybox
-	if [ "$status" -ne 0 ] ; then
-		crioctl image pull busybox:latest
-	fi
 	run crioctl image status --id=mrunalp/oom
 	if [ "$status" -ne 0 ] ; then
 		  crioctl image pull mrunalp/oom
 	fi
-
 	#
 	#
 	#
@@ -204,6 +211,15 @@ function start_crio() {
 	#
 	#
 	#
+	run crioctl image status --id=runcom/stderr-test
+	if [ "$status" -ne 0 ] ; then
+		crioctl image pull runcom/stderr-test:latest
+	fi
+	STDERR_IMAGEID=$(crioctl image status --id=runcom/stderr-test | head -1 | sed -e "s/ID: //g")
+	run crioctl image status --id=busybox
+	if [ "$status" -ne 0 ] ; then
+		crioctl image pull busybox:latest
+	fi
 	BUSYBOX_IMAGEID=$(crioctl image status --id=busybox | head -1 | sed -e "s/ID: //g")
 }
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/utils"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 )
 
@@ -329,6 +330,15 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		os.RemoveAll(logPath)
 	}()
 
+	f, err := ioutil.TempFile("", "exec-process")
+	if err != nil {
+		return nil, ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+	defer os.RemoveAll(f.Name())
+
 	var args []string
 	args = append(args, "-c", c.name)
 	args = append(args, "-r", r.Path(c))
@@ -339,7 +349,27 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	}
 	args = append(args, "-l", logPath)
 
-	args = append(args, command...)
+	pspec := rspec.Process{
+		Env:  r.conmonEnv,
+		Args: command,
+		Cwd:  "/",
+	}
+	processJSON, err := json.Marshal(pspec)
+	if err != nil {
+		return nil, ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+
+	if err := ioutil.WriteFile(f.Name(), processJSON, 0644); err != nil {
+		return nil, ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+
+	args = append(args, "--exec-process-spec", f.Name())
 
 	cmd := exec.Command(r.conmonPath, args...)
 
