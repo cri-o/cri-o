@@ -12,8 +12,6 @@
 *.orig
 /pause/pause
 /pause/pause.o
-*.rej
 /test/bin2img/bin2img
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
-/test/testdata/redis-image
