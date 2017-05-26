@@ -77,6 +77,19 @@ if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     fi
 fi
 
+# TODO: remove the code below for redis digested image id when
+#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+#       as the digested reference will be auto-stored when pulling the tag
+#       above
+if ! [ -d "$ARTIFACTS_PATH"/redis-image-digest ]; then
+    mkdir -p "$ARTIFACTS_PATH"/redis-image-digest
+    if ! "$COPYIMG_BINARY" --import-from=docker://redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --export-to=dir:"$ARTIFACTS_PATH"/redis-image-digest --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
+        rm -fr "$ARTIFACTS_PATH"/redis-image-digest
+        exit 1
+    fi
+fi
+
 # Make sure we have a copy of the runcom/stderr-test image.
 if ! [ -d "$ARTIFACTS_PATH"/stderr-test ]; then
     mkdir -p "$ARTIFACTS_PATH"/stderr-test
@@ -168,6 +181,11 @@ function start_crio() {
 		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
+# TODO: remove the code below for redis:alpine digested image id when
+#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+#       as the digested reference will be auto-stored when pulling the tag
+#       above
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --import-from=dir:"$ARTIFACTS_PATH"/redis-image-digest --add-name=docker.io/library/redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --add-name=docker.io/library/mrunalp/oom --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --add-name=docker.io/library/busybox:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --add-name=docker.io/runcom/stderr-test:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
