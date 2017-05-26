@@ -217,7 +217,7 @@
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o/
   - name: run integration tests RHEL
-    shell: 'CGROUP_MANAGER=systemd STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration > testout.txt'
+    shell: 'CGROUP_MANAGER=systemd STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration 2>&1 > testout.txt'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
     async: 3600
@@ -233,7 +233,7 @@
     ignore_errors: yes
     when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS') and xunit
   - name: run integration tests Fedora
-    shell: 'CGROUP_MANAGER=systemd STORAGE_OPTS="--storage-driver=overlay2" make localintegration > testout.txt'
+    shell: 'CGROUP_MANAGER=systemd STORAGE_OPTS="--storage-driver=overlay2" make localintegration 2>&1 > testout.txt'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
     async: 3600
@@ -350,7 +350,7 @@
       state: present
   - name: run k8s tests
     shell: |
-            make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio.sock TEST_ARGS="--prepull-images=true" FOCUS="\[Conformance\]" >> node-e2e.log
+            make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio.sock TEST_ARGS="--prepull-images=true" FOCUS="\[Conformance\]" 2>&1 > node-e2e.log
     args:
       chdir: /root/src/k8s.io/kubernetes
     async: 7200
