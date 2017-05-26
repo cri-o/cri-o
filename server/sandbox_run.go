@@ -269,6 +269,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation("crio/resolv_path", resolvPath)
 	g.AddAnnotation("crio/hostname", hostname)
 	g.AddAnnotation("crio/kube_name", kubeName)
+	if podContainer.Config.Config.StopSignal != "" {
+		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
+		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
+	}
 
 	created := time.Now()
 	g.AddAnnotation("crio/created", created.Format(time.RFC3339Nano))
@@ -407,7 +411,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged, podContainer.Dir, created)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

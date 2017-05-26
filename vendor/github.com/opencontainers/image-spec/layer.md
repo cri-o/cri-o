@@ -8,13 +8,13 @@ This section defines the `application/vnd.oci.image.layer.v1.tar`, `application/
 
 ## `+gzip` Media Types
 
-The media type `application/vnd.oci.image.layer.v1.tar+gzip` represents an `application/vnd.oci.image.layer.v1.tar` payload which has been compressed with [gzip][rfc1952].
-The media type `application/vnd.oci.image.layer.nondistributable.v1.tar+gzip` represents an `application/vnd.oci.image.layer.nondistributable.v1.tar` payload which has been compressed with [gzip][rfc1952].
+* The media type `application/vnd.oci.image.layer.v1.tar+gzip` represents an `application/vnd.oci.image.layer.v1.tar` payload which has been compressed with [gzip][rfc1952_2].
+* The media type `application/vnd.oci.image.layer.nondistributable.v1.tar+gzip` represents an `application/vnd.oci.image.layer.nondistributable.v1.tar` payload which has been compressed with [gzip][rfc1952_2].
 
 ## Distributable Format
 
-Layer Changesets for the [media type](media-types.md) `application/vnd.oci.image.layer.v1.tar` MUST be packaged in [tar archive][tar-archive].
-Layer Changesets for the [media type](media-types.md) `application/vnd.oci.image.layer.v1.tar` MUST NOT include duplicate entries for file paths in the resulting [tar archive][tar-archive].
+* Layer Changesets for the [media type](media-types.md) `application/vnd.oci.image.layer.v1.tar` MUST be packaged in [tar archive][tar-archive].
+* Layer Changesets for the [media type](media-types.md) `application/vnd.oci.image.layer.v1.tar` MUST NOT include duplicate entries for file paths in the resulting [tar archive][tar-archive].
 
 ## Change Types
 
@@ -58,17 +58,14 @@ Where supported, MUST include file attributes for Additions and Modifications in
 
 #### Hardlinks
 
-Hardlinks are a [POSIX concept](http://pubs.opengroup.org/onlinepubs/9699919799/functions/link.html) for having one or more directory entries for the same file on the same device.
-Not all filesystems support hardlinks (e.g. [FAT](https://en.wikipedia.org/wiki/File_Allocation_Table)).
-
-Hardlinks are possible with all [file types](#file-types) except `directories`.
-Non-directory files are considered "hardlinked" when their link count is greater than 1.
-Hardlinked files are on a same device (i.e. comparing Major:Minor pair) and have the same inode.
-The corresponding files that share the link with the > 1 linkcount may be outside the directory that the changeset is being produced from, in which case the `linkname` is not recorded in the changeset.
-
-Hardlinks are stored in a tar archive with type of a `1` char, per the [GNU Basic Tar Format][gnu-tar-standard] and [libarchive tar(5)][libarchive-tar].
-
-While approaches to deriving new or changed hardlinks may vary, a possible approach is:
+* Hardlinks are a [POSIX concept](http://pubs.opengroup.org/onlinepubs/9699919799/functions/link.html) for having one or more directory entries for the same file on the same device.
+* Not all filesystems support hardlinks (e.g. [FAT](https://en.wikipedia.org/wiki/File_Allocation_Table)).
+* Hardlinks are possible with all [file types](#file-types) except `directories`.
+* Non-directory files are considered "hardlinked" when their link count is greater than 1.
+* Hardlinked files are on a same device (i.e. comparing Major:Minor pair) and have the same inode.
+* The corresponding files that share the link with the > 1 linkcount may be outside the directory that the changeset is being produced from, in which case the `linkname` is not recorded in the changeset.
+* Hardlinks are stored in a tar archive with type of a `1` char, per the [GNU Basic Tar Format][gnu-tar-standard] and [libarchive tar(5)][libarchive-tar].
+* While approaches to deriving new or changed hardlinks may vary, a possible approach is:
 
 ```
 SET LinkMap to map[< Major:Minor String >]map[< inode integer >]< path string >
@@ -213,11 +210,9 @@ To signify that the resource `./etc/my-app-config` MUST be removed when the chan
 
 ## Applying Changesets
 
-Layer Changesets of [media type](media-types.md) `application/vnd.oci.image.layer.v1.tar` are _applied_, rather than simply extracted as tar archives.
-
-Applying a layer changeset requires special consideration for the [whiteout](#whiteouts) files.
-
-In the absence of any [whiteout](#whiteouts) files in a layer changeset, the archive is extracted like a regular tar archive.
+* Layer Changesets of [media type](media-types.md) `application/vnd.oci.image.layer.v1.tar` are _applied_, rather than simply extracted as tar archives.
+* Applying a layer changeset requires special consideration for the [whiteout](#whiteouts) files.
+* In the absence of any [whiteout](#whiteouts) files in a layer changeset, the archive is extracted like a regular tar archive.
 
 ### Changeset over existing files
 
@@ -230,13 +225,13 @@ In all other cases, the implementation MUST do the semantic equivalent of the fo
 
 ## Whiteouts
 
-A whiteout file is an empty file with a special filename that signifies a path should be deleted.
-A whiteout filename consists of the prefix `.wh.` plus the basename of the path to be deleted.
-As files prefixed with `.wh.` are special whiteout markers, it is not possible to create a filesystem which has a file or directory with a name beginning with `.wh.`.
+* A whiteout file is an empty file with a special filename that signifies a path should be deleted.
+* A whiteout filename consists of the prefix `.wh.` plus the basename of the path to be deleted.
+* As files prefixed with `.wh.` are special whiteout markers, it is not possible to create a filesystem which has a file or directory with a name beginning with `.wh.`.
+* Once a whiteout is applied, the whiteout itself MUST also be hidden.
+* Whiteout files MUST only apply to resources in lower/parent layers.
+* Files that are present in the same layer as a whiteout file can only be hidden by whiteout files in subsequent layers.
 
-Once a whiteout is applied, the whiteout itself MUST also be hidden.
-Whiteout files MUST only apply to resources in lower/parent layers.
-Files that are present in the same layer as a whiteout file can only be hidden by whiteout files in subsequent layers.
 The following is a base layer with several resources:
 
 ```
@@ -271,8 +266,9 @@ Implementations SHOULD generate layers such that the whiteout files appear befor
 
 ### Opaque Whiteout
 
-In addition to expressing that a single entry should be removed from a lower layer, layers may remove all of the children using an opaque whiteout entry.
-An opaque whiteout entry is a file with the name `.wh..wh..opq` indicating that all siblings are hidden in the lower layer.
+* In addition to expressing that a single entry should be removed from a lower layer, layers may remove all of the children using an opaque whiteout entry.
+* An opaque whiteout entry is a file with the name `.wh..wh..opq` indicating that all siblings are hidden in the lower layer.
+
 Let's take the following base layer as an example:
 
 ```
@@ -323,5 +319,5 @@ Implementations SHOULD NOT upload layers tagged with this media type; however, s
 
 [libarchive-tar]: https://github.com/libarchive/libarchive/wiki/ManPageTar5#POSIX_ustar_Archives
 [gnu-tar-standard]: http://www.gnu.org/software/tar/manual/html_node/Standard.html
-[rfc1952]: https://tools.ietf.org/html/rfc1952
+[rfc1952_2]: https://tools.ietf.org/html/rfc1952
 [tar-archive]: https://en.wikipedia.org/wiki/Tar_(computing)

@@ -589,6 +589,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	containerImageConfig := containerInfo.Config
 
+	if containerImageConfig.Config.StopSignal != "" {
+		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
+		specgen.AddAnnotation("org.opencontainers.image.stopSignal", containerImageConfig.Config.StopSignal)
+	}
+
 	// TODO: volume handling in CRI-O
 	//       right now, we do just mount tmpfs in order to have images like
 	//       gcr.io/k8s-testimages/redis:e2e to work with CRI-O
@@ -662,7 +667,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged, containerInfo.Dir, created)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged, containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

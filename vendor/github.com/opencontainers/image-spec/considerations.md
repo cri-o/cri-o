@@ -5,12 +5,12 @@ Instead they MUST ignore unknown properties.
 
 # Canonicalization
 
-OCI Images [are](descriptor.md) [content-addressable](image-layout.md).
-One benefit of content-addressable storage is easy deduplication.
-Many images might depend on a particular [layer](layer.md), but there will only be one blob in the [store](image-layout.md).
-With a different serialization, that same semantic layer would have a different hash, and if both versions of the layer are referenced there will be two blobs with the same semantic content.
-To allow efficient storage, implementations serializing content for blobs SHOULD use a canonical serialization.
-This increases the chance that different implementations can push the same semantic content to the store without creating redundant blobs.
+* OCI Images are [content-addressable](https://en.wikipedia.org/wiki/Content-addressable_storage). See [descriptors](descriptor.md) for more.
+* One benefit of content-addressable storage is easy deduplication.
+* Many images might depend on a particular [layer](layer.md), but there will only be one blob in the [store](image-layout.md).
+* With a different serialization, that same semantic layer would have a different hash, and if both versions of the layer are referenced there will be two blobs with the same semantic content.
+* To allow efficient storage, implementations serializing content for blobs SHOULD use a canonical serialization.
+* This increases the chance that different implementations can push the same semantic content to the store without creating redundant blobs.
 
 ## JSON
 

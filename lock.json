@@ -1,5 +1,5 @@
 {
-    "memo": "2005de643a6067047c2105429c375537db3ff6899467af5f8204d70a2c745fc4",
+    "memo": "93ab0fa7baac600756f69c227eb4ffb24afbc057bd81a3c504ee64e5aec41a81",
     "projects": [
         {
             "name": "cloud.google.com/go",
@@ -92,7 +92,7 @@
         {
             "name": "github.com/containers/image",
             "branch": "master",
-            "revision": "11dfba3e17bbb9c1ef50ee3687e5525e56dbd151",
+            "revision": "84d3787ee366601bdb0a31ca26261c20a0a60e64",
             "packages": [
                 "copy",
                 "directory",
@@ -176,7 +176,8 @@
             "revision": "48702e0da86bd25e76cfef347e2adeb434a0d0a6",
             "packages": [
                 "daemon",
-                "dbus"
+                "dbus",
+                "util"
             ]
         },
         {
@@ -184,6 +185,7 @@
             "version": "v3",
             "revision": "3ac0863d7acf3bc44daf49afef8919af12f704ef",
             "packages": [
+                "dlopen",
                 "health",
                 "httputil",
                 "timeutil"
@@ -236,6 +238,7 @@
                 "api/types/versions",
                 "api/types/volume",
                 "client",
+                "pkg/ioutils",
                 "pkg/longpath",
                 "pkg/random",
                 "pkg/registrar",
@@ -510,8 +513,8 @@
         },
         {
             "name": "github.com/opencontainers/image-spec",
-            "version": "v1.0.0-rc5",
-            "revision": "5faaada8762b465d5ce8a8da27b92d577a1aa576",
+            "version": "v1.0.0-rc6",
+            "revision": "1a6593ab6c3ab5902072b4694a22ff19425396ae",
             "packages": [
                 "specs-go",
                 "specs-go/v1"
@@ -523,10 +526,14 @@
             "revision": "b263a43430ac6996a4302b891688544225197294",
             "packages": [
                 "libcontainer/apparmor",
+                "libcontainer/cgroups",
+                "libcontainer/cgroups/fs",
+                "libcontainer/cgroups/systemd",
                 "libcontainer/configs",
                 "libcontainer/devices",
                 "libcontainer/system",
-                "libcontainer/user"
+                "libcontainer/user",
+                "libcontainer/utils"
             ]
         },
         {
