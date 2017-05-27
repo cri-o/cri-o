@@ -127,7 +127,7 @@ func refToTempOCI(t *testing.T) (ref types.ImageReference, tmpDir string) {
 				"os": "linux"
 			},
 			"annotations": {
-				"org.opencontainers.ref.name": "tagValue"
+				"org.opencontainers.image.ref.name": "tagValue"
 			}
 		}
 		]

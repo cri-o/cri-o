@@ -23,7 +23,7 @@
     },
     "annotations": {
       "id": "https://opencontainers.org/schema/image/manifest/annotations",
-      "$ref": "defs-image.json#/definitions/annotations"
+      "$ref": "defs-descriptor.json#/definitions/annotations"
     }
   },
   "required": [

@@ -164,6 +164,7 @@ func TestConfig(t *testing.T) {
             "/var/job-result-data": {},
             "/var/log/my-app-logs": {}
         },
+        "StopSignal": "SIGKILL",
         "WorkingDir": "/home/alice",
         "Labels": {
             "com.example.project.git.url": "https://example.com/project.git",

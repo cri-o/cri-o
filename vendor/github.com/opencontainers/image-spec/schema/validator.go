@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"regexp"
 
+	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
@@ -33,7 +35,8 @@ type Validator string
 type validateDescendantsFunc func(r io.Reader) error
 
 var mapValidateDescendants = map[Validator]validateDescendantsFunc{
-	ValidatorMediaTypeManifest: validateManifestDescendants,
+	ValidatorMediaTypeManifest:   validateManifestDescendants,
+	ValidatorMediaTypeDescriptor: validateDescriptorDescendants,
 }
 
 // ValidationError contains all the errors that happened during validation.
@@ -111,8 +114,46 @@ func validateManifestDescendants(r io.Reader) error {
 
 	for _, layer := range header.Layers {
 		if layer.MediaType != string(v1.MediaTypeImageLayer) &&
-			layer.MediaType != string(v1.MediaTypeImageLayerNonDistributable) {
+			layer.MediaType != string(v1.MediaTypeImageLayerGzip) &&
+			layer.MediaType != string(v1.MediaTypeImageLayerNonDistributable) &&
+			layer.MediaType != string(v1.MediaTypeImageLayerNonDistributableGzip) {
 			fmt.Printf("warning: layer %s has an unknown media type: %s\n", layer.Digest, layer.MediaType)
+		}
+	}
+	return nil
+}
+
+var (
+	sha256EncodedRegexp = regexp.MustCompile(`^[a-f0-9]{64}$`)
+	sha512EncodedRegexp = regexp.MustCompile(`^[a-f0-9]{128}$`)
+)
+
+func validateDescriptorDescendants(r io.Reader) error {
+	header := v1.Descriptor{}
+
+	buf, err := ioutil.ReadAll(r)
+	if err != nil {
+		return errors.Wrapf(err, "error reading the io stream")
+	}
+
+	err = json.Unmarshal(buf, &header)
+	if err != nil {
+		return errors.Wrap(err, "descriptor format mismatch")
+	}
+
+	if header.Digest.Validate() != nil {
+		// we ignore unsupported algorithms
+		fmt.Printf("warning: unsupported digest: %q: %v\n", header.Digest, err)
+		return nil
+	}
+	switch header.Digest.Algorithm() {
+	case digest.SHA256:
+		if !sha256EncodedRegexp.MatchString(header.Digest.Hex()) {
+			return errors.Errorf("unexpected sha256 digest: %q", header.Digest)
+		}
+	case digest.SHA512:
+		if !sha512EncodedRegexp.MatchString(header.Digest.Hex()) {
+			return errors.Errorf("unexpected sha512 digest: %q", header.Digest)
 		}
 	}
 	return nil

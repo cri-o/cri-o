@@ -25,7 +25,7 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
   This REQUIRED property contains a list of [manifests](manifest.md) for specific platforms.
   While this property MUST be present, the size of the array MAY be zero.
 
-  Each object in `manifests` has the base properties of [descriptor](descriptor.md) with the following additional properties and restrictions:
+  Each object in `manifests` includes a set of [descriptor properties](descriptor.md#properties) with the following additional properties and restrictions:
 
   - **`mediaType`** *string*
 
@@ -40,7 +40,7 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 
   - **`platform`** *object*
 
-    This OPTIONAL property describes the platform which the image in the manifest runs on.
+    This OPTIONAL property describes the minimum runtime requirements of the image.
     This property SHOULD be present if its target is platform-specific.
 
     - **`architecture`** *string*
@@ -55,7 +55,9 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 
     - **`os.version`** *string*
 
-        This OPTIONAL property specifies the operating system version, for example `10.0.10586`.
+        This OPTIONAL property specifies the version of the operating system targeted by the referenced blob.
+        Implementations MAY refuse to use manifests where `os.version` is not known to work with the host OS version.
+        Valid values are implementation-defined. e.g. `10.0.14393.1066` on `windows`.
 
     - **`os.features`** *array of strings*
 
@@ -63,11 +65,20 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 
     - **`variant`** *string*
 
-        This OPTIONAL property specifies the variant of the CPU, for example `armv6l` to specify a particular CPU variant of the ARM CPU.
+        This OPTIONAL property specifies the variant of the CPU.
+        Image indexes SHOULD use, and implementations SHOULD understand, values listed in the following table.
+        When the variant of the CPU is not listed in the table, values are implementation-defined and SHOULD be submitted to this specification for standardization.
+
+        | ISA/ABI         | `architecture` | `variant`   |
+        |-----------------|----------------|-------------|
+        | ARM 32-bit, v6  | `arm`          | `v6`        |
+        | ARM 32-bit, v7  | `arm`          | `v7`        |
+        | ARM 32-bit, v8  | `arm`          | `v8`        |
+        | ARM 64-bit, v8  | `arm64`        | `v8`        |
 
     - **`features`** *array of strings*
 
-        This OPTIONAL property specifies an array of strings, each specifying a mandatory CPU feature (for example `sse4` or `aes`).
+        This property is RESERVED for future versions of the specification.
 
 - **`annotations`** *string-string map*
 
@@ -98,10 +109,7 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
       "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
       "platform": {
         "architecture": "amd64",
-        "os": "linux",
-        "os.features": [
-          "sse4"
-        ]
+        "os": "linux"
       }
     }
   ],

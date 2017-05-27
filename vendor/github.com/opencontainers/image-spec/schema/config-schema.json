@@ -80,6 +80,9 @@
               "type": "null"
             }
           ]
+        },
+        "StopSignal": {
+          "type": "string"
         }
       }
     },

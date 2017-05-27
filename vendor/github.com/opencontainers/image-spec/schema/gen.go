@@ -18,4 +18,4 @@ package schema
 // using esc (https://github.com/mjibson/esc).
 
 // This should generally be invoked with `make schema-fs`
-//go:generate esc -private -pkg=schema -ignore=.*go -ignore=.*swp .
+//go:generate esc -private -pkg=schema -include=.*\.json$ .
