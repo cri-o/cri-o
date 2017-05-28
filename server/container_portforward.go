@@ -26,8 +26,8 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (*
 	return resp, nil
 }
 
-func (ss streamService) PortForward(podInfraContainerID string, port int32, stream io.ReadWriteCloser) error {
-	c := ss.runtimeServer.state.containers.Get(podInfraContainerID)
+func (ss streamService) PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error {
+	c := ss.runtimeServer.GetSandboxContainer(podSandboxID)
 
 	if err := ss.runtimeServer.runtime.UpdateStatus(c); err != nil {
 		return err
