@@ -490,6 +490,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// Join the namespace paths for the pod sandbox container.
 	podInfraState := s.runtime.ContainerStatus(sb.infraContainer)
 
+	if podInfraState == nil {
+		return nil, fmt.Errorf("state of infra container of given sandbox: %q is nil, which is unexpected", sb.metadata.GetName())
+	}
+
 	logrus.Debugf("pod container state %+v", podInfraState)
 
 	ipcNsPath := fmt.Sprintf("/proc/%d/ns/ipc", podInfraState.Pid)
