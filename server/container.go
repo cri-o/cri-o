@@ -13,14 +13,14 @@ const (
 	containerTypeContainer = "container"
 )
 
-func (s *Server) getContainerFromRequest(containerID string) (*oci.Container, error) {
-	if containerID == "" {
+func (s *Server) getContainerFromRequest(cid string) (*oci.Container, error) {
+	if cid == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
 
-	containerID, err := s.ctrIDIndex.Get(containerID)
+	containerID, err := s.ctrIDIndex.Get(cid)
 	if err != nil {
-		return nil, fmt.Errorf("container with ID starting with %s not found: %v", containerID, err)
+		return nil, fmt.Errorf("container with ID starting with %s not found: %v", cid, err)
 	}
 
 	c := s.state.containers.Get(containerID)

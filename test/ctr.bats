@@ -6,6 +6,16 @@ function teardown() {
 	cleanup_test
 }
 
+@test "ctr not found correct error message" {
+	start_crio
+	run crioctl ctr status --id randomid
+	echo "$output"
+	[ "$status" -eq 1 ]
+	[[ "$output" =~ "container with ID starting with randomid not found" ]]
+
+	stop_crio
+}
+
 @test "ctr termination reason Completed" {
 	start_crio
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
