@@ -98,8 +98,13 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		finished := cState.Finished.UnixNano()
 		resp.Status.FinishedAt = finished
 		resp.Status.ExitCode = cState.ExitCode
-		if cState.OOMKilled {
+		switch {
+		case cState.OOMKilled:
 			resp.Status.Reason = "OOMKilled"
+		case cState.ExitCode == 0:
+			resp.Status.Reason = "Completed"
+		default:
+			resp.Status.Reason = "Error"
 		}
 	}
 
