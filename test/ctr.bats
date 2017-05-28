@@ -6,6 +6,54 @@ function teardown() {
 	cleanup_test
 }
 
+@test "ctr termination reason Completed" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl ctr status --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Reason: Completed" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr termination reason Error" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	errorconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["false"]; json.dump(obj, sys.stdout)')
+	echo "$errorconfig" > "$TESTDIR"/container_config_error.json
+	run crioctl ctr create --config "$TESTDIR"/container_config_error.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl ctr status --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Reason: Error" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "ctr remove" {
 	start_crio
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
