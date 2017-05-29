@@ -29,8 +29,11 @@ func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (*pb.ExecRespons
 
 // Exec endpoint for streaming.Runtime
 func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan term.Size) error {
-	fmt.Println(containerID, cmd, stdin, stdout, stderr, tty, resize)
-	c := ss.runtimeServer.state.containers.Get(containerID)
+	c := ss.runtimeServer.GetContainer(containerID)
+
+	if c == nil {
+		return fmt.Errorf("could not find container %q", containerID)
+	}
 
 	if err := ss.runtimeServer.runtime.UpdateStatus(c); err != nil {
 		return err
