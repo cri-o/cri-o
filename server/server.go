@@ -678,6 +678,11 @@ func (s *Server) GetSandboxContainer(id string) *oci.Container {
 	return sb.infraContainer
 }
 
+// GetContainer returns a container by its ID
+func (s *Server) GetContainer(id string) *oci.Container {
+	return s.getContainer(id)
+}
+
 func (s *Server) removeContainer(c *oci.Container) {
 	s.stateLock.Lock()
 	sandbox := s.state.sandboxes[c.Sandbox()]
