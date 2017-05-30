@@ -330,6 +330,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// creates a spec Generator with the default spec.
 	specgen := generate.New()
+	specgen.HostSpecific = true
 
 	if err := addOciBindMounts(sb, containerConfig, &specgen); err != nil {
 		return nil, err
@@ -456,7 +457,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			if dropCaps != nil {
 				for _, cap := range dropCaps {
 					if err := specgen.DropProcessCapability(toCAPPrefixed(cap)); err != nil {
-						return nil, err
+						logrus.Debugf("failed to drop cap %s: %v", toCAPPrefixed(cap), err)
 					}
 				}
 			}
