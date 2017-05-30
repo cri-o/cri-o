@@ -555,6 +555,10 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
+		return nil, err
+	}
+
 	r, err := oci.New(config.Runtime, config.RuntimeHostPrivileged, config.Conmon, config.ConmonEnv, config.CgroupManager)
 	if err != nil {
 		return nil, err
