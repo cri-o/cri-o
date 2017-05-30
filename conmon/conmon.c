@@ -40,11 +40,13 @@
 #define nwarn(fmt, ...)                                                        \
 	do {                                                                   \
 		fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__);       \
+		syslog(LOG_INFO, "conmon <nwarn>: " fmt " \n", ##__VA_ARGS__); \
 	} while (0)
 
 #define ninfo(fmt, ...)                                                        \
 	do {                                                                   \
 		fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__);       \
+		syslog(LOG_INFO, "conmon <ninfo>: " fmt " \n", ##__VA_ARGS__); \
 	} while (0)
 
 #define _cleanup_(x) __attribute__((cleanup(x)))
