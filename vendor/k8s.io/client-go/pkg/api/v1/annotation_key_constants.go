@@ -19,6 +19,13 @@ limitations under the License.
 package v1
 
 const (
+	// ImagePolicyFailedOpenKey is added to pods created by failing open when the image policy
+	// webhook backend fails.
+	ImagePolicyFailedOpenKey string = "alpha.image-policy.k8s.io/failed-open"
+
+	// PodPresetOptOutAnnotationKey represents the annotation key for a pod to exempt itself from pod preset manipulation
+	PodPresetOptOutAnnotationKey string = "podpreset.admission.kubernetes.io/exclude"
+
 	// MirrorAnnotationKey represents the annotation key set by kubelets when creating mirror pods
 	MirrorPodAnnotationKey string = "kubernetes.io/config.mirror"
 

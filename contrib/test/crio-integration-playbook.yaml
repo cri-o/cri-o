@@ -127,6 +127,12 @@
     async: 600
     poll: 10
     when: xunit
+  - name: git clone crictl repo
+    git:
+      repo: https://github.com/kubernetes-incubator/cri-tools
+      dest: /root/src/github.com/kubernetes-incubator/cri-tools
+    async: 600
+    poll: 10
   - name: git clone runc repo
     git:
       repo: https://github.com/opencontainers/runc
@@ -191,6 +197,14 @@
     make:
       target: clean
       chdir: /root/src/github.com/opencontainers/runc
+    async: 600
+    poll: 10
+  - name: make crictl
+    shell: |
+      go install github.com/kubernetes-incubator/cri-tools/cmd/crictl && \
+      cp $GOPATH/bin/crictl /usr/bin/crictl
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o/
     async: 600
     poll: 10
   - name: make runc

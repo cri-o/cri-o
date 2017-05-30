@@ -28,7 +28,8 @@ import (
 
 // Interface is an abstract, pluggable interface for cloud providers.
 type Interface interface {
-	// Initialize provides the cloud with a kubernetes client builder
+	// Initialize provides the cloud with a kubernetes client builder and may spawn goroutines
+	// to perform housekeeping activities within the cloud provider.
 	Initialize(clientBuilder controller.ControllerClientBuilder)
 	// LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
 	LoadBalancer() (LoadBalancer, bool)
@@ -67,6 +68,7 @@ func GetLoadBalancerName(service *v1.Service) string {
 	return ret
 }
 
+// GetInstanceProviderID builds a ProviderID for a node in a cloud.
 func GetInstanceProviderID(cloud Interface, nodeName types.NodeName) (string, error) {
 	instances, ok := cloud.Instances()
 	if !ok {

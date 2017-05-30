@@ -11,8 +11,9 @@ CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
 # Path of the crio binary.
 CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/crio}
-# Path of the crioctl binary.
-OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/crioctl}
+# Path of the crictl binary.
+CRICTL_PATH=$(command -v crictl || true)
+CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/conmon/conmon}
 # Path of the pause binary.
@@ -126,9 +127,15 @@ function crio() {
 	"$CRIO_BINARY" --listen "$CRIO_SOCKET" "$@"
 }
 
-# Run crioctl using the binary specified by $OCIC_BINARY.
+# DEPRECATED
+OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/crioctl}
 function crioctl() {
 	"$OCIC_BINARY" --connect "$CRIO_SOCKET" "$@"
+}
+
+# Run crictl using the binary specified by $CRICTL_BINARY.
+function crictl() {
+	"$CRICTL_BINARY" -r "$CRIO_SOCKET" -i "$CRIO_SOCKET" "$@"
 }
 
 # Communicate with Docker on the host machine.
@@ -159,7 +166,7 @@ function retry() {
 
 # Waits until the given crio becomes reachable.
 function wait_until_reachable() {
-	retry 15 1 crioctl runtimeversion
+	retry 15 1 crictl status
 }
 
 # Start crio.
@@ -202,14 +209,14 @@ function start_crio() {
 	"$CRIO_BINARY" --debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 
-	run crioctl image status --id redis:alpine
+	run crictl image status redis:alpine
 	if [ "$status" -ne 0 ] ; then
-		crioctl image pull redis:alpine
+		crictl image pull redis:alpine
 	fi
-	REDIS_IMAGEID=$(crioctl image status --id redis:alpine | head -1 | sed -e "s/ID: //g")
-	run crioctl image status --id mrunalp/oom
+	REDIS_IMAGEID=$(crictl image status redis:alpine | head -1 | sed -e "s/ID: //g")
+	run crictl image status mrunalp/oom
 	if [ "$status" -ne 0 ] ; then
-		  crioctl image pull mrunalp/oom
+		  crictl image pull mrunalp/oom
 	fi
 	#
 	#
@@ -222,58 +229,58 @@ function start_crio() {
 	#
 	#
 	REDIS_IMAGEID_DIGESTED="redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
-	run crioctl image status --id $REDIS_IMAGEID_DIGESTED
+	run crictl image status $REDIS_IMAGEID_DIGESTED
 	if [ "$status" -ne 0 ]; then
-		crioctl image pull $REDIS_IMAGEID_DIGESTED
+		crictl image pull $REDIS_IMAGEID_DIGESTED
 	fi
 	#
 	#
 	#
-	run crioctl image status --id runcom/stderr-test
+	run crictl image status runcom/stderr-test
 	if [ "$status" -ne 0 ] ; then
-		crioctl image pull runcom/stderr-test:latest
+		crictl image pull runcom/stderr-test:latest
 	fi
-	STDERR_IMAGEID=$(crioctl image status --id runcom/stderr-test | head -1 | sed -e "s/ID: //g")
-	run crioctl image status --id busybox
+	STDERR_IMAGEID=$(crictl image status runcom/stderr-test | head -1 | sed -e "s/ID: //g")
+	run crictl image status busybox
 	if [ "$status" -ne 0 ] ; then
-		crioctl image pull busybox:latest
+		crictl image pull busybox:latest
 	fi
-	BUSYBOX_IMAGEID=$(crioctl image status --id busybox | head -1 | sed -e "s/ID: //g")
+	BUSYBOX_IMAGEID=$(crictl image status busybox | head -1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {
-	run crioctl ctr list --quiet
+	run crictl ctr ls --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crioctl ctr stop --id "$line" || true
-			   crioctl ctr remove --id "$line"
+			   crictl ctr stop "$line" || true
+			   crictl ctr rm "$line"
 			done
 		fi
 	fi
 }
 
 function cleanup_images() {
-	run crioctl image list --quiet
+	run crictl image ls --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crioctl image remove --id "$line"
+			   crictl image rm "$line"
 			done
 		fi
 	fi
 }
 
 function cleanup_pods() {
-	run crioctl pod list --quiet
+	run crictl sandbox ls --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crioctl pod stop --id "$line" || true
-			   crioctl pod remove --id "$line"
+			   crictl sandbox stop "$line" || true
+			   crictl sandbox rm "$line"
 			done
 		fi
 	fi

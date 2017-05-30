@@ -14,12 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
-
-const (
-	// When kubelet is started with the "external" cloud provider, then
-	// it sets this annotation on the node to denote an ip address set from the
-	// cmd line flag. This ip is verified with the cloudprovider as valid by
-	// the cloud-controller-manager
-	AnnotationProvidedIPAddr = "alpha.kubernetes.io/provided-node-ip"
-)
+// Package admissionregistration is the internal version of the API.
+// AdmissionConfiguration and AdmissionPluginConfiguration are legacy static admission plugin configuration
+// InitializerConfiguration and ExternalAdmissionHookConfiguration is for the
+// new dynamic admission controller configuration.
+// +groupName=admissionregistration.k8s.io
+package admissionregistration
