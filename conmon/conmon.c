@@ -436,6 +436,7 @@ int main(int argc, char *argv[])
 	int ret, runtime_status;
 	char cwd[PATH_MAX];
 	char default_pid_file[PATH_MAX];
+	char attach_sock_path[PATH_MAX];
 	GError *err = NULL;
 	_cleanup_free_ char *contents;
 	int cpid = -1;
@@ -469,6 +470,9 @@ int main(int argc, char *argv[])
 	_cleanup_free_ char *memory_cgroup_path = NULL;
 	int wb;
 	uint64_t oom_event;
+
+	/* Used for attach */
+	_cleanup_close_ int conn_sock = -1;
 
 	/* Command line parameters */
 	context = g_option_context_new("- conmon utility");
@@ -553,7 +557,7 @@ int main(int argc, char *argv[])
 		csfd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
 		if (csfd < 0)
 			pexit("Failed to create console-socket");
-                if (fchmod(csfd, 0700))
+		if (fchmod(csfd, 0700))
 			pexit("Failed to change console-socket permissions");
 		/* XXX: This should be handled with a rename(2). */
 		if (unlink(csname) < 0)
@@ -745,6 +749,47 @@ int main(int argc, char *argv[])
 	cpid = atoi(contents);
 	ninfo("container PID: %d", cpid);
 
+	/* Setup endpoint for attach */
+	char attach_symlink_dir_path[PATH_MAX];
+	struct sockaddr_un attach_addr = {0};
+	_cleanup_close_ int afd = -1;
+
+	if (!exec) {
+		attach_addr.sun_family = AF_UNIX;
+
+		/*
+		 * Create a symlink so we don't exceed unix domain socket
+		 * path length limit.
+		 */
+		snprintf(attach_symlink_dir_path, PATH_MAX, "/run/%s", cid);
+		if (symlink(bundle_path, attach_symlink_dir_path) == -1)
+			pexit("Failed to create symlink for attach socket");
+
+		snprintf(attach_sock_path, PATH_MAX, "/run/%s/attach", cid);
+		ninfo("attach sock path: %s", attach_sock_path);
+
+		strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
+		ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
+
+		/*
+		 * We make the socket non-blocking to avoid a race where client aborts connection
+		 * before the server gets a chance to call accept. In that scenario, the server
+		 * accept blocks till a new client connection comes in.
+		 */
+		afd = socket(AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+		if (afd == -1)
+			pexit("Failed to create attach socket");
+
+                if (fchmod(afd, 0700))
+			pexit("Failed to change attach socket permissions");
+
+		if (bind(afd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
+			pexit("Failed to bind attach socket: %s", attach_sock_path);
+
+		if (listen(afd, 10) == -1)
+			pexit("Failed to listen on attach socket: %s", attach_sock_path);
+	}
+
 	/* Send the container pid back to parent */
 	if (sync_pipe_fd > 0 && !exec) {
 		len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", cpid);
@@ -810,6 +855,13 @@ int main(int argc, char *argv[])
 			pexit("Failed to add OOM eventfd to epoll");
 	}
 
+	/* Add the attach socket to epoll */
+	if (afd > 0) {
+		ev.data.fd = afd;
+		if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) < 0)
+			pexit("Failed to add attach socket fd to epoll");
+	}
+
 	/* Log all of the container's output. */
 	while (num_stdio_fds > 0) {
 		int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
@@ -831,10 +883,28 @@ int main(int argc, char *argv[])
 					if (open("oom", O_CREAT, 0666) < 0) {
 						nwarn("Failed to write oom file");
 					}
-				}
-				else {
-					nwarn("unknown pipe fd");
-					goto out;
+				} else if (evlist[i].data.fd == afd) {
+					conn_sock = accept(afd, NULL, NULL);
+					if (conn_sock == -1) {
+						nwarn("Failed to accept client connection on attach socket");
+						continue;
+					}
+					ev.events = EPOLLIN;
+					ev.data.fd = conn_sock;
+					if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
+						pexit("Failed to add client socket fd to epoll");
+					}
+					ninfo("Accepted connection");
+				} else {
+					num_read = read(masterfd, buf, BUF_SIZE);
+					if (num_read <= 0)
+						goto out;
+					ninfo("got data on connection: %d", num_read);
+					if (terminal) {
+						if (write_all(masterfd_stdout, buf, num_read) < 0) {
+							nwarn("Failed to write to master pty");
+						}
+					}
 				}
 
 				if (masterfd == masterfd_stdout || masterfd == masterfd_stderr) {
@@ -846,11 +916,20 @@ int main(int argc, char *argv[])
 						nwarn("write_k8s_log failed");
 						goto out;
 					}
+
+					if (conn_sock > 0) {
+						if (write_all(conn_sock, buf, num_read) < 0) {
+							nwarn("Failed to write to socket");
+						}
+					}
 				}
 			} else if (evlist[i].events & (EPOLLHUP | EPOLLERR)) {
 				printf("closing fd %d\n", evlist[i].data.fd);
 				if (close(evlist[i].data.fd) < 0)
 					pexit("close");
+				if (!exec && evlist[i].data.fd == conn_sock) {
+					conn_sock = -1;
+                                }
 				num_stdio_fds--;
 			}
 		}
@@ -903,6 +982,12 @@ out:
 		if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 			pexit("unable to send exit status");
 			exit(1);
+		}
+	}
+
+	if (!exec) {
+		if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
+			pexit("Failed to remove symlink");
 		}
 	}
 
