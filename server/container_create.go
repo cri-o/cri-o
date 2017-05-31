@@ -466,26 +466,29 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.SetProcessSelinuxLabel(sb.processLabel)
 		specgen.SetLinuxMountLabel(sb.mountLabel)
 
-		for _, mp := range []string{
-			"/proc/kcore",
-			"/proc/latency_stats",
-			"/proc/timer_list",
-			"/proc/timer_stats",
-			"/proc/sched_debug",
-			"/sys/firmware",
-		} {
-			specgen.AddLinuxMaskedPaths(mp)
-		}
+		if containerConfig.GetLinux().GetSecurityContext() != nil &&
+			containerConfig.GetLinux().GetSecurityContext().Privileged == false {
+			for _, mp := range []string{
+				"/proc/kcore",
+				"/proc/latency_stats",
+				"/proc/timer_list",
+				"/proc/timer_stats",
+				"/proc/sched_debug",
+				"/sys/firmware",
+			} {
+				specgen.AddLinuxMaskedPaths(mp)
+			}
 
-		for _, rp := range []string{
-			"/proc/asound",
-			"/proc/bus",
-			"/proc/fs",
-			"/proc/irq",
-			"/proc/sys",
-			"/proc/sysrq-trigger",
-		} {
-			specgen.AddLinuxReadonlyPaths(rp)
+			for _, rp := range []string{
+				"/proc/asound",
+				"/proc/bus",
+				"/proc/fs",
+				"/proc/irq",
+				"/proc/sys",
+				"/proc/sysrq-trigger",
+			} {
+				specgen.AddLinuxReadonlyPaths(rp)
+			}
 		}
 	}
 	// Join the namespace paths for the pod sandbox container.
