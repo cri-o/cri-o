@@ -550,13 +550,16 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 	defer c.opLock.Unlock()
 	out, err := exec.Command(r.Path(c), "state", c.name).CombinedOutput()
 	if err != nil {
-		if err := unix.Kill(c.state.Pid, 0); err == syscall.ESRCH {
-			c.state.Status = ContainerStateStopped
-			c.state.Finished = time.Now()
-			c.state.ExitCode = 255
-			return nil
-		}
-		return fmt.Errorf("error getting container state for %s: %s: %q", c.name, err, out)
+		// there are many code paths that could lead to have a bad state in the
+		// underlying runtime.
+		// On any error like a container went away or we rebooted and containers
+		// went away we do not error out stopping kubernetes to recover.
+		// We always populate the fields below so kube can restart/reschedule
+		// containers failing.
+		c.state.Status = ContainerStateStopped
+		c.state.Finished = time.Now()
+		c.state.ExitCode = 255
+		return nil
 	}
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {
 		return fmt.Errorf("failed to decode container status for %s: %s", c.name, err)
