@@ -8,6 +8,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -96,7 +97,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	if err := s.storageRuntimeServer.StopContainer(sb.id); err != nil {
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.id, err)
 	}
-	if err := s.storageRuntimeServer.RemovePodSandbox(sb.id); err != nil {
+	if err := s.storageRuntimeServer.RemovePodSandbox(sb.id); err != nil && err != pkgstorage.ErrInvalidSandboxID {
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.id, err)
 	}
 
