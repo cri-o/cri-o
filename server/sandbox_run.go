@@ -106,6 +106,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 	}
+
+	defer func() {
+		if err != nil {
+			s.releasePodName(name)
+		}
+	}()
+
 	_, containerName, err := s.generateContainerIDandName(name, "infra", attempt)
 	if err != nil {
 		return nil, err
@@ -113,7 +120,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	defer func() {
 		if err != nil {
-			s.releasePodName(name)
+			s.releaseContainerName(containerName)
 		}
 	}()
 
@@ -248,12 +255,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(containerName)
-		}
-	}()
-
 	if err = s.ctrIDIndex.Add(id); err != nil {
 		return nil, err
 	}
@@ -318,9 +319,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer func() {
 		if err != nil {
 			s.removeSandbox(id)
-			if err2 := s.podIDIndex.Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
-			}
 		}
 	}()
 
@@ -328,6 +326,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err = s.podIDIndex.Add(id); err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		if err != nil {
+			if err := s.podIDIndex.Delete(id); err != nil {
+				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
+			}
+		}
+	}()
 
 	for k, v := range annotations {
 		g.AddAnnotation(k, v)
