@@ -96,7 +96,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	if err := s.storageRuntimeServer.StopContainer(sb.id); err != nil {
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.id, err)
 	}
-	if err := s.storageRuntimeServer.RemovePodSandbox(sb.id); err != nil {
+	if err := s.storageRuntimeServer.RemovePodSandbox(sb.id); err != nil && err != storage.ErrInvalidSandboxID {
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.id, err)
 	}
 
