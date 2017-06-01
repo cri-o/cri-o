@@ -16,6 +16,7 @@ import (
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
@@ -89,10 +90,10 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 	labels := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations["crio/labels"]), &labels); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return err
 	}
-	name := m.Annotations["crio/name"]
+	name := m.Annotations[annotations.Name]
 	name, err = s.reserveContainerName(id, name)
 	if err != nil {
 		return err
@@ -105,16 +106,16 @@ func (s *Server) loadContainer(id string) error {
 	}()
 
 	var metadata pb.ContainerMetadata
-	if err = json.Unmarshal([]byte(m.Annotations["crio/metadata"]), &metadata); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}
-	sb := s.getSandbox(m.Annotations["crio/sandbox_id"])
+	sb := s.getSandbox(m.Annotations[annotations.SandboxID])
 	if sb == nil {
-		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations["crio/sandbox_id"])
+		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations[annotations.SandboxID])
 	}
 
 	var tty bool
-	if v := m.Annotations["crio/tty"]; v == "true" {
+	if v := m.Annotations[annotations.TTY]; v == "true" {
 		tty = true
 	}
 	containerPath, err := s.store.ContainerRunDirectory(id)
@@ -128,24 +129,24 @@ func (s *Server) loadContainer(id string) error {
 	}
 
 	var img *pb.ImageSpec
-	image, ok := m.Annotations["crio/image"]
+	image, ok := m.Annotations[annotations.Image]
 	if ok {
 		img = &pb.ImageSpec{
 			Image: image,
 		}
 	}
 
-	annotations := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations["crio/annotations"]), &annotations); err != nil {
+	kubeAnnotations := make(map[string]string)
+	if err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
 		return err
 	}
 
-	created, err := time.Parse(time.RFC3339Nano, m.Annotations["crio/created"])
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
 	if err != nil {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations["crio/log_path"], sb.netNs(), labels, annotations, img, &metadata, sb.id, tty, sb.privileged, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, sb.privileged, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -207,10 +208,10 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 	labels := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations["crio/labels"]), &labels); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return err
 	}
-	name := m.Annotations["crio/name"]
+	name := m.Annotations[annotations.Name]
 	name, err = s.reservePodName(id, name)
 	if err != nil {
 		return err
@@ -221,7 +222,7 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 	var metadata pb.PodSandboxMetadata
-	if err = json.Unmarshal([]byte(m.Annotations["crio/metadata"]), &metadata); err != nil {
+	if err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}
 
@@ -230,27 +231,27 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	annotations := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations["crio/annotations"]), &annotations); err != nil {
+	kubeAnnotations := make(map[string]string)
+	if err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
 		return err
 	}
 
-	privileged := m.Annotations["crio/privileged_runtime"] == "true"
+	privileged := m.Annotations[annotations.PrivilegedRuntime] == "true"
 
 	sb := &sandbox{
 		id:           id,
 		name:         name,
-		kubeName:     m.Annotations["crio/kube_name"],
-		logDir:       filepath.Dir(m.Annotations["crio/log_path"]),
+		kubeName:     m.Annotations[annotations.KubeName],
+		logDir:       filepath.Dir(m.Annotations[annotations.LogPath]),
 		labels:       labels,
 		containers:   oci.NewMemoryStore(),
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
-		annotations:  annotations,
+		annotations:  kubeAnnotations,
 		metadata:     &metadata,
-		shmPath:      m.Annotations["crio/shm_path"],
+		shmPath:      m.Annotations[annotations.ShmPath],
 		privileged:   privileged,
-		resolvPath:   m.Annotations["crio/resolv_path"],
+		resolvPath:   m.Annotations[annotations.ResolvPath],
 	}
 
 	// We add a netNS only if we can load a permanent one.
@@ -286,7 +287,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	cname, err := s.reserveContainerName(m.Annotations["crio/container_id"], m.Annotations["crio/container_name"])
+	cname, err := s.reserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
 	if err != nil {
 		return err
 	}
@@ -296,12 +297,12 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	created, err := time.Parse(time.RFC3339Nano, m.Annotations["crio/created"])
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
 	if err != nil {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations["crio/container_id"], cname, sandboxPath, m.Annotations["crio/log_path"], sb.netNs(), labels, annotations, nil, nil, id, false, privileged, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, privileged, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}

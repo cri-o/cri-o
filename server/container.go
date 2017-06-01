@@ -6,13 +6,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 )
 
-const (
-	// containerTypeSandbox represents a pod sandbox container
-	containerTypeSandbox = "sandbox"
-	// containerTypeContainer represents a container running within a pod
-	containerTypeContainer = "container"
-)
-
 func (s *Server) getContainerFromRequest(cid string) (*oci.Container, error) {
 	if cid == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
