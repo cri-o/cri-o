@@ -47,6 +47,10 @@ func addOciBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen 
 			return fmt.Errorf("Mount.HostPath is empty")
 		}
 
+		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
+			os.MkdirAll(src, 0644)
+		}
+
 		options := []string{"rw"}
 		if mount.Readonly {
 			options = []string{"ro"}
