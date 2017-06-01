@@ -345,11 +345,11 @@ func (r *runtimeService) RemovePodSandbox(idOrName string) error {
 }
 
 func (r *runtimeService) DeleteContainer(idOrName string) error {
+	if idOrName == "" {
+		return ErrInvalidContainerID
+	}
 	container, err := r.storageImageServer.GetStore().Container(idOrName)
 	if err != nil {
-		if err == storage.ErrContainerUnknown {
-			return ErrInvalidContainerID
-		}
 		return err
 	}
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
@@ -403,11 +403,11 @@ func (r *runtimeService) StartContainer(idOrName string) (string, error) {
 }
 
 func (r *runtimeService) StopContainer(idOrName string) error {
+	if idOrName == "" {
+		return ErrInvalidContainerID
+	}
 	container, err := r.storageImageServer.GetStore().Container(idOrName)
 	if err != nil {
-		if err == storage.ErrContainerUnknown {
-			return ErrInvalidContainerID
-		}
 		return err
 	}
 	err = r.storageImageServer.GetStore().Unmount(container.ID)

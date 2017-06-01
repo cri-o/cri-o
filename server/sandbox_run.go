@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -66,6 +67,10 @@ func (s *Server) runContainer(container *oci.Container, cgroupParent string) err
 	return nil
 }
 
+var (
+	conflictRE = regexp.MustCompile(`already reserved for pod "([0-9a-z]+)"`)
+)
+
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	s.updateLock.RLock()
@@ -84,7 +89,22 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	id, name, err := s.generatePodIDandName(kubeName, namespace, attempt)
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "already reserved for pod") {
+			matches := conflictRE.FindStringSubmatch(err.Error())
+			if len(matches) != 2 {
+				return nil, err
+			}
+			dupID := matches[1]
+			if _, err := s.RemovePodSandbox(ctx, &pb.RemovePodSandboxRequest{PodSandboxId: dupID}); err != nil {
+				return nil, err
+			}
+			id, name, err = s.generatePodIDandName(kubeName, namespace, attempt)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 	_, containerName, err := s.generateContainerIDandName(name, "infra", attempt)
 	if err != nil {
