@@ -16,6 +16,7 @@ import (
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -348,9 +349,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	metadata := containerConfig.GetMetadata()
 
-	annotations := containerConfig.GetAnnotations()
-	if annotations != nil {
-		for k, v := range annotations {
+	kubeAnnotations := containerConfig.GetAnnotations()
+	if kubeAnnotations != nil {
+		for k, v := range kubeAnnotations {
 			specgen.AddAnnotation(k, v)
 		}
 	}
@@ -543,34 +544,34 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.SetHostname(sb.hostname)
 	}
 
-	specgen.AddAnnotation("crio/name", containerName)
-	specgen.AddAnnotation("crio/sandbox_id", sb.id)
-	specgen.AddAnnotation("crio/sandbox_name", sb.infraContainer.Name())
-	specgen.AddAnnotation("crio/container_type", containerTypeContainer)
-	specgen.AddAnnotation("crio/log_path", logPath)
-	specgen.AddAnnotation("crio/tty", fmt.Sprintf("%v", containerConfig.Tty))
-	specgen.AddAnnotation("crio/image", image)
+	specgen.AddAnnotation(annotations.Name, containerName)
+	specgen.AddAnnotation(annotations.SandboxID, sb.id)
+	specgen.AddAnnotation(annotations.SandboxName, sb.infraContainer.Name())
+	specgen.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeContainer)
+	specgen.AddAnnotation(annotations.LogPath, logPath)
+	specgen.AddAnnotation(annotations.TTY, fmt.Sprintf("%v", containerConfig.Tty))
+	specgen.AddAnnotation(annotations.Image, image)
 
 	created := time.Now()
-	specgen.AddAnnotation("crio/created", created.Format(time.RFC3339Nano))
+	specgen.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}
-	specgen.AddAnnotation("crio/metadata", string(metadataJSON))
+	specgen.AddAnnotation(annotations.Metadata, string(metadataJSON))
 
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
 	}
-	specgen.AddAnnotation("crio/labels", string(labelsJSON))
+	specgen.AddAnnotation(annotations.Labels, string(labelsJSON))
 
-	annotationsJSON, err := json.Marshal(annotations)
+	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
 		return nil, err
 	}
-	specgen.AddAnnotation("crio/annotations", string(annotationsJSON))
+	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
 	if err = s.setupSeccomp(&specgen, containerName, sb.annotations); err != nil {
 		return nil, err
@@ -675,7 +676,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, annotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged, containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, kubeAnnotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged, containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

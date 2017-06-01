@@ -14,6 +14,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -203,8 +204,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// add annotations
-	annotations := req.GetConfig().GetAnnotations()
-	annotationsJSON, err := json.Marshal(annotations)
+	kubeAnnotations := req.GetConfig().GetAnnotations()
+	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
 		return nil, err
 	}
@@ -276,27 +277,27 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	privileged := s.privilegedSandbox(req)
-	g.AddAnnotation("crio/metadata", string(metadataJSON))
-	g.AddAnnotation("crio/labels", string(labelsJSON))
-	g.AddAnnotation("crio/annotations", string(annotationsJSON))
-	g.AddAnnotation("crio/log_path", logPath)
-	g.AddAnnotation("crio/name", name)
-	g.AddAnnotation("crio/container_type", containerTypeSandbox)
-	g.AddAnnotation("crio/sandbox_id", id)
-	g.AddAnnotation("crio/container_name", containerName)
-	g.AddAnnotation("crio/container_id", id)
-	g.AddAnnotation("crio/shm_path", shmPath)
-	g.AddAnnotation("crio/privileged_runtime", fmt.Sprintf("%v", privileged))
-	g.AddAnnotation("crio/resolv_path", resolvPath)
-	g.AddAnnotation("crio/hostname", hostname)
-	g.AddAnnotation("crio/kube_name", kubeName)
+	g.AddAnnotation(annotations.Metadata, string(metadataJSON))
+	g.AddAnnotation(annotations.Labels, string(labelsJSON))
+	g.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
+	g.AddAnnotation(annotations.LogPath, logPath)
+	g.AddAnnotation(annotations.Name, name)
+	g.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeSandbox)
+	g.AddAnnotation(annotations.SandboxID, id)
+	g.AddAnnotation(annotations.ContainerName, containerName)
+	g.AddAnnotation(annotations.ContainerID, id)
+	g.AddAnnotation(annotations.ShmPath, shmPath)
+	g.AddAnnotation(annotations.PrivilegedRuntime, fmt.Sprintf("%v", privileged))
+	g.AddAnnotation(annotations.ResolvPath, resolvPath)
+	g.AddAnnotation(annotations.HostName, hostname)
+	g.AddAnnotation(annotations.KubeName, kubeName)
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
 	}
 
 	created := time.Now()
-	g.AddAnnotation("crio/created", created.Format(time.RFC3339Nano))
+	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	sb := &sandbox{
 		id:           id,
@@ -305,7 +306,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		kubeName:     kubeName,
 		logDir:       logDir,
 		labels:       labels,
-		annotations:  annotations,
+		annotations:  kubeAnnotations,
 		containers:   oci.NewMemoryStore(),
 		processLabel: processLabel,
 		mountLabel:   mountLabel,
@@ -335,12 +336,12 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	for k, v := range annotations {
+	for k, v := range kubeAnnotations {
 		g.AddAnnotation(k, v)
 	}
 
 	// extract linux sysctls from annotations and pass down to oci runtime
-	safe, unsafe, err := SysctlsFromPodAnnotations(annotations)
+	safe, unsafe, err := SysctlsFromPodAnnotations(kubeAnnotations)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +438,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, annotations, nil, nil, id, false, sb.privileged, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, sb.privileged, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
