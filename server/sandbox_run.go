@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -66,6 +67,10 @@ func (s *Server) runContainer(container *oci.Container, cgroupParent string) err
 	return nil
 }
 
+var (
+	conflictRE = regexp.MustCompile(`already reserved for pod "([0-9a-z]+)"`)
+)
+
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	s.updateLock.RLock()
@@ -84,8 +89,30 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	id, name, err := s.generatePodIDandName(kubeName, namespace, attempt)
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "already reserved for pod") {
+			matches := conflictRE.FindStringSubmatch(err.Error())
+			if len(matches) != 2 {
+				return nil, err
+			}
+			dupID := matches[1]
+			if _, err := s.RemovePodSandbox(ctx, &pb.RemovePodSandboxRequest{PodSandboxId: dupID}); err != nil {
+				return nil, err
+			}
+			id, name, err = s.generatePodIDandName(kubeName, namespace, attempt)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
+
+	defer func() {
+		if err != nil {
+			s.releasePodName(name)
+		}
+	}()
+
 	_, containerName, err := s.generateContainerIDandName(name, "infra", attempt)
 	if err != nil {
 		return nil, err
@@ -93,7 +120,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	defer func() {
 		if err != nil {
-			s.releasePodName(name)
+			s.releaseContainerName(containerName)
 		}
 	}()
 
@@ -228,12 +255,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(containerName)
-		}
-	}()
-
 	if err = s.ctrIDIndex.Add(id); err != nil {
 		return nil, err
 	}
@@ -298,9 +319,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer func() {
 		if err != nil {
 			s.removeSandbox(id)
-			if err2 := s.podIDIndex.Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
-			}
 		}
 	}()
 
@@ -308,6 +326,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err = s.podIDIndex.Add(id); err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		if err != nil {
+			if err := s.podIDIndex.Delete(id); err != nil {
+				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
+			}
+		}
+	}()
 
 	for k, v := range annotations {
 		g.AddAnnotation(k, v)

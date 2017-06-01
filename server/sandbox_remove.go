@@ -5,7 +5,10 @@ import (
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/containers/storage"
+	"github.com/docker/docker/pkg/mount"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -56,10 +59,11 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			continue
 		}
 
-		if err := s.storageRuntimeServer.StopContainer(c.ID()); err != nil {
-			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
+		if err := s.storageRuntimeServer.StopContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
+			// assume container already umounted
+			logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
 		}
-		if err := s.storageRuntimeServer.DeleteContainer(c.ID()); err != nil {
+		if err := s.storageRuntimeServer.DeleteContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
 		}
 
@@ -76,8 +80,10 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	// unmount the shm for the pod
 	if sb.shmPath != "/dev/shm" {
-		if err := syscall.Unmount(sb.shmPath, syscall.MNT_DETACH); err != nil {
-			return nil, err
+		if mounted, err := mount.Mounted(sb.shmPath); err == nil && mounted {
+			if err := syscall.Unmount(sb.shmPath, syscall.MNT_DETACH); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -89,9 +95,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	// Remove the files related to the sandbox
 	if err := s.storageRuntimeServer.StopContainer(sb.id); err != nil {
-		return nil, fmt.Errorf("failed to delete sandbox container in pod sandbox %s: %v", sb.id, err)
+		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.id, err)
 	}
-	if err := s.storageRuntimeServer.RemovePodSandbox(sb.id); err != nil {
+	if err := s.storageRuntimeServer.RemovePodSandbox(sb.id); err != nil && err != pkgstorage.ErrInvalidSandboxID {
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.id, err)
 	}
 
