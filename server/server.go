@@ -152,7 +152,7 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, stdin, stdinOnce, sb.privileged, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, stdin, stdinOnce, sb.privileged, sb.trusted, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -243,6 +243,7 @@ func (s *Server) loadSandbox(id string) error {
 	}
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
+	trusted := isTrue(m.Annotations[annotations.TrustedSandbox])
 
 	sb := &sandbox{
 		id:           id,
@@ -257,6 +258,7 @@ func (s *Server) loadSandbox(id string) error {
 		metadata:     &metadata,
 		shmPath:      m.Annotations[annotations.ShmPath],
 		privileged:   privileged,
+		trusted:      trusted,
 		resolvPath:   m.Annotations[annotations.ResolvPath],
 	}
 
@@ -308,7 +310,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, privileged, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -563,7 +565,7 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	r, err := oci.New(config.Runtime, config.RuntimeHostPrivileged, config.Conmon, config.ConmonEnv, config.CgroupManager)
+	r, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
 	if err != nil {
 		return nil, err
 	}

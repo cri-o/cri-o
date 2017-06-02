@@ -31,26 +31,28 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimePath string, runtimeHostPrivilegedPath string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
+func New(runtimeTrustedPath string, runtimeUntrustedPath string, trustLevel string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
 	r := &Runtime{
-		name:           filepath.Base(runtimePath),
-		path:           runtimePath,
-		privilegedPath: runtimeHostPrivilegedPath,
-		conmonPath:     conmonPath,
-		conmonEnv:      conmonEnv,
-		cgroupManager:  cgroupManager,
+		name:          filepath.Base(runtimeTrustedPath),
+		trustedPath:   runtimeTrustedPath,
+		untrustedPath: runtimeUntrustedPath,
+		trustLevel:    trustLevel,
+		conmonPath:    conmonPath,
+		conmonEnv:     conmonEnv,
+		cgroupManager: cgroupManager,
 	}
 	return r, nil
 }
 
 // Runtime stores the information about a oci runtime
 type Runtime struct {
-	name           string
-	path           string
-	privilegedPath string
-	conmonPath     string
-	conmonEnv      []string
-	cgroupManager  string
+	name          string
+	trustedPath   string
+	untrustedPath string
+	trustLevel    string
+	conmonPath    string
+	conmonEnv     []string
+	cgroupManager string
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -70,19 +72,41 @@ func (r *Runtime) Name() string {
 }
 
 // Path returns the full path the OCI Runtime executable.
-// Depending if the container is privileged, it will return
-// the privileged runtime or not.
+// Depending if the container is privileged and/or trusted,
+// this will return either the trusted or untrusted runtime path.
 func (r *Runtime) Path(c *Container) string {
-	if c.privileged && r.privilegedPath != "" {
-		return r.privilegedPath
+	if !c.trusted {
+		// We have an explicitly untrusted container.
+		if c.privileged {
+			logrus.Warnf("Running an untrusted but privileged container")
+			return r.trustedPath
+		}
+
+		if r.untrustedPath != "" {
+			return r.untrustedPath
+		}
+
+		return r.trustedPath
 	}
 
-	return r.path
+	// Our container is trusted. Let's look at the configured trust level.
+	if r.trustLevel == "trusted" {
+		return r.trustedPath
+	}
+
+	// Our container is trusted, but we are running untrusted.
+	// We will use the untrusted container runtime if it's set
+	// and if it's not a privileged container.
+	if c.privileged || r.untrustedPath == "" {
+		return r.trustedPath
+	}
+
+	return r.untrustedPath
 }
 
 // Version returns the version of the OCI Runtime
 func (r *Runtime) Version() (string, error) {
-	runtimeVersion, err := getOCIVersion(r.path, "-v")
+	runtimeVersion, err := getOCIVersion(r.trustedPath, "-v")
 	if err != nil {
 		return "", err
 	}

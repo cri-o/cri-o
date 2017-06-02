@@ -52,6 +52,9 @@ const (
 	// ShmPath is the shared memory path annotation
 	ShmPath = "io.kubernetes.cri-o.ShmPath"
 
+	// TrustedSandbox is the annotation for trusted sandboxes
+	TrustedSandbox = "io.kubernetes.cri-o.TrustedSandbox"
+
 	// TTY is the terminal path annotation
 	TTY = "io.kubernetes.cri-o.TTY"
 
