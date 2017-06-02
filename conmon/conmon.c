@@ -84,7 +84,7 @@ static inline void strv_cleanup(char ***strv)
 #define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
 #define _cleanup_strv_ _cleanup_(strv_cleanup)
 
-#define BUF_SIZE 256
+#define BUF_SIZE 8192
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
 
