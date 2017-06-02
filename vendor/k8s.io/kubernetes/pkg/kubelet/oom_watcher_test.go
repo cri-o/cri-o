@@ -19,8 +19,10 @@ package kubelet
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/record"
+	"github.com/stretchr/testify/assert"
+
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/record"
 	cadvisortest "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 )
 
@@ -29,10 +31,7 @@ func TestBasic(t *testing.T) {
 	mockCadvisor := &cadvisortest.Fake{}
 	node := &v1.ObjectReference{}
 	oomWatcher := NewOOMWatcher(mockCadvisor, fakeRecorder)
-	err := oomWatcher.Start(node)
-	if err != nil {
-		t.Errorf("Should not have failed: %v", err)
-	}
+	assert.NoError(t, oomWatcher.Start(node))
 
 	// TODO: Improve this test once cadvisor exports events.EventChannel as an interface
 	// and thereby allow using a mock version of cadvisor.

@@ -22,11 +22,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/apis/autoscaling"
 	"k8s.io/client-go/pkg/apis/extensions"
-	"k8s.io/client-go/pkg/util/intstr"
+	"k8s.io/client-go/pkg/apis/networking"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
@@ -40,13 +40,22 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		Convert_v1beta1_DeploymentStrategy_To_extensions_DeploymentStrategy,
 		Convert_extensions_RollingUpdateDeployment_To_v1beta1_RollingUpdateDeployment,
 		Convert_v1beta1_RollingUpdateDeployment_To_extensions_RollingUpdateDeployment,
+		Convert_extensions_RollingUpdateDaemonSet_To_v1beta1_RollingUpdateDaemonSet,
+		Convert_v1beta1_RollingUpdateDaemonSet_To_extensions_RollingUpdateDaemonSet,
 		Convert_extensions_ReplicaSetSpec_To_v1beta1_ReplicaSetSpec,
 		Convert_v1beta1_ReplicaSetSpec_To_extensions_ReplicaSetSpec,
-		// autoscaling
-		Convert_autoscaling_CrossVersionObjectReference_To_v1beta1_SubresourceReference,
-		Convert_v1beta1_SubresourceReference_To_autoscaling_CrossVersionObjectReference,
-		Convert_autoscaling_HorizontalPodAutoscalerSpec_To_v1beta1_HorizontalPodAutoscalerSpec,
-		Convert_v1beta1_HorizontalPodAutoscalerSpec_To_autoscaling_HorizontalPodAutoscalerSpec,
+		Convert_v1beta1_NetworkPolicy_To_networking_NetworkPolicy,
+		Convert_networking_NetworkPolicy_To_v1beta1_NetworkPolicy,
+		Convert_v1beta1_NetworkPolicyIngressRule_To_networking_NetworkPolicyIngressRule,
+		Convert_networking_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule,
+		Convert_v1beta1_NetworkPolicyList_To_networking_NetworkPolicyList,
+		Convert_networking_NetworkPolicyList_To_v1beta1_NetworkPolicyList,
+		Convert_v1beta1_NetworkPolicyPeer_To_networking_NetworkPolicyPeer,
+		Convert_networking_NetworkPolicyPeer_To_v1beta1_NetworkPolicyPeer,
+		Convert_v1beta1_NetworkPolicyPort_To_networking_NetworkPolicyPort,
+		Convert_networking_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort,
+		Convert_v1beta1_NetworkPolicySpec_To_networking_NetworkPolicySpec,
+		Convert_networking_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec,
 	)
 	if err != nil {
 		return err
@@ -55,7 +64,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	// Add field label conversions for kinds having selectable nothing but ObjectMeta fields.
 	for _, k := range []string{"DaemonSet", "Deployment", "Ingress"} {
 		kind := k // don't close over range variables
-		err = api.Scheme.AddFieldLabelConversionFunc("extensions/v1beta1", kind,
+		err = scheme.AddFieldLabelConversionFunc("extensions/v1beta1", kind,
 			func(label, value string) (string, string, error) {
 				switch label {
 				case "metadata.name", "metadata.namespace":
@@ -226,6 +235,23 @@ func Convert_v1beta1_RollingUpdateDeployment_To_extensions_RollingUpdateDeployme
 	return nil
 }
 
+func Convert_extensions_RollingUpdateDaemonSet_To_v1beta1_RollingUpdateDaemonSet(in *extensions.RollingUpdateDaemonSet, out *RollingUpdateDaemonSet, s conversion.Scope) error {
+	if out.MaxUnavailable == nil {
+		out.MaxUnavailable = &intstr.IntOrString{}
+	}
+	if err := s.Convert(&in.MaxUnavailable, out.MaxUnavailable, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1beta1_RollingUpdateDaemonSet_To_extensions_RollingUpdateDaemonSet(in *RollingUpdateDaemonSet, out *extensions.RollingUpdateDaemonSet, s conversion.Scope) error {
+	if err := s.Convert(in.MaxUnavailable, &out.MaxUnavailable, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
 func Convert_extensions_ReplicaSetSpec_To_v1beta1_ReplicaSetSpec(in *extensions.ReplicaSetSpec, out *ReplicaSetSpec, s conversion.Scope) error {
 	out.Replicas = new(int32)
 	*out.Replicas = int32(in.Replicas)
@@ -249,52 +275,154 @@ func Convert_v1beta1_ReplicaSetSpec_To_extensions_ReplicaSetSpec(in *ReplicaSetS
 	return nil
 }
 
-func Convert_autoscaling_CrossVersionObjectReference_To_v1beta1_SubresourceReference(in *autoscaling.CrossVersionObjectReference, out *SubresourceReference, s conversion.Scope) error {
-	out.Kind = in.Kind
-	out.Name = in.Name
-	out.APIVersion = in.APIVersion
-	out.Subresource = "scale"
-	return nil
+func Convert_v1beta1_NetworkPolicy_To_networking_NetworkPolicy(in *NetworkPolicy, out *networking.NetworkPolicy, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	return Convert_v1beta1_NetworkPolicySpec_To_networking_NetworkPolicySpec(&in.Spec, &out.Spec, s)
 }
 
-func Convert_v1beta1_SubresourceReference_To_autoscaling_CrossVersionObjectReference(in *SubresourceReference, out *autoscaling.CrossVersionObjectReference, s conversion.Scope) error {
-	out.Kind = in.Kind
-	out.Name = in.Name
-	out.APIVersion = in.APIVersion
-	return nil
+func Convert_networking_NetworkPolicy_To_v1beta1_NetworkPolicy(in *networking.NetworkPolicy, out *NetworkPolicy, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	return Convert_networking_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec(&in.Spec, &out.Spec, s)
 }
 
-func Convert_autoscaling_HorizontalPodAutoscalerSpec_To_v1beta1_HorizontalPodAutoscalerSpec(in *autoscaling.HorizontalPodAutoscalerSpec, out *HorizontalPodAutoscalerSpec, s conversion.Scope) error {
-	if err := Convert_autoscaling_CrossVersionObjectReference_To_v1beta1_SubresourceReference(&in.ScaleTargetRef, &out.ScaleRef, s); err != nil {
+func Convert_v1beta1_NetworkPolicySpec_To_networking_NetworkPolicySpec(in *NetworkPolicySpec, out *networking.NetworkPolicySpec, s conversion.Scope) error {
+	if err := s.Convert(&in.PodSelector, &out.PodSelector, 0); err != nil {
 		return err
 	}
-	if in.MinReplicas != nil {
-		out.MinReplicas = new(int32)
-		*out.MinReplicas = *in.MinReplicas
-	} else {
-		out.MinReplicas = nil
-	}
-	out.MaxReplicas = in.MaxReplicas
-	if in.TargetCPUUtilizationPercentage != nil {
-		out.CPUUtilization = &CPUTargetUtilization{TargetPercentage: *in.TargetCPUUtilizationPercentage}
+	out.Ingress = make([]networking.NetworkPolicyIngressRule, len(in.Ingress))
+	for i := range in.Ingress {
+		if err := Convert_v1beta1_NetworkPolicyIngressRule_To_networking_NetworkPolicyIngressRule(&in.Ingress[i], &out.Ingress[i], s); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func Convert_v1beta1_HorizontalPodAutoscalerSpec_To_autoscaling_HorizontalPodAutoscalerSpec(in *HorizontalPodAutoscalerSpec, out *autoscaling.HorizontalPodAutoscalerSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_SubresourceReference_To_autoscaling_CrossVersionObjectReference(&in.ScaleRef, &out.ScaleTargetRef, s); err != nil {
+func Convert_networking_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec(in *networking.NetworkPolicySpec, out *NetworkPolicySpec, s conversion.Scope) error {
+	if err := s.Convert(&in.PodSelector, &out.PodSelector, 0); err != nil {
 		return err
 	}
-	if in.MinReplicas != nil {
-		out.MinReplicas = new(int32)
-		*out.MinReplicas = int32(*in.MinReplicas)
-	} else {
-		out.MinReplicas = nil
+	out.Ingress = make([]NetworkPolicyIngressRule, len(in.Ingress))
+	for i := range in.Ingress {
+		if err := Convert_networking_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule(&in.Ingress[i], &out.Ingress[i], s); err != nil {
+			return err
+		}
 	}
-	out.MaxReplicas = int32(in.MaxReplicas)
-	if in.CPUUtilization != nil {
-		out.TargetCPUUtilizationPercentage = new(int32)
-		*out.TargetCPUUtilizationPercentage = int32(in.CPUUtilization.TargetPercentage)
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyIngressRule_To_networking_NetworkPolicyIngressRule(in *NetworkPolicyIngressRule, out *networking.NetworkPolicyIngressRule, s conversion.Scope) error {
+	out.Ports = make([]networking.NetworkPolicyPort, len(in.Ports))
+	for i := range in.Ports {
+		if err := Convert_v1beta1_NetworkPolicyPort_To_networking_NetworkPolicyPort(&in.Ports[i], &out.Ports[i], s); err != nil {
+			return err
+		}
+	}
+	out.From = make([]networking.NetworkPolicyPeer, len(in.From))
+	for i := range in.From {
+		if err := Convert_v1beta1_NetworkPolicyPeer_To_networking_NetworkPolicyPeer(&in.From[i], &out.From[i], s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_networking_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule(in *networking.NetworkPolicyIngressRule, out *NetworkPolicyIngressRule, s conversion.Scope) error {
+	out.Ports = make([]NetworkPolicyPort, len(in.Ports))
+	for i := range in.Ports {
+		if err := Convert_networking_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort(&in.Ports[i], &out.Ports[i], s); err != nil {
+			return err
+		}
+	}
+	out.From = make([]NetworkPolicyPeer, len(in.From))
+	for i := range in.From {
+		if err := Convert_networking_NetworkPolicyPeer_To_v1beta1_NetworkPolicyPeer(&in.From[i], &out.From[i], s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyPeer_To_networking_NetworkPolicyPeer(in *NetworkPolicyPeer, out *networking.NetworkPolicyPeer, s conversion.Scope) error {
+	if in.PodSelector != nil {
+		out.PodSelector = new(metav1.LabelSelector)
+		if err := s.Convert(in.PodSelector, out.PodSelector, 0); err != nil {
+			return err
+		}
+	} else {
+		out.PodSelector = nil
+	}
+	if in.NamespaceSelector != nil {
+		out.NamespaceSelector = new(metav1.LabelSelector)
+		if err := s.Convert(in.NamespaceSelector, out.NamespaceSelector, 0); err != nil {
+			return err
+		}
+	} else {
+		out.NamespaceSelector = nil
+	}
+	return nil
+}
+
+func Convert_networking_NetworkPolicyPeer_To_v1beta1_NetworkPolicyPeer(in *networking.NetworkPolicyPeer, out *NetworkPolicyPeer, s conversion.Scope) error {
+	if in.PodSelector != nil {
+		out.PodSelector = new(metav1.LabelSelector)
+		if err := s.Convert(in.PodSelector, out.PodSelector, 0); err != nil {
+			return err
+		}
+	} else {
+		out.PodSelector = nil
+	}
+	if in.NamespaceSelector != nil {
+		out.NamespaceSelector = new(metav1.LabelSelector)
+		if err := s.Convert(in.NamespaceSelector, out.NamespaceSelector, 0); err != nil {
+			return err
+		}
+	} else {
+		out.NamespaceSelector = nil
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyPort_To_networking_NetworkPolicyPort(in *NetworkPolicyPort, out *networking.NetworkPolicyPort, s conversion.Scope) error {
+	if in.Protocol != nil {
+		out.Protocol = new(api.Protocol)
+		*out.Protocol = api.Protocol(*in.Protocol)
+	} else {
+		out.Protocol = nil
+	}
+	out.Port = in.Port
+	return nil
+}
+
+func Convert_networking_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort(in *networking.NetworkPolicyPort, out *NetworkPolicyPort, s conversion.Scope) error {
+	if in.Protocol != nil {
+		out.Protocol = new(v1.Protocol)
+		*out.Protocol = v1.Protocol(*in.Protocol)
+	} else {
+		out.Protocol = nil
+	}
+	out.Port = in.Port
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyList_To_networking_NetworkPolicyList(in *NetworkPolicyList, out *networking.NetworkPolicyList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = make([]networking.NetworkPolicy, len(in.Items))
+	for i := range in.Items {
+		if err := Convert_v1beta1_NetworkPolicy_To_networking_NetworkPolicy(&in.Items[i], &out.Items[i], s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_networking_NetworkPolicyList_To_v1beta1_NetworkPolicyList(in *networking.NetworkPolicyList, out *NetworkPolicyList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = make([]NetworkPolicy, len(in.Items))
+	for i := range in.Items {
+		if err := Convert_networking_NetworkPolicy_To_v1beta1_NetworkPolicy(&in.Items[i], &out.Items[i], s); err != nil {
+			return err
+		}
 	}
 	return nil
 }

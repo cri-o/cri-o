@@ -19,14 +19,13 @@ limitations under the License.
 
 syntax = 'proto2';
 
-package k8s.io.kubernetes.pkg.apis.policy.v1beta1;
+package k8s.io.client_go.pkg.apis.policy.v1beta1;
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/kubernetes/pkg/api/resource/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1beta1";
@@ -39,7 +38,7 @@ message Eviction {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // DeleteOptions may be provided
-  optional k8s.io.kubernetes.pkg.api.v1.DeleteOptions deleteOptions = 2;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.DeleteOptions deleteOptions = 2;
 }
 
 // PodDisruptionBudget is an object to define the max disruption that can be caused to a collection of pods
@@ -66,11 +65,17 @@ message PodDisruptionBudgetSpec {
   // "selector" will still be available after the eviction, i.e. even in the
   // absence of the evicted pod.  So for example you can prevent all voluntary
   // evictions by specifying "100%".
-  optional k8s.io.kubernetes.pkg.util.intstr.IntOrString minAvailable = 1;
+  optional k8s.io.apimachinery.pkg.util.intstr.IntOrString minAvailable = 1;
 
   // Label query over pods whose evictions are managed by the disruption
   // budget.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector selector = 2;
+
+  // An eviction is allowed if at most "maxUnavailable" pods selected by
+  // "selector" are unavailable after the eviction, i.e. even in absence of
+  // the evicted pod. For example, one can prevent all voluntary evictions
+  // by specifying 0. This is a mutually exclusive setting with "minAvailable".
+  optional k8s.io.apimachinery.pkg.util.intstr.IntOrString maxUnavailable = 3;
 }
 
 // PodDisruptionBudgetStatus represents information about the status of a

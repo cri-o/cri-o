@@ -19,12 +19,26 @@ package validation
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/policy"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 func TestValidatePodDisruptionBudgetSpec(t *testing.T) {
+	minAvailable := intstr.FromString("0%")
+	maxUnavailable := intstr.FromString("10%")
+
+	spec := policy.PodDisruptionBudgetSpec{
+		MinAvailable:   &minAvailable,
+		MaxUnavailable: &maxUnavailable,
+	}
+	errs := ValidatePodDisruptionBudgetSpec(spec, field.NewPath("foo"))
+	if len(errs) == 0 {
+		t.Errorf("unexpected success for %v", spec)
+	}
+}
+
+func TestValidateMinAvailablePodDisruptionBudgetSpec(t *testing.T) {
 	successCases := []intstr.IntOrString{
 		intstr.FromString("0%"),
 		intstr.FromString("1%"),
@@ -35,7 +49,7 @@ func TestValidatePodDisruptionBudgetSpec(t *testing.T) {
 	}
 	for _, c := range successCases {
 		spec := policy.PodDisruptionBudgetSpec{
-			MinAvailable: c,
+			MinAvailable: &c,
 		}
 		errs := ValidatePodDisruptionBudgetSpec(spec, field.NewPath("foo"))
 		if len(errs) != 0 {
@@ -52,12 +66,26 @@ func TestValidatePodDisruptionBudgetSpec(t *testing.T) {
 	}
 	for _, c := range failureCases {
 		spec := policy.PodDisruptionBudgetSpec{
-			MinAvailable: c,
+			MinAvailable: &c,
 		}
 		errs := ValidatePodDisruptionBudgetSpec(spec, field.NewPath("foo"))
 		if len(errs) == 0 {
 			t.Errorf("unexpected success for %v", spec)
 		}
+	}
+}
+
+func TestValidateMinAvailablePodAndMaxUnavailableDisruptionBudgetSpec(t *testing.T) {
+	c1 := intstr.FromString("10%")
+	c2 := intstr.FromInt(1)
+
+	spec := policy.PodDisruptionBudgetSpec{
+		MinAvailable:   &c1,
+		MaxUnavailable: &c2,
+	}
+	errs := ValidatePodDisruptionBudgetSpec(spec, field.NewPath("foo"))
+	if len(errs) == 0 {
+		t.Errorf("unexpected success for %v", spec)
 	}
 }
 

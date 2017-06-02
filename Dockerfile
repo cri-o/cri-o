@@ -1,4 +1,4 @@
-FROM golang:1.7
+FROM golang:1.8
 
 # libseccomp in jessie is not _quite_ new enough -- need backports version
 RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
@@ -64,6 +64,17 @@ RUN set -x \
        && ./build.sh \
        && mkdir -p /opt/cni/bin \
        && cp bin/* /opt/cni/bin/ \
+       && rm -rf "$GOPATH"
+
+# Install crictl
+ENV CRICTL_COMMIT c8786e315514a021c53888d874b1fb33e967a23c
+RUN set -x \
+       && export GOPATH="$(mktemp -d)" \
+       && git clone https://github.com/kubernetes-incubator/cri-tools.git "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
+       && cd "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
+       && git checkout -q "$CRICTL_COMMIT" \
+       && go install github.com/kubernetes-incubator/cri-tools/cmd/crictl \
+       && cp "$GOPATH"/bin/crictl /usr/bin/ \
        && rm -rf "$GOPATH"
 
 COPY test/plugin_test_args.bash /opt/cni/bin/plugin_test_args.bash

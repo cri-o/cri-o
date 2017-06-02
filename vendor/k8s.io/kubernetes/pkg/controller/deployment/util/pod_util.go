@@ -17,7 +17,7 @@ limitations under the License.
 package util
 
 import (
-	"hash/adler32"
+	"encoding/binary"
 	"hash/fnv"
 
 	"github.com/golang/glog"
@@ -26,27 +26,22 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	v1core "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
-	"k8s.io/kubernetes/pkg/client/legacylisters"
+	corelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	"k8s.io/kubernetes/pkg/client/retry"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
 )
 
-func GetPodTemplateSpecHash(template v1.PodTemplateSpec) uint32 {
-	podTemplateSpecHasher := adler32.New()
-	hashutil.DeepHashObject(podTemplateSpecHasher, template)
-	return podTemplateSpecHasher.Sum32()
-}
-
-// TODO: remove the duplicate
-func GetInternalPodTemplateSpecHash(template api.PodTemplateSpec) uint32 {
-	podTemplateSpecHasher := adler32.New()
-	hashutil.DeepHashObject(podTemplateSpecHasher, template)
-	return podTemplateSpecHasher.Sum32()
-}
-
-func GetPodTemplateSpecHashFnv(template v1.PodTemplateSpec) uint32 {
+func GetPodTemplateSpecHash(template *v1.PodTemplateSpec, uniquifier *int64) uint32 {
 	podTemplateSpecHasher := fnv.New32a()
-	hashutil.DeepHashObject(podTemplateSpecHasher, template)
+	hashutil.DeepHashObject(podTemplateSpecHasher, *template)
+
+	// Add uniquifier in the hash if it exists.
+	if uniquifier != nil {
+		uniquifierBytes := make([]byte, 8)
+		binary.LittleEndian.PutUint64(uniquifierBytes, uint64(*uniquifier))
+		podTemplateSpecHasher.Write(uniquifierBytes)
+	}
+
 	return podTemplateSpecHasher.Sum32()
 }
 
@@ -56,7 +51,7 @@ type updatePodFunc func(pod *v1.Pod) error
 
 // UpdatePodWithRetries updates a pod with given applyUpdate function. Note that pod not found error is ignored.
 // The returned bool value can be used to tell if the pod is actually updated.
-func UpdatePodWithRetries(podClient v1core.PodInterface, podLister *listers.StoreToPodLister, namespace, name string, applyUpdate updatePodFunc) (*v1.Pod, error) {
+func UpdatePodWithRetries(podClient v1core.PodInterface, podLister corelisters.PodLister, namespace, name string, applyUpdate updatePodFunc) (*v1.Pod, error) {
 	var pod *v1.Pod
 
 	retryErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {

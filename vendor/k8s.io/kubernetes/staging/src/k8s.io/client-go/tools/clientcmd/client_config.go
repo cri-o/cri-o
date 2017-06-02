@@ -27,7 +27,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/imdario/mergo"
 
-	"k8s.io/client-go/pkg/api"
+	"k8s.io/client-go/pkg/api/v1"
 	restclient "k8s.io/client-go/rest"
 	clientauth "k8s.io/client-go/tools/auth"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -146,7 +146,11 @@ func (config *DirectClientConfig) ClientConfig() (*restclient.Config, error) {
 		clientConfig.Host = u.String()
 	}
 	if len(configAuthInfo.Impersonate) > 0 {
-		clientConfig.Impersonate = restclient.ImpersonationConfig{UserName: configAuthInfo.Impersonate}
+		clientConfig.Impersonate = restclient.ImpersonationConfig{
+			UserName: configAuthInfo.Impersonate,
+			Groups:   configAuthInfo.ImpersonateGroups,
+			Extra:    configAuthInfo.ImpersonateUserExtra,
+		}
 	}
 
 	// only try to read the auth information if we are secure
@@ -217,7 +221,11 @@ func (config *DirectClientConfig) getUserIdentificationPartialConfig(configAuthI
 		mergedConfig.BearerToken = string(tokenBytes)
 	}
 	if len(configAuthInfo.Impersonate) > 0 {
-		mergedConfig.Impersonate = restclient.ImpersonationConfig{UserName: configAuthInfo.Impersonate}
+		mergedConfig.Impersonate = restclient.ImpersonationConfig{
+			UserName: configAuthInfo.Impersonate,
+			Groups:   configAuthInfo.ImpersonateGroups,
+			Extra:    configAuthInfo.ImpersonateUserExtra,
+		}
 	}
 	if len(configAuthInfo.ClientCertificate) > 0 || len(configAuthInfo.ClientCertificateData) > 0 {
 		mergedConfig.CertFile = configAuthInfo.ClientCertificate
@@ -288,6 +296,14 @@ func canIdentifyUser(config restclient.Config) bool {
 
 // Namespace implements ClientConfig
 func (config *DirectClientConfig) Namespace() (string, bool, error) {
+	if config.overrides != nil && config.overrides.Context.Namespace != "" {
+		// In the event we have an empty config but we do have a namespace override, we should return
+		// the namespace override instead of having config.ConfirmUsable() return an error. This allows
+		// things like in-cluster clients to execute `kubectl get pods --namespace=foo` and have the
+		// --namespace flag honored instead of being ignored.
+		return config.overrides.Context.Namespace, true, nil
+	}
+
 	if err := config.ConfirmUsable(); err != nil {
 		return "", false, err
 	}
@@ -298,14 +314,10 @@ func (config *DirectClientConfig) Namespace() (string, bool, error) {
 	}
 
 	if len(configContext.Namespace) == 0 {
-		return api.NamespaceDefault, false, nil
+		return v1.NamespaceDefault, false, nil
 	}
 
-	overridden := false
-	if config.overrides != nil && config.overrides.Context.Namespace != "" {
-		overridden = true
-	}
-	return configContext.Namespace, overridden, nil
+	return configContext.Namespace, false, nil
 }
 
 // ConfigAccess implements ClientConfig
@@ -386,15 +398,15 @@ func (config *DirectClientConfig) getContext() (clientcmdapi.Context, error) {
 	contexts := config.config.Contexts
 	contextName, required := config.getContextName()
 
-	var mergedContext clientcmdapi.Context
+	mergedContext := clientcmdapi.NewContext()
 	if configContext, exists := contexts[contextName]; exists {
-		mergo.Merge(&mergedContext, configContext)
+		mergo.Merge(mergedContext, configContext)
 	} else if required {
 		return clientcmdapi.Context{}, fmt.Errorf("context %q does not exist", contextName)
 	}
-	mergo.Merge(&mergedContext, config.overrides.Context)
+	mergo.Merge(mergedContext, config.overrides.Context)
 
-	return mergedContext, nil
+	return *mergedContext, nil
 }
 
 // getAuthInfo returns the clientcmdapi.AuthInfo, or an error if a required auth info is not found.
@@ -402,15 +414,15 @@ func (config *DirectClientConfig) getAuthInfo() (clientcmdapi.AuthInfo, error) {
 	authInfos := config.config.AuthInfos
 	authInfoName, required := config.getAuthInfoName()
 
-	var mergedAuthInfo clientcmdapi.AuthInfo
+	mergedAuthInfo := clientcmdapi.NewAuthInfo()
 	if configAuthInfo, exists := authInfos[authInfoName]; exists {
-		mergo.Merge(&mergedAuthInfo, configAuthInfo)
+		mergo.Merge(mergedAuthInfo, configAuthInfo)
 	} else if required {
 		return clientcmdapi.AuthInfo{}, fmt.Errorf("auth info %q does not exist", authInfoName)
 	}
-	mergo.Merge(&mergedAuthInfo, config.overrides.AuthInfo)
+	mergo.Merge(mergedAuthInfo, config.overrides.AuthInfo)
 
-	return mergedAuthInfo, nil
+	return *mergedAuthInfo, nil
 }
 
 // getCluster returns the clientcmdapi.Cluster, or an error if a required cluster is not found.
@@ -418,14 +430,14 @@ func (config *DirectClientConfig) getCluster() (clientcmdapi.Cluster, error) {
 	clusterInfos := config.config.Clusters
 	clusterInfoName, required := config.getClusterName()
 
-	var mergedClusterInfo clientcmdapi.Cluster
-	mergo.Merge(&mergedClusterInfo, config.overrides.ClusterDefaults)
+	mergedClusterInfo := clientcmdapi.NewCluster()
+	mergo.Merge(mergedClusterInfo, config.overrides.ClusterDefaults)
 	if configClusterInfo, exists := clusterInfos[clusterInfoName]; exists {
-		mergo.Merge(&mergedClusterInfo, configClusterInfo)
+		mergo.Merge(mergedClusterInfo, configClusterInfo)
 	} else if required {
 		return clientcmdapi.Cluster{}, fmt.Errorf("cluster %q does not exist", clusterInfoName)
 	}
-	mergo.Merge(&mergedClusterInfo, config.overrides.ClusterInfo)
+	mergo.Merge(mergedClusterInfo, config.overrides.ClusterInfo)
 	// An override of --insecure-skip-tls-verify=true and no accompanying CA/CA data should clear already-set CA/CA data
 	// otherwise, a kubeconfig containing a CA reference would return an error that "CA and insecure-skip-tls-verify couldn't both be set"
 	caLen := len(config.overrides.ClusterInfo.CertificateAuthority)
@@ -435,7 +447,7 @@ func (config *DirectClientConfig) getCluster() (clientcmdapi.Cluster, error) {
 		mergedClusterInfo.CertificateAuthorityData = nil
 	}
 
-	return mergedClusterInfo, nil
+	return *mergedClusterInfo, nil
 }
 
 // inClusterClientConfig makes a config that will work from within a kubernetes cluster container environment.
@@ -482,13 +494,13 @@ func (config *inClusterClientConfig) Namespace() (string, bool, error) {
 	// This way assumes you've set the POD_NAMESPACE environment variable using the downward API.
 	// This check has to be done first for backwards compatibility with the way InClusterConfig was originally set up
 	if ns := os.Getenv("POD_NAMESPACE"); ns != "" {
-		return ns, true, nil
+		return ns, false, nil
 	}
 
 	// Fall back to the namespace associated with the service account token, if available
 	if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
 		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
-			return ns, true, nil
+			return ns, false, nil
 		}
 	}
 

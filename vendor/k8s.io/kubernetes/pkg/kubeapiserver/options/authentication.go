@@ -24,15 +24,16 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	genericapiserver "k8s.io/kubernetes/pkg/genericapiserver/server"
-	genericoptions "k8s.io/kubernetes/pkg/genericapiserver/server/options"
+	genericapiserver "k8s.io/apiserver/pkg/server"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/kubernetes/pkg/kubeapiserver/authenticator"
-	"k8s.io/kubernetes/pkg/kubeapiserver/authorizer"
+	authzmodes "k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
 )
 
 type BuiltInAuthenticationOptions struct {
 	Anonymous       *AnonymousAuthenticationOptions
 	AnyToken        *AnyTokenAuthenticationOptions
+	BootstrapToken  *BootstrapTokenAuthenticationOptions
 	ClientCert      *genericoptions.ClientCertAuthenticationOptions
 	Keystone        *KeystoneAuthenticationOptions
 	OIDC            *OIDCAuthenticationOptions
@@ -48,6 +49,10 @@ type AnyTokenAuthenticationOptions struct {
 }
 
 type AnonymousAuthenticationOptions struct {
+	Allow bool
+}
+
+type BootstrapTokenAuthenticationOptions struct {
 	Allow bool
 }
 
@@ -90,6 +95,7 @@ func (s *BuiltInAuthenticationOptions) WithAll() *BuiltInAuthenticationOptions {
 	return s.
 		WithAnyonymous().
 		WithAnyToken().
+		WithBootstrapToken().
 		WithClientCert().
 		WithKeystone().
 		WithOIDC().
@@ -107,6 +113,11 @@ func (s *BuiltInAuthenticationOptions) WithAnyonymous() *BuiltInAuthenticationOp
 
 func (s *BuiltInAuthenticationOptions) WithAnyToken() *BuiltInAuthenticationOptions {
 	s.AnyToken = &AnyTokenAuthenticationOptions{}
+	return s
+}
+
+func (s *BuiltInAuthenticationOptions) WithBootstrapToken() *BuiltInAuthenticationOptions {
+	s.BootstrapToken = &BootstrapTokenAuthenticationOptions{}
 	return s
 }
 
@@ -136,7 +147,7 @@ func (s *BuiltInAuthenticationOptions) WithRequestHeader() *BuiltInAuthenticatio
 }
 
 func (s *BuiltInAuthenticationOptions) WithServiceAccounts() *BuiltInAuthenticationOptions {
-	s.ServiceAccounts = &ServiceAccountAuthenticationOptions{}
+	s.ServiceAccounts = &ServiceAccountAuthenticationOptions{Lookup: true}
 	return s
 }
 
@@ -152,8 +163,14 @@ func (s *BuiltInAuthenticationOptions) WithWebHook() *BuiltInAuthenticationOptio
 	return s
 }
 
+// Validate checks invalid config combination
 func (s *BuiltInAuthenticationOptions) Validate() []error {
 	allErrors := []error{}
+
+	if s.OIDC != nil && (len(s.OIDC.IssuerURL) > 0) != (len(s.OIDC.ClientID) > 0) {
+		allErrors = append(allErrors, fmt.Errorf("oidc-issuer-url and oidc-client-id should be specified together"))
+	}
+
 	return allErrors
 }
 
@@ -170,6 +187,12 @@ func (s *BuiltInAuthenticationOptions) AddFlags(fs *pflag.FlagSet) {
 			"If set, your server will be INSECURE.  Any token will be allowed and user information will be parsed "+
 			"from the token as `username/group1,group2`")
 
+	}
+
+	if s.BootstrapToken != nil {
+		fs.BoolVar(&s.BootstrapToken.Allow, "experimental-bootstrap-token-auth", s.BootstrapToken.Allow, ""+
+			"Enable to allow secrets of type 'bootstrap.kubernetes.io/token' in the 'kube-system' "+
+			"namespace to be used for TLS bootstrapping authentication.")
 	}
 
 	if s.ClientCert != nil {
@@ -240,7 +263,7 @@ func (s *BuiltInAuthenticationOptions) AddFlags(fs *pflag.FlagSet) {
 			"The API server will query the remote service to determine authentication for bearer tokens.")
 
 		fs.DurationVar(&s.WebHook.CacheTTL, "authentication-token-webhook-cache-ttl", s.WebHook.CacheTTL,
-			"The duration to cache responses from the webhook token authenticator. Default is 2m.")
+			"The duration to cache responses from the webhook token authenticator.")
 	}
 }
 
@@ -253,6 +276,10 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() authenticator.Au
 
 	if s.AnyToken != nil {
 		ret.AnyToken = s.AnyToken.Allow
+	}
+
+	if s.BootstrapToken != nil {
+		ret.BootstrapToken = s.BootstrapToken.Allow
 	}
 
 	if s.ClientCert != nil {
@@ -297,7 +324,7 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() authenticator.Au
 	return ret
 }
 
-func (o *BuiltInAuthenticationOptions) Apply(c *genericapiserver.Config) error {
+func (o *BuiltInAuthenticationOptions) ApplyTo(c *genericapiserver.Config) error {
 	if o == nil {
 		return nil
 	}
@@ -332,7 +359,7 @@ func (o *BuiltInAuthenticationOptions) ApplyAuthorization(authorization *BuiltIn
 	if o.Anonymous.Allow {
 		found := false
 		for _, mode := range strings.Split(authorization.Mode, ",") {
-			if mode == authorizer.ModeAlwaysAllow {
+			if mode == authzmodes.ModeAlwaysAllow {
 				found = true
 				break
 			}

@@ -34,6 +34,8 @@ type FakeEvents struct {
 
 var eventsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "events"}
 
+var eventsKind = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Event"}
+
 func (c *FakeEvents) Create(event *v1.Event) (result *v1.Event, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(eventsResource, c.ns, event), &v1.Event{})
@@ -54,14 +56,14 @@ func (c *FakeEvents) Update(event *v1.Event) (result *v1.Event, err error) {
 	return obj.(*v1.Event), err
 }
 
-func (c *FakeEvents) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeEvents) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(eventsResource, c.ns, name), &v1.Event{})
 
 	return err
 }
 
-func (c *FakeEvents) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakeEvents) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(eventsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.EventList{})
@@ -80,7 +82,7 @@ func (c *FakeEvents) Get(name string, options meta_v1.GetOptions) (result *v1.Ev
 
 func (c *FakeEvents) List(opts meta_v1.ListOptions) (result *v1.EventList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(eventsResource, c.ns, opts), &v1.EventList{})
+		Invokes(testing.NewListAction(eventsResource, eventsKind, c.ns, opts), &v1.EventList{})
 
 	if obj == nil {
 		return nil, err

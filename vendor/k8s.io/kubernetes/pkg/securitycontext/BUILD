@@ -13,31 +13,24 @@ go_library(
     srcs = [
         "doc.go",
         "fake.go",
-        "provider.go",
-        "types.go",
         "util.go",
     ],
     tags = ["automanaged"],
     deps = [
         "//pkg/api:go_default_library",
         "//pkg/api/v1:go_default_library",
-        "//pkg/kubelet/leaky:go_default_library",
-        "//vendor:github.com/docker/engine-api/types/container",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
     ],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = [
-        "provider_test.go",
-        "util_test.go",
-    ],
+    srcs = ["util_test.go"],
     library = ":go_default_library",
     tags = ["automanaged"],
     deps = [
-        "//pkg/api/testing:go_default_library",
         "//pkg/api/v1:go_default_library",
-        "//vendor:github.com/docker/engine-api/types/container",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
     ],
 )
 

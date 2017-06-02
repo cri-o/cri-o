@@ -11,8 +11,20 @@ load(
 go_library(
     name = "go_default_library",
     srcs = [
-        "flexvolume.go",
-        "flexvolume_util.go",
+        "attacher.go",
+        "attacher-defaults.go",
+        "detacher.go",
+        "detacher-defaults.go",
+        "driver-call.go",
+        "mounter.go",
+        "mounter-defaults.go",
+        "plugin.go",
+        "plugin-defaults.go",
+        "probe.go",
+        "unmounter.go",
+        "unmounter-defaults.go",
+        "util.go",
+        "volume.go",
     ],
     tags = ["automanaged"],
     deps = [
@@ -22,15 +34,22 @@ go_library(
         "//pkg/util/strings:go_default_library",
         "//pkg/volume:go_default_library",
         "//pkg/volume/util:go_default_library",
-        "//vendor:github.com/golang/glog",
-        "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
-        "//vendor:k8s.io/apimachinery/pkg/types",
+        "//vendor/github.com/golang/glog:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
     ],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = ["flexvolume_test.go"],
+    srcs = [
+        "attacher_test.go",
+        "common_test.go",
+        "detacher_test.go",
+        "flexvolume_test.go",
+        "mounter_test.go",
+        "plugin_test.go",
+        "unmounter_test.go",
+    ],
     library = ":go_default_library",
     tags = ["automanaged"],
     deps = [
@@ -39,9 +58,9 @@ go_test(
         "//pkg/util/mount:go_default_library",
         "//pkg/volume:go_default_library",
         "//pkg/volume/testing:go_default_library",
-        "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
-        "//vendor:k8s.io/apimachinery/pkg/types",
-        "//vendor:k8s.io/client-go/util/testing",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
+        "//vendor/k8s.io/client-go/util/testing:go_default_library",
     ],
 )
 

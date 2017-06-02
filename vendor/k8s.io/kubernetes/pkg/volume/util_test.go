@@ -18,15 +18,19 @@ package volume
 
 import (
 	"fmt"
+	"hash/fnv"
+	"reflect"
 	"strings"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 type testcase struct {
@@ -302,5 +306,274 @@ func TestGenerateVolumeName(t *testing.T) {
 	if v3 != expect {
 		t.Errorf("Expected %s, got %s", expect, v3)
 	}
+}
 
+func TestMountOptionFromSpec(t *testing.T) {
+	scenarios := map[string]struct {
+		volume            *Spec
+		expectedMountList []string
+		systemOptions     []string
+	}{
+		"volume-with-mount-options": {
+			volume: createVolumeSpecWithMountOption("good-mount-opts", "ro,nfsvers=3", v1.PersistentVolumeSpec{
+				PersistentVolumeSource: v1.PersistentVolumeSource{
+					NFS: &v1.NFSVolumeSource{Server: "localhost", Path: "/srv", ReadOnly: false},
+				},
+			}),
+			expectedMountList: []string{"ro", "nfsvers=3"},
+			systemOptions:     nil,
+		},
+		"volume-with-bad-mount-options": {
+			volume: createVolumeSpecWithMountOption("good-mount-opts", "", v1.PersistentVolumeSpec{
+				PersistentVolumeSource: v1.PersistentVolumeSource{
+					NFS: &v1.NFSVolumeSource{Server: "localhost", Path: "/srv", ReadOnly: false},
+				},
+			}),
+			expectedMountList: []string{},
+			systemOptions:     nil,
+		},
+		"vol-with-sys-opts": {
+			volume: createVolumeSpecWithMountOption("good-mount-opts", "ro,nfsvers=3", v1.PersistentVolumeSpec{
+				PersistentVolumeSource: v1.PersistentVolumeSource{
+					NFS: &v1.NFSVolumeSource{Server: "localhost", Path: "/srv", ReadOnly: false},
+				},
+			}),
+			expectedMountList: []string{"ro", "nfsvers=3", "fsid=100", "hard"},
+			systemOptions:     []string{"fsid=100", "hard"},
+		},
+		"vol-with-sys-opts-with-dup": {
+			volume: createVolumeSpecWithMountOption("good-mount-opts", "ro,nfsvers=3", v1.PersistentVolumeSpec{
+				PersistentVolumeSource: v1.PersistentVolumeSource{
+					NFS: &v1.NFSVolumeSource{Server: "localhost", Path: "/srv", ReadOnly: false},
+				},
+			}),
+			expectedMountList: []string{"ro", "nfsvers=3", "fsid=100"},
+			systemOptions:     []string{"fsid=100", "ro"},
+		},
+	}
+
+	for name, scenario := range scenarios {
+		mountOptions := MountOptionFromSpec(scenario.volume, scenario.systemOptions...)
+		if !reflect.DeepEqual(slice.SortStrings(mountOptions), slice.SortStrings(scenario.expectedMountList)) {
+			t.Errorf("for %s expected mount options : %v got %v", name, scenario.expectedMountList, mountOptions)
+		}
+	}
+}
+
+func createVolumeSpecWithMountOption(name string, mountOptions string, spec v1.PersistentVolumeSpec) *Spec {
+	annotations := map[string]string{
+		v1.MountOptionAnnotation: mountOptions,
+	}
+	objMeta := metav1.ObjectMeta{
+		Name:        name,
+		Annotations: annotations,
+	}
+
+	pv := &v1.PersistentVolume{
+		ObjectMeta: objMeta,
+		Spec:       spec,
+	}
+	return &Spec{PersistentVolume: pv}
+}
+
+func checkFnv32(t *testing.T, s string, expected int) {
+	h := fnv.New32()
+	h.Write([]byte(s))
+	h.Sum32()
+
+	if int(h.Sum32()) != expected {
+		t.Fatalf("hash of %q was %v, expected %v", s, h.Sum32(), expected)
+	}
+}
+
+func TestChooseZoneForVolume(t *testing.T) {
+	checkFnv32(t, "henley", 1180403676)
+	// 1180403676 mod 3 == 0, so the offset from "henley" is 0, which makes it easier to verify this by inspection
+
+	// A few others
+	checkFnv32(t, "henley-", 2652299129)
+	checkFnv32(t, "henley-a", 1459735322)
+	checkFnv32(t, "", 2166136261)
+
+	tests := []struct {
+		Zones      []string
+		VolumeName string
+		Expected   string
+	}{
+		// Test for PVC names that don't have a dash
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "henley",
+			Expected:   "a", // hash("henley") == 0
+		},
+		// Tests for PVC names that end in - number, but don't look like statefulset PVCs
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "henley-0",
+			Expected:   "a", // hash("henley") == 0
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "henley-1",
+			Expected:   "b", // hash("henley") + 1 == 1
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "henley-2",
+			Expected:   "c", // hash("henley") + 2 == 2
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "henley-3",
+			Expected:   "a", // hash("henley") + 3 == 3 === 0 mod 3
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "henley-4",
+			Expected:   "b", // hash("henley") + 4 == 4 === 1 mod 3
+		},
+		// Tests for PVC names that are edge cases
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "henley-",
+			Expected:   "c", // hash("henley-") = 2652299129 === 2 mod 3
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "henley-a",
+			Expected:   "c", // hash("henley-a") = 1459735322 === 2 mod 3
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium--1",
+			Expected:   "c", // hash("") + 1 == 2166136261 + 1 === 2 mod 3
+		},
+		// Tests for PVC names for simple StatefulSet cases
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-henley-1",
+			Expected:   "b", // hash("henley") + 1 == 1
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "loud-henley-1",
+			Expected:   "b", // hash("henley") + 1 == 1
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "quiet-henley-2",
+			Expected:   "c", // hash("henley") + 2 == 2
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-henley-2",
+			Expected:   "c", // hash("henley") + 2 == 2
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-henley-3",
+			Expected:   "a", // hash("henley") + 3 == 3 === 0 mod 3
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-henley-4",
+			Expected:   "b", // hash("henley") + 4 == 4 === 1 mod 3
+		},
+		// Tests for statefulsets (or claims) with dashes in the names
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-alpha-henley-2",
+			Expected:   "c", // hash("henley") + 2 == 2
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-beta-henley-3",
+			Expected:   "a", // hash("henley") + 3 == 3 === 0 mod 3
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-gamma-henley-4",
+			Expected:   "b", // hash("henley") + 4 == 4 === 1 mod 3
+		},
+		// Tests for statefulsets name ending in -
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-henley--2",
+			Expected:   "a", // hash("") + 2 == 0 mod 3
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-henley--3",
+			Expected:   "b", // hash("") + 3 == 1 mod 3
+		},
+		{
+			Zones:      []string{"a", "b", "c"},
+			VolumeName: "medium-henley--4",
+			Expected:   "c", // hash("") + 4 == 2 mod 3
+		},
+	}
+
+	for _, test := range tests {
+		zonesSet := sets.NewString(test.Zones...)
+
+		actual := ChooseZoneForVolume(zonesSet, test.VolumeName)
+
+		for actual != test.Expected {
+			t.Errorf("Test %v failed, expected zone %q, actual %q", test, test.Expected, actual)
+		}
+	}
+}
+
+func TestZonesToSet(t *testing.T) {
+	functionUnderTest := "ZonesToSet"
+	// First part: want an error
+	sliceOfZones := []string{"", ",", "us-east-1a, , us-east-1d", ", us-west-1b", "us-west-2b,"}
+	for _, zones := range sliceOfZones {
+		if got, err := ZonesToSet(zones); err == nil {
+			t.Errorf("%v(%v) returned (%v), want (%v)", functionUnderTest, zones, got, "an error")
+		}
+	}
+
+	// Second part: want no error
+	tests := []struct {
+		zones string
+		want  sets.String
+	}{
+		{
+			zones: "us-east-1a",
+			want:  sets.String{"us-east-1a": sets.Empty{}},
+		},
+		{
+			zones: "us-east-1a, us-west-2a",
+			want: sets.String{
+				"us-east-1a": sets.Empty{},
+				"us-west-2a": sets.Empty{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		if got, err := ZonesToSet(tt.zones); err != nil || !got.Equal(tt.want) {
+			t.Errorf("%v(%v) returned (%v), want (%v)", functionUnderTest, tt.zones, got, tt.want)
+		}
+	}
+}
+
+func TestValidateZone(t *testing.T) {
+	functionUnderTest := "ValidateZone"
+
+	// First part: want an error
+	errCases := []string{"", " 	 	 "}
+	for _, errCase := range errCases {
+		if got := ValidateZone(errCase); got == nil {
+			t.Errorf("%v(%v) returned (%v), want (%v)", functionUnderTest, errCase, got, "an error")
+		}
+	}
+
+	// Second part: want no error
+	succCases := []string{" us-east-1a	"}
+	for _, succCase := range succCases {
+		if got := ValidateZone(succCase); got != nil {
+			t.Errorf("%v(%v) returned (%v), want (%v)", functionUnderTest, succCase, got, nil)
+		}
+	}
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
 var (
@@ -34,7 +35,7 @@ var (
 func NewCmdSet(f cmdutil.Factory, out, err io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set SUBCOMMAND",
-		Short: "Set specific features on objects",
+		Short: i18n.T("Set specific features on objects"),
 		Long:  set_long,
 		Run:   cmdutil.DefaultSubCommandRun(err),
 	}
@@ -43,6 +44,7 @@ func NewCmdSet(f cmdutil.Factory, out, err io.Writer) *cobra.Command {
 	cmd.AddCommand(NewCmdImage(f, out, err))
 	cmd.AddCommand(NewCmdResources(f, out, err))
 	cmd.AddCommand(NewCmdSelector(f, out))
+	cmd.AddCommand(NewCmdSubject(f, out, err))
 
 	return cmd
 }

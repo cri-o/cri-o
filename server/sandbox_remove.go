@@ -11,7 +11,7 @@ import (
 	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
 )
 
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the

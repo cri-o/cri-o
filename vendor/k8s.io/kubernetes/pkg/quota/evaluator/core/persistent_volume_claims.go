@@ -20,17 +20,17 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/storage/util"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 )
@@ -83,7 +83,7 @@ func listPersistentVolumeClaimsByNamespaceFuncUsingClient(kubeClient clientset.I
 func NewPersistentVolumeClaimEvaluator(kubeClient clientset.Interface, f informers.SharedInformerFactory) quota.Evaluator {
 	listFuncByNamespace := listPersistentVolumeClaimsByNamespaceFuncUsingClient(kubeClient)
 	if f != nil {
-		listFuncByNamespace = generic.ListResourceUsingInformerFunc(f, schema.GroupResource{Resource: "persistentvolumeclaims"})
+		listFuncByNamespace = generic.ListResourceUsingInformerFunc(f, v1.SchemeGroupVersion.WithResource("persistentvolumeclaims"))
 	}
 	return &pvcEvaluator{
 		listFuncByNamespace: listFuncByNamespace,
@@ -105,7 +105,7 @@ func (p *pvcEvaluator) Constraints(required []api.ResourceName, item runtime.Obj
 
 	// these are the items that we will be handling based on the objects actual storage-class
 	pvcRequiredSet := append([]api.ResourceName{}, pvcResources...)
-	if storageClassRef := util.GetClaimStorageClass(pvc); len(storageClassRef) > 0 {
+	if storageClassRef := helper.GetPersistentVolumeClaimClass(pvc); len(storageClassRef) > 0 {
 		pvcRequiredSet = append(pvcRequiredSet, ResourceByStorageClass(storageClassRef, api.ResourcePersistentVolumeClaims))
 		pvcRequiredSet = append(pvcRequiredSet, ResourceByStorageClass(storageClassRef, api.ResourceRequestsStorage))
 	}
@@ -139,7 +139,7 @@ func (p *pvcEvaluator) GroupKind() schema.GroupKind {
 	return api.Kind("PersistentVolumeClaim")
 }
 
-// Handles returns true if the evalutor should handle the specified operation.
+// Handles returns true if the evaluator should handle the specified operation.
 func (p *pvcEvaluator) Handles(operation admission.Operation) bool {
 	return admission.Create == operation
 }
@@ -176,7 +176,7 @@ func (p *pvcEvaluator) Usage(item runtime.Object) (api.ResourceList, error) {
 	if err != nil {
 		return result, err
 	}
-	storageClassRef := util.GetClaimStorageClass(pvc)
+	storageClassRef := helper.GetPersistentVolumeClaimClass(pvc)
 
 	// charge for claim
 	result[api.ResourcePersistentVolumeClaims] = resource.MustParse("1")

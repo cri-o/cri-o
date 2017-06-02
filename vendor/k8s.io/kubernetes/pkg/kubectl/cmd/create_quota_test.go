@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"testing"
 
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
 
@@ -32,6 +32,7 @@ func TestCreateQuota(t *testing.T) {
 	f, tf, codec, ns := cmdtesting.NewAPIFactory()
 	tf.Printer = &testPrinter{}
 	tf.Client = &fake.RESTClient{
+		APIRegistry:          api.Registry,
 		NegotiatedSerializer: ns,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
@@ -46,30 +47,30 @@ func TestCreateQuota(t *testing.T) {
 	tf.Namespace = "test"
 
 	tests := map[string]struct {
-		flags          map[string]string
+		flags          []string
 		expectedOutput string
 	}{
 		"single resource": {
-			flags:          map[string]string{"hard": "cpu=1", "output": "name"},
+			flags:          []string{"--hard=cpu=1"},
 			expectedOutput: "resourcequota/" + resourceQuotaObject.Name + "\n",
 		},
 		"single resource with a scope": {
-			flags:          map[string]string{"hard": "cpu=1", "output": "name", "scopes": "BestEffort"},
+			flags:          []string{"--hard=cpu=1", "--scopes=BestEffort"},
 			expectedOutput: "resourcequota/" + resourceQuotaObject.Name + "\n",
 		},
 		"multiple resources": {
-			flags:          map[string]string{"hard": "cpu=1,pods=42", "output": "name", "scopes": "BestEffort"},
+			flags:          []string{"--hard=cpu=1,pods=42", "--scopes=BestEffort"},
 			expectedOutput: "resourcequota/" + resourceQuotaObject.Name + "\n",
 		},
 		"single resource with multiple scopes": {
-			flags:          map[string]string{"hard": "cpu=1", "output": "name", "scopes": "BestEffort,NotTerminating"},
+			flags:          []string{"--hard=cpu=1", "--scopes=BestEffort,NotTerminating"},
 			expectedOutput: "resourcequota/" + resourceQuotaObject.Name + "\n",
 		},
 	}
 	for name, test := range tests {
 		buf := bytes.NewBuffer([]byte{})
 		cmd := NewCmdCreateQuota(f, buf)
-		cmd.Flags().Set("hard", "cpu=1")
+		cmd.Flags().Parse(test.flags)
 		cmd.Flags().Set("output", "name")
 		cmd.Run(cmd, []string{resourceQuotaObject.Name})
 

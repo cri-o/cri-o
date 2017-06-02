@@ -34,13 +34,13 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/helper/qos"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
 	"k8s.io/kubernetes/pkg/kubelet/client"
-	"k8s.io/kubernetes/pkg/kubelet/qos"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // podStrategy implements behavior for Pods
@@ -63,7 +63,7 @@ func (podStrategy) PrepareForCreate(ctx genericapirequest.Context, obj runtime.O
 	pod := obj.(*api.Pod)
 	pod.Status = api.PodStatus{
 		Phase:    api.PodPending,
-		QOSClass: qos.InternalGetPodQOS(pod),
+		QOSClass: qos.GetPodQOS(pod),
 	}
 }
 
@@ -153,6 +153,10 @@ func (podStatusStrategy) PrepareForUpdate(ctx genericapirequest.Context, obj, ol
 	oldPod := old.(*api.Pod)
 	newPod.Spec = oldPod.Spec
 	newPod.DeletionTimestamp = nil
+
+	// don't allow the pods/status endpoint to touch owner references since old kubelets corrupt them in a way
+	// that breaks garbage collection
+	newPod.OwnerReferences = oldPod.OwnerReferences
 }
 
 func (podStatusStrategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
@@ -383,6 +387,14 @@ func streamParams(params url.Values, opts runtime.Object) error {
 		if opts.TTY {
 			params.Add(api.ExecTTYParam, "1")
 		}
+	case *api.PodPortForwardOptions:
+		if len(opts.Ports) > 0 {
+			ports := make([]string, len(opts.Ports))
+			for i, p := range opts.Ports {
+				ports[i] = strconv.FormatInt(int64(p), 10)
+			}
+			params.Add(api.PortHeader, strings.Join(ports, ","))
+		}
 	default:
 		return fmt.Errorf("Unknown object for streaming: %v", opts)
 	}
@@ -477,6 +489,7 @@ func PortForwardLocation(
 	connInfo client.ConnectionInfoGetter,
 	ctx genericapirequest.Context,
 	name string,
+	opts *api.PodPortForwardOptions,
 ) (*url.URL, http.RoundTripper, error) {
 	pod, err := getPod(getter, ctx, name)
 	if err != nil {
@@ -492,10 +505,15 @@ func PortForwardLocation(
 	if err != nil {
 		return nil, nil, err
 	}
+	params := url.Values{}
+	if err := streamParams(params, opts); err != nil {
+		return nil, nil, err
+	}
 	loc := &url.URL{
-		Scheme: nodeInfo.Scheme,
-		Host:   net.JoinHostPort(nodeInfo.Hostname, nodeInfo.Port),
-		Path:   fmt.Sprintf("/portForward/%s/%s", pod.Namespace, pod.Name),
+		Scheme:   nodeInfo.Scheme,
+		Host:     net.JoinHostPort(nodeInfo.Hostname, nodeInfo.Port),
+		Path:     fmt.Sprintf("/portForward/%s/%s", pod.Namespace, pod.Name),
+		RawQuery: params.Encode(),
 	}
 	return loc, nodeInfo.Transport, nil
 }

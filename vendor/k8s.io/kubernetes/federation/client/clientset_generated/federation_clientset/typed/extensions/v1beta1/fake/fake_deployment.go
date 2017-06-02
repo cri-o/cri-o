@@ -22,8 +22,8 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 	v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
 
 // FakeDeployments implements DeploymentInterface
@@ -34,9 +34,11 @@ type FakeDeployments struct {
 
 var deploymentsResource = schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "deployments"}
 
+var deploymentsKind = schema.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "Deployment"}
+
 func (c *FakeDeployments) Create(deployment *v1beta1.Deployment) (result *v1beta1.Deployment, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(deploymentsResource, c.ns, deployment), &v1beta1.Deployment{})
+		Invokes(testing.NewCreateAction(deploymentsResource, c.ns, deployment), &v1beta1.Deployment{})
 
 	if obj == nil {
 		return nil, err
@@ -46,7 +48,7 @@ func (c *FakeDeployments) Create(deployment *v1beta1.Deployment) (result *v1beta
 
 func (c *FakeDeployments) Update(deployment *v1beta1.Deployment) (result *v1beta1.Deployment, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(deploymentsResource, c.ns, deployment), &v1beta1.Deployment{})
+		Invokes(testing.NewUpdateAction(deploymentsResource, c.ns, deployment), &v1beta1.Deployment{})
 
 	if obj == nil {
 		return nil, err
@@ -56,7 +58,7 @@ func (c *FakeDeployments) Update(deployment *v1beta1.Deployment) (result *v1beta
 
 func (c *FakeDeployments) UpdateStatus(deployment *v1beta1.Deployment) (*v1beta1.Deployment, error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateSubresourceAction(deploymentsResource, "status", c.ns, deployment), &v1beta1.Deployment{})
+		Invokes(testing.NewUpdateSubresourceAction(deploymentsResource, "status", c.ns, deployment), &v1beta1.Deployment{})
 
 	if obj == nil {
 		return nil, err
@@ -66,13 +68,13 @@ func (c *FakeDeployments) UpdateStatus(deployment *v1beta1.Deployment) (*v1beta1
 
 func (c *FakeDeployments) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(deploymentsResource, c.ns, name), &v1beta1.Deployment{})
+		Invokes(testing.NewDeleteAction(deploymentsResource, c.ns, name), &v1beta1.Deployment{})
 
 	return err
 }
 
 func (c *FakeDeployments) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := core.NewDeleteCollectionAction(deploymentsResource, c.ns, listOptions)
+	action := testing.NewDeleteCollectionAction(deploymentsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.DeploymentList{})
 	return err
@@ -80,7 +82,7 @@ func (c *FakeDeployments) DeleteCollection(options *v1.DeleteOptions, listOption
 
 func (c *FakeDeployments) Get(name string, options v1.GetOptions) (result *v1beta1.Deployment, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(deploymentsResource, c.ns, name), &v1beta1.Deployment{})
+		Invokes(testing.NewGetAction(deploymentsResource, c.ns, name), &v1beta1.Deployment{})
 
 	if obj == nil {
 		return nil, err
@@ -90,13 +92,13 @@ func (c *FakeDeployments) Get(name string, options v1.GetOptions) (result *v1bet
 
 func (c *FakeDeployments) List(opts v1.ListOptions) (result *v1beta1.DeploymentList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(deploymentsResource, c.ns, opts), &v1beta1.DeploymentList{})
+		Invokes(testing.NewListAction(deploymentsResource, deploymentsKind, c.ns, opts), &v1beta1.DeploymentList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -112,14 +114,14 @@ func (c *FakeDeployments) List(opts v1.ListOptions) (result *v1beta1.DeploymentL
 // Watch returns a watch.Interface that watches the requested deployments.
 func (c *FakeDeployments) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(deploymentsResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(deploymentsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched deployment.
 func (c *FakeDeployments) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Deployment, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(deploymentsResource, c.ns, name, data, subresources...), &v1beta1.Deployment{})
+		Invokes(testing.NewPatchSubresourceAction(deploymentsResource, c.ns, name, data, subresources...), &v1beta1.Deployment{})
 
 	if obj == nil {
 		return nil, err

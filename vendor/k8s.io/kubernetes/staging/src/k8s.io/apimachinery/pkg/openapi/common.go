@@ -19,6 +19,7 @@ package openapi
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
+	"strings"
 )
 
 // OpenAPIDefinition describes single type. Normally these definitions are auto-generated using gen-openapi.
@@ -27,8 +28,10 @@ type OpenAPIDefinition struct {
 	Dependencies []string
 }
 
+type ReferenceCallback func(path string) spec.Ref
+
 // OpenAPIDefinitions is collection of all definitions.
-type OpenAPIDefinitions map[string]OpenAPIDefinition
+type GetOpenAPIDefinitions func(ReferenceCallback) map[string]OpenAPIDefinition
 
 // OpenAPIDefinitionGetter gets openAPI definitions for a given type. If a type implements this interface,
 // the definition returned by it will be used, otherwise the auto-generated definitions will be used. See
@@ -59,10 +62,17 @@ type Config struct {
 
 	// OpenAPIDefinitions should provide definition for all models used by routes. Failure to provide this map
 	// or any of the models will result in spec generation failure.
-	Definitions *OpenAPIDefinitions
+	GetDefinitions GetOpenAPIDefinitions
 
 	// GetOperationIDAndTags returns operation id and tags for a restful route. It is an optional function to customize operation IDs.
 	GetOperationIDAndTags func(servePath string, r *restful.Route) (string, []string, error)
+
+	// GetDefinitionName returns a friendly name for a definition base on the serving path. parameter `name` is the full name of the definition.
+	// It is an optional function to customize model names.
+	GetDefinitionName func(servePath string, name string) (string, spec.Extensions)
+
+	// PostProcessSpec runs after the spec is ready to serve. It allows a final modification to the spec before serving.
+	PostProcessSpec func(*spec.Swagger) (*spec.Swagger, error)
 
 	// SecurityDefinitions is list of all security definitions for OpenAPI service. If this is not nil, the user of config
 	// is responsible to provide DefaultSecurity and (maybe) add unauthorized response to CommonResponses.
@@ -114,30 +124,38 @@ type Config struct {
 //
 func GetOpenAPITypeFormat(typeName string) (string, string) {
 	schemaTypeFormatMap := map[string][]string{
-		"uint":      {"integer", "int32"},
-		"uint8":     {"integer", "byte"},
-		"uint16":    {"integer", "int32"},
-		"uint32":    {"integer", "int64"},
-		"uint64":    {"integer", "int64"},
-		"int":       {"integer", "int32"},
-		"int8":      {"integer", "byte"},
-		"int16":     {"integer", "int32"},
-		"int32":     {"integer", "int32"},
-		"int64":     {"integer", "int64"},
-		"byte":      {"integer", "byte"},
-		"float64":   {"number", "double"},
-		"float32":   {"number", "float"},
-		"bool":      {"boolean", ""},
-		"time.Time": {"string", "date-time"},
-		"string":    {"string", ""},
-		"integer":   {"integer", ""},
-		"number":    {"number", ""},
-		"boolean":   {"boolean", ""},
-		"[]byte":    {"string", "byte"}, // base64 encoded characters
+		"uint":        {"integer", "int32"},
+		"uint8":       {"integer", "byte"},
+		"uint16":      {"integer", "int32"},
+		"uint32":      {"integer", "int64"},
+		"uint64":      {"integer", "int64"},
+		"int":         {"integer", "int32"},
+		"int8":        {"integer", "byte"},
+		"int16":       {"integer", "int32"},
+		"int32":       {"integer", "int32"},
+		"int64":       {"integer", "int64"},
+		"byte":        {"integer", "byte"},
+		"float64":     {"number", "double"},
+		"float32":     {"number", "float"},
+		"bool":        {"boolean", ""},
+		"time.Time":   {"string", "date-time"},
+		"string":      {"string", ""},
+		"integer":     {"integer", ""},
+		"number":      {"number", ""},
+		"boolean":     {"boolean", ""},
+		"[]byte":      {"string", "byte"}, // base64 encoded characters
+		"interface{}": {"object", ""},
 	}
 	mapped, ok := schemaTypeFormatMap[typeName]
 	if !ok {
 		return "", ""
 	}
 	return mapped[0], mapped[1]
+}
+
+func EscapeJsonPointer(p string) string {
+	// Escaping reference name using rfc6901
+	p = strings.Replace(p, "~", "~0", -1)
+	p = strings.Replace(p, "/", "~1", -1)
+	return p
 }

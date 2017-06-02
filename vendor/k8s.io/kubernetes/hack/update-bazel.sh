@@ -20,5 +20,21 @@ set -o pipefail
 export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
-go get -u gopkg.in/mikedanese/gazel.v13/gazel
-"${GOPATH}/bin/gazel" -root="$(kube::realpath ${KUBE_ROOT})"
+# Remove generated files prior to running gazel.
+# TODO(spxtr): Remove this line once Bazel is the only way to build.
+rm -f "${KUBE_ROOT}/pkg/generated/openapi/zz_generated.openapi.go"
+
+go get -u gopkg.in/mikedanese/gazel.v17/gazel
+
+for path in ${GOPATH//:/ }; do
+  if [[ -e "${path}/bin/gazel" ]]; then
+    gazel="${path}/bin/gazel"
+    break
+  fi
+done
+if [[ -z "${gazel:-}" ]]; then
+  echo "Couldn't find gazel on the GOPATH."
+  exit 1
+fi
+
+"${gazel}" -root="$(kube::realpath ${KUBE_ROOT})"

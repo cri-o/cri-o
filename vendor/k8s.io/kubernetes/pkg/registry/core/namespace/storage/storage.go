@@ -20,21 +20,24 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/storage"
+	storageerr "k8s.io/apiserver/pkg/storage/errors"
 	"k8s.io/kubernetes/pkg/api"
-	storageerr "k8s.io/kubernetes/pkg/api/errors/storage"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/generic"
-	genericregistry "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/namespace"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // rest implements a RESTStorage for namespaces
 type REST struct {
-	*genericregistry.Store
+	store  *genericregistry.Store
 	status *genericregistry.Store
 }
 
@@ -51,13 +54,12 @@ type FinalizeREST struct {
 // NewREST returns a RESTStorage object that will work against namespaces.
 func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *FinalizeREST) {
 	store := &genericregistry.Store{
-		NewFunc:     func() runtime.Object { return &api.Namespace{} },
-		NewListFunc: func() runtime.Object { return &api.NamespaceList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.Namespace).Name, nil
-		},
+		Copier:            api.Scheme,
+		NewFunc:           func() runtime.Object { return &api.Namespace{} },
+		NewListFunc:       func() runtime.Object { return &api.NamespaceList{} },
 		PredicateFunc:     namespace.MatchNamespace,
 		QualifiedResource: api.Resource("namespaces"),
+		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("namespaces"),
 
 		CreateStrategy:      namespace.Strategy,
 		UpdateStrategy:      namespace.Strategy,
@@ -75,14 +77,46 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *Finaliz
 	finalizeStore := *store
 	finalizeStore.UpdateStrategy = namespace.FinalizeStrategy
 
-	return &REST{Store: store, status: &statusStore}, &StatusREST{store: &statusStore}, &FinalizeREST{store: &finalizeStore}
+	return &REST{store: store, status: &statusStore}, &StatusREST{store: &statusStore}, &FinalizeREST{store: &finalizeStore}
+}
+
+func (r *REST) New() runtime.Object {
+	return r.store.New()
+}
+
+func (r *REST) NewList() runtime.Object {
+	return r.store.NewList()
+}
+
+func (r *REST) List(ctx genericapirequest.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
+	return r.store.List(ctx, options)
+}
+
+func (r *REST) Create(ctx genericapirequest.Context, obj runtime.Object) (runtime.Object, error) {
+	return r.store.Create(ctx, obj)
+}
+
+func (r *REST) Update(ctx genericapirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
+}
+
+func (r *REST) Get(ctx genericapirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	return r.store.Get(ctx, name, options)
+}
+
+func (r *REST) Watch(ctx genericapirequest.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
+	return r.store.Watch(ctx, options)
+}
+
+func (r *REST) Export(ctx genericapirequest.Context, name string, opts metav1.ExportOptions) (runtime.Object, error) {
+	return r.store.Export(ctx, name, opts)
 }
 
 // Delete enforces life-cycle rules for namespace termination
-func (r *REST) Delete(ctx genericapirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
+func (r *REST) Delete(ctx genericapirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	nsObj, err := r.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	namespace := nsObj.(*api.Namespace)
@@ -102,21 +136,21 @@ func (r *REST) Delete(ctx genericapirequest.Context, name string, options *metav
 			name,
 			fmt.Errorf("Precondition failed: UID in precondition: %v, UID in object meta: %v", *options.Preconditions.UID, namespace.UID),
 		)
-		return nil, err
+		return nil, false, err
 	}
 
 	// upon first request to delete, we switch the phase to start namespace termination
 	// TODO: enhance graceful deletion's calls to DeleteStrategy to allow phase change and finalizer patterns
 	if namespace.DeletionTimestamp.IsZero() {
-		key, err := r.Store.KeyFunc(ctx, name)
+		key, err := r.store.KeyFunc(ctx, name)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		preconditions := storage.Preconditions{UID: options.Preconditions.UID}
 
-		out := r.Store.NewFunc()
-		err = r.Store.Storage.GuaranteedUpdate(
+		out := r.store.NewFunc()
+		err = r.store.Storage.GuaranteedUpdate(
 			ctx, key, out, false, &preconditions,
 			storage.SimpleUpdate(func(existing runtime.Object) (runtime.Object, error) {
 				existingNamespace, ok := existing.(*api.Namespace)
@@ -140,7 +174,7 @@ func (r *REST) Delete(ctx genericapirequest.Context, name string, options *metav
 					newFinalizers := []string{}
 					for i := range existingNamespace.ObjectMeta.Finalizers {
 						finalizer := existingNamespace.ObjectMeta.Finalizers[i]
-						if string(finalizer) != api.FinalizerOrphan {
+						if string(finalizer) != metav1.FinalizerOrphanDependents {
 							newFinalizers = append(newFinalizers, finalizer)
 						}
 					}
@@ -156,18 +190,26 @@ func (r *REST) Delete(ctx genericapirequest.Context, name string, options *metav
 			if _, ok := err.(*apierrors.StatusError); !ok {
 				err = apierrors.NewInternalError(err)
 			}
-			return nil, err
+			return nil, false, err
 		}
 
-		return out, nil
+		return out, false, nil
 	}
 
 	// prior to final deletion, we must ensure that finalizers is empty
 	if len(namespace.Spec.Finalizers) != 0 {
 		err = apierrors.NewConflict(api.Resource("namespaces"), namespace.Name, fmt.Errorf("The system is ensuring all content is removed from this namespace.  Upon completion, this namespace will automatically be purged by the system."))
-		return nil, err
+		return nil, false, err
 	}
-	return r.Store.Delete(ctx, name, options)
+	return r.store.Delete(ctx, name, options)
+}
+
+// Implement ShortNamesProvider
+var _ rest.ShortNamesProvider = &REST{}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"ns"}
 }
 
 func (r *StatusREST) New() runtime.Object {

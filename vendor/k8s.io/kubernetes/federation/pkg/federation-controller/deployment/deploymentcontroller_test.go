@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,38 +37,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseFederationDeploymentPreference(t *testing.T) {
-	successPrefs := []string{
-		`{"rebalance": true,
-		  "clusters": {
-		    "k8s-1": {"minReplicas": 10, "maxReplicas": 20, "weight": 2},
-		    "*": {"weight": 1}
-		}}`,
-	}
-	failedPrefes := []string{
-		`{`, // bad json
-	}
-
-	rs := newDeploymentWithReplicas("d-1", 100)
-	accessor, _ := meta.Accessor(rs)
-	anno := accessor.GetAnnotations()
-	if anno == nil {
-		anno = make(map[string]string)
-		accessor.SetAnnotations(anno)
-	}
-	for _, prefString := range successPrefs {
-		anno[FedDeploymentPreferencesAnnotation] = prefString
-		pref, err := parseFederationDeploymentPreference(rs)
-		assert.NotNil(t, pref)
-		assert.Nil(t, err)
-	}
-	for _, prefString := range failedPrefes {
-		anno[FedDeploymentPreferencesAnnotation] = prefString
-		pref, err := parseFederationDeploymentPreference(rs)
-		assert.Nil(t, pref)
-		assert.NotNil(t, err)
-	}
-}
+const (
+	deployments = "deployments"
+	pods        = "pods"
+)
 
 func TestDeploymentController(t *testing.T) {
 	flag.Set("logtostderr", "true")
@@ -85,22 +56,25 @@ func TestDeploymentController(t *testing.T) {
 	cluster2 := NewCluster("cluster2", apiv1.ConditionTrue)
 
 	fakeClient := &fakefedclientset.Clientset{}
+	// Add an update reactor on fake client to return the desired updated object.
+	// This is a hack to workaround https://github.com/kubernetes/kubernetes/issues/40939.
+	AddFakeUpdateReactor(deployments, &fakeClient.Fake)
 	RegisterFakeList("clusters", &fakeClient.Fake, &fedv1.ClusterList{Items: []fedv1.Cluster{*cluster1}})
-	deploymentsWatch := RegisterFakeWatch("deployments", &fakeClient.Fake)
+	deploymentsWatch := RegisterFakeWatch(deployments, &fakeClient.Fake)
 	clusterWatch := RegisterFakeWatch("clusters", &fakeClient.Fake)
 
 	cluster1Client := &fakekubeclientset.Clientset{}
-	cluster1Watch := RegisterFakeWatch("deployments", &cluster1Client.Fake)
-	_ = RegisterFakeWatch("pods", &cluster1Client.Fake)
-	RegisterFakeList("deployments", &cluster1Client.Fake, &extensionsv1.DeploymentList{Items: []extensionsv1.Deployment{}})
-	cluster1CreateChan := RegisterFakeCopyOnCreate("deployments", &cluster1Client.Fake, cluster1Watch)
-	cluster1UpdateChan := RegisterFakeCopyOnUpdate("deployments", &cluster1Client.Fake, cluster1Watch)
+	cluster1Watch := RegisterFakeWatch(deployments, &cluster1Client.Fake)
+	_ = RegisterFakeWatch(pods, &cluster1Client.Fake)
+	RegisterFakeList(deployments, &cluster1Client.Fake, &extensionsv1.DeploymentList{Items: []extensionsv1.Deployment{}})
+	cluster1CreateChan := RegisterFakeCopyOnCreate(deployments, &cluster1Client.Fake, cluster1Watch)
+	cluster1UpdateChan := RegisterFakeCopyOnUpdate(deployments, &cluster1Client.Fake, cluster1Watch)
 
 	cluster2Client := &fakekubeclientset.Clientset{}
-	cluster2Watch := RegisterFakeWatch("deployments", &cluster2Client.Fake)
-	_ = RegisterFakeWatch("pods", &cluster2Client.Fake)
-	RegisterFakeList("deployments", &cluster2Client.Fake, &extensionsv1.DeploymentList{Items: []extensionsv1.Deployment{}})
-	cluster2CreateChan := RegisterFakeCopyOnCreate("deployments", &cluster2Client.Fake, cluster2Watch)
+	cluster2Watch := RegisterFakeWatch(deployments, &cluster2Client.Fake)
+	_ = RegisterFakeWatch(pods, &cluster2Client.Fake)
+	RegisterFakeList(deployments, &cluster2Client.Fake, &extensionsv1.DeploymentList{Items: []extensionsv1.Deployment{}})
+	cluster2CreateChan := RegisterFakeCopyOnCreate(deployments, &cluster2Client.Fake, cluster2Watch)
 
 	deploymentController := NewDeploymentController(fakeClient)
 	clientFactory := func(cluster *fedv1.Cluster) (kubeclientset.Interface, error) {
@@ -166,11 +140,6 @@ func TestDeploymentController(t *testing.T) {
 	deploymentsWatch.Add(dep2)
 	assert.NoError(t, CheckObjectFromChan(cluster1CreateChan, checkDeployment(dep2, 6)))
 	assert.NoError(t, CheckObjectFromChan(cluster2CreateChan, checkDeployment(dep2, 3)))
-}
-
-func GetDeploymentFromChan(c chan runtime.Object) *extensionsv1.Deployment {
-	secret := GetObjectFromChan(c).(*extensionsv1.Deployment)
-	return secret
 }
 
 func newDeploymentWithReplicas(name string, replicas int32) *extensionsv1.Deployment {

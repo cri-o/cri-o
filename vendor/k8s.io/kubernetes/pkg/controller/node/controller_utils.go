@@ -26,28 +26,27 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	clientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/legacylisters"
-	"k8s.io/kubernetes/pkg/client/record"
+	extensionslisters "k8s.io/kubernetes/pkg/client/listers/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
-	"k8s.io/kubernetes/pkg/util/node"
+	nodepkg "k8s.io/kubernetes/pkg/util/node"
 	utilversion "k8s.io/kubernetes/pkg/util/version"
 
 	"github.com/golang/glog"
 )
 
-const (
-	// Number of Nodes that needs to be in the cluster for it to be treated as "large"
-	LargeClusterThreshold = 20
-)
-
 // deletePods will delete all pods from master running on given node, and return true
 // if any pods were deleted, or were found pending deletion.
-func deletePods(kubeClient clientset.Interface, recorder record.EventRecorder, nodeName, nodeUID string, daemonStore listers.StoreToDaemonSetLister) (bool, error) {
+func deletePods(kubeClient clientset.Interface, recorder record.EventRecorder, nodeName, nodeUID string, daemonStore extensionslisters.DaemonSetLister) (bool, error) {
 	remaining := false
 	selector := fields.OneTermEqualSelector(api.PodHostField, nodeName).String()
 	options := metav1.ListOptions{FieldSelector: selector}
@@ -87,7 +86,7 @@ func deletePods(kubeClient clientset.Interface, recorder record.EventRecorder, n
 			continue
 		}
 
-		glog.V(2).Infof("Starting deletion of pod %v", pod.Name)
+		glog.V(2).Infof("Starting deletion of pod %v/%v", pod.Namespace, pod.Name)
 		recorder.Eventf(&pod, v1.EventTypeNormal, "NodeControllerEviction", "Marking for deletion Pod %s from Node %s", pod.Name, nodeName)
 		if err := kubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, nil); err != nil {
 			return false, err
@@ -104,12 +103,12 @@ func deletePods(kubeClient clientset.Interface, recorder record.EventRecorder, n
 // setPodTerminationReason attempts to set a reason and message in the pod status, updates it in the apiserver,
 // and returns an error if it encounters one.
 func setPodTerminationReason(kubeClient clientset.Interface, pod *v1.Pod, nodeName string) (*v1.Pod, error) {
-	if pod.Status.Reason == node.NodeUnreachablePodReason {
+	if pod.Status.Reason == nodepkg.NodeUnreachablePodReason {
 		return pod, nil
 	}
 
-	pod.Status.Reason = node.NodeUnreachablePodReason
-	pod.Status.Message = fmt.Sprintf(node.NodeUnreachablePodMessage, nodeName, pod.Name)
+	pod.Status.Reason = nodepkg.NodeUnreachablePodReason
+	pod.Status.Message = fmt.Sprintf(nodepkg.NodeUnreachablePodMessage, nodeName, pod.Name)
 
 	var updatedPod *v1.Pod
 	var err error
@@ -160,7 +159,11 @@ func (nc *NodeController) maybeDeleteTerminatingPod(obj interface{}) {
 		return
 	}
 
-	nodeObj, found, err := nc.nodeStore.Store.GetByKey(pod.Spec.NodeName)
+	node, err := nc.nodeLister.Get(pod.Spec.NodeName)
+	// if there is no such node, do nothing and let the podGC clean it up.
+	if errors.IsNotFound(err) {
+		return
+	}
 	if err != nil {
 		// this can only happen if the Store.KeyFunc has a problem creating
 		// a key for the pod. If it happens once, it will happen again so
@@ -169,17 +172,11 @@ func (nc *NodeController) maybeDeleteTerminatingPod(obj interface{}) {
 		return
 	}
 
-	// if there is no such node, do nothing and let the podGC clean it up.
-	if !found {
-		return
-	}
-
 	// delete terminating pods that have been scheduled on
 	// nodes that do not support graceful termination
 	// TODO(mikedanese): this can be removed when we no longer
 	// guarantee backwards compatibility of master API to kubelets with
 	// versions less than 1.1.0
-	node := nodeObj.(*v1.Node)
 	v, err := utilversion.ParseSemantic(node.Status.NodeInfo.KubeletVersion)
 	if err != nil {
 		glog.V(0).Infof("Couldn't parse version %q of node: %v", node.Status.NodeInfo.KubeletVersion, err)
@@ -268,7 +265,7 @@ func nodeExistsInCloudProvider(cloud cloudprovider.Interface, nodeName types.Nod
 }
 
 func recordNodeEvent(recorder record.EventRecorder, nodeName, nodeUID, eventtype, reason, event string) {
-	ref := &v1.ObjectReference{
+	ref := &clientv1.ObjectReference{
 		Kind:      "Node",
 		Name:      nodeName,
 		UID:       types.UID(nodeUID),
@@ -279,7 +276,7 @@ func recordNodeEvent(recorder record.EventRecorder, nodeName, nodeUID, eventtype
 }
 
 func recordNodeStatusChange(recorder record.EventRecorder, node *v1.Node, new_status string) {
-	ref := &v1.ObjectReference{
+	ref := &clientv1.ObjectReference{
 		Kind:      "Node",
 		Name:      node.Name,
 		UID:       node.UID,
@@ -289,4 +286,99 @@ func recordNodeStatusChange(recorder record.EventRecorder, node *v1.Node, new_st
 	// TODO: This requires a transaction, either both node status is updated
 	// and event is recorded or neither should happen, see issue #6055.
 	recorder.Eventf(ref, v1.EventTypeNormal, new_status, "Node %s status is now: %s", node.Name, new_status)
+}
+
+// Returns true in case of success and false otherwise
+func swapNodeControllerTaint(kubeClient clientset.Interface, taintToAdd, taintToRemove *v1.Taint, node *v1.Node) bool {
+	taintToAdd.TimeAdded = metav1.Now()
+	err := controller.AddOrUpdateTaintOnNode(kubeClient, node.Name, taintToAdd)
+	if err != nil {
+		utilruntime.HandleError(
+			fmt.Errorf(
+				"unable to taint %v unresponsive Node %q: %v",
+				taintToAdd.Key,
+				node.Name,
+				err))
+		return false
+	}
+	glog.V(4).Infof("Added %v Taint to Node %v", taintToAdd, node.Name)
+
+	err = controller.RemoveTaintOffNode(kubeClient, node.Name, taintToRemove, node)
+	if err != nil {
+		utilruntime.HandleError(
+			fmt.Errorf(
+				"unable to remove %v unneeded taint from unresponsive Node %q: %v",
+				taintToRemove.Key,
+				node.Name,
+				err))
+		return false
+	}
+	glog.V(4).Infof("Made sure that Node %v has no %v Taint", node.Name, taintToRemove)
+	return true
+}
+
+func createAddNodeHandler(f func(node *v1.Node) error) func(obj interface{}) {
+	return func(originalObj interface{}) {
+		obj, err := api.Scheme.DeepCopy(originalObj)
+		if err != nil {
+			utilruntime.HandleError(err)
+			return
+		}
+		node := obj.(*v1.Node)
+
+		if err := f(node); err != nil {
+			utilruntime.HandleError(fmt.Errorf("Error while processing Node Delete: %v", err))
+		}
+	}
+}
+
+func createUpdateNodeHandler(f func(oldNode, newNode *v1.Node) error) func(oldObj, newObj interface{}) {
+	return func(origOldObj, origNewObj interface{}) {
+		oldObj, err := api.Scheme.DeepCopy(origOldObj)
+		if err != nil {
+			utilruntime.HandleError(err)
+			return
+		}
+		newObj, err := api.Scheme.DeepCopy(origNewObj)
+		if err != nil {
+			utilruntime.HandleError(err)
+			return
+		}
+		node := newObj.(*v1.Node)
+		prevNode := oldObj.(*v1.Node)
+
+		if err := f(prevNode, node); err != nil {
+			utilruntime.HandleError(fmt.Errorf("Error while processing Node Add/Delete: %v", err))
+		}
+	}
+}
+
+func createDeleteNodeHandler(f func(node *v1.Node) error) func(obj interface{}) {
+	return func(originalObj interface{}) {
+		obj, err := api.Scheme.DeepCopy(originalObj)
+		if err != nil {
+			utilruntime.HandleError(err)
+			return
+		}
+
+		node, isNode := obj.(*v1.Node)
+		// We can get DeletedFinalStateUnknown instead of *v1.Node here and
+		// we need to handle that correctly. #34692
+		if !isNode {
+			deletedState, ok := obj.(cache.DeletedFinalStateUnknown)
+			if !ok {
+				glog.Errorf("Received unexpected object: %v", obj)
+				return
+			}
+			node, ok = deletedState.Obj.(*v1.Node)
+			if !ok {
+				glog.Errorf("DeletedFinalStateUnknown contained non-Node object: %v", deletedState.Obj)
+				return
+			}
+		}
+
+		if err := f(node); err != nil {
+			utilruntime.HandleError(fmt.Errorf("Error while processing Node Add/Delete: %v", err))
+		}
+	}
 }

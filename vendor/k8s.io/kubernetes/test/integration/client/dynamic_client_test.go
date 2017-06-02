@@ -1,5 +1,3 @@
-// +build integration,!no-etcd
-
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -25,18 +23,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/test/integration/framework"
 )
 
 func TestDynamicClient(t *testing.T) {
-	_, s := framework.RunAMaster(nil)
-	defer s.Close()
+	_, s, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
 
 	ns := framework.CreateTestingNamespace("dynamic-client", s, t)
 	defer framework.DeleteTestingNamespace(ns, s, t)
@@ -93,7 +91,7 @@ func TestDynamicClient(t *testing.T) {
 	}
 
 	// check dynamic list
-	obj, err := dynamicClient.Resource(&resource, ns.Name).List(&metav1.ListOptions{})
+	obj, err := dynamicClient.Resource(&resource, ns.Name).List(metav1.ListOptions{})
 	unstructuredList, ok := obj.(*unstructured.UnstructuredList)
 	if !ok {
 		t.Fatalf("expected *unstructured.UnstructuredList, got %#v", obj)
@@ -106,7 +104,7 @@ func TestDynamicClient(t *testing.T) {
 		t.Fatalf("expected one pod, got %d", len(unstructuredList.Items))
 	}
 
-	got, err := unstructuredToPod(unstructuredList.Items[0])
+	got, err := unstructuredToPod(&unstructuredList.Items[0])
 	if err != nil {
 		t.Fatalf("unexpected error converting Unstructured to v1.Pod: %v", err)
 	}

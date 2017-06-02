@@ -20,6 +20,7 @@ import (
 	"io"
 	osexec "os/exec"
 	"syscall"
+	"time"
 )
 
 // ErrExecutableNotFound is returned if the executable is not found.
@@ -40,6 +41,8 @@ type Interface interface {
 // As more functionality is needed, this can grow.  Since Cmd is a struct, we will have
 // to replace fields with get/set method pairs.
 type Cmd interface {
+	// Run runs the command to the completion.
+	Run() error
 	// CombinedOutput runs the command and returns its combined standard output
 	// and standard error.  This follows the pattern of package os/exec.
 	CombinedOutput() ([]byte, error)
@@ -48,6 +51,12 @@ type Cmd interface {
 	SetDir(dir string)
 	SetStdin(in io.Reader)
 	SetStdout(out io.Writer)
+	SetStderr(out io.Writer)
+	// Stops the command by sending SIGTERM. It is not guaranteed the
+	// process will stop before this function returns. If the process is not
+	// responding, an internal timer function will send a SIGKILL to force
+	// terminate after 10 seconds.
+	Stop()
 }
 
 // ExitError is an interface that presents an API similar to os.ProcessState, which is
@@ -93,6 +102,15 @@ func (cmd *cmdWrapper) SetStdout(out io.Writer) {
 	cmd.Stdout = out
 }
 
+func (cmd *cmdWrapper) SetStderr(out io.Writer) {
+	cmd.Stderr = out
+}
+
+// Run is part of the Cmd interface.
+func (cmd *cmdWrapper) Run() error {
+	return (*osexec.Cmd)(cmd).Run()
+}
+
 // CombinedOutput is part of the Cmd interface.
 func (cmd *cmdWrapper) CombinedOutput() ([]byte, error) {
 	out, err := (*osexec.Cmd)(cmd).CombinedOutput()
@@ -108,6 +126,21 @@ func (cmd *cmdWrapper) Output() ([]byte, error) {
 		return out, handleError(err)
 	}
 	return out, nil
+}
+
+// Stop is part of the Cmd interface.
+func (cmd *cmdWrapper) Stop() {
+	c := (*osexec.Cmd)(cmd)
+	if c.ProcessState.Exited() {
+		return
+	}
+	c.Process.Signal(syscall.SIGTERM)
+	time.AfterFunc(10*time.Second, func() {
+		if c.ProcessState.Exited() {
+			return
+		}
+		c.Process.Signal(syscall.SIGKILL)
+	})
 }
 
 func handleError(err error) error {

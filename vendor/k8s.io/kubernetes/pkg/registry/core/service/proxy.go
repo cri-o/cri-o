@@ -24,10 +24,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
+	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
-	genericrest "k8s.io/kubernetes/pkg/genericapiserver/registry/generic/rest"
-	"k8s.io/kubernetes/pkg/genericapiserver/registry/rest"
 )
 
 // ProxyREST implements the proxy subresource for a Service
@@ -39,7 +39,7 @@ type ProxyREST struct {
 // Implement Connecter
 var _ = rest.Connecter(&ProxyREST{})
 
-var proxyMethods = []string{"GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"}
+var proxyMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 
 // New returns an empty service resource
 func (r *ProxyREST) New() runtime.Object {

@@ -17,6 +17,7 @@ limitations under the License.
 package ingress
 
 import (
+	"crypto/md5"
 	"fmt"
 	"sync"
 	"time"
@@ -27,18 +28,20 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	clientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
 	federationapi "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	federationclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
 	"k8s.io/kubernetes/federation/pkg/federation-controller/util"
+	"k8s.io/kubernetes/federation/pkg/federation-controller/util/clusterselector"
 	"k8s.io/kubernetes/federation/pkg/federation-controller/util/deletionhelper"
 	"k8s.io/kubernetes/federation/pkg/federation-controller/util/eventsink"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/golang/glog"
@@ -54,12 +57,14 @@ const (
 	uidConfigMapName        = "ingress-uid"                                 // Name of the config-map and key the ingress controller stores its uid in.
 	uidConfigMapNamespace   = "kube-system"
 	uidKey                  = "uid"
+	providerUidKey          = "provider-uid"
 	// Annotation on the ingress in federation control plane that is used to keep
 	// track of the first cluster in which we create ingress.
 	// We wait for ingress to be created in this cluster before creating it any
 	// other cluster.
 	firstClusterAnnotation = "ingress.federation.kubernetes.io/first-cluster"
-	ControllerName         = "ingress"
+	ControllerName         = "ingresses"
+	UserAgentName          = "federation-ingresses-controller"
 )
 
 var (
@@ -119,7 +124,7 @@ func NewIngressController(client federationclientset.Interface) *IngressControll
 	glog.V(4).Infof("->NewIngressController V(4)")
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(eventsink.NewFederatedEventSink(client))
-	recorder := broadcaster.NewRecorder(v1.EventSource{Component: "federated-ingress-controller"})
+	recorder := broadcaster.NewRecorder(api.Scheme, clientv1.EventSource{Component: UserAgentName})
 	ic := &IngressController{
 		federatedApiClient:    client,
 		ingressReviewDelay:    time.Second * 10,
@@ -226,7 +231,7 @@ func NewIngressController(client federationclientset.Interface) *IngressControll
 	)
 
 	// Federated ingress updater along with Create/Update/Delete operations.
-	ic.federatedIngressUpdater = util.NewFederatedUpdater(ic.ingressFederatedInformer,
+	ic.federatedIngressUpdater = util.NewFederatedUpdater(ic.ingressFederatedInformer, "ingress", ic.updateTimeout, ic.eventRecorder,
 		func(client kubeclientset.Interface, obj pkgruntime.Object) error {
 			ingress := obj.(*extensionsv1beta1.Ingress)
 			glog.V(4).Infof("Attempting to create Ingress: %v", ingress)
@@ -252,12 +257,13 @@ func NewIngressController(client federationclientset.Interface) *IngressControll
 		func(client kubeclientset.Interface, obj pkgruntime.Object) error {
 			ingress := obj.(*extensionsv1beta1.Ingress)
 			glog.V(4).Infof("Attempting to delete Ingress: %v", ingress)
-			err := client.Extensions().Ingresses(ingress.Namespace).Delete(ingress.Name, &metav1.DeleteOptions{})
+			orphanDependents := false
+			err := client.Extensions().Ingresses(ingress.Namespace).Delete(ingress.Name, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
 			return err
 		})
 
 	// Federated configmap updater along with Create/Update/Delete operations.  Only Update should ever be called.
-	ic.federatedConfigMapUpdater = util.NewFederatedUpdater(ic.configMapFederatedInformer,
+	ic.federatedConfigMapUpdater = util.NewFederatedUpdater(ic.configMapFederatedInformer, "configmap", ic.updateTimeout, ic.eventRecorder,
 		func(client kubeclientset.Interface, obj pkgruntime.Object) error {
 			configMap := obj.(*v1.ConfigMap)
 			configMapName := types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}
@@ -271,7 +277,7 @@ func NewIngressController(client federationclientset.Interface) *IngressControll
 			glog.V(4).Infof("Attempting to update ConfigMap: %v", configMap)
 			_, err := client.Core().ConfigMaps(configMap.Namespace).Update(configMap)
 			if err == nil {
-				glog.V(4).Infof("Successfully updated ConfigMap %q", configMapName)
+				glog.V(4).Infof("Successfully updated ConfigMap %q %v", configMapName, configMap)
 			} else {
 				glog.V(4).Infof("Failed to update ConfigMap %q: %v", configMapName, err)
 			}
@@ -286,68 +292,23 @@ func NewIngressController(client federationclientset.Interface) *IngressControll
 		})
 
 	ic.deletionHelper = deletionhelper.NewDeletionHelper(
-		ic.hasFinalizerFunc,
-		ic.removeFinalizerFunc,
-		ic.addFinalizerFunc,
+		ic.updateIngress,
 		// objNameFunc
 		func(obj pkgruntime.Object) string {
 			ingress := obj.(*extensionsv1beta1.Ingress)
-			return ingress.Name
+			return fmt.Sprintf("%s/%s", ingress.Namespace, ingress.Name)
 		},
-		ic.updateTimeout,
-		ic.eventRecorder,
 		ic.ingressFederatedInformer,
 		ic.federatedIngressUpdater,
 	)
 	return ic
 }
 
-// Returns true if the given object has the given finalizer in its ObjectMeta.
-func (ic *IngressController) hasFinalizerFunc(obj pkgruntime.Object, finalizer string) bool {
+// Sends the given updated object to apiserver.
+// Assumes that the given object is an ingress.
+func (ic *IngressController) updateIngress(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	ingress := obj.(*extensionsv1beta1.Ingress)
-	for i := range ingress.ObjectMeta.Finalizers {
-		if string(ingress.ObjectMeta.Finalizers[i]) == finalizer {
-			return true
-		}
-	}
-	return false
-}
-
-// Removes the finalizer from the given objects ObjectMeta.
-// Assumes that the given object is a ingress.
-func (ic *IngressController) removeFinalizerFunc(obj pkgruntime.Object, finalizer string) (pkgruntime.Object, error) {
-	ingress := obj.(*extensionsv1beta1.Ingress)
-	newFinalizers := []string{}
-	hasFinalizer := false
-	for i := range ingress.ObjectMeta.Finalizers {
-		if string(ingress.ObjectMeta.Finalizers[i]) != finalizer {
-			newFinalizers = append(newFinalizers, ingress.ObjectMeta.Finalizers[i])
-		} else {
-			hasFinalizer = true
-		}
-	}
-	if !hasFinalizer {
-		// Nothing to do.
-		return obj, nil
-	}
-	ingress.ObjectMeta.Finalizers = newFinalizers
-	ingress, err := ic.federatedApiClient.Extensions().Ingresses(ingress.Namespace).Update(ingress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to remove finalizer %s from ingress %s: %v", finalizer, ingress.Name, err)
-	}
-	return ingress, nil
-}
-
-// Adds the given finalizer to the given objects ObjectMeta.
-// Assumes that the given object is a ingress.
-func (ic *IngressController) addFinalizerFunc(obj pkgruntime.Object, finalizer string) (pkgruntime.Object, error) {
-	ingress := obj.(*extensionsv1beta1.Ingress)
-	ingress.ObjectMeta.Finalizers = append(ingress.ObjectMeta.Finalizers, finalizer)
-	ingress, err := ic.federatedApiClient.Extensions().Ingresses(ingress.Namespace).Update(ingress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to add finalizer %s to ingress %s: %v", finalizer, ingress.Name, err)
-	}
-	return ingress, nil
+	return ic.federatedApiClient.Extensions().Ingresses(ingress.Namespace).Update(ingress)
 }
 
 func (ic *IngressController) Run(stopChan <-chan struct{}) {
@@ -500,12 +461,6 @@ func (ic *IngressController) reconcileConfigMapForCluster(clusterName string) {
 		return
 	}
 
-	ingressList := ic.ingressInformerStore.List()
-	if len(ingressList) <= 0 {
-		glog.V(4).Infof("No federated ingresses, ignore reconcile config map.")
-		return
-	}
-
 	if clusterName == allClustersKey {
 		clusters, err := ic.configMapFederatedInformer.GetReadyClusters()
 		if err != nil {
@@ -528,7 +483,15 @@ func (ic *IngressController) reconcileConfigMapForCluster(clusterName string) {
 		uidConfigMapNamespacedName := types.NamespacedName{Name: uidConfigMapName, Namespace: uidConfigMapNamespace}
 		configMapObj, found, err := ic.configMapFederatedInformer.GetTargetStore().GetByKey(cluster.Name, uidConfigMapNamespacedName.String())
 		if !found || err != nil {
-			glog.Errorf("Failed to get ConfigMap %q for cluster %q.  Will try again later: %v", uidConfigMapNamespacedName, cluster.Name, err)
+			logmsg := fmt.Sprintf("Failed to get ConfigMap %q for cluster %q.  Will try again later", uidConfigMapNamespacedName, cluster.Name)
+			if err != nil {
+				logmsg = fmt.Sprintf("%v: %v", logmsg, err)
+			}
+			if len(ic.ingressInformerStore.List()) > 0 { // Error-level if ingresses are active, Info-level otherwise.
+				glog.Errorf(logmsg)
+			} else {
+				glog.V(4).Infof(logmsg)
+			}
 			ic.configMapDeliverer.DeliverAfter(clusterName, nil, ic.configMapReviewDelay)
 			return
 		}
@@ -541,6 +504,12 @@ func (ic *IngressController) reconcileConfigMapForCluster(clusterName string) {
 		ic.reconcileConfigMap(cluster, configMap)
 		return
 	}
+}
+
+// getProviderUid returns a provider ID based on the provided clusterName.
+func getProviderUid(clusterName string) string {
+	hashedName := md5.Sum([]byte(clusterName))
+	return fmt.Sprintf("%x", hashedName[:8])
 }
 
 /*
@@ -570,26 +539,41 @@ func (ic *IngressController) reconcileConfigMap(cluster *federationapi.Cluster, 
 	}
 
 	if !clusterIngressUIDExists || clusterIngressUID == "" {
-		ic.updateClusterIngressUIDToMasters(cluster, configMapUID) // Second argument is the fallback, in case this is the only cluster, in which case it becomes the master
-		return
+		glog.V(4).Infof("Cluster %q is the only master", cluster.Name)
+		// Second argument is the fallback, in case this is the only cluster, in which case it becomes the master
+		var err error
+		if clusterIngressUID, err = ic.updateClusterIngressUIDToMasters(cluster, configMapUID); err != nil {
+			return
+		}
+		// If we successfully update the Cluster Object, fallthrough and update the configMap.
 	}
-	if configMapUID != clusterIngressUID { // An update is required
-		glog.V(4).Infof("Ingress UID update is required: configMapUID %q not equal to clusterIngressUID %q", configMapUID, clusterIngressUID)
+
+	// Figure out providerUid.
+	providerUid := getProviderUid(cluster.Name)
+	configMapProviderUid := configMap.Data[providerUidKey]
+
+	if configMapUID == clusterIngressUID && configMapProviderUid == providerUid {
+		glog.V(4).Infof("Ingress configMap update is not required: UID %q and ProviderUid %q are equal", configMapUID, providerUid)
+	} else {
+		if configMapUID != clusterIngressUID {
+			glog.V(4).Infof("Ingress configMap update is required for UID: configMapUID %q not equal to clusterIngressUID %q", configMapUID, clusterIngressUID)
+		} else if configMapProviderUid != providerUid {
+			glog.V(4).Infof("Ingress configMap update is required: configMapProviderUid %q not equal to providerUid %q", configMapProviderUid, providerUid)
+		}
 		configMap.Data[uidKey] = clusterIngressUID
+		configMap.Data[providerUidKey] = providerUid
 		operations := []util.FederatedOperation{{
 			Type:        util.OperationTypeUpdate,
 			Obj:         configMap,
 			ClusterName: cluster.Name,
+			Key:         configMapNsName.String(),
 		}}
 		glog.V(4).Infof("Calling federatedConfigMapUpdater.Update() - operations: %v", operations)
-		err := ic.federatedConfigMapUpdater.Update(operations, ic.updateTimeout)
+		err := ic.federatedConfigMapUpdater.Update(operations)
 		if err != nil {
-			configMapName := types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}
-			glog.Errorf("Failed to execute update of ConfigMap %q on cluster %q: %v", configMapName, cluster.Name, err)
+			glog.Errorf("Failed to execute update of ConfigMap %q on cluster %q: %v", configMapNsName, cluster.Name, err)
 			ic.configMapDeliverer.DeliverAfter(cluster.Name, nil, ic.configMapReviewDelay)
 		}
-	} else {
-		glog.V(4).Infof("Ingress UID update is not required: configMapUID %q is equal to clusterIngressUID %q", configMapUID, clusterIngressUID)
 	}
 }
 
@@ -619,13 +603,13 @@ func (ic *IngressController) getMasterCluster() (master *federationapi.Cluster, 
   updateClusterIngressUIDToMasters takes the ingress UID annotation on the master cluster and applies it to cluster.
   If there is no master cluster, then fallbackUID is used (and hence this cluster becomes the master).
 */
-func (ic *IngressController) updateClusterIngressUIDToMasters(cluster *federationapi.Cluster, fallbackUID string) {
+func (ic *IngressController) updateClusterIngressUIDToMasters(cluster *federationapi.Cluster, fallbackUID string) (string, error) {
 	masterCluster, masterUID, err := ic.getMasterCluster()
 	clusterObj, clusterErr := api.Scheme.DeepCopy(cluster) // Make a clone so that we don't clobber our input param
 	cluster, ok := clusterObj.(*federationapi.Cluster)
 	if clusterErr != nil || !ok {
 		glog.Errorf("Internal error: Failed clone cluster resource while attempting to add master ingress UID annotation (%q = %q) from master cluster %q to cluster %q, will try again later: %v", uidAnnotationKey, masterUID, masterCluster.Name, cluster.Name, err)
-		return
+		return "", err
 	}
 	if err == nil {
 		if masterCluster.Name != cluster.Name { // We're not the master, need to get in sync
@@ -635,12 +619,14 @@ func (ic *IngressController) updateClusterIngressUIDToMasters(cluster *federatio
 			cluster.ObjectMeta.Annotations[uidAnnotationKey] = masterUID
 			if _, err = ic.federatedApiClient.Federation().Clusters().Update(cluster); err != nil {
 				glog.Errorf("Failed to add master ingress UID annotation (%q = %q) from master cluster %q to cluster %q, will try again later: %v", uidAnnotationKey, masterUID, masterCluster.Name, cluster.Name, err)
-				return
+				return "", err
 			} else {
 				glog.V(4).Infof("Successfully added master ingress UID annotation (%q = %q) from master cluster %q to cluster %q.", uidAnnotationKey, masterUID, masterCluster.Name, cluster.Name)
+				return masterUID, nil
 			}
 		} else {
 			glog.V(4).Infof("Cluster %q with ingress UID is already the master with annotation (%q = %q), no need to update.", cluster.Name, uidAnnotationKey, cluster.ObjectMeta.Annotations[uidAnnotationKey])
+			return cluster.ObjectMeta.Annotations[uidAnnotationKey], nil
 		}
 	} else {
 		glog.V(2).Infof("No master cluster found to source an ingress UID from for cluster %q.  Attempting to elect new master cluster %q with ingress UID %q = %q", cluster.Name, cluster.Name, uidAnnotationKey, fallbackUID)
@@ -651,11 +637,14 @@ func (ic *IngressController) updateClusterIngressUIDToMasters(cluster *federatio
 			cluster.ObjectMeta.Annotations[uidAnnotationKey] = fallbackUID
 			if _, err = ic.federatedApiClient.Federation().Clusters().Update(cluster); err != nil {
 				glog.Errorf("Failed to add ingress UID annotation (%q = %q) to cluster %q. No master elected. Will try again later: %v", uidAnnotationKey, fallbackUID, cluster.Name, err)
+				return "", err
 			} else {
 				glog.V(4).Infof("Successfully added ingress UID annotation (%q = %q) to cluster %q.", uidAnnotationKey, fallbackUID, cluster.Name)
+				return fallbackUID, nil
 			}
 		} else {
 			glog.Errorf("No master cluster exists, and fallbackUID for cluster %q is invalid (%q).  This probably means that no clusters have an ingress controller configmap with key %q.  Federated Ingress currently supports clusters running Google Loadbalancer Controller (\"GLBC\")", cluster.Name, fallbackUID, uidKey)
+			return "", err
 		}
 	}
 }
@@ -715,7 +704,7 @@ func (ic *IngressController) reconcileIngress(ingress types.NamespacedName) {
 	if baseIngress.DeletionTimestamp != nil {
 		if err := ic.delete(baseIngress); err != nil {
 			glog.Errorf("Failed to delete %s: %v", ingress, err)
-			ic.eventRecorder.Eventf(baseIngress, api.EventTypeNormal, "DeleteFailed",
+			ic.eventRecorder.Eventf(baseIngress, api.EventTypeWarning, "DeleteFailed",
 				"Ingress delete failed: %v", err)
 			ic.deliverIngress(ingress, 0, true)
 		}
@@ -777,12 +766,17 @@ func (ic *IngressController) reconcileIngress(ingress types.NamespacedName) {
 		desiredIngress.Spec = *objSpecCopy
 		glog.V(4).Infof("Desired Ingress: %v", desiredIngress)
 
-		if !clusterIngressFound {
+		send, err := clusterselector.SendToCluster(cluster.Labels, desiredIngress.ObjectMeta.Annotations)
+		if err != nil {
+			glog.Errorf("Error processing ClusterSelector cluster: %s for Ingress map: %s error: %s", cluster.Name, key, err.Error())
+			return
+		}
+
+		switch {
+		case !clusterIngressFound && send:
 			glog.V(4).Infof("No existing Ingress %s in cluster %s - checking if appropriate to queue a create operation", ingress, cluster.Name)
 			// We can't supply server-created fields when creating a new object.
 			desiredIngress.ObjectMeta = util.DeepCopyRelevantObjectMeta(baseIngress.ObjectMeta)
-			ic.eventRecorder.Eventf(baseIngress, api.EventTypeNormal, "CreateInCluster",
-				"Creating ingress in cluster %s", cluster.Name)
 
 			// We always first create an ingress in the first available cluster. Once that ingress
 			// has been created and allocated a global IP (visible via an annotation),
@@ -808,11 +802,20 @@ func (ic *IngressController) reconcileIngress(ingress types.NamespacedName) {
 					Type:        util.OperationTypeAdd,
 					Obj:         desiredIngress,
 					ClusterName: cluster.Name,
+					Key:         key,
 				})
 			} else {
 				glog.V(4).Infof("No annotation %q exists on ingress %q in federation and waiting for ingress in cluster %s. Not queueing create operation for ingress until annotation exists", staticIPNameKeyWritable, ingress, firstClusterName)
 			}
-		} else {
+		case clusterIngressFound && !send:
+			glog.V(5).Infof("Removing Ingress: %s from cluster: %s reason: cluster selectors do not match: %-v %-v", key, cluster.Name, cluster.ObjectMeta.Labels, desiredIngress.ObjectMeta.Annotations[federationapi.FederationClusterSelectorAnnotation])
+			operations = append(operations, util.FederatedOperation{
+				Type:        util.OperationTypeDelete,
+				Obj:         desiredIngress,
+				ClusterName: cluster.Name,
+				Key:         key,
+			})
+		case clusterIngressFound && send:
 			clusterIngress := clusterIngressObj.(*extensionsv1beta1.Ingress)
 			glog.V(4).Infof("Found existing Ingress %s in cluster %s - checking if update is required (in either direction)", ingress, cluster.Name)
 			clusterIPName, clusterIPNameExists := clusterIngress.ObjectMeta.Annotations[staticIPNameKeyReadonly]
@@ -878,13 +881,12 @@ func (ic *IngressController) reconcileIngress(ingress types.NamespacedName) {
 				for key, val := range baseIngress.ObjectMeta.Labels {
 					desiredIngress.ObjectMeta.Labels[key] = val
 				}
-				ic.eventRecorder.Eventf(baseIngress, api.EventTypeNormal, "UpdateInCluster",
-					"Updating ingress in cluster %s", cluster.Name)
 
 				operations = append(operations, util.FederatedOperation{
 					Type:        util.OperationTypeUpdate,
 					Obj:         desiredIngress,
 					ClusterName: cluster.Name,
+					Key:         key,
 				})
 				// TODO: Transfer any readonly (target-proxy, url-map etc) annotations from the master cluster to the federation, if this is the master cluster.
 				// This is only for consistency, so that the federation ingress metadata matches the underlying clusters.  It's not actually required				}
@@ -898,10 +900,7 @@ func (ic *IngressController) reconcileIngress(ingress types.NamespacedName) {
 		return
 	}
 	glog.V(4).Infof("Calling federatedUpdater.Update() - operations: %v", operations)
-	err = ic.federatedIngressUpdater.UpdateWithOnError(operations, ic.updateTimeout, func(op util.FederatedOperation, operror error) {
-		ic.eventRecorder.Eventf(baseIngress, api.EventTypeNormal, "FailedClusterUpdate",
-			"Ingress update in cluster %s failed: %v", op.ClusterName, operror)
-	})
+	err = ic.federatedIngressUpdater.Update(operations)
 	if err != nil {
 		glog.Errorf("Failed to execute updates for %s: %v", ingress, err)
 		ic.deliverIngress(ingress, ic.ingressReviewDelay, true)

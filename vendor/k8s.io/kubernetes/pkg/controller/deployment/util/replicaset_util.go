@@ -26,7 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	unversionedextensions "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/client/legacylisters"
+	extensionslisters "k8s.io/kubernetes/pkg/client/listers/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/client/retry"
 	labelsutil "k8s.io/kubernetes/pkg/util/labels"
 )
@@ -37,7 +37,7 @@ type updateRSFunc func(rs *extensions.ReplicaSet) error
 
 // UpdateRSWithRetries updates a RS with given applyUpdate function. Note that RS not found error is ignored.
 // The returned bool value can be used to tell if the RS is actually updated.
-func UpdateRSWithRetries(rsClient unversionedextensions.ReplicaSetInterface, rsLister *listers.StoreToReplicaSetLister, namespace, name string, applyUpdate updateRSFunc) (*extensions.ReplicaSet, error) {
+func UpdateRSWithRetries(rsClient unversionedextensions.ReplicaSetInterface, rsLister extensionslisters.ReplicaSetLister, namespace, name string, applyUpdate updateRSFunc) (*extensions.ReplicaSet, error) {
 	var rs *extensions.ReplicaSet
 
 	retryErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
@@ -69,21 +69,12 @@ func UpdateRSWithRetries(rsClient unversionedextensions.ReplicaSetInterface, rsL
 }
 
 // GetReplicaSetHash returns the pod template hash of a ReplicaSet's pod template space
-func GetReplicaSetHash(rs *extensions.ReplicaSet) string {
-	meta := rs.Spec.Template.ObjectMeta
-	meta.Labels = labelsutil.CloneAndRemoveLabel(meta.Labels, extensions.DefaultDeploymentUniqueLabelKey)
-	return fmt.Sprintf("%d", GetPodTemplateSpecHash(v1.PodTemplateSpec{
-		ObjectMeta: meta,
-		Spec:       rs.Spec.Template.Spec,
-	}))
-}
-
-// GetReplicaSetHashFnv returns the pod template hash of a ReplicaSet's pod template spec.
-func GetReplicaSetHashFnv(rs *extensions.ReplicaSet) string {
-	meta := rs.Spec.Template.ObjectMeta
-	meta.Labels = labelsutil.CloneAndRemoveLabel(meta.Labels, extensions.DefaultDeploymentUniqueLabelKey)
-	return fmt.Sprintf("%d", GetPodTemplateSpecHashFnv(v1.PodTemplateSpec{
-		ObjectMeta: meta,
-		Spec:       rs.Spec.Template.Spec,
-	}))
+func GetReplicaSetHash(rs *extensions.ReplicaSet, uniquifier *int64) (string, error) {
+	template, err := api.Scheme.DeepCopy(rs.Spec.Template)
+	if err != nil {
+		return "", err
+	}
+	rsTemplate := template.(v1.PodTemplateSpec)
+	rsTemplate.Labels = labelsutil.CloneAndRemoveLabel(rsTemplate.Labels, extensions.DefaultDeploymentUniqueLabelKey)
+	return fmt.Sprintf("%d", GetPodTemplateSpecHash(&rsTemplate, uniquifier)), nil
 }

@@ -26,11 +26,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"
 
@@ -112,7 +112,7 @@ var _ = framework.KubeDescribe("Proxy", func() {
 			cfg := testutils.RCConfig{
 				Client:         f.ClientSet,
 				InternalClient: f.InternalClientset,
-				Image:          "gcr.io/google_containers/porter:cd5cb5791ebaa8641955f0e8c2a9bed669b1eaab",
+				Image:          "gcr.io/google_containers/porter:4524579c0eb935c056c8e75563b4e1eda31587e0",
 				Name:           service.Name,
 				Namespace:      f.Namespace.Name,
 				Replicas:       1,
@@ -150,7 +150,7 @@ var _ = framework.KubeDescribe("Proxy", func() {
 			Expect(framework.RunRC(cfg)).NotTo(HaveOccurred())
 			defer framework.DeleteRCAndPods(f.ClientSet, f.InternalClientset, f.Namespace.Name, cfg.Name)
 
-			Expect(f.WaitForAnEndpoint(service.Name)).NotTo(HaveOccurred())
+			Expect(framework.WaitForEndpoint(f.ClientSet, f.Namespace.Name, service.Name)).NotTo(HaveOccurred())
 
 			// table constructors
 			// Try proxying through the service and directly to through the pod.

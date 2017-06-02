@@ -18,20 +18,25 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	flag "github.com/spf13/pflag"
 )
 
 var (
-	godepsFile           = flag.String("godeps-file", "", "absolute path to Godeps.json")
-	clientRepoImportPath = flag.String("client-go-import-path", "", "import path to a version of client-go, e.g., k8s.io/client-go/1.4")
+	godepsFile         = flag.String("godeps-file", "", "absolute path to Godeps.json")
+	overrideImportPath = flag.String("override-import-path", "", "import path to be written into the Godeps.json, e.g., k8s.io/client-go")
+	ignoredPrefixes    = flag.StringSlice("ignored-prefixes", []string{"k8s.io/"}, "any godep entry prefixed with the ignored-prefix will be deleted from Godeps.json")
+	rewrittenPrefixes  = flag.StringSlice("rewritten-prefixes", []string{}, fmt.Sprintf("any godep entry prefixed with the rewritten-prefix will be filled will dummy rev %q; overridden by ignored-prefixes", dummyRev))
 )
+
+const dummyRev = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 type Dependency struct {
 	ImportPath string
-	Comment    string `json:",omitempty"`
 	Rev        string
 }
 
@@ -43,15 +48,13 @@ type Godeps struct {
 	Deps         []Dependency
 }
 
-// rewrites the Godeps.ImportPath, removes the Deps whose ImportPath contains "k8s.io/kubernetes"
+// rewrites the Godeps.ImportPath, removes the Deps whose ImportPath contains "k8s.io/kubernetes" or "k8s.io/apimachinery".
+// entries for k8s.io/apimahinery will be written by the publishing robot before publishing to the repository.
 func main() {
 	flag.Parse()
 	var g Godeps
 	if len(*godepsFile) == 0 {
-		log.Fatalf("absolute ath to Godeps.json is required")
-	}
-	if len(*clientRepoImportPath) == 0 {
-		log.Fatalf("import path to a version of client-go is required")
+		log.Fatalf("absolute path to Godeps.json is required")
 	}
 	f, err := os.OpenFile(*godepsFile, os.O_RDWR, 0666)
 	if err != nil {
@@ -62,16 +65,29 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to parse %q: %v", *godepsFile, err)
 	}
-	// rewrites the Godeps.ImportPath
-	g.ImportPath = *clientRepoImportPath
+	if len(*overrideImportPath) != 0 {
+		g.ImportPath = *overrideImportPath
+	}
 	// removes the Deps whose ImportPath contains "k8s.io/kubernetes"
 	i := 0
 	for _, dep := range g.Deps {
-		if strings.Contains(dep.ImportPath, "k8s.io/kubernetes") {
+		ignored := false
+		for _, ignoredPrefix := range *ignoredPrefixes {
+			if strings.HasPrefix(dep.ImportPath, ignoredPrefix) {
+				ignored = true
+			}
+		}
+		if ignored {
 			continue
 		}
-		if strings.Contains(dep.ImportPath, "k8s.io/client-go") {
-			continue
+		rewritten := false
+		for _, rewrittenPrefix := range *rewrittenPrefixes {
+			if strings.HasPrefix(dep.ImportPath, rewrittenPrefix) {
+				rewritten = true
+			}
+		}
+		if rewritten {
+			dep.Rev = dummyRev
 		}
 		g.Deps[i] = dep
 		i++

@@ -33,6 +33,8 @@ type FakePersistentVolumes struct {
 
 var persistentvolumesResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "persistentvolumes"}
 
+var persistentvolumesKind = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "PersistentVolume"}
+
 func (c *FakePersistentVolumes) Create(persistentVolume *v1.PersistentVolume) (result *v1.PersistentVolume, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(persistentvolumesResource, persistentVolume), &v1.PersistentVolume{})
@@ -60,13 +62,13 @@ func (c *FakePersistentVolumes) UpdateStatus(persistentVolume *v1.PersistentVolu
 	return obj.(*v1.PersistentVolume), err
 }
 
-func (c *FakePersistentVolumes) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakePersistentVolumes) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(persistentvolumesResource, name), &v1.PersistentVolume{})
 	return err
 }
 
-func (c *FakePersistentVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *FakePersistentVolumes) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(persistentvolumesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.PersistentVolumeList{})
@@ -84,7 +86,7 @@ func (c *FakePersistentVolumes) Get(name string, options meta_v1.GetOptions) (re
 
 func (c *FakePersistentVolumes) List(opts meta_v1.ListOptions) (result *v1.PersistentVolumeList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(persistentvolumesResource, opts), &v1.PersistentVolumeList{})
+		Invokes(testing.NewRootListAction(persistentvolumesResource, persistentvolumesKind, opts), &v1.PersistentVolumeList{})
 	if obj == nil {
 		return nil, err
 	}

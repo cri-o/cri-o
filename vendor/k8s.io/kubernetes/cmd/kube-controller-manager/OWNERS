@@ -1,4 +1,5 @@
 approvers:
+- deads2k
 - lavalamp
 - mikedanese
 reviewers:
@@ -34,7 +35,6 @@ reviewers:
 - jsafrane
 - jszczepkowski
 - justinsb
-- krousey
 - lavalamp
 - liggitt
 - luxas

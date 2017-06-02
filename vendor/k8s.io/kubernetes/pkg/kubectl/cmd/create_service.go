@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
 // NewCmdCreateService is a macro command to create a new service
@@ -33,7 +34,7 @@ func NewCmdCreateService(f cmdutil.Factory, cmdOut, errOut io.Writer) *cobra.Com
 	cmd := &cobra.Command{
 		Use:     "service",
 		Aliases: []string{"svc"},
-		Short:   "Create a service using specified subcommand.",
+		Short:   i18n.T("Create a service using specified subcommand."),
 		Long:    "Create a service using specified subcommand.",
 		Run:     cmdutil.DefaultSubCommandRun(errOut),
 	}
@@ -46,15 +47,15 @@ func NewCmdCreateService(f cmdutil.Factory, cmdOut, errOut io.Writer) *cobra.Com
 }
 
 var (
-	serviceClusterIPLong = templates.LongDesc(`
-    Create a clusterIP service with the specified name.`)
+	serviceClusterIPLong = templates.LongDesc(i18n.T(`
+    Create a clusterIP service with the specified name.`))
 
-	serviceClusterIPExample = templates.Examples(`
+	serviceClusterIPExample = templates.Examples(i18n.T(`
     # Create a new clusterIP service named my-cs
     kubectl create service clusterip my-cs --tcp=5678:8080
 
     # Create a new clusterIP service named my-cs (in headless mode)
-    kubectl create service clusterip my-cs --clusterip="None"`)
+    kubectl create service clusterip my-cs --clusterip="None"`))
 )
 
 func addPortFlags(cmd *cobra.Command) {
@@ -65,7 +66,7 @@ func addPortFlags(cmd *cobra.Command) {
 func NewCmdCreateServiceClusterIP(f cmdutil.Factory, cmdOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "clusterip NAME [--tcp=<port>:<targetPort>] [--dry-run]",
-		Short:   "Create a clusterIP service.",
+		Short:   i18n.T("Create a clusterIP service."),
 		Long:    serviceClusterIPLong,
 		Example: serviceClusterIPExample,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -78,7 +79,7 @@ func NewCmdCreateServiceClusterIP(f cmdutil.Factory, cmdOut io.Writer) *cobra.Co
 	cmdutil.AddPrinterFlags(cmd)
 	cmdutil.AddGeneratorFlags(cmd, cmdutil.ServiceClusterIPGeneratorV1Name)
 	addPortFlags(cmd)
-	cmd.Flags().String("clusterip", "", "Assign your own ClusterIP or set to 'None' for a 'headless' service (no loadbalancing).")
+	cmd.Flags().String("clusterip", "", i18n.T("Assign your own ClusterIP or set to 'None' for a 'headless' service (no loadbalancing)."))
 	return cmd
 }
 
@@ -109,19 +110,19 @@ func CreateServiceClusterIP(f cmdutil.Factory, cmdOut io.Writer, cmd *cobra.Comm
 }
 
 var (
-	serviceNodePortLong = templates.LongDesc(`
-    Create a nodeport service with the specified name.`)
+	serviceNodePortLong = templates.LongDesc(i18n.T(`
+    Create a nodeport service with the specified name.`))
 
-	serviceNodePortExample = templates.Examples(`
+	serviceNodePortExample = templates.Examples(i18n.T(`
     # Create a new nodeport service named my-ns
-    kubectl create service nodeport my-ns --tcp=5678:8080`)
+    kubectl create service nodeport my-ns --tcp=5678:8080`))
 )
 
 // NewCmdCreateServiceNodePort is a macro command for creating a NodePort service
 func NewCmdCreateServiceNodePort(f cmdutil.Factory, cmdOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "nodeport NAME [--tcp=port:targetPort] [--dry-run]",
-		Short:   "Create a NodePort service.",
+		Short:   i18n.T("Create a NodePort service."),
 		Long:    serviceNodePortLong,
 		Example: serviceNodePortExample,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -166,19 +167,19 @@ func CreateServiceNodePort(f cmdutil.Factory, cmdOut io.Writer, cmd *cobra.Comma
 }
 
 var (
-	serviceLoadBalancerLong = templates.LongDesc(`
-    Create a LoadBalancer service with the specified name.`)
+	serviceLoadBalancerLong = templates.LongDesc(i18n.T(`
+    Create a LoadBalancer service with the specified name.`))
 
-	serviceLoadBalancerExample = templates.Examples(`
+	serviceLoadBalancerExample = templates.Examples(i18n.T(`
     # Create a new LoadBalancer service named my-lbs
-    kubectl create service loadbalancer my-lbs --tcp=5678:8080`)
+    kubectl create service loadbalancer my-lbs --tcp=5678:8080`))
 )
 
 // NewCmdCreateServiceLoadBalancer is a macro command for creating a LoadBalancer service
 func NewCmdCreateServiceLoadBalancer(f cmdutil.Factory, cmdOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "loadbalancer NAME [--tcp=port:targetPort] [--dry-run]",
-		Short:   "Create a LoadBalancer service.",
+		Short:   i18n.T("Create a LoadBalancer service."),
 		Long:    serviceLoadBalancerLong,
 		Example: serviceLoadBalancerExample,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -221,23 +222,23 @@ func CreateServiceLoadBalancer(f cmdutil.Factory, cmdOut io.Writer, cmd *cobra.C
 }
 
 var (
-	serviceExternalNameLong = templates.LongDesc(`
+	serviceExternalNameLong = templates.LongDesc(i18n.T(`
 	Create an ExternalName service with the specified name.
 
 	ExternalName service references to an external DNS address instead of
 	only pods, which will allow application authors to reference services
-	that exist off platform, on other clusters, or locally.`)
+	that exist off platform, on other clusters, or locally.`))
 
-	serviceExternalNameExample = templates.Examples(`
+	serviceExternalNameExample = templates.Examples(i18n.T(`
 	# Create a new ExternalName service named my-ns 
-	kubectl create service externalname my-ns --external-name bar.com`)
+	kubectl create service externalname my-ns --external-name bar.com`))
 )
 
 // NewCmdCreateServiceExternalName is a macro command for creating a ExternalName service
 func NewCmdCreateServiceExternalName(f cmdutil.Factory, cmdOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "externalname NAME --external-name external.name [--dry-run]",
-		Short:   "Create an ExternalName service.",
+		Short:   i18n.T("Create an ExternalName service."),
 		Long:    serviceExternalNameLong,
 		Example: serviceExternalNameExample,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -250,7 +251,7 @@ func NewCmdCreateServiceExternalName(f cmdutil.Factory, cmdOut io.Writer) *cobra
 	cmdutil.AddPrinterFlags(cmd)
 	cmdutil.AddGeneratorFlags(cmd, cmdutil.ServiceExternalNameGeneratorV1Name)
 	addPortFlags(cmd)
-	cmd.Flags().String("external-name", "", "external name of service")
+	cmd.Flags().String("external-name", "", i18n.T("external name of service"))
 	cmd.MarkFlagRequired("external-name")
 	return cmd
 }

@@ -86,7 +86,7 @@
       - /usr/local/go
   - name: install Golang upstream in CentOS
     shell: |
-            curl -fsSL "https://golang.org/dl/go1.8.1.linux-amd64.tar.gz" \
+            curl -fsSL "https://golang.org/dl/go1.8.3.linux-amd64.tar.gz" \
             | tar -xzC /usr/local
     when: ansible_distribution == 'CentOS'
   - name: Set custom Golang path for CentOS
@@ -125,6 +125,12 @@
     async: 600
     poll: 10
     when: xunit
+  - name: git clone crictl repo
+    git:
+      repo: https://github.com/kubernetes-incubator/cri-tools
+      dest: /root/src/github.com/kubernetes-incubator/cri-tools
+    async: 600
+    poll: 10
   - name: git clone runc repo
     git:
       repo: https://github.com/opencontainers/runc
@@ -189,6 +195,14 @@
     make:
       target: clean
       chdir: /root/src/github.com/opencontainers/runc
+    async: 600
+    poll: 10
+  - name: make crictl
+    shell: |
+      go install github.com/kubernetes-incubator/cri-tools/cmd/crictl && \
+      cp $GOPATH/bin/crictl /usr/bin/crictl
+    args:
+      chdir: /root/src/github.com/kubernetes-incubator/cri-o/
     async: 600
     poll: 10
   - name: make runc
@@ -256,14 +270,11 @@
     shell: 'mv /root/src/github.com/kubernetes-incubator/cri-o/test/TestReport-bats*.xml /root/src/github.com/kubernetes-incubator/cri-o/reports/'
     when: xunit
   # XXX: kube tests from now on
-  # TODO: remove custom repo origin and put kube master back after PR #510
-  #       we need this because of node-e2e tests failing on RHEL otherwise
-  #       For more info see issue #529
   - name: git clone k8s repo
     git:
-      repo: https://github.com/runcom/kubernetes
+      repo: https://github.com/kubernetes/kubernetes
       dest: /root/src/k8s.io/kubernetes
-      version: custom-RHEL-node-e2e
+      version: 7c76e3994c9d8fffd5f7cc751924a0cac498bb27
       force: yes
     async: 600
     poll: 10
@@ -308,6 +319,20 @@
       daemon_reload: yes
     async: 600
     poll: 10
+  # k8s builds with go1.8.x, rhel, fedora don't have it yet
+  - name: install Golang upstream in Fedora/RHEL
+    shell: |
+            curl -fsSL "https://golang.org/dl/go1.8.3.linux-amd64.tar.gz" \
+            | tar -xzC /usr/local
+    when: ansible_distribution == 'Fedora' or ansible_distribution == 'RedHat'
+  - name: Set custom Golang path for Fedora/RHEL
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export PATH=/usr/local/go/bin:$PATH'
+      insertafter: 'EOF'
+      regexp: 'export PATH=/usr/local/go/bin:$PATH'
+      state: present
+    when: ansible_distribution == 'Fedora' or ansible_distribution == 'RedHat'
   # see https://github.com/kubernetes-incubator/cri-o/issues/528
   - name: disable selinux for k8s conformance tests
     shell: |

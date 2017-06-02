@@ -60,13 +60,13 @@ pause:
 	$(MAKE) -C $@
 
 bin2img: .gopathok $(wildcard test/bin2img/*.go)
-	go build -tags "$(BUILDTAGS)" -o test/bin2img/$@ $(PROJECT)/test/bin2img
+	$(GO) build -tags "$(BUILDTAGS)" -o test/bin2img/$@ $(PROJECT)/test/bin2img
 
 copyimg: .gopathok $(wildcard test/copyimg/*.go)
-	go build -tags "$(BUILDTAGS)" -o test/copyimg/$@ $(PROJECT)/test/copyimg
+	$(GO) build -tags "$(BUILDTAGS)" -o test/copyimg/$@ $(PROJECT)/test/copyimg
 
 checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	go build -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
+	$(GO) build -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
 
 crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
 	$(GO) build -o $@ \
@@ -170,9 +170,9 @@ uninstall:
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation: .gopathok
 ifeq ($(TRAVIS),true)
-	$(GOPATH)/bin/git-validation -q -run DCO,short-subject,dangling-whitespace
+	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -q -run DCO,short-subject,dangling-whitespace
 else
-	$(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
+	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
 .PHONY: install.tools

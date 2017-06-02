@@ -22,8 +22,8 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 	v1 "k8s.io/kubernetes/pkg/api/v1"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
 
 // FakeLimitRanges implements LimitRangeInterface
@@ -34,9 +34,11 @@ type FakeLimitRanges struct {
 
 var limitrangesResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "limitranges"}
 
+var limitrangesKind = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "LimitRange"}
+
 func (c *FakeLimitRanges) Create(limitRange *v1.LimitRange) (result *v1.LimitRange, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(limitrangesResource, c.ns, limitRange), &v1.LimitRange{})
+		Invokes(testing.NewCreateAction(limitrangesResource, c.ns, limitRange), &v1.LimitRange{})
 
 	if obj == nil {
 		return nil, err
@@ -46,7 +48,7 @@ func (c *FakeLimitRanges) Create(limitRange *v1.LimitRange) (result *v1.LimitRan
 
 func (c *FakeLimitRanges) Update(limitRange *v1.LimitRange) (result *v1.LimitRange, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(limitrangesResource, c.ns, limitRange), &v1.LimitRange{})
+		Invokes(testing.NewUpdateAction(limitrangesResource, c.ns, limitRange), &v1.LimitRange{})
 
 	if obj == nil {
 		return nil, err
@@ -56,13 +58,13 @@ func (c *FakeLimitRanges) Update(limitRange *v1.LimitRange) (result *v1.LimitRan
 
 func (c *FakeLimitRanges) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(limitrangesResource, c.ns, name), &v1.LimitRange{})
+		Invokes(testing.NewDeleteAction(limitrangesResource, c.ns, name), &v1.LimitRange{})
 
 	return err
 }
 
 func (c *FakeLimitRanges) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
-	action := core.NewDeleteCollectionAction(limitrangesResource, c.ns, listOptions)
+	action := testing.NewDeleteCollectionAction(limitrangesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.LimitRangeList{})
 	return err
@@ -70,7 +72,7 @@ func (c *FakeLimitRanges) DeleteCollection(options *meta_v1.DeleteOptions, listO
 
 func (c *FakeLimitRanges) Get(name string, options meta_v1.GetOptions) (result *v1.LimitRange, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(limitrangesResource, c.ns, name), &v1.LimitRange{})
+		Invokes(testing.NewGetAction(limitrangesResource, c.ns, name), &v1.LimitRange{})
 
 	if obj == nil {
 		return nil, err
@@ -80,13 +82,13 @@ func (c *FakeLimitRanges) Get(name string, options meta_v1.GetOptions) (result *
 
 func (c *FakeLimitRanges) List(opts meta_v1.ListOptions) (result *v1.LimitRangeList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(limitrangesResource, c.ns, opts), &v1.LimitRangeList{})
+		Invokes(testing.NewListAction(limitrangesResource, limitrangesKind, c.ns, opts), &v1.LimitRangeList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -102,14 +104,14 @@ func (c *FakeLimitRanges) List(opts meta_v1.ListOptions) (result *v1.LimitRangeL
 // Watch returns a watch.Interface that watches the requested limitRanges.
 func (c *FakeLimitRanges) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(limitrangesResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(limitrangesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched limitRange.
 func (c *FakeLimitRanges) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.LimitRange, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(limitrangesResource, c.ns, name, data, subresources...), &v1.LimitRange{})
+		Invokes(testing.NewPatchSubresourceAction(limitrangesResource, c.ns, name, data, subresources...), &v1.LimitRange{})
 
 	if obj == nil {
 		return nil, err

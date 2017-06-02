@@ -23,18 +23,12 @@ import (
 
 	dockertypes "github.com/docker/engine-api/types"
 
-	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 )
 
 // This file contains helper functions to convert docker API types to runtime
 // API types, or vice versa.
-
-const (
-	// Status of a container returned by docker ListContainers
-	statusRunningPrefix = "Up"
-	statusCreatedPrefix = "Created"
-	statusExitedPrefix  = "Exited"
-)
 
 func imageToRuntimeAPIImage(image *dockertypes.Image) (*runtimeapi.Image, error) {
 	if image == nil {
@@ -51,7 +45,7 @@ func imageToRuntimeAPIImage(image *dockertypes.Image) (*runtimeapi.Image, error)
 }
 
 func imageInspectToRuntimeAPIImage(image *dockertypes.ImageInspect) (*runtimeapi.Image, error) {
-	if image == nil {
+	if image == nil || image.Config == nil {
 		return nil, fmt.Errorf("unable to convert a nil pointer to a runtime API image")
 	}
 
@@ -126,11 +120,11 @@ func toRuntimeAPIContainerState(state string) runtimeapi.ContainerState {
 	// Parse the state string in dockertypes.Container. This could break when
 	// we upgrade docker.
 	switch {
-	case strings.HasPrefix(state, statusRunningPrefix):
+	case strings.HasPrefix(state, libdocker.StatusRunningPrefix):
 		return runtimeapi.ContainerState_CONTAINER_RUNNING
-	case strings.HasPrefix(state, statusExitedPrefix):
+	case strings.HasPrefix(state, libdocker.StatusExitedPrefix):
 		return runtimeapi.ContainerState_CONTAINER_EXITED
-	case strings.HasPrefix(state, statusCreatedPrefix):
+	case strings.HasPrefix(state, libdocker.StatusCreatedPrefix):
 		return runtimeapi.ContainerState_CONTAINER_CREATED
 	default:
 		return runtimeapi.ContainerState_CONTAINER_UNKNOWN
@@ -141,14 +135,14 @@ func toRuntimeAPISandboxState(state string) runtimeapi.PodSandboxState {
 	// Parse the state string in dockertypes.Container. This could break when
 	// we upgrade docker.
 	switch {
-	case strings.HasPrefix(state, statusRunningPrefix):
+	case strings.HasPrefix(state, libdocker.StatusRunningPrefix):
 		return runtimeapi.PodSandboxState_SANDBOX_READY
 	default:
 		return runtimeapi.PodSandboxState_SANDBOX_NOTREADY
 	}
 }
 
-func toRuntimeAPISandbox(c *dockertypes.Container) (*runtimeapi.PodSandbox, error) {
+func containerToRuntimeAPISandbox(c *dockertypes.Container) (*runtimeapi.PodSandbox, error) {
 	state := toRuntimeAPISandboxState(c.Status)
 	if len(c.Names) == 0 {
 		return nil, fmt.Errorf("unexpected empty sandbox name: %+v", c)
@@ -168,4 +162,16 @@ func toRuntimeAPISandbox(c *dockertypes.Container) (*runtimeapi.PodSandbox, erro
 		Labels:      labels,
 		Annotations: annotations,
 	}, nil
+}
+
+func checkpointToRuntimeAPISandbox(id string, checkpoint *PodSandboxCheckpoint) *runtimeapi.PodSandbox {
+	state := runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+	return &runtimeapi.PodSandbox{
+		Id: id,
+		Metadata: &runtimeapi.PodSandboxMetadata{
+			Name:      checkpoint.Name,
+			Namespace: checkpoint.Namespace,
+		},
+		State: state,
+	}
 }
