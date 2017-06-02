@@ -14,6 +14,7 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <sys/eventfd.h>
+#include <sys/stat.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -549,6 +550,8 @@ int main(int argc, char *argv[])
 		csfd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
 		if (csfd < 0)
 			pexit("Failed to create console-socket");
+                if (fchmod(csfd, 0700))
+			pexit("Failed to change console-socket permissions");
 		/* XXX: This should be handled with a rename(2). */
 		if (unlink(csname) < 0)
 			pexit("Failed to unlink temporary ranom path");
