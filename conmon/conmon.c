@@ -18,7 +18,6 @@
 #include <unistd.h>
 
 #include <glib.h>
-#include <json-glib/json-glib.h>
 
 #include "cmsg.h"
 
@@ -400,6 +399,34 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 	return NULL;
 }
 
+static char *escape_json_string(const char *str)
+{
+	GString *escaped;
+	const char *p;
+
+	p = str;
+	escaped = g_string_sized_new(strlen(str));
+
+	while (*p != 0) {
+		char c = *p++;
+		if (c == '\\' || c == '"') {
+			g_string_append_c(escaped, '\\');
+			g_string_append_c(escaped, c);
+		} else if (c == '\n') {
+			g_string_append_printf (escaped, "\\n");
+		} else if (c == '\t') {
+			g_string_append_printf (escaped, "\\t");
+		} else if ((c > 0 && c < 0x1f) || c == 0x7f) {
+			g_string_append_printf (escaped, "\\u00%02x", (guint)c);
+		} else {
+			g_string_append_c (escaped, c);
+		}
+	}
+
+	return g_string_free (escaped, FALSE);
+}
+
+
 int main(int argc, char *argv[])
 {
 	int ret, runtime_status;
@@ -685,32 +712,16 @@ int main(int argc, char *argv[])
 				 */
 				num_read = read(masterfd_stderr, buf, BUF_SIZE);
 				if (num_read > 0) {
+					_cleanup_free_ char *escaped_message = NULL;
+					ssize_t len;
+
 					buf[num_read] = '\0';
-					JsonGenerator *generator = json_generator_new();
-					JsonNode *root;
-					JsonObject *object;
-					gchar *data;
-					gsize len;
+					escaped_message = escape_json_string(buf);
 
-					root = json_node_new(JSON_NODE_OBJECT);
-					object = json_object_new();
-
-					json_object_set_int_member(object, "pid", -1);
-					json_object_set_string_member(object, "message", buf);
-
-					json_node_take_object(root, object);
-					json_generator_set_root(generator, root);
-
-					g_object_set(generator, "pretty", FALSE, NULL);
-					data = json_generator_to_data (generator, &len);
-					fprintf(stderr, "%s\n", data);
-					if (write_all(sync_pipe_fd, data, len) != (int)len) {
+					len = snprintf(buf, BUF_SIZE, "{\"pid\": %d, \"message\": \"%s\"}\n", -1, escaped_message);
+					if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 						ninfo("Unable to send container stderr message to parent");
 					}
-
-					g_free(data);
-					json_node_free(root);
-					g_object_unref(generator);
 				}
 			}
 		}
