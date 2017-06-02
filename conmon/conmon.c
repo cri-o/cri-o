@@ -348,7 +348,7 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 	}
 
 	_cleanup_fclose_ FILE *fp = NULL;
-	fp = fopen(cgroups_file_path, "r");
+	fp = fopen(cgroups_file_path, "re");
 	if (fp == NULL) {
 		nwarn("Failed to open cgroups file: %s", cgroups_file_path);
 		return NULL;
@@ -482,10 +482,12 @@ int main(int argc, char *argv[])
 		sync_pipe_fd = strtol(sync_pipe, &endptr, 10);
 		if (errno != 0 || *endptr != '\0')
 			pexit("unable to parse _OCI_SYNCPIPE");
+		if (fcntl(sync_pipe_fd, F_SETFD, FD_CLOEXEC) == -1)
+			pexit("unable to make _OCI_SYNCPIPE CLOEXEC");
 	}
 
 	/* Open the log path file. */
-	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT);
+	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC);
 	if (logfd < 0)
 		pexit("Failed to open log file");
 
@@ -539,13 +541,13 @@ int main(int argc, char *argv[])
 		 * used anything else (and it wouldn't be a good idea to create a new
 		 * pty pair in the host).
 		 */
-		if (pipe(fds) < 0)
+		if (pipe2(fds, O_CLOEXEC) < 0)
 			pexit("Failed to create !terminal stdout pipe");
 
 		masterfd_stdout = fds[0];
 		slavefd_stdout = fds[1];
 
-		if (pipe(fds) < 0)
+		if (pipe2(fds, O_CLOEXEC) < 0)
 			pexit("Failed to create !terminal stderr pipe");
 
 		masterfd_stderr = fds[0];
@@ -743,17 +745,17 @@ int main(int argc, char *argv[])
 	bool oom_handling_enabled = true;
 	char memory_cgroup_file_path[PATH_MAX];
 	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/cgroup.event_control", memory_cgroup_path);
-	if ((cfd = open(memory_cgroup_file_path, O_WRONLY)) == -1) {
+	if ((cfd = open(memory_cgroup_file_path, O_WRONLY | O_CLOEXEC)) == -1) {
 		nwarn("Failed to open %s", memory_cgroup_file_path);
 		oom_handling_enabled = false;
 	}
 
 	if (oom_handling_enabled) {
 		snprintf(memory_cgroup_file_path, PATH_MAX, "%s/memory.oom_control", memory_cgroup_path);
-		if ((ofd = open(memory_cgroup_file_path, O_RDONLY)) == -1)
+		if ((ofd = open(memory_cgroup_file_path, O_RDONLY | O_CLOEXEC)) == -1)
 			pexit("Failed to open %s", memory_cgroup_file_path);
 
-		if ((efd = eventfd(0, 0)) == -1)
+		if ((efd = eventfd(0, EFD_CLOEXEC)) == -1)
 			pexit("Failed to create eventfd");
 
 		wb = snprintf(buf, BUF_SIZE, "%d %d", efd, ofd);
@@ -767,7 +769,7 @@ int main(int argc, char *argv[])
 	 *       attach and other important things. Using epoll directly is just
 	 *       really nasty.
 	 */
-	epfd = epoll_create(5);
+	epfd = epoll_create1(EPOLL_CLOEXEC);
 	if (epfd < 0)
 		pexit("epoll_create");
 	ev.events = EPOLLIN;
