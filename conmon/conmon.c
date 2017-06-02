@@ -14,11 +14,11 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <sys/eventfd.h>
+#include <sys/stat.h>
 #include <syslog.h>
 #include <unistd.h>
 
 #include <glib.h>
-#include <json-glib/json-glib.h>
 
 #include "cmsg.h"
 
@@ -72,12 +72,19 @@ static inline void gstring_free_cleanup(GString **string)
 		g_string_free(*string, TRUE);
 }
 
+static inline void strv_cleanup(char ***strv)
+{
+	if (strv)
+		g_strfreev (*strv);
+}
+
 #define _cleanup_free_ _cleanup_(freep)
 #define _cleanup_close_ _cleanup_(closep)
 #define _cleanup_fclose_ _cleanup_(fclosep)
 #define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
+#define _cleanup_strv_ _cleanup_(strv_cleanup)
 
-#define BUF_SIZE 256
+#define BUF_SIZE 8192
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
 
@@ -104,12 +111,98 @@ static GOptionEntry entries[] =
   { NULL }
 };
 
-/* strlen("1997-03-25T13:20:42.999999999+01:00") + 1 */
-#define TSBUFLEN 36
+/* strlen("1997-03-25T13:20:42.999999999+01:00 stdout ") + 1 */
+#define TSBUFLEN 44
 
 #define CGROUP_ROOT "/sys/fs/cgroup"
 
-int set_k8s_timestamp(char *buf, ssize_t buflen)
+static ssize_t write_all(int fd, const void *buf, size_t count)
+{
+	size_t remaining = count;
+	const char *p = buf;
+	ssize_t res;
+
+	while (remaining > 0) {
+		do {
+			res = write(fd, p, remaining);
+		} while (res == -1 && errno == EINTR);
+
+		if (res <= 0)
+			return -1;
+
+		remaining -= res;
+		p += res;
+	}
+
+	return count;
+}
+
+#define WRITEV_BUFFER_N_IOV 128
+
+typedef struct {
+	int iovcnt;
+	struct iovec iov[WRITEV_BUFFER_N_IOV];
+} writev_buffer_t;
+
+static ssize_t writev_buffer_flush (int fd, writev_buffer_t *buf)
+{
+	size_t count = 0;
+	ssize_t res;
+	struct iovec *iov;
+	int iovcnt;
+
+	iovcnt = buf->iovcnt;
+	iov = buf->iov;
+
+	while (iovcnt > 0) {
+		do {
+			res = writev(fd, iov, iovcnt);
+		} while (res == -1 && errno == EINTR);
+
+		if (res <= 0)
+			return -1;
+
+		count += res;
+
+		while (res > 0) {
+			size_t from_this = MIN((size_t)res, iov->iov_len);
+			iov->iov_len -= from_this;
+			res -= from_this;
+
+			if (iov->iov_len == 0) {
+				iov++;
+				iovcnt--;
+			}
+		}
+	}
+
+	buf->iovcnt = 0;
+
+	return count;
+}
+
+ssize_t writev_buffer_append_segment(int fd, writev_buffer_t *buf, const void *data, ssize_t len)
+{
+	if (data == NULL)
+		return 1;
+
+	if (len < 0)
+		len = strlen ((char *)data);
+
+	if (buf->iovcnt == WRITEV_BUFFER_N_IOV &&
+	    writev_buffer_flush (fd, buf) < 0)
+		return -1;
+
+	if (len > 0) {
+		buf->iov[buf->iovcnt].iov_base = (void *)data;
+		buf->iov[buf->iovcnt].iov_len = (size_t)len;
+		buf->iovcnt++;
+	}
+
+	return 1;
+}
+
+int set_k8s_timestamp(char *buf, ssize_t buflen, const char *pipename)
 {
 	struct tm *tm;
 	struct timespec ts;
@@ -135,10 +228,10 @@ int set_k8s_timestamp(char *buf, ssize_t buflen)
 		off = -off;
 	}
 
-	len = snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d.%09ld%c%02d:%02d",
+	len = snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d.%09ld%c%02d:%02d %s ",
 		       tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
 		       tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec,
-		       off_sign, off / 3600, off % 3600);
+		       off_sign, off / 3600, off % 3600, pipename);
 
 	if (len < buflen)
 		err = 0;
@@ -177,13 +270,14 @@ int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
 {
 	char tsbuf[TSBUFLEN];
 	static stdpipe_t trailing_line = NO_PIPE;
+	writev_buffer_t bufv = {0};
 
 	/*
 	 * Use the same timestamp for every line of the log in this buffer.
 	 * There is no practical difference in the output since write(2) is
 	 * fast.
 	 */
-	if (set_k8s_timestamp(tsbuf, TSBUFLEN))
+	if (set_k8s_timestamp(tsbuf, sizeof tsbuf, stdpipe_name(pipe)))
 		/* TODO: We should handle failures much more cleanly than this. */
 		return -1;
 
@@ -210,18 +304,16 @@ int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
 			 * wasn't one output) but without modifying the file in a
 			 * non-append-only way there's not much we can do.
 			 */
-			char *leading = "";
-			if (trailing_line != NO_PIPE)
-				leading = "\n";
-
-			if (dprintf(fd, "%s%s %s ", leading, tsbuf, stdpipe_name(pipe)) < 0) {
+			if ((trailing_line != NO_PIPE &&
+			     writev_buffer_append_segment(fd, &bufv, "\n", -1) < 0) ||
+			    writev_buffer_append_segment(fd, &bufv, tsbuf, -1) < 0) {
 				nwarn("failed to write (timestamp, stream) to log");
 				goto next;
 			}
 		}
 
 		/* Output the actual contents. */
-		if (write(fd, buf, line_len) < 0) {
+		if (writev_buffer_append_segment(fd, &bufv, buf, line_len) < 0) {
 			nwarn("failed to write buffer to log");
 			goto next;
 		}
@@ -233,6 +325,10 @@ next:
 		/* Update the head of the buffer remaining to output. */
 		buf += line_len;
 		buflen -= line_len;
+	}
+
+	if (writev_buffer_flush (fd, &bufv) < 0) {
+		nwarn("failed to flush buffer to log");
 	}
 
 	return 0;
@@ -252,7 +348,7 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 	}
 
 	_cleanup_fclose_ FILE *fp = NULL;
-	fp = fopen(cgroups_file_path, "r");
+	fp = fopen(cgroups_file_path, "re");
 	if (fp == NULL) {
 		nwarn("Failed to open cgroups file: %s", cgroups_file_path);
 		return NULL;
@@ -261,42 +357,76 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 	_cleanup_free_ char *line = NULL;
 	ssize_t read;
 	size_t len = 0;
-	char *ptr;
+	char *ptr, *path;
 	char *subsystem_path = NULL;
+	int i;
 	while ((read = getline(&line, &len, fp)) != -1) {
+		_cleanup_strv_ char **subsystems = NULL;
 		ptr = strchr(line, ':');
 		if (ptr == NULL) {
 			nwarn("Error parsing cgroup, ':' not found: %s", line);
 			return NULL;
 		}
 		ptr++;
-		if (!strncmp(ptr, subsystem, strlen(subsystem))) {
-			char *path = strchr(ptr, '/');
-			if (path == NULL) {
-				nwarn("Error finding path in cgroup: %s", line);
-				return NULL;
-			}
-			ninfo("PATH: %s", path);
-			const char *subpath = strchr(subsystem, '=');
-			if (subpath == NULL) {
-				subpath = subsystem;
-			} else {
-				subpath++;
-			}
+		path = strchr(ptr, ':');
+		if (path == NULL) {
+			nwarn("Error parsing cgroup, second ':' not found: %s", line);
+			return NULL;
+		}
+		*path = 0;
+		path++;
+		subsystems = g_strsplit (ptr, ",", -1);
+		for (i = 0; subsystems[i] != NULL; i++) {
+			if (strcmp (subsystems[i], subsystem) == 0) {
+				char *subpath = strchr(subsystems[i], '=');
+				if (subpath == NULL) {
+					subpath = ptr;
+				} else {
+					*subpath = 0;
+				}
 
-			rc = asprintf(&subsystem_path, "%s/%s%s", CGROUP_ROOT, subpath, path);
-			if (rc < 0) {
-				nwarn("Failed to allocate memory for subsystemd path");
-				return NULL;
+				rc = asprintf(&subsystem_path, "%s/%s%s", CGROUP_ROOT, subpath, path);
+				if (rc < 0) {
+					nwarn("Failed to allocate memory for subsystemd path");
+					return NULL;
+				}
+
+				subsystem_path[strlen(subsystem_path) - 1] = '\0';
+				return subsystem_path;
 			}
-			ninfo("SUBSYSTEM_PATH: %s", subsystem_path);
-			subsystem_path[strlen(subsystem_path) - 1] = '\0';
-			return subsystem_path;
 		}
 	}
 
 	return NULL;
 }
+
+static char *escape_json_string(const char *str)
+{
+	GString *escaped;
+	const char *p;
+
+	p = str;
+	escaped = g_string_sized_new(strlen(str));
+
+	while (*p != 0) {
+		char c = *p++;
+		if (c == '\\' || c == '"') {
+			g_string_append_c(escaped, '\\');
+			g_string_append_c(escaped, c);
+		} else if (c == '\n') {
+			g_string_append_printf (escaped, "\\n");
+		} else if (c == '\t') {
+			g_string_append_printf (escaped, "\\t");
+		} else if ((c > 0 && c < 0x1f) || c == 0x7f) {
+			g_string_append_printf (escaped, "\\u00%02x", (guint)c);
+		} else {
+			g_string_append_c (escaped, c);
+		}
+	}
+
+	return g_string_free (escaped, FALSE);
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -327,7 +457,7 @@ int main(int argc, char *argv[])
 	int num_stdio_fds = 0;
 	GError *error = NULL;
 	GOptionContext *context;
-	_cleanup_gstring_ GString *cmd = NULL;
+        GPtrArray *runtime_argv = NULL;
 
 	/* Used for OOM notification API */
 	_cleanup_close_ int efd = -1;
@@ -380,10 +510,12 @@ int main(int argc, char *argv[])
 		sync_pipe_fd = strtol(sync_pipe, &endptr, 10);
 		if (errno != 0 || *endptr != '\0')
 			pexit("unable to parse _OCI_SYNCPIPE");
+		if (fcntl(sync_pipe_fd, F_SETFD, FD_CLOEXEC) == -1)
+			pexit("unable to make _OCI_SYNCPIPE CLOEXEC");
 	}
 
 	/* Open the log path file. */
-	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT);
+	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC);
 	if (logfd < 0)
 		pexit("Failed to open log file");
 
@@ -418,6 +550,8 @@ int main(int argc, char *argv[])
 		csfd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
 		if (csfd < 0)
 			pexit("Failed to create console-socket");
+                if (fchmod(csfd, 0700))
+			pexit("Failed to change console-socket permissions");
 		/* XXX: This should be handled with a rename(2). */
 		if (unlink(csname) < 0)
 			pexit("Failed to unlink temporary ranom path");
@@ -437,40 +571,53 @@ int main(int argc, char *argv[])
 		 * used anything else (and it wouldn't be a good idea to create a new
 		 * pty pair in the host).
 		 */
-		if (pipe(fds) < 0)
+		if (pipe2(fds, O_CLOEXEC) < 0)
 			pexit("Failed to create !terminal stdout pipe");
 
 		masterfd_stdout = fds[0];
 		slavefd_stdout = fds[1];
 
-		if (pipe(fds) < 0)
+		if (pipe2(fds, O_CLOEXEC) < 0)
 			pexit("Failed to create !terminal stderr pipe");
 
 		masterfd_stderr = fds[0];
 		slavefd_stderr = fds[1];
 	}
 
-	cmd = g_string_new(runtime_path);
+	runtime_argv = g_ptr_array_new();
+	g_ptr_array_add(runtime_argv, runtime_path);
 
 	/* Generate the cmdline. */
 	if (!exec && systemd_cgroup)
-		g_string_append_printf(cmd, " --systemd-cgroup");
+		g_ptr_array_add(runtime_argv, "--systemd-cgroup");
 
-	if (exec)
-		g_string_append_printf(cmd, " exec -d --pid-file %s", pid_file);
-	else
-		g_string_append_printf(cmd, " create --bundle %s --pid-file %s", bundle_path, pid_file);
+	if (exec) {
+		g_ptr_array_add (runtime_argv, "exec");
+		g_ptr_array_add (runtime_argv, "-d");
+		g_ptr_array_add (runtime_argv, "--pid-file");
+		g_ptr_array_add (runtime_argv, pid_file);
+        } else {
+		g_ptr_array_add (runtime_argv, "create");
+		g_ptr_array_add (runtime_argv, "--bundle");
+		g_ptr_array_add (runtime_argv, bundle_path);
+		g_ptr_array_add (runtime_argv, "--pid-file");
+		g_ptr_array_add (runtime_argv, pid_file);
+	}
 
-	if (terminal)
-		g_string_append_printf(cmd, " --console-socket %s", csname);
+	if (terminal) {
+		g_ptr_array_add(runtime_argv, "--console-socket");
+		g_ptr_array_add(runtime_argv, csname);
+	}
 
 	/* Set the exec arguments. */
 	if (exec) {
-		g_string_append_printf(cmd, " --process %s", exec_process_spec);
+		g_ptr_array_add(runtime_argv, "--process");
+		g_ptr_array_add(runtime_argv, exec_process_spec);
 	}
 
 	/* Container name comes last. */
-	g_string_append_printf(cmd, " %s", cid);
+	g_ptr_array_add(runtime_argv, cid);
+	g_ptr_array_add(runtime_argv, NULL);
 
 	/*
 	 * We have to fork here because the current runC API dups the stdio of the
@@ -485,8 +632,6 @@ int main(int argc, char *argv[])
 	if (create_pid < 0) {
 		pexit("Failed to fork the create command");
 	} else if (!create_pid) {
-		char *argv[] = {"sh", "-c", cmd->str, NULL};
-
 		/* We only need to touch the stdio if we have terminal=false. */
 		/* FIXME: This results in us not outputting runc error messages to crio's log. */
 		if (slavefd_stdout >= 0) {
@@ -498,10 +643,11 @@ int main(int argc, char *argv[])
 				pexit("Failed to dup over stderr");
 		}
 
-		/* Exec into the process. TODO: Don't use the shell. */
-		execv("/bin/sh", argv);
+		execv(g_ptr_array_index(runtime_argv,0), (char **)runtime_argv->pdata);
 		exit(127);
 	}
+
+	g_ptr_array_free (runtime_argv, TRUE);
 
 	/* The runtime has that fd now. We don't need to touch it anymore. */
 	close(slavefd_stdout);
@@ -559,7 +705,7 @@ int main(int argc, char *argv[])
 			         * We send -1 as pid to signal to parent that create container has failed.
 				 */
 				len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", -1);
-				if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+				if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 					pexit("unable to send container pid to parent");
 				}
 			} else {
@@ -569,32 +715,16 @@ int main(int argc, char *argv[])
 				 */
 				num_read = read(masterfd_stderr, buf, BUF_SIZE);
 				if (num_read > 0) {
+					_cleanup_free_ char *escaped_message = NULL;
+					ssize_t len;
+
 					buf[num_read] = '\0';
-					JsonGenerator *generator = json_generator_new();
-					JsonNode *root;
-					JsonObject *object;
-					gchar *data;
-					gsize len;
+					escaped_message = escape_json_string(buf);
 
-					root = json_node_new(JSON_NODE_OBJECT);
-					object = json_object_new();
-
-					json_object_set_int_member(object, "pid", -1);
-					json_object_set_string_member(object, "message", buf);
-
-					json_node_take_object(root, object);
-					json_generator_set_root(generator, root);
-
-					g_object_set(generator, "pretty", FALSE, NULL);
-					data = json_generator_to_data (generator, &len);
-					fprintf(stderr, "%s\n", data);
-					if (write(sync_pipe_fd, data, len) != (int)len) {
+					len = snprintf(buf, BUF_SIZE, "{\"pid\": %d, \"message\": \"%s\"}\n", -1, escaped_message);
+					if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 						ninfo("Unable to send container stderr message to parent");
 					}
-
-					g_free(data);
-					json_node_free(root);
-					g_object_unref(generator);
 				}
 			}
 		}
@@ -615,7 +745,7 @@ int main(int argc, char *argv[])
 	/* Send the container pid back to parent */
 	if (sync_pipe_fd > 0 && !exec) {
 		len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", cpid);
-		if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+		if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 			pexit("unable to send container pid to parent");
 		}
 	}
@@ -629,21 +759,21 @@ int main(int argc, char *argv[])
 	bool oom_handling_enabled = true;
 	char memory_cgroup_file_path[PATH_MAX];
 	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/cgroup.event_control", memory_cgroup_path);
-	if ((cfd = open(memory_cgroup_file_path, O_WRONLY)) == -1) {
+	if ((cfd = open(memory_cgroup_file_path, O_WRONLY | O_CLOEXEC)) == -1) {
 		nwarn("Failed to open %s", memory_cgroup_file_path);
 		oom_handling_enabled = false;
 	}
 
 	if (oom_handling_enabled) {
 		snprintf(memory_cgroup_file_path, PATH_MAX, "%s/memory.oom_control", memory_cgroup_path);
-		if ((ofd = open(memory_cgroup_file_path, O_RDONLY)) == -1)
+		if ((ofd = open(memory_cgroup_file_path, O_RDONLY | O_CLOEXEC)) == -1)
 			pexit("Failed to open %s", memory_cgroup_file_path);
 
-		if ((efd = eventfd(0, 0)) == -1)
+		if ((efd = eventfd(0, EFD_CLOEXEC)) == -1)
 			pexit("Failed to create eventfd");
 
 		wb = snprintf(buf, BUF_SIZE, "%d %d", efd, ofd);
-		if (write(cfd, buf, wb) < 0)
+		if (write_all(cfd, buf, wb) < 0)
 			pexit("Failed to write to cgroup.event_control");
 	}
 
@@ -653,7 +783,7 @@ int main(int argc, char *argv[])
 	 *       attach and other important things. Using epoll directly is just
 	 *       really nasty.
 	 */
-	epfd = epoll_create(5);
+	epfd = epoll_create1(EPOLL_CLOEXEC);
 	if (epfd < 0)
 		pexit("epoll_create");
 	ev.events = EPOLLIN;
@@ -686,7 +816,7 @@ int main(int argc, char *argv[])
 		for (int i = 0; i < ready; i++) {
 			if (evlist[i].events & EPOLLIN) {
 				int masterfd = evlist[i].data.fd;
-				stdpipe_t pipe;
+				stdpipe_t pipe = NO_PIPE;
 				if (masterfd == masterfd_stdout)
 					pipe = STDOUT_PIPE;
 				else if (masterfd == masterfd_stderr)
@@ -749,7 +879,7 @@ out:
 				/* Send the command exec exit code back to the parent */
 				if (sync_pipe_fd > 0) {
 					len = snprintf(buf, BUF_SIZE, "{\"exit_code\": %d}\n", exit_status);
-					if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+					if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 						pexit("unable to send exit status");
 						exit(1);
 					}
@@ -767,7 +897,7 @@ out:
 		 * to the parent.
 		 */
 		len = snprintf(buf, BUF_SIZE, "{\"exit_code\": %d}\n", WEXITSTATUS(runtime_status));
-		if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+		if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 			pexit("unable to send exit status");
 			exit(1);
 		}
