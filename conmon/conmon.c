@@ -15,6 +15,7 @@
 #include <sys/wait.h>
 #include <sys/eventfd.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 #include <syslog.h>
 #include <unistd.h>
 
