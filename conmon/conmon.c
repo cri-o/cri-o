@@ -72,10 +72,17 @@ static inline void gstring_free_cleanup(GString **string)
 		g_string_free(*string, TRUE);
 }
 
+static inline void strv_cleanup(char ***strv)
+{
+	if (strv)
+		g_strfreev (*strv);
+}
+
 #define _cleanup_free_ _cleanup_(freep)
 #define _cleanup_close_ _cleanup_(closep)
 #define _cleanup_fclose_ _cleanup_(fclosep)
 #define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
+#define _cleanup_strv_ _cleanup_(strv_cleanup)
 
 #define BUF_SIZE 256
 #define CMD_SIZE 1024
@@ -350,37 +357,43 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 	_cleanup_free_ char *line = NULL;
 	ssize_t read;
 	size_t len = 0;
-	char *ptr;
+	char *ptr, *path;
 	char *subsystem_path = NULL;
+	int i;
 	while ((read = getline(&line, &len, fp)) != -1) {
+		_cleanup_strv_ char **subsystems = NULL;
 		ptr = strchr(line, ':');
 		if (ptr == NULL) {
 			nwarn("Error parsing cgroup, ':' not found: %s", line);
 			return NULL;
 		}
 		ptr++;
-		if (!strncmp(ptr, subsystem, strlen(subsystem))) {
-			char *path = strchr(ptr, '/');
-			if (path == NULL) {
-				nwarn("Error finding path in cgroup: %s", line);
-				return NULL;
-			}
-			ninfo("PATH: %s", path);
-			const char *subpath = strchr(subsystem, '=');
-			if (subpath == NULL) {
-				subpath = subsystem;
-			} else {
-				subpath++;
-			}
+		path = strchr(ptr, ':');
+		if (path == NULL) {
+			nwarn("Error parsing cgroup, second ':' not found: %s", line);
+			return NULL;
+		}
+		*path = 0;
+		path++;
+		subsystems = g_strsplit (ptr, ",", -1);
+		for (i = 0; subsystems[i] != NULL; i++) {
+			if (strcmp (subsystems[i], subsystem) == 0) {
+				char *subpath = strchr(subsystems[i], '=');
+				if (subpath == NULL) {
+					subpath = ptr;
+				} else {
+					*subpath = 0;
+				}
 
-			rc = asprintf(&subsystem_path, "%s/%s%s", CGROUP_ROOT, subpath, path);
-			if (rc < 0) {
-				nwarn("Failed to allocate memory for subsystemd path");
-				return NULL;
+				rc = asprintf(&subsystem_path, "%s/%s%s", CGROUP_ROOT, subpath, path);
+				if (rc < 0) {
+					nwarn("Failed to allocate memory for subsystemd path");
+					return NULL;
+				}
+
+				subsystem_path[strlen(subsystem_path) - 1] = '\0';
+				return subsystem_path;
 			}
-			ninfo("SUBSYSTEM_PATH: %s", subsystem_path);
-			subsystem_path[strlen(subsystem_path) - 1] = '\0';
-			return subsystem_path;
 		}
 	}
 
