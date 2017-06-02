@@ -104,8 +104,8 @@ static GOptionEntry entries[] =
   { NULL }
 };
 
-/* strlen("1997-03-25T13:20:42.999999999+01:00") + 1 */
-#define TSBUFLEN 36
+/* strlen("1997-03-25T13:20:42.999999999+01:00 stdout ") + 1 */
+#define TSBUFLEN 44
 
 #define CGROUP_ROOT "/sys/fs/cgroup"
 
@@ -130,7 +130,72 @@ static ssize_t write_all(int fd, const void *buf, size_t count)
 	return count;
 }
 
-int set_k8s_timestamp(char *buf, ssize_t buflen)
+#define WRITEV_BUFFER_N_IOV 128
+
+typedef struct {
+	int iovcnt;
+	struct iovec iov[WRITEV_BUFFER_N_IOV];
+} writev_buffer_t;
+
+static ssize_t writev_buffer_flush (int fd, writev_buffer_t *buf)
+{
+	size_t count = 0;
+	ssize_t res;
+	struct iovec *iov;
+	int iovcnt;
+
+	iovcnt = buf->iovcnt;
+	iov = buf->iov;
+
+	while (iovcnt > 0) {
+		do {
+			res = writev(fd, iov, iovcnt);
+		} while (res == -1 && errno == EINTR);
+
+		if (res <= 0)
+			return -1;
+
+		count += res;
+
+		while (res > 0) {
+			size_t from_this = MIN((size_t)res, iov->iov_len);
+			iov->iov_len -= from_this;
+			res -= from_this;
+
+			if (iov->iov_len == 0) {
+				iov++;
+				iovcnt--;
+			}
+		}
+	}
+
+	buf->iovcnt = 0;
+
+	return count;
+}
+
+ssize_t writev_buffer_append_segment(int fd, writev_buffer_t *buf, const void *data, ssize_t len)
+{
+	if (data == NULL)
+		return 1;
+
+	if (len < 0)
+		len = strlen ((char *)data);
+
+	if (buf->iovcnt == WRITEV_BUFFER_N_IOV &&
+	    writev_buffer_flush (fd, buf) < 0)
+		return -1;
+
+	if (len > 0) {
+		buf->iov[buf->iovcnt].iov_base = (void *)data;
+		buf->iov[buf->iovcnt].iov_len = (size_t)len;
+		buf->iovcnt++;
+	}
+
+	return 1;
+}
+
+int set_k8s_timestamp(char *buf, ssize_t buflen, const char *pipename)
 {
 	struct tm *tm;
 	struct timespec ts;
@@ -156,10 +221,10 @@ int set_k8s_timestamp(char *buf, ssize_t buflen)
 		off = -off;
 	}
 
-	len = snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d.%09ld%c%02d:%02d",
+	len = snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d.%09ld%c%02d:%02d %s ",
 		       tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
 		       tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec,
-		       off_sign, off / 3600, off % 3600);
+		       off_sign, off / 3600, off % 3600, pipename);
 
 	if (len < buflen)
 		err = 0;
@@ -198,13 +263,14 @@ int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
 {
 	char tsbuf[TSBUFLEN];
 	static stdpipe_t trailing_line = NO_PIPE;
+	writev_buffer_t bufv = {0};
 
 	/*
 	 * Use the same timestamp for every line of the log in this buffer.
 	 * There is no practical difference in the output since write(2) is
 	 * fast.
 	 */
-	if (set_k8s_timestamp(tsbuf, TSBUFLEN))
+	if (set_k8s_timestamp(tsbuf, sizeof tsbuf, stdpipe_name(pipe)))
 		/* TODO: We should handle failures much more cleanly than this. */
 		return -1;
 
@@ -231,18 +297,16 @@ int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
 			 * wasn't one output) but without modifying the file in a
 			 * non-append-only way there's not much we can do.
 			 */
-			char *leading = "";
-			if (trailing_line != NO_PIPE)
-				leading = "\n";
-
-			if (dprintf(fd, "%s%s %s ", leading, tsbuf, stdpipe_name(pipe)) < 0) {
+			if ((trailing_line != NO_PIPE &&
+			     writev_buffer_append_segment(fd, &bufv, "\n", -1) < 0) ||
+			    writev_buffer_append_segment(fd, &bufv, tsbuf, -1) < 0) {
 				nwarn("failed to write (timestamp, stream) to log");
 				goto next;
 			}
 		}
 
 		/* Output the actual contents. */
-		if (write_all(fd, buf, line_len) < 0) {
+		if (writev_buffer_append_segment(fd, &bufv, buf, line_len) < 0) {
 			nwarn("failed to write buffer to log");
 			goto next;
 		}
@@ -254,6 +318,10 @@ next:
 		/* Update the head of the buffer remaining to output. */
 		buf += line_len;
 		buflen -= line_len;
+	}
+
+	if (writev_buffer_flush (fd, &bufv) < 0) {
+		nwarn("failed to flush buffer to log");
 	}
 
 	return 0;
