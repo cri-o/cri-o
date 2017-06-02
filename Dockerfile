@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install -y \
     protobuf-compiler \
     python-minimal \
     libglib2.0-dev \
-    libjson-glib-dev \
     libapparmor-dev \
     btrfs-tools \
     libdevmapper1.02.1 \

@@ -61,7 +61,6 @@ yum install -y \
   libseccomp-devel \
   libselinux-devel \
   pkgconfig \
-  json-glib-devel \
   runc
 ```
 
@@ -79,7 +78,6 @@ apt install -y \
   libseccomp-dev \
   libselinux1-dev \
   pkg-config \
-  libjson-glib-dev \
   runc
 ```
 
