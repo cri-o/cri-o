@@ -429,7 +429,7 @@ int main(int argc, char *argv[])
 	int num_stdio_fds = 0;
 	GError *error = NULL;
 	GOptionContext *context;
-	_cleanup_gstring_ GString *cmd = NULL;
+        GPtrArray *runtime_argv = NULL;
 
 	/* Used for OOM notification API */
 	_cleanup_close_ int efd = -1;
@@ -552,27 +552,40 @@ int main(int argc, char *argv[])
 		slavefd_stderr = fds[1];
 	}
 
-	cmd = g_string_new(runtime_path);
+	runtime_argv = g_ptr_array_new();
+	g_ptr_array_add(runtime_argv, runtime_path);
 
 	/* Generate the cmdline. */
 	if (!exec && systemd_cgroup)
-		g_string_append_printf(cmd, " --systemd-cgroup");
+		g_ptr_array_add(runtime_argv, "--systemd-cgroup");
 
-	if (exec)
-		g_string_append_printf(cmd, " exec -d --pid-file %s", pid_file);
-	else
-		g_string_append_printf(cmd, " create --bundle %s --pid-file %s", bundle_path, pid_file);
+	if (exec) {
+		g_ptr_array_add (runtime_argv, "exec");
+		g_ptr_array_add (runtime_argv, "-d");
+		g_ptr_array_add (runtime_argv, "--pid-file");
+		g_ptr_array_add (runtime_argv, pid_file);
+        } else {
+		g_ptr_array_add (runtime_argv, "create");
+		g_ptr_array_add (runtime_argv, "--bundle");
+		g_ptr_array_add (runtime_argv, bundle_path);
+		g_ptr_array_add (runtime_argv, "--pid-file");
+		g_ptr_array_add (runtime_argv, pid_file);
+	}
 
-	if (terminal)
-		g_string_append_printf(cmd, " --console-socket %s", csname);
+	if (terminal) {
+		g_ptr_array_add(runtime_argv, "--console-socket");
+		g_ptr_array_add(runtime_argv, csname);
+	}
 
 	/* Set the exec arguments. */
 	if (exec) {
-		g_string_append_printf(cmd, " --process %s", exec_process_spec);
+		g_ptr_array_add(runtime_argv, "--process");
+		g_ptr_array_add(runtime_argv, exec_process_spec);
 	}
 
 	/* Container name comes last. */
-	g_string_append_printf(cmd, " %s", cid);
+	g_ptr_array_add(runtime_argv, cid);
+	g_ptr_array_add(runtime_argv, NULL);
 
 	/*
 	 * We have to fork here because the current runC API dups the stdio of the
@@ -587,8 +600,6 @@ int main(int argc, char *argv[])
 	if (create_pid < 0) {
 		pexit("Failed to fork the create command");
 	} else if (!create_pid) {
-		char *argv[] = {"sh", "-c", cmd->str, NULL};
-
 		/* We only need to touch the stdio if we have terminal=false. */
 		/* FIXME: This results in us not outputting runc error messages to crio's log. */
 		if (slavefd_stdout >= 0) {
@@ -600,10 +611,11 @@ int main(int argc, char *argv[])
 				pexit("Failed to dup over stderr");
 		}
 
-		/* Exec into the process. TODO: Don't use the shell. */
-		execv("/bin/sh", argv);
+		execv(g_ptr_array_index(runtime_argv,0), (char **)runtime_argv->pdata);
 		exit(127);
 	}
+
+	g_ptr_array_free (runtime_argv, TRUE);
 
 	/* The runtime has that fd now. We don't need to touch it anymore. */
 	close(slavefd_stdout);
