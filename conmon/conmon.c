@@ -813,7 +813,7 @@ int main(int argc, char *argv[])
 		for (int i = 0; i < ready; i++) {
 			if (evlist[i].events & EPOLLIN) {
 				int masterfd = evlist[i].data.fd;
-				stdpipe_t pipe;
+				stdpipe_t pipe = NO_PIPE;
 				if (masterfd == masterfd_stdout)
 					pipe = STDOUT_PIPE;
 				else if (masterfd == masterfd_stderr)
