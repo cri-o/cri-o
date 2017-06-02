@@ -109,6 +109,27 @@ static GOptionEntry entries[] =
 
 #define CGROUP_ROOT "/sys/fs/cgroup"
 
+static ssize_t write_all(int fd, const void *buf, size_t count)
+{
+	size_t remaining = count;
+	const char *p = buf;
+	ssize_t res;
+
+	while (remaining > 0) {
+		do {
+			res = write(fd, p, remaining);
+		} while (res == -1 && errno == EINTR);
+
+		if (res <= 0)
+			return -1;
+
+		remaining -= res;
+		p += res;
+	}
+
+	return count;
+}
+
 int set_k8s_timestamp(char *buf, ssize_t buflen)
 {
 	struct tm *tm;
@@ -221,7 +242,7 @@ int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
 		}
 
 		/* Output the actual contents. */
-		if (write(fd, buf, line_len) < 0) {
+		if (write_all(fd, buf, line_len) < 0) {
 			nwarn("failed to write buffer to log");
 			goto next;
 		}
@@ -559,7 +580,7 @@ int main(int argc, char *argv[])
 			         * We send -1 as pid to signal to parent that create container has failed.
 				 */
 				len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", -1);
-				if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+				if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 					pexit("unable to send container pid to parent");
 				}
 			} else {
@@ -588,7 +609,7 @@ int main(int argc, char *argv[])
 					g_object_set(generator, "pretty", FALSE, NULL);
 					data = json_generator_to_data (generator, &len);
 					fprintf(stderr, "%s\n", data);
-					if (write(sync_pipe_fd, data, len) != (int)len) {
+					if (write_all(sync_pipe_fd, data, len) != (int)len) {
 						ninfo("Unable to send container stderr message to parent");
 					}
 
@@ -615,7 +636,7 @@ int main(int argc, char *argv[])
 	/* Send the container pid back to parent */
 	if (sync_pipe_fd > 0 && !exec) {
 		len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", cpid);
-		if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+		if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 			pexit("unable to send container pid to parent");
 		}
 	}
@@ -643,7 +664,7 @@ int main(int argc, char *argv[])
 			pexit("Failed to create eventfd");
 
 		wb = snprintf(buf, BUF_SIZE, "%d %d", efd, ofd);
-		if (write(cfd, buf, wb) < 0)
+		if (write_all(cfd, buf, wb) < 0)
 			pexit("Failed to write to cgroup.event_control");
 	}
 
@@ -749,7 +770,7 @@ out:
 				/* Send the command exec exit code back to the parent */
 				if (sync_pipe_fd > 0) {
 					len = snprintf(buf, BUF_SIZE, "{\"exit_code\": %d}\n", exit_status);
-					if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+					if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 						pexit("unable to send exit status");
 						exit(1);
 					}
@@ -767,7 +788,7 @@ out:
 		 * to the parent.
 		 */
 		len = snprintf(buf, BUF_SIZE, "{\"exit_code\": %d}\n", WEXITSTATUS(runtime_status));
-		if (len < 0 || write(sync_pipe_fd, buf, len) != len) {
+		if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
 			pexit("unable to send exit status");
 			exit(1);
 		}
