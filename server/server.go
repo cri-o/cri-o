@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"sync"
@@ -23,6 +24,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 )
@@ -607,9 +609,14 @@ func New(config *Config) (*Server, error) {
 	s.restore()
 	s.cleanupSandboxesOnShutdown()
 
+	bindAddress, err := knet.ChooseBindAddress(net.IP{0, 0, 0, 0})
+	if err != nil {
+		return nil, err
+	}
+
 	// Prepare streaming server
 	streamServerConfig := streaming.DefaultConfig
-	streamServerConfig.Addr = "0.0.0.0:10101"
+	streamServerConfig.Addr = bindAddress.String() + ":10101"
 	s.stream.runtimeServer = s
 	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
 	if err != nil {
