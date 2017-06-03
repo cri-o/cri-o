@@ -516,7 +516,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Open the log path file. */
-	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC);
+	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
 	if (logfd < 0)
 		pexit("Failed to open log file");
 
