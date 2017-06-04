@@ -89,8 +89,10 @@ func (v *Validator) CheckAll() (msgs []string) {
 	msgs = append(msgs, v.CheckPlatform()...)
 	msgs = append(msgs, v.CheckProcess()...)
 	msgs = append(msgs, v.CheckOS()...)
-	msgs = append(msgs, v.CheckLinux()...)
 	msgs = append(msgs, v.CheckHooks()...)
+	if v.spec.Linux != nil {
+		msgs = append(msgs, v.CheckLinux()...)
+	}
 
 	return
 }
@@ -158,7 +160,7 @@ func (v *Validator) CheckPlatform() (msgs []string) {
 		"darwin":    {"386", "amd64", "arm", "arm64"},
 		"dragonfly": {"amd64"},
 		"freebsd":   {"386", "amd64", "arm"},
-		"linux":     {"386", "amd64", "arm", "arm64", "mips", "mipsle", "mips64", "mips64le", "ppc64", "ppc64le", "s390x"},
+		"linux":     {"386", "amd64", "arm", "arm64", "mips", "mips64", "mips64le", "mipsle", "ppc64", "ppc64le", "s390x"},
 		"netbsd":    {"386", "amd64", "arm"},
 		"openbsd":   {"386", "amd64", "arm"},
 		"plan9":     {"386", "amd64"},
@@ -259,7 +261,9 @@ func (v *Validator) CheckProcess() (msgs []string) {
 		}
 	}
 
-	msgs = append(msgs, v.CheckCapabilities()...)
+	if v.spec.Process.Capabilities != nil {
+		msgs = append(msgs, v.CheckCapabilities()...)
+	}
 	msgs = append(msgs, v.CheckRlimits()...)
 
 	if v.spec.Platform.OS == "linux" {
@@ -319,14 +323,7 @@ func (v *Validator) CheckRlimits() (msgs []string) {
 				msgs = append(msgs, fmt.Sprintf("rlimit can not contain the same type %q.", process.Rlimits[index].Type))
 			}
 		}
-
-		if v.spec.Platform.OS == "linux" {
-			if err := rlimitValid(rlimit); err != nil {
-				msgs = append(msgs, err.Error())
-			}
-		} else {
-			logrus.Warnf("process.rlimits validation not yet implemented for OS %q", v.spec.Platform.OS)
-		}
+		msgs = append(msgs, v.rlimitValid(rlimit)...)
 	}
 
 	return
@@ -383,15 +380,15 @@ func (v *Validator) CheckMounts() (msgs []string) {
 		return
 	}
 
-	if supportedTypes != nil {
-		for _, mount := range v.spec.Mounts {
+	for _, mount := range v.spec.Mounts {
+		if supportedTypes != nil {
 			if !supportedTypes[mount.Type] {
 				msgs = append(msgs, fmt.Sprintf("Unsupported mount type %q", mount.Type))
 			}
+		}
 
-			if !filepath.IsAbs(mount.Destination) {
-				msgs = append(msgs, fmt.Sprintf("destination %v is not an absolute path", mount.Destination))
-			}
+		if !filepath.IsAbs(mount.Destination) {
+			msgs = append(msgs, fmt.Sprintf("destination %v is not an absolute path", mount.Destination))
 		}
 	}
 
@@ -505,8 +502,10 @@ func (v *Validator) CheckLinux() (msgs []string) {
 	case "rslave":
 	case "shared":
 	case "rshared":
+	case "unbindable":
+	case "runbindable":
 	default:
-		msgs = append(msgs, "rootfsPropagation must be empty or one of \"private|rprivate|slave|rslave|shared|rshared\"")
+		msgs = append(msgs, "rootfsPropagation must be empty or one of \"private|rprivate|slave|rslave|shared|rshared|unbindable|runbindable\"")
 	}
 
 	for _, maskedPath := range v.spec.Linux.MaskedPaths {
@@ -652,16 +651,23 @@ func envValid(env string) bool {
 	return true
 }
 
-func rlimitValid(rlimit rspec.LinuxRlimit) error {
+func (v *Validator) rlimitValid(rlimit rspec.LinuxRlimit) (msgs []string) {
 	if rlimit.Hard < rlimit.Soft {
-		return fmt.Errorf("hard limit of rlimit %s should not be less than soft limit", rlimit.Type)
+		msgs = append(msgs, fmt.Sprintf("hard limit of rlimit %s should not be less than soft limit", rlimit.Type))
 	}
-	for _, val := range defaultRlimits {
-		if val == rlimit.Type {
-			return nil
+
+	if v.spec.Platform.OS == "linux" {
+		for _, val := range defaultRlimits {
+			if val == rlimit.Type {
+				return
+			}
 		}
+		msgs = append(msgs, fmt.Sprintf("rlimit type %q is invalid", rlimit.Type))
+	} else {
+		logrus.Warnf("process.rlimits validation not yet implemented for OS %q", v.spec.Platform.OS)
 	}
-	return fmt.Errorf("rlimit type %q is invalid", rlimit.Type)
+
+	return
 }
 
 func namespaceValid(ns rspec.LinuxNamespace) bool {
