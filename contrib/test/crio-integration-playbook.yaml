@@ -350,6 +350,10 @@
       insertafter: 'EOF'
       regexp: '127\.0\.0\.1\s+{{ hostname.stdout }}'
       state: present
+  - name: Flush the iptables
+    command: iptables -F
+    async: 600
+    poll: 10
   - name: run k8s tests
     shell: |
             make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio.sock TEST_ARGS="--prepull-images=true" FOCUS="\[Conformance\]" 2>&1 > node-e2e.log
