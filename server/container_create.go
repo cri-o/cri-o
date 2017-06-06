@@ -35,7 +35,7 @@ const (
 	seccompLocalhostPrefix = "localhost/"
 )
 
-func addOciBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addOCIBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
@@ -337,7 +337,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen := generate.New()
 	specgen.HostSpecific = true
 
-	if err := addOciBindMounts(sb, containerConfig, &specgen); err != nil {
+	if err := addOCIBindMounts(sb, containerConfig, &specgen); err != nil {
 		return nil, err
 	}
 
