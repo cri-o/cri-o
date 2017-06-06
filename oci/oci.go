@@ -114,6 +114,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 		args = append(args, "-s")
 	}
 	args = append(args, "-c", c.name)
+	args = append(args, "-u", c.id)
 	args = append(args, "-r", r.Path(c))
 	args = append(args, "-b", c.bundlePath)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
