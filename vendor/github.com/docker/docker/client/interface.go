@@ -112,6 +112,7 @@ type PluginAPIClient interface {
 	PluginEnable(ctx context.Context, name string, options types.PluginEnableOptions) error
 	PluginDisable(ctx context.Context, name string, options types.PluginDisableOptions) error
 	PluginInstall(ctx context.Context, name string, options types.PluginInstallOptions) (io.ReadCloser, error)
+	PluginUpgrade(ctx context.Context, name string, options types.PluginInstallOptions) (io.ReadCloser, error)
 	PluginPush(ctx context.Context, name string, registryAuth string) (io.ReadCloser, error)
 	PluginSet(ctx context.Context, name string, args []string) error
 	PluginInspectWithRaw(ctx context.Context, name string) (*types.Plugin, []byte, error)
@@ -166,4 +167,5 @@ type SecretAPIClient interface {
 	SecretCreate(ctx context.Context, secret swarm.SecretSpec) (types.SecretCreateResponse, error)
 	SecretRemove(ctx context.Context, id string) error
 	SecretInspectWithRaw(ctx context.Context, name string) (swarm.Secret, []byte, error)
+	SecretUpdate(ctx context.Context, id string, version swarm.Version, secret swarm.SecretSpec) error
 }

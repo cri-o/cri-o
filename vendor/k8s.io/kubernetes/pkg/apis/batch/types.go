@@ -233,6 +233,7 @@ type CronJobSpec struct {
 	StartingDeadlineSeconds *int64
 
 	// ConcurrencyPolicy specifies how to treat concurrent executions of a Job.
+	// Defaults to Allow.
 	// +optional
 	ConcurrencyPolicy ConcurrencyPolicy
 
@@ -244,6 +245,16 @@ type CronJobSpec struct {
 	// JobTemplate is the object that describes the job that will be created when
 	// executing a CronJob.
 	JobTemplate JobTemplateSpec
+
+	// The number of successful finished jobs to retain.
+	// This is a pointer to distinguish between explicit zero and not specified.
+	// +optional
+	SuccessfulJobsHistoryLimit *int32
+
+	// The number of failed finished jobs to retain.
+	// This is a pointer to distinguish between explicit zero and not specified.
+	// +optional
+	FailedJobsHistoryLimit *int32
 }
 
 // ConcurrencyPolicy describes how the job will be handled.
