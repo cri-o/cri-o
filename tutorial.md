@@ -324,9 +324,10 @@ Annotations:
 
 ### Create a Redis container inside the Pod
 
-Use the `crioctl` command to create a redis container from a container configuration and attach it to the Pod created earlier:
+Use the `crioctl` command to pull the redis image, create a redis container from a container configuration and attach it to the Pod created earlier:
 
 ```
+sudo crioctl image pull redis:alpine
 CONTAINER_ID=$(sudo crioctl ctr create --pod $POD_ID --config test/testdata/container_redis.json)
 ```
 
