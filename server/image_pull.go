@@ -21,6 +21,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	if img != nil {
 		image = img.Image
 	}
+
 	var (
 		username string
 		password string
@@ -36,7 +37,11 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 			}
 		}
 	}
-	options := &copy.Options{}
+	options := &copy.Options{
+		// TODO: we need a way to specify insecure registries like docker
+		//DockerInsecureSkipTLSVerify: true,
+		SourceCtx: &types.SystemContext{},
+	}
 	// a not empty username should be sufficient to decide whether to send auth
 	// or not I guess
 	if username != "" {
@@ -47,8 +52,20 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 			},
 		}
 	}
-	_, err := s.storageImageServer.PullImage(s.imageContext, image, options)
-	if err != nil {
+
+	canPull, err := s.storageImageServer.CanPull(image, options.SourceCtx)
+	if err != nil && !canPull {
+		return nil, err
+	}
+
+	// let's be smart, docker doesn't repull if image already exists.
+	if _, err := s.storageImageServer.ImageStatus(s.imageContext, image); err == nil {
+		return &pb.PullImageResponse{
+			ImageRef: image,
+		}, nil
+	}
+
+	if _, err := s.storageImageServer.PullImage(s.imageContext, image, options); err != nil {
 		return nil, err
 	}
 	resp := &pb.PullImageResponse{

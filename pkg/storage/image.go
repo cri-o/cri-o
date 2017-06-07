@@ -3,6 +3,7 @@ package storage
 import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/image"
 	"github.com/containers/image/signature"
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
@@ -38,6 +39,8 @@ type ImageServer interface {
 	// the image server uses to hold images, and is the destination used
 	// when it's asked to pull an image.
 	GetStore() storage.Store
+	// CanPull preliminary checks whether we're allowed to pull an image
+	CanPull(imageName string, sourceCtx *types.SystemContext) (bool, error)
 }
 
 func (svc *imageService) ListImages(filter string) ([]ImageResult, error) {
@@ -114,6 +117,35 @@ func imageSize(img types.Image) *uint64 {
 		return &usum
 	}
 	return nil
+}
+
+func (svc *imageService) CanPull(imageName string, sourceCtx *types.SystemContext) (bool, error) {
+	if imageName == "" {
+		return false, storage.ErrNotAnImage
+	}
+	srcRef, err := alltransports.ParseImageName(imageName)
+	if err != nil {
+		if svc.defaultTransport == "" {
+			return false, err
+		}
+		srcRef2, err2 := alltransports.ParseImageName(svc.defaultTransport + imageName)
+		if err2 != nil {
+			return false, err
+		}
+		srcRef = srcRef2
+	}
+	rawSource, err := srcRef.NewImageSource(sourceCtx, nil)
+	if err != nil {
+		return false, err
+	}
+	unparsedImage := image.UnparsedFromSource(rawSource)
+	defer unparsedImage.Close()
+	src, err := image.FromUnparsedImage(unparsedImage)
+	if err != nil {
+		return false, err
+	}
+	src.Close()
+	return true, nil
 }
 
 func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error) {
