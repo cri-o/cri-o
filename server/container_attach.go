@@ -11,6 +11,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/utils"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -74,18 +75,22 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 		}()
 	}
 
-	stdinDone := make(chan struct{})
+	stdinDone := make(chan error)
 	go func() {
+		var err error
 		if inputStream != nil {
-			io.Copy(conn, inputStream)
+			_, err = utils.CopyDetachable(conn, inputStream, nil)
 		}
-		close(stdinDone)
+		stdinDone <- err
 	}()
 
 	select {
 	case err := <-receiveStdout:
 		return err
-	case <-stdinDone:
+	case err := <-stdinDone:
+		if _, ok := err.(utils.DetachError); ok {
+			return nil
+		}
 		if outputStream != nil || errorStream != nil {
 			return <-receiveStdout
 		}
