@@ -1,9 +1,0 @@
-#!/bin/bash
-set -e
-
-# This script exists as backwards compatibility for CI
-(
-    DEST="${DEST}-oci-storage"
-    ABS_DEST="${ABS_DEST}-oci-storage"
-    . hack/make/binary-oci-storage
-)

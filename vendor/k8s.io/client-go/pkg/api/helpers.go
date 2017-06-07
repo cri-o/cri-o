@@ -18,6 +18,7 @@ package api
 
 import (
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/fields"
@@ -32,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/pkg/api/resource"
 )
 
 // Conversion error conveniently packages up errors in conversions.
@@ -244,7 +245,7 @@ func IsServiceIPRequested(service *Service) bool {
 
 var standardFinalizers = sets.NewString(
 	string(FinalizerKubernetes),
-	FinalizerOrphan,
+	metav1.FinalizerOrphanDependents,
 )
 
 // HasAnnotation returns a bool if passed in annotation exists
@@ -466,7 +467,68 @@ const (
 	// is at-your-own-risk. Pods that attempt to set an unsafe sysctl that is not enabled for a kubelet
 	// will fail to launch.
 	UnsafeSysctlsPodAnnotationKey string = "security.alpha.kubernetes.io/unsafe-sysctls"
+
+	// ObjectTTLAnnotations represents a suggestion for kubelet for how long it can cache
+	// an object (e.g. secret, config map) before fetching it again from apiserver.
+	// This annotation can be attached to node.
+	ObjectTTLAnnotationKey string = "node.alpha.kubernetes.io/ttl"
+
+	// AffinityAnnotationKey represents the key of affinity data (json serialized)
+	// in the Annotations of a Pod.
+	// TODO: remove when alpha support for affinity is removed
+	AffinityAnnotationKey string = "scheduler.alpha.kubernetes.io/affinity"
 )
+
+// GetTolerationsFromPodAnnotations gets the json serialized tolerations data from Pod.Annotations
+// and converts it to the []Toleration type in api.
+func GetTolerationsFromPodAnnotations(annotations map[string]string) ([]Toleration, error) {
+	var tolerations []Toleration
+	if len(annotations) > 0 && annotations[TolerationsAnnotationKey] != "" {
+		err := json.Unmarshal([]byte(annotations[TolerationsAnnotationKey]), &tolerations)
+		if err != nil {
+			return tolerations, err
+		}
+	}
+	return tolerations, nil
+}
+
+// AddOrUpdateTolerationInPod tries to add a toleration to the pod's toleration list.
+// Returns true if something was updated, false otherwise.
+func AddOrUpdateTolerationInPod(pod *Pod, toleration *Toleration) (bool, error) {
+	podTolerations := pod.Spec.Tolerations
+
+	var newTolerations []Toleration
+	updated := false
+	for i := range podTolerations {
+		if toleration.MatchToleration(&podTolerations[i]) {
+			if Semantic.DeepEqual(toleration, podTolerations[i]) {
+				return false, nil
+			}
+			newTolerations = append(newTolerations, *toleration)
+			updated = true
+			continue
+		}
+
+		newTolerations = append(newTolerations, podTolerations[i])
+	}
+
+	if !updated {
+		newTolerations = append(newTolerations, *toleration)
+	}
+
+	pod.Spec.Tolerations = newTolerations
+	return true, nil
+}
+
+// MatchToleration checks if the toleration matches tolerationToMatch. Tolerations are unique by <key,effect,operator,value>,
+// if the two tolerations have same <key,effect,operator,value> combination, regard as they match.
+// TODO: uniqueness check for tolerations in api validations.
+func (t *Toleration) MatchToleration(tolerationToMatch *Toleration) bool {
+	return t.Key == tolerationToMatch.Key &&
+		t.Effect == tolerationToMatch.Effect &&
+		t.Operator == tolerationToMatch.Operator &&
+		t.Value == tolerationToMatch.Value
+}
 
 // TolerationToleratesTaint checks if the toleration tolerates the taint.
 func TolerationToleratesTaint(toleration *Toleration, taint *Taint) bool {
@@ -511,6 +573,19 @@ func (t *Taint) ToString() string {
 		return fmt.Sprintf("%v:%v", t.Key, t.Effect)
 	}
 	return fmt.Sprintf("%v=%v:%v", t.Key, t.Value, t.Effect)
+}
+
+// GetTaintsFromNodeAnnotations gets the json serialized taints data from Pod.Annotations
+// and converts it to the []Taint type in api.
+func GetTaintsFromNodeAnnotations(annotations map[string]string) ([]Taint, error) {
+	var taints []Taint
+	if len(annotations) > 0 && annotations[TaintsAnnotationKey] != "" {
+		err := json.Unmarshal([]byte(annotations[TaintsAnnotationKey]), &taints)
+		if err != nil {
+			return []Taint{}, err
+		}
+	}
+	return taints, nil
 }
 
 // SysctlsFromPodAnnotations parses the sysctl annotations into a slice of safe Sysctls
@@ -559,4 +634,58 @@ func PodAnnotationsFromSysctls(sysctls []Sysctl) string {
 		kvs[i] = fmt.Sprintf("%s=%s", sysctls[i].Name, sysctls[i].Value)
 	}
 	return strings.Join(kvs, ",")
+}
+
+// GetAffinityFromPodAnnotations gets the json serialized affinity data from Pod.Annotations
+// and converts it to the Affinity type in api.
+// TODO: remove when alpha support for affinity is removed
+func GetAffinityFromPodAnnotations(annotations map[string]string) (*Affinity, error) {
+	if len(annotations) > 0 && annotations[AffinityAnnotationKey] != "" {
+		var affinity Affinity
+		err := json.Unmarshal([]byte(annotations[AffinityAnnotationKey]), &affinity)
+		if err != nil {
+			return nil, err
+		}
+		return &affinity, nil
+	}
+	return nil, nil
+}
+
+// GetPersistentVolumeClass returns StorageClassName.
+func GetPersistentVolumeClass(volume *PersistentVolume) string {
+	// Use beta annotation first
+	if class, found := volume.Annotations[BetaStorageClassAnnotation]; found {
+		return class
+	}
+
+	return volume.Spec.StorageClassName
+}
+
+// GetPersistentVolumeClaimClass returns StorageClassName. If no storage class was
+// requested, it returns "".
+func GetPersistentVolumeClaimClass(claim *PersistentVolumeClaim) string {
+	// Use beta annotation first
+	if class, found := claim.Annotations[BetaStorageClassAnnotation]; found {
+		return class
+	}
+
+	if claim.Spec.StorageClassName != nil {
+		return *claim.Spec.StorageClassName
+	}
+
+	return ""
+}
+
+// PersistentVolumeClaimHasClass returns true if given claim has set StorageClassName field.
+func PersistentVolumeClaimHasClass(claim *PersistentVolumeClaim) bool {
+	// Use beta annotation first
+	if _, found := claim.Annotations[BetaStorageClassAnnotation]; found {
+		return true
+	}
+
+	if claim.Spec.StorageClassName != nil {
+		return true
+	}
+
+	return false
 }

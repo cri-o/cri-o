@@ -170,9 +170,9 @@ uninstall:
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation: .gopathok
 ifeq ($(TRAVIS),true)
-	$(GOPATH)/bin/git-validation -q -run DCO,short-subject,dangling-whitespace
+	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -q -run DCO,short-subject,dangling-whitespace
 else
-	$(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
+	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
 .PHONY: install.tools
