@@ -6,8 +6,13 @@ crio - Enable OCI Kubernetes Container Runtime daemon
 
 # SYNOPSIS
 **crio**
+[**--apparmor-profile**=[*value*]]
+[**--cgroup-manager**=[*value*]]
+[**--cni-config-dir**=[*value*]]
+[**--cni-plugin-dir**=[*value*]]
 [**--config**=[*value*]]
 [**--conmon**=[*value*]]
+[**--cpu-profile**=[*value*]]
 [**--debug**]
 [**--default-transport**=[*value*]]
 [**--help**|**-h**]
@@ -19,14 +24,11 @@ crio - Enable OCI Kubernetes Container Runtime daemon
 [**--root**=[*value*]]
 [**--runroot**=[*value*]]
 [**--runtime**=[*value*]]
+[**--seccomp-profile**=[*value*]]
+[**--selinux**]
 [**--signature-policy**=[*value*]]
 [**--storage-driver**=[*value*]]
 [**--storage-opt**=[*value*]]
-[**--selinux**]
-[**--seccomp-profile**=[*value*]]
-[**--apparmor-profile**=[*value*]]
-[**---cni-config-dir**=[*value*]]
-[**---cni-plugin-dir**=[*value*]]
 [**--version**|**-v**]
 
 # DESCRIPTION
@@ -50,11 +52,17 @@ crio is meant to provide an integration path between OCI conformant runtimes and
 **--apparmor_profile**=""
   Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
 
+**--cgroup-manager**=""
+  cgroup manager (cgroupfs or systemd)
+
 **--config**=""
   path to configuration file
 
 **--conmon**=""
   path to the conmon executable (default: "/usr/local/libexec/crio/conmon")
+
+**--cpu-profile**=""
+set the CPU profile file path
 
 **--debug**
   Enable debug output for logging
