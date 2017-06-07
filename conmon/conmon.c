@@ -1002,7 +1002,13 @@ int main(int argc, char *argv[])
 					}
 				} else {
 					num_read = read(masterfd, buf, BUF_SIZE);
-					if (num_read <= 0)
+					if (num_read == 0) {
+						ninfo("Remote socket closed");
+						close(conn_sock);
+						conn_sock = -1;
+						continue;
+					}
+					if (num_read < 0)
 						goto out;
 					ninfo("got data on connection: %d", num_read);
 					if (terminal) {
