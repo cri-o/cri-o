@@ -99,64 +99,45 @@ func addDevices(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *gener
 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
 func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
-	processArgs := []string{}
-	var processEntryPoint, processCmd []string
+	//# Start the nginx container using the default command, but use custom
+	//arguments (arg1 .. argN) for that command.
+	//kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
+
+	//# Start the nginx container using a different command and custom arguments.
+	//kubectl run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>
 
 	kubeCommands := containerKubeConfig.Command
 	kubeArgs := containerKubeConfig.Args
 
-	if imageOCIConfig == nil {
-		return nil, fmt.Errorf("empty image config for %s", containerKubeConfig.Image.Image)
-	}
-
-	// We got an OCI Image configuration.
-	// We will only use it if the kubelet information is incomplete.
-
-	// First we set the process entry point.
-	if kubeCommands != nil {
-		// The kubelet command slice is prioritized.
-		processEntryPoint = kubeCommands
-	} else {
-		// Here the kubelet command slice is empty but
-		// we know that our OCI Image configuration is not empty.
-		// If the OCI image config has an ENTRYPOINT we use it as
-		// our process command.
-		// Otherwise we use the CMD slice if it's not empty.
-		if imageOCIConfig.Config.Entrypoint != nil {
-			processEntryPoint = imageOCIConfig.Config.Entrypoint
-		} else if imageOCIConfig.Config.Cmd != nil {
-			processEntryPoint = imageOCIConfig.Config.Cmd
-		}
-	}
-
-	// Then we build the process command arguments
-	if kubeArgs != nil {
-		// The kubelet command arguments slice is prioritized.
-		processCmd = kubeArgs
-	} else {
-		if kubeCommands != nil {
-			// kubelet gave us a command slice but explicitely
-			// left the arguments slice empty. We should keep
-			// it that way.
-			processCmd = []string{}
-		} else {
-			// Here kubelet kept both the command and arguments
-			// slices empty. We should try building the process
-			// arguments slice from the OCI image config.
-			// If the OCI image config has an ENTRYPOINT slice,
-			// we use the CMD slice as the process arguments.
-			// Otherwise, we already picked CMD as our process
-			// command and we must not add the CMD slice twice.
-			if imageOCIConfig.Config.Entrypoint != nil {
-				processCmd = imageOCIConfig.Config.Cmd
-			} else {
-				processCmd = []string{}
+	// merge image config and kube config
+	// same as docker does today...
+	if imageOCIConfig != nil {
+		if len(kubeCommands) == 0 {
+			if len(kubeArgs) == 0 {
+				kubeArgs = imageOCIConfig.Config.Cmd
+			}
+			if kubeCommands == nil {
+				kubeCommands = imageOCIConfig.Config.Entrypoint
 			}
 		}
 	}
 
-	processArgs = append(processArgs, processEntryPoint...)
-	processArgs = append(processArgs, processCmd...)
+	if len(kubeCommands) == 0 && len(kubeArgs) == 0 {
+		return nil, fmt.Errorf("no command specified")
+	}
+
+	// create entrypoint and args
+	var entrypoint string
+	var args []string
+	if len(kubeCommands) != 0 {
+		entrypoint = kubeCommands[0]
+		args = append(kubeCommands[1:], kubeArgs...)
+	} else {
+		entrypoint = kubeArgs[0]
+		args = kubeArgs[1:]
+	}
+
+	processArgs := append([]string{entrypoint}, args...)
 
 	logrus.Debugf("OCI process args %v", processArgs)
 
@@ -597,6 +578,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	containerImageConfig := containerInfo.Config
+	if containerImageConfig == nil {
+		return nil, fmt.Errorf("empty image config for %s", image)
+	}
 
 	if containerImageConfig.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
