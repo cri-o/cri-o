@@ -50,7 +50,15 @@ func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
 
 // trustedSandbox returns true if the sandbox will run trusted workloads.
 func (s *Server) trustedSandbox(req *pb.RunPodSandboxRequest) bool {
-	return true
+	kubeAnnotations := req.GetConfig().GetAnnotations()
+
+	trustedAnnotation, ok := kubeAnnotations[annotations.TrustedSandbox]
+	if !ok {
+		// A sandbox is trusted by default.
+		return true
+	}
+
+	return isTrue(trustedAnnotation)
 }
 
 func (s *Server) runContainer(container *oci.Container, cgroupParent string) error {
