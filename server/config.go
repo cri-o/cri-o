@@ -117,6 +117,9 @@ type ImageConfig struct {
 	// that this be left unspecified so that the default system-wide policy
 	// will be used.
 	SignaturePolicyPath string `toml:"signature_policy"`
+	// InsecureRegistries is a list of registries that must be contacted w/o
+	// TLS verification.
+	InsecureRegistries []string `toml:"insecure_registries"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table

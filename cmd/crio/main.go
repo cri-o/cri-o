@@ -62,6 +62,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("storage-opt") {
 		config.StorageOptions = ctx.GlobalStringSlice("storage-opt")
 	}
+	if ctx.GlobalIsSet("insecure-registry") {
+		config.InsecureRegistries = ctx.GlobalStringSlice("insecure-registries")
+	}
 	if ctx.GlobalIsSet("default-transport") {
 		config.DefaultTransport = ctx.GlobalString("default-transport")
 	}
@@ -179,6 +182,10 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "storage-opt",
 			Usage: "storage driver option",
+		},
+		cli.StringSliceFlag{
+			Name:  "insecure-registry",
+			Usage: "whether to disable TLS verification for the given registry",
 		},
 		cli.StringFlag{
 			Name:  "default-transport",

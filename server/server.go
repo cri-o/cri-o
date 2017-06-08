@@ -545,7 +545,7 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	imageService, err := storage.GetImageService(store, config.DefaultTransport)
+	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
 	if err != nil {
 		return nil, err
 	}
