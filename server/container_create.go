@@ -531,6 +531,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeContainer)
 	specgen.AddAnnotation(annotations.LogPath, logPath)
 	specgen.AddAnnotation(annotations.TTY, fmt.Sprintf("%v", containerConfig.Tty))
+	specgen.AddAnnotation(annotations.Stdin, fmt.Sprintf("%v", containerConfig.Stdin))
+	specgen.AddAnnotation(annotations.StdinOnce, fmt.Sprintf("%v", containerConfig.StdinOnce))
 	specgen.AddAnnotation(annotations.Image, image)
 
 	created := time.Now()
@@ -660,7 +662,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, kubeAnnotations, imageSpec, metadata, sb.id, containerConfig.Tty, sb.privileged, containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, kubeAnnotations, imageSpec, metadata, sb.id, containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.privileged, containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

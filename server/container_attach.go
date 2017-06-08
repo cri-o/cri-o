@@ -3,20 +3,25 @@ package server
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/pkg/pools"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/util/term"
+)
+
+/* Sync with stdpipe_t in conmon.c */
+const (
+	AttachPipeStdin  = 1
+	AttachPipeStdout = 2
+	AttachPipeStderr = 3
 )
 
 // Attach prepares a streaming endpoint to attach to a running container.
@@ -63,7 +68,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 	})
 
 	attachSocketPath := filepath.Join("/var/run/crio", c.ID(), "attach")
-	conn, err := net.Dial("unix", attachSocketPath)
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
 	if err != nil {
 		return fmt.Errorf("failed to connect to container %s attach socket: %v", c.ID(), err)
 	}
@@ -72,7 +77,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 	receiveStdout := make(chan error)
 	if outputStream != nil || errorStream != nil {
 		go func() {
-			receiveStdout <- redirectResponseToOutputStream(tty, outputStream, errorStream, conn)
+			receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
 		}()
 	}
 
@@ -81,6 +86,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 		var err error
 		if inputStream != nil {
 			_, err = utils.CopyDetachable(conn, inputStream, nil)
+			conn.CloseWrite()
 		}
 		stdinDone <- err
 	}()
@@ -100,18 +106,42 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 	return nil
 }
 
-func redirectResponseToOutputStream(tty bool, outputStream, errorStream io.Writer, conn io.Reader) error {
-	if outputStream == nil {
-		outputStream = ioutil.Discard
-	}
-	if errorStream == nil {
-		// errorStream = ioutil.Discard
-	}
+func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, conn io.Reader) error {
 	var err error
-	if tty {
-		_, err = pools.Copy(outputStream, conn)
-	} else {
-		// TODO
+	buf := make([]byte, 8192+1) /* Sync with conmon STDIO_BUF_SIZE */
+
+	for {
+		nr, er := conn.Read(buf)
+		if nr > 0 {
+			var dst io.Writer
+			if buf[0] == AttachPipeStdout {
+				dst = outputStream
+			} else if buf[0] == AttachPipeStderr {
+				dst = errorStream
+			} else {
+				logrus.Infof("Got unexpected attach type %+d", buf[0])
+			}
+
+			if dst != nil {
+				nw, ew := dst.Write(buf[1:nr])
+				if ew != nil {
+					err = ew
+					break
+				}
+				if nr != nw+1 {
+					err = io.ErrShortWrite
+					break
+				}
+			}
+		}
+		if er == io.EOF {
+			break
+		}
+		if er != nil {
+			err = er
+			break
+		}
 	}
+
 	return err
 }

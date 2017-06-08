@@ -34,6 +34,10 @@ const (
 	shutdownFile      = "/var/lib/crio/crio.shutdown"
 )
 
+func isTrue(annotaton string) bool {
+	return annotaton == "true"
+}
+
 // streamService implements streaming.Runtime.
 type streamService struct {
 	runtimeServer *Server // needed by Exec() endpoint
@@ -116,10 +120,10 @@ func (s *Server) loadContainer(id string) error {
 		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations[annotations.SandboxID])
 	}
 
-	var tty bool
-	if v := m.Annotations[annotations.TTY]; v == "true" {
-		tty = true
-	}
+	tty := isTrue(m.Annotations[annotations.TTY])
+	stdin := isTrue(m.Annotations[annotations.Stdin])
+	stdinOnce := isTrue(m.Annotations[annotations.StdinOnce])
+
 	containerPath, err := s.store.ContainerRunDirectory(id)
 	if err != nil {
 		return err
@@ -148,7 +152,7 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, sb.privileged, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, stdin, stdinOnce, sb.privileged, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -238,7 +242,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	privileged := m.Annotations[annotations.PrivilegedRuntime] == "true"
+	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 
 	sb := &sandbox{
 		id:           id,
@@ -304,7 +308,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, privileged, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, privileged, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}

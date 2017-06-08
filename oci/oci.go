@@ -121,6 +121,8 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	args = append(args, "-l", c.logPath)
 	if c.terminal {
 		args = append(args, "-t")
+	} else if c.stdin {
+		args = append(args, "-i")
 	}
 	logrus.WithFields(logrus.Fields{
 		"args": args,
