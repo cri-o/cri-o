@@ -437,6 +437,8 @@ static char *escape_json_string(const char *str)
 
 /* Global state */
 
+static int runtime_status = -1;
+
 static int masterfd_stdout = -1;
 static int masterfd_stderr = -1;
 static int num_stdio_fds = 0;
@@ -633,9 +635,49 @@ static gboolean ctrl_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer u
 	return G_SOURCE_CONTINUE;
 }
 
+static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
+{
+	const char *csname = user_data;
+	struct file_t console;
+	int connfd = -1;
+
+	ninfo("about to accept from csfd: %d", fd);
+	connfd = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
+	if (connfd < 0)
+		pexit("Failed to accept console-socket connection");
+
+	/* Not accepting anything else. */
+	close(fd);
+	unlink(csname);
+
+	/* We exit if this fails. */
+	ninfo("about to recvfd from connfd: %d", connfd);
+	console = recvfd(connfd);
+
+	ninfo("console = {.name = '%s'; .fd = %d}", console.name, console.fd);
+	free(console.name);
+
+	/* We only have a single fd for both pipes, so we just treat it as
+	 * stdout. stderr is ignored. */
+	masterfd_stdout = console.fd;
+	masterfd_stderr = -1;
+
+	/* Clean up everything */
+	close(connfd);
+
+	return G_SOURCE_CONTINUE;
+}
+
+static void
+runtime_exit_cb (GPid pid, int status, G_GNUC_UNUSED gpointer user_data)
+{
+	runtime_status = status;
+	g_main_loop_quit (main_loop);
+}
+
 int main(int argc, char *argv[])
 {
-	int ret, runtime_status;
+	int ret;
 	char cwd[PATH_MAX];
 	char default_pid_file[PATH_MAX];
 	char attach_sock_path[PATH_MAX];
@@ -854,50 +896,22 @@ int main(int argc, char *argv[])
 	close(slavefd_stdout);
 	close(slavefd_stderr);
 
-	/* Get the console fd. */
-	/*
-	 * FIXME: If runc fails to start a container, we won't bail because we're
-	 *        busy waiting for requests. The solution probably involves
-	 *        epoll(2) and a signalfd(2). This causes a lot of issues.
-	 */
-	if (terminal) {
-		struct file_t console;
-		int connfd = -1;
-
-		ninfo("about to accept from csfd: %d", csfd);
-		connfd = accept4(csfd, NULL, NULL, SOCK_CLOEXEC);
-		if (connfd < 0)
-			pexit("Failed to accept console-socket connection");
-
-		/* Not accepting anything else. */
-		close(csfd);
-		unlink(csname);
-
-		/* We exit if this fails. */
-		ninfo("about to recvfd from connfd: %d", connfd);
-		console = recvfd(connfd);
-
-		ninfo("console = {.name = '%s'; .fd = %d}", console.name, console.fd);
-		free(console.name);
-
-		/* We only have a single fd for both pipes, so we just treat it as
-		 * stdout. stderr is ignored. */
-		masterfd_stdout = console.fd;
-		masterfd_stderr = -1;
-
-		/* Clean up everything */
-		close(connfd);
-	}
-
 	ninfo("about to waitpid: %d", create_pid);
-
-	/* Wait for our create child to exit with the return code. */
-	if (waitpid(create_pid, &runtime_status, 0) < 0) {
-		int old_errno = errno;
-		kill(create_pid, SIGKILL);
-		errno = old_errno;
-		pexit("Failed to wait for `runtime %s`", exec ? "exec" : "create");
+	if (terminal) {
+		guint terminal_watch = g_unix_fd_add (csfd, G_IO_IN, terminal_accept_cb, csname);
+		g_child_watch_add (create_pid, runtime_exit_cb, NULL);
+		g_main_loop_run (main_loop);
+		g_source_remove (terminal_watch);
+	} else {
+		/* Wait for our create child to exit with the return code. */
+		if (waitpid(create_pid, &runtime_status, 0) < 0) {
+			int old_errno = errno;
+			kill(create_pid, SIGKILL);
+			errno = old_errno;
+			pexit("Failed to wait for `runtime %s`", exec ? "exec" : "create");
+		}
 	}
+
 	if (!WIFEXITED(runtime_status) || WEXITSTATUS(runtime_status) != 0) {
 		if (sync_pipe_fd > 0 && !exec) {
 			if (terminal) {
@@ -931,6 +945,9 @@ int main(int argc, char *argv[])
 		}
 		nexit("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
 	}
+
+	if (terminal && masterfd_stdout == -1)
+		pexit("Runtime did not set up terminal");
 
 	/* Read the pid so we can wait for the process to exit */
 	g_file_get_contents(pid_file, &contents, NULL, &err);
