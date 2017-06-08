@@ -403,3 +403,9 @@ func (d *Driver) Exists(id string) bool {
 	defer d.Unlock()
 	return d.filesystemsCache[d.zfsPath(id)] == true
 }
+
+// AdditionalImageStores returns additional image stores supported by the driver
+func (d *Driver) AdditionalImageStores() []string {
+	var imageStores []string
+	return imageStores
+}
