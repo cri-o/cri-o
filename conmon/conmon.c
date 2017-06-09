@@ -719,7 +719,7 @@ int main(int argc, char *argv[])
 	_cleanup_free_ char *contents;
 	int cpid = -1;
 	int status;
-	pid_t pid, create_pid;
+	pid_t pid, main_pid, create_pid;
 	_cleanup_close_ int epfd = -1;
 	_cleanup_close_ int csfd = -1;
 	/* Used for !terminal cases. */
@@ -730,11 +730,14 @@ int main(int argc, char *argv[])
 	char buf[BUF_SIZE];
 	int num_read;
 	int sync_pipe_fd = -1;
-	char *sync_pipe, *endptr;
+	int start_pipe_fd = -1;
+	char *start_pipe, *sync_pipe, *endptr;
 	int len;
 	GError *error = NULL;
 	GOptionContext *context;
         GPtrArray *runtime_argv = NULL;
+	_cleanup_close_ int dev_null_r = -1;
+	_cleanup_close_ int dev_null_w = -1;
 
 	_cleanup_free_ char *memory_cgroup_path = NULL;
 	int wb;
@@ -765,6 +768,14 @@ int main(int argc, char *argv[])
 		bundle_path = cwd;
 	}
 
+	dev_null_r = open("/dev/null", O_RDONLY | O_CLOEXEC);
+	if (dev_null_r < 0)
+		pexit("Failed to open /dev/null");
+
+	dev_null_w = open("/dev/null", O_WRONLY | O_CLOEXEC);
+	if (dev_null_w < 0)
+		pexit("Failed to open /dev/null");
+
 	if (exec && exec_process_spec == NULL) {
 		nexit("Exec process spec path not provided. Use --exec-process-spec");
 	}
@@ -779,6 +790,44 @@ int main(int argc, char *argv[])
 
 	if (log_path == NULL)
 		nexit("Log file path not provided. Use --log-path");
+
+	start_pipe = getenv("_OCI_STARTPIPE");
+	if (start_pipe) {
+		errno = 0;
+		start_pipe_fd = strtol(start_pipe, &endptr, 10);
+		if (errno != 0 || *endptr != '\0')
+			pexit("unable to parse _OCI_STARTPIPE");
+		/* Block for an initial write to the start pipe before
+		   spawning any childred or exiting, to ensure the
+		   parent can put us in the right cgroup. */
+		read(start_pipe_fd, buf, BUF_SIZE);
+		close(start_pipe_fd);
+	}
+
+	if (!exec) {
+		/* In the create-container case we double-fork in
+		   order to disconnect from the parent, as we want to
+		   continue in a daemon-like way */
+		main_pid = fork();
+		if (main_pid < 0) {
+			pexit("Failed to fork the create command");
+		} else if (main_pid != 0) {
+			exit(0);
+		}
+
+		/* Disconnect stdio from parent. We need to do this, because
+		   the parent is waiting for the stdout to end when the intermediate
+		   child dies */
+		if (dup2(dev_null_r, STDIN_FILENO) < 0)
+			pexit("Failed to dup over stdout");
+		if (dup2(dev_null_w, STDOUT_FILENO) < 0)
+			pexit("Failed to dup over stdout");
+		if (dup2(dev_null_w, STDERR_FILENO) < 0)
+			pexit("Failed to dup over stderr");
+
+		/* Create a new session group */
+		setsid();
+	}
 
 	/* Environment variables */
 	sync_pipe = getenv("_OCI_SYNCPIPE");
@@ -918,25 +967,21 @@ int main(int argc, char *argv[])
 	if (create_pid < 0) {
 		pexit("Failed to fork the create command");
 	} else if (!create_pid) {
-		_cleanup_close_ int dev_null = -1;
 		/* FIXME: This results in us not outputting runc error messages to crio's log. */
-		if (slavefd_stdin < 0) {
-			dev_null = open("/dev/null", O_RDONLY);
-			if (dev_null < 0)
-				pexit("Failed to open /dev/null");
-			slavefd_stdin = dev_null;
-		}
+		if (slavefd_stdin < 0)
+			slavefd_stdin = dev_null_r;
 		if (dup2(slavefd_stdin, STDIN_FILENO) < 0)
 			pexit("Failed to dup over stdout");
 
-		if (slavefd_stdout >= 0) {
-			if (dup2(slavefd_stdout, STDOUT_FILENO) < 0)
-				pexit("Failed to dup over stdout");
-		}
-		if (slavefd_stderr >= 0) {
-			if (dup2(slavefd_stderr, STDERR_FILENO) < 0)
-				pexit("Failed to dup over stderr");
-		}
+		if (slavefd_stdout < 0)
+			slavefd_stdout = dev_null_w;
+		if (dup2(slavefd_stdout, STDOUT_FILENO) < 0)
+			pexit("Failed to dup over stdout");
+
+		if (slavefd_stderr < 0)
+			slavefd_stderr = slavefd_stdout;
+		if (dup2(slavefd_stderr, STDERR_FILENO) < 0)
+			pexit("Failed to dup over stderr");
 
 		execv(g_ptr_array_index(runtime_argv,0), (char **)runtime_argv->pdata);
 		exit(127);
