@@ -95,6 +95,10 @@ pause_command = "{{ .PauseCommand }}"
 # unspecified so that the default system-wide policy will be used.
 signature_policy = "{{ .SignaturePolicyPath }}"
 
+# insecure_registries is used to skip TLS verification when pulling images.
+insecure_registries = [
+{{ range $opt := .InsecureRegistries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+
 # The "crio.network" table contains settings pertaining to the
 # management of CNI plugins.
 [crio.network]

@@ -38,8 +38,6 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		}
 	}
 	options := &copy.Options{
-		// TODO: we need a way to specify insecure registries like docker
-		//DockerInsecureSkipTLSVerify: true,
 		SourceCtx: &types.SystemContext{},
 	}
 	// a not empty username should be sufficient to decide whether to send auth
@@ -53,7 +51,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		}
 	}
 
-	canPull, err := s.storageImageServer.CanPull(image, options.SourceCtx)
+	canPull, err := s.storageImageServer.CanPull(image, options)
 	if err != nil && !canPull {
 		return nil, err
 	}

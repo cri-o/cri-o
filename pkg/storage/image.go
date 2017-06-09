@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"net"
+
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
@@ -19,9 +21,16 @@ type ImageResult struct {
 	Size  *uint64
 }
 
+type indexInfo struct {
+	name   string
+	secure bool
+}
+
 type imageService struct {
-	store            storage.Store
-	defaultTransport string
+	store                 storage.Store
+	defaultTransport      string
+	insecureRegistryCIDRs []*net.IPNet
+	indexConfigs          map[string]*indexInfo
 }
 
 // ImageServer wraps up various CRI-related activities into a reusable
@@ -40,7 +49,7 @@ type ImageServer interface {
 	// when it's asked to pull an image.
 	GetStore() storage.Store
 	// CanPull preliminary checks whether we're allowed to pull an image
-	CanPull(imageName string, sourceCtx *types.SystemContext) (bool, error)
+	CanPull(imageName string, options *copy.Options) (bool, error)
 }
 
 func (svc *imageService) ListImages(filter string) ([]ImageResult, error) {
@@ -119,22 +128,12 @@ func imageSize(img types.Image) *uint64 {
 	return nil
 }
 
-func (svc *imageService) CanPull(imageName string, sourceCtx *types.SystemContext) (bool, error) {
-	if imageName == "" {
-		return false, storage.ErrNotAnImage
-	}
-	srcRef, err := alltransports.ParseImageName(imageName)
+func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool, error) {
+	srcRef, err := svc.prepareImage(imageName, options)
 	if err != nil {
-		if svc.defaultTransport == "" {
-			return false, err
-		}
-		srcRef2, err2 := alltransports.ParseImageName(svc.defaultTransport + imageName)
-		if err2 != nil {
-			return false, err
-		}
-		srcRef = srcRef2
+		return false, err
 	}
-	rawSource, err := srcRef.NewImageSource(sourceCtx, nil)
+	rawSource, err := srcRef.NewImageSource(options.SourceCtx, nil)
 	if err != nil {
 		return false, err
 	}
@@ -148,21 +147,13 @@ func (svc *imageService) CanPull(imageName string, sourceCtx *types.SystemContex
 	return true, nil
 }
 
-func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error) {
-	policy, err := signature.DefaultPolicy(systemContext)
-	if err != nil {
-		return nil, err
-	}
-	policyContext, err := signature.NewPolicyContext(policy)
-	if err != nil {
-		return nil, err
-	}
+// prepareImage creates an image reference from an image string and set options
+// for the source context
+func (svc *imageService) prepareImage(imageName string, options *copy.Options) (types.ImageReference, error) {
 	if imageName == "" {
 		return nil, storage.ErrNotAnImage
 	}
-	if options == nil {
-		options = &copy.Options{}
-	}
+
 	srcRef, err := alltransports.ParseImageName(imageName)
 	if err != nil {
 		if svc.defaultTransport == "" {
@@ -174,6 +165,36 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 		}
 		srcRef = srcRef2
 	}
+
+	if options.SourceCtx == nil {
+		options.SourceCtx = &types.SystemContext{}
+	}
+
+	hostname := reference.Domain(srcRef.DockerReference())
+	if secure := svc.isSecureIndex(hostname); !secure {
+		options.SourceCtx.DockerInsecureSkipTLSVerify = !secure
+	}
+	return srcRef, nil
+}
+
+func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error) {
+	policy, err := signature.DefaultPolicy(systemContext)
+	if err != nil {
+		return nil, err
+	}
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return nil, err
+	}
+	if options == nil {
+		options = &copy.Options{}
+	}
+
+	srcRef, err := svc.prepareImage(imageName, options)
+	if err != nil {
+		return nil, err
+	}
+
 	dest := imageName
 	if srcRef.DockerReference() != nil {
 		dest = srcRef.DockerReference().Name()
@@ -215,11 +236,47 @@ func (svc *imageService) GetStore() storage.Store {
 	return svc.store
 }
 
+func (svc *imageService) isSecureIndex(indexName string) bool {
+	if index, ok := svc.indexConfigs[indexName]; ok {
+		return index.secure
+	}
+
+	host, _, err := net.SplitHostPort(indexName)
+	if err != nil {
+		// assume indexName is of the form `host` without the port and go on.
+		host = indexName
+	}
+
+	addrs, err := net.LookupIP(host)
+	if err != nil {
+		ip := net.ParseIP(host)
+		if ip != nil {
+			addrs = []net.IP{ip}
+		}
+
+		// if ip == nil, then `host` is neither an IP nor it could be looked up,
+		// either because the index is unreachable, or because the index is behind an HTTP proxy.
+		// So, len(addrs) == 0 and we're not aborting.
+	}
+
+	// Try CIDR notation only if addrs has any elements, i.e. if `host`'s IP could be determined.
+	for _, addr := range addrs {
+		for _, ipnet := range svc.insecureRegistryCIDRs {
+			// check if the addr falls in the subnet
+			if (*net.IPNet)(ipnet).Contains(addr) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 // GetImageService returns an ImageServer that uses the passed-in store, and
 // which will prepend the passed-in defaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(store storage.Store, defaultTransport string) (ImageServer, error) {
+func GetImageService(store storage.Store, defaultTransport string, insecureRegistries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
 		store, err = storage.GetStore(storage.DefaultStoreOptions)
@@ -227,8 +284,30 @@ func GetImageService(store storage.Store, defaultTransport string) (ImageServer,
 			return nil, err
 		}
 	}
-	return &imageService{
-		store:            store,
-		defaultTransport: defaultTransport,
-	}, nil
+
+	is := &imageService{
+		store:                 store,
+		defaultTransport:      defaultTransport,
+		indexConfigs:          make(map[string]*indexInfo, 0),
+		insecureRegistryCIDRs: make([]*net.IPNet, 0),
+	}
+
+	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")
+	// Split --insecure-registry into CIDR and registry-specific settings.
+	for _, r := range insecureRegistries {
+		// Check if CIDR was passed to --insecure-registry
+		_, ipnet, err := net.ParseCIDR(r)
+		if err == nil {
+			// Valid CIDR.
+			is.insecureRegistryCIDRs = append(is.insecureRegistryCIDRs, ipnet)
+		} else {
+			// Assume `host:port` if not CIDR.
+			is.indexConfigs[r] = &indexInfo{
+				name:   r,
+				secure: false,
+			}
+		}
+	}
+
+	return is, nil
 }
