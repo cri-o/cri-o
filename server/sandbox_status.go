@@ -56,6 +56,6 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		},
 	}
 
-	logrus.Infof("PodSandboxStatusResponse: %+v", resp)
+	logrus.Debugf("PodSandboxStatusResponse: %+v", resp)
 	return resp, nil
 }

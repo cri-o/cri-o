@@ -317,13 +317,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		hostname:     hostname,
 	}
 
+	s.addSandbox(sb)
 	defer func() {
 		if err != nil {
 			s.removeSandbox(id)
 		}
 	}()
 
-	s.addSandbox(sb)
 	if err = s.podIDIndex.Add(id); err != nil {
 		return nil, err
 	}
