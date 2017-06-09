@@ -48,7 +48,8 @@ func (plugin *cniNetworkPlugin) monitorNetDir() {
 			select {
 			case event := <-watcher.Events:
 				logrus.Debugf("CNI monitoring event %v", event)
-				if event.Op&fsnotify.Create != fsnotify.Create {
+				if event.Op&fsnotify.Create != fsnotify.Create &&
+					event.Op&fsnotify.Write != fsnotify.Write {
 					continue
 				}
 
