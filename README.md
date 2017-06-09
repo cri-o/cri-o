@@ -36,6 +36,12 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788).  Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
+## Communication
+
+For async communication and long running discussions please use issues and pull requests on the github repo. This will be the best place to discuss design and implementation.
+
+For sync communication we have an IRC channel #cri-o, on chat.freenode.net, that everyone is welcome to join and chat about development.
+
 ## Getting started
 
 ### Prerequisites
