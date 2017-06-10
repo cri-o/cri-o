@@ -50,6 +50,7 @@ type ContainerState struct {
 	Finished  time.Time `json:"finished,omitempty"`
 	ExitCode  int32     `json:"exitCode,omitempty"`
 	OOMKilled bool      `json:"oomKilled,omitempty"`
+	Error     string    `json:"error,omitempty"`
 }
 
 // NewContainer creates a container object.
