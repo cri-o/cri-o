@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/pkg/pools"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -78,7 +79,7 @@ func (ss streamService) PortForward(podSandboxID string, port int32, stream io.R
 		return fmt.Errorf("unable to do port forwarding: error creating stdin pipe: %v", err)
 	}
 	go func() {
-		io.Copy(inPipe, stream)
+		pools.Copy(inPipe, stream)
 		inPipe.Close()
 	}()
 
