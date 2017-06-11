@@ -6,6 +6,19 @@
 
 ### Status: Stable
 
+## Compatibility matrix: CRI-O <-> Kubernetes clusters
+
+| Version - Branch           | Kubernetes branch/version     | Maintenance status |
+|----------------------------|-------------------------------|--------------------|
+| CRI-O 1.0.x  - release-1.0 | Kubernetes 1.7 branch, v1.7.x | =                  |
+| CRI-O 1.8.x  - release-1.8 | Kubernetes 1.8 branch, v1.8.x | =                  |
+| CRI-O HEAD - master        | Kubernetes master branch      | ✓                  |
+
+Key:
+
+* `✓` Changes in main Kubernetes repo about CRI are actively implemented in CRI-O
+* `=` Maintenance is manual, only bugs will be patched.
+
 ## What is the scope of this project?
 
 CRI-O is meant to provide an integration path between OCI conformant runtimes and the kubelet.
