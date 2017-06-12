@@ -273,6 +273,10 @@ sudo sh -c 'cat >/etc/cni/net.d/99-loopback.conf <<-EOF
 EOF'
 ```
 
+```
+sudo systemctl restart crio
+```
+
 At this point `cni` is installed and configured to allocation IP address to containers from the `10.88.0.0/16` subnet.
 
 ## Pod Tutorial
