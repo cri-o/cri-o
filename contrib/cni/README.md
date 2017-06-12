@@ -13,4 +13,4 @@ In addition, you need to install the [CNI plugins][cni] necessary into
 two plugins necessary for the example CNI configurations are `loopback` and
 `bridge`.
 
-[cni]: https://github.com/containernetworking/cni
+[cni]: https://github.com/containernetworking/plugins
