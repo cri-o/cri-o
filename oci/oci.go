@@ -545,6 +545,15 @@ func (r *Runtime) DeleteContainer(c *Container) error {
 	return err
 }
 
+// SetStartFailed sets the container state appropriately after a start failure
+func (r *Runtime) SetStartFailed(c *Container, err error) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	// adjust finished and started times
+	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
+	c.state.Error = err.Error()
+}
+
 // UpdateStatus refreshes the status of the container.
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.opLock.Lock()

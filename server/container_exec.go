@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/pkg/pools"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -67,11 +68,11 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 		})
 
 		if stdin != nil {
-			go io.Copy(p, stdin)
+			go pools.Copy(p, stdin)
 		}
 
 		if stdout != nil {
-			go io.Copy(stdout, p)
+			go pools.Copy(stdout, p)
 		}
 
 		cmdErr = execCmd.Wait()
@@ -85,7 +86,7 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 			if err != nil {
 				return err
 			}
-			go io.Copy(w, stdin)
+			go pools.Copy(w, stdin)
 
 			execCmd.Stdin = r
 		}

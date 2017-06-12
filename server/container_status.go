@@ -12,6 +12,12 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
+const (
+	oomKilledReason = "OOMKilled"
+	completedReason = "Completed"
+	errorReason     = "Error"
+)
+
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
 	logrus.Debugf("ContainerStatusRequest %+v", req)
@@ -100,11 +106,12 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		resp.Status.ExitCode = cState.ExitCode
 		switch {
 		case cState.OOMKilled:
-			resp.Status.Reason = "OOMKilled"
+			resp.Status.Reason = oomKilledReason
 		case cState.ExitCode == 0:
-			resp.Status.Reason = "Completed"
+			resp.Status.Reason = completedReason
 		default:
-			resp.Status.Reason = "Error"
+			resp.Status.Reason = errorReason
+			resp.Status.Message = cState.Error
 		}
 	}
 

@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/pkg/pools"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"golang.org/x/net/context"
@@ -108,7 +109,7 @@ func redirectResponseToOutputStream(tty bool, outputStream, errorStream io.Write
 	}
 	var err error
 	if tty {
-		_, err = io.Copy(outputStream, conn)
+		_, err = pools.Copy(outputStream, conn)
 	} else {
 		// TODO
 	}
