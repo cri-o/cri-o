@@ -35,6 +35,12 @@ storage_option = [
 # listen is the path to the AF_LOCAL socket on which crio will listen.
 listen = "{{ .Listen }}"
 
+# stream_address is the IP address on which the stream server will listen
+stream_address = "{{ .StreamAddress }}"
+
+# stream_port is the port on which the stream server will listen
+stream_port = "{{ .StreamPort }}"
+
 # The "crio.runtime" table contains settings pertaining to the OCI
 # runtime used and options for how to set up and manage the OCI runtime.
 [crio.runtime]

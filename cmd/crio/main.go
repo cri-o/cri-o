@@ -71,6 +71,12 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("listen") {
 		config.Listen = ctx.GlobalString("listen")
 	}
+	if ctx.GlobalIsSet("stream-address") {
+		config.StreamAddress = ctx.GlobalString("stream-address")
+	}
+	if ctx.GlobalIsSet("stream-port") {
+		config.StreamPort = ctx.GlobalString("stream-port")
+	}
 	if ctx.GlobalIsSet("runtime") {
 		config.Runtime = ctx.GlobalString("runtime")
 	}
@@ -144,6 +150,14 @@ func main() {
 		cli.StringFlag{
 			Name:  "listen",
 			Usage: "path to crio socket",
+		},
+		cli.StringFlag{
+			Name:  "stream-address",
+			Usage: "bind address for streaming socket",
+		},
+		cli.StringFlag{
+			Name:  "stream-port",
+			Usage: "bind port for streaming socket (default: \"10010\")",
 		},
 		cli.StringFlag{
 			Name:  "log",
