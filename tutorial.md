@@ -190,21 +190,21 @@ sudo crioctl runtimeversion
 VersionResponse: Version: 0.1.0, RuntimeName: runc, RuntimeVersion: 1.0.0-rc2, RuntimeApiVersion: v1alpha1
 ```
 
-### cni
+### CNI plugins
 
-This tutorial will use the latest version of `cni` from the master branch and build it from source.
+This tutorial will use the latest version of `CNI` plugins from the master branch and build it from source.
 
-Download the `cni` source tree:
-
-```
-go get -d github.com/containernetworking/cni
-```
+Download the `CNI` plugins source tree:
 
 ```
-cd $GOPATH/src/github.com/containernetworking/cni
+go get -d github.com/containernetworking/plugins
 ```
 
-Build the `cni` binaries:
+```
+cd $GOPATH/src/github.com/containernetworking/plugins
+```
+
+Build the `CNI` plugins:
 
 ```
 ./build.sh
@@ -228,7 +228,7 @@ Building plugins
    noop
 ```
 
-Install the `cni` binaries:
+Install the `CNI` plugins:
 
 ```
 sudo mkdir -p /opt/cni/bin
@@ -273,7 +273,7 @@ sudo sh -c 'cat >/etc/cni/net.d/99-loopback.conf <<-EOF
 EOF'
 ```
 
-At this point `cni` is installed and configured to allocation IP address to containers from the `10.88.0.0/16` subnet.
+At this point `CNI` is installed and configured to allocation IP address to containers from the `10.88.0.0/16` subnet.
 
 ## Pod Tutorial
 
