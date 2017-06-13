@@ -65,6 +65,12 @@ type APIConfig struct {
 	// This may support proto://addr formats later, but currently this is just
 	// a path.
 	Listen string `toml:"listen"`
+
+	// StreamAddress is the IP address on which the stream server will listen.
+	StreamAddress string `toml:"stream_address"`
+
+	// StreamPort is the port on which the stream server will listen.
+	StreamPort string `toml:"stream_port"`
 }
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -207,7 +213,9 @@ func DefaultConfig() *Config {
 			LogDir:  "/var/log/crio/pods",
 		},
 		APIConfig: APIConfig{
-			Listen: "/var/run/crio.sock",
+			Listen:        "/var/run/crio.sock",
+			StreamAddress: "",
+			StreamPort:    "10010",
 		},
 		RuntimeConfig: RuntimeConfig{
 			Runtime:               "/usr/bin/runc",

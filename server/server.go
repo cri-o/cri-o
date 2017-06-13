@@ -613,14 +613,22 @@ func New(config *Config) (*Server, error) {
 	s.restore()
 	s.cleanupSandboxesOnShutdown()
 
-	bindAddress, err := knet.ChooseBindAddress(net.IP{0, 0, 0, 0})
+	bindAddress := net.ParseIP(config.StreamAddress)
+	if bindAddress == nil {
+		bindAddress, err = knet.ChooseBindAddress(net.IP{0, 0, 0, 0})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = net.LookupPort("tcp", config.StreamPort)
 	if err != nil {
 		return nil, err
 	}
 
 	// Prepare streaming server
 	streamServerConfig := streaming.DefaultConfig
-	streamServerConfig.Addr = bindAddress.String() + ":10101"
+	streamServerConfig.Addr = net.JoinHostPort(bindAddress.String(), config.StreamPort)
 	s.stream.runtimeServer = s
 	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
 	if err != nil {
