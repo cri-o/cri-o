@@ -180,7 +180,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 		if ss.err != nil {
 			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
 		}
-		logrus.Infof("Received container pid: %d", ss.si.Pid)
+		logrus.Debugf("Received container pid: %d", ss.si.Pid)
 		errorMessage := ""
 		if c.terminal {
 			errorMessage = stderrBuf.String()
@@ -194,8 +194,10 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 
 		if ss.si.Pid == -1 {
 			if errorMessage != "" {
+				logrus.Debugf("Container creation error: %s", errorMessage)
 				return fmt.Errorf("container create failed: %s", errorMessage)
 			}
+			logrus.Debugf("Container creation failed")
 			return fmt.Errorf("container create failed")
 		}
 	case <-time.After(ContainerCreateTimeout):
