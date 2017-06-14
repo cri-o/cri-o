@@ -351,12 +351,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetProcessApparmorProfile(appArmorProfileName)
 		}
 	}
+	var readOnlyRootfs bool
 	if containerConfig.GetLinux().GetSecurityContext() != nil {
 		if containerConfig.GetLinux().GetSecurityContext().Privileged {
 			specgen.SetupPrivileged(true)
 		}
 
 		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
+			readOnlyRootfs = true
 			specgen.SetRootReadonly(true)
 		}
 	}
@@ -511,14 +513,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// bind mount the pod shm
 	specgen.AddBindMount(sb.shmPath, "/dev/shm", []string{"rw"})
 
+	options := []string{"rw"}
+	if readOnlyRootfs {
+		options = []string{"ro"}
+	}
 	if sb.resolvPath != "" {
 		// bind mount the pod resolver file
-		specgen.AddBindMount(sb.resolvPath, "/etc/resolv.conf", []string{"ro"})
+		specgen.AddBindMount(sb.resolvPath, "/etc/resolv.conf", options)
 	}
 
 	// Bind mount /etc/hosts for host networking containers
 	if hostNetwork(containerConfig) {
-		specgen.AddBindMount("/etc/hosts", "/etc/hosts", []string{"ro"})
+		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
 	}
 
 	if sb.hostname != "" {
@@ -588,11 +594,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// TODO: volume handling in CRI-O
-	//       right now, we do just mount tmpfs in order to have images like
-	//       gcr.io/k8s-testimages/redis:e2e to work with CRI-O
+	//       right now, we do just an mkdir in the container rootfs because we
+	//       know kube manages volumes its own way and we don't need to behave
+	//       like docker.
+	//       For instance gcr.io/k8s-testimages/redis:e2e now work with CRI-O
 	for dest := range containerImageConfig.Config.Volumes {
-		destOptions := []string{"mode=1777", "size=" + strconv.Itoa(64*1024*1024)}
-		specgen.AddTmpfsMount(dest, destOptions)
+		fp, err := symlink.FollowSymlinkInScope(filepath.Join(mountPoint, dest), mountPoint)
+		if err != nil {
+			return nil, err
+		}
+		os.MkdirAll(fp, 0644)
 	}
 
 	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
