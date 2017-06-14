@@ -36,7 +36,7 @@ This section will walk you through installing the following components:
 Download the `runc` release binary:
 
 ```
-wget https://github.com/opencontainers/runc/releases/download/v1.0.0-rc2/runc-linux-amd64
+wget https://github.com/opencontainers/runc/releases/download/v1.0.0-rc5/runc-linux-amd64
 ```
 
 Set the executable bit and copy the `runc` binary into your PATH:
@@ -55,9 +55,7 @@ Print the `runc` version:
 runc -version
 ```
 ```
-runc version 1.0.0-rc2
-commit: c91b5bea4830a57eac7882d7455d59518cdf70ec
-spec: 1.0.0-rc2-dev
+runc version 1.0.0-rc5
 ```
 
 ### crio
@@ -187,7 +185,7 @@ sudo systemctl start crio
 sudo crioctl runtimeversion
 ```
 ```
-VersionResponse: Version: 0.1.0, RuntimeName: runc, RuntimeVersion: 1.0.0-rc2, RuntimeApiVersion: v1alpha1
+VersionResponse: Version: 0.1.0, RuntimeName: runc, RuntimeVersion: 1.0.0-rc5, RuntimeApiVersion: v1alpha1
 ```
 
 ### CNI plugins
@@ -197,6 +195,7 @@ This tutorial will use the latest version of `CNI` plugins from the master branc
 Download the `CNI` plugins source tree:
 
 ```
+go get -d github.com/containernetworking/cni
 go get -d github.com/containernetworking/plugins
 ```
 
@@ -216,15 +215,6 @@ Output:
 Building API
 Building reference CLI
 Building plugins
-   flannel
-   tuning
-   bridge
-   ipvlan
-   loopback
-   macvlan
-   ptp
-   dhcp
-   host-local
    noop
 ```
 
@@ -233,6 +223,42 @@ Install the `CNI` plugins:
 ```
 sudo mkdir -p /opt/cni/bin
 ```
+
+```
+sudo cp bin/* /opt/cni/bin/
+```
+
+Plugins
+
+```
+cd $GOPATH/src/github.com/containernetworking/plugins
+```
+
+Build the `plugin` binaries:
+
+```
+./build.sh
+```
+
+Output:
+
+```
+Building plugins
+  flannel
+  portmap
+  tuning
+  bridge
+  ipvlan
+  loopback
+  macvlan
+  ptp
+  vlan
+  dhcp
+  host-local
+  sample
+```
+
+Install the `plugin` binaries:
 
 ```
 sudo cp bin/* /opt/cni/bin/
