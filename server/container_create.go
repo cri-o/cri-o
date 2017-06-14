@@ -351,12 +351,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetProcessApparmorProfile(appArmorProfileName)
 		}
 	}
+	var readOnlyRootfs bool
 	if containerConfig.GetLinux().GetSecurityContext() != nil {
 		if containerConfig.GetLinux().GetSecurityContext().Privileged {
 			specgen.SetupPrivileged(true)
 		}
 
 		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
+			readOnlyRootfs = true
 			specgen.SetRootReadonly(true)
 		}
 	}
@@ -511,14 +513,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// bind mount the pod shm
 	specgen.AddBindMount(sb.shmPath, "/dev/shm", []string{"rw"})
 
+	options := []string{"rw"}
+	if readOnlyRootfs {
+		options = []string{"ro"}
+	}
 	if sb.resolvPath != "" {
 		// bind mount the pod resolver file
-		specgen.AddBindMount(sb.resolvPath, "/etc/resolv.conf", []string{"ro"})
+		specgen.AddBindMount(sb.resolvPath, "/etc/resolv.conf", options)
 	}
 
 	// Bind mount /etc/hosts for host networking containers
 	if hostNetwork(containerConfig) {
-		specgen.AddBindMount("/etc/hosts", "/etc/hosts", []string{"ro"})
+		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
 	}
 
 	if sb.hostname != "" {
