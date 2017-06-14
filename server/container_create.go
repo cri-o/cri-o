@@ -588,11 +588,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// TODO: volume handling in CRI-O
-	//       right now, we do just mount tmpfs in order to have images like
-	//       gcr.io/k8s-testimages/redis:e2e to work with CRI-O
+	//       right now, we do just an mkdir in the container rootfs because we
+	//       know kube manages volumes its own way and we don't need to behave
+	//       like docker.
+	//       For instance gcr.io/k8s-testimages/redis:e2e now work with CRI-O
 	for dest := range containerImageConfig.Config.Volumes {
-		destOptions := []string{"mode=1777", "size=" + strconv.Itoa(64*1024*1024)}
-		specgen.AddTmpfsMount(dest, destOptions)
+		fp, err := symlink.FollowSymlinkInScope(filepath.Join(mountPoint, dest), mountPoint)
+		if err != nil {
+			return nil, err
+		}
+		os.MkdirAll(fp, 0644)
 	}
 
 	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
