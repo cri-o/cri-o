@@ -36,7 +36,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 	if _, err := os.Stat(netnsPath); err == nil {
 		if err2 := s.netPlugin.TearDownPod(netnsPath, sb.namespace, sb.kubeName, sb.id); err2 != nil {
-			return nil, fmt.Errorf("failed to destroy network for container %s in sandbox %s: %v",
+			logrus.Warnf("failed to destroy network for container %s in sandbox %s: %v",
 				podInfraContainer.Name(), sb.id, err2)
 		}
 	} else if !os.IsNotExist(err) { // it's ok for netnsPath to *not* exist
