@@ -46,7 +46,7 @@ For sync communication we have an IRC channel #cri-o, on chat.freenode.net, that
 
 ### Prerequisites
 
-`runc` version 1.0.0.rc1 or greater is expected to be installed on the system. It is picked up as the default runtime by crio.
+`runc` version 1.0.0.rc5 or greater is expected to be installed on the system. It is picked up as the default runtime by crio.
 
 ### Build Dependencies
 
