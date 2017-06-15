@@ -54,6 +54,12 @@ const (
 
 	// TTY is the terminal path annotation
 	TTY = "io.kubernetes.cri-o.TTY"
+
+	// Stdin is the stdin annotation
+	Stdin = "io.kubernetes.cri-o.Stdin"
+
+	// StdinOnce is the stdin_once annotation
+	StdinOnce = "io.kubernetes.cri-o.StdinOnce"
 )
 
 // ContainerType values
