@@ -26,6 +26,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 )
 
@@ -56,6 +57,7 @@ type Server struct {
 	updateLock           sync.RWMutex
 	state                *serverState
 	netPlugin            ocicni.CNIPlugin
+	hostportManager      hostport.HostPortManager
 	podNameIndex         *registrar.Registrar
 	podIDIndex           *truncindex.TruncIndex
 	ctrNameIndex         *registrar.Registrar
@@ -575,12 +577,14 @@ func New(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	hostportManager := hostport.NewHostportManager()
 	s := &Server{
 		runtime:              r,
 		store:                store,
 		storageImageServer:   imageService,
 		storageRuntimeServer: storageRuntimeService,
 		netPlugin:            netPlugin,
+		hostportManager:      hostportManager,
 		config:               *config,
 		state: &serverState{
 			sandboxes:  sandboxes,
