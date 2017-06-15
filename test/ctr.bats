@@ -241,7 +241,7 @@ function teardown() {
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	grep -E "^[^\n]+ stdout here is some output$" "$logpath"
+	grep -E "^[^\n]+ stdout here is some output" "$logpath"
 
 	run crioctl pod stop --id "$pod_id"
 	echo "$output"
