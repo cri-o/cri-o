@@ -7,11 +7,7 @@
 	},
 	"hostname": "crioctl_host",
 	"log_directory": "",
-	"dns_options": {
-		"servers": [
-			"server1.redhat.com",
-			"server2.redhat.com"
-		],
+	"dns_config": {
 		"searches": [
 			"8.8.8.8"
 		]

@@ -695,7 +695,7 @@ function teardown() {
 	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-        # Wait for container to OOM
+	# Wait for container to OOM
 	run sleep 10
 	run crioctl ctr status --id "$ctr_id"
 	echo "$output"
@@ -707,6 +707,45 @@ function teardown() {
 	run crioctl pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr /etc/resolv.conf rw/ro mode" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_config_resolvconf.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl ctr status --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Status: CONTAINER_EXITED" ]]
+	[[ "$output" =~ "Exit Code: 0" ]]
+	[[ "$output" =~ "Reason: Completed" ]]
+
+	run crioctl ctr create --name roctr --config "$TESTDATA"/container_config_resolvconf_ro.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl ctr status --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "Status: CONTAINER_EXITED" ]]
+	[[ "$output" =~ "Exit Code: 1" ]]
+	[[ "$output" =~ "Reason: Error" ]]
+
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
