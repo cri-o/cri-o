@@ -34,6 +34,7 @@ type Container struct {
 	stdin       bool
 	stdinOnce   bool
 	privileged  bool
+	trusted     bool
 	state       *ContainerState
 	metadata    *pb.ContainerMetadata
 	opLock      sync.Mutex
@@ -56,7 +57,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -71,6 +72,7 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		stdin:       stdin,
 		stdinOnce:   stdinOnce,
 		privileged:  privileged,
+		trusted:     trusted,
 		metadata:    metadata,
 		annotations: annotations,
 		image:       image,

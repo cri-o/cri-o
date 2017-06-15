@@ -75,14 +75,33 @@ type APIConfig struct {
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
-	// Runtime is a path to the OCI runtime which crio will be using. Currently
-	// the only known working choice is runC, simply because the OCI has not
-	// yet merged a CLI API (so we assume runC's API here).
+	// Runtime is the OCI compatible runtime used for trusted container workloads.
+	// This is a mandatory setting as this runtime will be the default one and
+	// will also be used for untrusted container workloads if
+	// RuntimeUntrustedWorkload is not set.
 	Runtime string `toml:"runtime"`
 
-	// RuntimeHostPrivileged is a path to the OCI runtime which crio will be
-	// using for host privileged operations.
-	RuntimeHostPrivileged string `toml:"runtime_host_privileged"`
+	// RuntimeUntrustedWorkload is the OCI compatible runtime used for untrusted
+	// container workloads. This is an optional setting, except if
+	// DefaultWorkloadTrust is set to "untrusted".
+	RuntimeUntrustedWorkload string `toml:"runtime_untrusted_workload"`
+
+	// DefaultWorkloadTrust is the default level of trust crio puts in container
+	// workloads. This can either be "trusted" or "untrusted" and the default
+	// is "trusted"
+	// Containers can be run through different container runtimes, depending on
+	// the trust hints we receive from kubelet:
+	// - If kubelet tags a container workload as untrusted, crio will try first
+	// to run it through the untrusted container workload runtime. If it is not
+	// set, crio will use the trusted runtime.
+	// - If kubelet does not provide any information about the container workload trust
+	// level, the selected runtime will depend on the DefaultWorkloadTrust setting.
+	// If it is set to "untrusted", then all containers except for the host privileged
+	// ones, will be run by the RuntimeUntrustedWorkload runtime. Host privileged
+	// containers are by definition trusted and will always use the trusted container
+	// runtime. If DefaultWorkloadTrust is set to "trusted", crio will use the trusted
+	// container runtime for all containers.
+	DefaultWorkloadTrust string `toml:"default_workload_trust"`
 
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	Conmon string `toml:"conmon"`
@@ -218,9 +237,11 @@ func DefaultConfig() *Config {
 			StreamPort:    "10010",
 		},
 		RuntimeConfig: RuntimeConfig{
-			Runtime:               "/usr/bin/runc",
-			RuntimeHostPrivileged: "",
-			Conmon:                conmonPath,
+			Runtime:                  "/usr/bin/runc",
+			RuntimeUntrustedWorkload: "",
+			DefaultWorkloadTrust:     "trusted",
+
+			Conmon: conmonPath,
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},

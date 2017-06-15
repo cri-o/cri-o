@@ -143,6 +143,7 @@ type sandbox struct {
 	shmPath        string
 	cgroupParent   string
 	privileged     bool
+	trusted        bool
 	resolvPath     string
 	hostname       string
 }
