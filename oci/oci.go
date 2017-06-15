@@ -540,13 +540,26 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 		timeout = 10
 	}
 	done := make(chan struct{})
+	// we could potentially re-use "done" channel to exit the loop on timeout
+	// but we use another channel "chControl" so that we won't never incur in the
+	// case the "done" channel is closed in the "default" select case and we also
+	// reach the timeout in the select below. If that happens we could raise
+	// a panic closing a closed channel so better be safe and use another new
+	// channel just to control the loop.
+	chControl := make(chan struct{})
 	go func() {
 		for {
-			// Check if the process is still around
-			err := unix.Kill(c.state.Pid, 0)
-			if err == syscall.ESRCH {
-				close(done)
-				break
+			select {
+			case <-chControl:
+				return
+			default:
+				// Check if the process is still around
+				err := unix.Kill(c.state.Pid, 0)
+				if err == syscall.ESRCH {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
@@ -554,6 +567,7 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 	case <-done:
 		return nil
 	case <-time.After(time.Duration(timeout) * time.Second):
+		close(chControl)
 		err := unix.Kill(c.state.Pid, syscall.SIGKILL)
 		if err != nil && err != syscall.ESRCH {
 			return fmt.Errorf("failed to kill process: %v", err)
