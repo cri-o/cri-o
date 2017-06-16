@@ -13,6 +13,8 @@ CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/crio}
 # Path of the crioctl binary.
 OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/crioctl}
+# Path to kpod binary.
+KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/cri-o/kpod}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/conmon/conmon}
 # Path of the pause binary.

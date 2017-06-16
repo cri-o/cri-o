@@ -27,6 +27,14 @@ _kpod_launch() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_kpod_version() {
+     local options_with_args="
+     "
+     local boolean_options="
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _kpod_kpod() {
      local options_with_args="
      "
@@ -36,6 +44,7 @@ _kpod_kpod() {
      "
      commands="
 	launch
+    version
      "
 
      case "$prev" in

@@ -14,6 +14,9 @@ ETCDIR_CRIO ?= ${ETCDIR}/crio
 BUILDTAGS := selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 
+GIT_COMMIT := $(shell git rev-parse --short HEAD)
+BUILD_INFO := $(shell date +%s)
+
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
 export GOPATH := $(CURDIR)/_output
@@ -24,6 +27,8 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
+
+LDFLAGS := -ldflags '-X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}'
 
 all: binaries crio.conf docs
 
@@ -77,7 +82,7 @@ crioctl: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crioctl $(PROJECT
 	$(GO) build -o $@ $(PROJECT)/cmd/crioctl
 
 kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
-	$(GO) build -o $@ $(PROJECT)/cmd/kpod
+	$(GO) build $(LDFLAGS) -o $@ $(PROJECT)/cmd/kpod
 
 crio.conf: crio
 	./crio --config="" config --default > crio.conf
