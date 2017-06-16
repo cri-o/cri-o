@@ -54,7 +54,8 @@ type streamService struct {
 // Server implements the RuntimeService and ImageService
 type Server struct {
 	libkpod.ContainerServer
-	config               Config
+	config Config
+
 	storageRuntimeServer storage.RuntimeServer
 	stateLock            sync.Locker
 	updateLock           sync.RWMutex

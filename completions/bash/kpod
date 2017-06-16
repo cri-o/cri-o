@@ -19,6 +19,47 @@ _kpod_images() {
      --format
      --filter
      -f
+     "
+    local options_with_args="
+  "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+ }
+
+_kpod_launch() {
+     local options_with_args="
+     "
+     local boolean_options="
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_pull() {
+    local options_with_args="
+    "
+    local boolean_options="
+    --all-tags -a
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_push() {
+    local boolean_options="
+     --disable-compression
+     -D
+     --quiet
+     -q
+     --signature-policy
+     --certs
+     --tls-verify
+     --remove-signatures
+     --sign-by
   "
 
     local options_with_args="
@@ -30,23 +71,6 @@ _kpod_images() {
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
-    esac
-}
-
-_complete_() {
-    local options_with_args=$1
-    local boolean_options="$2 -h --help"
-
-    case "$prev" in
-	$options_with_args)
-	    return
-	    ;;
-    esac
-
-    case "$cur" in
-	-*)
-	    COMPREPLY=( $( compgen -W "$boolean_options $options_with_args" -- "$cur" ) )
-	    ;;
     esac
 }
 
@@ -68,14 +92,6 @@ _kpod_rmi() {
     esac
 }
 
-_kpod_version() {
-     local options_with_args="
-     "
-     local boolean_options="
-     "
-     _complete_ "$options_with_args" "$boolean_options"
-}
-
 kpod_tag() {
     local options_with_args="
     "
@@ -84,13 +100,29 @@ kpod_tag() {
     _complete_ "$options_with_args" "$boolean_options"
 }
 
-_kpod_pull() {
-    local options_with_args="
-    "
-    local boolean_options="
-    --all-tags -a
-    "
-    _complete_ "$options_with_args" "$boolean_options"
+_kpod_version() {
+     local options_with_args="
+     "
+     local boolean_options="
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_complete_() {
+    local options_with_args=$1
+    local boolean_options="$2 -h --help"
+
+    case "$prev" in
+	$options_with_args)
+	    return
+	    ;;
+    esac
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=( $( compgen -W "$boolean_options $options_with_args" -- "$cur" ) )
+	    ;;
+    esac
 }
 
 _kpod_history() {
@@ -123,8 +155,10 @@ _kpod_kpod() {
 	   --help -h
      "
      commands="
-	images
-	rmi
+    images
+    launch
+    push
+    rmi
     tag
     version
     pull
