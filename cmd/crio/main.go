@@ -290,7 +290,7 @@ func main() {
 			if err != nil {
 				return fmt.Errorf("invalid --cpu-profile value %q", err)
 			}
-			pprof.StartCPUProfile(f)
+			_ = pprof.StartCPUProfile(f)
 			defer pprof.StopCPUProfile()
 		}
 

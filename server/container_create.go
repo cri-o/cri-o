@@ -49,7 +49,9 @@ func addOCIBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen 
 		}
 
 		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
-			os.MkdirAll(src, 0644)
+			if err1 := os.MkdirAll(src, 0644); err1 != nil {
+				return fmt.Errorf("Failed to mkdir %s: %s", src, err)
+			}
 		}
 
 		options := []string{"rw"}
@@ -455,7 +457,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.SetLinuxMountLabel(sb.mountLabel)
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
-			containerConfig.GetLinux().GetSecurityContext().Privileged == false {
+			!containerConfig.GetLinux().GetSecurityContext().Privileged {
 			for _, mp := range []string{
 				"/proc/kcore",
 				"/proc/latency_stats",
@@ -605,7 +607,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		if err != nil {
 			return nil, err
 		}
-		os.MkdirAll(fp, 0644)
+		if err1 := os.MkdirAll(fp, 0644); err1 != nil {
+			return nil, err1
+		}
 	}
 
 	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
