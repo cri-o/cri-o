@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <sys/uio.h>
 #include <sys/ioctl.h>
+#include <termios.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -672,6 +673,7 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	const char *csname = user_data;
 	struct file_t console;
 	int connfd = -1;
+	struct termios tset;
 
 	ninfo("about to accept from csfd: %d", fd);
 	connfd = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
@@ -688,6 +690,15 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 
 	ninfo("console = {.name = '%s'; .fd = %d}", console.name, console.fd);
 	free(console.name);
+
+	/* We change the terminal settings to match kube settings */
+	if (tcgetattr(console.fd, &tset) == -1)
+		pexit("Failed to get console terminal settings");
+
+	tset.c_oflag |= ONLCR;
+
+	if (tcsetattr(console.fd, TCSANOW, &tset) == -1)
+		pexit("Failed to set console terminal settings");
 
 	/* We only have a single fd for both pipes, so we just treat it as
 	 * stdout. stderr is ignored. */
