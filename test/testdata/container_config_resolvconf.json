@@ -7,7 +7,9 @@
 		"image": "redis:alpine"
 	},
 	"command": [
-		"/bin/ls"
+		"sh",
+		"-c",
+		"echo test >> /etc/resolv.conf"
 	],
 	"args": [],
 	"working_dir": "/",

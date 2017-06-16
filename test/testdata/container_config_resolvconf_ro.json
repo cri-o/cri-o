@@ -7,7 +7,9 @@
 		"image": "redis:alpine"
 	},
 	"command": [
-		"/bin/ls"
+		"sh",
+		"-c",
+		"echo test >> /etc/resolv.conf"
 	],
 	"args": [],
 	"working_dir": "/",
@@ -50,7 +52,7 @@
 			"oom_score_adj": 30
 		},
 		"security_context": {
-			"readonly_rootfs": false,
+			"readonly_rootfs": true,
 			"capabilities": {
 				"add_capabilities": [
 					"setuid",
