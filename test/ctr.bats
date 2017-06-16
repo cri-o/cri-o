@@ -367,10 +367,19 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" != "" ]]
 	[[ "$output" =~ "$ctr3_id"  ]]
+	run crioctl pod stop --id "$pod1_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod1_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run crioctl pod stop --id "$pod2_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod2_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl pod stop --id "$pod3_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod3_id"
@@ -421,6 +430,9 @@ function teardown() {
 	[[ "$output" =~ "$ctr1_id"  ]]
 	[[ "$output" =~ "$ctr2_id"  ]]
 	[[ "$output" =~ "$ctr3_id"  ]]
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -501,6 +513,9 @@ function teardown() {
 	run crioctl ctr execsync --id "$ctr_id" --timeout 1 sleep 10
 	echo "$output"
 	[[ "$output" =~ "command timed out" ]]
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -526,6 +541,9 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "/dev/mynull" ]]
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -606,7 +624,9 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"$(printf "Stderr:\nthis goes to stderr")"* ]]
-
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl pod remove --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]

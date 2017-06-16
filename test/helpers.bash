@@ -247,7 +247,7 @@ function cleanup_ctrs() {
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crioctl ctr stop --id "$line" || true
+			   crioctl ctr stop --id "$line"
 			   crioctl ctr remove --id "$line"
 			done
 		fi
@@ -272,7 +272,7 @@ function cleanup_pods() {
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crioctl pod stop --id "$line" || true
+			   crioctl pod stop --id "$line"
 			   crioctl pod remove --id "$line"
 			done
 		fi

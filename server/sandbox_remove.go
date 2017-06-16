@@ -2,14 +2,11 @@ package server
 
 import (
 	"fmt"
-	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage"
-	"github.com/docker/docker/pkg/mount"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
@@ -74,27 +71,10 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 	}
 
-	if err := label.ReleaseLabel(sb.processLabel); err != nil {
-		return nil, err
-	}
-
-	// unmount the shm for the pod
-	if sb.shmPath != "/dev/shm" {
-		if mounted, err := mount.Mounted(sb.shmPath); err == nil && mounted {
-			if err := syscall.Unmount(sb.shmPath, syscall.MNT_DETACH); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := sb.netNsRemove(); err != nil {
-		return nil, fmt.Errorf("failed to remove networking namespace for sandbox %s: %v", sb.id, err)
-	}
-
 	s.removeContainer(podInfraContainer)
 
 	// Remove the files related to the sandbox
-	if err := s.storageRuntimeServer.StopContainer(sb.id); err != nil {
+	if err := s.storageRuntimeServer.StopContainer(sb.id); err != nil && err != storage.ErrContainerUnknown {
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.id, err)
 	}
 	if err := s.storageRuntimeServer.RemovePodSandbox(sb.id); err != nil && err != pkgstorage.ErrInvalidSandboxID {

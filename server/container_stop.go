@@ -25,6 +25,9 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		if err := s.runtime.StopContainer(c, req.Timeout); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 		}
+		if err := s.storageRuntimeServer.StopContainer(c.ID()); err != nil {
+			return nil, fmt.Errorf("failed to unmount container %s: %v", c.ID(), err)
+		}
 	}
 
 	s.containerStateToDisk(c)
