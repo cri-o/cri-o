@@ -397,6 +397,12 @@ function parse_pod_ip() {
 	done
 }
 
+function get_host_ip() {
+	gateway_dev=`ip -o route show default 0.0.0.0/0 | sed 's/.*dev \([^[:space:]]*\).*/\1/'`
+	[ "$gateway_dev" ]
+	host_ip=`ip -o -4 addr show dev $gateway_dev scope global | sed 's/.*inet \([0-9.]*\).*/\1/'`
+}
+
 function ping_pod() {
 	netns=`crioctl pod status --id $1 | grep namespace | cut -d ' ' -f 3`
 	inet=`ip netns exec \`basename $netns\` ip addr show dev eth0 scope global | grep inet`
