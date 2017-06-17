@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"sort"
 	"strings"
 	"syscall"
-
-	"runtime/pprof"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/pkg/reexec"
@@ -233,9 +233,9 @@ func main() {
 			Name:  "cni-plugin-dir",
 			Usage: "CNI plugin binaries directory",
 		},
-		cli.StringFlag{
-			Name:  "cpu-profile",
-			Usage: "set the CPU profile file path",
+		cli.BoolFlag{
+			Name:  "profile",
+			Usage: "enable pprof remote profiler on localhost:6060",
 		},
 	}
 
@@ -285,13 +285,10 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		if cp := c.GlobalString("cpu-profile"); cp != "" {
-			f, err := os.Create(cp)
-			if err != nil {
-				return fmt.Errorf("invalid --cpu-profile value %q", err)
-			}
-			_ = pprof.StartCPUProfile(f)
-			defer pprof.StopCPUProfile()
+		if c.GlobalBool("profile") {
+			go func() {
+				http.ListenAndServe("localhost:6060", nil)
+			}()
 		}
 
 		config := c.App.Metadata["config"].(*server.Config)
