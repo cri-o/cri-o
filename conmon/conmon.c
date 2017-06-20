@@ -675,8 +675,10 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 
 	ninfo("about to accept from csfd: %d", fd);
 	connfd = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
-	if (connfd < 0)
-		pexit("Failed to accept console-socket connection");
+	if (connfd < 0) {
+		nwarn("Failed to accept console-socket connection");
+		return G_SOURCE_CONTINUE;
+	}
 
 	/* Not accepting anything else. */
 	close(fd);
@@ -693,7 +695,6 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	 * stdout. stderr is ignored. */
 	masterfd_stdin = console.fd;
 	masterfd_stdout = console.fd;
-	masterfd_stderr = -1;
 
 	/* Clean up everything */
 	close(connfd);
@@ -738,6 +739,7 @@ int main(int argc, char *argv[])
         GPtrArray *runtime_argv = NULL;
 	_cleanup_close_ int dev_null_r = -1;
 	_cleanup_close_ int dev_null_w = -1;
+	int fds[2];
 
 	_cleanup_free_ char *memory_cgroup_path = NULL;
 	int wb;
@@ -886,7 +888,6 @@ int main(int argc, char *argv[])
 		if (listen(csfd, 128) < 0)
 			pexit("Failed to listen on console-socket");
 	} else {
-		int fds[2];
 
 		/*
 		 * Create a "fake" master fd so that we can use the same epoll code in
@@ -911,13 +912,15 @@ int main(int argc, char *argv[])
 
 		masterfd_stdout = fds[0];
 		slavefd_stdout = fds[1];
-
-		if (pipe2(fds, O_CLOEXEC) < 0)
-			pexit("Failed to create !terminal stderr pipe");
-
-		masterfd_stderr = fds[0];
-		slavefd_stderr = fds[1];
 	}
+
+	/* We always create a stderr pipe, because that way we can capture
+	   runc stderr messages before the tty is created */
+	if (pipe2(fds, O_CLOEXEC) < 0)
+		pexit("Failed to create stderr pipe");
+
+	masterfd_stderr = fds[0];
+	slavefd_stderr = fds[1];
 
 	runtime_argv = g_ptr_array_new();
 	g_ptr_array_add(runtime_argv, runtime_path);
@@ -1012,32 +1015,21 @@ int main(int argc, char *argv[])
 
 	if (!WIFEXITED(runtime_status) || WEXITSTATUS(runtime_status) != 0) {
 		if (sync_pipe_fd > 0 && !exec) {
-			if (terminal) {
-				/* 
-				 * For this case, the stderr is captured in the parent when terminal is passed down.
-			         * We send -1 as pid to signal to parent that create container has failed.
-				 */
-				len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", -1);
+			/*
+			 * Read from container stderr for any error and send it to parent
+			 * We send -1 as pid to signal to parent that create container has failed.
+			 */
+			num_read = read(masterfd_stderr, buf, BUF_SIZE);
+			if (num_read > 0) {
+				_cleanup_free_ char *escaped_message = NULL;
+				ssize_t len;
+
+				buf[num_read] = '\0';
+				escaped_message = escape_json_string(buf);
+
+				len = snprintf(buf, BUF_SIZE, "{\"pid\": %d, \"message\": \"%s\"}\n", -1, escaped_message);
 				if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
-					pexit("unable to send container pid to parent");
-				}
-			} else {
-				/*
-				 * Read from container stderr for any error and send it to parent
-			         * We send -1 as pid to signal to parent that create container has failed.
-				 */
-				num_read = read(masterfd_stderr, buf, BUF_SIZE);
-				if (num_read > 0) {
-					_cleanup_free_ char *escaped_message = NULL;
-					ssize_t len;
-
-					buf[num_read] = '\0';
-					escaped_message = escape_json_string(buf);
-
-					len = snprintf(buf, BUF_SIZE, "{\"pid\": %d, \"message\": \"%s\"}\n", -1, escaped_message);
-					if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
-						ninfo("Unable to send container stderr message to parent");
-					}
+					ninfo("Unable to send container stderr message to parent");
 				}
 			}
 		}
@@ -1045,7 +1037,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (terminal && masterfd_stdout == -1)
-		pexit("Runtime did not set up terminal");
+		nexit("Runtime did not set up terminal");
 
 	/* Read the pid so we can wait for the process to exit */
 	g_file_get_contents(pid_file, &contents, NULL, &err);

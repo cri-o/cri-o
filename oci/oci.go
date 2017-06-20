@@ -200,21 +200,10 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
 		}
 		logrus.Debugf("Received container pid: %d", ss.si.Pid)
-		errorMessage := ""
-		if c.terminal {
-			errorMessage = stderrBuf.String()
-			fmt.Fprintf(os.Stderr, errorMessage)
-			errorMessage = sanitizeConmonErrorMessage(errorMessage)
-		} else {
-			if ss.si.Message != "" {
-				errorMessage = ss.si.Message
-			}
-		}
-
 		if ss.si.Pid == -1 {
-			if errorMessage != "" {
-				logrus.Debugf("Container creation error: %s", errorMessage)
-				return fmt.Errorf("container create failed: %s", errorMessage)
+			if ss.si.Message != "" {
+				logrus.Debugf("Container creation error: %s", ss.si.Message)
+				return fmt.Errorf("container create failed: %s", ss.si.Message)
 			}
 			logrus.Debugf("Container creation failed")
 			return fmt.Errorf("container create failed")
@@ -223,18 +212,6 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 		return fmt.Errorf("create container timeout")
 	}
 	return nil
-}
-
-// sanitizeConmonErrorMessage removes conmon debug messages from error string
-func sanitizeConmonErrorMessage(errString string) string {
-	var sanitizedLines []string
-	lines := strings.Split(errString, "\n")
-	for _, line := range lines {
-		if !strings.HasPrefix(line, "[conmon") {
-			sanitizedLines = append(sanitizedLines, line)
-		}
-	}
-	return strings.Join(sanitizedLines, "\n")
 }
 
 func createUnitName(prefix string, name string) string {
