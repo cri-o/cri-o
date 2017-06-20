@@ -128,10 +128,12 @@ func getOCIVersion(name string, args ...string) (string, error) {
 func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	var stderrBuf bytes.Buffer
 	parentPipe, childPipe, err := newPipe()
+	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
 		return fmt.Errorf("error creating socket pair: %v", err)
 	}
 	defer parentPipe.Close()
+	defer parentStartPipe.Close()
 
 	var args []string
 	if r.cgroupManager == "systemd" {
@@ -163,9 +165,10 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	if c.terminal {
 		cmd.Stderr = &stderrBuf
 	}
-	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
+	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 
 	err = cmd.Start()
 	if err != nil {
@@ -175,6 +178,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 
 	// We don't need childPipe on the parent side
 	childPipe.Close()
+	childStartPipe.Close()
 
 	// Move conmon to specified cgroup
 	if cgroupParent != "" {
@@ -184,6 +188,19 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 				logrus.Warnf("Failed to add conmon to sandbox cgroup: %v", err)
 			}
 		}
+	}
+
+	/* We set the cgroup, now the child can start creating children */
+	someData := []byte{0}
+	_, err = parentStartPipe.Write(someData)
+	if err != nil {
+		return err
+	}
+
+	/* Wait for initial setup and fork, and reap child */
+	err = cmd.Wait()
+	if err != nil {
+		return err
 	}
 
 	// Wait to get container pid from conmon
@@ -207,21 +224,10 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
 		}
 		logrus.Debugf("Received container pid: %d", ss.si.Pid)
-		errorMessage := ""
-		if c.terminal {
-			errorMessage = stderrBuf.String()
-			fmt.Fprintf(os.Stderr, errorMessage)
-			errorMessage = sanitizeConmonErrorMessage(errorMessage)
-		} else {
-			if ss.si.Message != "" {
-				errorMessage = ss.si.Message
-			}
-		}
-
 		if ss.si.Pid == -1 {
-			if errorMessage != "" {
-				logrus.Debugf("Container creation error: %s", errorMessage)
-				return fmt.Errorf("container create failed: %s", errorMessage)
+			if ss.si.Message != "" {
+				logrus.Debugf("Container creation error: %s", ss.si.Message)
+				return fmt.Errorf("container create failed: %s", ss.si.Message)
 			}
 			logrus.Debugf("Container creation failed")
 			return fmt.Errorf("container create failed")
@@ -230,18 +236,6 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 		return fmt.Errorf("create container timeout")
 	}
 	return nil
-}
-
-// sanitizeConmonErrorMessage removes conmon debug messages from error string
-func sanitizeConmonErrorMessage(errString string) string {
-	var sanitizedLines []string
-	lines := strings.Split(errString, "\n")
-	for _, line := range lines {
-		if !strings.HasPrefix(line, "[conmon") {
-			sanitizedLines = append(sanitizedLines, line)
-		}
-	}
-	return strings.Join(sanitizedLines, "\n")
 }
 
 func createUnitName(prefix string, name string) string {
