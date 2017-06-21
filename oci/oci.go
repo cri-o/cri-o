@@ -63,7 +63,8 @@ type syncInfo struct {
 
 // exitCodeInfo is used to return the monitored process exit code to the daemon
 type exitCodeInfo struct {
-	ExitCode int32 `json:"exit_code"`
+	ExitCode int32  `json:"exit_code"`
+	Message  string `json:"message,omitempty"`
 }
 
 // Name returns the name of the OCI Runtime
@@ -370,6 +371,10 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	if c.terminal {
 		args = append(args, "-t")
 	}
+	if timeout > 0 {
+		args = append(args, "-T")
+		args = append(args, fmt.Sprintf("%d", timeout))
+	}
 	args = append(args, "-l", logPath)
 
 	pspec := rspec.Process{
@@ -417,70 +422,23 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	// We don't need childPipe on the parent side
 	childPipe.Close()
 
-	if timeout > 0 {
-		done := make(chan error, 1)
-		go func() {
-			done <- cmd.Wait()
-		}()
-
-		select {
-		case <-time.After(time.Duration(timeout) * time.Second):
-			err = unix.Kill(cmd.Process.Pid, syscall.SIGKILL)
-			if err != nil && err != syscall.ESRCH {
+	err = cmd.Wait()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				return nil, ExecSyncError{
 					Stdout:   stdoutBuf,
 					Stderr:   stderrBuf,
-					ExitCode: -1,
-					Err:      fmt.Errorf("failed to kill process on timeout: %+v", err),
+					ExitCode: int32(status.ExitStatus()),
+					Err:      err,
 				}
 			}
+		} else {
 			return nil, ExecSyncError{
 				Stdout:   stdoutBuf,
 				Stderr:   stderrBuf,
 				ExitCode: -1,
-				Err:      fmt.Errorf("command timed out"),
-			}
-		case err = <-done:
-			if err != nil {
-				if exitErr, ok := err.(*exec.ExitError); ok {
-					if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-						return nil, ExecSyncError{
-							Stdout:   stdoutBuf,
-							Stderr:   stderrBuf,
-							ExitCode: int32(status.ExitStatus()),
-							Err:      err,
-						}
-					}
-				} else {
-					return nil, ExecSyncError{
-						Stdout:   stdoutBuf,
-						Stderr:   stderrBuf,
-						ExitCode: -1,
-						Err:      err,
-					}
-				}
-			}
-
-		}
-	} else {
-		err = cmd.Wait()
-		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-					return nil, ExecSyncError{
-						Stdout:   stdoutBuf,
-						Stderr:   stderrBuf,
-						ExitCode: int32(status.ExitStatus()),
-						Err:      err,
-					}
-				}
-			} else {
-				return nil, ExecSyncError{
-					Stdout:   stdoutBuf,
-					Stderr:   stderrBuf,
-					ExitCode: -1,
-					Err:      err,
-				}
+				Err:      err,
 			}
 		}
 	}
@@ -495,7 +453,16 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}
 
-	logrus.Infof("Received container exit code: %v", ec.ExitCode)
+	logrus.Infof("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
+
+	if ec.ExitCode == -1 {
+		return nil, ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: -1,
+			Err:      fmt.Errorf(ec.Message),
+		}
+	}
 
 	// The actual logged output is not the same as stdoutBuf and stderrBuf,
 	// which are used for getting error information. For the actual

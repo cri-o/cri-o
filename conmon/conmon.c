@@ -105,6 +105,7 @@ static bool systemd_cgroup = false;
 static char *exec_process_spec = NULL;
 static bool exec = false;
 static char *log_path = NULL;
+static int timeout = 0;
 static GOptionEntry entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &terminal, "Terminal", NULL },
@@ -118,6 +119,7 @@ static GOptionEntry entries[] =
   { "exec", 'e', 0, G_OPTION_ARG_NONE, &exec, "Exec a command in a running container", NULL },
   { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &exec_process_spec, "Path to the process spec for exec", NULL },
   { "log-path", 'l', 0, G_OPTION_ARG_STRING, &log_path, "Log file path", NULL },
+  { "timeout", 'T', 0, G_OPTION_ARG_INT, &timeout, "Timeout in seconds", NULL },
   { NULL }
 };
 
@@ -460,6 +462,8 @@ static int cfd = -1;
 /* Used for OOM notification API */
 static int ofd = -1;
 
+static bool timed_out = FALSE;
+
 static GMainLoop *main_loop = NULL;
 
 static void conn_sock_shutdown(int how)
@@ -522,6 +526,14 @@ static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 	}
 
 	close (fd);
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean timeout_cb (G_GNUC_UNUSED gpointer user_data)
+{
+	timed_out = TRUE;
+	ninfo ("Timed out, killing main loop");
+	g_main_loop_quit (main_loop);
 	return G_SOURCE_REMOVE;
 }
 
@@ -720,6 +732,34 @@ runtime_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user
 	g_main_loop_quit (main_loop);
 }
 
+static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
+{
+	_cleanup_free_ char *escaped_message = NULL;
+	_cleanup_free_ char *json = NULL;
+	const char *res_key;
+	ssize_t len;
+
+	if (sync_pipe_fd == -1)
+		return;
+
+	if (exec)
+		res_key = "exit_code";
+	else
+		res_key = "pid";
+
+	if (message) {
+		escaped_message = escape_json_string(message);
+		json = g_strdup_printf ("{\"%s\": %d, \"message\": \"%s\"}\n", res_key, res, escaped_message);
+	} else {
+		json = g_strdup_printf ("{\"%s\": %d}\n", res_key, res);
+	}
+
+	len = strlen(json);
+	if (write_all(sync_pipe_fd, json, len) != len) {
+		pexit("Unable to send container stderr message to parent");
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
@@ -817,30 +857,28 @@ int main(int argc, char *argv[])
 		close(start_pipe_fd);
 	}
 
-	if (!exec) {
-		/* In the create-container case we double-fork in
-		   order to disconnect from the parent, as we want to
-		   continue in a daemon-like way */
-		main_pid = fork();
-		if (main_pid < 0) {
-			pexit("Failed to fork the create command");
-		} else if (main_pid != 0) {
-			exit(0);
-		}
-
-		/* Disconnect stdio from parent. We need to do this, because
-		   the parent is waiting for the stdout to end when the intermediate
-		   child dies */
-		if (dup2(dev_null_r, STDIN_FILENO) < 0)
-			pexit("Failed to dup over stdout");
-		if (dup2(dev_null_w, STDOUT_FILENO) < 0)
-			pexit("Failed to dup over stdout");
-		if (dup2(dev_null_w, STDERR_FILENO) < 0)
-			pexit("Failed to dup over stderr");
-
-		/* Create a new session group */
-		setsid();
+	/* In the create-container case we double-fork in
+	   order to disconnect from the parent, as we want to
+	   continue in a daemon-like way */
+	main_pid = fork();
+	if (main_pid < 0) {
+		pexit("Failed to fork the create command");
+	} else if (main_pid != 0) {
+		exit(0);
 	}
+
+	/* Disconnect stdio from parent. We need to do this, because
+	   the parent is waiting for the stdout to end when the intermediate
+	   child dies */
+	if (dup2(dev_null_r, STDIN_FILENO) < 0)
+		pexit("Failed to dup over stdout");
+	if (dup2(dev_null_w, STDOUT_FILENO) < 0)
+		pexit("Failed to dup over stdout");
+	if (dup2(dev_null_w, STDERR_FILENO) < 0)
+		pexit("Failed to dup over stderr");
+
+	/* Create a new session group */
+	setsid();
 
 	/* Environment variables */
 	sync_pipe = getenv("_OCI_SYNCPIPE");
@@ -1025,23 +1063,15 @@ int main(int argc, char *argv[])
 	}
 
 	if (!WIFEXITED(runtime_status) || WEXITSTATUS(runtime_status) != 0) {
-		if (sync_pipe_fd > 0 && !exec) {
+		if (sync_pipe_fd > 0) {
 			/*
 			 * Read from container stderr for any error and send it to parent
 			 * We send -1 as pid to signal to parent that create container has failed.
 			 */
 			num_read = read(masterfd_stderr, buf, BUF_SIZE);
 			if (num_read > 0) {
-				_cleanup_free_ char *escaped_message = NULL;
-				ssize_t len;
-
 				buf[num_read] = '\0';
-				escaped_message = escape_json_string(buf);
-
-				len = snprintf(buf, BUF_SIZE, "{\"pid\": %d, \"message\": \"%s\"}\n", -1, escaped_message);
-				if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
-					ninfo("Unable to send container stderr message to parent");
-				}
+				write_sync_fd(sync_pipe_fd, -1, buf);
 			}
 		}
 		nexit("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
@@ -1062,7 +1092,7 @@ int main(int argc, char *argv[])
 	ninfo("container PID: %d", cpid);
 
 	/* Setup endpoint for attach */
-	char attach_symlink_dir_path[PATH_MAX];
+	char attach_symlink_dir_path[PATH_MAX] = { 0 };
 	struct sockaddr_un attach_addr = {0};
 
 	if (!exec) {
@@ -1130,11 +1160,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* Send the container pid back to parent */
-	if (sync_pipe_fd > 0 && !exec) {
-		len = snprintf(buf, BUF_SIZE, "{\"pid\": %d}\n", cpid);
-		if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
-			pexit("unable to send container pid to parent");
-		}
+	if (!exec) {
+		write_sync_fd(sync_pipe_fd, cpid, NULL);
 	}
 
 	/* Setup OOM notification for container process */
@@ -1188,61 +1215,57 @@ int main(int argc, char *argv[])
 		g_unix_fd_add (ctlfd, G_IO_IN, ctrl_cb, NULL);
 	}
 
+	if (timeout > 0) {
+		g_timeout_add_seconds (timeout, timeout_cb, NULL);
+	}
 	g_main_loop_run (main_loop);
 
-	/* Wait for the container process and record its exit code */
-	while ((pid = waitpid(-1, &status, 0)) > 0) {
-		int exit_status = WEXITSTATUS(status);
+	int exit_status = -1;
+	const char *exit_message = NULL;
 
-		printf("PID %d exited with status %d\n", pid, exit_status);
-		if (pid == cpid) {
-			if (!exec) {
-				_cleanup_free_ char *status_str = NULL;
-				ret = asprintf(&status_str, "%d", exit_status);
-				if (ret < 0) {
-					pexit("Failed to allocate memory for status");
-				}
-				g_file_set_contents("exit", status_str,
-						    strlen(status_str), &err);
-				if (err) {
-					fprintf(stderr,
-						"Failed to write %s to exit file: %s\n",
-						status_str, err->message);
-					g_error_free(err);
-					exit(1);
-				}
-			} else {
-				/* Send the command exec exit code back to the parent */
-				if (sync_pipe_fd > 0) {
-					len = snprintf(buf, BUF_SIZE, "{\"exit_code\": %d}\n", exit_status);
-					if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
-						pexit("unable to send exit status");
-						exit(1);
-					}
-				}
+	if (timed_out) {
+		kill(cpid, SIGKILL);
+		exit_message = "command timed out";
+	} else {
+		/* Wait for the container process and record its exit code */
+		while ((pid = waitpid(-1, &status, 0)) > 0) {
+			int child_exit_status = WEXITSTATUS(status);
+
+			printf("PID %d exited with status %d\n", pid, child_exit_status);
+			if (pid == cpid) {
+				exit_status = child_exit_status;
+				break;
 			}
-			break;
 		}
-	}
-
-	if (exec && pid < 0 && errno == ECHILD && sync_pipe_fd > 0) {
-		/*
-		 * waitpid failed and set errno to ECHILD:
-		 * The runtime exec call did not create any child
-		 * process and we can send the system() exit code
-		 * to the parent.
-		 */
-		len = snprintf(buf, BUF_SIZE, "{\"exit_code\": %d}\n", WEXITSTATUS(runtime_status));
-		if (len < 0 || write_all(sync_pipe_fd, buf, len) != len) {
-			pexit("unable to send exit status");
-			exit(1);
+		if (pid == -1) {
+			exit_message = "runtime didn't create a child";
 		}
 	}
 
 	if (!exec) {
-		if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
-			pexit("Failed to remove symlink for attach socket directory");
+		_cleanup_free_ char *status_str = NULL;
+		ret = asprintf(&status_str, "%d", exit_status);
+		if (ret < 0) {
+			pexit("Failed to allocate memory for status");
 		}
+		g_file_set_contents("exit", status_str,
+				    strlen(status_str), &err);
+		if (err) {
+			fprintf(stderr,
+				"Failed to write %s to exit file: %s\n",
+				status_str, err->message);
+			g_error_free(err);
+			exit(1);
+		}
+
+	} else {
+		/* Send the command exec exit code back to the parent */
+		write_sync_fd(sync_pipe_fd, exit_status, exit_message);
+	}
+
+	if (attach_symlink_dir_path[0] != 0 &&
+	    unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
+		pexit("Failed to remove symlink for attach socket directory");
 	}
 
 	return EXIT_SUCCESS;
