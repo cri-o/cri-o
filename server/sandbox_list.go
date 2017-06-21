@@ -6,6 +6,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/server/sandbox"
+	"github.com/kubernetes-incubator/cri-o/server/state"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -47,8 +48,11 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	if filter != nil {
 		if filter.Id != "" {
 			sb, err := s.state.LookupSandboxByID(filter.Id)
-			// TODO if we return something other than a No Such Sandbox should we throw an error instead?
 			if err != nil {
+				if !state.IsCtrNotExist(err) {
+					return nil, err
+				}
+
 				podList = []*sandbox.Sandbox{}
 			} else {
 				podList = []*sandbox.Sandbox{sb}

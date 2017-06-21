@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/state"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -38,23 +39,31 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		if filter.Id != "" {
 			c, err := s.state.LookupContainerByID(filter.Id)
 			if err != nil {
-				return nil, err
-			}
-			if filter.PodSandboxId != "" {
-				if c.Sandbox() == filter.PodSandboxId {
-					ctrList = []*oci.Container{c}
-				} else {
-					ctrList = []*oci.Container{}
+				if !state.IsCtrNotExist(err) {
+					return nil, err
 				}
 
+				ctrList = []*oci.Container{}
 			} else {
-				ctrList = []*oci.Container{c}
+				if filter.PodSandboxId != "" {
+					if c.Sandbox() == filter.PodSandboxId {
+						ctrList = []*oci.Container{c}
+					} else {
+						ctrList = []*oci.Container{}
+					}
+
+				} else {
+					ctrList = []*oci.Container{c}
+				}
 			}
 		} else {
 			if filter.PodSandboxId != "" {
 				pod, err := s.state.GetSandbox(filter.PodSandboxId)
-				// TODO check if this is a pod not found error, if not we should error out here
 				if err != nil {
+					if !state.IsSandboxNotExist(err) {
+						return nil, err
+					}
+
 					ctrList = []*oci.Container{}
 				} else {
 					ctrList = pod.Containers()

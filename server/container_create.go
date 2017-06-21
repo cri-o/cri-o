@@ -239,7 +239,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	sb, err := s.state.LookupSandboxByID(sbID)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving PodSandbox with ID starting with %s: %v", sbID, err)
+		return nil, err
 	}
 
 	// The config of the container
@@ -506,7 +506,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	if sb.ResolvPath() != "" {
 		// bind mount the pod resolver file
-		specgen.AddBindMount(sb.ResolvPath(), "/etc/resolv.conf", []string{"ro"})
+		specgen.AddBindMount(sb.ResolvPath(), "/etc/resolv.conf", options)
 	}
 
 	// Bind mount /etc/hosts for host networking containers

@@ -287,6 +287,7 @@ func (s *Sandbox) Hostname() string {
 	return s.hostname
 }
 
+// PortMappings gets the sandbox's host port mappings
 func (s *Sandbox) PortMappings() []*hostport.PortMapping {
 	return s.portMappings
 }

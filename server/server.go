@@ -614,7 +614,7 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 
 	sb, err := s.state.LookupSandboxByID(podSandboxID)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve pod sandbox with ID starting with %v: %v", podSandboxID, err)
+		return nil, err
 	}
 
 	return sb, nil
