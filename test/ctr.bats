@@ -770,3 +770,47 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "ctr create with non-existent command" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	newconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["nonexistent"]; json.dump(obj, sys.stdout)')
+	echo "$newconfig" > "$TESTDIR"/container_nonexistent.json
+	run crioctl ctr create --config "$TESTDIR"/container_nonexistent.json --pod "$pod_id"
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "executable file not found" ]]
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr create with non-existent command [tty]" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	newconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["nonexistent"]; obj["tty"] = True; json.dump(obj, sys.stdout)')
+	echo "$newconfig" > "$TESTDIR"/container_nonexistent.json
+	run crioctl ctr create --config "$TESTDIR"/container_nonexistent.json --pod "$pod_id"
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "executable file not found" ]]
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
