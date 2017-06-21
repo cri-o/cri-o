@@ -18,7 +18,7 @@ import (
 type InMemoryState struct {
 	lock         sync.Mutex
 	sandboxes    map[string]*sandbox.Sandbox
-	containers   oci.ContainerStorer
+	containers   map[string]*oci.Container
 	podNameIndex *registrar.Registrar
 	podIDIndex   *truncindex.TruncIndex
 	ctrNameIndex *registrar.Registrar
@@ -29,7 +29,7 @@ type InMemoryState struct {
 func NewInMemoryState() RuntimeStateStorer {
 	state := new(InMemoryState)
 	state.sandboxes = make(map[string]*sandbox.Sandbox)
-	state.containers = oci.NewMemoryStore()
+	state.containers = make(map[string]*oci.Container)
 	state.podNameIndex = registrar.NewRegistrar()
 	state.podIDIndex = truncindex.NewTruncIndex([]string{})
 	state.ctrNameIndex = registrar.NewRegistrar()
@@ -53,7 +53,7 @@ func (s *InMemoryState) AddSandbox(sandbox *sandbox.Sandbox) (err error) {
 
 	// We shouldn't share ID with any containers
 	// Our pod infra container will share our ID and we don't want it to conflict with anything
-	if ctrCheck := s.containers.Get(sandbox.ID()); ctrCheck != nil {
+	if _, exist := s.containers[sandbox.ID()]; exist {
 		return fmt.Errorf("requested sandbox ID %v conflicts with existing container ID", sandbox.ID())
 	}
 
@@ -284,8 +284,10 @@ func (s *InMemoryState) AddContainer(c *oci.Container) error {
 
 // Add container ID, Name and Sandbox mappings
 func (s *InMemoryState) addContainerMappings(c *oci.Container, addToContainers bool) error {
-	if addToContainers && s.containers.Get(c.ID()) != nil {
-		return fmt.Errorf("container with ID %v already exists in containers store", c.ID())
+	if addToContainers {
+		if _, exist := s.containers[c.ID()]; exist {
+			return fmt.Errorf("container with ID %v already exists in containers store", c.ID())
+		}
 	}
 
 	// TODO: if not a pod infra container, check if it conflicts with existing sandbox ID?
@@ -301,7 +303,7 @@ func (s *InMemoryState) addContainerMappings(c *oci.Container, addToContainers b
 	}
 
 	if addToContainers {
-		s.containers.Add(c.ID(), c)
+		s.containers[c.ID()] = c
 	}
 
 	return nil
@@ -348,8 +350,10 @@ func (s *InMemoryState) DeleteContainer(id, sandboxID string) error {
 
 // Deletes container from the ID and Name mappings and optionally from the global containers list
 func (s *InMemoryState) deleteContainerMappings(ctr *oci.Container, deleteFromContainers bool) error {
-	if deleteFromContainers && s.containers.Get(ctr.ID()) == nil {
-		return fmt.Errorf("container ID %v does not exist in containers store", ctr.ID())
+	if deleteFromContainers {
+		if _, exist := s.containers[ctr.ID()]; !exist {
+			return fmt.Errorf("container ID %v does not exist in containers store", ctr.ID())
+		}
 	}
 
 	if err := s.ctrIDIndex.Delete(ctr.ID()); err != nil {
@@ -359,7 +363,7 @@ func (s *InMemoryState) deleteContainerMappings(ctr *oci.Container, deleteFromCo
 	s.ctrNameIndex.Release(ctr.Name())
 
 	if deleteFromContainers {
-		s.containers.Delete(ctr.ID())
+		delete(s.containers, ctr.ID())
 	}
 
 	return nil
@@ -379,8 +383,8 @@ func (s *InMemoryState) GetContainerSandbox(id string) (string, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	ctr := s.containers.Get(id)
-	if ctr == nil {
+	ctr, exist := s.containers[id]
+	if !exist {
 		return "", errNoSuchContainer(id)
 	}
 
@@ -417,14 +421,22 @@ func (s *InMemoryState) LookupContainerByID(id string) (*oci.Container, error) {
 // GetAllContainers returns all containers in the state, regardless of which sandbox they belong to
 // Pod Infra containers are not included
 func (s *InMemoryState) GetAllContainers() ([]*oci.Container, error) {
-	return s.containers.List(), nil
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	containers := make([]*oci.Container, 0, len(s.containers))
+	for _, ctr := range s.containers {
+		containers = append(containers, ctr)
+	}
+
+	return containers, nil
 }
 
 // Returns a single container from any sandbox based on full ID
 // TODO: is it worth making this public as an alternative to GetContainer
 func (s *InMemoryState) getContainer(id string) (*oci.Container, error) {
-	ctr := s.containers.Get(id)
-	if ctr == nil {
+	ctr, exist := s.containers[id]
+	if !exist {
 		return nil, errNoSuchContainer(id)
 	}
 
