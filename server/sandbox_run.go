@@ -101,7 +101,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	namespace := req.GetConfig().GetMetadata().Namespace
 	attempt := req.GetConfig().GetMetadata().Attempt
 
-	id, name, err := s.generatePodIDandName(kubeName, namespace, attempt)
+	id, name, err := s.generatePodIDandName(req.GetConfig())
 	if err != nil {
 		if strings.Contains(err.Error(), "already reserved for pod") {
 			matches := conflictRE.FindStringSubmatch(err.Error())
@@ -115,7 +115,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			if _, err := s.RemovePodSandbox(ctx, &pb.RemovePodSandboxRequest{PodSandboxId: dupID}); err != nil {
 				return nil, err
 			}
-			id, name, err = s.generatePodIDandName(kubeName, namespace, attempt)
+			id, name, err = s.generatePodIDandName(req.GetConfig())
 			if err != nil {
 				return nil, err
 			}
@@ -130,7 +130,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	_, containerName, err := s.generateContainerIDandName(name, "infra", attempt)
+	_, containerName, err := s.generateContainerIDandNameForSandbox(req.GetConfig())
 	if err != nil {
 		return nil, err
 	}
