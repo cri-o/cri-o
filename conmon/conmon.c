@@ -352,14 +352,7 @@ next:
  * Returns NULL on error.
  */
 static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
-	_cleanup_free_ char *cgroups_file_path = NULL;
-	int rc;
-	rc = asprintf(&cgroups_file_path, "/proc/%d/cgroup", pid);
-	if (rc < 0) {
-		nwarn("Failed to allocate memory for cgroups file path");
-		return NULL;
-	}
-
+	_cleanup_free_ char *cgroups_file_path = g_strdup_printf("/proc/%d/cgroup", pid);
 	_cleanup_fclose_ FILE *fp = NULL;
 	fp = fopen(cgroups_file_path, "re");
 	if (fp == NULL) {
@@ -398,12 +391,7 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 					*subpath = 0;
 				}
 
-				rc = asprintf(&subsystem_path, "%s/%s%s", CGROUP_ROOT, subpath, path);
-				if (rc < 0) {
-					nwarn("Failed to allocate memory for subsystemd path");
-					return NULL;
-				}
-
+				subsystem_path = g_strdup_printf("%s/%s%s", CGROUP_ROOT, subpath, path);
 				subsystem_path[strlen(subsystem_path) - 1] = '\0';
 				return subsystem_path;
 			}
@@ -800,11 +788,11 @@ int main(int argc, char *argv[])
 {
 	int ret;
 	char cwd[PATH_MAX];
-	char default_pid_file[PATH_MAX];
-	char attach_sock_path[PATH_MAX];
-	char ctl_fifo_path[PATH_MAX];
+	_cleanup_free_ char *default_pid_file = NULL;
+	_cleanup_free_ char *attach_sock_path = NULL;
+	_cleanup_free_ char *ctl_fifo_path = NULL;
 	GError *err = NULL;
-	_cleanup_free_ char *contents;
+	_cleanup_free_ char *contents = NULL;
 	int cpid = -1;
 	int status;
 	pid_t pid, main_pid, create_pid;
@@ -867,10 +855,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (opt_pid_file == NULL) {
-		if (snprintf(default_pid_file, sizeof(default_pid_file),
-			     "%s/pidfile-%s", cwd, opt_cid) < 0) {
-			nexit("Failed to generate the pidfile path");
-		}
+		default_pid_file = g_strdup_printf ("%s/pidfile-%s", cwd, opt_cid);
 		opt_pid_file = default_pid_file;
 	}
 
@@ -1119,7 +1104,7 @@ int main(int argc, char *argv[])
 	ninfo("container PID: %d", cpid);
 
 	/* Setup endpoint for attach */
-	char attach_symlink_dir_path[PATH_MAX] = { 0 };
+	_cleanup_free_ char *attach_symlink_dir_path = NULL;
 	struct sockaddr_un attach_addr = {0};
 
 	if (!opt_exec) {
@@ -1129,14 +1114,14 @@ int main(int argc, char *argv[])
 		 * Create a symlink so we don't exceed unix domain socket
 		 * path length limit.
 		 */
-		snprintf(attach_symlink_dir_path, PATH_MAX, "/var/run/crio/%s", opt_cuuid);
+		attach_symlink_dir_path = g_build_filename("/var/run/crio", opt_cuuid, NULL);
 		if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
 			pexit("Failed to remove existing symlink for attach socket directory");
 		}
 		if (symlink(opt_bundle_path, attach_symlink_dir_path) == -1)
 			pexit("Failed to create symlink for attach socket");
 
-		snprintf(attach_sock_path, PATH_MAX, "/var/run/crio/%s/attach", opt_cuuid);
+		attach_sock_path = g_build_filename("/var/run/crio", opt_cuuid, "attach", NULL);
 		ninfo("attach sock path: %s", attach_sock_path);
 
 		strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
@@ -1165,7 +1150,7 @@ int main(int argc, char *argv[])
 	_cleanup_close_ int ctlfd = -1;
 	_cleanup_close_ int dummyfd = -1;
 	if (!opt_exec) {
-		snprintf(ctl_fifo_path, PATH_MAX, "%s/ctl", opt_bundle_path);
+		ctl_fifo_path = g_build_filename(opt_bundle_path, "ctl", NULL);
 		ninfo("ctl fifo path: %s", ctl_fifo_path);
 
 		if (mkfifo(ctl_fifo_path, 0666) == -1)
@@ -1198,17 +1183,16 @@ int main(int argc, char *argv[])
 	}
 
 	bool oom_handling_enabled = true;
-	char memory_cgroup_file_path[PATH_MAX];
-	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/cgroup.event_control", memory_cgroup_path);
+	_cleanup_free_ char *memory_cgroup_file_path = g_build_filename(memory_cgroup_path, "cgroup.event_control", NULL);
 	if ((cfd = open(memory_cgroup_file_path, O_WRONLY | O_CLOEXEC)) == -1) {
 		nwarn("Failed to open %s", memory_cgroup_file_path);
 		oom_handling_enabled = false;
 	}
 
 	if (oom_handling_enabled) {
-		snprintf(memory_cgroup_file_path, PATH_MAX, "%s/memory.oom_control", memory_cgroup_path);
-		if ((ofd = open(memory_cgroup_file_path, O_RDONLY | O_CLOEXEC)) == -1)
-			pexit("Failed to open %s", memory_cgroup_file_path);
+		_cleanup_free_ char *memory_cgroup_file_oom_path = g_build_filename(memory_cgroup_path, "memory.oom_control", NULL);
+		if ((ofd = open(memory_cgroup_file_oom_path, O_RDONLY | O_CLOEXEC)) == -1)
+			pexit("Failed to open %s", memory_cgroup_file_oom_path);
 
 		if ((oom_efd = eventfd(0, EFD_CLOEXEC)) == -1)
 			pexit("Failed to create eventfd");
@@ -1270,27 +1254,16 @@ int main(int argc, char *argv[])
 	}
 
 	if (!opt_exec) {
-		_cleanup_free_ char *status_str = NULL;
-		ret = asprintf(&status_str, "%d", exit_status);
-		if (ret < 0) {
-			pexit("Failed to allocate memory for status");
-		}
-		g_file_set_contents("exit", status_str,
-				    strlen(status_str), &err);
-		if (err) {
-			fprintf(stderr,
-				"Failed to write %s to exit file: %s\n",
-				status_str, err->message);
-			g_error_free(err);
-			exit(1);
-		}
-
+		_cleanup_free_ char *status_str = g_strdup_printf("%d", exit_status);
+		if (!g_file_set_contents("exit", status_str, -1, &err))
+			nexit("Failed to write %s to exit file: %s\n",
+			      status_str, err->message);
 	} else {
 		/* Send the command exec exit code back to the parent */
 		write_sync_fd(sync_pipe_fd, exit_status, exit_message);
 	}
 
-	if (attach_symlink_dir_path[0] != 0 &&
+	if (attach_symlink_dir_path != NULL &&
 	    unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
 		pexit("Failed to remove symlink for attach socket directory");
 	}
