@@ -808,7 +808,6 @@ int main(int argc, char *argv[])
 	int cpid = -1;
 	int status;
 	pid_t pid, main_pid, create_pid;
-	_cleanup_close_ int epfd = -1;
 	_cleanup_close_ int csfd = -1;
 	/* Used for !terminal cases. */
 	int slavefd_stdin = -1;
@@ -819,7 +818,6 @@ int main(int argc, char *argv[])
 	int num_read;
 	int sync_pipe_fd = -1;
 	int start_pipe_fd = -1;
-	int len;
 	GError *error = NULL;
 	GOptionContext *context;
         GPtrArray *runtime_argv = NULL;
