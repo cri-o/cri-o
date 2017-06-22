@@ -131,8 +131,13 @@ func (v *Validator) CheckRootfsPath() (msgs []string) {
 		msgs = append(msgs, fmt.Sprintf("root.path is %q, but it MUST be a child of %q", v.spec.Root.Path, absBundlePath))
 	}
 
-	return
+	if v.spec.Platform.OS == "windows" {
+		if v.spec.Root.Readonly {
+			msgs = append(msgs, "root.readonly field MUST be omitted or false when platform.os is windows")
+		}
+	}
 
+	return
 }
 
 // CheckSemVer checks v.spec.Version

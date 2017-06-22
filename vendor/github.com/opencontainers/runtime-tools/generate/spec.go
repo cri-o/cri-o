@@ -17,6 +17,13 @@ func (g *Generator) initSpecAnnotations() {
 	}
 }
 
+func (g *Generator) initSpecHooks() {
+	g.initSpec()
+	if g.spec.Hooks == nil {
+		g.spec.Hooks = &rspec.Hooks{}
+	}
+}
+
 func (g *Generator) initSpecLinux() {
 	g.initSpec()
 	if g.spec.Linux == nil {
