@@ -486,6 +486,7 @@ static int cfd = -1;
 /* Used for OOM notification API */
 static int ofd = -1;
 static int csfd = -1;
+static int ctlfd = -1;
 
 static bool timed_out = FALSE;
 
@@ -866,12 +867,36 @@ static char *setup_attach_socket(void)
 	return attach_symlink_dir_path;
 }
 
+static void setup_terminal_control_fifo()
+{
+	_cleanup_free_ char *ctl_fifo_path = g_build_filename(opt_bundle_path, "ctl", NULL);
+	ninfo("ctl fifo path: %s", ctl_fifo_path);
+
+	/* Setup fifo for reading in terminal resize and other stdio control messages */
+
+	if (mkfifo(ctl_fifo_path, 0666) == -1)
+		pexit("Failed to mkfifo at %s", ctl_fifo_path);
+
+	ctlfd = open(ctl_fifo_path, O_RDONLY|O_NONBLOCK|O_CLOEXEC);
+	if (ctlfd == -1)
+		pexit("Failed to open control fifo");
+
+	/*
+	 * Open a dummy writer to prevent getting flood of POLLHUPs when
+	 * last writer closes.
+	 */
+	int dummyfd = open(ctl_fifo_path, O_WRONLY|O_CLOEXEC);
+	if (dummyfd == -1)
+		pexit("Failed to open dummy writer for fifo");
+
+	ninfo("ctlfd: %d", ctlfd);
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
 	char cwd[PATH_MAX];
 	_cleanup_free_ char *default_pid_file = NULL;
-	_cleanup_free_ char *ctl_fifo_path = NULL;
 	_cleanup_free_ char *csname = NULL;
 	GError *err = NULL;
 	_cleanup_free_ char *contents = NULL;
@@ -1160,29 +1185,8 @@ int main(int argc, char *argv[])
 		attach_symlink_dir_path = setup_attach_socket();
 	}
 
-	/* Setup fifo for reading in terminal resize and other stdio control messages */
-	_cleanup_close_ int ctlfd = -1;
-	_cleanup_close_ int dummyfd = -1;
 	if (!opt_exec) {
-		ctl_fifo_path = g_build_filename(opt_bundle_path, "ctl", NULL);
-		ninfo("ctl fifo path: %s", ctl_fifo_path);
-
-		if (mkfifo(ctl_fifo_path, 0666) == -1)
-			pexit("Failed to mkfifo at %s", ctl_fifo_path);
-
-		ctlfd = open(ctl_fifo_path, O_RDONLY|O_NONBLOCK|O_CLOEXEC);
-		if (ctlfd == -1)
-			pexit("Failed to open control fifo");
-
-		/*
-		 * Open a dummy writer to prevent getting flood of POLLHUPs when
-		 * last writer closes.
-		 */
-		dummyfd = open(ctl_fifo_path, O_WRONLY|O_CLOEXEC);
-		if (dummyfd == -1)
-			pexit("Failed to open dummy writer for fifo");
-
-		ninfo("ctlfd: %d", ctlfd);
+		setup_terminal_control_fifo();
 	}
 
 	/* Send the container pid back to parent */
