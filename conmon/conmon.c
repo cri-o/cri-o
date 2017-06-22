@@ -861,6 +861,8 @@ static char *setup_attach_socket(void)
 	if (listen(attach_socket_fd, 10) == -1)
 		pexit("Failed to listen on attach socket: %s", attach_sock_path);
 
+	g_unix_fd_add (attach_socket_fd, G_IO_IN, attach_cb, NULL);
+
 	return attach_symlink_dir_path;
 }
 
@@ -885,6 +887,8 @@ static void setup_terminal_control_fifo()
 	int dummyfd = open(ctl_fifo_path, O_WRONLY|O_CLOEXEC);
 	if (dummyfd == -1)
 		pexit("Failed to open dummy writer for fifo");
+
+	g_unix_fd_add (terminal_ctrl_fd, G_IO_IN, ctrl_cb, NULL);
 
 	ninfo("terminal_ctrl_fd: %d", terminal_ctrl_fd);
 }
@@ -916,6 +920,8 @@ static void setup_oom_handling(int cpid)
 	_cleanup_free_ char *data = g_strdup_printf("%d %d", oom_event_fd, ofd);
 	if (write_all(cfd, data, strlen(data)) < 0)
 		pexit("Failed to write to cgroup.event_control");
+
+	g_unix_fd_add (oom_event_fd, G_IO_IN, oom_cb, NULL);
 }
 
 int main(int argc, char *argv[])
@@ -1226,21 +1232,6 @@ int main(int argc, char *argv[])
 	if (masterfd_stderr >= 0) {
 		g_unix_fd_add (masterfd_stderr, G_IO_IN, stdio_cb, GINT_TO_POINTER(STDERR_PIPE));
 		num_stdio_fds++;
-	}
-
-	/* Add the OOM event fd to epoll */
-	if (oom_event_fd >= 0) {
-		g_unix_fd_add (oom_event_fd, G_IO_IN, oom_cb, NULL);
-	}
-
-	/* Add the attach socket to epoll */
-	if (attach_socket_fd > 0) {
-		g_unix_fd_add (attach_socket_fd, G_IO_IN, attach_cb, NULL);
-	}
-
-	/* Add control fifo fd to epoll */
-	if (terminal_ctrl_fd > 0) {
-		g_unix_fd_add (terminal_ctrl_fd, G_IO_IN, ctrl_cb, NULL);
 	}
 
 	if (opt_timeout > 0) {
