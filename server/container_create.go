@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
@@ -258,8 +257,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
 
-	attempt := containerConfig.GetMetadata().Attempt
-	containerID, containerName, err := s.generateContainerIDandName(sb.name, name, attempt)
+	containerID, containerName, err := s.generateContainerIDandName(sb.metadata, containerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -718,21 +716,6 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnot
 	// TODO(runcom): setup from provided node's seccomp profile
 	// can't do this yet, see https://issues.k8s.io/36997
 	return nil
-}
-
-func (s *Server) generateContainerIDandName(podName string, name string, attempt uint32) (string, string, error) {
-	var (
-		err error
-		id  = stringid.GenerateNonCryptoID()
-	)
-	nameStr := fmt.Sprintf("%s-%s-%v", podName, name, attempt)
-	if name == "infra" {
-		nameStr = fmt.Sprintf("%s-%s", podName, name)
-	}
-	if name, err = s.reserveContainerName(id, nameStr); err != nil {
-		return "", "", err
-	}
-	return id, name, err
 }
 
 // getAppArmorProfileName gets the profile name for the given container.

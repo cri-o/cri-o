@@ -11,7 +11,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/sys/unix"
@@ -262,21 +261,6 @@ func (s *sandbox) netNsRemove() error {
 
 	s.netns.closed = true
 	return nil
-}
-
-func (s *Server) generatePodIDandName(name string, namespace string, attempt uint32) (string, string, error) {
-	var (
-		err error
-		id  = stringid.GenerateNonCryptoID()
-	)
-	if namespace == "" {
-		return "", "", fmt.Errorf("cannot generate pod ID without namespace")
-	}
-
-	if name, err = s.reservePodName(id, fmt.Sprintf("%s-%s-%v", namespace, name, attempt)); err != nil {
-		return "", "", err
-	}
-	return id, name, err
 }
 
 func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox, error) {

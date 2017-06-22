@@ -21,7 +21,7 @@ function teardown() {
 
 	start_crio "$TESTDIR"/seccomp_profile1.json
 
-	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.crio-seccomp1-1-testname-0": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
+	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/k8s_testname_seccomp_1_redhat\.test\.crio_redhat-test-crio_0": "unconfined"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp1.json
 	run crioctl pod run --name seccomp1 --config "$TESTDIR"/seccomp1.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -57,7 +57,7 @@ function teardown() {
 
 	start_crio "$TESTDIR"/seccomp_profile1.json
 
-	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.crio-seccomp2-1-testname2-0": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
+	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/k8s_testname2_seccomp2_redhat\.test\.crio_redhat-test-crio_0": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp2.json
 	run crioctl pod run --name seccomp2 --config "$TESTDIR"/seccomp2.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -94,7 +94,7 @@ function teardown() {
 
 	start_crio "$TESTDIR"/seccomp_profile1.json
 
-	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/redhat\.test\.crio-seccomp3-1-testname3-1": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
+	sed -e 's/%VALUE%/,"security\.alpha\.kubernetes\.io\/seccomp\/container\/k8s_testname3_seccomp3_redhat\.test\.crio_redhat-test-crio_1": "notgood"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/seccomp3.json
 	run crioctl pod run --name seccomp3 --config "$TESTDIR"/seccomp3.json
 	echo "$output"
 	[ "$status" -eq 0 ]
