@@ -459,6 +459,24 @@ static int get_pipe_fd_from_env(const char *envname)
 	return pipe_fd;
 }
 
+static void add_argv(GPtrArray *argv_array, ...)  G_GNUC_NULL_TERMINATED;
+
+static void add_argv(GPtrArray *argv_array, ...)
+{
+	va_list args;
+	char *arg;
+
+	va_start (args, argv_array);
+	while ((arg = va_arg (args, char *)))
+		g_ptr_array_add (argv_array, arg);
+	va_end (args);
+}
+
+static void end_argv(GPtrArray *argv_array)
+{
+	g_ptr_array_add(argv_array, NULL);
+}
+
 /* Global state */
 
 static int runtime_status = -1;
@@ -977,39 +995,45 @@ int main(int argc, char *argv[])
 	slavefd_stderr = fds[1];
 
 	runtime_argv = g_ptr_array_new();
-	g_ptr_array_add(runtime_argv, opt_runtime_path);
+	add_argv(runtime_argv,
+		 opt_runtime_path,
+		 NULL);
 
 	/* Generate the cmdline. */
 	if (!opt_exec && opt_systemd_cgroup)
-		g_ptr_array_add(runtime_argv, "--systemd-cgroup");
+		add_argv(runtime_argv,
+			 "--systemd-cgroup",
+			 NULL);
 
 	if (opt_exec) {
-		g_ptr_array_add (runtime_argv, "exec");
-		g_ptr_array_add (runtime_argv, "-d");
-		g_ptr_array_add (runtime_argv, "--pid-file");
-		g_ptr_array_add (runtime_argv, opt_pid_file);
+		add_argv(runtime_argv,
+			 "exec", "-d",
+			 "--pid-file", opt_pid_file,
+			 NULL);
         } else {
-		g_ptr_array_add (runtime_argv, "create");
-		g_ptr_array_add (runtime_argv, "--bundle");
-		g_ptr_array_add (runtime_argv, opt_bundle_path);
-		g_ptr_array_add (runtime_argv, "--pid-file");
-		g_ptr_array_add (runtime_argv, opt_pid_file);
+		add_argv(runtime_argv,
+			 "create",
+			 "--bundle", opt_bundle_path,
+			 "--pid-file", opt_pid_file,
+			 NULL);
 	}
 
 	if (opt_terminal) {
-		g_ptr_array_add(runtime_argv, "--console-socket");
-		g_ptr_array_add(runtime_argv, csname);
+		add_argv(runtime_argv,
+			 "--console-socket", csname,
+			 NULL);
 	}
 
 	/* Set the exec arguments. */
 	if (opt_exec) {
-		g_ptr_array_add(runtime_argv, "--process");
-		g_ptr_array_add(runtime_argv, opt_exec_process_spec);
+		add_argv(runtime_argv,
+			 "--process", opt_exec_process_spec,
+			 NULL);
 	}
 
 	/* Container name comes last. */
-	g_ptr_array_add(runtime_argv, opt_cid);
-	g_ptr_array_add(runtime_argv, NULL);
+	add_argv(runtime_argv, opt_cid, NULL);
+	end_argv(runtime_argv);
 
 	/*
 	 * We have to fork here because the current runC API dups the stdio of the
