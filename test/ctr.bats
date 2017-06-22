@@ -614,12 +614,15 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"$(printf "Stdout:\nhello0 stdout")"* ]]
 
-	stderrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "runcom/stderr-test"; json.dump(obj, sys.stdout)')
+	stderrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "runcom/stderr-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
 	echo "$stderrconfig" > "$TESTDIR"/container_config_stderr.json
 	run crioctl ctr create --config "$TESTDIR"/container_config_stderr.json --pod "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crioctl ctr execsync --id "$ctr_id" stderr
 	echo "$output"
 	[ "$status" -eq 0 ]
