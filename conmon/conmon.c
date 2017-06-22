@@ -94,32 +94,32 @@ static inline void strv_cleanup(char ***strv)
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
 
-static bool terminal = false;
+static bool opt_terminal = false;
 static bool opt_stdin = false;
-static char *cid = NULL;
-static char *cuuid = NULL;
-static char *runtime_path = NULL;
-static char *bundle_path = NULL;
-static char *pid_file = NULL;
-static bool systemd_cgroup = false;
-static char *exec_process_spec = NULL;
-static bool exec = false;
-static char *log_path = NULL;
-static int timeout = 0;
-static GOptionEntry entries[] =
+static char *opt_cid = NULL;
+static char *opt_cuuid = NULL;
+static char *opt_runtime_path = NULL;
+static char *opt_bundle_path = NULL;
+static char *opt_pid_file = NULL;
+static bool opt_systemd_cgroup = false;
+static char *opt_exec_process_spec = NULL;
+static bool opt_exec = false;
+static char *opt_log_path = NULL;
+static int opt_timeout = 0;
+static GOptionEntry opt_entries[] =
 {
-  { "terminal", 't', 0, G_OPTION_ARG_NONE, &terminal, "Terminal", NULL },
+  { "terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL },
   { "stdin", 'i', 0, G_OPTION_ARG_NONE, &opt_stdin, "Stdin", NULL },
-  { "cid", 'c', 0, G_OPTION_ARG_STRING, &cid, "Container ID", NULL },
-  { "cuuid", 'u', 0, G_OPTION_ARG_STRING, &cuuid, "Container UUID", NULL },
-  { "runtime", 'r', 0, G_OPTION_ARG_STRING, &runtime_path, "Runtime path", NULL },
-  { "bundle", 'b', 0, G_OPTION_ARG_STRING, &bundle_path, "Bundle path", NULL },
-  { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &pid_file, "PID file", NULL },
-  { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &systemd_cgroup, "Enable systemd cgroup manager", NULL },
-  { "exec", 'e', 0, G_OPTION_ARG_NONE, &exec, "Exec a command in a running container", NULL },
-  { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &exec_process_spec, "Path to the process spec for exec", NULL },
-  { "log-path", 'l', 0, G_OPTION_ARG_STRING, &log_path, "Log file path", NULL },
-  { "timeout", 'T', 0, G_OPTION_ARG_INT, &timeout, "Timeout in seconds", NULL },
+  { "cid", 'c', 0, G_OPTION_ARG_STRING, &opt_cid, "Container ID", NULL },
+  { "cuuid", 'u', 0, G_OPTION_ARG_STRING, &opt_cuuid, "Container UUID", NULL },
+  { "runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL },
+  { "bundle", 'b', 0, G_OPTION_ARG_STRING, &opt_bundle_path, "Bundle path", NULL },
+  { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_pid_file, "PID file", NULL },
+  { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL },
+  { "exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL },
+  { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL },
+  { "log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL },
+  { "timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL },
   { NULL }
 };
 
@@ -352,14 +352,7 @@ next:
  * Returns NULL on error.
  */
 static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
-	_cleanup_free_ char *cgroups_file_path = NULL;
-	int rc;
-	rc = asprintf(&cgroups_file_path, "/proc/%d/cgroup", pid);
-	if (rc < 0) {
-		nwarn("Failed to allocate memory for cgroups file path");
-		return NULL;
-	}
-
+	_cleanup_free_ char *cgroups_file_path = g_strdup_printf("/proc/%d/cgroup", pid);
 	_cleanup_fclose_ FILE *fp = NULL;
 	fp = fopen(cgroups_file_path, "re");
 	if (fp == NULL) {
@@ -398,12 +391,7 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 					*subpath = 0;
 				}
 
-				rc = asprintf(&subsystem_path, "%s/%s%s", CGROUP_ROOT, subpath, path);
-				if (rc < 0) {
-					nwarn("Failed to allocate memory for subsystemd path");
-					return NULL;
-				}
-
+				subsystem_path = g_strdup_printf("%s/%s%s", CGROUP_ROOT, subpath, path);
 				subsystem_path[strlen(subsystem_path) - 1] = '\0';
 				return subsystem_path;
 			}
@@ -440,6 +428,42 @@ static char *escape_json_string(const char *str)
 	return g_string_free (escaped, FALSE);
 }
 
+static int get_pipe_fd_from_env(const char *envname)
+{
+	char *pipe_str, *endptr;
+	int pipe_fd;
+
+	pipe_str = getenv(envname);
+	if (pipe_str == NULL)
+		return -1;
+
+	errno = 0;
+	pipe_fd = strtol(pipe_str, &endptr, 10);
+	if (errno != 0 || *endptr != '\0')
+		pexit("unable to parse %s", envname);
+	if (fcntl(pipe_fd, F_SETFD, FD_CLOEXEC) == -1)
+		pexit("unable to make %s CLOEXEC", envname);
+
+	return pipe_fd;
+}
+
+static void add_argv(GPtrArray *argv_array, ...)  G_GNUC_NULL_TERMINATED;
+
+static void add_argv(GPtrArray *argv_array, ...)
+{
+	va_list args;
+	char *arg;
+
+	va_start (args, argv_array);
+	while ((arg = va_arg (args, char *)))
+		g_ptr_array_add (argv_array, arg);
+	va_end (args);
+}
+
+static void end_argv(GPtrArray *argv_array)
+{
+	g_ptr_array_add(argv_array, NULL);
+}
 
 /* Global state */
 
@@ -455,12 +479,11 @@ static int conn_sock = -1;
 static int conn_sock_readable;
 static int conn_sock_writable;
 
-static int logfd = -1;
-static int oom_efd = -1;
-static int afd = -1;
-static int cfd = -1;
-/* Used for OOM notification API */
-static int ofd = -1;
+static int log_fd = -1;
+static int oom_event_fd = -1;
+static int attach_socket_fd = -1;
+static int console_socket_fd = -1;
+static int terminal_ctrl_fd = -1;
 
 static bool timed_out = FALSE;
 
@@ -499,7 +522,7 @@ static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 		}
 
 		if (num_read > 0) {
-			if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
+			if (write_k8s_log(log_fd, pipe, buf, num_read) < 0) {
 				nwarn("write_k8s_log failed");
 				return G_SOURCE_CONTINUE;
 			}
@@ -562,7 +585,7 @@ static gboolean oom_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer us
 
 	/* End of input */
 	close (fd);
-	oom_efd = -1;
+	oom_event_fd = -1;
 	return G_SOURCE_REMOVE;
 }
 
@@ -687,7 +710,7 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	int connfd = -1;
 	struct termios tset;
 
-	ninfo("about to accept from csfd: %d", fd);
+	ninfo("about to accept from console_socket_fd: %d", fd);
 	connfd = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
 	if (connfd < 0) {
 		nwarn("Failed to accept console-socket connection");
@@ -742,7 +765,7 @@ static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
 	if (sync_pipe_fd == -1)
 		return;
 
-	if (exec)
+	if (opt_exec)
 		res_key = "exit_code";
 	else
 		res_key = "pid";
@@ -760,31 +783,166 @@ static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
 	}
 }
 
+static char *setup_console_socket(void)
+{
+	struct sockaddr_un addr = {0};
+	char csname[PATH_MAX] = "/tmp/conmon-term.XXXXXXXX";
+	/*
+	 * Generate a temporary name. Is this unsafe? Probably, but we can
+	 * replace it with a rename(2) setup if necessary.
+	 */
+
+	int unusedfd = g_mkstemp(csname);
+	if (unusedfd < 0)
+		pexit("Failed to generate random path for console-socket");
+	close(unusedfd);
+
+	addr.sun_family = AF_UNIX;
+	strncpy(addr.sun_path, csname, sizeof(addr.sun_path)-1);
+
+	ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", addr.sun_path);
+
+	/* Bind to the console socket path. */
+	console_socket_fd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
+	if (console_socket_fd < 0)
+		pexit("Failed to create console-socket");
+	if (fchmod(console_socket_fd, 0700))
+		pexit("Failed to change console-socket permissions");
+	/* XXX: This should be handled with a rename(2). */
+	if (unlink(csname) < 0)
+		pexit("Failed to unlink temporary ranom path");
+	if (bind(console_socket_fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+		pexit("Failed to bind to console-socket");
+	if (listen(console_socket_fd, 128) < 0)
+		pexit("Failed to listen on console-socket");
+
+	return g_strdup(csname);
+}
+
+static char *setup_attach_socket(void)
+{
+	_cleanup_free_ char *attach_sock_path = NULL;
+	char *attach_symlink_dir_path;
+	struct sockaddr_un attach_addr = {0};
+	attach_addr.sun_family = AF_UNIX;
+
+	/*
+	 * Create a symlink so we don't exceed unix domain socket
+	 * path length limit.
+	 */
+	attach_symlink_dir_path = g_build_filename("/var/run/crio", opt_cuuid, NULL);
+	if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT)
+		pexit("Failed to remove existing symlink for attach socket directory");
+
+	if (symlink(opt_bundle_path, attach_symlink_dir_path) == -1)
+		pexit("Failed to create symlink for attach socket");
+
+	attach_sock_path = g_build_filename("/var/run/crio", opt_cuuid, "attach", NULL);
+	ninfo("attach sock path: %s", attach_sock_path);
+
+	strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
+	ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
+
+	/*
+	 * We make the socket non-blocking to avoid a race where client aborts connection
+	 * before the server gets a chance to call accept. In that scenario, the server
+	 * accept blocks till a new client connection comes in.
+	 */
+	attach_socket_fd = socket(AF_UNIX, SOCK_SEQPACKET|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+	if (attach_socket_fd == -1)
+		pexit("Failed to create attach socket");
+
+	if (fchmod(attach_socket_fd, 0700))
+		pexit("Failed to change attach socket permissions");
+
+	if (bind(attach_socket_fd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
+		pexit("Failed to bind attach socket: %s", attach_sock_path);
+
+	if (listen(attach_socket_fd, 10) == -1)
+		pexit("Failed to listen on attach socket: %s", attach_sock_path);
+
+	g_unix_fd_add (attach_socket_fd, G_IO_IN, attach_cb, NULL);
+
+	return attach_symlink_dir_path;
+}
+
+static void setup_terminal_control_fifo()
+{
+	_cleanup_free_ char *ctl_fifo_path = g_build_filename(opt_bundle_path, "ctl", NULL);
+	ninfo("ctl fifo path: %s", ctl_fifo_path);
+
+	/* Setup fifo for reading in terminal resize and other stdio control messages */
+
+	if (mkfifo(ctl_fifo_path, 0666) == -1)
+		pexit("Failed to mkfifo at %s", ctl_fifo_path);
+
+	terminal_ctrl_fd = open(ctl_fifo_path, O_RDONLY|O_NONBLOCK|O_CLOEXEC);
+	if (terminal_ctrl_fd == -1)
+		pexit("Failed to open control fifo");
+
+	/*
+	 * Open a dummy writer to prevent getting flood of POLLHUPs when
+	 * last writer closes.
+	 */
+	int dummyfd = open(ctl_fifo_path, O_WRONLY|O_CLOEXEC);
+	if (dummyfd == -1)
+		pexit("Failed to open dummy writer for fifo");
+
+	g_unix_fd_add (terminal_ctrl_fd, G_IO_IN, ctrl_cb, NULL);
+
+	ninfo("terminal_ctrl_fd: %d", terminal_ctrl_fd);
+}
+
+static void setup_oom_handling(int cpid)
+{
+	/* Setup OOM notification for container process */
+	_cleanup_free_ char *memory_cgroup_path = process_cgroup_subsystem_path(cpid, "memory");
+	_cleanup_close_ int cfd = -1;
+	int ofd = -1; /* Not closed */
+	if (!memory_cgroup_path) {
+		nexit("Failed to get memory cgroup path");
+	}
+
+	_cleanup_free_ char *memory_cgroup_file_path = g_build_filename(memory_cgroup_path, "cgroup.event_control", NULL);
+
+	if ((cfd = open(memory_cgroup_file_path, O_WRONLY | O_CLOEXEC)) == -1) {
+		nwarn("Failed to open %s", memory_cgroup_file_path);
+		return;
+	}
+
+	_cleanup_free_ char *memory_cgroup_file_oom_path = g_build_filename(memory_cgroup_path, "memory.oom_control", NULL);
+	if ((ofd = open(memory_cgroup_file_oom_path, O_RDONLY | O_CLOEXEC)) == -1)
+		pexit("Failed to open %s", memory_cgroup_file_oom_path);
+
+	if ((oom_event_fd = eventfd(0, EFD_CLOEXEC)) == -1)
+		pexit("Failed to create eventfd");
+
+	_cleanup_free_ char *data = g_strdup_printf("%d %d", oom_event_fd, ofd);
+	if (write_all(cfd, data, strlen(data)) < 0)
+		pexit("Failed to write to cgroup.event_control");
+
+	g_unix_fd_add (oom_event_fd, G_IO_IN, oom_cb, NULL);
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
 	char cwd[PATH_MAX];
-	char default_pid_file[PATH_MAX];
-	char attach_sock_path[PATH_MAX];
-	char ctl_fifo_path[PATH_MAX];
+	_cleanup_free_ char *default_pid_file = NULL;
+	_cleanup_free_ char *csname = NULL;
 	GError *err = NULL;
-	_cleanup_free_ char *contents;
+	_cleanup_free_ char *contents = NULL;
 	int cpid = -1;
 	int status;
 	pid_t pid, main_pid, create_pid;
-	_cleanup_close_ int epfd = -1;
-	_cleanup_close_ int csfd = -1;
 	/* Used for !terminal cases. */
 	int slavefd_stdin = -1;
 	int slavefd_stdout = -1;
 	int slavefd_stderr = -1;
-	char csname[PATH_MAX] = "/tmp/conmon-term.XXXXXXXX";
 	char buf[BUF_SIZE];
 	int num_read;
 	int sync_pipe_fd = -1;
 	int start_pipe_fd = -1;
-	char *start_pipe, *sync_pipe, *endptr;
-	int len;
 	GError *error = NULL;
 	GOptionContext *context;
         GPtrArray *runtime_argv = NULL;
@@ -792,33 +950,30 @@ int main(int argc, char *argv[])
 	_cleanup_close_ int dev_null_w = -1;
 	int fds[2];
 
-	_cleanup_free_ char *memory_cgroup_path = NULL;
-	int wb;
-
 	main_loop = g_main_loop_new (NULL, FALSE);
 
 	/* Command line parameters */
 	context = g_option_context_new("- conmon utility");
-	g_option_context_add_main_entries(context, entries, "conmon");
+	g_option_context_add_main_entries(context, opt_entries, "conmon");
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 	        g_print("option parsing failed: %s\n", error->message);
 	        exit(1);
 	}
 
-	if (cid == NULL)
+	if (opt_cid == NULL)
 		nexit("Container ID not provided. Use --cid");
 
-	if (!exec && cuuid == NULL)
+	if (!opt_exec && opt_cuuid == NULL)
 		nexit("Container UUID not provided. Use --cuuid");
 
-	if (runtime_path == NULL)
+	if (opt_runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
 
-	if (bundle_path == NULL && !exec) {
+	if (opt_bundle_path == NULL && !opt_exec) {
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
 			nexit("Failed to get working directory");
 		}
-		bundle_path = cwd;
+		opt_bundle_path = cwd;
 	}
 
 	dev_null_r = open("/dev/null", O_RDONLY | O_CLOEXEC);
@@ -829,27 +984,20 @@ int main(int argc, char *argv[])
 	if (dev_null_w < 0)
 		pexit("Failed to open /dev/null");
 
-	if (exec && exec_process_spec == NULL) {
+	if (opt_exec && opt_exec_process_spec == NULL) {
 		nexit("Exec process spec path not provided. Use --exec-process-spec");
 	}
 
-	if (pid_file == NULL) {
-		if (snprintf(default_pid_file, sizeof(default_pid_file),
-			     "%s/pidfile-%s", cwd, cid) < 0) {
-			nexit("Failed to generate the pidfile path");
-		}
-		pid_file = default_pid_file;
+	if (opt_pid_file == NULL) {
+		default_pid_file = g_strdup_printf ("%s/pidfile-%s", cwd, opt_cid);
+		opt_pid_file = default_pid_file;
 	}
 
-	if (log_path == NULL)
+	if (opt_log_path == NULL)
 		nexit("Log file path not provided. Use --log-path");
 
-	start_pipe = getenv("_OCI_STARTPIPE");
-	if (start_pipe) {
-		errno = 0;
-		start_pipe_fd = strtol(start_pipe, &endptr, 10);
-		if (errno != 0 || *endptr != '\0')
-			pexit("unable to parse _OCI_STARTPIPE");
+	start_pipe_fd = get_pipe_fd_from_env("_OCI_STARTPIPE");
+	if (start_pipe_fd >= 0) {
 		/* Block for an initial write to the start pipe before
 		   spawning any childred or exiting, to ensure the
 		   parent can put us in the right cgroup. */
@@ -881,19 +1029,11 @@ int main(int argc, char *argv[])
 	setsid();
 
 	/* Environment variables */
-	sync_pipe = getenv("_OCI_SYNCPIPE");
-	if (sync_pipe) {
-		errno = 0;
-		sync_pipe_fd = strtol(sync_pipe, &endptr, 10);
-		if (errno != 0 || *endptr != '\0')
-			pexit("unable to parse _OCI_SYNCPIPE");
-		if (fcntl(sync_pipe_fd, F_SETFD, FD_CLOEXEC) == -1)
-			pexit("unable to make _OCI_SYNCPIPE CLOEXEC");
-	}
+	sync_pipe_fd = get_pipe_fd_from_env("_OCI_SYNCPIPE");
 
 	/* Open the log path file. */
-	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
-	if (logfd < 0)
+	log_fd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
+	if (log_fd < 0)
 		pexit("Failed to open log file");
 
 	/*
@@ -905,37 +1045,8 @@ int main(int argc, char *argv[])
 		pexit("Failed to set as subreaper");
 	}
 
-	if (terminal) {
-		struct sockaddr_un addr = {0};
-
-		/*
-		 * Generate a temporary name. Is this unsafe? Probably, but we can
-		 * replace it with a rename(2) setup if necessary.
-		 */
-
-		int unusedfd = g_mkstemp(csname);
-		if (unusedfd < 0)
-			pexit("Failed to generate random path for console-socket");
-		close(unusedfd);
-
-		addr.sun_family = AF_UNIX;
-		strncpy(addr.sun_path, csname, sizeof(addr.sun_path)-1);
-
-		ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", addr.sun_path);
-
-		/* Bind to the console socket path. */
-		csfd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
-		if (csfd < 0)
-			pexit("Failed to create console-socket");
-		if (fchmod(csfd, 0700))
-			pexit("Failed to change console-socket permissions");
-		/* XXX: This should be handled with a rename(2). */
-		if (unlink(csname) < 0)
-			pexit("Failed to unlink temporary ranom path");
-		if (bind(csfd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
-			pexit("Failed to bind to console-socket");
-		if (listen(csfd, 128) < 0)
-			pexit("Failed to listen on console-socket");
+	if (opt_terminal) {
+		csname = setup_console_socket();
 	} else {
 
 		/*
@@ -972,39 +1083,45 @@ int main(int argc, char *argv[])
 	slavefd_stderr = fds[1];
 
 	runtime_argv = g_ptr_array_new();
-	g_ptr_array_add(runtime_argv, runtime_path);
+	add_argv(runtime_argv,
+		 opt_runtime_path,
+		 NULL);
 
 	/* Generate the cmdline. */
-	if (!exec && systemd_cgroup)
-		g_ptr_array_add(runtime_argv, "--systemd-cgroup");
+	if (!opt_exec && opt_systemd_cgroup)
+		add_argv(runtime_argv,
+			 "--systemd-cgroup",
+			 NULL);
 
-	if (exec) {
-		g_ptr_array_add (runtime_argv, "exec");
-		g_ptr_array_add (runtime_argv, "-d");
-		g_ptr_array_add (runtime_argv, "--pid-file");
-		g_ptr_array_add (runtime_argv, pid_file);
+	if (opt_exec) {
+		add_argv(runtime_argv,
+			 "exec", "-d",
+			 "--pid-file", opt_pid_file,
+			 NULL);
         } else {
-		g_ptr_array_add (runtime_argv, "create");
-		g_ptr_array_add (runtime_argv, "--bundle");
-		g_ptr_array_add (runtime_argv, bundle_path);
-		g_ptr_array_add (runtime_argv, "--pid-file");
-		g_ptr_array_add (runtime_argv, pid_file);
+		add_argv(runtime_argv,
+			 "create",
+			 "--bundle", opt_bundle_path,
+			 "--pid-file", opt_pid_file,
+			 NULL);
 	}
 
-	if (terminal) {
-		g_ptr_array_add(runtime_argv, "--console-socket");
-		g_ptr_array_add(runtime_argv, csname);
+	if (csname != NULL) {
+		add_argv(runtime_argv,
+			 "--console-socket", csname,
+			 NULL);
 	}
 
 	/* Set the exec arguments. */
-	if (exec) {
-		g_ptr_array_add(runtime_argv, "--process");
-		g_ptr_array_add(runtime_argv, exec_process_spec);
+	if (opt_exec) {
+		add_argv(runtime_argv,
+			 "--process", opt_exec_process_spec,
+			 NULL);
 	}
 
 	/* Container name comes last. */
-	g_ptr_array_add(runtime_argv, cid);
-	g_ptr_array_add(runtime_argv, NULL);
+	add_argv(runtime_argv, opt_cid, NULL);
+	end_argv(runtime_argv);
 
 	/*
 	 * We have to fork here because the current runC API dups the stdio of the
@@ -1047,8 +1164,8 @@ int main(int argc, char *argv[])
 	close(slavefd_stderr);
 
 	ninfo("about to waitpid: %d", create_pid);
-	if (terminal) {
-		guint terminal_watch = g_unix_fd_add (csfd, G_IO_IN, terminal_accept_cb, csname);
+	if (csname != NULL) {
+		guint terminal_watch = g_unix_fd_add (console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
 		g_child_watch_add (create_pid, runtime_exit_cb, NULL);
 		g_main_loop_run (main_loop);
 		g_source_remove (terminal_watch);
@@ -1058,7 +1175,7 @@ int main(int argc, char *argv[])
 			int old_errno = errno;
 			kill(create_pid, SIGKILL);
 			errno = old_errno;
-			pexit("Failed to wait for `runtime %s`", exec ? "exec" : "create");
+			pexit("Failed to wait for `runtime %s`", opt_exec ? "exec" : "create");
 		}
 	}
 
@@ -1077,11 +1194,11 @@ int main(int argc, char *argv[])
 		nexit("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
 	}
 
-	if (terminal && masterfd_stdout == -1)
+	if (opt_terminal && masterfd_stdout == -1)
 		nexit("Runtime did not set up terminal");
 
 	/* Read the pid so we can wait for the process to exit */
-	g_file_get_contents(pid_file, &contents, NULL, &err);
+	g_file_get_contents(opt_pid_file, &contents, NULL, &err);
 	if (err) {
 		nwarn("Failed to read pidfile: %s", err->message);
 		g_error_free(err);
@@ -1092,104 +1209,21 @@ int main(int argc, char *argv[])
 	ninfo("container PID: %d", cpid);
 
 	/* Setup endpoint for attach */
-	char attach_symlink_dir_path[PATH_MAX] = { 0 };
-	struct sockaddr_un attach_addr = {0};
-
-	if (!exec) {
-		attach_addr.sun_family = AF_UNIX;
-
-		/*
-		 * Create a symlink so we don't exceed unix domain socket
-		 * path length limit.
-		 */
-		snprintf(attach_symlink_dir_path, PATH_MAX, "/var/run/crio/%s", cuuid);
-		if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
-			pexit("Failed to remove existing symlink for attach socket directory");
-		}
-		if (symlink(bundle_path, attach_symlink_dir_path) == -1)
-			pexit("Failed to create symlink for attach socket");
-
-		snprintf(attach_sock_path, PATH_MAX, "/var/run/crio/%s/attach", cuuid);
-		ninfo("attach sock path: %s", attach_sock_path);
-
-		strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
-		ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
-
-		/*
-		 * We make the socket non-blocking to avoid a race where client aborts connection
-		 * before the server gets a chance to call accept. In that scenario, the server
-		 * accept blocks till a new client connection comes in.
-		 */
-		afd = socket(AF_UNIX, SOCK_SEQPACKET|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
-		if (afd == -1)
-			pexit("Failed to create attach socket");
-
-                if (fchmod(afd, 0700))
-			pexit("Failed to change attach socket permissions");
-
-		if (bind(afd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
-			pexit("Failed to bind attach socket: %s", attach_sock_path);
-
-		if (listen(afd, 10) == -1)
-			pexit("Failed to listen on attach socket: %s", attach_sock_path);
+	_cleanup_free_ char *attach_symlink_dir_path = NULL;
+	if (!opt_exec) {
+		attach_symlink_dir_path = setup_attach_socket();
 	}
 
-	/* Setup fifo for reading in terminal resize and other stdio control messages */
-	_cleanup_close_ int ctlfd = -1;
-	_cleanup_close_ int dummyfd = -1;
-	if (!exec) {
-		snprintf(ctl_fifo_path, PATH_MAX, "%s/ctl", bundle_path);
-		ninfo("ctl fifo path: %s", ctl_fifo_path);
-
-		if (mkfifo(ctl_fifo_path, 0666) == -1)
-			pexit("Failed to mkfifo at %s", ctl_fifo_path);
-
-		ctlfd = open(ctl_fifo_path, O_RDONLY|O_NONBLOCK|O_CLOEXEC);
-		if (ctlfd == -1)
-			pexit("Failed to open control fifo");
-
-		/*
-		 * Open a dummy writer to prevent getting flood of POLLHUPs when
-		 * last writer closes.
-		 */
-		dummyfd = open(ctl_fifo_path, O_WRONLY|O_CLOEXEC);
-		if (dummyfd == -1)
-			pexit("Failed to open dummy writer for fifo");
-
-		ninfo("ctlfd: %d", ctlfd);
+	if (!opt_exec) {
+		setup_terminal_control_fifo();
 	}
 
 	/* Send the container pid back to parent */
-	if (!exec) {
+	if (!opt_exec) {
 		write_sync_fd(sync_pipe_fd, cpid, NULL);
 	}
 
-	/* Setup OOM notification for container process */
-	memory_cgroup_path = process_cgroup_subsystem_path(cpid, "memory");
-	if (!memory_cgroup_path) {
-		nexit("Failed to get memory cgroup path");
-	}
-
-	bool oom_handling_enabled = true;
-	char memory_cgroup_file_path[PATH_MAX];
-	snprintf(memory_cgroup_file_path, PATH_MAX, "%s/cgroup.event_control", memory_cgroup_path);
-	if ((cfd = open(memory_cgroup_file_path, O_WRONLY | O_CLOEXEC)) == -1) {
-		nwarn("Failed to open %s", memory_cgroup_file_path);
-		oom_handling_enabled = false;
-	}
-
-	if (oom_handling_enabled) {
-		snprintf(memory_cgroup_file_path, PATH_MAX, "%s/memory.oom_control", memory_cgroup_path);
-		if ((ofd = open(memory_cgroup_file_path, O_RDONLY | O_CLOEXEC)) == -1)
-			pexit("Failed to open %s", memory_cgroup_file_path);
-
-		if ((oom_efd = eventfd(0, EFD_CLOEXEC)) == -1)
-			pexit("Failed to create eventfd");
-
-		wb = snprintf(buf, BUF_SIZE, "%d %d", oom_efd, ofd);
-		if (write_all(cfd, buf, wb) < 0)
-			pexit("Failed to write to cgroup.event_control");
-	}
+	setup_oom_handling(cpid);
 
 	if (masterfd_stdout >= 0) {
 		g_unix_fd_add (masterfd_stdout, G_IO_IN, stdio_cb, GINT_TO_POINTER(STDOUT_PIPE));
@@ -1200,23 +1234,8 @@ int main(int argc, char *argv[])
 		num_stdio_fds++;
 	}
 
-	/* Add the OOM event fd to epoll */
-	if (oom_handling_enabled) {
-		g_unix_fd_add (oom_efd, G_IO_IN, oom_cb, NULL);
-	}
-
-	/* Add the attach socket to epoll */
-	if (afd > 0) {
-		g_unix_fd_add (afd, G_IO_IN, attach_cb, NULL);
-	}
-
-	/* Add control fifo fd to epoll */
-	if (ctlfd > 0) {
-		g_unix_fd_add (ctlfd, G_IO_IN, ctrl_cb, NULL);
-	}
-
-	if (timeout > 0) {
-		g_timeout_add_seconds (timeout, timeout_cb, NULL);
+	if (opt_timeout > 0) {
+		g_timeout_add_seconds (opt_timeout, timeout_cb, NULL);
 	}
 	g_main_loop_run (main_loop);
 
@@ -1242,28 +1261,17 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (!exec) {
-		_cleanup_free_ char *status_str = NULL;
-		ret = asprintf(&status_str, "%d", exit_status);
-		if (ret < 0) {
-			pexit("Failed to allocate memory for status");
-		}
-		g_file_set_contents("exit", status_str,
-				    strlen(status_str), &err);
-		if (err) {
-			fprintf(stderr,
-				"Failed to write %s to exit file: %s\n",
-				status_str, err->message);
-			g_error_free(err);
-			exit(1);
-		}
-
+	if (!opt_exec) {
+		_cleanup_free_ char *status_str = g_strdup_printf("%d", exit_status);
+		if (!g_file_set_contents("exit", status_str, -1, &err))
+			nexit("Failed to write %s to exit file: %s\n",
+			      status_str, err->message);
 	} else {
 		/* Send the command exec exit code back to the parent */
 		write_sync_fd(sync_pipe_fd, exit_status, exit_message);
 	}
 
-	if (attach_symlink_dir_path[0] != 0 &&
+	if (attach_symlink_dir_path != NULL &&
 	    unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
 		pexit("Failed to remove symlink for attach socket directory");
 	}
