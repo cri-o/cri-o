@@ -821,12 +821,56 @@ static char *setup_console_socket(void)
 	return g_strdup(csname);
 }
 
+static char *setup_attach_socket(void)
+{
+	_cleanup_free_ char *attach_sock_path = NULL;
+	char *attach_symlink_dir_path;
+	struct sockaddr_un attach_addr = {0};
+	attach_addr.sun_family = AF_UNIX;
+
+	/*
+	 * Create a symlink so we don't exceed unix domain socket
+	 * path length limit.
+	 */
+	attach_symlink_dir_path = g_build_filename("/var/run/crio", opt_cuuid, NULL);
+	if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT)
+		pexit("Failed to remove existing symlink for attach socket directory");
+
+	if (symlink(opt_bundle_path, attach_symlink_dir_path) == -1)
+		pexit("Failed to create symlink for attach socket");
+
+	attach_sock_path = g_build_filename("/var/run/crio", opt_cuuid, "attach", NULL);
+	ninfo("attach sock path: %s", attach_sock_path);
+
+	strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
+	ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
+
+	/*
+	 * We make the socket non-blocking to avoid a race where client aborts connection
+	 * before the server gets a chance to call accept. In that scenario, the server
+	 * accept blocks till a new client connection comes in.
+	 */
+	afd = socket(AF_UNIX, SOCK_SEQPACKET|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+	if (afd == -1)
+		pexit("Failed to create attach socket");
+
+	if (fchmod(afd, 0700))
+		pexit("Failed to change attach socket permissions");
+
+	if (bind(afd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
+		pexit("Failed to bind attach socket: %s", attach_sock_path);
+
+	if (listen(afd, 10) == -1)
+		pexit("Failed to listen on attach socket: %s", attach_sock_path);
+
+	return attach_symlink_dir_path;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
 	char cwd[PATH_MAX];
 	_cleanup_free_ char *default_pid_file = NULL;
-	_cleanup_free_ char *attach_sock_path = NULL;
 	_cleanup_free_ char *ctl_fifo_path = NULL;
 	_cleanup_free_ char *csname = NULL;
 	GError *err = NULL;
@@ -1112,45 +1156,8 @@ int main(int argc, char *argv[])
 
 	/* Setup endpoint for attach */
 	_cleanup_free_ char *attach_symlink_dir_path = NULL;
-	struct sockaddr_un attach_addr = {0};
-
 	if (!opt_exec) {
-		attach_addr.sun_family = AF_UNIX;
-
-		/*
-		 * Create a symlink so we don't exceed unix domain socket
-		 * path length limit.
-		 */
-		attach_symlink_dir_path = g_build_filename("/var/run/crio", opt_cuuid, NULL);
-		if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
-			pexit("Failed to remove existing symlink for attach socket directory");
-		}
-		if (symlink(opt_bundle_path, attach_symlink_dir_path) == -1)
-			pexit("Failed to create symlink for attach socket");
-
-		attach_sock_path = g_build_filename("/var/run/crio", opt_cuuid, "attach", NULL);
-		ninfo("attach sock path: %s", attach_sock_path);
-
-		strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
-		ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
-
-		/*
-		 * We make the socket non-blocking to avoid a race where client aborts connection
-		 * before the server gets a chance to call accept. In that scenario, the server
-		 * accept blocks till a new client connection comes in.
-		 */
-		afd = socket(AF_UNIX, SOCK_SEQPACKET|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
-		if (afd == -1)
-			pexit("Failed to create attach socket");
-
-                if (fchmod(afd, 0700))
-			pexit("Failed to change attach socket permissions");
-
-		if (bind(afd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
-			pexit("Failed to bind attach socket: %s", attach_sock_path);
-
-		if (listen(afd, 10) == -1)
-			pexit("Failed to listen on attach socket: %s", attach_sock_path);
+		attach_symlink_dir_path = setup_attach_socket();
 	}
 
 	/* Setup fifo for reading in terminal resize and other stdio control messages */
