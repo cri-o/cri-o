@@ -94,32 +94,32 @@ static inline void strv_cleanup(char ***strv)
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
 
-static bool terminal = false;
+static bool opt_terminal = false;
 static bool opt_stdin = false;
-static char *cid = NULL;
-static char *cuuid = NULL;
-static char *runtime_path = NULL;
-static char *bundle_path = NULL;
-static char *pid_file = NULL;
-static bool systemd_cgroup = false;
-static char *exec_process_spec = NULL;
-static bool exec = false;
-static char *log_path = NULL;
-static int timeout = 0;
-static GOptionEntry entries[] =
+static char *opt_cid = NULL;
+static char *opt_cuuid = NULL;
+static char *opt_runtime_path = NULL;
+static char *opt_bundle_path = NULL;
+static char *opt_pid_file = NULL;
+static bool opt_systemd_cgroup = false;
+static char *opt_exec_process_spec = NULL;
+static bool opt_exec = false;
+static char *opt_log_path = NULL;
+static int opt_timeout = 0;
+static GOptionEntry opt_entries[] =
 {
-  { "terminal", 't', 0, G_OPTION_ARG_NONE, &terminal, "Terminal", NULL },
+  { "terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL },
   { "stdin", 'i', 0, G_OPTION_ARG_NONE, &opt_stdin, "Stdin", NULL },
-  { "cid", 'c', 0, G_OPTION_ARG_STRING, &cid, "Container ID", NULL },
-  { "cuuid", 'u', 0, G_OPTION_ARG_STRING, &cuuid, "Container UUID", NULL },
-  { "runtime", 'r', 0, G_OPTION_ARG_STRING, &runtime_path, "Runtime path", NULL },
-  { "bundle", 'b', 0, G_OPTION_ARG_STRING, &bundle_path, "Bundle path", NULL },
-  { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &pid_file, "PID file", NULL },
-  { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &systemd_cgroup, "Enable systemd cgroup manager", NULL },
-  { "exec", 'e', 0, G_OPTION_ARG_NONE, &exec, "Exec a command in a running container", NULL },
-  { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &exec_process_spec, "Path to the process spec for exec", NULL },
-  { "log-path", 'l', 0, G_OPTION_ARG_STRING, &log_path, "Log file path", NULL },
-  { "timeout", 'T', 0, G_OPTION_ARG_INT, &timeout, "Timeout in seconds", NULL },
+  { "cid", 'c', 0, G_OPTION_ARG_STRING, &opt_cid, "Container ID", NULL },
+  { "cuuid", 'u', 0, G_OPTION_ARG_STRING, &opt_cuuid, "Container UUID", NULL },
+  { "runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL },
+  { "bundle", 'b', 0, G_OPTION_ARG_STRING, &opt_bundle_path, "Bundle path", NULL },
+  { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_pid_file, "PID file", NULL },
+  { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL },
+  { "exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL },
+  { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL },
+  { "log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL },
+  { "timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL },
   { NULL }
 };
 
@@ -742,7 +742,7 @@ static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
 	if (sync_pipe_fd == -1)
 		return;
 
-	if (exec)
+	if (opt_exec)
 		res_key = "exit_code";
 	else
 		res_key = "pid";
@@ -799,26 +799,26 @@ int main(int argc, char *argv[])
 
 	/* Command line parameters */
 	context = g_option_context_new("- conmon utility");
-	g_option_context_add_main_entries(context, entries, "conmon");
+	g_option_context_add_main_entries(context, opt_entries, "conmon");
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 	        g_print("option parsing failed: %s\n", error->message);
 	        exit(1);
 	}
 
-	if (cid == NULL)
+	if (opt_cid == NULL)
 		nexit("Container ID not provided. Use --cid");
 
-	if (!exec && cuuid == NULL)
+	if (!opt_exec && opt_cuuid == NULL)
 		nexit("Container UUID not provided. Use --cuuid");
 
-	if (runtime_path == NULL)
+	if (opt_runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
 
-	if (bundle_path == NULL && !exec) {
+	if (opt_bundle_path == NULL && !opt_exec) {
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
 			nexit("Failed to get working directory");
 		}
-		bundle_path = cwd;
+		opt_bundle_path = cwd;
 	}
 
 	dev_null_r = open("/dev/null", O_RDONLY | O_CLOEXEC);
@@ -829,19 +829,19 @@ int main(int argc, char *argv[])
 	if (dev_null_w < 0)
 		pexit("Failed to open /dev/null");
 
-	if (exec && exec_process_spec == NULL) {
+	if (opt_exec && opt_exec_process_spec == NULL) {
 		nexit("Exec process spec path not provided. Use --exec-process-spec");
 	}
 
-	if (pid_file == NULL) {
+	if (opt_pid_file == NULL) {
 		if (snprintf(default_pid_file, sizeof(default_pid_file),
-			     "%s/pidfile-%s", cwd, cid) < 0) {
+			     "%s/pidfile-%s", cwd, opt_cid) < 0) {
 			nexit("Failed to generate the pidfile path");
 		}
-		pid_file = default_pid_file;
+		opt_pid_file = default_pid_file;
 	}
 
-	if (log_path == NULL)
+	if (opt_log_path == NULL)
 		nexit("Log file path not provided. Use --log-path");
 
 	start_pipe = getenv("_OCI_STARTPIPE");
@@ -892,7 +892,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Open the log path file. */
-	logfd = open(log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
+	logfd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
 	if (logfd < 0)
 		pexit("Failed to open log file");
 
@@ -905,7 +905,7 @@ int main(int argc, char *argv[])
 		pexit("Failed to set as subreaper");
 	}
 
-	if (terminal) {
+	if (opt_terminal) {
 		struct sockaddr_un addr = {0};
 
 		/*
@@ -972,38 +972,38 @@ int main(int argc, char *argv[])
 	slavefd_stderr = fds[1];
 
 	runtime_argv = g_ptr_array_new();
-	g_ptr_array_add(runtime_argv, runtime_path);
+	g_ptr_array_add(runtime_argv, opt_runtime_path);
 
 	/* Generate the cmdline. */
-	if (!exec && systemd_cgroup)
+	if (!opt_exec && opt_systemd_cgroup)
 		g_ptr_array_add(runtime_argv, "--systemd-cgroup");
 
-	if (exec) {
+	if (opt_exec) {
 		g_ptr_array_add (runtime_argv, "exec");
 		g_ptr_array_add (runtime_argv, "-d");
 		g_ptr_array_add (runtime_argv, "--pid-file");
-		g_ptr_array_add (runtime_argv, pid_file);
+		g_ptr_array_add (runtime_argv, opt_pid_file);
         } else {
 		g_ptr_array_add (runtime_argv, "create");
 		g_ptr_array_add (runtime_argv, "--bundle");
-		g_ptr_array_add (runtime_argv, bundle_path);
+		g_ptr_array_add (runtime_argv, opt_bundle_path);
 		g_ptr_array_add (runtime_argv, "--pid-file");
-		g_ptr_array_add (runtime_argv, pid_file);
+		g_ptr_array_add (runtime_argv, opt_pid_file);
 	}
 
-	if (terminal) {
+	if (opt_terminal) {
 		g_ptr_array_add(runtime_argv, "--console-socket");
 		g_ptr_array_add(runtime_argv, csname);
 	}
 
 	/* Set the exec arguments. */
-	if (exec) {
+	if (opt_exec) {
 		g_ptr_array_add(runtime_argv, "--process");
-		g_ptr_array_add(runtime_argv, exec_process_spec);
+		g_ptr_array_add(runtime_argv, opt_exec_process_spec);
 	}
 
 	/* Container name comes last. */
-	g_ptr_array_add(runtime_argv, cid);
+	g_ptr_array_add(runtime_argv, opt_cid);
 	g_ptr_array_add(runtime_argv, NULL);
 
 	/*
@@ -1047,7 +1047,7 @@ int main(int argc, char *argv[])
 	close(slavefd_stderr);
 
 	ninfo("about to waitpid: %d", create_pid);
-	if (terminal) {
+	if (opt_terminal) {
 		guint terminal_watch = g_unix_fd_add (csfd, G_IO_IN, terminal_accept_cb, csname);
 		g_child_watch_add (create_pid, runtime_exit_cb, NULL);
 		g_main_loop_run (main_loop);
@@ -1058,7 +1058,7 @@ int main(int argc, char *argv[])
 			int old_errno = errno;
 			kill(create_pid, SIGKILL);
 			errno = old_errno;
-			pexit("Failed to wait for `runtime %s`", exec ? "exec" : "create");
+			pexit("Failed to wait for `runtime %s`", opt_exec ? "exec" : "create");
 		}
 	}
 
@@ -1077,11 +1077,11 @@ int main(int argc, char *argv[])
 		nexit("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
 	}
 
-	if (terminal && masterfd_stdout == -1)
+	if (opt_terminal && masterfd_stdout == -1)
 		nexit("Runtime did not set up terminal");
 
 	/* Read the pid so we can wait for the process to exit */
-	g_file_get_contents(pid_file, &contents, NULL, &err);
+	g_file_get_contents(opt_pid_file, &contents, NULL, &err);
 	if (err) {
 		nwarn("Failed to read pidfile: %s", err->message);
 		g_error_free(err);
@@ -1095,21 +1095,21 @@ int main(int argc, char *argv[])
 	char attach_symlink_dir_path[PATH_MAX] = { 0 };
 	struct sockaddr_un attach_addr = {0};
 
-	if (!exec) {
+	if (!opt_exec) {
 		attach_addr.sun_family = AF_UNIX;
 
 		/*
 		 * Create a symlink so we don't exceed unix domain socket
 		 * path length limit.
 		 */
-		snprintf(attach_symlink_dir_path, PATH_MAX, "/var/run/crio/%s", cuuid);
+		snprintf(attach_symlink_dir_path, PATH_MAX, "/var/run/crio/%s", opt_cuuid);
 		if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
 			pexit("Failed to remove existing symlink for attach socket directory");
 		}
-		if (symlink(bundle_path, attach_symlink_dir_path) == -1)
+		if (symlink(opt_bundle_path, attach_symlink_dir_path) == -1)
 			pexit("Failed to create symlink for attach socket");
 
-		snprintf(attach_sock_path, PATH_MAX, "/var/run/crio/%s/attach", cuuid);
+		snprintf(attach_sock_path, PATH_MAX, "/var/run/crio/%s/attach", opt_cuuid);
 		ninfo("attach sock path: %s", attach_sock_path);
 
 		strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
@@ -1137,8 +1137,8 @@ int main(int argc, char *argv[])
 	/* Setup fifo for reading in terminal resize and other stdio control messages */
 	_cleanup_close_ int ctlfd = -1;
 	_cleanup_close_ int dummyfd = -1;
-	if (!exec) {
-		snprintf(ctl_fifo_path, PATH_MAX, "%s/ctl", bundle_path);
+	if (!opt_exec) {
+		snprintf(ctl_fifo_path, PATH_MAX, "%s/ctl", opt_bundle_path);
 		ninfo("ctl fifo path: %s", ctl_fifo_path);
 
 		if (mkfifo(ctl_fifo_path, 0666) == -1)
@@ -1160,7 +1160,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Send the container pid back to parent */
-	if (!exec) {
+	if (!opt_exec) {
 		write_sync_fd(sync_pipe_fd, cpid, NULL);
 	}
 
@@ -1215,8 +1215,8 @@ int main(int argc, char *argv[])
 		g_unix_fd_add (ctlfd, G_IO_IN, ctrl_cb, NULL);
 	}
 
-	if (timeout > 0) {
-		g_timeout_add_seconds (timeout, timeout_cb, NULL);
+	if (opt_timeout > 0) {
+		g_timeout_add_seconds (opt_timeout, timeout_cb, NULL);
 	}
 	g_main_loop_run (main_loop);
 
@@ -1242,7 +1242,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (!exec) {
+	if (!opt_exec) {
 		_cleanup_free_ char *status_str = NULL;
 		ret = asprintf(&status_str, "%d", exit_status);
 		if (ret < 0) {
