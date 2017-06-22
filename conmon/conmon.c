@@ -440,6 +440,24 @@ static char *escape_json_string(const char *str)
 	return g_string_free (escaped, FALSE);
 }
 
+static int get_pipe_fd_from_env(const char *envname)
+{
+	char *pipe_str, *endptr;
+	int pipe_fd;
+
+	pipe_str = getenv(envname);
+	if (pipe_str == NULL)
+		return -1;
+
+	errno = 0;
+	pipe_fd = strtol(pipe_str, &endptr, 10);
+	if (errno != 0 || *endptr != '\0')
+		pexit("unable to parse %s", envname);
+	if (fcntl(pipe_fd, F_SETFD, FD_CLOEXEC) == -1)
+		pexit("unable to make %s CLOEXEC", envname);
+
+	return pipe_fd;
+}
 
 /* Global state */
 
@@ -783,7 +801,6 @@ int main(int argc, char *argv[])
 	int num_read;
 	int sync_pipe_fd = -1;
 	int start_pipe_fd = -1;
-	char *start_pipe, *sync_pipe, *endptr;
 	int len;
 	GError *error = NULL;
 	GOptionContext *context;
@@ -844,12 +861,8 @@ int main(int argc, char *argv[])
 	if (opt_log_path == NULL)
 		nexit("Log file path not provided. Use --log-path");
 
-	start_pipe = getenv("_OCI_STARTPIPE");
-	if (start_pipe) {
-		errno = 0;
-		start_pipe_fd = strtol(start_pipe, &endptr, 10);
-		if (errno != 0 || *endptr != '\0')
-			pexit("unable to parse _OCI_STARTPIPE");
+	start_pipe_fd = get_pipe_fd_from_env("_OCI_STARTPIPE");
+	if (start_pipe_fd >= 0) {
 		/* Block for an initial write to the start pipe before
 		   spawning any childred or exiting, to ensure the
 		   parent can put us in the right cgroup. */
@@ -881,15 +894,7 @@ int main(int argc, char *argv[])
 	setsid();
 
 	/* Environment variables */
-	sync_pipe = getenv("_OCI_SYNCPIPE");
-	if (sync_pipe) {
-		errno = 0;
-		sync_pipe_fd = strtol(sync_pipe, &endptr, 10);
-		if (errno != 0 || *endptr != '\0')
-			pexit("unable to parse _OCI_SYNCPIPE");
-		if (fcntl(sync_pipe_fd, F_SETFD, FD_CLOEXEC) == -1)
-			pexit("unable to make _OCI_SYNCPIPE CLOEXEC");
-	}
+	sync_pipe_fd = get_pipe_fd_from_env("_OCI_SYNCPIPE");
 
 	/* Open the log path file. */
 	logfd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
