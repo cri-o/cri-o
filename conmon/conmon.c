@@ -485,6 +485,7 @@ static int afd = -1;
 static int cfd = -1;
 /* Used for OOM notification API */
 static int ofd = -1;
+static int csfd = -1;
 
 static bool timed_out = FALSE;
 
@@ -784,6 +785,42 @@ static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
 	}
 }
 
+static char *setup_console_socket(void)
+{
+	struct sockaddr_un addr = {0};
+	char csname[PATH_MAX] = "/tmp/conmon-term.XXXXXXXX";
+	/*
+	 * Generate a temporary name. Is this unsafe? Probably, but we can
+	 * replace it with a rename(2) setup if necessary.
+	 */
+
+	int unusedfd = g_mkstemp(csname);
+	if (unusedfd < 0)
+		pexit("Failed to generate random path for console-socket");
+	close(unusedfd);
+
+	addr.sun_family = AF_UNIX;
+	strncpy(addr.sun_path, csname, sizeof(addr.sun_path)-1);
+
+	ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", addr.sun_path);
+
+	/* Bind to the console socket path. */
+	csfd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
+	if (csfd < 0)
+		pexit("Failed to create console-socket");
+	if (fchmod(csfd, 0700))
+		pexit("Failed to change console-socket permissions");
+	/* XXX: This should be handled with a rename(2). */
+	if (unlink(csname) < 0)
+		pexit("Failed to unlink temporary ranom path");
+	if (bind(csfd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+		pexit("Failed to bind to console-socket");
+	if (listen(csfd, 128) < 0)
+		pexit("Failed to listen on console-socket");
+
+	return g_strdup(csname);
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
@@ -791,17 +828,16 @@ int main(int argc, char *argv[])
 	_cleanup_free_ char *default_pid_file = NULL;
 	_cleanup_free_ char *attach_sock_path = NULL;
 	_cleanup_free_ char *ctl_fifo_path = NULL;
+	_cleanup_free_ char *csname = NULL;
 	GError *err = NULL;
 	_cleanup_free_ char *contents = NULL;
 	int cpid = -1;
 	int status;
 	pid_t pid, main_pid, create_pid;
-	_cleanup_close_ int csfd = -1;
 	/* Used for !terminal cases. */
 	int slavefd_stdin = -1;
 	int slavefd_stdout = -1;
 	int slavefd_stderr = -1;
-	char csname[PATH_MAX] = "/tmp/conmon-term.XXXXXXXX";
 	char buf[BUF_SIZE];
 	int num_read;
 	int sync_pipe_fd = -1;
@@ -912,36 +948,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (opt_terminal) {
-		struct sockaddr_un addr = {0};
-
-		/*
-		 * Generate a temporary name. Is this unsafe? Probably, but we can
-		 * replace it with a rename(2) setup if necessary.
-		 */
-
-		int unusedfd = g_mkstemp(csname);
-		if (unusedfd < 0)
-			pexit("Failed to generate random path for console-socket");
-		close(unusedfd);
-
-		addr.sun_family = AF_UNIX;
-		strncpy(addr.sun_path, csname, sizeof(addr.sun_path)-1);
-
-		ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", addr.sun_path);
-
-		/* Bind to the console socket path. */
-		csfd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
-		if (csfd < 0)
-			pexit("Failed to create console-socket");
-		if (fchmod(csfd, 0700))
-			pexit("Failed to change console-socket permissions");
-		/* XXX: This should be handled with a rename(2). */
-		if (unlink(csname) < 0)
-			pexit("Failed to unlink temporary ranom path");
-		if (bind(csfd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
-			pexit("Failed to bind to console-socket");
-		if (listen(csfd, 128) < 0)
-			pexit("Failed to listen on console-socket");
+		csname = setup_console_socket();
 	} else {
 
 		/*
@@ -1001,7 +1008,7 @@ int main(int argc, char *argv[])
 			 NULL);
 	}
 
-	if (opt_terminal) {
+	if (csname != NULL) {
 		add_argv(runtime_argv,
 			 "--console-socket", csname,
 			 NULL);
@@ -1059,7 +1066,7 @@ int main(int argc, char *argv[])
 	close(slavefd_stderr);
 
 	ninfo("about to waitpid: %d", create_pid);
-	if (opt_terminal) {
+	if (csname != NULL) {
 		guint terminal_watch = g_unix_fd_add (csfd, G_IO_IN, terminal_accept_cb, csname);
 		g_child_watch_add (create_pid, runtime_exit_cb, NULL);
 		g_main_loop_run (main_loop);
