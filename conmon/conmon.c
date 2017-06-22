@@ -892,6 +892,33 @@ static void setup_terminal_control_fifo()
 	ninfo("ctlfd: %d", ctlfd);
 }
 
+static void setup_oom_handling(int cpid)
+{
+	/* Setup OOM notification for container process */
+	_cleanup_free_ char *memory_cgroup_path = process_cgroup_subsystem_path(cpid, "memory");
+	if (!memory_cgroup_path) {
+		nexit("Failed to get memory cgroup path");
+	}
+
+	_cleanup_free_ char *memory_cgroup_file_path = g_build_filename(memory_cgroup_path, "cgroup.event_control", NULL);
+
+	if ((cfd = open(memory_cgroup_file_path, O_WRONLY | O_CLOEXEC)) == -1) {
+		nwarn("Failed to open %s", memory_cgroup_file_path);
+		return;
+	}
+
+	_cleanup_free_ char *memory_cgroup_file_oom_path = g_build_filename(memory_cgroup_path, "memory.oom_control", NULL);
+	if ((ofd = open(memory_cgroup_file_oom_path, O_RDONLY | O_CLOEXEC)) == -1)
+		pexit("Failed to open %s", memory_cgroup_file_oom_path);
+
+	if ((oom_efd = eventfd(0, EFD_CLOEXEC)) == -1)
+		pexit("Failed to create eventfd");
+
+	_cleanup_free_ char *data = g_strdup_printf("%d %d", oom_efd, ofd);
+	if (write_all(cfd, data, strlen(data)) < 0)
+		pexit("Failed to write to cgroup.event_control");
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
@@ -917,9 +944,6 @@ int main(int argc, char *argv[])
 	_cleanup_close_ int dev_null_r = -1;
 	_cleanup_close_ int dev_null_w = -1;
 	int fds[2];
-
-	_cleanup_free_ char *memory_cgroup_path = NULL;
-	int wb;
 
 	main_loop = g_main_loop_new (NULL, FALSE);
 
@@ -1194,31 +1218,7 @@ int main(int argc, char *argv[])
 		write_sync_fd(sync_pipe_fd, cpid, NULL);
 	}
 
-	/* Setup OOM notification for container process */
-	memory_cgroup_path = process_cgroup_subsystem_path(cpid, "memory");
-	if (!memory_cgroup_path) {
-		nexit("Failed to get memory cgroup path");
-	}
-
-	bool oom_handling_enabled = true;
-	_cleanup_free_ char *memory_cgroup_file_path = g_build_filename(memory_cgroup_path, "cgroup.event_control", NULL);
-	if ((cfd = open(memory_cgroup_file_path, O_WRONLY | O_CLOEXEC)) == -1) {
-		nwarn("Failed to open %s", memory_cgroup_file_path);
-		oom_handling_enabled = false;
-	}
-
-	if (oom_handling_enabled) {
-		_cleanup_free_ char *memory_cgroup_file_oom_path = g_build_filename(memory_cgroup_path, "memory.oom_control", NULL);
-		if ((ofd = open(memory_cgroup_file_oom_path, O_RDONLY | O_CLOEXEC)) == -1)
-			pexit("Failed to open %s", memory_cgroup_file_oom_path);
-
-		if ((oom_efd = eventfd(0, EFD_CLOEXEC)) == -1)
-			pexit("Failed to create eventfd");
-
-		wb = snprintf(buf, BUF_SIZE, "%d %d", oom_efd, ofd);
-		if (write_all(cfd, buf, wb) < 0)
-			pexit("Failed to write to cgroup.event_control");
-	}
+	setup_oom_handling(cpid);
 
 	if (masterfd_stdout >= 0) {
 		g_unix_fd_add (masterfd_stdout, G_IO_IN, stdio_cb, GINT_TO_POINTER(STDOUT_PIPE));
@@ -1230,7 +1230,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Add the OOM event fd to epoll */
-	if (oom_handling_enabled) {
+	if (oom_efd >= 0) {
 		g_unix_fd_add (oom_efd, G_IO_IN, oom_cb, NULL);
 	}
 
