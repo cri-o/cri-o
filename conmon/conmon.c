@@ -479,14 +479,11 @@ static int conn_sock = -1;
 static int conn_sock_readable;
 static int conn_sock_writable;
 
-static int logfd = -1;
-static int oom_efd = -1;
-static int afd = -1;
-static int cfd = -1;
-/* Used for OOM notification API */
-static int ofd = -1;
-static int csfd = -1;
-static int ctlfd = -1;
+static int log_fd = -1;
+static int oom_event_fd = -1;
+static int attach_socket_fd = -1;
+static int console_socket_fd = -1;
+static int terminal_ctrl_fd = -1;
 
 static bool timed_out = FALSE;
 
@@ -525,7 +522,7 @@ static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 		}
 
 		if (num_read > 0) {
-			if (write_k8s_log(logfd, pipe, buf, num_read) < 0) {
+			if (write_k8s_log(log_fd, pipe, buf, num_read) < 0) {
 				nwarn("write_k8s_log failed");
 				return G_SOURCE_CONTINUE;
 			}
@@ -588,7 +585,7 @@ static gboolean oom_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer us
 
 	/* End of input */
 	close (fd);
-	oom_efd = -1;
+	oom_event_fd = -1;
 	return G_SOURCE_REMOVE;
 }
 
@@ -713,7 +710,7 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	int connfd = -1;
 	struct termios tset;
 
-	ninfo("about to accept from csfd: %d", fd);
+	ninfo("about to accept from console_socket_fd: %d", fd);
 	connfd = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
 	if (connfd < 0) {
 		nwarn("Failed to accept console-socket connection");
@@ -806,17 +803,17 @@ static char *setup_console_socket(void)
 	ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", addr.sun_path);
 
 	/* Bind to the console socket path. */
-	csfd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
-	if (csfd < 0)
+	console_socket_fd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
+	if (console_socket_fd < 0)
 		pexit("Failed to create console-socket");
-	if (fchmod(csfd, 0700))
+	if (fchmod(console_socket_fd, 0700))
 		pexit("Failed to change console-socket permissions");
 	/* XXX: This should be handled with a rename(2). */
 	if (unlink(csname) < 0)
 		pexit("Failed to unlink temporary ranom path");
-	if (bind(csfd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+	if (bind(console_socket_fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
 		pexit("Failed to bind to console-socket");
-	if (listen(csfd, 128) < 0)
+	if (listen(console_socket_fd, 128) < 0)
 		pexit("Failed to listen on console-socket");
 
 	return g_strdup(csname);
@@ -851,17 +848,17 @@ static char *setup_attach_socket(void)
 	 * before the server gets a chance to call accept. In that scenario, the server
 	 * accept blocks till a new client connection comes in.
 	 */
-	afd = socket(AF_UNIX, SOCK_SEQPACKET|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
-	if (afd == -1)
+	attach_socket_fd = socket(AF_UNIX, SOCK_SEQPACKET|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+	if (attach_socket_fd == -1)
 		pexit("Failed to create attach socket");
 
-	if (fchmod(afd, 0700))
+	if (fchmod(attach_socket_fd, 0700))
 		pexit("Failed to change attach socket permissions");
 
-	if (bind(afd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
+	if (bind(attach_socket_fd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
 		pexit("Failed to bind attach socket: %s", attach_sock_path);
 
-	if (listen(afd, 10) == -1)
+	if (listen(attach_socket_fd, 10) == -1)
 		pexit("Failed to listen on attach socket: %s", attach_sock_path);
 
 	return attach_symlink_dir_path;
@@ -877,8 +874,8 @@ static void setup_terminal_control_fifo()
 	if (mkfifo(ctl_fifo_path, 0666) == -1)
 		pexit("Failed to mkfifo at %s", ctl_fifo_path);
 
-	ctlfd = open(ctl_fifo_path, O_RDONLY|O_NONBLOCK|O_CLOEXEC);
-	if (ctlfd == -1)
+	terminal_ctrl_fd = open(ctl_fifo_path, O_RDONLY|O_NONBLOCK|O_CLOEXEC);
+	if (terminal_ctrl_fd == -1)
 		pexit("Failed to open control fifo");
 
 	/*
@@ -889,13 +886,15 @@ static void setup_terminal_control_fifo()
 	if (dummyfd == -1)
 		pexit("Failed to open dummy writer for fifo");
 
-	ninfo("ctlfd: %d", ctlfd);
+	ninfo("terminal_ctrl_fd: %d", terminal_ctrl_fd);
 }
 
 static void setup_oom_handling(int cpid)
 {
 	/* Setup OOM notification for container process */
 	_cleanup_free_ char *memory_cgroup_path = process_cgroup_subsystem_path(cpid, "memory");
+	_cleanup_close_ int cfd = -1;
+	int ofd = -1; /* Not closed */
 	if (!memory_cgroup_path) {
 		nexit("Failed to get memory cgroup path");
 	}
@@ -911,10 +910,10 @@ static void setup_oom_handling(int cpid)
 	if ((ofd = open(memory_cgroup_file_oom_path, O_RDONLY | O_CLOEXEC)) == -1)
 		pexit("Failed to open %s", memory_cgroup_file_oom_path);
 
-	if ((oom_efd = eventfd(0, EFD_CLOEXEC)) == -1)
+	if ((oom_event_fd = eventfd(0, EFD_CLOEXEC)) == -1)
 		pexit("Failed to create eventfd");
 
-	_cleanup_free_ char *data = g_strdup_printf("%d %d", oom_efd, ofd);
+	_cleanup_free_ char *data = g_strdup_printf("%d %d", oom_event_fd, ofd);
 	if (write_all(cfd, data, strlen(data)) < 0)
 		pexit("Failed to write to cgroup.event_control");
 }
@@ -1027,8 +1026,8 @@ int main(int argc, char *argv[])
 	sync_pipe_fd = get_pipe_fd_from_env("_OCI_SYNCPIPE");
 
 	/* Open the log path file. */
-	logfd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
-	if (logfd < 0)
+	log_fd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
+	if (log_fd < 0)
 		pexit("Failed to open log file");
 
 	/*
@@ -1160,7 +1159,7 @@ int main(int argc, char *argv[])
 
 	ninfo("about to waitpid: %d", create_pid);
 	if (csname != NULL) {
-		guint terminal_watch = g_unix_fd_add (csfd, G_IO_IN, terminal_accept_cb, csname);
+		guint terminal_watch = g_unix_fd_add (console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
 		g_child_watch_add (create_pid, runtime_exit_cb, NULL);
 		g_main_loop_run (main_loop);
 		g_source_remove (terminal_watch);
@@ -1230,18 +1229,18 @@ int main(int argc, char *argv[])
 	}
 
 	/* Add the OOM event fd to epoll */
-	if (oom_efd >= 0) {
-		g_unix_fd_add (oom_efd, G_IO_IN, oom_cb, NULL);
+	if (oom_event_fd >= 0) {
+		g_unix_fd_add (oom_event_fd, G_IO_IN, oom_cb, NULL);
 	}
 
 	/* Add the attach socket to epoll */
-	if (afd > 0) {
-		g_unix_fd_add (afd, G_IO_IN, attach_cb, NULL);
+	if (attach_socket_fd > 0) {
+		g_unix_fd_add (attach_socket_fd, G_IO_IN, attach_cb, NULL);
 	}
 
 	/* Add control fifo fd to epoll */
-	if (ctlfd > 0) {
-		g_unix_fd_add (ctlfd, G_IO_IN, ctrl_cb, NULL);
+	if (terminal_ctrl_fd > 0) {
+		g_unix_fd_add (terminal_ctrl_fd, G_IO_IN, ctrl_cb, NULL);
 	}
 
 	if (opt_timeout > 0) {
