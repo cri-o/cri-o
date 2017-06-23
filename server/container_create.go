@@ -532,6 +532,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	specgen.AddAnnotation(annotations.Name, containerName)
+	specgen.AddAnnotation(annotations.ContainerID, containerID)
 	specgen.AddAnnotation(annotations.SandboxID, sb.id)
 	specgen.AddAnnotation(annotations.SandboxName, sb.infraContainer.Name())
 	specgen.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeContainer)
