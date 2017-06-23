@@ -714,12 +714,15 @@ func (g *Generator) ClearPreStartHooks() {
 	if g.spec == nil {
 		return
 	}
+	if g.spec.Hooks == nil {
+		return
+	}
 	g.spec.Hooks.Prestart = []rspec.Hook{}
 }
 
 // AddPreStartHook add a prestart hook into g.spec.Hooks.Prestart.
 func (g *Generator) AddPreStartHook(path string, args []string) {
-	g.initSpec()
+	g.initSpecHooks()
 	hook := rspec.Hook{Path: path, Args: args}
 	g.spec.Hooks.Prestart = append(g.spec.Hooks.Prestart, hook)
 }
@@ -729,12 +732,15 @@ func (g *Generator) ClearPostStopHooks() {
 	if g.spec == nil {
 		return
 	}
+	if g.spec.Hooks == nil {
+		return
+	}
 	g.spec.Hooks.Poststop = []rspec.Hook{}
 }
 
 // AddPostStopHook adds a poststop hook into g.spec.Hooks.Poststop.
 func (g *Generator) AddPostStopHook(path string, args []string) {
-	g.initSpec()
+	g.initSpecHooks()
 	hook := rspec.Hook{Path: path, Args: args}
 	g.spec.Hooks.Poststop = append(g.spec.Hooks.Poststop, hook)
 }
@@ -744,12 +750,15 @@ func (g *Generator) ClearPostStartHooks() {
 	if g.spec == nil {
 		return
 	}
+	if g.spec.Hooks == nil {
+		return
+	}
 	g.spec.Hooks.Poststart = []rspec.Hook{}
 }
 
 // AddPostStartHook adds a poststart hook into g.spec.Hooks.Poststart.
 func (g *Generator) AddPostStartHook(path string, args []string) {
-	g.initSpec()
+	g.initSpecHooks()
 	hook := rspec.Hook{Path: path, Args: args}
 	g.spec.Hooks.Poststart = append(g.spec.Hooks.Poststart, hook)
 }
