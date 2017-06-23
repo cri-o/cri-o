@@ -62,7 +62,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			return nil, err
 		}
 		cStatus := s.runtime.ContainerStatus(c)
-		if cStatus.Status != oci.ContainerStateStopped {
+		if cStatus.Status == oci.ContainerStateRunning {
 			if err := s.runtime.StopContainer(c, -1); err != nil {
 				return nil, fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
 			}

@@ -21,7 +21,7 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		return nil, err
 	}
 	cStatus := s.runtime.ContainerStatus(c)
-	if cStatus.Status != oci.ContainerStateStopped {
+	if cStatus.Status == oci.ContainerStateRunning {
 		if err := s.runtime.StopContainer(c, req.Timeout); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 		}
