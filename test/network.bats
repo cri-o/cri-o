@@ -67,3 +67,31 @@ load helpers
 	cleanup_pods
 	stop_crio
 }
+
+@test "Connect to pod hostport from the host" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config_hostport.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	get_host_ip
+	echo $host_ip
+
+	run crioctl ctr create --config "$TESTDATA"/container_config_hostport.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run nc -w 5 $host_ip 4888
+	echo "$output"
+	[ "$output" = "crioctl_host" ]
+	[ "$status" -eq 0 ]
+	run crioctl ctr stop --id "$ctr_id"
+	echo "$output"
+	cleanup_pods
+
+	stop_crio
+}

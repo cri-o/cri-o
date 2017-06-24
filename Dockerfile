@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     libdevmapper1.02.1 \
     libdevmapper-dev \
     libgpgme11-dev \
+    netcat \
     --no-install-recommends \
     && apt-get clean
 

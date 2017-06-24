@@ -16,22 +16,7 @@
 			"8.8.8.8"
 		]
 	},
-	"port_mappings": [
-		{
-			"name": "port_map1",
-			"protocol": 1,
-			"container_port": 80,
-			"host_port": 4888,
-			"host_ip": "192.168.0.33"
-		},
-		{
-			"name": "port_map2",
-			"protocol": 2,
-			"container_port": 81,
-			"host_port": 4889,
-			"host_ip": "192.168.0.33"
-		}
-	],
+	"port_mappings": [],
 	"resources": {
 		"cpu": {
 			"limits": 3,

@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -19,7 +20,9 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
+	"k8s.io/kubernetes/pkg/api/v1"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 )
 
 // privilegedSandbox returns true if the sandbox configuration
@@ -317,6 +320,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	created := time.Now()
 	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
+	portMappings := convertPortMappings(req.GetConfig().GetPortMappings())
+
 	sb := &sandbox{
 		id:           id,
 		namespace:    namespace,
@@ -334,6 +339,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		trusted:      trusted,
 		resolvPath:   resolvPath,
 		hostname:     hostname,
+		portMappings: portMappings,
 	}
 
 	s.addSandbox(sb)
@@ -469,6 +475,28 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err = s.netPlugin.SetUpPod(netNsPath, namespace, kubeName, id); err != nil {
 			return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
 		}
+
+		if len(portMappings) != 0 {
+			ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, namespace, id, containerName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get network status for container %s in sandbox %s: %v", containerName, id, err)
+			}
+
+			ip4 := net.ParseIP(ip).To4()
+			if ip4 == nil {
+				return nil, fmt.Errorf("failed to get valid ipv4 address for container %s in sandbox %s", containerName, id)
+			}
+
+			if err = s.hostportManager.Add(id, &hostport.PodPortMapping{
+				Name:         name,
+				PortMappings: portMappings,
+				IP:           ip4,
+				HostNetwork:  false,
+			}, "lo"); err != nil {
+				return nil, fmt.Errorf("failed to add hostport mapping for container %s in sandbox %s: %v", containerName, id, err)
+			}
+
+		}
 	}
 
 	if err = s.runContainer(container, sb.cgroupParent); err != nil {
@@ -480,6 +508,22 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
 	return resp, nil
+}
+
+func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
+	if in == nil {
+		return nil
+	}
+	out := make([]*hostport.PortMapping, len(in))
+	for i, v := range in {
+		out[i] = &hostport.PortMapping{
+			HostPort:      v.HostPort,
+			ContainerPort: v.ContainerPort,
+			Protocol:      v1.Protocol(v.Protocol.String()),
+			HostIP:        v.HostIp,
+		}
+	}
+	return out
 }
 
 func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
