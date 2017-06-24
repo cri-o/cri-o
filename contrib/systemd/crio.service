@@ -16,6 +16,7 @@ TasksMax=8192
 LimitNOFILE=1048576
 LimitNPROC=1048576
 LimitCORE=infinity
+OOMScoreAdjust=-999
 TimeoutStartSec=0
 Restart=on-abnormal
 
