@@ -63,7 +63,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		config.StorageOptions = ctx.GlobalStringSlice("storage-opt")
 	}
 	if ctx.GlobalIsSet("insecure-registry") {
-		config.InsecureRegistries = ctx.GlobalStringSlice("insecure-registries")
+		config.InsecureRegistries = ctx.GlobalStringSlice("insecure-registry")
 	}
 	if ctx.GlobalIsSet("default-transport") {
 		config.DefaultTransport = ctx.GlobalString("default-transport")
