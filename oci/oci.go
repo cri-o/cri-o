@@ -140,7 +140,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	if r.cgroupManager == "systemd" {
 		args = append(args, "-s")
 	}
-	args = append(args, "-c", c.name)
+	args = append(args, "-c", c.id)
 	args = append(args, "-u", c.id)
 	args = append(args, "-r", r.Path(c))
 	args = append(args, "-b", c.bundlePath)
@@ -184,8 +184,8 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	// Move conmon to specified cgroup
 	if cgroupParent != "" {
 		if r.cgroupManager == "systemd" {
-			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio", c.name))
-			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("crio", c.name)); err != nil {
+			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
+			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
 				logrus.Warnf("Failed to add conmon to sandbox cgroup: %v", err)
 			}
 		}
@@ -247,7 +247,7 @@ func createUnitName(prefix string, name string) string {
 func (r *Runtime) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "start", c.name); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "start", c.id); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -341,7 +341,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}()
 
-	logFile, err := ioutil.TempFile("", "crio-log-"+c.name)
+	logFile, err := ioutil.TempFile("", "crio-log-"+c.id)
 	if err != nil {
 		return nil, ExecSyncError{
 			ExitCode: -1,
@@ -364,7 +364,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	defer os.RemoveAll(f.Name())
 
 	var args []string
-	args = append(args, "-c", c.name)
+	args = append(args, "-c", c.id)
 	args = append(args, "-r", r.Path(c))
 	args = append(args, "-p", pidFile.Name())
 	args = append(args, "-e")
@@ -493,7 +493,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.name, c.GetStopSignal()); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.id, c.GetStopSignal()); err != nil {
 		return err
 	}
 	if timeout == -1 {
@@ -544,7 +544,7 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 func (r *Runtime) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	_, err := utils.ExecCmd(r.Path(c), "delete", "--force", c.name)
+	_, err := utils.ExecCmd(r.Path(c), "delete", "--force", c.id)
 	return err
 }
 
@@ -561,7 +561,7 @@ func (r *Runtime) SetStartFailed(c *Container, err error) {
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	out, err := exec.Command(r.Path(c), "state", c.name).CombinedOutput()
+	out, err := exec.Command(r.Path(c), "state", c.id).CombinedOutput()
 	if err != nil {
 		// there are many code paths that could lead to have a bad state in the
 		// underlying runtime.
@@ -575,7 +575,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 		return nil
 	}
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {
-		return fmt.Errorf("failed to decode container status for %s: %s", c.name, err)
+		return fmt.Errorf("failed to decode container status for %s: %s", c.id, err)
 	}
 
 	if c.state.Status == ContainerStateStopped {
