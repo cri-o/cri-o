@@ -101,7 +101,7 @@
       - /usr/local/go
   - name: install Golang upstream in CentOS
     shell: |
-            curl -fsSL "https://golang.org/dl/go1.8.1.linux-amd64.tar.gz" \
+            curl -fsSL "https://golang.org/dl/go1.8.3.linux-amd64.tar.gz" \
             | tar -xzC /usr/local
     when: ansible_distribution == 'CentOS'
   - name: Set custom Golang path for CentOS
@@ -308,11 +308,81 @@
     git:
       repo: https://github.com/runcom/kubernetes
       dest: /root/src/k8s.io/kubernetes
-      # based on kube upstream v1.7.4
+      # based on kube upstream v1.7.5
       version: cri-o-node-e2e-patched
       force: yes
     async: 600
     poll: 10
+  - name: Add custom cluster service file for the e2e testing
+    copy:
+      dest: /etc/systemd/system/customcluster.service
+      content: |
+        [Unit]
+        After=network-online.target
+        Wants=network-online.target
+        [Service]
+        ExecStart=/usr/local/bin/createcluster.sh
+        User=root
+        [Install]
+        WantedBy=multi-user.target
+
+  - name: Add create cluster background script for e2e testing
+    copy:
+      dest: /usr/local/bin/createcluster.sh
+      content: |
+        #!/bin/bash
+
+        export PATH=/usr/local/go/bin:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/root/bin:/usr/local/go/bin:/root/go-tools/bin:/root/src/k8s.io/kubernetes/third_party/etcd
+        export GOPATH=/root/go-tools
+        cd /root/src/k8s.io/kubernetes
+        export CONTAINER_RUNTIME=remote
+        export CGROUP_DRIVER=systemd
+        export CONTAINER_RUNTIME_ENDPOINT='/var/run/crio.sock --runtime-request-timeout=5m'
+        export ALLOW_SECURITY_CONTEXT=","
+        export ALLOW_PRIVILEGED=1
+        export DNS_SERVER_IP={{ ansible_default_ipv4.address }}
+        export API_HOST={{ ansible_default_ipv4.address }}
+        export API_HOST_IP={{ ansible_default_ipv4.address }}
+        export KUBE_ENABLE_CLUSTER_DNS=true
+        hack/local-up-cluster.sh
+  - name: Add path to bashrc files
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export PATH=/tmp/mybin:$PATH:/usr/local/go/bin:/root/go-tools/bin:/root/src/k8s.io/kubernetes/third_party/etcd'
+      insertafter: 'EOF'
+      regexp: 'export PATH=/tmp/mybin:\$PATH:/usr/local/go/bin:/root/go-tools/bin:/root/src/k8s.io/kubernetes/third_party/etcd'
+      state: present
+  - name: Add gopath to bashrc files
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export GOPATH=/root/go-tools'
+      insertafter: 'EOF'
+      regexp: 'export GOPATH=/root/go-tools'
+      state: present
+  - name: Source the bash rc file
+    shell: source /root/.bashrc
+  - name: Get godep
+    shell: go get -u github.com/tools/godep
+    async: 600
+    poll: 10
+  - name: Install etcd
+    command: hack/install-etcd.sh
+    args:
+      chdir: /root/src/k8s.io/kubernetes
+    async: 600
+    poll: 10
+  - name: Install necessary github go packages
+    shell: go get github.com/onsi/ginkgo/ginkgo ; go get github.com/onsi/gomega ; go get -u github.com/cloudflare/cfssl/cmd/...
+    args:
+      chdir: /root/src/k8s.io/kubernetes
+    async: 600
+    poll: 10
+  - name: Make testing output verbose so it can be converted to xunit
+    lineinfile:
+      dest: /root/src/k8s.io/kubernetes/hack/make-rules/test.sh
+      line: ' go test -v "${goflags[@]:+${goflags[@]}}" \'
+      regexp: ' go test \"\$'
+      state: present
   - name: make and install CRI-O
     shell: |
             make install.tools && \
@@ -373,12 +443,6 @@
       chdir: /root/src/k8s.io/kubernetes
     async: 600
     poll: 10
-  - name: Install etcd
-    command: hack/install-etcd.sh
-    args:
-      chdir: /root/src/k8s.io/kubernetes
-    async: 600
-    poll: 10
   - name: Install necessary github go packages
     shell: go get github.com/onsi/ginkgo/ginkgo ; go get github.com/onsi/gomega ; go get -u github.com/cloudflare/cfssl/cmd/...
     args:
@@ -392,28 +456,64 @@
       insertafter: 'EOF'
       regexp: 'export PATH=\$PATH:/root/src/k8s.io/kubernetes/third_party/etcd'
       state: present
-  - name: gather correct hostname
-    shell: |
-            cat /etc/hostname
-    register: hostname
   - name: inject hostname into /etc/hosts
     lineinfile:
       dest: /etc/hosts
-      line: '127.0.0.1 {{ hostname.stdout }}'
+      line: '{{ ansible_default_ipv4.address }} {{ ansible_nodename }}'
       insertafter: 'EOF'
-      regexp: '127\.0\.0\.1\s+{{ hostname.stdout }}'
+      regexp: '{{ ansible_default_ipv4.address }}\s+{{ ansible_nodename }}'
       state: present
   - name: Flush the iptables
     command: iptables -F
-    async: 600
-    poll: 10
-  - name: run k8s tests
+  - name: Make clean
+    make:
+      target: clean
+      chdir: /root/src/k8s.io/kubernetes
+  - name: Make
+    make:
+      chdir: /root/src/k8s.io/kubernetes
+  - name: Set kubernetes_provider to be local
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export KUBERNETES_PROVIDER=local'
+      insertafter: 'EOF'
+      regexp: 'export KUBERNETES_PROVIDER=local'
+      state: present
+  - name: Set KUBECONFIG
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export KUBECONFIG=/var/run/kubernetes/admin.kubeconfig'
+      insertafter: 'EOF'
+      regexp: 'export KUBECONFIG=/var/run/kubernetes/admin.kubeconfig'
+      state: present
+  - name: Source the bash rc file
+    shell: source /root/.bashrc
+  - name: Make the create cluster script executable
+    file:
+      path: /usr/local/bin/createcluster.sh
+      mode: a+x
+  - name: Reload daemons to make custom cluster available
+    shell: systemctl daemon-reload
+  - name: Bring up the cluster
+    service:
+      name: customcluster.service
+      state: started
+      enabled: yes
+  - name: Give the cluster time to initialize
+    pause: minutes=5
+  - name: Flush the iptables
+    command: iptables -F
+  # XXX: The task below is running kube e2e not kube node-e2e!!!
+  #      The reason behind calling the file node-e2e.log is because the internal
+  #      RH CI looks for a file named like that and would require otherwise a
+  #      change to the CI itself (not doable in this playbook) to look for just
+  #      "e2e.log"..
+  #      So, we'll change it to "e2e.log", some day...
+  - name: run e2e tests
     shell: |
-            make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio.sock TEST_ARGS='--prepull-images=true --kubelet-flags="--cgroup-driver=systemd"' FOCUS="\[Conformance\]" 2>&1 > node-e2e.log
+      go run hack/e2e.go -v --test -test_args="-host=https://{{ ansible_default_ipv4.address }}:6443 --ginkgo.focus=\[Conformance\]" >> node-e2e.log
     args:
       chdir: /root/src/k8s.io/kubernetes
     async: 7200
     poll: 10
-    ignore_errors: true
-    # XXX: tests on RHEL/CentOS are unreliable fow now
-    when: ansible_distribution == 'Fedora' or ansible_distribution == 'RedHat'
+    ignore_errors: yes
