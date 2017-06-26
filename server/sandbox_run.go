@@ -25,6 +25,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 )
 
+const (
+	// PodInfraOOMAdj is the value that we set for oom score adj for
+	// the pod infra container.
+	// TODO: Remove this const once this value is provided over CRI
+	// See https://github.com/kubernetes/kubernetes/issues/47938
+	PodInfraOOMAdj int = -998
+)
+
 // privilegedSandbox returns true if the sandbox configuration
 // requires additional host privileges for the sandbox.
 func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
@@ -392,6 +400,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			sb.cgroupParent = cgroupParent
 		}
 	}
+
+	// Set OOM score adjust of the infra container to be very low
+	// so it doesn't get killed.
+	g.SetLinuxResourcesOOMScoreAdj(PodInfraOOMAdj)
 
 	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
 
