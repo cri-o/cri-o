@@ -372,6 +372,12 @@ func (a *Driver) Diff(id, parent string) (archive.Archive, error) {
 	})
 }
 
+// AdditionalImageStores returns additional image stores supported by the driver
+func (a *Driver) AdditionalImageStores() []string {
+	var imageStores []string
+	return imageStores
+}
+
 type fileGetNilCloser struct {
 	storage.FileGetter
 }

@@ -518,3 +518,9 @@ func (d *Driver) Exists(id string) bool {
 	_, err := os.Stat(dir)
 	return err == nil
 }
+
+// AdditionalImageStores returns additional image stores supported by the driver
+func (d *Driver) AdditionalImageStores() []string {
+	var imageStores []string
+	return imageStores
+}

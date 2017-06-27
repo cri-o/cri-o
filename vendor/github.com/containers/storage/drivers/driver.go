@@ -74,6 +74,8 @@ type ProtoDriver interface {
 	// held by the driver, e.g., unmounting all layered filesystems
 	// known to this driver.
 	Cleanup() error
+	// AdditionalImageStores returns additional image stores supported by the driver
+	AdditionalImageStores() []string
 }
 
 // Driver is the interface for layered/snapshot file system drivers.
