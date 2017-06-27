@@ -6,7 +6,6 @@ import (
 	"io"
 	"os/exec"
 	"strings"
-	"syscall"
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/godbus/dbus"
@@ -42,15 +41,6 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, name strin
 	}
 
 	return nil
-}
-
-// Prctl is a way to make the prctl linux syscall
-func Prctl(option int, arg2, arg3, arg4, arg5 uintptr) (err error) {
-	_, _, e1 := syscall.Syscall6(syscall.SYS_PRCTL, uintptr(option), arg2, arg3, arg4, arg5, 0)
-	if e1 != 0 {
-		err = e1
-	}
-	return
 }
 
 // StatusToExitCode converts wait status code to an exit code
