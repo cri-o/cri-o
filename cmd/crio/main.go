@@ -9,13 +9,13 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
-	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/urfave/cli"
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
@@ -117,13 +117,13 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 
 func catchShutdown(gserver *grpc.Server, sserver *server.Server, signalled *bool) {
 	sig := make(chan os.Signal, 10)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sig, unix.SIGINT, unix.SIGTERM)
 	go func() {
 		for s := range sig {
 			switch s {
-			case syscall.SIGINT:
+			case unix.SIGINT:
 				logrus.Debugf("Caught SIGINT")
-			case syscall.SIGTERM:
+			case unix.SIGTERM:
 				logrus.Debugf("Caught SIGTERM")
 			default:
 				continue

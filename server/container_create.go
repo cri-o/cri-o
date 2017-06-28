@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -25,6 +24,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
@@ -60,7 +60,7 @@ func addOCIBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen 
 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
-			if err := label.Relabel(src, sb.mountLabel, true); err != nil && err != syscall.ENOTSUP {
+			if err := label.Relabel(src, sb.mountLabel, true); err != nil && err != unix.ENOTSUP {
 				return fmt.Errorf("relabel failed %s: %v", src, err)
 			}
 		}
