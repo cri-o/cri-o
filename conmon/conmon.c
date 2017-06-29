@@ -553,8 +553,9 @@ static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 {
 	stdpipe_t pipe = GPOINTER_TO_INT(user_data);
-	bool did_read = false;
 	bool read_eof = false;
+	bool has_input = (condition & G_IO_IN) != 0;
+	bool has_hup = (condition & G_IO_HUP) != 0;
 
 	/* When we get here, condition can be G_IO_IN and/or G_IO_HUP.
 	   IN means there is some data to read.
@@ -565,16 +566,22 @@ static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 	   opens the tty */
 
 	/* Read any data before handling hup */
-	if ((condition & G_IO_IN) != 0) {
-		did_read = true;
+	if (has_input) {
 		read_stdio(fd, pipe, &read_eof);
 	}
 
-	if ((condition & G_IO_HUP) && opt_terminal && (read_eof || !did_read)) {
-		/* We got a HUP from the terminal, this means there
+	if (has_hup && opt_terminal && pipe == STDOUT_PIPE) {
+		/* We got a HUP from the terminal master this means there
 		   are no open slaves ptys atm, and we will get a lot
 		   of wakeups until we have one, switch to polling
 		   mode. */
+
+		/* If we read some data this cycle, wait one more, maybe there
+		   is more in the buffer before we handle the hup */
+		if (has_input && !read_eof) {
+			return G_SOURCE_CONTINUE;
+		}
+
 		if (!tty_hup_timeout_scheduled) {
 			g_timeout_add (100, tty_hup_timeout_cb, NULL);
 		}
@@ -582,7 +589,7 @@ static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 		return G_SOURCE_REMOVE;
 	}
 
-	if (read_eof) {
+	if (read_eof || (has_hup && !has_input)) {
 		/* End of input */
 		if (pipe == STDOUT_PIPE)
 			masterfd_stdout = -1;
@@ -591,9 +598,9 @@ static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 
 		close (fd);
 		return G_SOURCE_REMOVE;
-	} else {
-		return G_SOURCE_CONTINUE;
 	}
+
+	return G_SOURCE_CONTINUE;
 }
 
 static gboolean timeout_cb (G_GNUC_UNUSED gpointer user_data)
