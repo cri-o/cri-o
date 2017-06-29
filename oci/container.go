@@ -177,3 +177,10 @@ func (c *Container) NetNsPath() (string, error) {
 func (c *Container) Metadata() *pb.ContainerMetadata {
 	return c.metadata
 }
+
+// State returns the state of the running container
+func (c *Container) State() *ContainerState {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	return c.state
+}

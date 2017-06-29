@@ -70,7 +70,7 @@ func TestGetSize(t *testing.T) {
 		t.Fatalf("Error reading images: %v", err)
 	}
 
-	_, err = getSize(images[0], store)
+	_, err = getImageSize(images[0], store)
 	if err != nil {
 		t.Error(err)
 	}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -78,6 +77,35 @@ func getStore(c *cli.Context) (storage.Store, error) {
 	return store, nil
 }
 
+func parseMetadata(image storage.Image) (imageMetadata, error) {
+	var im imageMetadata
+
+	dec := json.NewDecoder(strings.NewReader(image.Metadata))
+	if err := dec.Decode(&im); err != nil {
+		return imageMetadata{}, err
+	}
+	return im, nil
+}
+
+func findImage(store storage.Store, image string) (*storage.Image, error) {
+	var img *storage.Image
+	ref, err := is.Transport.ParseStoreReference(store, image)
+	if err == nil {
+		img, err = is.Transport.GetStoreImage(store, ref)
+	}
+	if err != nil {
+		img2, err2 := store.Image(image)
+		if err2 != nil {
+			if ref == nil {
+				return nil, errors.Wrapf(err, "error parsing reference to image %q", image)
+			}
+			return nil, errors.Wrapf(err, "unable to locate image %q", image)
+		}
+		img = img2
+	}
+	return img, nil
+}
+
 func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *dockerRegistryOptions, signing signingOptions) *cp.Options {
 	if srcDockerRegistry == nil {
 		srcDockerRegistry = &dockerRegistryOptions{}
@@ -96,33 +124,20 @@ func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDocke
 	}
 }
 
-func getPolicyContext(path string) (*signature.PolicyContext, error) {
-	policy, err := signature.DefaultPolicy(&types.SystemContext{SignaturePolicyPath: path})
+func findContainer(store storage.Store, container string) (*storage.Container, error) {
+	ctrStore, err := store.ContainerStore()
 	if err != nil {
 		return nil, err
 	}
-	return signature.NewPolicyContext(policy)
+	return ctrStore.Get(container)
 }
 
-func findImage(store storage.Store, image string) (*storage.Image, error) {
-	var img *storage.Image
-	ref, err := is.Transport.ParseStoreReference(store, image)
-	if err == nil {
-		img, err := is.Transport.GetStoreImage(store, ref)
-		if err != nil {
-			return nil, err
-		}
-		return img, nil
+func getContainerTopLayerID(store storage.Store, containerID string) (string, error) {
+	ctr, err := findContainer(store, containerID)
+	if err != nil {
+		return "", err
 	}
-	img2, err2 := store.Image(image)
-	if err2 != nil {
-		if ref == nil {
-			return nil, errors.Wrapf(err, "error parsing reference to image %q", image)
-		}
-		return nil, errors.Wrapf(err, "unable to locate image %q", image)
-	}
-	img = img2
-	return img, nil
+	return ctr.LayerID, nil
 }
 
 func getSystemContext(signaturePolicyPath string) *types.SystemContext {
@@ -133,37 +148,6 @@ func getSystemContext(signaturePolicyPath string) *types.SystemContext {
 	return sc
 }
 
-func parseMetadata(image storage.Image) (imageMetadata, error) {
-	var im imageMetadata
-
-	dec := json.NewDecoder(strings.NewReader(image.Metadata))
-	if err := dec.Decode(&im); err != nil {
-		return imageMetadata{}, err
-	}
-	return im, nil
-}
-
-func getSize(image storage.Image, store storage.Store) (int64, error) {
-
-	is.Transport.SetStore(store)
-	storeRef, err := is.Transport.ParseStoreReference(store, "@"+image.ID)
-	if err != nil {
-		fmt.Println(err)
-		return -1, err
-	}
-	img, err := storeRef.NewImage(nil)
-	if err != nil {
-		fmt.Println("Error with NewImage")
-		return -1, err
-	}
-	imgSize, err := img.Size()
-	if err != nil {
-		fmt.Println("Error getting size")
-		return -1, err
-	}
-	return imgSize, nil
-}
-
 func copyStringStringMap(m map[string]string) map[string]string {
 	n := map[string]string{}
 	for k, v := range m {
@@ -172,16 +156,140 @@ func copyStringStringMap(m map[string]string) map[string]string {
 	return n
 }
 
-func (o dockerRegistryOptions) getSystemContext(signaturePolicyPath string) *types.SystemContext {
-	sc := &types.SystemContext{
-		SignaturePolicyPath:         signaturePolicyPath,
-		DockerAuthConfig:            o.DockerRegistryCreds,
-		DockerCertPath:              o.DockerCertPath,
-		DockerInsecureSkipTLSVerify: o.DockerInsecureSkipTLSVerify,
+// A container FS is split into two parts.  The first is the top layer, a
+// mutable layer, and the rest is the RootFS: the set of immutable layers
+// that make up the image on which the container is based
+func getRootFsSize(store storage.Store, containerID string) (int64, error) {
+	ctrStore, err := store.ContainerStore()
+	if err != nil {
+		return 0, err
 	}
-	return sc
+	container, err := ctrStore.Get(containerID)
+	if err != nil {
+		return 0, err
+	}
+	lstore, err := store.LayerStore()
+	if err != nil {
+		return 0, err
+	}
+
+	// Ignore the size of the top layer.   The top layer is a mutable RW layer
+	// and is not considered a part of the rootfs
+	rwLayer, err := lstore.Get(container.LayerID)
+	if err != nil {
+		return 0, err
+	}
+	layer, err := lstore.Get(rwLayer.Parent)
+	if err != nil {
+		return 0, err
+	}
+
+	size := int64(0)
+	for layer.Parent != "" {
+		layerSize, err := lstore.DiffSize(layer.Parent, layer.ID)
+		if err != nil {
+			return size, errors.Wrapf(err, "getting diffsize of layer %q and its parent %q", layer.ID, layer.Parent)
+		}
+		size += layerSize
+		layer, err = lstore.Get(layer.Parent)
+		if err != nil {
+			return 0, err
+		}
+	}
+	// Get the size of the last layer.  Has to be outside of the loop
+	// because the parent of the last layer is "", andlstore.Get("")
+	// will return an error
+	layerSize, err := lstore.DiffSize(layer.Parent, layer.ID)
+	return size + layerSize, err
 }
 
+func getContainerRwSize(store storage.Store, containerID string) (int64, error) {
+	ctrStore, err := store.ContainerStore()
+	if err != nil {
+		return 0, err
+	}
+	container, err := ctrStore.Get(containerID)
+	if err != nil {
+		return 0, err
+	}
+	lstore, err := store.LayerStore()
+	if err != nil {
+		return 0, err
+	}
+
+	// Get the size of the top layer by calculating the size of the diff
+	// between the layer and its parent.  The top layer of a container is
+	// the only RW layer, all others are immutable
+	layer, err := lstore.Get(container.LayerID)
+	if err != nil {
+		return 0, err
+	}
+	return lstore.DiffSize(layer.Parent, layer.ID)
+}
+
+func isTrue(str string) bool {
+	return str == "true"
+}
+
+func isFalse(str string) bool {
+	return str == "false"
+}
+
+func isValidBool(str string) bool {
+	return isTrue(str) || isFalse(str)
+}
+
+func getDriverName(store storage.Store) (string, error) {
+	driver, err := store.GraphDriver()
+	if err != nil {
+		return "", err
+	}
+	return driver.String(), nil
+}
+
+func getDriverMetadata(store storage.Store, layerID string) (map[string]string, error) {
+	driver, err := store.GraphDriver()
+	if err != nil {
+		return nil, err
+	}
+	return driver.Metadata(layerID)
+}
+
+func getImageSize(image storage.Image, store storage.Store) (int64, error) {
+	is.Transport.SetStore(store)
+	storeRef, err := is.Transport.ParseStoreReference(store, "@"+image.ID)
+	if err != nil {
+		return -1, err
+	}
+	img, err := storeRef.NewImage(nil)
+	if err != nil {
+		return -1, err
+	}
+	imgSize, err := img.Size()
+	if err != nil {
+		return -1, err
+	}
+	return imgSize, nil
+}
+
+func getImageTopLayer(image storage.Image) (string, error) {
+	metadata, err := parseMetadata(image)
+	if err != nil {
+		return "", err
+	}
+	// Get the digest of the first blob
+	digest := string(metadata.Blobs[0].Digest)
+	// Return the first layer associated with the given digest
+	return metadata.Layers[digest][0], nil
+}
+
+func getPolicyContext(path string) (*signature.PolicyContext, error) {
+	policy, err := signature.DefaultPolicy(&types.SystemContext{SignaturePolicyPath: path})
+	if err != nil {
+		return nil, err
+	}
+	return signature.NewPolicyContext(policy)
+}
 func parseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 	if creds == "" {
 		return nil, errors.New("no credentials supplied")
@@ -195,4 +303,14 @@ func parseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 		Password: v[1],
 	}
 	return cfg, nil
+}
+
+func (o dockerRegistryOptions) getSystemContext(signaturePolicyPath string) *types.SystemContext {
+	sc := &types.SystemContext{
+		SignaturePolicyPath:         signaturePolicyPath,
+		DockerAuthConfig:            o.DockerRegistryCreds,
+		DockerCertPath:              o.DockerCertPath,
+		DockerInsecureSkipTLSVerify: o.DockerInsecureSkipTLSVerify,
+	}
+	return sc
 }

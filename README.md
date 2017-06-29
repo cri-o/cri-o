@@ -43,6 +43,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod(1)](/docs/kpod.1.md)                 | Simple management tool for pods and images |
 | [kpod-history(1)](/docs/kpod-history.1.md)] | Shows the history of an image |
 | [kpod-images(1)](/docs/kpod-images.1.md)   | List images in local storage |
+| [kpod-inspect(1)](/docs/kpod-inspect.1.md)       | Display the configuration of a container or image |
 | [kpod-pull(1)](/docs/kpod-pull.1.md)       | Pull an image from a registry |
 | [kpod-push(1)](/docs/kpod-push.1.md)       | Push an image to a specified destination |
 | [kpod-rmi(1)](/docs/kpod-rmi.1.md)         | Removes one or more images   |

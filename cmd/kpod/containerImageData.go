@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -12,7 +14,8 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker" // Get rid of this eventually
+	"github.com/docker/docker/pkg/ioutils"
+	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -20,142 +23,159 @@ import (
 )
 
 const (
+	// Package is used to identify working containers
+	Package       = "kpod"
+	containerType = Package + " 0.0.1"
+	stateFile     = Package + ".json"
 	// OCIv1ImageManifest is the MIME type of an OCIv1 image manifest,
 	// suitable for specifying as a value of the PreferredManifestType
 	// member of a CommitOptions structure.  It is also the default.
 	OCIv1ImageManifest = v1.MediaTypeImageManifest
 )
 
-type imagePushData struct {
+type containerImageData struct {
 	store storage.Store
-	// Type is used to help a build container's metadata
+
+	// Type is used to help identify a build container's metadata.  It
+	// should not be modified.
 	Type string `json:"type"`
-	// FromImage is the name of the source image which ws used to create
-	// the container, if one was used
+	// FromImage is the name of the source image which was used to create
+	// the container, if one was used.  It should not be modified.
 	FromImage string `json:"image,omitempty"`
-	// FromImageID is the id of the source image
-	FromImageID string `json:"imageid"`
-	// Config is the source image's configuration
+	// FromImageID is the ID of the source image which was used to create
+	// the container, if one was used.  It should not be modified.
+	FromImageID string `json:"image-id"`
+	// Config is the source image's configuration.  It should not be
+	// modified.
 	Config []byte `json:"config,omitempty"`
-	// Manifest is the source image's manifest
+	// Manifest is the source image's manifest.  It should not be modified.
 	Manifest []byte `json:"manifest,omitempty"`
+
+	// Container is the name of the build container.  It should not be modified.
+	Container string `json:"container-name,omitempty"`
+	// ContainerID is the ID of the build container.  It should not be modified.
+	ContainerID string `json:"container-id,omitempty"`
+	// MountPoint is the last location where the container's root
+	// filesystem was mounted.  It should not be modified.
+	MountPoint string `json:"mountpoint,omitempty"`
+
 	// ImageAnnotations is a set of key-value pairs which is stored in the
-	// image's manifest
+	// image's manifest.
 	ImageAnnotations map[string]string `json:"annotations,omitempty"`
-	// ImageCreatedBy is a description of how this container was built
+	// ImageCreatedBy is a description of how this container was built.
 	ImageCreatedBy string `json:"created-by,omitempty"`
 
-	// Image metadata and runtime settings, in multiple formats
-	OCIv1  ociv1.Image    `json:"ociv1,omitempty"`
+	// Image metadata and runtime settings, in multiple formats.
+	OCIv1  v1.Image       `json:"ociv1,omitempty"`
 	Docker docker.V2Image `json:"docker,omitempty"`
 }
 
-func (i *imagePushData) initConfig() {
+func (c *containerImageData) initConfig() {
 	image := ociv1.Image{}
 	dimage := docker.V2Image{}
-	if len(i.Config) > 0 {
+	if len(c.Config) > 0 {
 		// Try to parse the image config.  If we fail, try to start over from scratch
-		if err := json.Unmarshal(i.Config, &dimage); err == nil && dimage.DockerVersion != "" {
+		if err := json.Unmarshal(c.Config, &dimage); err == nil && dimage.DockerVersion != "" {
 			image, err = makeOCIv1Image(&dimage)
 			if err != nil {
 				image = ociv1.Image{}
 			}
 		} else {
-			if err := json.Unmarshal(i.Config, &image); err != nil {
+			if err := json.Unmarshal(c.Config, &image); err != nil {
 				if dimage, err = makeDockerV2S2Image(&image); err != nil {
 					dimage = docker.V2Image{}
 				}
 			}
 		}
-		i.OCIv1 = image
-		i.Docker = dimage
+		c.OCIv1 = image
+		c.Docker = dimage
 	} else {
 		// Try to dig out the image configuration from the manifest
 		manifest := docker.V2S1Manifest{}
-		if err := json.Unmarshal(i.Manifest, &manifest); err == nil && manifest.SchemaVersion == 1 {
+		if err := json.Unmarshal(c.Manifest, &manifest); err == nil && manifest.SchemaVersion == 1 {
 			if dimage, err = makeDockerV2S1Image(manifest); err == nil {
 				if image, err = makeOCIv1Image(&dimage); err != nil {
 					image = ociv1.Image{}
 				}
 			}
 		}
-		i.OCIv1 = image
-		i.Docker = dimage
+		c.OCIv1 = image
+		c.Docker = dimage
 	}
 
-	if len(i.Manifest) > 0 {
+	if len(c.Manifest) > 0 {
 		// Attempt to recover format-specific data from the manifest
 		v1Manifest := ociv1.Manifest{}
-		if json.Unmarshal(i.Manifest, &v1Manifest) == nil {
-			i.ImageAnnotations = v1Manifest.Annotations
+		if json.Unmarshal(c.Manifest, &v1Manifest) == nil {
+			c.ImageAnnotations = v1Manifest.Annotations
 		}
 	}
 
-	i.fixupConfig()
+	c.fixupConfig()
 }
 
-func (i *imagePushData) fixupConfig() {
-	if i.Docker.Config != nil {
+func (c *containerImageData) fixupConfig() {
+	if c.Docker.Config != nil {
 		// Prefer image-level settings over those from the container it was built from
-		i.Docker.ContainerConfig = *i.Docker.Config
+		c.Docker.ContainerConfig = *c.Docker.Config
 	}
-	i.Docker.Config = &i.Docker.ContainerConfig
-	i.Docker.DockerVersion = ""
+	c.Docker.Config = &c.Docker.ContainerConfig
+	c.Docker.DockerVersion = ""
 	now := time.Now().UTC()
-	if i.Docker.Created.IsZero() {
-		i.Docker.Created = now
+	if c.Docker.Created.IsZero() {
+		c.Docker.Created = now
 	}
-	if i.OCIv1.Created.IsZero() {
-		i.OCIv1.Created = &now
+	if c.OCIv1.Created.IsZero() {
+		c.OCIv1.Created = &now
 	}
-	if i.OS() == "" {
-		i.SetOS(runtime.GOOS)
+	if c.OS() == "" {
+		c.SetOS(runtime.GOOS)
 	}
-	if i.Architecture() == "" {
-		i.SetArchitecture(runtime.GOARCH)
+	if c.Architecture() == "" {
+		c.SetArchitecture(runtime.GOARCH)
 	}
-	if i.WorkDir() == "" {
-		i.SetWorkDir(string(filepath.Separator))
+	if c.WorkDir() == "" {
+		c.SetWorkDir(string(filepath.Separator))
 	}
 }
 
 // OS returns a name of the OS on which a container built using this image
 //is intended to be run.
-func (i *imagePushData) OS() string {
-	return i.OCIv1.OS
+func (c *containerImageData) OS() string {
+	return c.OCIv1.OS
 }
 
 // SetOS sets the name of the OS on which a container built using this image
 // is intended to be run.
-func (i *imagePushData) SetOS(os string) {
-	i.OCIv1.OS = os
-	i.Docker.OS = os
+func (c *containerImageData) SetOS(os string) {
+	c.OCIv1.OS = os
+	c.Docker.OS = os
 }
 
 // Architecture returns a name of the architecture on which a container built
 // using this image is intended to be run.
-func (i *imagePushData) Architecture() string {
-	return i.OCIv1.Architecture
+func (c *containerImageData) Architecture() string {
+	return c.OCIv1.Architecture
 }
 
 // SetArchitecture sets the name of the architecture on which ta container built
 // using this image is intended to be run.
-func (i *imagePushData) SetArchitecture(arch string) {
-	i.OCIv1.Architecture = arch
-	i.Docker.Architecture = arch
+func (c *containerImageData) SetArchitecture(arch string) {
+	c.OCIv1.Architecture = arch
+	c.Docker.Architecture = arch
 }
 
 // WorkDir returns the default working directory for running commands in a container
 // built using this image.
-func (i *imagePushData) WorkDir() string {
-	return i.OCIv1.Config.WorkingDir
+func (c *containerImageData) WorkDir() string {
+	return c.OCIv1.Config.WorkingDir
 }
 
 // SetWorkDir sets the location of the default working directory for running commands
 // in a container built using this image.
-func (i *imagePushData) SetWorkDir(there string) {
-	i.OCIv1.Config.WorkingDir = there
-	i.Docker.Config.WorkingDir = there
+func (c *containerImageData) SetWorkDir(there string) {
+	c.OCIv1.Config.WorkingDir = there
+	c.Docker.Config.WorkingDir = there
 }
 
 // makeOCIv1Image builds the best OCIv1 image structure we can from the
@@ -318,11 +338,172 @@ func makeDockerV2S1Image(manifest docker.V2S1Manifest) (docker.V2Image, error) {
 	return dimage, nil
 }
 
-func (i *imagePushData) Annotations() map[string]string {
-	return copyStringStringMap(i.ImageAnnotations)
+func (c *containerImageData) Annotations() map[string]string {
+	return copyStringStringMap(c.ImageAnnotations)
 }
 
-func (i *imagePushData) makeImageRef(manifestType string, compress archive.Compression, names []string, layerID string, historyTimestamp *time.Time) (types.ImageReference, error) {
+func (c *containerImageData) Save() error {
+	buildstate, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	cdir, err := c.store.ContainerDirectory(c.ContainerID)
+	if err != nil {
+		return err
+	}
+	return ioutils.AtomicWriteFile(filepath.Join(cdir, stateFile), buildstate, 0600)
+
+}
+
+func openContainer(store storage.Store, name string) (*containerImageData, error) {
+	var data *containerImageData
+	var err error
+	if name != "" {
+		data, err = openContainerImageData(store, name)
+		if os.IsNotExist(err) {
+			data, err = importContainerImageData(store, name, "")
+		}
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading build container")
+	}
+	if data == nil {
+		return nil, errors.Errorf("error finding build container")
+	}
+	return data, nil
+
+}
+
+func openImage(store storage.Store, image string) (*containerImageData, error) {
+	if image == "" {
+		return nil, errors.Errorf("image name must be specified")
+	}
+	img, err := findImage(store, image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error locating image %q for importing settings", image)
+	}
+
+	systemContext := getSystemContext("")
+	data, err := importContainerImageDataFromImage(store, systemContext, img.ID, "", "")
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading image")
+	}
+	if data == nil {
+		return nil, errors.Errorf("error mocking up build configuration")
+	}
+	return data, nil
+
+}
+
+func importContainerImageData(store storage.Store, container, signaturePolicyPath string) (*containerImageData, error) {
+	if container == "" {
+		return nil, errors.Errorf("container name must be specified")
+	}
+
+	c, err := store.Container(container)
+	if err != nil {
+		return nil, err
+	}
+
+	systemContext := getSystemContext(signaturePolicyPath)
+
+	data, err := importContainerImageDataFromImage(store, systemContext, c.ImageID, container, c.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if data.FromImageID != "" {
+		if d, err2 := digest.Parse(data.FromImageID); err2 == nil {
+			data.Docker.Parent = docker.ID(d)
+		} else {
+			data.Docker.Parent = docker.ID(digest.NewDigestFromHex(digest.Canonical.String(), data.FromImageID))
+		}
+	}
+	if data.FromImage != "" {
+		data.Docker.ContainerConfig.Image = data.FromImage
+	}
+
+	err = data.Save()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error saving containerImageData state")
+	}
+
+	return data, nil
+}
+
+func openContainerImageData(store storage.Store, container string) (*containerImageData, error) {
+	cdir, err := store.ContainerDirectory(container)
+	if err != nil {
+		return nil, err
+	}
+	buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
+	if err != nil {
+		return nil, err
+	}
+	c := &containerImageData{}
+	err = json.Unmarshal(buildstate, &c)
+	if err != nil {
+		return nil, err
+	}
+	if c.Type != containerType {
+		return nil, errors.Errorf("container is not a %s container", Package)
+	}
+	c.store = store
+	c.fixupConfig()
+	return c, nil
+
+}
+
+func importContainerImageDataFromImage(store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*containerImageData, error) {
+	manifest := []byte{}
+	config := []byte{}
+	imageName := ""
+
+	if imageID != "" {
+		ref, err := is.Transport.ParseStoreReference(store, "@"+imageID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "no such image %q", "@"+imageID)
+		}
+		src, err2 := ref.NewImage(systemContext)
+		if err2 != nil {
+			return nil, errors.Wrapf(err2, "error instantiating image")
+		}
+		defer src.Close()
+		config, err = src.ConfigBlob()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading image configuration")
+		}
+		manifest, _, err = src.Manifest()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading image manifest")
+		}
+		if img, err3 := store.Image(imageID); err3 == nil {
+			if len(img.Names) > 0 {
+				imageName = img.Names[0]
+			}
+		}
+	}
+
+	data := &containerImageData{
+		store:            store,
+		Type:             containerType,
+		FromImage:        imageName,
+		FromImageID:      imageID,
+		Config:           config,
+		Manifest:         manifest,
+		Container:        containerName,
+		ContainerID:      containerID,
+		ImageAnnotations: map[string]string{},
+		ImageCreatedBy:   "",
+	}
+
+	data.initConfig()
+
+	return data, nil
+
+}
+
+func (c *containerImageData) makeImageRef(manifestType string, compress archive.Compression, names []string, layerID string, historyTimestamp *time.Time) (types.ImageReference, error) {
 	var name reference.Named
 	if len(names) > 0 {
 		if parsed, err := reference.ParseNamed(names[0]); err == nil {
@@ -332,11 +513,11 @@ func (i *imagePushData) makeImageRef(manifestType string, compress archive.Compr
 	if manifestType == "" {
 		manifestType = OCIv1ImageManifest
 	}
-	oconfig, err := json.Marshal(&i.OCIv1)
+	oconfig, err := json.Marshal(&c.OCIv1)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error encoding OCI-format image configuration")
 	}
-	dconfig, err := json.Marshal(&i.Docker)
+	dconfig, err := json.Marshal(&c.Docker)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error encoding docker-format image configuration")
 	}
@@ -345,7 +526,7 @@ func (i *imagePushData) makeImageRef(manifestType string, compress archive.Compr
 		created = historyTimestamp.UTC()
 	}
 	ref := &containerImageRef{
-		store:                 i.store,
+		store:                 c.store,
 		compression:           compress,
 		name:                  name,
 		names:                 names,
@@ -354,53 +535,10 @@ func (i *imagePushData) makeImageRef(manifestType string, compress archive.Compr
 		oconfig:               oconfig,
 		dconfig:               dconfig,
 		created:               created,
-		createdBy:             i.ImageCreatedBy,
-		annotations:           i.ImageAnnotations,
+		createdBy:             c.ImageCreatedBy,
+		annotations:           c.ImageAnnotations,
 		preferredManifestType: manifestType,
 		exporting:             true,
 	}
 	return ref, nil
-}
-
-func importImagePushDataFromImage(store storage.Store, img *storage.Image, systemContext *types.SystemContext) (*imagePushData, error) {
-	manifest := []byte{}
-	config := []byte{}
-	imageName := ""
-
-	if img.ID != "" {
-		ref, err := is.Transport.ParseStoreReference(store, "@"+img.ID)
-		if err != nil {
-			return nil, errors.Wrapf(err, "no such image %q", "@"+img.ID)
-		}
-		src, err2 := ref.NewImage(systemContext)
-		if err2 != nil {
-			return nil, errors.Wrapf(err2, "error reading image configuration")
-		}
-		defer src.Close()
-		config, err = src.ConfigBlob()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading image manfest")
-		}
-		manifest, _, err = src.Manifest()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading image manifest")
-		}
-		if len(img.Names) > 0 {
-			imageName = img.Names[0]
-		}
-	}
-
-	ipd := &imagePushData{
-		store:            store,
-		FromImage:        imageName,
-		FromImageID:      img.ID,
-		Config:           config,
-		Manifest:         manifest,
-		ImageAnnotations: map[string]string{},
-		ImageCreatedBy:   "",
-	}
-
-	ipd.initConfig()
-
-	return ipd, nil
 }

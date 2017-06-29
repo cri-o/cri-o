@@ -6,6 +6,28 @@ __kpod_list_images() {
     COMPREPLY=($(compgen -W "$(kpod images -q)" -- $cur))
 }
 
+_kpod_history() {
+     local options_with_args="
+     --format
+     "
+     local boolean_options="
+     --human -H
+     --no-trunc
+     --quiet -q
+     --json
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
 _kpod_images() {
     local boolean_options="
      --help
@@ -122,28 +144,6 @@ _complete_() {
 	-*)
 	    COMPREPLY=( $( compgen -W "$boolean_options $options_with_args" -- "$cur" ) )
 	    ;;
-    esac
-}
-
-_kpod_history() {
-     local options_with_args="
-     --format
-     "
-     local boolean_options="
-     --human -H
-     --no-trunc
-     --quiet -q
-     --json
-     "
-     _complete_ "$options_with_args" "$boolean_options"
-
-    case "$cur" in
-        -*)
-            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
-            ;;
-        *)
-            __kpod_list_images
-            ;;
     esac
 }
 
