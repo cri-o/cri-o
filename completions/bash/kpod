@@ -33,12 +33,21 @@ _kpod_version() {
      local boolean_options="
      "
      _complete_ "$options_with_args" "$boolean_options"
- }
+}
 
 kpod_tag() {
     local options_with_args="
     "
     local boolean_options="
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_pull() {
+    local options_with_args="
+    "
+    local boolean_options="
+    --all-tags -a
     "
     _complete_ "$options_with_args" "$boolean_options"
 }
@@ -54,6 +63,7 @@ _kpod_kpod() {
 	launch
     tag
     version
+    pull
      "
 
      case "$prev" in
