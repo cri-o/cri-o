@@ -607,8 +607,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		if err != nil {
 			return nil, err
 		}
-		if err1 := os.MkdirAll(fp, 0644); err1 != nil {
-			return nil, err1
+		switch s.config.ImageVolumes {
+		case ImageVolumesMkdir:
+			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
+				return nil, err1
+			}
+		case ImageVolumesIgnore:
+			logrus.Debugf("Ignoring volume %v", dest)
+		default:
+			logrus.Fatalf("Unrecognized image volumes setting")
 		}
 	}
 
