@@ -468,11 +468,11 @@ static void end_argv(GPtrArray *argv_array)
 /* Global state */
 
 static int runtime_status = -1;
+static int container_status = -1;
 
 static int masterfd_stdin = -1;
 static int masterfd_stdout = -1;
 static int masterfd_stderr = -1;
-static int num_stdio_fds = 0;
 
 /* Used for attach */
 static int conn_sock = -1;
@@ -504,52 +504,103 @@ static void conn_sock_shutdown(int how)
 	}
 }
 
-static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
+static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data);
+
+static gboolean tty_hup_timeout_scheduled = false;
+
+static gboolean tty_hup_timeout_cb (G_GNUC_UNUSED gpointer user_data)
+{
+	tty_hup_timeout_scheduled = false;
+	g_unix_fd_add (masterfd_stdout, G_IO_IN, stdio_cb, GINT_TO_POINTER(STDOUT_PIPE));
+	return G_SOURCE_REMOVE;
+}
+
+static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 {
 	#define STDIO_BUF_SIZE 8192 /* Sync with redirectResponseToOutputStreams() */
 	/* We use one extra byte at the start, which we don't read into, instead
 	   we use that for marking the pipe when we write to the attached socket */
 	char real_buf[STDIO_BUF_SIZE + 1];
         char *buf = real_buf + 1;
-	stdpipe_t pipe = GPOINTER_TO_INT(user_data);
 	ssize_t num_read = 0;
 
-	if ((condition & G_IO_IN) != 0) {
-		num_read = read(fd, buf, BUF_SIZE);
-		if (num_read < 0) {
-			nwarn("stdio_input read failed %s", strerror(errno));
+	if (eof)
+		*eof = false;
+
+	num_read = read(fd, buf, STDIO_BUF_SIZE);
+	if (num_read == 0) {
+		if (eof)
+			*eof = true;
+		return false;
+	} else if (num_read < 0) {
+		nwarn("stdio_input read failed %s", strerror(errno));
+		return false;
+	} else {
+		if (write_k8s_log(log_fd, pipe, buf, num_read) < 0) {
+			nwarn("write_k8s_log failed");
 			return G_SOURCE_CONTINUE;
 		}
 
-		if (num_read > 0) {
-			if (write_k8s_log(log_fd, pipe, buf, num_read) < 0) {
-				nwarn("write_k8s_log failed");
-				return G_SOURCE_CONTINUE;
-			}
+		real_buf[0] = pipe;
+		if (conn_sock_writable && write_all(conn_sock, real_buf, num_read+1) < 0) {
+			nwarn("Failed to write to socket");
+			conn_sock_shutdown(SHUT_WR);
+		}
+		return true;
+	}
+}
 
-                        real_buf[0] = pipe;
-			if (conn_sock_writable && write_all(conn_sock, real_buf, num_read+1) < 0) {
-				nwarn("Failed to write to socket");
-				conn_sock_shutdown(SHUT_WR);
-			}
+static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
+{
+	stdpipe_t pipe = GPOINTER_TO_INT(user_data);
+	bool read_eof = false;
+	bool has_input = (condition & G_IO_IN) != 0;
+	bool has_hup = (condition & G_IO_HUP) != 0;
 
+	/* When we get here, condition can be G_IO_IN and/or G_IO_HUP.
+	   IN means there is some data to read.
+	   HUP means the other side closed the fd. In the case of a pine
+	   this in final, and we will never get more data. However, in the
+	   terminal case this just means that nobody has the terminal
+	   open at this point, and this can be change whenever someone
+	   opens the tty */
+
+	/* Read any data before handling hup */
+	if (has_input) {
+		read_stdio(fd, pipe, &read_eof);
+	}
+
+	if (has_hup && opt_terminal && pipe == STDOUT_PIPE) {
+		/* We got a HUP from the terminal master this means there
+		   are no open slaves ptys atm, and we will get a lot
+		   of wakeups until we have one, switch to polling
+		   mode. */
+
+		/* If we read some data this cycle, wait one more, maybe there
+		   is more in the buffer before we handle the hup */
+		if (has_input && !read_eof) {
 			return G_SOURCE_CONTINUE;
 		}
+
+		if (!tty_hup_timeout_scheduled) {
+			g_timeout_add (100, tty_hup_timeout_cb, NULL);
+		}
+		tty_hup_timeout_scheduled = true;
+		return G_SOURCE_REMOVE;
 	}
 
-	/* End of input */
-	if (pipe == STDOUT_PIPE)
-		masterfd_stdout = -1;
-	if (pipe == STDERR_PIPE)
-		masterfd_stderr = -1;
-	num_stdio_fds--;
-	if (num_stdio_fds == 0) {
-		ninfo ("No more stdio, killing main loop");
-		g_main_loop_quit (main_loop);
+	if (read_eof || (has_hup && !has_input)) {
+		/* End of input */
+		if (pipe == STDOUT_PIPE)
+			masterfd_stdout = -1;
+		if (pipe == STDERR_PIPE)
+			masterfd_stderr = -1;
+
+		close (fd);
+		return G_SOURCE_REMOVE;
 	}
 
-	close (fd);
-	return G_SOURCE_REMOVE;
+	return G_SOURCE_CONTINUE;
 }
 
 static gboolean timeout_cb (G_GNUC_UNUSED gpointer user_data)
@@ -755,6 +806,14 @@ runtime_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user
 	g_main_loop_quit (main_loop);
 }
 
+static void
+container_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user_data)
+{
+	ninfo("container %d exited with status %d\n", pid, status);
+	container_status = status;
+	g_main_loop_quit (main_loop);
+}
+
 static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
 {
 	_cleanup_free_ char *escaped_message = NULL;
@@ -893,10 +952,10 @@ static void setup_terminal_control_fifo()
 	ninfo("terminal_ctrl_fd: %d", terminal_ctrl_fd);
 }
 
-static void setup_oom_handling(int cpid)
+static void setup_oom_handling(int container_pid)
 {
 	/* Setup OOM notification for container process */
-	_cleanup_free_ char *memory_cgroup_path = process_cgroup_subsystem_path(cpid, "memory");
+	_cleanup_free_ char *memory_cgroup_path = process_cgroup_subsystem_path(container_pid, "memory");
 	_cleanup_close_ int cfd = -1;
 	int ofd = -1; /* Not closed */
 	if (!memory_cgroup_path) {
@@ -932,9 +991,8 @@ int main(int argc, char *argv[])
 	_cleanup_free_ char *csname = NULL;
 	GError *err = NULL;
 	_cleanup_free_ char *contents = NULL;
-	int cpid = -1;
-	int status;
-	pid_t pid, main_pid, create_pid;
+	int container_pid = -1;
+	pid_t main_pid, create_pid;
 	/* Used for !terminal cases. */
 	int slavefd_stdin = -1;
 	int slavefd_stdout = -1;
@@ -1205,8 +1263,8 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	cpid = atoi(contents);
-	ninfo("container PID: %d", cpid);
+	container_pid = atoi(contents);
+	ninfo("container PID: %d", container_pid);
 
 	/* Setup endpoint for attach */
 	_cleanup_free_ char *attach_symlink_dir_path = NULL;
@@ -1220,45 +1278,46 @@ int main(int argc, char *argv[])
 
 	/* Send the container pid back to parent */
 	if (!opt_exec) {
-		write_sync_fd(sync_pipe_fd, cpid, NULL);
+		write_sync_fd(sync_pipe_fd, container_pid, NULL);
 	}
 
-	setup_oom_handling(cpid);
+	setup_oom_handling(container_pid);
 
 	if (masterfd_stdout >= 0) {
 		g_unix_fd_add (masterfd_stdout, G_IO_IN, stdio_cb, GINT_TO_POINTER(STDOUT_PIPE));
-		num_stdio_fds++;
 	}
 	if (masterfd_stderr >= 0) {
 		g_unix_fd_add (masterfd_stderr, G_IO_IN, stdio_cb, GINT_TO_POINTER(STDERR_PIPE));
-		num_stdio_fds++;
 	}
 
 	if (opt_timeout > 0) {
 		g_timeout_add_seconds (opt_timeout, timeout_cb, NULL);
 	}
+
+	g_child_watch_add (container_pid, container_exit_cb, NULL);
+
 	g_main_loop_run (main_loop);
+
+	/* Drain stdout and stderr */
+	if (masterfd_stdout != -1) {
+		g_unix_set_fd_nonblocking(masterfd_stdout, TRUE, NULL);
+		while (read_stdio(masterfd_stdout, STDOUT_PIPE, NULL))
+			;
+	}
+	if (masterfd_stderr != -1) {
+		g_unix_set_fd_nonblocking(masterfd_stderr, TRUE, NULL);
+		while (read_stdio(masterfd_stderr, STDERR_PIPE, NULL))
+			;
+	}
 
 	int exit_status = -1;
 	const char *exit_message = NULL;
 
 	if (timed_out) {
-		kill(cpid, SIGKILL);
+		kill(container_pid, SIGKILL);
 		exit_message = "command timed out";
 	} else {
-		/* Wait for the container process and record its exit code */
-		while ((pid = waitpid(-1, &status, 0)) > 0) {
-			int child_exit_status = WEXITSTATUS(status);
-
-			printf("PID %d exited with status %d\n", pid, child_exit_status);
-			if (pid == cpid) {
-				exit_status = child_exit_status;
-				break;
-			}
-		}
-		if (pid == -1) {
-			exit_message = "runtime didn't create a child";
-		}
+		exit_status = WEXITSTATUS(container_status);
 	}
 
 	if (!opt_exec) {
