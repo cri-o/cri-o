@@ -120,6 +120,10 @@ pause_command = "{{ .PauseCommand }}"
 # unspecified so that the default system-wide policy will be used.
 signature_policy = "{{ .SignaturePolicyPath }}"
 
+# image_volumes controls how image volumes are handled.
+# The valid values are mkdir and ignore.
+image_volumes = "{{ .ImageVolumes }}"
+
 # insecure_registries is used to skip TLS verification when pulling images.
 insecure_registries = [
 {{ range $opt := .InsecureRegistries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
