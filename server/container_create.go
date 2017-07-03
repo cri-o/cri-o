@@ -317,6 +317,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// creates a spec Generator with the default spec.
 	specgen := generate.New()
 	specgen.HostSpecific = true
+	specgen.ClearProcessRlimits()
 
 	if err := addOCIBindMounts(sb, containerConfig, &specgen); err != nil {
 		return nil, err
