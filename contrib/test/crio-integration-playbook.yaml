@@ -215,7 +215,7 @@
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o/
   - name: run integration tests RHEL
-    shell: 'CGROUP_MANAGER=systemd STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration 2>&1 > testout.txt'
+    shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration 2>&1 > testout.txt'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
     async: 3600
@@ -223,7 +223,7 @@
     ignore_errors: yes
     when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
   - name: run integration tests RHEL with xunit results
-    shell: 'CGROUP_MANAGER=systemd STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration'
+    shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
     async: 3600
@@ -231,7 +231,7 @@
     ignore_errors: yes
     when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS') and xunit
   - name: run integration tests Fedora
-    shell: 'CGROUP_MANAGER=systemd STORAGE_OPTS="--storage-driver=overlay2" make localintegration 2>&1 > testout.txt'
+    shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2" make localintegration 2>&1 > testout.txt'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
     async: 3600
@@ -239,7 +239,7 @@
     ignore_errors: yes
     when: ansible_distribution == 'Fedora'
   - name: run integration tests Fedora with xunit results
-    shell: 'CGROUP_MANAGER=systemd STORAGE_OPTS="--storage-driver=overlay2" make localintegration'
+    shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2" make localintegration'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
     async: 3600
@@ -280,12 +280,6 @@
     poll: 10
   - name: link runc
     file: src=/usr/local/sbin/runc dest=/usr/bin/runc state=link
-  - name: run CRI-O with systemd cgroup manager
-    replace:
-      regexp: 'cgroupfs'
-      replace: 'systemd'
-      name: /etc/crio/crio.conf
-      backup: yes
   - name: run with overlay2
     replace:
       regexp: 'storage_driver = ""'
