@@ -18,6 +18,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		launchCommand,
+		tagCommand,
 		versionCommand,
 	}
 

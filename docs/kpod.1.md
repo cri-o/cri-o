@@ -32,6 +32,9 @@ has the capability to debug pods/images created by crio.
 ## launch
 Launch a pod
 
+## tag
+Add one or more additional names to locally-stored image
+
 # SEE ALSO
 crio(8), crio.conf(5)
 
