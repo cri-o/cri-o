@@ -709,7 +709,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	oomconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "mrunalp/oom"; obj["linux"]["resources"]["memory_limit_in_bytes"] = 512000; obj["command"] = ["/oom"]; json.dump(obj, sys.stdout)')
+	oomconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "mrunalp/oom"; obj["linux"]["resources"]["memory_limit_in_bytes"] = 5120000; obj["command"] = ["/oom"]; json.dump(obj, sys.stdout)')
 	echo "$oomconfig" > "$TESTDIR"/container_config_oom.json
 	run crioctl ctr create --config "$TESTDIR"/container_config_oom.json --pod "$pod_id"
 	echo "$output"
