@@ -103,6 +103,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("cgroup-manager") {
 		config.CgroupManager = ctx.GlobalString("cgroup-manager")
 	}
+	if ctx.GlobalIsSet("pids-limit") {
+		config.PidsLimit = ctx.GlobalInt64("pids-limit")
+	}
 	if ctx.GlobalIsSet("cni-config-dir") {
 		config.NetworkDir = ctx.GlobalString("cni-config-dir")
 	}
@@ -238,6 +241,11 @@ func main() {
 		cli.StringFlag{
 			Name:  "cgroup-manager",
 			Usage: "cgroup manager (cgroupfs or systemd)",
+		},
+		cli.Int64Flag{
+			Name:  "pids-limit",
+			Value: server.DefaultPidsLimit,
+			Usage: "maximum number of processes allowed in a container",
 		},
 		cli.StringFlag{
 			Name:  "cni-config-dir",

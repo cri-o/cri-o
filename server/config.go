@@ -43,6 +43,12 @@ const (
 	ImageVolumesIgnore ImageVolumesType = "ignore"
 )
 
+const (
+	// DefaultPidsLimit is the default value for maximum number of processes
+	// allowed inside a container
+	DefaultPidsLimit = 1024
+)
+
 // This structure is necessary to fake the TOML tables when parsing,
 // while also not requiring a bunch of layered structs for no good
 // reason.
@@ -133,6 +139,10 @@ type RuntimeConfig struct {
 	// CgroupManager is the manager implementation name which is used to
 	// handle cgroups for containers.
 	CgroupManager string `toml:"cgroup_manager"`
+
+	// PidsLimit is the number of processes each container is restricted to
+	// by the cgroup process number controller.
+	PidsLimit int64 `toml:"pids_limit"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -261,6 +271,7 @@ func DefaultConfig() *Config {
 			SeccompProfile:  seccompProfilePath,
 			ApparmorProfile: apparmorProfileName,
 			CgroupManager:   cgroupManager,
+			PidsLimit:       DefaultPidsLimit,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
