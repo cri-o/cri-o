@@ -324,6 +324,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
+	// Add cgroup mount so container process can introspect its own limits
+	specgen.AddCgroupsMount("ro")
+
 	if err := addDevices(sb, containerConfig, &specgen); err != nil {
 		return nil, err
 	}
