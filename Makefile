@@ -192,6 +192,9 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 .install.gometalinter: .gopathok
 	if [ ! -x "$(GOPATH)/bin/gometalinter" ]; then \
 		go get -u github.com/alecthomas/gometalinter; \
+		cd $(GOPATH)/src/github.com/alecthomas/gometalinter; \
+		git checkout 23261fa046586808612c61da7a81d75a658e0814; \
+		go install github.com/alecthomas/gometalinter; \
 		$(GOPATH)/bin/gometalinter --install; \
 	fi
 
