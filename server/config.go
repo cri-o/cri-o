@@ -33,6 +33,16 @@ type Config struct {
 	NetworkConfig
 }
 
+// ImageVolumesType describes image volume handling strategies
+type ImageVolumesType string
+
+const (
+	// ImageVolumesMkdir option is for using mkdir to handle image volumes
+	ImageVolumesMkdir ImageVolumesType = "mkdir"
+	// ImageVolumesIgnore option is for ignoring image volumes altogether
+	ImageVolumesIgnore ImageVolumesType = "ignore"
+)
+
 // This structure is necessary to fake the TOML tables when parsing,
 // while also not requiring a bunch of layered structs for no good
 // reason.
@@ -145,6 +155,8 @@ type ImageConfig struct {
 	// InsecureRegistries is a list of registries that must be contacted w/o
 	// TLS verification.
 	InsecureRegistries []string `toml:"insecure_registries"`
+	// ImageVolumes controls how volumes specified in image config are handled
+	ImageVolumes ImageVolumesType `toml:"image_volumes"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table
@@ -255,6 +267,7 @@ func DefaultConfig() *Config {
 			PauseImage:          pauseImage,
 			PauseCommand:        pauseCommand,
 			SignaturePolicyPath: "",
+			ImageVolumes:        ImageVolumesMkdir,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,

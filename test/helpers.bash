@@ -51,6 +51,8 @@ CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/cri-o/test/checkseccomp/
 DEFAULT_LOG_PATH=/var/log/crio/pods
 # Cgroup manager to be used
 CGROUP_MANAGER=${CGROUP_MANAGER:-cgroupfs}
+# Image volumes handling
+IMAGE_VOLUMES=${IMAGE_VOLUMES:-mkdir}
 
 TESTDIR=$(mktemp -d)
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -122,6 +124,15 @@ if ! [ -d "$ARTIFACTS_PATH"/oom-image ]; then
     fi
 fi
 
+# Make sure we have a copy of the mrunalp/image-volume-test:latest image.
+if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
+    mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://mrunalp/image-volume-test --export-to=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://mrunalp/image-volume-test-image"
+        rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
+        exit 1
+    fi
+fi
 # Run crio using the binary specified by $CRIO_BINARY.
 # This must ONLY be run on engines created with `start_crio`.
 function crio() {
@@ -189,9 +200,10 @@ function start_crio() {
 #       above
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --import-from=dir:"$ARTIFACTS_PATH"/redis-image-digest --add-name=docker.io/library/redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --add-name=docker.io/library/mrunalp/oom --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/image-volume-test --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --add-name=docker.io/library/mrunalp/image-volume-test --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --add-name=docker.io/library/busybox:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --add-name=docker.io/runcom/stderr-test:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --config /dev/null config >$CRIO_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$4" ]]; then
@@ -241,6 +253,11 @@ function start_crio() {
 		crioctl image pull busybox:latest
 	fi
 	BUSYBOX_IMAGEID=$(crioctl image status --id=busybox | head -1 | sed -e "s/ID: //g")
+	run crioctl image status --id=mrunalp/image-volume-test
+	if [ "$status" -ne 0 ] ; then
+		  crioctl image pull mrunalp/image-volume-test:latest
+	fi
+	VOLUME_IMAGEID=$(crioctl image status --id=mrunalp/image-volume-test | head -1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {

@@ -22,6 +22,17 @@ import (
 
 const crioConfigPath = "/etc/crio/crio.conf"
 
+func validateConfig(config *server.Config) error {
+	switch config.ImageVolumes {
+	case server.ImageVolumesMkdir:
+	case server.ImageVolumesIgnore:
+	default:
+		return fmt.Errorf("Unrecognized image volume type specified")
+
+	}
+	return nil
+}
+
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
 	if path := ctx.GlobalString("config"); path != "" {
@@ -97,6 +108,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	}
 	if ctx.GlobalIsSet("cni-plugin-dir") {
 		config.PluginDir = ctx.GlobalString("cni-plugin-dir")
+	}
+	if ctx.GlobalIsSet("image-volumes") {
+		config.ImageVolumes = server.ImageVolumesType(ctx.GlobalString("image-volumes"))
 	}
 	return nil
 }
@@ -233,6 +247,11 @@ func main() {
 			Name:  "cni-plugin-dir",
 			Usage: "CNI plugin binaries directory",
 		},
+		cli.StringFlag{
+			Name:  "image-volumes",
+			Value: string(server.ImageVolumesMkdir),
+			Usage: "image volume handling ('mkdir' or 'ignore')",
+		},
 		cli.BoolFlag{
 			Name:  "profile",
 			Usage: "enable pprof remote profiler on localhost:6060",
@@ -250,6 +269,10 @@ func main() {
 		// Load the configuration file.
 		config := c.App.Metadata["config"].(*server.Config)
 		if err := mergeConfig(config, c); err != nil {
+			return err
+		}
+
+		if err := validateConfig(config); err != nil {
 			return err
 		}
 

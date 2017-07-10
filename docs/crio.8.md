@@ -73,6 +73,9 @@ set the CPU profile file path
 **--help, -h**
   Print usage statement
 
+**--image-volumes**=""
+  Image volume handling ('mkdir' or 'ignore') (default: "mkdir")
+
 **--listen**=""
   Path to crio socket (default: "/var/run/crio.sock")
 

@@ -74,6 +74,9 @@ The `crio` table supports the following options:
 **default_transport**
   A prefix to prepend to image names that can't be pulled as-is (default: "docker://")
 
+**--image_volumes**=""
+  Image volume handling ('mkdir' or 'ignore') (default: "mkdir")
+
 **pause_command**=""
   Path to the pause executable in the pause image (default: "/pause")
 
