@@ -41,6 +41,7 @@ It is currently in active development in the Kubernetes community through the [d
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [crio(8)](/docs/crio.8.md)                 | Enable OCI Kubernetes Container Runtime daemon |
 | [kpod(1)](/docs/kpod.1.md)                 | Simple management tool for pods and images |
+| [kpod-history(1)](/docs/kpod-history.1.md)] | Shows the history of an image |
 | [kpod-images(1)](/docs/kpod-images.1.md)   | List images in local storage |
 | [kpod-pull(1)](/docs/kpod-pull.1.md)       | Pull an image from a registry |
 | [kpod-rmi(1)](/docs/kpod-rmi.1.md)         | Removes one or more images   |
