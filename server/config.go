@@ -172,7 +172,7 @@ type NetworkConfig struct {
 // TOML-friendly (it has all of the explicit tables). It's just used for
 // conversions.
 type tomlConfig struct {
-	Ocid struct {
+	Crio struct {
 		RootConfig
 		API     struct{ APIConfig }     `toml:"api"`
 		Runtime struct{ RuntimeConfig } `toml:"runtime"`
@@ -182,19 +182,19 @@ type tomlConfig struct {
 }
 
 func (t *tomlConfig) toConfig(c *Config) {
-	c.RootConfig = t.Ocid.RootConfig
-	c.APIConfig = t.Ocid.API.APIConfig
-	c.RuntimeConfig = t.Ocid.Runtime.RuntimeConfig
-	c.ImageConfig = t.Ocid.Image.ImageConfig
-	c.NetworkConfig = t.Ocid.Network.NetworkConfig
+	c.RootConfig = t.Crio.RootConfig
+	c.APIConfig = t.Crio.API.APIConfig
+	c.RuntimeConfig = t.Crio.Runtime.RuntimeConfig
+	c.ImageConfig = t.Crio.Image.ImageConfig
+	c.NetworkConfig = t.Crio.Network.NetworkConfig
 }
 
 func (t *tomlConfig) fromConfig(c *Config) {
-	t.Ocid.RootConfig = c.RootConfig
-	t.Ocid.API.APIConfig = c.APIConfig
-	t.Ocid.Runtime.RuntimeConfig = c.RuntimeConfig
-	t.Ocid.Image.ImageConfig = c.ImageConfig
-	t.Ocid.Network.NetworkConfig = c.NetworkConfig
+	t.Crio.RootConfig = c.RootConfig
+	t.Crio.API.APIConfig = c.APIConfig
+	t.Crio.Runtime.RuntimeConfig = c.RuntimeConfig
+	t.Crio.Image.ImageConfig = c.ImageConfig
+	t.Crio.Network.NetworkConfig = c.NetworkConfig
 }
 
 // FromFile populates the Config from the TOML-encoded file at the given path.

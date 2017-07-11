@@ -536,10 +536,10 @@ func (s *Server) cleanupSandboxesOnShutdown() {
 
 // Shutdown attempts to shut down the server's storage cleanly
 func (s *Server) Shutdown() error {
-	// why do this on clean shutdown! we want containers left running when ocid
+	// why do this on clean shutdown! we want containers left running when crio
 	// is down for whatever reason no?!
 	// notice this won't trigger just on system halt but also on normal
-	// ocid.service restart!!!
+	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown()
 	_, err := s.store.Shutdown(false)
 	return err
