@@ -6,6 +6,17 @@ function teardown() {
 	cleanup_test
 }
 
+function contains () {
+    string="$1"
+    substring="$2"
+    if test "${string#*$substring}" != "$string"
+    then
+        return 0    # $substring is in $string
+    else
+        return 1    # $substring is not in $string
+    fi
+}
+
 @test "ctr not found correct error message" {
 	start_crio
 	run crioctl ctr status --id randomid
@@ -718,12 +729,19 @@ function teardown() {
 	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	# Wait for container to OOM
-	run sleep 10
-	run crioctl ctr status --id "$ctr_id"
-	echo "$output"
+	i=0
+	while [ $i -lt 30 ]; do
+		run crioctl ctr status --id "$ctr_id"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		if [ contains "$output" "OOMKilled" ]; then
+			break;
+		fi
+		sleep 1
+		i=$((i+1))
+	done
+	[  contains "$output" "OOMKilled" ]
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "OOMKilled" ]]
 	run crioctl pod stop --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
