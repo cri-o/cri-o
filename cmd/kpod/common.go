@@ -1,7 +1,11 @@
 package main
 
 import (
+	"io"
+
+	cp "github.com/containers/image/copy"
 	is "github.com/containers/image/storage"
+	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -9,6 +13,11 @@ import (
 
 func getStore(c *cli.Context) (storage.Store, error) {
 	options := storage.DefaultStoreOptions
+	if c.GlobalIsSet("root") || c.GlobalIsSet("runroot") {
+		options.GraphRoot = c.GlobalString("root")
+		options.RunRoot = c.GlobalString("runroot")
+	}
+
 	if c.GlobalIsSet("storage-driver") {
 		options.GraphDriverName = c.GlobalString("storage-driver")
 	}
@@ -43,5 +52,18 @@ func findImage(store storage.Store, image string) (*storage.Image, error) {
 		img = img2
 	}
 	return img, nil
+}
 
+func getCopyOptions(reportWriter io.Writer) *cp.Options {
+	return &cp.Options{
+		ReportWriter: reportWriter,
+	}
+}
+
+func getSystemContext(signaturePolicyPath string) *types.SystemContext {
+	sc := &types.SystemContext{}
+	if signaturePolicyPath != "" {
+		sc.SignaturePolicyPath = signaturePolicyPath
+	}
+	return sc
 }
