@@ -17,19 +17,20 @@ var (
 
 // versionCmd gets and prints version info for version command
 func versionCmd(c *cli.Context) error {
-
-	// Converts unix time from string to int64
-	buildTime, err := strconv.ParseInt(buildInfo, 10, 64)
-	if err != nil {
-		return err
-	}
-
 	fmt.Println("Version:      ", Version)
 	fmt.Println("Go Version:   ", runtime.Version())
-	fmt.Println("Git Commit:   ", gitCommit)
-
-	// Prints out the build time in readable format
-	fmt.Println("Built:        ", time.Unix(buildTime, 0).Format(time.ANSIC))
+	if gitCommit != "" {
+		fmt.Println("Git Commit:   ", gitCommit)
+	}
+	if buildInfo != "" {
+		// Converts unix time from string to int64
+		buildTime, err := strconv.ParseInt(buildInfo, 10, 64)
+		if err != nil {
+			return err
+		}
+		// Prints out the build time in readable format
+		fmt.Println("Built:        ", time.Unix(buildTime, 0).Format(time.ANSIC))
+	}
 	fmt.Println("OS/Arch:      ", runtime.GOOS+"/"+runtime.GOARCH)
 
 	return nil
