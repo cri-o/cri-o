@@ -25,6 +25,9 @@ const (
 	// KubeName is the kubernetes name annotation
 	KubeName = "io.kubernetes.cri-o.KubeName"
 
+	// Namespace is the kubernetes pod namespace annotation
+	Namespace = "io.kubernetes.cri-o.Namespace"
+
 	// Labels are the kubernetes labels annotation
 	Labels = "io.kubernetes.cri-o.Labels"
 
@@ -63,6 +66,9 @@ const (
 
 	// StdinOnce is the stdin_once annotation
 	StdinOnce = "io.kubernetes.cri-o.StdinOnce"
+
+	// PortMappings is the annotation for sandbox port mappings
+	PortMappings = "io.kubernetes.cri-o.PortMappings"
 )
 
 // ContainerType values

@@ -14,14 +14,14 @@ import (
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage"
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/docker/docker/pkg/registrar"
-	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
+	"github.com/kubernetes-incubator/cri-o/server/state"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	knet "k8s.io/apimachinery/pkg/util/net"
@@ -57,15 +57,10 @@ type Server struct {
 	store                sstorage.Store
 	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
-	stateLock            sync.Mutex
 	updateLock           sync.RWMutex
-	state                *serverState
+	state                state.RuntimeStateStorer
 	netPlugin            ocicni.CNIPlugin
 	hostportManager      hostport.HostPortManager
-	podNameIndex         *registrar.Registrar
-	podIDIndex           *truncindex.TruncIndex
-	ctrNameIndex         *registrar.Registrar
-	ctrIDIndex           *truncindex.TruncIndex
 	imageContext         *types.SystemContext
 
 	seccompEnabled bool
@@ -106,23 +101,13 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 	name := m.Annotations[annotations.Name]
-	name, err = s.reserveContainerName(id, name)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(name)
-		}
-	}()
 
 	var metadata pb.ContainerMetadata
 	if err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}
-	sb := s.getSandbox(m.Annotations[annotations.SandboxID])
-	if sb == nil {
+	sb, err := s.getSandbox(m.Annotations[annotations.SandboxID])
+	if err != nil {
 		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations[annotations.SandboxID])
 	}
 
@@ -158,15 +143,14 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, stdin, stdinOnce, sb.privileged, sb.trusted, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, img, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.Trusted(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
 
 	s.containerStateFromDisk(ctr)
 
-	s.addContainer(ctr)
-	return s.ctrIDIndex.Add(id)
+	return s.addContainer(ctr)
 }
 
 func (s *Server) containerStateFromDisk(c *oci.Container) error {
@@ -224,15 +208,6 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 	name := m.Annotations[annotations.Name]
-	name, err = s.reservePodName(id, name)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			s.releasePodName(name)
-		}
-	}()
 	var metadata pb.PodSandboxMetadata
 	if err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
@@ -248,48 +223,31 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
+	portMappings := []*hostport.PortMapping{}
+	if err = json.Unmarshal([]byte(m.Annotations[annotations.PortMappings]), &portMappings); err != nil {
+		return err
+	}
+
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	trusted := isTrue(m.Annotations[annotations.TrustedSandbox])
 
-	sb := &sandbox{
-		id:           id,
-		name:         name,
-		kubeName:     m.Annotations[annotations.KubeName],
-		logDir:       filepath.Dir(m.Annotations[annotations.LogPath]),
-		labels:       labels,
-		containers:   oci.NewMemoryStore(),
-		processLabel: processLabel,
-		mountLabel:   mountLabel,
-		annotations:  kubeAnnotations,
-		metadata:     &metadata,
-		shmPath:      m.Annotations[annotations.ShmPath],
-		privileged:   privileged,
-		trusted:      trusted,
-		resolvPath:   m.Annotations[annotations.ResolvPath],
+	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Linux.CgroupsPath, privileged, trusted, m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings)
+	if err != nil {
+		return err
 	}
 
 	// We add a netNS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
 	netNsPath, err := configNetNsPath(m)
 	if err == nil {
-		netNS, nsErr := netNsGet(netNsPath, sb.name)
 		// If we can't load the networking namespace
-		// because it's closed, we just set the sb netns
-		// pointer to nil. Otherwise we return an error.
-		if nsErr != nil && nsErr != errSandboxClosedNetNS {
-			return nsErr
+		// because it's closed, just leave the sandbox's netns pointer as nil
+		if nsErr := sb.NetNsJoin(netNsPath, sb.Name()); err != nil {
+			if nsErr != sandbox.ErrSandboxClosedNetNS {
+				return nsErr
+			}
 		}
-
-		sb.netns = netNS
 	}
-
-	s.addSandbox(sb)
-
-	defer func() {
-		if err != nil {
-			s.removeSandbox(sb.id)
-		}
-	}()
 
 	sandboxPath, err := s.store.ContainerRunDirectory(id)
 	if err != nil {
@@ -301,22 +259,12 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	cname, err := s.reserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(cname)
-		}
-	}()
-
 	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
 	if err != nil {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName], sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -326,14 +274,11 @@ func (s *Server) loadSandbox(id string) error {
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
-	sb.infraContainer = scontainer
-	if err = s.ctrIDIndex.Add(scontainer.ID()); err != nil {
+	if err = sb.SetInfraContainer(scontainer); err != nil {
 		return err
 	}
-	if err = s.podIDIndex.Add(id); err != nil {
-		return err
-	}
-	return nil
+
+	return s.addSandbox(sb)
 }
 
 func (s *Server) restore() {
@@ -399,7 +344,7 @@ func (s *Server) update() error {
 			oldPodContainers[container.ID] = container.ID
 			continue
 		}
-		if s.getContainer(container.ID) != nil {
+		if _, err := s.getContainer(container.ID); err == nil {
 			// FIXME: do we need to reload/update any info about the container?
 			oldPodContainers[container.ID] = container.ID
 			continue
@@ -416,52 +361,54 @@ func (s *Server) update() error {
 			newPodContainers[container.ID] = &metadata
 		}
 	}
-	s.ctrIDIndex.Iterate(func(id string) {
-		if _, ok := oldPodContainers[id]; !ok {
+
+	// TODO this will not check pod infra containers - should we care about this?
+	stateContainers, err := s.state.GetAllContainers()
+	if err != nil {
+		return fmt.Errorf("error retrieving containers list: %v", err)
+	}
+	for _, ctr := range stateContainers {
+		if _, ok := oldPodContainers[ctr.ID()]; !ok {
 			// this container's ID wasn't in the updated list -> removed
-			removedPodContainers[id] = id
+			removedPodContainers[ctr.ID()] = ctr.ID()
 		}
-	})
+	}
+
 	for removedPodContainer := range removedPodContainers {
 		// forget this container
-		c := s.getContainer(removedPodContainer)
-		if c == nil {
+		c, err := s.getContainer(removedPodContainer)
+		if err != nil {
 			logrus.Warnf("bad state when getting container removed %+v", removedPodContainer)
 			continue
 		}
-		s.releaseContainerName(c.Name())
-		s.removeContainer(c)
-		if err = s.ctrIDIndex.Delete(c.ID()); err != nil {
-			return err
+		if err := s.removeContainer(c); err != nil {
+			return fmt.Errorf("error forgetting removed pod container %s: %v", c.ID(), err)
 		}
 		logrus.Debugf("forgetting removed pod container %s", c.ID())
 	}
-	s.podIDIndex.Iterate(func(id string) {
-		if _, ok := oldPods[id]; !ok {
+
+	pods, err := s.state.GetAllSandboxes()
+	if err != nil {
+		return fmt.Errorf("error retrieving pods list: %v", err)
+	}
+	for _, pod := range pods {
+		if _, ok := oldPods[pod.ID()]; !ok {
 			// this pod's ID wasn't in the updated list -> removed
-			removedPods[id] = id
+			removedPods[pod.ID()] = pod.ID()
 		}
-	})
+	}
+
 	for removedPod := range removedPods {
 		// forget this pod
-		sb := s.getSandbox(removedPod)
-		if sb == nil {
+		sb, err := s.getSandbox(removedPod)
+		if err != nil {
 			logrus.Warnf("bad state when getting pod to remove %+v", removedPod)
 			continue
 		}
-		podInfraContainer := sb.infraContainer
-		s.releaseContainerName(podInfraContainer.Name())
-		s.removeContainer(podInfraContainer)
-		if err = s.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
-			return err
+		if err := s.removeSandbox(sb.ID()); err != nil {
+			return fmt.Errorf("error removing sandbox %s: %v", sb.ID(), err)
 		}
-		sb.infraContainer = nil
-		s.releasePodName(sb.name)
-		s.removeSandbox(sb.id)
-		if err = s.podIDIndex.Delete(sb.id); err != nil {
-			return err
-		}
-		logrus.Debugf("forgetting removed pod %s", sb.id)
+		logrus.Debugf("forgetting removed pod %s", sb.ID())
 	}
 	for sandboxID := range newPods {
 		// load this pod
@@ -480,44 +427,6 @@ func (s *Server) update() error {
 		}
 	}
 	return nil
-}
-
-func (s *Server) reservePodName(id, name string) (string, error) {
-	if err := s.podNameIndex.Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := s.podNameIndex.Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, pod name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for pod %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving pod name %q", name)
-	}
-	return name, nil
-}
-
-func (s *Server) releasePodName(name string) {
-	s.podNameIndex.Release(name)
-}
-
-func (s *Server) reserveContainerName(id, name string) (string, error) {
-	if err := s.ctrNameIndex.Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := s.ctrNameIndex.Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, ctr name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for ctr %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving ctr name %s", name)
-	}
-	return name, nil
-}
-
-func (s *Server) releaseContainerName(name string) {
-	s.ctrNameIndex.Release(name)
 }
 
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
@@ -575,8 +484,6 @@ func New(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	sandboxes := make(map[string]*sandbox)
-	containers := oci.NewMemoryStore()
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {
 		return nil, err
@@ -592,13 +499,10 @@ func New(config *Config) (*Server, error) {
 		netPlugin:            netPlugin,
 		hostportManager:      hostportManager,
 		config:               *config,
-		state: &serverState{
-			sandboxes:  sandboxes,
-			containers: containers,
-		},
-		seccompEnabled:  seccomp.IsEnabled(),
-		appArmorEnabled: apparmor.IsEnabled(),
-		appArmorProfile: config.ApparmorProfile,
+		state:                state.NewInMemoryState(),
+		seccompEnabled:       seccomp.IsEnabled(),
+		appArmorEnabled:      apparmor.IsEnabled(),
+		appArmorProfile:      config.ApparmorProfile,
 	}
 	if s.seccompEnabled {
 		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
@@ -618,10 +522,6 @@ func New(config *Config) (*Server, error) {
 		}
 	}
 
-	s.podIDIndex = truncindex.NewTruncIndex([]string{})
-	s.podNameIndex = registrar.NewRegistrar()
-	s.ctrIDIndex = truncindex.NewTruncIndex([]string{})
-	s.ctrNameIndex = registrar.NewRegistrar()
 	s.imageContext = &types.SystemContext{
 		SignaturePolicyPath: config.ImageConfig.SignaturePolicyPath,
 	}
@@ -656,73 +556,66 @@ func New(config *Config) (*Server, error) {
 		s.stream.streamServer.Start(true)
 	}()
 
-	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
-	logrus.Debugf("containers: %v", s.state.containers)
 	return s, nil
 }
 
-type serverState struct {
-	sandboxes  map[string]*sandbox
-	containers oci.ContainerStorer
+func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
+	return s.state.AddSandbox(sb)
 }
 
-func (s *Server) addSandbox(sb *sandbox) {
-	s.stateLock.Lock()
-	s.state.sandboxes[sb.id] = sb
-	s.stateLock.Unlock()
-}
-
-func (s *Server) getSandbox(id string) *sandbox {
-	s.stateLock.Lock()
-	sb := s.state.sandboxes[id]
-	s.stateLock.Unlock()
-	return sb
+func (s *Server) getSandbox(id string) (*sandbox.Sandbox, error) {
+	return s.state.GetSandbox(id)
 }
 
 func (s *Server) hasSandbox(id string) bool {
-	s.stateLock.Lock()
-	_, ok := s.state.sandboxes[id]
-	s.stateLock.Unlock()
-	return ok
+	return s.state.HasSandbox(id)
 }
 
-func (s *Server) removeSandbox(id string) {
-	s.stateLock.Lock()
-	delete(s.state.sandboxes, id)
-	s.stateLock.Unlock()
+func (s *Server) removeSandbox(id string) error {
+	return s.state.DeleteSandbox(id)
 }
 
-func (s *Server) addContainer(c *oci.Container) {
-	s.stateLock.Lock()
-	sandbox := s.state.sandboxes[c.Sandbox()]
-	// TODO(runcom): handle !ok above!!! otherwise it panics!
-	sandbox.addContainer(c)
-	s.state.containers.Add(c.ID(), c)
-	s.stateLock.Unlock()
+func (s *Server) addContainer(c *oci.Container) error {
+	return s.state.AddContainer(c)
 }
 
-func (s *Server) getContainer(id string) *oci.Container {
-	s.stateLock.Lock()
-	c := s.state.containers.Get(id)
-	s.stateLock.Unlock()
-	return c
+func (s *Server) getContainer(id string) (*oci.Container, error) {
+	sbID, err := s.state.GetContainerSandbox(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.state.GetContainer(id, sbID)
 }
 
 // GetSandboxContainer returns the infra container for a given sandbox
-func (s *Server) GetSandboxContainer(id string) *oci.Container {
-	sb := s.getSandbox(id)
-	return sb.infraContainer
+func (s *Server) GetSandboxContainer(id string) (*oci.Container, error) {
+	sb, err := s.getSandbox(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return sb.InfraContainer(), nil
 }
 
 // GetContainer returns a container by its ID
-func (s *Server) GetContainer(id string) *oci.Container {
+func (s *Server) GetContainer(id string) (*oci.Container, error) {
 	return s.getContainer(id)
 }
 
-func (s *Server) removeContainer(c *oci.Container) {
-	s.stateLock.Lock()
-	sandbox := s.state.sandboxes[c.Sandbox()]
-	sandbox.removeContainer(c)
-	s.state.containers.Delete(c.ID())
-	s.stateLock.Unlock()
+func (s *Server) removeContainer(c *oci.Container) error {
+	return s.state.DeleteContainer(c.ID(), c.Sandbox())
+}
+
+func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox, error) {
+	if podSandboxID == "" {
+		return nil, sandbox.ErrSandboxIDEmpty
+	}
+
+	sb, err := s.state.LookupSandboxByID(podSandboxID)
+	if err != nil {
+		return nil, err
+	}
+
+	return sb, nil
 }

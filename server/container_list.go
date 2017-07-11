@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/server/state"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -31,17 +32,19 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	logrus.Debugf("ListContainersRequest %+v", req)
 	var ctrs []*pb.Container
 	filter := req.Filter
-	ctrList := s.state.containers.List()
+	ctrList, _ := s.state.GetAllContainers()
 
 	// Filter using container id and pod id first.
 	if filter != nil {
 		if filter.Id != "" {
-			id, err := s.ctrIDIndex.Get(filter.Id)
+			c, err := s.state.LookupContainerByID(filter.Id)
 			if err != nil {
-				return nil, err
-			}
-			c := s.state.containers.Get(id)
-			if c != nil {
+				if !state.IsCtrNotExist(err) {
+					return nil, err
+				}
+
+				ctrList = []*oci.Container{}
+			} else {
 				if filter.PodSandboxId != "" {
 					if c.Sandbox() == filter.PodSandboxId {
 						ctrList = []*oci.Container{c}
@@ -55,11 +58,15 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			}
 		} else {
 			if filter.PodSandboxId != "" {
-				pod := s.state.sandboxes[filter.PodSandboxId]
-				if pod == nil {
+				pod, err := s.state.GetSandbox(filter.PodSandboxId)
+				if err != nil {
+					if !state.IsSandboxNotExist(err) {
+						return nil, err
+					}
+
 					ctrList = []*oci.Container{}
 				} else {
-					ctrList = pod.containers.List()
+					ctrList = pod.Containers()
 				}
 			}
 		}

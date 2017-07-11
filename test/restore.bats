@@ -166,7 +166,7 @@ function teardown() {
 	run crioctl ctr stop --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 1 ]
-	[[ "${output}" =~ "not found" ]]
+	[[ "${output}" =~ "no container found" ]]
 
 	cleanup_ctrs
 	cleanup_pods

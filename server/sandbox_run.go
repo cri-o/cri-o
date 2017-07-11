@@ -16,6 +16,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
+	"github.com/kubernetes-incubator/cri-o/server/sandbox"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -135,22 +136,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	defer func() {
-		if err != nil {
-			s.releasePodName(name)
-		}
-	}()
-
 	_, containerName, err := s.generateContainerIDandNameForSandbox(req.GetConfig())
 	if err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		if err != nil {
-			s.releaseContainerName(containerName)
-		}
-	}()
 
 	podContainer, err := s.storageRuntimeServer.CreatePodSandbox(s.imageContext,
 		name, id,
@@ -186,7 +175,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if podContainer.Config != nil {
 			g.SetProcessArgs(podContainer.Config.Config.Cmd)
 		} else {
-			g.SetProcessArgs([]string{podInfraCommand})
+			g.SetProcessArgs([]string{sandbox.PodInfraCommand})
 		}
 	} else {
 		g.SetProcessArgs([]string{s.config.PauseCommand})
@@ -283,18 +272,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if err = s.ctrIDIndex.Add(id); err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := s.ctrIDIndex.Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete ctr id %s from idIndex", id)
-			}
-		}
-	}()
-
 	// set log path inside log directory
 	logPath := filepath.Join(logDir, id+".log")
 
@@ -320,6 +297,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.ResolvPath, resolvPath)
 	g.AddAnnotation(annotations.HostName, hostname)
 	g.AddAnnotation(annotations.KubeName, kubeName)
+	g.AddAnnotation(annotations.Namespace, namespace)
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
@@ -329,45 +307,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	portMappings := convertPortMappings(req.GetConfig().GetPortMappings())
-
-	sb := &sandbox{
-		id:           id,
-		namespace:    namespace,
-		name:         name,
-		kubeName:     kubeName,
-		logDir:       logDir,
-		labels:       labels,
-		annotations:  kubeAnnotations,
-		containers:   oci.NewMemoryStore(),
-		processLabel: processLabel,
-		mountLabel:   mountLabel,
-		metadata:     metadata,
-		shmPath:      shmPath,
-		privileged:   privileged,
-		trusted:      trusted,
-		resolvPath:   resolvPath,
-		hostname:     hostname,
-		portMappings: portMappings,
-	}
-
-	s.addSandbox(sb)
-	defer func() {
-		if err != nil {
-			s.removeSandbox(id)
-		}
-	}()
-
-	if err = s.podIDIndex.Add(id); err != nil {
+	mappingsJSON, err := json.Marshal(portMappings)
+	if err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		if err != nil {
-			if err := s.podIDIndex.Delete(id); err != nil {
-				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
-			}
-		}
-	}()
+	g.AddAnnotation(annotations.PortMappings, string(mappingsJSON))
 
 	for k, v := range kubeAnnotations {
 		g.AddAnnotation(k, v)
@@ -394,16 +338,20 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				return nil, err
 			}
 			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
-			sb.cgroupParent = cgPath
+			cgroupParent = cgPath
 		} else {
 			g.SetLinuxCgroupsPath(cgroupParent + "/" + id)
-			sb.cgroupParent = cgroupParent
 		}
 	}
 
 	// Set OOM score adjust of the infra container to be very low
 	// so it doesn't get killed.
 	g.SetLinuxResourcesOOMScoreAdj(PodInfraOOMAdj)
+
+	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings)
+	if err != nil {
+		return nil, err
+	}
 
 	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
 
@@ -414,13 +362,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 
-		netNsPath, err = hostNetNsPath()
+		netNsPath, err = sandbox.HostNetNsPath()
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		// Create the sandbox network namespace
-		if err = sb.netNsCreate(); err != nil {
+		if err = sb.NetNsCreate(); err != nil {
 			return nil, err
 		}
 
@@ -429,18 +377,18 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				return
 			}
 
-			if netnsErr := sb.netNsRemove(); netnsErr != nil {
+			if netnsErr := sb.NetNsRemove(); netnsErr != nil {
 				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
 			}
 		}()
 
 		// Pass the created namespace path to the runtime
-		err = g.AddOrReplaceLinuxNamespace("network", sb.netNsPath())
+		err = g.AddOrReplaceLinuxNamespace("network", sb.NetNsPath())
 		if err != nil {
 			return nil, err
 		}
 
-		netNsPath = sb.netNsPath()
+		netNsPath = sb.NetNsPath()
 	}
 
 	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid {
@@ -464,23 +412,28 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	saveOptions := generate.ExportOptions{}
 	mountPoint, err := s.storageRuntimeServer.StartContainer(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.name, id, err)
+		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, name, id, err)
 	}
 	g.SetRootPath(mountPoint)
 	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.name, id, err)
+		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", name, id, err)
 	}
 	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
-		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
+		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, sb.privileged, sb.trusted, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, sb.Privileged(), sb.Trusted(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
+	if err := sb.SetInfraContainer(container); err != nil {
+		return nil, err
+	}
 
-	sb.infraContainer = container
+	if err = s.addSandbox(sb); err != nil {
+		return nil, err
+	}
 
 	// setup the network
 	if !hostNetwork {
@@ -511,7 +464,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if err = s.runContainer(container, sb.cgroupParent); err != nil {
+	if err = s.runContainer(container, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
@@ -579,7 +532,7 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 	if err = os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
 	}
-	shmOptions := "mode=1777,size=" + strconv.Itoa(defaultShmSize)
+	shmOptions := "mode=1777,size=" + strconv.Itoa(sandbox.DefaultShmSize)
 	if err = syscall.Mount("shm", shmPath, "tmpfs", uintptr(syscall.MS_NOEXEC|syscall.MS_NOSUID|syscall.MS_NODEV),
 		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)

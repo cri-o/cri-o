@@ -11,7 +11,7 @@ function teardown() {
 	run crioctl ctr status --id randomid
 	echo "$output"
 	[ "$status" -eq 1 ]
-	[[ "$output" =~ "container with ID starting with randomid not found" ]]
+	[[ "$output" =~ "container with ID starting with randomid could not be retrieved: no container found with ID randomid: ID does not exist" ]]
 
 	stop_crio
 }
