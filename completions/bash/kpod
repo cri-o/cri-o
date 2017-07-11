@@ -2,6 +2,37 @@
 
 : ${PROG:=$(basename ${BASH_SOURCE})}
 
+__kpod_list_images() {
+    COMPREPLY=($(compgen -W "$(kpod images -q)" -- $cur))
+}
+
+_kpod_images() {
+    local boolean_options="
+     --help
+     -h
+     --quiet
+     -q
+     --noheading
+     -n
+     --no-trunc
+     --digests
+     --format
+     --filter
+     -f
+  "
+
+    local options_with_args="
+  "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
 _complete_() {
     local options_with_args=$1
     local boolean_options="$2 -h --help"
@@ -16,6 +47,24 @@ _complete_() {
 	-*)
 	    COMPREPLY=( $( compgen -W "$boolean_options $options_with_args" -- "$cur" ) )
 	    ;;
+    esac
+}
+
+_kpod_rmi() {
+    local boolean_options="
+     --help
+     -h
+     --force
+     -f
+  "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
     esac
 }
 
@@ -60,7 +109,9 @@ _kpod_kpod() {
 	   --help -h
      "
      commands="
+	images
 	launch
+	rmi
     tag
     version
     pull

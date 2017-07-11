@@ -22,10 +22,30 @@ func main() {
 	app.Version = Version
 
 	app.Commands = []cli.Command{
+		imagesCommand,
 		launchCommand,
+		rmiCommand,
 		tagCommand,
 		versionCommand,
 		pullCommand,
+	}
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "root",
+			Usage: "path to the root directory in which data, including images,  is stored",
+		},
+		cli.StringFlag{
+			Name:  "runroot",
+			Usage: "path to the 'run directory' where all state information is stored",
+		},
+		cli.StringFlag{
+			Name:  "storage-driver, s",
+			Usage: "select which storage driver is used to manage storage of images and containers (default is overlay2)",
+		},
+		cli.StringSliceFlag{
+			Name:  "storage-opt",
+			Usage: "used to pass an option to the storage driver",
+		},
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
