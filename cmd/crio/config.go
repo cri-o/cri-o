@@ -98,6 +98,9 @@ apparmor_profile = "{{ .ApparmorProfile }}"
 # for the runtime.
 cgroup_manager = "{{ .CgroupManager }}"
 
+# pids_limit is the number of processes allowed in a container
+pids_limit = {{ .PidsLimit }}
+
 # The "crio.image" table contains settings pertaining to the
 # management of OCI images.
 [crio.image]

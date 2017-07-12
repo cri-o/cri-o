@@ -91,6 +91,9 @@ set the CPU profile file path
 **--pause-image**=""
   Image which contains the pause executable (default: "kubernetes/pause")
 
+**--pids-limit**=""
+  Maximum number of processes allowed in a container (default: 1024)
+
 **--root**=""
   CRIO root dir (default: "/var/lib/containers/storage")
 

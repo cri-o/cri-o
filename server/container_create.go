@@ -18,6 +18,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/runc/libcontainer/user"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -322,6 +323,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if err := addOCIBindMounts(sb, containerConfig, &specgen); err != nil {
 		return nil, err
 	}
+
+	// Add cgroup mount so container process can introspect its own limits
+	specgen.AddCgroupsMount("ro")
 
 	if err := addDevices(sb, containerConfig, &specgen); err != nil {
 		return nil, err
@@ -671,6 +675,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		if err = setupContainerUser(&specgen, mountPoint, linux.GetSecurityContext(), containerImageConfig); err != nil {
 			return nil, err
 		}
+	}
+
+	// Set up pids limit if pids cgroup is mounted
+	_, err = cgroups.FindCgroupMountpoint("pids")
+	if err == nil {
+		specgen.SetLinuxResourcesPidsLimit(s.config.PidsLimit)
 	}
 
 	// by default, the root path is an empty string. set it now.

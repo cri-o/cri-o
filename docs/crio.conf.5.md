@@ -54,6 +54,9 @@ The `crio` table supports the following options:
 **conmon_env**=[]
   Environment variable list for conmon process (default: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",])
 
+**pids_limit**=""
+  Maximum number of processes allowed in a container (default: 1024)
+
 **runtime**=""
   OCI runtime path (default: "/usr/bin/runc")
 
