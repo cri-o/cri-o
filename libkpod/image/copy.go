@@ -1,13 +1,13 @@
 package image
 
 import (
-	"fmt"
 	"io"
 	"os"
+	"strings"
 	"syscall"
 
 	cp "github.com/containers/image/copy"
-	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/docker/tarfile"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
@@ -101,34 +101,46 @@ func PushImage(srcName, destName string, options CopyOptions) error {
 }
 
 // PullImage copies the image from the source to the destination
-func PullImage(store storage.Store, imgName string, allTags bool, sc *types.SystemContext) error {
-	defaultName := DefaultRegistry + imgName
-	var fromName string
-	var tag string
+func PullImage(store storage.Store, imgName string, allTags, quiet bool, sc *types.SystemContext) error {
+	var (
+		images []string
+		output io.Writer
+	)
 
-	srcRef, err := alltransports.ParseImageName(defaultName)
+	if quiet {
+		output = nil
+	} else {
+		output = os.Stdout
+	}
+
+	srcRef, err := alltransports.ParseImageName(imgName)
 	if err != nil {
-		srcRef2, err2 := alltransports.ParseImageName(imgName)
+		defaultName := DefaultRegistry + imgName
+		srcRef2, err2 := alltransports.ParseImageName(defaultName)
 		if err2 != nil {
-			return errors.Wrapf(err2, "error parsing image name %q", imgName)
+			return errors.Errorf("error parsing image name %q: %v", defaultName, err2)
 		}
 		srcRef = srcRef2
 	}
 
-	ref := srcRef.DockerReference()
-	if ref != nil {
-		imgName = srcRef.DockerReference().Name()
-		fromName = imgName
-		tagged, ok := srcRef.DockerReference().(reference.NamedTagged)
-		if ok {
-			imgName = imgName + ":" + tagged.Tag()
-			tag = tagged.Tag()
-		}
-	}
+	splitArr := strings.Split(imgName, ":")
 
-	destRef, err := is.Transport.ParseStoreReference(store, imgName)
-	if err != nil {
-		return errors.Wrapf(err, "error parsing full image name %q", imgName)
+	// supports pulling from docker-archive, oci, and registries
+	if splitArr[0] == "docker-archive" {
+		tarSource := tarfile.NewSource(splitArr[len(splitArr)-1])
+		manifest, err := tarSource.LoadTarManifest()
+		if err != nil {
+			return errors.Errorf("error retrieving manifest.json: %v", err)
+		}
+		// to pull all the images stored in one tar file
+		for i := range manifest {
+			images = append(images, manifest[i].RepoTags[0])
+		}
+	} else if splitArr[0] == "oci" {
+		// needs to be implemented in future
+		return errors.Errorf("oci not supported")
+	} else {
+		images = append(images, imgName)
 	}
 
 	policy, err := signature.DefaultPolicy(sc)
@@ -142,8 +154,16 @@ func PullImage(store storage.Store, imgName string, allTags bool, sc *types.Syst
 	}
 	defer policyContext.Destroy()
 
-	copyOptions := common.GetCopyOptions(os.Stdout, "", nil, nil, common.SigningOptions{})
+	copyOptions := common.GetCopyOptions(output, "", nil, nil, common.SigningOptions{})
 
-	fmt.Println(tag + ": pulling from " + fromName)
-	return cp.Image(policyContext, destRef, srcRef, copyOptions)
+	for _, image := range images {
+		destRef, err := is.Transport.ParseStoreReference(store, image)
+		if err != nil {
+			return errors.Errorf("error parsing dest reference name: %v", err)
+		}
+		if err = cp.Image(policyContext, destRef, srcRef, copyOptions); err != nil {
+			return errors.Errorf("error loading image %q: %v", image, err)
+		}
+	}
+	return nil
 }
