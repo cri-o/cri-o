@@ -104,8 +104,16 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	if pulled == "" && err != nil {
 		return nil, err
 	}
+	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), pulled)
+	if err != nil {
+		return nil, err
+	}
+	imageRef := status.ID
+	if len(status.RepoDigests) > 0 {
+		imageRef = status.RepoDigests[0]
+	}
 	resp = &pb.PullImageResponse{
-		ImageRef: pulled,
+		ImageRef: imageRef,
 	}
 	logrus.Debugf("PullImageResponse: %+v", resp)
 	return resp, nil

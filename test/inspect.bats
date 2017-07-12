@@ -30,13 +30,15 @@ function teardown() {
 	out=`echo -e "GET /containers/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
 	echo "$out"
 	[[ "$out" =~ "\"sandbox\":\"$pod_id\"" ]]
-	[[ "$out" =~ "\"image\":\"redis:alpine\"" ]]
+	[[ "$out" =~ "\"image\":\"docker.io/library/redis:alpine\"" ]]
+	[[ "$out" =~ "\"image_ref\":\"$REDIS_IMAGEREF\"" ]]
 
 	run crictl inspect --output json "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "\"id\": \"$ctr_id\"" ]]
-	[[ "$output" =~ "\"image\": \"redis:alpine\"" ]]
+	[[ "$output" =~ "\"image\": \"docker.io/library/redis:alpine\"" ]]
+	[[ "$output" =~ "\"imageRef\": \"$REDIS_IMAGEREF\"" ]]
 
 	run crictl inspects --output json "$pod_id"
 	echo "$output"
