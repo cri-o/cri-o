@@ -6,12 +6,12 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/util/term"
@@ -54,7 +54,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 	}
 
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
-	controlFile, err := os.OpenFile(controlPath, syscall.O_WRONLY, 0)
+	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open container ctl file: %v", err)
 	}

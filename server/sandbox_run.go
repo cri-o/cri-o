@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -20,6 +19,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
 	"k8s.io/kubernetes/pkg/api/v1"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
@@ -271,7 +271,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		defer func() {
 			if err != nil {
-				if err2 := syscall.Unmount(shmPath, syscall.MNT_DETACH); err2 != nil {
+				if err2 := unix.Unmount(shmPath, unix.MNT_DETACH); err2 != nil {
 					logrus.Warnf("failed to unmount shm for pod: %v", err2)
 				}
 			}
@@ -580,7 +580,7 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 		return "", err
 	}
 	shmOptions := "mode=1777,size=" + strconv.Itoa(defaultShmSize)
-	if err = syscall.Mount("shm", shmPath, "tmpfs", uintptr(syscall.MS_NOEXEC|syscall.MS_NOSUID|syscall.MS_NODEV),
+	if err = unix.Mount("shm", shmPath, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
 	}

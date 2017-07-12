@@ -425,7 +425,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	err = cmd.Wait()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+			if status, ok := exitErr.Sys().(unix.WaitStatus); ok {
 				return nil, ExecSyncError{
 					Stdout:   stdoutBuf,
 					Stderr:   stderrBuf,
@@ -516,7 +516,7 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 			default:
 				// Check if the process is still around
 				err := unix.Kill(c.state.Pid, 0)
-				if err == syscall.ESRCH {
+				if err == unix.ESRCH {
 					close(done)
 					return
 				}
@@ -529,8 +529,8 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 		return nil
 	case <-time.After(time.Duration(timeout) * time.Second):
 		close(chControl)
-		err := unix.Kill(c.state.Pid, syscall.SIGKILL)
-		if err != nil && err != syscall.ESRCH {
+		err := unix.Kill(c.state.Pid, unix.SIGKILL)
+		if err != nil && err != unix.ESRCH {
 			return fmt.Errorf("failed to kill process: %v", err)
 		}
 	}
@@ -617,7 +617,7 @@ func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
 
 // newPipe creates a unix socket pair for communication
 func newPipe() (parent *os.File, child *os.File, err error) {
-	fds, err := syscall.Socketpair(syscall.AF_LOCAL, syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC, 0)
+	fds, err := unix.Socketpair(unix.AF_LOCAL, unix.SOCK_STREAM|unix.SOCK_CLOEXEC, 0)
 	if err != nil {
 		return nil, nil, err
 	}

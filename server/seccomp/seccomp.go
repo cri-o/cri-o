@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"syscall"
 
 	"github.com/docker/docker/pkg/stringutils"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	libseccomp "github.com/seccomp/libseccomp-golang"
+	"golang.org/x/sys/unix"
 )
 
 // IsEnabled returns true if seccomp is enabled for the host.
@@ -21,9 +21,9 @@ func IsEnabled() bool {
 
 	enabled := false
 	// Check if Seccomp is supported, via CONFIG_SECCOMP.
-	if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_GET_SECCOMP, 0, 0); err != syscall.EINVAL {
+	if _, _, err := unix.RawSyscall(unix.SYS_PRCTL, unix.PR_GET_SECCOMP, 0, 0); err != unix.EINVAL {
 		// Make sure the kernel has CONFIG_SECCOMP_FILTER.
-		if _, _, err := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_SECCOMP, seccompModeFilter, 0); err != syscall.EINVAL {
+		if _, _, err := unix.RawSyscall(unix.SYS_PRCTL, unix.PR_SET_SECCOMP, seccompModeFilter, 0); err != unix.EINVAL {
 			enabled = true
 		}
 	}
