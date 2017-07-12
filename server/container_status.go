@@ -7,6 +7,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution/reference"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	digest "github.com/opencontainers/go-digest"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -53,32 +54,29 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		return nil, err
 	}
 
-	imageRef := status.ID
-	//
-	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
-	//
-	//for _, n := range status.Names {
-	//r, err := reference.ParseNormalizedNamed(n)
-	//if err != nil {
-	//return nil, fmt.Errorf("failed to normalize image name for ImageRef: %v", err)
-	//}
-	//if digested, isDigested := r.(reference.Canonical); isDigested {
-	//imageRef = reference.FamiliarString(digested)
-	//break
-	//}
-	//}
-	resp.Status.ImageRef = imageRef
+	imageRef := ""
 
 	for _, n := range status.Names {
 		r, err := reference.ParseNormalizedNamed(n)
 		if err != nil {
 			return nil, fmt.Errorf("failed to normalize image name for Image: %v", err)
 		}
-		if tagged, isTagged := r.(reference.Tagged); isTagged {
-			imageName = reference.FamiliarString(tagged)
+		if namedtagged, isNamedTagged := r.(reference.NamedTagged); isNamedTagged {
+			imageName = reference.FamiliarString(namedtagged)
+			if status.Digest != "" {
+				if canonical, err2 := reference.WithDigest(reference.TrimNamed(r), digest.Digest(status.Digest)); err2 == nil {
+					imageRef = reference.FamiliarString(canonical)
+				}
+			}
+			break
+		}
+		if canonical, isCanonical := r.(reference.Canonical); isCanonical {
+			imageName = reference.FamiliarString(canonical)
+			imageRef = reference.FamiliarString(canonical)
 			break
 		}
 	}
+	resp.Status.ImageRef = imageRef
 	resp.Status.Image = &pb.ImageSpec{Image: imageName}
 
 	cState := s.Runtime().ContainerStatus(c)
