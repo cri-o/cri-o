@@ -33,14 +33,16 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 	for _, result := range results {
 		if result.Size != nil {
 			resp.Images = append(resp.Images, &pb.Image{
-				Id:       result.ID,
-				RepoTags: result.Names,
-				Size_:    *result.Size,
+				Id:          result.ID,
+				RepoTags:    result.RepoTags,
+				RepoDigests: result.RepoDigests,
+				Size_:       *result.Size,
 			})
 		} else {
 			resp.Images = append(resp.Images, &pb.Image{
-				Id:       result.ID,
-				RepoTags: result.Names,
+				Id:          result.ID,
+				RepoTags:    result.RepoTags,
+				RepoDigests: result.RepoDigests,
 			})
 		}
 	}

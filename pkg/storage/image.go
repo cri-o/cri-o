@@ -9,6 +9,7 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
+	"github.com/containers/image/manifest"
 	"github.com/containers/image/signature"
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
@@ -25,12 +26,12 @@ var (
 // ImageResult wraps a subset of information about an image: its ID, its names,
 // and the size, if known, or nil if it isn't.
 type ImageResult struct {
-	ID    string
-	Names []string
-	Size  *uint64
-	// TODO(runcom): this is an hack for https://github.com/kubernetes-incubator/cri-o/pull/1136
-	// drop this when we have proper image IDs (as in, image IDs should be just
-	// the config blog digest which is stable across same images).
+	ID           string
+	Name         string
+	RepoTags     []string
+	RepoDigests  []string
+	Size         *uint64
+	Digest       digest.Digest
 	ConfigDigest digest.Digest
 }
 
@@ -45,6 +46,11 @@ type imageService struct {
 	insecureRegistryCIDRs []*net.IPNet
 	indexConfigs          map[string]*indexInfo
 	registries            []string
+}
+
+// sizer knows its size.
+type sizer interface {
+	Size() (int64, error)
 }
 
 // ImageServer wraps up various CRI-related activities into a reusable
@@ -88,6 +94,66 @@ func (svc *imageService) getRef(name string) (types.ImageReference, error) {
 	return ref, nil
 }
 
+func sortNamesByType(names []string) (bestName string, tags, digests []string) {
+	for _, name := range names {
+		if len(name) > 72 && name[len(name)-72:len(name)-64] == "@sha256:" {
+			digests = append(digests, name)
+		} else {
+			tags = append(tags, name)
+		}
+	}
+	if len(digests) > 0 {
+		bestName = digests[0]
+	}
+	if len(tags) > 0 {
+		bestName = tags[0]
+	}
+	return bestName, tags, digests
+}
+
+func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, imageID string) (imageDigest digest.Digest, repoDigests []string) {
+	// Look up the image's digest.
+	img, err := svc.store.Image(imageID)
+	if err != nil {
+		return "", knownRepoDigests
+	}
+	imageDigest = img.Digest
+	if imageDigest == "" {
+		imgDigest, err := svc.store.ImageBigDataDigest(imageID, storage.ImageDigestBigDataKey)
+		if err != nil || imgDigest == "" {
+			return "", knownRepoDigests
+		}
+		imageDigest = imgDigest
+	}
+	// If there are no names to convert to canonical references, we're done.
+	if len(tags) == 0 {
+		return imageDigest, knownRepoDigests
+	}
+	// We only want to supplement what's already explicitly in the list, so keep track of values
+	// that we already know.
+	digestMap := make(map[string]struct{})
+	repoDigests = knownRepoDigests
+	for _, repoDigest := range knownRepoDigests {
+		digestMap[repoDigest] = struct{}{}
+	}
+	// For each tagged name, parse the name, and if we can extract a named reference, convert
+	// it into a canonical reference using the digest and add it to the list.
+	for _, tag := range tags {
+		if ref, err2 := reference.ParseAnyReference(tag); err2 == nil {
+			if name, ok := ref.(reference.Named); ok {
+				trimmed := reference.TrimNamed(name)
+				if imageRef, err3 := reference.WithDigest(trimmed, imageDigest); err3 == nil {
+					if _, ok := digestMap[imageRef.String()]; !ok {
+						repoDigests = append(repoDigests, imageRef.String())
+						digestMap[imageRef.String()] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+	return imageDigest, repoDigests
+}
+
 func (svc *imageService) ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error) {
 	results := []ImageResult{}
 	if filter != "" {
@@ -96,16 +162,26 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			return nil, err
 		}
 		if image, err := istorage.Transport.GetStoreImage(svc.store, ref); err == nil {
-			img, err := ref.NewImage(systemContext)
+			img, err := ref.NewImageSource(systemContext)
 			if err != nil {
 				return nil, err
 			}
 			size := imageSize(img)
+			configDigest, err := imageConfigDigest(img, nil)
 			img.Close()
+			if err != nil {
+				return nil, err
+			}
+			name, tags, digests := sortNamesByType(image.Names)
+			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
 			results = append(results, ImageResult{
-				ID:    image.ID,
-				Names: image.Names,
-				Size:  size,
+				ID:           image.ID,
+				Name:         name,
+				RepoTags:     tags,
+				RepoDigests:  repoDigests,
+				Size:         size,
+				Digest:       imageDigest,
+				ConfigDigest: configDigest,
 			})
 		}
 	} else {
@@ -118,16 +194,26 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			if err != nil {
 				return nil, err
 			}
-			img, err := ref.NewImage(systemContext)
+			img, err := ref.NewImageSource(systemContext)
 			if err != nil {
 				return nil, err
 			}
 			size := imageSize(img)
+			configDigest, err := imageConfigDigest(img, nil)
 			img.Close()
+			if err != nil {
+				return nil, err
+			}
+			name, tags, digests := sortNamesByType(image.Names)
+			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
 			results = append(results, ImageResult{
-				ID:    image.ID,
-				Names: image.Names,
-				Size:  size,
+				ID:           image.ID,
+				Name:         name,
+				RepoTags:     tags,
+				RepoDigests:  repoDigests,
+				Size:         size,
+				Digest:       imageDigest,
+				ConfigDigest: configDigest,
 			})
 		}
 	}
@@ -152,27 +238,52 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		return nil, err
 	}
 
-	img, err := ref.NewImage(systemContext)
+	img, err := ref.NewImageSource(systemContext)
 	if err != nil {
 		return nil, err
 	}
 	defer img.Close()
 	size := imageSize(img)
+	configDigest, err := imageConfigDigest(img, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	return &ImageResult{
+	name, tags, digests := sortNamesByType(image.Names)
+	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
+	result := ImageResult{
 		ID:           image.ID,
-		Names:        image.Names,
+		Name:         name,
+		RepoTags:     tags,
+		RepoDigests:  repoDigests,
 		Size:         size,
-		ConfigDigest: img.ConfigInfo().Digest,
-	}, nil
+		Digest:       imageDigest,
+		ConfigDigest: configDigest,
+	}
+
+	return &result, nil
 }
 
-func imageSize(img types.Image) *uint64 {
-	if sum, err := img.Size(); err == nil {
-		usum := uint64(sum)
-		return &usum
+func imageSize(img types.ImageSource) *uint64 {
+	if s, ok := img.(sizer); ok {
+		if sum, err := s.Size(); err == nil {
+			usum := uint64(sum)
+			return &usum
+		}
 	}
 	return nil
+}
+
+func imageConfigDigest(img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
+	manifestBytes, manifestType, err := img.GetManifest(instanceDigest)
+	if err != nil {
+		return "", err
+	}
+	imgManifest, err := manifest.FromBlob(manifestBytes, manifestType)
+	if err != nil {
+		return "", err
+	}
+	return imgManifest.ConfigInfo().Digest, nil
 }
 
 func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool, error) {

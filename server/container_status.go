@@ -3,6 +3,7 @@ package server
 import (
 	"time"
 
+	"github.com/containers/image/types"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -38,7 +39,10 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 			ImageRef:    c.ImageRef(),
 		},
 	}
-	resp.Status.Image = &pb.ImageSpec{Image: c.ImageName()}
+	resp.Status.Image = &pb.ImageSpec{Image: c.Image()}
+	if status, err := s.StorageImageServer().ImageStatus(&types.SystemContext{}, c.ImageRef()); err == nil {
+		resp.Status.Image.Image = status.Name
+	}
 
 	mounts := []*pb.Mount{}
 	for _, cv := range c.Volumes() {

@@ -103,25 +103,12 @@ cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
 PATH=$PATH:$TESTDIR
 
-# Make sure we have a copy of the redis:latest image.
+# Make sure we have a copy of the redis:alpine image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/redis-image
     if ! "$COPYIMG_BINARY" --import-from=docker://redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
         echo "Error pulling docker://redis"
         rm -fr "$ARTIFACTS_PATH"/redis-image
-        exit 1
-    fi
-fi
-
-# TODO: remove the code below for redis digested image id when
-#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
-#       as the digested reference will be auto-stored when pulling the tag
-#       above
-if ! [ -d "$ARTIFACTS_PATH"/redis-image-digest ]; then
-    mkdir -p "$ARTIFACTS_PATH"/redis-image-digest
-    if ! "$COPYIMG_BINARY" --import-from=docker://redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --export-to=dir:"$ARTIFACTS_PATH"/redis-image-digest --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling docker://redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
-        rm -fr "$ARTIFACTS_PATH"/redis-image-digest
         exit 1
     fi
 fi
@@ -226,13 +213,8 @@ function start_crio() {
 		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
-# TODO: remove the code below for redis:alpine digested image id when
-#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
-#       as the digested reference will be auto-stored when pulling the tag
-#       above
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --import-from=dir:"$ARTIFACTS_PATH"/redis-image-digest --add-name=docker.io/library/redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --add-name=docker.io/library/mrunalp/oom --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/image-volume-test --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --add-name=docker.io/library/mrunalp/image-volume-test --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --add-name=docker.io/mrunalp/oom --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/image-volume-test --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --add-name=docker.io/mrunalp/image-volume-test --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --add-name=docker.io/library/busybox:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --add-name=docker.io/runcom/stderr-test:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --registry "docker.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --enable-shared-pid-namespace=${ENABLE_SHARED_PID_NAMESPACE} --log-size-max "$LOG_SIZE_MAX_LIMIT" --config /dev/null config >$CRIO_CONFIG
@@ -252,44 +234,28 @@ function start_crio() {
 	if [ "$status" -ne 0 ] ; then
 		crictl pull redis:alpine
 	fi
-	REDIS_IMAGEID=$(crictl inspecti redis:alpine | head -1 | sed -e "s/ID: //g")
+	REDIS_IMAGEID=$(crictl inspecti redis:alpine | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	REDIS_IMAGEREF=$(crictl inspecti redis:alpine | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
 	run crictl inspecti mrunalp/oom
 	if [ "$status" -ne 0 ] ; then
 		  crictl pull mrunalp/oom
 	fi
-	#
-	#
-	#
-	# TODO: remove the code below for redis digested image id when
-	#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
-	#       as the digested reference will be auto-stored when pulling the tag
-	#       above
-	#
-	#
-	#
-	REDIS_IMAGEID_DIGESTED="redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
-	run crictl inspecti $REDIS_IMAGEID_DIGESTED
-	if [ "$status" -ne 0 ]; then
-		crictl pull $REDIS_IMAGEID_DIGESTED
-	fi
-	#
-	#
-	#
-	run crictl inspecti runcom/stderr-test
+	OOM_IMAGEID=$(crictl inspecti mrunalp/oom | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	run crioctl image status --id=runcom/stderr-test
 	if [ "$status" -ne 0 ] ; then
 		crictl pull runcom/stderr-test:latest
 	fi
-	STDERR_IMAGEID=$(crictl inspecti runcom/stderr-test | head -1 | sed -e "s/ID: //g")
+	STDERR_IMAGEID=$(crictl inspecti runcom/stderr-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
 	run crictl inspecti busybox
 	if [ "$status" -ne 0 ] ; then
 		crictl pull busybox:latest
 	fi
-	BUSYBOX_IMAGEID=$(crictl inspecti busybox | head -1 | sed -e "s/ID: //g")
+	BUSYBOX_IMAGEID=$(crictl inspecti busybox | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
 	run crictl inspecti mrunalp/image-volume-test
 	if [ "$status" -ne 0 ] ; then
 		  crictl pull mrunalp/image-volume-test:latest
 	fi
-	VOLUME_IMAGEID=$(crictl inspecti mrunalp/image-volume-test | head -1 | sed -e "s/ID: //g")
+	VOLUME_IMAGEID=$(crictl inspecti mrunalp/image-volume-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {

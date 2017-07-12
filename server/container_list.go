@@ -97,6 +97,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			Metadata:     ctr.Metadata(),
 			Annotations:  ctr.Annotations(),
 			Image:        img,
+			ImageRef:     ctr.ImageRef(),
 		}
 
 		switch cState.Status {
