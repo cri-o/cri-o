@@ -22,9 +22,11 @@ import (
 // ImageResult wraps a subset of information about an image: its ID, its names,
 // and the size, if known, or nil if it isn't.
 type ImageResult struct {
-	ID    string
-	Names []string
-	Size  *uint64
+	ID       string
+	Names    []string
+	Digests  []string
+	Size     *uint64
+	ImageRef string
 }
 
 type indexInfo struct {
@@ -149,11 +151,21 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	size := imageSize(img)
 	img.Close()
 
-	return &ImageResult{
+	result := ImageResult{
 		ID:    image.ID,
 		Names: image.Names,
 		Size:  size,
-	}, nil
+	}
+	if len(image.Names) > 0 {
+		result.ImageRef = image.Names[0]
+		if ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, image.Names[0]); err2 == nil {
+			if dref := ref2.DockerReference(); dref != nil {
+				result.ImageRef = reference.FamiliarString(dref)
+			}
+		}
+	}
+
+	return &result, nil
 }
 
 func imageSize(img types.Image) *uint64 {
