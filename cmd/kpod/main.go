@@ -25,6 +25,7 @@ func main() {
 		imagesCommand,
 		launchCommand,
 		rmiCommand,
+		stopCommand,
 		tagCommand,
 		versionCommand,
 		pullCommand,
