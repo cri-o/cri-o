@@ -38,6 +38,9 @@ Removes one or more locally stored images
 ### tag
 Add one or more additional names to locally-stored image
 
+### info
+Displays system information
+
 ## SEE ALSO
 crio(8), crio.conf(5)
 
