@@ -202,6 +202,14 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 		go get -u github.com/cpuguy83/go-md2man; \
 	fi
 
+.install.ostree: .gopathok
+	if ! pkg-config ostree-1 2> /dev/null ; then \
+		git clone https://github.com/ostreedev/ostree $(GOPATH)/src/github.com/ostreedev/ostree ; \
+		cd $(GOPATH)/src/github.com/ostreedev/ostree ; \
+		./autogen.sh --prefix=/usr/local; \
+		make all install; \
+	fi
+
 .PHONY: \
 	binaries \
 	clean \
