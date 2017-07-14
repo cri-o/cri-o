@@ -31,6 +31,7 @@ func main() {
 		rmiCommand,
 		tagCommand,
 		versionCommand,
+		saveCommand,
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
