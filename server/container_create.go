@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
+	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -69,6 +71,41 @@ func addOCIBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen 
 		specgen.AddBindMount(src, dest, options)
 	}
 
+	return nil
+}
+
+func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) error {
+	for dest := range containerInfo.Config.Config.Volumes {
+		fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, dest), rootfs)
+		if err != nil {
+			return err
+		}
+		switch s.config.ImageVolumes {
+		case ImageVolumesMkdir:
+			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
+				return err1
+			}
+		case ImageVolumesBind:
+			volumeDirName := stringid.GenerateNonCryptoID()
+			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
+			if err1 := os.MkdirAll(src, 0644); err1 != nil {
+				return err1
+			}
+			// Label the source with the sandbox selinux mount label
+			if mountLabel != "" {
+				if err1 := label.Relabel(src, mountLabel, true); err1 != nil && err1 != unix.ENOTSUP {
+					return fmt.Errorf("relabel failed %s: %v", src, err1)
+				}
+			}
+
+			logrus.Debugf("Adding bind mounted volume: %s to %s", src, dest)
+			specgen.AddBindMount(src, dest, []string{"rw"})
+		case ImageVolumesIgnore:
+			logrus.Debugf("Ignoring volume %v", dest)
+		default:
+			logrus.Fatalf("Unrecognized image volumes setting")
+		}
+	}
 	return nil
 }
 
@@ -601,26 +638,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddAnnotation("org.opencontainers.image.stopSignal", containerImageConfig.Config.StopSignal)
 	}
 
-	// TODO: volume handling in CRI-O
-	//       right now, we do just an mkdir in the container rootfs because we
-	//       know kube manages volumes its own way and we don't need to behave
-	//       like docker.
-	//       For instance gcr.io/k8s-testimages/redis:e2e now work with CRI-O
-	for dest := range containerImageConfig.Config.Volumes {
-		fp, err := symlink.FollowSymlinkInScope(filepath.Join(mountPoint, dest), mountPoint)
-		if err != nil {
-			return nil, err
-		}
-		switch s.config.ImageVolumes {
-		case ImageVolumesMkdir:
-			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
-				return nil, err1
-			}
-		case ImageVolumesIgnore:
-			logrus.Debugf("Ignoring volume %v", dest)
-		default:
-			logrus.Fatalf("Unrecognized image volumes setting")
-		}
+	// Add image volumes
+	if err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, sb.mountLabel); err != nil {
+		return nil, err
 	}
 
 	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
