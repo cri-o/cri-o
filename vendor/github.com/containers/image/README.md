@@ -20,27 +20,49 @@ to another, for example docker container images to OCI images. It also allows
 you to copy container images between various registries, possibly converting
 them as necessary, and to sign and verify images.
 
+## Command-line usage
+
+The containers/image project is only a library with no user interface;
+you can either incorporate it into your Go programs, or use the `skopeo` tool:
+
 The [skopeo](https://github.com/projectatomic/skopeo) tool uses the
-containers/image library and takes advantage of its many features.
+containers/image library and takes advantage of many of its features,
+e.g. `skopeo copy` exposes the `containers/image/copy.Image` functionality.
 
 ## Dependencies
 
-Dependencies that this library prefers will not be found in the `vendor`
-directory. This is so you can make well-informed decisions about which
-libraries you should use with this package in your own projects.
+This library does not ship a committed version of its dependencies in a `vendor`
+subdirectory.  This is so you can make well-informed decisions about which
+libraries you should use with this package in your own projects, and because
+types defined in the `vendor` directory would be impossible to use from your projects.
 
 What this project tests against dependencies-wise is located
-[here](https://github.com/containers/image/blob/master/vendor.conf).
+[in vendor.conf](https://github.com/containers/image/blob/master/vendor.conf).
 
 ## Building
 
-For ordinary use, `go build ./...` is sufficient.
+If you want to see what the library can do, or an example of how it is called,
+consider starting with the [skopeo](https://github.com/projectatomic/skopeo) tool
+instead.
 
-When developing this library, please use `make` to take advantage of the tests and validation.
+To integrate this library into your project, put it into `$GOPATH` or use
+your preferred vendoring tool to include a copy in your project.
+Ensure that the dependencies documented [in vendor.conf](https://github.com/containers/image/blob/master/vendor.conf)
+are also available
+(using those exact versions or different versions of your choosing).
 
-Optionally, you can use the `containers_image_openpgp` build tag (using `go build -tags …`, or `make … BUILDTAGS=…`).
+This library, by default, also depends on the GpgME C library. Either install it:
+```sh
+Fedora$ dnf install gpgme-devel libassuan-devel
+macOS$ brew install gpgme
+```
+or use the `containers_image_openpgp` build tag (e.g. using `go build -tags …`)
 This will use a Golang-only OpenPGP implementation for signature verification instead of the default cgo/gpgme-based implementation;
 the primary downside is that creating new signatures with the Golang-only implementation is not supported.
+
+## Contributing
+
+When developing this library, please use `make` (or `make … BUILDTAGS=…`) to take advantage of the tests and validation.
 
 ## License
 
