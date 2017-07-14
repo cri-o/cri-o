@@ -449,6 +449,11 @@ func (s *storageImageDestination) AcceptsForeignLayerURLs() bool {
 	return false
 }
 
+// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
+func (s *storageImageDestination) MustMatchRuntimeOS() bool {
+	return true
+}
+
 func (s *storageImageDestination) PutSignatures(signatures [][]byte) error {
 	sizes := []int{}
 	sigblob := []byte{}
