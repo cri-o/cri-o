@@ -26,6 +26,7 @@ func validateConfig(config *server.Config) error {
 	switch config.ImageVolumes {
 	case server.ImageVolumesMkdir:
 	case server.ImageVolumesIgnore:
+	case server.ImageVolumesBind:
 	default:
 		return fmt.Errorf("Unrecognized image volume type specified")
 

@@ -41,6 +41,8 @@ const (
 	ImageVolumesMkdir ImageVolumesType = "mkdir"
 	// ImageVolumesIgnore option is for ignoring image volumes altogether
 	ImageVolumesIgnore ImageVolumesType = "ignore"
+	// ImageVolumesBind option is for using bind mounted volumes
+	ImageVolumesBind ImageVolumesType = "bind"
 )
 
 const (
