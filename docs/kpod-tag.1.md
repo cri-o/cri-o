@@ -12,7 +12,7 @@ Assigns a new alias to an image in a registry.  An alias refers to the entire im
 
 **kpod [GLOBAL OPTIONS]**
 
-**kpod [GLOBAL OPTIONS] launch [OPTIONS]**
+**kpod [GLOBAL OPTIONS] tag [OPTIONS]**
 
 # GLOBAL OPTIONS
 

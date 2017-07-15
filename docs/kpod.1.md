@@ -32,9 +32,6 @@ has the capability to debug pods/images created by crio.
 ## images
 List images in local storage
 
-## launch
-Launch a pod
-
 ## rmi
 Removes one or more locally stored images
 
