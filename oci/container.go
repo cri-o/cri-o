@@ -37,7 +37,7 @@ type Container struct {
 	trusted     bool
 	state       *ContainerState
 	metadata    *pb.ContainerMetadata
-	opLock      sync.Mutex
+	opLock      sync.Locker
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
@@ -79,6 +79,7 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		dir:         dir,
 		state:       state,
 		stopSignal:  stopSignal,
+		opLock:      new(sync.Mutex),
 	}
 	return c, nil
 }

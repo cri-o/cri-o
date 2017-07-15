@@ -57,7 +57,7 @@ type Server struct {
 	store                sstorage.Store
 	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
-	stateLock            sync.Mutex
+	stateLock            sync.Locker
 	updateLock           sync.RWMutex
 	state                *serverState
 	netPlugin            ocicni.CNIPlugin
@@ -589,6 +589,7 @@ func New(config *Config) (*Server, error) {
 		store:                store,
 		storageImageServer:   imageService,
 		storageRuntimeServer: storageRuntimeService,
+		stateLock:            new(sync.Mutex),
 		netPlugin:            netPlugin,
 		hostportManager:      hostportManager,
 		config:               *config,
