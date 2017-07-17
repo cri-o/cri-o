@@ -75,7 +75,9 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		created := cState.Created.UnixNano()
 		rState := pb.ContainerState_CONTAINER_UNKNOWN
 		cID := ctr.ID()
-
+		img := &pb.ImageSpec{
+			Image: ctr.Image(),
+		}
 		c := &pb.Container{
 			Id:           cID,
 			PodSandboxId: podSandboxID,
@@ -83,7 +85,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			Labels:       ctr.Labels(),
 			Metadata:     ctr.Metadata(),
 			Annotations:  ctr.Annotations(),
-			Image:        ctr.Image(),
+			Image:        img,
 		}
 
 		switch cState.Status {
