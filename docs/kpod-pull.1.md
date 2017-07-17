@@ -1,15 +1,16 @@
-% kpod(8) # kpod-pull - Simple tool to pull an image from a registry
+% kpod(1) kpod-pull - Simple tool to pull an image from a registry
 % Urvashi Mohnani
-% JULY 2017
-# NAME
+# kpod-pull "1" "July 2017" "kpod"
+
+## NAME
 kpod-pull - Pull an image from a registry
 
-# SYNOPSIS
+## SYNOPSIS
 **kpod pull**
 **NAME[:TAG|@DISGEST]**
 [**--help**|**-h**]
 
-# DESCRIPTION
+## DESCRIPTION
 Copies an image from a registry onto the local machine. **kpod pull** pulls an
 image from Docker Hub if a registry is not specified in the command line argument.
 If an image tag is not specified, **kpod pull** defaults to the image with the
@@ -22,18 +23,13 @@ using its digest **kpod pull [image]@[digest]**.
 
 **kpod pull NAME[:TAG|@DIGEST] [GLOBAL OPTIONS]**
 
-# GLOBAL OPTIONS
+## GLOBAL OPTIONS
 
 **--help, -h**
   Print usage statement
 
-# COMMANDS
-
-## pull
-Pull an image from a registry
-
-# SEE ALSO
+## SEE ALSO
 kpod(1), crio(8), crio.conf(5)
 
-# HISTORY
+## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

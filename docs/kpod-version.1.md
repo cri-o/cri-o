@@ -1,14 +1,14 @@
-% kpod(8) # kpod-version - Simple tool to view version information
-% Dan Walsh
-% SEPTEMBER 2016
-# NAME
+% kpod(1) kpod-version - Simple tool to view version information
+% Urvashi Mohnani
+# kpod-version "1" "July 2017" "kpod"
+## NAME
 kpod-version - Display the KPOD Version Information
 
-# SYNOPSIS
+## SYNOPSIS
 **kpod version**
 [**--help**|**-h**]
 
-# DESCRIPTION
+## DESCRIPTION
 Shows the the following information: Version, Go Version, Git Commit, Build Time,
 OS, and Architecture.
 
@@ -16,18 +16,13 @@ OS, and Architecture.
 
 **kpod [GLOBAL OPTIONS] version [OPTIONS]**
 
-# GLOBAL OPTIONS
+## GLOBAL OPTIONS
 
 **--help, -h**
   Print usage statement
 
-# COMMANDS
-
-## version
-Display the KPOD Version Information
-
-# SEE ALSO
+## SEE ALSO
 kpod(1), crio(8), crio.conf(5)
 
-# HISTORY
-Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
+## HISTORY
+July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

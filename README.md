@@ -36,6 +36,22 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788).  Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
+## Commands
+| Command                                              | Description                                                                                          |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [crio(8)](/docs/crio.8.md)                 | Enable OCI Kubernetes Container Runtime daemon |
+| [kpod(1)](/docs/kpod.1.md)                 | Simple management tool for pods and images |
+| [kpod-images(1)](/docs/kpod-images.1.md)   | List images in local storage |
+| [kpod-pull(1)](/docs/kpod-pull.1.md)       | Pull an image from a registry |
+| [kpod-rmi(1)](/docs/kpod-rmi.1.md)         | Removes one or more images   |
+| [kpod-tag(1)](/docs/kpod-tag.1.md)         | Add an additional name to a local image |
+| [kpod-version(1)](/docs/kpod-version.1.md) | Display the Kpod Version Information |
+
+## Configuration
+| File                                       | Description                                                                                          |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [crio.conf(5)](/docs/crio.conf.5.md)       | CRI-O Configuation file |
+
 ## Communication
 
 For async communication and long running discussions please use issues and pull requests on the github repo. This will be the best place to discuss design and implementation.

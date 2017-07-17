@@ -2,7 +2,7 @@
 % Dan Walsh
 % SEPTEMBER 2016
 # NAME
-crio - Enable OCI Kubernetes Container Runtime daemon
+crio - OCI Kubernetes Container Runtime daemon
 
 # SYNOPSIS
 **crio**

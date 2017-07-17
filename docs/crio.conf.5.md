@@ -3,10 +3,10 @@
 % OCTOBER 2016
 
 # NAME
-crio.conf - Syntax of CRIO configuration file
+crio.conf - CRI-O configuration file
 
 # DESCRIPTION
-The CRIO configuration file specifies all of the available command-line options
+The CRI-O configuration file specifies all of the available command-line options
 for the crio(8) program, but in a TOML format that can be more easily modified
 and versioned.
 
