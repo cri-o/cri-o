@@ -1,29 +1,34 @@
-## kpod-tag "1" "June 2017" "kpod"
+% kpod(1) kpod-tag - add tags to an image
+% Ryan Cole
+# kpod-tag "1" "July 2017" "kpod"
 
-# NAME
-kpod tag - add tags to an image
+## NAME
+kpod tag - Add an additional name to a local image
 
-# SYNOPSIS
+## SYNOPSIS
 **kpod tag**
 [**--help**|**-h**]
 
-# DESCRIPTION
+## DESCRIPTION
 Assigns a new alias to an image in a registry.  An alias refers to the entire image name, including the optional **TAG** after the ':'
 
 **kpod [GLOBAL OPTIONS]**
 
 **kpod [GLOBAL OPTIONS] tag [OPTIONS]**
 
-# GLOBAL OPTIONS
+## GLOBAL OPTIONS
 
 **--help, -h**
   Print usage statement
 
-# EXAMPLES
+## EXAMPLES
 
   kpod tag 0e3bbc2 fedora:latest
 
   kpod tag httpd myregistryhost:5000/fedora/httpd:v2
 
-# SEE ALSO
+## SEE ALSO
 kpod(1), crio(8), crio.conf(5)
+
+## HISTORY
+July 2017, Originally compiled by Ryan Cole <rycole@redhat.com>

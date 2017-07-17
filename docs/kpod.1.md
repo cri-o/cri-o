@@ -1,10 +1,10 @@
-% kpod(8) # kpod - Simple management tool for pods and images
+% kpod(1) kpod - Simple management tool for pods and images
 % Dan Walsh
-% SEPTEMBER 2016
-# NAME
-kpod
+# kpod "1" "September 2016" "kpod"
+## NAME
+kpod - Simple management tool for containers and images
 
-# SYNOPSIS
+## SYNOPSIS
 **kpod**
 [**--help**|**-h**]
 
@@ -19,7 +19,7 @@ has the capability to debug pods/images created by crio.
 
 **kpod [GLOBAL OPTIONS]**
 
-# GLOBAL OPTIONS
+## GLOBAL OPTIONS
 
 **--help, -h**
   Print usage statement
@@ -27,19 +27,19 @@ has the capability to debug pods/images created by crio.
 **--version, -v**
   Print the version
 
-# COMMANDS
+## COMMANDS
 
-## images
+### images
 List images in local storage
 
-## rmi
+### rmi
 Removes one or more locally stored images
 
-## tag
+### tag
 Add one or more additional names to locally-stored image
 
-# SEE ALSO
+## SEE ALSO
 crio(8), crio.conf(5)
 
-# HISTORY
+## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>

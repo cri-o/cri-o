@@ -1,4 +1,6 @@
-## kpod-rmi "1" "March 2017" "kpod"
+% kpod(1) kpod-rmi - Removes one or more images
+% Dan Walsh
+# kpod-rmi "1" "March 2017" "kpod"
 
 ## NAME
 kpod rmi - Removes one or more images.
@@ -25,3 +27,6 @@ kpod rmi imageID1 imageID2 imageID3
 
 ## SEE ALSO
 kpod(1)
+
+## HISTORY
+March 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>
