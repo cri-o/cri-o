@@ -36,19 +36,19 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	// Delete all the containers in the sandbox
 	for _, c := range containers {
-		if err := s.runtime.UpdateStatus(c); err != nil {
+		if err := s.Runtime().UpdateStatus(c); err != nil {
 			return nil, fmt.Errorf("failed to update container state: %v", err)
 		}
 
-		cState := s.runtime.ContainerStatus(c)
+		cState := s.Runtime().ContainerStatus(c)
 		if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
-			if err := s.runtime.StopContainer(c, -1); err != nil {
+			if err := s.Runtime().StopContainer(c, -1); err != nil {
 				// Assume container is already stopped
 				logrus.Warnf("failed to stop container %s: %v", c.Name(), err)
 			}
 		}
 
-		if err := s.runtime.DeleteContainer(c); err != nil {
+		if err := s.Runtime().DeleteContainer(c); err != nil {
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.id, err)
 		}
 
@@ -66,7 +66,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 		s.releaseContainerName(c.Name())
 		s.removeContainer(c)
-		if err := s.ctrIDIndex.Delete(c.ID()); err != nil {
+		if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.id, err)
 		}
 	}
@@ -82,7 +82,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	s.releaseContainerName(podInfraContainer.Name())
-	if err := s.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
+	if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
 		return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.id, err)
 	}
 

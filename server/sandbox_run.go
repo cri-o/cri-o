@@ -73,19 +73,19 @@ func (s *Server) trustedSandbox(req *pb.RunPodSandboxRequest) bool {
 }
 
 func (s *Server) runContainer(container *oci.Container, cgroupParent string) error {
-	if err := s.runtime.CreateContainer(container, cgroupParent); err != nil {
+	if err := s.Runtime().CreateContainer(container, cgroupParent); err != nil {
 		return err
 	}
 
-	if err := s.runtime.UpdateStatus(container); err != nil {
+	if err := s.Runtime().UpdateStatus(container); err != nil {
 		return err
 	}
 
-	if err := s.runtime.StartContainer(container); err != nil {
+	if err := s.Runtime().StartContainer(container); err != nil {
 		return err
 	}
 
-	if err := s.runtime.UpdateStatus(container); err != nil {
+	if err := s.Runtime().UpdateStatus(container); err != nil {
 		return err
 	}
 
@@ -152,7 +152,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	podContainer, err := s.storageRuntimeServer.CreatePodSandbox(s.imageContext,
+	podContainer, err := s.storageRuntimeServer.CreatePodSandbox(s.ImageContext(),
 		name, id,
 		s.config.PauseImage, "",
 		containerName,
@@ -283,13 +283,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if err = s.ctrIDIndex.Add(id); err != nil {
+	if err = s.CtrIDIndex().Add(id); err != nil {
 		return nil, err
 	}
 
 	defer func() {
 		if err != nil {
-			if err2 := s.ctrIDIndex.Delete(id); err2 != nil {
+			if err2 := s.CtrIDIndex().Delete(id); err2 != nil {
 				logrus.Warnf("couldn't delete ctr id %s from idIndex", id)
 			}
 		}

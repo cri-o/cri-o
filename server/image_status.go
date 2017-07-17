@@ -20,7 +20,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
-	status, err := s.storageImageServer.ImageStatus(s.imageContext, image)
+	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), image)
 	if err != nil {
 		if err == storage.ErrImageUnknown {
 			return &pb.ImageStatusResponse{}, nil

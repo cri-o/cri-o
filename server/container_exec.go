@@ -36,11 +36,11 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 		return fmt.Errorf("could not find container %q", containerID)
 	}
 
-	if err := ss.runtimeServer.runtime.UpdateStatus(c); err != nil {
+	if err := ss.runtimeServer.Runtime().UpdateStatus(c); err != nil {
 		return err
 	}
 
-	cState := ss.runtimeServer.runtime.ContainerStatus(c)
+	cState := ss.runtimeServer.Runtime().ContainerStatus(c)
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return fmt.Errorf("container is not created or running")
 	}
@@ -51,7 +51,7 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 	}
 	args = append(args, c.ID())
 	args = append(args, cmd...)
-	execCmd := exec.Command(ss.runtimeServer.runtime.Path(c), args...)
+	execCmd := exec.Command(ss.runtimeServer.Runtime().Path(c), args...)
 	var cmdErr error
 	if tty {
 		p, err := kubecontainer.StartPty(execCmd)

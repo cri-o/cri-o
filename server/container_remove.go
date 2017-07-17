@@ -18,13 +18,13 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, err
 	}
 
-	if err := s.runtime.UpdateStatus(c); err != nil {
+	if err := s.Runtime().UpdateStatus(c); err != nil {
 		return nil, fmt.Errorf("failed to update container state: %v", err)
 	}
 
-	cState := s.runtime.ContainerStatus(c)
+	cState := s.Runtime().ContainerStatus(c)
 	if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
-		if err := s.runtime.StopContainer(c, -1); err != nil {
+		if err := s.Runtime().StopContainer(c, -1); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 		}
 		if err := s.storageRuntimeServer.StopContainer(c.ID()); err != nil {
@@ -32,7 +32,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		}
 	}
 
-	if err := s.runtime.DeleteContainer(c); err != nil {
+	if err := s.Runtime().DeleteContainer(c); err != nil {
 		return nil, fmt.Errorf("failed to delete container %s: %v", c.ID(), err)
 	}
 
@@ -44,7 +44,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 
 	s.releaseContainerName(c.Name())
 
-	if err := s.ctrIDIndex.Delete(c.ID()); err != nil {
+	if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
 		return nil, err
 	}
 

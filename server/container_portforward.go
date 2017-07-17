@@ -34,11 +34,11 @@ func (ss streamService) PortForward(podSandboxID string, port int32, stream io.R
 		return fmt.Errorf("could not find container for sandbox %q", podSandboxID)
 	}
 
-	if err := ss.runtimeServer.runtime.UpdateStatus(c); err != nil {
+	if err := ss.runtimeServer.Runtime().UpdateStatus(c); err != nil {
 		return err
 	}
 
-	cState := ss.runtimeServer.runtime.ContainerStatus(c)
+	cState := ss.runtimeServer.Runtime().ContainerStatus(c)
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return fmt.Errorf("container is not created or running")
 	}
