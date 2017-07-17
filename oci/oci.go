@@ -585,9 +585,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 			logrus.Warnf("failed to find container exit file: %v", err)
 			c.state.ExitCode = -1
 		} else {
-			st := fi.Sys().(*syscall.Stat_t)
-			c.state.Finished = time.Unix(st.Ctim.Sec, st.Ctim.Nsec)
-
+			c.state.Finished = getFinishedTime(fi)
 			statusCodeStr, err := ioutil.ReadFile(exitFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to read exit file: %v", err)
