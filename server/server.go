@@ -140,12 +140,9 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	var img *pb.ImageSpec
-	image, ok := m.Annotations[annotations.Image]
-	if ok {
-		img = &pb.ImageSpec{
-			Image: image,
-		}
+	img, ok := m.Annotations[annotations.Image]
+	if !ok {
+		img = ""
 	}
 
 	kubeAnnotations := make(map[string]string)
@@ -316,7 +313,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, nil, nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, "", nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}

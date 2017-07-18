@@ -27,7 +27,7 @@ type Container struct {
 	logPath     string
 	labels      fields.Set
 	annotations fields.Set
-	image       *pb.ImageSpec
+	image       string
 	sandbox     string
 	netns       ns.NetNS
 	terminal    bool
@@ -57,7 +57,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image *pb.ImageSpec, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -151,7 +151,7 @@ func (c *Container) Annotations() map[string]string {
 }
 
 // Image returns the image of the container.
-func (c *Container) Image() *pb.ImageSpec {
+func (c *Container) Image() string {
 	return c.image
 }
 

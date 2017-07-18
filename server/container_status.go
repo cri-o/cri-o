@@ -47,7 +47,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 	resp.Status.Mounts = mounts
 
-	imageName := c.Image().Image
+	imageName := c.Image()
 	status, err := s.storageImageServer.ImageStatus(s.imageContext, imageName)
 	if err != nil {
 		return nil, err
