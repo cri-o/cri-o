@@ -57,6 +57,16 @@ IMAGE_VOLUMES=${IMAGE_VOLUMES:-mkdir}
 PIDS_LIMIT=${PIDS_LIMIT:-1024}
 
 TESTDIR=$(mktemp -d)
+
+# We may need to set some default storage options.
+case "$(stat -f -c %T ${TESTDIR})" in
+    aufs)
+        # None of device mapper, overlay, or aufs can be used dependably over aufs, and of course btrfs and zfs can't,
+        # and we have to explicitly specify the "vfs" driver in order to use it, so do that now.
+        STORAGE_OPTS=${STORAGE_OPTS:---storage-driver vfs}
+        ;;
+esac
+
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
     . /etc/selinux/config
     filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
