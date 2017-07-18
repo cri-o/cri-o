@@ -126,7 +126,8 @@ func hostNetNsPath() (string, error) {
 	return netNS.Path(), nil
 }
 
-type sandbox struct {
+// Sandbox contains data surrounding kubernetes sandboxes on the server
+type Sandbox struct {
 	id        string
 	namespace string
 	// OCI pod name (eg "<namespace>-<name>-<attempt>")
@@ -162,19 +163,162 @@ var (
 	errSandboxClosedNetNS = errors.New("PodSandbox networking namespace is closed")
 )
 
-func (s *sandbox) addContainer(c *oci.Container) {
+// NewSandbox creates and populates a new pod sandbox
+// New sandboxes have no containers, no infra container, and no network namespaces associated with them
+// An infra container must be attached before the sandbox is added to the state
+func NewSandbox(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged, trusted bool, resolvPath, hostname string, portMappings []*hostport.PortMapping) (*Sandbox, error) {
+	sb := new(Sandbox)
+	sb.id = id
+	sb.namespace = namespace
+	sb.name = name
+	sb.kubeName = kubeName
+	sb.logDir = logDir
+	sb.labels = labels
+	sb.annotations = annotations
+	sb.containers = oci.NewMemoryStore()
+	sb.processLabel = processLabel
+	sb.mountLabel = mountLabel
+	sb.metadata = metadata
+	sb.shmPath = shmPath
+	sb.cgroupParent = cgroupParent
+	sb.privileged = privileged
+	sb.trusted = trusted
+	sb.resolvPath = resolvPath
+	sb.hostname = hostname
+	sb.portMappings = portMappings
+
+	return sb, nil
+}
+
+// ID returns the id of the sandbox
+func (s *Sandbox) ID() string {
+	return s.id
+}
+
+// Namespace returns the namespace for the sandbox
+func (s *Sandbox) Namespace() string {
+	return s.namespace
+}
+
+// Name returns the name of the sandbox
+func (s *Sandbox) Name() string {
+	return s.name
+}
+
+// KubeName returns the kubernetes name for the sandbox
+func (s *Sandbox) KubeName() string {
+	return s.kubeName
+}
+
+// LogDir returns the location of the logging directory for the sandbox
+func (s *Sandbox) LogDir() string {
+	return s.logDir
+}
+
+// Labels returns the labels associated with the sandbox
+func (s *Sandbox) Labels() fields.Set {
+	return s.labels
+}
+
+// Annotations returns a list of annotations for the sandbox
+func (s *Sandbox) Annotations() map[string]string {
+	return s.annotations
+}
+
+// InfraContainer returns the infrastructure container for the sandbox
+func (s *Sandbox) InfraContainer() *oci.Container {
+	return s.infraContainer
+}
+
+// Containers returns the ContainerStorer that contains information on all
+// of the containers in the sandbox
+func (s *Sandbox) Containers() oci.ContainerStorer {
+	return s.containers
+}
+
+// ProcessLabel returns the process label for the sandbox
+func (s *Sandbox) ProcessLabel() string {
+	return s.processLabel
+}
+
+// MountLabel returns the mount label for the sandbox
+func (s *Sandbox) MountLabel() string {
+	return s.mountLabel
+}
+
+// Metadata returns a set of metadata about the sandbox
+func (s *Sandbox) Metadata() *pb.PodSandboxMetadata {
+	return s.metadata
+}
+
+// ShmPath returns the shm path of the sandbox
+func (s *Sandbox) ShmPath() string {
+	return s.shmPath
+}
+
+// CgroupParent returns the cgroup parent of the sandbox
+func (s *Sandbox) CgroupParent() string {
+	return s.cgroupParent
+}
+
+// Privileged returns whether or not the containers in the sandbox are
+// privileged containers
+func (s *Sandbox) Privileged() bool {
+	return s.privileged
+}
+
+// Trusted returns whether or not the containers in the sandbox are trusted
+func (s *Sandbox) Trusted() bool {
+	return s.trusted
+}
+
+// ResolvPath returns the resolv path for the sandbox
+func (s *Sandbox) ResolvPath() string {
+	return s.resolvPath
+}
+
+// Hostname returns the hsotname of the sandbox
+func (s *Sandbox) Hostname() string {
+	return s.hostname
+}
+
+// PortMappings returns a list of port mappings between the host and the sandbox
+func (s *Sandbox) PortMappings() []*hostport.PortMapping {
+	return s.portMappings
+}
+
+// AddContainer adds a container to the sandbox
+func (s *Sandbox) AddContainer(c *oci.Container) {
 	s.containers.Add(c.Name(), c)
 }
 
-func (s *sandbox) getContainer(name string) *oci.Container {
+// GetContainer retrieves a container from the sandbox
+func (s *Sandbox) GetContainer(name string) *oci.Container {
 	return s.containers.Get(name)
 }
 
-func (s *sandbox) removeContainer(c *oci.Container) {
+// RemoveContainer deletes a container from the sandbox
+func (s *Sandbox) RemoveContainer(c *oci.Container) {
 	s.containers.Delete(c.Name())
 }
 
-func (s *sandbox) netNs() ns.NetNS {
+// SetInfraContainer sets the infrastructure container of a sandbox
+// Attempts to set the infrastructure container after one is already present will throw an error
+func (s *Sandbox) SetInfraContainer(infraCtr *oci.Container) error {
+	if s.infraContainer != nil {
+		return fmt.Errorf("sandbox already has an infra container")
+	} else if infraCtr == nil {
+		return fmt.Errorf("must provide non-nil infra container")
+	}
+
+	s.infraContainer = infraCtr
+
+	return nil
+}
+
+// NetNs retrieves the network namespace of the sandbox
+// If the sandbox uses the host namespace, nil is returned
+func (s *Sandbox) NetNs() ns.NetNS {
 	if s.netns == nil {
 		return nil
 	}
@@ -182,7 +326,9 @@ func (s *sandbox) netNs() ns.NetNS {
 	return s.netns.ns
 }
 
-func (s *sandbox) netNsPath() string {
+// NetNsPath returns the path to the network namespace of the sandbox.
+// If the sandbox uses the host namespace, nil is returned
+func (s *Sandbox) NetNsPath() string {
 	if s.netns == nil {
 		return ""
 	}
@@ -190,7 +336,8 @@ func (s *sandbox) netNsPath() string {
 	return s.netns.symlink.Name()
 }
 
-func (s *sandbox) netNsCreate() error {
+// NetNsCreate creates a new network namespace for the sandbox
+func (s *Sandbox) NetNsCreate() error {
 	if s.netns != nil {
 		return fmt.Errorf("net NS already created")
 	}
@@ -218,7 +365,25 @@ func (s *sandbox) netNsCreate() error {
 	return nil
 }
 
-func (s *sandbox) netNsRemove() error {
+// NetNsJoin attempts to join the sandbox to an existing network namespace
+// This will fail if the sandbox is already part of a network namespace
+func (s *Sandbox) NetNsJoin(nspath, name string) error {
+	if s.netns != nil {
+		return fmt.Errorf("sandbox already has a network namespace, cannot join another")
+	}
+
+	netNS, err := netNsGet(nspath, name)
+	if err != nil {
+		return err
+	}
+
+	s.netns = netNS
+
+	return nil
+}
+
+// NetNsRemove removes the network namespace associated with the sandbox
+func (s *Sandbox) NetNsRemove() error {
 	if s.netns == nil {
 		logrus.Warn("no networking namespace")
 		return nil
@@ -265,7 +430,7 @@ func (s *sandbox) netNsRemove() error {
 	return nil
 }
 
-func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox, error) {
+func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*Sandbox, error) {
 	if podSandboxID == "" {
 		return nil, errSandboxIDEmpty
 	}

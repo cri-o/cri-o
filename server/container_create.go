@@ -37,7 +37,7 @@ const (
 	seccompLocalhostPrefix = "localhost/"
 )
 
-func addOCIBindMounts(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addOCIBindMounts(sb *Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
@@ -109,7 +109,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 	return nil
 }
 
-func addDevices(sb *sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addDevices(sb *Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
 	sp := specgen.Spec()
 	for _, device := range containerConfig.GetDevices() {
 		dev, err := devices.DeviceFromPath(device.HostPath, device.Permissions)
@@ -344,7 +344,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	return resp, nil
 }
 
-func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *Sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
@@ -531,7 +531,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	netNsPath := sb.netNsPath()
+	netNsPath := sb.NetNsPath()
 	if netNsPath == "" {
 		// The sandbox does not have a permanent namespace,
 		// it's on the host one.
@@ -714,7 +714,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.netNs(), labels, kubeAnnotations, image, metadata, sb.id, containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.privileged, sb.trusted, containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, metadata, sb.id, containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.privileged, sb.trusted, containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

@@ -60,7 +60,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	// Close the sandbox networking namespace.
-	if err := sb.netNsRemove(); err != nil {
+	if err := sb.NetNsRemove(); err != nil {
 		return nil, err
 	}
 

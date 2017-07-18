@@ -151,7 +151,7 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, stdin, stdinOnce, sb.privileged, sb.trusted, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, img, &metadata, sb.id, tty, stdin, stdinOnce, sb.privileged, sb.trusted, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func (s *Server) loadSandbox(id string) error {
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	trusted := isTrue(m.Annotations[annotations.TrustedSandbox])
 
-	sb := &sandbox{
+	sb := &Sandbox{
 		id:           id,
 		name:         name,
 		kubeName:     m.Annotations[annotations.KubeName],
@@ -309,7 +309,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.netNs(), labels, kubeAnnotations, "", nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, "", nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -568,7 +568,7 @@ func New(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	sandboxes := make(map[string]*sandbox)
+	sandboxes := make(map[string]*Sandbox)
 	containers := oci.NewMemoryStore()
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {
@@ -651,17 +651,17 @@ func New(config *Config) (*Server, error) {
 }
 
 type serverState struct {
-	sandboxes  map[string]*sandbox
+	sandboxes  map[string]*Sandbox
 	containers oci.ContainerStorer
 }
 
-func (s *Server) addSandbox(sb *sandbox) {
+func (s *Server) addSandbox(sb *Sandbox) {
 	s.stateLock.Lock()
 	s.state.sandboxes[sb.id] = sb
 	s.stateLock.Unlock()
 }
 
-func (s *Server) getSandbox(id string) *sandbox {
+func (s *Server) getSandbox(id string) *Sandbox {
 	s.stateLock.Lock()
 	sb := s.state.sandboxes[id]
 	s.stateLock.Unlock()
@@ -685,7 +685,7 @@ func (s *Server) addContainer(c *oci.Container) {
 	s.stateLock.Lock()
 	sandbox := s.state.sandboxes[c.Sandbox()]
 	// TODO(runcom): handle !ok above!!! otherwise it panics!
-	sandbox.addContainer(c)
+	sandbox.AddContainer(c)
 	s.state.containers.Add(c.ID(), c)
 	s.stateLock.Unlock()
 }
@@ -711,7 +711,7 @@ func (s *Server) GetContainer(id string) *oci.Container {
 func (s *Server) removeContainer(c *oci.Container) {
 	s.stateLock.Lock()
 	sandbox := s.state.sandboxes[c.Sandbox()]
-	sandbox.removeContainer(c)
+	sandbox.RemoveContainer(c)
 	s.state.containers.Delete(c.ID())
 	s.stateLock.Unlock()
 }
