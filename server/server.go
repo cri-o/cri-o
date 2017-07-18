@@ -568,8 +568,8 @@ func New(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	sandboxes := make(map[string]*Sandbox)
-	containers := oci.NewMemoryStore()
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {
 		return nil, err
@@ -587,8 +587,7 @@ func New(config *Config) (*Server, error) {
 		hostportManager:      hostportManager,
 		config:               *config,
 		state: &serverState{
-			sandboxes:  sandboxes,
-			containers: containers,
+			sandboxes: sandboxes,
 		},
 		seccompEnabled:  seccomp.IsEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
@@ -646,13 +645,12 @@ func New(config *Config) (*Server, error) {
 	}()
 
 	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
-	logrus.Debugf("containers: %v", s.state.containers)
+	logrus.Debugf("containers: %v", s.ContainerServer.ListContainers())
 	return s, nil
 }
 
 type serverState struct {
-	sandboxes  map[string]*Sandbox
-	containers oci.ContainerStorer
+	sandboxes map[string]*Sandbox
 }
 
 func (s *Server) addSandbox(sb *Sandbox) {
@@ -686,13 +684,13 @@ func (s *Server) addContainer(c *oci.Container) {
 	sandbox := s.state.sandboxes[c.Sandbox()]
 	// TODO(runcom): handle !ok above!!! otherwise it panics!
 	sandbox.AddContainer(c)
-	s.state.containers.Add(c.ID(), c)
+	s.ContainerServer.AddContainer(c)
 	s.stateLock.Unlock()
 }
 
 func (s *Server) getContainer(id string) *oci.Container {
 	s.stateLock.Lock()
-	c := s.state.containers.Get(id)
+	c := s.ContainerServer.GetContainer(id)
 	s.stateLock.Unlock()
 	return c
 }
@@ -712,6 +710,6 @@ func (s *Server) removeContainer(c *oci.Container) {
 	s.stateLock.Lock()
 	sandbox := s.state.sandboxes[c.Sandbox()]
 	sandbox.RemoveContainer(c)
-	s.state.containers.Delete(c.ID())
+	s.ContainerServer.RemoveContainer(c)
 	s.stateLock.Unlock()
 }

@@ -16,7 +16,7 @@ func (s *Server) getContainerFromRequest(cid string) (*oci.Container, error) {
 		return nil, fmt.Errorf("container with ID starting with %s not found: %v", cid, err)
 	}
 
-	c := s.state.containers.Get(containerID)
+	c := s.ContainerServer.GetContainer(containerID)
 	if c == nil {
 		return nil, fmt.Errorf("specified container not found: %s", containerID)
 	}
