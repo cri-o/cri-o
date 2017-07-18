@@ -23,6 +23,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		imagesCommand,
+		infoCommand,
 		rmiCommand,
 		tagCommand,
 		versionCommand,
