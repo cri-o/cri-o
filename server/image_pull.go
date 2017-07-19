@@ -51,19 +51,19 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		}
 	}
 
-	canPull, err := s.storageImageServer.CanPull(image, options)
+	canPull, err := s.StorageImageServer().CanPull(image, options)
 	if err != nil && !canPull {
 		return nil, err
 	}
 
 	// let's be smart, docker doesn't repull if image already exists.
-	if _, err := s.storageImageServer.ImageStatus(s.imageContext, image); err == nil {
+	if _, err := s.StorageImageServer().ImageStatus(s.ImageContext(), image); err == nil {
 		return &pb.PullImageResponse{
 			ImageRef: image,
 		}, nil
 	}
 
-	if _, err := s.storageImageServer.PullImage(s.imageContext, image, options); err != nil {
+	if _, err := s.StorageImageServer().PullImage(s.ImageContext(), image, options); err != nil {
 		return nil, err
 	}
 	resp := &pb.PullImageResponse{

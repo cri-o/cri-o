@@ -319,17 +319,17 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err = s.runtime.CreateContainer(container, sb.cgroupParent); err != nil {
+	if err = s.Runtime().CreateContainer(container, sb.cgroupParent); err != nil {
 		return nil, err
 	}
 
-	if err = s.runtime.UpdateStatus(container); err != nil {
+	if err = s.Runtime().UpdateStatus(container); err != nil {
 		return nil, err
 	}
 
 	s.addContainer(container)
 
-	if err = s.ctrIDIndex.Add(containerID); err != nil {
+	if err = s.CtrIDIndex().Add(containerID); err != nil {
 		s.removeContainer(container)
 		return nil, err
 	}
@@ -522,7 +522,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 	// Join the namespace paths for the pod sandbox container.
-	podInfraState := s.runtime.ContainerStatus(sb.infraContainer)
+	podInfraState := s.Runtime().ContainerStatus(sb.infraContainer)
 
 	logrus.Debugf("pod container state %+v", podInfraState)
 
@@ -611,7 +611,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	metaname := metadata.Name
 	attempt := metadata.Attempt
-	containerInfo, err := s.storageRuntimeServer.CreateContainer(s.imageContext,
+	containerInfo, err := s.storageRuntimeServer.CreateContainer(s.ImageContext(),
 		sb.name, sb.id,
 		image, image,
 		containerName, containerID,

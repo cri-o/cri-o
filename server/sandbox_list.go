@@ -59,11 +59,11 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 			// it's better not to panic
 			continue
 		}
-		if err := s.runtime.UpdateStatus(podInfraContainer); err != nil {
+		if err := s.Runtime().UpdateStatus(podInfraContainer); err != nil {
 			return nil, err
 		}
 
-		cState := s.runtime.ContainerStatus(podInfraContainer)
+		cState := s.Runtime().ContainerStatus(podInfraContainer)
 		created := cState.Created.UnixNano()
 		rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
 		if cState.Status == oci.ContainerStateRunning {

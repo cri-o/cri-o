@@ -12,10 +12,11 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
-	sstorage "github.com/containers/storage"
+	cstorage "github.com/containers/storage"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
+	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
@@ -52,10 +53,8 @@ type streamService struct {
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
+	libkpod.ContainerServer
 	config               Config
-	runtime              *oci.Runtime
-	store                sstorage.Store
-	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
 	stateLock            sync.Locker
 	updateLock           sync.RWMutex
@@ -64,9 +63,6 @@ type Server struct {
 	hostportManager      hostport.HostPortManager
 	podNameIndex         *registrar.Registrar
 	podIDIndex           *truncindex.TruncIndex
-	ctrNameIndex         *registrar.Registrar
-	ctrIDIndex           *truncindex.TruncIndex
-	imageContext         *types.SystemContext
 
 	seccompEnabled bool
 	seccompProfile seccomp.Seccomp
@@ -93,7 +89,7 @@ func (s *Server) GetPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResp
 }
 
 func (s *Server) loadContainer(id string) error {
-	config, err := s.store.FromContainerDirectory(id, "config.json")
+	config, err := s.Store().FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
 	}
@@ -130,12 +126,12 @@ func (s *Server) loadContainer(id string) error {
 	stdin := isTrue(m.Annotations[annotations.Stdin])
 	stdinOnce := isTrue(m.Annotations[annotations.StdinOnce])
 
-	containerPath, err := s.store.ContainerRunDirectory(id)
+	containerPath, err := s.Store().ContainerRunDirectory(id)
 	if err != nil {
 		return err
 	}
 
-	containerDir, err := s.store.ContainerDirectory(id)
+	containerDir, err := s.Store().ContainerDirectory(id)
 	if err != nil {
 		return err
 	}
@@ -163,7 +159,7 @@ func (s *Server) loadContainer(id string) error {
 	s.containerStateFromDisk(ctr)
 
 	s.addContainer(ctr)
-	return s.ctrIDIndex.Add(id)
+	return s.CtrIDIndex().Add(id)
 }
 
 func (s *Server) containerStateFromDisk(c *oci.Container) error {
@@ -172,7 +168,7 @@ func (s *Server) containerStateFromDisk(c *oci.Container) error {
 	}
 	// ignore errors, this is a best effort to have up-to-date info about
 	// a given container before its state gets stored
-	s.runtime.UpdateStatus(c)
+	s.Runtime().UpdateStatus(c)
 
 	return nil
 }
@@ -180,7 +176,7 @@ func (s *Server) containerStateFromDisk(c *oci.Container) error {
 func (s *Server) containerStateToDisk(c *oci.Container) error {
 	// ignore errors, this is a best effort to have up-to-date info about
 	// a given container before its state gets stored
-	s.runtime.UpdateStatus(c)
+	s.Runtime().UpdateStatus(c)
 
 	jsonSource, err := ioutils.NewAtomicFileWriter(c.StatePath(), 0644)
 	if err != nil {
@@ -188,7 +184,7 @@ func (s *Server) containerStateToDisk(c *oci.Container) error {
 	}
 	defer jsonSource.Close()
 	enc := json.NewEncoder(jsonSource)
-	return enc.Encode(s.runtime.ContainerStatus(c))
+	return enc.Encode(s.Runtime().ContainerStatus(c))
 }
 
 func configNetNsPath(spec rspec.Spec) (string, error) {
@@ -208,7 +204,7 @@ func configNetNsPath(spec rspec.Spec) (string, error) {
 }
 
 func (s *Server) loadSandbox(id string) error {
-	config, err := s.store.FromContainerDirectory(id, "config.json")
+	config, err := s.Store().FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
 	}
@@ -288,12 +284,12 @@ func (s *Server) loadSandbox(id string) error {
 		}
 	}()
 
-	sandboxPath, err := s.store.ContainerRunDirectory(id)
+	sandboxPath, err := s.Store().ContainerRunDirectory(id)
 	if err != nil {
 		return err
 	}
 
-	sandboxDir, err := s.store.ContainerDirectory(id)
+	sandboxDir, err := s.Store().ContainerDirectory(id)
 	if err != nil {
 		return err
 	}
@@ -324,7 +320,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 	sb.infraContainer = scontainer
-	if err = s.ctrIDIndex.Add(scontainer.ID()); err != nil {
+	if err = s.CtrIDIndex().Add(scontainer.ID()); err != nil {
 		return err
 	}
 	if err = s.podIDIndex.Add(id); err != nil {
@@ -334,7 +330,7 @@ func (s *Server) loadSandbox(id string) error {
 }
 
 func (s *Server) restore() {
-	containers, err := s.store.Containers()
+	containers, err := s.Store().Containers()
 	if err != nil && !os.IsNotExist(err) {
 		logrus.Warnf("could not read containers and sandboxes: %v", err)
 	}
@@ -378,7 +374,7 @@ func (s *Server) update() error {
 	s.updateLock.Lock()
 	defer s.updateLock.Unlock()
 
-	containers, err := s.store.Containers()
+	containers, err := s.Store().Containers()
 	if err != nil && !os.IsNotExist(err) {
 		logrus.Warnf("could not read containers and sandboxes: %v", err)
 		return err
@@ -413,7 +409,7 @@ func (s *Server) update() error {
 			newPodContainers[container.ID] = &metadata
 		}
 	}
-	s.ctrIDIndex.Iterate(func(id string) {
+	s.CtrIDIndex().Iterate(func(id string) {
 		if _, ok := oldPodContainers[id]; !ok {
 			// this container's ID wasn't in the updated list -> removed
 			removedPodContainers[id] = id
@@ -428,7 +424,7 @@ func (s *Server) update() error {
 		}
 		s.releaseContainerName(c.Name())
 		s.removeContainer(c)
-		if err = s.ctrIDIndex.Delete(c.ID()); err != nil {
+		if err = s.CtrIDIndex().Delete(c.ID()); err != nil {
 			return err
 		}
 		logrus.Debugf("forgetting removed pod container %s", c.ID())
@@ -449,7 +445,7 @@ func (s *Server) update() error {
 		podInfraContainer := sb.infraContainer
 		s.releaseContainerName(podInfraContainer.Name())
 		s.removeContainer(podInfraContainer)
-		if err = s.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
+		if err = s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
 			return err
 		}
 		sb.infraContainer = nil
@@ -499,9 +495,9 @@ func (s *Server) releasePodName(name string) {
 }
 
 func (s *Server) reserveContainerName(id, name string) (string, error) {
-	if err := s.ctrNameIndex.Reserve(name, id); err != nil {
+	if err := s.CtrNameIndex().Reserve(name, id); err != nil {
 		if err == registrar.ErrNameReserved {
-			id, err := s.ctrNameIndex.Get(name)
+			id, err := s.CtrNameIndex().Get(name)
 			if err != nil {
 				logrus.Warnf("conflict, ctr name %q already reserved", name)
 				return "", err
@@ -514,7 +510,7 @@ func (s *Server) reserveContainerName(id, name string) (string, error) {
 }
 
 func (s *Server) releaseContainerName(name string) {
-	s.ctrNameIndex.Release(name)
+	s.CtrNameIndex().Release(name)
 }
 
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
@@ -538,13 +534,13 @@ func (s *Server) Shutdown() error {
 	// notice this won't trigger just on system halt but also on normal
 	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown()
-	_, err := s.store.Shutdown(false)
+	_, err := s.Store().Shutdown(false)
 	return err
 }
 
 // New creates a new Server with options provided
 func New(config *Config) (*Server, error) {
-	store, err := sstorage.GetStore(sstorage.StoreOptions{
+	store, err := cstorage.GetStore(cstorage.StoreOptions{
 		RunRoot:            config.RunRoot,
 		GraphRoot:          config.Root,
 		GraphDriverName:    config.Storage,
@@ -581,10 +577,10 @@ func New(config *Config) (*Server, error) {
 	iptInterface := utiliptables.New(utilexec.New(), utildbus.New(), utiliptables.ProtocolIpv4)
 	iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain)
 	hostportManager := hostport.NewHostportManager()
+
+	containerServer := libkpod.New(r, store, imageService, registrar.NewRegistrar(), truncindex.NewTruncIndex([]string{}), &types.SystemContext{SignaturePolicyPath: config.ImageConfig.SignaturePolicyPath})
 	s := &Server{
-		runtime:              r,
-		store:                store,
-		storageImageServer:   imageService,
+		ContainerServer:      *containerServer,
 		storageRuntimeServer: storageRuntimeService,
 		stateLock:            new(sync.Mutex),
 		netPlugin:            netPlugin,
@@ -618,11 +614,6 @@ func New(config *Config) (*Server, error) {
 
 	s.podIDIndex = truncindex.NewTruncIndex([]string{})
 	s.podNameIndex = registrar.NewRegistrar()
-	s.ctrIDIndex = truncindex.NewTruncIndex([]string{})
-	s.ctrNameIndex = registrar.NewRegistrar()
-	s.imageContext = &types.SystemContext{
-		SignaturePolicyPath: config.ImageConfig.SignaturePolicyPath,
-	}
 
 	s.restore()
 	s.cleanupSandboxesOnShutdown()

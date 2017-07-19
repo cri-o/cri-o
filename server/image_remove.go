@@ -19,7 +19,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
-	err := s.storageImageServer.RemoveImage(s.imageContext, image)
+	err := s.StorageImageServer().RemoveImage(s.ImageContext(), image)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ func (s *Server) getContainerFromRequest(cid string) (*oci.Container, error) {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
 
-	containerID, err := s.ctrIDIndex.Get(cid)
+	containerID, err := s.CtrIDIndex().Get(cid)
 	if err != nil {
 		return nil, fmt.Errorf("container with ID starting with %s not found: %v", cid, err)
 	}

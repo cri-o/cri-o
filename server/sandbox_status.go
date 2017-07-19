@@ -16,12 +16,12 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	podInfraContainer := sb.infraContainer
-	if err = s.runtime.UpdateStatus(podInfraContainer); err != nil {
+	if err = s.Runtime().UpdateStatus(podInfraContainer); err != nil {
 		return nil, err
 	}
 	s.containerStateToDisk(podInfraContainer)
 
-	cState := s.runtime.ContainerStatus(podInfraContainer)
+	cState := s.Runtime().ContainerStatus(podInfraContainer)
 
 	netNsPath, err := podInfraContainer.NetNsPath()
 	if err != nil {

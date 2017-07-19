@@ -17,12 +17,12 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		return nil, err
 	}
 
-	if err := s.runtime.UpdateStatus(c); err != nil {
+	if err := s.Runtime().UpdateStatus(c); err != nil {
 		return nil, err
 	}
-	cStatus := s.runtime.ContainerStatus(c)
+	cStatus := s.Runtime().ContainerStatus(c)
 	if cStatus.Status != oci.ContainerStateStopped {
-		if err := s.runtime.StopContainer(c, req.Timeout); err != nil {
+		if err := s.Runtime().StopContainer(c, req.Timeout); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 		}
 		if err := s.storageRuntimeServer.StopContainer(c.ID()); err != nil {

@@ -26,7 +26,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		return nil, err
 	}
 
-	if err = s.runtime.UpdateStatus(c); err != nil {
+	if err = s.Runtime().UpdateStatus(c); err != nil {
 		return nil, err
 	}
 	s.containerStateToDisk(c)
@@ -48,7 +48,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	resp.Status.Mounts = mounts
 
 	imageName := c.Image()
-	status, err := s.storageImageServer.ImageStatus(s.imageContext, imageName)
+	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), imageName)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 	resp.Status.Image = &pb.ImageSpec{Image: imageName}
 
-	cState := s.runtime.ContainerStatus(c)
+	cState := s.Runtime().ContainerStatus(c)
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
 	switch cState.Status {
@@ -122,7 +122,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 }
 
 func (s *Server) getMounts(id string) ([]*pb.Mount, error) {
-	config, err := s.store.FromContainerDirectory(id, "config.json")
+	config, err := s.Store().FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return nil, err
 	}

@@ -9,11 +9,11 @@ import (
 func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
 
 	// Deal with Runtime conditions
-	runtimeReady, err := s.runtime.RuntimeReady()
+	runtimeReady, err := s.Runtime().RuntimeReady()
 	if err != nil {
 		return nil, err
 	}
-	networkReady, err := s.runtime.NetworkReady()
+	networkReady, err := s.Runtime().NetworkReady()
 	if err != nil {
 		return nil, err
 	}

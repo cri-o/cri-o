@@ -44,11 +44,11 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 		return fmt.Errorf("could not find container %q", containerID)
 	}
 
-	if err := ss.runtimeServer.runtime.UpdateStatus(c); err != nil {
+	if err := ss.runtimeServer.Runtime().UpdateStatus(c); err != nil {
 		return err
 	}
 
-	cState := ss.runtimeServer.runtime.ContainerStatus(c)
+	cState := ss.runtimeServer.Runtime().ContainerStatus(c)
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return fmt.Errorf("container is not created or running")
 	}
