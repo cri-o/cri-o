@@ -23,7 +23,7 @@ function find-deps() {
 	local deps=
 
 	# gather imports from cri-o
-	pkgs=$(cd ${basepath}/${srcdir} && go list -f "{{.Imports}}" . | tr ' ' '\n' | grep -v "/vendor/" | grep ${pkgname} | sed -e "s|${pkgname}/||g")
+	pkgs=$(cd ${basepath}/${srcdir} && go list -f "{{.Imports}}" . | tr ' ' '\n' | tr -d '[]' | grep -v "/vendor/" | grep ${pkgname} | sed -e "s|${pkgname}/||g")
 
 	# add each Go import's sources to the deps list,
 	# and recursively get that imports's imports too
