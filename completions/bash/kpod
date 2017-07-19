@@ -93,6 +93,28 @@ _kpod_pull() {
     _complete_ "$options_with_args" "$boolean_options"
 }
 
+_kpod_history() {
+     local options_with_args="
+     --format
+     "
+     local boolean_options="
+     --human -H
+     --no-trunc
+     --quiet -q
+     --json
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
 _kpod_kpod() {
      local options_with_args="
      "
@@ -106,6 +128,7 @@ _kpod_kpod() {
     tag
     version
     pull
+    history
      "
 
      case "$prev" in
