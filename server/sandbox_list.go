@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
@@ -30,7 +31,7 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
 	logrus.Debugf("ListPodSandboxRequest %+v", req)
 	var pods []*pb.PodSandbox
-	var podList []*Sandbox
+	var podList []*sandbox.Sandbox
 	for _, sb := range s.state.sandboxes {
 		podList = append(podList, sb)
 	}
@@ -45,15 +46,15 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 			}
 			sb := s.getSandbox(id)
 			if sb == nil {
-				podList = []*Sandbox{}
+				podList = []*sandbox.Sandbox{}
 			} else {
-				podList = []*Sandbox{sb}
+				podList = []*sandbox.Sandbox{sb}
 			}
 		}
 	}
 
 	for _, sb := range podList {
-		podInfraContainer := sb.infraContainer
+		podInfraContainer := sb.InfraContainer()
 		if podInfraContainer == nil {
 			// this can't really happen, but if it does because of a bug
 			// it's better not to panic
@@ -71,12 +72,12 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		}
 
 		pod := &pb.PodSandbox{
-			Id:          sb.id,
+			Id:          sb.ID(),
 			CreatedAt:   created,
 			State:       rStatus,
-			Labels:      sb.labels,
-			Annotations: sb.annotations,
-			Metadata:    sb.metadata,
+			Labels:      sb.Labels(),
+			Annotations: sb.Annotations(),
+			Metadata:    sb.Metadata(),
 		}
 
 		// Filter by other criteria such as state and labels.

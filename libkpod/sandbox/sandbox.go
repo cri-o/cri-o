@@ -1,4 +1,4 @@
-package server
+package sandbox
 
 import (
 	"crypto/rand"
@@ -19,7 +19,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 )
 
-type sandboxNetNs struct {
+// NetNs handles data pertaining a network namespace
+type NetNs struct {
 	sync.Mutex
 	ns       ns.NetNS
 	symlink  *os.File
@@ -27,7 +28,7 @@ type sandboxNetNs struct {
 	restored bool
 }
 
-func (ns *sandboxNetNs) symlinkCreate(name string) error {
+func (ns *NetNs) symlinkCreate(name string) error {
 	b := make([]byte, 4)
 	_, randErr := rand.Reader.Read(b)
 	if randErr != nil {
@@ -35,7 +36,7 @@ func (ns *sandboxNetNs) symlinkCreate(name string) error {
 	}
 
 	nsName := fmt.Sprintf("%s-%x", name, b)
-	symlinkPath := filepath.Join(nsRunDir, nsName)
+	symlinkPath := filepath.Join(NsRunDir, nsName)
 
 	if err := os.Symlink(ns.ns.Path(), symlinkPath); err != nil {
 		return err
@@ -55,7 +56,7 @@ func (ns *sandboxNetNs) symlinkCreate(name string) error {
 	return nil
 }
 
-func (ns *sandboxNetNs) symlinkRemove() error {
+func (ns *NetNs) symlinkRemove() error {
 	if err := ns.symlink.Close(); err != nil {
 		return err
 	}
@@ -72,9 +73,10 @@ func isSymbolicLink(path string) (bool, error) {
 	return fi.Mode()&os.ModeSymlink == os.ModeSymlink, nil
 }
 
-func netNsGet(nspath, name string) (*sandboxNetNs, error) {
+// NetNsGet returns the NetNs associated with the given nspath and name
+func NetNsGet(nspath, name string) (*NetNs, error) {
 	if err := ns.IsNSorErr(nspath); err != nil {
-		return nil, errSandboxClosedNetNS
+		return nil, ErrClosedNetNS
 	}
 
 	symlink, symlinkErr := isSymbolicLink(nspath)
@@ -98,7 +100,7 @@ func netNsGet(nspath, name string) (*sandboxNetNs, error) {
 		return nil, err
 	}
 
-	netNs := &sandboxNetNs{ns: netNS, closed: false, restored: true}
+	netNs := &NetNs{ns: netNS, closed: false, restored: true}
 
 	if symlink {
 		fd, err := os.Open(nspath)
@@ -116,7 +118,8 @@ func netNsGet(nspath, name string) (*sandboxNetNs, error) {
 	return netNs, nil
 }
 
-func hostNetNsPath() (string, error) {
+// HostNetNsPath returns the current network namespace for the host
+func HostNetNsPath() (string, error) {
 	netNS, err := ns.GetCurrentNS()
 	if err != nil {
 		return "", err
@@ -141,7 +144,7 @@ type Sandbox struct {
 	containers     oci.ContainerStorer
 	processLabel   string
 	mountLabel     string
-	netns          *sandboxNetNs
+	netns          *NetNs
 	metadata       *pb.PodSandboxMetadata
 	shmPath        string
 	cgroupParent   string
@@ -153,20 +156,28 @@ type Sandbox struct {
 }
 
 const (
-	defaultShmSize  = 64 * 1024 * 1024
-	nsRunDir        = "/var/run/netns"
-	podInfraCommand = "/pause"
+	// DefaultShmSize is the default shm size
+	DefaultShmSize = 64 * 1024 * 1024
+	// NsRunDir is the default directory in which running network namespaces
+	// are stored
+	NsRunDir = "/var/run/netns"
+	// PodInfraCommand is the default command when starting a pod infrastructure
+	// container
+	PodInfraCommand = "/pause"
 )
 
 var (
-	errSandboxIDEmpty     = errors.New("PodSandboxId should not be empty")
-	errSandboxClosedNetNS = errors.New("PodSandbox networking namespace is closed")
+	// ErrIDEmpty is the erro returned when the id of the sandbox is empty
+	ErrIDEmpty = errors.New("PodSandboxId should not be empty")
+	// ErrClosedNetNS is the error returned when the network namespace of the
+	// sandbox is closed
+	ErrClosedNetNS = errors.New("PodSandbox networking namespace is closed")
 )
 
-// NewSandbox creates and populates a new pod sandbox
+// New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
 // An infra container must be attached before the sandbox is added to the state
-func NewSandbox(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged, trusted bool, resolvPath, hostname string, portMappings []*hostport.PortMapping) (*Sandbox, error) {
+func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged, trusted bool, resolvPath, hostname string, portMappings []*hostport.PortMapping) (*Sandbox, error) {
 	sb := new(Sandbox)
 	sb.id = id
 	sb.namespace = namespace
@@ -316,6 +327,11 @@ func (s *Sandbox) SetInfraContainer(infraCtr *oci.Container) error {
 	return nil
 }
 
+// RemoveInfraContainer removes the infrastructure container of a sandbox
+func (s *Sandbox) RemoveInfraContainer() {
+	s.infraContainer = nil
+}
+
 // NetNs retrieves the network namespace of the sandbox
 // If the sandbox uses the host namespace, nil is returned
 func (s *Sandbox) NetNs() ns.NetNS {
@@ -347,7 +363,7 @@ func (s *Sandbox) NetNsCreate() error {
 		return err
 	}
 
-	s.netns = &sandboxNetNs{
+	s.netns = &NetNs{
 		ns:     netNS,
 		closed: false,
 	}
@@ -372,7 +388,7 @@ func (s *Sandbox) NetNsJoin(nspath, name string) error {
 		return fmt.Errorf("sandbox already has a network namespace, cannot join another")
 	}
 
-	netNS, err := netNsGet(nspath, name)
+	netNS, err := NetNsGet(nspath, name)
 	if err != nil {
 		return err
 	}
@@ -428,21 +444,4 @@ func (s *Sandbox) NetNsRemove() error {
 
 	s.netns.closed = true
 	return nil
-}
-
-func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*Sandbox, error) {
-	if podSandboxID == "" {
-		return nil, errSandboxIDEmpty
-	}
-
-	sandboxID, err := s.podIDIndex.Get(podSandboxID)
-	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
-	}
-
-	sb := s.getSandbox(sandboxID)
-	if sb == nil {
-		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
-	}
-	return sb, nil
 }

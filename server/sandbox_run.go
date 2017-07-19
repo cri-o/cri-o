@@ -13,6 +13,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
@@ -186,7 +187,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if podContainer.Config != nil {
 			g.SetProcessArgs(podContainer.Config.Config.Cmd)
 		} else {
-			g.SetProcessArgs([]string{podInfraCommand})
+			g.SetProcessArgs([]string{sandbox.PodInfraCommand})
 		}
 	} else {
 		g.SetProcessArgs([]string{s.config.PauseCommand})
@@ -330,24 +331,24 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	portMappings := convertPortMappings(req.GetConfig().GetPortMappings())
 
-	sb := &Sandbox{
-		id:           id,
-		namespace:    namespace,
-		name:         name,
-		kubeName:     kubeName,
-		logDir:       logDir,
-		labels:       labels,
-		annotations:  kubeAnnotations,
-		containers:   oci.NewMemoryStore(),
-		processLabel: processLabel,
-		mountLabel:   mountLabel,
-		metadata:     metadata,
-		shmPath:      shmPath,
-		privileged:   privileged,
-		trusted:      trusted,
-		resolvPath:   resolvPath,
-		hostname:     hostname,
-		portMappings: portMappings,
+	// setup cgroup settings
+	cgroupParent := req.GetConfig().GetLinux().CgroupParent
+	if cgroupParent != "" {
+		if s.config.CgroupManager == "systemd" {
+			cgPath, err := convertCgroupNameToSystemd(cgroupParent, false)
+			if err != nil {
+				return nil, err
+			}
+			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
+			cgroupParent = cgPath
+		} else {
+			g.SetLinuxCgroupsPath(cgroupParent + "/" + id)
+		}
+	}
+
+	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings)
+	if err != nil {
+		return nil, err
 	}
 
 	s.addSandbox(sb)
@@ -385,22 +386,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.AddLinuxSysctl(sysctl.Name, sysctl.Value)
 	}
 
-	// setup cgroup settings
-	cgroupParent := req.GetConfig().GetLinux().CgroupParent
-	if cgroupParent != "" {
-		if s.config.CgroupManager == "systemd" {
-			cgPath, err := convertCgroupNameToSystemd(cgroupParent, false)
-			if err != nil {
-				return nil, err
-			}
-			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
-			sb.cgroupParent = cgPath
-		} else {
-			g.SetLinuxCgroupsPath(cgroupParent + "/" + id)
-			sb.cgroupParent = cgroupParent
-		}
-	}
-
 	// Set OOM score adjust of the infra container to be very low
 	// so it doesn't get killed.
 	g.SetProcessOOMScoreAdj(PodInfraOOMAdj)
@@ -414,7 +399,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 
-		netNsPath, err = hostNetNsPath()
+		netNsPath, err = sandbox.HostNetNsPath()
 		if err != nil {
 			return nil, err
 		}
@@ -464,23 +449,23 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	saveOptions := generate.ExportOptions{}
 	mountPoint, err := s.storageRuntimeServer.StartContainer(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.name, id, err)
+		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
 	}
 	g.SetRootPath(mountPoint)
 	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.name, id, err)
+		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
 	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
-		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
+		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, "", nil, id, false, false, false, sb.privileged, sb.trusted, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, "", nil, id, false, false, false, sb.Privileged(), sb.Trusted(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
 
-	sb.infraContainer = container
+	sb.SetInfraContainer(container)
 
 	// setup the network
 	if !hostNetwork {
@@ -511,7 +496,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if err = s.runContainer(container, sb.cgroupParent); err != nil {
+	if err = s.runContainer(container, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
@@ -579,7 +564,7 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 	if err = os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
 	}
-	shmOptions := "mode=1777,size=" + strconv.Itoa(defaultShmSize)
+	shmOptions := "mode=1777,size=" + strconv.Itoa(sandbox.DefaultShmSize)
 	if err = unix.Mount("shm", shmPath, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
