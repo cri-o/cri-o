@@ -330,7 +330,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	portMappings := convertPortMappings(req.GetConfig().GetPortMappings())
 
-	sb := &sandbox{
+	sb := &Sandbox{
 		id:           id,
 		namespace:    namespace,
 		name:         name,
@@ -420,7 +420,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	} else {
 		// Create the sandbox network namespace
-		if err = sb.netNsCreate(); err != nil {
+		if err = sb.NetNsCreate(); err != nil {
 			return nil, err
 		}
 
@@ -429,18 +429,18 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				return
 			}
 
-			if netnsErr := sb.netNsRemove(); netnsErr != nil {
+			if netnsErr := sb.NetNsRemove(); netnsErr != nil {
 				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
 			}
 		}()
 
 		// Pass the created namespace path to the runtime
-		err = g.AddOrReplaceLinuxNamespace("network", sb.netNsPath())
+		err = g.AddOrReplaceLinuxNamespace("network", sb.NetNsPath())
 		if err != nil {
 			return nil, err
 		}
 
-		netNsPath = sb.netNsPath()
+		netNsPath = sb.NetNsPath()
 	}
 
 	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid {
@@ -475,7 +475,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.name, id, err)
 	}
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.netNs(), labels, kubeAnnotations, "", nil, id, false, false, false, sb.privileged, sb.trusted, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, "", nil, id, false, false, false, sb.privileged, sb.trusted, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
