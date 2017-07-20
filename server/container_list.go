@@ -31,7 +31,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	logrus.Debugf("ListContainersRequest %+v", req)
 	var ctrs []*pb.Container
 	filter := req.Filter
-	ctrList := s.state.containers.List()
+	ctrList := s.ContainerServer.ListContainers()
 
 	// Filter using container id and pod id first.
 	if filter != nil {
@@ -40,7 +40,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			if err != nil {
 				return nil, err
 			}
-			c := s.state.containers.Get(id)
+			c := s.ContainerServer.GetContainer(id)
 			if c != nil {
 				if filter.PodSandboxId != "" {
 					if c.Sandbox() == filter.PodSandboxId {
