@@ -66,7 +66,7 @@ func (s *Server) generateContainerIDandNameForSandbox(sandboxConfig *pb.PodSandb
 		err error
 		id  = stringid.GenerateNonCryptoID()
 	)
-	name, err := s.reserveContainerName(id, makeSandboxContainerName(sandboxConfig))
+	name, err := s.ReserveContainerName(id, makeSandboxContainerName(sandboxConfig))
 	if err != nil {
 		return "", "", err
 	}
@@ -78,7 +78,7 @@ func (s *Server) generateContainerIDandName(sandboxMetadata *pb.PodSandboxMetada
 		err error
 		id  = stringid.GenerateNonCryptoID()
 	)
-	name, err := s.reserveContainerName(id, makeContainerName(sandboxMetadata, containerConfig))
+	name, err := s.ReserveContainerName(id, makeContainerName(sandboxMetadata, containerConfig))
 	if err != nil {
 		return "", "", err
 	}

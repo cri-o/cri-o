@@ -65,7 +65,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 		}
 
-		s.releaseContainerName(c.Name())
+		s.ReleaseContainerName(c.Name())
 		s.removeContainer(c)
 		if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.ID(), err)
@@ -82,7 +82,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.ID(), err)
 	}
 
-	s.releaseContainerName(podInfraContainer.Name())
+	s.ReleaseContainerName(podInfraContainer.Name())
 	if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
 		return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.ID(), err)
 	}

@@ -103,14 +103,14 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 	name := m.Annotations[annotations.Name]
-	name, err = s.reserveContainerName(id, name)
+	name, err = s.ReserveContainerName(id, name)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
 		if err != nil {
-			s.releaseContainerName(name)
+			s.ReleaseContainerName(name)
 		}
 	}()
 
@@ -256,13 +256,13 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	cname, err := s.reserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
+	cname, err := s.ReserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
-			s.releaseContainerName(cname)
+			s.ReleaseContainerName(cname)
 		}
 	}()
 
@@ -384,7 +384,7 @@ func (s *Server) update() error {
 			logrus.Warnf("bad state when getting container removed %+v", removedPodContainer)
 			continue
 		}
-		s.releaseContainerName(c.Name())
+		s.ReleaseContainerName(c.Name())
 		s.removeContainer(c)
 		if err = s.CtrIDIndex().Delete(c.ID()); err != nil {
 			return err
@@ -405,7 +405,7 @@ func (s *Server) update() error {
 			continue
 		}
 		podInfraContainer := sb.InfraContainer()
-		s.releaseContainerName(podInfraContainer.Name())
+		s.ReleaseContainerName(podInfraContainer.Name())
 		s.removeContainer(podInfraContainer)
 		if err = s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
 			return err
@@ -454,25 +454,6 @@ func (s *Server) reservePodName(id, name string) (string, error) {
 
 func (s *Server) releasePodName(name string) {
 	s.podNameIndex.Release(name)
-}
-
-func (s *Server) reserveContainerName(id, name string) (string, error) {
-	if err := s.CtrNameIndex().Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := s.CtrNameIndex().Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, ctr name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for ctr %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving ctr name %s", name)
-	}
-	return name, nil
-}
-
-func (s *Server) releaseContainerName(name string) {
-	s.CtrNameIndex().Release(name)
 }
 
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown

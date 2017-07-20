@@ -303,7 +303,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	defer func() {
 		if err != nil {
-			s.releaseContainerName(containerName)
+			s.ReleaseContainerName(containerName)
 		}
 	}()
 

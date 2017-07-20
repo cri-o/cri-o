@@ -2,8 +2,10 @@ package libkpod
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
 	"github.com/docker/docker/pkg/registrar"
@@ -99,6 +101,28 @@ func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 	defer jsonSource.Close()
 	enc := json.NewEncoder(jsonSource)
 	return enc.Encode(c.runtime.ContainerStatus(ctr))
+}
+
+// ReserveContainerName holds a name for a container that is being created
+func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) {
+	if err := c.ctrNameIndex.Reserve(name, id); err != nil {
+		if err == registrar.ErrNameReserved {
+			id, err := c.ctrNameIndex.Get(name)
+			if err != nil {
+				logrus.Warnf("conflict, ctr name %q already reserved", name)
+				return "", err
+			}
+			return "", fmt.Errorf("conflict, name %q already reserved for ctr %q", name, id)
+		}
+		return "", fmt.Errorf("error reserving ctr name %s", name)
+	}
+	return name, nil
+}
+
+// ReleaseContainerName releases a container name from the index so that it can
+// be used by other containers
+func (c *ContainerServer) ReleaseContainerName(name string) {
+	c.ctrNameIndex.Release(name)
 }
 
 type containerServerState struct {

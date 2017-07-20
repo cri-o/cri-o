@@ -149,7 +149,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	defer func() {
 		if err != nil {
-			s.releaseContainerName(containerName)
+			s.ReleaseContainerName(containerName)
 		}
 	}()
 
