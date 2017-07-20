@@ -51,14 +51,20 @@ Ensure that the dependencies documented [in vendor.conf](https://github.com/cont
 are also available
 (using those exact versions or different versions of your choosing).
 
-This library, by default, also depends on the GpgME C library. Either install it:
+This library, by default, also depends on the GpgME and libostree C libraries. Either install them:
 ```sh
-Fedora$ dnf install gpgme-devel libassuan-devel
+Fedora$ dnf install gpgme-devel libassuan-devel libostree-devel
 macOS$ brew install gpgme
 ```
-or use the `containers_image_openpgp` build tag (e.g. using `go build -tags …`)
-This will use a Golang-only OpenPGP implementation for signature verification instead of the default cgo/gpgme-based implementation;
+or use the build tags described below to avoid the dependencies (e.g. using `go build -tags …`)
+
+### Supported build tags
+
+- `containers_image_openpgp`: Use a Golang-only OpenPGP implementation for signature verification instead of the default cgo/gpgme-based implementation;
 the primary downside is that creating new signatures with the Golang-only implementation is not supported.
+- `containers_image_ostree_stub`: Instead of importing `ostree:` transport in `github.com/containers/image/transports/alltransports`, use a stub which reports that the transport is not supported. This allows building the library without requiring the `libostree` development libraries.
+
+  (Note that explicitly importing `github.com/containers/image/ostree` will still depend on the `libostree` library, this build tag only affects generic users of …`/alltransports`.)
 
 ## Contributing
 
