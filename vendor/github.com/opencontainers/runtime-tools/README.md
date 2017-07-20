@@ -1,6 +1,7 @@
 # oci-runtime-tool [![Build Status](https://travis-ci.org/opencontainers/runtime-tools.svg?branch=master)](https://travis-ci.org/opencontainers/runtime-tools) [![Go Report Card](https://goreportcard.com/badge/github.com/opencontainers/runtime-tools)](https://goreportcard.com/report/github.com/opencontainers/runtime-tools)
 
 oci-runtime-tool is a collection of tools for working with the [OCI runtime specification][runtime-spec].
+To build from source code, runtime-tools requires Go 1.7.x or above.
 
 ## Generating an OCI runtime spec configuration files
 

@@ -10,6 +10,27 @@ func (g *Generator) initSpec() {
 	}
 }
 
+func (g *Generator) initSpecProcess() {
+	g.initSpec()
+	if g.spec.Process == nil {
+		g.spec.Process = &rspec.Process{}
+	}
+}
+
+func (g *Generator) initSpecProcessCapabilities() {
+	g.initSpecProcess()
+	if g.spec.Process.Capabilities == nil {
+		g.spec.Process.Capabilities = &rspec.LinuxCapabilities{}
+	}
+}
+
+func (g *Generator) initSpecRoot() {
+	g.initSpec()
+	if g.spec.Root == nil {
+		g.spec.Root = &rspec.Root{}
+	}
+}
+
 func (g *Generator) initSpecAnnotations() {
 	g.initSpec()
 	if g.spec.Annotations == nil {

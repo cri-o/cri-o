@@ -450,11 +450,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 			memoryLimit := resources.MemoryLimitInBytes
 			if memoryLimit != 0 {
-				specgen.SetLinuxResourcesMemoryLimit(uint64(memoryLimit))
+				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
 			}
 
 			oomScoreAdj := resources.OomScoreAdj
-			specgen.SetLinuxResourcesOOMScoreAdj(int(oomScoreAdj))
+			specgen.SetProcessOOMScoreAdj(int(oomScoreAdj))
 		}
 
 		if sb.cgroupParent != "" {

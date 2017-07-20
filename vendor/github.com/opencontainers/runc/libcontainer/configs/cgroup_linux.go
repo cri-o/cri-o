@@ -1,5 +1,3 @@
-// +build linux freebsd
-
 package configs
 
 type FreezerState string
@@ -60,19 +58,19 @@ type Resources struct {
 	KernelMemoryTCP int64 `json:"kernel_memory_tcp"`
 
 	// CPU shares (relative weight vs. other containers)
-	CpuShares int64 `json:"cpu_shares"`
+	CpuShares uint64 `json:"cpu_shares"`
 
 	// CPU hardcap limit (in usecs). Allowed cpu time in a given period.
 	CpuQuota int64 `json:"cpu_quota"`
 
 	// CPU period to be used for hardcapping (in usecs). 0 to use system default.
-	CpuPeriod int64 `json:"cpu_period"`
+	CpuPeriod uint64 `json:"cpu_period"`
 
 	// How many time CPU will use in realtime scheduling (in usecs).
 	CpuRtRuntime int64 `json:"cpu_rt_quota"`
 
 	// CPU period to be used for realtime scheduling (in usecs).
-	CpuRtPeriod int64 `json:"cpu_rt_period"`
+	CpuRtPeriod uint64 `json:"cpu_rt_period"`
 
 	// CPU to use
 	CpusetCpus string `json:"cpuset_cpus"`
@@ -114,7 +112,7 @@ type Resources struct {
 	OomKillDisable bool `json:"oom_kill_disable"`
 
 	// Tuning swappiness behaviour per cgroup
-	MemorySwappiness *int64 `json:"memory_swappiness"`
+	MemorySwappiness *uint64 `json:"memory_swappiness"`
 
 	// Set priority of network traffic for container
 	NetPrioIfpriomap []*IfPrioMap `json:"net_prio_ifpriomap"`
