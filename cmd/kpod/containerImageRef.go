@@ -208,7 +208,7 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 			continue
 		}
 		// Start reading the layer.
-		rc, err := i.store.Diff("", layerID)
+		rc, err := i.store.Diff("", layerID, nil)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error extracting layer %q", layerID)
 		}

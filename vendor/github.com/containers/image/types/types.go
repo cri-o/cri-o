@@ -148,11 +148,11 @@ type ImageDestination interface {
 	SupportsSignatures() error
 	// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
 	ShouldCompressLayers() bool
-
 	// AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
 	// uploaded to the image destination, true otherwise.
 	AcceptsForeignLayerURLs() bool
-
+	// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
+	MustMatchRuntimeOS() bool
 	// PutBlob writes contents of stream and returns data representing the result (with all data filled in).
 	// inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 	// inputInfo.Size is the expected length of stream, if known.
