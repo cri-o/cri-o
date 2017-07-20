@@ -13,7 +13,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
-	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -158,35 +157,10 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	s.containerStateFromDisk(ctr)
+	s.ContainerStateFromDisk(ctr)
 
 	s.addContainer(ctr)
 	return s.CtrIDIndex().Add(id)
-}
-
-func (s *Server) containerStateFromDisk(c *oci.Container) error {
-	if err := c.FromDisk(); err != nil {
-		return err
-	}
-	// ignore errors, this is a best effort to have up-to-date info about
-	// a given container before its state gets stored
-	s.Runtime().UpdateStatus(c)
-
-	return nil
-}
-
-func (s *Server) containerStateToDisk(c *oci.Container) error {
-	// ignore errors, this is a best effort to have up-to-date info about
-	// a given container before its state gets stored
-	s.Runtime().UpdateStatus(c)
-
-	jsonSource, err := ioutils.NewAtomicFileWriter(c.StatePath(), 0644)
-	if err != nil {
-		return err
-	}
-	defer jsonSource.Close()
-	enc := json.NewEncoder(jsonSource)
-	return enc.Encode(s.Runtime().ContainerStatus(c))
 }
 
 func configNetNsPath(spec rspec.Spec) (string, error) {
@@ -302,7 +276,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	s.containerStateFromDisk(scontainer)
+	s.ContainerStateFromDisk(scontainer)
 
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err

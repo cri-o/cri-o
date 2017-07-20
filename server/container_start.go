@@ -29,7 +29,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		if err != nil {
 			s.Runtime().SetStartFailed(c, err)
 		}
-		s.containerStateToDisk(c)
+		s.ContainerStateToDisk(c)
 	}()
 
 	err = s.Runtime().StartContainer(c)

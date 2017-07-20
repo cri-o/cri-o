@@ -85,7 +85,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 				logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 			}
 		}
-		s.containerStateToDisk(c)
+		s.ContainerStateToDisk(c)
 	}
 
 	if err := label.ReleaseLabel(sb.ProcessLabel()); err != nil {

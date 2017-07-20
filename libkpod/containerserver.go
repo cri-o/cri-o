@@ -1,6 +1,7 @@
 package libkpod
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/containers/image/types"
@@ -9,6 +10,7 @@ import (
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
+	"github.com/moby/moby/pkg/ioutils"
 )
 
 // ContainerServer implements the ImageServer
@@ -68,6 +70,35 @@ func New(runtime *oci.Runtime, store cstorage.Store, storageImageServer storage.
 			containers: containers,
 		},
 	}
+}
+
+// ContainerStateFromDisk retrieves information on the state of a running container
+// from the disk
+func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
+	if err := ctr.FromDisk(); err != nil {
+		return err
+	}
+	// ignore errors, this is a best effort to have up-to-date info about
+	// a given container before its state gets stored
+	c.runtime.UpdateStatus(ctr)
+
+	return nil
+}
+
+// ContainerStateToDisk writes the container's state information to a JSON file
+// on disk
+func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
+	// ignore errors, this is a best effort to have up-to-date info about
+	// a given container before its state gets stored
+	c.Runtime().UpdateStatus(ctr)
+
+	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0644)
+	if err != nil {
+		return err
+	}
+	defer jsonSource.Close()
+	enc := json.NewEncoder(jsonSource)
+	return enc.Encode(c.runtime.ContainerStatus(ctr))
 }
 
 type containerServerState struct {

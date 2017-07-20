@@ -335,7 +335,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	s.containerStateToDisk(container)
+	s.ContainerStateToDisk(container)
 
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
