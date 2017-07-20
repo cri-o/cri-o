@@ -3,7 +3,9 @@ package libkpod
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
@@ -11,8 +13,10 @@ import (
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/moby/moby/pkg/ioutils"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // ContainerServer implements the ImageServer
@@ -23,6 +27,7 @@ type ContainerServer struct {
 	ctrNameIndex       *registrar.Registrar
 	ctrIDIndex         *truncindex.TruncIndex
 	imageContext       *types.SystemContext
+	updateLock         *sync.RWMutex
 	stateLock          sync.Locker
 	state              *containerServerState
 }
@@ -57,21 +62,45 @@ func (c *ContainerServer) ImageContext() *types.SystemContext {
 	return c.imageContext
 }
 
-// New creates a new ContainerServer
-func New(runtime *oci.Runtime, store cstorage.Store, storageImageServer storage.ImageServer, ctrNameIndex *registrar.Registrar, ctrIDIndex *truncindex.TruncIndex, imageContext *types.SystemContext) *ContainerServer {
+// New creates a new ContainerServer with options provided
+func New(config *server.Config) (*ContainerServer, error) {
+	store, err := cstorage.GetStore(cstorage.StoreOptions{
+		RunRoot:            config.RunRoot,
+		GraphRoot:          config.Root,
+		GraphDriverName:    config.Storage,
+		GraphDriverOptions: config.StorageOptions,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create new container server struct here
 	containers := oci.NewMemoryStore()
-	return &ContainerServer{
-		runtime:            runtime,
+	c := &ContainerServer{
+		runtime:            r,
 		store:              store,
-		storageImageServer: storageImageServer,
-		ctrNameIndex:       ctrNameIndex,
-		ctrIDIndex:         ctrIDIndex,
-		imageContext:       imageContext,
+		storageImageServer: imageService,
+		ctrNameIndex:       registrar.NewRegistrar(),
+		ctrIDIndex:         truncindex.NewTruncIndex([]string{}),
+		imageContext:       &types.SystemContext{SignaturePolicyPath: config.ImageConfig.SignaturePolicyPath},
 		stateLock:          new(sync.Mutex),
 		state: &containerServerState{
 			containers: containers,
 		},
 	}
+
+	logrus.Debugf("containers: %v", c.ListContainers())
+	return c, nil
 }
 
 // ContainerStateFromDisk retrieves information on the state of a running container

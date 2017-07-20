@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/containers/image/types"
-	cstorage "github.com/containers/storage"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -477,38 +475,22 @@ func (s *Server) Shutdown() error {
 	// notice this won't trigger just on system halt but also on normal
 	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown()
-	_, err := s.Store().Shutdown(false)
-	return err
+	return s.ContainerServer.Shutdown()
 }
 
 // New creates a new Server with options provided
 func New(config *Config) (*Server, error) {
-	store, err := cstorage.GetStore(cstorage.StoreOptions{
-		RunRoot:            config.RunRoot,
-		GraphRoot:          config.Root,
-		GraphDriverName:    config.Storage,
-		GraphDriverOptions: config.StorageOptions,
-	})
+	containerServer, err := libkpod.New(config)
 	if err != nil {
 		return nil, err
 	}
 
-	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
-	if err != nil {
-		return nil, err
-	}
-
-	storageRuntimeService := storage.GetRuntimeService(imageService, config.PauseImage)
+	storageRuntimeService := storage.GetRuntimeService(containerServer.StorageImageServer(), config.PauseImage)
 	if err != nil {
 		return nil, err
 	}
 
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
-		return nil, err
-	}
-
-	r, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
-	if err != nil {
 		return nil, err
 	}
 
@@ -521,7 +503,6 @@ func New(config *Config) (*Server, error) {
 	iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain)
 	hostportManager := hostport.NewHostportManager()
 
-	containerServer := libkpod.New(r, store, imageService, registrar.NewRegistrar(), truncindex.NewTruncIndex([]string{}), &types.SystemContext{SignaturePolicyPath: config.ImageConfig.SignaturePolicyPath})
 	s := &Server{
 		ContainerServer:      *containerServer,
 		storageRuntimeServer: storageRuntimeService,
@@ -588,7 +569,6 @@ func New(config *Config) (*Server, error) {
 	}()
 
 	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
-	logrus.Debugf("containers: %v", s.ContainerServer.ListContainers())
 	return s, nil
 }
 
