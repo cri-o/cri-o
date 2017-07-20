@@ -66,6 +66,21 @@ func isSubsystemAvailable(subsystem string) bool {
 	return avail
 }
 
+func GetClosestMountpointAncestor(dir, mountinfo string) string {
+	deepestMountPoint := ""
+	for _, mountInfoEntry := range strings.Split(mountinfo, "\n") {
+		mountInfoParts := strings.Fields(mountInfoEntry)
+		if len(mountInfoParts) < 5 {
+			continue
+		}
+		mountPoint := mountInfoParts[4]
+		if strings.HasPrefix(mountPoint, deepestMountPoint) && strings.HasPrefix(dir, mountPoint) {
+			deepestMountPoint = mountPoint
+		}
+	}
+	return deepestMountPoint
+}
+
 func FindCgroupMountpointDir() (string, error) {
 	f, err := os.Open("/proc/self/mountinfo")
 	if err != nil {
@@ -109,7 +124,7 @@ type Mount struct {
 	Subsystems []string
 }
 
-func (m Mount) GetThisCgroupDir(cgroups map[string]string) (string, error) {
+func (m Mount) GetOwnCgroup(cgroups map[string]string) (string, error) {
 	if len(m.Subsystems) == 0 {
 		return "", fmt.Errorf("no subsystem for mount")
 	}
@@ -203,8 +218,8 @@ func GetAllSubsystems() ([]string, error) {
 	return subsystems, nil
 }
 
-// GetThisCgroupDir returns the relative path to the cgroup docker is running in.
-func GetThisCgroupDir(subsystem string) (string, error) {
+// GetOwnCgroup returns the relative path to the cgroup docker is running in.
+func GetOwnCgroup(subsystem string) (string, error) {
 	cgroups, err := ParseCgroupFile("/proc/self/cgroup")
 	if err != nil {
 		return "", err
@@ -213,14 +228,47 @@ func GetThisCgroupDir(subsystem string) (string, error) {
 	return getControllerPath(subsystem, cgroups)
 }
 
-func GetInitCgroupDir(subsystem string) (string, error) {
+func GetOwnCgroupPath(subsystem string) (string, error) {
+	cgroup, err := GetOwnCgroup(subsystem)
+	if err != nil {
+		return "", err
+	}
 
+	return getCgroupPathHelper(subsystem, cgroup)
+}
+
+func GetInitCgroup(subsystem string) (string, error) {
 	cgroups, err := ParseCgroupFile("/proc/1/cgroup")
 	if err != nil {
 		return "", err
 	}
 
 	return getControllerPath(subsystem, cgroups)
+}
+
+func GetInitCgroupPath(subsystem string) (string, error) {
+	cgroup, err := GetInitCgroup(subsystem)
+	if err != nil {
+		return "", err
+	}
+
+	return getCgroupPathHelper(subsystem, cgroup)
+}
+
+func getCgroupPathHelper(subsystem, cgroup string) (string, error) {
+	mnt, root, err := FindCgroupMountpointAndRoot(subsystem)
+	if err != nil {
+		return "", err
+	}
+
+	// This is needed for nested containers, because in /proc/self/cgroup we
+	// see pathes from host, which don't exist in container.
+	relCgroup, err := filepath.Rel(root, cgroup)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(mnt, relCgroup), nil
 }
 
 func readProcsFile(dir string) ([]int, error) {

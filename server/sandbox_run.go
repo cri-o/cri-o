@@ -403,7 +403,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// Set OOM score adjust of the infra container to be very low
 	// so it doesn't get killed.
-	g.SetLinuxResourcesOOMScoreAdj(PodInfraOOMAdj)
+	g.SetProcessOOMScoreAdj(PodInfraOOMAdj)
 
 	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
 
