@@ -103,7 +103,17 @@ go version go1.7.4 linux/amd64
 #### Build crio from source
 
 ```
-sudo apt-get install -y libglib2.0-dev libseccomp-dev libapparmor-dev
+sudo apt install -y \
+  btrfs-tools \
+  libassuan-dev \
+  libdevmapper-dev \
+  libglib2.0-dev \
+  libc6-dev \
+  libgpgme11-dev \
+  libgpg-error-dev \
+  libseccomp-dev \
+  libselinux1-dev \
+  pkg-config \
 ```
 
 ```
