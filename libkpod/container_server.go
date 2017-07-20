@@ -98,6 +98,18 @@ func New(config *Config) (*ContainerServer, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var lock sync.Locker
+	if config.FileLocking {
+		fileLock, err := cstorage.GetLockfile(lockPath)
+		if err != nil {
+			return nil, fmt.Errorf("error obtaining lockfile: %v", err)
+		}
+		lock = fileLock
+	} else {
+		lock = new(sync.Mutex)
+	}
+
 	return &ContainerServer{
 		runtime:            runtime,
 		store:              store,
@@ -107,7 +119,7 @@ func New(config *Config) (*ContainerServer, error) {
 		podNameIndex:       registrar.NewRegistrar(),
 		podIDIndex:         truncindex.NewTruncIndex([]string{}),
 		imageContext:       &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
-		stateLock:          new(sync.Mutex),
+		stateLock:          lock,
 		state: &containerServerState{
 			containers: oci.NewMemoryStore(),
 			sandboxes:  make(map[string]*sandbox.Sandbox),

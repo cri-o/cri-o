@@ -502,6 +502,7 @@ func New(config *Config) (*Server, error) {
 		appArmorEnabled:      apparmor.IsEnabled(),
 		appArmorProfile:      config.ApparmorProfile,
 	}
+
 	if s.seccompEnabled {
 		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
 		if fileErr != nil {
