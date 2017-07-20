@@ -118,8 +118,10 @@ func pullImage(store storage.Store, imgName string, allTags bool, sc *types.Syst
 	if err != nil {
 		return err
 	}
+	defer policyContext.Destroy()
+
+	copyOptions := getCopyOptions(os.Stdout, "", nil, nil, signingOptions{})
 
 	fmt.Println(tag + ": pulling from " + fromName)
-
-	return cp.Image(policyContext, destRef, srcRef, getCopyOptions(os.Stdout))
+	return cp.Image(policyContext, destRef, srcRef, copyOptions)
 }

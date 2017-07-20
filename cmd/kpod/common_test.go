@@ -85,6 +85,18 @@ func failTestIfNotRoot(t *testing.T) {
 	}
 }
 
+func getStoreForTests() (storage.Store, error) {
+	set := flag.NewFlagSet("test", 0)
+	globalSet := flag.NewFlagSet("test", 0)
+	globalSet.String("root", "", "path to the root directory in which data, including images,  is stored")
+	globalCtx := cli.NewContext(nil, globalSet, nil)
+	command := cli.Command{Name: "testCommand"}
+	c := cli.NewContext(nil, set, globalCtx)
+	c.Command = command
+
+	return getStore(c)
+}
+
 func pullTestImage(name string) error {
 	cmd := exec.Command("crioctl", "image", "pull", name)
 	err := cmd.Run()

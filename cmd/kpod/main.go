@@ -22,13 +22,14 @@ func main() {
 	app.Version = Version
 
 	app.Commands = []cli.Command{
+		historyCommand,
 		imagesCommand,
 		infoCommand,
+		pullCommand,
+		pushCommand,
 		rmiCommand,
 		tagCommand,
 		versionCommand,
-		pullCommand,
-		historyCommand,
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -48,7 +49,6 @@ func main() {
 			Usage: "used to pass an option to the storage driver",
 		},
 	}
-
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
 	}
