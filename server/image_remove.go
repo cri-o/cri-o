@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -19,8 +20,30 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
-	err := s.StorageImageServer().RemoveImage(s.ImageContext(), image)
+	var (
+		images  []string
+		err     error
+		deleted bool
+	)
+	images, err = s.StorageImageServer().ResolveNames(image)
 	if err != nil {
+		// This means we got an image ID
+		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
+			images = append(images, image)
+		} else {
+			return nil, err
+		}
+	}
+	for _, img := range images {
+		err = s.StorageImageServer().RemoveImage(s.ImageContext(), img)
+		if err != nil {
+			logrus.Debugf("error deleting image %s: %v", img, err)
+			continue
+		}
+		deleted = true
+		break
+	}
+	if !deleted && err != nil {
 		return nil, err
 	}
 	resp := &pb.RemoveImageResponse{}

@@ -14,7 +14,6 @@ import (
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.PullImageResponse, error) {
 	logrus.Debugf("PullImageRequest: %+v", req)
-	// TODO(runcom?): deal with AuthConfig in req.GetAuth()
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
 	image := ""
 	img := req.GetImage()
@@ -23,51 +22,71 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	}
 
 	var (
-		username string
-		password string
+		images []string
+		pulled string
+		err    error
 	)
-	if req.GetAuth() != nil {
-		username = req.GetAuth().Username
-		password = req.GetAuth().Password
-		if req.GetAuth().Auth != "" {
-			var err error
-			username, password, err = decodeDockerAuth(req.GetAuth().Auth)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	options := &copy.Options{
-		SourceCtx: &types.SystemContext{},
-	}
-	// a not empty username should be sufficient to decide whether to send auth
-	// or not I guess
-	if username != "" {
-		options.SourceCtx = &types.SystemContext{
-			DockerAuthConfig: &types.DockerAuthConfig{
-				Username: username,
-				Password: password,
-			},
-		}
-	}
-
-	canPull, err := s.StorageImageServer().CanPull(image, options)
-	if err != nil && !canPull {
+	images, err = s.StorageImageServer().ResolveNames(image)
+	if err != nil {
 		return nil, err
 	}
+	for _, img := range images {
+		var (
+			username string
+			password string
+		)
+		if req.GetAuth() != nil {
+			username = req.GetAuth().Username
+			password = req.GetAuth().Password
+			if req.GetAuth().Auth != "" {
+				username, password, err = decodeDockerAuth(req.GetAuth().Auth)
+				if err != nil {
+					logrus.Debugf("error decoding authentication for image %s: %v", img, err)
+					continue
+				}
+			}
+		}
+		options := &copy.Options{
+			SourceCtx: &types.SystemContext{},
+		}
+		// Specifiying a username indicates the user intends to send authentication to the registry.
+		if username != "" {
+			options.SourceCtx = &types.SystemContext{
+				DockerAuthConfig: &types.DockerAuthConfig{
+					Username: username,
+					Password: password,
+				},
+			}
+		}
 
-	// let's be smart, docker doesn't repull if image already exists.
-	if _, err := s.StorageImageServer().ImageStatus(s.ImageContext(), image); err == nil {
-		return &pb.PullImageResponse{
-			ImageRef: image,
-		}, nil
+		var canPull bool
+		canPull, err = s.StorageImageServer().CanPull(img, options)
+		if err != nil && !canPull {
+			logrus.Debugf("error checking image %s: %v", img, err)
+			continue
+		}
+
+		// let's be smart, docker doesn't repull if image already exists.
+		_, err = s.StorageImageServer().ImageStatus(s.ImageContext(), img)
+		if err == nil {
+			logrus.Debugf("image %s already in store, skipping pull", img)
+			pulled = img
+			break
+		}
+
+		_, err = s.StorageImageServer().PullImage(s.ImageContext(), img, options)
+		if err != nil {
+			logrus.Debugf("error pulling image %s: %v", img, err)
+			continue
+		}
+		pulled = img
+		break
 	}
-
-	if _, err := s.StorageImageServer().PullImage(s.ImageContext(), image, options); err != nil {
+	if pulled == "" && err != nil {
 		return nil, err
 	}
 	resp := &pb.PullImageResponse{
-		ImageRef: image,
+		ImageRef: pulled,
 	}
 	logrus.Debugf("PullImageResponse: %+v", resp)
 	return resp, nil

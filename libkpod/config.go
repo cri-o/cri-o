@@ -160,6 +160,8 @@ type ImageConfig struct {
 	InsecureRegistries []string `toml:"insecure_registries"`
 	// ImageVolumes controls how volumes specified in image config are handled
 	ImageVolumes ImageVolumesType `toml:"image_volumes"`
+	// Registries holds a list of registries used to pull unqualified images
+	Registries []string `toml:"registries"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table

@@ -77,14 +77,32 @@ The `crio` table supports the following options:
 **default_transport**
   A prefix to prepend to image names that can't be pulled as-is (default: "docker://")
 
-**--image_volumes**=""
+**image_volumes**=""
   Image volume handling ('mkdir' or 'ignore') (default: "mkdir")
+
+**insecure_registries**=""
+  Enable insecure registry  communication,  i.e.,  enable  un-encrypted
+  and/or untrusted communication.
+
+  List  of  insecure registries can contain an element with CIDR notation
+  to specify a whole  subnet.  Insecure  registries  accept  HTTP  and/or
+  accept HTTPS with certificates from unknown CAs.
+
+  Enabling  --insecure-registry  is useful when running a local registry.
+  However, because its use creates  security  vulnerabilities  it  should
+  ONLY  be  enabled  for testing purposes.  For increased security, users
+  should add their CA to their system's list of trusted  CAs  instead  of
+  using --insecure-registry.
 
 **pause_command**=""
   Path to the pause executable in the pause image (default: "/pause")
 
 **pause_image**=""
   Image which contains the pause executable (default: "kubernetes/pause")
+
+**registries**=""
+  Comma separated list of registries that will be prepended when pulling
+  unqualified images
 
 ## CRIO.NETWORK TABLE
 

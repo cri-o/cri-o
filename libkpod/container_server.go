@@ -103,7 +103,7 @@ func New(config *Config) (*ContainerServer, error) {
 		return nil, err
 	}
 
-	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
+	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err
 	}

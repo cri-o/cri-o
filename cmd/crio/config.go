@@ -135,6 +135,11 @@ image_volumes = "{{ .ImageVolumes }}"
 insecure_registries = [
 {{ range $opt := .InsecureRegistries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
+# registries is used to specify a comma separated list of registries to be used
+# when pulling an unqualified image (e.g. fedora:rawhide).
+registries = [
+{{ range $opt := .Registries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+
 # The "crio.network" table contains settings pertaining to the
 # management of CNI plugins.
 [crio.network]

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage"
@@ -20,6 +21,17 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
+	images, err := s.StorageImageServer().ResolveNames(image)
+	if err != nil {
+		// This means we got an image ID
+		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
+			images = append(images, image)
+		} else {
+			return nil, err
+		}
+	}
+	// match just the first registry as that's what kube meant
+	image = images[0]
 	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), image)
 	if err != nil {
 		if err == storage.ErrImageUnknown {

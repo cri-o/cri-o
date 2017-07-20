@@ -16,11 +16,13 @@ crio - OCI Kubernetes Container Runtime daemon
 [**--debug**]
 [**--default-transport**=[*value*]]
 [**--help**|**-h**]
+[**--insecure-registry**=[*value*]]
 [**--listen**=[*value*]]
 [**--log**=[*value*]]
 [**--log-format value**]
 [**--pause-command**=[*value*]]
 [**--pause-image**=[*value*]]
+[**--registry**=[*value*]]
 [**--root**=[*value*]]
 [**--runroot**=[*value*]]
 [**--runtime**=[*value*]]
@@ -73,6 +75,20 @@ set the CPU profile file path
 **--help, -h**
   Print usage statement
 
+**--insecure-registry=**
+  Enable insecure registry  communication,  i.e.,  enable  un-encrypted
+  and/or untrusted communication.
+
+  List  of  insecure registries can contain an element with CIDR notation
+  to specify a whole  subnet.  Insecure  registries  accept  HTTP  and/or
+  accept HTTPS with certificates from unknown CAs.
+
+  Enabling  --insecure-registry  is useful when running a local registry.
+  However, because its use creates  security  vulnerabilities  it  should
+  ONLY  be  enabled  for testing purposes.  For increased security, users
+  should add their CA to their system's list of trusted  CAs  instead  of
+  using --insecure-registry.
+
 **--image-volumes**=""
   Image volume handling ('mkdir' or 'ignore') (default: "mkdir")
 
@@ -96,6 +112,9 @@ set the CPU profile file path
 
 **--root**=""
   CRIO root dir (default: "/var/lib/containers/storage")
+
+**--registry**=""
+  Registry host which will be prepended to unqualified images, can be specified multiple times
 
 **--runroot**=""
   CRIO state dir (default: "/var/run/containers/storage")
