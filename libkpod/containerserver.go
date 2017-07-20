@@ -3,20 +3,16 @@ package libkpod
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"sync"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
+	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
-	"github.com/moby/moby/pkg/ioutils"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // ContainerServer implements the ImageServer
@@ -27,7 +23,6 @@ type ContainerServer struct {
 	ctrNameIndex       *registrar.Registrar
 	ctrIDIndex         *truncindex.TruncIndex
 	imageContext       *types.SystemContext
-	updateLock         *sync.RWMutex
 	stateLock          sync.Locker
 	state              *containerServerState
 }
@@ -63,44 +58,19 @@ func (c *ContainerServer) ImageContext() *types.SystemContext {
 }
 
 // New creates a new ContainerServer with options provided
-func New(config *server.Config) (*ContainerServer, error) {
-	store, err := cstorage.GetStore(cstorage.StoreOptions{
-		RunRoot:            config.RunRoot,
-		GraphRoot:          config.Root,
-		GraphDriverName:    config.Storage,
-		GraphDriverOptions: config.StorageOptions,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create new container server struct here
-	containers := oci.NewMemoryStore()
-	c := &ContainerServer{
-		runtime:            r,
+func New(runtime *oci.Runtime, store cstorage.Store, imageService storage.ImageServer, signaturePolicyPath string) *ContainerServer {
+	return &ContainerServer{
+		runtime:            runtime,
 		store:              store,
 		storageImageServer: imageService,
 		ctrNameIndex:       registrar.NewRegistrar(),
 		ctrIDIndex:         truncindex.NewTruncIndex([]string{}),
-		imageContext:       &types.SystemContext{SignaturePolicyPath: config.ImageConfig.SignaturePolicyPath},
+		imageContext:       &types.SystemContext{SignaturePolicyPath: signaturePolicyPath},
 		stateLock:          new(sync.Mutex),
 		state: &containerServerState{
-			containers: containers,
+			containers: oci.NewMemoryStore(),
 		},
 	}
-
-	logrus.Debugf("containers: %v", c.ListContainers())
-	return c, nil
 }
 
 // ContainerStateFromDisk retrieves information on the state of a running container
@@ -152,6 +122,12 @@ func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) 
 // be used by other containers
 func (c *ContainerServer) ReleaseContainerName(name string) {
 	c.ctrNameIndex.Release(name)
+}
+
+// Shutdown attempts to shut down the server's storage cleanly
+func (c *ContainerServer) Shutdown() error {
+	_, err := c.store.Shutdown(false)
+	return err
 }
 
 type containerServerState struct {

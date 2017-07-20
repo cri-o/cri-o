@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	cstorage "github.com/containers/storage"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -480,12 +481,27 @@ func (s *Server) Shutdown() error {
 
 // New creates a new Server with options provided
 func New(config *Config) (*Server, error) {
-	containerServer, err := libkpod.New(config)
+	store, err := cstorage.GetStore(cstorage.StoreOptions{
+		RunRoot:            config.RunRoot,
+		GraphRoot:          config.Root,
+		GraphDriverName:    config.Storage,
+		GraphDriverOptions: config.StorageOptions,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(containerServer.StorageImageServer(), config.PauseImage)
+	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
+	if err != nil {
+		return nil, err
+	}
+
+	storageRuntimeService := storage.GetRuntimeService(imageService, config.PauseImage)
 	if err != nil {
 		return nil, err
 	}
@@ -493,6 +509,8 @@ func New(config *Config) (*Server, error) {
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
 		return nil, err
 	}
+
+	containerServer := libkpod.New(r, store, imageService, config.SignaturePolicyPath)
 
 	sandboxes := make(map[string]*sandbox.Sandbox)
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
