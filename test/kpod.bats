@@ -190,3 +190,39 @@ function teardown() {
     run crioctl image remove "$IMAGE"
     stop_crio
 }
+
+@test "kpod inspect image" {
+    run ${KPOD_BINARY} $KPOD_OPTIONS pull redis:alpine
+    [ "$status" -eq 0 ]
+    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect redis:alpine | python -m json.tool"
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
+    run ${KPOD_BINARY} $KPOD_OPTIONS rmi redis:alpine
+
+@test "kpod inspect non-existent container" {
+    run ${KPOD_BINARY} $KPOD_OPTIONS inspect 14rcole/non-existent
+    echo "$output"
+    [ "$status" -ne 0 ]
+}
+
+@test "kpod inspect with format" {
+    run ${KPOD_BINARY} $KPOD_OPTIONS pull redis:alpine
+    [ "$status" -eq 0 ]
+    run ${KPOD_BINARY} $KPOD_OPTIONS --format {{.ID}} inspect redis:alpine
+    [ "$status" -eq 0]
+    inspectOutput="$output"
+    run ${KPOD_BINARY} $KPOD_OPTIONS images --quiet redis:alpine
+    [ "$status" -eq 0]
+    [ "$output" -eq "$inspectOutput" ]
+    run ${KPOD_BINARY} $KPOD_OPTIONS rmi redis:alpine
+}
+
+@test "kpod inspect specified type" {
+    run ${KPOD_BINARY} $KPOD_OPTIONS pull redis:alpine
+    [ "$status" -eq 0 ]
+    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect --type image redis:alpine | python -m json.tool"
+    echo "$output"
+    [ "$status" -eq 0]
+    run ${KPOD_BINARY} $KPOD_OPTIONS rmi redis:alpine
+}

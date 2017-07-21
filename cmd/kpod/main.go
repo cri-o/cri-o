@@ -25,6 +25,7 @@ func main() {
 		historyCommand,
 		imagesCommand,
 		infoCommand,
+		inspectCommand,
 		pullCommand,
 		pushCommand,
 		rmiCommand,

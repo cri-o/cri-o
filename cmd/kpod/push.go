@@ -171,16 +171,16 @@ func pushImage(srcName, destName string, options pushOptions) error {
 		return errors.Wrapf(err, "error locating image %q for importing settings", srcName)
 	}
 	systemContext := getSystemContext(options.SignaturePolicyPath)
-	ipd, err := importImagePushDataFromImage(options.Store, img, systemContext)
+	cid, err := importContainerImageDataFromImage(options.Store, systemContext, img.ID, "", "")
 	if err != nil {
 		return err
 	}
 	// Give the image we're producing the same ancestors as its source image
-	ipd.FromImage = ipd.Docker.ContainerConfig.Image
-	ipd.FromImageID = string(ipd.Docker.Parent)
+	cid.FromImage = cid.Docker.ContainerConfig.Image
+	cid.FromImageID = string(cid.Docker.Parent)
 
 	// Prep the layers and manifest for export
-	src, err := ipd.makeImageRef(manifest.GuessMIMEType(ipd.Manifest), options.Compression, img.Names, img.TopLayer, nil)
+	src, err := cid.makeImageRef(manifest.GuessMIMEType(cid.Manifest), options.Compression, img.Names, img.TopLayer, nil)
 	if err != nil {
 		return errors.Wrapf(err, "error copying layers and metadata")
 	}

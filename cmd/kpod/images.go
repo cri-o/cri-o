@@ -133,7 +133,7 @@ func parseFilter(images []storage.Image, filter string) (*filterParams, error) {
 		pair := strings.SplitN(param, "=", 2)
 		switch strings.TrimSpace(pair[0]) {
 		case "dangling":
-			if pair[1] == "true" || pair[1] == "false" {
+			if isValidBool(pair[1]) {
 				params.dangling = pair[1]
 			} else {
 				return nil, fmt.Errorf("invalid filter: '%s=[%s]'", pair[0], pair[1])
@@ -200,7 +200,7 @@ func outputImages(images []storage.Image, format string, store storage.Store, fi
 		if len(imageMetadata.Blobs) > 0 {
 			digest = string(imageMetadata.Blobs[0].Digest)
 		}
-		size, _ := getSize(image, store)
+		size, _ := getImageSize(image, store)
 
 		names := []string{""}
 		if len(image.Names) > 0 {
@@ -259,9 +259,9 @@ func matchesFilter(image storage.Image, store storage.Store, name string, params
 }
 
 func matchesDangling(name string, dangling string) bool {
-	if dangling == "false" && name != "<none>" {
+	if isFalse(dangling) && name != "<none>" {
 		return true
-	} else if dangling == "true" && name == "<none>" {
+	} else if isTrue(dangling) && name == "<none>" {
 		return true
 	}
 	return false

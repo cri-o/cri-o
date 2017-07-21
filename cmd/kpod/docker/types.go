@@ -11,7 +11,7 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-// TypeLayers github.com/moby/moby/image/rootfs.go
+// TypeLayers github.com/docker/docker/image/rootfs.go
 const TypeLayers = "layers"
 
 // V2S2MediaTypeManifest github.com/docker/distribution/manifest/schema2/manifest.go
@@ -29,14 +29,14 @@ const V2S2MediaTypeUncompressedLayer = "application/vnd.docker.image.rootfs.diff
 // V2S2RootFS describes images root filesystem
 // This is currently a placeholder that only supports layers. In the future
 // this can be made into an interface that supports different implementations.
-// github.com/moby/moby/image/rootfs.go
+// github.com/docker/docker/image/rootfs.go
 type V2S2RootFS struct {
 	Type    string          `json:"type"`
 	DiffIDs []digest.Digest `json:"diff_ids,omitempty"`
 }
 
 // V2S2History stores build commands that were used to create an image
-// github.com/moby/moby/image/image.go
+// github.com/docker/docker/image/image.go
 type V2S2History struct {
 	// Created is the timestamp at which the image was created
 	Created time.Time `json:"created"`
@@ -53,11 +53,11 @@ type V2S2History struct {
 }
 
 // ID is the content-addressable ID of an image.
-// github.com/moby/moby/image/image.go
+// github.com/docker/docker/image/image.go
 type ID digest.Digest
 
 // HealthConfig holds configuration settings for the HEALTHCHECK feature.
-// github.com/moby/moby/api/types/container/config.go
+// github.com/docker/docker/api/types/container/config.go
 type HealthConfig struct {
 	// Test is the test to perform to check that the container is healthy.
 	// An empty slice means to inherit the default.
@@ -91,7 +91,7 @@ type Port string
 // Non-portable information *should* appear in HostConfig.
 // All fields added to this struct must be marked `omitempty` to keep getting
 // predictable hashes from the old `v1Compatibility` configuration.
-// github.com/moby/moby/api/types/container/config.go
+// github.com/docker/docker/api/types/container/config.go
 type Config struct {
 	Hostname        string              // Hostname
 	Domainname      string              // Domainname
@@ -137,7 +137,7 @@ type V1Compatibility struct {
 }
 
 // V1Image stores the V1 image configuration.
-// github.com/moby/moby/image/image.go
+// github.com/docker/docker/image/image.go
 type V1Image struct {
 	// ID is a unique 64 character identifier of the image
 	ID string `json:"id,omitempty"`
@@ -166,7 +166,7 @@ type V1Image struct {
 }
 
 // V2Image stores the image configuration
-// github.com/moby/moby/image/image.go
+// github.com/docker/docker/image/image.go
 type V2Image struct {
 	V1Image
 	Parent     ID            `json:"parent,omitempty"`
