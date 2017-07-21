@@ -29,6 +29,7 @@ func main() {
 		pullCommand,
 		pushCommand,
 		rmiCommand,
+		stopCommand,
 		tagCommand,
 		versionCommand,
 	}
