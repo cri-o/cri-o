@@ -1,28 +1,18 @@
 package main
 
 import (
-	"encoding/json"
 	"io"
 	"strings"
-	"time"
 
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
-
-type imageMetadata struct {
-	Tag            string              `json:"tag"`
-	CreatedTime    time.Time           `json:"created-time"`
-	ID             string              `json:"id"`
-	Blobs          []types.BlobInfo    `json:"blob-list"`
-	Layers         map[string][]string `json:"layers"`
-	SignatureSizes []string            `json:"signature-sizes"`
-}
 
 // DockerRegistryOptions encapsulates settings that affect how we connect or
 // authenticate to a remote registry.
@@ -75,16 +65,6 @@ func getStore(c *cli.Context) (storage.Store, error) {
 	}
 	is.Transport.SetStore(store)
 	return store, nil
-}
-
-func parseMetadata(image storage.Image) (imageMetadata, error) {
-	var im imageMetadata
-
-	dec := json.NewDecoder(strings.NewReader(image.Metadata))
-	if err := dec.Decode(&im); err != nil {
-		return imageMetadata{}, err
-	}
-	return im, nil
 }
 
 func findImage(store storage.Store, image string) (*storage.Image, error) {
@@ -239,41 +219,25 @@ func isValidBool(str string) bool {
 	return isTrue(str) || isFalse(str)
 }
 
-func getDriverName(store storage.Store) (string, error) {
-	driver, err := store.GraphDriver()
-	if err != nil {
-		return "", err
-	}
-	return driver.String(), nil
-}
-
-func getDriverMetadata(store storage.Store, layerID string) (map[string]string, error) {
-	driver, err := store.GraphDriver()
-	if err != nil {
-		return nil, err
-	}
-	return driver.Metadata(layerID)
-}
-
-func getImageSize(image storage.Image, store storage.Store) (int64, error) {
+func getImageSize(img storage.Image, store storage.Store) (int64, error) {
 	is.Transport.SetStore(store)
-	storeRef, err := is.Transport.ParseStoreReference(store, "@"+image.ID)
+	storeRef, err := is.Transport.ParseStoreReference(store, "@"+img.ID)
 	if err != nil {
 		return -1, err
 	}
-	img, err := storeRef.NewImage(nil)
+	imgRef, err := storeRef.NewImage(nil)
 	if err != nil {
 		return -1, err
 	}
-	imgSize, err := img.Size()
+	imgSize, err := imgRef.Size()
 	if err != nil {
 		return -1, err
 	}
 	return imgSize, nil
 }
 
-func getImageTopLayer(image storage.Image) (string, error) {
-	metadata, err := parseMetadata(image)
+func getImageTopLayer(img storage.Image) (string, error) {
+	metadata, err := image.ParseMetadata(img)
 	if err != nil {
 		return "", err
 	}

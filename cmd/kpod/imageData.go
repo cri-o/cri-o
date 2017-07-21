@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
+	"github.com/kubernetes-incubator/cri-o/libkpod/image"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -94,7 +96,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 		}
 	}
 
-	driverName, err := getDriverName(store)
+	driverName, err := driver.GetDriverName(store)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +105,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 	if err != nil {
 		return nil, err
 	}
-	driverMetadata, err := getDriverMetadata(store, topLayerID)
+	driverMetadata, err := driver.GetDriverMetadata(store, topLayerID)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +152,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 }
 
 func getDigests(img storage.Image) ([]digest.Digest, error) {
-	metadata, err := parseMetadata(img)
+	metadata, err := image.ParseMetadata(img)
 	if err != nil {
 		return nil, err
 	}

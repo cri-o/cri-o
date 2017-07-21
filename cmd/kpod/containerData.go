@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
+	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/server"
@@ -71,7 +72,7 @@ func getContainerData(store storage.Store, name string, size bool) (*containerDa
 		return nil, err
 	}
 
-	driverName, err := getDriverName(store)
+	driverName, err := driver.GetDriverName(store)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func getContainerData(store storage.Store, name string, size bool) (*containerDa
 	if err != nil {
 		return nil, err
 	}
-	driverMetadata, err := getDriverMetadata(store, topLayer)
+	driverMetadata, err := driver.GetDriverMetadata(store, topLayer)
 	if err != nil {
 		return nil, err
 	}

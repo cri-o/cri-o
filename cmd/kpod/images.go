@@ -8,6 +8,7 @@ import (
 
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -190,8 +191,8 @@ func outputHeader(truncate, digests bool) {
 }
 
 func outputImages(images []storage.Image, format string, store storage.Store, filters *filterParams, argName string, hasTemplate, truncate, digests, quiet bool) error {
-	for _, image := range images {
-		imageMetadata, err := parseMetadata(image)
+	for _, img := range images {
+		imageMetadata, err := image.ParseMetadata(img)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -200,27 +201,27 @@ func outputImages(images []storage.Image, format string, store storage.Store, fi
 		if len(imageMetadata.Blobs) > 0 {
 			digest = string(imageMetadata.Blobs[0].Digest)
 		}
-		size, _ := getImageSize(image, store)
+		size, _ := getImageSize(img, store)
 
 		names := []string{""}
-		if len(image.Names) > 0 {
-			names = image.Names
+		if len(img.Names) > 0 {
+			names = img.Names
 		} else {
 			// images without names should be printed with "<none>" as the image name
 			names = append(names, "<none>")
 		}
 		for _, name := range names {
-			if !matchesFilter(image, store, name, filters) || !matchesReference(name, argName) {
+			if !matchesFilter(img, store, name, filters) || !matchesReference(name, argName) {
 				continue
 			}
 			if quiet {
-				fmt.Printf("%-64s\n", image.ID)
+				fmt.Printf("%-64s\n", img.ID)
 				// We only want to print each id once
 				break
 			}
 
 			params := imageOutputParams{
-				ID:        image.ID,
+				ID:        img.ID,
 				Name:      name,
 				Digest:    digest,
 				CreatedAt: createdTime,
