@@ -4,6 +4,7 @@ FROM golang:1.7
 RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
 
 RUN apt-get update && apt-get install -y \
+    apparmor \
     build-essential \
     curl \
     gawk \
