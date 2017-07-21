@@ -50,6 +50,12 @@ type Container struct {
 	// that has been stored, if they're known.
 	BigDataSizes map[string]int64 `json:"big-data-sizes,omitempty"`
 
+	// Created is the datestamp for when this container was created.  Older
+	// versions of the library did not track this information, so callers
+	// will likely want to use the IsZero() method to verify that a value
+	// is set before using it.
+	Created time.Time `json:"created,omitempty"`
+
 	Flags map[string]interface{} `json:"flags,omitempty"`
 }
 
@@ -93,7 +99,7 @@ type ContainerStore interface {
 type containerStore struct {
 	lockfile   Locker
 	dir        string
-	containers []Container
+	containers []*Container
 	idindex    *truncindex.TruncIndex
 	byid       map[string]*Container
 	bylayer    map[string]*Container
@@ -101,7 +107,11 @@ type containerStore struct {
 }
 
 func (r *containerStore) Containers() ([]Container, error) {
-	return r.containers, nil
+	containers := make([]Container, len(r.containers))
+	for i := range r.containers {
+		containers[i] = *(r.containers[i])
+	}
+	return containers, nil
 }
 
 func (r *containerStore) containerspath() string {
@@ -123,7 +133,7 @@ func (r *containerStore) Load() error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	containers := []Container{}
+	containers := []*Container{}
 	layers := make(map[string]*Container)
 	idlist := []string{}
 	ids := make(map[string]*Container)
@@ -131,14 +141,14 @@ func (r *containerStore) Load() error {
 	if err = json.Unmarshal(data, &containers); len(data) == 0 || err == nil {
 		for n, container := range containers {
 			idlist = append(idlist, container.ID)
-			ids[container.ID] = &containers[n]
-			layers[container.LayerID] = &containers[n]
+			ids[container.ID] = containers[n]
+			layers[container.LayerID] = containers[n]
 			for _, name := range container.Names {
 				if conflict, ok := names[name]; ok {
 					r.removeName(conflict, name)
 					needSave = true
 				}
-				names[name] = &containers[n]
+				names[name] = containers[n]
 			}
 		}
 	}
@@ -148,7 +158,6 @@ func (r *containerStore) Load() error {
 	r.bylayer = layers
 	r.byname = names
 	if needSave {
-		r.Touch()
 		return r.Save()
 	}
 	return nil
@@ -163,6 +172,7 @@ func (r *containerStore) Save() error {
 	if err != nil {
 		return err
 	}
+	defer r.Touch()
 	return ioutils.AtomicWriteFile(rpath, jdata, 0600)
 }
 
@@ -179,7 +189,7 @@ func newContainerStore(dir string) (ContainerStore, error) {
 	cstore := containerStore{
 		lockfile:   lockfile,
 		dir:        dir,
-		containers: []Container{},
+		containers: []*Container{},
 		byid:       make(map[string]*Container),
 		bylayer:    make(map[string]*Container),
 		byname:     make(map[string]*Container),
@@ -241,7 +251,7 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 		}
 	}
 	if err == nil {
-		newContainer := Container{
+		container = &Container{
 			ID:           id,
 			Names:        names,
 			ImageID:      image,
@@ -249,10 +259,10 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 			Metadata:     metadata,
 			BigDataNames: []string{},
 			BigDataSizes: make(map[string]int64),
+			Created:      time.Now().UTC(),
 			Flags:        make(map[string]interface{}),
 		}
-		r.containers = append(r.containers, newContainer)
-		container = &r.containers[len(r.containers)-1]
+		r.containers = append(r.containers, container)
 		r.byid[id] = container
 		r.idindex.Add(id)
 		r.bylayer[layer] = container
@@ -306,10 +316,11 @@ func (r *containerStore) Delete(id string) error {
 		return ErrContainerUnknown
 	}
 	id = container.ID
-	newContainers := []Container{}
-	for _, candidate := range r.containers {
-		if candidate.ID != id {
-			newContainers = append(newContainers, candidate)
+	toDeleteIndex := -1
+	for i, candidate := range r.containers {
+		if candidate.ID == id {
+			toDeleteIndex = i
+			break
 		}
 	}
 	delete(r.byid, id)
@@ -318,7 +329,14 @@ func (r *containerStore) Delete(id string) error {
 	for _, name := range container.Names {
 		delete(r.byname, name)
 	}
-	r.containers = newContainers
+	if toDeleteIndex != -1 {
+		// delete the container at toDeleteIndex
+		if toDeleteIndex == len(r.containers)-1 {
+			r.containers = r.containers[:len(r.containers)-1]
+		} else {
+			r.containers = append(r.containers[:toDeleteIndex], r.containers[toDeleteIndex+1:]...)
+		}
+	}
 	if err := r.Save(); err != nil {
 		return err
 	}
@@ -435,6 +453,10 @@ func (r *containerStore) Touch() error {
 
 func (r *containerStore) Modified() (bool, error) {
 	return r.lockfile.Modified()
+}
+
+func (r *containerStore) IsReadWrite() bool {
+	return r.lockfile.IsReadWrite()
 }
 
 func (r *containerStore) TouchedSince(when time.Time) bool {

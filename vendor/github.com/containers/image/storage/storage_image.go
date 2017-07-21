@@ -174,11 +174,11 @@ func (s *storageImageDestination) putBlob(stream io.Reader, blobinfo types.BlobI
 		}
 		// Attempt to create the identified layer and import its contents.
 		layer, uncompressedSize, err := s.imageRef.transport.store.PutLayer(id, parentLayer, nil, "", true, multi)
-		if err != nil && err != storage.ErrDuplicateID {
+		if err != nil && errors.Cause(err) != storage.ErrDuplicateID {
 			logrus.Debugf("error importing layer blob %q as %q: %v", blobinfo.Digest, id, err)
 			return errorBlobInfo, err
 		}
-		if err == storage.ErrDuplicateID {
+		if errors.Cause(err) == storage.ErrDuplicateID {
 			// We specified an ID, and there's already a layer with
 			// the same ID.  Drain the input so that we can look at
 			// its length and digest.
@@ -291,7 +291,7 @@ func (s *storageImageDestination) PutBlob(stream io.Reader, blobinfo types.BlobI
 // it returns a non-nil error only on an unexpected failure.
 func (s *storageImageDestination) HasBlob(blobinfo types.BlobInfo) (bool, int64, error) {
 	if blobinfo.Digest == "" {
-		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
+		return false, -1, errors.Errorf(`Can not check for a blob with unknown digest`)
 	}
 	for _, blob := range s.BlobList {
 		if blob.Digest == blobinfo.Digest {
@@ -331,7 +331,7 @@ func (s *storageImageDestination) Commit() error {
 	}
 	img, err := s.imageRef.transport.store.CreateImage(s.ID, nil, lastLayer, "", nil)
 	if err != nil {
-		if err != storage.ErrDuplicateID {
+		if errors.Cause(err) != storage.ErrDuplicateID {
 			logrus.Debugf("error creating image: %q", err)
 			return errors.Wrapf(err, "error creating image %q", s.ID)
 		}
@@ -340,8 +340,8 @@ func (s *storageImageDestination) Commit() error {
 			return errors.Wrapf(err, "error reading image %q", s.ID)
 		}
 		if img.TopLayer != lastLayer {
-			logrus.Debugf("error creating image: image with ID %q exists, but uses different layers", err)
-			return errors.Wrapf(err, "image with ID %q already exists, but uses a different top layer", s.ID)
+			logrus.Debugf("error creating image: image with ID %q exists, but uses different layers", s.ID)
+			return errors.Wrapf(storage.ErrDuplicateID, "image with ID %q already exists, but uses a different top layer", s.ID)
 		}
 		logrus.Debugf("reusing image ID %q", img.ID)
 	} else {
@@ -449,6 +449,11 @@ func (s *storageImageDestination) AcceptsForeignLayerURLs() bool {
 	return false
 }
 
+// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
+func (s *storageImageDestination) MustMatchRuntimeOS() bool {
+	return true
+}
+
 func (s *storageImageDestination) PutSignatures(signatures [][]byte) error {
 	sizes := []int{}
 	sigblob := []byte{}
@@ -516,7 +521,7 @@ func diffLayer(store storage.Store, layerID string) (rc io.ReadCloser, n int64, 
 	} else {
 		n = layerMeta.CompressedSize
 	}
-	diff, err := store.Diff("", layer.ID)
+	diff, err := store.Diff("", layer.ID, nil)
 	if err != nil {
 		return nil, -1, err
 	}
