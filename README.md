@@ -39,7 +39,7 @@ It is currently in active development in the Kubernetes community through the [d
 ## Commands
 | Command                                              | Description                                                                                          |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                                       |
+| [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                                              |
 | [kpod(1)](/docs/kpod.1.md)                           | Simple management tool for pods and images                                                           |
 | [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Copy files/folders between a container and the local filesystem                                      |
 | [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                                                 |
@@ -49,6 +49,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod-info(1)](/docs/kpod-info.1.md)                 | Display system information                                                                           |
 | [kpod-inspect(1)](/docs/kpod-inspect.1.md)           | Display the configuration of a container or image                                                    |
 | [kpod-load(1)](/docs/kpod-load.1.md)                 | Load an image from docker archive or oci                                                             |
+| [kpod-logs(1)](/docs/kpod-logs.1.md)                 | Display the logs of a container                                                                      |
 | [kpod-mount(1)](/docs/kpod-mount.1.md)               | Mount a working container's root filesystem                                                          |
 | [kpod-pull(1)](/docs/kpod-pull.1.md)                 | Pull an image from a registry                                                                        |
 | [kpod-push(1)](/docs/kpod-push.1.md)                 | Push an image to a specified destination                                                             |
