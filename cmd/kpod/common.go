@@ -9,7 +9,6 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -65,25 +64,6 @@ func getStore(c *cli.Context) (storage.Store, error) {
 	}
 	is.Transport.SetStore(store)
 	return store, nil
-}
-
-func findImage(store storage.Store, image string) (*storage.Image, error) {
-	var img *storage.Image
-	ref, err := is.Transport.ParseStoreReference(store, image)
-	if err == nil {
-		img, err = is.Transport.GetStoreImage(store, ref)
-	}
-	if err != nil {
-		img2, err2 := store.Image(image)
-		if err2 != nil {
-			if ref == nil {
-				return nil, errors.Wrapf(err, "error parsing reference to image %q", image)
-			}
-			return nil, errors.Wrapf(err, "unable to locate image %q", image)
-		}
-		img = img2
-	}
-	return img, nil
 }
 
 func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *dockerRegistryOptions, signing signingOptions) *cp.Options {
@@ -217,34 +197,6 @@ func isFalse(str string) bool {
 
 func isValidBool(str string) bool {
 	return isTrue(str) || isFalse(str)
-}
-
-func getImageSize(img storage.Image, store storage.Store) (int64, error) {
-	is.Transport.SetStore(store)
-	storeRef, err := is.Transport.ParseStoreReference(store, "@"+img.ID)
-	if err != nil {
-		return -1, err
-	}
-	imgRef, err := storeRef.NewImage(nil)
-	if err != nil {
-		return -1, err
-	}
-	imgSize, err := imgRef.Size()
-	if err != nil {
-		return -1, err
-	}
-	return imgSize, nil
-}
-
-func getImageTopLayer(img storage.Image) (string, error) {
-	metadata, err := image.ParseMetadata(img)
-	if err != nil {
-		return "", err
-	}
-	// Get the digest of the first blob
-	digest := string(metadata.Blobs[0].Digest)
-	// Return the first layer associated with the given digest
-	return metadata.Layers[digest][0], nil
 }
 
 func getPolicyContext(path string) (*signature.PolicyContext, error) {

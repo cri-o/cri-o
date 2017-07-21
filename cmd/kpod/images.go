@@ -201,7 +201,7 @@ func outputImages(images []storage.Image, format string, store storage.Store, fi
 		if len(imageMetadata.Blobs) > 0 {
 			digest = string(imageMetadata.Blobs[0].Digest)
 		}
-		size, _ := getImageSize(img, store)
+		size, _ := image.Size(store, img)
 
 		names := []string{""}
 		if len(img.Names) > 0 {

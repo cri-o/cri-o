@@ -101,7 +101,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 		return nil, err
 	}
 
-	topLayerID, err := getImageTopLayer(*img)
+	topLayerID, err := image.GetTopLayerID(*img)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 		return nil, err
 	}
 
-	virtualSize, err := getImageSize(*img, store)
+	virtualSize, err := image.Size(store, *img)
 	if err != nil {
 		return nil, err
 	}
