@@ -64,14 +64,14 @@ conmon:
 pause:
 	$(MAKE) -C $@
 
-bin2img: .gopathok $(wildcard test/bin2img/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o test/bin2img/$@ $(PROJECT)/test/bin2img
+test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/bin2img
 
-copyimg: .gopathok $(wildcard test/copyimg/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o test/copyimg/$@ $(PROJECT)/test/copyimg
+test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
 
-checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
+test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
 crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
@@ -113,7 +113,7 @@ integration: crioimage
 localintegration: clean binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: crio crioctl kpod conmon pause bin2img copyimg checkseccomp
+binaries: crio crioctl kpod conmon pause test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
@@ -203,12 +203,9 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	fi
 
 .PHONY: \
-	bin2img \
 	binaries \
-	checkseccomp \
 	clean \
 	conmon \
-	copyimg \
 	default \
 	docs \
 	gofmt \
