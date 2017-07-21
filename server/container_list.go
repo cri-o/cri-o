@@ -59,7 +59,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 				if pod == nil {
 					ctrList = []*oci.Container{}
 				} else {
-					ctrList = pod.containers.List()
+					ctrList = pod.Containers().List()
 				}
 			}
 		}

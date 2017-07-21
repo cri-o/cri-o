@@ -14,6 +14,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
+	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
@@ -37,7 +38,7 @@ const (
 	seccompLocalhostPrefix = "localhost/"
 )
 
-func addOCIBindMounts(sb *Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
@@ -63,7 +64,7 @@ func addOCIBindMounts(sb *Sandbox, containerConfig *pb.ContainerConfig, specgen 
 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
-			if err := label.Relabel(src, sb.mountLabel, true); err != nil && err != unix.ENOTSUP {
+			if err := label.Relabel(src, sb.MountLabel(), true); err != nil && err != unix.ENOTSUP {
 				return fmt.Errorf("relabel failed %s: %v", src, err)
 			}
 		}
@@ -109,7 +110,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 	return nil
 }
 
-func addDevices(sb *Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
 	sp := specgen.Spec()
 	for _, device := range containerConfig.GetDevices() {
 		dev, err := devices.DeviceFromPath(device.HostPath, device.Permissions)
@@ -295,7 +296,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
 
-	containerID, containerName, err := s.generateContainerIDandName(sb.metadata, containerConfig)
+	containerID, containerName, err := s.generateContainerIDandName(sb.Metadata(), containerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +320,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err = s.Runtime().CreateContainer(container, sb.cgroupParent); err != nil {
+	if err = s.Runtime().CreateContainer(container, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
@@ -344,7 +345,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	return resp, nil
 }
 
-func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *Sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
@@ -381,7 +382,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// set this container's apparmor profile if it is set by sandbox
 	if s.appArmorEnabled {
-		appArmorProfileName := s.getAppArmorProfileName(sb.annotations, metadata.Name)
+		appArmorProfileName := s.getAppArmorProfileName(sb.Annotations(), metadata.Name)
 		if appArmorProfileName != "" {
 			// reload default apparmor profile if it is unloaded.
 			if s.appArmorProfile == apparmor.DefaultApparmorProfile {
@@ -408,12 +409,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	logPath := containerConfig.LogPath
 	if logPath == "" {
 		// TODO: Should we use sandboxConfig.GetLogDirectory() here?
-		logPath = filepath.Join(sb.logDir, containerID+".log")
+		logPath = filepath.Join(sb.LogDir(), containerID+".log")
 	}
 	if !filepath.IsAbs(logPath) {
 		// XXX: It's not really clear what this should be versus the sbox logDirectory.
 		logrus.Warnf("requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
-		logPath = filepath.Join(sb.logDir, logPath)
+		logPath = filepath.Join(sb.LogDir(), logPath)
 	}
 
 	// Handle https://issues.k8s.io/44043
@@ -422,7 +423,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	logrus.WithFields(logrus.Fields{
-		"sbox.logdir": sb.logDir,
+		"sbox.logdir": sb.LogDir(),
 		"ctr.logfile": containerConfig.LogPath,
 		"log_path":    logPath,
 	}).Debugf("setting container's log_path")
@@ -457,12 +458,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetProcessOOMScoreAdj(int(oomScoreAdj))
 		}
 
-		if sb.cgroupParent != "" {
+		if sb.CgroupParent() != "" {
 			if s.config.CgroupManager == "systemd" {
-				cgPath := sb.cgroupParent + ":" + "crio" + ":" + containerID
+				cgPath := sb.CgroupParent() + ":" + "crio" + ":" + containerID
 				specgen.SetLinuxCgroupsPath(cgPath)
 			} else {
-				specgen.SetLinuxCgroupsPath(sb.cgroupParent + "/" + containerID)
+				specgen.SetLinuxCgroupsPath(sb.CgroupParent() + "/" + containerID)
 			}
 		}
 
@@ -493,8 +494,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			}
 		}
 
-		specgen.SetProcessSelinuxLabel(sb.processLabel)
-		specgen.SetLinuxMountLabel(sb.mountLabel)
+		specgen.SetProcessSelinuxLabel(sb.ProcessLabel())
+		specgen.SetLinuxMountLabel(sb.MountLabel())
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
 			!containerConfig.GetLinux().GetSecurityContext().Privileged {
@@ -522,7 +523,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 	// Join the namespace paths for the pod sandbox container.
-	podInfraState := s.Runtime().ContainerStatus(sb.infraContainer)
+	podInfraState := s.Runtime().ContainerStatus(sb.InfraContainer())
 
 	logrus.Debugf("pod container state %+v", podInfraState)
 
@@ -553,15 +554,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// bind mount the pod shm
-	specgen.AddBindMount(sb.shmPath, "/dev/shm", []string{"rw"})
+	specgen.AddBindMount(sb.ShmPath(), "/dev/shm", []string{"rw"})
 
 	options := []string{"rw"}
 	if readOnlyRootfs {
 		options = []string{"ro"}
 	}
-	if sb.resolvPath != "" {
+	if sb.ResolvPath() != "" {
 		// bind mount the pod resolver file
-		specgen.AddBindMount(sb.resolvPath, "/etc/resolv.conf", options)
+		specgen.AddBindMount(sb.ResolvPath(), "/etc/resolv.conf", options)
 	}
 
 	// Bind mount /etc/hosts for host networking containers
@@ -569,14 +570,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
 	}
 
-	if sb.hostname != "" {
-		specgen.SetHostname(sb.hostname)
+	if sb.Hostname() != "" {
+		specgen.SetHostname(sb.Hostname())
 	}
 
 	specgen.AddAnnotation(annotations.Name, containerName)
 	specgen.AddAnnotation(annotations.ContainerID, containerID)
-	specgen.AddAnnotation(annotations.SandboxID, sb.id)
-	specgen.AddAnnotation(annotations.SandboxName, sb.infraContainer.Name())
+	specgen.AddAnnotation(annotations.SandboxID, sb.ID())
+	specgen.AddAnnotation(annotations.SandboxName, sb.InfraContainer().Name())
 	specgen.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeContainer)
 	specgen.AddAnnotation(annotations.LogPath, logPath)
 	specgen.AddAnnotation(annotations.TTY, fmt.Sprintf("%v", containerConfig.Tty))
@@ -605,19 +606,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
-	if err = s.setupSeccomp(&specgen, containerName, sb.annotations); err != nil {
+	if err = s.setupSeccomp(&specgen, containerName, sb.Annotations()); err != nil {
 		return nil, err
 	}
 
 	metaname := metadata.Name
 	attempt := metadata.Attempt
 	containerInfo, err := s.storageRuntimeServer.CreateContainer(s.ImageContext(),
-		sb.name, sb.id,
+		sb.Name(), sb.ID(),
 		image, image,
 		containerName, containerID,
 		metaname,
 		attempt,
-		sb.mountLabel,
+		sb.MountLabel(),
 		nil)
 	if err != nil {
 		return nil, err
@@ -639,7 +640,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// Add image volumes
-	if err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, sb.mountLabel); err != nil {
+	if err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, sb.MountLabel()); err != nil {
 		return nil, err
 	}
 
@@ -714,7 +715,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, metadata, sb.id, containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.privileged, sb.trusted, containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
