@@ -138,6 +138,11 @@ var stopContainerCommand = cli.Command{
 			Value: "",
 			Usage: "id of the container",
 		},
+		cli.Int64Flag{
+			Name:  "timeout",
+			Value: 10,
+			Usage: "seconds to wait to kill the container after a graceful stop is requested",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		// Set up a connection to the server.
@@ -148,7 +153,7 @@ var stopContainerCommand = cli.Command{
 		defer conn.Close()
 		client := pb.NewRuntimeServiceClient(conn)
 
-		err = StopContainer(client, context.String("id"), -1)
+		err = StopContainer(client, context.String("id"), context.Int64("timeout"))
 		if err != nil {
 			return fmt.Errorf("Stopping the container failed: %v", err)
 		}
