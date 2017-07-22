@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
+	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
@@ -76,7 +77,7 @@ func getContainerData(store storage.Store, name string, size bool) (*containerDa
 	if err != nil {
 		return nil, err
 	}
-	topLayer, err := getContainerTopLayerID(store, ctr.ID())
+	topLayer, err := libkpod.GetContainerTopLayerID(store, ctr.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +123,7 @@ func getContainerData(store storage.Store, name string, size bool) (*containerDa
 			return nil, errors.Wrapf(err, "error reading size for container %q", name)
 		}
 		data.SizeRootFs = uint(sizeRootFs)
-		sizeRw, err := getContainerRwSize(store, data.ID)
+		sizeRw, err := libkpod.GetContainerRwSize(store, data.ID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading RWSize for container %q", name)
 		}
@@ -153,7 +154,7 @@ func inspectContainer(store storage.Store, container string) (*oci.Container, er
 
 // get an oci.Container instance for a given container ID
 func getOCIContainer(store storage.Store, container string) (*oci.Container, error) {
-	ctr, err := findContainer(store, container)
+	ctr, err := libkpod.FindContainer(store, container)
 	if err != nil {
 		return nil, err
 	}

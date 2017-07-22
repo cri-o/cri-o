@@ -84,22 +84,6 @@ func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDocke
 	}
 }
 
-func findContainer(store storage.Store, container string) (*storage.Container, error) {
-	ctrStore, err := store.ContainerStore()
-	if err != nil {
-		return nil, err
-	}
-	return ctrStore.Get(container)
-}
-
-func getContainerTopLayerID(store storage.Store, containerID string) (string, error) {
-	ctr, err := findContainer(store, containerID)
-	if err != nil {
-		return "", err
-	}
-	return ctr.LayerID, nil
-}
-
 func getSystemContext(signaturePolicyPath string) *types.SystemContext {
 	sc := &types.SystemContext{}
 	if signaturePolicyPath != "" {
@@ -161,30 +145,6 @@ func getRootFsSize(store storage.Store, containerID string) (int64, error) {
 	// will return an error
 	layerSize, err := lstore.DiffSize(layer.Parent, layer.ID)
 	return size + layerSize, err
-}
-
-func getContainerRwSize(store storage.Store, containerID string) (int64, error) {
-	ctrStore, err := store.ContainerStore()
-	if err != nil {
-		return 0, err
-	}
-	container, err := ctrStore.Get(containerID)
-	if err != nil {
-		return 0, err
-	}
-	lstore, err := store.LayerStore()
-	if err != nil {
-		return 0, err
-	}
-
-	// Get the size of the top layer by calculating the size of the diff
-	// between the layer and its parent.  The top layer of a container is
-	// the only RW layer, all others are immutable
-	layer, err := lstore.Get(container.LayerID)
-	if err != nil {
-		return 0, err
-	}
-	return lstore.DiffSize(layer.Parent, layer.ID)
 }
 
 func isTrue(str string) bool {

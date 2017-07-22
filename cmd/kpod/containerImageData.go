@@ -16,6 +16,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
+	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -378,7 +379,7 @@ func openImage(store storage.Store, image string) (*containerImageData, error) {
 	if image == "" {
 		return nil, errors.Errorf("image name must be specified")
 	}
-	img, err := findImage(store, image)
+	img, err := libkpodimage.FindImage(store, image)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error locating image %q for importing settings", image)
 	}

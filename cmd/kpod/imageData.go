@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
-	"github.com/kubernetes-incubator/cri-o/libkpod/image"
+	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -58,7 +58,7 @@ type rootFS struct {
 }
 
 func getImageData(store storage.Store, name string) (*imageData, error) {
-	img, err := findImage(store, name)
+	img, err := libkpodimage.FindImage(store, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image %q", name)
 	}
@@ -101,7 +101,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 		return nil, err
 	}
 
-	topLayerID, err := image.GetTopLayerID(*img)
+	topLayerID, err := libkpodimage.GetTopLayerID(*img)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 		return nil, err
 	}
 
-	virtualSize, err := image.Size(store, *img)
+	virtualSize, err := libkpodimage.Size(store, *img)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 }
 
 func getDigests(img storage.Image) ([]digest.Digest, error) {
-	metadata, err := image.ParseMetadata(img)
+	metadata, err := libkpodimage.ParseMetadata(img)
 	if err != nil {
 		return nil, err
 	}

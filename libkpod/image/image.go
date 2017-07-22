@@ -3,7 +3,6 @@ package image
 import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 )
 
@@ -46,8 +45,8 @@ func Size(store storage.Store, img storage.Image) (int64, error) {
 }
 
 // TopLayer returns the ID of the top layer of the image
-func getTopLayerID(img storage.Image) (string, error) {
-	metadata, err := image.ParseMetadata(img)
+func GetTopLayerID(img storage.Image) (string, error) {
+	metadata, err := ParseMetadata(img)
 	if err != nil {
 		return "", err
 	}

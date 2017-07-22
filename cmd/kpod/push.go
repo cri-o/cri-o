@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -166,7 +167,7 @@ func pushImage(srcName, destName string, options pushOptions) error {
 	defer policyContext.Destroy()
 	// Look up the image name and its layer, then build the imagePushData from
 	// the image
-	img, err := findImage(options.Store, srcName)
+	img, err := libkpodimage.FindImage(options.Store, srcName)
 	if err != nil {
 		return errors.Wrapf(err, "error locating image %q for importing settings", srcName)
 	}
