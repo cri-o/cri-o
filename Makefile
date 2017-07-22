@@ -65,24 +65,22 @@ pause:
 	$(MAKE) -C $@
 
 bin2img: .gopathok $(wildcard test/bin2img/*.go)
-	go build -tags "$(BUILDTAGS)" -o test/bin2img/$@ $(PROJECT)/test/bin2img
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o test/bin2img/$@ $(PROJECT)/test/bin2img
 
 copyimg: .gopathok $(wildcard test/copyimg/*.go)
-	go build -tags "$(BUILDTAGS)" -o test/copyimg/$@ $(PROJECT)/test/copyimg
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o test/copyimg/$@ $(PROJECT)/test/copyimg
 
 checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	go build -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o test/checkseccomp/$@ $(PROJECT)/test/checkseccomp
 
 crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
-	$(GO) build -o $@ \
-		-tags "$(BUILDTAGS)" \
-		$(PROJECT)/cmd/crio
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
 crioctl: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crioctl $(PROJECT))
-	$(GO) build -o $@ $(PROJECT)/cmd/crioctl
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crioctl
 
 kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
-	$(GO) build $(LDFLAGS) -o $@ $(PROJECT)/cmd/kpod
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/kpod
 
 crio.conf: crio
 	./crio --config="" config --default > crio.conf
