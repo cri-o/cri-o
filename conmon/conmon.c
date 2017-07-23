@@ -1228,8 +1228,12 @@ int main(int argc, char *argv[])
 		g_main_loop_run (main_loop);
 		g_source_remove (terminal_watch);
 	} else {
+		int ret;
 		/* Wait for our create child to exit with the return code. */
-		if (waitpid(create_pid, &runtime_status, 0) < 0) {
+		do
+			ret = waitpid(create_pid, &runtime_status, 0);
+		while (ret < 0 && errno == EINTR);
+		if (ret < 0) {
 			int old_errno = errno;
 			kill(create_pid, SIGKILL);
 			errno = old_errno;
