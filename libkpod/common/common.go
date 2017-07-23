@@ -4,6 +4,7 @@ import (
 	"io"
 
 	cp "github.com/containers/image/copy"
+	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
 )
 
@@ -57,4 +58,13 @@ func IsFalse(str string) bool {
 // IsValidBool determines whether the given string equals "true" or "false"
 func IsValidBool(str string) bool {
 	return IsTrue(str) || IsFalse(str)
+}
+
+// GetPolicyContext creates a signature policy context for the given signature policy path
+func GetPolicyContext(path string) (*signature.PolicyContext, error) {
+	policy, err := signature.DefaultPolicy(&types.SystemContext{SignaturePolicyPath: path})
+	if err != nil {
+		return nil, err
+	}
+	return signature.NewPolicyContext(policy)
 }

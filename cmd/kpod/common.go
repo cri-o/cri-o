@@ -3,7 +3,6 @@ package main
 import (
 	"strings"
 
-	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -37,13 +36,6 @@ func getStore(c *cli.Context) (storage.Store, error) {
 	return store, nil
 }
 
-func getPolicyContext(path string) (*signature.PolicyContext, error) {
-	policy, err := signature.DefaultPolicy(&types.SystemContext{SignaturePolicyPath: path})
-	if err != nil {
-		return nil, err
-	}
-	return signature.NewPolicyContext(policy)
-}
 func parseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 	if creds == "" {
 		return nil, errors.New("no credentials supplied")

@@ -2,15 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
-	"syscall"
 
-	cp "github.com/containers/image/copy"
-	"github.com/containers/image/manifest"
-	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
@@ -70,32 +64,6 @@ var (
 	}
 )
 
-type pushOptions struct {
-	// Compression specifies the type of compression which is applied to
-	// layer blobs.  The default is to not use compression, but
-	// archive.Gzip is recommended.
-	Compression archive.Compression
-	// SignaturePolicyPath specifies an override location for the signature
-	// policy which should be used for verifying the new image as it is
-	// being written.  Except in specific circumstances, no value should be
-	// specified, indicating that the shared, system-wide default policy
-	// should be used.
-	SignaturePolicyPath string
-	// ReportWriter is an io.Writer which will be used to log the writing
-	// of the new image.
-	ReportWriter io.Writer
-	// Store is the local storage store which holds the source image.
-	Store storage.Store
-	// DockerRegistryOptions encapsulates settings that affect how we
-	// connect or authenticate to a remote registry to which we want to
-	// push the image.
-	common.DockerRegistryOptions
-	// SigningOptions encapsulates settings that control whether or not we
-	// strip or add signatures to the image when pushing (uploading) the
-	// image to a registry.
-	common.SigningOptions
-}
-
 func pushCmd(c *cli.Context) error {
 	var registryCreds *types.DockerAuthConfig
 
@@ -130,7 +98,7 @@ func pushCmd(c *cli.Context) error {
 		return err
 	}
 
-	options := pushOptions{
+	options := libkpodimage.CopyOptions{
 		Compression:         compress,
 		SignaturePolicyPath: signaturePolicy,
 		Store:               store,
@@ -147,52 +115,5 @@ func pushCmd(c *cli.Context) error {
 	if !c.Bool("quiet") {
 		options.ReportWriter = os.Stderr
 	}
-	return pushImage(srcName, destName, options)
-}
-
-func pushImage(srcName, destName string, options pushOptions) error {
-	if srcName == "" || destName == "" {
-		return errors.Wrapf(syscall.EINVAL, "source and destination image names must be specified")
-	}
-
-	// Get the destination Image Reference
-	dest, err := alltransports.ParseImageName(destName)
-	if err != nil {
-		return errors.Wrapf(err, "error getting destination imageReference for %q", destName)
-	}
-
-	policyContext, err := getPolicyContext(options.SignaturePolicyPath)
-	if err != nil {
-		return errors.Wrapf(err, "Could not get default policy context for signature policy path %q", options.SignaturePolicyPath)
-	}
-	defer policyContext.Destroy()
-	// Look up the image name and its layer, then build the imagePushData from
-	// the image
-	img, err := libkpodimage.FindImage(options.Store, srcName)
-	if err != nil {
-		return errors.Wrapf(err, "error locating image %q for importing settings", srcName)
-	}
-	systemContext := common.GetSystemContext(options.SignaturePolicyPath)
-	cd, err := libkpodimage.ImportCopyDataFromImage(options.Store, systemContext, img.ID, "", "")
-	if err != nil {
-		return err
-	}
-	// Give the image we're producing the same ancestors as its source image
-	cd.FromImage = cd.Docker.ContainerConfig.Image
-	cd.FromImageID = string(cd.Docker.Parent)
-
-	// Prep the layers and manifest for export
-	src, err := cd.MakeImageRef(manifest.GuessMIMEType(cd.Manifest), options.Compression, img.Names, img.TopLayer, nil)
-	if err != nil {
-		return errors.Wrapf(err, "error copying layers and metadata")
-	}
-
-	copyOptions := common.GetCopyOptions(options.ReportWriter, options.SignaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions)
-
-	// Copy the image to the remote destination
-	err = cp.Image(policyContext, dest, src, copyOptions)
-	if err != nil {
-		return errors.Wrapf(err, "Error copying image to the remote destination")
-	}
-	return nil
+	return libkpodimage.PushImage(srcName, destName, options)
 }
