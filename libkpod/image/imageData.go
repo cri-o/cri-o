@@ -1,4 +1,4 @@
-package main
+package image
 
 import (
 	"encoding/json"
@@ -6,13 +6,13 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
-type imageData struct {
+// ImageData handles the data used when inspecting a container
+type ImageData struct {
 	ID              string
 	Names           []string
 	Digests         []digest.Digest
@@ -27,7 +27,7 @@ type imageData struct {
 	OS              string
 	Size            uint
 	VirtualSize     uint
-	GraphDriver     driverData
+	GraphDriver     driver.Data
 	RootFS          ociv1.RootFS
 }
 
@@ -57,13 +57,14 @@ type rootFS struct {
 	Layers []string
 }
 
-func getImageData(store storage.Store, name string) (*imageData, error) {
-	img, err := libkpodimage.FindImage(store, name)
+// GetImageData gets the ImageData for a container with the given name in the given store.
+func GetImageData(store storage.Store, name string) (*ImageData, error) {
+	img, err := FindImage(store, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image %q", name)
 	}
 
-	cid, err := openImage(store, name)
+	cid, err := GetImageCopyData(store, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image %q", name)
 	}
@@ -101,7 +102,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 		return nil, err
 	}
 
-	topLayerID, err := libkpodimage.GetTopLayerID(*img)
+	topLayerID, err := GetTopLayerID(*img)
 	if err != nil {
 		return nil, err
 	}
@@ -123,12 +124,12 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 		return nil, err
 	}
 
-	virtualSize, err := libkpodimage.Size(store, *img)
+	virtualSize, err := Size(store, *img)
 	if err != nil {
 		return nil, err
 	}
 
-	return &imageData{
+	return &ImageData{
 		ID:              img.ID,
 		Names:           img.Names,
 		Digests:         digests,
@@ -143,7 +144,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 		OS:              cid.OCIv1.OS,
 		Size:            uint(size),
 		VirtualSize:     uint(virtualSize),
-		GraphDriver: driverData{
+		GraphDriver: driver.Data{
 			Name: driverName,
 			Data: driverMetadata,
 		},
@@ -152,7 +153,7 @@ func getImageData(store storage.Store, name string) (*imageData, error) {
 }
 
 func getDigests(img storage.Image) ([]digest.Digest, error) {
-	metadata, err := libkpodimage.ParseMetadata(img)
+	metadata, err := ParseMetadata(img)
 	if err != nil {
 		return nil, err
 	}

@@ -15,6 +15,7 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	units "github.com/docker/go-units"
+	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -240,7 +241,7 @@ func createJSON(store storage.Store, opts historyOptions) ([]byte, error) {
 		return nil, errors.Errorf("no such image %q: %v", opts.image, err)
 	}
 
-	systemContext := getSystemContext("")
+	systemContext := common.GetSystemContext("")
 
 	src, err := ref.NewImage(systemContext)
 	if err != nil {

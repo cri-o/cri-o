@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -88,11 +89,11 @@ type pushOptions struct {
 	// DockerRegistryOptions encapsulates settings that affect how we
 	// connect or authenticate to a remote registry to which we want to
 	// push the image.
-	dockerRegistryOptions
+	common.DockerRegistryOptions
 	// SigningOptions encapsulates settings that control whether or not we
 	// strip or add signatures to the image when pushing (uploading) the
 	// image to a registry.
-	signingOptions
+	common.SigningOptions
 }
 
 func pushCmd(c *cli.Context) error {
@@ -133,12 +134,12 @@ func pushCmd(c *cli.Context) error {
 		Compression:         compress,
 		SignaturePolicyPath: signaturePolicy,
 		Store:               store,
-		dockerRegistryOptions: dockerRegistryOptions{
+		DockerRegistryOptions: common.DockerRegistryOptions{
 			DockerRegistryCreds:         registryCreds,
 			DockerCertPath:              certPath,
 			DockerInsecureSkipTLSVerify: skipVerify,
 		},
-		signingOptions: signingOptions{
+		SigningOptions: common.SigningOptions{
 			RemoveSignatures: removeSignatures,
 			SignBy:           signBy,
 		},
@@ -171,22 +172,22 @@ func pushImage(srcName, destName string, options pushOptions) error {
 	if err != nil {
 		return errors.Wrapf(err, "error locating image %q for importing settings", srcName)
 	}
-	systemContext := getSystemContext(options.SignaturePolicyPath)
-	cid, err := importContainerImageDataFromImage(options.Store, systemContext, img.ID, "", "")
+	systemContext := common.GetSystemContext(options.SignaturePolicyPath)
+	cd, err := libkpodimage.ImportCopyDataFromImage(options.Store, systemContext, img.ID, "", "")
 	if err != nil {
 		return err
 	}
 	// Give the image we're producing the same ancestors as its source image
-	cid.FromImage = cid.Docker.ContainerConfig.Image
-	cid.FromImageID = string(cid.Docker.Parent)
+	cd.FromImage = cd.Docker.ContainerConfig.Image
+	cd.FromImageID = string(cd.Docker.Parent)
 
 	// Prep the layers and manifest for export
-	src, err := cid.makeImageRef(manifest.GuessMIMEType(cid.Manifest), options.Compression, img.Names, img.TopLayer, nil)
+	src, err := cd.MakeImageRef(manifest.GuessMIMEType(cd.Manifest), options.Compression, img.Names, img.TopLayer, nil)
 	if err != nil {
 		return errors.Wrapf(err, "error copying layers and metadata")
 	}
 
-	copyOptions := getCopyOptions(options.ReportWriter, options.SignaturePolicyPath, nil, &options.dockerRegistryOptions, options.signingOptions)
+	copyOptions := common.GetCopyOptions(options.ReportWriter, options.SignaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions)
 
 	// Copy the image to the remote destination
 	err = cp.Image(policyContext, dest, src, copyOptions)

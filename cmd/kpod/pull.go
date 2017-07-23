@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -69,7 +70,7 @@ func pullCmd(c *cli.Context) error {
 		allTags = c.Bool("all-tags")
 	}
 
-	systemContext := getSystemContext("")
+	systemContext := common.GetSystemContext("")
 
 	err = pullImage(store, image, allTags, systemContext)
 	if err != nil {
@@ -120,7 +121,7 @@ func pullImage(store storage.Store, imgName string, allTags bool, sc *types.Syst
 	}
 	defer policyContext.Destroy()
 
-	copyOptions := getCopyOptions(os.Stdout, "", nil, nil, signingOptions{})
+	copyOptions := common.GetCopyOptions(os.Stdout, "", nil, nil, common.SigningOptions{})
 
 	fmt.Println(tag + ": pulling from " + fromName)
 	return cp.Image(policyContext, destRef, srcRef, copyOptions)

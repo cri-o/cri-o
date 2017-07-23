@@ -8,6 +8,7 @@ import (
 
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	"github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -134,7 +135,7 @@ func parseFilter(images []storage.Image, filter string) (*filterParams, error) {
 		pair := strings.SplitN(param, "=", 2)
 		switch strings.TrimSpace(pair[0]) {
 		case "dangling":
-			if isValidBool(pair[1]) {
+			if common.IsValidBool(pair[1]) {
 				params.dangling = pair[1]
 			} else {
 				return nil, fmt.Errorf("invalid filter: '%s=[%s]'", pair[0], pair[1])
@@ -260,9 +261,9 @@ func matchesFilter(image storage.Image, store storage.Store, name string, params
 }
 
 func matchesDangling(name string, dangling string) bool {
-	if isFalse(dangling) && name != "<none>" {
+	if common.IsFalse(dangling) && name != "<none>" {
 		return true
-	} else if isTrue(dangling) && name == "<none>" {
+	} else if common.IsTrue(dangling) && name == "<none>" {
 		return true
 	}
 	return false

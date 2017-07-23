@@ -44,7 +44,7 @@ func Size(store storage.Store, img storage.Image) (int64, error) {
 	return imgSize, nil
 }
 
-// TopLayer returns the ID of the top layer of the image
+// GetTopLayerID returns the ID of the top layer of the image
 func GetTopLayerID(img storage.Image) (string, error) {
 	metadata, err := ParseMetadata(img)
 	if err != nil {

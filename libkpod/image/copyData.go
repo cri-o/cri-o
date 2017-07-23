@@ -1,4 +1,4 @@
-package main
+package image
 
 import (
 	"encoding/json"
@@ -16,7 +16,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -34,7 +34,8 @@ const (
 	OCIv1ImageManifest = v1.MediaTypeImageManifest
 )
 
-type containerImageData struct {
+// CopyData stores the basic data used when copying a container or image
+type CopyData struct {
 	store storage.Store
 
 	// Type is used to help identify a build container's metadata.  It
@@ -71,7 +72,7 @@ type containerImageData struct {
 	Docker docker.V2Image `json:"docker,omitempty"`
 }
 
-func (c *containerImageData) initConfig() {
+func (c *CopyData) initConfig() {
 	image := ociv1.Image{}
 	dimage := docker.V2Image{}
 	if len(c.Config) > 0 {
@@ -115,7 +116,7 @@ func (c *containerImageData) initConfig() {
 	c.fixupConfig()
 }
 
-func (c *containerImageData) fixupConfig() {
+func (c *CopyData) fixupConfig() {
 	if c.Docker.Config != nil {
 		// Prefer image-level settings over those from the container it was built from
 		c.Docker.ContainerConfig = *c.Docker.Config
@@ -142,39 +143,39 @@ func (c *containerImageData) fixupConfig() {
 
 // OS returns a name of the OS on which a container built using this image
 //is intended to be run.
-func (c *containerImageData) OS() string {
+func (c *CopyData) OS() string {
 	return c.OCIv1.OS
 }
 
 // SetOS sets the name of the OS on which a container built using this image
 // is intended to be run.
-func (c *containerImageData) SetOS(os string) {
+func (c *CopyData) SetOS(os string) {
 	c.OCIv1.OS = os
 	c.Docker.OS = os
 }
 
 // Architecture returns a name of the architecture on which a container built
 // using this image is intended to be run.
-func (c *containerImageData) Architecture() string {
+func (c *CopyData) Architecture() string {
 	return c.OCIv1.Architecture
 }
 
 // SetArchitecture sets the name of the architecture on which ta container built
 // using this image is intended to be run.
-func (c *containerImageData) SetArchitecture(arch string) {
+func (c *CopyData) SetArchitecture(arch string) {
 	c.OCIv1.Architecture = arch
 	c.Docker.Architecture = arch
 }
 
 // WorkDir returns the default working directory for running commands in a container
 // built using this image.
-func (c *containerImageData) WorkDir() string {
+func (c *CopyData) WorkDir() string {
 	return c.OCIv1.Config.WorkingDir
 }
 
 // SetWorkDir sets the location of the default working directory for running commands
 // in a container built using this image.
-func (c *containerImageData) SetWorkDir(there string) {
+func (c *CopyData) SetWorkDir(there string) {
 	c.OCIv1.Config.WorkingDir = there
 	c.Docker.Config.WorkingDir = there
 }
@@ -339,11 +340,13 @@ func makeDockerV2S1Image(manifest docker.V2S1Manifest) (docker.V2Image, error) {
 	return dimage, nil
 }
 
-func (c *containerImageData) Annotations() map[string]string {
-	return copyStringStringMap(c.ImageAnnotations)
+// Annotations gets the anotations of the container or image
+func (c *CopyData) Annotations() map[string]string {
+	return common.CopyStringStringMap(c.ImageAnnotations)
 }
 
-func (c *containerImageData) Save() error {
+// Save the CopyData to disk
+func (c *CopyData) Save() error {
 	buildstate, err := json.Marshal(c)
 	if err != nil {
 		return err
@@ -356,13 +359,14 @@ func (c *containerImageData) Save() error {
 
 }
 
-func openContainer(store storage.Store, name string) (*containerImageData, error) {
-	var data *containerImageData
+// GetContainerCopyData gets the copy data for a container
+func GetContainerCopyData(store storage.Store, name string) (*CopyData, error) {
+	var data *CopyData
 	var err error
 	if name != "" {
-		data, err = openContainerImageData(store, name)
+		data, err = openCopyData(store, name)
 		if os.IsNotExist(err) {
-			data, err = importContainerImageData(store, name, "")
+			data, err = importCopyData(store, name, "")
 		}
 	}
 	if err != nil {
@@ -375,17 +379,18 @@ func openContainer(store storage.Store, name string) (*containerImageData, error
 
 }
 
-func openImage(store storage.Store, image string) (*containerImageData, error) {
+// GetImageCopyData gets the copy data for an image
+func GetImageCopyData(store storage.Store, image string) (*CopyData, error) {
 	if image == "" {
 		return nil, errors.Errorf("image name must be specified")
 	}
-	img, err := libkpodimage.FindImage(store, image)
+	img, err := FindImage(store, image)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error locating image %q for importing settings", image)
 	}
 
-	systemContext := getSystemContext("")
-	data, err := importContainerImageDataFromImage(store, systemContext, img.ID, "", "")
+	systemContext := common.GetSystemContext("")
+	data, err := ImportCopyDataFromImage(store, systemContext, img.ID, "", "")
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image")
 	}
@@ -396,7 +401,7 @@ func openImage(store storage.Store, image string) (*containerImageData, error) {
 
 }
 
-func importContainerImageData(store storage.Store, container, signaturePolicyPath string) (*containerImageData, error) {
+func importCopyData(store storage.Store, container, signaturePolicyPath string) (*CopyData, error) {
 	if container == "" {
 		return nil, errors.Errorf("container name must be specified")
 	}
@@ -406,9 +411,9 @@ func importContainerImageData(store storage.Store, container, signaturePolicyPat
 		return nil, err
 	}
 
-	systemContext := getSystemContext(signaturePolicyPath)
+	systemContext := common.GetSystemContext(signaturePolicyPath)
 
-	data, err := importContainerImageDataFromImage(store, systemContext, c.ImageID, container, c.ID)
+	data, err := ImportCopyDataFromImage(store, systemContext, c.ImageID, container, c.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -426,13 +431,13 @@ func importContainerImageData(store storage.Store, container, signaturePolicyPat
 
 	err = data.Save()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error saving containerImageData state")
+		return nil, errors.Wrapf(err, "error saving CopyData state")
 	}
 
 	return data, nil
 }
 
-func openContainerImageData(store storage.Store, container string) (*containerImageData, error) {
+func openCopyData(store storage.Store, container string) (*CopyData, error) {
 	cdir, err := store.ContainerDirectory(container)
 	if err != nil {
 		return nil, err
@@ -441,7 +446,7 @@ func openContainerImageData(store storage.Store, container string) (*containerIm
 	if err != nil {
 		return nil, err
 	}
-	c := &containerImageData{}
+	c := &CopyData{}
 	err = json.Unmarshal(buildstate, &c)
 	if err != nil {
 		return nil, err
@@ -455,7 +460,8 @@ func openContainerImageData(store storage.Store, container string) (*containerIm
 
 }
 
-func importContainerImageDataFromImage(store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*containerImageData, error) {
+// ImportCopyDataFromImage creates copy data for an image with the given parameters
+func ImportCopyDataFromImage(store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*CopyData, error) {
 	manifest := []byte{}
 	config := []byte{}
 	imageName := ""
@@ -485,7 +491,7 @@ func importContainerImageDataFromImage(store storage.Store, systemContext *types
 		}
 	}
 
-	data := &containerImageData{
+	data := &CopyData{
 		store:            store,
 		Type:             containerType,
 		FromImage:        imageName,
@@ -504,7 +510,8 @@ func importContainerImageDataFromImage(store storage.Store, systemContext *types
 
 }
 
-func (c *containerImageData) makeImageRef(manifestType string, compress archive.Compression, names []string, layerID string, historyTimestamp *time.Time) (types.ImageReference, error) {
+// MakeImageRef converts a CopyData struct into a types.ImageReference
+func (c *CopyData) MakeImageRef(manifestType string, compress archive.Compression, names []string, layerID string, historyTimestamp *time.Time) (types.ImageReference, error) {
 	var name reference.Named
 	if len(names) > 0 {
 		if parsed, err := reference.ParseNamed(names[0]); err == nil {
@@ -526,7 +533,7 @@ func (c *containerImageData) makeImageRef(manifestType string, compress archive.
 	if historyTimestamp != nil {
 		created = historyTimestamp.UTC()
 	}
-	ref := &containerImageRef{
+	ref := &CopyRef{
 		store:                 c.store,
 		compression:           compress,
 		name:                  name,
