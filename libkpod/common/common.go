@@ -1,7 +1,9 @@
 package common
 
 import (
+	"errors"
 	"io"
+	"strings"
 
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/signature"
@@ -67,4 +69,21 @@ func GetPolicyContext(path string) (*signature.PolicyContext, error) {
 		return nil, err
 	}
 	return signature.NewPolicyContext(policy)
+}
+
+// ParseRegistryCreds takes a credentials string in the form USERNAME:PASSWORD
+// and returns a DockerAuthConfig
+func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
+	if creds == "" {
+		return nil, errors.New("no credentials supplied")
+	}
+	if strings.Index(creds, ":") < 0 {
+		return nil, errors.New("user name supplied, but no password supplied")
+	}
+	v := strings.SplitN(creds, ":", 2)
+	cfg := &types.DockerAuthConfig{
+		Username: v[0],
+		Password: v[1],
+	}
+	return cfg, nil
 }

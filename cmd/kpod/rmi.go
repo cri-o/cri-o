@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
+	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -67,7 +68,7 @@ func rmiCmd(c *cli.Context) error {
 				}
 			}
 			// If the user supplied an ID, we cannot delete the image if it is referred to by multiple tags
-			if matchesID(image.ID, id) {
+			if libkpodimage.MatchesID(image.ID, id) {
 				if len(image.Names) > 1 && !force {
 					return fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", image.ID)
 				}
@@ -130,7 +131,7 @@ func untagImage(imgArg string, image *storage.Image, store storage.Store) (strin
 	newNames := []string{}
 	removedName := ""
 	for _, name := range image.Names {
-		if matchesReference(name, imgArg) {
+		if libkpodimage.MatchesReference(name, imgArg) {
 			removedName = name
 			continue
 		}

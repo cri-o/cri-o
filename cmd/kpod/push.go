@@ -86,7 +86,7 @@ func pushCmd(c *cli.Context) error {
 	signBy := c.String("sign-by")
 
 	if registryCredsString != "" {
-		creds, err := parseRegistryCreds(registryCredsString)
+		creds, err := common.ParseRegistryCreds(registryCredsString)
 		if err != nil {
 			return err
 		}
