@@ -1,0 +1,14 @@
+[Unit]
+Description=Open Container Initiative Daemon Storage Setup
+Documentation=https://github.com/kubernetes-incubator/cri-o
+After=cloud-init.service
+Before=crio.service
+
+[Service]
+Type=oneshot
+ExecStartPre=-/usr/bin/container-storage-setup create -o /etc/sysconfig/crio-storage crio-storage /etc/sysconfig/crio-storage-setup
+ExecStart=/usr/bin/container-storage-setup activate crio-storage
+ExecStop=/usr/bin/container-storage-setup deactivate crio-storage
+
+[Install]
+WantedBy=multi-user.target
