@@ -550,6 +550,45 @@ static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 	}
 }
 
+static void on_sigchld(G_GNUC_UNUSED int signal)
+{
+	raise (SIGUSR1);
+}
+
+static void check_child_processes(GHashTable *pid_to_handler)
+{
+	void (*cb) (GPid, int, gpointer);
+
+        for (;;) {
+		int status;
+		pid_t pid = waitpid(-1, &status, WNOHANG);
+
+		if (pid < 0 && errno == EINTR)
+			continue;
+		if (pid < 0 && errno == ECHILD) {
+			g_main_loop_quit (main_loop);
+			return;
+		}
+		if (pid < 0)
+			pexit("Failed to read child process status");
+
+		if (pid == 0)
+			return;
+
+		/* If we got here, pid > 0, so we have a valid pid to check.  */
+		cb = g_hash_table_lookup(pid_to_handler, &pid);
+		if (cb)
+			cb(pid, status, 0);
+	}
+}
+
+static gboolean on_sigusr1_cb(gpointer user_data)
+{
+	GHashTable *pid_to_handler = (GHashTable *) user_data;
+	check_child_processes (pid_to_handler);
+        return G_SOURCE_CONTINUE;
+}
+
 static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 {
 	stdpipe_t pipe = GPOINTER_TO_INT(user_data);
@@ -1221,20 +1260,39 @@ int main(int argc, char *argv[])
 	close(slavefd_stdout);
 	close(slavefd_stderr);
 
+	/* Map pid to its handler.  */
+	GHashTable *pid_to_handler = g_hash_table_new (g_int_hash, g_int_equal);
+	g_hash_table_insert (pid_to_handler, &create_pid, runtime_exit_cb);
+
+	/*
+	 * Glib does not support SIGCHLD so use SIGUSR1 with the same semantic.  We will
+         * catch SIGCHLD and raise(SIGUSR1) in the signal handler.
+	 */
+	g_unix_signal_add (SIGUSR1, on_sigusr1_cb, pid_to_handler);
+
+	if (signal(SIGCHLD, on_sigchld) == SIG_ERR)
+		pexit("Failed to set handler for SIGCHLD");
+
 	ninfo("about to waitpid: %d", create_pid);
 	if (csname != NULL) {
 		guint terminal_watch = g_unix_fd_add (console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
-		g_child_watch_add (create_pid, runtime_exit_cb, NULL);
+		/* Process any SIGCHLD we may have missed before the signal handler was in place.  */
+		check_child_processes (pid_to_handler);
 		g_main_loop_run (main_loop);
 		g_source_remove (terminal_watch);
 	} else {
+		int ret;
 		/* Wait for our create child to exit with the return code. */
-		if (waitpid(create_pid, &runtime_status, 0) < 0) {
+		do
+			ret = waitpid(create_pid, &runtime_status, 0);
+		while (ret < 0 && errno == EINTR);
+		if (ret < 0) {
 			int old_errno = errno;
 			kill(create_pid, SIGKILL);
 			errno = old_errno;
 			pexit("Failed to wait for `runtime %s`", opt_exec ? "exec" : "create");
 		}
+
 	}
 
 	if (!WIFEXITED(runtime_status) || WEXITSTATUS(runtime_status) != 0) {
@@ -1266,6 +1324,8 @@ int main(int argc, char *argv[])
 	container_pid = atoi(contents);
 	ninfo("container PID: %d", container_pid);
 
+	g_hash_table_insert (pid_to_handler, &container_pid, container_exit_cb);
+
 	/* Setup endpoint for attach */
 	_cleanup_free_ char *attach_symlink_dir_path = NULL;
 	if (!opt_exec) {
@@ -1294,7 +1354,7 @@ int main(int argc, char *argv[])
 		g_timeout_add_seconds (opt_timeout, timeout_cb, NULL);
 	}
 
-	g_child_watch_add (container_pid, container_exit_cb, NULL);
+	check_child_processes(pid_to_handler);
 
 	g_main_loop_run (main_loop);
 
