@@ -150,7 +150,7 @@ func matchesSinceImage(image storage.Image, name string, params *FilterParams) b
 
 // MatchesID returns true if argID is a full or partial match for id
 func MatchesID(id, argID string) bool {
-	return strings.HasPrefix(id, argID)
+	return strings.HasPrefix(argID, id)
 }
 
 // MatchesReference returns true if argName is a full or partial match for name
@@ -264,9 +264,6 @@ func GetImagesMatchingFilter(store storage.Store, filter *FilterParams, argName 
 	if err != nil {
 		return nil, err
 	}
-	if filter == nil {
-		return images, nil
-	}
 	for _, image := range images {
 		names := []string{}
 		if len(image.Names) > 0 {
@@ -275,7 +272,7 @@ func GetImagesMatchingFilter(store storage.Store, filter *FilterParams, argName 
 			names = append(names, "<none>")
 		}
 		for _, name := range names {
-			if matchesFilter(store, image, name, filter) || MatchesReference(name, argName) {
+			if filter == nil || (matchesFilter(store, image, name, filter) || MatchesReference(name, argName)) {
 				newImage := image
 				newImage.Names = []string{name}
 				filteredImages = append(filteredImages, newImage)

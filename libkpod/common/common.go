@@ -77,7 +77,7 @@ func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 	if creds == "" {
 		return nil, errors.New("no credentials supplied")
 	}
-	if strings.Index(creds, ":") < 0 {
+	if !strings.Contains(creds, ":") {
 		return nil, errors.New("user name supplied, but no password supplied")
 	}
 	v := strings.SplitN(creds, ":", 2)

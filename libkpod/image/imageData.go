@@ -12,6 +12,7 @@ import (
 )
 
 // ImageData handles the data used when inspecting a container
+// nolint
 type ImageData struct {
 	ID              string
 	Names           []string
