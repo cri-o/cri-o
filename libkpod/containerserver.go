@@ -1,10 +1,14 @@
 package libkpod
 
 import (
+	"encoding/json"
+	"fmt"
 	"sync"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
+	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -53,21 +57,77 @@ func (c *ContainerServer) ImageContext() *types.SystemContext {
 	return c.imageContext
 }
 
-// New creates a new ContainerServer
-func New(runtime *oci.Runtime, store cstorage.Store, storageImageServer storage.ImageServer, ctrNameIndex *registrar.Registrar, ctrIDIndex *truncindex.TruncIndex, imageContext *types.SystemContext) *ContainerServer {
-	containers := oci.NewMemoryStore()
+// New creates a new ContainerServer with options provided
+func New(runtime *oci.Runtime, store cstorage.Store, imageService storage.ImageServer, signaturePolicyPath string) *ContainerServer {
 	return &ContainerServer{
 		runtime:            runtime,
 		store:              store,
-		storageImageServer: storageImageServer,
-		ctrNameIndex:       ctrNameIndex,
-		ctrIDIndex:         ctrIDIndex,
-		imageContext:       imageContext,
+		storageImageServer: imageService,
+		ctrNameIndex:       registrar.NewRegistrar(),
+		ctrIDIndex:         truncindex.NewTruncIndex([]string{}),
+		imageContext:       &types.SystemContext{SignaturePolicyPath: signaturePolicyPath},
 		stateLock:          new(sync.Mutex),
 		state: &containerServerState{
-			containers: containers,
+			containers: oci.NewMemoryStore(),
 		},
 	}
+}
+
+// ContainerStateFromDisk retrieves information on the state of a running container
+// from the disk
+func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
+	if err := ctr.FromDisk(); err != nil {
+		return err
+	}
+	// ignore errors, this is a best effort to have up-to-date info about
+	// a given container before its state gets stored
+	c.runtime.UpdateStatus(ctr)
+
+	return nil
+}
+
+// ContainerStateToDisk writes the container's state information to a JSON file
+// on disk
+func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
+	// ignore errors, this is a best effort to have up-to-date info about
+	// a given container before its state gets stored
+	c.Runtime().UpdateStatus(ctr)
+
+	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0644)
+	if err != nil {
+		return err
+	}
+	defer jsonSource.Close()
+	enc := json.NewEncoder(jsonSource)
+	return enc.Encode(c.runtime.ContainerStatus(ctr))
+}
+
+// ReserveContainerName holds a name for a container that is being created
+func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) {
+	if err := c.ctrNameIndex.Reserve(name, id); err != nil {
+		if err == registrar.ErrNameReserved {
+			id, err := c.ctrNameIndex.Get(name)
+			if err != nil {
+				logrus.Warnf("conflict, ctr name %q already reserved", name)
+				return "", err
+			}
+			return "", fmt.Errorf("conflict, name %q already reserved for ctr %q", name, id)
+		}
+		return "", fmt.Errorf("error reserving ctr name %s", name)
+	}
+	return name, nil
+}
+
+// ReleaseContainerName releases a container name from the index so that it can
+// be used by other containers
+func (c *ContainerServer) ReleaseContainerName(name string) {
+	c.ctrNameIndex.Release(name)
+}
+
+// Shutdown attempts to shut down the server's storage cleanly
+func (c *ContainerServer) Shutdown() error {
+	_, err := c.store.Shutdown(false)
+	return err
 }
 
 type containerServerState struct {

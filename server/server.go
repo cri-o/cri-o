@@ -11,9 +11,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
-	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -104,14 +102,14 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 	name := m.Annotations[annotations.Name]
-	name, err = s.reserveContainerName(id, name)
+	name, err = s.ReserveContainerName(id, name)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
 		if err != nil {
-			s.releaseContainerName(name)
+			s.ReleaseContainerName(name)
 		}
 	}()
 
@@ -158,35 +156,10 @@ func (s *Server) loadContainer(id string) error {
 		return err
 	}
 
-	s.containerStateFromDisk(ctr)
+	s.ContainerStateFromDisk(ctr)
 
 	s.addContainer(ctr)
 	return s.CtrIDIndex().Add(id)
-}
-
-func (s *Server) containerStateFromDisk(c *oci.Container) error {
-	if err := c.FromDisk(); err != nil {
-		return err
-	}
-	// ignore errors, this is a best effort to have up-to-date info about
-	// a given container before its state gets stored
-	s.Runtime().UpdateStatus(c)
-
-	return nil
-}
-
-func (s *Server) containerStateToDisk(c *oci.Container) error {
-	// ignore errors, this is a best effort to have up-to-date info about
-	// a given container before its state gets stored
-	s.Runtime().UpdateStatus(c)
-
-	jsonSource, err := ioutils.NewAtomicFileWriter(c.StatePath(), 0644)
-	if err != nil {
-		return err
-	}
-	defer jsonSource.Close()
-	enc := json.NewEncoder(jsonSource)
-	return enc.Encode(s.Runtime().ContainerStatus(c))
 }
 
 func configNetNsPath(spec rspec.Spec) (string, error) {
@@ -282,13 +255,13 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	cname, err := s.reserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
+	cname, err := s.ReserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
-			s.releaseContainerName(cname)
+			s.ReleaseContainerName(cname)
 		}
 	}()
 
@@ -302,7 +275,7 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 
-	s.containerStateFromDisk(scontainer)
+	s.ContainerStateFromDisk(scontainer)
 
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
@@ -410,7 +383,7 @@ func (s *Server) update() error {
 			logrus.Warnf("bad state when getting container removed %+v", removedPodContainer)
 			continue
 		}
-		s.releaseContainerName(c.Name())
+		s.ReleaseContainerName(c.Name())
 		s.removeContainer(c)
 		if err = s.CtrIDIndex().Delete(c.ID()); err != nil {
 			return err
@@ -431,7 +404,7 @@ func (s *Server) update() error {
 			continue
 		}
 		podInfraContainer := sb.InfraContainer()
-		s.releaseContainerName(podInfraContainer.Name())
+		s.ReleaseContainerName(podInfraContainer.Name())
 		s.removeContainer(podInfraContainer)
 		if err = s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
 			return err
@@ -482,25 +455,6 @@ func (s *Server) releasePodName(name string) {
 	s.podNameIndex.Release(name)
 }
 
-func (s *Server) reserveContainerName(id, name string) (string, error) {
-	if err := s.CtrNameIndex().Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := s.CtrNameIndex().Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, ctr name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for ctr %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving ctr name %s", name)
-	}
-	return name, nil
-}
-
-func (s *Server) releaseContainerName(name string) {
-	s.CtrNameIndex().Release(name)
-}
-
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
 func (s *Server) cleanupSandboxesOnShutdown() {
 	_, err := os.Stat(shutdownFile)
@@ -522,8 +476,7 @@ func (s *Server) Shutdown() error {
 	// notice this won't trigger just on system halt but also on normal
 	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown()
-	_, err := s.Store().Shutdown(false)
-	return err
+	return s.ContainerServer.Shutdown()
 }
 
 // New creates a new Server with options provided
@@ -543,6 +496,11 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	r, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
+	if err != nil {
+		return nil, err
+	}
+
 	storageRuntimeService := storage.GetRuntimeService(imageService, config.PauseImage)
 	if err != nil {
 		return nil, err
@@ -552,10 +510,7 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	r, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
-	if err != nil {
-		return nil, err
-	}
+	containerServer := libkpod.New(r, store, imageService, config.SignaturePolicyPath)
 
 	sandboxes := make(map[string]*sandbox.Sandbox)
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
@@ -566,7 +521,6 @@ func New(config *Config) (*Server, error) {
 	iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain)
 	hostportManager := hostport.NewHostportManager()
 
-	containerServer := libkpod.New(r, store, imageService, registrar.NewRegistrar(), truncindex.NewTruncIndex([]string{}), &types.SystemContext{SignaturePolicyPath: config.ImageConfig.SignaturePolicyPath})
 	s := &Server{
 		ContainerServer:      *containerServer,
 		storageRuntimeServer: storageRuntimeService,
@@ -633,7 +587,6 @@ func New(config *Config) (*Server, error) {
 	}()
 
 	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
-	logrus.Debugf("containers: %v", s.ContainerServer.ListContainers())
 	return s, nil
 }
 

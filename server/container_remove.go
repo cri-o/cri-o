@@ -42,7 +42,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, fmt.Errorf("failed to delete storage for container %s: %v", c.ID(), err)
 	}
 
-	s.releaseContainerName(c.Name())
+	s.ReleaseContainerName(c.Name())
 
 	if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
 		return nil, err

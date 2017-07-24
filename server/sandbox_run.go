@@ -149,7 +149,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	defer func() {
 		if err != nil {
-			s.releaseContainerName(containerName)
+			s.ReleaseContainerName(containerName)
 		}
 	}()
 
@@ -500,7 +500,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	s.containerStateToDisk(container)
+	s.ContainerStateToDisk(container)
 
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
