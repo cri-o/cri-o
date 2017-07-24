@@ -21,6 +21,7 @@ Source0:        https://%{provider_prefix}/archive/%{commit}/%{repo}-%{shortcomm
 Provides:       %{repo}
 
 BuildRequires:  golang-github-cpuguy83-go-md2man
+Requires: container-storage-setup >= 0.6
 
 %description
 The crio package provides an implementation of the
@@ -57,6 +58,9 @@ make all
 /%{_libexecdir}/crio/conmon
 /%{_libexecdir}/crio/pause
 %{_unitdir}/crio.service
+%{_unitdir}/crio-storage-setup.service
+%{_sysconfdir}/sysconfig/crio-storage-setup
+%ghost %{_sysconfdir}/sysconfig/crio-storage
 %doc README.md
 %license LICENSE
 

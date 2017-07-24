@@ -1,0 +1,5 @@
+# Edit this file to override any configuration options specified in
+# /usr/share/container-storage-setup/container-storage-setup.
+#
+# For more details refer to "man container-storage-setup"
+STORAGE_DRIVER=overlay
