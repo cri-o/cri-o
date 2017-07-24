@@ -47,6 +47,7 @@ import (
 
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -81,7 +82,7 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 
 	// Try to load the aufs kernel module
 	if err := supportsAufs(); err != nil {
-		return nil, graphdriver.ErrNotSupported
+		return nil, errors.Wrap(graphdriver.ErrNotSupported, "kernel does not support aufs")
 	}
 
 	fsMagic, err := graphdriver.GetFSMagic(root)
@@ -95,7 +96,7 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	switch fsMagic {
 	case graphdriver.FsMagicAufs, graphdriver.FsMagicBtrfs, graphdriver.FsMagicEcryptfs:
 		logrus.Errorf("AUFS is not supported over %s", backingFs)
-		return nil, graphdriver.ErrIncompatibleFS
+		return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "AUFS is not supported over %q", backingFs)
 	}
 
 	paths := []string{
@@ -370,6 +371,12 @@ func (a *Driver) Diff(id, parent string) (archive.Archive, error) {
 		UIDMaps:         a.uidMaps,
 		GIDMaps:         a.gidMaps,
 	})
+}
+
+// AdditionalImageStores returns additional image stores supported by the driver
+func (a *Driver) AdditionalImageStores() []string {
+	var imageStores []string
+	return imageStores
 }
 
 type fileGetNilCloser struct {

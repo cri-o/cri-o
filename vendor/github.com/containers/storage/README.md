@@ -1,6 +1,6 @@
 `storage` is a Go library which aims to provide methods for storing filesystem
-layers, container images, and containers.  An `oci-storage` CLI wrapper is also
-included for manual and scripting use.
+layers, container images, and containers.  A `containers-storage` CLI wrapper
+is also included for manual and scripting use.
 
 To build the CLI wrapper, use 'make build-binary'.
 

@@ -5,17 +5,24 @@ RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/a
 
 RUN apt-get update && apt-get install -y \
     apparmor \
+    autoconf \
+    automake \
+    bison \
     build-essential \
     curl \
+    e2fslibs-dev \
     gawk \
     iptables \
     pkg-config \
     libaio-dev \
     libcap-dev \
+    libfuse-dev \
+    libostree-dev \
     libprotobuf-dev \
     libprotobuf-c0-dev \
     libseccomp2/jessie-backports \
     libseccomp-dev/jessie-backports \
+    libtool \
     protobuf-c-compiler \
     protobuf-compiler \
     python-minimal \
@@ -25,6 +32,7 @@ RUN apt-get update && apt-get install -y \
     libdevmapper1.02.1 \
     libdevmapper-dev \
     libgpgme11-dev \
+    liblzma-dev \
     netcat \
     --no-install-recommends \
     && apt-get clean
@@ -77,6 +85,8 @@ COPY test/policy.json /etc/containers/policy.json
 WORKDIR /go/src/github.com/kubernetes-incubator/cri-o
 
 ADD . /go/src/github.com/kubernetes-incubator/cri-o
+
+RUN make .install.ostree
 
 RUN make test/copyimg/copyimg \
 	&& mkdir -p .artifacts/redis-image \
