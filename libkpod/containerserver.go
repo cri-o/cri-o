@@ -23,9 +23,12 @@ type ContainerServer struct {
 	storageImageServer storage.ImageServer
 	ctrNameIndex       *registrar.Registrar
 	ctrIDIndex         *truncindex.TruncIndex
-	imageContext       *types.SystemContext
-	stateLock          sync.Locker
-	state              *containerServerState
+	podNameIndex       *registrar.Registrar
+	podIDIndex         *truncindex.TruncIndex
+
+	imageContext *types.SystemContext
+	stateLock    sync.Locker
+	state        *containerServerState
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -53,6 +56,16 @@ func (c *ContainerServer) CtrIDIndex() *truncindex.TruncIndex {
 	return c.ctrIDIndex
 }
 
+// PodNameIndex returns the index of pod names
+func (c *ContainerServer) PodNameIndex() *registrar.Registrar {
+	return c.podNameIndex
+}
+
+// PodIDIndex returns the index of pod IDs
+func (c *ContainerServer) PodIDIndex() *truncindex.TruncIndex {
+	return c.podIDIndex
+}
+
 // ImageContext returns the SystemContext for the ContainerServer
 func (c *ContainerServer) ImageContext() *types.SystemContext {
 	return c.imageContext
@@ -66,6 +79,8 @@ func New(runtime *oci.Runtime, store cstorage.Store, imageService storage.ImageS
 		storageImageServer: imageService,
 		ctrNameIndex:       registrar.NewRegistrar(),
 		ctrIDIndex:         truncindex.NewTruncIndex([]string{}),
+		podNameIndex:       registrar.NewRegistrar(),
+		podIDIndex:         truncindex.NewTruncIndex([]string{}),
 		imageContext:       &types.SystemContext{SignaturePolicyPath: signaturePolicyPath},
 		stateLock:          new(sync.Mutex),
 		state: &containerServerState{
@@ -124,6 +139,28 @@ func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) 
 // be used by other containers
 func (c *ContainerServer) ReleaseContainerName(name string) {
 	c.ctrNameIndex.Release(name)
+}
+
+// ReservePodName holds a name for a pod that is being created
+func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
+	if err := c.podNameIndex.Reserve(name, id); err != nil {
+		if err == registrar.ErrNameReserved {
+			id, err := c.podNameIndex.Get(name)
+			if err != nil {
+				logrus.Warnf("conflict, pod name %q already reserved", name)
+				return "", err
+			}
+			return "", fmt.Errorf("conflict, name %q already reserved for pod %q", name, id)
+		}
+		return "", fmt.Errorf("error reserving pod name %q", name)
+	}
+	return name, nil
+}
+
+// ReleasePodName releases a pod name from the index so it can be used by other
+// pods
+func (c *ContainerServer) ReleasePodName(name string) {
+	c.podNameIndex.Release(name)
 }
 
 // Shutdown attempts to shut down the server's storage cleanly

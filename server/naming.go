@@ -54,7 +54,7 @@ func (s *Server) generatePodIDandName(sandboxConfig *pb.PodSandboxConfig) (strin
 	if sandboxConfig.Metadata.Namespace == "" {
 		return "", "", fmt.Errorf("cannot generate pod ID without namespace")
 	}
-	name, err := s.reservePodName(id, makeSandboxName(sandboxConfig))
+	name, err := s.ReservePodName(id, makeSandboxName(sandboxConfig))
 	if err != nil {
 		return "", "", err
 	}

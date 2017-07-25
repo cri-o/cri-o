@@ -12,8 +12,6 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	cstorage "github.com/containers/storage"
-	"github.com/docker/docker/pkg/registrar"
-	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -59,8 +57,6 @@ type Server struct {
 	updateLock           sync.RWMutex
 	netPlugin            ocicni.CNIPlugin
 	hostportManager      hostport.HostPortManager
-	podNameIndex         *registrar.Registrar
-	podIDIndex           *truncindex.TruncIndex
 
 	seccompEnabled bool
 	seccompProfile seccomp.Seccomp
@@ -190,13 +186,13 @@ func (s *Server) loadSandbox(id string) error {
 		return err
 	}
 	name := m.Annotations[annotations.Name]
-	name, err = s.reservePodName(id, name)
+	name, err = s.ReservePodName(id, name)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
-			s.releasePodName(name)
+			s.ReleasePodName(name)
 		}
 	}()
 	var metadata pb.PodSandboxMetadata
@@ -282,7 +278,7 @@ func (s *Server) loadSandbox(id string) error {
 	if err = s.CtrIDIndex().Add(scontainer.ID()); err != nil {
 		return err
 	}
-	if err = s.podIDIndex.Add(id); err != nil {
+	if err = s.PodIDIndex().Add(id); err != nil {
 		return err
 	}
 	return nil
@@ -388,7 +384,7 @@ func (s *Server) update() error {
 		}
 		logrus.Debugf("forgetting removed pod container %s", c.ID())
 	}
-	s.podIDIndex.Iterate(func(id string) {
+	s.PodIDIndex().Iterate(func(id string) {
 		if _, ok := oldPods[id]; !ok {
 			// this pod's ID wasn't in the updated list -> removed
 			removedPods[id] = id
@@ -408,9 +404,9 @@ func (s *Server) update() error {
 			return err
 		}
 		sb.RemoveInfraContainer()
-		s.releasePodName(sb.Name())
+		s.ReleasePodName(sb.Name())
 		s.removeSandbox(sb.ID())
-		if err = s.podIDIndex.Delete(sb.ID()); err != nil {
+		if err = s.PodIDIndex().Delete(sb.ID()); err != nil {
 			return err
 		}
 		logrus.Debugf("forgetting removed pod %s", sb.ID())
@@ -432,25 +428,6 @@ func (s *Server) update() error {
 		}
 	}
 	return nil
-}
-
-func (s *Server) reservePodName(id, name string) (string, error) {
-	if err := s.podNameIndex.Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := s.podNameIndex.Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, pod name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for pod %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving pod name %q", name)
-	}
-	return name, nil
-}
-
-func (s *Server) releasePodName(name string) {
-	s.podNameIndex.Release(name)
 }
 
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
@@ -524,9 +501,9 @@ func New(config *Config) (*Server, error) {
 		netPlugin:            netPlugin,
 		hostportManager:      hostportManager,
 		config:               *config,
-		seccompEnabled:  seccomp.IsEnabled(),
-		appArmorEnabled: apparmor.IsEnabled(),
-		appArmorProfile: config.ApparmorProfile,
+		seccompEnabled:       seccomp.IsEnabled(),
+		appArmorEnabled:      apparmor.IsEnabled(),
+		appArmorProfile:      config.ApparmorProfile,
 	}
 	if s.seccompEnabled {
 		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
@@ -545,9 +522,6 @@ func New(config *Config) (*Server, error) {
 			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", apparmorErr)
 		}
 	}
-
-	s.podIDIndex = truncindex.NewTruncIndex([]string{})
-	s.podNameIndex = registrar.NewRegistrar()
 
 	s.restore()
 	s.cleanupSandboxesOnShutdown()
@@ -626,7 +600,7 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 		return nil, sandbox.ErrIDEmpty
 	}
 
-	sandboxID, err := s.podIDIndex.Get(podSandboxID)
+	sandboxID, err := s.PodIDIndex().Get(podSandboxID)
 	if err != nil {
 		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
 	}

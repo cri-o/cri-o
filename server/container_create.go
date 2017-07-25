@@ -275,7 +275,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
 
-	sandboxID, err := s.podIDIndex.Get(sbID)
+	sandboxID, err := s.PodIDIndex().Get(sbID)
 	if err != nil {
 		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
 	}
