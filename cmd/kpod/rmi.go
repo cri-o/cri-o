@@ -45,7 +45,7 @@ func rmiCmd(c *cli.Context) error {
 	}
 
 	for _, id := range args {
-		image, err := libkpodimage.GetImage(store, id)
+		image, err := libkpodimage.FindImage(store, id)
 		if err != nil {
 			return errors.Wrapf(err, "could not get image %q", id)
 		}
