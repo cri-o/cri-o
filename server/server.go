@@ -471,11 +471,6 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	r, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
-	if err != nil {
-		return nil, err
-	}
-
 	storageRuntimeService := storage.GetRuntimeService(imageService, config.PauseImage)
 	if err != nil {
 		return nil, err
@@ -484,8 +479,10 @@ func New(config *Config) (*Server, error) {
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
 		return nil, err
 	}
-
-	containerServer := libkpod.New(r, store, imageService, config.SignaturePolicyPath)
+	containerServer, err := libkpod.New(&config.Config)
+	if err != nil {
+		return nil, err
+	}
 
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {

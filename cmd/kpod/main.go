@@ -49,6 +49,10 @@ func main() {
 			Name:  "storage-opt",
 			Usage: "used to pass an option to the storage driver",
 		},
+		cli.StringFlag{
+			Name:  "config, c",
+			Usage: "path of a config file detailing container server configuration options",
+		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)

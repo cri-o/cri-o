@@ -14,6 +14,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
+	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
@@ -82,11 +83,11 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 			return err
 		}
 		switch s.config.ImageVolumes {
-		case ImageVolumesMkdir:
+		case libkpod.ImageVolumesMkdir:
 			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
 				return err1
 			}
-		case ImageVolumesBind:
+		case libkpod.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
@@ -101,7 +102,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 
 			logrus.Debugf("Adding bind mounted volume: %s to %s", src, dest)
 			specgen.AddBindMount(src, dest, []string{"rw"})
-		case ImageVolumesIgnore:
+		case libkpod.ImageVolumesIgnore:
 			logrus.Debugf("Ignoring volume %v", dest)
 		default:
 			logrus.Fatalf("Unrecognized image volumes setting")
