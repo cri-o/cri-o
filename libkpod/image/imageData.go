@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
 	digest "github.com/opencontainers/go-digest"
@@ -15,8 +16,8 @@ import (
 // nolint
 type ImageData struct {
 	ID              string
-	Names           []string
-	Digests         []digest.Digest
+	Tags            []string
+	Digests         []string
 	Parent          string
 	Comment         string
 	Created         *time.Time
@@ -58,6 +59,32 @@ type rootFS struct {
 	Layers []string
 }
 
+// ParseImageNames parses the names we've stored with an image into a list of
+// tagged references and a list of references which contain digests.
+func ParseImageNames(names []string) (tags, digests []string, err error) {
+	for _, name := range names {
+		if named, err := reference.ParseNamed(name); err == nil {
+			if digested, ok := named.(reference.Digested); ok {
+				canonical, err := reference.WithDigest(named, digested.Digest())
+				if err == nil {
+					digests = append(digests, canonical.String())
+				}
+			} else {
+				if reference.IsNameOnly(named) {
+					named = reference.TagNameOnly(named)
+				}
+				if tagged, ok := named.(reference.Tagged); ok {
+					namedTagged, err := reference.WithTag(named, tagged.Tag())
+					if err == nil {
+						tags = append(tags, namedTagged.String())
+					}
+				}
+			}
+		}
+	}
+	return tags, digests, nil
+}
+
 // GetImageData gets the ImageData for a container with the given name in the given store.
 func GetImageData(store storage.Store, name string) (*ImageData, error) {
 	img, err := FindImage(store, name)
@@ -69,7 +96,7 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image %q", name)
 	}
-	digests, err := getDigests(*img)
+	blobDigests, err := getDigests(*img)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +104,8 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 	var bigData interface{}
 	ctrConfig := containerConfig{}
 	container := ""
-	if len(digests) > 0 {
-		bd, err := store.ImageBigData(img.ID, string(digests[len(digests)-1]))
+	if len(blobDigests) > 0 {
+		bd, err := store.ImageBigData(img.ID, string(blobDigests[len(blobDigests)-1]))
 		if err != nil {
 			return nil, err
 		}
@@ -98,6 +125,11 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		}
 	}
 
+	tags, digests, err := ParseImageNames(img.Names)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing image names for %q", name)
+	}
+
 	driverName, err := driver.GetDriverName(store)
 	if err != nil {
 		return nil, err
@@ -107,6 +139,7 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	driverMetadata, err := driver.GetDriverMetadata(store, topLayerID)
 	if err != nil {
 		return nil, err
@@ -128,7 +161,7 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 
 	return &ImageData{
 		ID:              img.ID,
-		Names:           img.Names,
+		Tags:            tags,
 		Digests:         digests,
 		Parent:          string(cid.Docker.Parent),
 		Comment:         cid.OCIv1.History[0].Comment,
