@@ -7,6 +7,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
+	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
@@ -17,6 +18,7 @@ type ImageData struct {
 	ID              string
 	Tags            []string
 	Digests         []string
+	Digest          digest.Digest
 	Parent          string
 	Comment         string
 	Created         *time.Time
@@ -30,11 +32,6 @@ type ImageData struct {
 	VirtualSize     uint
 	GraphDriver     driver.Data
 	RootFS          ociv1.RootFS
-}
-
-type rootFS struct {
-	Type   string
-	Layers []string
 }
 
 // ParseImageNames parses the names we've stored with an image into a list of
@@ -85,10 +82,7 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		return nil, err
 	}
 
-	topLayerID, err := GetTopLayerID(*img)
-	if err != nil {
-		return nil, err
-	}
+	topLayerID := img.TopLayer
 
 	driverMetadata, err := driver.GetDriverMetadata(store, topLayerID)
 	if err != nil {
@@ -104,7 +98,7 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		return nil, err
 	}
 
-	virtualSize, err := Size(store, *img)
+	digest, virtualSize, err := DigestAndSize(store, *img)
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +107,7 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		ID:              img.ID,
 		Tags:            tags,
 		Digests:         digests,
+		Digest:          digest,
 		Parent:          string(cid.Docker.Parent),
 		Comment:         cid.OCIv1.History[0].Comment,
 		Created:         cid.OCIv1.Created,

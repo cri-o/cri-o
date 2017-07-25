@@ -6,8 +6,8 @@ import (
 	"text/template"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/image"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -15,7 +15,7 @@ import (
 type imageOutputParams struct {
 	ID        string
 	Name      string
-	Digest    string
+	Digest    digest.Digest
 	CreatedAt string
 	Size      string
 }
@@ -132,16 +132,14 @@ func outputHeader(truncate, digests bool) {
 
 func outputImages(store storage.Store, images []storage.Image, format string, hasTemplate, truncate, digests, quiet bool) error {
 	for _, img := range images {
-		imageMetadata, err := image.ParseMetadata(img)
-		if err != nil {
-			fmt.Println(err)
+		createdTime := img.Created.Format("Jan 2, 2006 15:04")
+
+		name := ""
+		if len(img.Names) > 0 {
+			name = img.Names[0]
 		}
-		createdTime := imageMetadata.CreatedTime.Format("Jan 2, 2006 15:04")
-		digest := ""
-		if len(imageMetadata.Blobs) > 0 {
-			digest = string(imageMetadata.Blobs[0].Digest)
-		}
-		size, _ := libkpodimage.Size(store, img)
+
+		digest, size, _ := libkpodimage.DigestAndSize(store, img)
 
 		if quiet {
 			fmt.Printf("%-64s\n", img.ID)
@@ -151,14 +149,13 @@ func outputImages(store storage.Store, images []storage.Image, format string, ha
 
 		params := imageOutputParams{
 			ID:        img.ID,
-			Name:      img.Names[0],
+			Name:      name,
 			Digest:    digest,
 			CreatedAt: createdTime,
 			Size:      libkpodimage.FormattedSize(size),
 		}
 		if hasTemplate {
-			err = outputUsingTemplate(format, params)
-			if err != nil {
+			if err := outputUsingTemplate(format, params); err != nil {
 				return err
 			}
 			continue
