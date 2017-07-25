@@ -199,6 +199,25 @@ _kpod_rmi() {
     esac
 }
 
+_kpod_stats() {
+    local boolean_options="
+     --help
+     --all
+     -a
+     --no-stream
+     --format
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_containers
+            ;;
+    esac
+}
+
 kpod_tag() {
     local options_with_args="
     "
@@ -284,6 +303,7 @@ _kpod_kpod() {
     pull
     push
     rmi
+    stats
     tag
     umount
     unmount

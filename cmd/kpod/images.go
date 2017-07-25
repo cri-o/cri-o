@@ -152,7 +152,7 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 			Name:      name,
 			Digest:    imageDigest,
 			CreatedAt: createdTime.Format("Jan 2, 2006 15:04"),
-			Size:      libkpodimage.FormattedSize(size),
+			Size:      libkpodimage.FormattedSize(float64(size)),
 		}
 		imageOutput = append(imageOutput, params)
 	}
