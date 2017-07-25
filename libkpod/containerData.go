@@ -1,4 +1,4 @@
-package main
+package libkpod
 
 import (
 	"encoding/json"
@@ -9,15 +9,18 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
+	"github.com/kubernetes-incubator/cri-o/libkpod/common"
+	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
+	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
-	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
 
-type containerData struct {
+// ContainerData handles the data used when inspecting a container
+type ContainerData struct {
 	ID               string
 	Name             string
 	LogPath          string
@@ -52,12 +55,14 @@ type driverData struct {
 	Data map[string]string
 }
 
-func getContainerData(store storage.Store, name string, size bool) (*containerData, error) {
+// GetContainerData gets the ContainerData for a container with the given name in the given store.
+// If size is set to true, it will also determine the size of the container
+func GetContainerData(store storage.Store, name string, size bool) (*ContainerData, error) {
 	ctr, err := inspectContainer(store, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading build container %q", name)
 	}
-	cid, err := openContainer(store, name)
+	cid, err := libkpodimage.GetContainerCopyData(store, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading container image data")
 	}
@@ -71,19 +76,19 @@ func getContainerData(store storage.Store, name string, size bool) (*containerDa
 		return nil, err
 	}
 
-	driverName, err := getDriverName(store)
+	driverName, err := driver.GetDriverName(store)
 	if err != nil {
 		return nil, err
 	}
-	topLayer, err := getContainerTopLayerID(store, ctr.ID())
+	topLayer, err := GetContainerTopLayerID(store, ctr.ID())
 	if err != nil {
 		return nil, err
 	}
-	driverMetadata, err := getDriverMetadata(store, topLayer)
+	driverMetadata, err := driver.GetDriverMetadata(store, topLayer)
 	if err != nil {
 		return nil, err
 	}
-	data := &containerData{
+	data := &ContainerData{
 		ID:               ctr.ID(),
 		Name:             ctr.Name(),
 		LogPath:          ctr.LogPath(),
@@ -115,13 +120,13 @@ func getContainerData(store storage.Store, name string, size bool) (*containerDa
 	}
 
 	if size {
-		sizeRootFs, err := getRootFsSize(store, data.ID)
+		sizeRootFs, err := GetContainerRootFsSize(store, data.ID)
 		if err != nil {
 
 			return nil, errors.Wrapf(err, "error reading size for container %q", name)
 		}
 		data.SizeRootFs = uint(sizeRootFs)
-		sizeRw, err := getContainerRwSize(store, data.ID)
+		sizeRw, err := GetContainerRwSize(store, data.ID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading RWSize for container %q", name)
 		}
@@ -152,7 +157,7 @@ func inspectContainer(store storage.Store, container string) (*oci.Container, er
 
 // get an oci.Container instance for a given container ID
 func getOCIContainer(store storage.Store, container string) (*oci.Container, error) {
-	ctr, err := findContainer(store, container)
+	ctr, err := FindContainer(store, container)
 	if err != nil {
 		return nil, err
 	}
@@ -179,9 +184,9 @@ func getOCIContainer(store storage.Store, container string) (*oci.Container, err
 		return nil, err
 	}
 
-	tty := isTrue(m.Annotations[annotations.TTY])
-	stdin := isTrue(m.Annotations[annotations.Stdin])
-	stdinOnce := isTrue(m.Annotations[annotations.StdinOnce])
+	tty := common.IsTrue(m.Annotations[annotations.TTY])
+	stdin := common.IsTrue(m.Annotations[annotations.Stdin])
+	stdinOnce := common.IsTrue(m.Annotations[annotations.StdinOnce])
 
 	containerPath, err := store.ContainerRunDirectory(ctr.ID)
 	if err != nil {
@@ -214,6 +219,6 @@ func getOCIContainer(store storage.Store, container string) (*oci.Container, err
 }
 
 func getOCIRuntime(store storage.Store, container string) (*oci.Runtime, error) {
-	config := server.DefaultConfig()
-	return oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
+	// TODO: Move server default config out of server so that it can be used instead of this
+	return oci.New("/usr/bin/runc", "", "runtime", "/usr/local/libexec/crio/conmon", []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}, "cgroupfs")
 }

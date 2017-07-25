@@ -7,7 +7,6 @@ import (
 
 	"flag"
 
-	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/urfave/cli"
 )
@@ -25,52 +24,6 @@ func TestGetStore(t *testing.T) {
 	c.Command = command
 
 	_, err := getStore(c)
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func TestParseMetadata(t *testing.T) {
-	// Make sure the tests are running as root
-	failTestIfNotRoot(t)
-
-	store, err := storage.GetStore(storage.DefaultStoreOptions)
-	if err != nil {
-		t.Fatal(err)
-	} else if store != nil {
-		is.Transport.SetStore(store)
-	}
-
-	images, err := store.Images()
-	if err != nil {
-		t.Fatalf("Error reading images: %v", err)
-	} else if len(images) == 0 {
-		t.Fatalf("no images with metadata to parse")
-	}
-
-	_, err = parseMetadata(images[0])
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func TestGetSize(t *testing.T) {
-	// Make sure the tests are running as root
-	failTestIfNotRoot(t)
-
-	store, err := storage.GetStore(storage.DefaultStoreOptions)
-	if err != nil {
-		t.Fatal(err)
-	} else if store != nil {
-		is.Transport.SetStore(store)
-	}
-
-	images, err := store.Images()
-	if err != nil {
-		t.Fatalf("Error reading images: %v", err)
-	}
-
-	_, err = getImageSize(images[0], store)
 	if err != nil {
 		t.Error(err)
 	}

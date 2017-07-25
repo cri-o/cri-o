@@ -1,4 +1,4 @@
-package main
+package image
 
 import (
 	"bytes"
@@ -24,7 +24,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-type containerImageRef struct {
+// CopyRef handles image references used for copying images to/from remotes
+type CopyRef struct {
 	store                 storage.Store
 	compression           archive.Compression
 	name                  reference.Named
@@ -40,9 +41,9 @@ type containerImageRef struct {
 	exporting             bool
 }
 
-type containerImageSource struct {
+type copySource struct {
 	path         string
-	ref          *containerImageRef
+	ref          *CopyRef
 	store        storage.Store
 	layerID      string
 	names        []string
@@ -55,8 +56,9 @@ type containerImageSource struct {
 	exporting    bool
 }
 
-func (i *containerImageRef) NewImage(sc *types.SystemContext) (types.Image, error) {
-	src, err := i.NewImageSource(sc, nil)
+// NewImage creates a new image from the given system context
+func (c *CopyRef) NewImage(sc *types.SystemContext) (types.Image, error) {
+	src, err := c.NewImageSource(sc, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -78,10 +80,11 @@ func selectManifestType(preferred string, acceptable, supported []string) string
 	return selected
 }
 
-func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestTypes []string) (src types.ImageSource, err error) {
+// NewImageSource creates a new image source from the given system context and manifest
+func (c *CopyRef) NewImageSource(sc *types.SystemContext, manifestTypes []string) (src types.ImageSource, err error) {
 	// Decide which type of manifest and configuration output we're going to provide.
 	supportedManifestTypes := []string{v1.MediaTypeImageManifest, docker.V2S2MediaTypeManifest}
-	manifestType := selectManifestType(i.preferredManifestType, manifestTypes, supportedManifestTypes)
+	manifestType := selectManifestType(c.preferredManifestType, manifestTypes, supportedManifestTypes)
 	// If it's not a format we support, return an error.
 	if manifestType != v1.MediaTypeImageManifest && manifestType != docker.V2S2MediaTypeManifest {
 		return nil, errors.Errorf("no supported manifest types (attempted to use %q, only know %q and %q)",
@@ -89,8 +92,8 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 	}
 	// Start building the list of layers using the read-write layer.
 	layers := []string{}
-	layerID := i.layerID
-	layer, err := i.store.Layer(layerID)
+	layerID := c.layerID
+	layer, err := c.store.Layer(layerID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to read layer %q", layerID)
 	}
@@ -102,7 +105,7 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 			err = nil
 			break
 		}
-		layer, err = i.store.Layer(layerID)
+		layer, err = c.store.Layer(layerID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to read layer %q", layerID)
 		}
@@ -127,12 +130,12 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 	// Build fresh copies of the configurations so that we don't mess with the values in the Builder
 	// object itself.
 	oimage := v1.Image{}
-	err = json.Unmarshal(i.oconfig, &oimage)
+	err = json.Unmarshal(c.oconfig, &oimage)
 	if err != nil {
 		return nil, err
 	}
 	dimage := docker.V2Image{}
-	err = json.Unmarshal(i.dconfig, &dimage)
+	err = json.Unmarshal(c.dconfig, &dimage)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +149,7 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 			MediaType: v1.MediaTypeImageConfig,
 		},
 		Layers:      []v1.Descriptor{},
-		Annotations: i.annotations,
+		Annotations: c.annotations,
 	}
 	dmanifest := docker.V2S2Manifest{
 		V2Versioned: docker.V2Versioned{
@@ -170,8 +173,8 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 		omediaType := v1.MediaTypeImageLayer
 		dmediaType := docker.V2S2MediaTypeUncompressedLayer
 		// Figure out which media type we want to call this.  Assume no compression.
-		if i.compression != archive.Uncompressed {
-			switch i.compression {
+		if c.compression != archive.Uncompressed {
+			switch c.compression {
 			case archive.Gzip:
 				omediaType = v1.MediaTypeImageLayerGzip
 				dmediaType = docker.V2S2MediaTypeLayer
@@ -185,7 +188,7 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 			}
 		}
 		// If we're not re-exporting the data, just fake up layer and diff IDs for the manifest.
-		if !i.exporting {
+		if !c.exporting {
 			fakeLayerDigest := digest.NewDigestFromHex(digest.Canonical.String(), layerID)
 			// Add a note in the manifest about the layer.  The blobs should be identified by their
 			// possibly-compressed blob digests, but just use the layer IDs here.
@@ -208,7 +211,7 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 			continue
 		}
 		// Start reading the layer.
-		rc, err := i.store.Diff("", layerID, nil)
+		rc, err := c.store.Diff("", layerID, nil)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error extracting layer %q", layerID)
 		}
@@ -233,7 +236,7 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 		counter := ioutils.NewWriteCounter(layerFile)
 		multiWriter := io.MultiWriter(counter, destHasher.Hash())
 		// Compress the layer, if we're compressing it.
-		writer, err := archive.CompressStream(multiWriter, i.compression)
+		writer, err := archive.CompressStream(multiWriter, c.compression)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error compressing layer %q", layerID)
 		}
@@ -243,7 +246,7 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 		}
 		writer.Close()
 		layerFile.Close()
-		if i.compression == archive.Uncompressed {
+		if c.compression == archive.Uncompressed {
 			if size != counter.Count {
 				return nil, errors.Errorf("error storing layer %q to file: inconsistent layer size (copied %d, wrote %d)", layerID, size, counter.Count)
 			}
@@ -275,18 +278,18 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 		dimage.RootFS.DiffIDs = append(dimage.RootFS.DiffIDs, srcHasher.Digest())
 	}
 
-	if i.addHistory {
+	if c.addHistory {
 		// Build history notes in the image configurations.
 		onews := v1.History{
-			Created:    &i.created,
-			CreatedBy:  i.createdBy,
+			Created:    &c.created,
+			CreatedBy:  c.createdBy,
 			Author:     oimage.Author,
 			EmptyLayer: false,
 		}
 		oimage.History = append(oimage.History, onews)
 		dnews := docker.V2S2History{
-			Created:    i.created,
-			CreatedBy:  i.createdBy,
+			Created:    c.created,
+			CreatedBy:  c.createdBy,
 			Author:     dimage.Author,
 			EmptyLayer: false,
 		}
@@ -344,90 +347,97 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext, manifestType
 	default:
 		panic("unreachable code: unsupported manifest type")
 	}
-	src = &containerImageSource{
+	src = &copySource{
 		path:         path,
-		ref:          i,
-		store:        i.store,
-		layerID:      i.layerID,
-		names:        i.names,
-		addHistory:   i.addHistory,
-		compression:  i.compression,
+		ref:          c,
+		store:        c.store,
+		layerID:      c.layerID,
+		names:        c.names,
+		addHistory:   c.addHistory,
+		compression:  c.compression,
 		config:       config,
 		configDigest: digest.Canonical.FromBytes(config),
 		manifest:     manifest,
 		manifestType: manifestType,
-		exporting:    i.exporting,
+		exporting:    c.exporting,
 	}
 	return src, nil
 }
 
-func (i *containerImageRef) NewImageDestination(sc *types.SystemContext) (types.ImageDestination, error) {
+// NewImageDestination creates a new image destination from the given system context
+func (c *CopyRef) NewImageDestination(sc *types.SystemContext) (types.ImageDestination, error) {
 	return nil, errors.Errorf("can't write to a container")
 }
 
-func (i *containerImageRef) DockerReference() reference.Named {
-	return i.name
+// DockerReference gets the docker reference for the given CopyRef
+func (c *CopyRef) DockerReference() reference.Named {
+	return c.name
 }
 
-func (i *containerImageRef) StringWithinTransport() string {
-	if len(i.names) > 0 {
-		return i.names[0]
+// StringWithinTransport returns the first name of the copyRef
+func (c *CopyRef) StringWithinTransport() string {
+	if len(c.names) > 0 {
+		return c.names[0]
 	}
 	return ""
 }
 
-func (i *containerImageRef) DeleteImage(*types.SystemContext) error {
+// DeleteImage deletes an image in the CopyRef
+func (c *CopyRef) DeleteImage(*types.SystemContext) error {
 	// we were never here
 	return nil
 }
 
-func (i *containerImageRef) PolicyConfigurationIdentity() string {
+// PolicyConfigurationIdentity returns the policy configuration for the CopyRef
+func (c *CopyRef) PolicyConfigurationIdentity() string {
 	return ""
 }
 
-func (i *containerImageRef) PolicyConfigurationNamespaces() []string {
+// PolicyConfigurationNamespaces returns the policy configuration namespace for the CopyRef
+func (c *CopyRef) PolicyConfigurationNamespaces() []string {
 	return nil
 }
 
-func (i *containerImageRef) Transport() types.ImageTransport {
+// Transport returns an ImageTransport for the given CopyRef
+func (c *CopyRef) Transport() types.ImageTransport {
 	return is.Transport
 }
 
-func (i *containerImageSource) Close() error {
-	err := os.RemoveAll(i.path)
+func (cs *copySource) Close() error {
+	err := os.RemoveAll(cs.path)
 	if err != nil {
-		logrus.Errorf("error removing %q: %v", i.path, err)
+		logrus.Errorf("error removing %q: %v", cs.path, err)
 	}
 	return err
 }
 
-func (i *containerImageSource) Reference() types.ImageReference {
-	return i.ref
+func (cs *copySource) Reference() types.ImageReference {
+	return cs.ref
 }
 
-func (i *containerImageSource) GetSignatures() ([][]byte, error) {
+func (cs *copySource) GetSignatures() ([][]byte, error) {
 	return nil, nil
 }
 
-func (i *containerImageSource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
+func (cs *copySource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
 	return []byte{}, "", errors.Errorf("TODO")
 }
 
-func (i *containerImageSource) GetManifest() ([]byte, string, error) {
-	return i.manifest, i.manifestType, nil
+func (cs *copySource) GetManifest() ([]byte, string, error) {
+	return cs.manifest, cs.manifestType, nil
 }
 
-func (i *containerImageSource) GetBlob(blob types.BlobInfo) (reader io.ReadCloser, size int64, err error) {
-	if blob.Digest == i.configDigest {
+func (cs *copySource) GetBlob(blob types.BlobInfo) (reader io.ReadCloser, size int64, err error) {
+	if blob.Digest == cs.configDigest {
 		logrus.Debugf("start reading config")
-		reader := bytes.NewReader(i.config)
+		reader := bytes.NewReader(cs.config)
 		closer := func() error {
 			logrus.Debugf("finished reading config")
 			return nil
 		}
 		return ioutils.NewReadCloserWrapper(reader, closer), reader.Size(), nil
 	}
-	layerFile, err := os.OpenFile(filepath.Join(i.path, blob.Digest.String()), os.O_RDONLY, 0600)
+	layerFile, err := os.OpenFile(filepath.Join(cs.path, blob.Digest.String()), os.O_RDONLY, 0600)
 	if err != nil {
 		logrus.Debugf("error reading layer %q: %v", blob.Digest.String(), err)
 		return nil, -1, err

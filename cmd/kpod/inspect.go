@@ -6,6 +6,8 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/kubernetes-incubator/cri-o/libkpod"
+	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -83,19 +85,19 @@ func inspectCmd(c *cli.Context) error {
 	var data interface{}
 	switch itemType {
 	case inspectTypeContainer:
-		data, err = getContainerData(store, name, size)
+		data, err = libkpod.GetContainerData(store, name, size)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing container data")
 		}
 	case inspectTypeImage:
-		data, err = getImageData(store, name)
+		data, err = libkpodimage.GetImageData(store, name)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing image data")
 		}
 	case inspectAll:
-		ctrData, err := getContainerData(store, name, size)
+		ctrData, err := libkpod.GetContainerData(store, name, size)
 		if err != nil {
-			imgData, err := getImageData(store, name)
+			imgData, err := libkpodimage.GetImageData(store, name)
 			if err != nil {
 				return errors.Wrapf(err, "error parsing image data")
 			}
