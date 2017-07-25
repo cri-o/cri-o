@@ -55,7 +55,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			}
 		} else {
 			if filter.PodSandboxId != "" {
-				pod := s.state.sandboxes[filter.PodSandboxId]
+				pod := s.ContainerServer.GetSandbox(filter.PodSandboxId)
 				if pod == nil {
 					ctrList = []*oci.Container{}
 				} else {

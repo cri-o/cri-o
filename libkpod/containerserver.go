@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
+	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 )
@@ -69,6 +70,7 @@ func New(runtime *oci.Runtime, store cstorage.Store, imageService storage.ImageS
 		stateLock:          new(sync.Mutex),
 		state: &containerServerState{
 			containers: oci.NewMemoryStore(),
+			sandboxes:  make(map[string]*sandbox.Sandbox),
 		},
 	}
 }
@@ -132,12 +134,15 @@ func (c *ContainerServer) Shutdown() error {
 
 type containerServerState struct {
 	containers oci.ContainerStorer
+	sandboxes  map[string]*sandbox.Sandbox
 }
 
 // AddContainer adds a container to the container state store
 func (c *ContainerServer) AddContainer(ctr *oci.Container) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
+	sandbox := c.state.sandboxes[ctr.Sandbox()]
+	sandbox.AddContainer(ctr)
 	c.state.containers.Add(ctr.ID(), ctr)
 }
 
@@ -148,10 +153,21 @@ func (c *ContainerServer) GetContainer(id string) *oci.Container {
 	return c.state.containers.Get(id)
 }
 
+// HasContainer checks if a container exists in the state
+func (c *ContainerServer) HasContainer(id string) bool {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	ctr := c.state.containers.Get(id)
+	return ctr != nil
+}
+
 // RemoveContainer removes a container from the container state store
 func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
+	sbID := ctr.Sandbox()
+	sb := c.state.sandboxes[sbID]
+	sb.RemoveContainer(ctr)
 	c.state.containers.Delete(ctr.ID())
 }
 
@@ -160,4 +176,56 @@ func (c *ContainerServer) ListContainers() []*oci.Container {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	return c.state.containers.List()
+}
+
+// AddSandbox adds a sandbox to the sandbox state store
+func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	c.state.sandboxes[sb.ID()] = sb
+}
+
+// GetSandbox returns a sandbox by its ID
+func (c *ContainerServer) GetSandbox(id string) *sandbox.Sandbox {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	return c.state.sandboxes[id]
+}
+
+// GetSandboxContainer returns a sandbox's infra container
+func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	sb, ok := c.state.sandboxes[id]
+	if !ok {
+		return nil
+	}
+	return sb.InfraContainer()
+}
+
+// HasSandbox checks if a sandbox exists in the state
+func (c *ContainerServer) HasSandbox(id string) bool {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	_, ok := c.state.sandboxes[id]
+	return ok
+}
+
+// RemoveSandbox removes a sandbox from the state store
+func (c *ContainerServer) RemoveSandbox(id string) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	delete(c.state.sandboxes, id)
+}
+
+// ListSandboxes lists all sandboxes in the state store
+func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	sbArray := make([]*sandbox.Sandbox, 0, len(c.state.sandboxes))
+	for _, sb := range c.state.sandboxes {
+		sbArray = append(sbArray, sb)
+	}
+
+	return sbArray
 }

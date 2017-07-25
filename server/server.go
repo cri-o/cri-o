@@ -56,9 +56,7 @@ type Server struct {
 	config Config
 
 	storageRuntimeServer storage.RuntimeServer
-	stateLock            sync.Locker
 	updateLock           sync.RWMutex
-	state                *serverState
 	netPlugin            ocicni.CNIPlugin
 	hostportManager      hostport.HostPortManager
 	podNameIndex         *registrar.Registrar
@@ -512,7 +510,6 @@ func New(config *Config) (*Server, error) {
 
 	containerServer := libkpod.New(r, store, imageService, config.SignaturePolicyPath)
 
-	sandboxes := make(map[string]*sandbox.Sandbox)
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {
 		return nil, err
@@ -524,13 +521,9 @@ func New(config *Config) (*Server, error) {
 	s := &Server{
 		ContainerServer:      *containerServer,
 		storageRuntimeServer: storageRuntimeService,
-		stateLock:            new(sync.Mutex),
 		netPlugin:            netPlugin,
 		hostportManager:      hostportManager,
 		config:               *config,
-		state: &serverState{
-			sandboxes: sandboxes,
-		},
 		seccompEnabled:  seccomp.IsEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
 		appArmorProfile: config.ApparmorProfile,
@@ -586,60 +579,37 @@ func New(config *Config) (*Server, error) {
 		s.stream.streamServer.Start(true)
 	}()
 
-	logrus.Debugf("sandboxes: %v", s.state.sandboxes)
+	logrus.Debugf("sandboxes: %v", s.ContainerServer.ListSandboxes())
 	return s, nil
 }
 
-type serverState struct {
-	sandboxes map[string]*sandbox.Sandbox
-}
-
 func (s *Server) addSandbox(sb *sandbox.Sandbox) {
-	s.stateLock.Lock()
-	s.state.sandboxes[sb.ID()] = sb
-	s.stateLock.Unlock()
+	s.ContainerServer.AddSandbox(sb)
 }
 
 func (s *Server) getSandbox(id string) *sandbox.Sandbox {
-	s.stateLock.Lock()
-	sb := s.state.sandboxes[id]
-	s.stateLock.Unlock()
-	return sb
+	return s.ContainerServer.GetSandbox(id)
 }
 
 func (s *Server) hasSandbox(id string) bool {
-	s.stateLock.Lock()
-	_, ok := s.state.sandboxes[id]
-	s.stateLock.Unlock()
-	return ok
+	return s.ContainerServer.HasSandbox(id)
 }
 
 func (s *Server) removeSandbox(id string) {
-	s.stateLock.Lock()
-	delete(s.state.sandboxes, id)
-	s.stateLock.Unlock()
+	s.ContainerServer.RemoveSandbox(id)
 }
 
 func (s *Server) addContainer(c *oci.Container) {
-	s.stateLock.Lock()
-	sandbox := s.state.sandboxes[c.Sandbox()]
-	// TODO(runcom): handle !ok above!!! otherwise it panics!
-	sandbox.AddContainer(c)
 	s.ContainerServer.AddContainer(c)
-	s.stateLock.Unlock()
 }
 
 func (s *Server) getContainer(id string) *oci.Container {
-	s.stateLock.Lock()
-	c := s.ContainerServer.GetContainer(id)
-	s.stateLock.Unlock()
-	return c
+	return s.ContainerServer.GetContainer(id)
 }
 
 // GetSandboxContainer returns the infra container for a given sandbox
 func (s *Server) GetSandboxContainer(id string) *oci.Container {
-	sb := s.getSandbox(id)
-	return sb.InfraContainer()
+	return s.ContainerServer.GetSandboxContainer(id)
 }
 
 // GetContainer returns a container by its ID
@@ -648,11 +618,7 @@ func (s *Server) GetContainer(id string) *oci.Container {
 }
 
 func (s *Server) removeContainer(c *oci.Container) {
-	s.stateLock.Lock()
-	sandbox := s.state.sandboxes[c.Sandbox()]
-	sandbox.RemoveContainer(c)
 	s.ContainerServer.RemoveContainer(c)
-	s.stateLock.Unlock()
 }
 
 func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox, error) {
