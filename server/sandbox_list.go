@@ -32,7 +32,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	logrus.Debugf("ListPodSandboxRequest %+v", req)
 	var pods []*pb.PodSandbox
 	var podList []*sandbox.Sandbox
-	for _, sb := range s.state.sandboxes {
+	for _, sb := range s.ContainerServer.ListSandboxes() {
 		podList = append(podList, sb)
 	}
 
@@ -40,7 +40,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	// Filter by pod id first.
 	if filter != nil {
 		if filter.Id != "" {
-			id, err := s.podIDIndex.Get(filter.Id)
+			id, err := s.PodIDIndex().Get(filter.Id)
 			if err != nil {
 				return nil, err
 			}

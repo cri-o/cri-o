@@ -138,7 +138,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	defer func() {
 		if err != nil {
-			s.releasePodName(name)
+			s.ReleasePodName(name)
 		}
 	}()
 
@@ -358,13 +358,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	if err = s.podIDIndex.Add(id); err != nil {
+	if err = s.PodIDIndex().Add(id); err != nil {
 		return nil, err
 	}
 
 	defer func() {
 		if err != nil {
-			if err := s.podIDIndex.Delete(id); err != nil {
+			if err := s.PodIDIndex().Delete(id); err != nil {
 				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
 			}
 		}

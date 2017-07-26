@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/registrar"
 	"github.com/docker/docker/pkg/truncindex"
+	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 )
@@ -22,9 +23,12 @@ type ContainerServer struct {
 	storageImageServer storage.ImageServer
 	ctrNameIndex       *registrar.Registrar
 	ctrIDIndex         *truncindex.TruncIndex
-	imageContext       *types.SystemContext
-	stateLock          sync.Locker
-	state              *containerServerState
+	podNameIndex       *registrar.Registrar
+	podIDIndex         *truncindex.TruncIndex
+
+	imageContext *types.SystemContext
+	stateLock    sync.Locker
+	state        *containerServerState
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -52,6 +56,16 @@ func (c *ContainerServer) CtrIDIndex() *truncindex.TruncIndex {
 	return c.ctrIDIndex
 }
 
+// PodNameIndex returns the index of pod names
+func (c *ContainerServer) PodNameIndex() *registrar.Registrar {
+	return c.podNameIndex
+}
+
+// PodIDIndex returns the index of pod IDs
+func (c *ContainerServer) PodIDIndex() *truncindex.TruncIndex {
+	return c.podIDIndex
+}
+
 // ImageContext returns the SystemContext for the ContainerServer
 func (c *ContainerServer) ImageContext() *types.SystemContext {
 	return c.imageContext
@@ -65,10 +79,13 @@ func New(runtime *oci.Runtime, store cstorage.Store, imageService storage.ImageS
 		storageImageServer: imageService,
 		ctrNameIndex:       registrar.NewRegistrar(),
 		ctrIDIndex:         truncindex.NewTruncIndex([]string{}),
+		podNameIndex:       registrar.NewRegistrar(),
+		podIDIndex:         truncindex.NewTruncIndex([]string{}),
 		imageContext:       &types.SystemContext{SignaturePolicyPath: signaturePolicyPath},
 		stateLock:          new(sync.Mutex),
 		state: &containerServerState{
 			containers: oci.NewMemoryStore(),
+			sandboxes:  make(map[string]*sandbox.Sandbox),
 		},
 	}
 }
@@ -124,6 +141,28 @@ func (c *ContainerServer) ReleaseContainerName(name string) {
 	c.ctrNameIndex.Release(name)
 }
 
+// ReservePodName holds a name for a pod that is being created
+func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
+	if err := c.podNameIndex.Reserve(name, id); err != nil {
+		if err == registrar.ErrNameReserved {
+			id, err := c.podNameIndex.Get(name)
+			if err != nil {
+				logrus.Warnf("conflict, pod name %q already reserved", name)
+				return "", err
+			}
+			return "", fmt.Errorf("conflict, name %q already reserved for pod %q", name, id)
+		}
+		return "", fmt.Errorf("error reserving pod name %q", name)
+	}
+	return name, nil
+}
+
+// ReleasePodName releases a pod name from the index so it can be used by other
+// pods
+func (c *ContainerServer) ReleasePodName(name string) {
+	c.podNameIndex.Release(name)
+}
+
 // Shutdown attempts to shut down the server's storage cleanly
 func (c *ContainerServer) Shutdown() error {
 	_, err := c.store.Shutdown(false)
@@ -132,12 +171,15 @@ func (c *ContainerServer) Shutdown() error {
 
 type containerServerState struct {
 	containers oci.ContainerStorer
+	sandboxes  map[string]*sandbox.Sandbox
 }
 
 // AddContainer adds a container to the container state store
 func (c *ContainerServer) AddContainer(ctr *oci.Container) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
+	sandbox := c.state.sandboxes[ctr.Sandbox()]
+	sandbox.AddContainer(ctr)
 	c.state.containers.Add(ctr.ID(), ctr)
 }
 
@@ -148,10 +190,21 @@ func (c *ContainerServer) GetContainer(id string) *oci.Container {
 	return c.state.containers.Get(id)
 }
 
+// HasContainer checks if a container exists in the state
+func (c *ContainerServer) HasContainer(id string) bool {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	ctr := c.state.containers.Get(id)
+	return ctr != nil
+}
+
 // RemoveContainer removes a container from the container state store
 func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
+	sbID := ctr.Sandbox()
+	sb := c.state.sandboxes[sbID]
+	sb.RemoveContainer(ctr)
 	c.state.containers.Delete(ctr.ID())
 }
 
@@ -160,4 +213,56 @@ func (c *ContainerServer) ListContainers() []*oci.Container {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	return c.state.containers.List()
+}
+
+// AddSandbox adds a sandbox to the sandbox state store
+func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	c.state.sandboxes[sb.ID()] = sb
+}
+
+// GetSandbox returns a sandbox by its ID
+func (c *ContainerServer) GetSandbox(id string) *sandbox.Sandbox {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	return c.state.sandboxes[id]
+}
+
+// GetSandboxContainer returns a sandbox's infra container
+func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	sb, ok := c.state.sandboxes[id]
+	if !ok {
+		return nil
+	}
+	return sb.InfraContainer()
+}
+
+// HasSandbox checks if a sandbox exists in the state
+func (c *ContainerServer) HasSandbox(id string) bool {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	_, ok := c.state.sandboxes[id]
+	return ok
+}
+
+// RemoveSandbox removes a sandbox from the state store
+func (c *ContainerServer) RemoveSandbox(id string) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	delete(c.state.sandboxes, id)
+}
+
+// ListSandboxes lists all sandboxes in the state store
+func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	sbArray := make([]*sandbox.Sandbox, 0, len(c.state.sandboxes))
+	for _, sb := range c.state.sandboxes {
+		sbArray = append(sbArray, sb)
+	}
+
+	return sbArray
 }
