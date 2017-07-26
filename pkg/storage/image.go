@@ -137,10 +137,9 @@ func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool,
 	if err != nil {
 		return false, err
 	}
-	unparsedImage := image.UnparsedFromSource(rawSource)
-	defer unparsedImage.Close()
-	src, err := image.FromUnparsedImage(unparsedImage)
+	src, err := image.FromSource(rawSource)
 	if err != nil {
+		rawSource.Close()
 		return false, err
 	}
 	src.Close()
