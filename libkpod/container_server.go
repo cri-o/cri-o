@@ -18,13 +18,14 @@ import (
 
 // ContainerServer implements the ImageServer
 type ContainerServer struct {
-	runtime            *oci.Runtime
-	store              cstorage.Store
-	storageImageServer storage.ImageServer
-	ctrNameIndex       *registrar.Registrar
-	ctrIDIndex         *truncindex.TruncIndex
-	podNameIndex       *registrar.Registrar
-	podIDIndex         *truncindex.TruncIndex
+	runtime              *oci.Runtime
+	store                cstorage.Store
+	storageImageServer   storage.ImageServer
+	storageRuntimeServer storage.RuntimeServer
+	ctrNameIndex         *registrar.Registrar
+	ctrIDIndex           *truncindex.TruncIndex
+	podNameIndex         *registrar.Registrar
+	podIDIndex           *truncindex.TruncIndex
 
 	imageContext *types.SystemContext
 	stateLock    sync.Locker
@@ -45,6 +46,11 @@ func (c *ContainerServer) Store() cstorage.Store {
 // StorageImageServer returns the ImageServer for the ContainerServer
 func (c *ContainerServer) StorageImageServer() storage.ImageServer {
 	return c.storageImageServer
+}
+
+// StorageRuntimeServer returns the RuntimeServer for container storage
+func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
+	return c.storageRuntimeServer
 }
 
 // CtrNameIndex returns the Registrar for the ContainerServer
@@ -111,15 +117,16 @@ func New(config *Config) (*ContainerServer, error) {
 	}
 
 	return &ContainerServer{
-		runtime:            runtime,
-		store:              store,
-		storageImageServer: imageService,
-		ctrNameIndex:       registrar.NewRegistrar(),
-		ctrIDIndex:         truncindex.NewTruncIndex([]string{}),
-		podNameIndex:       registrar.NewRegistrar(),
-		podIDIndex:         truncindex.NewTruncIndex([]string{}),
-		imageContext:       &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
-		stateLock:          lock,
+		runtime:              runtime,
+		store:                store,
+		storageImageServer:   imageService,
+		storageRuntimeServer: storage.GetRuntimeService(imageService, pauseImage),
+		ctrNameIndex:         registrar.NewRegistrar(),
+		ctrIDIndex:           truncindex.NewTruncIndex([]string{}),
+		podNameIndex:         registrar.NewRegistrar(),
+		podIDIndex:           truncindex.NewTruncIndex([]string{}),
+		imageContext:         &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
+		stateLock:            lock,
 		state: &containerServerState{
 			containers: oci.NewMemoryStore(),
 			sandboxes:  make(map[string]*sandbox.Sandbox),

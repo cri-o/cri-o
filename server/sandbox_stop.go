@@ -80,7 +80,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			if c.ID() == podInfraContainer.ID() {
 				continue
 			}
-			if err := s.storageRuntimeServer.StopContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
+			if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
 				// assume container already umounted
 				logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 			}
@@ -108,7 +108,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			}
 		}
 	}
-	if err := s.storageRuntimeServer.StopContainer(sb.ID()); err != nil && err != storage.ErrContainerUnknown {
+	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && err != storage.ErrContainerUnknown {
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
 
