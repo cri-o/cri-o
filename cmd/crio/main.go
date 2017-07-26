@@ -265,6 +265,11 @@ func main() {
 			Name:  "profile",
 			Usage: "enable pprof remote profiler on localhost:6060",
 		},
+		cli.IntFlag{
+			Name:  "profile-port",
+			Value: 6060,
+			Usage: "port for the pprof profiler",
+		},
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))
@@ -318,8 +323,10 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		if c.GlobalBool("profile") {
+			profilePort := c.GlobalInt("profile-port")
+			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
 			go func() {
-				http.ListenAndServe("localhost:6060", nil)
+				http.ListenAndServe(profileEndpoint, nil)
 			}()
 		}
 
