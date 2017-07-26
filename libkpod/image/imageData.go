@@ -112,15 +112,11 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		return nil, err
 	}
 
-	lstore, err := store.LayerStore()
+	layer, err := store.Layer(topLayerID)
 	if err != nil {
 		return nil, err
 	}
-	layer, err := lstore.Get(topLayerID)
-	if err != nil {
-		return nil, err
-	}
-	size, err := lstore.DiffSize(layer.Parent, layer.ID)
+	size, err := store.DiffSize(layer.Parent, layer.ID)
 	if err != nil {
 		return nil, err
 	}

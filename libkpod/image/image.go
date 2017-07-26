@@ -96,6 +96,7 @@ func matchesLabel(image storage.Image, store storage.Store, label string) bool {
 	if err != nil {
 		return false
 	}
+	defer img.Close()
 	info, err := img.Inspect()
 	if err != nil {
 		return false
@@ -229,6 +230,7 @@ func Size(store storage.Store, img storage.Image) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+	defer imgRef.Close()
 	imgSize, err := imgRef.Size()
 	if err != nil {
 		return -1, err

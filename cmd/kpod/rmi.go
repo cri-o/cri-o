@@ -96,12 +96,7 @@ func rmiCmd(c *cli.Context) error {
 // TODO: replace this with something in libkpod
 func runningContainers(image *storage.Image, store storage.Store) ([]string, error) {
 	ctrIDs := []string{}
-	ctrStore, err := store.ContainerStore()
-	if err != nil {
-		return nil, err
-	}
-
-	containers, err := ctrStore.Containers()
+	containers, err := store.Containers()
 	if err != nil {
 		return nil, err
 	}
@@ -115,12 +110,8 @@ func runningContainers(image *storage.Image, store storage.Store) ([]string, err
 
 // TODO: replace this with something in libkpod
 func removeContainers(ctrIDs []string, store storage.Store) error {
-	ctrStore, err := store.ContainerStore()
-	if err != nil {
-		return err
-	}
 	for _, ctrID := range ctrIDs {
-		if err = ctrStore.Delete(ctrID); err != nil {
+		if err := store.DeleteContainer(ctrID); err != nil {
 			return errors.Wrapf(err, "could not remove container %q", ctrID)
 		}
 	}

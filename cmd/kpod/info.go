@@ -134,42 +134,20 @@ func storeInfo(c *cli.Context) (string, map[string]interface{}, error) {
 	info := map[string]interface{}{}
 	info["GraphRoot"] = store.GraphRoot()
 	info["GraphDriverName"] = store.GraphDriverName()
-	if is, err := store.ImageStore(); err != nil {
+	images, err := store.Images()
+	if err != nil {
 		info["ImageStore"] = infoErr(err)
 	} else {
-		images, err := is.Images()
-		if err != nil {
-			info["ImageStore"] = infoErr(err)
-		} else {
-			info["ImageStore"] = map[string]interface{}{
-				"number": len(images),
-			}
+		info["ImageStore"] = map[string]interface{}{
+			"number": len(images),
 		}
 	}
-	/* Oh this is in master on containers/storage, rebase later
-	if is, err := store.ROImageStores(); err != nil {
-		info["ROImageStore"] = infoErr(err)
-	} else {
-		images, err := is.Images()
-		if err != nil {
-			info["ROImageStore"] = infoErr(err)
-		} else {
-			info["ROImageStore"] = map[string]interface{}{
-				"number": len(images),
-			}
-		}
-	}
-	*/
-	if cs, err := store.ContainerStore(); err != nil {
+	containers, err := store.Containers()
+	if err != nil {
 		info["ContainerStore"] = infoErr(err)
 	} else {
-		containers, err := cs.Containers()
-		if err != nil {
-			info["ContainerStore"] = infoErr(err)
-		} else {
-			info["ContainerStore"] = map[string]interface{}{
-				"number": len(containers),
-			}
+		info["ContainerStore"] = map[string]interface{}{
+			"number": len(containers),
 		}
 	}
 	return "store", info, nil

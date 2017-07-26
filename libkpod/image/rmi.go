@@ -7,11 +7,7 @@ import (
 
 // UntagImage removes the tag from the given image
 func UntagImage(store storage.Store, image *storage.Image, imgArg string) (string, error) {
-	// Remove name from image.Names and set the new name in the ImageStore
-	imgStore, err := store.ImageStore()
-	if err != nil {
-		return "", errors.Wrap(err, "could not untag image")
-	}
+	// Remove name from image.Names and set the new names
 	newNames := []string{}
 	removedName := ""
 	for _, name := range image.Names {
@@ -21,24 +17,19 @@ func UntagImage(store storage.Store, image *storage.Image, imgArg string) (strin
 		}
 		newNames = append(newNames, name)
 	}
-	imgStore.SetNames(image.ID, newNames)
-	err = imgStore.Save()
-	return removedName, err
+	if removedName != "" {
+		if err := store.SetNames(image.ID, newNames); err != nil {
+			return "", errors.Wrapf(err, "error removing name %q from image %q", removedName, image.ID)
+		}
+	}
+	return removedName, nil
 }
 
 // RemoveImage removes the given image from storage
 func RemoveImage(image *storage.Image, store storage.Store) (string, error) {
-	imgStore, err := store.ImageStore()
+	_, err := store.DeleteImage(image.ID, true)
 	if err != nil {
-		return "", errors.Wrapf(err, "could not open image store")
-	}
-	err = imgStore.Delete(image.ID)
-	if err != nil {
-		return "", errors.Wrapf(err, "could not remove image")
-	}
-	err = imgStore.Save()
-	if err != nil {
-		return "", errors.Wrapf(err, "could not save image store")
+		return "", errors.Wrapf(err, "could not remove image %q", image.ID)
 	}
 	return image.ID, nil
 }
