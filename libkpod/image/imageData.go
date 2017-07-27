@@ -1,10 +1,11 @@
 package image
 
 import (
-	"encoding/json"
 	"time"
 
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -15,13 +16,14 @@ import (
 // nolint
 type ImageData struct {
 	ID              string
-	Names           []string
-	Digests         []digest.Digest
+	Tags            []string
+	Digests         []string
+	Digest          digest.Digest
 	Parent          string
 	Comment         string
 	Created         *time.Time
 	Container       string
-	ContainerConfig containerConfig
+	ContainerConfig docker.Config
 	Author          string
 	Config          ociv1.ImageConfig
 	Architecture    string
@@ -32,30 +34,30 @@ type ImageData struct {
 	RootFS          ociv1.RootFS
 }
 
-type containerConfig struct {
-	Hostname     string
-	Domainname   string
-	User         string
-	AttachStdin  bool
-	AttachStdout bool
-	AttachStderr bool
-	Tty          bool
-	OpenStdin    bool
-	StdinOnce    bool
-	Env          []string
-	Cmd          []string
-	ArgsEscaped  bool
-	Image        digest.Digest
-	Volumes      map[string]interface{}
-	WorkingDir   string
-	Entrypoint   []string
-	Labels       interface{}
-	OnBuild      []string
-}
-
-type rootFS struct {
-	Type   string
-	Layers []string
+// ParseImageNames parses the names we've stored with an image into a list of
+// tagged references and a list of references which contain digests.
+func ParseImageNames(names []string) (tags, digests []string, err error) {
+	for _, name := range names {
+		if named, err := reference.ParseNamed(name); err == nil {
+			if digested, ok := named.(reference.Digested); ok {
+				canonical, err := reference.WithDigest(named, digested.Digest())
+				if err == nil {
+					digests = append(digests, canonical.String())
+				}
+			} else {
+				if reference.IsNameOnly(named) {
+					named = reference.TagNameOnly(named)
+				}
+				if tagged, ok := named.(reference.Tagged); ok {
+					namedTagged, err := reference.WithTag(named, tagged.Tag())
+					if err == nil {
+						tags = append(tags, namedTagged.String())
+					}
+				}
+			}
+		}
+	}
+	return tags, digests, nil
 }
 
 // GetImageData gets the ImageData for a container with the given name in the given store.
@@ -69,33 +71,10 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image %q", name)
 	}
-	digests, err := getDigests(*img)
+
+	tags, digests, err := ParseImageNames(img.Names)
 	if err != nil {
-		return nil, err
-	}
-
-	var bigData interface{}
-	ctrConfig := containerConfig{}
-	container := ""
-	if len(digests) > 0 {
-		bd, err := store.ImageBigData(img.ID, string(digests[len(digests)-1]))
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(bd, &bigData)
-		if err != nil {
-			return nil, err
-		}
-
-		container = (bigData.(map[string]interface{})["container"]).(string)
-		cc, err := json.MarshalIndent((bigData.(map[string]interface{})["container_config"]).(map[string]interface{}), "", "    ")
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(cc, &ctrConfig)
-		if err != nil {
-			return nil, err
-		}
+		return nil, errors.Wrapf(err, "error parsing image names for %q", name)
 	}
 
 	driverName, err := driver.GetDriverName(store)
@@ -103,10 +82,8 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		return nil, err
 	}
 
-	topLayerID, err := GetTopLayerID(*img)
-	if err != nil {
-		return nil, err
-	}
+	topLayerID := img.TopLayer
+
 	driverMetadata, err := driver.GetDriverMetadata(store, topLayerID)
 	if err != nil {
 		return nil, err
@@ -121,20 +98,21 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		return nil, err
 	}
 
-	virtualSize, err := Size(store, *img)
+	digest, virtualSize, err := DigestAndSize(store, *img)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ImageData{
 		ID:              img.ID,
-		Names:           img.Names,
+		Tags:            tags,
 		Digests:         digests,
+		Digest:          digest,
 		Parent:          string(cid.Docker.Parent),
 		Comment:         cid.OCIv1.History[0].Comment,
 		Created:         cid.OCIv1.Created,
-		Container:       container,
-		ContainerConfig: ctrConfig,
+		Container:       cid.Docker.Container,
+		ContainerConfig: cid.Docker.ContainerConfig,
 		Author:          cid.OCIv1.Author,
 		Config:          cid.OCIv1.Config,
 		Architecture:    cid.OCIv1.Architecture,
@@ -147,16 +125,4 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		},
 		RootFS: cid.OCIv1.RootFS,
 	}, nil
-}
-
-func getDigests(img storage.Image) ([]digest.Digest, error) {
-	metadata, err := ParseMetadata(img)
-	if err != nil {
-		return nil, err
-	}
-	digests := []digest.Digest{}
-	for _, blob := range metadata.Blobs {
-		digests = append(digests, blob.Digest)
-	}
-	return digests, nil
 }

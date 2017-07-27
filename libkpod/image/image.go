@@ -8,6 +8,7 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod/common"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
 
@@ -41,13 +42,13 @@ func ParseFilter(store storage.Store, filter string) (*FilterParams, error) {
 			params.label = pair[1]
 		case "before":
 			if img, err := findImageInSlice(images, pair[1]); err == nil {
-				params.beforeImage, _ = getCreatedTime(img)
+				params.beforeImage = img.Created
 			} else {
 				return nil, fmt.Errorf("no such id: %s", pair[0])
 			}
 		case "since":
 			if img, err := findImageInSlice(images, pair[1]); err == nil {
-				params.sinceImage, _ = getCreatedTime(img)
+				params.sinceImage = img.Created
 			} else {
 				return nil, fmt.Errorf("no such id: %s``", pair[0])
 			}
@@ -123,11 +124,7 @@ func matchesBeforeImage(image storage.Image, name string, params *FilterParams) 
 	if params.beforeImage.IsZero() {
 		return true
 	}
-	createdTime, err := getCreatedTime(image)
-	if err != nil {
-		return false
-	}
-	if createdTime.Before(params.beforeImage) {
+	if image.Created.Before(params.beforeImage) {
 		return true
 	}
 	return false
@@ -139,11 +136,7 @@ func matchesSinceImage(image storage.Image, name string, params *FilterParams) b
 	if params.sinceImage.IsZero() {
 		return true
 	}
-	createdTime, err := getCreatedTime(image)
-	if err != nil {
-		return false
-	}
-	if createdTime.After(params.beforeImage) {
+	if image.Created.After(params.sinceImage) {
 		return true
 	}
 	return false
@@ -219,43 +212,32 @@ func findImageInSlice(images []storage.Image, ref string) (storage.Image, error)
 	return storage.Image{}, errors.New("could not find image")
 }
 
-// Size returns the size of the image in the given store
-func Size(store storage.Store, img storage.Image) (int64, error) {
+// DigestAndSize returns the size of the image in the given store and the
+// digest of its manifest, if it has one, or "" if it doesn't.
+func DigestAndSize(store storage.Store, img storage.Image) (digest.Digest, int64, error) {
 	is.Transport.SetStore(store)
 	storeRef, err := is.Transport.ParseStoreReference(store, "@"+img.ID)
 	if err != nil {
-		return -1, err
+		return "", -1, errors.Wrapf(err, "error parsing image reference %q", "@"+img.ID)
 	}
 	imgRef, err := storeRef.NewImage(nil)
 	if err != nil {
-		return -1, err
+		return "", -1, errors.Wrapf(err, "error reading image %q", img.ID)
 	}
 	defer imgRef.Close()
 	imgSize, err := imgRef.Size()
 	if err != nil {
-		return -1, err
+		return "", -1, errors.Wrapf(err, "error reading size of image %q", img.ID)
 	}
-	return imgSize, nil
-}
-
-// GetTopLayerID returns the ID of the top layer of the image
-func GetTopLayerID(img storage.Image) (string, error) {
-	metadata, err := ParseMetadata(img)
+	manifest, _, err := imgRef.Manifest()
 	if err != nil {
-		return "", err
+		return "", -1, errors.Wrapf(err, "error reading manifest for image %q", img.ID)
 	}
-	// Get the digest of the first blob
-	digest := string(metadata.Blobs[0].Digest)
-	// Return the first layer associated with the given digest
-	return metadata.Layers[digest][0], nil
-}
-
-func getCreatedTime(image storage.Image) (time.Time, error) {
-	metadata, err := ParseMetadata(image)
-	if err != nil {
-		return time.Time{}, err
+	manifestDigest := digest.Digest("")
+	if len(manifest) > 0 {
+		manifestDigest = digest.Canonical.FromBytes(manifest)
 	}
-	return metadata.CreatedTime, nil
+	return manifestDigest, imgSize, nil
 }
 
 // GetImagesMatchingFilter returns a slice of all images in the store that match the provided FilterParams.
