@@ -6,6 +6,7 @@ import (
 	"time"
 
 	is "github.com/containers/image/storage"
+	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod/common"
@@ -174,7 +175,7 @@ func FormattedSize(size int64) string {
 	return fmt.Sprintf("%.4g %s", formattedSize, suffixes[count])
 }
 
-// FindImage searches for an image with a matching the given name or ID in the given store
+// FindImage searches for a *storage.Image with a matching the given name or ID in the given store.
 func FindImage(store storage.Store, image string) (*storage.Image, error) {
 	var img *storage.Image
 	ref, err := is.Transport.ParseStoreReference(store, image)
@@ -194,6 +195,23 @@ func FindImage(store storage.Store, image string) (*storage.Image, error) {
 	return img, nil
 }
 
+// FindImageRef searches for and returns a new types.Image matching the given name or ID in the given store.
+func FindImageRef(store storage.Store, image string) (types.Image, error) {
+	img, err := FindImage(store, image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to locate image %q", image)
+	}
+	ref, err := is.Transport.ParseStoreReference(store, "@"+img.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
+	}
+	imgRef, err := ref.NewImage(nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading image %q", img.ID)
+	}
+	return imgRef, nil
+}
+
 func findImageInSlice(images []storage.Image, ref string) (storage.Image, error) {
 	for _, image := range images {
 		if MatchesID(image.ID, ref) {
@@ -211,23 +229,22 @@ func findImageInSlice(images []storage.Image, ref string) (storage.Image, error)
 // InfoAndDigestAndSize returns the inspection info and size of the image in the given
 // store and the digest of its manifest, if it has one, or "" if it doesn't.
 func InfoAndDigestAndSize(store storage.Store, img storage.Image) (*types.ImageInspectInfo, digest.Digest, int64, error) {
-	is.Transport.SetStore(store)
-	storeRef, err := is.Transport.ParseStoreReference(store, "@"+img.ID)
-	if err != nil {
-		return nil, "", -1, errors.Wrapf(err, "error parsing image reference %q", "@"+img.ID)
-	}
-	imgRef, err := storeRef.NewImage(nil)
+	imgRef, err := FindImageRef(store, "@"+img.ID)
 	if err != nil {
 		return nil, "", -1, errors.Wrapf(err, "error reading image %q", img.ID)
 	}
 	defer imgRef.Close()
+	return infoAndDigestAndSize(imgRef)
+}
+
+func infoAndDigestAndSize(imgRef types.Image) (*types.ImageInspectInfo, digest.Digest, int64, error) {
 	imgSize, err := imgRef.Size()
 	if err != nil {
-		return nil, "", -1, errors.Wrapf(err, "error reading size of image %q", img.ID)
+		return nil, "", -1, errors.Wrapf(err, "error reading size of image %q", transports.ImageName(imgRef.Reference()))
 	}
 	manifest, _, err := imgRef.Manifest()
 	if err != nil {
-		return nil, "", -1, errors.Wrapf(err, "error reading manifest for image %q", img.ID)
+		return nil, "", -1, errors.Wrapf(err, "error reading manifest for image %q", transports.ImageName(imgRef.Reference()))
 	}
 	manifestDigest := digest.Digest("")
 	if len(manifest) > 0 {
@@ -235,7 +252,7 @@ func InfoAndDigestAndSize(store storage.Store, img storage.Image) (*types.ImageI
 	}
 	info, err := imgRef.Inspect()
 	if err != nil {
-		return nil, "", -1, errors.Wrapf(err, "error inspecting image %q", img.ID)
+		return nil, "", -1, errors.Wrapf(err, "error inspecting image %q", transports.ImageName(imgRef.Reference()))
 	}
 	return info, manifestDigest, imgSize, nil
 }

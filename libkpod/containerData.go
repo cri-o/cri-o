@@ -2,13 +2,13 @@ package libkpod
 
 import (
 	"encoding/json"
+	"os"
 	"time"
 
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
 	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
@@ -30,17 +30,15 @@ type ContainerData struct {
 	Metadata         *pb.ContainerMetadata
 	BundlePath       string
 	StopSignal       string
-	Type             string `json:"type"`
-	FromImage        string `json:"image,omitempty"`
-	FromImageID      string `json:"image-id"`
-	MountPoint       string `json:"mountpoint,omitempty"`
+	FromImage        string `json:"Image,omitempty"`
+	FromImageID      string `json:"ImageID"`
+	MountPoint       string `json:"Mountpoint,omitempty"`
 	MountLabel       string
 	Mounts           []specs.Mount
 	AppArmorProfile  string
-	ImageAnnotations map[string]string `json:"annotations,omitempty"`
-	ImageCreatedBy   string            `json:"created-by,omitempty"`
-	OCIv1            v1.Image          `json:"ociv1,omitempty"`
-	Docker           docker.V2Image    `json:"docker,omitempty"`
+	ImageAnnotations map[string]string `json:"Annotations,omitempty"`
+	ImageCreatedBy   string            `json:"CreatedBy,omitempty"`
+	Config           v1.ImageConfig    `json:"Config,omitempty"`
 	SizeRw           uint              `json:"SizeRw,omitempty"`
 	SizeRootFs       uint              `json:"SizeRootFs,omitempty"`
 	Args             []string
@@ -62,18 +60,30 @@ func GetContainerData(store storage.Store, name string, size bool) (*ContainerDa
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading build container %q", name)
 	}
-	cid, err := libkpodimage.GetContainerCopyData(store, name)
+	container, err := store.Container(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading container image data")
-	}
-	config, err := store.FromContainerDirectory(ctr.ID(), "config.json")
-	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error reading container data")
 	}
 
-	var m specs.Spec
-	if err = json.Unmarshal(config, &m); err != nil {
+	// The runtime configuration won't exist if the container has never been started by cri-o or kpod,
+	// so treat a not-exist error as non-fatal.
+	m := getBlankSpec()
+	config, err := store.FromContainerDirectory(ctr.ID(), "config.json")
+	if err != nil && !os.IsNotExist(errors.Cause(err)) {
 		return nil, err
+	}
+	if len(config) > 0 {
+		if err = json.Unmarshal(config, &m); err != nil {
+			return nil, err
+		}
+	}
+
+	if container.ImageID == "" {
+		return nil, errors.Errorf("error reading container image data: container is not based on an image")
+	}
+	imageData, err := libkpodimage.GetImageData(store, container.ImageID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading container image data")
 	}
 
 	driverName, err := driver.GetDriverName(store)
@@ -84,9 +94,19 @@ func GetContainerData(store storage.Store, name string, size bool) (*ContainerDa
 	if err != nil {
 		return nil, err
 	}
+	layer, err := store.Layer(topLayer)
+	if err != nil {
+		return nil, err
+	}
 	driverMetadata, err := driver.GetDriverMetadata(store, topLayer)
 	if err != nil {
 		return nil, err
+	}
+	imageName := ""
+	if len(imageData.Tags) > 0 {
+		imageName = imageData.Tags[0]
+	} else if len(imageData.Digests) > 0 {
+		imageName = imageData.Digests[0]
 	}
 	data := &ContainerData{
 		ID:               ctr.ID(),
@@ -99,14 +119,12 @@ func GetContainerData(store storage.Store, name string, size bool) (*ContainerDa
 		BundlePath:       ctr.BundlePath(),
 		StopSignal:       ctr.GetStopSignal(),
 		Args:             m.Process.Args,
-		Type:             cid.Type,
-		FromImage:        cid.FromImage,
-		FromImageID:      cid.FromImageID,
-		MountPoint:       cid.MountPoint,
-		ImageAnnotations: cid.ImageAnnotations,
-		ImageCreatedBy:   cid.ImageCreatedBy,
-		OCIv1:            cid.OCIv1,
-		Docker:           cid.Docker,
+		FromImage:        imageName,
+		FromImageID:      container.ImageID,
+		MountPoint:       layer.MountPoint,
+		ImageAnnotations: imageData.Annotations,
+		ImageCreatedBy:   imageData.CreatedBy,
+		Config:           imageData.Config,
 		GraphDriver: driverData{
 			Name: driverName,
 			Data: driverMetadata,
@@ -155,20 +173,37 @@ func inspectContainer(store storage.Store, container string) (*oci.Container, er
 	return ociCtr, nil
 }
 
+func getBlankSpec() specs.Spec {
+	return specs.Spec{
+		Process:     &specs.Process{},
+		Root:        &specs.Root{},
+		Mounts:      []specs.Mount{},
+		Hooks:       &specs.Hooks{},
+		Annotations: make(map[string]string),
+		Linux:       &specs.Linux{},
+		Solaris:     &specs.Solaris{},
+		Windows:     &specs.Windows{},
+	}
+}
+
 // get an oci.Container instance for a given container ID
 func getOCIContainer(store storage.Store, container string) (*oci.Container, error) {
 	ctr, err := FindContainer(store, container)
 	if err != nil {
 		return nil, err
 	}
+
+	// The runtime configuration won't exist if the container has never been started by cri-o or kpod,
+	// so treat a not-exist error as non-fatal.
+	m := getBlankSpec()
 	config, err := store.FromContainerDirectory(ctr.ID, "config.json")
-	if err != nil {
+	if err != nil && !os.IsNotExist(errors.Cause(err)) {
 		return nil, err
 	}
-
-	var m specs.Spec
-	if err = json.Unmarshal(config, &m); err != nil {
-		return nil, err
+	if len(config) > 0 {
+		if err = json.Unmarshal(config, &m); err != nil {
+			return nil, err
+		}
 	}
 
 	labels := make(map[string]string)
