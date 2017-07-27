@@ -24,7 +24,11 @@ func tagCmd(c *cli.Context) error {
 	if len(args) < 2 {
 		return errors.Errorf("image name and at least one new name must be specified")
 	}
-	store, err := getStore(c)
+	config, err := getConfig(c)
+	if err != nil {
+		return errors.Wrapf(err, "Could not get config")
+	}
+	store, err := getStore(config)
 	if err != nil {
 		return err
 	}

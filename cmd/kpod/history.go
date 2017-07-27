@@ -80,7 +80,11 @@ var (
 )
 
 func historyCmd(c *cli.Context) error {
-	store, err := getStore(c)
+	config, err := getConfig(c)
+	if err != nil {
+		return errors.Wrapf(err, "Could not get config")
+	}
+	store, err := getStore(config)
 	if err != nil {
 		return err
 	}

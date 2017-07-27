@@ -38,7 +38,7 @@ func validateConfig(config *server.Config) error {
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
 	if path := ctx.GlobalString("config"); path != "" {
-		if err := config.FromFile(path); err != nil {
+		if err := config.UpdateFromFile(path); err != nil {
 			if ctx.GlobalIsSet("config") || !os.IsNotExist(err) {
 				return err
 			}

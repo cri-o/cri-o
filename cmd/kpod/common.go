@@ -7,24 +7,13 @@ import (
 	"github.com/urfave/cli"
 )
 
-func getStore(c *cli.Context) (storage.Store, error) {
+func getStore(c *libkpod.Config) (storage.Store, error) {
 	options := storage.DefaultStoreOptions
-	if c.GlobalIsSet("root") {
-		options.GraphRoot = c.GlobalString("root")
-	}
-	if c.GlobalIsSet("runroot") {
-		options.RunRoot = c.GlobalString("runroot")
-	}
+	options.GraphRoot = c.Root
+	options.RunRoot = c.RunRoot
+	options.GraphDriverName = c.Storage
+	options.GraphDriverOptions = c.StorageOptions
 
-	if c.GlobalIsSet("storage-driver") {
-		options.GraphDriverName = c.GlobalString("storage-driver")
-	}
-	if c.GlobalIsSet("storage-opt") {
-		opts := c.GlobalStringSlice("storage-opt")
-		if len(opts) > 0 {
-			options.GraphDriverOptions = opts
-		}
-	}
 	store, err := storage.GetStore(options)
 	if err != nil {
 		return nil, err
@@ -36,7 +25,7 @@ func getStore(c *cli.Context) (storage.Store, error) {
 func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	config := libkpod.DefaultConfig()
 	if c.GlobalIsSet("config") {
-		err := config.FromFile(c.String("config"))
+		err := config.UpdateFromFile(c.String("config"))
 		if err != nil {
 			return config, err
 		}

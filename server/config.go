@@ -58,10 +58,10 @@ func (t *tomlConfig) fromConfig(c *Config) {
 	t.Crio.Network.NetworkConfig = c.NetworkConfig
 }
 
-// FromFile populates the Config from the TOML-encoded file at the given path.
+// UpdateFromFile populates the Config from the TOML-encoded file at the given path.
 // Returns errors encountered when reading or parsing the files, or nil
 // otherwise.
-func (c *Config) FromFile(path string) error {
+func (c *Config) UpdateFromFile(path string) error {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
