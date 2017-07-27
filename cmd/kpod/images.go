@@ -136,14 +136,17 @@ func outputHeader(truncate, digests bool) {
 
 func outputImages(store storage.Store, images []storage.Image, format string, hasTemplate, truncate, digests, quiet bool) error {
 	for _, img := range images {
-		createdTime := img.Created.Format("Jan 2, 2006 15:04")
+		createdTime := img.Created
 
 		name := ""
 		if len(img.Names) > 0 {
 			name = img.Names[0]
 		}
 
-		digest, size, _ := libkpodimage.DigestAndSize(store, img)
+		info, digest, size, _ := libkpodimage.InfoAndDigestAndSize(store, img)
+		if info != nil {
+			createdTime = info.Created
+		}
 
 		if quiet {
 			fmt.Printf("%-64s\n", img.ID)
@@ -155,7 +158,7 @@ func outputImages(store storage.Store, images []storage.Image, format string, ha
 			ID:        img.ID,
 			Name:      name,
 			Digest:    digest,
-			CreatedAt: createdTime,
+			CreatedAt: createdTime.Format("Jan 2, 2006 15:04"),
 			Size:      libkpodimage.FormattedSize(size),
 		}
 		if hasTemplate {

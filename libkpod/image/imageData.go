@@ -98,7 +98,7 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		return nil, err
 	}
 
-	digest, virtualSize, err := DigestAndSize(store, *img)
+	_, digest, virtualSize, err := InfoAndDigestAndSize(store, *img)
 	if err != nil {
 		return nil, err
 	}

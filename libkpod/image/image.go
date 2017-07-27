@@ -6,6 +6,7 @@ import (
 	"time"
 
 	is "github.com/containers/image/storage"
+	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	digest "github.com/opencontainers/go-digest"
@@ -65,13 +66,28 @@ func matchesFilter(store storage.Store, image storage.Image, name string, params
 	if params == nil {
 		return true
 	}
+
+	storeRef, err := is.Transport.ParseStoreReference(store, "@"+image.ID)
+	if err != nil {
+		return false
+	}
+	img, err := storeRef.NewImage(nil)
+	if err != nil {
+		return false
+	}
+	defer img.Close()
+	info, err := img.Inspect()
+	if err != nil {
+		return false
+	}
+
 	if params.dangling != "" && !matchesDangling(name, params.dangling) {
 		return false
-	} else if params.label != "" && !matchesLabel(image, store, params.label) {
+	} else if params.label != "" && !matchesLabel(info, store, params.label) {
 		return false
-	} else if !params.beforeImage.IsZero() && !matchesBeforeImage(image, name, params) {
+	} else if !params.beforeImage.IsZero() && !matchesBeforeImage(info, name, params) {
 		return false
-	} else if !params.sinceImage.IsZero() && !matchesSinceImage(image, name, params) {
+	} else if !params.sinceImage.IsZero() && !matchesSinceImage(info, name, params) {
 		return false
 	} else if params.referencePattern != "" && !MatchesReference(name, params.referencePattern) {
 		return false
@@ -88,21 +104,7 @@ func matchesDangling(name string, dangling string) bool {
 	return false
 }
 
-func matchesLabel(image storage.Image, store storage.Store, label string) bool {
-	storeRef, err := is.Transport.ParseStoreReference(store, "@"+image.ID)
-	if err != nil {
-
-	}
-	img, err := storeRef.NewImage(nil)
-	if err != nil {
-		return false
-	}
-	defer img.Close()
-	info, err := img.Inspect()
-	if err != nil {
-		return false
-	}
-
+func matchesLabel(info *types.ImageInspectInfo, store storage.Store, label string) bool {
 	pair := strings.SplitN(label, "=", 2)
 	for key, value := range info.Labels {
 		if key == pair[0] {
@@ -120,11 +122,8 @@ func matchesLabel(image storage.Image, store storage.Store, label string) bool {
 
 // Returns true if the image was created since the filter image.  Returns
 // false otherwise
-func matchesBeforeImage(image storage.Image, name string, params *FilterParams) bool {
-	if params.beforeImage.IsZero() {
-		return true
-	}
-	if image.Created.Before(params.beforeImage) {
+func matchesBeforeImage(info *types.ImageInspectInfo, name string, params *FilterParams) bool {
+	if info.Created.Before(params.beforeImage) {
 		return true
 	}
 	return false
@@ -132,11 +131,8 @@ func matchesBeforeImage(image storage.Image, name string, params *FilterParams) 
 
 // Returns true if the image was created since the filter image.  Returns
 // false otherwise
-func matchesSinceImage(image storage.Image, name string, params *FilterParams) bool {
-	if params.sinceImage.IsZero() {
-		return true
-	}
-	if image.Created.After(params.sinceImage) {
+func matchesSinceImage(info *types.ImageInspectInfo, name string, params *FilterParams) bool {
+	if info.Created.After(params.sinceImage) {
 		return true
 	}
 	return false
@@ -212,32 +208,36 @@ func findImageInSlice(images []storage.Image, ref string) (storage.Image, error)
 	return storage.Image{}, errors.New("could not find image")
 }
 
-// DigestAndSize returns the size of the image in the given store and the
-// digest of its manifest, if it has one, or "" if it doesn't.
-func DigestAndSize(store storage.Store, img storage.Image) (digest.Digest, int64, error) {
+// InfoAndDigestAndSize returns the inspection info and size of the image in the given
+// store and the digest of its manifest, if it has one, or "" if it doesn't.
+func InfoAndDigestAndSize(store storage.Store, img storage.Image) (*types.ImageInspectInfo, digest.Digest, int64, error) {
 	is.Transport.SetStore(store)
 	storeRef, err := is.Transport.ParseStoreReference(store, "@"+img.ID)
 	if err != nil {
-		return "", -1, errors.Wrapf(err, "error parsing image reference %q", "@"+img.ID)
+		return nil, "", -1, errors.Wrapf(err, "error parsing image reference %q", "@"+img.ID)
 	}
 	imgRef, err := storeRef.NewImage(nil)
 	if err != nil {
-		return "", -1, errors.Wrapf(err, "error reading image %q", img.ID)
+		return nil, "", -1, errors.Wrapf(err, "error reading image %q", img.ID)
 	}
 	defer imgRef.Close()
 	imgSize, err := imgRef.Size()
 	if err != nil {
-		return "", -1, errors.Wrapf(err, "error reading size of image %q", img.ID)
+		return nil, "", -1, errors.Wrapf(err, "error reading size of image %q", img.ID)
 	}
 	manifest, _, err := imgRef.Manifest()
 	if err != nil {
-		return "", -1, errors.Wrapf(err, "error reading manifest for image %q", img.ID)
+		return nil, "", -1, errors.Wrapf(err, "error reading manifest for image %q", img.ID)
 	}
 	manifestDigest := digest.Digest("")
 	if len(manifest) > 0 {
 		manifestDigest = digest.Canonical.FromBytes(manifest)
 	}
-	return manifestDigest, imgSize, nil
+	info, err := imgRef.Inspect()
+	if err != nil {
+		return nil, "", -1, errors.Wrapf(err, "error inspecting image %q", img.ID)
+	}
+	return info, manifestDigest, imgSize, nil
 }
 
 // GetImagesMatchingFilter returns a slice of all images in the store that match the provided FilterParams.
