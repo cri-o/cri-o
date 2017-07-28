@@ -50,7 +50,11 @@ func saveCmd(c *cli.Context) error {
 		return errors.Errorf("need at least 1 argument")
 	}
 
-	store, err := getStore(c)
+	config, err := getConfig(c)
+	if err != nil {
+		return errors.Wrapf(err, "could not get config")
+	}
+	store, err := getStore(config)
 	if err != nil {
 		return err
 	}
