@@ -77,7 +77,11 @@ func inspectCmd(c *cli.Context) error {
 
 	name := args[0]
 
-	store, err := getStore(c)
+	config, err := getConfig(c)
+	if err != nil {
+		return errors.Wrapf(err, "Could not get config")
+	}
+	store, err := getStore(config)
 	if err != nil {
 		return err
 	}

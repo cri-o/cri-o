@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/docker/pkg/system"
 	"github.com/ghodss/yaml"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -125,9 +126,14 @@ func hostInfo(c *cli.Context) (string, map[string]interface{}, error) {
 
 // top-level "store" info
 func storeInfo(c *cli.Context) (string, map[string]interface{}, error) {
-	store, err := getStore(c)
+	storeStr := "store"
+	config, err := getConfig(c)
 	if err != nil {
-		return "store", nil, err
+		return storeStr, nil, errors.Wrapf(err, "Could not get config")
+	}
+	store, err := getStore(config)
+	if err != nil {
+		return storeStr, nil, err
 	}
 
 	// lets say storage driver in use, number of images, number of containers
@@ -150,7 +156,7 @@ func storeInfo(c *cli.Context) (string, map[string]interface{}, error) {
 			"number": len(containers),
 		}
 	}
-	return "store", info, nil
+	return storeStr, info, nil
 }
 
 func readKernelVersion() (string, error) {

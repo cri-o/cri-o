@@ -29,6 +29,7 @@ type ContainerServer struct {
 	imageContext *types.SystemContext
 	stateLock    sync.Locker
 	state        *containerServerState
+	config       *Config
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -71,8 +72,32 @@ func (c *ContainerServer) ImageContext() *types.SystemContext {
 	return c.imageContext
 }
 
+// Config gets the configuration for the ContainerServer
+func (c *ContainerServer) Config() *Config {
+	return c.config
+}
+
 // New creates a new ContainerServer with options provided
-func New(runtime *oci.Runtime, store cstorage.Store, imageService storage.ImageServer, signaturePolicyPath string) *ContainerServer {
+func New(config *Config) (*ContainerServer, error) {
+	store, err := cstorage.GetStore(cstorage.StoreOptions{
+		RunRoot:            config.RunRoot,
+		GraphRoot:          config.Root,
+		GraphDriverName:    config.Storage,
+		GraphDriverOptions: config.StorageOptions,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
+	if err != nil {
+		return nil, err
+	}
+
+	runtime, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
+	if err != nil {
+		return nil, err
+	}
 	return &ContainerServer{
 		runtime:            runtime,
 		store:              store,
@@ -81,13 +106,14 @@ func New(runtime *oci.Runtime, store cstorage.Store, imageService storage.ImageS
 		ctrIDIndex:         truncindex.NewTruncIndex([]string{}),
 		podNameIndex:       registrar.NewRegistrar(),
 		podIDIndex:         truncindex.NewTruncIndex([]string{}),
-		imageContext:       &types.SystemContext{SignaturePolicyPath: signaturePolicyPath},
+		imageContext:       &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
 		stateLock:          new(sync.Mutex),
 		state: &containerServerState{
 			containers: oci.NewMemoryStore(),
 			sandboxes:  make(map[string]*sandbox.Sandbox),
 		},
-	}
+		config: config,
+	}, nil
 }
 
 // ContainerStateFromDisk retrieves information on the state of a running container

@@ -12,6 +12,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/urfave/cli"
@@ -24,9 +25,9 @@ const crioConfigPath = "/etc/crio/crio.conf"
 
 func validateConfig(config *server.Config) error {
 	switch config.ImageVolumes {
-	case server.ImageVolumesMkdir:
-	case server.ImageVolumesIgnore:
-	case server.ImageVolumesBind:
+	case libkpod.ImageVolumesMkdir:
+	case libkpod.ImageVolumesIgnore:
+	case libkpod.ImageVolumesBind:
 	default:
 		return fmt.Errorf("Unrecognized image volume type specified")
 
@@ -37,7 +38,7 @@ func validateConfig(config *server.Config) error {
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
 	if path := ctx.GlobalString("config"); path != "" {
-		if err := config.FromFile(path); err != nil {
+		if err := config.UpdateFromFile(path); err != nil {
 			if ctx.GlobalIsSet("config") || !os.IsNotExist(err) {
 				return err
 			}
@@ -114,7 +115,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		config.PluginDir = ctx.GlobalString("cni-plugin-dir")
 	}
 	if ctx.GlobalIsSet("image-volumes") {
-		config.ImageVolumes = server.ImageVolumesType(ctx.GlobalString("image-volumes"))
+		config.ImageVolumes = libkpod.ImageVolumesType(ctx.GlobalString("image-volumes"))
 	}
 	return nil
 }
@@ -245,7 +246,7 @@ func main() {
 		},
 		cli.Int64Flag{
 			Name:  "pids-limit",
-			Value: server.DefaultPidsLimit,
+			Value: libkpod.DefaultPidsLimit,
 			Usage: "maximum number of processes allowed in a container",
 		},
 		cli.StringFlag{
@@ -258,7 +259,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "image-volumes",
-			Value: string(server.ImageVolumesMkdir),
+			Value: string(libkpod.ImageVolumesMkdir),
 			Usage: "image volume handling ('mkdir' or 'ignore')",
 		},
 		cli.BoolFlag{

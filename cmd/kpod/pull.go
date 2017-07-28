@@ -45,7 +45,11 @@ func pullCmd(c *cli.Context) error {
 	}
 	image := args[0]
 
-	store, err := getStore(c)
+	config, err := getConfig(c)
+	if err != nil {
+		return errors.Wrapf(err, "could not get config")
+	}
+	store, err := getStore(config)
 	if err != nil {
 		return err
 	}
