@@ -115,6 +115,7 @@ function teardown() {
 
 @test "kpod history json flag" {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
+	[ "$status" -eq 0 ]
 	run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} history --json $IMAGE | python -m json.tool"
 	echo "$output"
 	[ "$status" -eq 0 ]
