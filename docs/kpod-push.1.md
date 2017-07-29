@@ -1,7 +1,9 @@
-## kpod-push "1" "June 2017" "kpod"
+% kpod(1) kpod-push - Push an image from local storage to elsewhere
+% Dan Walsh
+# kpod-push "1" "June 2017" "kpod"
 
 ## NAME
-kpod push - Push an image from local storage to elsewhere.
+kpod push - Push an image from local storage to elsewhere
 
 ## SYNOPSIS
 **kpod** **push** [*options* [...]] **imageID** [**destination**]

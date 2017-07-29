@@ -1,7 +1,9 @@
-## kpod-inspect "1" "July 2017" "kpod"
+% kpod(1) kpod-inspect - Display a container or image's configuration
+% Dan Walsh
+# kpod-inspect "1" "July 2017" "kpod"
 
 ## NAME
-kpod inspect - display a container or image's configuration
+kpod inspect - Display a container or image's configuration
 
 ## SYNOPSIS
 **kpod** **inspect** [*options* [...]] name

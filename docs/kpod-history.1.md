@@ -1,13 +1,14 @@
-% kpod(8) # kpod-history - Simple tool to view the history of an image
+% kpod(1) kpod-history - Simple tool to view the history of an image
 % Urvashi Mohnani
-% JULY 2017
-# NAME
-kpod-history - Shows the history of an image.
+% kpod-history "1" "JULY 2017" "kpod"
 
-# SYNOPSIS
+## NAME
+kpod-history - Shows the history of an image
+
+## SYNOPSIS
 **kpod history [OPTIONS] IMAGE[:TAG|DIGEST]**
 
-# DESCRIPTION
+## DESCRIPTION
 **kpod history** displays the history of an image by printing out information
 about each layer used in the image. The information printed out for each layer
 include Created (time and date), Created By, Size, and Comment. The output can
@@ -29,12 +30,12 @@ Valid placeholders for the Go template are listed below:
 
 **kpod [GLOBAL OPTIONS] history [OPTIONS]**
 
-# GLOBAL OPTIONS
+## GLOBAL OPTIONS
 
 **--help, -h**
   Print usage statement
 
-# OPTIONS
+## OPTIONS
 
 **--human, -H**
     Display sizes and dates in human readable format
@@ -51,7 +52,7 @@ Valid placeholders for the Go template are listed below:
 **--json**
     Print the history in JSON form
 
-# COMMANDS
+## COMMANDS
 
 **kpod history debian**
 
@@ -62,8 +63,8 @@ Valid placeholders for the Go template are listed below:
 ## history
 Show the history of an image
 
-# SEE ALSO
+## SEE ALSO
 kpod(1), crio(8), crio.conf(5)
 
-# HISTORY
+## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

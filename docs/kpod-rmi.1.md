@@ -3,7 +3,7 @@
 # kpod-rmi "1" "March 2017" "kpod"
 
 ## NAME
-kpod rmi - Removes one or more images.
+kpod rmi - Removes one or more images
 
 ## SYNOPSIS
 **kpod** **rmi** **imageID [...]**
