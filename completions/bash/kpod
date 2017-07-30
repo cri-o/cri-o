@@ -157,6 +157,16 @@ _complete_() {
     esac
 }
 
+_kpod_load() {
+    local options_with_args="
+    --input -i
+    "
+    local boolean_options="
+    --quiet -q
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+}
+
 _kpod_kpod() {
      local options_with_args="
      "
@@ -173,6 +183,7 @@ _kpod_kpod() {
     version
     pull
     history
+    load
      "
 
      case "$prev" in

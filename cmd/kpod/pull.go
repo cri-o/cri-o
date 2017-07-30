@@ -54,14 +54,11 @@ func pullCmd(c *cli.Context) error {
 		return err
 	}
 
-	allTags := false
-	if c.IsSet("all-tags") {
-		allTags = c.Bool("all-tags")
-	}
+	allTags := c.Bool("all-tags")
 
 	systemContext := common.GetSystemContext("")
 
-	err = libkpodimage.PullImage(store, image, allTags, systemContext)
+	err = libkpodimage.PullImage(store, image, allTags, false, systemContext)
 	if err != nil {
 		return errors.Errorf("error pulling image from %q: %v", image, err)
 	}

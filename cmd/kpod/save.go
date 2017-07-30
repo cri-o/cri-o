@@ -79,7 +79,7 @@ func saveCmd(c *cli.Context) error {
 }
 
 // saveImage pushes the image to docker-archive or oci by
-// calling pushImageForSave
+// calling pushImage
 func saveImage(store storage.Store, opts saveOptions) error {
 	dst := dockerArchive + opts.output
 

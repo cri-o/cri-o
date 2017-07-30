@@ -44,6 +44,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod-history(1)](/docs/kpod-history.1.md)] | Shows the history of an image |
 | [kpod-images(1)](/docs/kpod-images.1.md)   | List images in local storage |
 | [kpod-inspect(1)](/docs/kpod-inspect.1.md)       | Display the configuration of a container or image |
+| [kpod-load(1)](/docs/kpod-load.1.md)       | Load an image from docker archive or oci |
 | [kpod-pull(1)](/docs/kpod-pull.1.md)       | Pull an image from a registry |
 | [kpod-push(1)](/docs/kpod-push.1.md)       | Push an image to a specified destination |
 | [kpod-rmi(1)](/docs/kpod-rmi.1.md)         | Removes one or more images   |
