@@ -1,9 +1,9 @@
-% kpod(1) kpod-images - List images in local storage.
+% kpod(1) kpod-images - List images in local storage
 % Dan Walsh
 # kpod-images "1" "March 2017" "kpod"
 
 ## NAME
-kpod images - List images in local storage.
+kpod images - List images in local storage
 
 ## SYNOPSIS
 **kpod** **images** [*options* [...]]

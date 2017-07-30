@@ -1,16 +1,16 @@
-% kpod(8) # kpod-version - Simple tool to view version information
+% kpod(1) kpod-version - Simple tool to view version information
 % Vincent Batts
-% JULY 2017
+% kpod-version "1" "JULY 2017" "kpod"
 
-# NAME
+## NAME
 kpod-info - Display System Information
 
 
-# SYNOPSIS
+## SYNOPSIS
 **kpod** **info** [*options* [...]]
 
 
-# DESCRIPTION
+## DESCRIPTION
 
 Information display here pertain to the host, current storage stats, and build of kpod. Useful for the user and when reporting issues.
 
@@ -32,5 +32,5 @@ Show additional information
 
 `kpod info --debug --json | jq .host.kernel`
 
-# SEE ALSO
+## SEE ALSO
 crio(8), crio.conf(5)

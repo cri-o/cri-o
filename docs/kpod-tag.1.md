@@ -1,4 +1,4 @@
-% kpod(1) kpod-tag - add tags to an image
+% kpod(1) kpod-tag - Add tags to an image
 % Ryan Cole
 # kpod-tag "1" "July 2017" "kpod"
 

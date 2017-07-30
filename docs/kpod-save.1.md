@@ -3,7 +3,7 @@
 # kpod-save "1" "July 2017" "kpod"
 
 ## NAME
-kpod-save - save an image to docker-archive or oci
+kpod-save - Save an image to docker-archive or oci
 
 ## SYNOPSIS
 **kpod save**
