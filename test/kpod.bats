@@ -201,6 +201,7 @@ function teardown() {
 }
     run ${KPOD_BINARY} $KPOD_OPTIONS rmi redis:alpine
 
+
 @test "kpod inspect non-existent container" {
     run ${KPOD_BINARY} $KPOD_OPTIONS inspect 14rcole/non-existent
     echo "$output"
@@ -226,4 +227,24 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0]
     run ${KPOD_BINARY} $KPOD_OPTIONS rmi redis:alpine
+}
+
+@test "kpod images" {
+    run ${KPOD_BINARY} $KPOD_OPTIONS pull debian:6.0.10
+    run ${KPOD_BINARY} $KPOD_OPTIONS images
+    [ "$status" -eq 0 ]
+}
+
+@test "kpod images test valid json" {
+    run ${KPOD_BINARY} $KPOD_OPTIONS pull debian:6.0.10
+    run ${KPOD_BINARY} $KPOD_OPTIONS images --format json
+    echo "$output" | python -m json.tool
+    [ "$status" -eq 0 ]
+}
+
+@test "kpod images check name json output" {
+    run ${KPOD_BINARY} $KPOD_OPTIONS pull debian:6.0.10
+    run ${KPOD_BINARY} $KPOD_OPTIONS images --format json
+    name=$(echo $output | python -c 'import sys; import json; print(json.loads(sys.stdin.read())[0])["names"][0]')
+    [ "$name" == "docker.io/library/debian:6.0.10" ]
 }

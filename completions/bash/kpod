@@ -14,7 +14,6 @@ _kpod_history() {
      --human -H
      --no-trunc
      --quiet -q
-     --json
      "
      _complete_ "$options_with_args" "$boolean_options"
 
@@ -38,11 +37,11 @@ _kpod_images() {
      -n
      --no-trunc
      --digests
-     --format
      --filter
      -f
      "
     local options_with_args="
+    --format
   "
 
     local all_options="$options_with_args $boolean_options"

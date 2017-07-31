@@ -21,9 +21,10 @@ Show image digests
 
 Filter output based on conditions provided (default [])
 
-**--format="TEMPLATE"**
+**--format**
 
-Pretty-print images using a Go template.  Will override --quiet
+Change the default output format.  This can be of a supported type like 'json'
+or a Go template.
 
 **--noheading, -n**
 
@@ -45,6 +46,10 @@ kpod images
 kpod images --quiet
 
 kpod images -q --noheading --notruncate
+
+kpod images --format json
+
+kpod images --format "{{.ID}}"
 
 ## SEE ALSO
 kpod(1)
