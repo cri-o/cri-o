@@ -1,7 +1,12 @@
 package libkpod
 
 import (
+	"fmt"
+
 	cstorage "github.com/containers/storage"
+	"github.com/docker/docker/pkg/registrar"
+	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/pkg/errors"
 )
 
@@ -74,4 +79,75 @@ func GetContainerRootFsSize(store cstorage.Store, containerID string) (int64, er
 	// will return an error
 	layerSize, err := store.DiffSize(layer.Parent, layer.ID)
 	return size + layerSize, err
+}
+
+// GetContainerFromRequest gets an oci container matching the specified full or partial id
+func (c *ContainerServer) GetContainerFromRequest(cid string) (*oci.Container, error) {
+	if cid == "" {
+		return nil, fmt.Errorf("container ID should not be empty")
+	}
+
+	containerID, err := c.ctrIDIndex.Get(cid)
+	if err != nil {
+		return nil, fmt.Errorf("container with ID starting with %s not found: %v", cid, err)
+	}
+
+	ctr := c.GetContainer(containerID)
+	if ctr == nil {
+		return nil, fmt.Errorf("specified container not found: %s", containerID)
+	}
+	return ctr, nil
+}
+
+func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, error) {
+	if pid == "" {
+		return nil, fmt.Errorf("pod ID should not be empty")
+	}
+
+	podID, err := c.podIDIndex.Get(pid)
+	if err != nil {
+		return nil, fmt.Errorf("pod with ID starting with %s not found: %v", pid, err)
+	}
+
+	sb := c.GetSandbox(podID)
+	if sb == nil {
+		return nil, fmt.Errorf("specified pod not found: %s", podID)
+	}
+	return sb, nil
+}
+
+// LookupContainer returns the container with the given name or full or partial id
+func (c *ContainerServer) LookupContainer(idOrName string) (*oci.Container, error) {
+	if idOrName == "" {
+		return nil, fmt.Errorf("container ID or name should not be empty")
+	}
+
+	ctrID, err := c.ctrNameIndex.Get(idOrName)
+	if err != nil {
+		if err == registrar.ErrNameNotReserved {
+			ctrID = idOrName
+		} else {
+			return nil, err
+		}
+	}
+
+	return c.GetContainerFromRequest(ctrID)
+}
+
+// LookupSandbox returns the pod sandbox with the given name or full or partial id
+func (c *ContainerServer) LookupSandbox(idOrName string) (*sandbox.Sandbox, error) {
+	if idOrName == "" {
+		return nil, fmt.Errorf("container ID or name should not be empty")
+	}
+
+	podID, err := c.podNameIndex.Get(idOrName)
+	if err != nil {
+		if err == registrar.ErrNameNotReserved {
+			podID = idOrName
+		} else {
+			return nil, err
+		}
+	}
+
+	return c.getSandboxFromRequest(podID)
 }
