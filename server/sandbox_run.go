@@ -153,7 +153,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	podContainer, err := s.storageRuntimeServer.CreatePodSandbox(s.ImageContext(),
+	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.ImageContext(),
 		name, id,
 		s.config.PauseImage, "",
 		containerName,
@@ -170,7 +170,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
-			if err2 := s.storageRuntimeServer.RemovePodSandbox(id); err2 != nil {
+			if err2 := s.StorageRuntimeServer().RemovePodSandbox(id); err2 != nil {
 				logrus.Warnf("couldn't cleanup pod sandbox %q: %v", id, err2)
 			}
 		}
@@ -447,7 +447,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	saveOptions := generate.ExportOptions{}
-	mountPoint, err := s.storageRuntimeServer.StartContainer(id)
+	mountPoint, err := s.StorageRuntimeServer().StartContainer(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
 	}
@@ -524,12 +524,12 @@ func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
 }
 
 func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
-	storageMetadata, err := s.storageRuntimeServer.GetContainerMetadata(id)
+	storageMetadata, err := s.StorageRuntimeServer().GetContainerMetadata(id)
 	if err != nil {
 		return err
 	}
 	storageMetadata.SetMountLabel(mountLabel)
-	return s.storageRuntimeServer.SetContainerMetadata(id, storageMetadata)
+	return s.StorageRuntimeServer().SetContainerMetadata(id, storageMetadata)
 }
 
 func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mountLabel string, err error) {

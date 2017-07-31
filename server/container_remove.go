@@ -27,7 +27,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		if err := s.Runtime().StopContainer(c, -1); err != nil {
 			return nil, fmt.Errorf("failed to stop container %s: %v", c.ID(), err)
 		}
-		if err := s.storageRuntimeServer.StopContainer(c.ID()); err != nil {
+		if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil {
 			return nil, fmt.Errorf("failed to unmount container %s: %v", c.ID(), err)
 		}
 	}
@@ -38,7 +38,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 
 	s.removeContainer(c)
 
-	if err := s.storageRuntimeServer.DeleteContainer(c.ID()); err != nil {
+	if err := s.StorageRuntimeServer().DeleteContainer(c.ID()); err != nil {
 		return nil, fmt.Errorf("failed to delete storage for container %s: %v", c.ID(), err)
 	}
 
