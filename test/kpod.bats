@@ -18,7 +18,7 @@ function teardown() {
 }
 
 @test "kpod pull from docker with tag" {
-	run ${KPOD_BINARY} $KPOD_OPTIONS pull debian:6.0.10
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull debian:6.0.10
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi debian:6.0.10
