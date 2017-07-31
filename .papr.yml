@@ -1,0 +1,64 @@
+
+---
+
+host:
+    distro: fedora/26/cloud
+    context: 'Go-tip'
+
+env:
+  go_version: "tip"
+
+timeout: 30m
+
+packages:
+  - btrfs-tools
+  - libdevmapper-devel
+  - libgpgme11-devel
+  - libapparmor-devel
+  - libseccomp-devel
+  - autoconf
+  - automake
+  - bison
+  - e2fslibs-devel
+  - libfuse-devel
+  - libtool
+  - liblzma-devel
+  - docker
+
+tests:
+  # Set common env. vars here, so only $go_version needs to vary between contexts
+  - export PATH="$HOME/gopath/bin:$PATH"
+  - export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+  - export
+  - |
+      # Script filenames easily renamed, don't forget to upd artifacts (below)
+      for filename in .papr_first.sh .papr_second.sh .papr_third.sh:
+      do
+          echo "------------------------------------------------------"
+          echo "------------------- $filename"
+          echo "------------------------------------------------------"
+          "./$filename" &> ${filename}.output || break;
+      done
+
+artifacts:
+    - .papr_first.sh.output
+    - .papr_second.sh.output
+    - .papr_third.sh.output
+
+---
+
+context: 'Go-1.8.x'
+env:
+  go_version: "1.8.x"
+
+---
+
+context: 'Go-1.7.x'
+env:
+  go_version: "1.7.x"
+
+---
+
+context: 'Go-1.6.x'
+env:
+  go_version: "1.6.x"
