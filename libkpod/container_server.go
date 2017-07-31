@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
 	"github.com/docker/docker/pkg/ioutils"

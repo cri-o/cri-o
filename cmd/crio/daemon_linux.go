@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	systemdDaemon "github.com/coreos/go-systemd/daemon"
 )
 
