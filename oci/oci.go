@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"

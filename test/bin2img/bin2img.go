@@ -8,7 +8,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage"

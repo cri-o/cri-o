@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	is "github.com/containers/image/storage"

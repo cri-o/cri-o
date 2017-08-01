@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"

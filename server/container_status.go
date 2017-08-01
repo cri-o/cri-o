@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/docker/distribution/reference"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"

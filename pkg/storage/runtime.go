@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/containers/image/copy"
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"

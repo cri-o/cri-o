@@ -11,7 +11,7 @@ import (
 
 	"strconv"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	units "github.com/docker/go-units"

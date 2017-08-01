@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"golang.org/x/net/context"

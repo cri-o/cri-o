@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"

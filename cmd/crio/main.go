@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/server"

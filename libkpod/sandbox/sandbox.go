@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
