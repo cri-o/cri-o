@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	cstorage "github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -53,13 +52,11 @@ type Server struct {
 	libkpod.ContainerServer
 	config Config
 
-	storageRuntimeServer storage.RuntimeServer
-	updateLock           sync.RWMutex
-	netPlugin            ocicni.CNIPlugin
-	hostportManager      hostport.HostPortManager
-
-	seccompEnabled bool
-	seccompProfile seccomp.Seccomp
+	updateLock      sync.RWMutex
+	netPlugin       ocicni.CNIPlugin
+	hostportManager hostport.HostPortManager
+	seccompEnabled  bool
+	seccompProfile  seccomp.Seccomp
 
 	appArmorEnabled bool
 	appArmorProfile string
@@ -292,7 +289,7 @@ func (s *Server) restore() {
 	pods := map[string]*storage.RuntimeContainerMetadata{}
 	podContainers := map[string]*storage.RuntimeContainerMetadata{}
 	for _, container := range containers {
-		metadata, err2 := s.storageRuntimeServer.GetContainerMetadata(container.ID)
+		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(container.ID)
 		if err2 != nil {
 			logrus.Warnf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
 			continue
@@ -353,7 +350,7 @@ func (s *Server) update() error {
 			continue
 		}
 		// not previously known, so figure out what it is
-		metadata, err2 := s.storageRuntimeServer.GetContainerMetadata(container.ID)
+		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(container.ID)
 		if err2 != nil {
 			logrus.Errorf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
 			continue
@@ -456,26 +453,6 @@ func (s *Server) Shutdown() error {
 
 // New creates a new Server with options provided
 func New(config *Config) (*Server, error) {
-	store, err := cstorage.GetStore(cstorage.StoreOptions{
-		RunRoot:            config.RunRoot,
-		GraphRoot:          config.Root,
-		GraphDriverName:    config.Storage,
-		GraphDriverOptions: config.StorageOptions,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
-	if err != nil {
-		return nil, err
-	}
-
-	storageRuntimeService := storage.GetRuntimeService(imageService, config.PauseImage)
-	if err != nil {
-		return nil, err
-	}
-
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
 		return nil, err
 	}
@@ -493,14 +470,13 @@ func New(config *Config) (*Server, error) {
 	hostportManager := hostport.NewHostportManager()
 
 	s := &Server{
-		ContainerServer:      *containerServer,
-		storageRuntimeServer: storageRuntimeService,
-		netPlugin:            netPlugin,
-		hostportManager:      hostportManager,
-		config:               *config,
-		seccompEnabled:       seccomp.IsEnabled(),
-		appArmorEnabled:      apparmor.IsEnabled(),
-		appArmorProfile:      config.ApparmorProfile,
+		ContainerServer: *containerServer,
+		netPlugin:       netPlugin,
+		hostportManager: hostportManager,
+		config:          *config,
+		seccompEnabled:  seccomp.IsEnabled(),
+		appArmorEnabled: apparmor.IsEnabled(),
+		appArmorProfile: config.ApparmorProfile,
 	}
 
 	if s.seccompEnabled {
