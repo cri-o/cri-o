@@ -28,9 +28,6 @@ Image stored in local container/storage
 
  Multiple transports are supported:
 
-  **atomic:**_hostname_**/**_namespace_**/**_stream_**:**_tag_
-  An image served by an OpenShift(Atomic) Registry server. The current OpenShift project and OpenShift Registry instance are by default read from `$HOME/.kube/config`, which is set e.g. using `(oc login)`.
-
   **dir:**_path_
   An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
 
