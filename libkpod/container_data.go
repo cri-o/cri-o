@@ -3,17 +3,13 @@ package libkpod
 import (
 	"encoding/json"
 	"os"
-	"time"
 
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 
-	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -55,12 +51,12 @@ type driverData struct {
 
 // GetContainerData gets the ContainerData for a container with the given name in the given store.
 // If size is set to true, it will also determine the size of the container
-func GetContainerData(store storage.Store, name string, size bool) (*ContainerData, error) {
-	ctr, err := inspectContainer(store, name)
+func (c *ContainerServer) GetContainerData(name string, size bool) (*ContainerData, error) {
+	ctr, err := c.inspectContainer(name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading build container %q", name)
 	}
-	container, err := store.Container(name)
+	container, err := c.store.Container(name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading container data")
 	}
@@ -68,7 +64,7 @@ func GetContainerData(store storage.Store, name string, size bool) (*ContainerDa
 	// The runtime configuration won't exist if the container has never been started by cri-o or kpod,
 	// so treat a not-exist error as non-fatal.
 	m := getBlankSpec()
-	config, err := store.FromContainerDirectory(ctr.ID(), "config.json")
+	config, err := c.store.FromContainerDirectory(ctr.ID(), "config.json")
 	if err != nil && !os.IsNotExist(errors.Cause(err)) {
 		return nil, err
 	}
@@ -81,24 +77,24 @@ func GetContainerData(store storage.Store, name string, size bool) (*ContainerDa
 	if container.ImageID == "" {
 		return nil, errors.Errorf("error reading container image data: container is not based on an image")
 	}
-	imageData, err := libkpodimage.GetImageData(store, container.ImageID)
+	imageData, err := libkpodimage.GetImageData(c.store, container.ImageID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading container image data")
 	}
 
-	driverName, err := driver.GetDriverName(store)
+	driverName, err := driver.GetDriverName(c.store)
 	if err != nil {
 		return nil, err
 	}
-	topLayer, err := GetContainerTopLayerID(store, ctr.ID())
+	topLayer, err := c.GetContainerTopLayerID(ctr.ID())
 	if err != nil {
 		return nil, err
 	}
-	layer, err := store.Layer(topLayer)
+	layer, err := c.store.Layer(topLayer)
 	if err != nil {
 		return nil, err
 	}
-	driverMetadata, err := driver.GetDriverMetadata(store, topLayer)
+	driverMetadata, err := driver.GetDriverMetadata(c.store, topLayer)
 	if err != nil {
 		return nil, err
 	}
@@ -138,13 +134,13 @@ func GetContainerData(store storage.Store, name string, size bool) (*ContainerDa
 	}
 
 	if size {
-		sizeRootFs, err := GetContainerRootFsSize(store, data.ID)
+		sizeRootFs, err := c.GetContainerRootFsSize(data.ID)
 		if err != nil {
 
 			return nil, errors.Wrapf(err, "error reading size for container %q", name)
 		}
 		data.SizeRootFs = uint(sizeRootFs)
-		sizeRw, err := GetContainerRwSize(store, data.ID)
+		sizeRw, err := c.GetContainerRwSize(data.ID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading RWSize for container %q", name)
 		}
@@ -155,18 +151,13 @@ func GetContainerData(store storage.Store, name string, size bool) (*ContainerDa
 }
 
 // Get an oci.Container and update its status
-func inspectContainer(store storage.Store, container string) (*oci.Container, error) {
-	ociCtr, err := getOCIContainer(store, container)
-	if err != nil {
-		return nil, err
-	}
-	// call oci.New() to get the runtime
-	runtime, err := getOCIRuntime(store, container)
+func (c *ContainerServer) inspectContainer(container string) (*oci.Container, error) {
+	ociCtr, err := c.LookupContainer(container)
 	if err != nil {
 		return nil, err
 	}
 	// call runtime.UpdateStatus()
-	err = runtime.UpdateStatus(ociCtr)
+	err = c.Runtime().UpdateStatus(ociCtr)
 	if err != nil {
 		return nil, err
 	}
@@ -184,76 +175,4 @@ func getBlankSpec() specs.Spec {
 		Solaris:     &specs.Solaris{},
 		Windows:     &specs.Windows{},
 	}
-}
-
-// get an oci.Container instance for a given container ID
-func getOCIContainer(store storage.Store, container string) (*oci.Container, error) {
-	ctr, err := FindContainer(store, container)
-	if err != nil {
-		return nil, err
-	}
-
-	// The runtime configuration won't exist if the container has never been started by cri-o or kpod,
-	// so treat a not-exist error as non-fatal.
-	m := getBlankSpec()
-	config, err := store.FromContainerDirectory(ctr.ID, "config.json")
-	if err != nil && !os.IsNotExist(errors.Cause(err)) {
-		return nil, err
-	}
-	if len(config) > 0 {
-		if err = json.Unmarshal(config, &m); err != nil {
-			return nil, err
-		}
-	}
-
-	labels := make(map[string]string)
-	err = json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels)
-	if len(m.Annotations[annotations.Labels]) > 0 && err != nil {
-		return nil, err
-	}
-	name := ctr.Names[0]
-
-	var metadata pb.ContainerMetadata
-	err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata)
-	if len(m.Annotations[annotations.Metadata]) > 0 && err != nil {
-		return nil, err
-	}
-
-	tty := common.IsTrue(m.Annotations[annotations.TTY])
-	stdin := common.IsTrue(m.Annotations[annotations.Stdin])
-	stdinOnce := common.IsTrue(m.Annotations[annotations.StdinOnce])
-
-	containerPath, err := store.ContainerRunDirectory(ctr.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	containerDir, err := store.ContainerDirectory(ctr.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	img, _ := m.Annotations[annotations.Image]
-
-	kubeAnnotations := make(map[string]string)
-	err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations)
-	if len(m.Annotations[annotations.Annotations]) > 0 && err != nil {
-		return nil, err
-	}
-
-	created := time.Time{}
-	if len(m.Annotations[annotations.Created]) > 0 {
-		created, err = time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// create a new OCI Container.  kpod currently doesn't deal with pod sandboxes, so the fields for netns, privileged, and trusted are left empty
-	return oci.NewContainer(ctr.ID, name, containerPath, m.Annotations[annotations.LogPath], nil, labels, kubeAnnotations, img, &metadata, ctr.ImageID, tty, stdin, stdinOnce, false, false, containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
-}
-
-func getOCIRuntime(store storage.Store, container string) (*oci.Runtime, error) {
-	// TODO: Move server default config out of server so that it can be used instead of this
-	return oci.New("/usr/bin/runc", "", "runtime", "/usr/local/libexec/crio/conmon", []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}, "cgroupfs")
 }
