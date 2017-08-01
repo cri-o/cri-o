@@ -41,6 +41,10 @@ stream_address = "{{ .StreamAddress }}"
 # stream_port is the port on which the stream server will listen
 stream_port = "{{ .StreamPort }}"
 
+# file_locking is whether file-based locking will be used instead of
+# in-memory locking
+file_locking = {{ .FileLocking }}
+
 # The "crio.runtime" table contains settings pertaining to the OCI
 # runtime used and options for how to set up and manage the OCI runtime.
 [crio.runtime]

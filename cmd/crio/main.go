@@ -75,6 +75,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("storage-opt") {
 		config.StorageOptions = ctx.GlobalStringSlice("storage-opt")
 	}
+	if ctx.GlobalIsSet("file-locking") {
+		config.FileLocking = ctx.GlobalBool("file-locking")
+	}
 	if ctx.GlobalIsSet("insecure-registry") {
 		config.InsecureRegistries = ctx.GlobalStringSlice("insecure-registry")
 	}
@@ -215,6 +218,10 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "storage-opt",
 			Usage: "storage driver option",
+		},
+		cli.BoolFlag{
+			Name:  "file-locking",
+			Usage: "enable or disable file-based locking",
 		},
 		cli.StringSliceFlag{
 			Name:  "insecure-registry",

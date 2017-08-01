@@ -21,6 +21,7 @@ const (
 	cniConfigDir        = "/etc/cni/net.d/"
 	cniBinDir           = "/opt/cni/bin/"
 	cgroupManager       = "cgroupfs"
+	lockPath            = "/run/crio.lock"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -74,6 +75,11 @@ type RootConfig struct {
 	// LogDir is the default log directory were all logs will go unless kubelet
 	// tells us to put them somewhere else.
 	LogDir string `toml:"log_dir"`
+
+	// FileLocking specifies whether to use file-based or in-memory locking
+	// File-based locking is required when multiple users of libkpod are
+	// present on the same system
+	FileLocking bool `toml:"file_locking"`
 }
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -233,9 +239,10 @@ func (c *Config) ToFile(path string) error {
 func DefaultConfig() *Config {
 	return &Config{
 		RootConfig: RootConfig{
-			Root:    crioRoot,
-			RunRoot: crioRunRoot,
-			LogDir:  "/var/log/crio/pods",
+			Root:        crioRoot,
+			RunRoot:     crioRunRoot,
+			LogDir:      "/var/log/crio/pods",
+			FileLocking: true,
 		},
 		RuntimeConfig: RuntimeConfig{
 			Runtime:                  "/usr/bin/runc",
