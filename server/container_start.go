@@ -12,7 +12,7 @@ import (
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
 	logrus.Debugf("StartContainerRequest %+v", req)
-	c, err := s.getContainerFromRequest(req.ContainerId)
+	c, err := s.GetContainerFromRequest(req.ContainerId)
 	if err != nil {
 		return nil, err
 	}

@@ -21,7 +21,7 @@ const (
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
 	logrus.Debugf("ContainerStatusRequest %+v", req)
-	c, err := s.getContainerFromRequest(req.ContainerId)
+	c, err := s.GetContainerFromRequest(req.ContainerId)
 	if err != nil {
 		return nil, err
 	}
