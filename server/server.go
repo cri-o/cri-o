@@ -6,22 +6,16 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/Sirupsen/logrus"
-	cstorage "github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
@@ -50,13 +44,12 @@ type streamService struct {
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	libkpod.ContainerServer
+	*libkpod.ContainerServer
 	config Config
 
-	storageRuntimeServer storage.RuntimeServer
-	updateLock           sync.RWMutex
-	netPlugin            ocicni.CNIPlugin
-	hostportManager      hostport.HostPortManager
+	updateLock      sync.RWMutex
+	netPlugin       ocicni.CNIPlugin
+	hostportManager hostport.HostPortManager
 
 	seccompEnabled bool
 	seccompProfile seccomp.Seccomp
@@ -82,208 +75,6 @@ func (s *Server) GetPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResp
 	return s.stream.streamServer.GetPortForward(req)
 }
 
-func (s *Server) loadContainer(id string) error {
-	config, err := s.Store().FromContainerDirectory(id, "config.json")
-	if err != nil {
-		return err
-	}
-	var m rspec.Spec
-	if err = json.Unmarshal(config, &m); err != nil {
-		return err
-	}
-	labels := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
-		return err
-	}
-	name := m.Annotations[annotations.Name]
-	name, err = s.ReserveContainerName(id, name)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err != nil {
-			s.ReleaseContainerName(name)
-		}
-	}()
-
-	var metadata pb.ContainerMetadata
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
-		return err
-	}
-	sb := s.getSandbox(m.Annotations[annotations.SandboxID])
-	if sb == nil {
-		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations[annotations.SandboxID])
-	}
-
-	tty := isTrue(m.Annotations[annotations.TTY])
-	stdin := isTrue(m.Annotations[annotations.Stdin])
-	stdinOnce := isTrue(m.Annotations[annotations.StdinOnce])
-
-	containerPath, err := s.Store().ContainerRunDirectory(id)
-	if err != nil {
-		return err
-	}
-
-	containerDir, err := s.Store().ContainerDirectory(id)
-	if err != nil {
-		return err
-	}
-
-	img, ok := m.Annotations[annotations.Image]
-	if !ok {
-		img = ""
-	}
-
-	kubeAnnotations := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
-		return err
-	}
-
-	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
-	if err != nil {
-		return err
-	}
-
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, img, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.Trusted(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
-	if err != nil {
-		return err
-	}
-
-	s.ContainerStateFromDisk(ctr)
-
-	s.addContainer(ctr)
-	return s.CtrIDIndex().Add(id)
-}
-
-func configNetNsPath(spec rspec.Spec) (string, error) {
-	for _, ns := range spec.Linux.Namespaces {
-		if ns.Type != rspec.NetworkNamespace {
-			continue
-		}
-
-		if ns.Path == "" {
-			return "", fmt.Errorf("empty networking namespace")
-		}
-
-		return ns.Path, nil
-	}
-
-	return "", fmt.Errorf("missing networking namespace")
-}
-
-func (s *Server) loadSandbox(id string) error {
-	config, err := s.Store().FromContainerDirectory(id, "config.json")
-	if err != nil {
-		return err
-	}
-	var m rspec.Spec
-	if err = json.Unmarshal(config, &m); err != nil {
-		return err
-	}
-	labels := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
-		return err
-	}
-	name := m.Annotations[annotations.Name]
-	name, err = s.ReservePodName(id, name)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			s.ReleasePodName(name)
-		}
-	}()
-	var metadata pb.PodSandboxMetadata
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
-		return err
-	}
-
-	processLabel, mountLabel, err := label.InitLabels(label.DupSecOpt(m.Process.SelinuxLabel))
-	if err != nil {
-		return err
-	}
-
-	kubeAnnotations := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
-		return err
-	}
-
-	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
-	trusted := isTrue(m.Annotations[annotations.TrustedSandbox])
-
-	sb, err := sandbox.New(id, name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), "", labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], "", privileged, trusted, m.Annotations[annotations.ResolvPath], "", nil)
-	if err != nil {
-		return err
-	}
-
-	// We add a netNS only if we can load a permanent one.
-	// Otherwise, the sandbox will live in the host namespace.
-	netNsPath, err := configNetNsPath(m)
-	if err == nil {
-		nsErr := sb.NetNsJoin(netNsPath, sb.Name())
-		// If we can't load the networking namespace
-		// because it's closed, we just set the sb netns
-		// pointer to nil. Otherwise we return an error.
-		if nsErr != nil && nsErr != sandbox.ErrClosedNetNS {
-			return nsErr
-		}
-	}
-
-	s.addSandbox(sb)
-
-	defer func() {
-		if err != nil {
-			s.removeSandbox(sb.ID())
-		}
-	}()
-
-	sandboxPath, err := s.Store().ContainerRunDirectory(id)
-	if err != nil {
-		return err
-	}
-
-	sandboxDir, err := s.Store().ContainerDirectory(id)
-	if err != nil {
-		return err
-	}
-
-	cname, err := s.ReserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			s.ReleaseContainerName(cname)
-		}
-	}()
-
-	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
-	if err != nil {
-		return err
-	}
-
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, "", nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
-	if err != nil {
-		return err
-	}
-
-	s.ContainerStateFromDisk(scontainer)
-
-	if err = label.ReserveLabel(processLabel); err != nil {
-		return err
-	}
-	sb.SetInfraContainer(scontainer)
-	if err = s.CtrIDIndex().Add(scontainer.ID()); err != nil {
-		return err
-	}
-	if err = s.PodIDIndex().Add(id); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *Server) restore() {
 	containers, err := s.Store().Containers()
 	if err != nil && !os.IsNotExist(err) {
@@ -292,7 +83,7 @@ func (s *Server) restore() {
 	pods := map[string]*storage.RuntimeContainerMetadata{}
 	podContainers := map[string]*storage.RuntimeContainerMetadata{}
 	for _, container := range containers {
-		metadata, err2 := s.storageRuntimeServer.GetContainerMetadata(container.ID)
+		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(container.ID)
 		if err2 != nil {
 			logrus.Warnf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
 			continue
@@ -304,12 +95,12 @@ func (s *Server) restore() {
 		}
 	}
 	for containerID, metadata := range pods {
-		if err = s.loadSandbox(containerID); err != nil {
+		if err = s.LoadSandbox(containerID); err != nil {
 			logrus.Warnf("could not restore sandbox %s container %s: %v", metadata.PodID, containerID, err)
 		}
 	}
 	for containerID := range podContainers {
-		if err := s.loadContainer(containerID); err != nil {
+		if err := s.LoadContainer(containerID); err != nil {
 			logrus.Warnf("could not restore container %s: %v", containerID, err)
 		}
 	}
@@ -320,114 +111,9 @@ func (s *Server) restore() {
 // having been modified by other parties
 func (s *Server) Update() {
 	logrus.Debugf("updating sandbox and container information")
-	if err := s.update(); err != nil {
+	if err := s.ContainerServer.Update(); err != nil {
 		logrus.Errorf("error updating sandbox and container information: %v", err)
 	}
-}
-
-func (s *Server) update() error {
-	s.updateLock.Lock()
-	defer s.updateLock.Unlock()
-
-	containers, err := s.Store().Containers()
-	if err != nil && !os.IsNotExist(err) {
-		logrus.Warnf("could not read containers and sandboxes: %v", err)
-		return err
-	}
-	newPods := map[string]*storage.RuntimeContainerMetadata{}
-	oldPods := map[string]string{}
-	removedPods := map[string]string{}
-	newPodContainers := map[string]*storage.RuntimeContainerMetadata{}
-	oldPodContainers := map[string]string{}
-	removedPodContainers := map[string]string{}
-	for _, container := range containers {
-		if s.hasSandbox(container.ID) {
-			// FIXME: do we need to reload/update any info about the sandbox?
-			oldPods[container.ID] = container.ID
-			oldPodContainers[container.ID] = container.ID
-			continue
-		}
-		if s.getContainer(container.ID) != nil {
-			// FIXME: do we need to reload/update any info about the container?
-			oldPodContainers[container.ID] = container.ID
-			continue
-		}
-		// not previously known, so figure out what it is
-		metadata, err2 := s.storageRuntimeServer.GetContainerMetadata(container.ID)
-		if err2 != nil {
-			logrus.Errorf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
-			continue
-		}
-		if metadata.Pod {
-			newPods[container.ID] = &metadata
-		} else {
-			newPodContainers[container.ID] = &metadata
-		}
-	}
-	s.CtrIDIndex().Iterate(func(id string) {
-		if _, ok := oldPodContainers[id]; !ok {
-			// this container's ID wasn't in the updated list -> removed
-			removedPodContainers[id] = id
-		}
-	})
-	for removedPodContainer := range removedPodContainers {
-		// forget this container
-		c := s.getContainer(removedPodContainer)
-		if c == nil {
-			logrus.Warnf("bad state when getting container removed %+v", removedPodContainer)
-			continue
-		}
-		s.ReleaseContainerName(c.Name())
-		s.removeContainer(c)
-		if err = s.CtrIDIndex().Delete(c.ID()); err != nil {
-			return err
-		}
-		logrus.Debugf("forgetting removed pod container %s", c.ID())
-	}
-	s.PodIDIndex().Iterate(func(id string) {
-		if _, ok := oldPods[id]; !ok {
-			// this pod's ID wasn't in the updated list -> removed
-			removedPods[id] = id
-		}
-	})
-	for removedPod := range removedPods {
-		// forget this pod
-		sb := s.getSandbox(removedPod)
-		if sb == nil {
-			logrus.Warnf("bad state when getting pod to remove %+v", removedPod)
-			continue
-		}
-		podInfraContainer := sb.InfraContainer()
-		s.ReleaseContainerName(podInfraContainer.Name())
-		s.removeContainer(podInfraContainer)
-		if err = s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
-			return err
-		}
-		sb.RemoveInfraContainer()
-		s.ReleasePodName(sb.Name())
-		s.removeSandbox(sb.ID())
-		if err = s.PodIDIndex().Delete(sb.ID()); err != nil {
-			return err
-		}
-		logrus.Debugf("forgetting removed pod %s", sb.ID())
-	}
-	for sandboxID := range newPods {
-		// load this pod
-		if err = s.loadSandbox(sandboxID); err != nil {
-			logrus.Warnf("could not load new pod sandbox %s: %v, ignoring", sandboxID, err)
-		} else {
-			logrus.Debugf("loaded new pod sandbox %s", sandboxID, err)
-		}
-	}
-	for containerID := range newPodContainers {
-		// load this container
-		if err = s.loadContainer(containerID); err != nil {
-			logrus.Warnf("could not load new sandbox container %s: %v, ignoring", containerID, err)
-		} else {
-			logrus.Debugf("loaded new pod container %s", containerID, err)
-		}
-	}
-	return nil
 }
 
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
@@ -456,26 +142,6 @@ func (s *Server) Shutdown() error {
 
 // New creates a new Server with options provided
 func New(config *Config) (*Server, error) {
-	store, err := cstorage.GetStore(cstorage.StoreOptions{
-		RunRoot:            config.RunRoot,
-		GraphRoot:          config.Root,
-		GraphDriverName:    config.Storage,
-		GraphDriverOptions: config.StorageOptions,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries)
-	if err != nil {
-		return nil, err
-	}
-
-	storageRuntimeService := storage.GetRuntimeService(imageService, config.PauseImage)
-	if err != nil {
-		return nil, err
-	}
-
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
 		return nil, err
 	}
@@ -493,14 +159,14 @@ func New(config *Config) (*Server, error) {
 	hostportManager := hostport.NewHostportManager()
 
 	s := &Server{
-		ContainerServer:      *containerServer,
-		storageRuntimeServer: storageRuntimeService,
-		netPlugin:            netPlugin,
-		hostportManager:      hostportManager,
-		config:               *config,
-		seccompEnabled:       seccomp.IsEnabled(),
-		appArmorEnabled:      apparmor.IsEnabled(),
-		appArmorProfile:      config.ApparmorProfile,
+		ContainerServer: containerServer,
+
+		netPlugin:       netPlugin,
+		hostportManager: hostportManager,
+		config:          *config,
+		seccompEnabled:  seccomp.IsEnabled(),
+		appArmorEnabled: apparmor.IsEnabled(),
+		appArmorProfile: config.ApparmorProfile,
 	}
 
 	if s.seccompEnabled {
