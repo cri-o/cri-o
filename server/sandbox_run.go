@@ -19,6 +19,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -162,7 +163,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		namespace,
 		attempt,
 		nil)
-	if err == storage.ErrDuplicateName {
+	if errors.Cause(err) == storage.ErrDuplicateName {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
 	}
 	if err != nil {

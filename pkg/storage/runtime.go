@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -175,7 +175,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		}
 	}
 	img, err := istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
-	if img == nil && err == storage.ErrImageUnknown && imageName == r.pauseImage {
+	if img == nil && errors.Cause(err) == storage.ErrImageUnknown && imageName == r.pauseImage {
 		image := imageID
 		if imageName != "" {
 			image = imageName
@@ -194,7 +194,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		}
 		logrus.Debugf("successfully pulled image %q", image)
 	}
-	if img == nil && err == storage.ErrImageUnknown {
+	if img == nil && errors.Cause(err) == storage.ErrImageUnknown {
 		if imageID == "" {
 			return ContainerInfo{}, fmt.Errorf("image %q not present in image store", imageName)
 		}
@@ -331,7 +331,7 @@ func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, pod
 func (r *runtimeService) RemovePodSandbox(idOrName string) error {
 	container, err := r.storageImageServer.GetStore().Container(idOrName)
 	if err != nil {
-		if err == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrContainerUnknown {
 			return ErrInvalidSandboxID
 		}
 		return err
@@ -384,7 +384,7 @@ func (r *runtimeService) GetContainerMetadata(idOrName string) (RuntimeContainer
 func (r *runtimeService) StartContainer(idOrName string) (string, error) {
 	container, err := r.storageImageServer.GetStore().Container(idOrName)
 	if err != nil {
-		if err == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrContainerUnknown {
 			return "", ErrInvalidContainerID
 		}
 		return "", err
@@ -422,7 +422,7 @@ func (r *runtimeService) StopContainer(idOrName string) error {
 func (r *runtimeService) GetWorkDir(id string) (string, error) {
 	container, err := r.storageImageServer.GetStore().Container(id)
 	if err != nil {
-		if err == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrContainerUnknown {
 			return "", ErrInvalidContainerID
 		}
 		return "", err
@@ -433,7 +433,7 @@ func (r *runtimeService) GetWorkDir(id string) (string, error) {
 func (r *runtimeService) GetRunDir(id string) (string, error) {
 	container, err := r.storageImageServer.GetStore().Container(id)
 	if err != nil {
-		if err == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrContainerUnknown {
 			return "", ErrInvalidContainerID
 		}
 		return "", err
