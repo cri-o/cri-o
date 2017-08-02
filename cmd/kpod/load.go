@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libpod/common"
 	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -16,6 +15,7 @@ import (
 type loadOptions struct {
 	input string
 	quiet bool
+	image string
 }
 
 var (
@@ -54,12 +54,15 @@ func loadCmd(c *cli.Context) error {
 	}
 
 	args := c.Args()
-	if len(args) > 0 {
+	var image string
+	if len(args) == 1 {
+		image = args[0]
+	}
+	if len(args) > 1 {
 		return errors.New("too many arguments. Requires exactly 1")
 	}
 
 	input := c.String("input")
-	quiet := c.Bool("quiet")
 
 	if input == "/dev/stdin" {
 		fi, err := os.Stdin.Stat()
@@ -92,7 +95,8 @@ func loadCmd(c *cli.Context) error {
 
 	opts := loadOptions{
 		input: input,
-		quiet: quiet,
+		quiet: c.Bool("quiet"),
+		image: image,
 	}
 
 	return loadImage(store, opts)
@@ -101,9 +105,21 @@ func loadCmd(c *cli.Context) error {
 // loadImage loads the image from docker-archive or oci to containers-storage
 // using the pullImage function
 func loadImage(store storage.Store, opts loadOptions) error {
-	systemContext := common.GetSystemContext("")
+	loadOpts := images.CopyOptions{
+		Quiet: opts.quiet,
+		Store: store,
+	}
 
-	src := dockerArchive + opts.input
-
-	return images.PullImage(store, src, false, opts.quiet, systemContext)
+	src := images.DockerArchive + ":" + opts.input
+	if err := images.PullImage(src, false, loadOpts); err != nil {
+		src = images.OCIArchive + ":" + opts.input
+		// generate full src name with specified image:tag
+		if opts.image != "" {
+			src = src + ":" + opts.image
+		}
+		if err := images.PullImage(src, false, loadOpts); err != nil {
+			return errors.Wrapf(err, "error pulling from %q", opts.input)
+		}
+	}
+	return nil
 }

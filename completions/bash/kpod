@@ -332,6 +332,7 @@ _kpod_version() {
 _kpod_save() {
      local options_with_args="
      --output -o
+     --format
      "
      local boolean_options="
      --quiet -q
