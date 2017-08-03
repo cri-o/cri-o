@@ -553,6 +553,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if image == "" {
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
 	}
+	images, err := s.StorageImageServer().ResolveNames(image)
+	if err != nil {
+		// This means we got an image ID
+		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
+			images = append(images, image)
+		} else {
+			return nil, err
+		}
+	}
+	image = images[0]
 
 	// bind mount the pod shm
 	specgen.AddBindMount(sb.ShmPath(), "/dev/shm", []string{"rw"})

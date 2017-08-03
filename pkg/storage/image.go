@@ -1,7 +1,10 @@
 package storage
 
 import (
+	"errors"
 	"net"
+	"path/filepath"
+	"strings"
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
@@ -31,6 +34,7 @@ type imageService struct {
 	defaultTransport      string
 	insecureRegistryCIDRs []*net.IPNet
 	indexConfigs          map[string]*indexInfo
+	registries            []string
 }
 
 // ImageServer wraps up various CRI-related activities into a reusable
@@ -50,6 +54,9 @@ type ImageServer interface {
 	GetStore() storage.Store
 	// CanPull preliminary checks whether we're allowed to pull an image
 	CanPull(imageName string, options *copy.Options) (bool, error)
+	// ResolveNames takes an image reference and if it's unqualified (w/o hostname),
+	// it uses crio's default registries to qualify it.
+	ResolveNames(imageName string) ([]string, error)
 }
 
 func (svc *imageService) ListImages(filter string) ([]ImageResult, error) {
@@ -271,11 +278,47 @@ func (svc *imageService) isSecureIndex(indexName string) bool {
 	return true
 }
 
+func isValidHostname(hostname string) bool {
+	return hostname != "" && !strings.Contains(hostname, "/") &&
+		(strings.Contains(hostname, ".") ||
+			strings.Contains(hostname, ":") || hostname == "localhost")
+}
+
+func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
+	r, err := reference.ParseNormalizedNamed(imageName)
+	if err != nil {
+		return nil, err
+	}
+	domain, rest := splitDomain(r.Name())
+	if len(domain) != 0 && isValidHostname(domain) {
+		// this means the image is already fully qualified
+		return []string{imageName}, nil
+	}
+	// we got an unqualified image here, we can't go ahead w/o registries configured
+	// properly.
+	if len(svc.registries) == 0 {
+		return nil, errors.New("no registries configured while trying to pull an unqualified image")
+	}
+	// this means we got an image in the form of "busybox"
+	// we need to use additional registries...
+	// normalize the unqualified image to be domain/repo/image...
+	images := []string{}
+	for _, r := range svc.registries {
+		path := rest
+		if !isValidHostname(domain) {
+			// This is the case where we have an image like "runcom/busybox"
+			path = imageName
+		}
+		images = append(images, filepath.Join(r, path))
+	}
+	return images, nil
+}
+
 // GetImageService returns an ImageServer that uses the passed-in store, and
 // which will prepend the passed-in defaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(store storage.Store, defaultTransport string, insecureRegistries []string) (ImageServer, error) {
+func GetImageService(store storage.Store, defaultTransport string, insecureRegistries []string, registries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
 		store, err = storage.GetStore(storage.DefaultStoreOptions)
@@ -284,11 +327,22 @@ func GetImageService(store storage.Store, defaultTransport string, insecureRegis
 		}
 	}
 
+	seenRegistries := make(map[string]bool, len(registries))
+	cleanRegistries := []string{}
+	for _, r := range registries {
+		if seenRegistries[r] {
+			continue
+		}
+		cleanRegistries = append(cleanRegistries, r)
+		seenRegistries[r] = true
+	}
+
 	is := &imageService{
 		store:                 store,
 		defaultTransport:      defaultTransport,
 		indexConfigs:          make(map[string]*indexInfo, 0),
 		insecureRegistryCIDRs: make([]*net.IPNet, 0),
+		registries:            cleanRegistries,
 	}
 
 	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")

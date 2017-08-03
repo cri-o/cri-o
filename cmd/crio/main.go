@@ -81,6 +81,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("insecure-registry") {
 		config.InsecureRegistries = ctx.GlobalStringSlice("insecure-registry")
 	}
+	if ctx.GlobalIsSet("registry") {
+		config.Registries = ctx.GlobalStringSlice("registry")
+	}
 	if ctx.GlobalIsSet("default-transport") {
 		config.DefaultTransport = ctx.GlobalString("default-transport")
 	}
@@ -226,6 +229,10 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "insecure-registry",
 			Usage: "whether to disable TLS verification for the given registry",
+		},
+		cli.StringSliceFlag{
+			Name:  "registry",
+			Usage: "registry to be prepended when pulling unqualified images, can be specified multiple times",
 		},
 		cli.StringFlag{
 			Name:  "default-transport",
