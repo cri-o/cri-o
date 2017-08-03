@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
@@ -301,7 +302,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	logPath := filepath.Join(logDir, id+".log")
 
 	// Handle https://issues.k8s.io/44043
-	if err := ensureSaneLogPath(logPath); err != nil {
+	if err := libkpod.EnsureSaneLogPath(logPath); err != nil {
 		return nil, err
 	}
 
@@ -443,7 +444,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if !s.seccompEnabled {
+	if !s.SeccompEnabled() {
 		g.Spec().Linux.Seccomp = nil
 	}
 

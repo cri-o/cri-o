@@ -3,6 +3,7 @@ package libkpod
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -17,6 +18,8 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/registrar"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
+	"github.com/kubernetes-incubator/cri-o/server/apparmor"
+	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -40,6 +43,12 @@ type ContainerServer struct {
 	stateLock    sync.Locker
 	state        *containerServerState
 	config       *Config
+
+	seccompEnabled bool
+	seccompProfile seccomp.Seccomp
+
+	appArmorEnabled bool
+	appArmorProfile string
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -92,6 +101,11 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 	return c.storageRuntimeServer
 }
 
+// SeccompEnabled returns whether seccomp is enabled for this configuration
+func (c *ContainerServer) SeccompEnabled() bool {
+	return c.seccompEnabled
+}
+
 // New creates a new ContainerServer with options provided
 func New(config *Config) (*ContainerServer, error) {
 	store, err := cstorage.GetStore(cstorage.StoreOptions{
@@ -130,6 +144,23 @@ func New(config *Config) (*ContainerServer, error) {
 		lock = new(sync.Mutex)
 	}
 
+	var seccompConfig seccomp.Seccomp
+	if seccomp.IsEnabled() {
+		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
+		if fileErr != nil {
+			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, fileErr)
+		}
+		if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
+			return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
+		}
+	}
+
+	if apparmor.IsEnabled() && config.ApparmorProfile == apparmor.DefaultApparmorProfile {
+		if apparmorErr := apparmor.EnsureDefaultApparmorProfile(); apparmorErr != nil {
+			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", apparmorErr)
+		}
+	}
+
 	return &ContainerServer{
 		runtime:              runtime,
 		store:                store,
@@ -145,7 +176,11 @@ func New(config *Config) (*ContainerServer, error) {
 			containers: oci.NewMemoryStore(),
 			sandboxes:  make(map[string]*sandbox.Sandbox),
 		},
-		config: config,
+		config:          config,
+		seccompEnabled:  seccomp.IsEnabled(),
+		seccompProfile:  seccompConfig,
+		appArmorEnabled: apparmor.IsEnabled(),
+		appArmorProfile: config.ApparmorProfile,
 	}, nil
 }
 
