@@ -86,8 +86,6 @@ WORKDIR /go/src/github.com/kubernetes-incubator/cri-o
 
 ADD . /go/src/github.com/kubernetes-incubator/cri-o
 
-RUN make .install.ostree
-
 RUN make test/copyimg/copyimg \
 	&& mkdir -p .artifacts/redis-image \
 	&& ./test/copyimg/copyimg --import-from=docker://redis --export-to=dir:.artifacts/redis-image --signature-policy ./test/policy.json
