@@ -2,7 +2,6 @@ package libkpod
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,6 +26,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -43,17 +43,17 @@ func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, 
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
 		if dest == "" {
-			return fmt.Errorf("Mount.ContainerPath is empty")
+			return errors.Wrapf(unix.EINVAL, "mount destination path is empty")
 		}
 
 		src := mount.HostPath
 		if src == "" {
-			return fmt.Errorf("Mount.HostPath is empty")
+			return errors.Wrapf(unix.EINVAL, "mount host path is empty")
 		}
 
 		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
-				return fmt.Errorf("Failed to mkdir %s: %s", src, err)
+				return errors.Wrapf(err, "failed to make directory %s for volume", src)
 			}
 		}
 
@@ -65,7 +65,7 @@ func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
 			if err := label.Relabel(src, sb.MountLabel(), true); err != nil && err != unix.ENOTSUP {
-				return fmt.Errorf("relabel failed %s: %v", src, err)
+				return errors.Wrapf(err, "relabel of directory %s failed", src)
 			}
 		}
 
@@ -83,19 +83,19 @@ func addImageVolumes(rootfs string, imageVolumes ImageVolumesType, containerInfo
 		}
 		switch imageVolumes {
 		case ImageVolumesMkdir:
-			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
-				return err1
+			if err := os.MkdirAll(fp, 0644); err != nil {
+				return err
 			}
 		case ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
-			if err1 := os.MkdirAll(src, 0644); err1 != nil {
-				return err1
+			if err := os.MkdirAll(src, 0644); err != nil {
+				return err
 			}
 			// Label the source with the sandbox selinux mount label
 			if mountLabel != "" {
-				if err1 := label.Relabel(src, mountLabel, true); err1 != nil && err1 != unix.ENOTSUP {
-					return fmt.Errorf("relabel failed %s: %v", src, err1)
+				if err := label.Relabel(src, mountLabel, true); err != nil && err != unix.ENOTSUP {
+					return errors.Wrapf(err, "relabel of directory %s failed", src)
 				}
 			}
 
@@ -163,7 +163,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 	}
 
 	if len(kubeCommands) == 0 && len(kubeArgs) == 0 {
-		return nil, fmt.Errorf("no command specified")
+		return nil, errors.Wrapf(unix.EINVAL, "no command specified")
 	}
 
 	// create entrypoint and args
@@ -210,9 +210,9 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 		logrus.Debugf("CONTAINER USER: %+v", containerUser)
 
 		// Add uid, gid and groups from user
-		uid, gid, addGroups, err1 := getUserInfo(rootfs, containerUser)
-		if err1 != nil {
-			return err1
+		uid, gid, addGroups, err := getUserInfo(rootfs, containerUser)
+		if err != nil {
+			return err
 		}
 
 		logrus.Debugf("UID: %v, GID: %v, Groups: %+v", uid, gid, addGroups)
@@ -253,11 +253,9 @@ func EnsureSaneLogPath(logPath string) error {
 		return nil
 	}
 
-	_, err = os.Stat(logPath)
-	if os.IsNotExist(err) {
-		err = os.RemoveAll(logPath)
-		if err != nil {
-			return fmt.Errorf("EnsureSaneLogPath remove bad logPath: %s", err)
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+		if err2 := os.RemoveAll(logPath); err2 != nil {
+			return errors.Wrapf(err2, "error removing bad log path %s", logPath)
 		}
 	}
 	return nil
@@ -272,28 +270,28 @@ func (c *ContainerServer) ContainerCreate(ctx context.Context, req *pb.CreateCon
 
 	sbID := req.PodSandboxId
 	if sbID == "" {
-		return nil, fmt.Errorf("PodSandboxId should not be empty")
+		return nil, errors.Wrapf(unix.EINVAL, "PodSandboxId should not be empty")
 	}
 
 	sandboxID, err := c.podIDIndex.Get(sbID)
 	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+		return nil, errors.Wrapf(err, "PodSandbox with ID %s not found", sbID)
 	}
 
 	sb := c.GetSandbox(sandboxID)
 	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
+		return nil, errors.Wrapf(unix.ENOENT, "specified sandbox %s not found", sandboxID)
 	}
 
 	// The config of the container
 	containerConfig := req.GetConfig()
 	if containerConfig == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig is nil")
+		return nil, errors.Wrapf(unix.EINVAL, "CreateContainerRequest.ContainerConfig cannot be nil")
 	}
 
 	name := containerConfig.GetMetadata().Name
 	if name == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
+		return nil, errors.Wrapf(unix.EINVAL, "CreateContainerRequest.ContainerConfig.Name cannot be empty")
 	}
 
 	containerID, containerName, err := c.generateContainerIDandName(sb.Metadata(), containerConfig)
@@ -342,7 +340,7 @@ func (c *ContainerServer) ContainerCreate(ctx context.Context, req *pb.CreateCon
 
 func (c *ContainerServer) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
-		return nil, errors.New("createSandboxContainer needs a sandbox")
+		return nil, errors.Wrapf(unix.EINVAL, "createSandboxContainer needs a sandbox")
 	}
 
 	// TODO: simplify this function (cyclomatic complexity here is high)
@@ -407,7 +405,7 @@ func (c *ContainerServer) createSandboxContainer(ctx context.Context, containerI
 		logPath = filepath.Join(sb.LogDir(), containerID+".log")
 	}
 	if !filepath.IsAbs(logPath) {
-		// XXX: It's not really clear what this should be versus the sbox logDirectory.
+		// TODO: It's not really clear what this should be versus the sbox logDirectory.
 		logrus.Warnf("requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
 		logPath = filepath.Join(sb.LogDir(), logPath)
 	}
@@ -540,12 +538,12 @@ func (c *ContainerServer) createSandboxContainer(ctx context.Context, containerI
 
 	imageSpec := containerConfig.GetImage()
 	if imageSpec == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image is nil")
+		return nil, errors.Wrapf(unix.EINVAL, "CreateContainerRequest.ContainerConfig.Image cannot be nil")
 	}
 
 	image := imageSpec.Image
 	if image == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
+		return nil, errors.Wrapf(unix.EINVAL, "CreateContainerRequest.ContainerConfig.Image.Image cannot be empty")
 	}
 	images, err := c.storageImageServer.ResolveNames(image)
 	if err != nil {
@@ -631,12 +629,12 @@ func (c *ContainerServer) createSandboxContainer(ctx context.Context, containerI
 
 	mountPoint, err := c.storageRuntimeServer.StartContainer(containerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
+		return nil, errors.Wrapf(err, "failed to mount container %s(%s)", containerName, containerID)
 	}
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
-		return nil, fmt.Errorf("empty image config for %s", image)
+		return nil, errors.Wrapf(unix.ENOENT, "empty image config for image %s", image)
 	}
 
 	if containerImageConfig.Config.StopSignal != "" {
@@ -739,7 +737,7 @@ func (c *ContainerServer) setupSeccomp(specgen *generate.Generator, cname string
 	}
 	if !c.seccompEnabled {
 		if profile != seccompUnconfined {
-			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
+			return errors.Wrapf(unix.ENOTSUP, "seccomp is not enabled in your kernel, cannot run with a profile")
 		}
 		logrus.Warn("seccomp is not enabled in your kernel, running container without profile")
 	}
@@ -752,7 +750,7 @@ func (c *ContainerServer) setupSeccomp(specgen *generate.Generator, cname string
 		return seccomp.LoadProfileFromStruct(c.seccompProfile, specgen)
 	}
 	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
-		return fmt.Errorf("unknown seccomp profile option: %q", profile)
+		return errors.Wrapf(unix.EINVAL, "unknown seccomp profile option: %q", profile)
 	}
 	//file, err := ioutil.ReadFile(filepath.Join(s.seccompProfileRoot, strings.TrimPrefix(profile, seccompLocalhostPrefix)))
 	//if err != nil {
@@ -783,9 +781,15 @@ func (c *ContainerServer) getAppArmorProfileName(annotations map[string]string, 
 func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
 	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, path), rootfs)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "unable to follow symlink path for %q", path)
 	}
-	return os.Open(fp)
+
+	file, err := os.Open(fp)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to open file %q", path)
+	}
+
+	return file, nil
 }
 
 // getUserInfo returns UID, GID and additional groups for specified user

@@ -146,12 +146,12 @@ func New(config *Config) (*ContainerServer, error) {
 
 	var seccompConfig seccomp.Seccomp
 	if seccomp.IsEnabled() {
-		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
-		if fileErr != nil {
-			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, fileErr)
+		seccompProfile, err := ioutil.ReadFile(config.SeccompProfile)
+		if err != nil {
+			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, err)
 		}
-		if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
-			return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
+		if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
+			return nil, fmt.Errorf("decoding seccomp profile failed: %v", err)
 		}
 	}
 
