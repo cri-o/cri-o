@@ -408,10 +408,7 @@ EOF
 }
 
 function check_pod_cidr() {
-        fullnetns=`crioctl pod status --id $1 | grep namespace | cut -d ' ' -f 3`
-	netns=`basename $fullnetns`
-
-	run ip netns exec $netns ip addr show dev eth0 scope global 2>&1
+	run crioctl ctr execsync --id $1 ip addr show dev eth0 scope global 2>&1
 	echo "$output"
 	[ "$status" -eq 0  ]
 	[[ "$output" =~ $POD_CIDR_MASK  ]]
@@ -435,8 +432,7 @@ function get_host_ip() {
 }
 
 function ping_pod() {
-	netns=`crioctl pod status --id $1 | grep namespace | cut -d ' ' -f 3`
-	inet=`ip netns exec \`basename $netns\` ip addr show dev eth0 scope global | grep inet`
+	inet=`crioctl ctr execsync --id $1 ip addr show dev eth0 scope global 2>&1 | grep inet`
 
 	IFS=" "
 	ip=`parse_pod_ip $inet`
@@ -447,12 +443,14 @@ function ping_pod() {
 }
 
 function ping_pod_from_pod() {
-	pod_ip=`crioctl pod status --id $1 | grep "IP Address" | cut -d ' ' -f 3`
-	netns=`crioctl pod status --id $2 | grep namespace | cut -d ' ' -f 3`
+	inet=`crioctl ctr execsync --id $1 ip addr show dev eth0 scope global 2>&1 | grep inet`
 
-	ip netns exec `basename $netns` ping -W 1 -c 2 $pod_ip
+	IFS=" "
+	ip=`parse_pod_ip $inet`
 
-	echo $?
+	run crioctl ctr execsync --id $2 ping -W 1 -c 2 $ip
+	echo "$output"
+	[ "$status" -eq 0   ]
 }
 
 

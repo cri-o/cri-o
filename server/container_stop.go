@@ -6,7 +6,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
