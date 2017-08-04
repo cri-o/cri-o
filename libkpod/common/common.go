@@ -1,13 +1,19 @@
 package common
 
 import (
-	"errors"
 	"io"
 	"strings"
+	"syscall"
 
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
+)
+
+var (
+	// ErrNoPassword is returned if the user did not supply a password
+	ErrNoPassword = errors.Wrapf(syscall.EINVAL, "password was not supplied")
 )
 
 // GetCopyOptions constructs a new containers/image/copy.Options{} struct from the given parameters
@@ -78,7 +84,10 @@ func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 		return nil, errors.New("no credentials supplied")
 	}
 	if !strings.Contains(creds, ":") {
-		return nil, errors.New("user name supplied, but no password supplied")
+		return &types.DockerAuthConfig{
+			Username: creds,
+			Password: "",
+		}, ErrNoPassword
 	}
 	v := strings.SplitN(creds, ":", 2)
 	cfg := &types.DockerAuthConfig{

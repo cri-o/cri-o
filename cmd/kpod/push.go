@@ -10,6 +10,7 @@ import (
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -88,7 +89,16 @@ func pushCmd(c *cli.Context) error {
 	if registryCredsString != "" {
 		creds, err := common.ParseRegistryCreds(registryCredsString)
 		if err != nil {
-			return err
+			if err == common.ErrNoPassword {
+				fmt.Print("Password: ")
+				password, err := terminal.ReadPassword(0)
+				if err != nil {
+					return errors.Wrapf(err, "could not read password from terminal")
+				}
+				creds.Password = string(password)
+			} else {
+				return err
+			}
 		}
 		registryCreds = creds
 	}
