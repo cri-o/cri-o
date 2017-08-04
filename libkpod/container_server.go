@@ -20,6 +20,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/pkg/errors"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
@@ -156,7 +157,7 @@ func (c *ContainerServer) Update() error {
 	defer c.updateLock.Unlock()
 
 	containers, err := c.store.Containers()
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && !os.IsNotExist(errors.Cause(err)) {
 		logrus.Warnf("could not read containers and sandboxes: %v", err)
 		return err
 	}

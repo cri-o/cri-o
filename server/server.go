@@ -16,6 +16,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
+	"github.com/pkg/errors"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
@@ -77,7 +78,7 @@ func (s *Server) GetPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResp
 
 func (s *Server) restore() {
 	containers, err := s.Store().Containers()
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && !os.IsNotExist(errors.Cause(err)) {
 		logrus.Warnf("could not read containers and sandboxes: %v", err)
 	}
 	pods := map[string]*storage.RuntimeContainerMetadata{}

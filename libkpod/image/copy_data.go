@@ -365,7 +365,7 @@ func GetContainerCopyData(store storage.Store, name string) (*CopyData, error) {
 	var err error
 	if name != "" {
 		data, err = openCopyData(store, name)
-		if os.IsNotExist(err) {
+		if os.IsNotExist(errors.Cause(err)) {
 			data, err = importCopyData(store, name, "")
 		}
 	}

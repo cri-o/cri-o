@@ -8,6 +8,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
@@ -75,7 +76,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	s.removeContainer(podInfraContainer)
 
 	// Remove the files related to the sandbox
-	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && err != storage.ErrContainerUnknown {
+	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
 	if err := s.StorageRuntimeServer().RemovePodSandbox(sb.ID()); err != nil && err != pkgstorage.ErrInvalidSandboxID {
