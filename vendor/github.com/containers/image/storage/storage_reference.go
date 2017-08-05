@@ -3,11 +3,11 @@ package storage
 import (
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // A storageReference holds an arbitrary name and/or an ID, which is a 32-byte

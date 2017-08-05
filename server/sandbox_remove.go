@@ -3,12 +3,12 @@ package server
 import (
 	"fmt"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )

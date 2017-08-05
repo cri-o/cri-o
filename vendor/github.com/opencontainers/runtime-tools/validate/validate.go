@@ -14,9 +14,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/blang/semver"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 )
 
@@ -96,22 +96,31 @@ func NewValidatorFromPath(bundlePath string, hostSpecific bool, platform string)
 // CheckAll checks all parts of runtime bundle
 func (v *Validator) CheckAll() (msgs []string) {
 	msgs = append(msgs, v.CheckPlatform()...)
-	msgs = append(msgs, v.CheckRootfsPath()...)
+	msgs = append(msgs, v.CheckRoot()...)
 	msgs = append(msgs, v.CheckMandatoryFields()...)
 	msgs = append(msgs, v.CheckSemVer()...)
 	msgs = append(msgs, v.CheckMounts()...)
 	msgs = append(msgs, v.CheckProcess()...)
 	msgs = append(msgs, v.CheckHooks()...)
-	if v.spec.Linux != nil {
-		msgs = append(msgs, v.CheckLinux()...)
-	}
+	msgs = append(msgs, v.CheckLinux()...)
 
 	return
 }
 
-// CheckRootfsPath checks status of v.spec.Root.Path
-func (v *Validator) CheckRootfsPath() (msgs []string) {
-	logrus.Debugf("check rootfs path")
+// CheckRoot checks status of v.spec.Root
+func (v *Validator) CheckRoot() (msgs []string) {
+	logrus.Debugf("check root")
+
+	if v.platform == "windows" && v.spec.Windows.HyperV != nil {
+		if v.spec.Root != nil {
+			msgs = append(msgs, fmt.Sprintf("for Hyper-V containers, Root must not be set"))
+			return
+		}
+		return
+	} else if v.spec.Root == nil {
+		msgs = append(msgs, fmt.Sprintf("for non-Hyper-V containers, Root must be set"))
+		return
+	}
 
 	absBundlePath, err := filepath.Abs(v.bundlePath)
 	if err != nil {
@@ -210,6 +219,10 @@ func checkEventHooks(hookType string, hooks []rspec.Hook, hostSpecific bool) (ms
 // CheckProcess checks v.spec.Process
 func (v *Validator) CheckProcess() (msgs []string) {
 	logrus.Debugf("check process")
+
+	if v.spec.Process == nil {
+		return
+	}
 
 	process := v.spec.Process
 	if !filepath.IsAbs(process.Cwd) {
@@ -424,6 +437,10 @@ func (v *Validator) CheckPlatform() (msgs []string) {
 // CheckLinux checks v.spec.Linux
 func (v *Validator) CheckLinux() (msgs []string) {
 	logrus.Debugf("check linux")
+
+	if v.spec.Linux == nil {
+		return
+	}
 
 	var typeList = map[rspec.LinuxNamespaceType]struct {
 		num      int

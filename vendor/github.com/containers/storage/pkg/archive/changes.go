@@ -13,10 +13,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/system"
+	"github.com/sirupsen/logrus"
 )
 
 // ChangeType represents the change type.

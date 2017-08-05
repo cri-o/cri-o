@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"io"
 	"time"
 
@@ -121,7 +122,7 @@ type ImageSource interface {
 	// The Digest field in BlobInfo is guaranteed to be provided; Size may be -1.
 	GetBlob(BlobInfo) (io.ReadCloser, int64, error)
 	// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-	GetSignatures() ([][]byte, error)
+	GetSignatures(context.Context) ([][]byte, error)
 }
 
 // ImageDestination is a service, possibly remote (= slow), to store components of a single image.
@@ -204,7 +205,7 @@ type UnparsedImage interface {
 	// Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
 	Manifest() ([]byte, string, error)
 	// Signatures is like ImageSource.GetSignatures, but the result is cached; it is OK to call this however often you need.
-	Signatures() ([][]byte, error)
+	Signatures(ctx context.Context) ([][]byte, error)
 }
 
 // Image is the primary API for inspecting properties of images.

@@ -341,6 +341,13 @@ func (g *Generator) RemoveAnnotation(key string) {
 	delete(g.spec.Annotations, key)
 }
 
+// SetProcessConsoleSize sets g.spec.Process.ConsoleSize.
+func (g *Generator) SetProcessConsoleSize(width, height uint) {
+	g.initSpecProcessConsoleSize()
+	g.spec.Process.ConsoleSize.Width = width
+	g.spec.Process.ConsoleSize.Height = height
+}
+
 // SetProcessUID sets g.spec.Process.User.UID.
 func (g *Generator) SetProcessUID(uid uint32) {
 	g.initSpecProcess()

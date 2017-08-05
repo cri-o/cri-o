@@ -17,13 +17,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/promise"
 	"github.com/containers/storage/pkg/system"
+	"github.com/sirupsen/logrus"
 )
 
 type (

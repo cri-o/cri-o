@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/homedir"
@@ -23,6 +23,7 @@ import (
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -254,24 +255,25 @@ func newDockerClient(ctx *types.SystemContext, ref dockerReference, write bool, 
 
 // makeRequest creates and executes a http.Request with the specified parameters, adding authentication and TLS options for the Docker client.
 // The host name and schema is taken from the client or autodetected, and the path is relative to it, i.e. the path usually starts with /v2/.
-func (c *dockerClient) makeRequest(method, path string, headers map[string][]string, stream io.Reader) (*http.Response, error) {
-	if err := c.detectProperties(); err != nil {
+func (c *dockerClient) makeRequest(ctx context.Context, method, path string, headers map[string][]string, stream io.Reader) (*http.Response, error) {
+	if err := c.detectProperties(ctx); err != nil {
 		return nil, err
 	}
 
 	url := fmt.Sprintf("%s://%s%s", c.scheme, c.registry, path)
-	return c.makeRequestToResolvedURL(method, url, headers, stream, -1, true)
+	return c.makeRequestToResolvedURL(ctx, method, url, headers, stream, -1, true)
 }
 
 // makeRequestToResolvedURL creates and executes a http.Request with the specified parameters, adding authentication and TLS options for the Docker client.
 // streamLen, if not -1, specifies the length of the data expected on stream.
 // makeRequest should generally be preferred.
 // TODO(runcom): too many arguments here, use a struct
-func (c *dockerClient) makeRequestToResolvedURL(method, url string, headers map[string][]string, stream io.Reader, streamLen int64, sendAuth bool) (*http.Response, error) {
+func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url string, headers map[string][]string, stream io.Reader, streamLen int64, sendAuth bool) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, stream)
 	if err != nil {
 		return nil, err
 	}
+	req = req.WithContext(ctx)
 	if streamLen != -1 { // Do not blindly overwrite if streamLen == -1, http.NewRequest above can figure out the length of bytes.Reader and similar objects without us having to compute it.
 		req.ContentLength = streamLen
 	}
@@ -323,7 +325,7 @@ func (c *dockerClient) setupRequestAuth(req *http.Request) error {
 				}
 				service, _ := challenge.Parameters["service"] // Will be "" if not present
 				scope := fmt.Sprintf("repository:%s:%s", c.scope.remoteName, c.scope.actions)
-				token, err := c.getBearerToken(realm, service, scope)
+				token, err := c.getBearerToken(req.Context(), realm, service, scope)
 				if err != nil {
 					return err
 				}
@@ -340,11 +342,12 @@ func (c *dockerClient) setupRequestAuth(req *http.Request) error {
 	return nil
 }
 
-func (c *dockerClient) getBearerToken(realm, service, scope string) (*bearerToken, error) {
+func (c *dockerClient) getBearerToken(ctx context.Context, realm, service, scope string) (*bearerToken, error) {
 	authReq, err := http.NewRequest("GET", realm, nil)
 	if err != nil {
 		return nil, err
 	}
+	authReq = authReq.WithContext(ctx)
 	getParams := authReq.URL.Query()
 	if service != "" {
 		getParams.Add("service", service)
@@ -447,14 +450,14 @@ func getAuth(ctx *types.SystemContext, registry string) (string, string, error) 
 
 // detectProperties detects various properties of the registry.
 // See the dockerClient documentation for members which are affected by this.
-func (c *dockerClient) detectProperties() error {
+func (c *dockerClient) detectProperties(ctx context.Context) error {
 	if c.scheme != "" {
 		return nil
 	}
 
 	ping := func(scheme string) error {
 		url := fmt.Sprintf(resolvedPingV2URL, scheme, c.registry)
-		resp, err := c.makeRequestToResolvedURL("GET", url, nil, nil, -1, true)
+		resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, true)
 		logrus.Debugf("Ping %s err %#v", url, err)
 		if err != nil {
 			return err
@@ -481,7 +484,7 @@ func (c *dockerClient) detectProperties() error {
 		// best effort to understand if we're talking to a V1 registry
 		pingV1 := func(scheme string) bool {
 			url := fmt.Sprintf(resolvedPingV1URL, scheme, c.registry)
-			resp, err := c.makeRequestToResolvedURL("GET", url, nil, nil, -1, true)
+			resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, true)
 			logrus.Debugf("Ping %s err %#v", url, err)
 			if err != nil {
 				return false
@@ -506,9 +509,9 @@ func (c *dockerClient) detectProperties() error {
 
 // getExtensionsSignatures returns signatures from the X-Registry-Supports-Signatures API extension,
 // using the original data structures.
-func (c *dockerClient) getExtensionsSignatures(ref dockerReference, manifestDigest digest.Digest) (*extensionSignatureList, error) {
+func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerReference, manifestDigest digest.Digest) (*extensionSignatureList, error) {
 	path := fmt.Sprintf(extensionsSignaturePath, reference.Path(ref.ref), manifestDigest)
-	res, err := c.makeRequest("GET", path, nil, nil)
+	res, err := c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return nil, err
 	}

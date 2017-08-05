@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 

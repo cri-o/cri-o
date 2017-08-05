@@ -2,6 +2,7 @@ package image
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -9,7 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	is "github.com/containers/image/storage"
@@ -22,6 +22,7 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // CopyRef handles image references used for copying images to/from remotes
@@ -415,7 +416,7 @@ func (cs *copySource) Reference() types.ImageReference {
 	return cs.ref
 }
 
-func (cs *copySource) GetSignatures() ([][]byte, error) {
+func (cs *copySource) GetSignatures(context.Context) ([][]byte, error) {
 	return nil, nil
 }
 

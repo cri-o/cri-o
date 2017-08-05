@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"math/rand"
 	"strings"
-
-	"github.com/docker/docker/pkg/random"
 )
 
 // GenerateRandomAlphaOnlyString generates an alphabetical random string with length n.
@@ -15,7 +13,7 @@ func GenerateRandomAlphaOnlyString(n int) string {
 	letters := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letters[random.Rand.Intn(len(letters))]
+		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
 }
@@ -77,7 +75,7 @@ func quote(word string, buf *bytes.Buffer) {
 	for i := 0; i < len(word); i++ {
 		b := word[i]
 		if b == '\'' {
-			// Replace literal ' with a close ', a \', and a open '
+			// Replace literal ' with a close ', a \', and an open '
 			buf.WriteString("'\\''")
 		} else {
 			buf.WriteByte(b)

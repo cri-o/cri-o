@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
@@ -21,6 +21,7 @@ import (
 	"github.com/docker/distribution/registry/client"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var manifestMIMETypes = []string{
@@ -75,7 +76,7 @@ func (d *dockerImageDestination) SupportedManifestMIMETypes() []string {
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 // Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
 func (d *dockerImageDestination) SupportsSignatures() error {
-	if err := d.c.detectProperties(); err != nil {
+	if err := d.c.detectProperties(context.TODO()); err != nil {
 		return err
 	}
 	switch {
@@ -132,7 +133,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	// FIXME? Chunked upload, progress reporting, etc.
 	uploadPath := fmt.Sprintf(blobUploadPath, reference.Path(d.ref.ref))
 	logrus.Debugf("Uploading %s", uploadPath)
-	res, err := d.c.makeRequest("POST", uploadPath, nil, nil)
+	res, err := d.c.makeRequest(context.TODO(), "POST", uploadPath, nil, nil)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -149,7 +150,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	digester := digest.Canonical.Digester()
 	sizeCounter := &sizeCounter{}
 	tee := io.TeeReader(stream, io.MultiWriter(digester.Hash(), sizeCounter))
-	res, err = d.c.makeRequestToResolvedURL("PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, true)
+	res, err = d.c.makeRequestToResolvedURL(context.TODO(), "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, true)
 	if err != nil {
 		logrus.Debugf("Error uploading layer chunked, response %#v", res)
 		return types.BlobInfo{}, err
@@ -168,7 +169,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	// TODO: check inputInfo.Digest == computedDigest https://github.com/containers/image/pull/70#discussion_r77646717
 	locationQuery.Set("digest", computedDigest.String())
 	uploadLocation.RawQuery = locationQuery.Encode()
-	res, err = d.c.makeRequestToResolvedURL("PUT", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, nil, -1, true)
+	res, err = d.c.makeRequestToResolvedURL(context.TODO(), "PUT", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, nil, -1, true)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -193,7 +194,7 @@ func (d *dockerImageDestination) HasBlob(info types.BlobInfo) (bool, int64, erro
 	checkPath := fmt.Sprintf(blobsPath, reference.Path(d.ref.ref), info.Digest.String())
 
 	logrus.Debugf("Checking %s", checkPath)
-	res, err := d.c.makeRequest("HEAD", checkPath, nil, nil)
+	res, err := d.c.makeRequest(context.TODO(), "HEAD", checkPath, nil, nil)
 	if err != nil {
 		return false, -1, err
 	}
@@ -239,7 +240,7 @@ func (d *dockerImageDestination) PutManifest(m []byte) error {
 	if mimeType != "" {
 		headers["Content-Type"] = []string{mimeType}
 	}
-	res, err := d.c.makeRequest("PUT", path, headers, bytes.NewReader(m))
+	res, err := d.c.makeRequest(context.TODO(), "PUT", path, headers, bytes.NewReader(m))
 	if err != nil {
 		return err
 	}
@@ -275,7 +276,7 @@ func (d *dockerImageDestination) PutSignatures(signatures [][]byte) error {
 	if len(signatures) == 0 {
 		return nil
 	}
-	if err := d.c.detectProperties(); err != nil {
+	if err := d.c.detectProperties(context.TODO()); err != nil {
 		return err
 	}
 	switch {
@@ -396,7 +397,7 @@ func (d *dockerImageDestination) putSignaturesToAPIExtension(signatures [][]byte
 	// always adds signatures.  Eventually we should also allow removing signatures,
 	// but the X-Registry-Supports-Signatures API extension does not support that yet.
 
-	existingSignatures, err := d.c.getExtensionsSignatures(d.ref, d.manifestDigest)
+	existingSignatures, err := d.c.getExtensionsSignatures(context.TODO(), d.ref, d.manifestDigest)
 	if err != nil {
 		return err
 	}
@@ -438,7 +439,7 @@ sigExists:
 		}
 
 		path := fmt.Sprintf(extensionsSignaturePath, reference.Path(d.ref.ref), d.manifestDigest.String())
-		res, err := d.c.makeRequest("PUT", path, nil, bytes.NewReader(body))
+		res, err := d.c.makeRequest(context.TODO(), "PUT", path, nil, bytes.NewReader(body))
 		if err != nil {
 			return err
 		}

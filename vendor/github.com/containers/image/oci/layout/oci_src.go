@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
 	"os"
@@ -85,6 +86,6 @@ func (s *ociImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, err
 	return r, fi.Size(), nil
 }
 
-func (s *ociImageSource) GetSignatures() ([][]byte, error) {
+func (s *ociImageSource) GetSignatures(context.Context) ([][]byte, error) {
 	return [][]byte{}, nil
 }

@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	cstorage "github.com/containers/storage"
-	"github.com/docker/docker/pkg/registrar"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/pkg/registrar"
 	"github.com/pkg/errors"
 )
 
