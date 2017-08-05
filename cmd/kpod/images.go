@@ -151,7 +151,7 @@ func outputImages(store storage.Store, images []storage.Image, format string, ha
 		if quiet {
 			fmt.Printf("%-64s\n", img.ID)
 			// We only want to print each id once
-			break
+			continue
 		}
 
 		params := imageOutputParams{

@@ -44,13 +44,21 @@ func ParseFilter(store storage.Store, filter string) (*FilterParams, error) {
 			params.label = pair[1]
 		case "before":
 			if img, err := findImageInSlice(images, pair[1]); err == nil {
-				params.beforeImage = img.Created
+				info, err := getImageInspectInfo(store, img)
+				if err != nil {
+					return nil, err
+				}
+				params.beforeImage = info.Created
 			} else {
 				return nil, fmt.Errorf("no such id: %s", pair[0])
 			}
 		case "since":
 			if img, err := findImageInSlice(images, pair[1]); err == nil {
-				params.sinceImage = img.Created
+				info, err := getImageInspectInfo(store, img)
+				if err != nil {
+					return nil, err
+				}
+				params.sinceImage = info.Created
 			} else {
 				return nil, fmt.Errorf("no such id: %s``", pair[0])
 			}
@@ -68,20 +76,10 @@ func matchesFilter(store storage.Store, image storage.Image, name string, params
 		return true
 	}
 
-	storeRef, err := is.Transport.ParseStoreReference(store, "@"+image.ID)
+	info, err := getImageInspectInfo(store, image)
 	if err != nil {
 		return false
 	}
-	img, err := storeRef.NewImage(nil)
-	if err != nil {
-		return false
-	}
-	defer img.Close()
-	info, err := img.Inspect()
-	if err != nil {
-		return false
-	}
-
 	if params.dangling != "" && !matchesDangling(name, params.dangling) {
 		return false
 	} else if params.label != "" && !matchesLabel(info, store, params.label) {
@@ -151,7 +149,7 @@ func MatchesID(id, argID string) bool {
 // But redis:alpine, ry/redis, library, and io/library/redis will not
 func MatchesReference(name, argName string) bool {
 	if argName == "" {
-		return true
+		return false
 	}
 	splitName := strings.Split(name, ":")
 	// If the arg contains a tag, we handle it differently than if it does not
@@ -273,7 +271,7 @@ func GetImagesMatchingFilter(store storage.Store, filter *FilterParams, argName 
 			names = append(names, "<none>")
 		}
 		for _, name := range names {
-			if filter == nil || (matchesFilter(store, image, name, filter) || MatchesReference(name, argName)) {
+			if (filter == nil && argName == "") || (filter != nil && matchesFilter(store, image, name, filter)) || MatchesReference(name, argName) {
 				newImage := image
 				newImage.Names = []string{name}
 				filteredImages = append(filteredImages, newImage)
@@ -281,4 +279,17 @@ func GetImagesMatchingFilter(store storage.Store, filter *FilterParams, argName 
 		}
 	}
 	return filteredImages, nil
+}
+
+func getImageInspectInfo(store storage.Store, image storage.Image) (*types.ImageInspectInfo, error) {
+	storeRef, err := is.Transport.ParseStoreReference(store, "@"+image.ID)
+	if err != nil {
+		return nil, err
+	}
+	img, err := storeRef.NewImage(nil)
+	if err != nil {
+		return nil, err
+	}
+	defer img.Close()
+	return img.Inspect()
 }
