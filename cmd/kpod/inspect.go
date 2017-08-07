@@ -81,7 +81,7 @@ func inspectCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "Could not get config")
 	}
-	store, err := getStore(config)
+	server, err := libkpod.New(config)
 	if err != nil {
 		return err
 	}
@@ -89,19 +89,19 @@ func inspectCmd(c *cli.Context) error {
 	var data interface{}
 	switch itemType {
 	case inspectTypeContainer:
-		data, err = libkpod.GetContainerData(store, name, size)
+		data, err = server.GetContainerData(name, size)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing container data")
 		}
 	case inspectTypeImage:
-		data, err = libkpodimage.GetImageData(store, name)
+		data, err = libkpodimage.GetImageData(server.Store(), name)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing image data")
 		}
 	case inspectAll:
-		ctrData, err := libkpod.GetContainerData(store, name, size)
+		ctrData, err := server.GetContainerData(name, size)
 		if err != nil {
-			imgData, err := libkpodimage.GetImageData(store, name)
+			imgData, err := libkpodimage.GetImageData(server.Store(), name)
 			if err != nil {
 				return errors.Wrapf(err, "error parsing image data")
 			}
