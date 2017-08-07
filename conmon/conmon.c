@@ -884,7 +884,8 @@ static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
 static char *setup_console_socket(void)
 {
 	struct sockaddr_un addr = {0};
-	char csname[PATH_MAX] = "/tmp/conmon-term.XXXXXXXX";
+	_cleanup_free_ const char *tmpdir = g_get_tmp_dir();
+	_cleanup_free_ char *csname = g_build_filename(tmpdir, "conmon-term.XXXXXX", NULL);
 	/*
 	 * Generate a temporary name. Is this unsafe? Probably, but we can
 	 * replace it with a rename(2) setup if necessary.
@@ -908,7 +909,7 @@ static char *setup_console_socket(void)
 		pexit("Failed to change console-socket permissions");
 	/* XXX: This should be handled with a rename(2). */
 	if (unlink(csname) < 0)
-		pexit("Failed to unlink temporary ranom path");
+		pexit("Failed to unlink temporary random path");
 	if (bind(console_socket_fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
 		pexit("Failed to bind to console-socket");
 	if (listen(console_socket_fd, 128) < 0)
@@ -1116,7 +1117,7 @@ int main(int argc, char *argv[])
 	   the parent is waiting for the stdout to end when the intermediate
 	   child dies */
 	if (dup2(dev_null_r, STDIN_FILENO) < 0)
-		pexit("Failed to dup over stdout");
+		pexit("Failed to dup over stdin");
 	if (dup2(dev_null_w, STDOUT_FILENO) < 0)
 		pexit("Failed to dup over stdout");
 	if (dup2(dev_null_w, STDERR_FILENO) < 0)
