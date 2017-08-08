@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
+	kpoderr "github.com/kubernetes-incubator/cri-o/libkpod/errors"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
@@ -27,6 +27,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -43,12 +44,12 @@ func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, 
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
 		if dest == "" {
-			return errors.Wrapf(unix.EINVAL, "mount destination path is empty")
+			return errors.Wrapf(kpoderr.ErrInvalidArg, "mount destination path is empty")
 		}
 
 		src := mount.HostPath
 		if src == "" {
-			return errors.Wrapf(unix.EINVAL, "mount host path is empty")
+			return errors.Wrapf(kpoderr.ErrInvalidArg, "mount host path is empty")
 		}
 
 		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
@@ -163,7 +164,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 	}
 
 	if len(kubeCommands) == 0 && len(kubeArgs) == 0 {
-		return nil, errors.Wrapf(unix.EINVAL, "no command specified")
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "no command specified")
 	}
 
 	// create entrypoint and args
@@ -270,7 +271,7 @@ func (c *ContainerServer) ContainerCreate(ctx context.Context, req *pb.CreateCon
 
 	sbID := req.PodSandboxId
 	if sbID == "" {
-		return nil, errors.Wrapf(unix.EINVAL, "PodSandboxId should not be empty")
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "PodSandboxId should not be empty")
 	}
 
 	sandboxID, err := c.podIDIndex.Get(sbID)
@@ -280,18 +281,18 @@ func (c *ContainerServer) ContainerCreate(ctx context.Context, req *pb.CreateCon
 
 	sb := c.GetSandbox(sandboxID)
 	if sb == nil {
-		return nil, errors.Wrapf(unix.ENOENT, "specified sandbox %s not found", sandboxID)
+		return nil, errors.Wrapf(kpoderr.ErrNoSuchSandbox, "specified sandbox %s not found", sandboxID)
 	}
 
 	// The config of the container
 	containerConfig := req.GetConfig()
 	if containerConfig == nil {
-		return nil, errors.Wrapf(unix.EINVAL, "CreateContainerRequest.ContainerConfig cannot be nil")
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "CreateContainerRequest.ContainerConfig cannot be nil")
 	}
 
 	name := containerConfig.GetMetadata().Name
 	if name == "" {
-		return nil, errors.Wrapf(unix.EINVAL, "CreateContainerRequest.ContainerConfig.Name cannot be empty")
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "CreateContainerRequest.ContainerConfig.Name cannot be empty")
 	}
 
 	containerID, containerName, err := c.generateContainerIDandName(sb.Metadata(), containerConfig)
@@ -340,7 +341,7 @@ func (c *ContainerServer) ContainerCreate(ctx context.Context, req *pb.CreateCon
 
 func (c *ContainerServer) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
-		return nil, errors.Wrapf(unix.EINVAL, "createSandboxContainer needs a sandbox")
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "createSandboxContainer needs a sandbox")
 	}
 
 	// TODO: simplify this function (cyclomatic complexity here is high)
@@ -538,12 +539,12 @@ func (c *ContainerServer) createSandboxContainer(ctx context.Context, containerI
 
 	imageSpec := containerConfig.GetImage()
 	if imageSpec == nil {
-		return nil, errors.Wrapf(unix.EINVAL, "CreateContainerRequest.ContainerConfig.Image cannot be nil")
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "CreateContainerRequest.ContainerConfig.Image cannot be nil")
 	}
 
 	image := imageSpec.Image
 	if image == "" {
-		return nil, errors.Wrapf(unix.EINVAL, "CreateContainerRequest.ContainerConfig.Image.Image cannot be empty")
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "CreateContainerRequest.ContainerConfig.Image.Image cannot be empty")
 	}
 	images, err := c.storageImageServer.ResolveNames(image)
 	if err != nil {
@@ -634,7 +635,7 @@ func (c *ContainerServer) createSandboxContainer(ctx context.Context, containerI
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
-		return nil, errors.Wrapf(unix.ENOENT, "empty image config for image %s", image)
+		return nil, errors.Wrapf(kpoderr.ErrInternal, "empty image config for image %s", image)
 	}
 
 	if containerImageConfig.Config.StopSignal != "" {
@@ -737,7 +738,7 @@ func (c *ContainerServer) setupSeccomp(specgen *generate.Generator, cname string
 	}
 	if !c.seccompEnabled {
 		if profile != seccompUnconfined {
-			return errors.Wrapf(unix.ENOTSUP, "seccomp is not enabled in your kernel, cannot run with a profile")
+			return errors.Wrapf(kpoderr.ErrNotSupported, "seccomp is not enabled in your kernel, cannot run with a profile")
 		}
 		logrus.Warn("seccomp is not enabled in your kernel, running container without profile")
 	}
@@ -750,7 +751,7 @@ func (c *ContainerServer) setupSeccomp(specgen *generate.Generator, cname string
 		return seccomp.LoadProfileFromStruct(c.seccompProfile, specgen)
 	}
 	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
-		return errors.Wrapf(unix.EINVAL, "unknown seccomp profile option: %q", profile)
+		return errors.Wrapf(kpoderr.ErrInvalidArg, "unknown seccomp profile option: %q", profile)
 	}
 	//file, err := ioutil.ReadFile(filepath.Join(s.seccompProfileRoot, strings.TrimPrefix(profile, seccompLocalhostPrefix)))
 	//if err != nil {
