@@ -71,6 +71,48 @@ _kpod_pull() {
     _complete_ "$options_with_args" "$boolean_options"
 }
 
+_kpod_unmount() {
+    _kpod_umount $@
+}
+
+_kpod_umount() {
+    local boolean_options="
+    --help
+    -h
+ "
+    local options_with_args="
+ "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
+_kpod_mount() {
+    local boolean_options="
+    --help
+    -h
+    --notruncate
+ "
+
+    local options_with_args="
+    --label
+    --format
+ "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
 _kpod_push() {
     local boolean_options="
      --disable-compression
@@ -175,15 +217,18 @@ _kpod_kpod() {
 	   --help -h
      "
      commands="
+    history
     images
     launch
+    load
+    mount
+    pull
     push
     rmi
     tag
+    umount
+    unmount
     version
-    pull
-    history
-    load
      "
 
      case "$prev" in

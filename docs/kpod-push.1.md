@@ -10,7 +10,7 @@ kpod push - Push an image from local storage to elsewhere
 
 ## DESCRIPTION
 Pushes an image from local storage to a specified destination, decompressing
-and recompessing layers as needed.
+and recompressing layers as needed.
 
 ## imageID
 Image stored in local container/storage
