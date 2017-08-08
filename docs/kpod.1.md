@@ -36,7 +36,7 @@ has the capability to debug pods/images created by crio.
    Path to the 'run directory' where all state information is stored
 
 **--runtime**=**value**
-    Path to the OCI-compatible binary used to run containers
+    Path to the OCI compatible binary used to run containers
 
 **--storage-driver, -s**=**value**
    Select which storage driver is used to manage storage of images and containers (default is overlay)
@@ -81,6 +81,9 @@ Push an image from local storage to elsewhere
 
 ### rename
 Rename a container
+
+### rm
+Remove one or more containers
 
 ### rmi
 Removes one or more locally stored images

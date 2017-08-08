@@ -35,6 +35,7 @@ func main() {
 		pullCommand,
 		pushCommand,
 		renameCommand,
+		rmCommand,
 		rmiCommand,
 		saveCommand,
 		tagCommand,
