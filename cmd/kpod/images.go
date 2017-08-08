@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -110,7 +109,7 @@ func imagesCmd(c *cli.Context) error {
 
 func genImagesFormat(quiet, truncate, digests bool) (format string) {
 	if quiet {
-		return "{{.ID}}"
+		return formats.IDString
 	}
 	if truncate {
 		format = "table {{ .ID | printf \"%-20.12s\" }} "
@@ -197,7 +196,7 @@ func (i *imageOutputParams) headerMap() map[string]string {
 		if value == "ID" || value == "Name" {
 			value = "Image" + value
 		}
-		values[key] = fmt.Sprintf("%s        ", strings.ToUpper(splitCamelCase(value)))
+		values[key] = strings.ToUpper(splitCamelCase(value))
 	}
 	return values
 }
