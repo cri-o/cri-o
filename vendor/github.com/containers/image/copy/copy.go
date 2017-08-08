@@ -3,6 +3,7 @@ package copy
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,6 @@ import (
 
 	pb "gopkg.in/cheggaaa/pb.v1"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/image"
 	"github.com/containers/image/pkg/compression"
 	"github.com/containers/image/signature"
@@ -21,6 +21,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type digestingReader struct {
@@ -171,7 +172,7 @@ func Image(policyContext *signature.PolicyContext, destRef, srcRef types.ImageRe
 		sigs = [][]byte{}
 	} else {
 		writeReport("Getting image source signatures\n")
-		s, err := src.Signatures()
+		s, err := src.Signatures(context.TODO())
 		if err != nil {
 			return errors.Wrap(err, "Error reading signatures")
 		}

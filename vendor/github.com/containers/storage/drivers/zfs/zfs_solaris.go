@@ -20,9 +20,9 @@ import (
 	"strings"
 	"unsafe"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/containers/storage/drivers"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 func checkRootdirFs(rootdir string) error {

@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
@@ -21,6 +20,7 @@ import (
 	zfs "github.com/mistifyio/go-zfs"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type zfsOptions struct {

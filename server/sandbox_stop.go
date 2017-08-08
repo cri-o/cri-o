@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
@@ -12,6 +11,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"

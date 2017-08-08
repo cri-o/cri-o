@@ -8,7 +8,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -17,6 +16,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"

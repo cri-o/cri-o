@@ -8,7 +8,6 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage"
@@ -16,6 +15,7 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 

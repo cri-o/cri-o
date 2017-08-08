@@ -2309,7 +2309,7 @@ type tomlConfig struct {
 func init() {
 	DefaultStoreOptions.RunRoot = "/var/run/containers/storage"
 	DefaultStoreOptions.GraphRoot = "/var/lib/containers/storage"
-	DefaultStoreOptions.GraphDriverName = "overlay"
+	DefaultStoreOptions.GraphDriverName = ""
 
 	data, err := ioutil.ReadFile(configFile)
 	if err != nil {

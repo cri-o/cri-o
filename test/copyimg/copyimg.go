@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/copy"
 	"github.com/containers/image/signature"
 	"github.com/containers/image/storage"
@@ -11,6 +10,7 @@ import (
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 

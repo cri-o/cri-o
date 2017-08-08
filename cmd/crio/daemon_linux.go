@@ -3,8 +3,8 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
 	systemdDaemon "github.com/coreos/go-systemd/daemon"
+	"github.com/sirupsen/logrus"
 )
 
 func sdNotify() {

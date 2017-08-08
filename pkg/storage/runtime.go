@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/copy"
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (

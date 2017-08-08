@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/containers/storage/drivers"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func checkRootdirFs(rootdir string) error {
