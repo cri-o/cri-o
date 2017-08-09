@@ -66,10 +66,6 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	}
 
 	for _, ctr := range ctrList {
-		if err := s.Runtime().UpdateStatus(ctr); err != nil {
-			return nil, err
-		}
-
 		podSandboxID := ctr.Sandbox()
 		cState := s.Runtime().ContainerStatus(ctr)
 		created := cState.Created.UnixNano()
