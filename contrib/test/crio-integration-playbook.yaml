@@ -257,15 +257,26 @@
   - name: Move all xunit files into one dir to scp
     shell: 'mv /root/src/github.com/kubernetes-incubator/cri-o/test/TestReport-bats*.xml /root/src/github.com/kubernetes-incubator/cri-o/reports/'
     when: xunit
+    # k8s builds with go1.8.x, rhel, fedora don't have it yet
+  - name: install Golang upstream in Fedora/RHEL
+    shell: |
+            curl -fsSL "https://golang.org/dl/go1.8.3.linux-amd64.tar.gz" \
+            | tar -xzC /usr/local
+    when: ansible_distribution == 'Fedora' or ansible_distribution == 'RedHat'
+  - name: Set custom Golang path for Fedora/RHEL
+    lineinfile:
+      dest: /root/.bashrc
+      line: 'export PATH=/usr/local/go/bin:$PATH'
+      insertafter: 'EOF'
+      regexp: 'export PATH=/usr/local/go/bin:$PATH'
+      state: present
+    when: ansible_distribution == 'Fedora' or ansible_distribution == 'RedHat'
   # XXX: kube tests from now on
-  # TODO: remove custom repo origin and put kube master back after PR #510
-  #       we need this because of node-e2e tests failing on RHEL otherwise
-  #       For more info see issue #529
   - name: git clone k8s repo
     git:
-      repo: https://github.com/runcom/kubernetes
+      repo: https://github.com/kubernetes/kubernetes
       dest: /root/src/k8s.io/kubernetes
-      version: custom-RHEL-node-e2e
+      version: v1.7.3
       force: yes
     async: 600
     poll: 10
