@@ -130,7 +130,7 @@ func New(config *Config) (*ContainerServer, error) {
 		lock = new(sync.Mutex)
 	}
 
-	return &ContainerServer{
+	c := &ContainerServer{
 		runtime:              runtime,
 		store:                store,
 		storageImageServer:   imageService,
@@ -146,7 +146,8 @@ func New(config *Config) (*ContainerServer, error) {
 			sandboxes:  make(map[string]*sandbox.Sandbox),
 		},
 		config: config,
-	}, nil
+	}
+	return c, c.Update()
 }
 
 // Update makes changes to the server's state (lists of pods and containers) to
