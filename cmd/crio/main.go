@@ -285,6 +285,15 @@ func main() {
 			Value: 6060,
 			Usage: "port for the pprof profiler",
 		},
+		cli.BoolFlag{
+			Name:  "enable-metrics",
+			Usage: "enable metrics endpoint for the servier on localhost:9090",
+		},
+		cli.IntFlag{
+			Name:  "metrics-port",
+			Value: 9090,
+			Usage: "port for the metrics endpoint",
+		},
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))
@@ -372,6 +381,23 @@ func main() {
 		service, err := server.New(config)
 		if err != nil {
 			logrus.Fatal(err)
+		}
+
+		if c.GlobalBool("enable-metrics") {
+			metricsPort := c.GlobalInt("metrics-port")
+			me, err := service.CreateMetricsEndpoint()
+			if err != nil {
+				logrus.Fatalf("Failed to create metrics endpoint: %v", err)
+			}
+			l, err := net.Listen("tcp", fmt.Sprintf(":%v", metricsPort))
+			if err != nil {
+				logrus.Fatalf("Failed to create listener for metrics: %v", err)
+			}
+			go func() {
+				if err := http.Serve(l, me); err != nil {
+					logrus.Fatalf("Failed to serve metrics endpoint: %v", err)
+				}
+			}()
 		}
 
 		graceful := false

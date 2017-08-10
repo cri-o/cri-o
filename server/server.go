@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"sync"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -275,4 +277,12 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
 	}
 	return sb, nil
+}
+
+// CreateMetricsEndpoint creates a /metrics endpoint
+// for prometheus monitoring
+func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
+	mux := &http.ServeMux{}
+	mux.Handle("/metrics", prometheus.Handler())
+	return mux, nil
 }
