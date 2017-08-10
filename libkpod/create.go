@@ -1,0 +1,828 @@
+package libkpod
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/docker/docker/pkg/stringid"
+	"github.com/docker/docker/pkg/symlink"
+	kpoderr "github.com/kubernetes-incubator/cri-o/libkpod/errors"
+	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
+	"github.com/kubernetes-incubator/cri-o/pkg/storage"
+	"github.com/kubernetes-incubator/cri-o/server/apparmor"
+	"github.com/kubernetes-incubator/cri-o/server/seccomp"
+	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/devices"
+	"github.com/opencontainers/runc/libcontainer/user"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
+	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+)
+
+const (
+	seccompUnconfined      = "unconfined"
+	seccompRuntimeDefault  = "runtime/default"
+	seccompLocalhostPrefix = "localhost/"
+)
+
+func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+	mounts := containerConfig.GetMounts()
+	for _, mount := range mounts {
+		dest := mount.ContainerPath
+		if dest == "" {
+			return errors.Wrapf(kpoderr.ErrInvalidArg, "mount destination path is empty")
+		}
+
+		src := mount.HostPath
+		if src == "" {
+			return errors.Wrapf(kpoderr.ErrInvalidArg, "mount host path is empty")
+		}
+
+		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
+			if err1 := os.MkdirAll(src, 0644); err1 != nil {
+				return errors.Wrapf(err, "failed to make directory %s for volume", src)
+			}
+		}
+
+		options := []string{"rw"}
+		if mount.Readonly {
+			options = []string{"ro"}
+		}
+
+		if mount.SelinuxRelabel {
+			// Need a way in kubernetes to determine if the volume is shared or private
+			if err := label.Relabel(src, sb.MountLabel(), true); err != nil && err != unix.ENOTSUP {
+				return errors.Wrapf(err, "relabel of directory %s failed", src)
+			}
+		}
+
+		specgen.AddBindMount(src, dest, options)
+	}
+
+	return nil
+}
+
+func addImageVolumes(rootfs string, imageVolumes ImageVolumesType, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) error {
+	for dest := range containerInfo.Config.Config.Volumes {
+		fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, dest), rootfs)
+		if err != nil {
+			return err
+		}
+		switch imageVolumes {
+		case ImageVolumesMkdir:
+			if err := os.MkdirAll(fp, 0644); err != nil {
+				return err
+			}
+		case ImageVolumesBind:
+			volumeDirName := stringid.GenerateNonCryptoID()
+			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
+			if err := os.MkdirAll(src, 0644); err != nil {
+				return err
+			}
+			// Label the source with the sandbox selinux mount label
+			if mountLabel != "" {
+				if err := label.Relabel(src, mountLabel, true); err != nil && err != unix.ENOTSUP {
+					return errors.Wrapf(err, "relabel of directory %s failed", src)
+				}
+			}
+
+			logrus.Debugf("Adding bind mounted volume: %s to %s", src, dest)
+			specgen.AddBindMount(src, dest, []string{"rw"})
+		case ImageVolumesIgnore:
+			logrus.Debugf("Ignoring volume %v", dest)
+		default:
+			logrus.Fatalf("Unrecognized image volumes setting")
+		}
+	}
+	return nil
+}
+
+func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+	sp := specgen.Spec()
+	for _, device := range containerConfig.GetDevices() {
+		dev, err := devices.DeviceFromPath(device.HostPath, device.Permissions)
+		if err != nil {
+			return fmt.Errorf("failed to add device: %v", err)
+		}
+		rd := rspec.LinuxDevice{
+			Path:  device.ContainerPath,
+			Type:  string(dev.Type),
+			Major: dev.Major,
+			Minor: dev.Minor,
+			UID:   &dev.Uid,
+			GID:   &dev.Gid,
+		}
+		specgen.AddDevice(rd)
+		sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
+			Allow:  true,
+			Type:   string(dev.Type),
+			Major:  &dev.Major,
+			Minor:  &dev.Minor,
+			Access: dev.Permissions,
+		})
+	}
+	return nil
+}
+
+// buildOCIProcessArgs build an OCI compatible process arguments slice.
+func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
+	//# Start the nginx container using the default command, but use custom
+	//arguments (arg1 .. argN) for that command.
+	//kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
+
+	//# Start the nginx container using a different command and custom arguments.
+	//kubectl run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>
+
+	kubeCommands := containerKubeConfig.Command
+	kubeArgs := containerKubeConfig.Args
+
+	// merge image config and kube config
+	// same as docker does today...
+	if imageOCIConfig != nil {
+		if len(kubeCommands) == 0 {
+			if len(kubeArgs) == 0 {
+				kubeArgs = imageOCIConfig.Config.Cmd
+			}
+			if kubeCommands == nil {
+				kubeCommands = imageOCIConfig.Config.Entrypoint
+			}
+		}
+	}
+
+	if len(kubeCommands) == 0 && len(kubeArgs) == 0 {
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "no command specified")
+	}
+
+	// create entrypoint and args
+	var entrypoint string
+	var args []string
+	if len(kubeCommands) != 0 {
+		entrypoint = kubeCommands[0]
+		args = append(kubeCommands[1:], kubeArgs...)
+	} else {
+		entrypoint = kubeArgs[0]
+		args = kubeArgs[1:]
+	}
+
+	processArgs := append([]string{entrypoint}, args...)
+
+	logrus.Debugf("OCI process args %v", processArgs)
+
+	return processArgs, nil
+}
+
+// setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
+func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
+	if sc != nil {
+		containerUser := ""
+		// Case 1: run as user is set by kubelet
+		if sc.RunAsUser != nil {
+			containerUser = strconv.FormatInt(sc.GetRunAsUser().Value, 10)
+		} else {
+			// Case 2: run as username is set by kubelet
+			userName := sc.RunAsUsername
+			if userName != "" {
+				containerUser = userName
+			} else {
+				// Case 3: get user from image config
+				if imageConfig != nil {
+					imageUser := imageConfig.Config.User
+					if imageUser != "" {
+						containerUser = imageUser
+					}
+				}
+			}
+		}
+
+		logrus.Debugf("CONTAINER USER: %+v", containerUser)
+
+		// Add uid, gid and groups from user
+		uid, gid, addGroups, err := getUserInfo(rootfs, containerUser)
+		if err != nil {
+			return err
+		}
+
+		logrus.Debugf("UID: %v, GID: %v, Groups: %+v", uid, gid, addGroups)
+		specgen.SetProcessUID(uid)
+		specgen.SetProcessGID(gid)
+		for _, group := range addGroups {
+			specgen.AddProcessAdditionalGid(group)
+		}
+
+		// Add groups from CRI
+		groups := sc.SupplementalGroups
+		for _, group := range groups {
+			specgen.AddProcessAdditionalGid(uint32(group))
+		}
+	}
+	return nil
+}
+
+func hostNetwork(containerConfig *pb.ContainerConfig) bool {
+	securityContext := containerConfig.GetLinux().GetSecurityContext()
+	if securityContext == nil || securityContext.GetNamespaceOptions() == nil {
+		return false
+	}
+
+	return securityContext.GetNamespaceOptions().HostNetwork
+}
+
+// EnsureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes
+// logPath to be a broken symlink to some magical Docker path. Ideally we
+// wouldn't have to deal with this, but until that issue is fixed we have to
+// remove the path if it's a broken symlink.
+func EnsureSaneLogPath(logPath string) error {
+	// If the path exists but the resolved path does not, then we have a broken
+	// symlink and we need to remove it.
+	fi, err := os.Lstat(logPath)
+	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		// Non-existant files and non-symlinks aren't our problem.
+		return nil
+	}
+
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+		if err2 := os.RemoveAll(logPath); err2 != nil {
+			return errors.Wrapf(err2, "error removing bad log path %s", logPath)
+		}
+	}
+	return nil
+}
+
+// ContainerCreate creates a new container in specified sandbox
+func (c *ContainerServer) ContainerCreate(ctx context.Context, req *pb.CreateContainerRequest) (ctr *oci.Container, err error) {
+	logrus.Debugf("CreateContainerRequest %+v", req)
+
+	c.updateLock.RLock()
+	defer c.updateLock.RUnlock()
+
+	sbID := req.PodSandboxId
+	if sbID == "" {
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "PodSandboxId should not be empty")
+	}
+
+	sandboxID, err := c.podIDIndex.Get(sbID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "PodSandbox with ID %s not found", sbID)
+	}
+
+	sb := c.GetSandbox(sandboxID)
+	if sb == nil {
+		return nil, errors.Wrapf(kpoderr.ErrNoSuchSandbox, "specified sandbox %s not found", sandboxID)
+	}
+
+	// The config of the container
+	containerConfig := req.GetConfig()
+	if containerConfig == nil {
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "CreateContainerRequest.ContainerConfig cannot be nil")
+	}
+
+	name := containerConfig.GetMetadata().Name
+	if name == "" {
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "CreateContainerRequest.ContainerConfig.Name cannot be empty")
+	}
+
+	containerID, containerName, err := c.generateContainerIDandName(sb.Metadata(), containerConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			c.ReleaseContainerName(containerName)
+		}
+	}()
+
+	container, err := c.createSandboxContainer(ctx, containerID, containerName, sb, req.GetSandboxConfig(), containerConfig)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			err2 := c.storageRuntimeServer.DeleteContainer(containerID)
+			if err2 != nil {
+				logrus.Warnf("Failed to cleanup container directory: %v", err2)
+			}
+		}
+	}()
+
+	if err = c.runtime.CreateContainer(container, sb.CgroupParent()); err != nil {
+		return nil, err
+	}
+
+	if err = c.runtime.UpdateStatus(container); err != nil {
+		return nil, err
+	}
+
+	c.AddContainer(container)
+
+	if err = c.ctrIDIndex.Add(containerID); err != nil {
+		c.RemoveContainer(container)
+		return nil, err
+	}
+
+	c.ContainerStateToDisk(container)
+
+	return container, nil
+}
+
+func (c *ContainerServer) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+	if sb == nil {
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "createSandboxContainer needs a sandbox")
+	}
+
+	// TODO: simplify this function (cyclomatic complexity here is high)
+	// TODO: factor generating/updating the spec into something other projects can vendor
+
+	// creates a spec Generator with the default spec.
+	specgen := generate.New()
+	specgen.HostSpecific = true
+	specgen.ClearProcessRlimits()
+
+	if err := addOCIBindMounts(sb, containerConfig, &specgen); err != nil {
+		return nil, err
+	}
+
+	// Add cgroup mount so container process can introspect its own limits
+	specgen.AddCgroupsMount("ro")
+
+	if err := addDevices(sb, containerConfig, &specgen); err != nil {
+		return nil, err
+	}
+
+	labels := containerConfig.GetLabels()
+
+	metadata := containerConfig.GetMetadata()
+
+	kubeAnnotations := containerConfig.GetAnnotations()
+	if kubeAnnotations != nil {
+		for k, v := range kubeAnnotations {
+			specgen.AddAnnotation(k, v)
+		}
+	}
+
+	// set this container's apparmor profile if it is set by sandbox
+	if c.appArmorEnabled {
+		appArmorProfileName := c.getAppArmorProfileName(sb.Annotations(), metadata.Name)
+		if appArmorProfileName != "" {
+			// reload default apparmor profile if it is unloaded.
+			if c.appArmorProfile == apparmor.DefaultApparmorProfile {
+				if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
+					return nil, err
+				}
+			}
+
+			specgen.SetProcessApparmorProfile(appArmorProfileName)
+		}
+	}
+	var readOnlyRootfs bool
+	if containerConfig.GetLinux().GetSecurityContext() != nil {
+		if containerConfig.GetLinux().GetSecurityContext().Privileged {
+			specgen.SetupPrivileged(true)
+		}
+
+		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
+			readOnlyRootfs = true
+			specgen.SetRootReadonly(true)
+		}
+	}
+
+	logPath := containerConfig.LogPath
+	if logPath == "" {
+		// TODO: Should we use sandboxConfig.GetLogDirectory() here?
+		logPath = filepath.Join(sb.LogDir(), containerID+".log")
+	}
+	if !filepath.IsAbs(logPath) {
+		// TODO: It's not really clear what this should be versus the sbox logDirectory.
+		logrus.Warnf("requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
+		logPath = filepath.Join(sb.LogDir(), logPath)
+	}
+
+	// Handle https://issues.k8s.io/44043
+	if err := EnsureSaneLogPath(logPath); err != nil {
+		return nil, err
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"sbox.logdir": sb.LogDir(),
+		"ctr.logfile": containerConfig.LogPath,
+		"log_path":    logPath,
+	}).Debugf("setting container's log_path")
+
+	specgen.SetProcessTerminal(containerConfig.Tty)
+
+	linux := containerConfig.GetLinux()
+	if linux != nil {
+		resources := linux.GetResources()
+		if resources != nil {
+			cpuPeriod := resources.CpuPeriod
+			if cpuPeriod != 0 {
+				specgen.SetLinuxResourcesCPUPeriod(uint64(cpuPeriod))
+			}
+
+			cpuQuota := resources.CpuQuota
+			if cpuQuota != 0 {
+				specgen.SetLinuxResourcesCPUQuota(cpuQuota)
+			}
+
+			cpuShares := resources.CpuShares
+			if cpuShares != 0 {
+				specgen.SetLinuxResourcesCPUShares(uint64(cpuShares))
+			}
+
+			memoryLimit := resources.MemoryLimitInBytes
+			if memoryLimit != 0 {
+				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
+			}
+
+			oomScoreAdj := resources.OomScoreAdj
+			specgen.SetProcessOOMScoreAdj(int(oomScoreAdj))
+		}
+
+		if sb.CgroupParent() != "" {
+			if c.config.CgroupManager == "systemd" {
+				cgPath := sb.CgroupParent() + ":" + "crio" + ":" + containerID
+				specgen.SetLinuxCgroupsPath(cgPath)
+			} else {
+				specgen.SetLinuxCgroupsPath(sb.CgroupParent() + "/" + containerID)
+			}
+		}
+
+		capabilities := linux.GetSecurityContext().GetCapabilities()
+		toCAPPrefixed := func(cap string) string {
+			if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
+				return "CAP_" + cap
+			}
+			return cap
+		}
+		if capabilities != nil {
+			addCaps := capabilities.AddCapabilities
+			if addCaps != nil {
+				for _, cap := range addCaps {
+					if err := specgen.AddProcessCapability(toCAPPrefixed(cap)); err != nil {
+						return nil, err
+					}
+				}
+			}
+
+			dropCaps := capabilities.DropCapabilities
+			if dropCaps != nil {
+				for _, cap := range dropCaps {
+					if err := specgen.DropProcessCapability(toCAPPrefixed(cap)); err != nil {
+						logrus.Debugf("failed to drop cap %s: %v", toCAPPrefixed(cap), err)
+					}
+				}
+			}
+		}
+
+		specgen.SetProcessSelinuxLabel(sb.ProcessLabel())
+		specgen.SetLinuxMountLabel(sb.MountLabel())
+
+		if containerConfig.GetLinux().GetSecurityContext() != nil &&
+			!containerConfig.GetLinux().GetSecurityContext().Privileged {
+			for _, mp := range []string{
+				"/proc/kcore",
+				"/proc/latency_stats",
+				"/proc/timer_list",
+				"/proc/timer_stats",
+				"/proc/sched_debug",
+				"/sys/firmware",
+			} {
+				specgen.AddLinuxMaskedPaths(mp)
+			}
+
+			for _, rp := range []string{
+				"/proc/asound",
+				"/proc/bus",
+				"/proc/fs",
+				"/proc/irq",
+				"/proc/sys",
+				"/proc/sysrq-trigger",
+			} {
+				specgen.AddLinuxReadonlyPaths(rp)
+			}
+		}
+	}
+	// Join the namespace paths for the pod sandbox container.
+	podInfraState := c.runtime.ContainerStatus(sb.InfraContainer())
+
+	logrus.Debugf("pod container state %+v", podInfraState)
+
+	ipcNsPath := fmt.Sprintf("/proc/%d/ns/ipc", podInfraState.Pid)
+	if err := specgen.AddOrReplaceLinuxNamespace("ipc", ipcNsPath); err != nil {
+		return nil, err
+	}
+
+	netNsPath := sb.NetNsPath()
+	if netNsPath == "" {
+		// The sandbox does not have a permanent namespace,
+		// it's on the host one.
+		netNsPath = fmt.Sprintf("/proc/%d/ns/net", podInfraState.Pid)
+	}
+
+	if err := specgen.AddOrReplaceLinuxNamespace("network", netNsPath); err != nil {
+		return nil, err
+	}
+
+	imageSpec := containerConfig.GetImage()
+	if imageSpec == nil {
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "CreateContainerRequest.ContainerConfig.Image cannot be nil")
+	}
+
+	image := imageSpec.Image
+	if image == "" {
+		return nil, errors.Wrapf(kpoderr.ErrInvalidArg, "CreateContainerRequest.ContainerConfig.Image.Image cannot be empty")
+	}
+	images, err := c.storageImageServer.ResolveNames(image)
+	if err != nil {
+		// This means we got an image ID
+		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
+			images = append(images, image)
+		} else {
+			return nil, err
+		}
+	}
+	image = images[0]
+
+	// bind mount the pod shm
+	specgen.AddBindMount(sb.ShmPath(), "/dev/shm", []string{"rw"})
+
+	options := []string{"rw"}
+	if readOnlyRootfs {
+		options = []string{"ro"}
+	}
+	if sb.ResolvPath() != "" {
+		// bind mount the pod resolver file
+		specgen.AddBindMount(sb.ResolvPath(), "/etc/resolv.conf", options)
+	}
+
+	// Bind mount /etc/hosts for host networking containers
+	if hostNetwork(containerConfig) {
+		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
+	}
+
+	if sb.Hostname() != "" {
+		specgen.SetHostname(sb.Hostname())
+	}
+
+	specgen.AddAnnotation(annotations.Name, containerName)
+	specgen.AddAnnotation(annotations.ContainerID, containerID)
+	specgen.AddAnnotation(annotations.SandboxID, sb.ID())
+	specgen.AddAnnotation(annotations.SandboxName, sb.InfraContainer().Name())
+	specgen.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeContainer)
+	specgen.AddAnnotation(annotations.LogPath, logPath)
+	specgen.AddAnnotation(annotations.TTY, fmt.Sprintf("%v", containerConfig.Tty))
+	specgen.AddAnnotation(annotations.Stdin, fmt.Sprintf("%v", containerConfig.Stdin))
+	specgen.AddAnnotation(annotations.StdinOnce, fmt.Sprintf("%v", containerConfig.StdinOnce))
+	specgen.AddAnnotation(annotations.Image, image)
+
+	created := time.Now()
+	specgen.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
+
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation(annotations.Metadata, string(metadataJSON))
+
+	labelsJSON, err := json.Marshal(labels)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation(annotations.Labels, string(labelsJSON))
+
+	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
+
+	if err = c.setupSeccomp(&specgen, containerName, sb.Annotations()); err != nil {
+		return nil, err
+	}
+
+	metaname := metadata.Name
+	attempt := metadata.Attempt
+	containerInfo, err := c.storageRuntimeServer.CreateContainer(c.imageContext,
+		sb.Name(), sb.ID(),
+		image, image,
+		containerName, containerID,
+		metaname,
+		attempt,
+		sb.MountLabel(),
+		nil)
+	if err != nil {
+		return nil, err
+	}
+
+	mountPoint, err := c.storageRuntimeServer.StartContainer(containerID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to mount container %s(%s)", containerName, containerID)
+	}
+
+	containerImageConfig := containerInfo.Config
+	if containerImageConfig == nil {
+		return nil, errors.Wrapf(kpoderr.ErrInternal, "empty image config for image %s", image)
+	}
+
+	if containerImageConfig.Config.StopSignal != "" {
+		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
+		specgen.AddAnnotation("org.opencontainers.image.stopSignal", containerImageConfig.Config.StopSignal)
+	}
+
+	// Add image volumes
+	if err := addImageVolumes(mountPoint, c.config.ImageVolumes, &containerInfo, &specgen, sb.MountLabel()); err != nil {
+		return nil, err
+	}
+
+	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
+	if err != nil {
+		return nil, err
+	}
+	specgen.SetProcessArgs(processArgs)
+
+	// Add environment variables from CRI and image config
+	envs := containerConfig.GetEnvs()
+	if envs != nil {
+		for _, item := range envs {
+			key := item.Key
+			value := item.Value
+			if key == "" {
+				continue
+			}
+			specgen.AddProcessEnv(key, value)
+		}
+	}
+	if containerImageConfig != nil {
+		for _, item := range containerImageConfig.Config.Env {
+			parts := strings.SplitN(item, "=", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("invalid env from image: %s", item)
+			}
+
+			if parts[0] == "" {
+				continue
+			}
+			specgen.AddProcessEnv(parts[0], parts[1])
+		}
+	}
+
+	// Set working directory
+	// Pick it up from image config first and override if specified in CRI
+	containerCwd := "/"
+	if containerImageConfig != nil {
+		imageCwd := containerImageConfig.Config.WorkingDir
+		if imageCwd != "" {
+			containerCwd = imageCwd
+		}
+	}
+	runtimeCwd := containerConfig.WorkingDir
+	if runtimeCwd != "" {
+		containerCwd = runtimeCwd
+	}
+	specgen.SetProcessCwd(containerCwd)
+
+	// Setup user and groups
+	if linux != nil {
+		if err = setupContainerUser(&specgen, mountPoint, linux.GetSecurityContext(), containerImageConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	// Set up pids limit if pids cgroup is mounted
+	_, err = cgroups.FindCgroupMountpoint("pids")
+	if err == nil {
+		specgen.SetLinuxResourcesPidsLimit(c.config.PidsLimit)
+	}
+
+	// by default, the root path is an empty string. set it now.
+	specgen.SetRootPath(mountPoint)
+
+	saveOptions := generate.ExportOptions{}
+	if err = specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
+		return nil, err
+	}
+	if err = specgen.SaveToFile(filepath.Join(containerInfo.RunDir, "config.json"), saveOptions); err != nil {
+		return nil, err
+	}
+
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
+func (c *ContainerServer) setupSeccomp(specgen *generate.Generator, cname string, sbAnnotations map[string]string) error {
+	profile, ok := sbAnnotations["security.alpha.kubernetes.io/seccomp/container/"+cname]
+	if !ok {
+		profile, ok = sbAnnotations["security.alpha.kubernetes.io/seccomp/pod"]
+		if !ok {
+			// running w/o seccomp, aka unconfined
+			profile = seccompUnconfined
+		}
+	}
+	if !c.seccompEnabled {
+		if profile != seccompUnconfined {
+			return errors.Wrapf(kpoderr.ErrNotSupported, "seccomp is not enabled in your kernel, cannot run with a profile")
+		}
+		logrus.Warn("seccomp is not enabled in your kernel, running container without profile")
+	}
+	if profile == seccompUnconfined {
+		// running w/o seccomp, aka unconfined
+		specgen.Spec().Linux.Seccomp = nil
+		return nil
+	}
+	if profile == seccompRuntimeDefault {
+		return seccomp.LoadProfileFromStruct(c.seccompProfile, specgen)
+	}
+	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
+		return errors.Wrapf(kpoderr.ErrInvalidArg, "unknown seccomp profile option: %q", profile)
+	}
+	//file, err := ioutil.ReadFile(filepath.Join(s.seccompProfileRoot, strings.TrimPrefix(profile, seccompLocalhostPrefix)))
+	//if err != nil {
+	//return err
+	//}
+	// TODO(runcom): setup from provided node's seccomp profile
+	// can't do this yet, see https://issues.k8s.io/36997
+	return nil
+}
+
+// getAppArmorProfileName gets the profile name for the given container.
+func (c *ContainerServer) getAppArmorProfileName(annotations map[string]string, ctrName string) string {
+	profile := apparmor.GetProfileNameFromPodAnnotations(annotations, ctrName)
+
+	if profile == "" {
+		return ""
+	}
+
+	if profile == apparmor.ProfileRuntimeDefault {
+		// If the value is runtime/default, then return default profile.
+		return c.appArmorProfile
+	}
+
+	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
+}
+
+// openContainerFile opens a file inside a container rootfs safely
+func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
+	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, path), rootfs)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to follow symlink path for %q", path)
+	}
+
+	file, err := os.Open(fp)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to open file %q", path)
+	}
+
+	return file, nil
+}
+
+// getUserInfo returns UID, GID and additional groups for specified user
+// by looking them up in /etc/passwd and /etc/group
+func getUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, error) {
+	// We don't care if we can't open the file because
+	// not all images will have these files
+	passwdFile, err := openContainerFile(rootfs, "/etc/passwd")
+	if err != nil {
+		logrus.Warnf("Failed to open /etc/passwd: %v", err)
+	} else {
+		defer passwdFile.Close()
+	}
+
+	groupFile, err := openContainerFile(rootfs, "/etc/group")
+	if err != nil {
+		logrus.Warnf("Failed to open /etc/group: %v", err)
+	} else {
+		defer groupFile.Close()
+	}
+
+	execUser, err := user.GetExecUser(userName, nil, passwdFile, groupFile)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	uid := uint32(execUser.Uid)
+	gid := uint32(execUser.Gid)
+	var additionalGids []uint32
+	for _, g := range execUser.Sgids {
+		additionalGids = append(additionalGids, uint32(g))
+	}
+
+	return uid, gid, additionalGids, nil
+}

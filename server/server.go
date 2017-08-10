@@ -1,9 +1,7 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -14,8 +12,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
-	"github.com/kubernetes-incubator/cri-o/server/apparmor"
-	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -53,12 +49,6 @@ type Server struct {
 	updateLock      sync.RWMutex
 	netPlugin       ocicni.CNIPlugin
 	hostportManager hostport.HostPortManager
-
-	seccompEnabled bool
-	seccompProfile seccomp.Seccomp
-
-	appArmorEnabled bool
-	appArmorProfile string
 
 	stream streamService
 }
@@ -167,27 +157,6 @@ func New(config *Config) (*Server, error) {
 		netPlugin:       netPlugin,
 		hostportManager: hostportManager,
 		config:          *config,
-		seccompEnabled:  seccomp.IsEnabled(),
-		appArmorEnabled: apparmor.IsEnabled(),
-		appArmorProfile: config.ApparmorProfile,
-	}
-
-	if s.seccompEnabled {
-		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
-		if fileErr != nil {
-			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, fileErr)
-		}
-		var seccompConfig seccomp.Seccomp
-		if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
-			return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
-		}
-		s.seccompProfile = seccompConfig
-	}
-
-	if s.appArmorEnabled && s.appArmorProfile == apparmor.DefaultApparmorProfile {
-		if apparmorErr := apparmor.EnsureDefaultApparmorProfile(); apparmorErr != nil {
-			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", apparmorErr)
-		}
 	}
 
 	s.restore()

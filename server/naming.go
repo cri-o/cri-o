@@ -5,45 +5,29 @@ import (
 	"strings"
 
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/kubernetes-incubator/cri-o/libkpod"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-)
-
-const (
-	kubePrefix    = "k8s"
-	infraName     = "infra"
-	nameDelimiter = "_"
 )
 
 func makeSandboxName(sandboxConfig *pb.PodSandboxConfig) string {
 	return strings.Join([]string{
-		kubePrefix,
+		libkpod.KubePrefix,
 		sandboxConfig.Metadata.Name,
 		sandboxConfig.Metadata.Namespace,
 		sandboxConfig.Metadata.Uid,
 		fmt.Sprintf("%d", sandboxConfig.Metadata.Attempt),
-	}, nameDelimiter)
+	}, libkpod.NameDelimiter)
 }
 
 func makeSandboxContainerName(sandboxConfig *pb.PodSandboxConfig) string {
 	return strings.Join([]string{
-		kubePrefix,
-		infraName,
+		libkpod.KubePrefix,
+		libkpod.InfraName,
 		sandboxConfig.Metadata.Name,
 		sandboxConfig.Metadata.Namespace,
 		sandboxConfig.Metadata.Uid,
 		fmt.Sprintf("%d", sandboxConfig.Metadata.Attempt),
-	}, nameDelimiter)
-}
-
-func makeContainerName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *pb.ContainerConfig) string {
-	return strings.Join([]string{
-		kubePrefix,
-		containerConfig.Metadata.Name,
-		sandboxMetadata.Name,
-		sandboxMetadata.Namespace,
-		sandboxMetadata.Uid,
-		fmt.Sprintf("%d", containerConfig.Metadata.Attempt),
-	}, nameDelimiter)
+	}, libkpod.NameDelimiter)
 }
 
 func (s *Server) generatePodIDandName(sandboxConfig *pb.PodSandboxConfig) (string, string, error) {
@@ -67,18 +51,6 @@ func (s *Server) generateContainerIDandNameForSandbox(sandboxConfig *pb.PodSandb
 		id  = stringid.GenerateNonCryptoID()
 	)
 	name, err := s.ReserveContainerName(id, makeSandboxContainerName(sandboxConfig))
-	if err != nil {
-		return "", "", err
-	}
-	return id, name, err
-}
-
-func (s *Server) generateContainerIDandName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *pb.ContainerConfig) (string, string, error) {
-	var (
-		err error
-		id  = stringid.GenerateNonCryptoID()
-	)
-	name, err := s.ReserveContainerName(id, makeContainerName(sandboxMetadata, containerConfig))
 	if err != nil {
 		return "", "", err
 	}
