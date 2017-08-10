@@ -5,8 +5,7 @@
 kpod - Simple management tool for containers and images
 
 ## SYNOPSIS
-**kpod**
-[**--help**|**-h**]
+**kpod** [*options*] COMMAND
 
 # DESCRIPTION
 kpod is a simple client only tool to help with debugging issues when daemons
@@ -23,6 +22,24 @@ has the capability to debug pods/images created by crio.
 
 **--help, -h**
   Print usage statement
+
+**--config value, -c**=**"config.file"**
+   Path of a config file detailing container server configuration options
+
+**--debug**
+   Print debugging information
+
+**--root**=**value**
+   Path to the root directory in which data, including images, is stored
+
+**--runroot**=**value**
+   Path to the 'run directory' where all state information is stored
+
+**--storage-driver, -s**=**value**
+   Select which storage driver is used to manage storage of images and containers (default is overlay)
+
+**--storage-opt**=**value**
+   Used to pass an option to the storage driver
 
 **--version, -v**
   Print the version

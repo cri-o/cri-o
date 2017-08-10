@@ -21,9 +21,9 @@ Information display here pertain to the host, current storage stats, and build o
 
 Show additional information
 
-**--debug, -D**
+**--json**
 
-Show additional information
+Output as JSON instead of the default YAML",
 
 
 ## EXAMPLE
