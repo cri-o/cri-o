@@ -36,7 +36,7 @@ This section will walk you through installing the following components:
 Download the `runc` release binary:
 
 ```
-wget https://github.com/opencontainers/runc/releases/download/v1.0.0-rc2/runc-linux-amd64
+wget https://github.com/opencontainers/runc/releases/download/v1.0.0-rc4/runc-linux-amd64
 ```
 
 Set the executable bit and copy the `runc` binary into your PATH:
@@ -55,9 +55,9 @@ Print the `runc` version:
 runc -version
 ```
 ```
-runc version 1.0.0-rc2
-commit: c91b5bea4830a57eac7882d7455d59518cdf70ec
-spec: 1.0.0-rc2-dev
+runc version 1.0.0-rc4
+commit: 2e7cfe036e2c6dc51ccca6eb7fa3ee6b63976dcd
+spec: 1.0.0
 ```
 
 ### crio
@@ -187,7 +187,7 @@ sudo systemctl start crio
 sudo crioctl runtimeversion
 ```
 ```
-VersionResponse: Version: 0.1.0, RuntimeName: runc, RuntimeVersion: 1.0.0-rc2, RuntimeApiVersion: v1alpha1
+VersionResponse: Version: 0.1.0, RuntimeName: runc, RuntimeVersion: 1.0.0-rc4, RuntimeApiVersion: v1alpha1
 ```
 
 ### CNI plugins
