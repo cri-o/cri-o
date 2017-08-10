@@ -262,6 +262,16 @@
       regexp: 'export PATH=/usr/local/go/bin:$PATH'
       state: present
     when: ansible_distribution == 'Fedora' or ansible_distribution == 'RedHat'
+  - name: Copy redhat sigstore file to test host
+    copy:
+      remote_src: yes
+      src: /root/src/github.com/kubernetes-incubator/cri-o/test/redhat_sigstore.yaml
+      dest: /etc/containers/registries.d/registry.access.redhat.com.yaml
+  - name: Copy test policy.json file
+    copy:
+      remote_src: yes
+      src: /root/src/github.com/kubernetes-incubator/cri-o/test/policy.json
+      dest: /etc/containers/policy.json
   - name: run integration tests RHEL
     shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration 2>&1 > testout.txt'
     args:
