@@ -83,7 +83,10 @@ func inspectCmd(c *cli.Context) error {
 	}
 	server, err := libkpod.New(config)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not get container server")
+	}
+	if err = server.Update(); err != nil {
+		return errors.Wrapf(err, "could not update list of containers")
 	}
 
 	var data interface{}
@@ -103,7 +106,7 @@ func inspectCmd(c *cli.Context) error {
 		if err != nil {
 			imgData, err := libkpodimage.GetImageData(server.Store(), name)
 			if err != nil {
-				return errors.Wrapf(err, "error parsing image data")
+				return errors.Wrapf(err, "error parsing container or image data")
 			}
 			data = imgData
 
