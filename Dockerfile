@@ -81,6 +81,7 @@ COPY test/plugin_test_args.bash /opt/cni/bin/plugin_test_args.bash
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
+COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
 WORKDIR /go/src/github.com/kubernetes-incubator/cri-o
 

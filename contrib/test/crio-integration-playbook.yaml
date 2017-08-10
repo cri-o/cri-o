@@ -296,6 +296,10 @@
       regexp: 'overlay2\.override_kernel_check=1'
       state: present
     when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
+  - name: Copy redhat sigstore file to test host
+    copy:
+      src: test/redhat_sigstore.yaml
+      dest: /etc/containers/registries.d/registry.access.redhat.com.yaml
   - name: enable and start CRI-O
     systemd:
       name: crio
