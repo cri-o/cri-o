@@ -1,4 +1,4 @@
-package libkpod
+package libpod
 
 import (
 	"encoding/json"
@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 
-	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/driver"
+	libpodimage "github.com/kubernetes-incubator/cri-o/libpod/image"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -77,7 +77,7 @@ func (c *ContainerServer) GetContainerData(name string, size bool) (*ContainerDa
 	if container.ImageID == "" {
 		return nil, errors.Errorf("error reading container image data: container is not based on an image")
 	}
-	imageData, err := libkpodimage.GetImageData(c.store, container.ImageID)
+	imageData, err := libpodimage.GetImageData(c.store, container.ImageID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading container image data")
 	}

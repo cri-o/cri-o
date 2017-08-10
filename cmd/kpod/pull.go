@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/common"
+	libpodimage "github.com/kubernetes-incubator/cri-o/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -58,7 +58,7 @@ func pullCmd(c *cli.Context) error {
 
 	systemContext := common.GetSystemContext("")
 
-	err = libkpodimage.PullImage(store, image, allTags, false, systemContext)
+	err = libpodimage.PullImage(store, image, allTags, false, systemContext)
 	if err != nil {
 		return errors.Errorf("error pulling image from %q: %v", image, err)
 	}

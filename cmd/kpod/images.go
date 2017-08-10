@@ -6,7 +6,7 @@ import (
 	"text/template"
 
 	"github.com/containers/storage"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	libpodimage "github.com/kubernetes-incubator/cri-o/libpod/image"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -99,9 +99,9 @@ func imagesCmd(c *cli.Context) error {
 		return errors.New("'buildah images' requires at most 1 argument")
 	}
 
-	var params *libkpodimage.FilterParams
+	var params *libpodimage.FilterParams
 	if c.IsSet("filter") {
-		params, err = libkpodimage.ParseFilter(store, c.String("filter"))
+		params, err = libpodimage.ParseFilter(store, c.String("filter"))
 		if err != nil {
 			return errors.Wrapf(err, "error parsing filter")
 		}
@@ -109,7 +109,7 @@ func imagesCmd(c *cli.Context) error {
 		params = nil
 	}
 
-	imageList, err := libkpodimage.GetImagesMatchingFilter(store, params, name)
+	imageList, err := libpodimage.GetImagesMatchingFilter(store, params, name)
 	if err != nil {
 		return errors.Wrapf(err, "could not get list of images matching filter")
 	}
@@ -143,7 +143,7 @@ func outputImages(store storage.Store, images []storage.Image, format string, ha
 			name = img.Names[0]
 		}
 
-		info, digest, size, _ := libkpodimage.InfoAndDigestAndSize(store, img)
+		info, digest, size, _ := libpodimage.InfoAndDigestAndSize(store, img)
 		if info != nil {
 			createdTime = info.Created
 		}
@@ -159,7 +159,7 @@ func outputImages(store storage.Store, images []storage.Image, format string, ha
 			Name:      name,
 			Digest:    digest,
 			CreatedAt: createdTime.Format("Jan 2, 2006 15:04"),
-			Size:      libkpodimage.FormattedSize(size),
+			Size:      libpodimage.FormattedSize(size),
 		}
 		if hasTemplate {
 			if err := outputUsingTemplate(format, params); err != nil {

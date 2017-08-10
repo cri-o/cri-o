@@ -9,8 +9,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/libpod"
+	"github.com/kubernetes-incubator/cri-o/libpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
@@ -47,7 +47,7 @@ type streamService struct {
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	*libkpod.ContainerServer
+	*libpod.ContainerServer
 	config Config
 
 	updateLock      sync.RWMutex
@@ -148,7 +148,7 @@ func New(config *Config) (*Server, error) {
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := libkpod.New(&config.Config)
+	containerServer, err := libpod.New(&config.Config)
 	if err != nil {
 		return nil, err
 	}

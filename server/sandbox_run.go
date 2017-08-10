@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/libpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"

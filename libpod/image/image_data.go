@@ -7,7 +7,7 @@ import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/transports"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
+	"github.com/kubernetes-incubator/cri-o/libpod/driver"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"

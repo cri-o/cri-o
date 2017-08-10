@@ -6,8 +6,8 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/common"
+	libpodimage "github.com/kubernetes-incubator/cri-o/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
@@ -112,7 +112,7 @@ func pushCmd(c *cli.Context) error {
 		return err
 	}
 
-	options := libkpodimage.CopyOptions{
+	options := libpodimage.CopyOptions{
 		Compression:         compress,
 		SignaturePolicyPath: signaturePolicy,
 		Store:               store,
@@ -129,5 +129,5 @@ func pushCmd(c *cli.Context) error {
 	if !c.Bool("quiet") {
 		options.ReportWriter = os.Stderr
 	}
-	return libkpodimage.PushImage(srcName, destName, options)
+	return libpodimage.PushImage(srcName, destName, options)
 }
