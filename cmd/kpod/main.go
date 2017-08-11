@@ -22,6 +22,7 @@ func main() {
 	app.Version = Version
 
 	app.Commands = []cli.Command{
+		exportCommand,
 		historyCommand,
 		imagesCommand,
 		infoCommand,
