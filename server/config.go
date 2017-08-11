@@ -5,13 +5,13 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-incubator/cri-o/libpod"
 )
 
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
-	libkpod.Config
+	libpod.Config
 	APIConfig
 }
 
@@ -34,11 +34,11 @@ type APIConfig struct {
 // conversions.
 type tomlConfig struct {
 	Crio struct {
-		libkpod.RootConfig
-		API     struct{ APIConfig }             `toml:"api"`
-		Runtime struct{ libkpod.RuntimeConfig } `toml:"runtime"`
-		Image   struct{ libkpod.ImageConfig }   `toml:"image"`
-		Network struct{ libkpod.NetworkConfig } `toml:"network"`
+		libpod.RootConfig
+		API     struct{ APIConfig }            `toml:"api"`
+		Runtime struct{ libpod.RuntimeConfig } `toml:"runtime"`
+		Image   struct{ libpod.ImageConfig }   `toml:"image"`
+		Network struct{ libpod.NetworkConfig } `toml:"network"`
 	} `toml:"crio"`
 }
 
@@ -99,7 +99,7 @@ func (c *Config) ToFile(path string) error {
 // DefaultConfig returns the default configuration for crio.
 func DefaultConfig() *Config {
 	return &Config{
-		Config: *libkpod.DefaultConfig(),
+		Config: *libpod.DefaultConfig(),
 		APIConfig: APIConfig{
 			Listen:        "/var/run/crio.sock",
 			StreamAddress: "",

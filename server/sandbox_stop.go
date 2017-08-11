@@ -7,7 +7,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/libpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"

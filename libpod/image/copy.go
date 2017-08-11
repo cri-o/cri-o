@@ -15,7 +15,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
+	"github.com/kubernetes-incubator/cri-o/libpod/common"
 	"github.com/pkg/errors"
 )
 

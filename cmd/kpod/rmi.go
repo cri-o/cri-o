@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/storage"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	libpodimage "github.com/kubernetes-incubator/cri-o/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -49,7 +49,7 @@ func rmiCmd(c *cli.Context) error {
 	}
 
 	for _, id := range args {
-		image, err := libkpodimage.FindImage(store, id)
+		image, err := libpodimage.FindImage(store, id)
 		if err != nil {
 			return errors.Wrapf(err, "could not get image %q", id)
 		}
@@ -68,14 +68,14 @@ func rmiCmd(c *cli.Context) error {
 				}
 			}
 			// If the user supplied an ID, we cannot delete the image if it is referred to by multiple tags
-			if libkpodimage.MatchesID(image.ID, id) {
+			if libpodimage.MatchesID(image.ID, id) {
 				if len(image.Names) > 1 && !force {
 					return fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", image.ID)
 				}
 				// If it is forced, we have to untag the image so that it can be deleted
 				image.Names = image.Names[:0]
 			} else {
-				name, err2 := libkpodimage.UntagImage(store, image, id)
+				name, err2 := libpodimage.UntagImage(store, image, id)
 				if err2 != nil {
 					return err
 				}
@@ -85,7 +85,7 @@ func rmiCmd(c *cli.Context) error {
 			if len(image.Names) > 0 {
 				continue
 			}
-			id, err := libkpodimage.RemoveImage(image, store)
+			id, err := libpodimage.RemoveImage(image, store)
 			if err != nil {
 				return err
 			}
@@ -97,7 +97,7 @@ func rmiCmd(c *cli.Context) error {
 }
 
 // Returns a list of running containers associated with the given ImageReference
-// TODO: replace this with something in libkpod
+// TODO: replace this with something in libpod
 func runningContainers(image *storage.Image, store storage.Store) ([]string, error) {
 	ctrIDs := []string{}
 	containers, err := store.Containers()
@@ -112,7 +112,7 @@ func runningContainers(image *storage.Image, store storage.Store) ([]string, err
 	return ctrIDs, nil
 }
 
-// TODO: replace this with something in libkpod
+// TODO: replace this with something in libpod
 func removeContainers(ctrIDs []string, store storage.Store) error {
 	for _, ctrID := range ctrIDs {
 		if err := store.DeleteContainer(ctrID); err != nil {

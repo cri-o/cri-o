@@ -3,11 +3,11 @@ package main
 import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-incubator/cri-o/libpod"
 	"github.com/urfave/cli"
 )
 
-func getStore(c *libkpod.Config) (storage.Store, error) {
+func getStore(c *libpod.Config) (storage.Store, error) {
 	options := storage.DefaultStoreOptions
 	options.GraphRoot = c.Root
 	options.RunRoot = c.RunRoot
@@ -22,8 +22,8 @@ func getStore(c *libkpod.Config) (storage.Store, error) {
 	return store, nil
 }
 
-func getConfig(c *cli.Context) (*libkpod.Config, error) {
-	config := libkpod.DefaultConfig()
+func getConfig(c *cli.Context) (*libpod.Config, error) {
+	config := libpod.DefaultConfig()
 	if c.GlobalIsSet("config") {
 		err := config.UpdateFromFile(c.String("config"))
 		if err != nil {

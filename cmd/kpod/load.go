@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/common"
+	libpodimage "github.com/kubernetes-incubator/cri-o/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -105,5 +105,5 @@ func loadImage(store storage.Store, opts loadOptions) error {
 
 	src := dockerArchive + opts.input
 
-	return libkpodimage.PullImage(store, src, false, opts.quiet, systemContext)
+	return libpodimage.PullImage(store, src, false, opts.quiet, systemContext)
 }

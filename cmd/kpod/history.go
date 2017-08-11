@@ -14,7 +14,7 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	units "github.com/docker/go-units"
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
+	"github.com/kubernetes-incubator/cri-o/libpod/common"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
