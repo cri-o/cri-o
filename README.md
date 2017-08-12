@@ -67,6 +67,9 @@ It is currently in active development in the Kubernetes community through the [d
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [crio.conf(5)](/docs/crio.conf.5.md)       | CRI-O Configuation file |
 
+## OCI Hooks Support
+
+[CRI-O configures OCI Hooks to run when launching a container](./hooks.md)
 
 ## cri-o Usage Transfer
 

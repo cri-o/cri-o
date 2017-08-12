@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -198,6 +199,24 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 	return processArgs, nil
 }
 
+// addOCIHook look for hooks programs installed in hooksDirPath and add them to spec
+func addOCIHook(specgen *generate.Generator, hook libkpod.HookParams) error {
+	logrus.Debugf("AddOCIHook", hook)
+	for _, stage := range hook.Stage {
+		switch stage {
+		case "prestart":
+			specgen.AddPreStartHook(hook.Hook, []string{hook.Hook, "prestart"})
+
+		case "poststart":
+			specgen.AddPostStartHook(hook.Hook, []string{hook.Hook, "poststart"})
+
+		case "poststop":
+			specgen.AddPostStopHook(hook.Hook, []string{hook.Hook, "poststop"})
+		}
+	}
+	return nil
+}
+
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
 func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
 	if sc != nil {
@@ -355,6 +374,56 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	return resp, nil
 }
 
+func (s *Server) setupOCIHooks(specgen *generate.Generator, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, command string) error {
+	mounts := containerConfig.GetMounts()
+	addedHooks := map[string]struct{}{}
+	addHook := func(hook libkpod.HookParams) error {
+		// Only add a hook once
+		if _, ok := addedHooks[hook.Hook]; !ok {
+			if err := addOCIHook(specgen, hook); err != nil {
+				return err
+			}
+			addedHooks[hook.Hook] = struct{}{}
+		}
+		return nil
+	}
+	for _, hook := range s.Hooks() {
+		logrus.Debugf("SetupOCIHooks", hook)
+		if hook.HasBindMounts && len(mounts) > 0 {
+			if err := addHook(hook); err != nil {
+				return err
+			}
+			continue
+		}
+		for _, cmd := range hook.Cmds {
+			match, err := regexp.MatchString(cmd, command)
+			if err != nil {
+				logrus.Errorf("Invalid regex %q:%q", cmd, err)
+				continue
+			}
+			if match {
+				if err := addHook(hook); err != nil {
+					return err
+				}
+			}
+		}
+		for _, annotationRegex := range hook.Annotations {
+			for _, annotation := range sb.Annotations() {
+				match, err := regexp.MatchString(annotationRegex, annotation)
+				if err != nil {
+					logrus.Errorf("Invalid regex %q:%q", annotationRegex, err)
+					continue
+				}
+				if match {
+					if err := addHook(hook); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
 func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
@@ -761,6 +830,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		containerCwd = runtimeCwd
 	}
 	specgen.SetProcessCwd(containerCwd)
+
+	if err := s.setupOCIHooks(&specgen, sb, containerConfig, processArgs[0]); err != nil {
+		return nil, err
+	}
 
 	// Setup user and groups
 	if linux != nil {

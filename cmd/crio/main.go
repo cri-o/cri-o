@@ -111,6 +111,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("cgroup-manager") {
 		config.CgroupManager = ctx.GlobalString("cgroup-manager")
 	}
+	if ctx.GlobalIsSet("hooks-dir-path") {
+		config.HooksDirPath = ctx.GlobalString("hooks-dir-path")
+	}
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
@@ -276,6 +279,12 @@ func main() {
 			Name:  "image-volumes",
 			Value: string(libkpod.ImageVolumesMkdir),
 			Usage: "image volume handling ('mkdir' or 'ignore')",
+		},
+		cli.StringFlag{
+			Name:   "hooks-dir-path",
+			Usage:  "set the OCI hooks directory path",
+			Value:  libkpod.DefaultHooksDirPath,
+			Hidden: true,
 		},
 		cli.BoolFlag{
 			Name:  "profile",

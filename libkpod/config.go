@@ -135,6 +135,12 @@ type RuntimeConfig struct {
 	// handle cgroups for containers.
 	CgroupManager string `toml:"cgroup_manager"`
 
+	// HooksDirPath location of oci hooks config files
+	HooksDirPath string `toml:"hooks_dir_path"`
+
+	// Hooks List of hooks to run with container
+	Hooks map[string]HookParams
+
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
 	PidsLimit int64 `toml:"pids_limit"`
@@ -267,6 +273,7 @@ func DefaultConfig() *Config {
 			CgroupManager:     cgroupManager,
 			PidsLimit:         DefaultPidsLimit,
 			ContainerExitsDir: containerExitsDir,
+			HooksDirPath:      DefaultHooksDirPath,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
