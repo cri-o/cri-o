@@ -25,6 +25,18 @@ To run a single test bucket:
 $ make integration TESTFLAGS="runtimeversion.bats"
 ```
 
+NOTE: You need OverlayFS enabled. If there's no output from this command...
+
+```
+$ sudo lsmod | grep overlay
+```
+
+...then run...
+
+```
+$ sudo modprobe overlay
+```
+
 ### On your host
 
 To run the integration tests on your host, you will first need to setup a development environment plus
