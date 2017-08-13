@@ -277,7 +277,7 @@ At this point `CNI` is installed and configured to allocation IP address to cont
 
 ## Pod Tutorial
 
-Now that the `cri-o` components have been installed and configured we are ready to create a Pod. This section will walk you through lauching a Redis server in a Pod. Once the Redis server is running we'll use telnet to verify it's working, then we'll stop the Redis server and clean up the Pod.
+Now that the `cri-o` components have been installed and configured we are ready to create a Pod. This section will walk you through launching a Redis server in a Pod. Once the Redis server is running we'll use telnet to verify it's working, then we'll stop the Redis server and clean up the Pod.
 
 ### Creating a Pod
 
