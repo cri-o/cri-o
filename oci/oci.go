@@ -31,28 +31,30 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimeTrustedPath string, runtimeUntrustedPath string, trustLevel string, conmonPath string, conmonEnv []string, cgroupManager string) (*Runtime, error) {
+func New(runtimeTrustedPath string, runtimeUntrustedPath string, trustLevel string, conmonPath string, conmonEnv []string, cgroupManager string, containerExitsDir string) (*Runtime, error) {
 	r := &Runtime{
-		name:          filepath.Base(runtimeTrustedPath),
-		trustedPath:   runtimeTrustedPath,
-		untrustedPath: runtimeUntrustedPath,
-		trustLevel:    trustLevel,
-		conmonPath:    conmonPath,
-		conmonEnv:     conmonEnv,
-		cgroupManager: cgroupManager,
+		name:              filepath.Base(runtimeTrustedPath),
+		trustedPath:       runtimeTrustedPath,
+		untrustedPath:     runtimeUntrustedPath,
+		trustLevel:        trustLevel,
+		conmonPath:        conmonPath,
+		conmonEnv:         conmonEnv,
+		cgroupManager:     cgroupManager,
+		containerExitsDir: containerExitsDir,
 	}
 	return r, nil
 }
 
 // Runtime stores the information about a oci runtime
 type Runtime struct {
-	name          string
-	trustedPath   string
-	untrustedPath string
-	trustLevel    string
-	conmonPath    string
-	conmonEnv     []string
-	cgroupManager string
+	name              string
+	trustedPath       string
+	untrustedPath     string
+	trustLevel        string
+	conmonPath        string
+	conmonEnv         []string
+	cgroupManager     string
+	containerExitsDir string
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -146,6 +148,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	args = append(args, "-b", c.bundlePath)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
 	args = append(args, "-l", c.logPath)
+	args = append(args, "--exit-dir", r.containerExitsDir)
 	if c.terminal {
 		args = append(args, "-t")
 	} else if c.stdin {
@@ -579,7 +582,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 	}
 
 	if c.state.Status == ContainerStateStopped {
-		exitFilePath := filepath.Join(c.bundlePath, "exit")
+		exitFilePath := filepath.Join(r.containerExitsDir, c.id)
 		fi, err := os.Stat(exitFilePath)
 		if err != nil {
 			logrus.Warnf("failed to find container exit file: %v", err)

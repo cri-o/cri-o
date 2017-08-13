@@ -408,6 +408,10 @@ func main() {
 		// after the daemon is done setting up we can notify systemd api
 		notifySystem()
 
+		go func() {
+			service.StartExitMonitor()
+		}()
+
 		err = s.Serve(lis)
 		if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
 			err = nil

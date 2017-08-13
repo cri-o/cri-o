@@ -7,8 +7,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -148,6 +150,13 @@ func New(config *Config) (*Server, error) {
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
 		return nil, err
 	}
+
+	config.ContainerExitsDir = "/var/run/crio/exits"
+
+	// This is used to monitor container exits using inotify
+	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
+		return nil, err
+	}
 	containerServer, err := libkpod.New(&config.Config)
 	if err != nil {
 		return nil, err
@@ -285,4 +294,44 @@ func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
 	mux := &http.ServeMux{}
 	mux.Handle("/metrics", prometheus.Handler())
 	return mux, nil
+}
+
+// StartExitMonitor start a routine that monitors container exits
+// and updates the container status
+func (s *Server) StartExitMonitor() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logrus.Fatalf("Failed to create new watch: %v", err)
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logrus.Debugf("event: %v", event)
+				if event.Op&fsnotify.Create == fsnotify.Create {
+					containerID := filepath.Base(event.Name)
+					logrus.Debugf("container exited: %v", containerID)
+					c := s.GetContainer(containerID)
+					if c != nil {
+						err := s.Runtime().UpdateStatus(c)
+						if err != nil {
+							logrus.Warnf("Failed to update container status %s: %v", c, err)
+						} else {
+							s.ContainerStateToDisk(c)
+						}
+					}
+				}
+			case err := <-watcher.Errors:
+				logrus.Debugf("watch error: %v", err)
+				done <- true
+			}
+		}
+	}()
+	if err := watcher.Add(s.config.ContainerExitsDir); err != nil {
+		logrus.Fatalf("watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
+	}
+	<-done
 }

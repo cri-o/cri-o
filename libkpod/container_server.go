@@ -114,7 +114,7 @@ func New(config *Config) (*ContainerServer, error) {
 		return nil, err
 	}
 
-	runtime, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager)
+	runtime, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager, config.ContainerExitsDir)
 	if err != nil {
 		return nil, err
 	}

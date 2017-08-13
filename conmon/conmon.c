@@ -105,6 +105,7 @@ static bool opt_systemd_cgroup = false;
 static char *opt_exec_process_spec = NULL;
 static bool opt_exec = false;
 static char *opt_log_path = NULL;
+static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
 static GOptionEntry opt_entries[] =
 {
@@ -118,6 +119,7 @@ static GOptionEntry opt_entries[] =
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL },
   { "exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL },
   { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL },
+  { "exit-dir", 0, 0, G_OPTION_ARG_STRING, &opt_exit_dir, "Path to the directory where exit files are written", NULL },
   { "log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL },
   { "timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL },
   { NULL }
@@ -1067,6 +1069,9 @@ int main(int argc, char *argv[])
 	if (opt_runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
 
+	if (!opt_exec && opt_exit_dir == NULL)
+		nexit("Container exit directory not provided. Use --exit-dir");
+
 	if (opt_bundle_path == NULL && !opt_exec) {
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
 			nexit("Failed to get working directory");
@@ -1383,7 +1388,8 @@ int main(int argc, char *argv[])
 
 	if (!opt_exec) {
 		_cleanup_free_ char *status_str = g_strdup_printf("%d", exit_status);
-		if (!g_file_set_contents("exit", status_str, -1, &err))
+		_cleanup_free_ char *exit_file_path = g_build_filename(opt_exit_dir, opt_cid, NULL);
+		if (!g_file_set_contents(exit_file_path, status_str, -1, &err))
 			nexit("Failed to write %s to exit file: %s\n",
 			      status_str, err->message);
 	} else {
