@@ -24,7 +24,7 @@ At a high level, we expect the scope of cri-o to be restricted to the following 
 ## What is not in scope for this project?
 
 * Building, signing and pushing images to various image storages
-* A CLI utility for interacting with cri-o. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backwards compatibility with it.
+* A CLI utility for interacting with cri-o. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backward compatibility with it.
 
 This is an implementation of the Kubernetes Container Runtime Interface (CRI) that will allow Kubernetes to directly launch and manage Open Container Initiative (OCI) containers.
 
@@ -67,7 +67,7 @@ For sync communication we have an IRC channel #cri-o, on chat.freenode.net, that
 
 ### Prerequisites
 
-Latest verion of `runc` is expected to be installed on the system. It is picked up as the default runtime by crio.
+Latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by crio.
 
 ### Build Dependencies
 
