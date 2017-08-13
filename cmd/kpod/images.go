@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"text/template"
-
 	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -13,11 +11,11 @@ import (
 )
 
 type imageOutputParams struct {
-	ID        string
-	Name      string
-	Digest    digest.Digest
-	CreatedAt string
-	Size      string
+	ID        string        `json:"id"`
+	Name      string        `json:"names"`
+	Digest    digest.Digest `json:"digest"`
+	CreatedAt string        `json:"created"`
+	Size      string        `json:"size"`
 }
 
 var (
@@ -40,7 +38,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "pretty-print images using a Go template. will override --quiet",
+			Usage: "Change the output format.",
 		},
 		cli.StringFlag{
 			Name:  "filter, f",
@@ -58,6 +56,47 @@ var (
 		ArgsUsage:   "",
 	}
 )
+
+type stdoutstruct struct {
+	output                              []imageOutputParams
+	truncate, digests, quiet, noheading bool
+}
+
+func (so stdoutstruct) Out() error {
+	if len(so.output) > 0 && !so.noheading && !so.quiet {
+		outputHeader(so.truncate, so.digests)
+	}
+	lastID := ""
+	for _, img := range so.output {
+		if so.quiet {
+			if lastID == img.ID {
+				continue // quiet should not show the same ID multiple times.
+			}
+			fmt.Printf("%-64s\n", img.ID)
+			continue
+		}
+		if so.truncate {
+			fmt.Printf("%-20.12s %-56s", img.ID, img.Name)
+		} else {
+			fmt.Printf("%-64s %-56s", img.ID, img.Name)
+		}
+
+		if so.digests {
+			fmt.Printf(" %-64s", img.Digest)
+		}
+		fmt.Printf(" %-22s %s\n", img.CreatedAt, img.Size)
+
+	}
+	return nil
+}
+
+func toGeneric(params []imageOutputParams) []interface{} {
+	genericParams := make([]interface{}, len(params))
+	for i, v := range params {
+		genericParams[i] = interface{}(v)
+	}
+	return genericParams
+}
 
 func imagesCmd(c *cli.Context) error {
 	config, err := getConfig(c)
@@ -85,11 +124,9 @@ func imagesCmd(c *cli.Context) error {
 	if c.IsSet("digests") {
 		digests = c.Bool("digests")
 	}
-	formatString := ""
-	hasTemplate := false
+	outputFormat := ""
 	if c.IsSet("format") {
-		formatString = c.String("format")
-		hasTemplate = true
+		outputFormat = c.String("format")
 	}
 
 	name := ""
@@ -113,11 +150,8 @@ func imagesCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get list of images matching filter")
 	}
-	if len(imageList) > 0 && !noheading && !quiet && !hasTemplate {
-		outputHeader(truncate, digests)
-	}
 
-	return outputImages(store, imageList, formatString, hasTemplate, truncate, digests, quiet)
+	return outputImages(store, imageList, truncate, digests, quiet, outputFormat, noheading)
 }
 
 func outputHeader(truncate, digests bool) {
@@ -134,7 +168,9 @@ func outputHeader(truncate, digests bool) {
 	fmt.Printf("%-22s %s\n", "CREATED AT", "SIZE")
 }
 
-func outputImages(store storage.Store, images []storage.Image, format string, hasTemplate, truncate, digests, quiet bool) error {
+func outputImages(store storage.Store, images []storage.Image, truncate, digests, quiet bool, outputFormat string, noheading bool) error {
+	imageOutput := []imageOutputParams{}
+
 	for _, img := range images {
 		createdTime := img.Created
 
@@ -148,12 +184,6 @@ func outputImages(store storage.Store, images []storage.Image, format string, ha
 			createdTime = info.Created
 		}
 
-		if quiet {
-			fmt.Printf("%-64s\n", img.ID)
-			// We only want to print each id once
-			continue
-		}
-
 		params := imageOutputParams{
 			ID:        img.ID,
 			Name:      name,
@@ -161,40 +191,25 @@ func outputImages(store storage.Store, images []storage.Image, format string, ha
 			CreatedAt: createdTime.Format("Jan 2, 2006 15:04"),
 			Size:      libkpodimage.FormattedSize(size),
 		}
-		if hasTemplate {
-			if err := outputUsingTemplate(format, params); err != nil {
-				return err
-			}
-			continue
+		imageOutput = append(imageOutput, params)
+	}
+
+	var out formats.Writer
+
+	if outputFormat != "" {
+		switch outputFormat {
+		case "json":
+			out = formats.JSONstruct{Output: toGeneric(imageOutput)}
+		default:
+			// Assuming Go-template
+			out = formats.StdoutTemplate{Output: toGeneric(imageOutput), Template: outputFormat}
+
 		}
-		outputUsingFormatString(truncate, digests, params)
-	}
-	return nil
-}
-
-func outputUsingTemplate(format string, params imageOutputParams) error {
-	tmpl, err := template.New("image").Parse(format)
-	if err != nil {
-		return errors.Wrapf(err, "Template parsing error")
-	}
-
-	err = tmpl.Execute(os.Stdout, params)
-	if err != nil {
-		return err
-	}
-	fmt.Println()
-	return nil
-}
-
-func outputUsingFormatString(truncate, digests bool, params imageOutputParams) {
-	if truncate {
-		fmt.Printf("%-20.12s %-56s", params.ID, params.Name)
 	} else {
-		fmt.Printf("%-64s %-56s", params.ID, params.Name)
+		out = stdoutstruct{output: imageOutput, digests: digests, truncate: truncate, quiet: quiet, noheading: noheading}
 	}
 
-	if digests {
-		fmt.Printf(" %-64s", params.Digest)
-	}
-	fmt.Printf(" %-22s %s\n", params.CreatedAt, params.Size)
+	formats.Writer(out).Out()
+
+	return nil
 }
