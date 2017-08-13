@@ -24,12 +24,12 @@ Following provides equivalent with cri-o tools for gathering information or jump
 
 | Existing Step | CRI-O (and friends) |
 | :---: | :---: |
-| `docker info` | [`kpod info`](./docs/kpod-info.2.md) |
-| `docker inspect` | [`kpod inspect`]() (TBD) |
-| `docker stats` | [`crioctl ctr status`]() (TBD) |
 | `docker exec` | [`crioctl ctr exec`](./docs/crio.8.md) |
+| `docker info` | [`kpod info`](./docs/kpod-info.1.md)  |
+| `docker inspect` | [`kpod inspect`](./docs/kpod-inspect.1.md)       |
+| `docker logs` | `journalctl ...` |
 | `docker ps` | [`crioctl ctr list`](./docs/crio.8.md) or [`runc list`](https://github.com/opencontainers/runc/blob/master/man/runc-list.8.md) |
-| `docker logs` | [`kpod ...`]() (TBD) or `journalctl ...` |
+| `docker stats` | `crioctl ctr status`|
 
 If you were already using steps like `kubectl exec` (or `oc exec` on OpenShift), they will continue to function the same way.
 
@@ -39,11 +39,16 @@ There are other equivalents for these tools
 
 | Existing Step | CRI-O (and friends) |
 | :---: | :---: |
-| `docker images` | [`kpod images`](./docs/kpod-images.1.md) |
-| `docker rmi` | [`kpod rmi`](./docs/kpod-rmi.1.md) |
-| `docker tag` | [`kpod tag`](./docs/kpod-tag.1.md) |
-| `docker pull` | [`kpod pull`](./docs/kpod-pull.1.md) |
-| `docker load` | [`kpod load`](TBD) |
-| `docker save` | [`kpod save`](TBD) |
-| `docker build` | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
-| `docker push` | [`buildah push`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-push.md) |
+| `docker build`  | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
+| `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md)       |
+| `docker diff`   | [`kpod diff`](./docs/kpod-diff.1.md)      |
+| `docker export` | [`kpod export`](./docs/kpod-export.1.md)  |
+| `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
+| `docker images` | [`kpod images`](./docs/kpod-images.1.md)  |
+| `docker load`   | [`kpod load`](./docs/kpod-load.1.md)      |
+| `docker pull`   | [`kpod pull`](./docs/kpod-pull.1.md)      |
+| `docker push`   | [`kpod push`](./docs/kpod-push.1.md)      |
+| `docker rmi`    | [`kpod rmi`](./docs/kpod-rmi.1.md)        |
+| `docker save`   | [`kpod save`](./docs/kpod-save.1.md)      |
+| `docker tag`    | [`kpod tag`](./docs/kpod-tag.1.md)        |
+| `docker version`| [`kpod version`](./docs/kpod-version.1.md)|

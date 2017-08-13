@@ -46,17 +46,50 @@ has the capability to debug pods/images created by crio.
 
 ## COMMANDS
 
+### diff
+Inspect changes on a container or image's filesystem
+
+### export
+Export container's filesystem contents as a tar archive
+
+### history
+Shows the history of an image
+
 ### images
 List images in local storage
+
+### info
+Displays system information
+
+### inspect
+Display a container or image's configuration
+
+### load
+Load an image from docker archive
+
+### mount
+Mount a working container's root filesystem
+
+### pull
+Pull an image from a registry
+
+### push
+Push an image from local storage to elsewhere
 
 ### rmi
 Removes one or more locally stored images
 
-### tag
-Add one or more additional names to locally-stored image
+### save
+Save an image to docker-archive or oci
 
-### info
-Displays system information
+### tag
+Add an additional name to a local image
+
+### umount
+Unmount a working container's root file system
+
+### version
+Display the version information
 
 ## SEE ALSO
 crio(8), crio.conf(5)

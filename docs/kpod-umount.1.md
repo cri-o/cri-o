@@ -3,7 +3,7 @@
 # kpod-umount "1" "July 2017" "kpod"
 
 ## NAME
-kpod umount - Unmount a working container's root file system.
+kpod umount - Unmount a working container's root file system
 
 ## SYNOPSIS
 **kpod** **umount** **containerID**
