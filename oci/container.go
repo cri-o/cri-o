@@ -160,6 +160,11 @@ func (c *Container) Sandbox() string {
 	return c.sandbox
 }
 
+// Dir returns the the dir of the container
+func (c *Container) Dir() string {
+	return c.dir
+}
+
 // NetNsPath returns the path to the network namespace of the container.
 func (c *Container) NetNsPath() (string, error) {
 	if c.state == nil {

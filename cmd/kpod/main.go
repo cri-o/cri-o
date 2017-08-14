@@ -33,6 +33,7 @@ func main() {
 		mountCommand,
 		pullCommand,
 		pushCommand,
+		renameCommand,
 		rmiCommand,
 		saveCommand,
 		tagCommand,
@@ -55,6 +56,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "runroot",
 			Usage: "path to the 'run directory' where all state information is stored",
+		},
+		cli.StringFlag{
+			Name:  "runtime",
+			Usage: "path to the OCI-compatible binary used to run containers, default is /usr/bin/runc",
 		},
 		cli.StringFlag{
 			Name:  "storage-driver, s",
