@@ -355,6 +355,18 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
+	if m.Annotations[annotations.Volumes] != "" {
+		containerVolumes := []oci.ContainerVolume{}
+		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+			return fmt.Errorf("failed to unmarshal container volumes: %v", err)
+		}
+		if containerVolumes != nil {
+			for _, cv := range containerVolumes {
+				scontainer.AddVolume(cv)
+			}
+		}
+	}
+
 	c.ContainerStateFromDisk(scontainer)
 
 	if err = label.ReserveLabel(processLabel); err != nil {

@@ -40,22 +40,23 @@ const (
 	seccompLocalhostPrefix = "localhost/"
 )
 
-func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
+	volumes := []oci.ContainerVolume{}
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
 		if dest == "" {
-			return fmt.Errorf("Mount.ContainerPath is empty")
+			return nil, fmt.Errorf("Mount.ContainerPath is empty")
 		}
 
 		src := mount.HostPath
 		if src == "" {
-			return fmt.Errorf("Mount.HostPath is empty")
+			return nil, fmt.Errorf("Mount.HostPath is empty")
 		}
 
 		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
-				return fmt.Errorf("Failed to mkdir %s: %s", src, err)
+				return nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
 			}
 		}
 
@@ -68,14 +69,20 @@ func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
 			if err := label.Relabel(src, sb.MountLabel(), true); err != nil && err != unix.ENOTSUP {
-				return fmt.Errorf("relabel failed %s: %v", src, err)
+				return nil, fmt.Errorf("relabel failed %s: %v", src, err)
 			}
 		}
+
+		volumes = append(volumes, oci.ContainerVolume{
+			ContainerPath: dest,
+			HostPath:      src,
+			Readonly:      mount.Readonly,
+		})
 
 		specgen.AddBindMount(src, dest, options)
 	}
 
-	return nil
+	return volumes, nil
 }
 
 func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) error {
@@ -361,9 +368,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
-	if err := addOCIBindMounts(sb, containerConfig, &specgen); err != nil {
+	containerVolumes, err := addOCIBindMounts(sb, containerConfig, &specgen)
+	if err != nil {
 		return nil, err
 	}
+
+	volumesJSON, err := json.Marshal(containerVolumes)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
 	// Add cgroup mount so container process can introspect its own limits
 	specgen.AddCgroupsMount("ro")
@@ -766,6 +780,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, cv := range containerVolumes {
+		container.AddVolume(cv)
 	}
 
 	return container, nil
