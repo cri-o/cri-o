@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -565,6 +566,41 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	image = images[0]
 
+	// Get imageName and imageRef that are requested in container status
+	imageName := image
+	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), image)
+	if err != nil {
+		return nil, err
+	}
+
+	imageRef := status.ID
+	//
+	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
+	//
+	//for _, n := range status.Names {
+	//r, err := reference.ParseNormalizedNamed(n)
+	//if err != nil {
+	//return nil, fmt.Errorf("failed to normalize image name for ImageRef: %v", err)
+	//}
+	//if digested, isDigested := r.(reference.Canonical); isDigested {
+	//imageRef = reference.FamiliarString(digested)
+	//break
+	//}
+	//}
+	for _, n := range status.Names {
+		r, err := reference.ParseNormalizedNamed(n)
+		if err != nil {
+			return nil, fmt.Errorf("failed to normalize image name for Image: %v", err)
+		}
+		if tagged, isTagged := r.(reference.Tagged); isTagged {
+			imageName = reference.FamiliarString(tagged)
+			break
+		}
+	}
+
+	specgen.AddAnnotation(annotations.ImageName, imageName)
+	specgen.AddAnnotation(annotations.ImageRef, imageRef)
+
 	// bind mount the pod shm
 	specgen.AddBindMount(sb.ShmPath(), "/dev/shm", []string{"rw"})
 
@@ -727,7 +763,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

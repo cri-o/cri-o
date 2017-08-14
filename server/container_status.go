@@ -2,9 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 
-	"github.com/docker/distribution/reference"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -33,48 +31,17 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 			Metadata:    c.Metadata(),
 			Labels:      c.Labels(),
 			Annotations: c.Annotations(),
+			ImageRef:    c.ImageRef(),
 		},
 	}
+	resp.Status.Image = &pb.ImageSpec{Image: c.ImageName()}
 
 	mounts, err := s.getMounts(containerID)
 	if err != nil {
 		return nil, err
 	}
+
 	resp.Status.Mounts = mounts
-
-	imageName := c.Image()
-	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), imageName)
-	if err != nil {
-		return nil, err
-	}
-
-	imageRef := status.ID
-	//
-	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
-	//
-	//for _, n := range status.Names {
-	//r, err := reference.ParseNormalizedNamed(n)
-	//if err != nil {
-	//return nil, fmt.Errorf("failed to normalize image name for ImageRef: %v", err)
-	//}
-	//if digested, isDigested := r.(reference.Canonical); isDigested {
-	//imageRef = reference.FamiliarString(digested)
-	//break
-	//}
-	//}
-	resp.Status.ImageRef = imageRef
-
-	for _, n := range status.Names {
-		r, err := reference.ParseNormalizedNamed(n)
-		if err != nil {
-			return nil, fmt.Errorf("failed to normalize image name for Image: %v", err)
-		}
-		if tagged, isTagged := r.(reference.Tagged); isTagged {
-			imageName = reference.FamiliarString(tagged)
-			break
-		}
-	}
-	resp.Status.Image = &pb.ImageSpec{Image: imageName}
 
 	cState := s.Runtime().ContainerStatus(c)
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
