@@ -313,14 +313,27 @@ func (s *Server) StartExitMonitor() {
 				logrus.Debugf("event: %v", event)
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					containerID := filepath.Base(event.Name)
-					logrus.Debugf("container exited: %v", containerID)
+					logrus.Debugf("container or sandbox exited: %v", containerID)
 					c := s.GetContainer(containerID)
 					if c != nil {
+						logrus.Debugf("container exited and found: %v", containerID)
 						err := s.Runtime().UpdateStatus(c)
 						if err != nil {
 							logrus.Warnf("Failed to update container status %s: %v", c, err)
 						} else {
 							s.ContainerStateToDisk(c)
+						}
+					} else {
+						sb := s.GetSandbox(containerID)
+						if sb != nil {
+							c := sb.InfraContainer()
+							logrus.Debugf("sandbox exited and found: %v", containerID)
+							err := s.Runtime().UpdateStatus(c)
+							if err != nil {
+								logrus.Warnf("Failed to update sandbox infra container status %s: %v", c, err)
+							} else {
+								s.ContainerStateToDisk(c)
+							}
 						}
 					}
 				}

@@ -78,19 +78,9 @@ func (s *Server) runContainer(container *oci.Container, cgroupParent string) err
 	if err := s.Runtime().CreateContainer(container, cgroupParent); err != nil {
 		return err
 	}
-
-	if err := s.Runtime().UpdateStatus(container); err != nil {
-		return err
-	}
-
 	if err := s.Runtime().StartContainer(container); err != nil {
 		return err
 	}
-
-	if err := s.Runtime().UpdateStatus(container); err != nil {
-		return err
-	}
-
 	return nil
 }
 

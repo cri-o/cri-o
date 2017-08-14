@@ -38,10 +38,6 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	// Delete all the containers in the sandbox
 	for _, c := range containers {
-		if err := s.Runtime().UpdateStatus(c); err != nil {
-			return nil, fmt.Errorf("failed to update container state: %v", err)
-		}
-
 		cState := s.Runtime().ContainerStatus(c)
 		if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
 			if err := s.Runtime().StopContainer(c, -1); err != nil {
