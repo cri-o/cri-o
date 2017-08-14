@@ -334,10 +334,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	if err = s.Runtime().UpdateStatus(container); err != nil {
-		return nil, err
-	}
-
 	s.addContainer(container)
 
 	if err = s.CtrIDIndex().Add(containerID); err != nil {
