@@ -45,6 +45,14 @@ type Container struct {
 	stopSignal string
 	imageName  string
 	imageRef   string
+	volumes    []ContainerVolume
+}
+
+// ContainerVolume is a bind mount for the container.
+type ContainerVolume struct {
+	ContainerPath string `json:"container_path"`
+	HostPath      string `json:"host_path"`
+	Readonly      bool   `json:"readonly"`
 }
 
 // ContainerState represents the status of a container.
@@ -197,4 +205,15 @@ func (c *Container) State() *ContainerState {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 	return c.state
+}
+
+// AddVolume adds a volume to list of container volumes.
+func (c *Container) AddVolume(v ContainerVolume) {
+	c.volumes = append(c.volumes, v)
+}
+
+// Volumes returns the list of container volumes.
+func (c *Container) Volumes() []ContainerVolume {
+	return c.volumes
+
 }

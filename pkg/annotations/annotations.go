@@ -69,6 +69,9 @@ const (
 
 	// StdinOnce is the stdin_once annotation
 	StdinOnce = "io.kubernetes.cri-o.StdinOnce"
+
+	// Volumes is the volumes annotatoin
+	Volumes = "io.kubernetes.cri-o.Volumes"
 )
 
 // ContainerType values
