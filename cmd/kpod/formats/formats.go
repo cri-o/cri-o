@@ -3,6 +3,7 @@ package formats
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ghodss/yaml"
 	"os"
 	"strings"
 	"text/template"
@@ -10,25 +11,45 @@ import (
 	"github.com/pkg/errors"
 )
 
+// JSONString const to save on duplicate variable names
+const JSONString string = "json"
+
 // Writer interface for outputs
 type Writer interface {
 	Out() error
 }
 
-// JSONstruct for JSON output
-type JSONstruct struct {
+// JSONStructArray for JSON output
+type JSONStructArray struct {
 	Output []interface{}
 }
 
-// StdoutTemplate for Go template output
-type StdoutTemplate struct {
+// StdoutTemplateArray for Go template output
+type StdoutTemplateArray struct {
 	Output   []interface{}
 	Template string
 	Fields   map[string]string
 }
 
-// Out method for JSON
-func (j JSONstruct) Out() error {
+// JSONStruct for JSON output
+type JSONStruct struct {
+	Output interface{}
+}
+
+// StdoutTemplate for Go template output
+type StdoutTemplate struct {
+	Output   interface{}
+	Template string
+	Fields   map[string]string
+}
+
+// YAMLStruct for YAML output
+type YAMLStruct struct {
+	Output interface{}
+}
+
+// Out method for JSON Arrays
+func (j JSONStructArray) Out() error {
 	data, err := json.MarshalIndent(j.Output, "", "    ")
 	if err != nil {
 		return err
@@ -38,7 +59,7 @@ func (j JSONstruct) Out() error {
 }
 
 // Out method for Go templates
-func (t StdoutTemplate) Out() error {
+func (t StdoutTemplateArray) Out() error {
 	if strings.HasPrefix(t.Template, "table") {
 		t.Template = strings.TrimSpace(t.Template[5:])
 		headerTmpl, err := template.New("header").Funcs(headerFunctions).Parse(t.Template)
@@ -66,4 +87,40 @@ func (t StdoutTemplate) Out() error {
 	}
 	return nil
 
+}
+
+// Out method for JSON struct
+func (j JSONStruct) Out() error {
+	data, err := json.MarshalIndent(j.Output, "", "    ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s\n", data)
+	return nil
+}
+
+//Out method for Go templates
+func (t StdoutTemplate) Out() error {
+	tmpl, err := template.New("image").Parse(t.Template)
+	if err != nil {
+		return errors.Wrapf(err, "template parsing error")
+	}
+	err = tmpl.Execute(os.Stdout, t.Output)
+	if err != nil {
+		return err
+	}
+	fmt.Println()
+	return nil
+}
+
+// Out method for YAML
+func (y YAMLStruct) Out() error {
+	var buf []byte
+	var err error
+	buf, err = yaml.Marshal(y.Output)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(buf))
+	return nil
 }

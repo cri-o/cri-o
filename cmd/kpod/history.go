@@ -3,17 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-	"text/template"
-	"time"
-
-	"os"
-
+	"reflect"
 	"strconv"
+	"strings"
+	"time"
 
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	units "github.com/docker/go-units"
+	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
 	"github.com/kubernetes-incubator/cri-o/libkpod/common"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -27,20 +25,20 @@ const (
 
 // historyOutputParams stores info about each layer
 type historyOutputParams struct {
-	ID        string     `json:"id"`
-	Created   *time.Time `json:"created"`
-	CreatedBy string     `json:"createdby"`
-	Size      int64      `json:"size"`
-	Comment   string     `json:"comment"`
+	ID        string `json:"id"`
+	Created   string `json:"created"`
+	CreatedBy string `json:"createdby"`
+	Size      string `json:"size"`
+	Comment   string `json:"comment"`
 }
 
 // historyOptions stores cli flag values
 type historyOptions struct {
-	image   string
-	human   bool
-	noTrunc bool
-	quiet   bool
-	format  string
+	image    string
+	human    bool
+	truncate bool
+	quiet    bool
+	format   string
 }
 
 var (
@@ -50,7 +48,7 @@ var (
 			Usage: "Display sizes and dates in human readable format",
 		},
 		cli.BoolFlag{
-			Name:  "no-trunc",
+			Name:  "no-trunc, notruncate",
 			Usage: "Do not truncate the output",
 		},
 		cli.BoolFlag{
@@ -59,11 +57,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "Pretty-print history of the image using a Go template",
-		},
-		cli.BoolFlag{
-			Name:  "json",
-			Usage: "Print the history in JSON format",
+			Usage: "Change the output to JSON or a Go template",
 		},
 	}
 
@@ -93,23 +87,19 @@ func historyCmd(c *cli.Context) error {
 	if c.IsSet("human") {
 		human = c.Bool("human")
 	}
-	noTruncate := false
+
+	truncate := true
 	if c.IsSet("no-trunc") {
-		noTruncate = c.Bool("no-trunc")
+		truncate = !c.Bool("no-trunc")
 	}
 	quiet := false
 	if c.IsSet("quiet") {
 		quiet = c.Bool("quiet")
 	}
-	json := false
-	if c.IsSet("json") {
-		json = c.Bool("json")
-	}
 	format := ""
 	if c.IsSet("format") {
 		format = c.String("format")
 	}
-
 	args := c.Args()
 	if len(args) == 0 {
 		logrus.Errorf("an image name must be specified")
@@ -122,98 +112,29 @@ func historyCmd(c *cli.Context) error {
 	imgName := args[0]
 
 	opts := historyOptions{
-		image:   imgName,
-		human:   human,
-		noTrunc: noTruncate,
-		quiet:   quiet,
-		format:  format,
+		image:    imgName,
+		human:    human,
+		truncate: truncate,
+		quiet:    quiet,
+		format:   format,
 	}
-
-	var history []byte
-	if json {
-		history, err = createJSON(store, opts)
-		fmt.Println(string(history))
-	} else {
-		if format == "" && !quiet {
-			outputHeading(noTruncate)
-		}
-		err = outputHistory(store, opts)
-	}
+	err = outputHistory(store, opts)
 	return err
 }
 
-// outputHeader outputs the heading
-func outputHeading(noTrunc bool) {
-	if !noTrunc {
-		fmt.Printf("%-12s\t\t%-16s\t\t%-45s\t\t", "IMAGE", "CREATED", "CREATED BY")
-		fmt.Printf("%-16s\t\t%s\n", "SIZE", "COMMENT")
+func genHistoryFormat(quiet, truncate, human bool) (format string) {
+	if quiet {
+		return "{{.ID}}"
+	}
+
+	if truncate {
+		format = "table {{ .ID | printf \"%-12.12s\" }} {{ .Created | printf \"%-16s\" }} {{ .CreatedBy | " +
+			"printf \"%-45.45s\" }} {{ .Size | printf \"%-16s\" }} {{ .Comment | printf \"%s\" }}"
 	} else {
-		fmt.Printf("%-64s\t%-18s\t%-60s\t", "IMAGE", "CREATED", "CREATED BY")
-		fmt.Printf("%-16s\t%s\n", "SIZE", "COMMENT")
+		format = "table {{ .ID | printf \"%-64s\" }} {{ .Created | printf \"%-18s\" }} {{ .CreatedBy | " +
+			"printf \"%-60s\" }} {{ .Size | printf \"%-16s\" }} {{ .Comment | printf \"%s\"}}"
 	}
-}
-
-// outputString outputs the information in historyOutputParams
-func outputString(noTrunc, human bool, params historyOutputParams) {
-	var (
-		createdTime string
-		outputSize  string
-	)
-
-	if human {
-		createdTime = outputHumanTime(params.Created) + " ago"
-		outputSize = units.HumanSize(float64(params.Size))
-	} else {
-		createdTime = outputTime(params.Created)
-		outputSize = strconv.FormatInt(params.Size, 10)
-	}
-
-	if !noTrunc {
-		fmt.Printf("%-12.12s\t\t%-16s\t\t%-45.45s\t\t", params.ID, createdTime, params.CreatedBy)
-		fmt.Printf("%-16s\t\t%s\n", outputSize, params.Comment)
-	} else {
-		fmt.Printf("%-64s\t%-18s\t%-60s\t", params.ID, createdTime, params.CreatedBy)
-		fmt.Printf("%-16s\t%s\n\n", outputSize, params.Comment)
-	}
-}
-
-// outputWithTemplate is called when --format is given a template
-func outputWithTemplate(format string, params historyOutputParams, human bool) error {
-	templ, err := template.New("history").Parse(format)
-	if err != nil {
-		return errors.Wrapf(err, "error parsing template")
-	}
-
-	createdTime := outputTime(params.Created)
-	outputSize := strconv.FormatInt(params.Size, 10)
-
-	if human {
-		createdTime = outputHumanTime(params.Created) + " ago"
-		outputSize = units.HumanSize(float64(params.Size))
-	}
-
-	// templParams is used to store the info from params and the time and
-	// size that have been converted to type string for when the human flag
-	// is set
-	templParams := struct {
-		ID        string
-		Created   string
-		CreatedBy string
-		Size      string
-		Comment   string
-	}{
-		params.ID,
-		createdTime,
-		params.CreatedBy,
-		outputSize,
-		params.Comment,
-	}
-
-	if err = templ.Execute(os.Stdout, templParams); err != nil {
-		return err
-	}
-	fmt.Println()
-	return nil
+	return
 }
 
 // outputTime displays the time stamp in "2017-06-20T20:24:10Z" format
@@ -229,10 +150,12 @@ func outputHumanTime(tm *time.Time) string {
 // createJSON retrieves the history of the image and returns a JSON object
 func createJSON(store storage.Store, opts historyOptions) ([]byte, error) {
 	var (
-		size     int64
-		img      *storage.Image
-		imageID  string
-		layerAll []historyOutputParams
+		size        int64
+		img         *storage.Image
+		imageID     string
+		layerAll    []historyOutputParams
+		createdTime string
+		outputSize  string
 	)
 
 	ref, err := is.Transport.ParseStoreReference(store, opts.image)
@@ -275,11 +198,18 @@ func createJSON(store storage.Store, opts historyOptions) ([]byte, error) {
 			size = 0
 		}
 
+		if opts.human {
+			createdTime = outputHumanTime(history[i].Created) + " ago"
+			outputSize = units.HumanSize(float64(size))
+		} else {
+			createdTime = outputTime(history[i].Created)
+			outputSize = strconv.FormatInt(size, 10)
+		}
 		params := historyOutputParams{
 			ID:        imageID,
-			Created:   history[i].Created,
+			Created:   createdTime,
 			CreatedBy: history[i].CreatedBy,
-			Size:      size,
+			Size:      outputSize,
 			Comment:   history[i].Comment,
 		}
 
@@ -296,6 +226,15 @@ func createJSON(store storage.Store, opts historyOptions) ([]byte, error) {
 	}
 
 	return output, nil
+}
+
+// historyToGeneric makes an empty array of interfaces for output
+func historyToGeneric(params []historyOutputParams) []interface{} {
+	genericParams := make([]interface{}, len(params))
+	for i, v := range params {
+		genericParams[i] = interface{}(v)
+	}
+	return genericParams
 }
 
 // outputHistory gets the history of the image from the JSON object
@@ -316,25 +255,23 @@ func outputHistory(store storage.Store, opts historyOptions) error {
 		return errors.Errorf("error Unmarshalling JSON: %v", err)
 	}
 
+	historyOutput := []historyOutputParams{}
+
+	historyFormat := opts.format
+	if historyFormat == "" {
+		historyFormat = genHistoryFormat(opts.quiet, opts.truncate, opts.human)
+	}
+
 	for i := 0; i < len(history); i++ {
 		imageID = history[i].ID
 
 		outputCreatedBy = strings.Join(strings.Fields(history[i].CreatedBy), " ")
-		if !opts.noTrunc && len(outputCreatedBy) > createdByTruncLength {
+		if opts.truncate && len(outputCreatedBy) > createdByTruncLength {
 			outputCreatedBy = outputCreatedBy[:createdByTruncLength-3] + "..."
 		}
 
-		if !opts.noTrunc && i == 0 {
+		if opts.truncate && i == 0 {
 			imageID = history[i].ID[:idTruncLength]
-		}
-
-		if opts.quiet {
-			if !opts.noTrunc {
-				fmt.Printf("%-12.12s\n", imageID)
-			} else {
-				fmt.Printf("%-s\n", imageID)
-			}
-			continue
 		}
 
 		params := historyOutputParams{
@@ -344,15 +281,28 @@ func outputHistory(store storage.Store, opts historyOptions) error {
 			Size:      history[i].Size,
 			Comment:   history[i].Comment,
 		}
-
-		if len(opts.format) > 0 {
-			if err = outputWithTemplate(opts.format, params, opts.human); err != nil {
-				return errors.Errorf("error outputing with template: %v", err)
-			}
-			continue
-		}
-
-		outputString(opts.noTrunc, opts.human, params)
+		historyOutput = append(historyOutput, params)
 	}
+
+	var out formats.Writer
+	switch opts.format {
+	case formats.JSONString:
+		out = formats.JSONStructArray{Output: historyToGeneric(historyOutput)}
+	default:
+		out = formats.StdoutTemplateArray{Output: historyToGeneric(historyOutput), Template: historyFormat, Fields: historyOutput[0].headerMap()}
+
+	}
+	formats.Writer(out).Out()
 	return nil
+}
+
+func (h *historyOutputParams) headerMap() map[string]string {
+	v := reflect.Indirect(reflect.ValueOf(h))
+	values := make(map[string]string)
+	for h := 0; h < v.NumField(); h++ {
+		key := v.Type().Field(h).Name
+		value := key
+		values[key] = fmt.Sprintf("%s        ", strings.ToUpper(splitCamelCase(value)))
+	}
+	return values
 }

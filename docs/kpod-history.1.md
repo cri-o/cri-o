@@ -47,10 +47,8 @@ Valid placeholders for the Go template are listed below:
     Print the numeric IDs only
 
 **--format**
-    Pretty-print history of the image using a Go template
+    Alter the output for a format like 'json' or a Go template.
 
-**--json**
-    Print the history in JSON form
 
 ## COMMANDS
 
@@ -59,6 +57,8 @@ Valid placeholders for the Go template are listed below:
 **kpod history --no-trunc=true --human=false debian**
 
 **kpod history --format "{{.ID}} {{.Created}}" debian**
+
+**kpod history --format json debian**
 
 ## history
 Show the history of an image

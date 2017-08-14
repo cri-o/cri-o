@@ -35,10 +35,10 @@ _kpod_info() {
     local boolean_options="
      --help
      -h
-     --json
      --debug
      "
     local options_with_args="
+    --format
   "
 
     local all_options="$options_with_args $boolean_options"

@@ -1,11 +1,7 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"text/template"
-
+	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
 	"github.com/pkg/errors"
@@ -13,9 +9,6 @@ import (
 )
 
 const (
-	defaultFormat = `Container: {{.Container}}
-ID: {{.ContainerID}}
-`
 	inspectTypeContainer = "container"
 	inspectTypeImage     = "image"
 	inspectAll           = "all"
@@ -30,8 +23,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "format, f",
-			Value: defaultFormat,
-			Usage: "Format the output using the given go template",
+			Usage: "Change the output format to a Go template",
 		},
 		cli.BoolFlag{
 			Name:  "size",
@@ -60,10 +52,6 @@ func inspectCmd(c *cli.Context) error {
 
 	itemType := c.String("type")
 	size := c.Bool("size")
-	format := defaultFormat
-	if c.String("format") != "" {
-		format = c.String("format")
-	}
 
 	switch itemType {
 	case inspectTypeContainer:
@@ -72,8 +60,6 @@ func inspectCmd(c *cli.Context) error {
 	default:
 		return errors.Errorf("the only recognized types are %q, %q, and %q", inspectTypeContainer, inspectTypeImage, inspectAll)
 	}
-
-	t := template.Must(template.New("format").Parse(format))
 
 	name := args[0]
 
@@ -89,6 +75,7 @@ func inspectCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "could not update list of containers")
 	}
 
+	outputFormat := c.String("format")
 	var data interface{}
 	switch itemType {
 	case inspectTypeContainer:
@@ -115,18 +102,15 @@ func inspectCmd(c *cli.Context) error {
 		}
 	}
 
-	if c.IsSet("format") {
-		if err = t.Execute(os.Stdout, data); err != nil {
-			return err
-		}
-		fmt.Println()
-		return nil
+	var out formats.Writer
+	if outputFormat != "" && outputFormat != formats.JSONString {
+		//template
+		out = formats.StdoutTemplate{Output: data, Template: outputFormat}
+	} else {
+		// default is json output
+		out = formats.JSONStruct{Output: data}
 	}
 
-	d, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		return errors.Wrapf(err, "error encoding build container as json")
-	}
-	_, err = fmt.Println(string(d))
-	return err
+	formats.Writer(out).Out()
+	return nil
 }
