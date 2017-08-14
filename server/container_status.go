@@ -26,11 +26,6 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		return nil, err
 	}
 
-	if err = s.Runtime().UpdateStatus(c); err != nil {
-		return nil, err
-	}
-	s.ContainerStateToDisk(c)
-
 	containerID := c.ID()
 	resp := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
