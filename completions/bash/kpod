@@ -27,6 +27,25 @@ _kpod_history() {
     esac
 }
 
+_kpod_info() {
+    local boolean_options="
+     --help
+     -h
+     --json
+     --debug
+     "
+    local options_with_args="
+  "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
 _kpod_images() {
     local boolean_options="
      --help
@@ -51,7 +70,7 @@ _kpod_images() {
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
     esac
- }
+}
 
 _kpod_launch() {
      local options_with_args="
@@ -219,14 +238,21 @@ _kpod_load() {
 
 _kpod_kpod() {
      local options_with_args="
-     "
+           --config -c
+           --root
+           --runroot
+           --storage-driver
+           --storage-opt
+    "
      local boolean_options="
-	   --version -v
-	   --help -h
+           --debug
+           --help -h
+           --version -v
      "
      commands="
     history
     images
+    info
     launch
     load
     mount

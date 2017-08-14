@@ -4,6 +4,7 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -46,5 +47,9 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 			config.StorageOptions = opts
 		}
 	}
+	if c.Bool("debug") {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	return config, nil
 }

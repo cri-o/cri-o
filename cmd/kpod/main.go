@@ -15,6 +15,7 @@ func main() {
 	if reexec.Init() {
 		return
 	}
+	logrus.SetLevel(logrus.ErrorLevel)
 
 	app := cli.NewApp()
 	app.Name = "kpod"
@@ -28,20 +29,28 @@ func main() {
 		imagesCommand,
 		infoCommand,
 		inspectCommand,
+		loadCommand,
 		mountCommand,
 		pullCommand,
 		pushCommand,
 		rmiCommand,
+		saveCommand,
 		tagCommand,
 		umountCommand,
 		versionCommand,
-		saveCommand,
-		loadCommand,
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
+			Name:  "config, c",
+			Usage: "path of a config file detailing container server configuration options",
+		},
+		cli.BoolFlag{
+			Name:  "debug",
+			Usage: "print debugging information",
+		},
+		cli.StringFlag{
 			Name:  "root",
-			Usage: "path to the root directory in which data, including images,  is stored",
+			Usage: "path to the root directory in which data, including images, is stored",
 		},
 		cli.StringFlag{
 			Name:  "runroot",
@@ -55,12 +64,9 @@ func main() {
 			Name:  "storage-opt",
 			Usage: "used to pass an option to the storage driver",
 		},
-		cli.StringFlag{
-			Name:  "config, c",
-			Usage: "path of a config file detailing container server configuration options",
-		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		logrus.Fatal(err)
+		logrus.Errorf(err.Error())
+		os.Exit(1)
 	}
 }
