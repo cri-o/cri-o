@@ -22,6 +22,7 @@ const (
 	cniBinDir           = "/opt/cni/bin/"
 	cgroupManager       = "cgroupfs"
 	lockPath            = "/run/crio.lock"
+	containerExitsDir   = "/var/run/kpod/exits"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -136,6 +137,10 @@ type RuntimeConfig struct {
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
 	PidsLimit int64 `toml:"pids_limit"`
+
+	// ContainerExitsDir is the directory in which container exit files are
+	// written to by conmon.
+	ContainerExitsDir string `toml:"container_exits_dir"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -255,11 +260,12 @@ func DefaultConfig() *Config {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			SELinux:         selinux.GetEnabled(),
-			SeccompProfile:  seccompProfilePath,
-			ApparmorProfile: apparmorProfileName,
-			CgroupManager:   cgroupManager,
-			PidsLimit:       DefaultPidsLimit,
+			SELinux:           selinux.GetEnabled(),
+			SeccompProfile:    seccompProfilePath,
+			ApparmorProfile:   apparmorProfileName,
+			CgroupManager:     cgroupManager,
+			PidsLimit:         DefaultPidsLimit,
+			ContainerExitsDir: containerExitsDir,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,

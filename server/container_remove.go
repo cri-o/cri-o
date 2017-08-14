@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
@@ -34,6 +36,10 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 
 	if err := s.Runtime().DeleteContainer(c); err != nil {
 		return nil, fmt.Errorf("failed to delete container %s: %v", c.ID(), err)
+	}
+
+	if err := os.Remove(filepath.Join(s.config.ContainerExitsDir, c.ID())); err != nil {
+		return nil, fmt.Errorf("failed to remove container exit file %s: %v", c.ID(), err)
 	}
 
 	s.removeContainer(c)
