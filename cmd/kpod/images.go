@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
@@ -9,14 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
-
-type imageOutputParams struct {
-	ID        string        `json:"id"`
-	Name      string        `json:"names"`
-	Digest    digest.Digest `json:"digest"`
-	CreatedAt string        `json:"created"`
-	Size      string        `json:"size"`
-}
 
 var (
 	imagesFlags = []cli.Flag{
@@ -201,9 +196,7 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 		case "json":
 			out = formats.JSONstruct{Output: toGeneric(imageOutput)}
 		default:
-			// Assuming Go-template
-			out = formats.StdoutTemplate{Output: toGeneric(imageOutput), Template: outputFormat}
-
+			out = formats.StdoutTemplate{Output: toGeneric(imageOutput), Template: outputFormat, Fields: imageOutput[0].headerMap()}
 		}
 	} else {
 		out = stdoutstruct{output: imageOutput, digests: digests, truncate: truncate, quiet: quiet, noheading: noheading}
@@ -212,4 +205,27 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 	formats.Writer(out).Out()
 
 	return nil
+}
+
+type imageOutputParams struct {
+	ID        string        `json:"id"`
+	Name      string        `json:"names"`
+	Digest    digest.Digest `json:"digest"`
+	CreatedAt string        `json:"created"`
+	Size      string        `json:"size"`
+}
+
+func (i *imageOutputParams) headerMap() map[string]string {
+	v := reflect.Indirect(reflect.ValueOf(i))
+	values := make(map[string]string)
+
+	for i := 0; i < v.NumField(); i++ {
+		key := v.Type().Field(i).Name
+		value := key
+		if value == "ID" || value == "Name" {
+			value = "Image" + value
+		}
+		values[key] = fmt.Sprintf("%s        ", strings.ToUpper(splitCamelCase(value)))
+	}
+	return values
 }

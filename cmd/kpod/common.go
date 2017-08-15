@@ -1,8 +1,11 @@
 package main
 
 import (
+	"strings"
+
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
+	"github.com/fatih/camelcase"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -52,4 +55,9 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	}
 
 	return config, nil
+}
+
+func splitCamelCase(src string) string {
+	entries := camelcase.Split(src)
+	return strings.Join(entries, " ")
 }
