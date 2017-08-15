@@ -35,17 +35,15 @@ func (c *Container) Kill(signal uint) error {
 }
 
 // Exec starts a new process inside the container
-// TODO does this need arguments?
-// TODO should this return anything besides error?
-func (c *Container) Exec() error {
-	return ErrNotImplemented
+// Returns fully qualified URL of streaming server for executed process
+func (c *Container) Exec(cmd []string, tty bool, stdin bool) (string, error) {
+	return "", ErrNotImplemented
 }
 
 // Attach attaches to a container
-// TODO does this need arguments?
-// TODO should this return anything besides error?
-func (c *Container) Attach() error {
-	return ErrNotImplemented
+// Returns fully qualified URL of streaming server for the container
+func (c *Container) Attach(stdin, tty bool) (string, error) {
+	return "", ErrNotImplemented
 }
 
 // Mount mounts a container's filesystem on the host

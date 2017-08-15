@@ -156,6 +156,16 @@ func (r *Runtime) GetImages(filter ...ImageFilter) ([]*storage.Image, error) {
 	return nil, ctr.ErrNotImplemented
 }
 
+// ImportImage imports an OCI format image archive into storage as an image
+func (r *Runtime) ImportImage(path string) (*storage.Image, error) {
+	return nil, ctr.ErrNotImplemented
+}
+
+// ExportImage exports an image to an OCI archive, saving it at the given path
+func (r *Runtime) ExportImage(image *storage.Image, path string) error {
+	return ctr.ErrNotImplemented
+}
+
 // CommitContainer commits the changes between a container and its image,
 // creating a new image
 // If the container was not created from an image (for example,
