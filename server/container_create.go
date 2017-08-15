@@ -250,7 +250,7 @@ func ensureSaneLogPath(logPath string) error {
 	// symlink and we need to remove it.
 	fi, err := os.Lstat(logPath)
 	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
-		// Non-existant files and non-symlinks aren't our problem.
+		// Non-existent files and non-symlinks aren't our problem.
 		return nil
 	}
 
