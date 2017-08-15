@@ -77,19 +77,25 @@ func exportCmd(c *cli.Context) error {
 // exportContainer exports the contents of a container and saves it as
 // a tarball on disk
 func exportContainer(store storage.Store, opts exportOptions) error {
-	mountPoint, err := store.Mount(opts.container, "")
+	// gets the full container id when given a name or partial id
+	containerID, err := store.Lookup(opts.container)
 	if err != nil {
-		return errors.Wrapf(err, "error finding container %q", opts.container)
+		return errors.Wrapf(err, "no such container %q", opts.container)
+	}
+
+	mountPoint, err := store.Mount(containerID, "")
+	if err != nil {
+		return errors.Wrapf(err, "error finding container %q", containerID)
 	}
 	defer func() {
-		if err := store.Unmount(opts.container); err != nil {
-			fmt.Printf("error unmounting container %q: %v\n", opts.container, err)
+		if err := store.Unmount(containerID); err != nil {
+			fmt.Printf("error unmounting container %q: %v\n", containerID, err)
 		}
 	}()
 
 	input, err := archive.Tar(mountPoint, archive.Uncompressed)
 	if err != nil {
-		return errors.Wrapf(err, "error reading container directory %q", opts.container)
+		return errors.Wrapf(err, "error reading container directory %q", containerID)
 	}
 
 	outFile, err := os.Create(opts.output)
