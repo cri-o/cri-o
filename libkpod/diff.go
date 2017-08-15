@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GetDiff returns the differences betwen the two images, layers, or containers
+// GetDiff returns the differences between the two images, layers, or containers
 func (c *ContainerServer) GetDiff(from, to string) ([]archive.Change, error) {
 	toLayer, err := c.getLayerID(to)
 	if err != nil {

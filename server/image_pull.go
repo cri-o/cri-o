@@ -49,7 +49,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		options := &copy.Options{
 			SourceCtx: &types.SystemContext{},
 		}
-		// Specifiying a username indicates the user intends to send authentication to the registry.
+		// Specifying a username indicates the user intends to send authentication to the registry.
 		if username != "" {
 			options.SourceCtx = &types.SystemContext{
 				DockerAuthConfig: &types.DockerAuthConfig{
