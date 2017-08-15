@@ -3,7 +3,7 @@
 % kpod-version "1" "JULY 2017" "kpod"
 
 ## NAME
-kpod-info - Display System Information
+kpod-info - Display system information
 
 
 ## SYNOPSIS

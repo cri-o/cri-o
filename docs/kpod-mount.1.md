@@ -3,7 +3,7 @@
 # kpod-mount "1" "July 2017" "kpod"
 
 ## NAME
-kpod mount - Mount a working container's root filesystem.
+kpod mount - Mount a working container's root filesystem
 
 ## SYNOPSIS
 **kpod** **mount**

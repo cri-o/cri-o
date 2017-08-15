@@ -3,7 +3,7 @@
 # kpod-load "1" "July 2017" "kpod"
 
 ## NAME
-kpod-load - load an image from docker archive
+kpod-load - Load an image from docker archive
 
 ## SYNOPSIS
 **kpod load**
