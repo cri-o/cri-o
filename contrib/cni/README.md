@@ -2,7 +2,7 @@
 
 There are a wide variety of different [CNI][cni] network configurations. This
 directory just contains some example configurations that can be used as the
-basis for your own configurations (distibutions should package these files in
+basis for your own configurations (distributions should package these files in
 example directories).
 
 To use these configurations, place them in `/etc/cni/net.d` (or the directory
