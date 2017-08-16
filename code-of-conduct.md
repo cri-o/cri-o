@@ -14,19 +14,19 @@ religion, or nationality.
 
 Examples of unacceptable behavior by participants include:
 
-* The use of sexualized language or imagery
-* Personal attacks
-* Trolling or insulting/derogatory comments
-* Public or private harassment
+* The use of sexualized language or imagery.
+* Personal attacks.
+* Trolling or insulting/derogatory comments.
+* Public or private harassment.
 * Publishing other's private information, such as physical or electronic addresses,
- without explicit permission
+ without explicit permission.
 * Other unethical or unprofessional conduct.
 
 Project maintainers have the right and responsibility to remove, edit, or reject
 comments, commits, code, wiki edits, issues, and other contributions that are not
-aligned to this Code of Conduct. By adopting this Code of Conduct, project maintainers
+aligned to this Code of Conduct.  By adopting this Code of Conduct, project maintainers
 commit themselves to fairly and consistently applying these principles to every aspect
-of managing this project. Project maintainers who do not follow or enforce the Code of
+of managing this project.  Project maintainers who do not follow or enforce the Code of
 Conduct may be permanently removed from the project team.
 
 This code of conduct applies both within project spaces and in public spaces
@@ -41,15 +41,15 @@ http://contributor-covenant.org/version/1/2/0/
 ### Kubernetes Events Code of Conduct
 
 Kubernetes events are working conferences intended for professional networking and collaboration in the
-Kubernetes community. Attendees are expected to behave according to professional standards and in accordance
+Kubernetes community.  Attendees are expected to behave according to professional standards and in accordance
 with their employer's policies on appropriate workplace behavior.
 
 While at Kubernetes events or related social networking opportunities, attendees should not engage in
-discriminatory or offensive speech or actions regarding gender, sexuality, race, or religion. Speakers should
+discriminatory or offensive speech or actions regarding gender, sexuality, race, or religion.  Speakers should
 be especially aware of these concerns.
 
 The Kubernetes team does not condone any statements by speakers contrary to these standards.  The Kubernetes
 team reserves the right to deny entrance and/or eject from an event (without refund) any individual found to
 be engaging in discriminatory or offensive speech or actions.
 
-Please bring any concerns to the immediate attention of Kubernetes event staff.
+Please bring any concerns to the immediate attention of the Kubernetes event staff.
