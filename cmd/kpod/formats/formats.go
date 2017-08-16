@@ -43,9 +43,12 @@ func (t StdoutTemplate) Out() error {
 		t.Template = strings.TrimSpace(t.Template[5:])
 		headerTmpl, err := template.New("header").Funcs(headerFunctions).Parse(t.Template)
 		if err != nil {
-			errors.Wrapf(err, "Template parsing error")
+			return errors.Wrapf(err, "Template parsing error")
 		}
 		err = headerTmpl.Execute(os.Stdout, t.Fields)
+		if err != nil {
+			return err
+		}
 		fmt.Println()
 	}
 	tmpl, err := template.New("image").Funcs(basicFunctions).Parse(t.Template)
