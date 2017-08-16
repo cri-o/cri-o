@@ -6,6 +6,10 @@ __kpod_list_images() {
     COMPREPLY=($(compgen -W "$(kpod images -q)" -- $cur))
 }
 
+__kpod_list_containers() {
+    COMPREPLY=($(compgen -W "$(kpod ps -aq)" -- $cur))
+}
+
 _kpod_history() {
      local options_with_args="
      --format
@@ -78,6 +82,27 @@ _kpod_launch() {
      local boolean_options="
      "
      _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_logs() {
+     local options_with_args="
+     --since
+     --tail
+     "
+     local boolean_options="
+     --follow
+     -f
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_containers
+            ;;
+    esac
 }
 
 _kpod_pull() {

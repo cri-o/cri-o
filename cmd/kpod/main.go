@@ -30,6 +30,7 @@ func main() {
 		infoCommand,
 		inspectCommand,
 		loadCommand,
+		logsCommand,
 		mountCommand,
 		pullCommand,
 		pushCommand,
