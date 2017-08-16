@@ -153,6 +153,7 @@ type Sandbox struct {
 	resolvPath     string
 	hostname       string
 	portMappings   []*hostport.PortMapping
+	stopped        bool
 }
 
 const (
@@ -379,6 +380,19 @@ func (s *Sandbox) NetNsCreate() error {
 	}
 
 	return nil
+}
+
+// SetStopped sets the sandbox state to stopped.
+// This should be set after a stop operation succeeds
+// so that subsequent stops can return fast.
+func (s *Sandbox) SetStopped() {
+	s.stopped = true
+}
+
+// Stopped returns whether the sandbox state has been
+// set to stopped.
+func (s *Sandbox) Stopped() bool {
+	return s.stopped
 }
 
 // NetNsJoin attempts to join the sandbox to an existing network namespace

@@ -37,6 +37,10 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		return resp, nil
 	}
 
+	if sb.Stopped() {
+		return &pb.StopPodSandboxResponse{}, nil
+	}
+
 	podInfraContainer := sb.InfraContainer()
 	netnsPath, err := podInfraContainer.NetNsPath()
 	if err != nil {
@@ -110,6 +114,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
 
+	sb.SetStopped()
 	resp := &pb.StopPodSandboxResponse{}
 	logrus.Debugf("StopPodSandboxResponse: %+v", resp)
 	return resp, nil
