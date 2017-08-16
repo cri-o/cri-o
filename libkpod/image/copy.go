@@ -134,7 +134,23 @@ func PullImage(store storage.Store, imgName string, allTags, quiet bool, sc *typ
 		}
 		// to pull all the images stored in one tar file
 		for i := range manifest {
-			images = append(images, manifest[i].RepoTags[0])
+			if manifest[i].RepoTags != nil {
+				images = append(images, manifest[i].RepoTags[0])
+			} else {
+				// create an image object and use the hex value of the digest as the image ID
+				// for parsing the store reference
+				newImg, err := srcRef.NewImage(sc)
+				if err != nil {
+					return err
+				}
+				defer newImg.Close()
+				digest := newImg.ConfigInfo().Digest
+				if err := digest.Validate(); err == nil {
+					images = append(images, "@"+digest.Hex())
+				} else {
+					return errors.Wrapf(err, "error getting config info")
+				}
+			}
 		}
 	} else if splitArr[0] == "oci" {
 		// needs to be implemented in future
