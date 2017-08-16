@@ -62,6 +62,7 @@ func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, 
 		if mount.Readonly {
 			options = []string{"ro"}
 		}
+		options = append(options, []string{"rbind", "rprivate"}...)
 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
