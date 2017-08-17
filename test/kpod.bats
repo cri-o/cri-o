@@ -198,8 +198,9 @@ function teardown() {
     run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect redis:alpine | python -m json.tool"
     echo "$output"
     [ "$status" -eq 0 ]
-}
     run ${KPOD_BINARY} $KPOD_OPTIONS rmi redis:alpine
+    [ "$status" -eq 0 ]
+}
 
 
 @test "kpod inspect non-existent container" {
@@ -212,12 +213,13 @@ function teardown() {
     run ${KPOD_BINARY} $KPOD_OPTIONS pull redis:alpine
     [ "$status" -eq 0 ]
     run ${KPOD_BINARY} $KPOD_OPTIONS --format {{.ID}} inspect redis:alpine
-    [ "$status" -eq 0]
+    [ "$status" -eq 0 ]
     inspectOutput="$output"
     run ${KPOD_BINARY} $KPOD_OPTIONS images --quiet redis:alpine
-    [ "$status" -eq 0]
+    [ "$status" -eq 0 ]
     [ "$output" -eq "$inspectOutput" ]
     run ${KPOD_BINARY} $KPOD_OPTIONS rmi redis:alpine
+    [ "$status" -eq 0 ]
 }
 
 @test "kpod inspect specified type" {
@@ -225,8 +227,9 @@ function teardown() {
     [ "$status" -eq 0 ]
     run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect --type image redis:alpine | python -m json.tool"
     echo "$output"
-    [ "$status" -eq 0]
+    [ "$status" -eq 0 ]
     run ${KPOD_BINARY} $KPOD_OPTIONS rmi redis:alpine
+    [ "$status" -eq 0 ]
 }
 
 @test "kpod images" {
