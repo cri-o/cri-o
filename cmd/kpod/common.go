@@ -53,7 +53,9 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	if c.Bool("debug") {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-
+	if c.GlobalIsSet("runtime") {
+		config.Runtime = c.GlobalString("runtime")
+	}
 	return config, nil
 }
 
