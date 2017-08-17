@@ -70,6 +70,9 @@ Display a container or image's configuration
 ### load
 Load an image from docker archive
 
+### logs
+Display the logs of a container
+
 ### mount
 Mount a working container's root filesystem
 
@@ -87,6 +90,9 @@ Removes one or more locally stored images
 
 ### save
 Save an image to docker-archive or oci
+
+### stats
+Display a live stream of one or more containers' resource usage statistics
 
 ### tag
 Add an additional name to a local image

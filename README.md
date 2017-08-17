@@ -37,28 +37,29 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788).  Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
 ## Commands
-| Command                                              | Description                                                                                          |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                                              |
-| [kpod(1)](/docs/kpod.1.md)                           | Simple management tool for pods and images                                                           |
-| [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Copy files/folders between a container and the local filesystem                                      |
-| [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                                                 |
-| [kpod-export(1)](/docs/kpod-export.1.md)             | Export container's filesystem contents as a tar archive                                              |
-| [kpod-history(1)](/docs/kpod-history.1.md)           | Shows the history of an image                                                                        |
-| [kpod-images(1)](/docs/kpod-images.1.md)             | List images in local storage                                                                         |
-| [kpod-info(1)](/docs/kpod-info.1.md)                 | Display system information                                                                           |
-| [kpod-inspect(1)](/docs/kpod-inspect.1.md)           | Display the configuration of a container or image                                                    |
-| [kpod-load(1)](/docs/kpod-load.1.md)                 | Load an image from docker archive or oci                                                             |
-| [kpod-logs(1)](/docs/kpod-logs.1.md)                 | Display the logs of a container                                                                      |
-| [kpod-mount(1)](/docs/kpod-mount.1.md)               | Mount a working container's root filesystem                                                          |
-| [kpod-pull(1)](/docs/kpod-pull.1.md)                 | Pull an image from a registry                                                                        |
-| [kpod-push(1)](/docs/kpod-push.1.md)                 | Push an image to a specified destination                                                             |
-| [kpod-rmi(1)](/docs/kpod-rmi.1.md)                   | Removes one or more images                                                                           |
-| [kpod-save(1)](/docs/kpod-save.1.md)                 | Saves an image to an archive                                                                         |
-| [kpod-stats(1)](/docs/kpod-stats.1.md)               | Display a live stream of one or more containers' resource usage statistics                           |
-| [kpod-tag(1)](/docs/kpod-tag.1.md)                   | Add an additional name to a local image                                                              |
-| [kpod-umount(1)](/docs/kpod-umount.1.md)             | Unmount a working container's root filesystem                                                        |
-| [kpod-version(1)](/docs/kpod-version.1.md)           | Display the Kpod version information                                                                 |
+| Command                                              | Description                                                               | Demo|
+| ---------------------------------------------------- | --------------------------------------------------------------------------|-----|
+| [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   ||
+| [kpod(1)](/docs/kpod.1.md)                           | Simple management tool for pods and images                                ||
+| [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Copy files/folders between a container and the local filesystem           ||
+| [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                      ||
+| [kpod-export(1)](/docs/kpod-export.1.md)             | Export container's filesystem contents as a tar archive                   ||
+| [kpod-history(1)](/docs/kpod-history.1.md)           | Shows the history of an image                                             ||
+| [kpod-images(1)](/docs/kpod-images.1.md)             | List images in local storage                                              |[![...](/docs/play.png)](https://asciinema.org/a/133649)|
+| [kpod-info(1)](/docs/kpod-info.1.md)                 | Display system information                                                ||
+| [kpod-inspect(1)](/docs/kpod-inspect.1.md)           | Display the configuration of a container or image                         |[![...](/docs/play.png)](https://asciinema.org/a/133418)|
+| [kpod-load(1)](/docs/kpod-load.1.md)                 | Load an image from docker archive or oci                                  |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
+| [kpod-logs(1)](/docs/kpod-logs.1.md)                 | Display the logs of a container                                           ||
+| [kpod-mount(1)](/docs/kpod-mount.1.md)               | Mount a working container's root filesystem                               ||
+| [kpod-pull(1)](/docs/kpod-pull.1.md)                 | Pull an image from a registry                                             |[![...](/docs/play.png)](https://asciinema.org/a/lr4zfoynHJOUNu1KaXa1dwG2X)|
+| [kpod-push(1)](/docs/kpod-push.1.md)                 | Push an image to a specified destination                                  |[![...](/docs/play.png)](https://asciinema.org/a/133276)|
+| [kpod-rename(1)](/docs/kpod-rename.1.md)             | Rename a container                                                        ||
+| [kpod-rmi(1)](/docs/kpod-rmi.1.md)                   | Removes one or more images                                                |[![...](/docs/play.png)](https://asciinema.org/a/133799)|
+| [kpod-save(1)](/docs/kpod-save.1.md)                 | Saves an image to an archive                                              |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
+| [kpod-stats(1)](/docs/kpod-stats.1.md)               | Display a live stream of one or more containers' resource usage statistics||
+| [kpod-tag(1)](/docs/kpod-tag.1.md)                   | Add an additional name to a local image                                   |[![...](/docs/play.png)](https://asciinema.org/a/133803)|
+| [kpod-umount(1)](/docs/kpod-umount.1.md)             | Unmount a working container's root filesystem                             ||
+| [kpod-version(1)](/docs/kpod-version.1.md)           | Display the version information                                           |[![...](/docs/play.png)](https://asciinema.org/a/mfrn61pjZT9Fc8L4NbfdSqfgu)|
 
 ## Configuration
 | File                                       | Description                                                                                          |
