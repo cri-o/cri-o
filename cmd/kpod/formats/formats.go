@@ -3,9 +3,11 @@ package formats
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
+	"strings"
 	"text/template"
+
+	"github.com/pkg/errors"
 )
 
 // Writer interface for outputs
@@ -22,6 +24,7 @@ type JSONstruct struct {
 type StdoutTemplate struct {
 	Output   []interface{}
 	Template string
+	Fields   map[string]string
 }
 
 // Out method for JSON
@@ -36,14 +39,26 @@ func (j JSONstruct) Out() error {
 
 // Out method for Go templates
 func (t StdoutTemplate) Out() error {
-
-	tmpl, err := template.New("image").Parse(t.Template)
+	if strings.HasPrefix(t.Template, "table") {
+		t.Template = strings.TrimSpace(t.Template[5:])
+		headerTmpl, err := template.New("header").Funcs(headerFunctions).Parse(t.Template)
+		if err != nil {
+			return errors.Wrapf(err, "Template parsing error")
+		}
+		err = headerTmpl.Execute(os.Stdout, t.Fields)
+		if err != nil {
+			return err
+		}
+		fmt.Println()
+	}
+	tmpl, err := template.New("image").Funcs(basicFunctions).Parse(t.Template)
 	if err != nil {
 		return errors.Wrapf(err, "Template parsing error")
 	}
 
 	for _, img := range t.Output {
-		err = tmpl.Execute(os.Stdout, img)
+		basicTmpl := tmpl.Funcs(basicFunctions)
+		err = basicTmpl.Execute(os.Stdout, img)
 		if err != nil {
 			return err
 		}

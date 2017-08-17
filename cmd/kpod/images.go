@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
@@ -9,14 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
-
-type imageOutputParams struct {
-	ID        string        `json:"id"`
-	Name      string        `json:"names"`
-	Digest    digest.Digest `json:"digest"`
-	CreatedAt string        `json:"created"`
-	Size      string        `json:"size"`
-}
 
 var (
 	imagesFlags = []cli.Flag{
@@ -57,47 +52,6 @@ var (
 	}
 )
 
-type stdoutstruct struct {
-	output                              []imageOutputParams
-	truncate, digests, quiet, noheading bool
-}
-
-func (so stdoutstruct) Out() error {
-	if len(so.output) > 0 && !so.noheading && !so.quiet {
-		outputHeader(so.truncate, so.digests)
-	}
-	lastID := ""
-	for _, img := range so.output {
-		if so.quiet {
-			if lastID == img.ID {
-				continue // quiet should not show the same ID multiple times.
-			}
-			fmt.Printf("%-64s\n", img.ID)
-			continue
-		}
-		if so.truncate {
-			fmt.Printf("%-20.12s %-56s", img.ID, img.Name)
-		} else {
-			fmt.Printf("%-64s %-56s", img.ID, img.Name)
-		}
-
-		if so.digests {
-			fmt.Printf(" %-64s", img.Digest)
-		}
-		fmt.Printf(" %-22s %s\n", img.CreatedAt, img.Size)
-
-	}
-	return nil
-}
-
-func toGeneric(params []imageOutputParams) []interface{} {
-	genericParams := make([]interface{}, len(params))
-	for i, v := range params {
-		genericParams[i] = interface{}(v)
-	}
-	return genericParams
-}
-
 func imagesCmd(c *cli.Context) error {
 	config, err := getConfig(c)
 	if err != nil {
@@ -124,7 +78,7 @@ func imagesCmd(c *cli.Context) error {
 	if c.IsSet("digests") {
 		digests = c.Bool("digests")
 	}
-	outputFormat := ""
+	outputFormat := genImagesFormat(quiet, truncate, digests)
 	if c.IsSet("format") {
 		outputFormat = c.String("format")
 	}
@@ -133,7 +87,7 @@ func imagesCmd(c *cli.Context) error {
 	if len(c.Args()) == 1 {
 		name = c.Args().Get(0)
 	} else if len(c.Args()) > 1 {
-		return errors.New("'buildah images' requires at most 1 argument")
+		return errors.New("'kpod images' requires at most 1 argument")
 	}
 
 	var params *libkpodimage.FilterParams
@@ -154,24 +108,33 @@ func imagesCmd(c *cli.Context) error {
 	return outputImages(store, imageList, truncate, digests, quiet, outputFormat, noheading)
 }
 
-func outputHeader(truncate, digests bool) {
-	if truncate {
-		fmt.Printf("%-20s %-56s ", "IMAGE ID", "IMAGE NAME")
-	} else {
-		fmt.Printf("%-64s %-56s ", "IMAGE ID", "IMAGE NAME")
+func genImagesFormat(quiet, truncate, digests bool) (format string) {
+	if quiet {
+		return "{{.ID}}"
 	}
+	if truncate {
+		format = "table {{ .ID | printf \"%-20.12s\" }} "
+	} else {
+		format = "table {{ .ID | printf \"%-64s\" }} "
+	}
+	format += "{{ .Name | printf \"%-56s\" }} "
 
 	if digests {
-		fmt.Printf("%-71s ", "DIGEST")
+		format += "{{ .Digest | printf \"%-71s \"}} "
 	}
 
-	fmt.Printf("%-22s %s\n", "CREATED AT", "SIZE")
+	format += "{{ .CreatedAt | printf \"%-22s\" }} {{.Size}}"
+	return
 }
 
 func outputImages(store storage.Store, images []storage.Image, truncate, digests, quiet bool, outputFormat string, noheading bool) error {
 	imageOutput := []imageOutputParams{}
 
+	lastID := ""
 	for _, img := range images {
+		if quiet && lastID == img.ID {
+			continue // quiet should not show the same ID multiple times
+		}
 		createdTime := img.Created
 
 		name := ""
@@ -179,7 +142,7 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 			name = img.Names[0]
 		}
 
-		info, digest, size, _ := libkpodimage.InfoAndDigestAndSize(store, img)
+		info, imageDigest, size, _ := libkpodimage.InfoAndDigestAndSize(store, img)
 		if info != nil {
 			createdTime = info.Created
 		}
@@ -187,7 +150,7 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 		params := imageOutputParams{
 			ID:        img.ID,
 			Name:      name,
-			Digest:    digest,
+			Digest:    imageDigest,
 			CreatedAt: createdTime.Format("Jan 2, 2006 15:04"),
 			Size:      libkpodimage.FormattedSize(size),
 		}
@@ -196,20 +159,45 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 
 	var out formats.Writer
 
-	if outputFormat != "" {
-		switch outputFormat {
-		case "json":
-			out = formats.JSONstruct{Output: toGeneric(imageOutput)}
-		default:
-			// Assuming Go-template
-			out = formats.StdoutTemplate{Output: toGeneric(imageOutput), Template: outputFormat}
-
-		}
-	} else {
-		out = stdoutstruct{output: imageOutput, digests: digests, truncate: truncate, quiet: quiet, noheading: noheading}
+	switch outputFormat {
+	case "json":
+		out = formats.JSONstruct{Output: toGeneric(imageOutput)}
+	default:
+		out = formats.StdoutTemplate{Output: toGeneric(imageOutput), Template: outputFormat, Fields: imageOutput[0].headerMap()}
 	}
 
 	formats.Writer(out).Out()
 
 	return nil
+}
+
+type imageOutputParams struct {
+	ID        string        `json:"id"`
+	Name      string        `json:"names"`
+	Digest    digest.Digest `json:"digest"`
+	CreatedAt string        `json:"created"`
+	Size      string        `json:"size"`
+}
+
+func toGeneric(params []imageOutputParams) []interface{} {
+	genericParams := make([]interface{}, len(params))
+	for i, v := range params {
+		genericParams[i] = interface{}(v)
+	}
+	return genericParams
+}
+
+func (i *imageOutputParams) headerMap() map[string]string {
+	v := reflect.Indirect(reflect.ValueOf(i))
+	values := make(map[string]string)
+
+	for i := 0; i < v.NumField(); i++ {
+		key := v.Type().Field(i).Name
+		value := key
+		if value == "ID" || value == "Name" {
+			value = "Image" + value
+		}
+		values[key] = fmt.Sprintf("%s        ", strings.ToUpper(splitCamelCase(value)))
+	}
+	return values
 }
