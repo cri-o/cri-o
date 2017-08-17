@@ -34,11 +34,14 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 		resp := &pb.StopPodSandboxResponse{}
 		logrus.Warnf("could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
+		logrus.Debugf("StopPodSandboxResponse %s: %+v", req.PodSandboxId, resp)
 		return resp, nil
 	}
 
 	if sb.Stopped() {
-		return &pb.StopPodSandboxResponse{}, nil
+		resp := &pb.StopPodSandboxResponse{}
+		logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
+		return resp, nil
 	}
 
 	podInfraContainer := sb.InfraContainer()
@@ -116,7 +119,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 	sb.SetStopped()
 	resp := &pb.StopPodSandboxResponse{}
-	logrus.Debugf("StopPodSandboxResponse: %+v", resp)
+	logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
 	return resp, nil
 }
 
