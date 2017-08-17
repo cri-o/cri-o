@@ -160,18 +160,3 @@ func (r *Runtime) GetImages(filter ...ImageFilter) ([]*storage.Image, error) {
 func (r *Runtime) ImportImage(path string) (*storage.Image, error) {
 	return nil, ctr.ErrNotImplemented
 }
-
-// ExportImage exports an image to an OCI archive, saving it at the given path
-func (r *Runtime) ExportImage(image *storage.Image, path string) error {
-	return ctr.ErrNotImplemented
-}
-
-// CommitContainer commits the changes between a container and its image,
-// creating a new image
-// If the container was not created from an image (for example,
-// WithRootFSFromPath will create a container from a directory on the system),
-// a new base image will be created from the contents of the container's
-// filesystem
-func (r *Runtime) CommitContainer(c *ctr.Container) (*storage.Image, error) {
-	return nil, ctr.ErrNotImplemented
-}

@@ -2,6 +2,8 @@ package ctr
 
 import (
 	"fmt"
+
+	"github.com/containers/storage"
 )
 
 var (
@@ -56,4 +58,20 @@ func (c *Container) Mount() (string, error) {
 // TODO this should return relevant information about container state
 func (c *Container) Status() error {
 	return ErrNotImplemented
+}
+
+// Export exports a container's root filesystem as a tar archive
+// The archive will be saved as a file at the given path
+func (c *Container) Export(path string) error {
+	return ErrNotImplemented
+}
+
+// Commit commits the changes between a container and its image, creating a new
+// image
+// If the container was not created from an image (for example,
+// WithRootFSFromPath will create a container from a directory on the system),
+// a new base image will be created from the contents of the container's
+// filesystem
+func (c *Container) Commit() (*storage.Image, error) {
+	return nil, ErrNotImplemented
 }
