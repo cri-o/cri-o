@@ -40,6 +40,9 @@ func main() {
 		tagCommand,
 		umountCommand,
 		versionCommand,
+		saveCommand,
+		statsCommand,
+		loadCommand,
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{

@@ -17,6 +17,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/registrar"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
+	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -195,6 +196,12 @@ func (c *ContainerServer) Update() error {
 		if _, ok := oldPodContainers[id]; !ok {
 			// this container's ID wasn't in the updated list -> removed
 			removedPodContainers[id] = id
+		} else {
+			ctr := c.GetContainer(id)
+			if ctr != nil {
+				// if the container exists, update its state
+				c.ContainerStateFromDisk(c.GetContainer(id))
+			}
 		}
 	})
 	for removedPodContainer := range removedPodContainers {
@@ -583,11 +590,29 @@ func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 	c.state.containers.Delete(ctr.ID())
 }
 
-// ListContainers returns a list of all containers stored by the server state
-func (c *ContainerServer) ListContainers() []*oci.Container {
+// listContainers returns a list of all containers stored by the server state
+func (c *ContainerServer) listContainers() []*oci.Container {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	return c.state.containers.List()
+}
+
+// ListContainers returns a list of all containers stored by the server state
+// that match the given filter function
+func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) ([]*oci.Container, error) {
+	containers := c.listContainers()
+	if len(filters) == 0 {
+		return containers, nil
+	}
+	filteredContainers := make([]*oci.Container, 0, len(containers))
+	for _, container := range containers {
+		for _, filter := range filters {
+			if filter(container) {
+				filteredContainers = append(filteredContainers, container)
+			}
+		}
+	}
+	return filteredContainers, nil
 }
 
 // AddSandbox adds a sandbox to the sandbox state store
@@ -640,4 +665,21 @@ func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
 	}
 
 	return sbArray
+}
+
+// LibcontainerStats gets the stats for the container with the given id from runc/libcontainer
+func (c *ContainerServer) LibcontainerStats(ctr *oci.Container) (*libcontainer.Stats, error) {
+	// TODO: make this not hardcoded
+	// was: c.runtime.Path(ociContainer) but that returns /usr/bin/runc - how do we get /run/runc?
+	// runroot is /var/run/runc
+	// Hardcoding probably breaks ClearContainers compatibility
+	factory, err := loadFactory("/run/runc")
+	if err != nil {
+		return nil, err
+	}
+	container, err := factory.Load(ctr.ID())
+	if err != nil {
+		return nil, err
+	}
+	return container.Stats()
 }

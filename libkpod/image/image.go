@@ -161,16 +161,15 @@ func MatchesReference(name, argName string) bool {
 }
 
 // FormattedSize returns a human-readable formatted size for the image
-func FormattedSize(size int64) string {
+func FormattedSize(size float64) string {
 	suffixes := [5]string{"B", "KB", "MB", "GB", "TB"}
 
 	count := 0
-	formattedSize := float64(size)
-	for formattedSize >= 1024 && count < 4 {
-		formattedSize /= 1024
+	for size >= 1024 && count < 4 {
+		size /= 1024
 		count++
 	}
-	return fmt.Sprintf("%.4g %s", formattedSize, suffixes[count])
+	return fmt.Sprintf("%.4g %s", size, suffixes[count])
 }
 
 // FindImage searches for a *storage.Image with a matching the given name or ID in the given store.

@@ -55,6 +55,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod-push(1)](/docs/kpod-push.1.md)                 | Push an image to a specified destination                                                             |
 | [kpod-rmi(1)](/docs/kpod-rmi.1.md)                   | Removes one or more images                                                                           |
 | [kpod-save(1)](/docs/kpod-save.1.md)                 | Saves an image to an archive                                                                         |
+| [kpod-stats(1)](/docs/kpod-stats.1.md)               | Display a live stream of one or more containers' resource usage statistics                           |
 | [kpod-tag(1)](/docs/kpod-tag.1.md)                   | Add an additional name to a local image                                                              |
 | [kpod-umount(1)](/docs/kpod-umount.1.md)             | Unmount a working container's root filesystem                                                        |
 | [kpod-version(1)](/docs/kpod-version.1.md)           | Display the Kpod version information                                                                 |
