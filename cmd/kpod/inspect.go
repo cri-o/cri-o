@@ -71,6 +71,7 @@ func inspectCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get container server")
 	}
+	defer server.Shutdown()
 	if err = server.Update(); err != nil {
 		return errors.Wrapf(err, "could not update list of containers")
 	}
