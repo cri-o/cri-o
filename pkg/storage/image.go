@@ -14,14 +14,16 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
+	digest "github.com/opencontainers/go-digest"
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
 // and the size, if known, or nil if it isn't.
 type ImageResult struct {
-	ID    string
-	Names []string
-	Size  *uint64
+	ID     string
+	Names  []string
+	Digest string
+	Size   *uint64
 }
 
 type indexInfo struct {
@@ -118,13 +120,21 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		return nil, err
 	}
 	size := imageSize(img)
+	manifest, _, _ := img.Manifest()
 	img.Close()
 
-	return &ImageResult{
-		ID:    image.ID,
-		Names: image.Names,
-		Size:  size,
-	}, nil
+	manifestDigest := ""
+	if len(manifest) > 0 {
+		manifestDigest = digest.Canonical.FromBytes(manifest).String()
+	}
+
+	result := ImageResult{
+		ID:     image.ID,
+		Names:  image.Names,
+		Digest: manifestDigest,
+		Size:   size,
+	}
+	return &result, nil
 }
 
 func imageSize(img types.Image) *uint64 {
