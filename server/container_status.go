@@ -46,6 +46,17 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	cState := s.Runtime().ContainerStatus(c)
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
+	// If we defaulted to exit code -1 earlier then we attempt to
+	// get the exit code from the exit file again.
+	// TODO: We could wait in UpdateStatus for exit file to show up.
+	if cState.ExitCode == -1 {
+		err := s.Runtime().UpdateStatus(c)
+		if err != nil {
+			logrus.Warnf("Failed to UpdateStatus of container %s: %v", c.ID(), err)
+		}
+		cState = s.Runtime().ContainerStatus(c)
+	}
+
 	switch cState.Status {
 	case oci.ContainerStateCreated:
 		rStatus = pb.ContainerState_CONTAINER_CREATED
