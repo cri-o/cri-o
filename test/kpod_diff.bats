@@ -5,7 +5,7 @@ load helpers
 IMAGE="alpine:latest"
 ROOT="$TESTDIR/crio"
 RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT --storage-driver vfs"
+KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT $STORAGE_OPTS"
 
 function teardown() {
     cleanup_test
