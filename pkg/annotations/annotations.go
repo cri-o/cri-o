@@ -22,6 +22,12 @@ const (
 	// Image is the container image ID annotation
 	Image = "io.kubernetes.cri-o.Image"
 
+	// ImageName is the container image name annotation
+	ImageName = "io.kubernetes.cri-o.ImageName"
+
+	// ImageRef is the container image ref annotation
+	ImageRef = "io.kubernetes.cri-o.ImageRef"
+
 	// KubeName is the kubernetes name annotation
 	KubeName = "io.kubernetes.cri-o.KubeName"
 
@@ -63,6 +69,9 @@ const (
 
 	// StdinOnce is the stdin_once annotation
 	StdinOnce = "io.kubernetes.cri-o.StdinOnce"
+
+	// Volumes is the volumes annotatoin
+	Volumes = "io.kubernetes.cri-o.Volumes"
 )
 
 // ContainerType values

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -39,22 +40,23 @@ const (
 	seccompLocalhostPrefix = "localhost/"
 )
 
-func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
+	volumes := []oci.ContainerVolume{}
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
 		if dest == "" {
-			return fmt.Errorf("Mount.ContainerPath is empty")
+			return nil, fmt.Errorf("Mount.ContainerPath is empty")
 		}
 
 		src := mount.HostPath
 		if src == "" {
-			return fmt.Errorf("Mount.HostPath is empty")
+			return nil, fmt.Errorf("Mount.HostPath is empty")
 		}
 
 		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
-				return fmt.Errorf("Failed to mkdir %s: %s", src, err)
+				return nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
 			}
 		}
 
@@ -67,14 +69,20 @@ func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
 			if err := label.Relabel(src, sb.MountLabel(), true); err != nil && err != unix.ENOTSUP {
-				return fmt.Errorf("relabel failed %s: %v", src, err)
+				return nil, fmt.Errorf("relabel failed %s: %v", src, err)
 			}
 		}
+
+		volumes = append(volumes, oci.ContainerVolume{
+			ContainerPath: dest,
+			HostPath:      src,
+			Readonly:      mount.Readonly,
+		})
 
 		specgen.AddBindMount(src, dest, options)
 	}
 
-	return nil
+	return volumes, nil
 }
 
 func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) error {
@@ -326,10 +334,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	if err = s.Runtime().UpdateStatus(container); err != nil {
-		return nil, err
-	}
-
 	s.addContainer(container)
 
 	if err = s.CtrIDIndex().Add(containerID); err != nil {
@@ -360,9 +364,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
-	if err := addOCIBindMounts(sb, containerConfig, &specgen); err != nil {
+	containerVolumes, err := addOCIBindMounts(sb, containerConfig, &specgen)
+	if err != nil {
 		return nil, err
 	}
+
+	volumesJSON, err := json.Marshal(containerVolumes)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
 	// Add cgroup mount so container process can introspect its own limits
 	specgen.AddCgroupsMount("ro")
@@ -565,6 +576,41 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	image = images[0]
 
+	// Get imageName and imageRef that are requested in container status
+	imageName := image
+	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), image)
+	if err != nil {
+		return nil, err
+	}
+
+	imageRef := status.ID
+	//
+	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
+	//
+	//for _, n := range status.Names {
+	//r, err := reference.ParseNormalizedNamed(n)
+	//if err != nil {
+	//return nil, fmt.Errorf("failed to normalize image name for ImageRef: %v", err)
+	//}
+	//if digested, isDigested := r.(reference.Canonical); isDigested {
+	//imageRef = reference.FamiliarString(digested)
+	//break
+	//}
+	//}
+	for _, n := range status.Names {
+		r, err := reference.ParseNormalizedNamed(n)
+		if err != nil {
+			return nil, fmt.Errorf("failed to normalize image name for Image: %v", err)
+		}
+		if tagged, isTagged := r.(reference.Tagged); isTagged {
+			imageName = reference.FamiliarString(tagged)
+			break
+		}
+	}
+
+	specgen.AddAnnotation(annotations.ImageName, imageName)
+	specgen.AddAnnotation(annotations.ImageRef, imageRef)
+
 	// bind mount the pod shm
 	specgen.AddBindMount(sb.ShmPath(), "/dev/shm", []string{"rw"})
 
@@ -727,9 +773,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, cv := range containerVolumes {
+		container.AddVolume(cv)
 	}
 
 	return container, nil

@@ -34,6 +34,13 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 		resp := &pb.StopPodSandboxResponse{}
 		logrus.Warnf("could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
+		logrus.Debugf("StopPodSandboxResponse %s: %+v", req.PodSandboxId, resp)
+		return resp, nil
+	}
+
+	if sb.Stopped() {
+		resp := &pb.StopPodSandboxResponse{}
+		logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
 		return resp, nil
 	}
 
@@ -70,9 +77,6 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	containers = append(containers, podInfraContainer)
 
 	for _, c := range containers {
-		if err := s.Runtime().UpdateStatus(c); err != nil {
-			return nil, err
-		}
 		cStatus := s.Runtime().ContainerStatus(c)
 		if cStatus.Status != oci.ContainerStateStopped {
 			if err := s.Runtime().StopContainer(c, -1); err != nil {
@@ -113,8 +117,9 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
 
+	sb.SetStopped()
 	resp := &pb.StopPodSandboxResponse{}
-	logrus.Debugf("StopPodSandboxResponse: %+v", resp)
+	logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
 	return resp, nil
 }
 

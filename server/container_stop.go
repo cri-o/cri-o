@@ -17,9 +17,6 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		return nil, err
 	}
 
-	if err := s.Runtime().UpdateStatus(c); err != nil {
-		return nil, err
-	}
 	cStatus := s.Runtime().ContainerStatus(c)
 	if cStatus.Status != oci.ContainerStateStopped {
 		if err := s.Runtime().StopContainer(c, req.Timeout); err != nil {
@@ -33,6 +30,6 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	s.ContainerStateToDisk(c)
 
 	resp := &pb.StopContainerResponse{}
-	logrus.Debugf("StopContainerResponse: %+v", resp)
+	logrus.Debugf("StopContainerResponse %s: %+v", c.ID(), resp)
 	return resp, nil
 }

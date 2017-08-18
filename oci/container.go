@@ -43,6 +43,16 @@ type Container struct {
 	// this is the /var/lib/storage/... directory
 	dir        string
 	stopSignal string
+	imageName  string
+	imageRef   string
+	volumes    []ContainerVolume
+}
+
+// ContainerVolume is a bind mount for the container.
+type ContainerVolume struct {
+	ContainerPath string `json:"container_path"`
+	HostPath      string `json:"host_path"`
+	Readonly      bool   `json:"readonly"`
 }
 
 // ContainerState represents the status of a container.
@@ -57,7 +67,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image string, imageName string, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -76,6 +86,8 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		metadata:    metadata,
 		annotations: annotations,
 		image:       image,
+		imageName:   imageName,
+		imageRef:    imageRef,
 		dir:         dir,
 		state:       state,
 		stopSignal:  stopSignal,
@@ -155,6 +167,16 @@ func (c *Container) Image() string {
 	return c.image
 }
 
+// ImageName returns the image name of the container.
+func (c *Container) ImageName() string {
+	return c.imageName
+}
+
+// ImageRef returns the image ref of the container.
+func (c *Container) ImageRef() string {
+	return c.imageRef
+}
+
 // Sandbox returns the sandbox name of the container.
 func (c *Container) Sandbox() string {
 	return c.sandbox
@@ -188,4 +210,15 @@ func (c *Container) State() *ContainerState {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 	return c.state
+}
+
+// AddVolume adds a volume to list of container volumes.
+func (c *Container) AddVolume(v ContainerVolume) {
+	c.volumes = append(c.volumes, v)
+}
+
+// Volumes returns the list of container volumes.
+func (c *Container) Volumes() []ContainerVolume {
+	return c.volumes
+
 }

@@ -357,9 +357,21 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, "", nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
+	}
+
+	if m.Annotations[annotations.Volumes] != "" {
+		containerVolumes := []oci.ContainerVolume{}
+		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+			return fmt.Errorf("failed to unmarshal container volumes: %v", err)
+		}
+		if containerVolumes != nil {
+			for _, cv := range containerVolumes {
+				scontainer.AddVolume(cv)
+			}
+		}
 	}
 
 	c.ContainerStateFromDisk(scontainer)
@@ -447,6 +459,16 @@ func (c *ContainerServer) LoadContainer(id string) error {
 		img = ""
 	}
 
+	imgName, ok := m.Annotations[annotations.ImageName]
+	if !ok {
+		imgName = ""
+	}
+
+	imgRef, ok := m.Annotations[annotations.ImageRef]
+	if !ok {
+		imgRef = ""
+	}
+
 	kubeAnnotations := make(map[string]string)
 	if err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
 		return err
@@ -457,7 +479,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, img, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.Trusted(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs(), labels, kubeAnnotations, img, imgName, imgRef, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.Trusted(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}

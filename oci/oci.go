@@ -496,8 +496,16 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	// Check if the process is around before sending a signal
+	err := unix.Kill(c.state.Pid, 0)
+	if err == unix.ESRCH {
+		c.state.Finished = time.Now()
+		return nil
+	}
+
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.id, c.GetStopSignal()); err != nil {
-		return err
+		return fmt.Errorf("failed to stop container %s, %v", c.id, err)
 	}
 	if timeout == -1 {
 		// default 10 seconds delay
