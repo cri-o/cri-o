@@ -7,7 +7,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -49,9 +48,6 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 		if len(opts) > 0 {
 			config.StorageOptions = opts
 		}
-	}
-	if c.Bool("debug") {
-		logrus.SetLevel(logrus.DebugLevel)
 	}
 	if c.GlobalIsSet("runtime") {
 		config.Runtime = c.GlobalString("runtime")
