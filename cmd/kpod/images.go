@@ -33,7 +33,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "Change the output format.",
+			Usage: "Change the output format to JSON or a Go template",
 		},
 		cli.StringFlag{
 			Name:  "filter, f",
@@ -160,10 +160,10 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 	var out formats.Writer
 
 	switch outputFormat {
-	case "json":
-		out = formats.JSONstruct{Output: toGeneric(imageOutput)}
+	case formats.JSONString:
+		out = formats.JSONStructArray{Output: toGeneric(imageOutput)}
 	default:
-		out = formats.StdoutTemplate{Output: toGeneric(imageOutput), Template: outputFormat, Fields: imageOutput[0].headerMap()}
+		out = formats.StdoutTemplateArray{Output: toGeneric(imageOutput), Template: outputFormat, Fields: imageOutput[0].headerMap()}
 	}
 
 	formats.Writer(out).Out()

@@ -4,6 +4,7 @@ import (
 	js "encoding/json"
 	"fmt"
 
+	of "github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -28,7 +29,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "Print mounted containers in specified format",
+			Usage: "Change the output format to Go template",
 		},
 	}
 	mountCommand = cli.Command{
@@ -55,7 +56,7 @@ func mountCmd(c *cli.Context) error {
 	}
 
 	args := c.Args()
-	json := c.String("format") == "json"
+	json := c.String("format") == of.JSONString
 	if !formats[c.String("format")] {
 		return errors.Errorf("%q is not a supported format", c.String("format"))
 	}

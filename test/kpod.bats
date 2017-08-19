@@ -73,7 +73,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 }
 
-@test "kpod history with format" {
+@test "kpod history with Go template format" {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} history --format "{{.ID}} {{.Created}}" $IMAGE
@@ -116,7 +116,7 @@ function teardown() {
 @test "kpod history json flag" {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
 	[ "$status" -eq 0 ]
-	run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} history --json $IMAGE | python -m json.tool"
+	run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} history --format json $IMAGE | python -m json.tool"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE

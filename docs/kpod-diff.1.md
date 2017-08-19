@@ -13,9 +13,9 @@ Displays changes on a container or image's filesystem.  The container or image w
 
 ## OPTIONS
 
-**--json**
+**--format**
 
-Format output as json
+Alter the output into a different format.  The only valid format for diff is `json`.
 
 
 ## EXAMPLE
@@ -26,7 +26,7 @@ C /usr/local
 C /usr/local/bin
 A /usr/local/bin/docker-entrypoint.sh
 
-kpod diff --json redis:alpine
+kpod diff --format json redis:alpine
 {
   "changed": [
     "/usr",

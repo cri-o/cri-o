@@ -2,14 +2,13 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"runtime"
 
 	"github.com/docker/docker/pkg/system"
-	"github.com/ghodss/yaml"
+	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -29,9 +28,9 @@ var (
 			Name:  "debug, D",
 			Usage: "display additional debug information",
 		},
-		cli.BoolFlag{
-			Name:  "json",
-			Usage: "output as JSON instead of the default YAML",
+		cli.StringFlag{
+			Name:  "format",
+			Usage: "Change the output format to JSON or a Go template",
 		},
 	}
 )
@@ -57,17 +56,18 @@ func infoCmd(c *cli.Context) error {
 		info[thisName] = thisInfo
 	}
 
-	var buf []byte
-	var err error
-	if c.Bool("json") {
-		buf, err = json.MarshalIndent(info, "", "  ")
-	} else {
-		buf, err = yaml.Marshal(info)
+	var out formats.Writer
+	infoOutputFormat := c.String("format")
+	switch infoOutputFormat {
+	case formats.JSONString:
+		out = formats.JSONStruct{Output: info}
+	case "":
+		out = formats.YAMLStruct{Output: info}
+	default:
+		out = formats.StdoutTemplate{Output: info, Template: infoOutputFormat}
 	}
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(buf))
+
+	formats.Writer(out).Out()
 
 	return nil
 }

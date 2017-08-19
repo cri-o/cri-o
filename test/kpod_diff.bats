@@ -29,8 +29,8 @@ function teardown() {
 @test "test diff with json output" {
     run ${KPOD_BINARY} $KPOD_OPTIONS pull $IMAGE
     [ "$status" -eq 0 ]
-    # run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} diff --json $IMAGE | python -m json.tool"
-    run ${KPOD_BINARY} $KPOD_OPTIONS diff --json $IMAGE
+    # run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} diff --format json $IMAGE | python -m json.tool"
+    run ${KPOD_BINARY} $KPOD_OPTIONS diff --format json $IMAGE
     [ "$status" -eq 0 ]
     echo "$output"
     run ${KKPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE

@@ -21,16 +21,16 @@ Information display here pertain to the host, current storage stats, and build o
 
 Show additional information
 
-**--json**
+**--format**
 
-Output as JSON instead of the default YAML",
+Change output format to "json" or a Go template.
 
 
 ## EXAMPLE
 
 `kpod info`
 
-`kpod info --debug --json | jq .host.kernel`
+`kpod info --debug --format json| jq .host.kernel`
 
 ## SEE ALSO
 crio(8), crio.conf(5)
