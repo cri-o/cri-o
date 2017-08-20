@@ -10,16 +10,53 @@ __kpod_list_containers() {
     COMPREPLY=($(compgen -W "$(kpod ps -aq)" -- $cur))
 }
 
-_kpod_history() {
-     local options_with_args="
+_kpod_diff() {
+    local options_with_args="
      --format
      "
-     local boolean_options="
+    local boolean_options="
+     "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
+_kpod_export() {
+    local options_with_args="
+     --output
+     -o
+     "
+    local boolean_options="
+     "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
+_kpod_history() {
+    local options_with_args="
+     --format
+     "
+    local boolean_options="
      --human -H
      --no-trunc
      --quiet -q
      "
-     _complete_ "$options_with_args" "$boolean_options"
+    _complete_ "$options_with_args" "$boolean_options"
 
     case "$cur" in
         -*)
@@ -46,6 +83,9 @@ _kpod_info() {
     case "$cur" in
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
             ;;
     esac
 }
@@ -76,12 +116,26 @@ _kpod_images() {
     esac
 }
 
-_kpod_launch() {
-     local options_with_args="
+_kpod_inspect() {
+    local boolean_options="
+     --help
+     -h
      "
-     local boolean_options="
-     "
-     _complete_ "$options_with_args" "$boolean_options"
+    local options_with_args="
+    --format
+     -f
+     --type
+     -t
+     --size
+  "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
 }
 
 _kpod_logs() {
@@ -314,15 +368,20 @@ _kpod_kpod() {
            --version -v
      "
      commands="
+    diff
+    export
     history
     images
     info
-    launch
+    inspect
     load
+    logs
     mount
     pull
     push
+    rename
     rmi
+    save
     stats
     tag
     umount
