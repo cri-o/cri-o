@@ -76,6 +76,9 @@ Display the logs of a container
 ### mount
 Mount a working container's root filesystem
 
+### ps
+Prints out information about containers
+
 ### pull
 Pull an image from a registry
 
