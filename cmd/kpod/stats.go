@@ -70,6 +70,7 @@ func statsCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create container server")
 	}
+	defer containerServer.Shutdown()
 	err = containerServer.Update()
 	if err != nil {
 		return errors.Wrapf(err, "could not update list of containers")

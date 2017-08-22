@@ -570,7 +570,10 @@ func (c *ContainerServer) ReleasePodName(name string) {
 // Shutdown attempts to shut down the server's storage cleanly
 func (c *ContainerServer) Shutdown() error {
 	_, err := c.store.Shutdown(false)
-	return err
+	if err != nil && errors.Cause(err) != cstorage.ErrLayerUsedByContainer {
+		return err
+	}
+	return nil
 }
 
 type containerServerState struct {

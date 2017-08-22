@@ -50,6 +50,16 @@ func main() {
 		}
 		return nil
 	}
+	app.After = func(*cli.Context) error {
+		// called by Run() when the command handler succeeds
+		shutdownStores()
+		return nil
+	}
+	cli.OsExiter = func(code int) {
+		// called by Run() when the command fails, bypassing After()
+		shutdownStores()
+		os.Exit(code)
+	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config, c",
@@ -82,6 +92,6 @@ func main() {
 	}
 	if err := app.Run(os.Args); err != nil {
 		logrus.Errorf(err.Error())
-		os.Exit(1)
+		cli.OsExiter(1)
 	}
 }

@@ -137,9 +137,9 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 		}
 		createdTime := img.Created
 
-		name := ""
+		names := []string{""}
 		if len(img.Names) > 0 {
-			name = img.Names[0]
+			names = img.Names
 		}
 
 		info, imageDigest, size, _ := libkpodimage.InfoAndDigestAndSize(store, img)
@@ -149,7 +149,7 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 
 		params := imageOutputParams{
 			ID:        img.ID,
-			Name:      name,
+			Name:      names,
 			Digest:    imageDigest,
 			CreatedAt: createdTime.Format("Jan 2, 2006 15:04"),
 			Size:      libkpodimage.FormattedSize(float64(size)),
@@ -173,7 +173,7 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 
 type imageOutputParams struct {
 	ID        string        `json:"id"`
-	Name      string        `json:"names"`
+	Name      []string      `json:"names"`
 	Digest    digest.Digest `json:"digest"`
 	CreatedAt string        `json:"created"`
 	Size      string        `json:"size"`

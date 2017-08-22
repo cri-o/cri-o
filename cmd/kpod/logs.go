@@ -69,6 +69,7 @@ func logsCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create container server")
 	}
+	defer server.Shutdown()
 	err = server.Update()
 	if err != nil {
 		return errors.Wrapf(err, "could not update list of containers")
