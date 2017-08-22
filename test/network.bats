@@ -9,8 +9,14 @@ load helpers
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	check_pod_cidr $pod_id
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0  ]
+	ctr_id="$output"
 
+	check_pod_cidr $ctr_id
+
+	cleanup_ctrs
 	cleanup_pods
 	stop_crio
 }
@@ -22,8 +28,14 @@ load helpers
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	ping_pod $pod_id
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0  ]
+	ctr_id="$output"
 
+	ping_pod $ctr_id
+
+	cleanup_ctrs
 	cleanup_pods
 	stop_crio
 }
@@ -34,6 +46,10 @@ load helpers
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod1_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod1_id"
+	echo "$output"
+	[ "$status" -eq 0  ]
+	ctr1_id="$output"
 
 	temp_sandbox_conf cni_test
 
@@ -41,13 +57,18 @@ load helpers
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod2_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod2_id"
+	echo "$output"
+	[ "$status" -eq 0  ]
+	ctr2_id="$output"
 
-	ping_pod_from_pod $pod1_id $pod2_id
+	ping_pod_from_pod $ctr1_id $ctr2_id
 	[ "$status" -eq 0 ]
 
-	ping_pod_from_pod $pod2_id $pod1_id
+	ping_pod_from_pod $ctr2_id $ctr1_id
 	[ "$status" -eq 0 ]
 
+	cleanup_ctrs
 	cleanup_pods
 	stop_crio
 }

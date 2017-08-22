@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"k8s.io/apimachinery/pkg/fields"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 
 	"github.com/kubernetes-incubator/cri-o/libkpod/driver"
 	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
@@ -77,7 +77,7 @@ func (c *ContainerServer) GetContainerData(name string, size bool) (*ContainerDa
 	if container.ImageID == "" {
 		return nil, errors.Errorf("error reading container image data: container is not based on an image")
 	}
-	imageData, err := libkpodimage.GetImageData(c.store, container.ImageID)
+	imageData, err := libkpodimage.GetData(c.store, container.ImageID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading container image data")
 	}

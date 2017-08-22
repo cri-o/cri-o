@@ -42,7 +42,7 @@ func (c *ContainerServer) GetLogs(container string, logChan chan string, opts Lo
 
 	t, err := tail.TailFile(logsFile, tail.Config{Follow: false, ReOpen: false, Location: seekInfo})
 	for line := range t.Lines {
-		if since, err := logSinceTime(opts.SinceTime, line.Text); err != nil || since == false {
+		if since, err := logSinceTime(opts.SinceTime, line.Text); err != nil || !since {
 			continue
 		}
 		logMessage := line.Text[secondSpaceIndex(line.Text):]

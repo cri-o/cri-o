@@ -17,7 +17,7 @@ var (
 
 // versionCmd gets and prints version info for version command
 func versionCmd(c *cli.Context) error {
-	fmt.Println("Version:      ", Version)
+	fmt.Println("Version:      ", c.App.Version)
 	fmt.Println("Go Version:   ", runtime.Version())
 	if gitCommit != "" {
 		fmt.Println("Git Commit:   ", gitCommit)

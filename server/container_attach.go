@@ -12,9 +12,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
-	pb "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/client-go/tools/remotecommand"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/util/term"
 )
 
 /* Sync with stdpipe_t in conmon.c */
@@ -37,7 +37,7 @@ func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (*pb.AttachR
 }
 
 // Attach endpoint for streaming.Runtime
-func (ss streamService) Attach(containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan term.Size) error {
+func (ss streamService) Attach(containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	c := ss.runtimeServer.GetContainer(containerID)
 
 	if c == nil {
@@ -59,7 +59,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 		return fmt.Errorf("failed to open container ctl file: %v", err)
 	}
 
-	kubecontainer.HandleResizing(resize, func(size term.Size) {
+	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		logrus.Infof("Got a resize event: %+v", size)
 		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
 		if err != nil {

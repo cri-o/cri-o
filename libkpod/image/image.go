@@ -122,19 +122,13 @@ func matchesLabel(info *types.ImageInspectInfo, store storage.Store, label strin
 // Returns true if the image was created since the filter image.  Returns
 // false otherwise
 func matchesBeforeImage(info *types.ImageInspectInfo, name string, params *FilterParams) bool {
-	if info.Created.Before(params.beforeImage) {
-		return true
-	}
-	return false
+	return info.Created.Before(params.beforeImage)
 }
 
 // Returns true if the image was created since the filter image.  Returns
 // false otherwise
 func matchesSinceImage(info *types.ImageInspectInfo, name string, params *FilterParams) bool {
-	if info.Created.After(params.sinceImage) {
-		return true
-	}
-	return false
+	return info.Created.After(params.sinceImage)
 }
 
 // MatchesID returns true if argID is a full or partial match for id
