@@ -13,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ImageData handles the data used when inspecting a container
+// Data handles the data used when inspecting a container
 // nolint
-type ImageData struct {
+type Data struct {
 	ID           string
 	Tags         []string
 	Digests      []string
@@ -75,8 +75,8 @@ func annotations(manifest []byte, manifestType string) map[string]string {
 	return annotations
 }
 
-// GetImageData gets the ImageData for a container with the given name in the given store.
-func GetImageData(store storage.Store, name string) (*ImageData, error) {
+// GetData gets the Data for a container with the given name in the given store.
+func GetData(store storage.Store, name string) (*Data, error) {
 	img, err := FindImage(store, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image %q", name)
@@ -140,7 +140,7 @@ func GetImageData(store storage.Store, name string) (*ImageData, error) {
 		historyCreatedBy = config.History[len(config.History)-1].CreatedBy
 	}
 
-	return &ImageData{
+	return &Data{
 		ID:           img.ID,
 		Tags:         tags,
 		Digests:      digests,

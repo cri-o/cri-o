@@ -269,7 +269,7 @@ func (svc *imageService) isSecureIndex(indexName string) bool {
 	for _, addr := range addrs {
 		for _, ipnet := range svc.insecureRegistryCIDRs {
 			// check if the addr falls in the subnet
-			if (*net.IPNet)(ipnet).Contains(addr) {
+			if ipnet.Contains(addr) {
 				return false
 			}
 		}

@@ -85,14 +85,14 @@ func inspectCmd(c *cli.Context) error {
 			return errors.Wrapf(err, "error parsing container data")
 		}
 	case inspectTypeImage:
-		data, err = libkpodimage.GetImageData(server.Store(), name)
+		data, err = libkpodimage.GetData(server.Store(), name)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing image data")
 		}
 	case inspectAll:
 		ctrData, err := server.GetContainerData(name, size)
 		if err != nil {
-			imgData, err := libkpodimage.GetImageData(server.Store(), name)
+			imgData, err := libkpodimage.GetData(server.Store(), name)
 			if err != nil {
 				return errors.Wrapf(err, "error parsing container or image data")
 			}

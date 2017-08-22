@@ -8,9 +8,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-//Version of kpod
-const Version string = "0.0.1"
-
 func main() {
 	if reexec.Init() {
 		return
@@ -19,7 +16,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "kpod"
 	app.Usage = "manage pods and images"
-	app.Version = Version
+	app.Version = "0.0.1"
 
 	app.Commands = []cli.Command{
 		diffCommand,

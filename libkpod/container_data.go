@@ -77,7 +77,7 @@ func (c *ContainerServer) GetContainerData(name string, size bool) (*ContainerDa
 	if container.ImageID == "" {
 		return nil, errors.Errorf("error reading container image data: container is not based on an image")
 	}
-	imageData, err := libkpodimage.GetImageData(c.store, container.ImageID)
+	imageData, err := libkpodimage.GetData(c.store, container.ImageID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading container image data")
 	}
