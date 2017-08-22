@@ -163,7 +163,11 @@ func outputImages(store storage.Store, images []storage.Image, truncate, digests
 	case formats.JSONString:
 		out = formats.JSONStructArray{Output: toGeneric(imageOutput)}
 	default:
-		out = formats.StdoutTemplateArray{Output: toGeneric(imageOutput), Template: outputFormat, Fields: imageOutput[0].headerMap()}
+		if len(imageOutput) == 0 {
+			out = formats.StdoutTemplateArray{}
+		} else {
+			out = formats.StdoutTemplateArray{Output: toGeneric(imageOutput), Template: outputFormat, Fields: imageOutput[0].headerMap()}
+		}
 	}
 
 	formats.Writer(out).Out()
