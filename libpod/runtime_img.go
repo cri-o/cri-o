@@ -103,7 +103,7 @@ func (r *Runtime) PullImage(imgName string, allTags bool, signaturePolicyPath st
 		signaturePolicyPath = r.config.SignaturePolicyPath
 	}
 
-	sc := common.GetSystemContext(signaturePolicyPath)
+	sc := common.GetSystemContext(signaturePolicyPath, "")
 
 	srcRef, err := alltransports.ParseImageName(imgName)
 	if err != nil {

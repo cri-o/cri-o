@@ -431,6 +431,34 @@ _kpod_load() {
     _complete_ "$options_with_args" "$boolean_options"
 }
 
+_kpod_login() {
+     local options_with_args="
+     --username
+     -u
+     --password
+     -p
+     --authfile
+     "
+     local boolean_options="
+     --help
+     -h
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_logout() {
+     local options_with_args="
+     --authfile
+     "
+     local boolean_options="
+     --all
+     -a
+     --help
+     -h
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _kpod_kpod() {
      local options_with_args="
            --config -c
@@ -453,6 +481,8 @@ _kpod_kpod() {
     inspect
     kill
     load
+    login
+    logout
     logs
     mount
     pause
