@@ -3,16 +3,21 @@ package formats
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ghodss/yaml"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"text/template"
 
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 )
 
-// JSONString const to save on duplicate variable names
-const JSONString string = "json"
+const (
+	// JSONString const to save on duplicate variable names
+	JSONString = "json"
+	// IDString const to save on duplicates for Go templates
+	IDString = "{{.ID}}"
+)
 
 // Writer interface for outputs
 type Writer interface {
@@ -60,33 +65,34 @@ func (j JSONStructArray) Out() error {
 
 // Out method for Go templates
 func (t StdoutTemplateArray) Out() error {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	if strings.HasPrefix(t.Template, "table") {
-		t.Template = strings.TrimSpace(t.Template[5:])
+		// replace any spaces with tabs in template so that tabwriter can align it
+		t.Template = strings.Replace(strings.TrimSpace(t.Template[5:]), " ", "\t", -1)
 		headerTmpl, err := template.New("header").Funcs(headerFunctions).Parse(t.Template)
 		if err != nil {
 			return errors.Wrapf(err, "Template parsing error")
 		}
-		err = headerTmpl.Execute(os.Stdout, t.Fields)
+		err = headerTmpl.Execute(w, t.Fields)
 		if err != nil {
 			return err
 		}
-		fmt.Println()
+		fmt.Fprintln(w, "")
 	}
+	t.Template = strings.Replace(t.Template, " ", "\t", -1)
 	tmpl, err := template.New("image").Funcs(basicFunctions).Parse(t.Template)
 	if err != nil {
 		return errors.Wrapf(err, "Template parsing error")
 	}
-
 	for _, img := range t.Output {
 		basicTmpl := tmpl.Funcs(basicFunctions)
-		err = basicTmpl.Execute(os.Stdout, img)
+		err = basicTmpl.Execute(w, img)
 		if err != nil {
 			return err
 		}
-		fmt.Println()
+		fmt.Fprintln(w, "")
 	}
-	return nil
-
+	return w.Flush()
 }
 
 // Out method for JSON struct

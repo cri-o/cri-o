@@ -124,7 +124,7 @@ func historyCmd(c *cli.Context) error {
 
 func genHistoryFormat(quiet, truncate, human bool) (format string) {
 	if quiet {
-		return "{{.ID}}"
+		return formats.IDString
 	}
 
 	if truncate {

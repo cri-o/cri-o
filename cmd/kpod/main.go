@@ -28,6 +28,7 @@ func main() {
 		loadCommand,
 		logsCommand,
 		mountCommand,
+		psCommand,
 		pullCommand,
 		pushCommand,
 		renameCommand,

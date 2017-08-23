@@ -18,13 +18,14 @@ The **--quiet** flag displays the ID of the image only when set and the **--form
 flag is used to print the information using the Go template provided by the user.
 
 Valid placeholders for the Go template are listed below:
-| **Placeholder** | **Description**                                                              |
-|-----------------|------------------------------------------------------------------------------|
-| .ID             | Image ID                                                                     |
-| .Created        | if **--human**, time elapsed since creation, otherwise time stamp of creation|
-| .CreatedBy      | Command used to create the layer                                             |
-| .Size           | Size of layer on disk                                                        |
-| .Comment        | Comment for the layer                                                        |
+
+| **Placeholder** | **Description**                                                               |
+| --------------- | ----------------------------------------------------------------------------- |
+| .ID             | Image ID                                                                      |
+| .Created        | if **--human**, time elapsed since creation, otherwise time stamp of creation |
+| .CreatedBy      | Command used to create the layer                                              |
+| .Size           | Size of layer on disk                                                         |
+| .Comment        | Comment for the layer                                                         |
 
 **kpod [GLOBAL OPTIONS]**
 

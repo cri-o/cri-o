@@ -51,8 +51,8 @@ type jsonMountPoint struct {
 
 func mountCmd(c *cli.Context) error {
 	formats := map[string]bool{
-		"":     true,
-		"json": true,
+		"":            true,
+		of.JSONString: true,
 	}
 
 	args := c.Args()
