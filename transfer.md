@@ -46,6 +46,7 @@ There are other equivalents for these tools
 | `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
 | `docker images` | [`kpod images`](./docs/kpod-images.1.md)  |
 | `docker load`   | [`kpod load`](./docs/kpod-load.1.md)      |
+| `docker ps`     | [`kpod ps`](./docs/kpod-ps.1.md)          |
 | `docker pull`   | [`kpod pull`](./docs/kpod-pull.1.md)      |
 | `docker push`   | [`kpod push`](./docs/kpod-push.1.md)      |
 | `docker rename` | [`kpod rename`](./docs/kpod-rename.1.md)  |
