@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -33,18 +32,37 @@ type psOptions struct {
 	label   string
 }
 
-type psOutputParams struct {
-	ID         string `json:"id"`
-	Image      string `json:"image"`
-	Command    string `json:"command"`
-	CreatedAt  string `json:"created"`
-	RunningFor string `json:"running"`
-	Status     string `json:"status"`
-	Ports      string `json:"ports"`
-	Size       string `json:"size"`
-	Names      string `json:"names"`
-	Labels     string `json:"labels"`
-	Mounts     string `json:"mounts"`
+type psTemplateParams struct {
+	ID         string
+	Image      string
+	Command    string
+	CreatedAt  string
+	RunningFor string
+	Status     string
+	Ports      string
+	Size       string
+	Names      string
+	Labels     string
+	Mounts     string
+}
+
+// psJSONParams is only used when the JSON format is specified,
+// and is better for data processing from JSON.
+// psJSONParams will be populated by data from libkpod.ContainerData,
+// the members of the struct are the sama data types as their sources.
+type psJSONParams struct {
+	ID               string              `json:"id"`
+	Image            string              `json:"image"`
+	Command          string              `json:"command"`
+	CreatedAt        time.Time           `json:"createdAt"`
+	RunningFor       time.Duration       `json:"runningFor"`
+	Status           string              `json:"status"`
+	Ports            map[string]struct{} `json:"ports"`
+	Size             uint                `json:"size"`
+	Names            string              `json:"names"`
+	Labels           fields.Set          `json:"labels"`
+	Mounts           []specs.Mount       `json:"mounts"`
+	ContainerRunning bool                `json:"ctrRunning"`
 }
 
 const runningState = "running"
@@ -159,7 +177,7 @@ func psCmd(c *cli.Context) error {
 
 	containerList := getContainersMatchingFilter(containers, params, server)
 
-	return psOutput(containerList, server, opts)
+	return generatePsOutput(containerList, server, opts)
 }
 
 // generate the template based on conditions given
@@ -174,16 +192,21 @@ func genPsFormat(quiet, size bool) (format string) {
 	return
 }
 
-func psToGeneric(params []psOutputParams) []interface{} {
-	genericParams := make([]interface{}, len(params))
-	for i, v := range params {
-		genericParams[i] = interface{}(v)
+func psToGeneric(templParams []psTemplateParams, JSONParams []psJSONParams) (genericParams []interface{}) {
+	if len(templParams) > 0 {
+		for _, v := range templParams {
+			genericParams = append(genericParams, interface{}(v))
+		}
+		return
 	}
-	return genericParams
+	for _, v := range JSONParams {
+		genericParams = append(genericParams, interface{}(v))
+	}
+	return
 }
 
 // generate the accurate header based on template given
-func (p *psOutputParams) headerMap() map[string]string {
+func (p *psTemplateParams) headerMap() map[string]string {
 	v := reflect.Indirect(reflect.ValueOf(p))
 	values := make(map[string]string)
 
@@ -221,38 +244,19 @@ func getContainers(containers []*libkpod.ContainerData, opts psOptions) []*libkp
 	return containersOutput
 }
 
-func psOutput(containers []*libkpod.ContainerData, server *libkpod.ContainerServer, opts psOptions) error {
-	var (
-		output           []psOutputParams
-		containersOutput []*libkpod.ContainerData
-		status           string
-		ctrID            string
-		command          string
-		runningFor       string
-		imageName        string
-		mounts           string
-		ports            string
-		size             string
-		labels           string
-		createdAt        string
-	)
-
-	if len(containers) == 0 {
-		fmt.Println("hereee")
-		return nil
-	}
-	containersOutput = getContainers(containers, opts)
-
-	for _, ctr := range containersOutput {
-		ctrID = ctr.ID
-		runningFor = units.HumanDuration(time.Since(ctr.State.Created))
-		createdAt = runningFor + " ago"
-		command = getCommand(ctr.ImageCreatedBy)
-		imageName = ctr.FromImage
-		mounts = getMounts(ctr.Mounts, opts.noTrunc)
-		ports = getPorts(ctr.Config.ExposedPorts)
-		size = units.HumanSize(float64(ctr.SizeRootFs))
-		labels = getLabels(ctr.Labels)
+// getTemplateOutput returns the modified container information
+func getTemplateOutput(containers []*libkpod.ContainerData, opts psOptions) (psOutput []psTemplateParams) {
+	var status string
+	for _, ctr := range containers {
+		ctrID := ctr.ID
+		runningFor := units.HumanDuration(time.Since(ctr.State.Created))
+		createdAt := runningFor + " ago"
+		command := getCommand(ctr.ImageCreatedBy)
+		imageName := ctr.FromImage
+		mounts := getMounts(ctr.Mounts, opts.noTrunc)
+		ports := getPorts(ctr.Config.ExposedPorts)
+		size := units.HumanSize(float64(ctr.SizeRootFs))
+		labels := getLabels(ctr.Labels)
 
 		switch ctr.State.Status {
 		case "stopped":
@@ -268,7 +272,7 @@ func psOutput(containers []*libkpod.ContainerData, server *libkpod.ContainerServ
 			imageName = getImageName(ctr.FromImage)
 		}
 
-		params := psOutputParams{
+		params := psTemplateParams{
 			ID:         ctrID,
 			Image:      imageName,
 			Command:    command,
@@ -281,10 +285,36 @@ func psOutput(containers []*libkpod.ContainerData, server *libkpod.ContainerServ
 			Labels:     labels,
 			Mounts:     mounts,
 		}
-		output = append(output, params)
+		psOutput = append(psOutput, params)
 	}
+	return
+}
 
-	if len(output) == 0 {
+// getJSONOutput returns the container info in its raw form
+func getJSONOutput(containers []*libkpod.ContainerData) (psOutput []psJSONParams) {
+	for _, ctr := range containers {
+		params := psJSONParams{
+			ID:               ctr.ID,
+			Image:            ctr.FromImage,
+			Command:          ctr.ImageCreatedBy,
+			CreatedAt:        ctr.State.Created,
+			RunningFor:       time.Since(ctr.State.Created),
+			Status:           ctr.State.Status,
+			Ports:            ctr.Config.ExposedPorts,
+			Size:             ctr.SizeRootFs,
+			Names:            ctr.Name,
+			Labels:           ctr.Labels,
+			Mounts:           ctr.Mounts,
+			ContainerRunning: ctr.State.Status == runningState,
+		}
+		psOutput = append(psOutput, params)
+	}
+	return
+}
+
+func generatePsOutput(containers []*libkpod.ContainerData, server *libkpod.ContainerServer, opts psOptions) error {
+	containersOutput := getContainers(containers, opts)
+	if len(containersOutput) == 0 {
 		return nil
 	}
 
@@ -292,9 +322,11 @@ func psOutput(containers []*libkpod.ContainerData, server *libkpod.ContainerServ
 
 	switch opts.format {
 	case formats.JSONString:
-		out = formats.JSONStructArray{Output: psToGeneric(output)}
+		psOutput := getJSONOutput(containersOutput)
+		out = formats.JSONStructArray{Output: psToGeneric([]psTemplateParams{}, psOutput)}
 	default:
-		out = formats.StdoutTemplateArray{Output: psToGeneric(output), Template: opts.format, Fields: output[0].headerMap()}
+		psOutput := getTemplateOutput(containersOutput, opts)
+		out = formats.StdoutTemplateArray{Output: psToGeneric(psOutput, []psJSONParams{}), Template: opts.format, Fields: psOutput[0].headerMap()}
 	}
 
 	return formats.Writer(out).Out()
