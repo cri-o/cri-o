@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime/debug"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -145,6 +148,23 @@ func (s *Server) Shutdown() error {
 	return s.ContainerServer.Shutdown()
 }
 
+// configureMaxThreads sets the Go runtime max threads threshold
+// which is 90% of the kernel setting from /proc/sys/kernel/threads-max
+func configureMaxThreads() error {
+	mt, err := ioutil.ReadFile("/proc/sys/kernel/threads-max")
+	if err != nil {
+		return err
+	}
+	mtint, err := strconv.Atoi(strings.TrimSpace(string(mt)))
+	if err != nil {
+		return err
+	}
+	maxThreads := (mtint / 100) * 90
+	debug.SetMaxThreads(maxThreads)
+	logrus.Debugf("Golang's threads limit set to %d", maxThreads)
+	return nil
+}
+
 // New creates a new Server with options provided
 func New(config *Config) (*Server, error) {
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
@@ -197,6 +217,10 @@ func New(config *Config) (*Server, error) {
 		if apparmorErr := apparmor.EnsureDefaultApparmorProfile(); apparmorErr != nil {
 			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", apparmorErr)
 		}
+	}
+
+	if err := configureMaxThreads(); err != nil {
+		return nil, err
 	}
 
 	s.restore()
