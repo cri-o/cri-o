@@ -15,11 +15,6 @@ import (
 
 var (
 	pushFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:   "disable-compression, D",
-			Usage:  "don't compress layers",
-			Hidden: true,
-		},
 		cli.StringFlag{
 			Name:   "signature-policy",
 			Usage:  "`pathname` of signature policy file (not usually used)",
@@ -76,15 +71,13 @@ func pushCmd(c *cli.Context) error {
 	destName := c.Args().Get(1)
 
 	signaturePolicy := c.String("signature-policy")
-	compress := archive.Uncompressed
-	if !c.Bool("disable-compression") {
-		compress = archive.Gzip
-	}
 	registryCredsString := c.String("creds")
 	certPath := c.String("cert-dir")
 	skipVerify := !c.BoolT("tls-verify")
 	removeSignatures := c.Bool("remove-signatures")
 	signBy := c.String("sign-by")
+	// Leave this here in case we want to add a compression option in the future
+	compress := archive.Uncompressed
 
 	if registryCredsString != "" {
 		creds, err := common.ParseRegistryCreds(registryCredsString)
