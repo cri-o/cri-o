@@ -110,7 +110,7 @@ yum install -y \
 Debian, Ubuntu, and related distributions:
 
 ```bash
-apt install -y \
+apt-get install -y \
   btrfs-tools \
   libassuan-dev \
   libdevmapper-dev \
@@ -137,7 +137,7 @@ Fedora, CentOS, RHEL, and related distributions:
 Debian, Ubuntu, and related distributions:
 
 ```bash
-apt install -y \
+apt-get install -y \
   libapparmor-dev
 ```
 
