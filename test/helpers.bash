@@ -11,9 +11,8 @@ CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
 # Path of the crio binary.
 CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/crio}
-# Path of the crictl binary.
-CRICTL_PATH=$(command -v crictl || true)
-CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
+# Path of the crioctl binary.
+OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/crioctl}
 # Path to kpod binary.
 KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/cri-o/kpod}
 # Path of the conmon binary.
@@ -152,16 +151,9 @@ function crio() {
 	"$CRIO_BINARY" --listen "$CRIO_SOCKET" "$@"
 }
 
-# DEPRECATED
-OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/crioctl}
 # Run crioctl using the binary specified by $OCIC_BINARY.
 function crioctl() {
 	"$OCIC_BINARY" --connect "$CRIO_SOCKET" "$@"
-}
-
-# Run crictl using the binary specified by $CRICTL_BINARY.
-function crictl() {
-	"$CRICTL_BINARY" -r "$CRIO_SOCKET" -i "$CRIO_SOCKET" "$@"
 }
 
 # Communicate with Docker on the host machine.
@@ -192,7 +184,7 @@ function retry() {
 
 # Waits until the given crio becomes reachable.
 function wait_until_reachable() {
-	retry 15 1 crictl status
+	retry 15 1 crioctl runtimeversion
 }
 
 # Start crio.
@@ -236,14 +228,14 @@ function start_crio() {
 	"$CRIO_BINARY" --debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 
-	run crictl image status redis:alpine
+	run crioctl image status --id=redis:alpine
 	if [ "$status" -ne 0 ] ; then
-		crictl image pull redis:alpine
+		crioctl image pull redis:alpine
 	fi
-	REDIS_IMAGEID=$(crictl image status redis:alpine | head -1 | sed -e "s/ID: //g")
-	run crictl image status mrunalp/oom
+	REDIS_IMAGEID=$(crioctl image status --id=redis:alpine | head -1 | sed -e "s/ID: //g")
+	run crioctl image status --id=mrunalp/oom
 	if [ "$status" -ne 0 ] ; then
-		  crictl image pull mrunalp/oom
+		  crioctl image pull mrunalp/oom
 	fi
 	#
 	#
@@ -256,63 +248,63 @@ function start_crio() {
 	#
 	#
 	REDIS_IMAGEID_DIGESTED="redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
-	run crictl image status $REDIS_IMAGEID_DIGESTED
+	run crioctl image status --id $REDIS_IMAGEID_DIGESTED
 	if [ "$status" -ne 0 ]; then
-		crictl image pull $REDIS_IMAGEID_DIGESTED
+		crioctl image pull $REDIS_IMAGEID_DIGESTED
 	fi
 	#
 	#
 	#
-	run crictl image status runcom/stderr-test
+	run crioctl image status --id=runcom/stderr-test
 	if [ "$status" -ne 0 ] ; then
-		crictl image pull runcom/stderr-test:latest
+		crioctl image pull runcom/stderr-test:latest
 	fi
-	STDERR_IMAGEID=$(crictl image status runcom/stderr-test | head -1 | sed -e "s/ID: //g")
-	run crictl image status busybox
+	STDERR_IMAGEID=$(crioctl image status --id=runcom/stderr-test | head -1 | sed -e "s/ID: //g")
+	run crioctl image status --id=busybox
 	if [ "$status" -ne 0 ] ; then
-		crictl image pull busybox:latest
+		crioctl image pull busybox:latest
 	fi
-	BUSYBOX_IMAGEID=$(crictl image status busybox | head -1 | sed -e "s/ID: //g")
-	run crictl image status mrunalp/image-volume-test
+	BUSYBOX_IMAGEID=$(crioctl image status --id=busybox | head -1 | sed -e "s/ID: //g")
+	run crioctl image status --id=mrunalp/image-volume-test
 	if [ "$status" -ne 0 ] ; then
-		  crictl image pull mrunalp/image-volume-test:latest
+		  crioctl image pull mrunalp/image-volume-test:latest
 	fi
-	VOLUME_IMAGEID=$(crictl image status mrunalp/image-volume-test | head -1 | sed -e "s/ID: //g")
+	VOLUME_IMAGEID=$(crioctl image status --id=mrunalp/image-volume-test | head -1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {
-	run crictl ctr ls --quiet
+	run crioctl ctr list --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crictl ctr stop "$line"
-			   crictl ctr rm "$line"
+			   crioctl ctr stop --id "$line"
+			   crioctl ctr remove --id "$line"
 			done
 		fi
 	fi
 }
 
 function cleanup_images() {
-	run crictl image ls --quiet
+	run crioctl image list --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crictl image rm "$line"
+			   crioctl image remove --id "$line"
 			done
 		fi
 	fi
 }
 
 function cleanup_pods() {
-	run crictl sandbox ls --quiet
+	run crioctl pod list --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crictl sandbox stop "$line"
-			   crictl sandbox rm "$line"
+			   crioctl pod stop --id "$line"
+			   crioctl pod remove --id "$line"
 			done
 		fi
 	fi

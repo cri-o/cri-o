@@ -76,17 +76,6 @@ RUN set -x \
        && cp bin/* /opt/cni/bin/ \
        && rm -rf "$GOPATH"
 
-# Install crictl
-ENV CRICTL_COMMIT a2d0e8f7bc7e80111a7d79052ab9aca3469609aa
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/kubernetes-incubator/cri-tools.git "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
-       && cd "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
-       && git checkout -q "$CRICTL_COMMIT" \
-       && go install github.com/kubernetes-incubator/cri-tools/cmd/crictl \
-       && cp "$GOPATH"/bin/crictl /usr/bin/ \
-       && rm -rf "$GOPATH"
-
 COPY test/plugin_test_args.bash /opt/cni/bin/plugin_test_args.bash
 
 # Make sure we have some policy for pulling images
