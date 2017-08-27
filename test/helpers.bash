@@ -236,14 +236,14 @@ function start_crio() {
 	"$CRIO_BINARY" --debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 
-	run crictl image status redis:alpine
+	run crictl inspecti redis:alpine
 	if [ "$status" -ne 0 ] ; then
-		crictl image pull redis:alpine
+		crictl pull redis:alpine
 	fi
-	REDIS_IMAGEID=$(crictl image status redis:alpine | head -1 | sed -e "s/ID: //g")
-	run crictl image status mrunalp/oom
+	REDIS_IMAGEID=$(crictl inspecti redis:alpine | head -1 | sed -e "s/ID: //g")
+	run crictl inspecti mrunalp/oom
 	if [ "$status" -ne 0 ] ; then
-		  crictl image pull mrunalp/oom
+		  crictl pull mrunalp/oom
 	fi
 	#
 	#
@@ -256,63 +256,63 @@ function start_crio() {
 	#
 	#
 	REDIS_IMAGEID_DIGESTED="redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
-	run crictl image status $REDIS_IMAGEID_DIGESTED
+	run crictl inspecti $REDIS_IMAGEID_DIGESTED
 	if [ "$status" -ne 0 ]; then
-		crictl image pull $REDIS_IMAGEID_DIGESTED
+		crictl pull $REDIS_IMAGEID_DIGESTED
 	fi
 	#
 	#
 	#
-	run crictl image status runcom/stderr-test
+	run crictl inspecti runcom/stderr-test
 	if [ "$status" -ne 0 ] ; then
-		crictl image pull runcom/stderr-test:latest
+		crictl pull runcom/stderr-test:latest
 	fi
-	STDERR_IMAGEID=$(crictl image status runcom/stderr-test | head -1 | sed -e "s/ID: //g")
-	run crictl image status busybox
+	STDERR_IMAGEID=$(crictl inspecti runcom/stderr-test | head -1 | sed -e "s/ID: //g")
+	run crictl inspecti busybox
 	if [ "$status" -ne 0 ] ; then
-		crictl image pull busybox:latest
+		crictl pull busybox:latest
 	fi
-	BUSYBOX_IMAGEID=$(crictl image status busybox | head -1 | sed -e "s/ID: //g")
-	run crictl image status mrunalp/image-volume-test
+	BUSYBOX_IMAGEID=$(crictl inspecti busybox | head -1 | sed -e "s/ID: //g")
+	run crictl inspecti mrunalp/image-volume-test
 	if [ "$status" -ne 0 ] ; then
-		  crictl image pull mrunalp/image-volume-test:latest
+		  crictl pull mrunalp/image-volume-test:latest
 	fi
-	VOLUME_IMAGEID=$(crictl image status mrunalp/image-volume-test | head -1 | sed -e "s/ID: //g")
+	VOLUME_IMAGEID=$(crictl inspecti mrunalp/image-volume-test | head -1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {
-	run crictl ctr ls --quiet
+	run crictl ps --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crictl ctr stop "$line"
-			   crictl ctr rm "$line"
+			   crictl stop "$line"
+			   crictl rm "$line"
 			done
 		fi
 	fi
 }
 
 function cleanup_images() {
-	run crictl image ls --quiet
+	run crictl images --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crictl image rm "$line"
+			   crictl rmi "$line"
 			done
 		fi
 	fi
 }
 
 function cleanup_pods() {
-	run crictl sandbox ls --quiet
+	run crictl sandboxes --quiet
 	if [ "$status" -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crictl sandbox stop "$line"
-			   crictl sandbox rm "$line"
+			   crictl stops "$line"
+			   crictl rms "$line"
 			done
 		fi
 	fi
