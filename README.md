@@ -4,12 +4,12 @@
 [![Build Status](https://img.shields.io/travis/kubernetes-incubator/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-incubator/cri-o)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-incubator/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-incubator/cri-o)
 
-### Status: alpha
+### Status: beta
 
 ## What is the scope of this project?
 
 cri-o is meant to provide an integration path between OCI conformant runtimes and the kubelet.
-Specifically, it implements the Kubelet Container Runtime Interface (CRI) using OCI conformant runtimes.
+Specifically, it implements the Kubelet [Container Runtime Interface (CRI)](https://github.com/kubernetes/community/blob/master/contributors/devel/container-runtime-interface.md) using OCI conformant runtimes.
 The scope of cri-o is tied to the scope of the CRI.
 
 At a high level, we expect the scope of cri-o to be restricted to the following functionalities:
