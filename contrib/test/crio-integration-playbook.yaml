@@ -131,6 +131,7 @@
     git:
       repo: https://github.com/kubernetes-incubator/cri-tools
       dest: /root/src/github.com/kubernetes-incubator/cri-tools
+      version: 16e6fe4d7199c5689db4630a9330e6a8a12cecd1
     async: 600
     poll: 10
   - name: git clone runc repo
