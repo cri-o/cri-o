@@ -76,8 +76,6 @@ func pushCmd(c *cli.Context) error {
 	skipVerify := !c.BoolT("tls-verify")
 	removeSignatures := c.Bool("remove-signatures")
 	signBy := c.String("sign-by")
-	// Leave this here in case we want to add a compression option in the future
-	compress := archive.Uncompressed
 
 	if registryCredsString != "" {
 		creds, err := common.ParseRegistryCreds(registryCredsString)
@@ -106,7 +104,7 @@ func pushCmd(c *cli.Context) error {
 	}
 
 	options := libkpodimage.CopyOptions{
-		Compression:         compress,
+		Compression:         archive.Uncompressed,
 		SignaturePolicyPath: signaturePolicy,
 		Store:               store,
 		DockerRegistryOptions: common.DockerRegistryOptions{
