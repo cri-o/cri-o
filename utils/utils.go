@@ -64,6 +64,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
 	// Block until job is started
 	<-ch
