@@ -34,7 +34,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, fmt.Errorf("failed to delete container %s: %v", c.ID(), err)
 	}
 
-	if err := os.Remove(filepath.Join(s.config.ContainerExitsDir, c.ID())); err != nil {
+	if err := os.Remove(filepath.Join(s.config.ContainerExitsDir, c.ID())); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("failed to remove container exit file %s: %v", c.ID(), err)
 	}
 
