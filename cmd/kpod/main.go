@@ -34,12 +34,10 @@ func main() {
 		renameCommand,
 		rmiCommand,
 		saveCommand,
+		statsCommand,
 		tagCommand,
 		umountCommand,
 		versionCommand,
-		saveCommand,
-		statsCommand,
-		loadCommand,
 	}
 	app.Before = func(c *cli.Context) error {
 		logrus.SetLevel(logrus.ErrorLevel)
