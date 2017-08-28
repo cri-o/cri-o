@@ -152,7 +152,7 @@ install.completions:
 
 install.systemd:
 	install -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
-	install -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/cri-o.service
+	ln -sf crio.service $(PREFIX)/lib/systemd/system/cri-o.service
 	install -D -m 644 contrib/systemd/crio-shutdown.service $(PREFIX)/lib/systemd/system/crio-shutdown.service
 
 uninstall:
