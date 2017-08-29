@@ -148,6 +148,9 @@ var removeImageCommand = cli.Command{
 // PullImage sends a PullImageRequest to the server, and parses
 // the returned PullImageResponse.
 func PullImage(client pb.ImageServiceClient, image string) (*pb.PullImageResponse, error) {
+	if image == "" {
+		return nil, fmt.Errorf("an image name must be specified")
+	}
 	return client.PullImage(context.Background(), &pb.PullImageRequest{Image: &pb.ImageSpec{Image: image}})
 }
 
@@ -160,6 +163,9 @@ func ListImages(client pb.ImageServiceClient, image string) (*pb.ListImagesRespo
 // ImageStatus sends an ImageStatusRequest to the server, and parses
 // the returned ImageStatusResponse.
 func ImageStatus(client pb.ImageServiceClient, image string) (*pb.ImageStatusResponse, error) {
+	if image == "" {
+		return nil, fmt.Errorf("ID cannot be empty")
+	}
 	return client.ImageStatus(context.Background(), &pb.ImageStatusRequest{Image: &pb.ImageSpec{Image: image}})
 }
 
