@@ -51,6 +51,8 @@ kpod images --format json
 
 kpod images --format "{{.ID}}"
 
+kpod images --filter dangling=true
+
 ## SEE ALSO
 kpod(1)
 

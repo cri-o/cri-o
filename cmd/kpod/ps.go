@@ -53,6 +53,7 @@ type psTemplateParams struct {
 type psJSONParams struct {
 	ID               string              `json:"id"`
 	Image            string              `json:"image"`
+	ImageID          string              `json:"image_id"`
 	Command          string              `json:"command"`
 	CreatedAt        time.Time           `json:"createdAt"`
 	RunningFor       time.Duration       `json:"runningFor"`
@@ -296,6 +297,7 @@ func getJSONOutput(containers []*libkpod.ContainerData) (psOutput []psJSONParams
 		params := psJSONParams{
 			ID:               ctr.ID,
 			Image:            ctr.FromImage,
+			ImageID:          ctr.FromImageID,
 			Command:          ctr.ImageCreatedBy,
 			CreatedAt:        ctr.State.Created,
 			RunningFor:       time.Since(ctr.State.Created),
