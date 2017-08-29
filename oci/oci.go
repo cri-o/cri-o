@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containerd/cgroups"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -186,11 +187,19 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	childStartPipe.Close()
 
 	// Move conmon to specified cgroup
-	if cgroupParent != "" {
-		if r.cgroupManager == "systemd" {
-			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
-			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
-				logrus.Warnf("Failed to add conmon to sandbox cgroup: %v", err)
+	if r.cgroupManager == "systemd" {
+		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
+		if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
+			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
+		}
+	} else {
+		control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
+		if err != nil {
+			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+		} else {
+			defer control.Delete()
+			if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
+				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 		}
 	}
