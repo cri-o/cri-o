@@ -458,25 +458,22 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb.SetInfraContainer(container)
 
+	var ip string
 	// setup the network
 	if !hostNetwork {
 		if err = s.netPlugin.SetUpPod(netNsPath, namespace, kubeName, id); err != nil {
 			return nil, fmt.Errorf("failed to create network for container %s in sandbox %s: %v", containerName, id, err)
 		}
 
-		if len(portMappings) != 0 {
-			ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, namespace, id, containerName)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get network status for container %s in sandbox %s: %v", containerName, id, err)
-			}
+		if ip, err = s.netPlugin.GetContainerNetworkStatus(netNsPath, namespace, id, kubeName); err != nil {
+			return nil, fmt.Errorf("failed to get network status for container %s in sandbox %s: %v", containerName, id, err)
+		}
 
+		if len(portMappings) != 0 {
 			ip4 := net.ParseIP(ip).To4()
 			if ip4 == nil {
 				return nil, fmt.Errorf("failed to get valid ipv4 address for container %s in sandbox %s", containerName, id)
 			}
-
-			g.AddAnnotation(annotations.IP, ip)
-			sb.AddIP(ip)
 
 			if err = s.hostportManager.Add(id, &hostport.PodPortMapping{
 				Name:         name,
@@ -488,7 +485,12 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 
 		}
+	} else {
+		ip = s.BindAddress()
 	}
+
+	g.AddAnnotation(annotations.IP, ip)
+	sb.AddIP(ip)
 
 	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
 	if err != nil {

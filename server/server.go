@@ -66,6 +66,8 @@ type Server struct {
 	appArmorProfile string
 
 	stream streamService
+
+	bindAddress string
 }
 
 // GetExec returns exec stream request
@@ -233,6 +235,7 @@ func New(config *Config) (*Server, error) {
 			return nil, err
 		}
 	}
+	s.bindAddress = bindAddress.String()
 
 	_, err = net.LookupPort("tcp", config.StreamPort)
 	if err != nil {
@@ -287,6 +290,11 @@ func (s *Server) getContainer(id string) *oci.Container {
 
 func (s *Server) getInfraContainer(id string) *oci.Container {
 	return s.ContainerServer.GetInfraContainer(id)
+}
+
+// BindAddress is used to retrieve host's IP
+func (s *Server) BindAddress() string {
+	return s.bindAddress
 }
 
 // GetSandboxContainer returns the infra container for a given sandbox

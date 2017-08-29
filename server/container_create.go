@@ -622,6 +622,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	specgen.AddAnnotation(annotations.ImageName, imageName)
 	specgen.AddAnnotation(annotations.ImageRef, imageRef)
+	specgen.AddAnnotation(annotations.IP, sb.IP())
 
 	// bind mount the pod shm
 	specgen.AddBindMount(sb.ShmPath(), "/dev/shm", []string{"rw"})
