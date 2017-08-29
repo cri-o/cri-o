@@ -304,6 +304,8 @@ type SystemContext struct {
 	RegistriesDirPath string
 	// Path to the system-wide registries configuration file
 	SystemRegistriesConfPath string
+	// If not "", overrides the default path for the authentication file
+	AuthFilePath string
 
 	// === docker.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
