@@ -15,11 +15,6 @@ import (
 
 var (
 	pushFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:   "disable-compression, D",
-			Usage:  "don't compress layers",
-			Hidden: true,
-		},
 		cli.StringFlag{
 			Name:   "signature-policy",
 			Usage:  "`pathname` of signature policy file (not usually used)",
@@ -76,10 +71,6 @@ func pushCmd(c *cli.Context) error {
 	destName := c.Args().Get(1)
 
 	signaturePolicy := c.String("signature-policy")
-	compress := archive.Uncompressed
-	if !c.Bool("disable-compression") {
-		compress = archive.Gzip
-	}
 	registryCredsString := c.String("creds")
 	certPath := c.String("cert-dir")
 	skipVerify := !c.BoolT("tls-verify")
@@ -113,7 +104,7 @@ func pushCmd(c *cli.Context) error {
 	}
 
 	options := libkpodimage.CopyOptions{
-		Compression:         compress,
+		Compression:         archive.Uncompressed,
 		SignaturePolicyPath: signaturePolicy,
 		Store:               store,
 		DockerRegistryOptions: common.DockerRegistryOptions{
