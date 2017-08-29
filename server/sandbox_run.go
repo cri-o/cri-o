@@ -449,13 +449,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 	g.SetRootPath(mountPoint)
-	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
-	}
-	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
-		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
-	}
 
 	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.Trusted(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
@@ -482,6 +475,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				return nil, fmt.Errorf("failed to get valid ipv4 address for container %s in sandbox %s", containerName, id)
 			}
 
+			g.AddAnnotation(annotations.IP, ip)
+			sb.AddIP(ip)
+
 			if err = s.hostportManager.Add(id, &hostport.PodPortMapping{
 				Name:         name,
 				PortMappings: portMappings,
@@ -492,6 +488,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 
 		}
+	}
+
+	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
+	}
+	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
+		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
 
 	if err = s.runContainer(container, sb.CgroupParent()); err != nil {
