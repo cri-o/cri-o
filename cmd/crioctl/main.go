@@ -67,7 +67,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "crioctl"
 	app.Usage = "client for crio"
-	app.Version = "1.0.0-alpha.0"
+	app.Version = "1.0.0-beta.0"
 
 	app.Commands = []cli.Command{
 		podSandboxCommand,

@@ -17,6 +17,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -591,7 +592,22 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 
 	if c.state.Status == ContainerStateStopped {
 		exitFilePath := filepath.Join(r.containerExitsDir, c.id)
-		fi, err := os.Stat(exitFilePath)
+		var fi os.FileInfo
+		err = kwait.ExponentialBackoff(
+			kwait.Backoff{
+				Duration: 500 * time.Millisecond,
+				Factor:   1.2,
+				Steps:    6,
+			},
+			func() (bool, error) {
+				var err error
+				fi, err = os.Stat(exitFilePath)
+				if err != nil {
+					// wait longer
+					return false, nil
+				}
+				return true, nil
+			})
 		if err != nil {
 			logrus.Warnf("failed to find container exit file: %v", err)
 			c.state.ExitCode = -1

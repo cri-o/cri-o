@@ -48,7 +48,6 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 
 	// If we defaulted to exit code -1 earlier then we attempt to
 	// get the exit code from the exit file again.
-	// TODO: We could wait in UpdateStatus for exit file to show up.
 	if cState.ExitCode == -1 {
 		err := s.Runtime().UpdateStatus(c)
 		if err != nil {

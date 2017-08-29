@@ -153,7 +153,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "crio"
 	app.Usage = "crio server"
-	app.Version = "1.0.0-alpha.0"
+	app.Version = "1.0.0-beta.0"
 	app.Metadata = map[string]interface{}{
 		"config": server.DefaultConfig(),
 	}
