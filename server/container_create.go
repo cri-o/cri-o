@@ -471,14 +471,22 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetProcessOOMScoreAdj(int(oomScoreAdj))
 		}
 
-		if sb.CgroupParent() != "" {
-			if s.config.CgroupManager == "systemd" {
-				cgPath := sb.CgroupParent() + ":" + "crio" + ":" + containerID
-				specgen.SetLinuxCgroupsPath(cgPath)
-			} else {
-				specgen.SetLinuxCgroupsPath(sb.CgroupParent() + "/" + containerID)
-			}
+		var cgPath string
+		scopePrefix := "crio"
+		parent := "/crio"
+		useSystemd := s.config.CgroupManager == "systemd"
+		if useSystemd {
+			parent = "system.slice"
 		}
+		if sb.CgroupParent() != "" {
+			parent = sb.CgroupParent()
+		}
+		if useSystemd {
+			cgPath = parent + ":" + scopePrefix + ":" + containerID
+		} else {
+			cgPath = filepath.Join(parent, scopePrefix+"-"+containerID)
+		}
+		specgen.SetLinuxCgroupsPath(cgPath)
 
 		capabilities := linux.GetSecurityContext().GetCapabilities()
 		toCAPPrefixed := func(cap string) string {
