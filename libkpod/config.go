@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
+	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
@@ -20,7 +21,7 @@ const (
 	apparmorProfileName = "crio-default"
 	cniConfigDir        = "/etc/cni/net.d/"
 	cniBinDir           = "/opt/cni/bin/"
-	cgroupManager       = "cgroupfs"
+	cgroupManager       = oci.CgroupfsCgroupsManager
 	lockPath            = "/run/crio.lock"
 	containerExitsDir   = "/var/run/kpod/exits"
 )

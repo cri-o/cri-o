@@ -38,6 +38,10 @@ const (
 	seccompUnconfined      = "unconfined"
 	seccompRuntimeDefault  = "runtime/default"
 	seccompLocalhostPrefix = "localhost/"
+
+	scopePrefix           = "crio"
+	defaultCgroupfsParent = "/crio"
+	defaultSystemdParent  = "system.slice"
 )
 
 func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
@@ -472,11 +476,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 
 		var cgPath string
-		scopePrefix := "crio"
-		parent := "/crio"
-		useSystemd := s.config.CgroupManager == "systemd"
+		parent := defaultCgroupfsParent
+		useSystemd := s.config.CgroupManager == oci.SystemdCgroupsManager
 		if useSystemd {
-			parent = "system.slice"
+			parent = defaultSystemdParent
 		}
 		if sb.CgroupParent() != "" {
 			parent = sb.CgroupParent()

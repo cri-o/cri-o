@@ -30,6 +30,11 @@ const (
 	ContainerStateStopped = "stopped"
 	// ContainerCreateTimeout represents the value of container creating timeout
 	ContainerCreateTimeout = 10 * time.Second
+
+	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
+	CgroupfsCgroupsManager = "cgroupfs"
+	// SystemdCgroupsManager represents systemd native cgroup manager
+	SystemdCgroupsManager = "systemd"
 )
 
 // New creates a new Runtime with options provided
@@ -141,7 +146,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	defer parentStartPipe.Close()
 
 	var args []string
-	if r.cgroupManager == "systemd" {
+	if r.cgroupManager == SystemdCgroupsManager {
 		args = append(args, "-s")
 	}
 	args = append(args, "-c", c.id)
@@ -187,7 +192,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	childStartPipe.Close()
 
 	// Move conmon to specified cgroup
-	if r.cgroupManager == "systemd" {
+	if r.cgroupManager == SystemdCgroupsManager {
 		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
 		if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
 			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)

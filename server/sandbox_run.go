@@ -325,7 +325,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// setup cgroup settings
 	cgroupParent := req.GetConfig().GetLinux().CgroupParent
 	if cgroupParent != "" {
-		if s.config.CgroupManager == "systemd" {
+		if s.config.CgroupManager == oci.SystemdCgroupsManager {
 			cgPath, err := convertCgroupNameToSystemd(cgroupParent, false)
 			if err != nil {
 				return nil, err
