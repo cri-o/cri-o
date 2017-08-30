@@ -38,6 +38,10 @@ const (
 	seccompUnconfined      = "unconfined"
 	seccompRuntimeDefault  = "runtime/default"
 	seccompLocalhostPrefix = "localhost/"
+
+	scopePrefix           = "crio"
+	defaultCgroupfsParent = "/crio"
+	defaultSystemdParent  = "system.slice"
 )
 
 func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
@@ -471,14 +475,22 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetProcessOOMScoreAdj(int(oomScoreAdj))
 		}
 
-		if sb.CgroupParent() != "" {
-			if s.config.CgroupManager == "systemd" {
-				cgPath := sb.CgroupParent() + ":" + "crio" + ":" + containerID
-				specgen.SetLinuxCgroupsPath(cgPath)
-			} else {
-				specgen.SetLinuxCgroupsPath(sb.CgroupParent() + "/" + containerID)
-			}
+		var cgPath string
+		parent := defaultCgroupfsParent
+		useSystemd := s.config.CgroupManager == oci.SystemdCgroupsManager
+		if useSystemd {
+			parent = defaultSystemdParent
 		}
+		if sb.CgroupParent() != "" {
+			parent = sb.CgroupParent()
+		}
+		if useSystemd {
+			cgPath = parent + ":" + scopePrefix + ":" + containerID
+		} else {
+			cgPath = filepath.Join(parent, scopePrefix+"-"+containerID)
+		}
+		specgen.SetLinuxCgroupsPath(cgPath)
+		sb.UpdateCgroupParent(parent)
 
 		capabilities := linux.GetSecurityContext().GetCapabilities()
 		toCAPPrefixed := func(cap string) string {
