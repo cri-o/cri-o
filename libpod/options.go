@@ -4,15 +4,14 @@ import (
 	"fmt"
 
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/kubernetes-incubator/cri-o/libpod/ctr"
 	"github.com/kubernetes-incubator/cri-o/libpod/pod"
 )
 
 var (
-	runtimeNotImplemented = func(rt *Runtime) error {
-		return fmt.Errorf("NOT IMPLEMENTED")
-	}
-	ctrNotImplemented = func(c *ctr.Container) error {
+	errRuntimeFinalized = fmt.Errorf("runtime has already been finalized")
+	ctrNotImplemented   = func(c *ctr.Container) error {
 		return fmt.Errorf("NOT IMPLEMENTED")
 	}
 )
@@ -37,15 +36,48 @@ const (
 // WithStorageConfig uses the given configuration to set up container storage
 // If this is not specified, the system default configuration will be used
 // instead
-func WithStorageConfig(config *storage.StoreOptions) RuntimeOption {
-	return runtimeNotImplemented
+func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
+
+		rt.config.StorageConfig.RunRoot = config.RunRoot
+		rt.config.StorageConfig.GraphRoot = config.GraphRoot
+		rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
+
+		rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
+		copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+
+		rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
+		copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
+
+		rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.UIDMap))
+		copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+
+		return nil
+	}
 }
 
 // WithImageConfig uses the given configuration to set up image handling
 // If this is not specified, the system default configuration will be used
 // instead
 func WithImageConfig(defaultTransport string, insecureRegistries, registries []string) RuntimeOption {
-	return runtimeNotImplemented
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
+
+		rt.config.ImageDefaultTransport = defaultTransport
+
+		rt.config.InsecureRegistries = make([]string, len(insecureRegistries))
+		copy(rt.config.InsecureRegistries, insecureRegistries)
+
+		rt.config.Registries = make([]string, len(registries))
+		copy(rt.config.Registries, registries)
+
+		return nil
+	}
 }
 
 // WithSignaturePolicy specifies the path of a file which decides how trust is
@@ -53,52 +85,97 @@ func WithImageConfig(defaultTransport string, insecureRegistries, registries []s
 // If this is not specified, the system default configuration will be used
 // instead
 func WithSignaturePolicy(path string) RuntimeOption {
-	return runtimeNotImplemented
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
+
+		rt.config.SignaturePolicyPath = path
+
+		return nil
+	}
 }
 
 // WithOCIRuntime specifies an OCI runtime to use for running containers
 func WithOCIRuntime(runtimePath string) RuntimeOption {
-	return runtimeNotImplemented
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
+
+		rt.config.RuntimePath = runtimePath
+
+		return nil
+	}
 }
 
 // WithConmonPath specifies the path to the conmon binary which manages the
 // runtime
 func WithConmonPath(path string) RuntimeOption {
-	return runtimeNotImplemented
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
+
+		rt.config.ConmonPath = path
+
+		return nil
+	}
 }
 
 // WithConmonEnv specifies the environment variable list for the conmon process
 func WithConmonEnv(environment []string) RuntimeOption {
-	return runtimeNotImplemented
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
+
+		rt.config.ConmonEnvVars = make([]string, len(environment))
+		copy(rt.config.ConmonEnvVars, environment)
+
+		return nil
+	}
 }
 
 // WithCgroupManager specifies the manager implementation name which is used to
 // handle cgroups for containers
 func WithCgroupManager(manager string) RuntimeOption {
-	return runtimeNotImplemented
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
+
+		rt.config.CgroupManager = manager
+
+		return nil
+	}
 }
 
 // WithSELinux enables SELinux on the container server
 func WithSELinux() RuntimeOption {
-	return runtimeNotImplemented
-}
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
 
-// WithApparmorProfile specifies the apparmor profile name which will be used as
-// the default for created containers
-func WithApparmorProfile(profile string) RuntimeOption {
-	return runtimeNotImplemented
-}
+		rt.config.SelinuxEnabled = true
 
-// WithSeccompProfile specifies the seccomp profile which will be used as the
-// default for created containers
-func WithSeccompProfile(profilePath string) RuntimeOption {
-	return runtimeNotImplemented
+		return nil
+	}
 }
 
 // WithPidsLimit specifies the maximum number of processes each container is
 // restricted to
 func WithPidsLimit(limit int64) RuntimeOption {
-	return runtimeNotImplemented
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return errRuntimeFinalized
+		}
+
+		rt.config.PidsLimit = limit
+
+		return nil
+	}
 }
 
 // Container Creation Options
