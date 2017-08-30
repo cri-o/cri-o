@@ -17,10 +17,30 @@ type ContainerInfo struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-// StartInspectEndpoint starts a http server that
-// serves container information requests
-func (s *Server) StartInspectEndpoint() error {
+// CrioInfo stores information about the crio daemon
+type CrioInfo struct {
+	StorageDriver string `json:"storage_driver"`
+	StorageRoot   string `json:"storage_root"`
+}
+
+// StartInfoEndpoints starts a http server that
+// serves container information requests and crio daemon information
+func (s *Server) StartInfoEndpoints() error {
 	mux := bone.New()
+
+	mux.Get("/info", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ci := CrioInfo{
+			StorageDriver: s.config.Config.Storage,
+			StorageRoot:   s.config.Config.Root,
+		}
+		js, err := json.Marshal(ci)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+	}))
 
 	mux.Get("/containers/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := bone.GetValue(req, "id")
