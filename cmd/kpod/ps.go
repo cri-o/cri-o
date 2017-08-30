@@ -298,7 +298,7 @@ func getJSONOutput(containers []*libkpod.ContainerData) (psOutput []psJSONParams
 			ID:               ctr.ID,
 			Image:            ctr.FromImage,
 			ImageID:          ctr.FromImageID,
-			Command:          ctr.ImageCreatedBy,
+			Command:          getCommand(ctr.ImageCreatedBy),
 			CreatedAt:        ctr.State.Created,
 			RunningFor:       time.Since(ctr.State.Created),
 			Status:           ctr.State.Status,
