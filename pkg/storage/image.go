@@ -41,7 +41,7 @@ type imageService struct {
 // implementation.
 type ImageServer interface {
 	// ListImages returns list of all images which match the filter.
-	ListImages(filter string) ([]ImageResult, error)
+	ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error)
 	// ImageStatus returns status of an image which matches the filter.
 	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
 	// PullImage imports an image from the specified location.
@@ -59,25 +59,38 @@ type ImageServer interface {
 	ResolveNames(imageName string) ([]string, error)
 }
 
-func (svc *imageService) ListImages(filter string) ([]ImageResult, error) {
+func (svc *imageService) getRef(name string) (types.ImageReference, error) {
+	ref, err := alltransports.ParseImageName(name)
+	if err != nil {
+		ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+name)
+		if err2 != nil {
+			ref3, err3 := istorage.Transport.ParseStoreReference(svc.store, name)
+			if err3 != nil {
+				return nil, err
+			}
+			ref2 = ref3
+		}
+		ref = ref2
+	}
+	return ref, nil
+}
+
+func (svc *imageService) ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error) {
 	results := []ImageResult{}
 	if filter != "" {
-		ref, err := alltransports.ParseImageName(filter)
+		ref, err := svc.getRef(filter)
 		if err != nil {
-			ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+filter)
-			if err2 != nil {
-				ref3, err3 := istorage.Transport.ParseStoreReference(svc.store, filter)
-				if err3 != nil {
-					return nil, err
-				}
-				ref2 = ref3
-			}
-			ref = ref2
+			return nil, err
 		}
 		if image, err := istorage.Transport.GetStoreImage(svc.store, ref); err == nil {
+			img, err := ref.NewImage(systemContext)
+			if err != nil {
+				return nil, err
+			}
 			results = append(results, ImageResult{
 				ID:    image.ID,
 				Names: image.Names,
+				Size:  imageSize(img),
 			})
 		}
 	} else {
@@ -86,9 +99,18 @@ func (svc *imageService) ListImages(filter string) ([]ImageResult, error) {
 			return nil, err
 		}
 		for _, image := range images {
+			ref, err := svc.getRef(image.Names[0])
+			if err != nil {
+				return nil, err
+			}
+			img, err := ref.NewImage(systemContext)
+			if err != nil {
+				return nil, err
+			}
 			results = append(results, ImageResult{
 				ID:    image.ID,
 				Names: image.Names,
+				Size:  imageSize(img),
 			})
 		}
 	}
