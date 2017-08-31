@@ -10,6 +10,9 @@
 #               --verbose \
 #               $PWD/crio-integration-playbook.yaml
 
+# All errors are fatal
+set -e
+
 SCRIPT_PATH=`realpath $(dirname $0)`
 REQUIREMENTS="$SCRIPT_PATH/requirements.txt"
 
@@ -94,4 +97,3 @@ echo
 cd "$WORKSPACE"
 source ./.cri-o_venv/bin/activate
 ./.cri-o_venv/bin/ansible-playbook $@
-deactivate
