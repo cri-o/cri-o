@@ -3,9 +3,6 @@
 load helpers
 
 IMAGE="alpine:latest"
-ROOT="$TESTDIR/crio"
-RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
 
 function teardown() {
   cleanup_test
@@ -16,6 +13,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi debian:6.0.10
+	echo "$output"
 	[ "$status" -eq 0 ]
 }
 
@@ -24,6 +22,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi debian
+	echo "$output"
 	[ "$status" -eq 0 ]
 }
 
@@ -32,6 +31,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi registry.fedoraproject.org/fedora:rawhide
+	echo "$output"
 	[ "$status" -eq 0 ]
 }
 
@@ -40,6 +40,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi registry.fedoraproject.org/fedora
+	echo "$output"
 	[ "$status" -eq 0 ]
 }
 
@@ -48,6 +49,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi alpine:latest
+	echo "$output"
 	[ "$status" -eq 0 ]
 }
 
@@ -62,6 +64,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi docker.io/debian:latest
+	echo "$output"
 	[ "$status" -eq 0 ]
 }
 
@@ -70,5 +73,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi docker.io/debian:6.0.10
+	echo "$output"
 	[ "$status" -eq 0 ]
 }

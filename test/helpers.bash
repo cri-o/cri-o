@@ -59,6 +59,11 @@ PIDS_LIMIT=${PIDS_LIMIT:-1024}
 # Log size max limit
 LOG_SIZE_MAX_LIMIT=${LOG_SIZE_MAX_LIMIT:--1}
 
+# Options for kpod.
+ROOT="${TESTDIR}/crio"
+RUNROOT="${TESTDIR}/crio-run"
+KPOD_OPTIONS="--root ${ROOT} --runroot ${RUNROOT} ${STORAGE_OPTS} --runtime ${RUNTIME_BINARY}"
+
 TESTDIR=$(mktemp -d)
 
 # kpod pull needs a configuration file for shortname pulls

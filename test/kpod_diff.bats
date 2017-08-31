@@ -1,11 +1,8 @@
-#/usr/bin/env bats
+#!/usr/bin/env bats
 
 load helpers
 
 IMAGE="alpine:latest"
-ROOT="$TESTDIR/crio"
-RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT $STORAGE_OPTS"
 
 function teardown() {
     cleanup_test
@@ -18,14 +15,15 @@ function teardown() {
     run ${KPOD_BINARY} $KPOD_OPTIONS diff $IMAGE
     echo "$output"
     [ "$status" -eq 0 ]
+    run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
     echo "$output"
-    run ${KKPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+    [ "$status" -eq 0 ]
 }
 
 @test "test diff on non-existent layer" {
     run ${KPOD_BINARY} $KPOD_OPTIONS diff "abc123"
-    [ "$status" -ne 0 ]
     echo "$output"
+    [ "$status" -ne 0 ]
 }
 
 @test "test diff with json output" {
@@ -36,5 +34,7 @@ function teardown() {
     run ${KPOD_BINARY} $KPOD_OPTIONS diff --format json $IMAGE
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KKPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+    run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+    echo "$output"
+    [ "$status" -eq 0 ]
 }

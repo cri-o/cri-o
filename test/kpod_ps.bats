@@ -3,9 +3,6 @@
 load helpers
 
 IMAGE="redis:alpine"
-ROOT="$TESTDIR/crio"
-RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
 
 @test "kpod ps with no containers" {
     run ${KPOD_BINARY} ${KPOD_OPTIONS} ps
@@ -15,12 +12,12 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
 
 @test "kpod ps default" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -35,17 +32,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps all flag" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -59,17 +55,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps size flag" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -83,17 +78,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps quiet flag" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -107,17 +101,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps latest flag" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -131,17 +124,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps last flag" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -155,17 +147,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps no-trunc flag" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -200,17 +191,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps namespace flag and format flag = json" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -221,7 +211,6 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps without namespace flag and format flag = json" {
@@ -247,12 +236,12 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
 
 @test "kpod ps format flag = go template" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -263,17 +252,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps filter flag - ancestor" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -284,17 +272,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps filter flag - id" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -306,17 +293,16 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps filter flag - status" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
     run crioctl image pull "$IMAGE"
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
@@ -328,5 +314,4 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
