@@ -1,8 +1,4 @@
 language: go
-go:
-  - 1.7.x
-  - 1.8.x
-  - tip
 
 sudo: required
 
@@ -29,13 +25,27 @@ before_script:
   - export PATH=$HOME/gopath/bin:$PATH
   - export LD_LIBRARY_PATH=/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
-script:
-  - make .gitvalidation
-  - make gofmt
-  - make lint
-  - make integration
-  - make docs
-  - make
+jobs:
+  include:
+    - stage: Build and Verify
+      script:
+        - make .gitvalidation
+        - make gofmt
+        - make lint
+        - make docs
+        - make
+      go: 1.8.x
+    - script:
+        - make .gitvalidation
+        - make gofmt
+        - make lint
+        - make docs
+        - make
+      go: tip
+    - stage: Integration Test
+      script:
+        - make integration
+      go: 1.8.x
 
 notifications:
   irc: "chat.freenode.net#cri-o"
