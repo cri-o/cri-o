@@ -155,6 +155,10 @@ func setupCertificates(dir string, tlsc *tls.Config) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
+		if os.IsPermission(err) {
+			logrus.Debugf("Skipping scan of %s due to permission error: %v", dir, err)
+			return nil
+		}
 		return err
 	}
 
