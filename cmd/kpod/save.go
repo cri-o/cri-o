@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/storage"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -83,7 +83,7 @@ func saveCmd(c *cli.Context) error {
 func saveImage(store storage.Store, opts saveOptions) error {
 	dst := dockerArchive + opts.output
 
-	pushOpts := libkpodimage.CopyOptions{
+	pushOpts := images.CopyOptions{
 		SignaturePolicyPath: "",
 		Store:               store,
 	}
@@ -92,7 +92,7 @@ func saveImage(store storage.Store, opts saveOptions) error {
 	// future pull requests will fix this
 	for _, image := range opts.images {
 		dest := dst + ":" + image
-		if err := libkpodimage.PushImage(image, dest, pushOpts); err != nil {
+		if err := images.PushImage(image, dest, pushOpts); err != nil {
 			return errors.Wrapf(err, "unable to save %q", image)
 		}
 	}

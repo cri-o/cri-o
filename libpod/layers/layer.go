@@ -1,4 +1,4 @@
-package layer
+package layers
 
 import cstorage "github.com/containers/storage"
 

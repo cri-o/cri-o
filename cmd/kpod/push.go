@@ -7,7 +7,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/kubernetes-incubator/cri-o/libkpod/common"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
@@ -120,5 +120,5 @@ func pushCmd(c *cli.Context) error {
 	if !c.Bool("quiet") {
 		options.ReportWriter = os.Stderr
 	}
-	return libkpodimage.PushImage(srcName, destName, options)
+	return images.PushImage(srcName, destName, options)
 }

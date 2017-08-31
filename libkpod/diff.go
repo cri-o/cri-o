@@ -2,8 +2,8 @@ package libkpod
 
 import (
 	"github.com/containers/storage/pkg/archive"
-	"github.com/kubernetes-incubator/cri-o/libkpod/image"
-	"github.com/kubernetes-incubator/cri-o/libkpod/layer"
+	"github.com/kubernetes-incubator/cri-o/libpod/images"
+	"github.com/kubernetes-incubator/cri-o/libpod/layers"
 	"github.com/pkg/errors"
 )
 
@@ -28,11 +28,11 @@ func (c *ContainerServer) GetDiff(from, to string) ([]archive.Change, error) {
 // If the id matches a layer, the top layer id is returned
 func (c *ContainerServer) getLayerID(id string) (string, error) {
 	var toLayer string
-	toImage, err := image.FindImage(c.store, id)
+	toImage, err := images.FindImage(c.store, id)
 	if err != nil {
 		toCtr, err := c.store.Container(id)
 		if err != nil {
-			toLayer, err = layer.FullID(c.store, id)
+			toLayer, err = layers.FullID(c.store, id)
 			if err != nil {
 				return "", errors.Errorf("layer, image, or container %s does not exist", id)
 			}
