@@ -169,7 +169,7 @@ function teardown() {
     run mkdir /tmp/oci-busybox
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} $KPOD_OPTIONS push "$IMAGE" oci:/tmp/oci-busybox
+    run ${KPOD_BINARY} $KPOD_OPTIONS push "$IMAGE" oci:/tmp/oci-busybox:"$IMAGE"
     echo "$output"
     [ "$status" -eq 0 ]
     run rm -rf /tmp/oci-busybox

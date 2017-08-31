@@ -23,13 +23,16 @@ type ociImageDestination struct {
 }
 
 // newImageDestination returns an ImageDestination for writing to an existing directory.
-func newImageDestination(ref ociReference) types.ImageDestination {
+func newImageDestination(ref ociReference) (types.ImageDestination, error) {
+	if ref.image == "" {
+		return nil, errors.Errorf("cannot save image with empty image.ref.name")
+	}
 	index := imgspecv1.Index{
 		Versioned: imgspec.Versioned{
 			SchemaVersion: 2,
 		},
 	}
-	return &ociImageDestination{ref: ref, index: index}
+	return &ociImageDestination{ref: ref, index: index}, nil
 }
 
 // Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
@@ -177,8 +180,12 @@ func (d *ociImageDestination) PutManifest(m []byte) error {
 		return err
 	}
 
+	if d.ref.image == "" {
+		return errors.Errorf("cannot save image with empyt image.ref.name")
+	}
+
 	annotations := make(map[string]string)
-	annotations["org.opencontainers.image.ref.name"] = d.ref.tag
+	annotations["org.opencontainers.image.ref.name"] = d.ref.image
 	desc.Annotations = annotations
 	desc.Platform = &imgspecv1.Platform{
 		Architecture: runtime.GOARCH,
