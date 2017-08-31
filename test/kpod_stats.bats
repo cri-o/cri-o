@@ -81,6 +81,7 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     run ${KPOD_BINARY} $KPOD_OPTIONS stats --no-stream --format {{.ID}} "$ctr_id"
+    echo "$output"
     [ "$status" -eq 0 ]
     # once ps is implemented, run ps -q and see if that equals the output from above
     cleanup_ctrs

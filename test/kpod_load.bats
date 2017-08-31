@@ -5,7 +5,7 @@ load helpers
 IMAGE="alpine:latest"
 ROOT="$TESTDIR/crio"
 RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT --storage-driver vfs"
+KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT $STORAGE_OPTS"
 
 function teardown() {
     cleanup_test
@@ -13,10 +13,13 @@ function teardown() {
 
 @test "kpod load input flag" {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
+	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alpine.tar $IMAGE
+	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} load -i alpine.tar
 	echo "$output"
@@ -24,21 +27,24 @@ function teardown() {
 	rm -f alpine.tar
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+	echo "$output"
 	[ "$status" -eq 0 ]
 }
 
 @test "kpod load using quiet flag" {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
+	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alpine.tar $IMAGE
+	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} load -q -i alpine.tar
 	echo "$output"
 	[ "$status" -eq 0 ]
 	rm -f alpine.tar
-	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
 	[ "$status" -eq 0 ]
 }
