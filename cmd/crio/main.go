@@ -412,6 +412,13 @@ func main() {
 			service.StartExitMonitor()
 		}()
 
+		go func() {
+			err := service.StartInspectEndpoint()
+			if err != nil {
+				logrus.Fatalf("Failed to start container inspect endpoint: %v", err)
+			}
+		}()
+
 		err = s.Serve(lis)
 		if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
 			err = nil
