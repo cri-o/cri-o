@@ -413,8 +413,9 @@ func main() {
 		}()
 
 		go func() {
-			err := service.StartInfoEndpoints()
-			if err != nil {
+			err := service.StartInfoEndpoints(lis)
+			// graceful shutdown doesn't quite work with unix domain sockets
+			if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 				logrus.Fatalf("Failed to start container inspect endpoint: %v", err)
 			}
 		}()
