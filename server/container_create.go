@@ -698,6 +698,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
+	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
@@ -789,6 +790,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if err != nil {
 		return nil, err
 	}
+	container.SetMountPoint(mountPoint)
 
 	for _, cv := range containerVolumes {
 		container.AddVolume(cv)
