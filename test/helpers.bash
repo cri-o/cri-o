@@ -407,8 +407,18 @@ function prepare_plugin_test_args_network_conf() {
 	cat >$CRIO_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
     "cniVersion": "0.2.0",
-    "name": "crionet",
-    "type": "plugin_test_args.bash"
+    "name": "crionet_test_args",
+    "type": "bridge-custom",
+    "bridge": "cni0",
+    "isGateway": true,
+    "ipMasq": true,
+    "ipam": {
+        "type": "host-local",
+        "subnet": "$1",
+        "routes": [
+            { "dst": "0.0.0.0/0"  }
+        ]
+    }
 }
 EOF
 
