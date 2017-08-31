@@ -15,6 +15,7 @@ function teardown() {
 @test "kpod rename successful" {
     start_crio
     run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
+    echo "$output"
     [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
