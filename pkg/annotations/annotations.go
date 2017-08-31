@@ -58,6 +58,9 @@ const (
 	// ShmPath is the shared memory path annotation
 	ShmPath = "io.kubernetes.cri-o.ShmPath"
 
+	// MountPoint is the mount point of the container rootfs
+	MountPoint = "io.kubernetes.cri-o.MountPoint"
+
 	// TrustedSandbox is the annotation for trusted sandboxes
 	TrustedSandbox = "io.kubernetes.cri-o.TrustedSandbox"
 

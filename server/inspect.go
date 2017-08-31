@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/go-zoo/bone"
 )
@@ -15,6 +16,8 @@ type ContainerInfo struct {
 	CreatedTime int64             `json:"created_time"`
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
+	LogPath     string            `json:"log_path"`
+	Root        string            `json:"root"`
 }
 
 // CrioInfo stores information about the crio daemon
@@ -61,6 +64,8 @@ func (s *Server) StartInfoEndpoints() error {
 			CreatedTime: ctrState.Created.UnixNano(),
 			Labels:      ctr.Labels(),
 			Annotations: ctr.Annotations(),
+			Root:        ctr.MountPoint(),
+			LogPath:     filepath.Dir(ctr.LogPath()),
 		}
 		js, err := json.Marshal(ci)
 		if err != nil {

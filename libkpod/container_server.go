@@ -361,6 +361,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
+	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
 
 	if m.Annotations[annotations.Volumes] != "" {
 		containerVolumes := []oci.ContainerVolume{}
@@ -483,6 +484,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	if err != nil {
 		return err
 	}
+	ctr.SetMountPoint(m.Annotations[annotations.MountPoint])
 
 	c.ContainerStateFromDisk(ctr)
 

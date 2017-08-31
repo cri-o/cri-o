@@ -442,6 +442,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
 	}
+	g.AddAnnotation(annotations.MountPoint, mountPoint)
 	g.SetRootPath(mountPoint)
 	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
 	if err != nil {
@@ -455,6 +456,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+	container.SetMountPoint(mountPoint)
 
 	sb.SetInfraContainer(container)
 

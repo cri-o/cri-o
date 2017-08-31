@@ -46,6 +46,7 @@ type Container struct {
 	imageName  string
 	imageRef   string
 	volumes    []ContainerVolume
+	mountPoint string
 }
 
 // ContainerVolume is a bind mount for the container.
@@ -221,4 +222,14 @@ func (c *Container) AddVolume(v ContainerVolume) {
 func (c *Container) Volumes() []ContainerVolume {
 	return c.volumes
 
+}
+
+// SetMountPoint sets the container mount point
+func (c *Container) SetMountPoint(mp string) {
+	c.mountPoint = mp
+}
+
+// MountPoint returns the container mount point
+func (c *Container) MountPoint() string {
+	return c.mountPoint
 }
