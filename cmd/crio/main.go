@@ -413,7 +413,7 @@ func main() {
 		}()
 
 		go func() {
-			err := service.StartInspectEndpoint()
+			err := service.StartInfoEndpoints()
 			if err != nil {
 				logrus.Fatalf("Failed to start container inspect endpoint: %v", err)
 			}
