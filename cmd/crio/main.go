@@ -23,8 +23,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
-const crioConfigPath = "/etc/crio/crio.conf"
-
 func validateConfig(config *server.Config) error {
 	switch config.ImageVolumes {
 	case libkpod.ImageVolumesMkdir:
@@ -48,7 +46,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 			// We don't error out if --config wasn't explicitly set and the
 			// default doesn't exist. But we will log a warning about it, so
 			// the user doesn't miss it.
-			logrus.Warnf("default configuration file does not exist: %s", crioConfigPath)
+			logrus.Warnf("default configuration file does not exist: %s", server.CrioConfigPath)
 		}
 	}
 
@@ -164,7 +162,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config",
-			Value: crioConfigPath,
+			Value: server.CrioConfigPath,
 			Usage: "path to configuration file",
 		},
 		cli.StringFlag{

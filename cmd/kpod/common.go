@@ -1,12 +1,14 @@
 package main
 
 import (
+	"os"
 	"strings"
 
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/urfave/cli"
 )
 
@@ -40,8 +42,16 @@ func shutdownStores() {
 
 func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	config := libkpod.DefaultConfig()
+	var configFile string
 	if c.GlobalIsSet("config") {
-		err := config.UpdateFromFile(c.String("config"))
+		configFile = c.GlobalString("config")
+	} else if _, err := os.Stat(server.CrioConfigPath); err == nil {
+		configFile = server.CrioConfigPath
+	}
+	// load and merge the configfile from the commandline or use
+	// the default crio config file
+	if configFile != "" {
+		err := config.UpdateFromFile(configFile)
 		if err != nil {
 			return config, err
 		}
