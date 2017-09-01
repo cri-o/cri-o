@@ -277,8 +277,16 @@ func (s *Server) addContainer(c *oci.Container) {
 	s.ContainerServer.AddContainer(c)
 }
 
+func (s *Server) addInfraContainer(c *oci.Container) {
+	s.ContainerServer.AddInfraContainer(c)
+}
+
 func (s *Server) getContainer(id string) *oci.Container {
 	return s.ContainerServer.GetContainer(id)
+}
+
+func (s *Server) getInfraContainer(id string) *oci.Container {
+	return s.ContainerServer.GetInfraContainer(id)
 }
 
 // GetSandboxContainer returns the infra container for a given sandbox
@@ -293,6 +301,10 @@ func (s *Server) GetContainer(id string) *oci.Container {
 
 func (s *Server) removeContainer(c *oci.Container) {
 	s.ContainerServer.RemoveContainer(c)
+}
+
+func (s *Server) removeInfraContainer(c *oci.Container) {
+	s.ContainerServer.RemoveInfraContainer(c)
 }
 
 func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox, error) {
