@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
+	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
@@ -126,7 +128,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	return nil
 }
 
-func catchShutdown(gserver *grpc.Server, sserver *server.Server, signalled *bool) {
+func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
 	sig := make(chan os.Signal, 10)
 	signal.Notify(sig, unix.SIGINT, unix.SIGTERM)
 	go func() {
@@ -141,6 +143,7 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, signalled *bool
 			}
 			*signalled = true
 			gserver.GracefulStop()
+			hserver.Shutdown(context.Background())
 			return
 		}
 	}()
@@ -400,8 +403,6 @@ func main() {
 			}()
 		}
 
-		graceful := false
-		catchShutdown(s, service, &graceful)
 		runtime.RegisterRuntimeServiceServer(s, service)
 		runtime.RegisterImageServiceServer(s, service)
 
@@ -412,17 +413,28 @@ func main() {
 			service.StartExitMonitor()
 		}()
 
-		go func() {
-			err := service.StartInfoEndpoints(lis)
-			// graceful shutdown doesn't quite work with unix domain sockets
-			if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-				logrus.Fatalf("Failed to start container inspect endpoint: %v", err)
-			}
-		}()
+		m := cmux.New(lis)
+		grpcL := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
+		httpL := m.Match(cmux.HTTP1Fast())
 
-		err = s.Serve(lis)
-		if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
-			err = nil
+		infoMux := service.GetInfoMux()
+		srv := &http.Server{
+			Handler: infoMux,
+		}
+
+		graceful := false
+		catchShutdown(s, service, srv, &graceful)
+
+		go s.Serve(grpcL)
+		go srv.Serve(httpL)
+
+		err = m.Serve()
+		if err != nil {
+			if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
+				err = nil
+			} else {
+				logrus.Fatal(err)
+			}
 		}
 
 		if err2 := service.Shutdown(); err2 != nil {
