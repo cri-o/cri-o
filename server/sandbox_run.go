@@ -24,7 +24,9 @@ import (
 	"golang.org/x/sys/unix"
 	"k8s.io/kubernetes/pkg/api/v1"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/leaky"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
+	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -217,6 +219,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// add labels
 	labels := req.GetConfig().GetLabels()
+
+	// Add special container name label for the infra container
+	labels[types.KubernetesContainerNameLabel] = leaky.PodInfraContainerName
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
@@ -492,6 +497,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err = s.runContainer(container, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
+
+	s.addInfraContainer(container)
 
 	s.ContainerStateToDisk(container)
 
