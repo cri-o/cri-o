@@ -990,7 +990,7 @@ message FilesystemUsage {
     // The underlying storage of the filesystem.
     StorageIdentifier storage_id = 2;
     // UsedBytes represents the bytes used for images on the filesystem.
-    // This may differ from the total bytes used on the filesystem and may not
+    // This may differ from the total bytes used on the filesystem and may not 
     // equal CapacityBytes - AvailableBytes.
     UInt64Value used_bytes = 3;
     // InodesUsed represents the inodes used by the images.
