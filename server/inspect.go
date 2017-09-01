@@ -19,6 +19,7 @@ type ContainerInfo struct {
 	LogPath     string            `json:"log_path"`
 	Root        string            `json:"root"`
 	Sandbox     string            `json:"sandbox"`
+	SandboxPid  int               `json:"sandbox_pid"`
 }
 
 // CrioInfo stores information about the crio daemon
@@ -60,6 +61,16 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			http.Error(w, fmt.Sprintf("container %s state is nil", containerID), http.StatusNotFound)
 			return
 		}
+		sbContainer := s.getInfraContainer(ctr.Sandbox())
+		if sbContainer == nil {
+			http.Error(w, fmt.Sprintf("can't find the sandbox container for container id: %s", containerID), http.StatusNotFound)
+			return
+		}
+		sbContainerState := sbContainer.State()
+		if sbContainerState == nil {
+			http.Error(w, fmt.Sprintf("container %s state is nil", ctr.Sandbox()), http.StatusNotFound)
+			return
+		}
 
 		ci := ContainerInfo{
 			Pid:         ctrState.Pid,
@@ -70,6 +81,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			Root:        ctr.MountPoint(),
 			LogPath:     filepath.Dir(ctr.LogPath()),
 			Sandbox:     ctr.Sandbox(),
+			SandboxPid:  sbContainerState.Pid,
 		}
 		js, err := json.Marshal(ci)
 		if err != nil {
