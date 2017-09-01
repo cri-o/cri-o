@@ -10,7 +10,7 @@ import (
 
 const (
 	kubePrefix    = "k8s"
-	infraName     = "infra"
+	infraName     = "POD"
 	nameDelimiter = "_"
 )
 
