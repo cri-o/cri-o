@@ -18,6 +18,7 @@ type ContainerInfo struct {
 	Annotations map[string]string `json:"annotations"`
 	LogPath     string            `json:"log_path"`
 	Root        string            `json:"root"`
+	Sandbox     string            `json:"sandbox"`
 }
 
 // CrioInfo stores information about the crio daemon
@@ -65,6 +66,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			Annotations: ctr.Annotations(),
 			Root:        ctr.MountPoint(),
 			LogPath:     filepath.Dir(ctr.LogPath()),
+			Sandbox:     ctr.Sandbox(),
 		}
 		js, err := json.Marshal(ci)
 		if err != nil {
