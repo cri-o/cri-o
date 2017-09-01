@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"path/filepath"
 
@@ -27,9 +26,8 @@ type CrioInfo struct {
 	StorageRoot   string `json:"storage_root"`
 }
 
-// StartInfoEndpoints starts a http server that
-// serves container information requests and crio daemon information
-func (s *Server) StartInfoEndpoints(l net.Listener) error {
+// GetInfoMux returns the mux used to serve info requests
+func (s *Server) GetInfoMux() *bone.Mux {
 	mux := bone.New()
 
 	mux.Get("/info", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -77,5 +75,5 @@ func (s *Server) StartInfoEndpoints(l net.Listener) error {
 		w.Write(js)
 	}))
 
-	return http.Serve(l, mux)
+	return mux
 }
