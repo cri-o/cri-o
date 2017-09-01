@@ -71,7 +71,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 	}
 
-	s.removeContainer(podInfraContainer)
+	s.removeInfraContainer(podInfraContainer)
 
 	// Remove the files related to the sandbox
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {

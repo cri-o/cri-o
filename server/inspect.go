@@ -48,8 +48,11 @@ func (s *Server) GetInfoMux() *bone.Mux {
 		containerID := bone.GetValue(req, "id")
 		ctr := s.GetContainer(containerID)
 		if ctr == nil {
-			http.Error(w, fmt.Sprintf("container with id: %s not found", containerID), http.StatusNotFound)
-			return
+			ctr = s.getInfraContainer(containerID)
+			if ctr == nil {
+				http.Error(w, fmt.Sprintf("container with id: %s not found", containerID), http.StatusNotFound)
+				return
+			}
 		}
 		ctrState := ctr.State()
 		if ctrState == nil {

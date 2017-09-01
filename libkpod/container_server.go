@@ -143,8 +143,9 @@ func New(config *Config) (*ContainerServer, error) {
 		imageContext:         &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
 		stateLock:            lock,
 		state: &containerServerState{
-			containers: oci.NewMemoryStore(),
-			sandboxes:  make(map[string]*sandbox.Sandbox),
+			containers:      oci.NewMemoryStore(),
+			infraContainers: oci.NewMemoryStore(),
+			sandboxes:       make(map[string]*sandbox.Sandbox),
 		},
 		config: config,
 	}, nil
@@ -579,8 +580,9 @@ func (c *ContainerServer) Shutdown() error {
 }
 
 type containerServerState struct {
-	containers oci.ContainerStorer
-	sandboxes  map[string]*sandbox.Sandbox
+	containers      oci.ContainerStorer
+	infraContainers oci.ContainerStorer
+	sandboxes       map[string]*sandbox.Sandbox
 }
 
 // AddContainer adds a container to the container state store
@@ -592,11 +594,25 @@ func (c *ContainerServer) AddContainer(ctr *oci.Container) {
 	c.state.containers.Add(ctr.ID(), ctr)
 }
 
+// AddInfraContainer adds a container to the container state store
+func (c *ContainerServer) AddInfraContainer(ctr *oci.Container) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	c.state.infraContainers.Add(ctr.ID(), ctr)
+}
+
 // GetContainer returns a container by its ID
 func (c *ContainerServer) GetContainer(id string) *oci.Container {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	return c.state.containers.Get(id)
+}
+
+// GetInfraContainer returns a container by its ID
+func (c *ContainerServer) GetInfraContainer(id string) *oci.Container {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	return c.state.infraContainers.Get(id)
 }
 
 // HasContainer checks if a container exists in the state
@@ -615,6 +631,13 @@ func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 	sb := c.state.sandboxes[sbID]
 	sb.RemoveContainer(ctr)
 	c.state.containers.Delete(ctr.ID())
+}
+
+// RemoveInfraContainer removes a container from the container state store
+func (c *ContainerServer) RemoveInfraContainer(ctr *oci.Container) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	c.state.infraContainers.Delete(ctr.ID())
 }
 
 // listContainers returns a list of all containers stored by the server state
