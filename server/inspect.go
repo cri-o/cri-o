@@ -11,6 +11,7 @@ import (
 
 // ContainerInfo stores information about containers
 type ContainerInfo struct {
+	Name        string            `json:"name"`
 	Pid         int               `json:"pid"`
 	Image       string            `json:"image"`
 	CreatedTime int64             `json:"created_time"`
@@ -19,6 +20,7 @@ type ContainerInfo struct {
 	LogPath     string            `json:"log_path"`
 	Root        string            `json:"root"`
 	Sandbox     string            `json:"sandbox"`
+	IP          string            `json:"ip_address"`
 }
 
 // CrioInfo stores information about the crio daemon
@@ -60,8 +62,13 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			http.Error(w, fmt.Sprintf("container %s state is nil", containerID), http.StatusNotFound)
 			return
 		}
-
+		sb := s.getSandbox(ctr.Sandbox())
+		if sb == nil {
+			http.Error(w, fmt.Sprintf("can't find the sandbox for container id, sandbox id %s: %s", containerID, ctr.Sandbox()), http.StatusNotFound)
+			return
+		}
 		ci := ContainerInfo{
+			Name:        ctr.Name(),
 			Pid:         ctrState.Pid,
 			Image:       ctr.Image(),
 			CreatedTime: ctrState.Created.UnixNano(),
@@ -70,6 +77,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			Root:        ctr.MountPoint(),
 			LogPath:     filepath.Dir(ctr.LogPath()),
 			Sandbox:     ctr.Sandbox(),
+			IP:          sb.IP(),
 		}
 		js, err := json.Marshal(ci)
 		if err != nil {

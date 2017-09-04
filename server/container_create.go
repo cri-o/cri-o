@@ -396,6 +396,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.AddAnnotation(k, v)
 		}
 	}
+	if labels != nil {
+		for k, v := range labels {
+			specgen.AddAnnotation(k, v)
+		}
+	}
 
 	// set this container's apparmor profile if it is set by sandbox
 	if s.appArmorEnabled {

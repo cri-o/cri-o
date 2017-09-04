@@ -369,6 +369,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	for k, v := range kubeAnnotations {
 		g.AddAnnotation(k, v)
 	}
+	for k, v := range labels {
+		g.AddAnnotation(k, v)
+	}
 
 	// extract linux sysctls from annotations and pass down to oci runtime
 	safe, unsafe, err := SysctlsFromPodAnnotations(kubeAnnotations)
