@@ -94,9 +94,10 @@ type ImageReference interface {
 // BlobInfo collects known information about a blob (layer/config).
 // In some situations, some fields may be unknown, in others they may be mandatory; documenting an “unknown” value here does not override that.
 type BlobInfo struct {
-	Digest digest.Digest // "" if unknown.
-	Size   int64         // -1 if unknown
-	URLs   []string
+	Digest      digest.Digest // "" if unknown.
+	Size        int64         // -1 if unknown
+	URLs        []string
+	Annotations map[string]string
 }
 
 // ImageSource is a service, possibly remote (= slow), to download components of a single image.
