@@ -1,4 +1,4 @@
-package pod
+package libpod
 
 import (
 	"github.com/kubernetes-incubator/cri-o/libpod/ctr"
@@ -11,26 +11,26 @@ type Pod struct {
 
 // Start starts all containers within a pod that are not already running
 func (p *Pod) Start() error {
-	return ctr.ErrNotImplemented
+	return errNotImplemented
 }
 
 // Stop stops all containers within a pod that are not already stopped
 func (p *Pod) Stop() error {
-	return ctr.ErrNotImplemented
+	return errNotImplemented
 }
 
 // Kill sends a signal to all running containers within a pod
 func (p *Pod) Kill(signal uint) error {
-	return ctr.ErrNotImplemented
+	return errNotImplemented
 }
 
 // GetContainers retrieves the containers in the pod
-func (p *Pod) GetContainers() ([]*ctr.Container, error) {
-	return nil, ctr.ErrNotImplemented
+func (p *Pod) GetContainers() ([]*Container, error) {
+	return nil, errNotImplemented
 }
 
 // Status gets the status of all containers in the pod
 // TODO This should return a summary of the states of all containers in the pod
 func (p *Pod) Status() error {
-	return ctr.ErrNotImplemented
+	return errNotImplemented
 }

@@ -6,8 +6,6 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libpod/ctr"
-	"github.com/kubernetes-incubator/cri-o/libpod/pod"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -136,22 +134,22 @@ func (r *Runtime) Shutdown(force bool) error {
 
 // A CtrCreateOption is a functional option which alters the Container created
 // by NewContainer
-type CtrCreateOption func(*ctr.Container) error
+type CtrCreateOption func(*Container) error
 
 // ContainerFilter is a function to determine whether a container is included
 // in command output. Containers to be outputted are tested using the function.
 // A true return will include the container, a false return will exclude it.
-type ContainerFilter func(*ctr.Container) bool
+type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config
-func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*ctr.Container, error) {
+func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
 	return nil, ctr.ErrNotImplemented
 }
 
 // RemoveContainer removes the given container
 // If force is specified, the container will be stopped first
 // Otherwise, RemoveContainer will return an error if the container is running
-func (r *Runtime) RemoveContainer(c *ctr.Container, force bool) error {
+func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 	return ctr.ErrNotImplemented
 }
 
@@ -179,7 +177,7 @@ func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*ctr.Container, e
 // PodFilter is a function to determine whether a pod is included in command
 // output. Pods to be outputted are tested using the function. A true return
 // will include the pod, a false return will exclude it.
-type PodFilter func(*pod.Pod) bool
+type PodFilter func(*Pod) bool
 
 // NewPod makes a new, empty pod
 func (r *Runtime) NewPod() (*pod.Pod, error) {
@@ -190,7 +188,7 @@ func (r *Runtime) NewPod() (*pod.Pod, error) {
 // If force is specified, all containers in the pod will be stopped first
 // Otherwise, RemovePod will return an error if any container in the pod is running
 // Remove acts atomically, removing all containers or no containers
-func (r *Runtime) RemovePod(p *pod.Pod, force bool) error {
+func (r *Runtime) RemovePod(p *Pod, force bool) error {
 	return ctr.ErrNotImplemented
 }
 

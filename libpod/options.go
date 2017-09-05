@@ -5,13 +5,11 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/kubernetes-incubator/cri-o/libpod/ctr"
-	"github.com/kubernetes-incubator/cri-o/libpod/pod"
 )
 
 var (
 	errRuntimeFinalized = fmt.Errorf("runtime has already been finalized")
-	ctrNotImplemented   = func(c *ctr.Container) error {
+	ctrNotImplemented   = func(c *Container) error {
 		return fmt.Errorf("NOT IMPLEMENTED")
 	}
 )
@@ -198,12 +196,12 @@ func WithRootFSFromImage(image string, useImageConfig bool) CtrCreateOption {
 // be added to the pod.
 // By default no namespaces are shared. To share a namespace, add the Namespace
 // string constant to the map as a key
-func WithSharedNamespaces(from *ctr.Container, namespaces map[string]string) CtrCreateOption {
+func WithSharedNamespaces(from *Container, namespaces map[string]string) CtrCreateOption {
 	return ctrNotImplemented
 }
 
 // WithPod adds the container to a pod
-func WithPod(pod *pod.Pod) CtrCreateOption {
+func WithPod(pod *Pod) CtrCreateOption {
 	return ctrNotImplemented
 }
 
