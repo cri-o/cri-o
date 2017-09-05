@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path/filepath"
 
 	"github.com/go-zoo/bone"
 )
@@ -75,7 +74,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			Labels:      ctr.Labels(),
 			Annotations: ctr.Annotations(),
 			Root:        ctr.MountPoint(),
-			LogPath:     filepath.Dir(ctr.LogPath()),
+			LogPath:     ctr.LogPath(),
 			Sandbox:     ctr.Sandbox(),
 			IP:          sb.IP(),
 		}
