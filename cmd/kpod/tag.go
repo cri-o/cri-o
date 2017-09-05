@@ -62,17 +62,17 @@ func addImageNames(store storage.Store, image *storage.Image, addNames []string)
 func expandedTags(tags []string) ([]string, error) {
 	expandedNames := []string{}
 	for _, tag := range tags {
-		name, err := reference.ParseNormalizedNamed(tag)
+		var labelName string
+		name, err := reference.Parse(tag)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing tag %q", name)
 		}
-
-		name = reference.TagNameOnly(name)
-		newTag := ""
-		if tagged, ok := name.(reference.NamedTagged); ok {
-			newTag = tagged.Tag()
+		if _, ok := name.(reference.NamedTagged); ok {
+			labelName = name.String()
+		} else {
+			labelName = name.String() + ":latest"
 		}
-		expandedNames = append(expandedNames, name.Name()+":"+newTag)
+		expandedNames = append(expandedNames, labelName)
 	}
 	return expandedNames, nil
 }
