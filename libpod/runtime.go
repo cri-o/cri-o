@@ -126,6 +126,8 @@ func (r *Runtime) Shutdown(force bool) error {
 		return fmt.Errorf("runtime has already been shut down")
 	}
 
+	r.valid = false
+
 	_, err := r.store.Shutdown(force)
 	return err
 }
