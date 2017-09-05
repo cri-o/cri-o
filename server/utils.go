@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 const (
@@ -143,4 +145,13 @@ func SysctlsFromPodAnnotation(annotation string) ([]Sysctl, error) {
 		sysctls[i].Value = cs[1]
 	}
 	return sysctls, nil
+}
+
+func newPodNetwork(namespace, name, id, netns string) ocicni.PodNetwork {
+	return ocicni.PodNetwork{
+		Name:      name,
+		Namespace: namespace,
+		ID:        id,
+		NetNS:     netns,
+	}
 }
