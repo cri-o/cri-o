@@ -51,7 +51,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 	if _, err := os.Stat(netnsPath); err == nil {
 		if err2 := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
-			Name:         sb.Name(),
+			Name:         sb.KubeName(),
 			PortMappings: sb.PortMappings(),
 			HostNetwork:  false,
 		}); err2 != nil {

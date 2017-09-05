@@ -472,7 +472,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 
 		if len(portMappings) != 0 {
-			ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, namespace, id, containerName)
+			ip, err := s.netPlugin.GetContainerNetworkStatus(netNsPath, namespace, id, kubeName)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get network status for container %s in sandbox %s: %v", containerName, id, err)
 			}
@@ -483,7 +483,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 
 			if err = s.hostportManager.Add(id, &hostport.PodPortMapping{
-				Name:         name,
+				Name:         kubeName,
 				PortMappings: portMappings,
 				IP:           ip4,
 				HostNetwork:  false,
