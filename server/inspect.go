@@ -25,6 +25,7 @@ type ContainerInfo struct {
 type CrioInfo struct {
 	StorageDriver string `json:"storage_driver"`
 	StorageRoot   string `json:"storage_root"`
+	CgroupDriver  string `json:"cgroup_driver"`
 }
 
 // GetInfoMux returns the mux used to serve info requests
@@ -35,6 +36,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 		ci := CrioInfo{
 			StorageDriver: s.config.Config.Storage,
 			StorageRoot:   s.config.Config.Root,
+			CgroupDriver:  s.config.Config.CgroupManager,
 		}
 		js, err := json.Marshal(ci)
 		if err != nil {
