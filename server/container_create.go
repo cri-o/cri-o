@@ -454,6 +454,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}).Debugf("setting container's log_path")
 
 	specgen.SetProcessTerminal(containerConfig.Tty)
+	if containerConfig.Tty {
+		specgen.AddProcessEnv("TERM", "xterm")
+	}
 
 	linux := containerConfig.GetLinux()
 	if linux != nil {
