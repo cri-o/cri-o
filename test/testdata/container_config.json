@@ -57,7 +57,6 @@
 					"setgid"
 				],
 				"drop_capabilities": [
-					"audit_read"
 				]
 			},
 			"selinux_options": {

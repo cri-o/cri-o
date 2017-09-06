@@ -484,8 +484,21 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 
+	var readOnlyRootfs bool
+	var privileged bool
+	if containerConfig.GetLinux().GetSecurityContext() != nil {
+		if containerConfig.GetLinux().GetSecurityContext().Privileged {
+			privileged = true
+		}
+
+		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
+			readOnlyRootfs = true
+			specgen.SetRootReadonly(true)
+		}
+	}
+
 	// set this container's apparmor profile if it is set by sandbox
-	if s.appArmorEnabled {
+	if s.appArmorEnabled && !privileged {
 		appArmorProfileName := s.getAppArmorProfileName(sb.Annotations(), metadata.Name)
 		if appArmorProfileName != "" {
 			// reload default apparmor profile if it is unloaded.
@@ -496,20 +509,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			}
 
 			specgen.SetProcessApparmorProfile(appArmorProfileName)
-		}
-	}
-	var readOnlyRootfs bool
-	if containerConfig.GetLinux().GetSecurityContext() != nil {
-		if containerConfig.GetLinux().GetSecurityContext().Privileged {
-			if !sb.Privileged() {
-				return nil, fmt.Errorf("no privileged container allowed in sandbox")
-			}
-			specgen.SetupPrivileged(true)
-		}
-
-		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
-			readOnlyRootfs = true
-			specgen.SetRootReadonly(true)
 		}
 	}
 
@@ -586,33 +585,59 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		sb.UpdateCgroupParent(parent)
 
 		capabilities := linux.GetSecurityContext().GetCapabilities()
-		toCAPPrefixed := func(cap string) string {
-			if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
-				return "CAP_" + cap
+		if privileged {
+			// this is setting correct capabilities as well for privileged mode
+			specgen.SetupPrivileged(true)
+		} else {
+			toCAPPrefixed := func(cap string) string {
+				if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
+					return "CAP_" + strings.ToUpper(cap)
+				}
+				return cap
 			}
-			return cap
-		}
-		if capabilities != nil {
-			addCaps := capabilities.AddCapabilities
-			if addCaps != nil {
-				for _, cap := range addCaps {
-					if err := specgen.AddProcessCapability(toCAPPrefixed(cap)); err != nil {
+
+			// Add/drop all capabilities if "all" is specified, so that
+			// following individual add/drop could still work. E.g.
+			// AddCapabilities: []string{"ALL"}, DropCapabilities: []string{"CHOWN"}
+			// will be all capabilities without `CAP_CHOWN`.
+			// see https://github.com/kubernetes/kubernetes/issues/51980
+			if inStringSlice(capabilities.GetAddCapabilities(), "ALL") {
+				for _, c := range getOCICapabilitiesList() {
+					if err := specgen.AddProcessCapability(c); err != nil {
+						return nil, err
+					}
+				}
+			}
+			if inStringSlice(capabilities.GetDropCapabilities(), "ALL") {
+				for _, c := range getOCICapabilitiesList() {
+					if err := specgen.DropProcessCapability(c); err != nil {
 						return nil, err
 					}
 				}
 			}
 
-			dropCaps := capabilities.DropCapabilities
-			if dropCaps != nil {
-				for _, cap := range dropCaps {
+			if capabilities != nil {
+				for _, cap := range capabilities.GetAddCapabilities() {
+					if strings.ToUpper(cap) == "ALL" {
+						continue
+					}
+					if err := specgen.AddProcessCapability(toCAPPrefixed(cap)); err != nil {
+						return nil, err
+					}
+				}
+
+				for _, cap := range capabilities.GetDropCapabilities() {
+					if strings.ToUpper(cap) == "ALL" {
+						continue
+					}
 					if err := specgen.DropProcessCapability(toCAPPrefixed(cap)); err != nil {
-						logrus.Debugf("failed to drop cap %s: %v", toCAPPrefixed(cap), err)
+						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
 					}
 				}
 			}
+			specgen.SetProcessSelinuxLabel(sb.ProcessLabel())
 		}
 
-		specgen.SetProcessSelinuxLabel(sb.ProcessLabel())
 		specgen.SetLinuxMountLabel(sb.MountLabel())
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
@@ -770,8 +795,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
-	if err = s.setupSeccomp(&specgen, containerName, sb.Annotations()); err != nil {
-		return nil, err
+	if !privileged {
+		if err = s.setupSeccomp(&specgen, containerName, sb.Annotations()); err != nil {
+			return nil, err
+		}
 	}
 
 	metaname := metadata.Name
