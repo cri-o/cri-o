@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
+	"github.com/kubernetes-incubator/cri-o/libpod/common"
 	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -103,7 +103,7 @@ func pushCmd(c *cli.Context) error {
 		return err
 	}
 
-	options := libkpodimage.CopyOptions{
+	options := images.CopyOptions{
 		Compression:         archive.Uncompressed,
 		SignaturePolicyPath: signaturePolicy,
 		Store:               store,

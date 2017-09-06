@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"fmt"
-	"io"
 	"sync"
 
 	"github.com/containers/image/types"
@@ -29,7 +28,6 @@ type Runtime struct {
 	seccompEnabled  bool
 	valid           bool
 	lock            sync.RWMutex
-	output          io.Writer
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime

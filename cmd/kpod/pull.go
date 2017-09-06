@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
-	"github.com/kubernetes-incubator/cri-o/libpod/images"
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -45,21 +45,11 @@ func pullCmd(c *cli.Context) error {
 	}
 	image := args[0]
 
-	config, err := getConfig(c)
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "could not get config")
+		return errors.Wrapf(err, "could not create runtime")
 	}
-	store, err := getStore(config)
-	if err != nil {
-		return err
-	}
-
-	allTags := c.Bool("all-tags")
-
-	systemContext := common.GetSystemContext("")
-
-	err = images.PullImage(store, image, allTags, false, systemContext)
-	if err != nil {
+	if err := runtime.PullImage(image, c.Bool("all-tags"), os.Stdout); err != nil {
 		return errors.Errorf("error pulling image from %q: %v", image, err)
 	}
 	return nil

@@ -33,11 +33,6 @@ type CopyOptions struct {
 	// layer blobs.  The default is to not use compression, but
 	// archive.Gzip is recommended.
 	Compression archive.Compression
-	// ReportWriter is an io.Writer which will be used to log the writing
-	// of the new image.
-	ReportWriter io.Writer
-	// Store is the local storage store which holds the source image.
-	Store storage.Store
 	// DockerRegistryOptions encapsulates settings that affect how we
 	// connect or authenticate to a remote registry to which we want to
 	// push the image.
@@ -60,7 +55,7 @@ type ImageFilter func(*storage.Image) bool
 // pulled. If allTags is true, all tags for the requested image will be pulled.
 // Signature validation will be performed if the Runtime has been appropriately
 // configured
-func (r *Runtime) PullImage(imgName string, allTags bool) error {
+func (r *Runtime) PullImage(imgName string, allTags bool, reportWriter io.Writer) error {
 	// PullImage copies the image from the source to the destination
 	var (
 		images []string
@@ -123,7 +118,7 @@ func (r *Runtime) PullImage(imgName string, allTags bool) error {
 	}
 	defer policyContext.Destroy()
 
-	copyOptions := common.GetCopyOptions(r.output, "", nil, nil, common.SigningOptions{})
+	copyOptions := common.GetCopyOptions(reportWriter, "", nil, nil, common.SigningOptions{})
 
 	for _, image := range images {
 		destRef, err := is.Transport.ParseStoreReference(r.store, image)
@@ -138,7 +133,7 @@ func (r *Runtime) PullImage(imgName string, allTags bool) error {
 }
 
 // PushImage pushes the given image to a location described by the given path
-func (r *Runtime) PushImage(source string, destination string, options CopyOptions) error {
+func (r *Runtime) PushImage(source string, destination string, options CopyOptions, reportWriter io.Writer) error {
 	// PushImage pushes the src image to the destination
 	//func PushImage(source, destination string, options CopyOptions) error {
 	if source == "" || destination == "" {
@@ -151,9 +146,9 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		return errors.Wrapf(err, "error getting destination imageReference for %q", destination)
 	}
 
-	policyContext, err := common.GetPolicyContext(options.SignaturePolicyPath)
+	policyContext, err := common.GetPolicyContext(r.GetConfig().SignaturePolicyPath)
 	if err != nil {
-		return errors.Wrapf(err, "Could not get default policy context for signature policy path %q", options.SignaturePolicyPath)
+		return errors.Wrapf(err, "Could not get default policy context for signature policy path %q", r.GetConfig().SignaturePolicyPath)
 	}
 	defer policyContext.Destroy()
 	// Look up the image name and its layer, then build the imagePushData from
@@ -176,7 +171,7 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		return errors.Wrapf(err, "error copying layers and metadata")
 	}
 
-	copyOptions := common.GetCopyOptions(options.ReportWriter, options.SignaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions)
+	copyOptions := common.GetCopyOptions(reportWriter, r.GetConfig().SignaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions)
 
 	// Copy the image to the remote destination
 	err = cp.Image(policyContext, dest, src, copyOptions)
