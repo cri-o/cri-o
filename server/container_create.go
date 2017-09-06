@@ -124,29 +124,111 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 	return nil
 }
 
+// resolveSymbolicLink resolves a possbile symlink path. If the path is a symlink, returns resolved
+// path; if not, returns the original path.
+func resolveSymbolicLink(path string) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+	if info.Mode()&os.ModeSymlink != os.ModeSymlink {
+		return path, nil
+	}
+	return filepath.EvalSymlinks(path)
+}
+
 func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
 	sp := specgen.Spec()
-	for _, device := range containerConfig.GetDevices() {
-		dev, err := devices.DeviceFromPath(device.HostPath, device.Permissions)
+	if containerConfig.GetLinux().GetSecurityContext().Privileged {
+		hostDevices, err := devices.HostDevices()
 		if err != nil {
-			return fmt.Errorf("failed to add device: %v", err)
+			return err
 		}
-		rd := rspec.LinuxDevice{
-			Path:  device.ContainerPath,
-			Type:  string(dev.Type),
-			Major: dev.Major,
-			Minor: dev.Minor,
-			UID:   &dev.Uid,
-			GID:   &dev.Gid,
+		for _, hostDevice := range hostDevices {
+			rd := rspec.LinuxDevice{
+				Path:  hostDevice.Path,
+				Type:  string(hostDevice.Type),
+				Major: hostDevice.Major,
+				Minor: hostDevice.Minor,
+				UID:   &hostDevice.Uid,
+				GID:   &hostDevice.Gid,
+			}
+			if hostDevice.Major == 0 && hostDevice.Minor == 0 {
+				// Invalid device, most likely a symbolic link, skip it.
+				continue
+			}
+			specgen.AddDevice(rd)
 		}
-		specgen.AddDevice(rd)
-		sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
-			Allow:  true,
-			Type:   string(dev.Type),
-			Major:  &dev.Major,
-			Minor:  &dev.Minor,
-			Access: dev.Permissions,
-		})
+		sp.Linux.Resources.Devices = []rspec.LinuxDeviceCgroup{
+			{
+				Allow:  true,
+				Access: "rwm",
+			},
+		}
+		return nil
+	}
+	for _, device := range containerConfig.GetDevices() {
+		path, err := resolveSymbolicLink(device.HostPath)
+		if err != nil {
+			return err
+		}
+		dev, err := devices.DeviceFromPath(path, device.Permissions)
+		// if there was no error, return the device
+		if err == nil {
+			rd := rspec.LinuxDevice{
+				Path:  device.ContainerPath,
+				Type:  string(dev.Type),
+				Major: dev.Major,
+				Minor: dev.Minor,
+				UID:   &dev.Uid,
+				GID:   &dev.Gid,
+			}
+			specgen.AddDevice(rd)
+			sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
+				Allow:  true,
+				Type:   string(dev.Type),
+				Major:  &dev.Major,
+				Minor:  &dev.Minor,
+				Access: dev.Permissions,
+			})
+			continue
+		}
+		// if the device is not a device node
+		// try to see if it's a directory holding many devices
+		if err == devices.ErrNotADevice {
+
+			// check if it is a directory
+			if src, e := os.Stat(path); e == nil && src.IsDir() {
+
+				// mount the internal devices recursively
+				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {
+					childDevice, e := devices.DeviceFromPath(dpath, device.Permissions)
+					if e != nil {
+						// ignore the device
+						return nil
+					}
+					cPath := strings.Replace(dpath, path, device.ContainerPath, 1)
+					rd := rspec.LinuxDevice{
+						Path:  cPath,
+						Type:  string(childDevice.Type),
+						Major: childDevice.Major,
+						Minor: childDevice.Minor,
+						UID:   &childDevice.Uid,
+						GID:   &childDevice.Gid,
+					}
+					specgen.AddDevice(rd)
+					sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
+						Allow:  true,
+						Type:   string(childDevice.Type),
+						Major:  &childDevice.Major,
+						Minor:  &childDevice.Minor,
+						Access: childDevice.Permissions,
+					})
+
+					return nil
+				})
+			}
+		}
 	}
 	return nil
 }

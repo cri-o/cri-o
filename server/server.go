@@ -360,6 +360,7 @@ func (s *Server) StopExitMonitor() {
 	close(s.exitMonitorChan)
 }
 
+// ExitMonitorCloseChan returns the close chan for the exit monitor
 func (s *Server) ExitMonitorCloseChan() chan struct{} {
 	return s.exitMonitorChan
 }
