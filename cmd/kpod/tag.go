@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libpod/images"
+	"github.com/kubernetes-incubator/cri-o/libpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -24,37 +24,34 @@ func tagCmd(c *cli.Context) error {
 	if len(args) < 2 {
 		return errors.Errorf("image name and at least one new name must be specified")
 	}
-	config, err := getConfig(c)
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "Could not get config")
+		return errors.Wrapf(err, "could not create runtime")
 	}
-	store, err := getStore(config)
-	if err != nil {
-		return err
-	}
-	img, err := images.FindImage(store, args[0])
+	img, err := runtime.GetImage(args[0])
 	if err != nil {
 		return err
 	}
 	if img == nil {
 		return errors.New("null image")
 	}
-	err = addImageNames(store, img, args[1:])
+	err = addImageNames(runtime, img, args[1:])
 	if err != nil {
 		return errors.Wrapf(err, "error adding names %v to image %q", args[1:], args[0])
 	}
 	return nil
 }
 
-func addImageNames(store storage.Store, image *storage.Image, addNames []string) error {
+func addImageNames(runtime *libpod.Runtime, image *storage.Image, addNames []string) error {
 	// Add tags to the names if applicable
 	names, err := expandedTags(addNames)
 	if err != nil {
 		return err
 	}
-	err = store.SetNames(image.ID, append(image.Names, names...))
-	if err != nil {
-		return errors.Wrapf(err, "error adding names (%v) to image %q", names, image.ID)
+	for _, name := range names {
+		if err := runtime.TagImage(image, name); err != nil {
+			return errors.Wrapf(err, "error adding names (%v) to image %q", name, image.ID)
+		}
 	}
 	return nil
 }
