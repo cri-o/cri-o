@@ -19,6 +19,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/docker/distribution/registry/client"
+	helperclient "github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/go-connections/sockets"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/opencontainers/go-digest"
@@ -435,7 +436,12 @@ func getAuth(ctx *types.SystemContext, registry string) (string, string, error) 
 		return "", "", errors.Wrap(err, dockerCfgPath)
 	}
 
-	// I'm feeling lucky
+	// First try cred helpers. They should always be normalized.
+	if ch, exists := dockerAuth.CredHelpers[registry]; exists {
+		return getAuthFromCredHelper(ch, registry)
+	}
+
+	// I'm feeling lucky.
 	if c, exists := dockerAuth.AuthConfigs[registry]; exists {
 		return decodeDockerAuth(c.Auth)
 	}
@@ -545,6 +551,18 @@ type dockerAuthConfig struct {
 
 type dockerConfigFile struct {
 	AuthConfigs map[string]dockerAuthConfig `json:"auths"`
+	CredHelpers map[string]string           `json:"credHelpers,omitempty"`
+}
+
+func getAuthFromCredHelper(credHelper, registry string) (string, string, error) {
+	helperName := fmt.Sprintf("docker-credential-%s", credHelper)
+	p := helperclient.NewShellProgramFunc(helperName)
+	creds, err := helperclient.Get(p, registry)
+	if err != nil {
+		return "", "", err
+	}
+
+	return creds.Username, creds.Secret, nil
 }
 
 func decodeDockerAuth(s string) (string, string, error) {

@@ -1,3 +1,5 @@
+// +build !containers_image_ostree_stub
+
 package ostree
 
 import (
