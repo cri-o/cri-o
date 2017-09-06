@@ -154,6 +154,8 @@ type Sandbox struct {
 	hostname       string
 	portMappings   []*hostport.PortMapping
 	stopped        bool
+	// ipv4 or ipv6 cache
+	ip string
 }
 
 const (
@@ -200,6 +202,16 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.portMappings = portMappings
 
 	return sb, nil
+}
+
+// AddIP stores the ip in the sandbox
+func (s *Sandbox) AddIP(ip string) {
+	s.ip = ip
+}
+
+// IP returns the ip of the sandbox
+func (s *Sandbox) IP() string {
+	return s.ip
 }
 
 // ID returns the id of the sandbox

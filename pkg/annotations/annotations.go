@@ -19,6 +19,9 @@ const (
 	// HostName is the container host name annotation
 	HostName = "io.kubernetes.cri-o.HostName"
 
+	// IP is the container ipv4 or ipv6 address
+	IP = "io.kubernetes.cri-o.IP"
+
 	// Image is the container image ID annotation
 	Image = "io.kubernetes.cri-o.Image"
 

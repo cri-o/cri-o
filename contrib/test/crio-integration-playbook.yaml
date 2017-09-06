@@ -151,8 +151,6 @@
       repo: https://github.com/containernetworking/plugins
       dest: /root/src/github.com/containernetworking/plugins
       version: "{{ cni_commit }}"
-    async: 600
-    poll: 10
   - name: Git fetch the PR
     shell: "git fetch origin +refs/pull/{{ pullrequest }}/head:refs/remotes/origin/pr/{{ pullrequest }}"
     args:
@@ -225,10 +223,18 @@
       regexp: 'execute time bats --tap \$TESTS'
       state: present
     when: xunit
-  - name: Copy plugin args so tests dont hang
-    shell: "cp test/plugin_test_args.bash /opt/cni/bin/"
+  - name: git clone cni test repo
+    git:
+      repo: https://github.com/runcom/plugins
+      dest: /root/src/github.com/containernetworking/plugins
+      version: "custom-bridge"
+      force: yes
+  - name: Build cni test networking
+    shell: ./build.sh
     args:
-      chdir: /root/src/github.com/kubernetes-incubator/cri-o/
+      chdir: /root/src/github.com/containernetworking/plugins
+  - name: cp custom-bridge to opt bin
+    shell: cp /root/src/github.com/containernetworking/plugins/bin/bridge /opt/cni/bin/bridge-custom
     # k8s builds with go1.8.x, rhel, fedora don't have it yet
   - name: install Golang upstream in Fedora/RHEL
     shell: |

@@ -85,6 +85,8 @@ load helpers
 	[ "$FOUND_K8S_POD_NAMESPACE" = "redhat.test.crio" ]
 	[ "$FOUND_K8S_POD_NAME" = "podsandbox1" ]
 
+	rm -rf /tmp/plugin_test_args.out
+
 	cleanup_pods
 	stop_crio
 }
