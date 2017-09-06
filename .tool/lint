@@ -4,9 +4,19 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Create the linter path for use later
+LINTER=${GOPATH}/bin/gometalinter
+
+# Make sure gometalinter is installed
+if [ ! -f ${LINTER} ]; then
+	echo >&2 "gometalinter must be installed. Please run 'make install.tools' and try again"
+	exit 1
+fi
+
 PKGS=$(find . -type d -not -path . -a -not -iwholename '*.git*' -a -not -iname '.tool' -a -not -iwholename '*vendor*' -a -not -iname 'hack' -a -not -iwholename '*.artifacts*' -a -not -iwholename '*contrib*' -a -not -iwholename '*test*' -a -not -iwholename '*logo*' -a -not -iwholename '*conmon*' -a -not -iwholename '*completions*' -a -not -iwholename '*docs*' -a -not -iwholename '*pause*')
 
-${GOPATH}/bin/gometalinter \
+# Execute the linter
+${LINTER} \
 	--concurrency=4\
 	--enable-gc\
 	--vendored-linters\
