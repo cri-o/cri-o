@@ -419,6 +419,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	var readOnlyRootfs bool
 	if containerConfig.GetLinux().GetSecurityContext() != nil {
 		if containerConfig.GetLinux().GetSecurityContext().Privileged {
+			if !sb.Privileged() {
+				return nil, fmt.Errorf("no privileged container allowed in sandbox")
+			}
 			specgen.SetupPrivileged(true)
 		}
 
