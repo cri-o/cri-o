@@ -99,18 +99,22 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			return nil, err
 		}
 		for _, image := range images {
-			ref, err := svc.getRef(image.Names[0])
-			if err != nil {
-				return nil, err
-			}
-			img, err := ref.NewImage(systemContext)
-			if err != nil {
-				return nil, err
+			var size *uint64
+			if len(image.Names) != 0 {
+				ref, err := svc.getRef(image.Names[0])
+				if err != nil {
+					return nil, err
+				}
+				img, err := ref.NewImage(systemContext)
+				if err != nil {
+					return nil, err
+				}
+				size = imageSize(img)
 			}
 			results = append(results, ImageResult{
 				ID:    image.ID,
 				Names: image.Names,
-				Size:  imageSize(img),
+				Size:  size,
 			})
 		}
 	}
