@@ -20,6 +20,7 @@ type RuntimeOption func(*Runtime) error
 // Runtime is the core libpod runtime
 type Runtime struct {
 	config          *RuntimeConfig
+	state           State
 	store           storage.Store
 	imageContext    *types.SystemContext
 	apparmorEnabled bool
@@ -145,36 +146,125 @@ type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config
 func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
-	return nil, ctr.ErrNotImplemented
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime has already been shut down")
+	}
+
+	ctr, err := newContainer(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, option := range options {
+		if err := option(ctr); err != nil {
+			return nil, errors.Wrapf(err, "error running container create option")
+		}
+	}
+
+	ctr.valid = true
+
+	if err := r.state.AddContainer(ctr); err != nil {
+		// If we joined a pod, remove ourself from it
+		if ctr.pod != nil {
+			if err2 := ctr.pod.removeContainer(ctr); err2 != nil {
+				return nil, errors.Wrapf(err, "error adding new container to state, container could not be removed from pod %s", ctr.pod.ID())
+			}
+		}
+
+		// TODO: Might be worth making an effort to detect duplicate IDs
+		// We can recover from that by generating a new ID for the
+		// container
+		return nil, errors.Wrapf(err, "error adding new container to state")
+	}
+
+	return ctr, nil
 }
 
 // RemoveContainer removes the given container
 // If force is specified, the container will be stopped first
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *Runtime) RemoveContainer(c *Container, force bool) error {
-	return ctr.ErrNotImplemented
+	return errNotImplemented
 }
 
 // GetContainer retrieves a container by its ID
-func (r *Runtime) GetContainer(id string) (*ctr.Container, error) {
-	return nil, ctr.ErrNotImplemented
+func (r *Runtime) GetContainer(id string) (*Container, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime has already been shut down")
+	}
+
+	return r.state.GetContainer(id)
+}
+
+// HasContainer checks if a container with the given ID is present
+func (r *Runtime) HasContainer(id string) (bool, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return false, fmt.Errorf("runtime has already been shut down")
+	}
+
+	return r.state.HasContainer(id)
 }
 
 // LookupContainer looks up a container by its name or a partial ID
 // If a partial ID is not unique, an error will be returned
-func (r *Runtime) LookupContainer(idOrName string) (*ctr.Container, error) {
-	return nil, ctr.ErrNotImplemented
+func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime has already been shut down")
+	}
+
+	return r.state.LookupContainer(idOrName)
 }
 
 // GetContainers retrieves all containers from the state
 // Filters can be provided which will determine what containers are included in
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
-func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*ctr.Container, error) {
-	return nil, ctr.ErrNotImplemented
+func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime has already been shut down")
+	}
+
+	ctrs, err := r.state.GetAllContainers()
+	if err != nil {
+		return nil, err
+	}
+
+	ctrsFiltered := make([]*Container, 0, len(ctrs))
+
+	for _, ctr := range ctrs {
+		include := true
+		for _, filter := range filters {
+			include = include && filter(ctr)
+		}
+
+		if include {
+			ctrsFiltered = append(ctrsFiltered, ctr)
+		}
+	}
+
+	return ctrsFiltered, nil
 }
 
 // Pod API
+
+// A PodCreateOption is a functional option which alters the Pod created by
+// NewPod
+type PodCreateOption func(*Pod) error
 
 // PodFilter is a function to determine whether a pod is included in command
 // output. Pods to be outputted are tested using the function. A true return
@@ -182,8 +272,32 @@ func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*ctr.Container, e
 type PodFilter func(*Pod) bool
 
 // NewPod makes a new, empty pod
-func (r *Runtime) NewPod() (*pod.Pod, error) {
-	return nil, ctr.ErrNotImplemented
+func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime has already been shut down")
+	}
+
+	pod, err := newPod()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating pod")
+	}
+
+	for _, option := range options {
+		if err := option(pod); err != nil {
+			return nil, errors.Wrapf(err, "error running pod create option")
+		}
+	}
+
+	pod.valid = true
+
+	if err := r.state.AddPod(pod); err != nil {
+		return nil, errors.Wrapf(err, "error adding pod to state")
+	}
+
+	return nil, errNotImplemented
 }
 
 // RemovePod removes a pod and all containers in it
@@ -191,24 +305,74 @@ func (r *Runtime) NewPod() (*pod.Pod, error) {
 // Otherwise, RemovePod will return an error if any container in the pod is running
 // Remove acts atomically, removing all containers or no containers
 func (r *Runtime) RemovePod(p *Pod, force bool) error {
-	return ctr.ErrNotImplemented
+	return errNotImplemented
 }
 
 // GetPod retrieves a pod by its ID
-func (r *Runtime) GetPod(id string) (*pod.Pod, error) {
-	return nil, ctr.ErrNotImplemented
+func (r *Runtime) GetPod(id string) (*Pod, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime has already been shut down")
+	}
+
+	return r.state.GetPod(id)
+}
+
+// HasPod checks to see if a pod with the given ID exists
+func (r *Runtime) HasPod(id string) (bool, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return false, fmt.Errorf("runtime has already been shut down")
+	}
+
+	return r.state.HasPod(id)
 }
 
 // LookupPod retrieves a pod by its name or a partial ID
 // If a partial ID is not unique, an error will be returned
-func (r *Runtime) LookupPod(idOrName string) (*pod.Pod, error) {
-	return nil, ctr.ErrNotImplemented
+func (r *Runtime) LookupPod(idOrName string) (*Pod, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime has already been shut down")
+	}
+
+	return r.state.LookupPod(idOrName)
 }
 
 // GetPods retrieves all pods
 // Filters can be provided which will determine which pods are included in the
 // output. Multiple filters are handled by ANDing their output, so only pods
 // matching all filters are returned
-func (r *Runtime) GetPods(filters ...PodFilter) ([]*pod.Pod, error) {
-	return nil, ctr.ErrNotImplemented
+func (r *Runtime) GetPods(filters ...PodFilter) ([]*Pod, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime has already been shut down")
+	}
+
+	pods, err := r.state.GetAllPods()
+	if err != nil {
+		return nil, err
+	}
+
+	podsFiltered := make([]*Pod, 0, len(pods))
+	for _, pod := range pods {
+		include := true
+		for _, filter := range filters {
+			include = include && filter(pod)
+		}
+
+		if include {
+			podsFiltered = append(podsFiltered, pod)
+		}
+	}
+
+	return podsFiltered, nil
 }

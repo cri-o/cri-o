@@ -5,10 +5,12 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/pkg/errors"
 )
 
 var (
 	errRuntimeFinalized = fmt.Errorf("runtime has already been finalized")
+	errCtrFinalized     = fmt.Errorf("container has already been finalized")
 	ctrNotImplemented   = func(c *Container) error {
 		return fmt.Errorf("NOT IMPLEMENTED")
 	}
@@ -201,8 +203,31 @@ func WithSharedNamespaces(from *Container, namespaces map[string]string) CtrCrea
 }
 
 // WithPod adds the container to a pod
-func WithPod(pod *Pod) CtrCreateOption {
-	return ctrNotImplemented
+func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
+	return func(ctr *Container) error {
+		if !ctr.valid {
+			return errCtrFinalized
+		}
+
+		if ctr.pod != nil {
+			return fmt.Errorf("container has already been added to a pod")
+		}
+
+		exists, err := r.state.HasPod(pod.ID())
+		if err != nil {
+			return errors.Wrapf(err, "error searching state for pod %s", pod.ID())
+		} else if !exists {
+			return fmt.Errorf("pod with id %s not found in state")
+		}
+
+		if err := pod.addContainer(ctr); err != nil {
+			return errors.Wrapf(err, "error adding container to pod")
+		}
+
+		ctr.pod = pod
+
+		return nil
+	}
 }
 
 // WithLabels adds labels to the pod
@@ -217,10 +242,33 @@ func WithAnnotations(annotations map[string]string) CtrCreateOption {
 
 // WithName sets the container's name
 func WithName(name string) CtrCreateOption {
-	return ctrNotImplemented
+	return func(ctr *Container) error {
+		if !ctr.valid {
+			return errCtrFinalized
+		}
+
+		ctr.name = name
+
+		return nil
+	}
 }
 
 // WithStopSignal sets the signal that will be sent to stop the container
 func WithStopSignal(signal uint) CtrCreateOption {
 	return ctrNotImplemented
+}
+
+// Pod Creation Options
+
+// WithPodName sets the name of the pod
+func WithPodName(name string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return fmt.Errorf("pod already finalized")
+		}
+
+		pod.name = name
+
+		return nil
+	}
 }

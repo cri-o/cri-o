@@ -2,8 +2,12 @@ package libpod
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/containers/storage"
+	"github.com/docker/docker/pkg/stringid"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/ulule/deepcopier"
 )
 
 var (
@@ -13,7 +17,60 @@ var (
 
 // Container is a single OCI container
 type Container struct {
-	// TODO populate
+	id   string
+	name string
+
+	spec *spec.Spec
+	pod  *Pod
+
+	valid bool
+	lock  sync.RWMutex
+}
+
+// ID returns the container's ID
+func (c *Container) ID() string {
+	// No locking needed, ID will never mutate after a container is created
+	return c.id
+}
+
+// Name returns the container's name
+func (c *Container) Name() string {
+	// Name can potentially be changed while a container is running
+	// So lock access to it
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.name
+}
+
+// Spec returns the container's OCI runtime spec
+func (c *Container) Spec() *spec.Spec {
+	// The spec can potentially be altered when storage is configured and to
+	// add annotations at container create time
+	// As such, access to it is locked
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	spec := new(spec.Spec)
+	deepcopier.Copy(c.spec).To(spec)
+
+	return spec
+}
+
+// Make a new container
+func newContainer(rspec *spec.Spec) (*Container, error) {
+	if rspec == nil {
+		return nil, fmt.Errorf("must provide a valid spec to construct container")
+	}
+
+	ctr := new(Container)
+	ctr.id = stringid.GenerateNonCryptoID()
+	ctr.name = ctr.id // TODO generate unique human-readable names
+
+	ctr.spec = new(spec.Spec)
+	deepcopier.Copy(rspec).To(ctr.spec)
+
+	return ctr, nil
 }
 
 // Create creates a container in the OCI runtime

@@ -1,12 +1,81 @@
 package libpod
 
 import (
-	"github.com/kubernetes-incubator/cri-o/libpod/ctr"
+	"fmt"
+	"sync"
+
+	"github.com/docker/docker/pkg/stringid"
 )
 
 // Pod represents a group of containers that may share namespaces
 type Pod struct {
-	// TODO populate
+	id   string
+	name string
+
+	containers map[string]*Container
+
+	valid bool
+	lock  sync.RWMutex
+}
+
+// ID retrieves the pod's ID
+func (p *Pod) ID() string {
+	return p.id
+}
+
+// Name retrieves the pod's name
+func (p *Pod) Name() string {
+	return p.name
+}
+
+// Creates a new pod
+func newPod() (*Pod, error) {
+	pod := new(Pod)
+	pod.id = stringid.GenerateNonCryptoID()
+	pod.name = pod.id // TODO generate human-readable name here
+
+	pod.containers = make(map[string]*Container)
+
+	return pod, nil
+}
+
+// Adds a container to the pod
+// Does not check that container's pod ID is set correctly, or attempt to set
+// pod ID after adding
+func (p *Pod) addContainer(ctr *Container) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return fmt.Errorf("pod has already been removed")
+	}
+
+	if _, ok := p.containers[ctr.id]; ok {
+		return fmt.Errorf("container with id %s already exists in pod %s", ctr.id, p.id)
+	}
+
+	p.containers[ctr.id] = ctr
+
+	return nil
+}
+
+// Removes a container from the pod
+// Does not perform any checks on the container
+func (p *Pod) removeContainer(ctr *Container) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return fmt.Errorf("pod has already been removed")
+	}
+
+	if _, ok := p.containers[ctr.id]; !ok {
+		return fmt.Errorf("container with id %s does not exist in pod %s", ctr.id, p.id)
+	}
+
+	delete(p.containers, ctr.id)
+
+	return nil
 }
 
 // Start starts all containers within a pod that are not already running
@@ -26,7 +95,19 @@ func (p *Pod) Kill(signal uint) error {
 
 // GetContainers retrieves the containers in the pod
 func (p *Pod) GetContainers() ([]*Container, error) {
-	return nil, errNotImplemented
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if !p.valid {
+		return nil, fmt.Errorf("pod has already been removed")
+	}
+
+	ctrs := make([]*Container, 0, len(p.containers))
+	for _, ctr := range p.containers {
+		ctrs = append(ctrs, ctr)
+	}
+
+	return ctrs, nil
 }
 
 // Status gets the status of all containers in the pod

@@ -18,7 +18,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/kubernetes-incubator/cri-o/libpod/common"
-	"github.com/kubernetes-incubator/cri-o/libpod/ctr"
 	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 )
@@ -354,10 +353,10 @@ func (r *Runtime) GetImageRef(image string) (types.Image, error) {
 // output. Multiple filters are handled by ANDing their output, so only images
 // matching all filters are included
 func (r *Runtime) GetImages(filter ...ImageFilter) ([]*storage.Image, error) {
-	return nil, ctr.ErrNotImplemented
+	return nil, errNotImplemented
 }
 
 // ImportImage imports an OCI format image archive into storage as an image
 func (r *Runtime) ImportImage(path string) (*storage.Image, error) {
-	return nil, ctr.ErrNotImplemented
+	return nil, errNotImplemented
 }
