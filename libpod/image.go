@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
+	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/kubernetes-incubator/cri-o/libpod/common"
@@ -41,6 +42,9 @@ type CopyOptions struct {
 	// strip or add signatures to the image when pushing (uploading) the
 	// image to a registry.
 	common.SigningOptions
+
+	// SigningPolicyPath this points to a alternative signature policy file, used mainly for testing
+	SignaturePolicyPath string
 }
 
 // Image API
@@ -153,7 +157,7 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 	defer policyContext.Destroy()
 	// Look up the image name and its layer, then build the imagePushData from
 	// the image
-	img, err := images.FindImage(r.store, source)
+	img, err := r.GetImage(source)
 	if err != nil {
 		return errors.Wrapf(err, "error locating image %q for importing settings", source)
 	}
@@ -183,25 +187,79 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 
 // TagImage adds a tag to the given image
 func (r *Runtime) TagImage(image *storage.Image, tag string) error {
-	return ctr.ErrNotImplemented
+	tags, err := r.store.Names(image.ID)
+	if err != nil {
+		return err
+	}
+	for _, key := range tags {
+		if key == tag {
+			return nil
+		}
+	}
+	tags = append(tags, tag)
+	return r.store.SetNames(image.ID, tags)
 }
 
 // UntagImage removes a tag from the given image
 func (r *Runtime) UntagImage(image *storage.Image, tag string) error {
-	return ctr.ErrNotImplemented
+	tags, err := r.store.Names(image.ID)
+	if err != nil {
+		return err
+	}
+	for i, key := range tags {
+		if key == tag {
+			tags[i] = tags[len(tags)-1]
+			tags = tags[:len(tags)-1]
+			break
+		}
+	}
+	return r.store.SetNames(image.ID, tags)
 }
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers cannot be removed
 func (r *Runtime) RemoveImage(image *storage.Image) error {
-	return ctr.ErrNotImplemented
+	_, err := r.store.DeleteImage(image.ID, false)
+	return err
 }
 
 // GetImage retrieves an image matching the given name or hash from system
 // storage
 // If no matching image can be found, an error is returned
 func (r *Runtime) GetImage(image string) (*storage.Image, error) {
-	return nil, ctr.ErrNotImplemented
+	var img *storage.Image
+	ref, err := is.Transport.ParseStoreReference(r.store, image)
+	if err == nil {
+		img, err = is.Transport.GetStoreImage(r.store, ref)
+	}
+	if err != nil {
+		img2, err2 := r.store.Image(image)
+		if err2 != nil {
+			if ref == nil {
+				return nil, errors.Wrapf(err, "error parsing reference to image %q", image)
+			}
+			return nil, errors.Wrapf(err, "unable to locate image %q", image)
+		}
+		img = img2
+	}
+	return img, nil
+}
+
+// GetImageRef searches for and returns a new types.Image matching the given name or ID in the given store.
+func (r *Runtime) GetImageRef(image string) (types.Image, error) {
+	img, err := r.GetImage(image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to locate image %q", image)
+	}
+	ref, err := is.Transport.ParseStoreReference(r.store, "@"+img.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
+	}
+	imgRef, err := ref.NewImage(nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading image %q", img.ID)
+	}
+	return imgRef, nil
 }
 
 // GetImages retrieves all images present in storage
