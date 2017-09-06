@@ -13,6 +13,7 @@ ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_CRIO ?= ${ETCDIR}/crio
 BUILDTAGS ?= selinux seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh)
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
+SELINUXOPT ?= $(shell  test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 BUILD_INFO := $(shell date +%s)
@@ -130,30 +131,30 @@ docs/%.8: docs/%.8.md .gopathok
 docs: $(MANPAGES)
 
 install: .gopathok
-	install -D -m 755 crio $(BINDIR)/crio
-	install -D -m 755 crioctl $(BINDIR)/crioctl
-	install -D -m 755 kpod $(BINDIR)/kpod
-	install -D -m 755 conmon/conmon $(LIBEXECDIR)/crio/conmon
-	install -D -m 755 pause/pause $(LIBEXECDIR)/crio/pause
-	install -d -m 755 $(MANDIR)/man1
-	install -d -m 755 $(MANDIR)/man5
-	install -d -m 755 $(MANDIR)/man8
-	install -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
-	install -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
-	install -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
+	install ${SELINUXOPT} -D -m 755 crio $(BINDIR)/crio
+	install ${SELINUXOPT} -D -m 755 crioctl $(BINDIR)/crioctl
+	install ${SELINUXOPT} -D -m 755 kpod $(BINDIR)/kpod
+	install ${SELINUXOPT} -D -m 755 conmon/conmon $(LIBEXECDIR)/crio/conmon
+	install ${SELINUXOPT} -D -m 755 pause/pause $(LIBEXECDIR)/crio/pause
+	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
+	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man8
+	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
 install.config:
-	install -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
-	install -D -m 644 seccomp.json $(ETCDIR_CRIO)/seccomp.json
+	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
+	install ${SELINUXOPT} -D -m 644 seccomp.json $(ETCDIR_CRIO)/seccomp.json
 
 install.completions:
-	install -d -m 755 ${BASHINSTALLDIR}
-	install -m 644 -D completions/bash/kpod ${BASHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 -D completions/bash/kpod ${BASHINSTALLDIR}
 
 install.systemd:
-	install -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
+	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
 	ln -sf crio.service $(PREFIX)/lib/systemd/system/cri-o.service
-	install -D -m 644 contrib/systemd/crio-shutdown.service $(PREFIX)/lib/systemd/system/crio-shutdown.service
+	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio-shutdown.service $(PREFIX)/lib/systemd/system/crio-shutdown.service
 
 uninstall:
 	rm -f $(BINDIR)/crio
