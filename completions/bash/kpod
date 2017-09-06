@@ -255,6 +255,27 @@ _kpod_rename() {
     esac
 }
 
+_kpod_rm() {
+    local boolean_options="
+    --force
+    -f
+    "
+
+    local options_with_args="
+    "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_containers
+            ;;
+    esac
+}
+
 _kpod_rmi() {
     local boolean_options="
      --help
@@ -397,6 +418,7 @@ _kpod_kpod() {
     pull
     push
     rename
+    rm
     rmi
     save
     stats
