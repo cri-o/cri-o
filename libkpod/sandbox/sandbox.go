@@ -273,11 +273,6 @@ func (s *Sandbox) CgroupParent() string {
 	return s.cgroupParent
 }
 
-// UpdateCgroupParent updates the cgroup parent for a sandbox
-func (s *Sandbox) UpdateCgroupParent(parent string) {
-	s.cgroupParent = parent
-}
-
 // Privileged returns whether or not the containers in the sandbox are
 // privileged containers
 func (s *Sandbox) Privileged() bool {

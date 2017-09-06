@@ -331,14 +331,21 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cgroupParent := req.GetConfig().GetLinux().CgroupParent
 	if cgroupParent != "" {
 		if s.config.CgroupManager == oci.SystemdCgroupsManager {
-			cgPath, err := convertCgroupNameToSystemd(cgroupParent, false)
+			if len(cgroupParent) <= 6 || !strings.HasSuffix(path.Base(cgroupParent), ".slice") {
+				return nil, fmt.Errorf("cri-o configured with systemd cgroup manager, but did not receive slice as parent: %s", cgroupParent)
+			}
+			cgPath, err := convertCgroupFsNameToSystemd(cgroupParent)
 			if err != nil {
 				return nil, err
 			}
 			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
 			cgroupParent = cgPath
 		} else {
-			g.SetLinuxCgroupsPath(cgroupParent + "/" + id)
+			if strings.HasSuffix(path.Base(cgroupParent), ".slice") {
+				return nil, fmt.Errorf("cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s", cgroupParent)
+			}
+			cgPath := filepath.Join(cgroupParent, scopePrefix+"-"+id)
+			g.SetLinuxCgroupsPath(cgPath)
 		}
 	}
 

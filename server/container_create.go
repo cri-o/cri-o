@@ -490,7 +490,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			cgPath = filepath.Join(parent, scopePrefix+"-"+containerID)
 		}
 		specgen.SetLinuxCgroupsPath(cgPath)
-		sb.UpdateCgroupParent(parent)
 
 		capabilities := linux.GetSecurityContext().GetCapabilities()
 		toCAPPrefixed := func(cap string) string {
