@@ -45,8 +45,9 @@ func isTrue(annotaton string) bool {
 
 // streamService implements streaming.Runtime.
 type streamService struct {
-	runtimeServer *Server // needed by Exec() endpoint
-	streamServer  streaming.Server
+	runtimeServer       *Server // needed by Exec() endpoint
+	streamServer        streaming.Server
+	streamServerCloseCh chan struct{}
 	streaming.Runtime
 }
 
@@ -65,9 +66,19 @@ type Server struct {
 	appArmorEnabled bool
 	appArmorProfile string
 
-	stream streamService
+	bindAddress     string
+	stream          streamService
+	exitMonitorChan chan struct{}
+}
 
-	bindAddress string
+// StopStreamServer stops the stream server
+func (s *Server) StopStreamServer() error {
+	return s.stream.streamServer.Stop()
+}
+
+// StreamingServerCloseChan returns the close channel for the streaming server
+func (s *Server) StreamingServerCloseChan() chan struct{} {
+	return s.stream.streamServerCloseCh
 }
 
 // GetExec returns exec stream request
@@ -201,6 +212,7 @@ func New(config *Config) (*Server, error) {
 		seccompEnabled:  seccomp.IsEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
 		appArmorProfile: config.ApparmorProfile,
+		exitMonitorChan: make(chan struct{}),
 	}
 
 	if s.seccompEnabled {
@@ -251,9 +263,12 @@ func New(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("unable to create streaming server")
 	}
 
-	// TODO: Is it should be started somewhere else?
+	s.stream.streamServerCloseCh = make(chan struct{})
 	go func() {
-		s.stream.streamServer.Start(true)
+		defer close(s.stream.streamServerCloseCh)
+		if err := s.stream.streamServer.Start(true); err != nil {
+			logrus.Errorf("Failed to start streaming server: %v", err)
+		}
 	}()
 
 	logrus.Debugf("sandboxes: %v", s.ContainerServer.ListSandboxes())
@@ -340,6 +355,15 @@ func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
 	return mux, nil
 }
 
+// StopExitMonitor stops the exit monitor
+func (s *Server) StopExitMonitor() {
+	close(s.exitMonitorChan)
+}
+
+func (s *Server) ExitMonitorCloseChan() chan struct{} {
+	return s.exitMonitorChan
+}
+
 // StartExitMonitor start a routine that monitors container exits
 // and updates the container status
 func (s *Server) StartExitMonitor() {
@@ -349,7 +373,7 @@ func (s *Server) StartExitMonitor() {
 	}
 	defer watcher.Close()
 
-	done := make(chan bool)
+	done := make(chan struct{})
 	go func() {
 		for {
 			select {
@@ -383,12 +407,17 @@ func (s *Server) StartExitMonitor() {
 				}
 			case err := <-watcher.Errors:
 				logrus.Debugf("watch error: %v", err)
-				done <- true
+				close(done)
+				return
+			case <-s.exitMonitorChan:
+				logrus.Debug("closing exit monitor...")
+				close(done)
+				return
 			}
 		}
 	}()
 	if err := watcher.Add(s.config.ContainerExitsDir); err != nil {
-		logrus.Fatalf("watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
+		logrus.Errorf("watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
 	}
 	<-done
 }
