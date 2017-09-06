@@ -36,6 +36,7 @@ func main() {
 		rmiCommand,
 		saveCommand,
 		statsCommand,
+		stopCommand,
 		tagCommand,
 		umountCommand,
 		versionCommand,
