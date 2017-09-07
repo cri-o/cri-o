@@ -55,16 +55,17 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			PortMappings: sb.PortMappings(),
 			HostNetwork:  false,
 		}); err2 != nil {
-			logrus.Warnf("failed to remove hostport for container %s in sandbox %s: %v",
+			logrus.Warnf("failed to remove hostport for pod sandbox %s(%s): %v",
 				podInfraContainer.Name(), sb.ID(), err2)
 		}
 
-		if err2 := s.netPlugin.TearDownPod(netnsPath, sb.Namespace(), sb.KubeName(), sb.ID()); err2 != nil {
-			logrus.Warnf("failed to destroy network for container %s in sandbox %s: %v",
-				podInfraContainer.Name(), sb.ID(), err2)
+		podNetwork := newPodNetwork(sb.Namespace(), sb.KubeName(), sb.ID(), netnsPath)
+		if err2 := s.netPlugin.TearDownPod(podNetwork); err2 != nil {
+			logrus.Warnf("failed to destroy network for pod sandbox %s(%s): %v",
+				sb.Name(), sb.ID(), err2)
 		}
 	} else if !os.IsNotExist(err) { // it's ok for netnsPath to *not* exist
-		return nil, fmt.Errorf("failed to stat netns path for container %s in sandbox %s before tearing down the network: %v",
+		return nil, fmt.Errorf("failed to stat netns path for pod sandbox %s(%s) before tearing down the network: %v",
 			sb.Name(), sb.ID(), err)
 	}
 
