@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -85,14 +85,14 @@ func inspectCmd(c *cli.Context) error {
 			return errors.Wrapf(err, "error parsing container data")
 		}
 	case inspectTypeImage:
-		data, err = libkpodimage.GetData(server.Store(), name)
+		data, err = images.GetData(server.Store(), name)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing image data")
 		}
 	case inspectAll:
 		ctrData, err := server.GetContainerData(name, size)
 		if err != nil {
-			imgData, err := libkpodimage.GetData(server.Store(), name)
+			imgData, err := images.GetData(server.Store(), name)
 			if err != nil {
 				return errors.Wrapf(err, "error parsing container or image data")
 			}

@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/storage"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -32,7 +32,7 @@ func tagCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	img, err := libkpodimage.FindImage(store, args[0])
+	img, err := images.FindImage(store, args[0])
 	if err != nil {
 		return err
 	}

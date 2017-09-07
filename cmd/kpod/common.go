@@ -8,7 +8,9 @@ import (
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-incubator/cri-o/libpod"
 	"github.com/kubernetes-incubator/cri-o/server"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -30,6 +32,22 @@ func getStore(c *libkpod.Config) (storage.Store, error) {
 	is.Transport.SetStore(store)
 	stores[store] = struct{}{}
 	return store, nil
+}
+
+func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
+
+	config, err := getConfig(c)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not get config")
+	}
+
+	options := storage.DefaultStoreOptions
+	options.GraphRoot = config.Root
+	options.RunRoot = config.RunRoot
+	options.GraphDriverName = config.Storage
+	options.GraphDriverOptions = config.StorageOptions
+
+	return libpod.NewRuntime(libpod.WithStorageConfig(options))
 }
 
 func shutdownStores() {

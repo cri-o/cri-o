@@ -1,4 +1,4 @@
-package image
+package images
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/common"
+	"github.com/kubernetes-incubator/cri-o/libpod/common"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )

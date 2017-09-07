@@ -10,7 +10,7 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
-	libkpodimage "github.com/kubernetes-incubator/cri-o/libkpod/image"
+	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -179,7 +179,7 @@ func outputStatsUsingFormatString(stats *libkpod.ContainerStats) {
 }
 
 func combineHumanValues(a, b uint64) string {
-	return fmt.Sprintf("%s / %s", libkpodimage.FormattedSize(float64(a)), libkpodimage.FormattedSize(float64(b)))
+	return fmt.Sprintf("%s / %s", images.FormattedSize(float64(a)), images.FormattedSize(float64(b)))
 }
 
 func floatToPercentString(f float64) string {
