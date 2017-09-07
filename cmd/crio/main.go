@@ -142,6 +142,12 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 			*signalled = true
 			gserver.GracefulStop()
 			hserver.Shutdown(context.Background())
+			// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
+			//sserver.StopStreamServer()
+			sserver.StopExitMonitor()
+			if err := sserver.Shutdown(); err != nil {
+				logrus.Warnf("error shutting down main service %v", err)
+			}
 			return
 		}
 	}()
@@ -426,22 +432,38 @@ func main() {
 		go s.Serve(grpcL)
 		go srv.Serve(httpL)
 
-		err = m.Serve()
-		if err != nil {
-			if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
-				err = nil
-			} else {
-				logrus.Fatal(err)
+		serverCloseCh := make(chan struct{})
+		go func() {
+			defer close(serverCloseCh)
+			if err := m.Serve(); err != nil {
+				if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
+					err = nil
+				} else {
+					logrus.Errorf("Failed to serve grpc grpc request: %v", err)
+				}
 			}
+		}()
+
+		// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
+		//streamServerCloseCh := service.StreamingServerCloseChan()
+		serverExitMonitorCh := service.ExitMonitorCloseChan()
+		select {
+		// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
+		//case <-streamServerCloseCh:
+		case <-serverExitMonitorCh:
+		case <-serverCloseCh:
 		}
 
-		if err2 := service.Shutdown(); err2 != nil {
-			logrus.Infof("error shutting down layer storage: %v", err2)
-		}
+		service.Shutdown()
 
-		if err != nil {
-			logrus.Fatal(err)
-		}
+		// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
+		//<-streamServerCloseCh
+		//logrus.Debug("closed stream server")
+		<-serverExitMonitorCh
+		logrus.Debug("closed exit monitor")
+		<-serverCloseCh
+		logrus.Debug("closed main server")
+
 		return nil
 	}
 

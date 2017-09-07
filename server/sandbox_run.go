@@ -35,6 +35,8 @@ const (
 	// TODO: Remove this const once this value is provided over CRI
 	// See https://github.com/kubernetes/kubernetes/issues/47938
 	PodInfraOOMAdj int = -998
+	// PodInfraCPUshares is default cpu shares for sandbox container.
+	PodInfraCPUshares = 2
 )
 
 // privilegedSandbox returns true if the sandbox configuration
@@ -388,6 +390,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// Set OOM score adjust of the infra container to be very low
 	// so it doesn't get killed.
 	g.SetProcessOOMScoreAdj(PodInfraOOMAdj)
+
+	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
 	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
 
