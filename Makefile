@@ -20,6 +20,7 @@ GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMI
 BUILD_INFO := $(shell date +%s)
 
 VERSION := ${shell cat ./VERSION}
+KPOD_VERSION := ${shell cat ./KPOD_VERSION}
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -32,7 +33,7 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 
-LDFLAGS := -ldflags '-X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO} -X main.version=${VERSION}'
+LDFLAGS := -ldflags '-X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO} -X main.version=${VERSION} -X main.kpodVersion=${KPOD_VERSION}'
 
 all: binaries crio.conf docs
 
