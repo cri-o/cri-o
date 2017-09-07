@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/opencontainers/runtime-tools/validate"
+	"github.com/syndtr/gocapability/capability"
 )
 
 const (
@@ -154,4 +156,27 @@ func newPodNetwork(namespace, name, id, netns string) ocicni.PodNetwork {
 		ID:        id,
 		NetNS:     netns,
 	}
+}
+
+// inStringSlice checks whether a string is inside a string slice.
+// Comparison is case insensitive.
+func inStringSlice(ss []string, str string) bool {
+	for _, s := range ss {
+		if strings.ToLower(s) == strings.ToLower(str) {
+			return true
+		}
+	}
+	return false
+}
+
+// getOCICapabilitiesList returns a list of all available capabilities.
+func getOCICapabilitiesList() []string {
+	var caps []string
+	for _, cap := range capability.List() {
+		if cap > validate.LastCap() {
+			continue
+		}
+		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
+	}
+	return caps
 }
