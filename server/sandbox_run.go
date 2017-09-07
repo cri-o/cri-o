@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -15,7 +16,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
-	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -333,14 +333,21 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cgroupParent := req.GetConfig().GetLinux().CgroupParent
 	if cgroupParent != "" {
 		if s.config.CgroupManager == oci.SystemdCgroupsManager {
-			cgPath, err := convertCgroupNameToSystemd(cgroupParent, false)
+			if len(cgroupParent) <= 6 || !strings.HasSuffix(path.Base(cgroupParent), ".slice") {
+				return nil, fmt.Errorf("cri-o configured with systemd cgroup manager, but did not receive slice as parent: %s", cgroupParent)
+			}
+			cgPath, err := convertCgroupFsNameToSystemd(cgroupParent)
 			if err != nil {
 				return nil, err
 			}
 			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
 			cgroupParent = cgPath
 		} else {
-			g.SetLinuxCgroupsPath(cgroupParent + "/" + id)
+			if strings.HasSuffix(path.Base(cgroupParent), ".slice") {
+				return nil, fmt.Errorf("cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s", cgroupParent)
+			}
+			cgPath := filepath.Join(cgroupParent, scopePrefix+"-"+id)
+			g.SetLinuxCgroupsPath(cgPath)
 		}
 	}
 
@@ -586,40 +593,14 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 	return shmPath, nil
 }
 
-// convertCgroupNameToSystemd converts the internal cgroup name to a systemd name.
-// For example, the name /Burstable/pod_123-456 becomes Burstable-pod_123_456.slice
-// If outputToCgroupFs is true, it expands the systemd name into the cgroupfs form.
-// For example, it will return /Burstable.slice/Burstable-pod_123_456.slice in above scenario.
-func convertCgroupNameToSystemd(name string, outputToCgroupFs bool) (systemdCgroup string, err error) {
-	result := ""
-	if name != "" && name != "/" {
-		// systemd treats - as a step in the hierarchy, we convert all - to _
-		name = strings.Replace(name, "-", "_", -1)
-		parts := strings.Split(name, "/")
-		for _, part := range parts {
-			// ignore leading stuff for now
-			if part == "" {
-				continue
-			}
-			if len(result) > 0 {
-				result = result + "-"
-			}
-			result = result + part
-		}
-	} else {
-		// root converts to -
-		result = "-"
-	}
-	// always have a .slice suffix
-	result = result + ".slice"
-
-	// if the caller desired the result in cgroupfs format...
-	if outputToCgroupFs {
-		var err error
-		result, err = systemd.ExpandSlice(result)
-		if err != nil {
-			return "", fmt.Errorf("error adapting cgroup name, input: %v, err: %v", name, err)
-		}
-	}
-	return result, nil
+// convertCgroupFsNameToSystemd converts an expanded cgroupfs name to its systemd name.
+// For example, it will convert test.slice/test-a.slice/test-a-b.slice to become test-a-b.slice
+// NOTE: this is public right now to allow its usage in dockermanager and dockershim, ideally both those
+// code areas could use something from libcontainer if we get this style function upstream.
+func convertCgroupFsNameToSystemd(cgroupfsName string) (string, error) {
+	// TODO: see if libcontainer systemd implementation could use something similar, and if so, move
+	// this function up to that library.  At that time, it would most likely do validation specific to systemd
+	// above and beyond the simple assumption here that the base of the path encodes the hierarchy
+	// per systemd convention.
+	return path.Base(cgroupfsName), nil
 }
