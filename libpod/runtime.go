@@ -227,11 +227,11 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 	return r.state.LookupContainer(idOrName)
 }
 
-// GetContainers retrieves all containers from the state
+// Containers retrieves all containers from the state
 // Filters can be provided which will determine what containers are included in
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
-func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error) {
+func (r *Runtime) Containers(filters ...ContainerFilter) ([]*Container, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -345,11 +345,11 @@ func (r *Runtime) LookupPod(idOrName string) (*Pod, error) {
 	return r.state.LookupPod(idOrName)
 }
 
-// GetPods retrieves all pods
+// Pods retrieves all pods
 // Filters can be provided which will determine which pods are included in the
 // output. Multiple filters are handled by ANDing their output, so only pods
 // matching all filters are returned
-func (r *Runtime) GetPods(filters ...PodFilter) ([]*Pod, error) {
+func (r *Runtime) Pods(filters ...PodFilter) ([]*Pod, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
