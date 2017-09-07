@@ -36,6 +36,7 @@ type ContainerServer struct {
 	ctrIDIndex           *truncindex.TruncIndex
 	podNameIndex         *registrar.Registrar
 	podIDIndex           *truncindex.TruncIndex
+	hooks                map[string]HookParams
 
 	imageContext *types.SystemContext
 	stateLock    sync.Locker
@@ -46,6 +47,11 @@ type ContainerServer struct {
 // Runtime returns the oci runtime for the ContainerServer
 func (c *ContainerServer) Runtime() *oci.Runtime {
 	return c.runtime
+}
+
+// Hooks returns the oci hooks for the ContainerServer
+func (c *ContainerServer) Hooks() map[string]HookParams {
+	return c.hooks
 }
 
 // Store returns the Store for the ContainerServer
@@ -131,6 +137,21 @@ func New(config *Config) (*ContainerServer, error) {
 		lock = new(sync.Mutex)
 	}
 
+	hooks := make(map[string]HookParams)
+	// If hooks directory is set in config use it
+	if config.HooksDirPath != "" {
+		if err := readHooks(config.HooksDirPath, hooks); err != nil {
+			return nil, err
+		}
+		// If user overrode default hooks, this means it is in a test, so don't
+		// use OverrideHooksDirPath
+		if config.HooksDirPath == DefaultHooksDirPath {
+			if err := readHooks(OverrideHooksDirPath, hooks); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return &ContainerServer{
 		runtime:              runtime,
 		store:                store,
@@ -141,6 +162,7 @@ func New(config *Config) (*ContainerServer, error) {
 		podNameIndex:         registrar.NewRegistrar(),
 		podIDIndex:           truncindex.NewTruncIndex([]string{}),
 		imageContext:         &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
+		hooks:                hooks,
 		stateLock:            lock,
 		state: &containerServerState{
 			containers:      oci.NewMemoryStore(),

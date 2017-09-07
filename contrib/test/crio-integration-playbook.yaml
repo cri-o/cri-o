@@ -46,6 +46,9 @@
       - libgpg-error-devel
       - pkgconfig
       - skopeo-containers
+      - oci-systemd-hook
+      - oci-register-machine
+      - oci-umount
     async: 600
     poll: 10
     when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS')
@@ -73,6 +76,9 @@
       - libgpg-error-devel
       - pkgconfig
       - skopeo-containers
+      - oci-systemd-hook
+      - oci-register-machine
+      - oci-umount
     async: 600
     poll: 10
     when: ansible_distribution == 'Fedora'

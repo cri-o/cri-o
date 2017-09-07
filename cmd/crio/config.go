@@ -102,6 +102,9 @@ apparmor_profile = "{{ .ApparmorProfile }}"
 # for the runtime.
 cgroup_manager = "{{ .CgroupManager }}"
 
+# hooks_dir_path is the oci hooks directory for automatically executed hooks
+hooks_dir_path = "{{ .HooksDirPath }}"
+
 # pids_limit is the number of processes allowed in a container
 pids_limit = {{ .PidsLimit }}
 
