@@ -103,7 +103,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 			}
 		case libkpod.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
-			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
+			src := filepath.Join(containerInfo.Dir, "mounts", volumeDirName)
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
 				return err1
 			}
@@ -975,7 +975,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if err = specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
 		return nil, err
 	}
-	if err = specgen.SaveToFile(filepath.Join(containerInfo.RunDir, "config.json"), saveOptions); err != nil {
+	if err = specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
 		return nil, err
 	}
 

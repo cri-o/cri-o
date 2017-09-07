@@ -2,6 +2,8 @@ package mount
 
 import (
 	"time"
+
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 // GetMounts retrieves a list of mounts for the current running process.
@@ -17,6 +19,10 @@ func Mounted(mountpoint string) (bool, error) {
 		return false, err
 	}
 
+	mountpoint, err = fileutils.ReadSymlinkedDirectory(mountpoint)
+	if err != nil {
+		return false, err
+	}
 	// Search the table for the mountpoint
 	for _, e := range entries {
 		if e.Mountpoint == mountpoint {

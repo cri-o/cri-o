@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -49,12 +50,12 @@ func main() {
 	}
 	app.After = func(*cli.Context) error {
 		// called by Run() when the command handler succeeds
-		shutdownStores()
+		libkpod.ShutdownStores(false)
 		return nil
 	}
 	cli.OsExiter = func(code int) {
 		// called by Run() when the command fails, bypassing After()
-		shutdownStores()
+		libkpod.ShutdownStores(false)
 		os.Exit(code)
 	}
 	app.Flags = []cli.Flag{

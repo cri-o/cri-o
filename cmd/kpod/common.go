@@ -14,10 +14,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-var (
-	stores = make(map[storage.Store]struct{})
-)
-
 func getStore(c *libkpod.Config) (storage.Store, error) {
 	options := storage.DefaultStoreOptions
 	options.GraphRoot = c.Root
@@ -30,7 +26,7 @@ func getStore(c *libkpod.Config) (storage.Store, error) {
 		return nil, err
 	}
 	is.Transport.SetStore(store)
-	stores[store] = struct{}{}
+	libkpod.AddStore(store)
 	return store, nil
 }
 

@@ -360,7 +360,16 @@ func main() {
 
 		return nil
 	}
-
+	app.After = func(*cli.Context) error {
+		// called by Run() when the command handler succeeds
+		libkpod.ShutdownStores(false)
+		return nil
+	}
+	cli.OsExiter = func(code int) {
+		// called by Run() when the command fails, bypassing After()
+		libkpod.ShutdownStores(false)
+		os.Exit(code)
+	}
 	app.Action = func(c *cli.Context) error {
 		if c.GlobalBool("profile") {
 			profilePort := c.GlobalInt("profile-port")

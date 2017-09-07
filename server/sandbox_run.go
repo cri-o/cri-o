@@ -199,7 +199,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		dnsServers := req.GetConfig().GetDnsConfig().Servers
 		dnsSearches := req.GetConfig().GetDnsConfig().Searches
 		dnsOptions := req.GetConfig().GetDnsConfig().Options
-		resolvPath = fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
+		resolvPath = fmt.Sprintf("%s/resolv.conf", podContainer.Dir)
 		err = parseDNSOptions(dnsServers, dnsSearches, dnsOptions, resolvPath)
 		if err != nil {
 			err1 := removeFile(resolvPath)
@@ -264,7 +264,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
 		shmPath = "/dev/shm"
 	} else {
-		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
+		shmPath, err = setupShm(podContainer.Dir, mountLabel)
 		if err != nil {
 			return nil, err
 		}
@@ -464,7 +464,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 	g.SetRootPath(mountPoint)
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.Trusted(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(id, containerName, podContainer.Dir, logPath, sb.NetNs(), labels, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.Trusted(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
@@ -511,7 +511,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
-	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
+	if err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions); err != nil {
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
 
@@ -580,8 +580,8 @@ func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mo
 	return label.InitLabels(label.DupSecOpt(processLabel))
 }
 
-func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
-	shmPath = filepath.Join(podSandboxRunDir, "shm")
+func setupShm(podSandboxDir, mountLabel string) (shmPath string, err error) {
+	shmPath = filepath.Join(podSandboxDir, "shm")
 	if err = os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
 	}
