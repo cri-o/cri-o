@@ -23,6 +23,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
+// This is populated by the Makefile from the VERSION file
+// in the repository
+var version = ""
+
+// gitCommit is the commit that the binary is being built from.
+// It will be populated by the Makefile.
+var gitCommit = ""
+
 func validateConfig(config *server.Config) error {
 	switch config.ImageVolumes {
 	case libkpod.ImageVolumesMkdir:
@@ -161,9 +169,17 @@ func main() {
 		return
 	}
 	app := cli.NewApp()
+
+	var v []string
+	if version != "" {
+		v = append(v, version)
+	}
+	if gitCommit != "" {
+		v = append(v, fmt.Sprintf("commit: %s", gitCommit))
+	}
 	app.Name = "crio"
 	app.Usage = "crio server"
-	app.Version = "1.0.0-beta.0"
+	app.Version = strings.Join(v, "\n")
 	app.Metadata = map[string]interface{}{
 		"config": server.DefaultConfig(),
 	}
