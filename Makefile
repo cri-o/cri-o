@@ -18,6 +18,8 @@ SELINUXOPT ?= $(shell  test -x /usr/sbin/selinuxenabled && selinuxenabled && ech
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 BUILD_INFO := $(shell date +%s)
 
+VERSION := ${shell cat ./VERSION}
+
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
 export GOPATH := $(CURDIR)/_output
@@ -29,7 +31,7 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 
-LDFLAGS := -ldflags '-X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}'
+LDFLAGS := -ldflags '-X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO} -X main.version=${VERSION}'
 
 all: binaries crio.conf docs
 
