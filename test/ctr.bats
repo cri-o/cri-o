@@ -719,7 +719,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# Wait for container to OOM
-	run sleep 10
+	run sleep 100
 	run crioctl ctr status --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]

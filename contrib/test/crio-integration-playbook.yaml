@@ -409,7 +409,7 @@
     poll: 10
   - name: run k8s tests
     shell: |
-            make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio.sock TEST_ARGS="--prepull-images=true" FOCUS="\[Conformance\]" 2>&1 > node-e2e.log
+            make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio.sock TEST_ARGS='--prepull-images=true --kubelet-flags="--cgroup-driver=systemd"' FOCUS="\[Conformance\]" 2>&1 > node-e2e.log
     args:
       chdir: /root/src/k8s.io/kubernetes
     async: 7200
