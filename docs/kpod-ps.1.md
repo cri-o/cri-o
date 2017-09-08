@@ -57,7 +57,6 @@ Valid placeholders for the Go template are listed below:
 | .Size           | Size of container                                |
 | .Names          | Name of container                                |
 | .Labels         | All the labels assigned to the container         |
-| .Label          | Value of the specific label provided by the user |
 | .Mounts         | Volumes mounted in the container                 |
 
 

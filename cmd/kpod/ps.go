@@ -85,6 +85,7 @@ var (
 		cli.IntFlag{
 			Name:  "last, n",
 			Usage: "Print the n last created containers (all states)",
+			Value: -1,
 		},
 		cli.BoolFlag{
 			Name:  "latest, l",
@@ -149,7 +150,7 @@ func psCmd(c *cli.Context) error {
 
 	// all, latest, and last are mutually exclusive. Only one flag can be used at a time
 	exclusiveOpts := 0
-	if opts.last > 0 {
+	if opts.last >= 0 {
 		exclusiveOpts++
 	}
 	if opts.latest {
@@ -225,7 +226,7 @@ func (p *psTemplateParams) headerMap() map[string]string {
 // getContainers gets the containers that match the flags given
 func getContainers(containers []*libkpod.ContainerData, opts psOptions) []*libkpod.ContainerData {
 	var containersOutput []*libkpod.ContainerData
-	if opts.last > 0 && opts.last < len(containers) {
+	if opts.last >= 0 && opts.last < len(containers) {
 		for i := 0; i < opts.last; i++ {
 			containersOutput = append(containersOutput, containers[i])
 		}
