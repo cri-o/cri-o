@@ -332,12 +332,6 @@
       replace: 'storage_driver = "overlay2"'
       name: /etc/crio/crio.conf
       backup: yes
-  - name: run with systemd cgroup manager
-    replace:
-      regexp: 'cgroup_manager = "cgroupfs"'
-      replace: 'cgroup_manager = "systemd"'
-      name: /etc/crio/crio.conf
-      backup: yes
   - name: add docker.io default registry
     lineinfile:
       dest: /etc/crio/crio.conf
