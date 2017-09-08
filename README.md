@@ -220,7 +220,12 @@ You can run a local version of kubernetes with cri-o using `local-up-cluster.sh`
 
 1. Clone the [kubernetes repository](https://github.com/kubernetes/kubernetes)
 1. Start the cri-o daemon (`crio`)
-1. From the kubernetes project directory, run: `CONTAINER_RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT='/var/run/crio.sock --runtime-request-timeout=15m' ./hack/local-up-cluster.sh`
+1. From the kubernetes project directory, run:
+```shell
+CONTAINER_RUNTIME=remote \
+CONTAINER_RUNTIME_ENDPOINT='/var/run/crio.sock  --runtime-request-timeout=15m' \
+./hack/local-up-cluster.sh
+```
 
 To run a full cluster, see [the instructions](kubernetes.md).
 
