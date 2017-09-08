@@ -138,12 +138,16 @@ docs/%.8: docs/%.8.md .gopathok
 
 docs: $(MANPAGES)
 
-install: .gopathok
+install: .gopathok install.bin install.man
+
+install.bin:
 	install ${SELINUXOPT} -D -m 755 crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 crioctl $(BINDIR)/crioctl
 	install ${SELINUXOPT} -D -m 755 kpod $(BINDIR)/kpod
 	install ${SELINUXOPT} -D -m 755 conmon/conmon $(LIBEXECDIR)/crio/conmon
 	install ${SELINUXOPT} -D -m 755 pause/pause $(LIBEXECDIR)/crio/pause
+
+install.man:
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man8
