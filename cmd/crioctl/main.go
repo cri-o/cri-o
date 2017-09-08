@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -12,6 +13,14 @@ import (
 	"google.golang.org/grpc"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
+
+// This is populated by the Makefile from the VERSION file
+// in the repository
+var version = ""
+
+// gitCommit is the commit that the binary is being built from.
+// It will be populated by the Makefile.
+var gitCommit = ""
 
 func getClientConnection(context *cli.Context) (*grpc.ClientConn, error) {
 	conn, err := grpc.Dial(context.GlobalString("connect"), grpc.WithInsecure(), grpc.WithTimeout(context.GlobalDuration("timeout")),
@@ -65,9 +74,17 @@ func loadContainerConfig(path string) (*pb.ContainerConfig, error) {
 
 func main() {
 	app := cli.NewApp()
+	var v []string
+	if version != "" {
+		v = append(v, version)
+	}
+	if gitCommit != "" {
+		v = append(v, fmt.Sprintf("commit: %s", gitCommit))
+	}
+
 	app.Name = "crioctl"
 	app.Usage = "client for crio"
-	app.Version = "1.0.0-beta.0"
+	app.Version = strings.Join(v, "\n")
 
 	app.Commands = []cli.Command{
 		podSandboxCommand,
