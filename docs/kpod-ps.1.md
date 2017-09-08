@@ -69,6 +69,9 @@ Valid placeholders for the Go template are listed below:
 **--latest, -l**
     show the latest container created (all states)
 
+**--namespace, --ns**
+    Display namespace information
+
 **--filter, -f**
     Filter output based on conditions given
 
@@ -106,6 +109,14 @@ CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS               
 sudo kpod ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
 02f65160e14ca  redis:alpine  tier=backend  proc,tmpfs,devpts,shm,mqueue,sysfs,cgroup,/var/run/,/var/run/
 69ed779d8ef9f  redis:alpine  batch=no,type=small  proc,tmpfs,devpts,shm,mqueue,sysfs,cgroup,/var/run/,/var/run/
+```
+
+```
+sudo kpod ps --ns -a
+CONTAINER ID    NAMES                                                                   PID     CGROUP       IPC          MNT          NET          PIDNS        USER         UTS
+3557d882a82e3   k8s_container2_podsandbox1_redhat.test.crio_redhat-test-crio_1          29910   4026531835   4026532585   4026532593   4026532508   4026532595   4026531837   4026532594
+09564cdae0bec   k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1          29851   4026531835   4026532585   4026532590   4026532508   4026532592   4026531837   4026532591
+a31ebbee9cee7   k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0   29717   4026531835   4026532585   4026532587   4026532508   4026532589   4026531837   4026532588
 ```
 
 ## ps

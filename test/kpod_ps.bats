@@ -179,6 +179,30 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     [ "$status" -eq 0 ]
 }
 
+@test "kpod ps namespace flag" {
+    start_crio
+    [ "$status" -eq 0 ]
+    run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+    echo "$output"
+    [ "$status" -eq 0 ]
+    pod_id="$output"
+    run crioctl image pull "$IMAGE"
+    [ "$status" -eq 0 ]
+    run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --ns
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps --all --namespace
+    echo "$output"
+    [ "$status" -eq 0 ]
+    cleanup_ctrs
+    cleanup_pods
+    stop_crio
+    [ "$status" -eq 0 ]
+}
+
 @test "kpod ps format flag = json" {
     start_crio
     [ "$status" -eq 0 ]
@@ -191,7 +215,7 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --format json | python -m json.tool"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --ns --format json | python -m json.tool"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs

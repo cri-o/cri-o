@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -21,15 +23,16 @@ import (
 )
 
 type psOptions struct {
-	all     bool
-	filter  string
-	format  string
-	last    int
-	latest  bool
-	noTrunc bool
-	quiet   bool
-	size    bool
-	label   string
+	all       bool
+	filter    string
+	format    string
+	last      int
+	latest    bool
+	noTrunc   bool
+	quiet     bool
+	size      bool
+	label     string
+	namespace bool
 }
 
 type psTemplateParams struct {
@@ -44,6 +47,14 @@ type psTemplateParams struct {
 	Names      string
 	Labels     string
 	Mounts     string
+	PID        int
+	Cgroup     string
+	IPC        string
+	MNT        string
+	NET        string
+	PIDNS      string
+	User       string
+	UTS        string
 }
 
 // psJSONParams is only used when the JSON format is specified,
@@ -64,6 +75,18 @@ type psJSONParams struct {
 	Labels           fields.Set          `json:"labels"`
 	Mounts           []specs.Mount       `json:"mounts"`
 	ContainerRunning bool                `json:"ctrRunning"`
+	Namespaces       namespace           `json:"namespace,omitempty"`
+}
+
+type namespace struct {
+	PID    string `json:"ctrPID,omitempty"`
+	Cgroup string `json:"cgroup,omitempty"`
+	IPC    string `json:"ipc,omitempty"`
+	MNT    string `json:"mnt,omitempty"`
+	NET    string `json:"net,omitempty"`
+	PIDNS  string `json:"pid,omitempty"`
+	User   string `json:"user,omitempty"`
+	UTS    string `json:"uts,omitempty"`
 }
 
 const runningState = "running"
@@ -103,6 +126,10 @@ var (
 			Name:  "size, s",
 			Usage: "Display the total file sizes",
 		},
+		cli.BoolFlag{
+			Name:  "namespace, ns",
+			Usage: "Display namespace information",
+		},
 	}
 	psDescription = "Prints out information about the containers"
 	psCommand     = cli.Command{
@@ -132,20 +159,21 @@ func psCmd(c *cli.Context) error {
 		return errors.Errorf("too many arguments, ps takes no arguments")
 	}
 
-	format := genPsFormat(c.Bool("quiet"), c.Bool("size"))
+	format := genPsFormat(c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"))
 	if c.IsSet("format") {
 		format = c.String("format")
 	}
 
 	opts := psOptions{
-		all:     c.Bool("all"),
-		filter:  c.String("filter"),
-		format:  format,
-		last:    c.Int("last"),
-		latest:  c.Bool("latest"),
-		noTrunc: c.Bool("no-trunc"),
-		quiet:   c.Bool("quiet"),
-		size:    c.Bool("size"),
+		all:       c.Bool("all"),
+		filter:    c.String("filter"),
+		format:    format,
+		last:      c.Int("last"),
+		latest:    c.Bool("latest"),
+		noTrunc:   c.Bool("no-trunc"),
+		quiet:     c.Bool("quiet"),
+		size:      c.Bool("size"),
+		namespace: c.Bool("namespace"),
 	}
 
 	// all, latest, and last are mutually exclusive. Only one flag can be used at a time
@@ -183,9 +211,13 @@ func psCmd(c *cli.Context) error {
 }
 
 // generate the template based on conditions given
-func genPsFormat(quiet, size bool) (format string) {
+func genPsFormat(quiet, size, namespace bool) (format string) {
 	if quiet {
 		return formats.IDString
+	}
+	if namespace {
+		format = "table {{.ID}}\t{{.Names}}\t{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}\t"
+		return
 	}
 	format = "table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.CreatedAt}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}\t"
 	if size {
@@ -253,12 +285,14 @@ func getTemplateOutput(containers []*libkpod.ContainerData, opts psOptions) (psO
 		ctrID := ctr.ID
 		runningFor := units.HumanDuration(time.Since(ctr.State.Created))
 		createdAt := runningFor + " ago"
-		command := getCommand(ctr.ImageCreatedBy)
+		command := getStrFromSquareBrackets(ctr.ImageCreatedBy)
 		imageName := ctr.FromImage
 		mounts := getMounts(ctr.Mounts, opts.noTrunc)
 		ports := getPorts(ctr.Config.ExposedPorts)
 		size := units.HumanSize(float64(ctr.SizeRootFs))
 		labels := getLabels(ctr.Labels)
+
+		ns := getNamespaces(ctr.State.Pid)
 
 		switch ctr.State.Status {
 		case "stopped":
@@ -286,20 +320,63 @@ func getTemplateOutput(containers []*libkpod.ContainerData, opts psOptions) (psO
 			Names:      ctr.Name,
 			Labels:     labels,
 			Mounts:     mounts,
+			PID:        ctr.State.Pid,
+			Cgroup:     ns.Cgroup,
+			IPC:        ns.IPC,
+			MNT:        ns.MNT,
+			NET:        ns.NET,
+			PIDNS:      ns.PID,
+			User:       ns.User,
+			UTS:        ns.UTS,
 		}
 		psOutput = append(psOutput, params)
 	}
 	return
 }
 
+func getNamespaces(pid int) namespace {
+	ctrPID := strconv.Itoa(pid)
+	cgroup, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "cgroup"))
+	ipc, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "ipc"))
+	mnt, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "mnt"))
+	net, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "net"))
+	pidns, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "pid"))
+	user, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "user"))
+	uts, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "uts"))
+
+	return namespace{
+		PID:    ctrPID,
+		Cgroup: cgroup,
+		IPC:    ipc,
+		MNT:    mnt,
+		NET:    net,
+		PIDNS:  pidns,
+		User:   user,
+		UTS:    uts,
+	}
+}
+
+func getNamespaceInfo(path string) (string, error) {
+	val, err := os.Readlink(path)
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting info from %q", path)
+	}
+	return getStrFromSquareBrackets(val), nil
+}
+
 // getJSONOutput returns the container info in its raw form
-func getJSONOutput(containers []*libkpod.ContainerData) (psOutput []psJSONParams) {
+func getJSONOutput(containers []*libkpod.ContainerData, nSpace bool) (psOutput []psJSONParams) {
+	var ns namespace
 	for _, ctr := range containers {
+		if nSpace {
+			ns = getNamespaces(ctr.State.Pid)
+		}
+
 		params := psJSONParams{
 			ID:               ctr.ID,
 			Image:            ctr.FromImage,
 			ImageID:          ctr.FromImageID,
-			Command:          getCommand(ctr.ImageCreatedBy),
+			Command:          getStrFromSquareBrackets(ctr.ImageCreatedBy),
 			CreatedAt:        ctr.State.Created,
 			RunningFor:       time.Since(ctr.State.Created),
 			Status:           ctr.State.Status,
@@ -309,6 +386,7 @@ func getJSONOutput(containers []*libkpod.ContainerData) (psOutput []psJSONParams
 			Labels:           ctr.Labels,
 			Mounts:           ctr.Mounts,
 			ContainerRunning: ctr.State.Status == runningState,
+			Namespaces:       ns,
 		}
 		psOutput = append(psOutput, params)
 	}
@@ -325,7 +403,7 @@ func generatePsOutput(containers []*libkpod.ContainerData, server *libkpod.Conta
 
 	switch opts.format {
 	case formats.JSONString:
-		psOutput := getJSONOutput(containersOutput)
+		psOutput := getJSONOutput(containersOutput, opts.namespace)
 		out = formats.JSONStructArray{Output: psToGeneric([]psTemplateParams{}, psOutput)}
 	default:
 		psOutput := getTemplateOutput(containersOutput, opts)
@@ -335,8 +413,8 @@ func generatePsOutput(containers []*libkpod.ContainerData, server *libkpod.Conta
 	return formats.Writer(out).Out()
 }
 
-// getCommand gets the actual command from the whole command
-func getCommand(cmd string) string {
+// getStrFromSquareBrackets gets the string inside [] from a string
+func getStrFromSquareBrackets(cmd string) string {
 	reg, err := regexp.Compile(".*\\[|\\].*")
 	if err != nil {
 		return ""
