@@ -28,6 +28,8 @@ func tagCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
+	defer runtime.Shutdown(false)
+
 	img, err := runtime.GetImage(args[0])
 	if err != nil {
 		return err
@@ -50,7 +52,7 @@ func addImageNames(runtime *libpod.Runtime, image *storage.Image, addNames []str
 	}
 	for _, name := range names {
 		if err := runtime.TagImage(image, name); err != nil {
-			return errors.Wrapf(err, "error adding names (%v) to image %q", name, image.ID)
+			return errors.Wrapf(err, "error adding name (%v) to image %q", name, image.ID)
 		}
 	}
 	return nil
