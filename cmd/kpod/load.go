@@ -2,21 +2,13 @@ package main
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 
-	"io/ioutil"
-
-	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
-
-type loadOptions struct {
-	input string
-	quiet bool
-	image string
-}
 
 var (
 	loadFlags = []cli.Flag{
@@ -44,14 +36,6 @@ var (
 // loadCmd gets the image/file to be loaded from the command line
 // and calls loadImage to load the image to containers-storage
 func loadCmd(c *cli.Context) error {
-	config, err := getConfig(c)
-	if err != nil {
-		return errors.Wrapf(err, "could not get config")
-	}
-	store, err := getStore(config)
-	if err != nil {
-		return err
-	}
 
 	args := c.Args()
 	var image string
@@ -60,6 +44,11 @@ func loadCmd(c *cli.Context) error {
 	}
 	if len(args) > 1 {
 		return errors.New("too many arguments. Requires exactly 1")
+	}
+
+	runtime, err := getRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
 	}
 
 	input := c.String("input")
@@ -93,33 +82,21 @@ func loadCmd(c *cli.Context) error {
 		}
 	}
 
-	opts := loadOptions{
-		input: input,
-		quiet: c.Bool("quiet"),
-		image: image,
+	var output io.Writer
+	if !c.Bool("quiet") {
+		output = os.Stdout
 	}
-
-	return loadImage(store, opts)
-}
-
-// loadImage loads the image from docker-archive or oci to containers-storage
-// using the pullImage function
-func loadImage(store storage.Store, opts loadOptions) error {
-	loadOpts := images.CopyOptions{
-		Quiet: opts.quiet,
-		Store: store,
-	}
-
-	src := images.DockerArchive + ":" + opts.input
-	if err := images.PullImage(src, false, loadOpts); err != nil {
-		src = images.OCIArchive + ":" + opts.input
+	src := images.DockerArchive + ":" + input
+	if err := runtime.PullImage(src, false, output); err != nil {
+		src = images.OCIArchive + ":" + input
 		// generate full src name with specified image:tag
-		if opts.image != "" {
-			src = src + ":" + opts.image
+		if image != "" {
+			src = src + ":" + image
 		}
-		if err := images.PullImage(src, false, loadOpts); err != nil {
-			return errors.Wrapf(err, "error pulling from %q", opts.input)
+		if err := runtime.PullImage(src, false, output); err != nil {
+			return errors.Wrapf(err, "error pulling %q", src)
 		}
 	}
+
 	return nil
 }
