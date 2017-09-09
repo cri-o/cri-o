@@ -11,8 +11,8 @@ kpod-load - Load an image from docker archive
 [**--help**|**-h**]
 
 ## DESCRIPTION
-**kpod load** copies an image from **docker-archive** stored on the local machine.
-**kpod load** reads from stdin by default or a file if the **input** flag is set.
+**kpod load** copies an image from either **docker-archive** or **oci-archive** stored
+on the local machine. **kpod load** reads from stdin by default or a file if the **input** flag is set.
 The **quiet** flag suppresses the output when set.
 
 **kpod [GLOBAL OPTIONS]**

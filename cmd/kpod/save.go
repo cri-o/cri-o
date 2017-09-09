@@ -10,13 +10,10 @@ import (
 	"github.com/urfave/cli"
 )
 
-const (
-	dockerArchive = "docker-archive:"
-)
-
 type saveOptions struct {
 	output string
 	quiet  bool
+	format string
 	images []string
 }
 
@@ -31,9 +28,16 @@ var (
 			Name:  "quiet, q",
 			Usage: "Suppress the output",
 		},
+		cli.StringFlag{
+			Name:  "format",
+			Usage: "Save image to oci-archive",
+		},
 	}
-	saveDescription = "Save an image to docker-archive on the local machine"
-	saveCommand     = cli.Command{
+	saveDescription = `
+	Save an image to docker-archive or oci-archive on the local machine.
+	Default is docker-archive`
+
+	saveCommand = cli.Command{
 		Name:        "save",
 		Usage:       "Save image to an archive",
 		Description: saveDescription,
@@ -60,7 +64,6 @@ func saveCmd(c *cli.Context) error {
 	}
 
 	output := c.String("output")
-	quiet := c.Bool("quiet")
 
 	if output == "/dev/stdout" {
 		fi := os.Stdout
@@ -71,7 +74,8 @@ func saveCmd(c *cli.Context) error {
 
 	opts := saveOptions{
 		output: output,
-		quiet:  quiet,
+		quiet:  c.Bool("quiet"),
+		format: c.String("format"),
 		images: args,
 	}
 
@@ -81,9 +85,19 @@ func saveCmd(c *cli.Context) error {
 // saveImage pushes the image to docker-archive or oci by
 // calling pushImage
 func saveImage(store storage.Store, opts saveOptions) error {
-	dst := dockerArchive + opts.output
+	var dst string
+	switch opts.format {
+	case images.OCIArchive:
+		dst = images.OCIArchive + ":" + opts.output
+	case images.DockerArchive:
+		fallthrough
+	case "":
+		dst = images.DockerArchive + ":" + opts.output
+	default:
+		return errors.Errorf("unknown format option %q", opts.format)
+	}
 
-	pushOpts := images.CopyOptions{
+	saveOpts := images.CopyOptions{
 		SignaturePolicyPath: "",
 		Store:               store,
 	}
@@ -92,7 +106,7 @@ func saveImage(store storage.Store, opts saveOptions) error {
 	// future pull requests will fix this
 	for _, image := range opts.images {
 		dest := dst + ":" + image
-		if err := images.PushImage(image, dest, pushOpts); err != nil {
+		if err := images.PushImage(image, dest, saveOpts); err != nil {
 			return errors.Wrapf(err, "unable to save %q", image)
 		}
 	}

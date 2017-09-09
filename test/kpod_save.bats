@@ -23,6 +23,18 @@ function teardown() {
 	[ "$status" -eq 0 ]
 }
 
+@test "kpod save oci flag" {
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alpine.tar --format oci-archive $IMAGE
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
+	[ "$status" -eq 0 ]
+	rm -f alpine.tar
+	[ "$status" -eq 0 ]
+}
+
 @test "kpod save using stdout" {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
 	[ "$status" -eq 0 ]
