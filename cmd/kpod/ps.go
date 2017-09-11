@@ -398,7 +398,9 @@ func getJSONOutput(containers []*libkpod.ContainerData, nSpace bool) (psOutput [
 
 func generatePsOutput(containers []*libkpod.ContainerData, server *libkpod.ContainerServer, opts psOptions) error {
 	containersOutput := getContainers(containers, opts)
-	if len(containersOutput) == 0 {
+	// In the case of JSON, we want to continue so we at least pass
+	// {} --valid JSON-- to the consumer
+	if len(containersOutput) == 0 && opts.format != formats.JSONString {
 		return nil
 	}
 
