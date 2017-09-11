@@ -48,4 +48,10 @@ jobs:
       go: 1.8.x
 
 notifications:
-  irc: "chat.freenode.net#cri-o"
+    irc:
+        channels:
+            -  "chat.freenode.net#cri-o"
+        template:
+            - "%{author}, %{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}"
+            - "%{author}, ^^^^^ changes: %{compare_url}"
+            - "%{author}, ^^^^^ details : %{build_url}"
