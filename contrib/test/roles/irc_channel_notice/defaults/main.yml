@@ -1,0 +1,29 @@
+---
+
+irc_server: "chat.freenode.net"
+irc_port: 6665
+irc_channel: "cri-o"
+
+# Nick to join / send message
+irc_from: "kry-oh"
+
+# To whom should the message be addressed.
+irc_to:
+
+# If non-empty, use irc_nick_xlation file to set irc_to
+commit_author:
+
+# Author to nick translation file (in files subdir).  CSV commit_author,irc_nick mapping
+irc_nick_xlation: "author_to_nick.csv"
+
+# jinja2 template filename (in templates subdir) to use for producing the message
+irc_msg_template: "crio-integration-playbook.j2"
+
+# Assertion-strings that must pass for above template
+irc_msg_tmpl_asserts:
+    - 'verb | default()'
+    - 'irc_to | default()'
+    - 'commit | default() | trim | search("[0-9A-Fa-f]+")'
+    - 'pullrequest | default(0) | string | search("\d+")'
+    - 'irc_from | default()'  # nick of sender
+    - 'commit_author | default() or irc_to | default()'  # PR author / nick of recipient

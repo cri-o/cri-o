@@ -1,0 +1,7 @@
+{{ irc_to | trim }}, crio-integration-playbook {{ verb }} on {{
+    ansible_distribution ~ "-" ~ ansible_distribution_version }} for: {%
+    if pullrequest|default()
+         %}https://github.com/kubernetes-incubator/cri-o/pull/{{ pullrequest | trim }}{%
+    else
+         %}https://github.com/kubernetes-incubator/cri-o/commit/{{ commit | trim }}{%
+    endif %}

@@ -1,0 +1,45 @@
+---
+
+- block:  # delegate_to: localhost b/c 'is_file()', 'csvfile' and 'template' lookups
+
+  - name: All role assertions pass
+    assert:
+      that:  # All are defined and non-empty
+        - 'irc_server | default()'
+        - 'irc_channel | default()'
+        - 'irc_from | default()'
+        - 'irc_to | default() or commit_author | default()'
+        - 'irc_msg_template | default()'
+        - 'irc_nick_xlation | default()'
+
+  - name: Relative paths are made absolute
+    set_fact:
+      _irc_msg_template: '{{ role_path ~ "/templates/" ~ irc_msg_template }}'
+      _irc_nick_xlation: '{{ role_path ~ "/files/" ~ irc_nick_xlation }}'
+
+  - name: Message recipient name is translated
+    set_fact:
+      irc_to: >
+        {{ lookup("csvfile",
+                  commit_author ~
+                  " file=" ~ _irc_nick_xlation ~
+                  " col=1 delimiter=: default=" ~ irc_to) }}
+    when: commit_author | default() and _irc_nick_xlation | is_file
+
+  - name: All template assertions pass
+    assert:
+      that: '{{ irc_msg_tmpl_asserts }}'
+
+  - debug:
+      msg: 'Sending - {{ irc_server | trim }}#{{ irc_channel | trim }}: {{ irc_to |trim }}, {{ lookup("template", _irc_msg_template) | trim }}'
+
+  - name: Irc notification is sent
+    irc:
+      server: '{{ irc_server | trim }}'
+      port: '{{ irc_port | default(omit) }}'
+      channel: '{{ irc_channel | trim }}'
+      nick_to: '{{ irc_to | trim }}'
+      nick: '{{ irc_from | trim }}'
+      msg: '{{ lookup("template", _irc_msg_template) | trim }}'
+
+  delegate_to: localhost
