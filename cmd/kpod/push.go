@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/kubernetes-incubator/cri-o/libpod"
 	"github.com/kubernetes-incubator/cri-o/libpod/common"
-	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
@@ -70,7 +71,6 @@ func pushCmd(c *cli.Context) error {
 	srcName := c.Args().Get(0)
 	destName := c.Args().Get(1)
 
-	signaturePolicy := c.String("signature-policy")
 	registryCredsString := c.String("creds")
 	certPath := c.String("cert-dir")
 	skipVerify := !c.BoolT("tls-verify")
@@ -94,19 +94,19 @@ func pushCmd(c *cli.Context) error {
 		registryCreds = creds
 	}
 
-	config, err := getConfig(c)
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "Could not get config")
-	}
-	store, err := getStore(config)
-	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not create runtime")
 	}
 
-	options := images.CopyOptions{
+	var writer io.Writer
+	if !c.Bool("quiet") {
+		writer = os.Stdout
+	}
+
+	options := libpod.CopyOptions{
 		Compression:         archive.Uncompressed,
-		SignaturePolicyPath: signaturePolicy,
-		Store:               store,
+		SignaturePolicyPath: c.String("signature-policy"),
 		DockerRegistryOptions: common.DockerRegistryOptions{
 			DockerRegistryCreds:         registryCreds,
 			DockerCertPath:              certPath,
@@ -117,8 +117,6 @@ func pushCmd(c *cli.Context) error {
 			SignBy:           signBy,
 		},
 	}
-	if !c.Bool("quiet") {
-		options.ReportWriter = os.Stderr
-	}
-	return images.PushImage(srcName, destName, options)
+
+	return runtime.PushImage(srcName, destName, options, writer)
 }

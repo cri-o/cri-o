@@ -1,21 +1,15 @@
 package main
 
 import (
+	"io"
 	"os"
 
-	"github.com/containers/storage"
+	"github.com/kubernetes-incubator/cri-o/libpod"
 	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
-
-type saveOptions struct {
-	output string
-	quiet  bool
-	format string
-	images []string
-}
 
 var (
 	saveFlags = []cli.Flag{
@@ -54,17 +48,16 @@ func saveCmd(c *cli.Context) error {
 		return errors.Errorf("need at least 1 argument")
 	}
 
-	config, err := getConfig(c)
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "could not get config")
+		return errors.Wrapf(err, "could not create runtime")
 	}
-	store, err := getStore(config)
-	if err != nil {
-		return err
+	var writer io.Writer
+	if !c.Bool("quiet") {
+		writer = os.Stdout
 	}
 
 	output := c.String("output")
-
 	if output == "/dev/stdout" {
 		fi := os.Stdout
 		if logrus.IsTerminal(fi) {
@@ -72,41 +65,27 @@ func saveCmd(c *cli.Context) error {
 		}
 	}
 
-	opts := saveOptions{
-		output: output,
-		quiet:  c.Bool("quiet"),
-		format: c.String("format"),
-		images: args,
-	}
-
-	return saveImage(store, opts)
-}
-
-// saveImage pushes the image to docker-archive or oci by
-// calling pushImage
-func saveImage(store storage.Store, opts saveOptions) error {
 	var dst string
-	switch opts.format {
+	switch c.String("format") {
 	case images.OCIArchive:
-		dst = images.OCIArchive + ":" + opts.output
+		dst = images.OCIArchive + ":" + output
 	case images.DockerArchive:
 		fallthrough
 	case "":
-		dst = images.DockerArchive + ":" + opts.output
+		dst = images.DockerArchive + ":" + output
 	default:
-		return errors.Errorf("unknown format option %q", opts.format)
+		return errors.Errorf("unknown format option %q", c.String("format"))
 	}
 
-	saveOpts := images.CopyOptions{
+	saveOpts := libpod.CopyOptions{
 		SignaturePolicyPath: "",
-		Store:               store,
 	}
 
 	// only one image is supported for now
 	// future pull requests will fix this
-	for _, image := range opts.images {
+	for _, image := range args {
 		dest := dst + ":" + image
-		if err := images.PushImage(image, dest, saveOpts); err != nil {
+		if err := runtime.PushImage(image, dest, saveOpts, writer); err != nil {
 			return errors.Wrapf(err, "unable to save %q", image)
 		}
 	}
