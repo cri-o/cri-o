@@ -300,7 +300,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "image-volumes",
 			Value: string(libkpod.ImageVolumesMkdir),
-			Usage: "image volume handling ('mkdir' or 'ignore')",
+			Usage: "image volume handling ('mkdir', 'bind', or 'ignore')",
 		},
 		cli.StringFlag{
 			Name:   "hooks-dir-path",
