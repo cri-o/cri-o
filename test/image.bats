@@ -3,6 +3,8 @@
 load helpers
 
 IMAGE=kubernetes/pause
+SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
+UNSIGNED_IMAGE=docker.io/library/hello-world:latest
 
 function teardown() {
 	cleanup_test
@@ -80,6 +82,24 @@ function teardown() {
 	run crioctl image pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	cleanup_images
+	stop_crio
+}
+
+@test "image pull with signature" {
+	start_crio "" "" --no-pause-image
+	run crioctl image pull "$SIGNED_IMAGE"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_images
+	stop_crio
+}
+
+@test "image pull without signature" {
+	start_crio "" "" --no-pause-image
+	run crioctl image pull "$UNSIGNED_IMAGE"
+	echo "$output"
+	[ "$status" -ne 0 ]
 	cleanup_images
 	stop_crio
 }
