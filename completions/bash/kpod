@@ -361,6 +361,7 @@ _kpod_ps() {
      --no-trunc
      --quiet -q
      --size -s
+     --namespace --ns
      "
      _complete_ "$options_with_args" "$boolean_options"
 }
