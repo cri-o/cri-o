@@ -50,6 +50,7 @@ There are other equivalents for these tools
 | `docker pull`   | [`kpod pull`](./docs/kpod-pull.1.md)      |
 | `docker push`   | [`kpod push`](./docs/kpod-push.1.md)      |
 | `docker rename` | [`kpod rename`](./docs/kpod-rename.1.md)  |
+| `docker rm`     | [`kpod rm`](./docs/kpod-rm.1.md)          |
 | `docker rmi`    | [`kpod rmi`](./docs/kpod-rmi.1.md)        |
 | `docker save`   | [`kpod save`](./docs/kpod-save.1.md)      |
 | `docker tag`    | [`kpod tag`](./docs/kpod-tag.1.md)        |
