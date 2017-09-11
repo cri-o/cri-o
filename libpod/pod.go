@@ -1,10 +1,10 @@
 package libpod
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/pkg/errors"
 )
 
 // Pod represents a group of containers that may share namespaces
@@ -47,11 +47,11 @@ func (p *Pod) addContainer(ctr *Container) error {
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return fmt.Errorf("pod has already been removed")
+		return ErrPodRemoved
 	}
 
 	if _, ok := p.containers[ctr.id]; ok {
-		return fmt.Errorf("container with id %s already exists in pod %s", ctr.id, p.id)
+		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in pod %s", ctr.id, p.id)
 	}
 
 	p.containers[ctr.id] = ctr
@@ -66,11 +66,11 @@ func (p *Pod) removeContainer(ctr *Container) error {
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return fmt.Errorf("pod has already been removed")
+		return ErrPodRemoved
 	}
 
 	if _, ok := p.containers[ctr.id]; !ok {
-		return fmt.Errorf("container with id %s does not exist in pod %s", ctr.id, p.id)
+		return errors.Wrapf(ErrNoSuchCtr, "no container with id %s in pod %s", ctr.id, p.id)
 	}
 
 	delete(p.containers, ctr.id)
@@ -80,17 +80,17 @@ func (p *Pod) removeContainer(ctr *Container) error {
 
 // Start starts all containers within a pod that are not already running
 func (p *Pod) Start() error {
-	return errNotImplemented
+	return ErrNotImplemented
 }
 
 // Stop stops all containers within a pod that are not already stopped
 func (p *Pod) Stop() error {
-	return errNotImplemented
+	return ErrNotImplemented
 }
 
 // Kill sends a signal to all running containers within a pod
 func (p *Pod) Kill(signal uint) error {
-	return errNotImplemented
+	return ErrNotImplemented
 }
 
 // GetContainers retrieves the containers in the pod
@@ -99,7 +99,7 @@ func (p *Pod) GetContainers() ([]*Container, error) {
 	defer p.lock.RUnlock()
 
 	if !p.valid {
-		return nil, fmt.Errorf("pod has already been removed")
+		return nil, ErrPodRemoved
 	}
 
 	ctrs := make([]*Container, 0, len(p.containers))
@@ -113,5 +113,5 @@ func (p *Pod) GetContainers() ([]*Container, error) {
 // Status gets the status of all containers in the pod
 // TODO This should return a summary of the states of all containers in the pod
 func (p *Pod) Status() error {
-	return errNotImplemented
+	return ErrNotImplemented
 }

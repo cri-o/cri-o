@@ -9,9 +9,7 @@ import (
 )
 
 var (
-	errRuntimeFinalized = fmt.Errorf("runtime has already been finalized")
-	errCtrFinalized     = fmt.Errorf("container has already been finalized")
-	ctrNotImplemented   = func(c *Container) error {
+	ctrNotImplemented = func(c *Container) error {
 		return fmt.Errorf("NOT IMPLEMENTED")
 	}
 )
@@ -39,7 +37,7 @@ const (
 func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.StorageConfig.RunRoot = config.RunRoot
@@ -65,7 +63,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 func WithImageConfig(defaultTransport string, insecureRegistries, registries []string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.ImageDefaultTransport = defaultTransport
@@ -87,7 +85,7 @@ func WithImageConfig(defaultTransport string, insecureRegistries, registries []s
 func WithSignaturePolicy(path string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.SignaturePolicyPath = path
@@ -100,7 +98,7 @@ func WithSignaturePolicy(path string) RuntimeOption {
 func WithOCIRuntime(runtimePath string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.RuntimePath = runtimePath
@@ -114,7 +112,7 @@ func WithOCIRuntime(runtimePath string) RuntimeOption {
 func WithConmonPath(path string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.ConmonPath = path
@@ -127,7 +125,7 @@ func WithConmonPath(path string) RuntimeOption {
 func WithConmonEnv(environment []string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.ConmonEnvVars = make([]string, len(environment))
@@ -142,7 +140,7 @@ func WithConmonEnv(environment []string) RuntimeOption {
 func WithCgroupManager(manager string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.CgroupManager = manager
@@ -155,7 +153,7 @@ func WithCgroupManager(manager string) RuntimeOption {
 func WithSELinux() RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.SelinuxEnabled = true
@@ -169,7 +167,7 @@ func WithSELinux() RuntimeOption {
 func WithPidsLimit(limit int64) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.PidsLimit = limit
@@ -206,7 +204,7 @@ func WithSharedNamespaces(from *Container, namespaces map[string]string) CtrCrea
 func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if !ctr.valid {
-			return errCtrFinalized
+			return ErrCtrFinalized
 		}
 
 		if ctr.pod != nil {
@@ -217,7 +215,7 @@ func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 		if err != nil {
 			return errors.Wrapf(err, "error searching state for pod %s", pod.ID())
 		} else if !exists {
-			return fmt.Errorf("pod with id %s not found in state")
+			return errors.Wrapf(ErrNoSuchPod, "pod %s cannot be found in state", pod.ID())
 		}
 
 		if err := pod.addContainer(ctr); err != nil {
@@ -244,7 +242,7 @@ func WithAnnotations(annotations map[string]string) CtrCreateOption {
 func WithName(name string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if !ctr.valid {
-			return errCtrFinalized
+			return ErrCtrFinalized
 		}
 
 		ctr.name = name
@@ -264,7 +262,7 @@ func WithStopSignal(signal uint) CtrCreateOption {
 func WithPodName(name string) PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
-			return fmt.Errorf("pod already finalized")
+			return ErrPodFinalized
 		}
 
 		pod.name = name

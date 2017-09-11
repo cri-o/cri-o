@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/containers/image/types"
@@ -124,7 +123,7 @@ func (r *Runtime) Shutdown(force bool) error {
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return fmt.Errorf("runtime has already been shut down")
+		return ErrRuntimeStopped
 	}
 
 	r.valid = false
@@ -150,7 +149,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return nil, fmt.Errorf("runtime has already been shut down")
+		return nil, ErrRuntimeStopped
 	}
 
 	ctr, err := newContainer(spec)
@@ -187,7 +186,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 // If force is specified, the container will be stopped first
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *Runtime) RemoveContainer(c *Container, force bool) error {
-	return errNotImplemented
+	return ErrNotImplemented
 }
 
 // GetContainer retrieves a container by its ID
@@ -196,7 +195,7 @@ func (r *Runtime) GetContainer(id string) (*Container, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, fmt.Errorf("runtime has already been shut down")
+		return nil, ErrRuntimeStopped
 	}
 
 	return r.state.GetContainer(id)
@@ -208,7 +207,7 @@ func (r *Runtime) HasContainer(id string) (bool, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return false, fmt.Errorf("runtime has already been shut down")
+		return false, ErrRuntimeStopped
 	}
 
 	return r.state.HasContainer(id)
@@ -221,7 +220,7 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, fmt.Errorf("runtime has already been shut down")
+		return nil, ErrRuntimeStopped
 	}
 
 	return r.state.LookupContainer(idOrName)
@@ -236,7 +235,7 @@ func (r *Runtime) Containers(filters ...ContainerFilter) ([]*Container, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, fmt.Errorf("runtime has already been shut down")
+		return nil, ErrRuntimeStopped
 	}
 
 	ctrs, err := r.state.GetAllContainers()
@@ -277,7 +276,7 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return nil, fmt.Errorf("runtime has already been shut down")
+		return nil, ErrRuntimeStopped
 	}
 
 	pod, err := newPod()
@@ -297,7 +296,7 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		return nil, errors.Wrapf(err, "error adding pod to state")
 	}
 
-	return nil, errNotImplemented
+	return nil, ErrNotImplemented
 }
 
 // RemovePod removes a pod and all containers in it
@@ -305,7 +304,7 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 // Otherwise, RemovePod will return an error if any container in the pod is running
 // Remove acts atomically, removing all containers or no containers
 func (r *Runtime) RemovePod(p *Pod, force bool) error {
-	return errNotImplemented
+	return ErrNotImplemented
 }
 
 // GetPod retrieves a pod by its ID
@@ -314,7 +313,7 @@ func (r *Runtime) GetPod(id string) (*Pod, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, fmt.Errorf("runtime has already been shut down")
+		return nil, ErrRuntimeStopped
 	}
 
 	return r.state.GetPod(id)
@@ -326,7 +325,7 @@ func (r *Runtime) HasPod(id string) (bool, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return false, fmt.Errorf("runtime has already been shut down")
+		return false, ErrRuntimeStopped
 	}
 
 	return r.state.HasPod(id)
@@ -339,7 +338,7 @@ func (r *Runtime) LookupPod(idOrName string) (*Pod, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, fmt.Errorf("runtime has already been shut down")
+		return nil, ErrRuntimeStopped
 	}
 
 	return r.state.LookupPod(idOrName)
@@ -354,7 +353,7 @@ func (r *Runtime) Pods(filters ...PodFilter) ([]*Pod, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, fmt.Errorf("runtime has already been shut down")
+		return nil, ErrRuntimeStopped
 	}
 
 	pods, err := r.state.GetAllPods()
