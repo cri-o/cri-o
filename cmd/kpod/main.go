@@ -8,6 +8,10 @@ import (
 	"github.com/urfave/cli"
 )
 
+// This is populated by the Makefile from the VERSION file
+// in the repository
+var kpodVersion = ""
+
 func main() {
 	if reexec.Init() {
 		return
@@ -16,7 +20,12 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "kpod"
 	app.Usage = "manage pods and images"
-	app.Version = "0.0.1"
+
+	var v string
+	if kpodVersion != "" {
+		v = kpodVersion
+	}
+	app.Version = v
 
 	app.Commands = []cli.Command{
 		diffCommand,

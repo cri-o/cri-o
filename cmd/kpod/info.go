@@ -85,6 +85,8 @@ func debugInfo(c *cli.Context) (string, map[string]interface{}, error) {
 	info := map[string]interface{}{}
 	info["compiler"] = runtime.Compiler
 	info["go version"] = runtime.Version()
+	info["kpod version"] = c.App.Version
+	info["git commit"] = gitCommit
 	return "debug", info, nil
 }
 

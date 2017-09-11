@@ -11,7 +11,11 @@ import (
 
 // Overwritten at build time
 var (
+	// gitCommit is the commit that the binary is being built from.
+	// It will be populated by the Makefile.
 	gitCommit string
+	// buildInfo is the time at which the binary was built
+	// It will be populated by the Makefile.
 	buildInfo string
 )
 
