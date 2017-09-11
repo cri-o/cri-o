@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -98,7 +97,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer s.updateLock.RUnlock()
 
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
-	var processLabel, mountLabel, netNsPath, resolvPath string
+	var processLabel, mountLabel, resolvPath string
 	// process req.Name
 	kubeName := req.GetConfig().GetMetadata().Name
 	if kubeName == "" {
@@ -408,11 +407,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
-
-		netNsPath, err = sandbox.HostNetNsPath()
-		if err != nil {
-			return nil, err
-		}
 	} else {
 		// Create the sandbox network namespace
 		if err = sb.NetNsCreate(); err != nil {
@@ -434,8 +428,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
-
-		netNsPath = sb.NetNsPath()
 	}
 
 	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid {
@@ -473,36 +465,15 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	sb.SetInfraContainer(container)
 
 	var ip string
-	// setup the network
-	if !hostNetwork {
-		podNetwork := newPodNetwork(sb.Namespace(), sb.KubeName(), sb.ID(), netNsPath)
-		if err = s.netPlugin.SetUpPod(podNetwork); err != nil {
-			return nil, fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), id, err)
-		}
-
-		if ip, err = s.netPlugin.GetPodNetworkStatus(podNetwork); err != nil {
-			return nil, fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), id, err)
-		}
-
-		if len(portMappings) != 0 {
-			ip4 := net.ParseIP(ip).To4()
-			if ip4 == nil {
-				return nil, fmt.Errorf("failed to get valid ipv4 address for sandbox %s(%s)", sb.Name(), id)
-			}
-
-			if err = s.hostportManager.Add(id, &hostport.PodPortMapping{
-				Name:         sb.Name(),
-				PortMappings: portMappings,
-				IP:           ip4,
-				HostNetwork:  false,
-			}, "lo"); err != nil {
-				return nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %v", sb.Name(), id, err)
-			}
-
-		}
-	} else {
-		ip = s.BindAddress()
+	ip, err = s.networkStart(hostNetwork, sb)
+	if err != nil {
+		return nil, err
 	}
+	defer func() {
+		if err != nil {
+			s.networkStop(hostNetwork, sb)
+		}
+	}()
 
 	g.AddAnnotation(annotations.IP, ip)
 	sb.AddIP(ip)
