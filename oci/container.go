@@ -233,3 +233,10 @@ func (c *Container) SetMountPoint(mp string) {
 func (c *Container) MountPoint() string {
 	return c.mountPoint
 }
+
+// SetState sets the conainer state
+//
+// XXX: DO NOT EVER USE THIS, THIS IS JUST USEFUL FOR MOCKING!!!
+func (c *Container) SetState(state *ContainerState) {
+	c.state = state
+}
