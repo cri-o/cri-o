@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y \
     libgpgme11-dev \
     liblzma-dev \
     netcat \
+    socat \
     --no-install-recommends \
     && apt-get clean
 
