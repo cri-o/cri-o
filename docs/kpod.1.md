@@ -100,6 +100,9 @@ Save an image to docker-archive or oci
 ### stats
 Display a live stream of one or more containers' resource usage statistics
 
+### stop
+Stops one or more running containers.
+
 ### tag
 Add an additional name to a local image
 
