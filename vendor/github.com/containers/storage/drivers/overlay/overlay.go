@@ -5,6 +5,7 @@ package overlay
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -96,7 +97,7 @@ func init() {
 // InitWithName returns the a naive diff driver for the overlay filesystem,
 // which returns the passed-in name when asked which driver it is.
 func InitWithName(name, home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
-	opts, err := parseOptions(options)
+	opts, err := parseOptions(name, options)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +177,7 @@ type overlayOptions struct {
 	imageStores         []string
 }
 
-func parseOptions(options []string) (*overlayOptions, error) {
+func parseOptions(name string, options []string) (*overlayOptions, error) {
 	o := &overlayOptions{}
 	for _, option := range options {
 		key, val, err := parsers.ParseKeyValueOpt(option)
@@ -190,24 +191,24 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			if err != nil {
 				return nil, err
 			}
-		case "overlay.imagestore":
+		case "overlay.imagestore", "overlay2.imagestore":
 			// Additional read only image stores to use for lower paths
 			for _, store := range strings.Split(val, ",") {
 				store = filepath.Clean(store)
 				if !filepath.IsAbs(store) {
-					return nil, fmt.Errorf("overlay: image path %q is not absolute.  Can not be relative", store)
+					return nil, fmt.Errorf("%s: image path %q is not absolute.  Can not be relative", name, store)
 				}
 				st, err := os.Stat(store)
 				if err != nil {
-					return nil, fmt.Errorf("overlay: Can't stat imageStore dir %s: %v", store, err)
+					return nil, fmt.Errorf("%s: Can't stat imageStore dir %s: %v", name, store, err)
 				}
 				if !st.IsDir() {
-					return nil, fmt.Errorf("overlay: image path %q must be a directory", store)
+					return nil, fmt.Errorf("%s: image path %q must be a directory", name, store)
 				}
 				o.imageStores = append(o.imageStores, store)
 			}
 		default:
-			return nil, fmt.Errorf("overlay: Unknown option %s", key)
+			return nil, fmt.Errorf("%s: Unknown option %s", name, key)
 		}
 	}
 	return o, nil
@@ -516,7 +517,7 @@ func (d *Driver) Put(id string) error {
 			// We didn't have a "lower" directory, so we weren't mounting a "merged" directory anyway
 			return nil
 		}
-		logrus.Debugf("Failed to unmount %s overlay: %v", id, err)
+		logrus.Debugf("Failed to unmount %s %s: %v", id, d.name, err)
 	}
 	return err
 }
@@ -528,7 +529,7 @@ func (d *Driver) Exists(id string) bool {
 }
 
 // ApplyDiff applies the new layer into a root
-func (d *Driver) ApplyDiff(id string, parent string, diff archive.Reader) (size int64, err error) {
+func (d *Driver) ApplyDiff(id string, parent string, diff io.Reader) (size int64, err error) {
 	applyDir := d.getDiffPath(id)
 
 	logrus.Debugf("Applying tar in %s", applyDir)
@@ -559,7 +560,7 @@ func (d *Driver) DiffSize(id, parent string) (size int64, err error) {
 
 // Diff produces an archive of the changes between the specified
 // layer and its parent layer which may be "".
-func (d *Driver) Diff(id, parent string) (archive.Archive, error) {
+func (d *Driver) Diff(id, parent string) (io.ReadCloser, error) {
 	diffPath := d.getDiffPath(id)
 	logrus.Debugf("Tar with options on %s", diffPath)
 	return archive.TarWithOptions(diffPath, &archive.TarOptions{

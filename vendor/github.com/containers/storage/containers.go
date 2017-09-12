@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,11 +10,6 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/truncindex"
-)
-
-var (
-	// ErrContainerUnknown indicates that there was no container with the specified name or ID
-	ErrContainerUnknown = errors.New("container not known")
 )
 
 // A Container is a reference to a read-write layer with metadata.

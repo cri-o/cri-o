@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     libseccomp2/jessie-backports \
     libseccomp-dev/jessie-backports \
     libtool \
+    libudev-dev \
     protobuf-c-compiler \
     protobuf-compiler \
     python-minimal \
