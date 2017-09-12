@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/containers/storage/pkg/reexec"
@@ -13,6 +14,8 @@ import (
 var kpodVersion = ""
 
 func main() {
+	debug := false
+
 	if reexec.Init() {
 		return
 	}
@@ -52,6 +55,7 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 		logrus.SetLevel(logrus.ErrorLevel)
 		if c.GlobalBool("debug") {
+			debug = true
 			logrus.SetLevel(logrus.DebugLevel)
 		}
 		return nil
@@ -97,7 +101,11 @@ func main() {
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		logrus.Errorf(err.Error())
+		if debug {
+			logrus.Errorf(err.Error())
+		} else {
+			fmt.Println(err.Error())
+		}
 		cli.OsExiter(1)
 	}
 }
