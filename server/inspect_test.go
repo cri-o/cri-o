@@ -174,6 +174,7 @@ func TestGetContainerInfoCtrNotFound(t *testing.T) {
 		t.Fatalf("expected errCtrNotFound error, got %v", err)
 	}
 }
+
 func TestGetContainerInfoCtrStateNil(t *testing.T) {
 	s := &Server{}
 	created := time.Now()
