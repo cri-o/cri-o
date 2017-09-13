@@ -818,8 +818,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
+		// TODO: selinux
+		// label.Relabel(sb.ResolvPath(), container.MountLabel, shared)
+
 		// bind mount the pod resolver file
 		specgen.AddBindMount(sb.ResolvPath(), "/etc/resolv.conf", options)
+	}
+
+	if sb.HostnamePath() != "" {
+		// TODO: selinux
+
+		specgen.AddBindMount(sb.HostnamePath(), "/etc/hostname", options)
 	}
 
 	// Bind mount /etc/hosts for host networking containers
@@ -827,9 +836,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
 	}
 
-	if sb.Hostname() != "" {
-		specgen.SetHostname(sb.Hostname())
-	}
+	specgen.SetHostname(sb.Hostname())
 
 	specgen.AddAnnotation(annotations.Name, containerName)
 	specgen.AddAnnotation(annotations.ContainerID, containerID)
