@@ -203,8 +203,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			return nil, err
 		}
-		// TODO: selinux
-		// label.Relabel(sb.ResolvPath(), container.MountLabel, shared)
+		if err := label.Relabel(resolvPath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+			return nil, err
+		}
 
 		g.AddBindMount(resolvPath, "/etc/resolv.conf", []string{"ro"})
 	}
@@ -464,7 +465,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
 		return nil, err
 	}
-	// TODO: selinux relabel
+	if err := label.Relabel(hostnamePath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+		return nil, err
+	}
 	g.AddBindMount(hostnamePath, "/etc/hostname", []string{"ro"})
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
