@@ -137,6 +137,15 @@ _kpod_inspect() {
             ;;
     esac
 }
+_kpod_kill() {
+     local options_with_args="
+     --signal -s
+     "
+     local boolean_options="
+     --help
+     -h"
+     _complete_ "$options_with_args" "$boolean_options"
+}
 
 _kpod_logs() {
      local options_with_args="
@@ -442,6 +451,7 @@ _kpod_kpod() {
     images
     info
     inspect
+    kill
     load
     logs
     mount

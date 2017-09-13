@@ -67,6 +67,9 @@ Displays system information
 ### inspect
 Display a container or image's configuration
 
+### kill
+Kill the main process in one or more containers
+
 ### load
 Load an image from docker archive
 

@@ -48,6 +48,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod-images(1)](/docs/kpod-images.1.md)             | List images in local storage                                              |[![...](/docs/play.png)](https://asciinema.org/a/133649)|
 | [kpod-info(1)](/docs/kpod-info.1.md)                 | Display system information                                                ||
 | [kpod-inspect(1)](/docs/kpod-inspect.1.md)           | Display the configuration of a container or image                         |[![...](/docs/play.png)](https://asciinema.org/a/133418)|
+| [kpod-kill(1)](/docs/kpod-kill.1.md)                 | Kill the main process in one or more running containers
 | [kpod-load(1)](/docs/kpod-load.1.md)                 | Load an image from docker archive or oci                                  |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
 | [kpod-logs(1)](/docs/kpod-logs.1.md)                 | Display the logs of a container                                           ||
 | [kpod-mount(1)](/docs/kpod-mount.1.md)               | Mount a working container's root filesystem                               ||
