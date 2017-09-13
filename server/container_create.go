@@ -45,7 +45,7 @@ const (
 	defaultSystemdParent  = "system.slice"
 )
 
-func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
+func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
 	volumes := []oci.ContainerVolume{}
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
@@ -73,7 +73,7 @@ func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, 
 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
-			if err := label.Relabel(src, sb.MountLabel(), true); err != nil && err != unix.ENOTSUP {
+			if err := label.Relabel(src, mountLabel, true); err != nil && err != unix.ENOTSUP {
 				return nil, fmt.Errorf("relabel failed %s: %v", src, err)
 			}
 		}
@@ -519,7 +519,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
-	containerVolumes, err := addOCIBindMounts(sb, containerConfig, &specgen)
+	mountLabel := sb.MountLabel()
+	processLabel := sb.ProcessLabel()
+	selinuxConfig := containerConfig.GetLinux().GetSecurityContext().GetSelinuxOptions()
+	if selinuxConfig != nil {
+		var err error
+		processLabel, mountLabel, err = getSELinuxLabels(selinuxConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	containerVolumes, err := addOCIBindMounts(mountLabel, containerConfig, &specgen)
 	if err != nil {
 		return nil, err
 	}
@@ -703,7 +714,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 					}
 				}
 			}
-			specgen.SetProcessSelinuxLabel(sb.ProcessLabel())
+			specgen.SetProcessSelinuxLabel(processLabel)
 		}
 
 		specgen.SetLinuxMountLabel(sb.MountLabel())
@@ -818,15 +829,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
-		// TODO: selinux
-		// label.Relabel(sb.ResolvPath(), container.MountLabel, shared)
+		if err := label.Relabel(sb.ResolvPath(), mountLabel, true); err != nil && err != unix.ENOTSUP {
+			return nil, err
+		}
 
 		// bind mount the pod resolver file
 		specgen.AddBindMount(sb.ResolvPath(), "/etc/resolv.conf", options)
 	}
 
 	if sb.HostnamePath() != "" {
-		// TODO: selinux
+		if err := label.Relabel(sb.HostnamePath(), mountLabel, true); err != nil && err != unix.ENOTSUP {
+			return nil, err
+		}
 
 		specgen.AddBindMount(sb.HostnamePath(), "/etc/hostname", options)
 	}
@@ -884,7 +898,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		containerName, containerID,
 		metaname,
 		attempt,
-		sb.MountLabel(),
+		mountLabel,
 		nil)
 	if err != nil {
 		return nil, err
@@ -907,7 +921,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// Add image volumes
-	if err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, sb.MountLabel()); err != nil {
+	if err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, mountLabel); err != nil {
 		return nil, err
 	}
 

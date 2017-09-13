@@ -203,8 +203,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			return nil, err
 		}
-		// TODO: selinux
-		// label.Relabel(sb.ResolvPath(), container.MountLabel, shared)
+		if err := label.Relabel(resolvPath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+			return nil, err
+		}
 
 		g.AddBindMount(resolvPath, "/etc/resolv.conf", []string{"ro"})
 	}
@@ -248,7 +249,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace,
 	if !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid && !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
-		processLabel, mountLabel, err = getSELinuxLabels(nil)
+		processLabel, mountLabel, err = getSELinuxLabels(req.GetConfig().GetLinux().GetSecurityContext().GetSelinuxOptions())
 		if err != nil {
 			return nil, err
 		}
@@ -464,7 +465,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
 		return nil, err
 	}
-	// TODO: selinux relabel
+	if err := label.Relabel(hostnamePath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+		return nil, err
+	}
 	g.AddBindMount(hostnamePath, "/etc/hostname", []string{"ro"})
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
@@ -555,30 +558,22 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 }
 
 func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mountLabel string, err error) {
-	processLabel = ""
+	labels := []string{}
 	if selinuxOptions != nil {
-		user := selinuxOptions.User
-		if user == "" {
-			return "", "", fmt.Errorf("SELinuxOption.User is empty")
+		if selinuxOptions.User != "" {
+			labels = append(labels, "user:"+selinuxOptions.User)
 		}
-
-		role := selinuxOptions.Role
-		if role == "" {
-			return "", "", fmt.Errorf("SELinuxOption.Role is empty")
+		if selinuxOptions.Role != "" {
+			labels = append(labels, "role:"+selinuxOptions.Role)
 		}
-
-		t := selinuxOptions.Type
-		if t == "" {
-			return "", "", fmt.Errorf("SELinuxOption.Type is empty")
+		if selinuxOptions.Type != "" {
+			labels = append(labels, "type:"+selinuxOptions.Type)
 		}
-
-		level := selinuxOptions.Level
-		if level == "" {
-			return "", "", fmt.Errorf("SELinuxOption.Level is empty")
+		if selinuxOptions.Level != "" {
+			labels = append(labels, "level:"+selinuxOptions.Level)
 		}
-		processLabel = fmt.Sprintf("%s:%s:%s:%s", user, role, t, level)
 	}
-	return label.InitLabels(label.DupSecOpt(processLabel))
+	return label.InitLabels(labels)
 }
 
 func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
