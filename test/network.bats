@@ -184,3 +184,22 @@ load helpers
 
 	stop_crio
 }
+
+@test "Clean up network if pod sandbox fails" {
+	rm -f /var/lib/cni/networks/crionet_test_args/*
+	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
+
+	# make conmon non-executable to cause the sandbox setup to fail after
+	# networking has been configured
+	chmod 0644 /go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	chmod 0755 /go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon
+
+	# ensure that the server cleaned up sandbox networking if the sandbox
+	# failed after network setup
+	rm -f /var/lib/cni/networks/crionet_test_args/last_reserved_ip
+	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | wc -l)
+	[[ "${num_allocated}" == "0" ]]
+
+	stop_crio
+}
