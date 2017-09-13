@@ -157,18 +157,17 @@ func (ref ociArchiveReference) PolicyConfigurationNamespaces() []string {
 // NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
 // The caller must call .Close() on the returned Image.
 func (ref ociArchiveReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
-	src, err := newImageSource(ctx, ref, nil)
+	src, err := newImageSource(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 	return image.FromSource(src)
 }
 
-// NewImageSource returns a types.ImageSource for this reference,
-// asking the backend to use a manifest from requestedManifestMIMETypes if possible.
+// NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
-func (ref ociArchiveReference) NewImageSource(ctx *types.SystemContext, requestedManifestMIMETypes []string) (types.ImageSource, error) {
-	return newImageSource(ctx, ref, requestedManifestMIMETypes)
+func (ref ociArchiveReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
+	return newImageSource(ctx, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.

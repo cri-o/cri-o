@@ -169,7 +169,7 @@ func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool,
 	if err != nil {
 		return false, err
 	}
-	rawSource, err := srcRef.NewImageSource(options.SourceCtx, nil)
+	rawSource, err := srcRef.NewImageSource(options.SourceCtx)
 	if err != nil {
 		return false, err
 	}

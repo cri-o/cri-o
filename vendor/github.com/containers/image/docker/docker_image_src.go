@@ -21,41 +21,23 @@ import (
 )
 
 type dockerImageSource struct {
-	ref                        dockerReference
-	requestedManifestMIMETypes []string
-	c                          *dockerClient
+	ref dockerReference
+	c   *dockerClient
 	// State
 	cachedManifest         []byte // nil if not loaded yet
 	cachedManifestMIMEType string // Only valid if cachedManifest != nil
 }
 
-// newImageSource creates a new ImageSource for the specified image reference,
-// asking the backend to use a manifest from requestedManifestMIMETypes if possible.
-// nil requestedManifestMIMETypes means manifest.DefaultRequestedManifestMIMETypes.
+// newImageSource creates a new ImageSource for the specified image reference.
 // The caller must call .Close() on the returned ImageSource.
-func newImageSource(ctx *types.SystemContext, ref dockerReference, requestedManifestMIMETypes []string) (*dockerImageSource, error) {
+func newImageSource(ctx *types.SystemContext, ref dockerReference) (*dockerImageSource, error) {
 	c, err := newDockerClient(ctx, ref, false, "pull")
 	if err != nil {
 		return nil, err
 	}
-	if requestedManifestMIMETypes == nil {
-		requestedManifestMIMETypes = manifest.DefaultRequestedManifestMIMETypes
-	}
-	supportedMIMEs := supportedManifestMIMETypesMap()
-	acceptableRequestedMIMEs := false
-	for _, mtrequested := range requestedManifestMIMETypes {
-		if supportedMIMEs[mtrequested] {
-			acceptableRequestedMIMEs = true
-			break
-		}
-	}
-	if !acceptableRequestedMIMEs {
-		requestedManifestMIMETypes = manifest.DefaultRequestedManifestMIMETypes
-	}
 	return &dockerImageSource{
 		ref: ref,
-		requestedManifestMIMETypes: requestedManifestMIMETypes,
-		c: c,
+		c:   c,
 	}, nil
 }
 
@@ -96,7 +78,7 @@ func (s *dockerImageSource) GetManifest() ([]byte, string, error) {
 func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest string) ([]byte, string, error) {
 	path := fmt.Sprintf(manifestPath, reference.Path(s.ref.ref), tagOrDigest)
 	headers := make(map[string][]string)
-	headers["Accept"] = s.requestedManifestMIMETypes
+	headers["Accept"] = manifest.DefaultRequestedManifestMIMETypes
 	res, err := s.c.makeRequest(ctx, "GET", path, headers, nil)
 	if err != nil {
 		return nil, "", err

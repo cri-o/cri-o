@@ -78,11 +78,9 @@ type ImageReference interface {
 	// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 	// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 	NewImage(ctx *SystemContext) (Image, error)
-	// NewImageSource returns a types.ImageSource for this reference,
-	// asking the backend to use a manifest from requestedManifestMIMETypes if possible.
-	// nil requestedManifestMIMETypes means manifest.DefaultRequestedManifestMIMETypes.
+	// NewImageSource returns a types.ImageSource for this reference.
 	// The caller must call .Close() on the returned ImageSource.
-	NewImageSource(ctx *SystemContext, requestedManifestMIMETypes []string) (ImageSource, error)
+	NewImageSource(ctx *SystemContext) (ImageSource, error)
 	// NewImageDestination returns a types.ImageDestination for this reference.
 	// The caller must call .Close() on the returned ImageDestination.
 	NewImageDestination(ctx *SystemContext) (ImageDestination, error)
@@ -304,6 +302,8 @@ type SystemContext struct {
 	SignaturePolicyPath string
 	// If not "", overrides the system's default path for registries.d (Docker signature storage configuration)
 	RegistriesDirPath string
+	// Path to the system-wide registries configuration file
+	SystemRegistriesConfPath string
 
 	// === docker.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),

@@ -59,7 +59,7 @@ type copySource struct {
 
 // NewImage creates a new image from the given system context
 func (c *CopyRef) NewImage(sc *types.SystemContext) (types.Image, error) {
-	src, err := c.NewImageSource(sc, nil)
+	src, err := c.NewImageSource(sc)
 	if err != nil {
 		return nil, err
 	}
@@ -82,10 +82,9 @@ func selectManifestType(preferred string, acceptable, supported []string) string
 }
 
 // NewImageSource creates a new image source from the given system context and manifest
-func (c *CopyRef) NewImageSource(sc *types.SystemContext, manifestTypes []string) (src types.ImageSource, err error) {
+func (c *CopyRef) NewImageSource(sc *types.SystemContext) (src types.ImageSource, err error) {
 	// Decide which type of manifest and configuration output we're going to provide.
-	supportedManifestTypes := []string{v1.MediaTypeImageManifest, docker.V2S2MediaTypeManifest}
-	manifestType := selectManifestType(c.preferredManifestType, manifestTypes, supportedManifestTypes)
+	manifestType := selectManifestType(c.preferredManifestType, nil, nil)
 	// If it's not a format we support, return an error.
 	if manifestType != v1.MediaTypeImageManifest && manifestType != docker.V2S2MediaTypeManifest {
 		return nil, errors.Errorf("no supported manifest types (attempted to use %q, only know %q and %q)",
