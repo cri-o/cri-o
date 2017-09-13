@@ -335,6 +335,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
+	sb.AddHostnamePath(m.Annotations[annotations.HostnamePath])
 	sb.AddIP(ip)
 
 	// We add a netNS only if we can load a permanent one.

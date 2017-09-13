@@ -2,6 +2,72 @@
 
 load helpers
 
+@test "ensure correct hostname" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0  ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crioctl ctr execsync --id "$ctr_id" sh -c "hostname"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "crioctl_host" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "echo \$HOSTNAME"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "crioctl_host" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /etc/hostname"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "crioctl_host" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ensure correct hostname for hostnetwork:true" {
+	start_crio
+	hostnetworkconfig=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["host_network"] = True; obj["annotations"] = {}; obj["hostname"] = ""; json.dump(obj, sys.stdout)')
+	echo "$hostnetworkconfig" > "$TESTDIR"/sandbox_hostnetwork_config.json
+	run crioctl pod run --config "$TESTDIR"/sandbox_hostnetwork_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0  ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crioctl ctr execsync --id "$ctr_id" sh -c "hostname"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "$HOSTNAME" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "echo \$HOSTNAME"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "$HOSTNAME" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /etc/hostname"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "$HOSTNAME" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "Check for valid pod netns CIDR" {
 	start_crio
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
