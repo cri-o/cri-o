@@ -19,13 +19,13 @@ type ociArchiveImageSource struct {
 
 // newImageSource returns an ImageSource for reading from an existing directory.
 // newImageSource untars the file and saves it in a temp directory
-func newImageSource(ctx *types.SystemContext, ref ociArchiveReference, requestedManifestMIMETypes []string) (types.ImageSource, error) {
+func newImageSource(ctx *types.SystemContext, ref ociArchiveReference) (types.ImageSource, error) {
 	tempDirRef, err := createUntarTempDir(ref)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating temp directory")
 	}
 
-	unpackedSrc, err := tempDirRef.ociRefExtracted.NewImageSource(ctx, requestedManifestMIMETypes)
+	unpackedSrc, err := tempDirRef.ociRefExtracted.NewImageSource(ctx)
 	if err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
 			return nil, errors.Wrapf(err, "error deleting temp directory", tempDirRef.tempDirectory)

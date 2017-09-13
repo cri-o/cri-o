@@ -154,7 +154,7 @@ func (s storageReference) DeleteImage(ctx *types.SystemContext) error {
 	return err
 }
 
-func (s storageReference) NewImageSource(ctx *types.SystemContext, requestedManifestMIMETypes []string) (types.ImageSource, error) {
+func (s storageReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
 	return newImageSource(s)
 }
 

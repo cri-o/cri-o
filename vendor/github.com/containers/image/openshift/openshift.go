@@ -162,18 +162,15 @@ func (c *openshiftClient) convertDockerImageReference(ref string) (string, error
 type openshiftImageSource struct {
 	client *openshiftClient
 	// Values specific to this image
-	ctx                        *types.SystemContext
-	requestedManifestMIMETypes []string
+	ctx *types.SystemContext
 	// State
 	docker               types.ImageSource // The Docker Registry endpoint, or nil if not resolved yet
 	imageStreamImageName string            // Resolved image identifier, or "" if not known yet
 }
 
-// newImageSource creates a new ImageSource for the specified reference,
-// asking the backend to use a manifest from requestedManifestMIMETypes if possible.
-// nil requestedManifestMIMETypes means manifest.DefaultRequestedManifestMIMETypes.
+// newImageSource creates a new ImageSource for the specified reference.
 // The caller must call .Close() on the returned ImageSource.
-func newImageSource(ctx *types.SystemContext, ref openshiftReference, requestedManifestMIMETypes []string) (types.ImageSource, error) {
+func newImageSource(ctx *types.SystemContext, ref openshiftReference) (types.ImageSource, error) {
 	client, err := newOpenshiftClient(ref)
 	if err != nil {
 		return nil, err
@@ -182,7 +179,6 @@ func newImageSource(ctx *types.SystemContext, ref openshiftReference, requestedM
 	return &openshiftImageSource{
 		client: client,
 		ctx:    ctx,
-		requestedManifestMIMETypes: requestedManifestMIMETypes,
 	}, nil
 }
 
@@ -286,7 +282,7 @@ func (s *openshiftImageSource) ensureImageIsResolved(ctx context.Context) error 
 	if err != nil {
 		return err
 	}
-	d, err := dockerRef.NewImageSource(s.ctx, s.requestedManifestMIMETypes)
+	d, err := dockerRef.NewImageSource(s.ctx)
 	if err != nil {
 		return err
 	}

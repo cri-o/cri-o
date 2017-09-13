@@ -153,7 +153,7 @@ func fixFiles(dir string, usermode bool) error {
 			if err != nil {
 				return err
 			}
-		} else if usermode && (info.Mode().IsRegular() || (info.Mode()&os.ModeSymlink) != 0) {
+		} else if usermode && (info.Mode().IsRegular()) {
 			if err := os.Chmod(fullpath, info.Mode()|0600); err != nil {
 				return err
 			}
