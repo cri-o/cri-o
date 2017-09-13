@@ -114,7 +114,7 @@ dbuild: crioimage
 	docker run --name=${CRIO_INSTANCE} --privileged ${CRIO_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm make binaries
 
 integration: crioimage
-	docker run -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
+	docker run -e STORAGE_OPTS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
 testunit:
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
