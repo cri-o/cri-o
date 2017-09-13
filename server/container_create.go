@@ -304,11 +304,11 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	if sc != nil {
 		containerUser := ""
 		// Case 1: run as user is set by kubelet
-		if sc.RunAsUser != nil {
+		if sc.GetRunAsUser() != nil {
 			containerUser = strconv.FormatInt(sc.GetRunAsUser().Value, 10)
 		} else {
 			// Case 2: run as username is set by kubelet
-			userName := sc.RunAsUsername
+			userName := sc.GetRunAsUsername()
 			if userName != "" {
 				containerUser = userName
 			} else {
@@ -338,7 +338,7 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 		}
 
 		// Add groups from CRI
-		groups := sc.SupplementalGroups
+		groups := sc.GetSupplementalGroups()
 		for _, group := range groups {
 			specgen.AddProcessAdditionalGid(uint32(group))
 		}
