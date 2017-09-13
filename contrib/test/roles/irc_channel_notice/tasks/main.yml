@@ -33,6 +33,8 @@
   - debug:
       msg: 'Sending - {{ irc_server | trim }}#{{ irc_channel | trim }}: {{ irc_to |trim }}, {{ lookup("template", _irc_msg_template) | trim }}'
 
+  # FIXME: This is broken WRT freenode in Ansible 2.3
+  # possibly https://github.com/ansible/ansible/issues/24023
   - name: Irc notification is sent
     irc:
       server: '{{ irc_server | trim }}'
