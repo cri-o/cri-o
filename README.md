@@ -89,7 +89,7 @@ For sync communication we have an IRC channel #cri-o, on chat.freenode.net, that
 
 Latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by crio.
 
-### Build Dependencies
+### Build and Run Dependencies
 
 **Required**
 
@@ -99,9 +99,11 @@ Fedora, CentOS, RHEL, and related distributions:
 yum install -y \
   btrfs-progs-devel \
   device-mapper-devel \
+  git \
   glib2-devel \
   glibc-devel \
   glibc-static \
+  go \
   gpgme-devel \
   libassuan-devel \
   libgpg-error-devel \
@@ -109,7 +111,8 @@ yum install -y \
   libselinux-devel \
   ostree-devel \
   pkgconfig \
-  runc
+  runc \
+  skopeo-containers
 ```
 
 Debian, Ubuntu, and related distributions:
@@ -117,6 +120,8 @@ Debian, Ubuntu, and related distributions:
 ```bash
 apt-get install -y \
   btrfs-tools \
+  git \
+  golang-go \
   libassuan-dev \
   libdevmapper-dev \
   libglib2.0-dev \
@@ -126,7 +131,8 @@ apt-get install -y \
   libseccomp-dev \
   libselinux1-dev \
   pkg-config \
-  runc
+  runc \
+  skopeo-containers
 ```
 
 Debian, Ubuntu, and related distributions will also need a copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
