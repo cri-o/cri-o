@@ -49,6 +49,7 @@
       - oci-systemd-hook
       - oci-register-machine
       - oci-umount
+      - socat
     async: 600
     poll: 10
     when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS')
@@ -79,6 +80,7 @@
       - oci-systemd-hook
       - oci-register-machine
       - oci-umount
+      - socat
     async: 600
     poll: 10
     when: ansible_distribution == 'Fedora'
