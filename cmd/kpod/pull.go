@@ -49,6 +49,7 @@ func pullCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
+	defer runtime.Shutdown()
 	if err := runtime.PullImage(image, c.Bool("all-tags"), os.Stdout); err != nil {
 		return errors.Errorf("error pulling image from %q: %v", image, err)
 	}
