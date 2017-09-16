@@ -75,16 +75,16 @@ type psJSONParams struct {
 	Labels           fields.Set          `json:"labels"`
 	Mounts           []specs.Mount       `json:"mounts"`
 	ContainerRunning bool                `json:"ctrRunning"`
-	Namespaces       namespace           `json:"namespace,omitempty"`
+	Namespaces       *namespace          `json:"namespace,omitempty"`
 }
 
 type namespace struct {
-	PID    string `json:"ctrPID,omitempty"`
+	PID    string `json:"pid,omitempty"`
 	Cgroup string `json:"cgroup,omitempty"`
 	IPC    string `json:"ipc,omitempty"`
 	MNT    string `json:"mnt,omitempty"`
 	NET    string `json:"net,omitempty"`
-	PIDNS  string `json:"pid,omitempty"`
+	PIDNS  string `json:"pidns,omitempty"`
 	User   string `json:"user,omitempty"`
 	UTS    string `json:"uts,omitempty"`
 }
@@ -334,7 +334,7 @@ func getTemplateOutput(containers []*libkpod.ContainerData, opts psOptions) (psO
 	return
 }
 
-func getNamespaces(pid int) namespace {
+func getNamespaces(pid int) *namespace {
 	ctrPID := strconv.Itoa(pid)
 	cgroup, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "cgroup"))
 	ipc, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "ipc"))
@@ -344,7 +344,7 @@ func getNamespaces(pid int) namespace {
 	user, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "user"))
 	uts, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "uts"))
 
-	return namespace{
+	return &namespace{
 		PID:    ctrPID,
 		Cgroup: cgroup,
 		IPC:    ipc,
@@ -366,7 +366,7 @@ func getNamespaceInfo(path string) (string, error) {
 
 // getJSONOutput returns the container info in its raw form
 func getJSONOutput(containers []*libkpod.ContainerData, nSpace bool) (psOutput []psJSONParams) {
-	var ns namespace
+	var ns *namespace
 	for _, ctr := range containers {
 		if nSpace {
 			ns = getNamespaces(ctr.State.Pid)
