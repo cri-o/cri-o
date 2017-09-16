@@ -1,11 +1,20 @@
-## This playbook expects --extra-vars "commit=<commit>"
-## and either --extra-vars "pullrequest=<PR #>" or
-## --skip-tags pr
+---
+
 - hosts: all
   remote_user: root
   vars:
     xunit: false
     cni_commit: dcf7368eeab15e2affc6256f0bb1e84dd46a34de
+  pre_tasks:
+    ## This playbook expects --extra-vars "commit=<commit>"
+    ## and either --extra-vars "pullrequest=<PR #>" or
+    ## --skip-tags pr
+    - assert:
+        that: 'commit is defined and commit | trim'
+    - assert:
+      that: 'pullrequest is defined and pullrequest | trim'
+      tags:
+        - pr
   tasks:
   - name: Update all packages
     yum:
