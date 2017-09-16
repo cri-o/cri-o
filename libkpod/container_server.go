@@ -99,6 +99,25 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 	return c.storageRuntimeServer
 }
 
+var (
+	stores = make(map[cstorage.Store]struct{})
+)
+
+// AddStore adds a store to the list of stores to shutdown, when exiting
+func AddStore(store cstorage.Store) {
+	stores[store] = struct{}{}
+}
+
+// ShutdownStores calls the Shutdown interface for all allocated stores,
+// cleaning up allocated resources.
+func ShutdownStores(force bool) {
+	for store := range stores {
+		if _, err := store.Shutdown(force); err != nil {
+			break
+		}
+	}
+}
+
 // New creates a new ContainerServer with options provided
 func New(config *Config) (*ContainerServer, error) {
 	store, err := cstorage.GetStore(cstorage.StoreOptions{
@@ -110,6 +129,7 @@ func New(config *Config) (*ContainerServer, error) {
 	if err != nil {
 		return nil, err
 	}
+	AddStore(store)
 
 	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {

@@ -25,36 +25,6 @@ import (
 )
 
 var (
-	// ErrLoadError indicates that there was an initialization error.
-	ErrLoadError = errors.New("error loading storage metadata")
-	// ErrDuplicateID indicates that an ID which is to be assigned to a new item is already being used.
-	ErrDuplicateID = errors.New("that ID is already in use")
-	// ErrDuplicateName indicates that a name which is to be assigned to a new item is already being used.
-	ErrDuplicateName = errors.New("that name is already in use")
-	// ErrParentIsContainer is returned when a caller attempts to create a layer as a child of a container's layer.
-	ErrParentIsContainer = errors.New("would-be parent layer is a container")
-	// ErrNotAContainer is returned when the caller attempts to delete a container that isn't a container.
-	ErrNotAContainer = errors.New("identifier is not a container")
-	// ErrNotAnImage is returned when the caller attempts to delete an image that isn't an image.
-	ErrNotAnImage = errors.New("identifier is not an image")
-	// ErrNotALayer is returned when the caller attempts to delete a layer that isn't a layer.
-	ErrNotALayer = errors.New("identifier is not a layer")
-	// ErrNotAnID is returned when the caller attempts to read or write metadata from an item that doesn't exist.
-	ErrNotAnID = errors.New("identifier is not a layer, image, or container")
-	// ErrLayerHasChildren is returned when the caller attempts to delete a layer that has children.
-	ErrLayerHasChildren = errors.New("layer has children")
-	// ErrLayerUsedByImage is returned when the caller attempts to delete a layer that is an image's top layer.
-	ErrLayerUsedByImage = errors.New("layer is in use by an image")
-	// ErrLayerUsedByContainer is returned when the caller attempts to delete a layer that is a container's layer.
-	ErrLayerUsedByContainer = errors.New("layer is in use by a container")
-	// ErrImageUsedByContainer is returned when the caller attempts to delete an image that is a container's image.
-	ErrImageUsedByContainer = errors.New("image is in use by a container")
-	// ErrIncompleteOptions is returned when the caller attempts to initialize a Store without providing required information.
-	ErrIncompleteOptions = errors.New("missing necessary StoreOptions")
-	// ErrSizeUnknown is returned when the caller asks for the size of a big data item, but the Store couldn't determine the answer.
-	ErrSizeUnknown = errors.New("size is not known")
-	// ErrStoreIsReadOnly is returned when the caller makes a call to a read-only store that would require modifying its contents.
-	ErrStoreIsReadOnly = errors.New("called a write method on a read-only store")
 	// DefaultStoreOptions is a reasonable default set of options.
 	DefaultStoreOptions StoreOptions
 	stores              []*store
@@ -182,31 +152,6 @@ type Store interface {
 	// GraphDriver obtains and returns a handle to the graph Driver object used
 	// by the Store.
 	GraphDriver() (drivers.Driver, error)
-
-	// LayerStore obtains and returns a handle to the writeable layer store
-	// object used by the Store.  Accessing this store directly will bypass
-	// locking and synchronization, so use it with care.
-	LayerStore() (LayerStore, error)
-
-	// ROLayerStore obtains additional read/only layer store objects used
-	// by the Store.  Accessing these stores directly will bypass locking
-	// and synchronization, so use them with care.
-	ROLayerStores() ([]ROLayerStore, error)
-
-	// ImageStore obtains and returns a handle to the writable image store
-	// object used by the Store.  Accessing this store directly will bypass
-	// locking and synchronization, so use it with care.
-	ImageStore() (ImageStore, error)
-
-	// ROImageStores obtains additional read/only image store objects used
-	// by the Store.  Accessing these stores directly will bypass locking
-	// and synchronization, so use them with care.
-	ROImageStores() ([]ROImageStore, error)
-
-	// ContainerStore obtains and returns a handle to the container store
-	// object used by the Store.  Accessing this store directly will bypass
-	// locking and synchronization, so use it with care.
-	ContainerStore() (ContainerStore, error)
 
 	// CreateLayer creates a new layer in the underlying storage driver,
 	// optionally having the specified ID (one will be assigned if none is
@@ -529,6 +474,7 @@ func GetStore(options StoreOptions) (Store, error) {
 	if err := os.MkdirAll(options.RunRoot, 0700); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
+
 	for _, subdir := range []string{} {
 		if err := os.MkdirAll(filepath.Join(options.RunRoot, subdir), 0700); err != nil && !os.IsExist(err) {
 			return nil, err
@@ -664,6 +610,9 @@ func (s *store) GraphDriver() (drivers.Driver, error) {
 	return s.getGraphDriver()
 }
 
+// LayerStore obtains and returns a handle to the writeable layer store object
+// used by the Store.  Accessing this store directly will bypass locking and
+// synchronization, so it is not a part of the exported Store interface.
 func (s *store) LayerStore() (LayerStore, error) {
 	s.graphLock.Lock()
 	defer s.graphLock.Unlock()
@@ -696,6 +645,9 @@ func (s *store) LayerStore() (LayerStore, error) {
 	return s.layerStore, nil
 }
 
+// ROLayerStores obtains additional read/only layer store objects used by the
+// Store.  Accessing these stores directly will bypass locking and
+// synchronization, so it is not part of the exported Store interface.
 func (s *store) ROLayerStores() ([]ROLayerStore, error) {
 	s.graphLock.Lock()
 	defer s.graphLock.Unlock()
@@ -722,6 +674,9 @@ func (s *store) ROLayerStores() ([]ROLayerStore, error) {
 	return s.roLayerStores, nil
 }
 
+// ImageStore obtains and returns a handle to the writable image store object
+// used by the Store.  Accessing this store directly will bypass locking and
+// synchronization, so it is not a part of the exported Store interface.
 func (s *store) ImageStore() (ImageStore, error) {
 	if s.imageStore != nil {
 		return s.imageStore, nil
@@ -729,6 +684,9 @@ func (s *store) ImageStore() (ImageStore, error) {
 	return nil, ErrLoadError
 }
 
+// ROImageStores obtains additional read/only image store objects used by the
+// Store.  Accessing these stores directly will bypass locking and
+// synchronization, so it is not a part of the exported Store interface.
 func (s *store) ROImageStores() ([]ROImageStore, error) {
 	if len(s.roImageStores) != 0 {
 		return s.roImageStores, nil
@@ -749,6 +707,9 @@ func (s *store) ROImageStores() ([]ROImageStore, error) {
 	return s.roImageStores, nil
 }
 
+// ContainerStore obtains and returns a handle to the container store object
+// used by the Store.  Accessing this store directly will bypass locking and
+// synchronization, so it is not a part of the exported Store interface.
 func (s *store) ContainerStore() (ContainerStore, error) {
 	if s.containerStore != nil {
 		return s.containerStore, nil

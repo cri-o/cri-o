@@ -27,13 +27,6 @@ const (
 	compressionFlag = "diff-compression"
 )
 
-var (
-	// ErrParentUnknown indicates that we didn't record the ID of the parent of the specified layer
-	ErrParentUnknown = errors.New("parent of layer not known")
-	// ErrLayerUnknown indicates that there was no layer with the specified name or ID
-	ErrLayerUnknown = errors.New("layer not known")
-)
-
 // A Layer is a record of a copy-on-write layer that's stored by the lower
 // level graph driver.
 type Layer struct {
@@ -280,7 +273,7 @@ func (r *layerStore) Load() error {
 		}
 	}
 	if shouldSave && !r.IsReadWrite() {
-		return errors.New("layer store assigns the same name to multiple layers")
+		return ErrDuplicateLayerNames
 	}
 	mpath := r.mountspath()
 	data, err = ioutil.ReadFile(mpath)
