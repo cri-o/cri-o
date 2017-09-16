@@ -66,26 +66,12 @@ func (c *CopyRef) NewImage(sc *types.SystemContext) (types.Image, error) {
 	return image.FromSource(src)
 }
 
-func selectManifestType(preferred string, acceptable, supported []string) string {
-	selected := preferred
-	for _, accept := range acceptable {
-		if preferred == accept {
-			return preferred
-		}
-		for _, support := range supported {
-			if accept == support {
-				selected = accept
-			}
-		}
-	}
-	return selected
-}
-
 // NewImageSource creates a new image source from the given system context and manifest
 func (c *CopyRef) NewImageSource(sc *types.SystemContext) (src types.ImageSource, err error) {
 	// Decide which type of manifest and configuration output we're going to provide.
-	manifestType := selectManifestType(c.preferredManifestType, nil, nil)
+	manifestType := c.preferredManifestType
 	// If it's not a format we support, return an error.
+	// Try to provide a manifest and configuration in the same format the current ones are in.
 	if manifestType != v1.MediaTypeImageManifest && manifestType != docker.V2S2MediaTypeManifest {
 		return nil, errors.Errorf("no supported manifest types (attempted to use %q, only know %q and %q)",
 			manifestType, v1.MediaTypeImageManifest, docker.V2S2MediaTypeManifest)
