@@ -1,14 +1,14 @@
 package graphdriver
 
 import (
+	"io"
 	"time"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -31,9 +31,9 @@ type NaiveDiffDriver struct {
 // NewNaiveDiffDriver returns a fully functional driver that wraps the
 // given ProtoDriver and adds the capability of the following methods which
 // it may or may not support on its own:
-//     Diff(id, parent string) (archive.Archive, error)
+//     Diff(id, parent string) (io.ReadCloser, error)
 //     Changes(id, parent string) ([]archive.Change, error)
-//     ApplyDiff(id, parent string, diff archive.Reader) (size int64, err error)
+//     ApplyDiff(id, parent string, diff io.Reader) (size int64, err error)
 //     DiffSize(id, parent string) (size int64, err error)
 func NewNaiveDiffDriver(driver ProtoDriver, uidMaps, gidMaps []idtools.IDMap) Driver {
 	gdw := &NaiveDiffDriver{
@@ -46,7 +46,7 @@ func NewNaiveDiffDriver(driver ProtoDriver, uidMaps, gidMaps []idtools.IDMap) Dr
 
 // Diff produces an archive of the changes between the specified
 // layer and its parent layer which may be "".
-func (gdw *NaiveDiffDriver) Diff(id, parent string) (arch archive.Archive, err error) {
+func (gdw *NaiveDiffDriver) Diff(id, parent string) (arch io.ReadCloser, err error) {
 	layerFs, err := gdw.Get(id, "")
 	if err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func (gdw *NaiveDiffDriver) Changes(id, parent string) ([]archive.Change, error)
 // ApplyDiff extracts the changeset from the given diff into the
 // layer with the specified id and parent, returning the size of the
 // new layer in bytes.
-func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, diff archive.Reader) (size int64, err error) {
+func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, diff io.Reader) (size int64, err error) {
 	// Mount the root filesystem so we can apply the diff/layer.
 	layerFs, err := gdw.Get(id, "")
 	if err != nil {

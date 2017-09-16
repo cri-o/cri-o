@@ -13,11 +13,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// ErrImageUnknown indicates that there was no image with the specified name or ID
-	ErrImageUnknown = errors.New("image not known")
-)
-
 // An Image is a reference to a layer and an associated metadata string.
 type Image struct {
 	// ID is either one which was specified at create-time, or a random
@@ -153,7 +148,7 @@ func (r *imageStore) Load() error {
 		}
 	}
 	if shouldSave && !r.IsReadWrite() {
-		return errors.New("image store assigns the same name to multiple images")
+		return ErrDuplicateImageNames
 	}
 	r.images = images
 	r.idindex = truncindex.NewTruncIndex(idlist)

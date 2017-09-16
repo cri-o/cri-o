@@ -59,6 +59,9 @@ PIDS_LIMIT=${PIDS_LIMIT:-1024}
 
 TESTDIR=$(mktemp -d)
 
+# kpod pull needs a configuration file for shortname pulls
+export REGISTRIES_CONFIG_PATH="$INTEGRATION_ROOT/registries.conf"
+
 # Setup default hooks dir
 HOOKSDIR=$TESTDIR/hooks
 mkdir ${HOOKSDIR}

@@ -121,7 +121,7 @@ func (r *Runtime) PullImage(imgName string, allTags bool, reportWriter io.Writer
 	copyOptions := common.GetCopyOptions(reportWriter, "", nil, nil, common.SigningOptions{})
 
 	for _, image := range images {
-		destRef, err := is.Transport.ParseStoreReference(r.store, image)
+		destRef, err := is.Transport.ParseStoreReference(r.store, srcRef.DockerReference().String())
 		if err != nil {
 			return errors.Errorf("error parsing dest reference name: %v", err)
 		}

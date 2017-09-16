@@ -15,8 +15,7 @@ import (
 var (
 	// ErrNotFound plugin not found
 	ErrNotFound = errors.New("plugin not found")
-	socketsPath = "/run/containers/storage/plugins"
-	specsPaths  = []string{"/etc/containers/storage/plugins", "/usr/lib/containers/storage/plugins"}
+	socketsPath = "/run/container/storage/plugins"
 )
 
 // localRegistry defines a registry that is local (using unix socket).
@@ -116,7 +115,7 @@ func readPluginJSONInfo(name, path string) (*Plugin, error) {
 		return nil, err
 	}
 	p.name = name
-	if len(p.TLSConfig.CAFile) == 0 {
+	if p.TLSConfig != nil && len(p.TLSConfig.CAFile) == 0 {
 		p.TLSConfig.InsecureSkipVerify = true
 	}
 	p.activateWait = sync.NewCond(&sync.Mutex{})

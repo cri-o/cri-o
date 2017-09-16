@@ -105,7 +105,7 @@ func main() {
 		if debug {
 			logrus.Errorf(err.Error())
 		} else {
-			fmt.Println(err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 		}
 		cli.OsExiter(1)
 	}

@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -60,9 +61,9 @@ func stopCmd(c *cli.Context) error {
 		cid, err := server.ContainerStop(container, stopTimeout)
 		if err != nil {
 			if lastError != nil {
-				logrus.Error(lastError)
+				fmt.Fprintln(os.Stderr, lastError)
 			}
-			lastError = errors.Wrapf(err, "failed to stop %v", container)
+			lastError = errors.Wrapf(err, "failed to stop container %v", container)
 		} else {
 			fmt.Println(cid)
 		}

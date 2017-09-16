@@ -19,8 +19,7 @@ const (
 	defaultTimeOut = 30
 )
 
-// NewClient creates a new plugin client (http).
-func NewClient(addr string, tlsConfig *tlsconfig.Options) (*Client, error) {
+func newTransport(addr string, tlsConfig *tlsconfig.Options) (transport.Transport, error) {
 	tr := &http.Transport{}
 
 	if tlsConfig != nil {
@@ -45,15 +44,33 @@ func NewClient(addr string, tlsConfig *tlsconfig.Options) (*Client, error) {
 	}
 	scheme := httpScheme(u)
 
-	clientTransport := transport.NewHTTPTransport(tr, scheme, socket)
-	return NewClientWithTransport(clientTransport), nil
+	return transport.NewHTTPTransport(tr, scheme, socket), nil
 }
 
-// NewClientWithTransport creates a new plugin client with a given transport.
-func NewClientWithTransport(tr transport.Transport) *Client {
+// NewClient creates a new plugin client (http).
+func NewClient(addr string, tlsConfig *tlsconfig.Options) (*Client, error) {
+	clientTransport, err := newTransport(addr, tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+	return newClientWithTransport(clientTransport, 0), nil
+}
+
+// NewClientWithTimeout creates a new plugin client (http).
+func NewClientWithTimeout(addr string, tlsConfig *tlsconfig.Options, timeout time.Duration) (*Client, error) {
+	clientTransport, err := newTransport(addr, tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+	return newClientWithTransport(clientTransport, timeout), nil
+}
+
+// newClientWithTransport creates a new plugin client with a given transport.
+func newClientWithTransport(tr transport.Transport, timeout time.Duration) *Client {
 	return &Client{
 		http: &http.Client{
 			Transport: tr,
+			Timeout:   timeout,
 		},
 		requestFactory: tr,
 	}
@@ -112,15 +129,15 @@ func (c *Client) SendFile(serviceMethod string, data io.Reader, ret interface{})
 }
 
 func (c *Client) callWithRetry(serviceMethod string, data io.Reader, retry bool) (io.ReadCloser, error) {
-	req, err := c.requestFactory.NewRequest(serviceMethod, data)
-	if err != nil {
-		return nil, err
-	}
-
 	var retries int
 	start := time.Now()
 
 	for {
+		req, err := c.requestFactory.NewRequest(serviceMethod, data)
+		if err != nil {
+			return nil, err
+		}
+
 		resp, err := c.http.Do(req)
 		if err != nil {
 			if !retry {

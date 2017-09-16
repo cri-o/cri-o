@@ -78,7 +78,11 @@ The `crio` table supports the following options:
   A prefix to prepend to image names that can't be pulled as-is (default: "docker://")
 
 **image_volumes**=""
-  Image volume handling ('mkdir' or 'ignore') (default: "mkdir")
+  Image volume handling ('mkdir', 'bind' or 'ignore') (default: "mkdir")
+  mkdir: A directory is created inside the container root filesystem for the volumes.
+  bind: A directory is created inside container state directory and bind mounted into
+  the container for the volumes.
+  ignore: All volumes are just ignored and no action is taken.
 
 **insecure_registries**=""
   Enable insecure registry  communication,  i.e.,  enable  un-encrypted
