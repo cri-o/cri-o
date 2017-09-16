@@ -151,6 +151,7 @@ type Sandbox struct {
 	privileged     bool
 	trusted        bool
 	resolvPath     string
+	hostnamePath   string
 	hostname       string
 	portMappings   []*hostport.PortMapping
 	stopped        bool
@@ -299,6 +300,16 @@ func (s *Sandbox) Trusted() bool {
 // ResolvPath returns the resolv path for the sandbox
 func (s *Sandbox) ResolvPath() string {
 	return s.resolvPath
+}
+
+// AddHostnamePath adds the hostname path to the sandbox
+func (s *Sandbox) AddHostnamePath(hostname string) {
+	s.hostnamePath = hostname
+}
+
+// HostnamePath retrieves the hostname path from a sandbox
+func (s *Sandbox) HostnamePath() string {
+	return s.hostnamePath
 }
 
 // Hostname returns the hsotname of the sandbox

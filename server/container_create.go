@@ -45,7 +45,7 @@ const (
 	defaultSystemdParent  = "system.slice"
 )
 
-func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
+func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
 	volumes := []oci.ContainerVolume{}
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
@@ -73,7 +73,7 @@ func addOCIBindMounts(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, 
 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
-			if err := label.Relabel(src, sb.MountLabel(), true); err != nil && err != unix.ENOTSUP {
+			if err := label.Relabel(src, mountLabel, true); err != nil && err != unix.ENOTSUP {
 				return nil, fmt.Errorf("relabel failed %s: %v", src, err)
 			}
 		}
@@ -304,11 +304,11 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	if sc != nil {
 		containerUser := ""
 		// Case 1: run as user is set by kubelet
-		if sc.RunAsUser != nil {
+		if sc.GetRunAsUser() != nil {
 			containerUser = strconv.FormatInt(sc.GetRunAsUser().Value, 10)
 		} else {
 			// Case 2: run as username is set by kubelet
-			userName := sc.RunAsUsername
+			userName := sc.GetRunAsUsername()
 			if userName != "" {
 				containerUser = userName
 			} else {
@@ -338,7 +338,7 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 		}
 
 		// Add groups from CRI
-		groups := sc.SupplementalGroups
+		groups := sc.GetSupplementalGroups()
 		for _, group := range groups {
 			specgen.AddProcessAdditionalGid(uint32(group))
 		}
@@ -519,7 +519,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
-	containerVolumes, err := addOCIBindMounts(sb, containerConfig, &specgen)
+	processLabel, mountLabel, err := getSELinuxLabels(containerConfig.GetLinux().GetSecurityContext().GetSelinuxOptions())
+	if err != nil {
+		return nil, err
+	}
+
+	containerVolumes, err := addOCIBindMounts(mountLabel, containerConfig, &specgen)
 	if err != nil {
 		return nil, err
 	}
@@ -703,7 +708,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 					}
 				}
 			}
-			specgen.SetProcessSelinuxLabel(sb.ProcessLabel())
+			specgen.SetProcessSelinuxLabel(processLabel)
 		}
 
 		specgen.SetLinuxMountLabel(sb.MountLabel())
@@ -818,8 +823,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
+		if err := label.Relabel(sb.ResolvPath(), mountLabel, true); err != nil && err != unix.ENOTSUP {
+			return nil, err
+		}
+
 		// bind mount the pod resolver file
 		specgen.AddBindMount(sb.ResolvPath(), "/etc/resolv.conf", options)
+	}
+
+	if sb.HostnamePath() != "" {
+		if err := label.Relabel(sb.HostnamePath(), mountLabel, true); err != nil && err != unix.ENOTSUP {
+			return nil, err
+		}
+
+		specgen.AddBindMount(sb.HostnamePath(), "/etc/hostname", options)
 	}
 
 	// Bind mount /etc/hosts for host networking containers
@@ -827,9 +844,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
 	}
 
-	if sb.Hostname() != "" {
-		specgen.SetHostname(sb.Hostname())
-	}
+	specgen.SetHostname(sb.Hostname())
 
 	specgen.AddAnnotation(annotations.Name, containerName)
 	specgen.AddAnnotation(annotations.ContainerID, containerID)
@@ -877,7 +892,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		containerName, containerID,
 		metaname,
 		attempt,
-		sb.MountLabel(),
+		mountLabel,
 		nil)
 	if err != nil {
 		return nil, err
@@ -900,7 +915,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// Add image volumes
-	if err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, sb.MountLabel()); err != nil {
+	if err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, mountLabel); err != nil {
 		return nil, err
 	}
 

@@ -113,7 +113,3 @@ COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redh
 WORKDIR /go/src/github.com/kubernetes-incubator/cri-o
 
 ADD . /go/src/github.com/kubernetes-incubator/cri-o
-
-RUN make test/copyimg/copyimg \
-	&& mkdir -p .artifacts/redis-image \
-	&& ./test/copyimg/copyimg --import-from=docker://redis --export-to=dir:.artifacts/redis-image --signature-policy ./test/policy.json

@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -187,12 +188,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.SetProcessArgs([]string{s.config.PauseCommand})
 	}
 
-	// set hostname
-	hostname := req.GetConfig().Hostname
-	if hostname != "" {
-		g.SetHostname(hostname)
-	}
-
 	// set DNS options
 	if req.GetConfig().GetDnsConfig() != nil {
 		dnsServers := req.GetConfig().GetDnsConfig().Servers
@@ -208,6 +203,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			return nil, err
 		}
+		if err := label.Relabel(resolvPath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+			return nil, err
+		}
+
 		g.AddBindMount(resolvPath, "/etc/resolv.conf", []string{"ro"})
 	}
 
@@ -300,6 +299,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := ensureSaneLogPath(logPath); err != nil {
 		return nil, err
 	}
+
+	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
+
+	hostname, err := getHostname(id, req.GetConfig().Hostname, hostNetwork)
+	if err != nil {
+		return nil, err
+	}
+	g.SetHostname(hostname)
 
 	privileged := s.privilegedSandbox(req)
 	trusted := s.trustedSandbox(req)
@@ -399,8 +406,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
-	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
-
 	// set up namespaces
 	if hostNetwork {
 		err = g.RemoveLinuxNamespace("network")
@@ -455,6 +460,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 	g.SetRootPath(mountPoint)
+
+	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
+	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
+		return nil, err
+	}
+	if err := label.Relabel(hostnamePath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+		return nil, err
+	}
+	g.AddBindMount(hostnamePath, "/etc/hostname", []string{"ro"})
+	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
+	sb.AddHostnamePath(hostnamePath)
 
 	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.Trusted(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
@@ -513,6 +529,23 @@ func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
 		}
 	}
 	return out
+}
+
+func getHostname(id, hostname string, hostNetwork bool) (string, error) {
+	if hostNetwork {
+		if hostname == "" {
+			h, err := os.Hostname()
+			if err != nil {
+				return "", err
+			}
+			hostname = h
+		}
+	} else {
+		if hostname == "" {
+			hostname = id[:12]
+		}
+	}
+	return hostname, nil
 }
 
 func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
