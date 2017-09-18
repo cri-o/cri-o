@@ -38,6 +38,7 @@ import (
 const (
 	seccompUnconfined      = "unconfined"
 	seccompRuntimeDefault  = "runtime/default"
+	seccompDockerDefault   = "docker/default"
 	seccompLocalhostPrefix = "localhost/"
 
 	scopePrefix           = "crio"
@@ -1033,18 +1034,13 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnot
 		specgen.Spec().Linux.Seccomp = nil
 		return nil
 	}
-	if profile == seccompRuntimeDefault {
+	if profile == seccompRuntimeDefault || profile == seccompDockerDefault {
 		return seccomp.LoadProfileFromStruct(s.seccompProfile, specgen)
 	}
 	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
 		return fmt.Errorf("unknown seccomp profile option: %q", profile)
 	}
-	//file, err := ioutil.ReadFile(filepath.Join(s.seccompProfileRoot, strings.TrimPrefix(profile, seccompLocalhostPrefix)))
-	//if err != nil {
-	//return err
-	//}
-	// TODO(runcom): setup from provided node's seccomp profile
-	// can't do this yet, see https://issues.k8s.io/36997
+	// FIXME: https://github.com/kubernetes/kubernetes/issues/39128
 	return nil
 }
 
