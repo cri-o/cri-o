@@ -32,13 +32,24 @@ jobs:
         - make .gitvalidation
         - make gofmt
         - make lint
+        - make testunit
         - make docs
         - make
       go: 1.8.x
+    - stage: Build and Verify
+      script:
+        - make .gitvalidation
+        - make gofmt
+        - make lint
+        - make testunit
+        - make docs
+        - make
+      go: 1.9.x
     - script:
         - make .gitvalidation
         - make gofmt
         - make lint
+        - make testunit
         - make docs
         - make
       go: tip

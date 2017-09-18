@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -187,12 +188,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.SetProcessArgs([]string{s.config.PauseCommand})
 	}
 
-	// set hostname
-	hostname := req.GetConfig().Hostname
-	if hostname != "" {
-		g.SetHostname(hostname)
-	}
-
 	// set DNS options
 	if req.GetConfig().GetDnsConfig() != nil {
 		dnsServers := req.GetConfig().GetDnsConfig().Servers
@@ -208,6 +203,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			return nil, err
 		}
+		if err := label.Relabel(resolvPath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+			return nil, err
+		}
+
 		g.AddBindMount(resolvPath, "/etc/resolv.conf", []string{"ro"})
 	}
 
@@ -250,7 +249,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace,
 	if !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid && !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
-		processLabel, mountLabel, err = getSELinuxLabels(nil)
+		processLabel, mountLabel, err = getSELinuxLabels(req.GetConfig().GetLinux().GetSecurityContext().GetSelinuxOptions())
 		if err != nil {
 			return nil, err
 		}
@@ -300,6 +299,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := ensureSaneLogPath(logPath); err != nil {
 		return nil, err
 	}
+
+	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
+
+	hostname, err := getHostname(id, req.GetConfig().Hostname, hostNetwork)
+	if err != nil {
+		return nil, err
+	}
+	g.SetHostname(hostname)
 
 	privileged := s.privilegedSandbox(req)
 	trusted := s.trustedSandbox(req)
@@ -399,8 +406,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
-	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
-
 	// set up namespaces
 	if hostNetwork {
 		err = g.RemoveLinuxNamespace("network")
@@ -455,6 +460,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 	g.SetRootPath(mountPoint)
+
+	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
+	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
+		return nil, err
+	}
+	if err := label.Relabel(hostnamePath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+		return nil, err
+	}
+	g.AddBindMount(hostnamePath, "/etc/hostname", []string{"ro"})
+	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
+	sb.AddHostnamePath(hostnamePath)
 
 	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs(), labels, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.Trusted(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
@@ -515,6 +531,23 @@ func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
 	return out
 }
 
+func getHostname(id, hostname string, hostNetwork bool) (string, error) {
+	if hostNetwork {
+		if hostname == "" {
+			h, err := os.Hostname()
+			if err != nil {
+				return "", err
+			}
+			hostname = h
+		}
+	} else {
+		if hostname == "" {
+			hostname = id[:12]
+		}
+	}
+	return hostname, nil
+}
+
 func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 	storageMetadata, err := s.StorageRuntimeServer().GetContainerMetadata(id)
 	if err != nil {
@@ -525,30 +558,22 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 }
 
 func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mountLabel string, err error) {
-	processLabel = ""
+	labels := []string{}
 	if selinuxOptions != nil {
-		user := selinuxOptions.User
-		if user == "" {
-			return "", "", fmt.Errorf("SELinuxOption.User is empty")
+		if selinuxOptions.User != "" {
+			labels = append(labels, "user:"+selinuxOptions.User)
 		}
-
-		role := selinuxOptions.Role
-		if role == "" {
-			return "", "", fmt.Errorf("SELinuxOption.Role is empty")
+		if selinuxOptions.Role != "" {
+			labels = append(labels, "role:"+selinuxOptions.Role)
 		}
-
-		t := selinuxOptions.Type
-		if t == "" {
-			return "", "", fmt.Errorf("SELinuxOption.Type is empty")
+		if selinuxOptions.Type != "" {
+			labels = append(labels, "type:"+selinuxOptions.Type)
 		}
-
-		level := selinuxOptions.Level
-		if level == "" {
-			return "", "", fmt.Errorf("SELinuxOption.Level is empty")
+		if selinuxOptions.Level != "" {
+			labels = append(labels, "level:"+selinuxOptions.Level)
 		}
-		processLabel = fmt.Sprintf("%s:%s:%s:%s", user, role, t, level)
 	}
-	return label.InitLabels(label.DupSecOpt(processLabel))
+	return label.InitLabels(labels)
 }
 
 func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {

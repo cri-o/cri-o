@@ -52,6 +52,9 @@ const (
 	// ResolvPath is the resolver configuration path annotation
 	ResolvPath = "io.kubernetes.cri-o.ResolvPath"
 
+	// HostnamePath is the path to /etc/hostname to bind mount annotation
+	HostnamePath = "io.kubernetes.cri-o.HostnamePath"
+
 	// SandboxID is the sandbox ID annotation
 	SandboxID = "io.kubernetes.cri-o.SandboxID"
 

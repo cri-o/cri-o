@@ -65,7 +65,7 @@
 				"user": "system_u",
 				"role": "system_r",
 				"type": "svirt_lxc_net_t",
-				"level": "s0:c4-c5"
+				"level": "s0:c4,c5"
 			}
 		}
 	}
