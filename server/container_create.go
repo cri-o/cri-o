@@ -66,6 +66,11 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 			}
 		}
 
+		src, err := resolveSymbolicLink(src)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
+		}
+
 		options := []string{"rw"}
 		if mount.Readonly {
 			options = []string{"ro"}
