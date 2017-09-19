@@ -58,5 +58,6 @@ There are other equivalents for these tools
 | `docker stop`   | [`kpod stop`](./docs/kpod-stop.1.md)      |
 | `docker unpause`| [`kpod unpause`](./docs/kpod-unpause.1.md)|
 | `docker version`| [`kpod version`](./docs/kpod-version.1.md)|
+| `docker wait`   | [`kpod wait`](./docs/kpod-wait.1.md)|
 
 *** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/kpod-cp.1.md) for more information.
