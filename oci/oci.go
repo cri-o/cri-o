@@ -24,6 +24,8 @@ import (
 const (
 	// ContainerStateCreated represents the created state of a container
 	ContainerStateCreated = "created"
+	// ContainerStatePaused represents the paused state of a container
+	ContainerStatePaused = "paused"
 	// ContainerStateRunning represents the running state of a container
 	ContainerStateRunning = "running"
 	// ContainerStateStopped represents the stopped state of a container
@@ -677,4 +679,24 @@ func (r *Runtime) RuntimeReady() (bool, error) {
 // accept containers which require container network.
 func (r *Runtime) NetworkReady() (bool, error) {
 	return true, nil
+}
+
+// PauseContainer pauses a container.
+func (r *Runtime) PauseContainer(c *Container) error {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	if _, err := utils.ExecCmd(r.Path(c), "pause", c.id); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UnpauseContainer unpauses a container.
+func (r *Runtime) UnpauseContainer(c *Container) error {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	if _, err := utils.ExecCmd(r.Path(c), "unpause", c.id); err != nil {
+		return err
+	}
+	return nil
 }
