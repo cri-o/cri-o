@@ -890,13 +890,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
+	metaname := metadata.Name
 	if !privileged {
-		if err = s.setupSeccomp(&specgen, containerName, sb.Annotations()); err != nil {
+		if err = s.setupSeccomp(&specgen, metaname, sb.Annotations()); err != nil {
 			return nil, err
 		}
 	}
 
-	metaname := metadata.Name
 	attempt := metadata.Attempt
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.ImageContext(),
 		sb.Name(), sb.ID(),
@@ -1020,9 +1020,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 }
 
 func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnotations map[string]string) error {
-	profile, ok := sbAnnotations["security.alpha.kubernetes.io/seccomp/container/"+cname]
+	profile, ok := sbAnnotations["container.seccomp.security.alpha.kubernetes.io/"+cname]
 	if !ok {
-		profile, ok = sbAnnotations["security.alpha.kubernetes.io/seccomp/pod"]
+		profile, ok = sbAnnotations["seccomp.security.alpha.kubernetes.io/pod"]
 		if !ok {
 			// running w/o seccomp, aka unconfined
 			profile = seccompUnconfined
