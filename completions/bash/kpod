@@ -349,6 +349,14 @@ _kpod_export() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_kpod_pause() {
+     local options_with_args="
+     --help -h
+     "
+     local boolean_options=""
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _kpod_ps() {
      local options_with_args="
      --filter -f
@@ -369,6 +377,14 @@ _kpod_ps() {
 _kpod_stop() {
      local options_with_args="
      --timeout -t
+     "
+     local boolean_options=""
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_unpause() {
+     local options_with_args="
+     --help -h
      "
      local boolean_options=""
      _complete_ "$options_with_args" "$boolean_options"
@@ -424,6 +440,7 @@ _kpod_kpod() {
     load
     logs
     mount
+    pause
     ps
     pull
     push
@@ -436,6 +453,7 @@ _kpod_kpod() {
     tag
     umount
     unmount
+    unpause
     version
      "
 
