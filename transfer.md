@@ -46,6 +46,7 @@ There are other equivalents for these tools
 | `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
 | `docker images` | [`kpod images`](./docs/kpod-images.1.md)  |
 | `docker load`   | [`kpod load`](./docs/kpod-load.1.md)      |
+| `docker pause`  | [`kpod pause`](./docs/kpod-pause.1.md)    |
 | `docker ps`     | [`kpod ps`](./docs/kpod-ps.1.md)          |
 | `docker pull`   | [`kpod pull`](./docs/kpod-pull.1.md)      |
 | `docker push`   | [`kpod push`](./docs/kpod-push.1.md)      |
@@ -54,4 +55,6 @@ There are other equivalents for these tools
 | `docker rmi`    | [`kpod rmi`](./docs/kpod-rmi.1.md)        |
 | `docker save`   | [`kpod save`](./docs/kpod-save.1.md)      |
 | `docker tag`    | [`kpod tag`](./docs/kpod-tag.1.md)        |
+| `docker stop`   | [`kpod stop`](./docs/kpod-stop.1.md)      |
+| `docker unpause`| [`kpod unpause`](./docs/kpod-unpause.1.md)|
 | `docker version`| [`kpod version`](./docs/kpod-version.1.md)|

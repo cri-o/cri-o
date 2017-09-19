@@ -40,6 +40,7 @@ func main() {
 		loadCommand,
 		logsCommand,
 		mountCommand,
+		pauseCommand,
 		psCommand,
 		pullCommand,
 		pushCommand,
@@ -51,6 +52,7 @@ func main() {
 		stopCommand,
 		tagCommand,
 		umountCommand,
+		unpauseCommand,
 		versionCommand,
 	}
 	app.Before = func(c *cli.Context) error {
