@@ -53,6 +53,8 @@ echo "Bootstrapping trusted virtual environment, this may take a few minutes, de
 echo "(logs:  \"$WORKSPACE/crio_venv_setup_log.txt\")"
 echo
 
+mkdir -p "$WORKSPACE/artifacts"
+
 (
     set -x
     cd "$WORKSPACE"
@@ -89,7 +91,7 @@ echo
     rm -rf ./.venvbootstrap
     # Exit trusted virtualenv
 
-) &> $WORKSPACE/crio_venv_setup_log.txt;
+) &> $WORKSPACE/artifacts/crio_venv_setup_log.txt;
 
 echo
 echo "Executing \"$WORKSPACE/.cri-o_venv/bin/ansible-playbook $@\""
