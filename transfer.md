@@ -40,7 +40,7 @@ There are other equivalents for these tools
 | Existing Step | CRI-O (and friends) |
 | :---: | :---: |
 | `docker build`  | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
-| `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md)       |
+| `docker cp`     | [`kpod cp`](./docs/kpod-cp.1.md)          |
 | `docker diff`   | [`kpod diff`](./docs/kpod-diff.1.md)      |
 | `docker export` | [`kpod export`](./docs/kpod-export.1.md)  |
 | `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
