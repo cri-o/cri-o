@@ -525,12 +525,25 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
+	var readOnlyRootfs bool
+	var privileged bool
+	if containerConfig.GetLinux().GetSecurityContext() != nil {
+		if containerConfig.GetLinux().GetSecurityContext().Privileged {
+			privileged = true
+		}
+
+		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
+			readOnlyRootfs = true
+			specgen.SetRootReadonly(true)
+		}
+	}
+
 	mountLabel := sb.MountLabel()
 	processLabel := sb.ProcessLabel()
 	selinuxConfig := containerConfig.GetLinux().GetSecurityContext().GetSelinuxOptions()
 	if selinuxConfig != nil {
 		var err error
-		processLabel, mountLabel, err = getSELinuxLabels(selinuxConfig)
+		processLabel, mountLabel, err = getSELinuxLabels(selinuxConfig, privileged)
 		if err != nil {
 			return nil, err
 		}
@@ -567,19 +580,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if labels != nil {
 		for k, v := range labels {
 			specgen.AddAnnotation(k, v)
-		}
-	}
-
-	var readOnlyRootfs bool
-	var privileged bool
-	if containerConfig.GetLinux().GetSecurityContext() != nil {
-		if containerConfig.GetLinux().GetSecurityContext().Privileged {
-			privileged = true
-		}
-
-		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
-			readOnlyRootfs = true
-			specgen.SetRootReadonly(true)
 		}
 	}
 
@@ -673,6 +673,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		if privileged {
 			// this is setting correct capabilities as well for privileged mode
 			specgen.SetupPrivileged(true)
+			setOCIBindMountsPrivileged(&specgen)
 		} else {
 			toCAPPrefixed := func(cap string) string {
 				if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
@@ -720,10 +721,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 					}
 				}
 			}
-			specgen.SetProcessSelinuxLabel(processLabel)
 		}
-
-		specgen.SetLinuxMountLabel(sb.MountLabel())
+		specgen.SetProcessSelinuxLabel(processLabel)
+		specgen.SetLinuxMountLabel(mountLabel)
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
 			!containerConfig.GetLinux().GetSecurityContext().Privileged {
@@ -1106,4 +1106,29 @@ func getUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, erro
 	}
 
 	return uid, gid, additionalGids, nil
+}
+
+func setOCIBindMountsPrivileged(g *generate.Generator) {
+	spec := g.Spec()
+	// clear readonly for /sys and cgroup
+	for i, m := range spec.Mounts {
+		if spec.Mounts[i].Destination == "/sys" && !spec.Root.Readonly {
+			clearReadOnly(&spec.Mounts[i])
+		}
+		if m.Type == "cgroup" {
+			clearReadOnly(&spec.Mounts[i])
+		}
+	}
+	spec.Linux.ReadonlyPaths = nil
+	spec.Linux.MaskedPaths = nil
+}
+
+func clearReadOnly(m *rspec.Mount) {
+	var opt []string
+	for _, o := range m.Options {
+		if o != "ro" {
+			opt = append(opt, o)
+		}
+	}
+	m.Options = opt
 }

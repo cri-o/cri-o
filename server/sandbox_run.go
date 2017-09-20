@@ -247,15 +247,19 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", id, logDir)
 	}
 
-	// Don't use SELinux separation with Host Pid or IPC Namespace,
-	if !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid && !req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
-		processLabel, mountLabel, err = getSELinuxLabels(req.GetConfig().GetLinux().GetSecurityContext().GetSelinuxOptions())
-		if err != nil {
-			return nil, err
-		}
-		g.SetProcessSelinuxLabel(processLabel)
-		g.SetLinuxMountLabel(mountLabel)
+	privileged := s.privilegedSandbox(req)
+
+	processLabel, mountLabel, err = getSELinuxLabels(req.GetConfig().GetLinux().GetSecurityContext().GetSelinuxOptions(), privileged)
+	if err != nil {
+		return nil, err
 	}
+
+	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
+	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid || req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
+		processLabel, mountLabel = "", ""
+	}
+	g.SetProcessSelinuxLabel(processLabel)
+	g.SetLinuxMountLabel(mountLabel)
 
 	// create shm mount for the pod containers.
 	var shmPath string
@@ -308,7 +312,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.SetHostname(hostname)
 
-	privileged := s.privilegedSandbox(req)
 	trusted := s.trustedSandbox(req)
 	g.AddAnnotation(annotations.Metadata, string(metadataJSON))
 	g.AddAnnotation(annotations.Labels, string(labelsJSON))
@@ -557,7 +560,10 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 	return s.StorageRuntimeServer().SetContainerMetadata(id, storageMetadata)
 }
 
-func getSELinuxLabels(selinuxOptions *pb.SELinuxOption) (processLabel string, mountLabel string, err error) {
+func getSELinuxLabels(selinuxOptions *pb.SELinuxOption, privileged bool) (processLabel string, mountLabel string, err error) {
+	if privileged {
+		return "", "", nil
+	}
 	labels := []string{}
 	if selinuxOptions != nil {
 		if selinuxOptions.User != "" {
