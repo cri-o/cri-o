@@ -56,27 +56,29 @@ echo
 (
     set -x
     cd "$WORKSPACE"
-    # N/B: local system's virtualenv binary - uncontrolled version fixed below
-    virtualenv --no-site-packages --python=python2.7 ./.venvbootstrap
-    # Set up paths to install/operate out of $WORKSPACE/.venvbootstrap
-    source ./.venvbootstrap/bin/activate
-    # N/B: local system's pip binary - uncontrolled version fixed below
-    # pip may not support --cache-dir, force it's location into $WORKSPACE the ugly-way
-    OLD_HOME="$HOME"
-    export HOME="$WORKSPACE"
-    export PIPCACHE="$WORKSPACE/.cache/pip"
-    pip install --force-reinstall --upgrade pip==9.0.1
-    # Undo --cache-dir workaround
-    export HOME="$OLD_HOME"
-    # Install fixed, trusted, hashed versions of all requirements (including pip and virtualenv)
-    pip --cache-dir="$PIPCACHE" install --require-hashes \
-        --requirement "$SCRIPT_PATH/requirements.txt"
+    # When running more than once, make it fast by skipping the bootstrap
+    if [ ! -d "./.cri-o_venv" ]; then
+        # N/B: local system's virtualenv binary - uncontrolled version fixed below
+        virtualenv --no-site-packages --python=python2.7 ./.venvbootstrap
+        # Set up paths to install/operate out of $WORKSPACE/.venvbootstrap
+        source ./.venvbootstrap/bin/activate
+        # N/B: local system's pip binary - uncontrolled version fixed below
+        # pip may not support --cache-dir, force it's location into $WORKSPACE the ugly-way
+        OLD_HOME="$HOME"
+        export HOME="$WORKSPACE"
+        export PIPCACHE="$WORKSPACE/.cache/pip"
+        pip install --force-reinstall --upgrade pip==9.0.1
+        # Undo --cache-dir workaround
+        export HOME="$OLD_HOME"
+        # Install fixed, trusted, hashed versions of all requirements (including pip and virtualenv)
+        pip --cache-dir="$PIPCACHE" install --require-hashes \
+            --requirement "$SCRIPT_PATH/requirements.txt"
 
-    # Setup trusted virtualenv using hashed binary from requirements.txt
-    ./.venvbootstrap/bin/virtualenv --no-site-packages --python=python2.7 ./.cri-o_venv
-    # Exit untrusted virtualenv
-    deactivate
-
+        # Setup trusted virtualenv using hashed binary from requirements.txt
+        ./.venvbootstrap/bin/virtualenv --no-site-packages --python=python2.7 ./.cri-o_venv
+        # Exit untrusted virtualenv
+        deactivate
+    fi
     # Enter trusted virtualenv
     source ./.cri-o_venv/bin/activate
     # Re-install from cache
