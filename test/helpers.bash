@@ -60,6 +60,9 @@ PIDS_LIMIT=${PIDS_LIMIT:-1024}
 LOG_SIZE_MAX_LIMIT=${LOG_SIZE_MAX_LIMIT:--1}
 
 TESTDIR=$(mktemp -d)
+ROOT="$TESTDIR/crio"
+RUNROOT="$TESTDIR/crio-run"
+KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS} --runtime ${RUNTIME_BINARY}"
 
 # kpod pull needs a configuration file for shortname pulls
 export REGISTRIES_CONFIG_PATH="$INTEGRATION_ROOT/registries.conf"
