@@ -1,5 +1,8 @@
 ---
 
+# When swap setup is necessary, make it this size
+swapfileGB: 8
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"
