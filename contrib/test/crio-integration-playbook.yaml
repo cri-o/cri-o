@@ -7,6 +7,7 @@
   vars:
     xunit: false
     cni_commit: dcf7368eeab15e2affc6256f0bb1e84dd46a34de
+    integration_timeout_seconds: "{{ 60 * 60 * 2 }}"
   pre_tasks:
     # Assumes subscription stuff won't get in the way
     - name: Install pre-requesites for ansible on all platforms
@@ -337,7 +338,7 @@
     shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration 2>&1 > testout.txt'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
-    async: 3600
+    async: "{{ integration_timeout_seconds | int }}"
     poll: 10
     ignore_errors: yes
     when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
@@ -345,7 +346,7 @@
     shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
-    async: 3600
+    async: "{{ integration_timeout_seconds | int }}"
     poll: 10
     ignore_errors: yes
     when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS') and xunit
@@ -353,7 +354,7 @@
     shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2" make localintegration 2>&1 > testout.txt'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
-    async: 3600
+    async: "{{ integration_timeout_seconds | int }}"
     poll: 10
     ignore_errors: yes
     when: ansible_distribution == 'Fedora'
@@ -361,7 +362,7 @@
     shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2" make localintegration'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
-    async: 3600
+    async: "{{ integration_timeout_seconds | int }}"
     poll: 10
     ignore_errors: yes
     when: (ansible_distribution == 'Fedora' and xunit)
