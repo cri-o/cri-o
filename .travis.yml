@@ -53,8 +53,9 @@ jobs:
         - make docs
         - make
       go: tip
-    - stage: Integration Test
+    - stage: Unit and Integration Tests
       script:
+        - make testunit
         - make integration
       go: 1.8.x
 

@@ -45,6 +45,8 @@ help:
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
 	@echo " * 'binaries' - Build crio, conmon and crioctl"
+	@echo " * 'test' - Execute unit and integration tests"
+	@echo " * 'testunit' - Execute unit tests"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
@@ -112,6 +114,9 @@ crioimage:
 
 dbuild: crioimage
 	docker run --name=${CRIO_INSTANCE} --privileged ${CRIO_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm make binaries
+
+test: crioimage
+	docker run -e STORAGE_OPTS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make -k testunit localintegration
 
 integration: crioimage
 	docker run -e STORAGE_OPTS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
