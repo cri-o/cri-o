@@ -41,7 +41,7 @@ It is currently in active development in the Kubernetes community through the [d
 | ---------------------------------------------------- | --------------------------------------------------------------------------|-----|
 | [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   ||
 | [kpod(1)](/docs/kpod.1.md)                           | Simple management tool for pods and images                                ||
-| [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Copy files/folders between a container and the local filesystem           ||
+| [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Instead of providing a `kpod cp` command, the man page `kpod-cp` describes how to use the `kpod mount` command to have even more flexibility and functionality.||
 | [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                      ||
 | [kpod-export(1)](/docs/kpod-export.1.md)             | Export container's filesystem contents as a tar archive                   ||
 | [kpod-history(1)](/docs/kpod-history.1.md)           | Shows the history of an image                                             |[![...](/docs/play.png)](https://asciinema.org/a/bCvUQJ6DkxInMELZdc5DinNSx)|
