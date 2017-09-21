@@ -53,12 +53,16 @@ make all
 %{_mandir}/man5/crio.conf.5*
 %{_mandir}/man8/crio.8*
 %{_sysconfdir}/crio.conf
+%{_sysconfdir}/seccomp.json
 %dir /%{_libexecdir}/crio
 /%{_libexecdir}/crio/conmon
 /%{_libexecdir}/crio/pause
 %{_unitdir}/crio.service
 %doc README.md
 %license LICENSE
+%dir /usr/share/oci-umount/oci-umount.d
+/usr/share/oci-umount/oci-umount.d/cri-umount.conf
+
 
 %preun
 %systemd_preun %{Name}
