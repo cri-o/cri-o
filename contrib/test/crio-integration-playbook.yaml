@@ -88,8 +88,11 @@
       truncate -s 8G /root/swap && \
       export SWAPDEV=$(losetup --show -f /root/swap | head -1) && \
       mkswap $SWAPDEV && \
-      swapon $SWAPDEV && \
-      swapon --show || true
+      swapon $SWAPDEV || true
+  - name: Capture current state of swap for debugging
+    command: swapon --show
+    register: result
+  - debug: var=result
   - name: Make testing directories to conform to testing standards
     file:
       path: "{{ item }}"
