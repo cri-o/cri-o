@@ -1,4 +1,4 @@
-package images
+package libpod
 
 import (
 	"bytes"

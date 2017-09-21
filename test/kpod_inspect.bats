@@ -35,7 +35,7 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     inspectOutput="$output"
-    run ${KPOD_BINARY} $KPOD_OPTIONS images --quiet ${IMAGE}
+    run ${KPOD_BINARY} $KPOD_OPTIONS images --no-trunc --quiet ${IMAGE}
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "$inspectOutput" ]

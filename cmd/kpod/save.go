@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/kubernetes-incubator/cri-o/libpod"
-	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -72,12 +71,12 @@ func saveCmd(c *cli.Context) error {
 
 	var dst string
 	switch c.String("format") {
-	case images.OCIArchive:
-		dst = images.OCIArchive + ":" + output
-	case images.DockerArchive:
+	case libpod.OCIArchive:
+		dst = libpod.OCIArchive + ":" + output
+	case libpod.DockerArchive:
 		fallthrough
 	case "":
-		dst = images.DockerArchive + ":" + output
+		dst = libpod.DockerArchive + ":" + output
 	default:
 		return errors.Errorf("unknown format option %q", c.String("format"))
 	}
