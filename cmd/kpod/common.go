@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"fmt"
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
@@ -92,6 +93,10 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	}
 	if c.GlobalIsSet("runtime") {
 		config.Runtime = c.GlobalString("runtime")
+	}
+	if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
+		// path to runtime does not exist
+		return config, fmt.Errorf("invalid --runtime value %q", err)
 	}
 	return config, nil
 }
