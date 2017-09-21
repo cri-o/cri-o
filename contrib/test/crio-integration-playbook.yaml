@@ -8,22 +8,21 @@
     cni_commit: dcf7368eeab15e2affc6256f0bb1e84dd46a34de
   tasks:
   - name: Update all packages
-    yum:
+    package:
       name: '*'
       state: latest
     async: 600
     poll: 10
     when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS')
     ignore_errors: true
-  - name: Update all packages on Fedora
-    dnf:
+  - name: Update all packages
+    package:
       name: '*'
       state: latest
     async: 600
     poll: 10
-    when: ansible_distribution == 'Fedora'
-  - name: Make sure we have all required packages
-    yum:
+  - name: Make sure we have all required packages on Fedora and its downstreams
+    package:
       name: "{{ item }}"
       state: latest
     with_items:
@@ -52,38 +51,7 @@
       - socat
     async: 600
     poll: 10
-    when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS')
-  - name: Make sure we have all required packages on Fedora
-    dnf:
-      name: "{{ item }}"
-      state: latest
-    with_items:
-      - wget
-      - git
-      - make
-      - gcc
-      - tar
-      - libseccomp-devel
-      - golang
-      - glib2-devel
-      - glibc-static
-      - container-selinux
-      - btrfs-progs-devel
-      - device-mapper-devel
-      - ostree-devel
-      - glibc-devel
-      - gpgme-devel
-      - libassuan-devel
-      - libgpg-error-devel
-      - pkgconfig
-      - skopeo-containers
-      - oci-systemd-hook
-      - oci-register-machine
-      - oci-umount
-      - socat
-    async: 600
-    poll: 10
-    when: ansible_distribution == 'Fedora'
+    when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS' or ansible_distribution == 'Fedora')
   - name: Setup swap to prevent kernel firing off the OOM killer
     shell: |
       truncate -s 8G /root/swap && \
