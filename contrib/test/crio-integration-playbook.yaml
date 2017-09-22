@@ -362,7 +362,7 @@
       src: /root/src/github.com/kubernetes-incubator/cri-o/test/policy.json
       dest: /etc/containers/policy.json
   - name: run integration tests RHEL
-    shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration 2>&1 > testout.txt'
+    shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2 --storage-opt overlay2.override_kernel_check=1" make localintegration > testout.txt 2>&1'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
     async: "{{ integration_timeout_seconds | int }}"
@@ -378,7 +378,7 @@
     ignore_errors: yes
     when: (ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS') and xunit
   - name: run integration tests Fedora
-    shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2" make localintegration 2>&1 > testout.txt'
+    shell: 'CGROUP_MANAGER=cgroupfs STORAGE_OPTS="--storage-driver=overlay2" make localintegration > testout.txt 2>&1'
     args:
       chdir: /root/src/github.com/kubernetes-incubator/cri-o
     async: "{{ integration_timeout_seconds | int }}"
@@ -610,7 +610,7 @@
   #      So, we'll change it to "e2e.log", some day...
   - name: run e2e tests
     shell: |
-      go run hack/e2e.go -v --test -test_args="-host=https://{{ ansible_default_ipv4.address }}:6443 --ginkgo.focus=\[Conformance\]" 2>&1 > node-e2e.log
+      go run hack/e2e.go -v --test -test_args="-host=https://{{ ansible_default_ipv4.address }}:6443 --ginkgo.focus=\[Conformance\]" > node-e2e.log 2>&1
     args:
       chdir: /root/src/k8s.io/kubernetes
     async: 7200
