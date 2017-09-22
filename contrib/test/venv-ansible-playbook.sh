@@ -46,14 +46,17 @@ else
     trap 'rm -rf "$PIPCACHE"' EXIT
 fi
 
+# Create a directory to contain logs and test artifacts
+export ARTIFACTS=$(mkdir -pv $WORKSPACE/artifacts | tail -1 | cut -d \' -f 2)
+[ -d "$ARTIFACTS" ] || exit 3
+
 # All command failures from now on are fatal
 set -e
 echo
 echo "Bootstrapping trusted virtual environment, this may take a few minutes, depending on networking."
-echo "(logs:  \"$WORKSPACE/crio_venv_setup_log.txt\")"
+echo "(logs: \"$ARTIFACTS/crio_venv_setup_log.txt\")"
 echo
 
-mkdir -p "$WORKSPACE/artifacts"
 
 (
     set -x
@@ -83,15 +86,16 @@ mkdir -p "$WORKSPACE/artifacts"
     fi
     # Enter trusted virtualenv
     source ./.cri-o_venv/bin/activate
-    # Re-install from cache
-    pip install --force-reinstall --upgrade pip==9.0.1
+    # Upgrade stock-pip to support hashes
+    pip install --force-reinstall --cache-dir="$PIPCACHE" --upgrade pip==9.0.1
+    # Re-install from cache but validate all hashes (including on pip itself)
     pip --cache-dir="$PIPCACHE" install --require-hashes \
         --requirement "$SCRIPT_PATH/requirements.txt"
     # Remove temporary bootstrap virtualenv
     rm -rf ./.venvbootstrap
     # Exit trusted virtualenv
 
-) &> $WORKSPACE/artifacts/crio_venv_setup_log.txt;
+) &> $ARTIFACTS/crio_venv_setup_log.txt;
 
 echo
 echo "Executing \"$WORKSPACE/.cri-o_venv/bin/ansible-playbook $@\""
