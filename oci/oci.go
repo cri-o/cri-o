@@ -38,7 +38,15 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimeTrustedPath string, runtimeUntrustedPath string, trustLevel string, conmonPath string, conmonEnv []string, cgroupManager string, containerExitsDir string, logSizeMax int64) (*Runtime, error) {
+func New(runtimeTrustedPath string,
+	runtimeUntrustedPath string,
+	trustLevel string,
+	conmonPath string,
+	conmonEnv []string,
+	cgroupManager string,
+	containerExitsDir string,
+	logSizeMax int64,
+	noPivot bool) (*Runtime, error) {
 	r := &Runtime{
 		name:              filepath.Base(runtimeTrustedPath),
 		trustedPath:       runtimeTrustedPath,
@@ -49,6 +57,7 @@ func New(runtimeTrustedPath string, runtimeUntrustedPath string, trustLevel stri
 		cgroupManager:     cgroupManager,
 		containerExitsDir: containerExitsDir,
 		logSizeMax:        logSizeMax,
+		noPivot:           noPivot,
 	}
 	return r, nil
 }
@@ -64,6 +73,7 @@ type Runtime struct {
 	cgroupManager     string
 	containerExitsDir string
 	logSizeMax        int64
+	noPivot           bool
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -160,6 +170,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	args = append(args, "--exit-dir", r.containerExitsDir)
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
+	}
+	if r.noPivot {
+		args = append(args, "--no-pivot")
 	}
 	if c.terminal {
 		args = append(args, "-t")

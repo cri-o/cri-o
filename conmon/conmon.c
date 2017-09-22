@@ -104,6 +104,7 @@ static char *opt_runtime_path = NULL;
 static char *opt_bundle_path = NULL;
 static char *opt_pid_file = NULL;
 static bool opt_systemd_cgroup = false;
+static bool opt_no_pivot = false;
 static char *opt_exec_process_spec = NULL;
 static bool opt_exec = false;
 static char *opt_log_path = NULL;
@@ -117,6 +118,7 @@ static GOptionEntry opt_entries[] =
   { "cid", 'c', 0, G_OPTION_ARG_STRING, &opt_cid, "Container ID", NULL },
   { "cuuid", 'u', 0, G_OPTION_ARG_STRING, &opt_cuuid, "Container UUID", NULL },
   { "runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL },
+  { "no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "do not use pivot_root", NULL },
   { "bundle", 'b', 0, G_OPTION_ARG_STRING, &opt_bundle_path, "Bundle path", NULL },
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_pid_file, "PID file", NULL },
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL },
@@ -1263,6 +1265,12 @@ int main(int argc, char *argv[])
 			 "--bundle", opt_bundle_path,
 			 "--pid-file", opt_pid_file,
 			 NULL);
+	}
+
+	if (!opt_exec && opt_no_pivot) {
+		add_argv(runtime_argv,
+			"--no-pivot",
+			NULL);
 	}
 
 	if (csname != NULL) {
