@@ -172,11 +172,15 @@
     when: ansible_distribution == 'Fedora'
   - name: Setup swap to prevent kernel firing off the OOM killer
     shell: |
+      [ ! -f /root/swap ] && \
       truncate -s 8G /root/swap && \
       export SWAPDEV=$(losetup --show -f /root/swap | head -1) && \
       mkswap $SWAPDEV && \
-      swapon $SWAPDEV && \
-      swapon --show
+      swapon $SWAPDEV || true
+  - name: Capture current state of swap for debugging
+    command: swapon --show
+    register: result
+  - debug: var=result
   - name: Make testing directories to conform to testing standards
     file:
       path: "{{ item }}"
