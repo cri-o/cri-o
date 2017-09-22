@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubernetes-incubator/cri-o/client"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
 	remocommandconsts "k8s.io/apimachinery/pkg/util/remotecommand"
@@ -21,6 +23,7 @@ var containerCommand = cli.Command{
 	Aliases: []string{"ctr"},
 	Subcommands: []cli.Command{
 		createContainerCommand,
+		inspectContainerCommand,
 		startContainerCommand,
 		stopContainerCommand,
 		removeContainerCommand,
@@ -616,4 +619,38 @@ func ListContainers(client pb.RuntimeServiceClient, opts listOptions) error {
 		fmt.Println()
 	}
 	return nil
+}
+
+var inspectContainerCommand = cli.Command{
+	Name:  "inspect",
+	Usage: "get container info from crio daemon",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Value: "",
+			Usage: "id of the container",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		ID := context.String("id")
+		if ID == "" {
+			return fmt.Errorf("ID cannot be empty")
+		}
+		c, err := client.New(context.GlobalString("connect"))
+		if err != nil {
+			return err
+		}
+
+		cInfo, err := c.ContainerInfo(ID)
+		if err != nil {
+			return err
+		}
+
+		jsonBytes, err := json.MarshalIndent(cInfo, "", "    ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonBytes))
+		return nil
+	},
 }

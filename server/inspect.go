@@ -9,32 +9,12 @@ import (
 	"github.com/go-zoo/bone"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/types"
 	"github.com/sirupsen/logrus"
 )
 
-// ContainerInfo stores information about containers
-type ContainerInfo struct {
-	Name        string            `json:"name"`
-	Pid         int               `json:"pid"`
-	Image       string            `json:"image"`
-	CreatedTime int64             `json:"created_time"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	LogPath     string            `json:"log_path"`
-	Root        string            `json:"root"`
-	Sandbox     string            `json:"sandbox"`
-	IP          string            `json:"ip_address"`
-}
-
-// CrioInfo stores information about the crio daemon
-type CrioInfo struct {
-	StorageDriver string `json:"storage_driver"`
-	StorageRoot   string `json:"storage_root"`
-	CgroupDriver  string `json:"cgroup_driver"`
-}
-
-func (s *Server) getInfo() CrioInfo {
-	return CrioInfo{
+func (s *Server) getInfo() types.CrioInfo {
+	return types.CrioInfo{
 		StorageDriver: s.config.Config.Storage,
 		StorageRoot:   s.config.Config.Root,
 		CgroupDriver:  s.config.Config.CgroupManager,
@@ -47,25 +27,25 @@ var (
 	errSandboxNotFound = errors.New("sandbox for container not found")
 )
 
-func (s *Server) getContainerInfo(id string, getContainerFunc func(id string) *oci.Container, getInfraContainerFunc func(id string) *oci.Container, getSandboxFunc func(id string) *sandbox.Sandbox) (ContainerInfo, error) {
+func (s *Server) getContainerInfo(id string, getContainerFunc func(id string) *oci.Container, getInfraContainerFunc func(id string) *oci.Container, getSandboxFunc func(id string) *sandbox.Sandbox) (types.ContainerInfo, error) {
 	ctr := getContainerFunc(id)
 	if ctr == nil {
 		ctr = getInfraContainerFunc(id)
 		if ctr == nil {
-			return ContainerInfo{}, errCtrNotFound
+			return types.ContainerInfo{}, errCtrNotFound
 		}
 	}
 	// TODO(mrunalp): should we call UpdateStatus()?
 	ctrState := ctr.State()
 	if ctrState == nil {
-		return ContainerInfo{}, errCtrStateNil
+		return types.ContainerInfo{}, errCtrStateNil
 	}
 	sb := getSandboxFunc(ctr.Sandbox())
 	if sb == nil {
 		logrus.Debugf("can't find sandbox %s for container %s", ctr.Sandbox(), id)
-		return ContainerInfo{}, errSandboxNotFound
+		return types.ContainerInfo{}, errSandboxNotFound
 	}
-	return ContainerInfo{
+	return types.ContainerInfo{
 		Name:        ctr.Name(),
 		Pid:         ctrState.Pid,
 		Image:       ctr.Image(),
