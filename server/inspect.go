@@ -46,16 +46,17 @@ func (s *Server) getContainerInfo(id string, getContainerFunc func(id string) *o
 		return types.ContainerInfo{}, errSandboxNotFound
 	}
 	return types.ContainerInfo{
-		Name:        ctr.Name(),
-		Pid:         ctrState.Pid,
-		Image:       ctr.Image(),
-		CreatedTime: ctrState.Created.UnixNano(),
-		Labels:      ctr.Labels(),
-		Annotations: ctr.Annotations(),
-		Root:        ctr.MountPoint(),
-		LogPath:     ctr.LogPath(),
-		Sandbox:     ctr.Sandbox(),
-		IP:          sb.IP(),
+		Name:            ctr.Name(),
+		Pid:             ctrState.Pid,
+		Image:           ctr.Image(),
+		CreatedTime:     ctrState.Created.UnixNano(),
+		Labels:          ctr.Labels(),
+		Annotations:     ctr.Annotations(),
+		CrioAnnotations: ctr.CrioAnnotations(),
+		Root:            ctr.MountPoint(),
+		LogPath:         ctr.LogPath(),
+		Sandbox:         ctr.Sandbox(),
+		IP:              sb.IP(),
 	}, nil
 
 }
