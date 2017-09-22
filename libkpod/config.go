@@ -24,6 +24,10 @@ const (
 	cgroupManager       = oci.CgroupfsCgroupsManager
 	lockPath            = "/run/crio.lock"
 	containerExitsDir   = oci.ContainerExitsDir
+	// DefaultMountsFile holds the default mount paths in the form "host:container"
+	DefaultMountsFile = "/usr/share/containers/mounts.conf"
+	// OverrideMountsFile holds the override mount paths in the form "host:container"
+	OverrideMountsFile = "/etc/containers/mounts.conf"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -144,6 +148,9 @@ type RuntimeConfig struct {
 
 	// HooksDirPath location of oci hooks config files
 	HooksDirPath string `toml:"hooks_dir_path"`
+
+	// DefaultMountsPath location of the default mounts file
+	DefaultMountsPath string `toml:"default_mounts_path"`
 
 	// Hooks List of hooks to run with container
 	Hooks map[string]HookParams
@@ -288,6 +295,7 @@ func DefaultConfig() *Config {
 			ContainerExitsDir: containerExitsDir,
 			HooksDirPath:      DefaultHooksDirPath,
 			LogSizeMax:        DefaultLogSizeMax,
+			DefaultMountsPath: DefaultMountsFile,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
