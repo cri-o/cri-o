@@ -2,7 +2,7 @@
 
 This directory contains playbooks to set up for and run the integration and
 end-to-end tests for CRI-O on RHEL and Fedora hosts.  The expected entry-point
-is the ``main.yml`` Ansible playbook.
+is the ``main.yml``.
 
 ##Definitions:
 
@@ -52,6 +52,21 @@ Execution of the ``main.yml`` playbook:
                 from cached-state of ``setup``. Not required to execute coincident with
                 other tags.  Must build CRI-O from source and run Kubernetes node
                 E2E tests.
+
+Execution of the ``results.yml`` playbook:
+
+ - Assumes 'setup' previously completed successfully.
+ - Either ``integration``, ``e2e``, or other testing steps
+   must have completed (even if in failure).
+ - Must be the authorative collector and producer of results for the run,
+   whether or not the control-host is the subject.
+ - Must gather all important/relevant artifacts into a central location.
+ - Must not duplicate, rename, or obfuscate any other results or artifact files
+   from this run or any others.  Must not fail due to missing files or failed commands.
+ - May add test-run identification details so long as they don't interfear with
+   downstream processing or any of the above requirements.
+ - Must be executed using the ``venv-ansible-playbook.sh`` wrapper (b/c
+   ``junitparser`` requirement).
 
 ``cri-o/contrib/test/venv-ansible-playbook.sh`` Wrapper:
 

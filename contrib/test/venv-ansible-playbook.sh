@@ -13,8 +13,9 @@
 # All errors are fatal
 set -e
 
-SCRIPT_PATH=`realpath $(dirname $0)`
-REQUIREMENTS="$SCRIPT_PATH/requirements.txt"
+export SCRIPT_PATH=`realpath $(dirname $0)`
+export REQUIREMENTS="$SCRIPT_PATH/requirements.txt"
+export ANSIBLE_CONFIG="$SCRIPT_PATH/integration/ansible.cfg"
 
 echo
 
@@ -47,7 +48,8 @@ else
 fi
 
 # Create a directory to contain logs and test artifacts
-export ARTIFACTS=$(mkdir -pv $WORKSPACE/artifacts | tail -1 | cut -d \' -f 2)
+[ -n "$ARTIFACTS" ] || export ARTIFACTS="$WORKSPACE/artifacts"
+[ -d "$ARTIFACTS" ] || mkdir -pv "$ARTIFACTS"
 [ -d "$ARTIFACTS" ] || exit 3
 
 # All command failures from now on are fatal
