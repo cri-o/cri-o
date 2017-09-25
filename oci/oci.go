@@ -38,7 +38,7 @@ const (
 )
 
 // New creates a new Runtime with options provided
-func New(runtimeTrustedPath string, runtimeUntrustedPath string, trustLevel string, conmonPath string, conmonEnv []string, cgroupManager string, containerExitsDir string) (*Runtime, error) {
+func New(runtimeTrustedPath string, runtimeUntrustedPath string, trustLevel string, conmonPath string, conmonEnv []string, cgroupManager string, containerExitsDir string, logSizeMax int64) (*Runtime, error) {
 	r := &Runtime{
 		name:              filepath.Base(runtimeTrustedPath),
 		trustedPath:       runtimeTrustedPath,
@@ -48,6 +48,7 @@ func New(runtimeTrustedPath string, runtimeUntrustedPath string, trustLevel stri
 		conmonEnv:         conmonEnv,
 		cgroupManager:     cgroupManager,
 		containerExitsDir: containerExitsDir,
+		logSizeMax:        logSizeMax,
 	}
 	return r, nil
 }
@@ -62,6 +63,7 @@ type Runtime struct {
 	conmonEnv         []string
 	cgroupManager     string
 	containerExitsDir string
+	logSizeMax        int64
 }
 
 // syncInfo is used to return data from monitor process to daemon
