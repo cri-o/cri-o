@@ -31,13 +31,24 @@
   retries: 100
   delay: 30
 
+- name: Buffer location for e2e output and reports
+  set_fact:
+      # N/B: This need manual coordination with results.yml
+      artifacts: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/artifacts"
+
 - name: ensure directory exists for e2e reports
   file:
-    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/artifacts"
+    path: "{{ artifacts }}"
     state: directory
 
 - name: run e2e tests
-  shell: |
-    go run hack/e2e.go -v --test -test_args="-host=https://{{ ansible_default_ipv4.address }}:6443 --ginkgo.focus=\[Conformance\]" >e2e.log 2>&1
+  shell: >
+    go run hack/e2e.go \
+        --test \
+        -test_args="-host=https://{{ ansible_default_ipv4.address }}:6443 \
+                    --ginkgo.focus=\[Conformance\] \
+                    --report-dir={{ artifacts }}" \
+        &> {{ artifacts }}/e2e.log
+  # Fix " syntax hilighting
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
