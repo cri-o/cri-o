@@ -108,6 +108,10 @@ hooks_dir_path = "{{ .HooksDirPath }}"
 # pids_limit is the number of processes allowed in a container
 pids_limit = {{ .PidsLimit }}
 
+# log_size_max is the max limit for the container log size in bytes.
+# Negative values indicate that no limit is imposed.
+log_size_max = {{ .LogSizeMax }}
+
 # The "crio.image" table contains settings pertaining to the
 # management of OCI images.
 [crio.image]
