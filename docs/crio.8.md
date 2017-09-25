@@ -105,6 +105,9 @@ set the CPU profile file path
 **--log-format**=""
   Set the format used by logs ('text' (default), or 'json') (default: "text")
 
+**--log-size-max**=""
+  Maximum log size in bytes for a container (default: -1 (no limit))
+
 **--pause-command**=""
   Path to the pause executable in the pause image (default: "/pause")
 
