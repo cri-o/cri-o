@@ -16,7 +16,7 @@ func (s *Server) networkStart(hostNetwork bool, sb *sandbox.Sandbox) (string, er
 		return s.BindAddress(), nil
 	}
 
-	podNetwork := newPodNetwork(sb.Namespace(), sb.KubeName(), sb.ID(), sb.NetNsPath())
+	podNetwork := newPodNetwork(sb)
 	err := s.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
 		return "", fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
@@ -59,7 +59,7 @@ func (s *Server) networkStop(hostNetwork bool, sb *sandbox.Sandbox) error {
 				sb.Name(), sb.ID(), err)
 		}
 
-		podNetwork := newPodNetwork(sb.Namespace(), sb.KubeName(), sb.ID(), sb.NetNsPath())
+		podNetwork := newPodNetwork(sb)
 		if err := s.netPlugin.TearDownPod(podNetwork); err != nil {
 			logrus.Warnf("failed to destroy network for pod sandbox %s(%s): %v",
 				sb.Name(), sb.ID(), err)

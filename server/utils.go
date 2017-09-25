@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/syndtr/gocapability/capability"
 )
@@ -149,12 +150,12 @@ func SysctlsFromPodAnnotation(annotation string) ([]Sysctl, error) {
 	return sysctls, nil
 }
 
-func newPodNetwork(namespace, name, id, netns string) ocicni.PodNetwork {
+func newPodNetwork(sb *sandbox.Sandbox) ocicni.PodNetwork {
 	return ocicni.PodNetwork{
-		Name:      name,
-		Namespace: namespace,
-		ID:        id,
-		NetNS:     netns,
+		Name:      sb.KubeName(),
+		Namespace: sb.Namespace(),
+		ID:        sb.ID(),
+		NetNS:     sb.NetNsPath(),
 	}
 }
 

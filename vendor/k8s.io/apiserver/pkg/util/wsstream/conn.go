@@ -87,10 +87,7 @@ var (
 // IsWebSocketRequest returns true if the incoming request contains connection upgrade headers
 // for WebSockets.
 func IsWebSocketRequest(req *http.Request) bool {
-	if !strings.EqualFold(req.Header.Get("Upgrade"), "websocket") {
-		return false
-	}
-	return connectionUpgradeRegex.MatchString(strings.ToLower(req.Header.Get("Connection")))
+	return connectionUpgradeRegex.MatchString(strings.ToLower(req.Header.Get("Connection"))) && strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
 }
 
 // IgnoreReceives reads from a WebSocket until it is closed, then returns. If timeout is set, the
