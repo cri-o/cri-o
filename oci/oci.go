@@ -158,6 +158,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
 	args = append(args, "-l", c.logPath)
 	args = append(args, "--exit-dir", r.containerExitsDir)
+	if r.logSizeMax >= 0 {
+		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
+	}
 	if c.terminal {
 		args = append(args, "-t")
 	} else if c.stdin {
