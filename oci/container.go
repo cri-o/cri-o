@@ -22,22 +22,23 @@ const (
 
 // Container represents a runtime container.
 type Container struct {
-	id          string
-	name        string
-	logPath     string
-	labels      fields.Set
-	annotations fields.Set
-	image       string
-	sandbox     string
-	netns       ns.NetNS
-	terminal    bool
-	stdin       bool
-	stdinOnce   bool
-	privileged  bool
-	trusted     bool
-	state       *ContainerState
-	metadata    *pb.ContainerMetadata
-	opLock      sync.Locker
+	id              string
+	name            string
+	logPath         string
+	labels          fields.Set
+	annotations     fields.Set
+	crioAnnotations fields.Set
+	image           string
+	sandbox         string
+	netns           ns.NetNS
+	terminal        bool
+	stdin           bool
+	stdinOnce       bool
+	privileged      bool
+	trusted         bool
+	state           *ContainerState
+	metadata        *pb.ContainerMetadata
+	opLock          sync.Locker
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
@@ -68,31 +69,32 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, annotations map[string]string, image string, imageName string, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, crioAnnotations map[string]string, annotations map[string]string, image string, imageName string, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
-		id:          id,
-		name:        name,
-		bundlePath:  bundlePath,
-		logPath:     logPath,
-		labels:      labels,
-		sandbox:     sandbox,
-		netns:       netns,
-		terminal:    terminal,
-		stdin:       stdin,
-		stdinOnce:   stdinOnce,
-		privileged:  privileged,
-		trusted:     trusted,
-		metadata:    metadata,
-		annotations: annotations,
-		image:       image,
-		imageName:   imageName,
-		imageRef:    imageRef,
-		dir:         dir,
-		state:       state,
-		stopSignal:  stopSignal,
-		opLock:      new(sync.Mutex),
+		id:              id,
+		name:            name,
+		bundlePath:      bundlePath,
+		logPath:         logPath,
+		labels:          labels,
+		sandbox:         sandbox,
+		netns:           netns,
+		terminal:        terminal,
+		stdin:           stdin,
+		stdinOnce:       stdinOnce,
+		privileged:      privileged,
+		trusted:         trusted,
+		metadata:        metadata,
+		annotations:     annotations,
+		crioAnnotations: crioAnnotations,
+		image:           image,
+		imageName:       imageName,
+		imageRef:        imageRef,
+		dir:             dir,
+		state:           state,
+		stopSignal:      stopSignal,
+		opLock:          new(sync.Mutex),
 	}
 	return c, nil
 }
@@ -161,6 +163,11 @@ func (c *Container) Labels() map[string]string {
 // Annotations returns the annotations of the container.
 func (c *Container) Annotations() map[string]string {
 	return c.annotations
+}
+
+// CrioAnnotations returns the crio annotations of the container.
+func (c *Container) CrioAnnotations() map[string]string {
+	return c.crioAnnotations
 }
 
 // Image returns the image of the container.

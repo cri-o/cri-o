@@ -91,6 +91,7 @@ func main() {
 		containerCommand,
 		runtimeVersionCommand,
 		imageCommand,
+		infoCommand,
 	}
 
 	app.Flags = []cli.Flag{
