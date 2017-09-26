@@ -12,7 +12,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/client"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
-	remocommandconsts "k8s.io/apimachinery/pkg/util/remotecommand"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
@@ -527,16 +526,15 @@ func Exec(client pb.RuntimeServiceClient, ID string, tty bool, stdin bool, urlOn
 		return err
 	}
 
-	streamExec, err := remotecommand.NewExecutor(&restclient.Config{}, "GET", execURL)
+	streamExec, err := remotecommand.NewSPDYExecutor(&restclient.Config{}, "GET", execURL)
 	if err != nil {
 		return err
 	}
 
 	options := remotecommand.StreamOptions{
-		SupportedProtocols: remocommandconsts.SupportedStreamingProtocols,
-		Stdout:             os.Stdout,
-		Stderr:             os.Stderr,
-		Tty:                tty,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+		Tty:    tty,
 	}
 
 	if stdin {
