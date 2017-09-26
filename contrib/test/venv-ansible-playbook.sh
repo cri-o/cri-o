@@ -102,6 +102,5 @@ echo "Executing \"$WORKSPACE/.cri-o_venv/bin/ansible-playbook $@\""
 echo
 
 # Execute command-line arguments under virtualenv
-cd "$WORKSPACE"
-source ./.cri-o_venv/bin/activate
-./.cri-o_venv/bin/ansible-playbook $@
+source ${WORKSPACE}/.cri-o_venv/bin/activate
+${WORKSPACE}/.cri-o_venv/bin/ansible-playbook $@
