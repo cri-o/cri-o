@@ -30,8 +30,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 	iptablesproxy "k8s.io/kubernetes/pkg/proxy/iptables"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
-	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
+	utilexec "k8s.io/utils/exec"
 )
 
 const (
@@ -200,7 +200,7 @@ func New(config *Config) (*Server, error) {
 	}
 	iptInterface := utiliptables.New(utilexec.New(), utildbus.New(), utiliptables.ProtocolIpv4)
 	iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain)
-	hostportManager := hostport.NewHostportManager()
+	hostportManager := hostport.NewHostportManager(iptInterface)
 
 	s := &Server{
 		ContainerServer: containerServer,
