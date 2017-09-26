@@ -38,8 +38,32 @@ The `crio` table supports the following options:
 **storage_driver**=""
   CRIO storage driver (default is "overlay")
 
+Note:
+  **overlay** and **overlay2** are the same driver
+
+
 **storage_option**=[]
   CRIO storage driver option list (no default)
+
+  Values:
+
+	"STORAGE_DRIVER.imagestore=/PATH",
+
+	Paths to additional container image stores. These are read/only and are usually stored on remote network shares, based on overlay storage format.
+	storage_option=[ "overlay.imagestore=/mnt/overlay", ]
+
+	"STORAGE_DRIVER.size=SIZE"
+
+	Maximum size of a container image.  Default is 10GB. The size flag sets quota on the size of container images.
+	storage_option=[ "overlay.size=1G", ]
+
+Note: Not all drivers support all options.
+
+Note:  In order to use the **size** option for quota on *overlay* storage you must use the *xfs* file system.  The mount point that the *overlay* file system must be setup with the *pquota* flag at mount time. If you are setting up / to be used with quota, you have to modify the linux boot line in /etc/grubq2.conf and add the rootflags=pquota flag.
+
+Example:
+	linux16 /vmlinuz-4.12.13-300.fc26.x86_64 root=/dev/mapper/fedora-root ro rd.lvm.lv=fedora/root rd.lvm.lv=fedora/swap rhgb quiet LANG=en_US.UTF-8 rootflags=pquota
+
 
 ## CRIO.API TABLE
 
@@ -125,7 +149,7 @@ The `crio` table supports the following options:
   Path to CNI plugin binaries (default: "/opt/cni/bin/")
 
 # SEE ALSO
-crio(8), containers-storage.conf(5)
+crio(8)
 
 # HISTORY
 Oct 2016, Originally compiled by Aleksa Sarai <asarai@suse.de>
