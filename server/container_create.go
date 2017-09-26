@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/docker/distribution/reference"
+	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -77,6 +79,36 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		}
 		options = append(options, []string{"rbind", "rprivate"}...)
 
+		// mount propagation
+		mountInfos, err := dockermounts.GetMounts()
+		if err != nil {
+			return nil, err
+		}
+		switch mount.GetPropagation() {
+		case pb.MountPropagation_PROPAGATION_PRIVATE:
+			options = append(options, "rprivate")
+			// Since default root propagation in runc is rprivate ignore
+			// setting the root propagation
+		case pb.MountPropagation_PROPAGATION_BIDIRECTIONAL:
+			if err := ensureShared(src, mountInfos); err != nil {
+				return nil, err
+			}
+			options = append(options, "rshared")
+			specgen.SetLinuxRootPropagation("rshared")
+		case pb.MountPropagation_PROPAGATION_HOST_TO_CONTAINER:
+			if err := ensureSharedOrSlave(src, mountInfos); err != nil {
+				return nil, err
+			}
+			options = append(options, "rslave")
+			if specgen.Spec().Linux.RootfsPropagation != "rshared" &&
+				specgen.Spec().Linux.RootfsPropagation != "rslave" {
+				specgen.SetLinuxRootPropagation("rslave")
+			}
+		default:
+			logrus.Warnf("Unknown propagation mode for hostPath %q", mount.HostPath)
+			options = append(options, "rprivate")
+		}
+
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
 			if err := label.Relabel(src, mountLabel, true); err != nil && err != unix.ENOTSUP {
@@ -94,6 +126,74 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	}
 
 	return volumes, nil
+}
+
+// Ensure mount point on which path is mounted, is shared.
+func ensureShared(path string, mountInfos []*dockermounts.Info) error {
+	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
+	if err != nil {
+		return err
+	}
+
+	// Make sure source mount point is shared.
+	optsSplit := strings.Split(optionalOpts, " ")
+	for _, opt := range optsSplit {
+		if strings.HasPrefix(opt, "shared:") {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("path %q is mounted on %q but it is not a shared mount", path, sourceMount)
+}
+
+// Ensure mount point on which path is mounted, is either shared or slave.
+func ensureSharedOrSlave(path string, mountInfos []*dockermounts.Info) error {
+	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
+	if err != nil {
+		return err
+	}
+	// Make sure source mount point is shared.
+	optsSplit := strings.Split(optionalOpts, " ")
+	for _, opt := range optsSplit {
+		if strings.HasPrefix(opt, "shared:") {
+			return nil
+		} else if strings.HasPrefix(opt, "master:") {
+			return nil
+		}
+	}
+	return fmt.Errorf("path %q is mounted on %q but it is not a shared or slave mount", path, sourceMount)
+}
+
+func getMountInfo(mountInfos []*dockermounts.Info, dir string) *dockermounts.Info {
+	for _, m := range mountInfos {
+		if m.Mountpoint == dir {
+			return m
+		}
+	}
+	return nil
+}
+
+func getSourceMount(source string, mountInfos []*dockermounts.Info) (string, string, error) {
+	mountinfo := getMountInfo(mountInfos, source)
+	if mountinfo != nil {
+		return source, mountinfo.Optional, nil
+	}
+
+	path := source
+	for {
+		path = filepath.Dir(path)
+		mountinfo = getMountInfo(mountInfos, path)
+		if mountinfo != nil {
+			return path, mountinfo.Optional, nil
+		}
+
+		if path == "/" {
+			break
+		}
+	}
+
+	// If we are here, we did not find parent mount. Something is wrong.
+	return "", "", fmt.Errorf("Could not find source mount of %s", source)
 }
 
 func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) error {
@@ -737,6 +837,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 		specgen.SetProcessSelinuxLabel(processLabel)
 		specgen.SetLinuxMountLabel(mountLabel)
+		specgen.SetProcessNoNewPrivileges(linux.GetSecurityContext().GetNoNewPrivs())
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
 			!containerConfig.GetLinux().GetSecurityContext().Privileged {
@@ -904,13 +1005,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
-	metaname := metadata.Name
+	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	if !privileged {
-		if err = s.setupSeccomp(&specgen, metaname, sb.Annotations()); err != nil {
+		if err = s.setupSeccomp(&specgen, spp); err != nil {
 			return nil, err
 		}
 	}
+	specgen.AddAnnotation(annotations.SeccompProfilePath, spp)
+	// TODO(runcom): add spp to container...
 
+	metaname := metadata.Name
 	attempt := metadata.Attempt
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.ImageContext(),
 		sb.Name(), sb.ID(),
@@ -1041,14 +1145,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	return container, nil
 }
 
-func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnotations map[string]string) error {
-	profile, ok := sbAnnotations["container.seccomp.security.alpha.kubernetes.io/"+cname]
-	if !ok {
-		profile, ok = sbAnnotations["seccomp.security.alpha.kubernetes.io/pod"]
-		if !ok {
-			// running w/o seccomp, aka unconfined
-			profile = seccompUnconfined
-		}
+func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error {
+	if profile == "" {
+		// running w/o seccomp, aka unconfined
+		specgen.Spec().Linux.Seccomp = nil
+		return nil
 	}
 	if !s.seccompEnabled {
 		if profile != seccompUnconfined {
@@ -1067,8 +1168,12 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnot
 	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
 		return fmt.Errorf("unknown seccomp profile option: %q", profile)
 	}
-	// FIXME: https://github.com/kubernetes/kubernetes/issues/39128
-	return nil
+	fname := strings.TrimPrefix(profile, "localhost/")
+	file, err := ioutil.ReadFile(filepath.FromSlash(fname))
+	if err != nil {
+		return fmt.Errorf("cannot load seccomp profile %q: %v", fname, err)
+	}
+	return seccomp.LoadProfileFromBytes(file, specgen)
 }
 
 // getAppArmorProfileName gets the profile name for the given container.

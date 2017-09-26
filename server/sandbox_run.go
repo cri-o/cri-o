@@ -22,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
-	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/api/core/v1"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/kubelet/leaky"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
@@ -504,6 +504,15 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	g.AddAnnotation(annotations.IP, ip)
 	sb.AddIP(ip)
+
+	spp := req.GetConfig().GetLinux().GetSecurityContext().GetSeccompProfilePath()
+	g.AddAnnotation(annotations.SeccompProfilePath, spp)
+	sb.SetSeccompProfilePath(spp)
+	if !privileged {
+		if err = s.setupSeccomp(&g, spp); err != nil {
+			return nil, err
+		}
+	}
 
 	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
 	if err != nil {
