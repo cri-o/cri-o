@@ -36,7 +36,7 @@ The `crio` table supports the following options:
   CRIO state dir (default: "/var/run/containers/storage")
 
 **storage_driver**=""
-  CRIO storage driver (default is "devicemapper")
+  CRIO storage driver (default is "overlay")
 
 **storage_option**=[]
   CRIO storage driver option list (no default)
@@ -125,7 +125,7 @@ The `crio` table supports the following options:
   Path to CNI plugin binaries (default: "/opt/cni/bin/")
 
 # SEE ALSO
-crio(8)
+crio(8), containers-storage.conf(5)
 
 # HISTORY
 Oct 2016, Originally compiled by Aleksa Sarai <asarai@suse.de>

@@ -239,6 +239,7 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 	if _, idInUse := r.byid[id]; idInUse {
 		return nil, ErrDuplicateID
 	}
+	names = dedupeNames(names)
 	for _, name := range names {
 		if _, nameInUse := r.byname[name]; nameInUse {
 			return nil, ErrDuplicateName
@@ -288,6 +289,7 @@ func (r *containerStore) removeName(container *Container, name string) {
 }
 
 func (r *containerStore) SetNames(id string, names []string) error {
+	names = dedupeNames(names)
 	if container, ok := r.lookup(id); ok {
 		for _, name := range container.Names {
 			delete(r.byname, name)
