@@ -118,6 +118,9 @@ type RuntimeConfig struct {
 	// container runtime for all containers.
 	DefaultWorkloadTrust string `toml:"default_workload_trust"`
 
+	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
+	NoPivot bool `toml:"no_pivot"`
+
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	Conmon string `toml:"conmon"`
 

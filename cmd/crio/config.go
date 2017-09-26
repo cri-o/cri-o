@@ -77,6 +77,9 @@ runtime_untrusted_workload = "{{ .RuntimeUntrustedWorkload }}"
 # container runtime for all containers.
 default_workload_trust = "{{ .DefaultWorkloadTrust }}"
 
+# no_pivot instructs the runtime to not use pivot_root, but instead use MS_MOVE
+no_pivot = {{ .NoPivot }}
+
 # conmon is the path to conmon binary, used for managing the runtime.
 conmon = "{{ .Conmon }}"
 

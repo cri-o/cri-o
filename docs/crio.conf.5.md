@@ -77,6 +77,9 @@ The `crio` table supports the following options:
 **apparmor_profile**=""
   Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
 
+**no_pivot**=*true*|*false*
+  Instructs the runtime to not use pivot_root, but instead use MS_MOVE
+
 ## CRIO.IMAGE TABLE
 
 **default_transport**
