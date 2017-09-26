@@ -54,6 +54,11 @@ The `crio` table supports the following options:
 **conmon_env**=[]
   Environment variable list for conmon process (default: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",])
 
+**log_size_max**=""
+  Maximum sized allowed for the container log file (default: -1)
+  Negative numbers indicate that no size limit is imposed.
+  The file is truncated and re-opened so the limit is never exceeded.
+
 **pids_limit**=""
   Maximum number of processes allowed in a container (default: 1024)
 
