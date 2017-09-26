@@ -2,14 +2,9 @@
 # vim-syntax: ansible
 
 - hosts: '{{ hosts | default("all") }}'
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
   vars:
-    # Paths use rsync 'source' conventions
-    crio_integration_filepath: "/root/src/github.com/kubernetes-incubator/cri-o/testout.txt"
-    # N/B: This needs coordination with e2e.yml
-    crio_node_e2e_filepath: "/root/go-tools/src/k8s.io/kubernetes/artifacts/"  # everything
-    # Treat empty env. var as "undefined and use default()
-    result_dest_basedir: '{{ lookup("env","WORKSPACE") |
-                             default(playbook_dir, True) }}/artifacts'
     _result_filepaths: []  # do not use
     _dstfnbuff: []  # do not use
   tasks:

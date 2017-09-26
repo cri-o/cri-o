@@ -1,4 +1,5 @@
 ---
+
 - name: stat the expected cri-o directory
   stat:
     path: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
