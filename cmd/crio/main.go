@@ -125,6 +125,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
+	if ctx.GlobalIsSet("log-size-max") {
+		config.LogSizeMax = ctx.GlobalInt64("log-size-max")
+	}
 	if ctx.GlobalIsSet("cni-config-dir") {
 		config.NetworkDir = ctx.GlobalString("cni-config-dir")
 	}
@@ -288,6 +291,11 @@ func main() {
 			Name:  "pids-limit",
 			Value: libkpod.DefaultPidsLimit,
 			Usage: "maximum number of processes allowed in a container",
+		},
+		cli.Int64Flag{
+			Name:  "log-size-max",
+			Value: libkpod.DefaultLogSizeMax,
+			Usage: "maximum log size in bytes for a container",
 		},
 		cli.StringFlag{
 			Name:  "cni-config-dir",

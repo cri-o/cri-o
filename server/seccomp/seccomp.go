@@ -11,6 +11,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	libseccomp "github.com/seccomp/libseccomp-golang"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -24,6 +25,7 @@ func IsEnabled() bool {
 			enabled = true
 		}
 	}
+	logrus.Debugf("seccomp status: %v", enabled)
 	return enabled
 }
 

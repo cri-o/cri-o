@@ -27,26 +27,20 @@ const (
 	// // alpha: v1.4
 	// MyFeature() bool
 
-	// owner: tallclair
+	// owner: timstclair
 	// alpha: v1.5
 	//
 	// StreamingProxyRedirects controls whether the apiserver should intercept (and follow)
 	// redirects from the backend (Kubelet) for streaming requests (exec/attach/port-forward).
 	StreamingProxyRedirects utilfeature.Feature = "StreamingProxyRedirects"
 
-	// owner: tallclair
+	// owner: timstclair
 	// alpha: v1.7
 	//
 	// AdvancedAuditing enables a much more general API auditing pipeline, which includes support for
 	// pluggable output backends and an audit policy specifying how different requests should be
 	// audited.
 	AdvancedAuditing utilfeature.Feature = "AdvancedAuditing"
-
-	// owner: @ilackams
-	// alpha: v1.7
-	//
-	// Enables compression of REST responses (GET and LIST only)
-	APIResponseCompression utilfeature.Feature = "APIResponseCompression"
 )
 
 func init() {
@@ -59,5 +53,4 @@ func init() {
 var defaultKubernetesFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
 	StreamingProxyRedirects: {Default: true, PreRelease: utilfeature.Beta},
 	AdvancedAuditing:        {Default: false, PreRelease: utilfeature.Alpha},
-	APIResponseCompression:  {Default: false, PreRelease: utilfeature.Alpha},
 }
