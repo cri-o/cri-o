@@ -156,7 +156,8 @@ type Sandbox struct {
 	portMappings   []*hostport.PortMapping
 	stopped        bool
 	// ipv4 or ipv6 cache
-	ip string
+	ip                 string
+	seccompProfilePath string
 }
 
 const (
@@ -203,6 +204,16 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.portMappings = portMappings
 
 	return sb, nil
+}
+
+// SetSeccompProfilePath sets the seccomp profile path
+func (s *Sandbox) SetSeccompProfilePath(pp string) {
+	s.seccompProfilePath = pp
+}
+
+// SeccompProfilePath returns the seccomp profile path
+func (s *Sandbox) SeccompProfilePath() string {
+	return s.seccompProfilePath
 }
 
 // AddIP stores the ip in the sandbox

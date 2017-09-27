@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1047,13 +1048,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
-	metaname := metadata.Name
+	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	if !privileged {
-		if err = s.setupSeccomp(&specgen, metaname, sb.Annotations()); err != nil {
+		if err = s.setupSeccomp(&specgen, spp); err != nil {
 			return nil, err
 		}
 	}
+	specgen.AddAnnotation(annotations.SeccompProfilePath, spp)
+	// TODO(runcom): add spp to container...
 
+	metaname := metadata.Name
 	attempt := metadata.Attempt
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.ImageContext(),
 		sb.Name(), sb.ID(),
@@ -1200,14 +1204,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	return container, nil
 }
 
-func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnotations map[string]string) error {
-	profile, ok := sbAnnotations["container.seccomp.security.alpha.kubernetes.io/"+cname]
-	if !ok {
-		profile, ok = sbAnnotations["seccomp.security.alpha.kubernetes.io/pod"]
-		if !ok {
-			// running w/o seccomp, aka unconfined
-			profile = seccompUnconfined
-		}
+func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error {
+	if profile == "" {
+		// running w/o seccomp, aka unconfined
+		specgen.Spec().Linux.Seccomp = nil
+		return nil
 	}
 	if !s.seccompEnabled {
 		if profile != seccompUnconfined {
@@ -1226,8 +1227,12 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, cname string, sbAnnot
 	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
 		return fmt.Errorf("unknown seccomp profile option: %q", profile)
 	}
-	// FIXME: https://github.com/kubernetes/kubernetes/issues/39128
-	return nil
+	fname := strings.TrimPrefix(profile, "localhost/")
+	file, err := ioutil.ReadFile(filepath.FromSlash(fname))
+	if err != nil {
+		return fmt.Errorf("cannot load seccomp profile %q: %v", fname, err)
+	}
+	return seccomp.LoadProfileFromBytes(file, specgen)
 }
 
 // getAppArmorProfileName gets the profile name for the given container.

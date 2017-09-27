@@ -22,6 +22,9 @@ const (
 	// IP is the container ipv4 or ipv6 address
 	IP = "io.kubernetes.cri-o.IP"
 
+	// SeccompProfilePath is the node seccomp profile path
+	SeccompProfilePath = "io.kubernetes.cri-o.SeccompProfilePath"
+
 	// Image is the container image ID annotation
 	Image = "io.kubernetes.cri-o.Image"
 
