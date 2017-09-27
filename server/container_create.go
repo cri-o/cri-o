@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/docker/distribution/reference"
+	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -77,6 +78,36 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		}
 		options = append(options, []string{"rbind", "rprivate"}...)
 
+		// mount propagation
+		mountInfos, err := dockermounts.GetMounts()
+		if err != nil {
+			return nil, err
+		}
+		switch mount.GetPropagation() {
+		case pb.MountPropagation_PROPAGATION_PRIVATE:
+			options = append(options, "rprivate")
+			// Since default root propagation in runc is rprivate ignore
+			// setting the root propagation
+		case pb.MountPropagation_PROPAGATION_BIDIRECTIONAL:
+			if err := ensureShared(src, mountInfos); err != nil {
+				return nil, err
+			}
+			options = append(options, "rshared")
+			specgen.SetLinuxRootPropagation("rshared")
+		case pb.MountPropagation_PROPAGATION_HOST_TO_CONTAINER:
+			if err := ensureSharedOrSlave(src, mountInfos); err != nil {
+				return nil, err
+			}
+			options = append(options, "rslave")
+			if specgen.Spec().Linux.RootfsPropagation != "rshared" &&
+				specgen.Spec().Linux.RootfsPropagation != "rslave" {
+				specgen.SetLinuxRootPropagation("rslave")
+			}
+		default:
+			logrus.Warnf("Unknown propagation mode for hostPath %q", mount.HostPath)
+			options = append(options, "rprivate")
+		}
+
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
 			if err := label.Relabel(src, mountLabel, true); err != nil && err != unix.ENOTSUP {
@@ -94,6 +125,74 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	}
 
 	return volumes, nil
+}
+
+// Ensure mount point on which path is mounted, is shared.
+func ensureShared(path string, mountInfos []*dockermounts.Info) error {
+	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
+	if err != nil {
+		return err
+	}
+
+	// Make sure source mount point is shared.
+	optsSplit := strings.Split(optionalOpts, " ")
+	for _, opt := range optsSplit {
+		if strings.HasPrefix(opt, "shared:") {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("path %q is mounted on %q but it is not a shared mount", path, sourceMount)
+}
+
+// Ensure mount point on which path is mounted, is either shared or slave.
+func ensureSharedOrSlave(path string, mountInfos []*dockermounts.Info) error {
+	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
+	if err != nil {
+		return err
+	}
+	// Make sure source mount point is shared.
+	optsSplit := strings.Split(optionalOpts, " ")
+	for _, opt := range optsSplit {
+		if strings.HasPrefix(opt, "shared:") {
+			return nil
+		} else if strings.HasPrefix(opt, "master:") {
+			return nil
+		}
+	}
+	return fmt.Errorf("path %q is mounted on %q but it is not a shared or slave mount", path, sourceMount)
+}
+
+func getMountInfo(mountInfos []*dockermounts.Info, dir string) *dockermounts.Info {
+	for _, m := range mountInfos {
+		if m.Mountpoint == dir {
+			return m
+		}
+	}
+	return nil
+}
+
+func getSourceMount(source string, mountInfos []*dockermounts.Info) (string, string, error) {
+	mountinfo := getMountInfo(mountInfos, source)
+	if mountinfo != nil {
+		return source, mountinfo.Optional, nil
+	}
+
+	path := source
+	for {
+		path = filepath.Dir(path)
+		mountinfo = getMountInfo(mountInfos, path)
+		if mountinfo != nil {
+			return path, mountinfo.Optional, nil
+		}
+
+		if path == "/" {
+			break
+		}
+	}
+
+	// If we are here, we did not find parent mount. Something is wrong.
+	return "", "", fmt.Errorf("Could not find source mount of %s", source)
 }
 
 func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) error {
