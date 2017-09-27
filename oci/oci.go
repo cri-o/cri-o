@@ -271,13 +271,14 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 		logrus.Debugf("Received container pid: %d", ss.si.Pid)
 		if ss.si.Pid == -1 {
 			if ss.si.Message != "" {
-				logrus.Debugf("Container creation error: %s", ss.si.Message)
+				logrus.Errorf("Container creation error: %s", ss.si.Message)
 				return fmt.Errorf("container create failed: %s", ss.si.Message)
 			}
-			logrus.Debugf("Container creation failed")
+			logrus.Errorf("Container creation failed")
 			return fmt.Errorf("container create failed")
 		}
 	case <-time.After(ContainerCreateTimeout):
+		logrus.Errorf("Container creation timeout (%v)", ContainerCreateTimeout)
 		return fmt.Errorf("create container timeout")
 	}
 	return nil
