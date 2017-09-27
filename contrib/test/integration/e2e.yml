@@ -41,4 +41,3 @@
     go run hack/e2e.go -v --test -test_args="-host=https://{{ ansible_default_ipv4.address }}:6443 --ginkgo.focus=\[Conformance\]" >e2e.log 2>&1
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-  ignore_errors: yes
