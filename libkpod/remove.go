@@ -16,8 +16,11 @@ func (c *ContainerServer) Remove(container string, force bool) (string, error) {
 	}
 	ctrID := ctr.ID()
 
-	cState := c.runtime.ContainerStatus(ctr)
-	if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
+	cStatus := c.runtime.ContainerStatus(ctr)
+	switch cStatus.Status {
+	case oci.ContainerStatePaused:
+		return "", errors.Errorf("cannot remove paused container %s", ctrID)
+	case oci.ContainerStateCreated, oci.ContainerStateRunning:
 		if force {
 			_, err = c.ContainerStop(container, -1)
 			if err != nil {
