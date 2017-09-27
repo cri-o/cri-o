@@ -197,10 +197,6 @@ func main() {
 			Name:  "conmon",
 			Usage: "path to the conmon executable",
 		},
-		cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enable debug output for logging",
-		},
 		cli.StringFlag{
 			Name:  "listen",
 			Usage: "path to crio socket",
@@ -223,6 +219,11 @@ func main() {
 			Value: "text",
 			Usage: "set the format used by logs ('text' (default), or 'json')",
 		},
+		cli.StringFlag{
+			Name:  "log-level",
+			Usage: "log messages above specified level: debug, info (default), warn, error, fatal or panic",
+		},
+
 		cli.StringFlag{
 			Name:  "pause-command",
 			Usage: "name of the pause command in the pause image",
@@ -361,8 +362,13 @@ func main() {
 
 		logrus.SetFormatter(cf)
 
-		if c.GlobalBool("debug") {
-			logrus.SetLevel(logrus.DebugLevel)
+		if loglevel := c.GlobalString("log-level"); loglevel != "" {
+			level, err := logrus.ParseLevel(loglevel)
+			if err != nil {
+				return err
+			}
+
+			logrus.SetLevel(level)
 		}
 
 		if path := c.GlobalString("log"); path != "" {

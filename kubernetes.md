@@ -36,7 +36,7 @@ Description=CRI-O daemon
 Documentation=https://github.com/kubernetes-incubator/cri-o
 
 [Service]
-ExecStart=/bin/crio --runtime /bin/runc --log /root/crio.log --debug
+ExecStart=/bin/crio --runtime /bin/runc --log /root/crio.log --log-level debug
 Restart=always
 RestartSec=10s
 

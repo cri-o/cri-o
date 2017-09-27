@@ -245,7 +245,7 @@ function start_crio() {
 	fi
 	${netfunc} $POD_CIDR
 
-	"$CRIO_BINARY" --debug --config "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 
 	run crictl inspecti redis:alpine
