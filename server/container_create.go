@@ -737,6 +737,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 		specgen.SetProcessSelinuxLabel(processLabel)
 		specgen.SetLinuxMountLabel(mountLabel)
+		specgen.SetProcessNoNewPrivileges(linux.GetSecurityContext().GetNoNewPrivs())
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
 			!containerConfig.GetLinux().GetSecurityContext().Privileged {
