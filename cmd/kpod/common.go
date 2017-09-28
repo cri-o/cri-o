@@ -2,6 +2,8 @@ package main
 
 import (
 	"os"
+	"reflect"
+	"regexp"
 	"strings"
 
 	is "github.com/containers/image/storage"
@@ -99,4 +101,35 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 func splitCamelCase(src string) string {
 	entries := camelcase.Split(src)
 	return strings.Join(entries, " ")
+}
+
+// validateFlags searches for StringFlags or StringSlice flags that never had
+// a value set.  This commonly occurs when the CLI mistakenly takes the next
+// option and uses it as a value.
+func validateFlags(c *cli.Context, flags []cli.Flag) error {
+	for _, flag := range flags {
+		switch reflect.TypeOf(flag).String() {
+		case "cli.StringSliceFlag":
+			{
+				f := flag.(cli.StringSliceFlag)
+				name := strings.Split(f.Name, ",")
+				val := c.StringSlice(name[0])
+				for _, v := range val {
+					if ok, _ := regexp.MatchString("^-.+", v); ok {
+						return errors.Errorf("option --%s requires a value", name[0])
+					}
+				}
+			}
+		case "cli.StringFlag":
+			{
+				f := flag.(cli.StringFlag)
+				name := strings.Split(f.Name, ",")
+				val := c.String(name[0])
+				if ok, _ := regexp.MatchString("^-.+", val); ok {
+					return errors.Errorf("option --%s requires a value", name[0])
+				}
+			}
+		}
+	}
+	return nil
 }

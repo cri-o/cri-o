@@ -23,6 +23,9 @@ func renameCmd(c *cli.Context) error {
 	if len(c.Args()) != 2 {
 		return errors.Errorf("Rename requires a src container name/ID and a dest container name")
 	}
+	if err := validateFlags(c, renameFlags); err != nil {
+		return err
+	}
 
 	config, err := getConfig(c)
 	if err != nil {

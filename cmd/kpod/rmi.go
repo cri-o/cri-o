@@ -28,6 +28,9 @@ var (
 )
 
 func rmiCmd(c *cli.Context) error {
+	if err := validateFlags(c, rmiFlags); err != nil {
+		return err
+	}
 
 	force := false
 	if c.IsSet("force") {

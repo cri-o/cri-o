@@ -35,6 +35,9 @@ func killCmd(c *cli.Context) error {
 	if len(args) == 0 {
 		return errors.Errorf("specify one or more containers to kill")
 	}
+	if err := validateFlags(c, killFlags); err != nil {
+		return err
+	}
 	config, err := getConfig(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get config")

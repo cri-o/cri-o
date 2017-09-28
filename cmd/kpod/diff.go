@@ -77,6 +77,9 @@ func diffCmd(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		return errors.Errorf("container, layer, or image name must be specified: kpod diff [options [...]] ID-NAME")
 	}
+	if err := validateFlags(c, diffFlags); err != nil {
+		return err
+	}
 	config, err := getConfig(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get config")

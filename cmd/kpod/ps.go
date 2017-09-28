@@ -143,6 +143,9 @@ var (
 )
 
 func psCmd(c *cli.Context) error {
+	if err := validateFlags(c, psFlags); err != nil {
+		return err
+	}
 	config, err := getConfig(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get config")

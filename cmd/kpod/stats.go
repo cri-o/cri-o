@@ -62,6 +62,9 @@ var (
 )
 
 func statsCmd(c *cli.Context) error {
+	if err := validateFlags(c, statsFlags); err != nil {
+		return err
+	}
 	config, err := getConfig(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not read config")
