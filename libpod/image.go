@@ -1,16 +1,20 @@
 package libpod
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"syscall"
 
 	cp "github.com/containers/image/copy"
+	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/tarfile"
 	"github.com/containers/image/manifest"
+	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
+	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/kubernetes-incubator/cri-o/libpod/common"
@@ -27,6 +31,15 @@ const (
 	DefaultRegistry = "docker://"
 )
 
+var (
+	// DockerArchive is the transport we prepend to an image name
+	// when saving to docker-archive
+	DockerArchive = dockerarchive.Transport.Name()
+	// OCIArchive is the transport we prepend to an image name
+	// when saving to oci-archive
+	OCIArchive = ociarchive.Transport.Name()
+)
+
 // CopyOptions contains the options given when pushing or pulling images
 type CopyOptions struct {
 	// Compression specifies the type of compression which is applied to
@@ -41,6 +54,9 @@ type CopyOptions struct {
 	// strip or add signatures to the image when pushing (uploading) the
 	// image to a registry.
 	common.SigningOptions
+
+	// SigningPolicyPath this points to a alternative signature policy file, used mainly for testing
+	SignaturePolicyPath string
 }
 
 // Image API
@@ -55,11 +71,24 @@ type ImageFilter func(*storage.Image) bool
 // pulled. If allTags is true, all tags for the requested image will be pulled.
 // Signature validation will be performed if the Runtime has been appropriately
 // configured
-func (r *Runtime) PullImage(imgName string, allTags bool, reportWriter io.Writer) error {
+func (r *Runtime) PullImage(imgName string, allTags bool, signaturePolicyPath string, reportWriter io.Writer) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return fmt.Errorf("runtime is not valid")
+	}
+
 	// PullImage copies the image from the source to the destination
 	var (
 		images []string
 	)
+
+	if signaturePolicyPath == "" {
+		signaturePolicyPath = r.config.SignaturePolicyPath
+	}
+
+	sc := common.GetSystemContext(signaturePolicyPath)
 
 	srcRef, err := alltransports.ParseImageName(imgName)
 	if err != nil {
@@ -72,10 +101,11 @@ func (r *Runtime) PullImage(imgName string, allTags bool, reportWriter io.Writer
 	}
 
 	splitArr := strings.Split(imgName, ":")
+	archFile := splitArr[len(splitArr)-1]
 
 	// supports pulling from docker-archive, oci, and registries
-	if splitArr[0] == "docker-archive" {
-		tarSource := tarfile.NewSource(splitArr[len(splitArr)-1])
+	if srcRef.Transport().Name() == DockerArchive {
+		tarSource := tarfile.NewSource(archFile)
 		manifest, err := tarSource.LoadTarManifest()
 		if err != nil {
 			return errors.Errorf("error retrieving manifest.json: %v", err)
@@ -87,7 +117,7 @@ func (r *Runtime) PullImage(imgName string, allTags bool, reportWriter io.Writer
 			} else {
 				// create an image object and use the hex value of the digest as the image ID
 				// for parsing the store reference
-				newImg, err := srcRef.NewImage(r.imageContext)
+				newImg, err := srcRef.NewImage(sc)
 				if err != nil {
 					return err
 				}
@@ -100,9 +130,17 @@ func (r *Runtime) PullImage(imgName string, allTags bool, reportWriter io.Writer
 				}
 			}
 		}
-	} else if splitArr[0] == "oci" {
-		// needs to be implemented in future
-		return errors.Errorf("oci not supported")
+	} else if srcRef.Transport().Name() == OCIArchive {
+		// retrieve the manifest from index.json to access the image name
+		manifest, err := ociarchive.LoadManifestDescriptor(srcRef)
+		if err != nil {
+			return errors.Wrapf(err, "error loading manifest for %q", srcRef)
+		}
+
+		if manifest.Annotations == nil || manifest.Annotations["org.opencontainers.image.ref.name"] == "" {
+			return errors.Errorf("error, archive doesn't have a name annotation. Cannot store image with no name")
+		}
+		images = append(images, manifest.Annotations["org.opencontainers.image.ref.name"])
 	} else {
 		images = append(images, imgName)
 	}
@@ -118,10 +156,13 @@ func (r *Runtime) PullImage(imgName string, allTags bool, reportWriter io.Writer
 	}
 	defer policyContext.Destroy()
 
-	copyOptions := common.GetCopyOptions(reportWriter, "", nil, nil, common.SigningOptions{})
-
+	copyOptions := common.GetCopyOptions(reportWriter, signaturePolicyPath, nil, nil, common.SigningOptions{})
 	for _, image := range images {
-		destRef, err := is.Transport.ParseStoreReference(r.store, srcRef.DockerReference().String())
+		reference := image
+		if srcRef.DockerReference() != nil {
+			reference = srcRef.DockerReference().String()
+		}
+		destRef, err := is.Transport.ParseStoreReference(r.store, reference)
 		if err != nil {
 			return errors.Errorf("error parsing dest reference name: %v", err)
 		}
@@ -134,6 +175,13 @@ func (r *Runtime) PullImage(imgName string, allTags bool, reportWriter io.Writer
 
 // PushImage pushes the given image to a location described by the given path
 func (r *Runtime) PushImage(source string, destination string, options CopyOptions, reportWriter io.Writer) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return fmt.Errorf("runtime is not valid")
+	}
+
 	// PushImage pushes the src image to the destination
 	//func PushImage(source, destination string, options CopyOptions) error {
 	if source == "" || destination == "" {
@@ -146,14 +194,19 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		return errors.Wrapf(err, "error getting destination imageReference for %q", destination)
 	}
 
-	policyContext, err := common.GetPolicyContext(r.GetConfig().SignaturePolicyPath)
+	signaturePolicyPath := r.config.SignaturePolicyPath
+	if options.SignaturePolicyPath != "" {
+		signaturePolicyPath = options.SignaturePolicyPath
+	}
+
+	policyContext, err := common.GetPolicyContext(signaturePolicyPath)
 	if err != nil {
-		return errors.Wrapf(err, "Could not get default policy context for signature policy path %q", r.GetConfig().SignaturePolicyPath)
+		return errors.Wrapf(err, "Could not get default policy context for signature policy path %q", signaturePolicyPath)
 	}
 	defer policyContext.Destroy()
 	// Look up the image name and its layer, then build the imagePushData from
 	// the image
-	img, err := images.FindImage(r.store, source)
+	img, err := r.getImage(source)
 	if err != nil {
 		return errors.Wrapf(err, "error locating image %q for importing settings", source)
 	}
@@ -171,7 +224,7 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		return errors.Wrapf(err, "error copying layers and metadata")
 	}
 
-	copyOptions := common.GetCopyOptions(reportWriter, r.GetConfig().SignaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions)
+	copyOptions := common.GetCopyOptions(reportWriter, signaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions)
 
 	// Copy the image to the remote destination
 	err = cp.Image(policyContext, dest, src, copyOptions)
@@ -183,25 +236,117 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 
 // TagImage adds a tag to the given image
 func (r *Runtime) TagImage(image *storage.Image, tag string) error {
-	return ctr.ErrNotImplemented
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return fmt.Errorf("runtime is not valid")
+	}
+
+	tags, err := r.store.Names(image.ID)
+	if err != nil {
+		return err
+	}
+	for _, key := range tags {
+		if key == tag {
+			return nil
+		}
+	}
+	tags = append(tags, tag)
+	return r.store.SetNames(image.ID, tags)
 }
 
 // UntagImage removes a tag from the given image
 func (r *Runtime) UntagImage(image *storage.Image, tag string) error {
-	return ctr.ErrNotImplemented
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return fmt.Errorf("runtime is not valid")
+	}
+
+	tags, err := r.store.Names(image.ID)
+	if err != nil {
+		return err
+	}
+	for i, key := range tags {
+		if key == tag {
+			tags[i] = tags[len(tags)-1]
+			tags = tags[:len(tags)-1]
+			break
+		}
+	}
+	return r.store.SetNames(image.ID, tags)
 }
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers cannot be removed
 func (r *Runtime) RemoveImage(image *storage.Image) error {
-	return ctr.ErrNotImplemented
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return fmt.Errorf("runtime is not valid")
+	}
+
+	_, err := r.store.DeleteImage(image.ID, false)
+	return err
 }
 
 // GetImage retrieves an image matching the given name or hash from system
 // storage
 // If no matching image can be found, an error is returned
 func (r *Runtime) GetImage(image string) (*storage.Image, error) {
-	return nil, ctr.ErrNotImplemented
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime is not valid")
+	}
+	return r.getImage(image)
+}
+
+func (r *Runtime) getImage(image string) (*storage.Image, error) {
+	var img *storage.Image
+	ref, err := is.Transport.ParseStoreReference(r.store, image)
+	if err == nil {
+		img, err = is.Transport.GetStoreImage(r.store, ref)
+	}
+	if err != nil {
+		img2, err2 := r.store.Image(image)
+		if err2 != nil {
+			if ref == nil {
+				return nil, errors.Wrapf(err, "error parsing reference to image %q", image)
+			}
+			return nil, errors.Wrapf(err, "unable to locate image %q", image)
+		}
+		img = img2
+	}
+	return img, nil
+}
+
+// GetImageRef searches for and returns a new types.Image matching the given name or ID in the given store.
+func (r *Runtime) GetImageRef(image string) (types.Image, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return nil, fmt.Errorf("runtime is not valid")
+	}
+
+	img, err := r.getImage(image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to locate image %q", image)
+	}
+	ref, err := is.Transport.ParseStoreReference(r.store, "@"+img.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
+	}
+	imgRef, err := ref.NewImage(nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading image %q", img.ID)
+	}
+	return imgRef, nil
 }
 
 // GetImages retrieves all images present in storage

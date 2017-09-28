@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"fmt"
+
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/transports/alltransports"
@@ -20,6 +21,11 @@ var (
 			Name:   "all-tags, a",
 			Hidden: true,
 			Usage:  "Download all tagged images in the repository",
+		},
+		cli.StringFlag{
+			Name:   "signature-policy",
+			Usage:  "`pathname` of signature policy file (not usually used)",
+			Hidden: true,
 		},
 	}
 
@@ -134,6 +140,9 @@ func pullCmd(c *cli.Context) error {
 		fqRegistries = append(fqRegistries, srcRef.DockerReference().String())
 	}
 	runtime, err := getRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
+	}
 	defer runtime.Shutdown(false)
 
 	if err != nil {
@@ -141,7 +150,7 @@ func pullCmd(c *cli.Context) error {
 	}
 	for _, fqname := range fqRegistries {
 		fmt.Printf("Trying to pull %s...", fqname)
-		if err := runtime.PullImage(fqname, c.Bool("all-tags"), os.Stdout); err != nil {
+		if err := runtime.PullImage(fqname, c.Bool("all-tags"), c.String("signature-policy"), os.Stdout); err != nil {
 			fmt.Printf(" Failed\n")
 		} else {
 			return nil
