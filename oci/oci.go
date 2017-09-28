@@ -547,6 +547,25 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	}, nil
 }
 
+// UpdateContainer updates container resources
+func (r *Runtime) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
+	cmd := exec.Command(r.Path(c), "update", "--resources", "-", c.id)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	jsonResources, err := json.Marshal(res)
+	if err != nil {
+		return err
+	}
+	cmd.Stdin = bytes.NewReader(jsonResources)
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("updating resources for container %q failed: %v %v (%v)", c.id, stderr.String(), stdout.String(), err)
+	}
+	return nil
+}
+
 func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration) error {
 	done := make(chan struct{})
 	// we could potentially re-use "done" channel to exit the loop on timeout
