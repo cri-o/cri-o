@@ -3,10 +3,6 @@
 load helpers
 
 IMAGE="redis:alpine"
-ROOT="${TESTDIR}/crio"
-RUNROOT="${TESTDIR}/crio-run"
-# Do not add --storage-driver vfs
-KPOD_OPTIONS="--root ${ROOT} --runroot ${RUNROOT} --runtime ${RUNTIME_BINARY}"
 
 function teardown() {
     cleanup_test

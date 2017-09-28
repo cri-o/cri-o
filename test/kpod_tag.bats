@@ -2,11 +2,7 @@
 
 load helpers
 
-
 IMAGE="docker.io/library/alpine:latest"
-ROOT="$TESTDIR/crio"
-RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT --storage-driver vfs"
 
 function teardown() {
     cleanup_test

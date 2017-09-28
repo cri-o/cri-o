@@ -12,7 +12,7 @@ function teardown() {
     run ${KPOD_BINARY} $KPOD_OPTIONS pull "$IMAGE"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} $KPOD_OPTIONS push "$IMAGE" containers-storage:[$ROOT]busybox:test
+    run ${KPOD_BINARY} $KPOD_OPTIONS push "$IMAGE" containers-storage:[${TESTDIR}/crio]busybox:test
     echo "$output"
     [ "$status" -eq 0 ]
     run ${KPOD_BINARY} $KPOD_OPTIONS rmi "$IMAGE" busybox:test
