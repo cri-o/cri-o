@@ -8,6 +8,8 @@ kpod-load - Load an image from docker archive
 ## SYNOPSIS
 **kpod load**
 **NAME[:TAG|@DIGEST]**
+[**--input**|**-i**]
+[**--quiet**|**-q**]
 [**--help**|**-h**]
 
 ## DESCRIPTION
@@ -19,7 +21,7 @@ The **quiet** flag suppresses the output when set.
 
 **kpod load [GLOBAL OPTIONS]**
 
-**kpod load [OPTIONS] NAME[:TAG|@DIGEST] [GLOBAL OPTIONS]**
+**kpod load [OPTIONS] NAME[:TAG|@DIGEST]**
 
 ## OPTIONS
 
@@ -28,11 +30,6 @@ Read from archive file, default is STDIN
 
 **--quiet, -q**
 Suppress the output
-
-## GLOBAL OPTIONS
-
-**--help, -h**
-  Print usage statement
 
 ## EXAMPLES
 

@@ -8,6 +8,9 @@ kpod-save - Save an image to docker-archive or oci-archive
 ## SYNOPSIS
 **kpod save**
 **NAME[:TAG]**
+[**--quiet**|**-q**]
+[**--format**]
+[**--output**|**-o**]
 [**--help**|**-h**]
 
 ## DESCRIPTION
@@ -20,7 +23,7 @@ The **quiet** flag suppresses the output when set.
 
 **kpod save [GLOBAL OPTIONS]**
 
-**kpod save [OPTIONS] NAME[:TAG] [GLOBAL OPTIONS]**
+**kpod save [OPTIONS] NAME[:TAG]**
 
 ## OPTIONS
 
@@ -35,11 +38,6 @@ Save image to **oci-archive**
 
 **--quiet, -q**
 Suppress the output
-
-## GLOBAL OPTIONS
-
-**--help, -h**
-  Print usage statement
 
 ## EXAMPLES
 

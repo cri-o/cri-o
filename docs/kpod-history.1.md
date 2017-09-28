@@ -6,7 +6,13 @@
 kpod-history - Shows the history of an image
 
 ## SYNOPSIS
-**kpod history [OPTIONS] IMAGE[:TAG|DIGEST]**
+**kpod history**
+**IMAGE[:TAG|DIGEST]**
+[**--human**|**-H**]
+[**--no-trunc**]
+[**--quiet**|**-q**]
+[**--format**]
+[**--help**|**-h**]
 
 ## DESCRIPTION
 **kpod history** displays the history of an image by printing out information
@@ -29,12 +35,9 @@ Valid placeholders for the Go template are listed below:
 
 **kpod [GLOBAL OPTIONS]**
 
-**kpod [GLOBAL OPTIONS] history [OPTIONS]**
+**kpod history [GLOBAL OPTIONS]**
 
-## GLOBAL OPTIONS
-
-**--help, -h**
-  Print usage statement
+**kpod history [OPTIONS] IMAGE[:TAG|DIGEST]**
 
 ## OPTIONS
 
@@ -51,15 +54,47 @@ Valid placeholders for the Go template are listed below:
     Alter the output for a format like 'json' or a Go template.
 
 
-## COMMANDS
+## EXAMPLES
 
-**kpod history debian**
+```
+# kpod history debian
+ID              CREATED       CREATED BY                                      SIZE       COMMENT
+b676ca55e4f2c   9 weeks ago   /bin/sh -c #(nop) CMD ["bash"]                  0 B
+<missing>       9 weeks ago   /bin/sh -c #(nop) ADD file:ebba725fb97cea4...   45.14 MB
+```
 
-**kpod history --no-trunc=true --human=false debian**
+```
+# kpod history --no-trunc=true --human=false debian
+ID              CREATED                CREATED BY                                      SIZE       COMMENT
+b676ca55e4f2c   2017-07-24T16:52:55Z   /bin/sh -c #(nop) CMD ["bash"]                  0
+<missing>       2017-07-24T16:52:54Z   /bin/sh -c #(nop) ADD file:ebba725fb97cea4...   45142935
+```
 
-**kpod history --format "{{.ID}} {{.Created}}" debian**
+```
+# kpod history --format "{{.ID}} {{.Created}}" debian
+b676ca55e4f2c   9 weeks ago
+<missing>       9 weeks ago
+```
 
-**kpod history --format json debian**
+```
+# kpod history --format json debian
+[
+    {
+        "id": "b676ca55e4f2c0ce53d0636438c5372d3efeb5ae99b676fa5a5d1581bad46060",
+        "created": "2017-07-24T16:52:55.195062314Z",
+        "createdBy": "/bin/sh -c #(nop)  CMD [\"bash\"]",
+        "size": 0,
+        "comment": ""
+    },
+    {
+        "id": "b676ca55e4f2c0ce53d0636438c5372d3efeb5ae99b676fa5a5d1581bad46060",
+        "created": "2017-07-24T16:52:54.898893387Z",
+        "createdBy": "/bin/sh -c #(nop) ADD file:ebba725fb97cea45d0b1b35ccc8144e766fcfc9a78530465c23b0c4674b14042 in / ",
+        "size": 45142935,
+        "comment": ""
+    }
+]
+```
 
 ## history
 Show the history of an image
