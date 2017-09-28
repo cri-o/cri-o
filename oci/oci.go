@@ -31,7 +31,7 @@ const (
 	// ContainerStateStopped represents the stopped state of a container
 	ContainerStateStopped = "stopped"
 	// ContainerCreateTimeout represents the value of container creating timeout
-	ContainerCreateTimeout = 10 * time.Second
+	ContainerCreateTimeout = 240 * time.Second
 
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
