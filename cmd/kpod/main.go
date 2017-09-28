@@ -54,6 +54,7 @@ func main() {
 		umountCommand,
 		unpauseCommand,
 		versionCommand,
+		waitCommand,
 	}
 	app.Before = func(c *cli.Context) error {
 		logrus.SetLevel(logrus.ErrorLevel)

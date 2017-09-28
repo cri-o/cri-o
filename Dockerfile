@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     e2fslibs-dev \
     gawk \
+    gettext \
     iptables \
     pkg-config \
     libaio-dev \

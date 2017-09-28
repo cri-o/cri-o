@@ -65,6 +65,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod-umount(1)](/docs/kpod-umount.1.md)             | Unmount a working container's root filesystem                             ||
 | [kpod-unpause(1)](/docs/kpod-unpause.1.md)           | Unpause one or more running containers                                    ||
 | [kpod-version(1)](/docs/kpod-version.1.md)           | Display the version information                                           |[![...](/docs/play.png)](https://asciinema.org/a/mfrn61pjZT9Fc8L4NbfdSqfgu)|
+| [kpod-wait(1)](/docs/kpod-wait.1.md)                 | Wait on one or more containers to stop and print their exit codes||
 
 ## Configuration
 | File                                       | Description                                                                                          |
