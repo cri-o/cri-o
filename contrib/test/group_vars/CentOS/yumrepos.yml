@@ -1,0 +1,12 @@
+---
+
+enable_rh_repos:
+    - base
+    - extras
+    - optional
+    - supplementary
+
+yum_repos:
+    - name: virt7-container-common-candidate
+      baseurl: https://cbs.centos.org/repos/virt7-container-common-candidate/x86_64/os/
+      gpgcheck: False

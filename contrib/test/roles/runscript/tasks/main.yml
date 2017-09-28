@@ -1,0 +1,54 @@
+---
+
+- name: Input expectations are verified
+  assert:
+    that:
+        - 'execute | default("", True) | trim | length'
+        - 'artifacts | default("", True) | trim | length'
+        - 'role_path ~ "/files/" ~ execute | is_file'
+
+- name: The script base-directory path defaults to artifacts
+  set_fact:
+    basedir: "{{ artifacts }}"
+  when: basedir is undefined
+
+- name: Script base-directory exists
+  file:
+    path: "{{ basedir }}"
+    state: directory
+
+- name: Script artifacts directory exists
+  file:
+    path: "{{ artifacts }}"
+    state: directory
+
+- debug:
+    msg: 'Script {{ execute }} will be sent to subject-host, & run from {{ basedir }}) with arguments: {{ ansible_distribution }} {{ artifacts }}'
+
+- block:
+
+    - name: The script is executed
+      script: '{{ playbook_dir }}/scripts/{{ execute }} {{ ansible_distribution }}'
+      args:
+        chdir: "{{ basedir }}"
+        creates: "/var/tmp/{{ execute }}_done"
+      register: result
+
+    - name: The script's touchstone file is touched
+      file:
+        path: "/var/tmp/{{ execute }}_done"
+        state: touch
+      when: result | success
+
+  always:
+
+    - name: The script result is logged
+      blockinfile:
+        path: '{{ artifacts }}/{{ execute }}.txt'
+        marker: '# {mark} execution result of cri-o/contrib/test/scripts/{{ execute }} at {{ ansible_date_time.iso8601 }}'
+        block: '{{ lookup("template", role_path ~ "/templates/result_format.j2") }}'
+        create: true
+      when: '"stdout" in result'
+
+- fail:
+  when: result | failed

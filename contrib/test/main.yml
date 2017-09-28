@@ -1,0 +1,53 @@
+---
+
+- hosts: '{{ subjects | default("all") }}'
+  gather_facts: False  # requires ansible-dependencies
+  tags:  # FIXME: fudging past origin-ci use of tags
+    - e2e
+    - integration
+
+  roles:
+    - ansible_dependencies
+
+
+- hosts: '{{ subjects | default("all") }}'
+  gather_facts: True
+  gather_subset: network
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+
+  tags:  # FIXME: fudging past origin-ci use of tags
+    - e2e
+    - integration
+
+  pre_tasks:
+    - name: Subject's bring in group-vars based on their ansible_distribution
+      group_by:
+        key: "{{ ansible_distribution }}"
+
+  roles:
+    - role: yumrepos
+
+    - role: test_subject
+
+    - role: runscript
+      execute: 'setup.sh'
+
+    - role: runscript
+      execute: 'build.sh'
+      basedir: '{{ cri_o_dest_path }}'
+
+    - role: runscript
+      execute: "install.sh"
+      basedir: '{{ cri_o_dest_path }}'
+
+    - role: runscript
+      execute: "cri-o_smoke_test.sh"
+
+    - role: runscript
+      execute: "cri-o_integration_test.sh"
+      basedir: '{{ cri_o_dest_path }}'
+
+  post_tasks:
+    - name: Execute Kubernetes e2e tests
+      include: includes/e2e.yml
