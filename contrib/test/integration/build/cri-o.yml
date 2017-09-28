@@ -47,10 +47,10 @@
     - src: test/redhat_sigstore.yaml
       dest: /etc/containers/registries.d/registry.access.redhat.com.yaml
 
-- name: run with overlay2
+- name: run with overlay
   replace:
     regexp: 'storage_driver = ""'
-    replace: 'storage_driver = "overlay2"'
+    replace: 'storage_driver = "overlay"'
     name: /etc/crio/crio.conf
     backup: yes
 
@@ -69,11 +69,11 @@
     regexp: 'docker\.io'
     state: present
 
-- name: add overlay2 storage opts on RHEL/CentOS
+- name: add overlay storage opts on RHEL/CentOS
   lineinfile:
     dest: /etc/crio/crio.conf
-    line: '"overlay2.override_kernel_check=1"'
+    line: '"overlay.override_kernel_check=1"'
     insertafter: 'storage_option = \['
-    regexp: 'overlay2\.override_kernel_check=1'
+    regexp: 'overlay\.override_kernel_check=1'
     state: present
   when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'

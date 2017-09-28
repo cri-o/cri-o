@@ -17,7 +17,7 @@
 
 - name: set extra storage options
   set_fact:
-    extra_storage_opts: " --storage-opt overlay2.override_kernel_check=1"
+    extra_storage_opts: " --storage-opt overlay.override_kernel_check=1"
   when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
 
 - name: set extra shell for non-xunit tests
@@ -26,7 +26,7 @@
   when: not xunit
 
 - name: run integration tests
-  shell: "CGROUP_MANAGER=cgroupfs STORAGE_OPTS='--storage-driver=overlay2{{ extra_storage_opts | default('') }}' make localintegration{{ extra_shell_suffix }}"
+  shell: "CGROUP_MANAGER=cgroupfs STORAGE_OPTS='--storage-driver=overlay{{ extra_storage_opts | default('') }}' make localintegration{{ extra_shell_suffix }}"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
   ignore_errors: yes

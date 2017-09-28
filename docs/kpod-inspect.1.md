@@ -146,11 +146,11 @@ kpod inspect redis:alpine
     "Size": 3965955,
     "VirtualSize": 19808086,
     "GraphDriver": {
-        "Name": "overlay2",
+        "Name": "overlay",
         "Data": {
-            "MergedDir": "/var/lib/containers/storage/overlay2/2059d805c90e034cb773d9722232ef018a72143dd31113b470fb876baeccd700/merged",
-            "UpperDir": "/var/lib/containers/storage/overlay2/2059d805c90e034cb773d9722232ef018a72143dd31113b470fb876baeccd700/diff",
-            "WorkDir": "/var/lib/containers/storage/overlay2/2059d805c90e034cb773d9722232ef018a72143dd31113b470fb876baeccd700/work"
+            "MergedDir": "/var/lib/containers/storage/overlay/2059d805c90e034cb773d9722232ef018a72143dd31113b470fb876baeccd700/merged",
+            "UpperDir": "/var/lib/containers/storage/overlay/2059d805c90e034cb773d9722232ef018a72143dd31113b470fb876baeccd700/diff",
+            "WorkDir": "/var/lib/containers/storage/overlay/2059d805c90e034cb773d9722232ef018a72143dd31113b470fb876baeccd700/work"
         }
     },
     "RootFS": {
