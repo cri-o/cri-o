@@ -34,6 +34,7 @@ function container_start() {
 @test "wait on a stopped container" {
     run ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
     echo $output
+    [ "$status" -eq 0 ]
     start_crio
     pod_id=$( pod_run_from_template "test" "test" "test1-1" )
     echo $pod_id
@@ -50,6 +51,7 @@ function container_start() {
 @test "wait on a sleeping container" {
     run ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
     echo $output
+    [ "$status" -eq 0 ]
     start_crio
     pod_id=$( pod_run_from_template "test" "test" "test1-1" )
     echo $pod_id
@@ -57,6 +59,7 @@ function container_start() {
     echo $ctr_id
     run container_start $ctr_id
     echo $output
+    [ "$status" -eq 0 ]
     run ${KPOD_BINARY} ${KPOD_OPTIONS} wait $ctr_id
     echo $output
     [ "$status" -eq 0 ]

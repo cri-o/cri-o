@@ -25,7 +25,10 @@ function teardown() {
     run crioctl ctr start --id "$ctr_id"
     echo "$output"
     id="$output"
+    [ "$status" -eq 0 ]
     run ${KPOD_BINARY} ${KPOD_OPTIONS} stop "$id"
+    echo "$output"
+    [ "$status" -eq 0 ]
     cleanup_pods
     stop_crio
 }

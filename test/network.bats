@@ -121,10 +121,8 @@ function teardown() {
 	ctr2_id="$output"
 
 	ping_pod_from_pod $ctr1_id $ctr2_id
-	[ "$status" -eq 0 ]
 
 	ping_pod_from_pod $ctr2_id $ctr1_id
-	[ "$status" -eq 0 ]
 }
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
@@ -165,6 +163,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run crioctl ctr stop --id "$ctr_id"
 	echo "$output"
+	[ "$status" -eq 0 ]
 }
 
 @test "Clean up network if pod sandbox fails" {
@@ -174,6 +173,8 @@ function teardown() {
 	# networking has been configured
 	chmod 0644 /go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -ne 0 ]
 	chmod 0755 /go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon
 
 	# ensure that the server cleaned up sandbox networking if the sandbox

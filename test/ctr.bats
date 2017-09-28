@@ -560,6 +560,7 @@ function teardown() {
 	run crioctl ctr execsync --id "$ctr_id" --timeout 1 sleep 10
 	echo "$output"
 	[[ "$output" =~ "command timed out" ]]
+	[ "$status" -ne 0 ]
 	run crioctl pod stop --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -766,7 +767,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# Wait for container to OOM
-	run sleep 100
+	sleep 100
 	run crioctl ctr status --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
