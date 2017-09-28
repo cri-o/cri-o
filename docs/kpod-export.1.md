@@ -8,6 +8,7 @@ kpod-export - Export container's filesystem contents as a tar archive
 ## SYNOPSIS
 **kpod export**
 **CONTAINER**
+[**--output**|**-o**]
 [**--help**|**-h**]
 
 ## DESCRIPTION
@@ -19,17 +20,12 @@ redirected to a file using the **output flag**.
 
 **kpod export [GLOBAL OPTIONS]**
 
-**kpod export [OPTIONS] CONTAINER [GLOBAL OPTIONS]**
+**kpod export [OPTIONS] CONTAINER**
 
 ## OPTIONS
 
 **--output, -o**
 Write to a file, default is STDOUT
-
-## GLOBAL OPTIONS
-
-**--help, -h**
-  Print usage statement
 
 ## EXAMPLES
 

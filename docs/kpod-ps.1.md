@@ -6,7 +6,12 @@
 kpod-ps - Prints out information about containers
 
 ## SYNOPSIS
-**kpod ps [OPTIONS] CONTAINER**
+**kpod ps**
+[**--all**|**-a**]
+[**--no-trunc**]
+[**--quiet**|**-q**]
+[**--fromat**]
+[**--help**|**-h**]
 
 ## DESCRIPTION
 **kpod ps** lists the running containers on the system. Use the **--all** flag to view
@@ -22,12 +27,9 @@ all the containers information.  By default it lists:
 
 **kpod [GLOBAL OPTIONS]**
 
-**kpod [GLOBAL OPTIONS] ps [OPTIONS]**
+**kpod ps [GLOBAL OPTIONS]**
 
-## GLOBAL OPTIONS
-
-**--help, -h**
-  Print usage statement
+**kpod ps [OPTIONS]**
 
 ## OPTIONS
 
@@ -89,7 +91,7 @@ Valid filters are listed below:
 | since           | [ID] or [Name] Containers created since this container              |
 | volume          | [VolumeName] or [MountpointDestination] Volume mounted in container |
 
-## COMMANDS
+## EXAMPLES
 
 ```
 sudo kpod ps -a

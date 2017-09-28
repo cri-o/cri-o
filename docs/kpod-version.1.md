@@ -15,12 +15,7 @@ OS, and Architecture.
 
 **kpod [GLOBAL OPTIONS]**
 
-**kpod [GLOBAL OPTIONS] version [OPTIONS]**
-
-## GLOBAL OPTIONS
-
-**--help, -h**
-  Print usage statement
+**kpod version**
 
 ## SEE ALSO
 kpod(1), crio(8), crio.conf(5)

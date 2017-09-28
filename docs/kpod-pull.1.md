@@ -50,12 +50,7 @@ Image stored in local container/storage
 
 **kpod pull [GLOBAL OPTIONS]**
 
-**kpod pull NAME[:TAG|@DIGEST] [GLOBAL OPTIONS]**
-
-## GLOBAL OPTIONS
-
-**--help, -h**
-  Print usage statement
+**kpod pull NAME[:TAG|@DIGEST]**
 
 ## SEE ALSO
 kpod(1), crio(8), crio.conf(5)
