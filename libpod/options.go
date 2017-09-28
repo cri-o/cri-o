@@ -5,13 +5,11 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/kubernetes-incubator/cri-o/libpod/ctr"
-	"github.com/kubernetes-incubator/cri-o/libpod/pod"
+	"github.com/pkg/errors"
 )
 
 var (
-	errRuntimeFinalized = fmt.Errorf("runtime has already been finalized")
-	ctrNotImplemented   = func(c *ctr.Container) error {
+	ctrNotImplemented = func(c *Container) error {
 		return fmt.Errorf("NOT IMPLEMENTED")
 	}
 )
@@ -39,7 +37,7 @@ const (
 func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.StorageConfig.RunRoot = config.RunRoot
@@ -65,7 +63,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 func WithImageConfig(defaultTransport string, insecureRegistries, registries []string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.ImageDefaultTransport = defaultTransport
@@ -87,7 +85,7 @@ func WithImageConfig(defaultTransport string, insecureRegistries, registries []s
 func WithSignaturePolicy(path string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.SignaturePolicyPath = path
@@ -100,7 +98,7 @@ func WithSignaturePolicy(path string) RuntimeOption {
 func WithOCIRuntime(runtimePath string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.RuntimePath = runtimePath
@@ -114,7 +112,7 @@ func WithOCIRuntime(runtimePath string) RuntimeOption {
 func WithConmonPath(path string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.ConmonPath = path
@@ -127,7 +125,7 @@ func WithConmonPath(path string) RuntimeOption {
 func WithConmonEnv(environment []string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.ConmonEnvVars = make([]string, len(environment))
@@ -142,7 +140,7 @@ func WithConmonEnv(environment []string) RuntimeOption {
 func WithCgroupManager(manager string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.CgroupManager = manager
@@ -155,7 +153,7 @@ func WithCgroupManager(manager string) RuntimeOption {
 func WithSELinux() RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.SelinuxEnabled = true
@@ -169,7 +167,7 @@ func WithSELinux() RuntimeOption {
 func WithPidsLimit(limit int64) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
-			return errRuntimeFinalized
+			return ErrRuntimeFinalized
 		}
 
 		rt.config.PidsLimit = limit
@@ -198,13 +196,36 @@ func WithRootFSFromImage(image string, useImageConfig bool) CtrCreateOption {
 // be added to the pod.
 // By default no namespaces are shared. To share a namespace, add the Namespace
 // string constant to the map as a key
-func WithSharedNamespaces(from *ctr.Container, namespaces map[string]string) CtrCreateOption {
+func WithSharedNamespaces(from *Container, namespaces map[string]string) CtrCreateOption {
 	return ctrNotImplemented
 }
 
 // WithPod adds the container to a pod
-func WithPod(pod *pod.Pod) CtrCreateOption {
-	return ctrNotImplemented
+func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
+	return func(ctr *Container) error {
+		if !ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.pod != nil {
+			return fmt.Errorf("container has already been added to a pod")
+		}
+
+		exists, err := r.state.HasPod(pod.ID())
+		if err != nil {
+			return errors.Wrapf(err, "error searching state for pod %s", pod.ID())
+		} else if !exists {
+			return errors.Wrapf(ErrNoSuchPod, "pod %s cannot be found in state", pod.ID())
+		}
+
+		if err := pod.addContainer(ctr); err != nil {
+			return errors.Wrapf(err, "error adding container to pod")
+		}
+
+		ctr.pod = pod
+
+		return nil
+	}
 }
 
 // WithLabels adds labels to the pod
@@ -219,10 +240,33 @@ func WithAnnotations(annotations map[string]string) CtrCreateOption {
 
 // WithName sets the container's name
 func WithName(name string) CtrCreateOption {
-	return ctrNotImplemented
+	return func(ctr *Container) error {
+		if !ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.name = name
+
+		return nil
+	}
 }
 
 // WithStopSignal sets the signal that will be sent to stop the container
 func WithStopSignal(signal uint) CtrCreateOption {
 	return ctrNotImplemented
+}
+
+// Pod Creation Options
+
+// WithPodName sets the name of the pod
+func WithPodName(name string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.name = name
+
+		return nil
+	}
 }
