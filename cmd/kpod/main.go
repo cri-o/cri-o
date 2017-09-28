@@ -37,6 +37,7 @@ func main() {
 		imagesCommand,
 		infoCommand,
 		inspectCommand,
+		killCommand,
 		loadCommand,
 		logsCommand,
 		mountCommand,

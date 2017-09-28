@@ -45,6 +45,7 @@ There are other equivalents for these tools
 | `docker export` | [`kpod export`](./docs/kpod-export.1.md)  |
 | `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
 | `docker images` | [`kpod images`](./docs/kpod-images.1.md)  |
+| `docker kill`   | [`kpod kill`](./docs/kpod-kill.1.md)  |
 | `docker load`   | [`kpod load`](./docs/kpod-load.1.md)      |
 | `docker pause`  | [`kpod pause`](./docs/kpod-pause.1.md)    |
 | `docker ps`     | [`kpod ps`](./docs/kpod-ps.1.md)          |
