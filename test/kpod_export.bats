@@ -3,10 +3,6 @@
 load helpers
 
 IMAGE="redis:alpine"
-ROOT="$TESTDIR/crio"
-RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
-
 
 @test "kpod export output flag" {
     start_crio

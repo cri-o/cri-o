@@ -3,9 +3,6 @@
 load helpers
 
 IMAGE="redis:alpine"
-ROOT="$TESTDIR/crio"
-RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
 
 @test "kpod ps with no containers" {
     run ${KPOD_BINARY} ${KPOD_OPTIONS} ps

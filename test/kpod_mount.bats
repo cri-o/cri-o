@@ -7,9 +7,6 @@ function teardown() {
 load helpers
 
 IMAGE="redis:alpine"
-ROOT="$TESTDIR/crio"
-RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
 
 @test "mount" {
     start_crio
