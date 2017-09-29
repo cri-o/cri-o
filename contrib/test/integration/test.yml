@@ -1,4 +1,5 @@
 ---
+
 - name: Change test_runner.sh to use bats xunit output
   lineinfile:
     dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/test/test_runner.sh"
@@ -21,7 +22,7 @@
 
 - name: set extra shell for non-xunit tests
   set_fact:
-    extra_shell_suffix: " >testout.txt 2>&1"
+    extra_shell_suffix: " &> {{ artifacts }}/testout.txt"
   when: not xunit
 
 - name: run integration tests
@@ -35,13 +36,13 @@
 
 - name: Make testing output directory
   file:
-    path: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/reports"
+    path: "{{ artifacts }}"
     state: directory
   ignore_errors: yes
   when: xunit
 
 - name: Move all xunit files into one dir to scp
-  shell: "mv {{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/test/TestReport-bats*.xml {{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/reports/"
+  shell: "mv {{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/test/TestReport-bats*.xml {{ artifacts }}"
   when: xunit
 
 - name: ensure we fail on bad tests

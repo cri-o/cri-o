@@ -1,4 +1,5 @@
 ---
+
 - name: set up GOPATH if it is not already set
   lineinfile:
     dest: /etc/environment

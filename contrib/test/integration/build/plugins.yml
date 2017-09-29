@@ -1,4 +1,5 @@
 ---
+
 - name: clone plugins source repo
   git:
     repo: "https://github.com/containernetworking/plugins.git"

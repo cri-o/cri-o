@@ -1,7 +1,7 @@
 - hosts: all
   remote_user: root
-  vars:
-    xunit: false
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
   tags:
     - setup
   tasks:
@@ -28,8 +28,8 @@
 
 - hosts: all
   remote_user: root
-  vars:
-    xunit: false
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
   tags:
     - integration
     - e2e
@@ -39,8 +39,8 @@
 
 - hosts: all
   remote_user: root
-  vars:
-    xunit: false
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
   tags:
     - integration
   tasks:
@@ -49,6 +49,8 @@
 
 - hosts: all
   remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
   tags:
     - e2e
   tasks:

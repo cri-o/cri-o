@@ -1,4 +1,5 @@
 ---
+
 - name: register a repo for Golang
   yum_repository:
     name: 'centos-paas-sig-openshift-origin37-rpms'
@@ -14,61 +15,7 @@
   package:
     name: "{{ item }}"
     state: present
-  with_items:
-    - btrfs-progs-devel
-    - container-selinux
-    - curl
-    - device-mapper-devel
-    - expect
-    - findutils
-    - gcc
-    - git
-    - glib2-devel
-    - glibc-devel
-    - glibc-static
-    - golang
-    - gpgme-devel
-    - hostname
-    - iproute
-    - iptables
-    - krb5-workstation
-    - libassuan-devel
-    - libffi-devel
-    - libgpg-error-devel
-    - libguestfs-tools
-    - libseccomp-devel
-    - libvirt-client
-    - libvirt-python
-    - libxml2-devel
-    - libxslt-devel
-    - make
-    - mlocate
-    - nfs-utils
-    - nmap-ncat
-    - npm
-    - oci-register-machine
-    - oci-systemd-hook
-    - oci-umount
-    - openssl
-    - openssl-devel
-    - ostree-devel
-    - pkgconfig
-    - python
-    - python2-boto
-    - python2-crypto
-    - python2-mock
-    - python-click
-    - python-devel
-    - python-virtualenv
-    - PyYAML
-    - redhat-rpm-config
-    - rpcbind
-    - rsync
-    - sed
-    - skopeo-containers
-    - socat
-    - tar
-    - wget
+  with_items: "{{ rpm_pkgs }}"
   async: 600
   poll: 10
 
