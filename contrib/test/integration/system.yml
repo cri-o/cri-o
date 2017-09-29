@@ -67,3 +67,4 @@
 
 - name: Update the kernel cmdline to include quota support
   command: grubby --update-kernel=ALL --args="rootflags=pquota"
+  when: ansible_distribution in ['RedHat', 'CentOS']
