@@ -7,7 +7,7 @@
     version: "16e6fe4d7199c5689db4630a9330e6a8a12cecd1"
 
 - name: install crictl
-  command: "go install github.com/kubernetes-incubator/cri-tools/cmd/crictl"
+  command: "/usr/bin/go install github.com/kubernetes-incubator/cri-tools/cmd/crictl"
 
 - name: link crictl
   file:

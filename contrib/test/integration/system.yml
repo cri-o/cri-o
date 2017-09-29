@@ -1,21 +1,59 @@
 ---
 
-- name: register a repo for Golang
-  yum_repository:
-    name: 'centos-paas-sig-openshift-origin37-rpms'
-    state: present
-    description: 'CentOS PaaS SIG Origin 3.7 Repository'
-    baseurl: 'https://cbs.centos.org/repos/paas7-openshift-origin37-candidate/x86_64/os/'
-    includepkgs: 'golang'
-    gpgcheck: no
-    sslverify: no
-  when: ansible_distribution in ['RedHat', 'CentOS']
-
 - name: Make sure we have all required packages
   package:
     name: "{{ item }}"
     state: present
-  with_items: "{{ rpm_pkgs }}"
+  with_items:
+    - container-selinux
+    - curl
+    - device-mapper-devel
+    - expect
+    - findutils
+    - gcc
+    - git
+    - glib2-devel
+    - glibc-devel
+    - glibc-static
+    - gpgme-devel
+    - hostname
+    - iproute
+    - iptables
+    - krb5-workstation
+    - libassuan-devel
+    - libffi-devel
+    - libgpg-error-devel
+    - libguestfs-tools
+    - libseccomp-devel
+    - libvirt-client
+    - libvirt-python
+    - libxml2-devel
+    - libxslt-devel
+    - make
+    - mlocate
+    - nfs-utils
+    - nmap-ncat
+    - oci-register-machine
+    - oci-systemd-hook
+    - oci-umount
+    - openssl
+    - openssl-devel
+    - ostree-devel
+    - pkgconfig
+    - python
+    - python2-boto
+    - python2-crypto
+    - python-devel
+    - python-virtualenv
+    - PyYAML
+    - redhat-rpm-config
+    - rpcbind
+    - rsync
+    - sed
+    - skopeo-containers
+    - socat
+    - tar
+    - wget
   async: 600
   poll: 10
 
@@ -57,11 +95,6 @@
     value: 1
   when: ansible_distribution == 'CentOS'
 
-- name: disable selinux see https://github.com/kubernetes-incubator/cri-o/issues/528
-  selinux:
-    policy: targeted
-    state: permissive
-
 - name: inject hostname into /etc/hosts
   lineinfile:
     dest: /etc/hosts
@@ -75,3 +108,4 @@
 
 - name: Update the kernel cmdline to include quota support
   command: grubby --update-kernel=ALL --args="rootflags=pquota"
+  when: ansible_distribution in ['RedHat', 'CentOS']
