@@ -64,3 +64,6 @@
 
 - name: Flush the iptables
   command: iptables -F
+
+- name: Update the kernel cmdline to include quota support
+  command: grubby --update-kernel=ALL --args="rootflags=pquota"
