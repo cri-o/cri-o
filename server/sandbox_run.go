@@ -252,13 +252,23 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	privileged := s.privilegedSandbox(req)
 
-	processLabel, mountLabel, err = getSELinuxLabels(req.GetConfig().GetLinux().GetSecurityContext().GetSelinuxOptions(), privileged)
+	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
+	if securityContext == nil {
+		return nil, fmt.Errorf("no security context found")
+	}
+
+	processLabel, mountLabel, err = getSELinuxLabels(securityContext.GetSelinuxOptions(), privileged)
 	if err != nil {
 		return nil, err
 	}
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
-	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid || req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
+	namespaceOptions := securityContext.GetNamespaceOptions()
+	if namespaceOptions == nil {
+		return nil, fmt.Errorf("no namespace options found")
+	}
+
+	if securityContext.GetNamespaceOptions().HostPid || securityContext.GetNamespaceOptions().HostIpc {
 		processLabel, mountLabel = "", ""
 	}
 	g.SetProcessSelinuxLabel(processLabel)
@@ -266,7 +276,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// create shm mount for the pod containers.
 	var shmPath string
-	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
+	if namespaceOptions.HostIpc {
 		shmPath = "/dev/shm"
 	} else {
 		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
@@ -307,7 +317,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	hostNetwork := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostNetwork
+	hostNetwork := namespaceOptions.HostNetwork
 
 	hostname, err := getHostname(id, req.GetConfig().Hostname, hostNetwork)
 	if err != nil {
@@ -441,14 +451,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostPid {
+	if namespaceOptions.HostPid {
 		err = g.RemoveLinuxNamespace("pid")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions().HostIpc {
+	if namespaceOptions.HostIpc {
 		err = g.RemoveLinuxNamespace("ipc")
 		if err != nil {
 			return nil, err
