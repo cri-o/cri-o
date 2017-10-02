@@ -5,6 +5,7 @@
     name: "{{ item }}"
     state: present
   with_items:
+    - btrfs-progs-devel
     - container-selinux
     - curl
     - device-mapper-devel
@@ -56,14 +57,6 @@
     - wget
   async: 600
   poll: 10
-
-- name: Add Btrfs for Fedora
-  package:
-    name: "{{ item }}"
-    state: present
-  with_items:
-   - btrfs-progs-devel
-  when: ansible_distribution in ['Fedora']
 
 - name: Update all packages
   package:
