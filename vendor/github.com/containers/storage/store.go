@@ -590,7 +590,13 @@ func (s *store) getGraphDriver() (drivers.Driver, error) {
 	if s.graphDriver != nil {
 		return s.graphDriver, nil
 	}
-	driver, err := drivers.New(s.graphRoot, s.graphDriverName, s.graphOptions, s.uidMap, s.gidMap)
+	config := drivers.Options{
+		Root:          s.graphRoot,
+		DriverOptions: s.graphOptions,
+		UIDMaps:       s.uidMap,
+		GIDMaps:       s.gidMap,
+	}
+	driver, err := drivers.New(s.graphDriverName, config)
 	if err != nil {
 		return nil, err
 	}
@@ -769,30 +775,32 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 		id = stringid.GenerateRandomID()
 	}
 
-	lstore, err := s.LayerStore()
-	if err != nil {
-		return nil, err
-	}
-	lstores, err := s.ROLayerStores()
-	if err != nil {
-		return nil, err
-	}
-	var ilayer *Layer
-	for _, store := range append([]ROLayerStore{lstore}, lstores...) {
-		store.Lock()
-		defer store.Unlock()
-		if modified, err := store.Modified(); modified || err != nil {
-			store.Load()
+	if layer != "" {
+		lstore, err := s.LayerStore()
+		if err != nil {
+			return nil, err
 		}
-		ilayer, err = store.Get(layer)
-		if err == nil {
-			break
+		lstores, err := s.ROLayerStores()
+		if err != nil {
+			return nil, err
 		}
+		var ilayer *Layer
+		for _, store := range append([]ROLayerStore{lstore}, lstores...) {
+			store.Lock()
+			defer store.Unlock()
+			if modified, err := store.Modified(); modified || err != nil {
+				store.Load()
+			}
+			ilayer, err = store.Get(layer)
+			if err == nil {
+				break
+			}
+		}
+		if ilayer == nil {
+			return nil, ErrLayerUnknown
+		}
+		layer = ilayer.ID
 	}
-	if ilayer == nil {
-		return nil, ErrLayerUnknown
-	}
-	layer = ilayer.ID
 
 	ristore, err := s.ImageStore()
 	if err != nil {
@@ -1168,15 +1176,20 @@ func (s *store) Exists(id string) bool {
 	return false
 }
 
-func (s *store) SetNames(id string, names []string) error {
-	deduped := []string{}
+func dedupeNames(names []string) []string {
 	seen := make(map[string]bool)
+	deduped := make([]string, 0, len(names))
 	for _, name := range names {
 		if _, wasSeen := seen[name]; !wasSeen {
 			seen[name] = true
 			deduped = append(deduped, name)
 		}
 	}
+	return deduped
+}
+
+func (s *store) SetNames(id string, names []string) error {
+	deduped := dedupeNames(names)
 
 	rlstore, err := s.LayerStore()
 	if err != nil {
@@ -2243,6 +2256,12 @@ type OptionsConfig struct {
 	// Image stores.  Usually used to access Networked File System
 	// for shared image content
 	AdditionalImageStores []string `toml:"additionalimagestores"`
+
+	// Size
+	Size string `toml:"size"`
+
+	// OverrideKernelCheck
+	OverrideKernelCheck string `toml:"override_kernel_check"`
 }
 
 // TOML-friendly explicit tables used for conversions.
@@ -2286,7 +2305,12 @@ func init() {
 	for _, s := range config.Storage.Options.AdditionalImageStores {
 		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("%s.imagestore=%s", config.Storage.Driver, s))
 	}
-
+	if config.Storage.Options.Size != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("%s.size=%s", config.Storage.Driver, config.Storage.Options.Size))
+	}
+	if config.Storage.Options.OverrideKernelCheck != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("%s.override_kernel_check=%s", config.Storage.Driver, config.Storage.Options.OverrideKernelCheck))
+	}
 	if os.Getenv("STORAGE_DRIVER") != "" {
 		DefaultStoreOptions.GraphDriverName = os.Getenv("STORAGE_DRIVER")
 	}

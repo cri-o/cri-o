@@ -98,7 +98,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "storage-driver, s",
-			Usage: "select which storage driver is used to manage storage of images and containers (default is overlay2)",
+			Usage: "select which storage driver is used to manage storage of images and containers (default is overlay)",
 		},
 		cli.StringSliceFlag{
 			Name:  "storage-opt",

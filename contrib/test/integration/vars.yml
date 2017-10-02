@@ -4,7 +4,6 @@
 xunit: false
 
 rpm_pkgs:
-    - btrfs-progs-devel
     - container-selinux
     - curl
     - device-mapper-devel

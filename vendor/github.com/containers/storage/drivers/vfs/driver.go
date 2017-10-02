@@ -8,7 +8,7 @@ import (
 	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
-
+	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
@@ -25,15 +25,11 @@ func init() {
 // This sets the home directory for the driver and returns NaiveDiffDriver.
 func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
 	d := &Driver{
-		home:    home,
-		uidMaps: uidMaps,
-		gidMaps: gidMaps,
+		home:       home,
+		idMappings: idtools.NewIDMappingsFromMaps(uidMaps, gidMaps),
 	}
-	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
-	if err != nil {
-		return nil, err
-	}
-	if err := idtools.MkdirAllAs(home, 0700, rootUID, rootGID); err != nil {
+	rootIDs := d.idMappings.RootPair()
+	if err := idtools.MkdirAllAndChown(home, 0700, rootIDs); err != nil {
 		return nil, err
 	}
 	return graphdriver.NewNaiveDiffDriver(d, uidMaps, gidMaps), nil
@@ -44,9 +40,8 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 // In order to support layering, files are copied from the parent layer into the new layer. There is no copy-on-write support.
 // Driver must be wrapped in NaiveDiffDriver to be used as a graphdriver.Driver
 type Driver struct {
-	home    string
-	uidMaps []idtools.IDMap
-	gidMaps []idtools.IDMap
+	home       string
+	idMappings *idtools.IDMappings
 }
 
 func (d *Driver) String() string {
@@ -70,29 +65,26 @@ func (d *Driver) Cleanup() error {
 
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
-func (d *Driver) CreateReadWrite(id, parent, mountLabel string, storageOpt map[string]string) error {
-	return d.Create(id, parent, mountLabel, storageOpt)
+func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
+	return d.Create(id, parent, opts)
 }
 
 // Create prepares the filesystem for the VFS driver and copies the directory for the given id under the parent.
-func (d *Driver) Create(id, parent, mountLabel string, storageOpt map[string]string) error {
-	if len(storageOpt) != 0 {
+func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
+	if opts != nil && len(opts.StorageOpt) != 0 {
 		return fmt.Errorf("--storage-opt is not supported for vfs")
 	}
 
 	dir := d.dir(id)
-	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
-	if err != nil {
+	rootIDs := d.idMappings.RootPair()
+	if err := idtools.MkdirAllAndChown(filepath.Dir(dir), 0700, rootIDs); err != nil {
 		return err
 	}
-	if err := idtools.MkdirAllAs(filepath.Dir(dir), 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAndChown(dir, 0755, rootIDs); err != nil {
 		return err
 	}
-	if err := idtools.MkdirAs(dir, 0755, rootUID, rootGID); err != nil {
-		return err
-	}
-	opts := []string{"level:s0"}
-	if _, mountLabel, err := label.InitLabels(opts); err == nil {
+	labelOpts := []string{"level:s0"}
+	if _, mountLabel, err := label.InitLabels(labelOpts); err == nil {
 		label.SetFileLabel(dir, mountLabel)
 	}
 	if parent == "" {
@@ -102,10 +94,7 @@ func (d *Driver) Create(id, parent, mountLabel string, storageOpt map[string]str
 	if err != nil {
 		return fmt.Errorf("%s: %s", parent, err)
 	}
-	if err := CopyWithTar(parentDir, dir); err != nil {
-		return err
-	}
-	return nil
+	return CopyWithTar(parentDir, dir)
 }
 
 func (d *Driver) dir(id string) string {
@@ -114,10 +103,7 @@ func (d *Driver) dir(id string) string {
 
 // Remove deletes the content from the directory for a given id.
 func (d *Driver) Remove(id string) error {
-	if err := os.RemoveAll(d.dir(id)); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	return nil
+	return system.EnsureRemoveAll(d.dir(id))
 }
 
 // Get returns the directory for the given id.
@@ -146,6 +132,5 @@ func (d *Driver) Exists(id string) bool {
 
 // AdditionalImageStores returns additional image stores supported by the driver
 func (d *Driver) AdditionalImageStores() []string {
-	var imageStores []string
-	return imageStores
+	return nil
 }
