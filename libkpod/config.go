@@ -23,7 +23,7 @@ const (
 	cniBinDir           = "/opt/cni/bin/"
 	cgroupManager       = oci.CgroupfsCgroupsManager
 	lockPath            = "/run/crio.lock"
-	containerExitsDir   = "/var/run/kpod/exits"
+	containerExitsDir   = oci.ContainerExitsDir
 )
 
 // Config represents the entire set of configuration values that can be set for

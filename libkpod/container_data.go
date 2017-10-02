@@ -3,6 +3,7 @@ package libkpod
 import (
 	"encoding/json"
 	"os"
+	"time"
 
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
@@ -22,7 +23,7 @@ type ContainerData struct {
 	LogPath          string
 	Labels           fields.Set
 	Annotations      fields.Set
-	State            *oci.ContainerState
+	State            *ContainerState
 	Metadata         *pb.ContainerMetadata
 	BundlePath       string
 	StopSignal       string
@@ -47,6 +48,17 @@ type ContainerData struct {
 type driverData struct {
 	Name string
 	Data map[string]string
+}
+
+// ContainerState represents the status of a container.
+type ContainerState struct {
+	specs.State
+	Created   time.Time `json:"created"`
+	Started   time.Time `json:"started,omitempty"`
+	Finished  time.Time `json:"finished,omitempty"`
+	ExitCode  int32     `json:"exitCode"`
+	OOMKilled bool      `json:"oomKilled,omitempty"`
+	Error     string    `json:"error,omitempty"`
 }
 
 // GetContainerData gets the ContainerData for a container with the given name in the given store.
@@ -110,7 +122,7 @@ func (c *ContainerServer) GetContainerData(name string, size bool) (*ContainerDa
 		LogPath:          ctr.LogPath(),
 		Labels:           ctr.Labels(),
 		Annotations:      ctr.Annotations(),
-		State:            ctr.State(),
+		State:            c.State(ctr),
 		Metadata:         ctr.Metadata(),
 		BundlePath:       ctr.BundlePath(),
 		StopSignal:       ctr.GetStopSignal(),
@@ -175,4 +187,24 @@ func getBlankSpec() specs.Spec {
 		Solaris:     &specs.Solaris{},
 		Windows:     &specs.Windows{},
 	}
+}
+
+// State copies the crio container state to ContainerState type for kpod
+func (c *ContainerServer) State(ctr *oci.Container) *ContainerState {
+	crioState := ctr.State()
+	specState := specs.State{
+		Version:     crioState.Version,
+		ID:          crioState.ID,
+		Status:      crioState.Status,
+		Pid:         crioState.Pid,
+		Bundle:      crioState.Bundle,
+		Annotations: crioState.Annotations,
+	}
+	cState := &ContainerState{
+		Started:  crioState.Started,
+		Created:  crioState.Created,
+		Finished: crioState.Finished,
+	}
+	cState.State = specState
+	return cState
 }
