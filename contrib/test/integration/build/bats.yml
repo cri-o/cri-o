@@ -4,7 +4,6 @@
   git:
     repo: "https://github.com/sstephenson/bats.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/sstephenson/bats"
-    version: "{{ 'pull/161/head' if xunit else 'HEAD' }}"
 
 - name: install bats
   command: "./install.sh /usr/local"
