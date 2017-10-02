@@ -1,15 +1,12 @@
 #!/usr/bin/env bats
 
-function teardown() {
-    cleanup_test
-}
-
 load helpers
 
 IMAGE="redis:alpine"
-ROOT="$TESTDIR/crio"
-RUNROOT="$TESTDIR/crio-run"
-KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
+
+function teardown() {
+    cleanup_test
+}
 
 @test "mount" {
     start_crio
@@ -42,7 +39,9 @@ KPOD_OPTIONS="--root $ROOT --runroot $RUNROOT ${STORAGE_OPTS}"
     echo "$output"
     [ "$status" -eq 0 ]
     touch $root/foobar
-    ${KPOD_BINARY} ${KPOD_OPTIONS} unmount $ctr_id
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} unmount $ctr_id
+    echo "$output"
+    [ "$status" -eq 0 ]
     cleanup_ctrs
     cleanup_pods
     stop_crio

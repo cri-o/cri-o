@@ -90,6 +90,8 @@ CRIO_CNI_PLUGIN="/opt/cni/bin/"
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
+KPOD_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY}"
+
 cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
 PATH=$PATH:$TESTDIR
