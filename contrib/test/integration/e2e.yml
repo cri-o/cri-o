@@ -48,6 +48,9 @@
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax hilighting: "
 
+- name: disable SELinux
+  command: setenforce 0
+
 - name: run e2e tests
   shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
   args:
