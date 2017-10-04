@@ -89,8 +89,6 @@ type namespace struct {
 	UTS    string `json:"uts,omitempty"`
 }
 
-const runningState = "running"
-
 var (
 	psFlags = []cli.Flag{
 		cli.BoolFlag{
@@ -271,7 +269,7 @@ func getContainers(containers []*libkpod.ContainerData, opts psOptions) []*libkp
 		return containers
 	}
 	for _, ctr := range containers {
-		if ctr.State.Status == runningState {
+		if ctr.State.Status == oci.ContainerStateRunning {
 			containersOutput = append(containersOutput, ctr)
 		}
 	}
@@ -295,10 +293,12 @@ func getTemplateOutput(containers []*libkpod.ContainerData, opts psOptions) (psO
 		ns := getNamespaces(ctr.State.Pid)
 
 		switch ctr.State.Status {
-		case "stopped":
+		case oci.ContainerStateStopped:
 			status = "Exited (" + strconv.FormatInt(int64(ctr.State.ExitCode), 10) + ") " + runningFor + " ago"
-		case runningState:
+		case oci.ContainerStateRunning:
 			status = "Up " + runningFor + " ago"
+		case oci.ContainerStatePaused:
+			status = "Paused"
 		default:
 			status = "Created"
 		}
@@ -385,7 +385,7 @@ func getJSONOutput(containers []*libkpod.ContainerData, nSpace bool) (psOutput [
 			Names:            ctr.Name,
 			Labels:           ctr.Labels,
 			Mounts:           ctr.Mounts,
-			ContainerRunning: ctr.State.Status == runningState,
+			ContainerRunning: ctr.State.Status == oci.ContainerStateRunning,
 			Namespaces:       ns,
 		}
 		psOutput = append(psOutput, params)
