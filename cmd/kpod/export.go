@@ -48,6 +48,9 @@ func exportCmd(c *cli.Context) error {
 		return errors.Errorf("too many arguments given, need 1 at most.")
 	}
 	container := args[0]
+	if err := validateFlags(c, exportFlags); err != nil {
+		return err
+	}
 
 	config, err := getConfig(c)
 	if err != nil {

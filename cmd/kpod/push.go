@@ -68,6 +68,9 @@ func pushCmd(c *cli.Context) error {
 	if len(args) < 2 {
 		return errors.New("kpod push requires exactly 2 arguments")
 	}
+	if err := validateFlags(c, pushFlags); err != nil {
+		return err
+	}
 	srcName := c.Args().Get(0)
 	destName := c.Args().Get(1)
 

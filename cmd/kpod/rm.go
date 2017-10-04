@@ -33,6 +33,9 @@ func rmCmd(c *cli.Context) error {
 	if len(args) == 0 {
 		return errors.Errorf("specify one or more containers to remove")
 	}
+	if err := validateFlags(c, rmFlags); err != nil {
+		return err
+	}
 
 	config, err := getConfig(c)
 	if err != nil {

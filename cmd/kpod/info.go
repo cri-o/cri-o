@@ -36,6 +36,9 @@ var (
 )
 
 func infoCmd(c *cli.Context) error {
+	if err := validateFlags(c, infoFlags); err != nil {
+		return err
+	}
 	info := map[string]interface{}{}
 
 	infoGivers := []infoGiverFunc{

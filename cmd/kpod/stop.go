@@ -42,6 +42,9 @@ func stopCmd(c *cli.Context) error {
 	if len(args) < 1 {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
+	if err := validateFlags(c, stopFlags); err != nil {
+		return err
+	}
 
 	config, err := getConfig(c)
 	if err != nil {

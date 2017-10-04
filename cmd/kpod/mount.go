@@ -64,6 +64,9 @@ func mountCmd(c *cli.Context) error {
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments specified")
 	}
+	if err := validateFlags(c, mountFlags); err != nil {
+		return err
+	}
 	config, err := getConfig(c)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get config")

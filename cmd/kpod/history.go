@@ -85,6 +85,9 @@ var (
 )
 
 func historyCmd(c *cli.Context) error {
+	if err := validateFlags(c, historyFlags); err != nil {
+		return err
+	}
 	config, err := getConfig(c)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get config")

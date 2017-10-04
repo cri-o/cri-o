@@ -129,6 +129,9 @@ func pullCmd(c *cli.Context) error {
 		logrus.Errorf("too many arguments. Requires exactly 1")
 		return nil
 	}
+	if err := validateFlags(c, pullFlags); err != nil {
+		return err
+	}
 	image := args[0]
 	srcRef, err := alltransports.ParseImageName(image)
 	if err != nil {

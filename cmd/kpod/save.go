@@ -47,6 +47,9 @@ func saveCmd(c *cli.Context) error {
 	if len(args) == 0 {
 		return errors.Errorf("need at least 1 argument")
 	}
+	if err := validateFlags(c, saveFlags); err != nil {
+		return err
+	}
 
 	runtime, err := getRuntime(c)
 	if err != nil {

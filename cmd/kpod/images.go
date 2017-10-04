@@ -52,6 +52,9 @@ var (
 )
 
 func imagesCmd(c *cli.Context) error {
+	if err := validateFlags(c, imagesFlags); err != nil {
+		return err
+	}
 	config, err := getConfig(c)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get config")

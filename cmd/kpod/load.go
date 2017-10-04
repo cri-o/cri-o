@@ -45,6 +45,9 @@ func loadCmd(c *cli.Context) error {
 	if len(args) > 1 {
 		return errors.New("too many arguments. Requires exactly 1")
 	}
+	if err := validateFlags(c, loadFlags); err != nil {
+		return err
+	}
 
 	runtime, err := getRuntime(c)
 	if err != nil {
