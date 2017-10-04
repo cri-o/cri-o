@@ -63,6 +63,7 @@
     state: present
   with_items:
    - btrfs-progs-devel
+   - python2-virtualenv
   when: ansible_distribution in ['Fedora']
 
 - name: Update all packages
@@ -115,3 +116,17 @@
 - name: Update the kernel cmdline to include quota support
   command: grubby --update-kernel=ALL --args="rootflags=pquota"
   when: ansible_distribution in ['RedHat', 'CentOS']
+
+- name: Configure the GOPATH environment variable for all users
+  blockinfile:
+    path: /etc/environment
+    block: "GOPATH={{ go_path }}"
+    create: True
+    follow: True
+
+- name: Reset the ansible connection to incorporate /etc/environment changes
+  meta: reset_connection
+
+- name: Refresh facts to incorporate /etc/environment changes
+  setup:
+    gather_subset: network
