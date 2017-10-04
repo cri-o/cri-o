@@ -1,5 +1,27 @@
-- hosts: all
-  remote_user: root
+---
+
+- hosts: '{{ subjects | default("all") }}'
+  gather_facts: False  # Requires low-level ansible-dependencies
+  tasks:
+    - name: Ensure low-level ansible-dependencies are installed
+      raw: $(type -P dnf || type -P yum) install -y python2 python2-dnf libselinux-python git rsync
+
+    - name: Gather only networking facts for speed
+      setup:
+        gather_subset: network
+
+
+- hosts: '{{ subjects | default("none") }}'
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - setup
+  tasks:
+    - name: CRI-O source is available on every subject
+      include: github.yml
+
+
+- hosts: '{{ subjects | default("all") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tags:
@@ -26,19 +48,18 @@
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
 
-- hosts: all
-  remote_user: root
+
+- hosts: '{{ subjects | default("all") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tags:
     - integration
     - e2e
   tasks:
-    - name: clone build and install cri-o
+    - name: Build and install cri-o
       include: "build/cri-o.yml"
 
-- hosts: all
-  remote_user: root
+- hosts: '{{ subjects | default("all") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tags:
@@ -47,8 +68,7 @@
     - name: run cri-o integration tests
       include: test.yml
 
-- hosts: all
-  remote_user: root
+- hosts: '{{ subjects | default("all") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tags:
