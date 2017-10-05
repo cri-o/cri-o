@@ -55,8 +55,8 @@ There are other equivalents for these tools
 | `docker rm`     | [`kpod rm`](./docs/kpod-rm.1.md)          |
 | `docker rmi`    | [`kpod rmi`](./docs/kpod-rmi.1.md)        |
 | `docker save`   | [`kpod save`](./docs/kpod-save.1.md)      |
-| `docker tag`    | [`kpod tag`](./docs/kpod-tag.1.md)        |
 | `docker stop`   | [`kpod stop`](./docs/kpod-stop.1.md)      |
+| `docker tag`    | [`kpod tag`](./docs/kpod-tag.1.md)        |
 | `docker unpause`| [`kpod unpause`](./docs/kpod-unpause.1.md)|
 | `docker version`| [`kpod version`](./docs/kpod-version.1.md)|
 | `docker wait`   | [`kpod wait`](./docs/kpod-wait.1.md)|
