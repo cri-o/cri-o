@@ -11,7 +11,7 @@ func UntagImage(store storage.Store, image *storage.Image, imgArg string) (strin
 	newNames := []string{}
 	removedName := ""
 	for _, name := range image.Names {
-		if MatchesReference(name, imgArg) {
+		if MatchesReference(name, imgArg) || MatchesID(imgArg, image.ID) {
 			removedName = name
 			continue
 		}
