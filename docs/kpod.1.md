@@ -109,17 +109,20 @@ Display a live stream of one or more containers' resource usage statistics
 ### stop
 Stops one or more running containers.
 
-### unpause
-Unpause one or more containers
-
 ### tag
 Add an additional name to a local image
 
 ### umount
 Unmount a working container's root file system
 
+### unpause
+Unpause one or more containers
+
 ### version
 Display the version information
+
+### wait
+Wait on one or more containers to stop and print their exit codes
 
 ## SEE ALSO
 crio(8), crio.conf(5)
