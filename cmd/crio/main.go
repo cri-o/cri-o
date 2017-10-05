@@ -40,6 +40,11 @@ func validateConfig(config *server.Config) error {
 		return fmt.Errorf("Unrecognized image volume type specified")
 
 	}
+
+	// This needs to match the read buffer size in conmon
+	if config.LogSizeMax >= 0 && config.LogSizeMax < 8192 {
+		return fmt.Errorf("log size max should be negative or >= 8192")
+	}
 	return nil
 }
 
