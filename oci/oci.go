@@ -37,6 +37,8 @@ const (
 	CgroupfsCgroupsManager = "cgroupfs"
 	// SystemdCgroupsManager represents systemd native cgroup manager
 	SystemdCgroupsManager = "systemd"
+	// ContainerExitsDir is the location of container exit dirs
+	ContainerExitsDir = "/var/run/crio/exits"
 )
 
 // New creates a new Runtime with options provided
