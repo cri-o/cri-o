@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
@@ -186,7 +189,36 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	_ = runtime.GetConfig()
 
-	return errors.Errorf("NOT IMPLEMENTED")
+	createConfig, err := parseCreateOpts(c)
+	if err != nil {
+		return err
+	}
+
+	runtimeSpec, err := createConfigToOCISpec(createConfig)
+	if err != nil {
+		return err
+	}
+
+	ctr, err := runtime.NewContainer(runtimeSpec)
+	if err != nil {
+		return err
+	}
+
+	// Should we also call ctr.Create() to make the container in runc?
+
+	fmt.Printf("%s\n", ctr.ID())
+
+	return nil
+}
+
+// Parses CLI options related to container creation into a config which can be
+// parsed into an OCI runtime spec
+func parseCreateOpts(c *cli.Context) (*createConfig, error) {
+	return nil, errors.Errorf("NOT IMPLEMENTED")
+}
+
+// Parses information needed to create a container into an OCI runtime spec
+func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
+	return nil, errors.Errorf("NOT IMPLEMENTED")
 }
