@@ -122,45 +122,45 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringSliceFlag{
 		Name:  "dns",
-		Usage: "Set custom DNS servers. Conflicts with --pod",
+		Usage: "Set custom DNS servers",
 	},
 	cli.StringSliceFlag{
 		Name:  "dns-search",
-		Usage: "Set custom DNS search domains. Conflicts with --pod",
+		Usage: "Set custom DNS search domains",
 	},
 	cli.StringSliceFlag{
 		Name:  "dns-opt",
-		Usage: "Set custom DNS options. Conflicts with --pod",
+		Usage: "Set custom DNS options",
 	},
 	cli.StringSliceFlag{
 		Name:  "expose",
-		Usage: "Expose a port. Conflicts with --pod",
+		Usage: "Expose a port",
 	},
 	cli.StringFlag{
 		Name:  "hostname, h",
-		Usage: "Set hostname. Conflicts with --pod",
+		Usage: "Set hostname",
 		Value: defaultHostname,
 	},
 	cli.StringFlag{
 		Name:  "cgroup-parent",
-		Usage: "Set CGroup parent. Conflicts with --pod",
+		Usage: "Set CGroup parent",
 		Value: defaultCgroupParent,
 	},
 	cli.StringFlag{
 		Name:  "sysctl",
-		Usage: "Set namespaces SYSCTL. Conflicts with --pod",
+		Usage: "Set namespaced SYSCTLs",
 	},
 	cli.StringFlag{
 		Name:  "user, u",
-		Usage: "Specify user to run as. Conflicts with --pod",
+		Usage: "Specify user to run as",
 	},
 	cli.StringFlag{
 		Name:  "group-add",
-		Usage: "Specify additional groups to run as. Conflicts with --pod",
+		Usage: "Specify additional groups to run as",
 	},
 	cli.BoolFlag{
 		Name:  "read-only",
-		Usage: "Make root filesystem read-only. Conflicts with --pod",
+		Usage: "Make root filesystem read-only",
 	},
 }
 
