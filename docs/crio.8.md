@@ -106,7 +106,8 @@ set the CPU profile file path
   Set the format used by logs ('text' (default), or 'json') (default: "text")
 
 **--log-size-max**=""
-  Maximum log size in bytes for a container (default: -1 (no limit))
+  Maximum log size in bytes for a container (default: -1 (no limit)).
+  If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
 
 **--pause-command**=""
   Path to the pause executable in the pause image (default: "/pause")

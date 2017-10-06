@@ -81,6 +81,7 @@ Example:
 **log_size_max**=""
   Maximum sized allowed for the container log file (default: -1)
   Negative numbers indicate that no size limit is imposed.
+  If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
   The file is truncated and re-opened so the limit is never exceeded.
 
 **pids_limit**=""
