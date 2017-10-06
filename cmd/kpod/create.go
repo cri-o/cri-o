@@ -53,124 +53,16 @@ type createConfig struct {
 	readOnlyRootfs   bool
 }
 
-var createFlags = []cli.Flag{
-	cli.StringFlag{
-		Name:  "pod",
-		Usage: "Run container in an existing pod",
-	},
-	cli.BoolFlag{
-		Name:  "privileged",
-		Usage: "Run a privileged container",
-	},
-	cli.BoolFlag{
-		Name:  "rm",
-		Usage: "Remove container (and pod if created) after exit",
-	},
-	cli.StringFlag{
-		Name:  "network",
-		Usage: "Use `host` network namespace",
-	},
-	cli.StringFlag{
-		Name:  "pid",
-		Usage: "Use `host` PID namespace",
-	},
-	cli.StringFlag{
-		Name:  "ipc",
-		Usage: "Use `host` IPC namespace",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "Assign a name to the container",
-	},
-	cli.StringSliceFlag{
-		Name:  "label",
-		Usage: "Set label metadata on container",
-	},
-	cli.StringFlag{
-		Name:  "workdir, w",
-		Usage: "Set working `directory` of container",
-		Value: "/",
-	},
-	cli.StringSliceFlag{
-		Name:  "env, e",
-		Usage: "Set environment variables in container",
-	},
-	cli.BoolFlag{
-		Name:  "detach, d",
-		Usage: "Start container detached",
-	},
-	cli.BoolFlag{
-		Name:  "interactive, i",
-		Usage: "Keep STDIN open even if deatched",
-	},
-	cli.BoolFlag{
-		Name:  "tty, t",
-		Usage: "Allocate a TTY for container",
-	},
-	cli.StringSliceFlag{
-		Name:  "device",
-		Usage: "Mount devices into the container",
-	},
-	cli.StringSliceFlag{
-		Name:  "volume, v",
-		Usage: "Mount volumes into the container",
-	},
-	cli.StringSliceFlag{
-		Name:  "cap-add",
-		Usage: "Add capabilities to the container",
-	},
-	cli.StringSliceFlag{
-		Name:  "cap-drop",
-		Usage: "Drop capabilities from the container",
-	},
-	cli.StringSliceFlag{
-		Name:  "dns",
-		Usage: "Set custom DNS servers",
-	},
-	cli.StringSliceFlag{
-		Name:  "dns-search",
-		Usage: "Set custom DNS search domains",
-	},
-	cli.StringSliceFlag{
-		Name:  "dns-opt",
-		Usage: "Set custom DNS options",
-	},
-	cli.StringSliceFlag{
-		Name:  "expose",
-		Usage: "Expose a port",
-	},
-	cli.StringFlag{
-		Name:  "hostname, h",
-		Usage: "Set hostname",
-		Value: defaultHostname,
-	},
-	cli.StringFlag{
-		Name:  "cgroup-parent",
-		Usage: "Set CGroup parent",
-		Value: defaultCgroupParent,
-	},
-	cli.StringFlag{
-		Name:  "sysctl",
-		Usage: "Set namespaced SYSCTLs",
-	},
-	cli.StringFlag{
-		Name:  "user, u",
-		Usage: "Specify user to run as",
-	},
-	cli.StringFlag{
-		Name:  "group-add",
-		Usage: "Specify additional groups to run as",
-	},
-	cli.BoolFlag{
-		Name:  "read-only",
-		Usage: "Make root filesystem read-only",
-	},
-}
+var createDescription = "Creates a new container from the given image or" +
+	" storage and prepares it for running the specified command. The" +
+	" container ID is then printed to stdout. You can then start it at" +
+	" any time with the kpod start <container_id> command. The container" +
+	" will be created with the initial state 'created'."
 
 var createCommand = cli.Command{
 	Name:        "create",
 	Usage:       "create but do not start a container",
-	Description: `Create a new container from specified image, but do not start it`,
+	Description: createDescription,
 	Flags:       createFlags,
 	Action:      createCmd,
 	ArgsUsage:   "IMAGE [COMMAND [ARG...]]",
