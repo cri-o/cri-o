@@ -31,7 +31,7 @@ const (
 	// ContainerStateStopped represents the stopped state of a container
 	ContainerStateStopped = "stopped"
 	// ContainerCreateTimeout represents the value of container creating timeout
-	ContainerCreateTimeout = 10 * time.Second
+	ContainerCreateTimeout = 240 * time.Second
 
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
@@ -151,7 +151,7 @@ func getOCIVersion(name string, args ...string) (string, error) {
 }
 
 // CreateContainer creates a container.
-func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
+func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error) {
 	var stderrBuf bytes.Buffer
 	parentPipe, childPipe, err := newPipe()
 	childStartPipe, parentStartPipe, err := newPipe()
@@ -247,6 +247,13 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	if err != nil {
 		return err
 	}
+
+	// We will delete all container resources if creation fails
+	defer func() {
+		if err != nil {
+			r.DeleteContainer(c)
+		}
+	}()
 
 	// Wait to get container pid from conmon
 	type syncStruct struct {
