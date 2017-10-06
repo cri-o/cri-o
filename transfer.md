@@ -39,8 +39,9 @@ There are other equivalents for these tools
 
 | Existing Step | CRI-O (and friends) |
 | :---: | :---: |
+| `docker attach` | [`kpod exec`](./docs/kpod-attach.1.md) ***|
 | `docker build`  | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
-| `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md) ***   |
+| `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md) ****   |
 | `docker diff`   | [`kpod diff`](./docs/kpod-diff.1.md)      |
 | `docker export` | [`kpod export`](./docs/kpod-export.1.md)  |
 | `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
@@ -61,4 +62,5 @@ There are other equivalents for these tools
 | `docker version`| [`kpod version`](./docs/kpod-version.1.md)|
 | `docker wait`   | [`kpod wait`](./docs/kpod-wait.1.md)|
 
-*** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/kpod-cp.1.md) for more information.
+*** Use `kpod exec` to enter a container and `kpod logs` to view the output of pid 1 of a container.
+**** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/kpod-cp.1.md) for more information.
