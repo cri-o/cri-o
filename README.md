@@ -4,7 +4,7 @@
 [![Build Status](https://img.shields.io/travis/kubernetes-incubator/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-incubator/cri-o)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-incubator/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-incubator/cri-o)
 
-### Status: Release Candidate 2
+### Status: Release Candidate 3
 
 ## What is the scope of this project?
 
@@ -237,6 +237,7 @@ You can run a local version of kubernetes with cri-o using `local-up-cluster.sh`
 1. Start the cri-o daemon (`crio`)
 1. From the kubernetes project directory, run:
 ```shell
+CGROUP_DRIVER=systemd \
 CONTAINER_RUNTIME=remote \
 CONTAINER_RUNTIME_ENDPOINT='/var/run/crio.sock  --runtime-request-timeout=15m' \
 ./hack/local-up-cluster.sh
