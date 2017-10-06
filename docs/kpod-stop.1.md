@@ -32,4 +32,4 @@ kpod stop --timeout 2 860a4b23
 kpod(1), kpod-rm(1)
 
 ## HISTORY
-September 2018, Originally compiled by Brent Baude <bbaude@redhat.com>
+September 2017, Originally compiled by Brent Baude <bbaude@redhat.com>
