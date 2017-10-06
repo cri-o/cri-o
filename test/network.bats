@@ -2,6 +2,14 @@
 
 load helpers
 
+function teardown() {
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+	rm -f /var/lib/cni/networks/crionet_test_args/*
+	cleanup_test
+}
+
 @test "ensure correct hostname" {
 	start_crio
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
@@ -28,10 +36,6 @@ load helpers
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "crioctl_host" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ensure correct hostname for hostnetwork:true" {
@@ -62,10 +66,6 @@ load helpers
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "$HOSTNAME" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "Check for valid pod netns CIDR" {
@@ -81,10 +81,6 @@ load helpers
 	ctr_id="$output"
 
 	check_pod_cidr $ctr_id
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "Ping pod from the host" {
@@ -100,10 +96,6 @@ load helpers
 	ctr_id="$output"
 
 	ping_pod $ctr_id
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "Ping pod from another pod" {
@@ -133,10 +125,6 @@ load helpers
 
 	ping_pod_from_pod $ctr2_id $ctr1_id
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
@@ -152,9 +140,6 @@ load helpers
 	[ "$FOUND_K8S_POD_NAME" = "podsandbox1" ]
 
 	rm -rf /tmp/plugin_test_args.out
-
-	cleanup_pods
-	stop_crio
 }
 
 @test "Connect to pod hostport from the host" {
@@ -180,7 +165,20 @@ load helpers
 	[ "$status" -eq 0 ]
 	run crioctl ctr stop --id "$ctr_id"
 	echo "$output"
-	cleanup_pods
+}
 
-	stop_crio
+@test "Clean up network if pod sandbox fails" {
+	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
+
+	# make conmon non-executable to cause the sandbox setup to fail after
+	# networking has been configured
+	chmod 0644 /go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	chmod 0755 /go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon
+
+	# ensure that the server cleaned up sandbox networking if the sandbox
+	# failed after network setup
+	rm -f /var/lib/cni/networks/crionet_test_args/last_reserved_ip
+	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | wc -l)
+	[[ "${num_allocated}" == "0" ]]
 }
