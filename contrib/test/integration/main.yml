@@ -78,6 +78,7 @@
     - "{{ playbook_dir }}/vars.yml"
   environment: '{{ environment_variables }}'
   tasks:
+
     - name: Build and install cri-o
       include: "build/cri-o.yml"
       tags:

@@ -21,6 +21,11 @@ cri_o_src_path: "{{ playbook_dir }}/../../../"
 # Absolute path on subjects where cri-o source is expected
 cri_o_dest_path: "{{ go_path }}/src/github.com/kubernetes-incubator/cri-o"
 
+# Mapping of filenames to ansible_distribution (or default), to SELinux types
+set_setypes:
+    /usr/local/bin/crio:
+        default: 'container_runtime_exec_t'
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"

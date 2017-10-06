@@ -32,6 +32,7 @@
     - libgpg-error-devel
     - libguestfs-tools
     - libseccomp-devel
+    - libselinux-python
     - libvirt-client
     - libvirt-python
     - libxml2-devel
@@ -47,6 +48,7 @@
     - openssl-devel
     - ostree-devel
     - pkgconfig
+    - policycoreutils-python
     - python
     - python2-boto
     - python2-crypto
@@ -111,3 +113,12 @@
 - name: Update the kernel cmdline to include quota support
   command: grubby --update-kernel=ALL --args="rootflags=pquota"
   when: ansible_distribution in ['RedHat', 'CentOS']
+
+- name: Enforce specific SELinux types for files on this platform
+  sefcontext:
+    target: '{{ item.key }}'
+    setype: '{{ item.value[ansible_distribution] | default(item.value.default) }}'
+    state: present
+  when: item.value[ansible_distribution] is defined or
+        item.value.default is defined
+  with_dict: '{{ set_setypes | default({}) }}'
