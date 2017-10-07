@@ -133,3 +133,119 @@ func validateFlags(c *cli.Context, flags []cli.Flag) error {
 	}
 	return nil
 }
+
+// Common flags shared between commands
+var createFlags = []cli.Flag{
+	cli.StringSliceFlag{
+		Name:  "cap-add",
+		Usage: "Add capabilities to the container",
+	},
+	cli.StringSliceFlag{
+		Name:  "cap-drop",
+		Usage: "Drop capabilities from the container",
+	},
+	cli.StringFlag{
+		Name:  "cgroup-parent",
+		Usage: "Set CGroup parent",
+		Value: defaultCgroupParent,
+	},
+	cli.BoolFlag{
+		Name:  "detach, d",
+		Usage: "Start container detached",
+	},
+	cli.StringSliceFlag{
+		Name:  "device",
+		Usage: "Mount devices into the container",
+	},
+	cli.StringSliceFlag{
+		Name:  "dns",
+		Usage: "Set custom DNS servers",
+	},
+	cli.StringSliceFlag{
+		Name:  "dns-opt",
+		Usage: "Set custom DNS options",
+	},
+	cli.StringSliceFlag{
+		Name:  "dns-search",
+		Usage: "Set custom DNS search domains",
+	},
+	cli.StringSliceFlag{
+		Name:  "env, e",
+		Usage: "Set environment variables in container",
+	},
+	cli.StringSliceFlag{
+		Name:  "expose",
+		Usage: "Expose a port",
+	},
+	cli.StringFlag{
+		Name:  "group-add",
+		Usage: "Specify additional groups to run as",
+	},
+	cli.StringFlag{
+		Name:  "hostname, h",
+		Usage: "Set hostname",
+		Value: defaultHostname,
+	},
+	cli.BoolFlag{
+		Name:  "interactive, i",
+		Usage: "Keep STDIN open even if deatched",
+	},
+	cli.StringFlag{
+		Name:  "ipc",
+		Usage: "Use `host` IPC namespace",
+	},
+	cli.StringSliceFlag{
+		Name:  "label",
+		Usage: "Set label metadata on container",
+	},
+	cli.StringFlag{
+		Name:  "name",
+		Usage: "Assign a name to the container",
+	},
+	cli.StringFlag{
+		Name:  "network",
+		Usage: "Use `host` network namespace",
+	},
+	cli.StringFlag{
+		Name:  "pid",
+		Usage: "Use `host` PID namespace",
+	},
+	cli.StringFlag{
+		Name:  "pod",
+		Usage: "Run container in an existing pod",
+	},
+	cli.BoolFlag{
+		Name:  "privileged",
+		Usage: "Run a privileged container",
+	},
+	cli.BoolFlag{
+		Name:  "read-only",
+		Usage: "Make root filesystem read-only",
+	},
+	cli.BoolFlag{
+		Name:  "rm",
+		Usage: "Remove container (and pod if created) after exit",
+	},
+	cli.StringFlag{
+		Name:  "sysctl",
+		Usage: "Set namespaced SYSCTLs",
+	},
+	cli.BoolFlag{
+		Name:  "tty, t",
+		Usage: "Allocate a TTY for container",
+	},
+	cli.StringFlag{
+		Name:  "user, u",
+		Usage: "Specify user to run as",
+	},
+
+	cli.StringSliceFlag{
+		Name:  "volume, v",
+		Usage: "Mount volumes into the container",
+	},
+	cli.StringFlag{
+		Name:  "workdir, w",
+		Usage: "Set working `directory` of container",
+		Value: "/",
+	},
+}
