@@ -23,6 +23,7 @@
       After=network-online.target
       Wants=network-online.target
       [Service]
+      WorkingDirectory={{ ansible_env.GOPATH }}/src/k8s.io/kubernetes
       ExecStart=/usr/local/bin/createcluster.sh
       User=root
       [Install]
@@ -44,7 +45,7 @@
       export API_HOST={{ ansible_eth0.ipv4.address }}
       export API_HOST_IP={{ ansible_eth0.ipv4.address }}
       export KUBE_ENABLE_CLUSTER_DNS=true
-      {{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/local-up-cluster.sh
+      ./hack/local-up-cluster.sh
     mode: "u=rwx,g=rwx,o=x"
 
 - name: Set kubernetes_provider to be local
