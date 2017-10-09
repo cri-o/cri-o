@@ -41,7 +41,8 @@ There are other equivalents for these tools
 | :---: | :---: |
 | `docker attach` | [`kpod exec`](./docs/kpod-attach.1.md) ***|
 | `docker build`  | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
-| `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md) ****   |
+| `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md) ***   |
+| `docker create` | [`kpod create`](./docs/kpod-create.1.md)  |
 | `docker diff`   | [`kpod diff`](./docs/kpod-diff.1.md)      |
 | `docker export` | [`kpod export`](./docs/kpod-export.1.md)  |
 | `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
@@ -55,6 +56,7 @@ There are other equivalents for these tools
 | `docker rename` | [`kpod rename`](./docs/kpod-rename.1.md)  |
 | `docker rm`     | [`kpod rm`](./docs/kpod-rm.1.md)          |
 | `docker rmi`    | [`kpod rmi`](./docs/kpod-rmi.1.md)        |
+| `docker run`    | [`kpod run`](./docs/kpod-run.1.md)        |
 | `docker save`   | [`kpod save`](./docs/kpod-save.1.md)      |
 | `docker stop`   | [`kpod stop`](./docs/kpod-stop.1.md)      |
 | `docker tag`    | [`kpod tag`](./docs/kpod-tag.1.md)        |
