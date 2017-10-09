@@ -438,9 +438,9 @@ _kpod_kpod() {
            --runroot
            --storage-driver
            --storage-opt
+           --log-level
     "
      local boolean_options="
-           --debug
            --help -h
            --version -v
      "
