@@ -146,7 +146,7 @@ func resolveSymbolicLink(path string) (string, error) {
 
 func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
 	sp := specgen.Spec()
-	if containerConfig.GetLinux().GetSecurityContext().Privileged {
+	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 		hostDevices, err := devices.HostDevices()
 		if err != nil {
 			return err

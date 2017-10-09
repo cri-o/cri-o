@@ -40,7 +40,10 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	if filter.Id != "" {
 		id, err := s.CtrIDIndex().Get(filter.Id)
 		if err != nil {
-			return nil, err
+			// If we don't find a container ID with a filter, it should not
+			// be considered an error.  Log a warning and return an empty struct
+			logrus.Warn("unable to find container ID %s", filter.Id)
+			return &pb.ListContainersResponse{}, nil
 		}
 		c := s.ContainerServer.GetContainer(id)
 		if c != nil {

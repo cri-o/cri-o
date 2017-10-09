@@ -254,7 +254,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
 	if securityContext == nil {
-		return nil, fmt.Errorf("no security context found")
+		logrus.Warn("no security context found in config.")
 	}
 
 	processLabel, mountLabel, err = getSELinuxLabels(securityContext.GetSelinuxOptions(), privileged)
@@ -263,12 +263,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
-	namespaceOptions := securityContext.GetNamespaceOptions()
-	if namespaceOptions == nil {
-		return nil, fmt.Errorf("no namespace options found")
-	}
-
-	if securityContext.GetNamespaceOptions().HostPid || securityContext.GetNamespaceOptions().HostIpc {
+	if securityContext.GetNamespaceOptions().GetHostPid() || securityContext.GetNamespaceOptions().GetHostIpc() {
 		processLabel, mountLabel = "", ""
 	}
 	g.SetProcessSelinuxLabel(processLabel)
@@ -276,7 +271,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// create shm mount for the pod containers.
 	var shmPath string
-	if namespaceOptions.HostIpc {
+	if securityContext.GetNamespaceOptions().GetHostIpc() {
 		shmPath = "/dev/shm"
 	} else {
 		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
@@ -317,7 +312,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	hostNetwork := namespaceOptions.HostNetwork
+	hostNetwork := securityContext.GetNamespaceOptions().GetHostNetwork()
 
 	hostname, err := getHostname(id, req.GetConfig().Hostname, hostNetwork)
 	if err != nil {
@@ -352,7 +347,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	portMappings := convertPortMappings(req.GetConfig().GetPortMappings())
 
 	// setup cgroup settings
-	cgroupParent := req.GetConfig().GetLinux().CgroupParent
+	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
 	if cgroupParent != "" {
 		if s.config.CgroupManager == oci.SystemdCgroupsManager {
 			if len(cgroupParent) <= 6 || !strings.HasSuffix(path.Base(cgroupParent), ".slice") {
@@ -451,14 +446,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if namespaceOptions.HostPid {
+	if securityContext.GetNamespaceOptions().GetHostPid() {
 		err = g.RemoveLinuxNamespace("pid")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if namespaceOptions.HostIpc {
+	if securityContext.GetNamespaceOptions().GetHostIpc() {
 		err = g.RemoveLinuxNamespace("ipc")
 		if err != nil {
 			return nil, err
