@@ -6,7 +6,7 @@
 kpod-cp - Copy files/folders between a container and the local filesystem.
 
 ## Description
-We chose not to implement this feature in kpod even though the upstream docker
+We chose not to implement the `cp` feature in `kpod` even though the upstream Docker
 project has it. We have a much stronger capability.  Using standard kpod-mount
 and kpod-umount, we can take advantage of the entire linux tool chain, rather
 then just cp.
