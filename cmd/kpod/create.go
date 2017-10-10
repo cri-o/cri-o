@@ -7,94 +7,96 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	"strings"
+
 )
 
 type createResourceConfig struct {
-	blkioWeight       int64
-	blkioDevice       []string
-	cpuShares         int64
-	cpuCount          int64
-	cpuPeriod         int64
+	blkioWeight       int64 // blkio-weight
+	blkioDevice       []string // blkio-weight
+	cpuShares         int64 // cpu-shares
+	cpuCount          int64 // cpu-count
+	cpuPeriod         int64 // cpu-period
 	cpusetCpus        string
 	cpusetNames       string
 	cpuFile           string
-	cpuMems           string
-	cpuQuota          int64
-	cpuRtPeriod       int64
-	cpuRtRuntime      int64
-	cpus              int64
-	deviceReadBps     []string
-	deviceReadIops    []string
-	deviceWriteBps    []string
-	deviceWriteIops   []string
-	memory            string
-	memoryReservation string
-	memorySwap        string
-	memorySwapiness   string
-	kernelMemory      string
-	oomScoreAdj       string
-	pidsLimit         string
+	cpuMems           string // cpuset-mems
+	cpuQuota          int64 // cpu-quota
+	cpuRtPeriod       int64 // cpu-rt-period
+	cpuRtRuntime      int64 // cpu-rt-runtime
+	cpus              int64 // cpus
+	deviceReadBps     []string // device-read-bps
+	deviceReadIops    []string // device-read-iops
+	deviceWriteBps    []string // device-write-bps
+	deviceWriteIops   []string // device-write-iops
+	memory            string //memory
+	memoryReservation string // memory-reservation
+	memorySwap        string //memory-swap
+	memorySwapiness   string // memory-swappiness
+	kernelMemory      string // kernel-memory
+	oomScoreAdj       string //oom-score-adj
+	pidsLimit         string // pids-limit
 	shmSize           string
-	ulimit            []string
+	ulimit            []string //ulimit
 }
 
 type createConfig struct {
 	additionalGroups []int64
 	args             []string
-	capAdd           []string
-	capDrop          []string
-	cgroupParent     string
-	command          string
-	detach           bool
-	devices          []*pb.Device
-	dnsOpt           []string
-	dnsSearch        []string
-	dnsServers       []string
-	entrypoint       string
-	env              map[string]string
-	expose           []string
-	groupAdd         []string
-	hostname         string
+	capAdd           []string // cap-add
+	capDrop          []string // cap-drop
+	cgroupParent     string // cgroup-parent
+	command          []string
+	detach           bool // detach
+	devices          []*pb.Device // device
+	dnsOpt           []string //dns-opt
+	dnsSearch        []string //dns-search
+	dnsServers       []string //dns
+	entrypoint       string //entrypoint
+	env              []string //env
+	expose           []string //expose
+	groupAdd         []string // group-add
+	hostname         string //hostname
 	image            string
-	interactive      bool
-	ip6Address       string
-	ipAddress        string
-	labels           map[string]string
-	linkLocalIP      []string
-	logDriver        string
-	logDriverOpt     []string
-	macAddress       string
+	interactive      bool //interactive
+	ip6Address       string //ipv6
+	ipAddress        string //ip
+	labels           map[string]string //label
+	linkLocalIP      []string // link-local-ip
+	logDriver        string // log-driver
+	logDriverOpt     []string // log-opt
+	macAddress       string //mac-address
 	mounts           []*pb.Mount
-	name             string
-	network          string
-	networkAlias     []string
-	nsIPC            string
-	nsNet            string
-	nsPID            string
+	name             string //name
+	network          string  //network
+	networkAlias     []string //network-alias
+	nsIPC            string // ipc
+	nsNet            string //net
+	nsPID            string //pid
 	nsUser           string
-	pod              string
+	pod              string //pod
 	ports            []*pb.PortMapping
-	privileged       bool
-	publish          []string
-	publishAll       bool
-	readOnlyRootfs   bool
+	privileged       bool //privileged
+	publish          []string //publish
+	publishAll       bool //publish-all
+	readOnlyRootfs   bool //read-only
 	resources        createResourceConfig
-	rm               bool
-	securityOpts     []string
-	shmSize          string
-	sigProxy         bool
+	rm               bool //rm
+	securityOpts     []string //security-opt
+	shmSize          string //shm-size
+	sigProxy         bool //sig-proxy
 	stdin            bool
-	stopSignal       string
-	stopTimeout      int64
-	storageOpts      []string
-	sysctl           string
-	tmpfs            []string
-	tty              bool
-	user             int64
-	userns           string
-	volumes          []string
-	volumesFrom      []string
-	workDir          string
+	stopSignal       string // stop-signal
+	stopTimeout      int64 // stop-timeout
+	storageOpts      []string  //storage-opt
+	sysctl           map[string]string //sysctl
+	tmpfs            []string // tmpfs
+	tty              bool //tty
+	user             int64 //user
+	userns           string //userns
+	volumes          []string //volume
+	volumesFrom      []string //volumes-from
+	workDir          string //workdir
 }
 
 var createDescription = "Creates a new container from the given image or" +
@@ -110,6 +112,11 @@ var createCommand = cli.Command{
 	Flags:       createFlags,
 	Action:      createCmd,
 	ArgsUsage:   "IMAGE [COMMAND [ARG...]]",
+}
+
+func verifyImage(image string) bool{
+
+	return false
 }
 
 func createCmd(c *cli.Context) error {
@@ -151,10 +158,153 @@ func createCmd(c *cli.Context) error {
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
 func parseCreateOpts(c *cli.Context) (*createConfig, error) {
-	return nil, errors.Errorf("NOT IMPLEMENTED")
+	//for _, i := range(c.FlagNames()) {
+	//	fmt.Println(i)
+	//}
+	var command []string
+	var env []string
+	sysctl := make(map[string]string)
+	labels := make(map[string]string)
+
+	if len(c.Args()) < 1 {
+		return nil, errors.Errorf("you just provide an image name")
+	}
+	if len(c.Args()) > 1 {
+		command = c.Args()[1:]
+	}
+
+	if len(c.StringSlice("env")) > 0 {
+		for _, inputEnv := range(c.StringSlice("env")) {
+			env = append(env, inputEnv)
+		}
+	} else{
+		env = append(env, "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "TERM=xterm")
+	}
+
+	if len(c.StringSlice("sysctl")) > 0 {
+		for _, inputSysctl := range(c.StringSlice("sysctl")) {
+			values := strings.Split(inputSysctl, "=")
+			sysctl[values[0]] = values[1]
+		}
+	}
+
+	// TODO HERE
+	// insert labels - baude
+
+	image := c.Args()[0]
+
+	config := &createConfig{
+		capAdd: c.StringSlice("cap-add"),
+		capDrop: c.StringSlice("cap-drop"),
+		cgroupParent: c.String("cgroup-parent"),
+		command: command,
+		detach: c.Bool("detach"),
+		dnsOpt: c.StringSlice("dns-opt"),
+		dnsSearch: c.StringSlice("dns-search"),
+		dnsServers: c.StringSlice("dns"),
+		entrypoint: c.String("entrypoint"),
+		env: env,
+		expose: c.StringSlice("env"),
+		groupAdd:c.StringSlice("group-add"),
+		hostname: c.String("hostname"),
+		image: image,
+		interactive: c.Bool("interactive"),
+		ip6Address: c.String("ipv6"),
+		ipAddress: c.String("ip"),
+		labels: labels,
+		linkLocalIP: c.StringSlice("link-local-ip"),
+		logDriver: c.String("log-driver"),
+		logDriverOpt: c.StringSlice("log-opt"),
+		macAddress:c.String("mac-address"),
+		name: c.String("name"),
+		network: c.String("network"),
+		networkAlias: c.StringSlice("network-alias"),
+		nsIPC: c.String("ipc"),
+		nsNet: c.String("net"),
+		nsPID: c.String("pid"),
+		pod: c.String("pod"),
+		privileged: c.Bool("privileged"),
+		publish: c.StringSlice("publish"),
+		publishAll: c.Bool("publish-all"),
+		readOnlyRootfs: c.Bool("read-only"),
+		resources:createResourceConfig{
+			blkioWeight:c.Int64("blkio-weight"),
+			blkioDevice: c.StringSlice("blkio-device"),
+			cpuShares:c.Int64("cpu-shares"),
+			cpuCount: c.Int64("cpu-count"),
+			cpuPeriod:c.Int64("cpu-period"),
+			cpusetCpus:c.String("cpu-period"),
+			cpuMems:c.String("cpuset-mems"),
+			cpuQuota: c.Int64("cpu-quota"),
+			cpuRtPeriod: c.Int64("cpu-rt-period"),
+			cpuRtRuntime: c.Int64("cpu-rt-runtime"),
+			cpus: c.Int64("cpus"),
+			deviceReadBps: c.StringSlice("device-read-bps"),
+			deviceReadIops:c.StringSlice("device-read-iops"),
+			deviceWriteBps:c.StringSlice("device-write-bps"),
+			deviceWriteIops:c.StringSlice("device-write-iops"),
+			memory: c.String("memory"),
+			memoryReservation: c.String("memory-reservation"),
+			memorySwap: c.String("memory-swap"),
+			memorySwapiness:c.String("memory-swapiness"),
+			kernelMemory: c.String("kernel-memory"),
+			oomScoreAdj:c.String("oom-score-adj"),
+			pidsLimit: c.String("pids-limit"),
+			ulimit:c.StringSlice("ulimit"),
+		},
+		rm: c.Bool("rm"),
+		securityOpts:c.StringSlice("security-opt"),
+		shmSize: c.String("shm-size"),
+		sigProxy:c.Bool("sig-proxy"),
+		stopSignal:c.String("stop-signal"),
+		stopTimeout:c.Int64("stop-timeout"),
+		storageOpts:c.StringSlice("storage-opt"),
+		sysctl: sysctl,
+		tmpfs: c.StringSlice("tmpfs"),
+		tty: c.Bool("tty"), //
+		user: c.Int64("user"),
+		userns: c.String("userns"),
+		volumes:c.StringSlice("volume"),
+		volumesFrom:c.StringSlice("volumes-from"),
+		workDir:c.String("workdir"),
+	}
+
+	return config, nil
 }
 
 // Parses information needed to create a container into an OCI runtime spec
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
-	return nil, errors.Errorf("NOT IMPLEMENTED")
+	spec := &spec.Spec{
+		Version: "1.0.0.0", // where do I get this?
+		Process: &spec.Process{
+			Terminal: config.tty,
+			User: spec.User{
+			},
+			Args: config.command,
+			Env: config.env,
+			Capabilities: &spec.LinuxCapabilities{
+
+			},
+		},
+		Root: &spec.Root{
+			Readonly: config.readOnlyRootfs,
+		},
+		// Hostname
+		// Mounts
+		Hooks: &spec.Hooks{},
+		//Annotations
+		Linux: &spec.Linux{
+			// UIDMappings
+			// GIDMappings
+			Sysctl: config.sysctl,
+			Resources: &spec.LinuxResources{
+				Devices: spec.LinuxDeviceCgroup,
+
+			},
+		},
+
+	}
+
+
+	return spec, errors.Errorf("NOT IMPLEMENTED")
 }
