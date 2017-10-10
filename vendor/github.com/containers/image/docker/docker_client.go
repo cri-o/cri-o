@@ -3,12 +3,10 @@ package docker
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,11 +14,10 @@ import (
 	"time"
 
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/pkg/docker/config"
+	"github.com/containers/image/pkg/tlsclientconfig"
 	"github.com/containers/image/types"
-	"github.com/containers/storage/pkg/homedir"
 	"github.com/docker/distribution/registry/client"
-	helperclient "github.com/docker/docker-credential-helpers/client"
-	"github.com/docker/go-connections/sockets"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -28,13 +25,8 @@ import (
 )
 
 const (
-	dockerHostname     = "docker.io"
-	dockerRegistry     = "registry-1.docker.io"
-	dockerAuthRegistry = "https://index.docker.io/v1/"
-
-	dockerCfg         = ".docker"
-	dockerCfgFileName = "config.json"
-	dockerCfgObsolete = ".dockercfg"
+	dockerHostname = "docker.io"
+	dockerRegistry = "registry-1.docker.io"
 
 	systemPerHostCertDirPath = "/etc/docker/certs.d"
 
@@ -52,9 +44,13 @@ const (
 	extensionSignatureTypeAtomic    = "atomic" // extensionSignature.Type
 )
 
-// ErrV1NotSupported is returned when we're trying to talk to a
-// docker V1 registry.
-var ErrV1NotSupported = errors.New("can't talk to a V1 docker registry")
+var (
+	// ErrV1NotSupported is returned when we're trying to talk to a
+	// docker V1 registry.
+	ErrV1NotSupported = errors.New("can't talk to a V1 docker registry")
+	// ErrUnauthorizedForCredentials is returned when the status code returned is 401
+	ErrUnauthorizedForCredentials = errors.New("unable to retrieve auth token: invalid username/password")
+)
 
 // extensionSignature and extensionSignatureList come from github.com/openshift/origin/pkg/dockerregistry/server/signaturedispatcher.go:
 // signature represents a Docker image signature.
@@ -113,27 +109,7 @@ func serverDefault() *tls.Config {
 	}
 }
 
-func newTransport() *http.Transport {
-	direct := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-		DualStack: true,
-	}
-	tr := &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
-		Dial:                direct.Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
-		DisableKeepAlives: true,
-	}
-	proxyDialer, err := sockets.DialerFromEnvironment(direct)
-	if err == nil {
-		tr.Dial = proxyDialer.Dial
-	}
-	return tr
-}
-
-// dockerCertDir returns a path to a directory to be consumed by setupCertificates() depending on ctx and hostPort.
+// dockerCertDir returns a path to a directory to be consumed by tlsclientconfig.SetupCertificates() depending on ctx and hostPort.
 func dockerCertDir(ctx *types.SystemContext, hostPort string) string {
 	if ctx != nil && ctx.DockerCertPath != "" {
 		return ctx.DockerCertPath
@@ -212,36 +188,44 @@ func hasFile(files []os.FileInfo, name string) bool {
 	return false
 }
 
-// newDockerClient returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
+// newDockerClientFromRef returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
 // “write” specifies whether the client will be used for "write" access (in particular passed to lookaside.go:toplevelFromSection)
-func newDockerClient(ctx *types.SystemContext, ref dockerReference, write bool, actions string) (*dockerClient, error) {
+func newDockerClientFromRef(ctx *types.SystemContext, ref dockerReference, write bool, actions string) (*dockerClient, error) {
 	registry := reference.Domain(ref.ref)
-	if registry == dockerHostname {
-		registry = dockerRegistry
+	username, password, err := config.GetAuthentication(ctx, reference.Domain(ref.ref))
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting username and password")
 	}
-	username, password, err := getAuth(ctx, reference.Domain(ref.ref))
+	sigBase, err := configuredSignatureStorageBase(ctx, ref, write)
 	if err != nil {
 		return nil, err
 	}
-	tr := newTransport()
+	remoteName := reference.Path(ref.ref)
+
+	return newDockerClientWithDetails(ctx, registry, username, password, actions, sigBase, remoteName)
+}
+
+// newDockerClientWithDetails returns a new dockerClient instance for the given parameters
+func newDockerClientWithDetails(ctx *types.SystemContext, registry, username, password, actions string, sigBase signatureStorageBase, remoteName string) (*dockerClient, error) {
+	hostName := registry
+	if registry == dockerHostname {
+		registry = dockerRegistry
+	}
+	tr := tlsclientconfig.NewTransport()
 	tr.TLSClientConfig = serverDefault()
+
 	// It is undefined whether the host[:port] string for dockerHostname should be dockerHostname or dockerRegistry,
 	// because docker/docker does not read the certs.d subdirectory at all in that case.  We use the user-visible
 	// dockerHostname here, because it is more symmetrical to read the configuration in that case as well, and because
 	// generally the UI hides the existence of the different dockerRegistry.  But note that this behavior is
 	// undocumented and may change if docker/docker changes.
-	certDir := dockerCertDir(ctx, reference.Domain(ref.ref))
-	if err := setupCertificates(certDir, tr.TLSClientConfig); err != nil {
+	certDir := dockerCertDir(ctx, hostName)
+	if err := tlsclientconfig.SetupCertificates(certDir, tr.TLSClientConfig); err != nil {
 		return nil, err
 	}
+
 	if ctx != nil && ctx.DockerInsecureSkipTLSVerify {
 		tr.TLSClientConfig.InsecureSkipVerify = true
-	}
-	client := &http.Client{Transport: tr}
-
-	sigBase, err := configuredSignatureStorageBase(ctx, ref, write)
-	if err != nil {
-		return nil, err
 	}
 
 	return &dockerClient{
@@ -249,13 +233,37 @@ func newDockerClient(ctx *types.SystemContext, ref dockerReference, write bool, 
 		registry:      registry,
 		username:      username,
 		password:      password,
-		client:        client,
+		client:        &http.Client{Transport: tr},
 		signatureBase: sigBase,
 		scope: authScope{
 			actions:    actions,
-			remoteName: reference.Path(ref.ref),
+			remoteName: remoteName,
 		},
 	}, nil
+}
+
+// CheckAuth validates the credentials by attempting to log into the registry
+// returns an error if an error occcured while making the http request or the status code received was 401
+func CheckAuth(ctx context.Context, sCtx *types.SystemContext, username, password, registry string) error {
+	newLoginClient, err := newDockerClientWithDetails(sCtx, registry, username, password, "", nil, "")
+	if err != nil {
+		return errors.Wrapf(err, "error creating new docker client")
+	}
+
+	resp, err := newLoginClient.makeRequest(ctx, "GET", "/v2/", nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusUnauthorized:
+		return ErrUnauthorizedForCredentials
+	default:
+		return errors.Errorf("error occured with status code %q", resp.StatusCode)
+	}
 }
 
 // makeRequest creates and executes a http.Request with the specified parameters, adding authentication and TLS options for the Docker client.
@@ -329,7 +337,10 @@ func (c *dockerClient) setupRequestAuth(req *http.Request) error {
 					return errors.Errorf("missing realm in bearer auth challenge")
 				}
 				service, _ := challenge.Parameters["service"] // Will be "" if not present
-				scope := fmt.Sprintf("repository:%s:%s", c.scope.remoteName, c.scope.actions)
+				var scope string
+				if c.scope.remoteName != "" && c.scope.actions != "" {
+					scope = fmt.Sprintf("repository:%s:%s", c.scope.remoteName, c.scope.actions)
+				}
 				token, err := c.getBearerToken(req.Context(), realm, service, scope)
 				if err != nil {
 					return err
@@ -364,7 +375,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, realm, service, scope
 	if c.username != "" && c.password != "" {
 		authReq.SetBasicAuth(c.username, c.password)
 	}
-	tr := newTransport()
+	tr := tlsclientconfig.NewTransport()
 	// TODO(runcom): insecure for now to contact the external token service
 	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{Transport: tr}
@@ -375,7 +386,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, realm, service, scope
 	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusUnauthorized:
-		return nil, errors.Errorf("unable to retrieve auth token: 401 unauthorized")
+		return nil, ErrUnauthorizedForCredentials
 	case http.StatusOK:
 		break
 	default:
@@ -397,65 +408,6 @@ func (c *dockerClient) getBearerToken(ctx context.Context, realm, service, scope
 		token.IssuedAt = time.Now().UTC()
 	}
 	return &token, nil
-}
-
-func getAuth(ctx *types.SystemContext, registry string) (string, string, error) {
-	if ctx != nil && ctx.DockerAuthConfig != nil {
-		return ctx.DockerAuthConfig.Username, ctx.DockerAuthConfig.Password, nil
-	}
-	var dockerAuth dockerConfigFile
-	dockerCfgPath := filepath.Join(getDefaultConfigDir(".docker"), dockerCfgFileName)
-	if _, err := os.Stat(dockerCfgPath); err == nil {
-		j, err := ioutil.ReadFile(dockerCfgPath)
-		if err != nil {
-			return "", "", err
-		}
-		if err := json.Unmarshal(j, &dockerAuth); err != nil {
-			return "", "", err
-		}
-
-	} else if os.IsNotExist(err) {
-		// try old config path
-		oldDockerCfgPath := filepath.Join(getDefaultConfigDir(dockerCfgObsolete))
-		if _, err := os.Stat(oldDockerCfgPath); err != nil {
-			if os.IsNotExist(err) {
-				return "", "", nil
-			}
-			return "", "", errors.Wrap(err, oldDockerCfgPath)
-		}
-
-		j, err := ioutil.ReadFile(oldDockerCfgPath)
-		if err != nil {
-			return "", "", err
-		}
-		if err := json.Unmarshal(j, &dockerAuth.AuthConfigs); err != nil {
-			return "", "", err
-		}
-
-	} else if err != nil {
-		return "", "", errors.Wrap(err, dockerCfgPath)
-	}
-
-	// First try cred helpers. They should always be normalized.
-	if ch, exists := dockerAuth.CredHelpers[registry]; exists {
-		return getAuthFromCredHelper(ch, registry)
-	}
-
-	// I'm feeling lucky.
-	if c, exists := dockerAuth.AuthConfigs[registry]; exists {
-		return decodeDockerAuth(c.Auth)
-	}
-
-	// bad luck; let's normalize the entries first
-	registry = normalizeRegistry(registry)
-	normalizedAuths := map[string]dockerAuthConfig{}
-	for k, v := range dockerAuth.AuthConfigs {
-		normalizedAuths[normalizeRegistry(k)] = v
-	}
-	if c, exists := normalizedAuths[registry]; exists {
-		return decodeDockerAuth(c.Auth)
-	}
-	return "", "", nil
 }
 
 // detectProperties detects various properties of the registry.
@@ -539,68 +491,4 @@ func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerRe
 		return nil, errors.Wrapf(err, "Error decoding signature list")
 	}
 	return &parsedBody, nil
-}
-
-func getDefaultConfigDir(confPath string) string {
-	return filepath.Join(homedir.Get(), confPath)
-}
-
-type dockerAuthConfig struct {
-	Auth string `json:"auth,omitempty"`
-}
-
-type dockerConfigFile struct {
-	AuthConfigs map[string]dockerAuthConfig `json:"auths"`
-	CredHelpers map[string]string           `json:"credHelpers,omitempty"`
-}
-
-func getAuthFromCredHelper(credHelper, registry string) (string, string, error) {
-	helperName := fmt.Sprintf("docker-credential-%s", credHelper)
-	p := helperclient.NewShellProgramFunc(helperName)
-	creds, err := helperclient.Get(p, registry)
-	if err != nil {
-		return "", "", err
-	}
-
-	return creds.Username, creds.Secret, nil
-}
-
-func decodeDockerAuth(s string) (string, string, error) {
-	decoded, err := base64.StdEncoding.DecodeString(s)
-	if err != nil {
-		return "", "", err
-	}
-	parts := strings.SplitN(string(decoded), ":", 2)
-	if len(parts) != 2 {
-		// if it's invalid just skip, as docker does
-		return "", "", nil
-	}
-	user := parts[0]
-	password := strings.Trim(parts[1], "\x00")
-	return user, password, nil
-}
-
-// convertToHostname converts a registry url which has http|https prepended
-// to just an hostname.
-// Copied from github.com/docker/docker/registry/auth.go
-func convertToHostname(url string) string {
-	stripped := url
-	if strings.HasPrefix(url, "http://") {
-		stripped = strings.TrimPrefix(url, "http://")
-	} else if strings.HasPrefix(url, "https://") {
-		stripped = strings.TrimPrefix(url, "https://")
-	}
-
-	nameParts := strings.SplitN(stripped, "/", 2)
-
-	return nameParts[0]
-}
-
-func normalizeRegistry(registry string) string {
-	normalized := convertToHostname(registry)
-	switch normalized {
-	case "registry-1.docker.io", "docker.io":
-		return "index.docker.io"
-	}
-	return normalized
 }
