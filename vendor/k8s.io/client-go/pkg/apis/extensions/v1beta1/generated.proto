@@ -1019,3 +1019,4 @@ message ThirdPartyResourceList {
   // Items is the list of ThirdPartyResources.
   repeated ThirdPartyResource items = 2;
 }
+
