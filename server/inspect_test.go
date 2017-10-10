@@ -96,7 +96,7 @@ func TestGetContainerInfo(t *testing.T) {
 		t.Fatalf("expected same created time %d, got %d", created.UnixNano(), ci.CreatedTime)
 	}
 	if ci.Pid != 42 {
-		t.Fatalf("expected pid 42, got %s", ci.Pid)
+		t.Fatalf("expected pid 42, got %v", ci.Pid)
 	}
 	if ci.Name != "testname" {
 		t.Fatalf("expected name testname, got %s", ci.Name)
