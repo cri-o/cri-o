@@ -58,11 +58,21 @@ func main() {
 		waitCommand,
 	}
 	app.Before = func(c *cli.Context) error {
-		logrus.SetLevel(logrus.ErrorLevel)
-		if c.GlobalBool("debug") {
-			debug = true
-			logrus.SetLevel(logrus.DebugLevel)
+		logLevel := c.GlobalString("log-level")
+		if logLevel != "" {
+			level, err := logrus.ParseLevel(logLevel)
+			if err != nil {
+				return err
+			}
+
+			logrus.SetLevel(level)
 		}
+
+		if logLevel == "debug" {
+			debug = true
+
+		}
+
 		return nil
 	}
 	app.After = func(*cli.Context) error {
@@ -80,9 +90,10 @@ func main() {
 			Name:  "config, c",
 			Usage: "path of a config file detailing container server configuration options",
 		},
-		cli.BoolFlag{
-			Name:  "debug",
-			Usage: "print debugging information",
+		cli.StringFlag{
+			Name:  "log-level",
+			Usage: "log messages above specified level: debug, info, warn, error (default), fatal or panic",
+			Value: "error",
 		},
 		cli.StringFlag{
 			Name:  "root",
