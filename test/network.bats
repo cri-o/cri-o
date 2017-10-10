@@ -159,7 +159,7 @@ function teardown() {
 	run crioctl ctr start --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run nc -w 5 $host_ip 4888
+	run nc -w 5 $host_ip 4888 </dev/null
 	echo "$output"
 	[ "$output" = "crioctl_host" ]
 	[ "$status" -eq 0 ]
