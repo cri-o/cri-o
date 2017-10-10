@@ -140,6 +140,7 @@ func (s *dockerImageSource) getExternalBlob(urls []string) (io.ReadCloser, int64
 				logrus.Debug(err)
 				continue
 			}
+			break
 		}
 	}
 	if resp.Body != nil && err == nil {

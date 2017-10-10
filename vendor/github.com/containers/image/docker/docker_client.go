@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,9 +15,9 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/pkg/docker/config"
+	"github.com/containers/image/pkg/tlsclientconfig"
 	"github.com/containers/image/types"
 	"github.com/docker/distribution/registry/client"
-	"github.com/docker/go-connections/sockets"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -110,27 +109,7 @@ func serverDefault() *tls.Config {
 	}
 }
 
-func newTransport() *http.Transport {
-	direct := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-		DualStack: true,
-	}
-	tr := &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
-		Dial:                direct.Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
-		DisableKeepAlives: true,
-	}
-	proxyDialer, err := sockets.DialerFromEnvironment(direct)
-	if err == nil {
-		tr.Dial = proxyDialer.Dial
-	}
-	return tr
-}
-
-// dockerCertDir returns a path to a directory to be consumed by setupCertificates() depending on ctx and hostPort.
+// dockerCertDir returns a path to a directory to be consumed by tlsclientconfig.SetupCertificates() depending on ctx and hostPort.
 func dockerCertDir(ctx *types.SystemContext, hostPort string) string {
 	if ctx != nil && ctx.DockerCertPath != "" {
 		return ctx.DockerCertPath
@@ -232,7 +211,7 @@ func newDockerClientWithDetails(ctx *types.SystemContext, registry, username, pa
 	if registry == dockerHostname {
 		registry = dockerRegistry
 	}
-	tr := newTransport()
+	tr := tlsclientconfig.NewTransport()
 	tr.TLSClientConfig = serverDefault()
 
 	// It is undefined whether the host[:port] string for dockerHostname should be dockerHostname or dockerRegistry,
@@ -241,7 +220,7 @@ func newDockerClientWithDetails(ctx *types.SystemContext, registry, username, pa
 	// generally the UI hides the existence of the different dockerRegistry.  But note that this behavior is
 	// undocumented and may change if docker/docker changes.
 	certDir := dockerCertDir(ctx, hostName)
-	if err := setupCertificates(certDir, tr.TLSClientConfig); err != nil {
+	if err := tlsclientconfig.SetupCertificates(certDir, tr.TLSClientConfig); err != nil {
 		return nil, err
 	}
 
@@ -396,7 +375,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, realm, service, scope
 	if c.username != "" && c.password != "" {
 		authReq.SetBasicAuth(c.username, c.password)
 	}
-	tr := newTransport()
+	tr := tlsclientconfig.NewTransport()
 	// TODO(runcom): insecure for now to contact the external token service
 	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{Transport: tr}

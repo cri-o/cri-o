@@ -307,6 +307,14 @@ type SystemContext struct {
 	// If not "", overrides the default path for the authentication file
 	AuthFilePath string
 
+	// === OCI.Transport overrides ===
+	// If not "", a directory containing a CA certificate (ending with ".crt"),
+	// a client certificate (ending with ".cert") and a client ceritificate key
+	// (ending with ".key") used when downloading OCI image layers.
+	OCICertPath string
+	// Allow downloading OCI image layers over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+	OCIInsecureSkipTLSVerify bool
+
 	// === docker.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
 	// a client certificate (ending with ".cert") and a client ceritificate key
