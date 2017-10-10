@@ -1,4 +1,4 @@
-package images
+package libpod
 
 import (
 	"encoding/json"
@@ -11,12 +11,14 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	is "github.com/containers/image/storage"
+	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
 	"github.com/kubernetes-incubator/cri-o/libpod/common"
+	"github.com/kubernetes-incubator/cri-o/libpod/driver"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -33,6 +35,28 @@ const (
 	// member of a CommitOptions structure.  It is also the default.
 	OCIv1ImageManifest = v1.MediaTypeImageManifest
 )
+
+// Data handles the data used when inspecting a container
+// nolint
+type Data struct {
+	ID             string
+	Tags           []string
+	Digests        []string
+	ManifestDigest digest.Digest
+	Comment        string
+	Created        *time.Time
+	Container      string
+	Author         string
+	Config         ociv1.ImageConfig
+	Architecture   string
+	OS             string
+	Annotations    map[string]string
+	CreatedBy      string
+	Size           uint
+	VirtualSize    uint
+	GraphDriver    driver.Data
+	RootFS         ociv1.RootFS
+}
 
 // CopyData stores the basic data used when copying a container or image
 type CopyData struct {
@@ -360,13 +384,13 @@ func (c *CopyData) Save() error {
 }
 
 // GetContainerCopyData gets the copy data for a container
-func GetContainerCopyData(store storage.Store, name string) (*CopyData, error) {
+func (r *Runtime) GetContainerCopyData(name string) (*CopyData, error) {
 	var data *CopyData
 	var err error
 	if name != "" {
-		data, err = openCopyData(store, name)
+		data, err = openCopyData(r.store, name)
 		if os.IsNotExist(errors.Cause(err)) {
-			data, err = importCopyData(store, name, "")
+			data, err = r.importCopyData(r.store, name, "")
 		}
 	}
 	if err != nil {
@@ -380,17 +404,17 @@ func GetContainerCopyData(store storage.Store, name string) (*CopyData, error) {
 }
 
 // GetImageCopyData gets the copy data for an image
-func GetImageCopyData(store storage.Store, image string) (*CopyData, error) {
+func (r *Runtime) GetImageCopyData(image string) (*CopyData, error) {
 	if image == "" {
 		return nil, errors.Errorf("image name must be specified")
 	}
-	img, err := FindImage(store, image)
+	img, err := r.GetImage(image)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error locating image %q for importing settings", image)
 	}
 
 	systemContext := common.GetSystemContext("")
-	data, err := ImportCopyDataFromImage(store, systemContext, img.ID, "", "")
+	data, err := r.ImportCopyDataFromImage(systemContext, img.ID, "", "")
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image")
 	}
@@ -401,7 +425,7 @@ func GetImageCopyData(store storage.Store, image string) (*CopyData, error) {
 
 }
 
-func importCopyData(store storage.Store, container, signaturePolicyPath string) (*CopyData, error) {
+func (r *Runtime) importCopyData(store storage.Store, container, signaturePolicyPath string) (*CopyData, error) {
 	if container == "" {
 		return nil, errors.Errorf("container name must be specified")
 	}
@@ -413,7 +437,7 @@ func importCopyData(store storage.Store, container, signaturePolicyPath string) 
 
 	systemContext := common.GetSystemContext(signaturePolicyPath)
 
-	data, err := ImportCopyDataFromImage(store, systemContext, c.ImageID, container, c.ID)
+	data, err := r.ImportCopyDataFromImage(systemContext, c.ImageID, container, c.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -461,13 +485,13 @@ func openCopyData(store storage.Store, container string) (*CopyData, error) {
 }
 
 // ImportCopyDataFromImage creates copy data for an image with the given parameters
-func ImportCopyDataFromImage(store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*CopyData, error) {
+func (r *Runtime) ImportCopyDataFromImage(systemContext *types.SystemContext, imageID, containerName, containerID string) (*CopyData, error) {
 	manifest := []byte{}
 	config := []byte{}
 	imageName := ""
 
 	if imageID != "" {
-		ref, err := is.Transport.ParseStoreReference(store, "@"+imageID)
+		ref, err := is.Transport.ParseStoreReference(r.store, "@"+imageID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "no such image %q", "@"+imageID)
 		}
@@ -484,7 +508,7 @@ func ImportCopyDataFromImage(store storage.Store, systemContext *types.SystemCon
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading image manifest")
 		}
-		if img, err3 := store.Image(imageID); err3 == nil {
+		if img, err3 := r.store.Image(imageID); err3 == nil {
 			if len(img.Names) > 0 {
 				imageName = img.Names[0]
 			}
@@ -492,7 +516,7 @@ func ImportCopyDataFromImage(store storage.Store, systemContext *types.SystemCon
 	}
 
 	data := &CopyData{
-		store:            store,
+		store:            r.store,
 		Type:             containerType,
 		FromImage:        imageName,
 		FromImageID:      imageID,
@@ -549,4 +573,92 @@ func (c *CopyData) MakeImageRef(manifestType string, compress archive.Compressio
 		exporting:             true,
 	}
 	return ref, nil
+}
+
+// GetData gets the Data for a container with the given name in the given store.
+func (r *Runtime) GetData(name string) (*Data, error) {
+	img, err := r.GetImage(name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading image %q", name)
+	}
+
+	imgRef, err := r.GetImageRef("@" + img.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading image reference %q", img.ID)
+	}
+	defer imgRef.Close()
+
+	tags, digests, err := ParseImageNames(img.Names)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing image names for %q", name)
+	}
+
+	driverName, err := driver.GetDriverName(r.store)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading name of storage driver")
+	}
+
+	topLayerID := img.TopLayer
+
+	driverMetadata, err := driver.GetDriverMetadata(r.store, topLayerID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error asking storage driver %q for metadata", driverName)
+	}
+
+	layer, err := r.store.Layer(topLayerID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading information about layer %q", topLayerID)
+	}
+	size, err := r.store.DiffSize(layer.Parent, layer.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error determining size of layer %q", layer.ID)
+	}
+
+	imgSize, err := imgRef.Size()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error determining size of image %q", transports.ImageName(imgRef.Reference()))
+	}
+
+	manifest, manifestType, err := imgRef.Manifest()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading manifest for image %q", img.ID)
+	}
+	manifestDigest := digest.Digest("")
+	if len(manifest) > 0 {
+		manifestDigest = digest.Canonical.FromBytes(manifest)
+	}
+	annotations := annotations(manifest, manifestType)
+
+	config, err := imgRef.OCIConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading image configuration for %q", img.ID)
+	}
+	historyComment := ""
+	historyCreatedBy := ""
+	if len(config.History) > 0 {
+		historyComment = config.History[len(config.History)-1].Comment
+		historyCreatedBy = config.History[len(config.History)-1].CreatedBy
+	}
+
+	return &Data{
+		ID:             img.ID,
+		Tags:           tags,
+		Digests:        digests,
+		ManifestDigest: manifestDigest,
+		Comment:        historyComment,
+		Created:        config.Created,
+		Author:         config.Author,
+		Config:         config.Config,
+		Architecture:   config.Architecture,
+		OS:             config.OS,
+		Annotations:    annotations,
+		CreatedBy:      historyCreatedBy,
+		Size:           uint(size),
+		VirtualSize:    uint(size + imgSize),
+		GraphDriver: driver.Data{
+			Name: driverName,
+			Data: driverMetadata,
+		},
+		RootFS: config.RootFS,
+	}, nil
 }

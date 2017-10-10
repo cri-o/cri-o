@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -99,11 +100,11 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 	return r.state.LookupContainer(idOrName)
 }
 
-// Containers retrieves all containers from the state
+// GetContainers retrieves all containers from the state
 // Filters can be provided which will determine what containers are included in
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
-func (r *Runtime) Containers(filters ...ContainerFilter) ([]*Container, error) {
+func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -130,4 +131,30 @@ func (r *Runtime) Containers(filters ...ContainerFilter) ([]*Container, error) {
 	}
 
 	return ctrsFiltered, nil
+}
+
+// getContainersWithImage returns a list of containers referencing imageID
+func (r *Runtime) getContainersWithImage(imageID string) ([]storage.Container, error) {
+	var matchingContainers []storage.Container
+	containers, err := r.store.Containers()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ctr := range containers {
+		if ctr.ImageID == imageID {
+			matchingContainers = append(matchingContainers, ctr)
+		}
+	}
+	return matchingContainers, nil
+}
+
+// removeMultipleContainers deletes a list of containers from the store
+func (r *Runtime) removeMultipleContainers(containers []storage.Container) error {
+	for _, ctr := range containers {
+		if err := r.store.DeleteContainer(ctr.ID); err != nil {
+			return errors.Wrapf(err, "could not remove container %q", ctr)
+		}
+	}
+	return nil
 }

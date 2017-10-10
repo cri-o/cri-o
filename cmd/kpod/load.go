@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/kubernetes-incubator/cri-o/libpod/images"
+	"github.com/kubernetes-incubator/cri-o/libpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -91,9 +91,9 @@ func loadCmd(c *cli.Context) error {
 		output = os.Stdout
 	}
 
-	src := images.DockerArchive + ":" + input
+	src := libpod.DockerArchive + ":" + input
 	if err := runtime.PullImage(src, false, "", output); err != nil {
-		src = images.OCIArchive + ":" + input
+		src = libpod.OCIArchive + ":" + input
 		// generate full src name with specified image:tag
 		if image != "" {
 			src = src + ":" + image

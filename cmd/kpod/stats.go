@@ -8,9 +8,10 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/docker/go-units"
+
 	tm "github.com/buger/goterm"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libpod/images"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -182,7 +183,7 @@ func outputStatsUsingFormatString(stats *libkpod.ContainerStats) {
 }
 
 func combineHumanValues(a, b uint64) string {
-	return fmt.Sprintf("%s / %s", images.FormattedSize(float64(a)), images.FormattedSize(float64(b)))
+	return fmt.Sprintf("%s / %s", units.HumanSize(float64(a)), units.HumanSize(float64(b)))
 }
 
 func floatToPercentString(f float64) string {

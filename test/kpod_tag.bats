@@ -2,7 +2,7 @@
 
 load helpers
 
-IMAGE="docker.io/library/alpine:latest"
+IMAGE="alpine:latest"
 
 function teardown() {
     cleanup_test
@@ -17,7 +17,7 @@ function teardown() {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} inspect foobar:latest
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi foobar:latest
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi --force foobar:latest
 	[ "$status" -eq 0 ]
 }
 
@@ -26,10 +26,12 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} tag $IMAGE foobar
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} inspect foobar:latest
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi foobar:latest
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi --force foobar:latest
 	[ "$status" -eq 0 ]
 }
 
@@ -38,9 +40,11 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} tag $IMAGE foobar:v
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} inspect foobar:v
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi foobar:v
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi --force foobar:v
 	[ "$status" -eq 0 ]
 }

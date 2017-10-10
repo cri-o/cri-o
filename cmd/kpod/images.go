@@ -1,16 +1,45 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
+	"github.com/containers/image/types"
 	"github.com/containers/storage"
+	"github.com/docker/go-units"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
-	libpod "github.com/kubernetes-incubator/cri-o/libpod/images"
+	"github.com/kubernetes-incubator/cri-o/libpod"
+	"github.com/kubernetes-incubator/cri-o/libpod/common"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
+
+type imagesTemplateParams struct {
+	ID        string
+	Name      string
+	Digest    digest.Digest
+	CreatedAt string
+	Size      string
+}
+
+type imagesJSONParams struct {
+	ID        string        `json:"id"`
+	Name      []string      `json:"names"`
+	Digest    digest.Digest `json:"digest"`
+	CreatedAt time.Time     `json:"created"`
+	Size      int64         `json:"size"`
+}
+
+type imagesOptions struct {
+	quiet     bool
+	noHeading bool
+	noTrunc   bool
+	digests   bool
+	format    string
+}
 
 var (
 	imagesFlags = []cli.Flag{
@@ -55,145 +84,88 @@ func imagesCmd(c *cli.Context) error {
 	if err := validateFlags(c, imagesFlags); err != nil {
 		return err
 	}
-	config, err := getConfig(c)
-	if err != nil {
-		return errors.Wrapf(err, "Could not get config")
-	}
-	store, err := getStore(config)
-	if err != nil {
-		return err
-	}
 
-	quiet := false
-	if c.IsSet("quiet") {
-		quiet = c.Bool("quiet")
+	runtime, err := getRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "Could not get runtime")
 	}
-	noheading := false
-	if c.IsSet("noheading") {
-		noheading = c.Bool("noheading")
-	}
-	truncate := true
-	if c.IsSet("no-trunc") {
-		truncate = !c.Bool("no-trunc")
-	}
-	digests := false
-	if c.IsSet("digests") {
-		digests = c.Bool("digests")
-	}
-	outputFormat := genImagesFormat(quiet, truncate, digests)
+	defer runtime.Shutdown(false)
+
+	var format string
 	if c.IsSet("format") {
-		outputFormat = c.String("format")
+		format = c.String("format")
+	} else {
+		format = genImagesFormat(c.Bool("quiet"), c.Bool("noheading"), c.Bool("digests"))
 	}
 
-	name := ""
+	opts := imagesOptions{
+		quiet:     c.Bool("quiet"),
+		noHeading: c.Bool("noheading"),
+		noTrunc:   c.Bool("no-trunc"),
+		digests:   c.Bool("digests"),
+		format:    format,
+	}
+
+	var imageInput string
 	if len(c.Args()) == 1 {
-		name = c.Args().Get(0)
-	} else if len(c.Args()) > 1 {
+		imageInput = c.Args().Get(0)
+	}
+	if len(c.Args()) > 1 {
 		return errors.New("'kpod images' requires at most 1 argument")
 	}
 
-	var params *libpod.FilterParams
-	if c.IsSet("filter") {
-		params, err = libpod.ParseFilter(store, c.String("filter"))
-		if err != nil {
-			return errors.Wrapf(err, "error parsing filter")
-		}
-	} else {
-		params = nil
+	params, err := runtime.ParseImageFilter(imageInput, c.String("filter"))
+	if err != nil {
+		return errors.Wrapf(err, "error parsing filter")
 	}
 
-	imageList, err := libpod.GetImagesMatchingFilter(store, params, name)
+	// generate the different filters
+	labelFilter := generateImagesFilter(params, "label")
+	beforeImageFilter := generateImagesFilter(params, "before-image")
+	sinceImageFilter := generateImagesFilter(params, "since-image")
+	danglingFilter := generateImagesFilter(params, "dangling")
+	referenceFilter := generateImagesFilter(params, "reference")
+	imageInputFilter := generateImagesFilter(params, "image-input")
+
+	images, err := runtime.GetImages(params, labelFilter, beforeImageFilter, sinceImageFilter, danglingFilter, referenceFilter, imageInputFilter)
 	if err != nil {
 		return errors.Wrapf(err, "could not get list of images matching filter")
 	}
 
-	return outputImages(store, imageList, truncate, digests, quiet, outputFormat, noheading)
+	return generateImagesOutput(runtime, images, opts)
 }
 
-func genImagesFormat(quiet, truncate, digests bool) (format string) {
+func genImagesFormat(quiet, noHeading, digests bool) (format string) {
 	if quiet {
 		return formats.IDString
 	}
-	if truncate {
-		format = "table {{ .ID | printf \"%-20.12s\" }} "
-	} else {
-		format = "table {{ .ID | printf \"%-64s\" }} "
+	format = "table {{.ID}}\t{{.Name}}\t"
+	if noHeading {
+		format = "{{.ID}}\t{{.Name}}\t"
 	}
-	format += "{{ .Name | printf \"%-56s\" }} "
-
 	if digests {
-		format += "{{ .Digest | printf \"%-71s \"}} "
+		format += "{{.Digest}}\t"
 	}
-
-	format += "{{ .CreatedAt | printf \"%-22s\" }} {{.Size}}"
+	format += "{{.CreatedAt}}\t{{.Size}}\t"
 	return
 }
 
-func outputImages(store storage.Store, images []storage.Image, truncate, digests, quiet bool, outputFormat string, noheading bool) error {
-	imageOutput := []imageOutputParams{}
-
-	lastID := ""
-	for _, img := range images {
-		if quiet && lastID == img.ID {
-			continue // quiet should not show the same ID multiple times
+// imagesToGeneric creates an empty array of interfaces for output
+func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSONParams) (genericParams []interface{}) {
+	if len(templParams) > 0 {
+		for _, v := range templParams {
+			genericParams = append(genericParams, interface{}(v))
 		}
-		createdTime := img.Created
-
-		names := []string{""}
-		if len(img.Names) > 0 {
-			names = img.Names
-		}
-
-		info, imageDigest, size, _ := libpod.InfoAndDigestAndSize(store, img)
-		if info != nil {
-			createdTime = info.Created
-		}
-
-		params := imageOutputParams{
-			ID:        img.ID,
-			Name:      names,
-			Digest:    imageDigest,
-			CreatedAt: createdTime.Format("Jan 2, 2006 15:04"),
-			Size:      libpod.FormattedSize(float64(size)),
-		}
-		imageOutput = append(imageOutput, params)
+		return
 	}
-
-	var out formats.Writer
-
-	switch outputFormat {
-	case formats.JSONString:
-		out = formats.JSONStructArray{Output: toGeneric(imageOutput)}
-	default:
-		if len(imageOutput) == 0 {
-			out = formats.StdoutTemplateArray{}
-		} else {
-			out = formats.StdoutTemplateArray{Output: toGeneric(imageOutput), Template: outputFormat, Fields: imageOutput[0].headerMap()}
-		}
+	for _, v := range JSONParams {
+		genericParams = append(genericParams, interface{}(v))
 	}
-
-	formats.Writer(out).Out()
-
-	return nil
+	return
 }
 
-type imageOutputParams struct {
-	ID        string        `json:"id"`
-	Name      []string      `json:"names"`
-	Digest    digest.Digest `json:"digest"`
-	CreatedAt string        `json:"created"`
-	Size      string        `json:"size"`
-}
-
-func toGeneric(params []imageOutputParams) []interface{} {
-	genericParams := make([]interface{}, len(params))
-	for i, v := range params {
-		genericParams[i] = interface{}(v)
-	}
-	return genericParams
-}
-
-func (i *imageOutputParams) headerMap() map[string]string {
+// generate the header based on the template provided
+func (i *imagesTemplateParams) headerMap() map[string]string {
 	v := reflect.Indirect(reflect.ValueOf(i))
 	values := make(map[string]string)
 
@@ -206,4 +178,153 @@ func (i *imageOutputParams) headerMap() map[string]string {
 		values[key] = strings.ToUpper(splitCamelCase(value))
 	}
 	return values
+}
+
+// getImagesTemplateOutput returns the images information to be printed in human readable format
+func getImagesTemplateOutput(runtime *libpod.Runtime, images []*storage.Image, opts imagesOptions) (imagesOutput []imagesTemplateParams) {
+	var (
+		lastID string
+	)
+	for _, img := range images {
+		if opts.quiet && lastID == img.ID {
+			continue // quiet should not show the same ID multiple times
+		}
+		createdTime := img.Created
+
+		imageID := img.ID
+		if !opts.noTrunc {
+			imageID = imageID[:idTruncLength]
+		}
+
+		imageName := "<none>"
+		if len(img.Names) > 0 {
+			imageName = img.Names[0]
+		}
+
+		info, imageDigest, size, _ := runtime.InfoAndDigestAndSize(*img)
+		if info != nil {
+			createdTime = info.Created
+		}
+
+		params := imagesTemplateParams{
+			ID:        imageID,
+			Name:      imageName,
+			Digest:    imageDigest,
+			CreatedAt: units.HumanDuration(time.Since((createdTime))) + " ago",
+			Size:      units.HumanSize(float64(size)),
+		}
+		imagesOutput = append(imagesOutput, params)
+	}
+	return
+}
+
+// getImagesJSONOutput returns the images information in its raw form
+func getImagesJSONOutput(runtime *libpod.Runtime, images []*storage.Image) (imagesOutput []imagesJSONParams) {
+	for _, img := range images {
+		createdTime := img.Created
+
+		info, imageDigest, size, _ := runtime.InfoAndDigestAndSize(*img)
+		if info != nil {
+			createdTime = info.Created
+		}
+
+		params := imagesJSONParams{
+			ID:        img.ID,
+			Name:      img.Names,
+			Digest:    imageDigest,
+			CreatedAt: createdTime,
+			Size:      size,
+		}
+		imagesOutput = append(imagesOutput, params)
+	}
+	return
+}
+
+// generateImagesOutput generates the images based on the format provided
+func generateImagesOutput(runtime *libpod.Runtime, images []*storage.Image, opts imagesOptions) error {
+	if len(images) == 0 {
+		return nil
+	}
+
+	var out formats.Writer
+
+	switch opts.format {
+	case formats.JSONString:
+		imagesOutput := getImagesJSONOutput(runtime, images)
+		out = formats.JSONStructArray{Output: imagesToGeneric([]imagesTemplateParams{}, imagesOutput)}
+	default:
+		imagesOutput := getImagesTemplateOutput(runtime, images, opts)
+		out = formats.StdoutTemplateArray{Output: imagesToGeneric(imagesOutput, []imagesJSONParams{}), Template: opts.format, Fields: imagesOutput[0].headerMap()}
+
+	}
+
+	return formats.Writer(out).Out()
+}
+
+// generateImagesFilter returns an ImageFilter based on filterType
+// to add more filters, define a new case and write what the ImageFilter function should do
+func generateImagesFilter(params *libpod.ImageFilterParams, filterType string) libpod.ImageFilter {
+	switch filterType {
+	case "label":
+		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+			if params == nil || params.Label == "" {
+				return true
+			}
+
+			pair := strings.SplitN(params.Label, "=", 2)
+			if val, ok := info.Labels[pair[0]]; ok {
+				if len(pair) == 2 && val == pair[1] {
+					return true
+				}
+				if len(pair) == 1 {
+					return true
+				}
+			}
+			return false
+		}
+	case "before-image":
+		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+			if params == nil || params.BeforeImage.IsZero() {
+				return true
+			}
+			return info.Created.Before(params.BeforeImage)
+		}
+	case "since-image":
+		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+			if params == nil || params.SinceImage.IsZero() {
+				return true
+			}
+			return info.Created.After(params.SinceImage)
+		}
+	case "dangling":
+		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+			if params == nil || params.Dangling == "" {
+				return true
+			}
+			if common.IsFalse(params.Dangling) && params.ImageName != "<none>" {
+				return true
+			}
+			if common.IsTrue(params.Dangling) && params.ImageName == "<none>" {
+				return true
+			}
+			return false
+		}
+	case "reference":
+		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+			if params == nil || params.ReferencePattern == "" {
+				return true
+			}
+			return libpod.MatchesReference(params.ImageName, params.ReferencePattern)
+		}
+	case "image-input":
+		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+			if params == nil || params.ImageInput == "" {
+				return true
+			}
+			return libpod.MatchesReference(params.ImageName, params.ImageInput)
+		}
+	default:
+		fmt.Println("invalid filter type", filterType)
+		return nil
+	}
 }

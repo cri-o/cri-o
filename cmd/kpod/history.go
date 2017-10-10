@@ -6,12 +6,9 @@ import (
 	"strings"
 	"time"
 
-	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
-	"github.com/containers/storage"
 	units "github.com/docker/go-units"
 	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
-	"github.com/kubernetes-incubator/cri-o/libpod/common"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -45,7 +42,6 @@ type historyJSONParams struct {
 
 // historyOptions stores cli flag values
 type historyOptions struct {
-	image   string
 	human   bool
 	noTrunc bool
 	quiet   bool
@@ -88,14 +84,12 @@ func historyCmd(c *cli.Context) error {
 	if err := validateFlags(c, historyFlags); err != nil {
 		return err
 	}
-	config, err := getConfig(c)
+
+	runtime, err := getRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get config")
 	}
-	store, err := getStore(config)
-	if err != nil {
-		return err
-	}
+	defer runtime.Shutdown(false)
 
 	format := genHistoryFormat(c.Bool("quiet"))
 	if c.IsSet("format") {
@@ -112,13 +106,18 @@ func historyCmd(c *cli.Context) error {
 	imgName := args[0]
 
 	opts := historyOptions{
-		image:   imgName,
 		human:   c.BoolT("human"),
 		noTrunc: c.Bool("no-trunc"),
 		quiet:   c.Bool("quiet"),
 		format:  format,
 	}
-	return generateHistoryOutput(store, opts)
+
+	history, layers, imageID, err := runtime.GetHistory(imgName)
+	if err != nil {
+		return errors.Wrapf(err, "error getting history of image %q", imgName)
+	}
+
+	return generateHistoryOutput(history, layers, imageID, opts)
 }
 
 func genHistoryFormat(quiet bool) (format string) {
@@ -152,33 +151,6 @@ func (h *historyTemplateParams) headerMap() map[string]string {
 		values[key] = strings.ToUpper(splitCamelCase(value))
 	}
 	return values
-}
-
-// getHistory gets the history of an image and information about its layers
-func getHistory(store storage.Store, image string) ([]v1.History, []types.BlobInfo, string, error) {
-	ref, err := is.Transport.ParseStoreReference(store, image)
-	if err != nil {
-		return nil, nil, "", errors.Wrapf(err, "error parsing reference to image %q", image)
-	}
-
-	img, err := is.Transport.GetStoreImage(store, ref)
-	if err != nil {
-		return nil, nil, "", errors.Wrapf(err, "no such image %q", image)
-	}
-
-	systemContext := common.GetSystemContext("")
-
-	src, err := ref.NewImage(systemContext)
-	if err != nil {
-		return nil, nil, "", errors.Wrapf(err, "error instantiating image %q", image)
-	}
-
-	oci, err := src.OCIConfig()
-	if err != nil {
-		return nil, nil, "", err
-	}
-
-	return oci.History, src.LayerInfos(), img.ID, nil
 }
 
 // getHistorytemplateOutput gets the modified history information to be printed in human readable format
@@ -251,11 +223,7 @@ func getHistoryJSONOutput(history []v1.History, layers []types.BlobInfo, imageID
 }
 
 // generateHistoryOutput generates the history based on the format given
-func generateHistoryOutput(store storage.Store, opts historyOptions) error {
-	history, layers, imageID, err := getHistory(store, opts.image)
-	if err != nil {
-		return errors.Wrapf(err, "error getting history of image %q", opts.image)
-	}
+func generateHistoryOutput(history []v1.History, layers []types.BlobInfo, imageID string, opts historyOptions) error {
 	if len(history) == 0 {
 		return nil
 	}
