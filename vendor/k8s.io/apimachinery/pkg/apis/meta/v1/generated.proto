@@ -346,7 +346,7 @@ message ListOptions {
 }
 
 // MicroTime is version of Time with microsecond level precision.
-//
+// 
 // +protobuf.options.marshal=false
 // +protobuf.as=Timestamp
 // +protobuf.options.(gogoproto.goproto_stringer)=false
@@ -504,7 +504,7 @@ message ObjectMeta {
   // this object has been completely initialized. Otherwise, the object is considered uninitialized
   // and is hidden (in list/watch and get calls) from clients that haven't explicitly asked to
   // observe uninitialized objects.
-  //
+  // 
   // When an object is created, the system will populate this list with the current set of initializers.
   // Only privileged users may set or modify this list. Once it is empty, it may not be modified further
   // by any user.
