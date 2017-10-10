@@ -38,6 +38,13 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 	}
 
 	ctr.valid = true
+	ctr.state = ContainerStateConfigured
+	ctr.runtime = r
+
+	if err := ctr.setupStorage(); err != nil {
+		return nil, errors.Wrapf(err, "error configuring storage for container")
+	}
+	// TODO: once teardownStorage is implemented, do a defer here that tears down storage is AddContainer fails
 
 	if err := r.state.AddContainer(ctr); err != nil {
 		// If we joined a pod, remove ourself from it
@@ -77,8 +84,14 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 	// TODO check container status and unmount storage
 	// TODO check that no other containers depend on this container's
 	// namespaces
-	if err := c.Status(); err != nil {
+	status, err := c.State()
+	if err != nil {
 		return err
+	}
+
+	// A container cannot be removed if it is running
+	if status == ContainerStateRunning {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is running", c.ID())
 	}
 
 	if err := r.state.RemoveContainer(c); err != nil {
@@ -185,6 +198,7 @@ func (r *Runtime) getContainersWithImage(imageID string) ([]storage.Container, e
 }
 
 // removeMultipleContainers deletes a list of containers from the store
+// TODO refactor this to remove libpod Containers
 func (r *Runtime) removeMultipleContainers(containers []storage.Container) error {
 	for _, ctr := range containers {
 		if err := r.store.DeleteContainer(ctr.ID); err != nil {
@@ -192,4 +206,9 @@ func (r *Runtime) removeMultipleContainers(containers []storage.Container) error
 		}
 	}
 	return nil
+}
+
+// ContainerConfigToDisk saves a container's nonvolatile configuration to disk
+func (r *Runtime) containerConfigToDisk(ctr *Container) error {
+	return ErrNotImplemented
 }

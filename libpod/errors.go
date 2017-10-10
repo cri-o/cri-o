@@ -20,6 +20,10 @@ var (
 	// ErrImageExists indicated an image with the same ID already exists
 	ErrImageExists = errors.New("image already exists")
 
+	// ErrCtrStateInvalid indicates a container is in an improper state for
+	// the requested operation
+	ErrCtrStateInvalid = errors.New("container state improper")
+
 	// ErrRuntimeFinalized indicates that the runtime has already been
 	// created and cannot be modified
 	ErrRuntimeFinalized = errors.New("runtime has been finalized")

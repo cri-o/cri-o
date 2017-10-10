@@ -1,13 +1,12 @@
 package libpod
 
 import (
+	"os"
 	"sync"
 
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/server/apparmor"
-	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/pkg/errors"
 	"github.com/ulule/deepcopier"
 )
@@ -18,14 +17,14 @@ type RuntimeOption func(*Runtime) error
 
 // Runtime is the core libpod runtime
 type Runtime struct {
-	config          *RuntimeConfig
-	state           State
-	store           storage.Store
-	imageContext    *types.SystemContext
-	apparmorEnabled bool
-	seccompEnabled  bool
-	valid           bool
-	lock            sync.RWMutex
+	config         *RuntimeConfig
+	state          State
+	store          storage.Store
+	storageService *storageService
+	imageContext   *types.SystemContext
+	ociRuntime     *OCIRuntime
+	valid          bool
+	lock           sync.RWMutex
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -39,8 +38,11 @@ type RuntimeConfig struct {
 	ConmonPath            string
 	ConmonEnvVars         []string
 	CgroupManager         string
+	ExitsDir              string
 	SelinuxEnabled        bool
 	PidsLimit             int64
+	MaxLogSize            int64
+	NoPivotRoot           bool
 }
 
 var (
@@ -54,8 +56,11 @@ var (
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		CgroupManager:  "cgroupfs",
+		ExitsDir:       "/var/run/libpod/exits",
 		SelinuxEnabled: false,
 		PidsLimit:      1024,
+		MaxLogSize:     -1,
+		NoPivotRoot:    false,
 	}
 )
 
@@ -83,6 +88,14 @@ func NewRuntime(options ...RuntimeOption) (*Runtime, error) {
 	runtime.store = store
 	is.Transport.SetStore(store)
 
+	// TODO remove StorageImageServer and make its functions work directly
+	// on Runtime (or convert to something that satisfies an image)
+	storageService, err := getStorageService(runtime.store)
+	if err != nil {
+		return nil, err
+	}
+	runtime.storageService = storageService
+
 	// Set up containers/image
 	runtime.imageContext = &types.SystemContext{
 		SignaturePolicyPath: runtime.config.SignaturePolicyPath,
@@ -95,8 +108,24 @@ func NewRuntime(options ...RuntimeOption) (*Runtime, error) {
 	}
 	runtime.state = state
 
-	runtime.seccompEnabled = seccomp.IsEnabled()
-	runtime.apparmorEnabled = apparmor.IsEnabled()
+	// Make an OCI runtime to perform container operations
+	ociRuntime, err := newOCIRuntime("runc", runtime.config.RuntimePath,
+		runtime.config.ConmonPath, runtime.config.ConmonEnvVars,
+		runtime.config.CgroupManager, runtime.config.ExitsDir,
+		runtime.config.MaxLogSize, runtime.config.NoPivotRoot)
+	if err != nil {
+		return nil, err
+	}
+	runtime.ociRuntime = ociRuntime
+
+	// Make the directory that will hold container exit files
+	if err := os.MkdirAll(runtime.config.ExitsDir, 0755); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "error creating container exit files directory %s",
+				runtime.config.ExitsDir)
+		}
+	}
 
 	// Mark the runtime as valid - ready to be used, cannot be modified
 	// further

@@ -50,11 +50,11 @@ func (p *Pod) addContainer(ctr *Container) error {
 		return ErrPodRemoved
 	}
 
-	if _, ok := p.containers[ctr.id]; ok {
-		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in pod %s", ctr.id, p.id)
+	if _, ok := p.containers[ctr.ID()]; ok {
+		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in pod %s", ctr.ID(), p.id)
 	}
 
-	p.containers[ctr.id] = ctr
+	p.containers[ctr.ID()] = ctr
 
 	return nil
 }
@@ -69,11 +69,11 @@ func (p *Pod) removeContainer(ctr *Container) error {
 		return ErrPodRemoved
 	}
 
-	if _, ok := p.containers[ctr.id]; !ok {
-		return errors.Wrapf(ErrNoSuchCtr, "no container with id %s in pod %s", ctr.id, p.id)
+	if _, ok := p.containers[ctr.ID()]; !ok {
+		return errors.Wrapf(ErrNoSuchCtr, "no container with id %s in pod %s", ctr.ID(), p.id)
 	}
 
-	delete(p.containers, ctr.id)
+	delete(p.containers, ctr.ID())
 
 	return nil
 }
