@@ -41,8 +41,15 @@ function teardown() {
     [ "$status" -eq 0 ]
     ctr_id="$output"
     run crioctl ctr start --id "$ctr_id"
+    [ "$status" -eq 0 ]
+    run crioctl ctr inspect --id "$ctr_id"
     echo "$output"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} stop "k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0"
+    [ "$status" -eq 0 ]
+    ctr_name=$(python -c 'import json; import sys; print json.load(sys.stdin)["crio_annotations"]["io.kubernetes.cri-o.Name"]' <<< "$output")
+    echo container name is \""$ctr_name"\"
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} stop "$ctr_name"
+    echo "$output"
+    [ "$status" -eq 0 ]
     cleanup_pods
     stop_crio
 }
