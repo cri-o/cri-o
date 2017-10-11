@@ -194,6 +194,14 @@ func New(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	if config.ContainerStatusQueueSize == 0 {
+		return nil, fmt.Errorf("container_status_queue_size should be atleast 1")
+	}
+
+	if config.NumStatusWorkers == 0 {
+		return nil, fmt.Errorf("num_status_workers should be atleast 1")
+	}
+
 	netPlugin, err := ocicni.InitCNI(config.NetworkDir, config.PluginDir)
 	if err != nil {
 		return nil, err
@@ -373,6 +381,11 @@ func (s *Server) StartExitMonitor() {
 	}
 	defer watcher.Close()
 
+	containerStoppedJobs := make(chan string, s.config.ContainerStatusQueueSize)
+	for w := 1; w <= int(s.config.NumStatusWorkers); w++ {
+		go s.startStatusUpdateWorker(w, containerStoppedJobs)
+	}
+
 	done := make(chan struct{})
 	go func() {
 		for {
@@ -382,28 +395,7 @@ func (s *Server) StartExitMonitor() {
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					containerID := filepath.Base(event.Name)
 					logrus.Debugf("container or sandbox exited: %v", containerID)
-					c := s.GetContainer(containerID)
-					if c != nil {
-						logrus.Debugf("container exited and found: %v", containerID)
-						err := s.Runtime().UpdateStatus(c)
-						if err != nil {
-							logrus.Warnf("Failed to update container status %s: %v", c, err)
-						} else {
-							s.ContainerStateToDisk(c)
-						}
-					} else {
-						sb := s.GetSandbox(containerID)
-						if sb != nil {
-							c := sb.InfraContainer()
-							logrus.Debugf("sandbox exited and found: %v", containerID)
-							err := s.Runtime().UpdateStatus(c)
-							if err != nil {
-								logrus.Warnf("Failed to update sandbox infra container status %s: %v", c, err)
-							} else {
-								s.ContainerStateToDisk(c)
-							}
-						}
-					}
+					containerStoppedJobs <- containerID
 				}
 			case err := <-watcher.Errors:
 				logrus.Debugf("watch error: %v", err)
@@ -420,4 +412,33 @@ func (s *Server) StartExitMonitor() {
 		logrus.Errorf("watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
 	}
 	<-done
+}
+
+// startStatusUpdateWorker accepts jobs in the form of container IDs whose
+// status is updated by the function.
+func (s *Server) startStatusUpdateWorker(workerID int, containerJobs <-chan string) {
+	for containerID := range containerJobs {
+		logrus.Debugf("StatusUpdateWorker %v processing %v", workerID, containerID)
+
+		// Find the container from ID. It could either be a regular container
+		// or a sandbox infra container.
+		c := s.GetContainer(containerID)
+		if c != nil {
+			logrus.Debugf("container exited and found: %v", containerID)
+		} else {
+			sb := s.GetSandbox(containerID)
+			if sb == nil {
+				return
+			}
+			c = sb.InfraContainer()
+			logrus.Debugf("sandbox exited and found: %v", containerID)
+		}
+
+		// Update the status of the container and save state to disk.
+		if err := s.Runtime().UpdateStatus(c); err != nil {
+			logrus.Warnf("Failed to update container status %s: %v", c, err)
+		} else {
+			s.ContainerStateToDisk(c)
+		}
+	}
 }

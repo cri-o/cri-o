@@ -55,6 +55,14 @@ const (
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
 	DefaultLogSizeMax = -1
+
+	// DefaultNumStatusWorkers is the default value for number of goroutines
+	// spawned for updating container status.
+	DefaultNumStatusWorkers = 10
+
+	// DefaultContainerStatusQueueSize is the default value for the queue size
+	// for container status update jobs.
+	DefaultContainerStatusQueueSize = 100
 )
 
 // This structure is necessary to fake the TOML tables when parsing,
@@ -165,6 +173,14 @@ type RuntimeConfig struct {
 	// ContainerExitsDir is the directory in which container exit files are
 	// written to by conmon.
 	ContainerExitsDir string `toml:"container_exits_dir"`
+
+	// NumStatusWorkers is the number of goroutines spawned to update container status
+	// asynchronously.
+	NumStatusWorkers uint `toml:"num_status_workers"`
+
+	// ContainerStatusQueueSize is the number of container status events that could
+	// be buffered in the job queue.
+	ContainerStatusQueueSize uint `toml:"container_status_queue_size"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -284,14 +300,16 @@ func DefaultConfig() *Config {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			SELinux:           selinux.GetEnabled(),
-			SeccompProfile:    seccompProfilePath,
-			ApparmorProfile:   apparmorProfileName,
-			CgroupManager:     cgroupManager,
-			PidsLimit:         DefaultPidsLimit,
-			ContainerExitsDir: containerExitsDir,
-			HooksDirPath:      DefaultHooksDirPath,
-			LogSizeMax:        DefaultLogSizeMax,
+			SELinux:                  selinux.GetEnabled(),
+			SeccompProfile:           seccompProfilePath,
+			ApparmorProfile:          apparmorProfileName,
+			CgroupManager:            cgroupManager,
+			PidsLimit:                DefaultPidsLimit,
+			ContainerExitsDir:        containerExitsDir,
+			HooksDirPath:             DefaultHooksDirPath,
+			LogSizeMax:               DefaultLogSizeMax,
+			NumStatusWorkers:         DefaultNumStatusWorkers,
+			ContainerStatusQueueSize: DefaultContainerStatusQueueSize,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
