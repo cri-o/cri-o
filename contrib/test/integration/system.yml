@@ -1,5 +1,12 @@
 ---
 
+- name: Update all packages
+  package:
+    name: '*'
+    state: latest
+  async: 600
+  poll: 10
+
 - name: Make sure we have all required packages
   package:
     name: "{{ item }}"
@@ -83,13 +90,6 @@
   with_items:
    - btrfs-progs-devel
   when: ansible_distribution in ['Fedora']
-
-- name: Update all packages
-  package:
-    name: '*'
-    state: latest
-  async: 600
-  poll: 10
 
 - name: ensure directories exist as needed
   file:
