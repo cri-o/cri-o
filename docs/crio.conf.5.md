@@ -78,11 +78,17 @@ Example:
 **conmon_env**=[]
   Environment variable list for conmon process (default: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",])
 
+**container_status_queue_size**=""
+	Number of container status events that could be buffered in the job queue.
+
 **log_size_max**=""
   Maximum sized allowed for the container log file (default: -1)
   Negative numbers indicate that no size limit is imposed.
   If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
   The file is truncated and re-opened so the limit is never exceeded.
+
+**num_status_workers**=""
+  Number of goroutines spawned to update container status asynchronously.
 
 **pids_limit**=""
   Maximum number of processes allowed in a container (default: 1024)
