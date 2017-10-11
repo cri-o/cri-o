@@ -73,6 +73,12 @@ Kill the main process in one or more containers
 ### load
 Load an image from docker archive
 
+### login
+Login to a container registry
+
+### logout
+Logout of a container registry
+
 ### logs
 Display the logs of a container
 
