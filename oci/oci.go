@@ -724,3 +724,30 @@ func (r *Runtime) UnpauseContainer(c *Container) error {
 	_, err := utils.ExecCmd(r.Path(c), "resume", c.id)
 	return err
 }
+
+// ExecContainerCommand runs a command inside a running container
+func (r *Runtime) ExecContainerCommand(c *Container, command []string, detach bool, environmentVars []string, tty bool, user string) error {
+	//var args []string
+	commandArgs := []string{"exec"}
+	if tty {
+		commandArgs = append(commandArgs, "-t")
+	}
+	if detach {
+		commandArgs = append(commandArgs, "-d")
+	}
+	for _, envVar := range environmentVars {
+		commandArgs = append(commandArgs, "-e", envVar)
+	}
+	if user != "" {
+		commandArgs = append(commandArgs, "-u", user)
+	}
+	commandArgs = append(commandArgs, c.id)
+	commandArgs = append(commandArgs, command...)
+	logrus.Debug("Running command: %s", strings.Join(commandArgs, " "))
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), commandArgs...)
+	return err
+	return nil
+
+}

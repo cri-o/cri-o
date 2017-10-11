@@ -24,7 +24,6 @@ Following provides equivalent with cri-o tools for gathering information or jump
 
 | Existing Step | CRI-O (and friends) |
 | :---: | :---: |
-| `docker exec` | [`crioctl ctr exec`](./docs/crio.8.md) |
 | `docker info` | [`kpod info`](./docs/kpod-info.1.md)  |
 | `docker inspect` | [`kpod inspect`](./docs/kpod-inspect.1.md)       |
 | `docker logs` | [`kpod logs`](./docs/kpod-logs.1.md)                 |
@@ -43,6 +42,7 @@ There are other equivalents for these tools
 | `docker build`  | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
 | `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md) ****   |
 | `docker diff`   | [`kpod diff`](./docs/kpod-diff.1.md)      |
+| `docker exec`   | [`kpod exec`](./docs/kpod-exec.1.md)      |
 | `docker export` | [`kpod export`](./docs/kpod-export.1.md)  |
 | `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
 | `docker images` | [`kpod images`](./docs/kpod-images.1.md)  |

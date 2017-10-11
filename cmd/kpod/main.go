@@ -32,6 +32,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		diffCommand,
+		execCommand,
 		exportCommand,
 		historyCommand,
 		imagesCommand,

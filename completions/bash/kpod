@@ -404,6 +404,12 @@ _kpod_wait() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_kpod_exec() {
+     local options_with_args="--env -e --user -u"
+     local boolean_options="--help -h --tty -t --detach -d"
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _complete_() {
     local options_with_args=$1
     local boolean_options="$2 -h --help"
@@ -474,6 +480,7 @@ _kpod_kpod() {
      "
      commands="
     diff
+    exec
     export
     history
     images
