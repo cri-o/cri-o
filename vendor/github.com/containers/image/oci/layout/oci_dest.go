@@ -66,7 +66,7 @@ func (d *ociImageDestination) ShouldCompressLayers() bool {
 // AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
 // uploaded to the image destination, true otherwise.
 func (d *ociImageDestination) AcceptsForeignLayerURLs() bool {
-	return false
+	return true
 }
 
 // MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.

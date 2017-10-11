@@ -39,6 +39,8 @@ func main() {
 		inspectCommand,
 		killCommand,
 		loadCommand,
+		loginCommand,
+		logoutCommand,
 		logsCommand,
 		mountCommand,
 		pauseCommand,

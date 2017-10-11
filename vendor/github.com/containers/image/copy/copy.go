@@ -581,7 +581,7 @@ func (ic *imageCopier) copyBlobFromStream(srcStream io.Reader, srcInfo types.Blo
 	bar.ShowPercent = false
 	bar.Start()
 	destStream = bar.NewProxyReader(destStream)
-	defer fmt.Fprint(ic.reportWriter, "\n")
+	defer bar.Finish()
 
 	// === Send a copy of the original, uncompressed, stream, to a separate path if necessary.
 	var originalLayerReader io.Reader // DO NOT USE this other than to drain the input if no other consumer in the pipeline has done so.

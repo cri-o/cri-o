@@ -413,7 +413,7 @@ func (r *Runtime) GetImageCopyData(image string) (*CopyData, error) {
 		return nil, errors.Wrapf(err, "error locating image %q for importing settings", image)
 	}
 
-	systemContext := common.GetSystemContext("")
+	systemContext := common.GetSystemContext("", "")
 	data, err := r.ImportCopyDataFromImage(systemContext, img.ID, "", "")
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image")
@@ -435,7 +435,7 @@ func (r *Runtime) importCopyData(store storage.Store, container, signaturePolicy
 		return nil, err
 	}
 
-	systemContext := common.GetSystemContext(signaturePolicyPath)
+	systemContext := common.GetSystemContext(signaturePolicyPath, "")
 
 	data, err := r.ImportCopyDataFromImage(systemContext, c.ImageID, container, c.ID)
 	if err != nil {

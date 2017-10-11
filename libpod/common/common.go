@@ -36,11 +36,12 @@ func GetCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDocke
 }
 
 // GetSystemContext Constructs a new containers/image/types.SystemContext{} struct from the given signaturePolicy path
-func GetSystemContext(signaturePolicyPath string) *types.SystemContext {
+func GetSystemContext(signaturePolicyPath, authFilePath string) *types.SystemContext {
 	sc := &types.SystemContext{}
 	if signaturePolicyPath != "" {
 		sc.SignaturePolicyPath = signaturePolicyPath
 	}
+	sc.AuthFilePath = authFilePath
 	return sc
 }
 
