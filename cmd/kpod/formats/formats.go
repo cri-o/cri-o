@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"bytes"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 )
@@ -59,6 +60,16 @@ func (j JSONStructArray) Out() error {
 	if err != nil {
 		return err
 	}
+
+	// JSON returns a byte array with a literal null [110 117 108 108] in it
+	// if it is passed empty data.  We used bytes.Compare to see if that is
+	// the case.
+	if diff := bytes.Compare(data, []byte("null")); diff == 0 {
+		data = []byte("[]")
+	}
+
+	// If the we did get NULL back, we should spit out {} which is
+	// at least valid JSON for the consumer.
 	fmt.Printf("%s\n", data)
 	return nil
 }
