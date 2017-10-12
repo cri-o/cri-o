@@ -127,6 +127,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("hooks-dir-path") {
 		config.HooksDirPath = ctx.GlobalString("hooks-dir-path")
 	}
+	if ctx.GlobalIsSet("default-mounts-path") {
+		config.DefaultMountsPath = ctx.GlobalString("default-mounts-path")
+	}
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
@@ -320,6 +323,11 @@ func main() {
 			Name:   "hooks-dir-path",
 			Usage:  "set the OCI hooks directory path",
 			Value:  libkpod.DefaultHooksDirPath,
+			Hidden: true,
+		},
+		cli.StringFlag{
+			Name:   "default-mounts-path",
+			Usage:  "set the default mounts file path",
 			Hidden: true,
 		},
 		cli.BoolFlag{
