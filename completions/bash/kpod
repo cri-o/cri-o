@@ -170,6 +170,7 @@ _kpod_logs() {
 
 _kpod_pull() {
     local options_with_args="
+    --signature-policy
     "
     local boolean_options="
     --all-tags -a
@@ -424,6 +425,7 @@ _complete_() {
 _kpod_load() {
     local options_with_args="
     --input -i
+    --signature-policy
     "
     local boolean_options="
     --quiet -q

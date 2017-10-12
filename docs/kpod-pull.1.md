@@ -52,6 +52,14 @@ Image stored in local container/storage
 
 **kpod pull NAME[:TAG|@DIGEST]**
 
+## OPTIONS
+
+**--signature-policy="PATHNAME"**
+
+Pathname of a signature policy file to use.  It is not recommended that this
+option be used, as the default behavior of using the system-wide default policy
+(frequently */etc/containers/policy.json*) is most often preferred
+
 ## SEE ALSO
 kpod(1), crio(8), crio.conf(5)
 
