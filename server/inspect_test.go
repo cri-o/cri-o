@@ -114,7 +114,7 @@ func TestGetContainerInfo(t *testing.T) {
 		t.Fatalf("expected sandbox to be testsandboxid, got %s", ci.Sandbox)
 	}
 	if ci.IP != "1.1.1.42" {
-		t.Fatal("expected ip 1.1.1.42, got %s", ci.IP)
+		t.Fatalf("expected ip 1.1.1.42, got %s", ci.IP)
 	}
 	if len(ci.Annotations) == 0 {
 		t.Fatal("annotations are empty")
