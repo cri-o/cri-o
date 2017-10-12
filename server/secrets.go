@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -27,25 +26,6 @@ func (s SecretData) SaveTo(dir string) error {
 		return err
 	}
 	return ioutil.WriteFile(path, s.Data, 0700)
-}
-
-// readMountFile returns a list of the host:container paths
-func readMountFile(mountFilePath string) ([]string, error) {
-	var mountPaths []string
-	file, err := os.Open(mountFilePath)
-	if err != nil {
-		logrus.Warnf("file doesn't exist %q", mountFilePath)
-		return nil, nil
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
-		mountPaths = append(mountPaths, scanner.Text())
-	}
-
-	return mountPaths, nil
 }
 
 func readAll(root, prefix string) ([]SecretData, error) {
@@ -120,13 +100,9 @@ func getHostSecretData(hostDir string) ([]SecretData, error) {
 
 // secretMount copies the contents of host directory to container directory
 // and returns a list of mounts
-func secretMounts(mountLabel, mountFilePath, containerWorkingDir string, runtimeMounts []rspec.Mount) ([]rspec.Mount, error) {
+func secretMounts(defaultMountsPaths []string, mountLabel, containerWorkingDir string, runtimeMounts []rspec.Mount) ([]rspec.Mount, error) {
 	var mounts []rspec.Mount
-	mountPaths, err := readMountFile(mountFilePath)
-	if err != nil {
-		return nil, err
-	}
-	for _, path := range mountPaths {
+	for _, path := range defaultMountsPaths {
 		hostDir, ctrDir, err := getMountsMap(path)
 		if err != nil {
 			return nil, err

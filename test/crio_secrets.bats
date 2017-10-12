@@ -8,16 +8,6 @@ function teardown() {
 	cleanup_test
 }
 
-function setup() {
-    MOUNT_PATH="$TESTDIR/secrets"
-    mkdir ${MOUNT_PATH}
-    MOUNT_FILE="${MOUNT_PATH}/test.txt"
-    touch ${MOUNT_FILE}
-    echo "Testing secrets mounts!" > ${MOUNT_FILE}
-
-    echo "${MOUNT_PATH}:/container/path1" > ${DEFAULT_MOUNTS_FILE}
-}
-
 @test "bind secrets mounts to container" {
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json

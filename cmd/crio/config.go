@@ -108,8 +108,9 @@ cgroup_manager = "{{ .CgroupManager }}"
 # hooks_dir_path is the oci hooks directory for automatically executed hooks
 hooks_dir_path = "{{ .HooksDirPath }}"
 
-# default_mounts_path is the secrets mounts file path
-default_mounts_path = "{{ .DefaultMountsPath }}"
+# default_mounts is the mounts list to be mounted for the container when created
+default_mounts = [
+{{ range $mount := .DefaultMounts }}{{ printf "\t%q, \n" $mount }}{{ end }}]
 
 # pids_limit is the number of processes allowed in a container
 pids_limit = {{ .PidsLimit }}
