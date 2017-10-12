@@ -386,8 +386,7 @@ func ensureSaneLogPath(logPath string) error {
 
 // addSecretsBindMounts mounts user defined secrets to the container
 func addSecretsBindMounts(mountLabel, ctrRunDir, configDefaultMountsPath string, specgen generate.Generator) error {
-	mountPaths := []string{libkpod.OverrideMountsFile, libkpod.DefaultMountsFile}
-	// configDefaultMountsPath is used to override the mount file path for testing purposes only when set in the runtime config
+	mountPaths := []string{libkpod.DefaultMountsFile}
 	if configDefaultMountsPath != "" {
 		mountPaths = []string{configDefaultMountsPath}
 	}
@@ -932,8 +931,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	if err = addSecretsBindMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsPath, specgen); err != nil {
-		return nil, fmt.Errorf("failed to mount secrets: %v", err)
+	if s.config.DefaultMountsPath != "" {
+		if err = addSecretsBindMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsPath, specgen); err != nil {
+			return nil, fmt.Errorf("failed to mount secrets: %v", err)
+		}
 	}
 
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)

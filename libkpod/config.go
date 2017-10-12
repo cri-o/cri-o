@@ -26,8 +26,6 @@ const (
 	containerExitsDir   = oci.ContainerExitsDir
 	// DefaultMountsFile holds the default mount paths in the form "host:container"
 	DefaultMountsFile = "/usr/share/containers/mounts.conf"
-	// OverrideMountsFile holds the override mount paths in the form "host:container"
-	OverrideMountsFile = "/etc/containers/mounts.conf"
 )
 
 // Config represents the entire set of configuration values that can be set for

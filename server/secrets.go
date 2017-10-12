@@ -34,7 +34,7 @@ func readMountFile(mountFilePath string) ([]string, error) {
 	var mountPaths []string
 	file, err := os.Open(mountFilePath)
 	if err != nil {
-		logrus.Warnf("file doesn't exist %q", mountFilePath)
+		logrus.Debugf("file doesn't exist %q, skipping...", mountFilePath)
 		return nil, nil
 	}
 	defer file.Close()
