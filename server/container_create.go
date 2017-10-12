@@ -385,22 +385,15 @@ func ensureSaneLogPath(logPath string) error {
 }
 
 // addSecretsBindMounts mounts user defined secrets to the container
-func addSecretsBindMounts(mountLabel, ctrRunDir, configDefaultMountsPath string, specgen generate.Generator) error {
-	mountPaths := []string{libkpod.OverrideMountsFile, libkpod.DefaultMountsFile}
-	// configDefaultMountsPath is used to override the mount file path for testing purposes only when set in the runtime config
-	if configDefaultMountsPath != "" {
-		mountPaths = []string{configDefaultMountsPath}
+func addSecretsBindMounts(mountLabel, ctrRunDir string, defaultMounts []string, specgen generate.Generator) error {
+	containerMounts := specgen.Spec().Mounts
+	mounts, err := secretMounts(defaultMounts, mountLabel, ctrRunDir, containerMounts)
+	if err != nil {
+		return err
 	}
-	for _, path := range mountPaths {
-		containerMounts := specgen.Spec().Mounts
-		mounts, err := secretMounts(mountLabel, path, ctrRunDir, containerMounts)
-		if err != nil {
-			return err
-		}
-		for _, m := range mounts {
-			specgen.AddBindMount(m.Source, m.Destination, nil)
+	for _, m := range mounts {
+		specgen.AddBindMount(m.Source, m.Destination, nil)
 
-		}
 	}
 	return nil
 }
@@ -932,8 +925,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	if err = addSecretsBindMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsPath, specgen); err != nil {
-		return nil, fmt.Errorf("failed to mount secrets: %v", err)
+	if len(s.config.DefaultMounts) > 0 {
+		if err = addSecretsBindMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMounts, specgen); err != nil {
+			return nil, fmt.Errorf("failed to mount secrets: %v", err)
+		}
 	}
 
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)

@@ -105,6 +105,9 @@ Example:
 **no_pivot**=*true*|*false*
   Instructs the runtime to not use pivot_root, but instead use MS_MOVE
 
+**default_mounts**=[]
+  List of mount points, in the form host:container, to be mounted in every container
+
 ## CRIO.IMAGE TABLE
 
 **default_transport**

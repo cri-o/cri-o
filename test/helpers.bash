@@ -69,12 +69,14 @@ HOOKSDIR=$TESTDIR/hooks
 mkdir ${HOOKSDIR}
 HOOKS_OPTS="--hooks-dir-path=$HOOKSDIR"
 
-# Setup default secrets mounts file
-MOUNTS_DIR="$TESTDIR/containers"
-mkdir ${MOUNTS_DIR}
-DEFAULT_MOUNTS_FILE="${MOUNTS_DIR}/mounts.conf"
-touch ${DEFAULT_MOUNTS_FILE}
-DEFAULT_MOUNTS_OPTS="--default-mounts-path=$DEFAULT_MOUNTS_FILE"
+# Setup default secrets mounts
+MOUNT_PATH="$TESTDIR/secrets"
+mkdir ${MOUNT_PATH}
+MOUNT_FILE="${MOUNT_PATH}/test.txt"
+touch ${MOUNT_FILE}
+echo "Testing secrets mounts!" > ${MOUNT_FILE}
+
+DEFAULT_MOUNTS_OPTS="--default-mounts=${MOUNT_PATH}:/container/path1"
 
 # We may need to set some default storage options.
 case "$(stat -f -c %T ${TESTDIR})" in

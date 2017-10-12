@@ -127,8 +127,8 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("hooks-dir-path") {
 		config.HooksDirPath = ctx.GlobalString("hooks-dir-path")
 	}
-	if ctx.GlobalIsSet("default-mounts-path") {
-		config.DefaultMountsPath = ctx.GlobalString("default-mounts-path")
+	if ctx.GlobalIsSet("default-mounts") {
+		config.DefaultMounts = ctx.GlobalStringSlice("default-mounts")
 	}
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
@@ -325,9 +325,9 @@ func main() {
 			Value:  libkpod.DefaultHooksDirPath,
 			Hidden: true,
 		},
-		cli.StringFlag{
-			Name:   "default-mounts-path",
-			Usage:  "set the default mounts file path",
+		cli.StringSliceFlag{
+			Name:   "default-mounts",
+			Usage:  "add one or more default mount paths in the form host:container",
 			Hidden: true,
 		},
 		cli.BoolFlag{
