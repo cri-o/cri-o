@@ -94,7 +94,7 @@ set the CPU profile file path
   ignore: All volumes are just ignored and no action is taken.
 
 **--listen**=""
-  Path to crio socket (default: "/var/run/crio.sock")
+  Path to CRI-O socket (default: "/var/run/crio.sock")
 
 **--log**=""
   Set the log file path where internal debug information is written
@@ -103,7 +103,7 @@ set the CPU profile file path
   Set the format used by logs ('text' (default), or 'json') (default: "text")
 
 **--log-level**=""
-  log CRI-O messages above specified level: debug, info (default), warn, error, fatal or panic
+  log crio messages above specified level: debug, info (default), warn, error, fatal or panic
 
 **--log-size-max**=""
   Maximum log size in bytes for a container (default: -1 (no limit)).
@@ -119,13 +119,13 @@ set the CPU profile file path
   Maximum number of processes allowed in a container (default: 1024)
 
 **--root**=""
-  CRIO root dir (default: "/var/lib/containers/storage")
+  The crio root dir (default: "/var/lib/containers/storage")
 
 **--registry**=""
   Registry host which will be prepended to unqualified images, can be specified multiple times
 
 **--runroot**=""
-  CRIO state dir (default: "/var/run/containers/storage")
+  The crio state dir (default: "/var/run/containers/storage")
 
 **--runtime**=""
   OCI runtime path (default: "/usr/bin/runc")
@@ -158,13 +158,13 @@ set the CPU profile file path
   Print the version
 
 # COMMANDS
-CRIO's default command is to start the daemon. However, it currently offers a
+CRI-O's default command is to start the daemon. However, it currently offers a
 single additional subcommand.
 
 ## config
 
 Outputs a commented version of the configuration file that would've been used
-by CRIO. This allows you to save you current configuration setup and then load
+by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.
 
 **--default**
