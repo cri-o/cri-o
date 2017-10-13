@@ -42,6 +42,21 @@ function teardown() {
 	[ "$status" -eq 0 ]
 }
 
+@test "kpod load oci-archive image with signature-policy" {
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alpine.tar --format oci-archive $IMAGE
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} load --signature-policy ${INTEGRATION_ROOT}/policy.json -i alpine.tar
+	echo "$output"
+	[ "$status" -eq 0 ]
+	rm -f alpine.tar
+	run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+	[ "$status" -eq 0 ]
+}
+
 @test "kpod load using quiet flag" {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
 	echo "$output"
