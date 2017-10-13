@@ -4,7 +4,7 @@
 [![Build Status](https://img.shields.io/travis/kubernetes-incubator/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-incubator/cri-o)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-incubator/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-incubator/cri-o)
 
-### Status: Release Candidate 3
+### Status: Stable
 
 ## What is the scope of this project?
 
@@ -256,5 +256,4 @@ To run a full cluster, see [the instructions](kubernetes.md).
 1. Support for log management, networking integration using CNI, pluggable image/storage management (done)
 1. Support for exec/attach (done)
 1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/kubernetes-incubator/cri-o/issues/533)
-1. Release 1.0
 1. Track upstream k8s releases
