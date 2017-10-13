@@ -21,6 +21,10 @@ var (
 			Name:  "quiet, q",
 			Usage: "Suppress the output",
 		},
+		cli.StringFlag{
+			Name:  "signature-policy",
+			Usage: "`pathname` of signature policy file (not usually used)",
+		},
 	}
 	loadDescription = "Loads the image from docker-archive stored on the local machine."
 	loadCommand     = cli.Command{
@@ -92,7 +96,7 @@ func loadCmd(c *cli.Context) error {
 	}
 
 	src := libpod.DockerArchive + ":" + input
-	if err := runtime.PullImage(src, false, "", output); err != nil {
+	if err := runtime.PullImage(src, false, c.String("signature-policy"), output); err != nil {
 		src = libpod.OCIArchive + ":" + input
 		// generate full src name with specified image:tag
 		if image != "" {

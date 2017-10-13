@@ -23,9 +23,8 @@ var (
 			Usage:  "Download all tagged images in the repository",
 		},
 		cli.StringFlag{
-			Name:   "signature-policy",
-			Usage:  "`pathname` of signature policy file (not usually used)",
-			Hidden: true,
+			Name:  "signature-policy",
+			Usage: "`pathname` of signature policy file (not usually used)",
 		},
 	}
 
