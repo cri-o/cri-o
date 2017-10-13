@@ -32,6 +32,11 @@ var (
 
 	// ErrInvalidArg indicates that an invalid argument was passed
 	ErrInvalidArg = errors.New("invalid argument")
+	// ErrEmptyID indicates that an empty ID was passed
+	ErrEmptyID = errors.New("name or ID cannot be empty")
+
+	// ErrInternal indicates an internal library error
+	ErrInternal = errors.New("internal libpod error")
 
 	// ErrRuntimeStopped indicates that the runtime has already been shut
 	// down and no further operations can be performed on it

@@ -93,6 +93,20 @@ func (p *Pod) Kill(signal uint) error {
 	return ErrNotImplemented
 }
 
+// HasContainer checks if a container is present in the pod
+func (p *Pod) HasContainer(id string) (bool, error) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if !p.valid {
+		return false, ErrPodRemoved
+	}
+
+	_, ok := p.containers[id]
+
+	return ok, nil
+}
+
 // GetContainers retrieves the containers in the pod
 func (p *Pod) GetContainers() ([]*Container, error) {
 	p.lock.RLock()

@@ -30,11 +30,6 @@ func (c *Container) ID() string {
 
 // Name returns the container's name
 func (c *Container) Name() string {
-	// Name can potentially be changed while a container is running
-	// So lock access to it
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	return c.name
 }
 

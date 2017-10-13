@@ -86,6 +86,13 @@ func NewRuntime(options ...RuntimeOption) (*Runtime, error) {
 		SignaturePolicyPath: runtime.config.SignaturePolicyPath,
 	}
 
+	// Set up the state
+	state, err := NewInMemoryState()
+	if err != nil {
+		return nil, err
+	}
+	runtime.state = state
+
 	runtime.seccompEnabled = seccomp.IsEnabled()
 	runtime.apparmorEnabled = apparmor.IsEnabled()
 

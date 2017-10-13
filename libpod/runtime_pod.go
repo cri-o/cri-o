@@ -61,7 +61,7 @@ func (r *Runtime) GetPod(id string) (*Pod, error) {
 		return nil, ErrRuntimeStopped
 	}
 
-	return r.state.GetPod(id)
+	return r.state.Pod(id)
 }
 
 // HasPod checks to see if a pod with the given ID exists
@@ -101,7 +101,7 @@ func (r *Runtime) Pods(filters ...PodFilter) ([]*Pod, error) {
 		return nil, ErrRuntimeStopped
 	}
 
-	pods, err := r.state.GetAllPods()
+	pods, err := r.state.AllPods()
 	if err != nil {
 		return nil, err
 	}

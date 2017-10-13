@@ -60,7 +60,42 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 // If force is specified, the container will be stopped first
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *Runtime) RemoveContainer(c *Container, force bool) error {
-	return ErrNotImplemented
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if !r.valid {
+		return ErrRuntimeStopped
+	}
+
+	if !c.valid {
+		return ErrCtrRemoved
+	}
+
+	// TODO check container status and unmount storage
+	// TODO check that no other containers depend on this container's
+	// namespaces
+	if err := c.Status(); err != nil {
+		return err
+	}
+
+	if err := r.state.RemoveContainer(c); err != nil {
+		return errors.Wrapf(err, "error removing container from state")
+	}
+
+	// Set container as invalid so it can no longer be used
+	c.valid = false
+
+	// Remove container from pod, if it joined one
+	if c.pod != nil {
+		if err := c.pod.removeContainer(c); err != nil {
+			return errors.Wrapf(err, "error removing container from pod %s", c.pod.ID())
+		}
+	}
+
+	return nil
 }
 
 // GetContainer retrieves a container by its ID
@@ -72,7 +107,7 @@ func (r *Runtime) GetContainer(id string) (*Container, error) {
 		return nil, ErrRuntimeStopped
 	}
 
-	return r.state.GetContainer(id)
+	return r.state.Container(id)
 }
 
 // HasContainer checks if a container with the given ID is present
@@ -112,7 +147,7 @@ func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error
 		return nil, ErrRuntimeStopped
 	}
 
-	ctrs, err := r.state.GetAllContainers()
+	ctrs, err := r.state.AllContainers()
 	if err != nil {
 		return nil, err
 	}

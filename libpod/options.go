@@ -228,12 +228,12 @@ func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 	}
 }
 
-// WithLabels adds labels to the pod
+// WithLabels adds labels to the container
 func WithLabels(labels map[string]string) CtrCreateOption {
 	return ctrNotImplemented
 }
 
-// WithAnnotations adds annotations to the pod
+// WithAnnotations adds annotations to the container
 func WithAnnotations(annotations map[string]string) CtrCreateOption {
 	return ctrNotImplemented
 }
