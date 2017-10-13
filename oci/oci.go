@@ -554,7 +554,7 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 		return nil
 	}
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.id, c.GetStopSignal()); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", "--all", c.id, c.GetStopSignal()); err != nil {
 		return fmt.Errorf("failed to stop container %s, %v", c.id, err)
 	}
 	if timeout == -1 {
