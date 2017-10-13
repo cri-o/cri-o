@@ -26,7 +26,7 @@ Image stored in local container/storage
   An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
 
   **docker://**_docker-reference_
-  An image in a registry implementing the "Docker Registry HTTP API V2". By default, uses the authorization state in `$HOME/.docker/config.json`, which is set e.g. using `(docker login)`.
+  An image in a registry implementing the "Docker Registry HTTP API V2". By default, uses the authorization state in `$XDG_RUNTIME_DIR/containers/auth.json`, which is set e.g. using `(kpod login)`.
 
   **docker-archive:**_path_[**:**_docker-reference_]
   An image is stored in the `docker save` formatted file.  _docker-reference_ is only used when creating such a file, and it must not contain a digest.
@@ -34,13 +34,17 @@ Image stored in local container/storage
   **docker-daemon:**_docker-reference_
   An image _docker-reference_ stored in the docker daemon internal storage.  _docker-reference_ must contain either a tag or a digest.  Alternatively, when reading images, the format can also be docker-daemon:algo:digest (an image ID).
 
-  **oci:**_path_**:**_tag_
+  **oci-archive:**_path_**:**_tag_
   An image _tag_ in a directory compliant with "Open Container Image Layout Specification" at _path_.
 
   **ostree:**_image_[**@**_/absolute/repo/path_]
   An image in local OSTree repository.  _/absolute/repo/path_ defaults to _/ostree/repo_.
 
 ## OPTIONS
+
+**--authfile**
+
+Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json
 
 **--creds="CREDENTIALS"**
 
@@ -84,7 +88,7 @@ This example extracts the imageID image to a local directory in docker format.
 
 This example extracts the imageID image to a local directory in oci format.
 
- `# kpod push imageID oci:/path/to/layout`
+ `# kpod push imageID oci-archive:/path/to/layout:image:tag`
 
 This example extracts the imageID image to a container registry named registry.example.com
 
@@ -94,5 +98,19 @@ This example extracts the imageID image and puts into the local docker container
 
  `# kpod push imageID docker-daemon:image:tag`
 
+This example pushes the alpine image to umohnani/alpine on dockerhub and reads the creds from
+the path given to --authfile
+
+```
+# kpod push --authfile temp-auths/myauths.json alpine docker://docker.io/umohnani/alpine
+Getting image source signatures
+Copying blob sha256:5bef08742407efd622d243692b79ba0055383bbce12900324f75e56f589aedb0
+ 4.03 MB / 4.03 MB [========================================================] 1s
+Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
+ 1.41 KB / 1.41 KB [========================================================] 1s
+Writing manifest to image destination
+Storing signatures
+```
+
 ## SEE ALSO
-kpod(1)
+kpod(1), kpod-pull(1), crio(8), crio.conf(5)

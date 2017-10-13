@@ -83,13 +83,14 @@ func saveCmd(c *cli.Context) error {
 
 	saveOpts := libpod.CopyOptions{
 		SignaturePolicyPath: "",
+		Writer:              writer,
 	}
 
 	// only one image is supported for now
 	// future pull requests will fix this
 	for _, image := range args {
 		dest := dst + ":" + image
-		if err := runtime.PushImage(image, dest, saveOpts, writer); err != nil {
+		if err := runtime.PushImage(image, dest, saveOpts); err != nil {
 			return errors.Wrapf(err, "unable to save %q", image)
 		}
 	}

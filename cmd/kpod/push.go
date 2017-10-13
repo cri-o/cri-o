@@ -45,6 +45,10 @@ var (
 			Name:  "quiet, q",
 			Usage: "don't output progress information when pushing images",
 		},
+		cli.StringFlag{
+			Name:  "authfile",
+			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+		},
 	}
 	pushDescription = fmt.Sprintf(`
    Pushes an image to a specified location.
@@ -120,7 +124,9 @@ func pushCmd(c *cli.Context) error {
 			RemoveSignatures: removeSignatures,
 			SignBy:           signBy,
 		},
+		AuthFile: c.String("authfile"),
+		Writer:   writer,
 	}
 
-	return runtime.PushImage(srcName, destName, options, writer)
+	return runtime.PushImage(srcName, destName, options)
 }

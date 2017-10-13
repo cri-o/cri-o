@@ -49,17 +49,14 @@ function teardown() {
     [ "$status" -eq 0 ]
 }
 
-@test "kpod push to oci without compression" {
+@test "kpod push to oci-archive without compression" {
     run ${KPOD_BINARY} $KPOD_OPTIONS pull "$IMAGE"
     echo "$output"
     [ "$status" -eq 0 ]
-    run mkdir /tmp/oci-busybox
+    run ${KPOD_BINARY} $KPOD_OPTIONS push "$IMAGE" oci-archive:/tmp/oci-busybox.tar:alpine
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} $KPOD_OPTIONS push "$IMAGE" oci:/tmp/oci-busybox:busybox
-    echo "$output"
-    [ "$status" -eq 0 ]
-    rm -rf /tmp/oci-busybox
+    rm -f /tmp/oci-busybox.tar
     run ${KPOD_BINARY} $KPOD_OPTIONS rmi "$IMAGE"
     echo "$output"
     [ "$status" -eq 0 ]

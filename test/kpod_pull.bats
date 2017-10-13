@@ -76,3 +76,63 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 }
+
+@test "kpod pull from docker-archive" {
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alp.tar alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker-archive:alp.tar
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	rm -f alp.tar
+}
+
+@test "kpod pull from oci-archive" {
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} save --format oci-archive -o oci-alp.tar alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull oci-archive:oci-alp.tar
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	rm -f oci-alp.tar
+}
+
+@test "kpod pull from local directory" {
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run mkdir test_pull_dir
+	echo "$output"
+    [ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} push alpine dir:test_pull_dir
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi alpine
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull dir:test_pull_dir
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi test_pull_dir
+	echo "$output"
+	[ "$status" -eq 0 ]
+	rm -rf test_pull_dir
+}
