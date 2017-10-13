@@ -1,5 +1,5 @@
-![cri-o logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/crio-logo.svg)
-# cri-o - OCI-based implementation of Kubernetes Container Runtime Interface
+![CRI-O logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/crio-logo.svg)
+# CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![Build Status](https://img.shields.io/travis/kubernetes-incubator/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-incubator/cri-o)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-incubator/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-incubator/cri-o)
@@ -8,11 +8,11 @@
 
 ## What is the scope of this project?
 
-cri-o is meant to provide an integration path between OCI conformant runtimes and the kubelet.
+CRI-O is meant to provide an integration path between OCI conformant runtimes and the kubelet.
 Specifically, it implements the Kubelet [Container Runtime Interface (CRI)](https://github.com/kubernetes/community/blob/master/contributors/devel/container-runtime-interface.md) using OCI conformant runtimes.
-The scope of cri-o is tied to the scope of the CRI.
+The scope of CRI-O is tied to the scope of the CRI.
 
-At a high level, we expect the scope of cri-o to be restricted to the following functionalities:
+At a high level, we expect the scope of CRI-O to be restricted to the following functionalities:
 
 * Support multiple image formats including the existing Docker image format
 * Support for multiple means to download images including trust & image verification
@@ -24,7 +24,7 @@ At a high level, we expect the scope of cri-o to be restricted to the following 
 ## What is not in scope for this project?
 
 * Building, signing and pushing images to various image storages
-* A CLI utility for interacting with cri-o. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backward compatibility with it.
+* A CLI utility for interacting with CRI-O. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backward compatibility with it.
 
 This is an implementation of the Kubernetes Container Runtime Interface (CRI) that will allow Kubernetes to directly launch and manage Open Container Initiative (OCI) containers.
 
@@ -80,21 +80,21 @@ It is currently in active development in the Kubernetes community through the [d
 
 [CRI-O configures OCI Hooks to run when launching a container](./hooks.md)
 
-## cri-o Usage Transfer
+## CRI-O Usage Transfer
 
-[Useful information for ops and dev transfer as it relates to infrastructure that utilizes cri-o](/transfer.md)
+[Useful information for ops and dev transfer as it relates to infrastructure that utilizes CRI-O](/transfer.md)
 
 ## Communication
 
 For async communication and long running discussions please use issues and pull requests on the github repo. This will be the best place to discuss design and implementation.
 
-For sync communication we have an IRC channel #cri-o, on chat.freenode.net, that everyone is welcome to join and chat about development.
+For sync communication we have an IRC channel #CRI-O, on chat.freenode.net, that everyone is welcome to join and chat about development.
 
 ## Getting started
 
 ### Prerequisites
 
-Latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by crio.
+Latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by CRI-O.
 
 ### Build and Run Dependencies
 
@@ -165,7 +165,7 @@ apt-get install -y \
 
 ### Get Source Code
 
-As with other Go projects, cri-o must be cloned into a directory structure like:
+As with other Go projects, CRI-O must be cloned into a directory structure like:
 
 ```
 GOPATH
@@ -199,7 +199,7 @@ make
 sudo make install
 ```
 
-Otherwise, if you do not want to build `cri-o` with seccomp support you can add `BUILDTAGS=""` when running make.
+Otherwise, if you do not want to build `CRI-O` with seccomp support you can add `BUILDTAGS=""` when running make.
 
 ```bash
 make BUILDTAGS=""
@@ -208,7 +208,7 @@ sudo make install
 
 #### Build Tags
 
-`cri-o` supports optional build tags for compiling support of various features.
+`CRI-O` supports optional build tags for compiling support of various features.
 To add build tags to the make option the `BUILDTAGS` variable must be set.
 
 ```bash
@@ -234,10 +234,10 @@ your system.
 
 ### Running with kubernetes
 
-You can run a local version of kubernetes with cri-o using `local-up-cluster.sh`:
+You can run a local version of kubernetes with CRI-O using `local-up-cluster.sh`:
 
 1. Clone the [kubernetes repository](https://github.com/kubernetes/kubernetes)
-1. Start the cri-o daemon (`crio`)
+1. Start the CRI-O daemon (`crio`)
 1. From the kubernetes project directory, run:
 ```shell
 CGROUP_DRIVER=systemd \

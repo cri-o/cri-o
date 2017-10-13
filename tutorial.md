@@ -1,10 +1,10 @@
-# cri-o Tutorial
+# CRI-O Tutorial
 
-This tutorial will walk you through the installation of [cri-o](https://github.com/kubernetes-incubator/cri-o), an Open Container Initiative-based implementation of [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md), and the creation of [Redis](https://redis.io/) server running in a [Pod](http://kubernetes.io/docs/user-guide/pods/).
+This tutorial will walk you through the installation of [CRI-O](https://github.com/kubernetes-incubator/cri-o), an Open Container Initiative-based implementation of [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md), and the creation of [Redis](https://redis.io/) server running in a [Pod](http://kubernetes.io/docs/user-guide/pods/).
 
 ## Prerequisites
 
-A Linux machine is required to download and build the `cri-o` components and run the commands in this tutorial.
+A Linux machine is required to download and build the `CRI-O` components and run the commands in this tutorial.
 
 Create a machine running Ubuntu 16.10:
 
@@ -277,7 +277,7 @@ At this point `CNI` is installed and configured to allocation IP address to cont
 
 ## Pod Tutorial
 
-Now that the `cri-o` components have been installed and configured we are ready to create a Pod. This section will walk you through launching a Redis server in a Pod. Once the Redis server is running we'll use telnet to verify it's working, then we'll stop the Redis server and clean up the Pod.
+Now that the `CRI-O` components have been installed and configured we are ready to create a Pod. This section will walk you through launching a Redis server in a Pod. Once the Redis server is running we'll use telnet to verify it's working, then we'll stop the Redis server and clean up the Pod.
 
 ### Creating a Pod
 
