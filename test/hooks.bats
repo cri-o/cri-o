@@ -10,7 +10,7 @@ cp hooks/checkhook.sh ${HOOKSDIR}
 sed "s|HOOKSDIR|${HOOKSDIR}|" hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
 
 @test "pod test hooks" {
-	run rm -f /run/hookscheck
+	rm -f /run/hookscheck
 	start_crio
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
 	echo "$output"

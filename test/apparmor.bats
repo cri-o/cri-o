@@ -27,7 +27,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    [ "$status" -eq 0 ]
     run crioctl ctr execsync --id "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -eq 0 ]
@@ -60,7 +59,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    [ "$status" -eq 0 ]
     run crioctl ctr execsync --id "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -ne 0 ]
@@ -94,7 +92,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    [ "$status" -eq 0 ]
     run crioctl ctr execsync --id "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -ne 0 ]
@@ -156,7 +153,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    [ "$status" -eq 0 ]
     run crioctl ctr execsync --id "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -eq 0 ]

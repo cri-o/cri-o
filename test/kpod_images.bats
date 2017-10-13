@@ -38,6 +38,7 @@ function teardown() {
     [ "$status" -eq 0 ]
     run ${KPOD_BINARY} ${KPOD_OPTIONS} images --format json
     echo "$output"
+    [ "$status" -eq 0 ]
     name=$(echo $output | python -c 'import sys; import json; print(json.loads(sys.stdin.read())[0])["names"][0]')
     [ "$name" = "docker.io/library/${IMAGE}" ]
     run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi ${IMAGE}

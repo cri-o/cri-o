@@ -19,6 +19,7 @@ function teardown() {
     [ "$status" -eq 0 ]
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     ctr_id="$output"
+    [ "$status" -eq 0 ]
     run ${KPOD_BINARY} $KPOD_OPTIONS rename "$ctr_id" "$NEW_NAME"
     echo "$output"
     [ "$status" -eq 0 ]

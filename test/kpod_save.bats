@@ -30,7 +30,6 @@ function teardown() {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
 	[ "$status" -eq 0 ]
 	rm -f alpine.tar
-	[ "$status" -eq 0 ]
 }
 
 @test "kpod save using stdout" {

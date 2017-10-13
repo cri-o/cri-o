@@ -167,12 +167,10 @@ IMAGE="redis:alpine"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps namespace flag" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
@@ -215,7 +213,6 @@ IMAGE="redis:alpine"
 
 @test "kpod ps without namespace flag and format flag = json" {
     start_crio
-    [ "$status" -eq 0 ]
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
@@ -231,7 +228,6 @@ IMAGE="redis:alpine"
     cleanup_ctrs
     cleanup_pods
     stop_crio
-    [ "$status" -eq 0 ]
 }
 
 @test "kpod ps format flag = go template" {
