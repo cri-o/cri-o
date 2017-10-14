@@ -31,10 +31,20 @@ Read from archive file, default is STDIN
 **--quiet, -q**
 Suppress the output
 
+**--signature-policy="PATHNAME"**
+
+Pathname of a signature policy file to use.  It is not recommended that this
+option be used, as the default behavior of using the system-wide default policy
+(frequently */etc/containers/policy.json*) is most often preferred
+
 ## EXAMPLES
 
 ```
 # kpod load --quiet -i fedora.tar
+```
+
+```
+# kpod load -q --signature-policy /etc/containers/policy.json -i fedora.tar
 ```
 
 ```

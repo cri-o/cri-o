@@ -160,7 +160,7 @@ func (r *Runtime) PullImage(imgName string, allTags bool, signaturePolicyPath st
 		images = append(images, imgName)
 	}
 
-	policy, err := signature.DefaultPolicy(r.imageContext)
+	policy, err := signature.DefaultPolicy(sc)
 	if err != nil {
 		return err
 	}

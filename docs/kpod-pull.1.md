@@ -52,6 +52,29 @@ Image stored in local container/storage
 
 **kpod pull NAME[:TAG|@DIGEST]**
 
+## OPTIONS
+
+**--signature-policy="PATHNAME"**
+
+Pathname of a signature policy file to use.  It is not recommended that this
+option be used, as the default behavior of using the system-wide default policy
+(frequently */etc/containers/policy.json*) is most often preferred
+
+## EXAMPLES
+
+```
+# kpod pull --signature-policy /etc/containers/policy.json alpine:latest
+Trying to pull registry.access.redhat.com/alpine:latest... Failed
+Trying to pull registry.fedoraproject.org/alpine:latest... Failed
+Trying to pull docker.io/library/alpine:latest...Getting image source signatures
+Copying blob sha256:88286f41530e93dffd4b964e1db22ce4939fffa4a4c665dab8591fbab03d4926
+ 1.90 MB / 1.90 MB [========================================================] 0s
+Copying config sha256:76da55c8019d7a47c347c0dceb7a6591144d232a7dd616242a367b8bed18ecbc
+ 1.48 KB / 1.48 KB [========================================================] 0s
+Writing manifest to image destination
+Storing signatures
+```
+
 ## SEE ALSO
 kpod(1), crio(8), crio.conf(5)
 
