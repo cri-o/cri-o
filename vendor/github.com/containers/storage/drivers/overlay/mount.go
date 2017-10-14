@@ -49,7 +49,6 @@ func mountFrom(dir, device, target, mType string, flags uintptr, label string) e
 	output := bytes.NewBuffer(nil)
 	cmd.Stdout = output
 	cmd.Stderr = output
-
 	if err := cmd.Start(); err != nil {
 		w.Close()
 		return fmt.Errorf("mountfrom error on re-exec cmd: %v", err)

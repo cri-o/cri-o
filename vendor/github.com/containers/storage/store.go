@@ -20,7 +20,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
 
@@ -86,6 +86,10 @@ type ROBigDataStore interface {
 	// BigDataSize retrieves the size of a (potentially large) piece of
 	// data associated with this ID, if it has previously been set.
 	BigDataSize(id, key string) (int64, error)
+
+	// BigDataDigest retrieves the digest of a (potentially large) piece of
+	// data associated with this ID, if it has previously been set.
+	BigDataDigest(id, key string) (digest.Digest, error)
 
 	// BigDataNames() returns a list of the names of previously-stored pieces of
 	// data.
@@ -327,6 +331,10 @@ type Store interface {
 	// of named data associated with an image.
 	ImageBigDataSize(id, key string) (int64, error)
 
+	// ImageBigDataDigest retrieves the digest of a (possibly large) chunk
+	// of named data associated with an image.
+	ImageBigDataDigest(id, key string) (digest.Digest, error)
+
 	// SetImageBigData stores a (possibly large) chunk of named data associated
 	// with an image.
 	SetImageBigData(id, key string, data []byte) error
@@ -342,6 +350,10 @@ type Store interface {
 	// ContainerBigDataSize retrieves the size of a (possibly large)
 	// chunk of named data associated with a container.
 	ContainerBigDataSize(id, key string) (int64, error)
+
+	// ContainerBigDataDigest retrieves the digest of a (possibly large)
+	// chunk of named data associated with a container.
+	ContainerBigDataDigest(id, key string) (digest.Digest, error)
 
 	// SetContainerBigData stores a (possibly large) chunk of named data
 	// associated with a container.
@@ -728,11 +740,14 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 	if err != nil {
 		return nil, -1, err
 	}
+	rlstores, err := s.ROLayerStores()
+	if err != nil {
+		return nil, -1, err
+	}
 	rcstore, err := s.ContainerStore()
 	if err != nil {
 		return nil, -1, err
 	}
-
 	rlstore.Lock()
 	defer rlstore.Unlock()
 	if modified, err := rlstore.Modified(); modified || err != nil {
@@ -747,9 +762,15 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		id = stringid.GenerateRandomID()
 	}
 	if parent != "" {
-		if l, err := rlstore.Get(parent); err == nil && l != nil {
-			parent = l.ID
-		} else {
+		var ilayer *Layer
+		for _, lstore := range append([]ROLayerStore{rlstore}, rlstores...) {
+			if l, err := lstore.Get(parent); err == nil && l != nil {
+				ilayer = l
+				parent = ilayer.ID
+				break
+			}
+		}
+		if ilayer == nil {
 			return nil, -1, ErrLayerUnknown
 		}
 		containers, err := rcstore.Containers()
@@ -1026,6 +1047,30 @@ func (s *store) ImageBigDataSize(id, key string) (int64, error) {
 	return -1, ErrSizeUnknown
 }
 
+func (s *store) ImageBigDataDigest(id, key string) (digest.Digest, error) {
+	ristore, err := s.ImageStore()
+	if err != nil {
+		return "", err
+	}
+	stores, err := s.ROImageStores()
+	if err != nil {
+		return "", err
+	}
+	stores = append([]ROImageStore{ristore}, stores...)
+	for _, ristore := range stores {
+		ristore.Lock()
+		defer ristore.Unlock()
+		if modified, err := ristore.Modified(); modified || err != nil {
+			ristore.Load()
+		}
+		d, err := ristore.BigDataDigest(id, key)
+		if err == nil && d.Validate() == nil {
+			return d, nil
+		}
+	}
+	return "", ErrDigestUnknown
+}
+
 func (s *store) ImageBigData(id, key string) ([]byte, error) {
 	istore, err := s.ImageStore()
 	if err != nil {
@@ -1089,8 +1134,20 @@ func (s *store) ContainerBigDataSize(id, key string) (int64, error) {
 	if modified, err := rcstore.Modified(); modified || err != nil {
 		rcstore.Load()
 	}
-
 	return rcstore.BigDataSize(id, key)
+}
+
+func (s *store) ContainerBigDataDigest(id, key string) (digest.Digest, error) {
+	rcstore, err := s.ContainerStore()
+	if err != nil {
+		return "", err
+	}
+	rcstore.Lock()
+	defer rcstore.Unlock()
+	if modified, err := rcstore.Modified(); modified || err != nil {
+		rcstore.Load()
+	}
+	return rcstore.BigDataDigest(id, key)
 }
 
 func (s *store) ContainerBigData(id, key string) ([]byte, error) {
@@ -1103,7 +1160,6 @@ func (s *store) ContainerBigData(id, key string) ([]byte, error) {
 	if modified, err := rcstore.Modified(); modified || err != nil {
 		rcstore.Load()
 	}
-
 	return rcstore.BigData(id, key)
 }
 
@@ -1117,7 +1173,6 @@ func (s *store) SetContainerBigData(id, key string, data []byte) error {
 	if modified, err := rcstore.Modified(); modified || err != nil {
 		rcstore.Load()
 	}
-
 	return rcstore.SetBigData(id, key, data)
 }
 
@@ -1841,10 +1896,16 @@ func (s *store) layersByMappedDigest(m func(ROLayerStore, digest.Digest) ([]Laye
 }
 
 func (s *store) LayersByCompressedDigest(d digest.Digest) ([]Layer, error) {
+	if err := d.Validate(); err != nil {
+		return nil, errors.Wrapf(err, "error looking for compressed layers matching digest %q", d)
+	}
 	return s.layersByMappedDigest(func(r ROLayerStore, d digest.Digest) ([]Layer, error) { return r.LayersByCompressedDigest(d) }, d)
 }
 
 func (s *store) LayersByUncompressedDigest(d digest.Digest) ([]Layer, error) {
+	if err := d.Validate(); err != nil {
+		return nil, errors.Wrapf(err, "error looking for layers matching digest %q", d)
+	}
 	return s.layersByMappedDigest(func(r ROLayerStore, d digest.Digest) ([]Layer, error) { return r.LayersByUncompressedDigest(d) }, d)
 }
 
@@ -2238,7 +2299,7 @@ func makeBigDataBaseName(key string) string {
 }
 
 func stringSliceWithoutValue(slice []string, value string) []string {
-	modified := []string{}
+	modified := make([]string, 0, len(slice))
 	for _, v := range slice {
 		if v == value {
 			continue
