@@ -17,6 +17,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
@@ -39,6 +40,10 @@ const (
 	SystemdCgroupsManager = "systemd"
 	// ContainerExitsDir is the location of container exit dirs
 	ContainerExitsDir = "/var/run/crio/exits"
+
+	// killContainerTimeout is the timeout that we wait for the container to
+	// be SIGKILLed.
+	killContainerTimeout = 2 * time.Minute
 )
 
 // New creates a new Runtime with options provided
@@ -542,25 +547,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	}, nil
 }
 
-// StopContainer stops a container. Timeout is given in seconds.
-func (r *Runtime) StopContainer(c *Container, timeout int64) error {
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-
-	// Check if the process is around before sending a signal
-	err := unix.Kill(c.state.Pid, 0)
-	if err == unix.ESRCH {
-		c.state.Finished = time.Now()
-		return nil
-	}
-
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", "--all", c.id, c.GetStopSignal()); err != nil {
-		return fmt.Errorf("failed to stop container %s, %v", c.id, err)
-	}
-	if timeout == -1 {
-		// default 10 seconds delay
-		timeout = 10
-	}
+func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration) error {
 	done := make(chan struct{})
 	// we could potentially re-use "done" channel to exit the loop on timeout
 	// but we use another channel "chControl" so that we won't never incur in the
@@ -588,7 +575,10 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 	select {
 	case <-done:
 		return nil
-	case <-time.After(time.Duration(timeout) * time.Second):
+	case <-ctx.Done():
+		close(chControl)
+		return ctx.Err()
+	case <-time.After(timeout):
 		close(chControl)
 		err := unix.Kill(c.state.Pid, unix.SIGKILL)
 		if err != nil && err != unix.ESRCH {
@@ -597,8 +587,37 @@ func (r *Runtime) StopContainer(c *Container, timeout int64) error {
 	}
 
 	c.state.Finished = time.Now()
-
 	return nil
+}
+
+// StopContainer stops a container. Timeout is given in seconds.
+func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	// Check if the process is around before sending a signal
+	err := unix.Kill(c.state.Pid, 0)
+	if err == unix.ESRCH {
+		c.state.Finished = time.Now()
+		return nil
+	}
+
+	if timeout > 0 {
+		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.id, c.GetStopSignal()); err != nil {
+			return fmt.Errorf("failed to stop container %s, %v", c.id, err)
+		}
+		err = waitContainerStop(ctx, c, time.Duration(timeout)*time.Second)
+		if err == nil {
+			return nil
+		}
+		logrus.Warnf("Stop container %q timed out: %v", c.ID(), err)
+	}
+
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", "--all", c.id, "KILL"); err != nil {
+		return fmt.Errorf("failed to stop container %s, %v", c.id, err)
+	}
+
+	return waitContainerStop(ctx, c, killContainerTimeout)
 }
 
 // DeleteContainer deletes a container.
