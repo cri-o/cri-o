@@ -6,6 +6,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"golang.org/x/net/context"
 )
 
 var (
@@ -53,7 +54,7 @@ func rmCmd(c *cli.Context) error {
 	force := c.Bool("force")
 
 	for _, container := range c.Args() {
-		id, err2 := server.Remove(container, force)
+		id, err2 := server.Remove(context.Background(), container, force)
 		if err2 != nil {
 			if err == nil {
 				err = err2

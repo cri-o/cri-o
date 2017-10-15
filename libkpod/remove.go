@@ -6,10 +6,11 @@ import (
 
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
 // Remove removes a container
-func (c *ContainerServer) Remove(container string, force bool) (string, error) {
+func (c *ContainerServer) Remove(ctx context.Context, container string, force bool) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", err
@@ -22,7 +23,7 @@ func (c *ContainerServer) Remove(container string, force bool) (string, error) {
 		return "", errors.Errorf("cannot remove paused container %s", ctrID)
 	case oci.ContainerStateCreated, oci.ContainerStateRunning:
 		if force {
-			_, err = c.ContainerStop(container, -1)
+			_, err = c.ContainerStop(ctx, container, 10)
 			if err != nil {
 				return "", errors.Wrapf(err, "unable to stop container %s", ctrID)
 			}

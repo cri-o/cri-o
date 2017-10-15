@@ -7,6 +7,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"golang.org/x/net/context"
 )
 
 var (
@@ -61,7 +62,7 @@ func stopCmd(c *cli.Context) error {
 	}
 	var lastError error
 	for _, container := range c.Args() {
-		cid, err := server.ContainerStop(container, stopTimeout)
+		cid, err := server.ContainerStop(context.Background(), container, stopTimeout)
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
