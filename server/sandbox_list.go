@@ -42,7 +42,11 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		if filter.Id != "" {
 			id, err := s.PodIDIndex().Get(filter.Id)
 			if err != nil {
-				return nil, err
+				// Not finding an ID in a filtered list should not be considered
+				// and error; it might have been deleted when stop was done.
+				// Log and return an empty struct.
+				logrus.Warn("unable to find pod %s with filter", filter.Id)
+				return &pb.ListPodSandboxResponse{}, nil
 			}
 			sb := s.getSandbox(id)
 			if sb == nil {
