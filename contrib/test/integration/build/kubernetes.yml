@@ -3,17 +3,17 @@
 - name: clone kubernetes source repo
   git:
     repo: "https://github.com/runcom/kubernetes.git"
-    dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+    dest: "{{ go_path }}/src/k8s.io/kubernetes"
     version: "cri-o-patched-1.8"
 
 - name: install etcd
   command: "hack/install-etcd.sh"
   args:
-    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+    chdir: "{{ go_path }}/src/k8s.io/kubernetes"
 
 - name: build kubernetes
   make:
-    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+    chdir: "{{ go_path }}/src/k8s.io/kubernetes"
 
 - name: Add custom cluster service file for the e2e testing
   copy:
@@ -23,7 +23,7 @@
       After=network-online.target
       Wants=network-online.target
       [Service]
-      WorkingDirectory={{ ansible_env.GOPATH }}/src/k8s.io/kubernetes
+      WorkingDirectory={{ go_path }}/src/k8s.io/kubernetes
       ExecStart=/usr/local/bin/createcluster.sh
       User=root
       [Install]
@@ -35,7 +35,7 @@
     content: |
       #!/bin/bash
 
-      export PATH=/usr/local/go/bin:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/root/bin:{{ ansible_env.GOPATH }}/bin:{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/third_party/etcd:{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/local/bin/linux/amd64/
+      export PATH=/usr/local/go/bin:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/root/bin:{{ go_path }}/bin:{{ go_path }}/src/k8s.io/kubernetes/third_party/etcd:{{ go_path }}/src/k8s.io/kubernetes/_output/local/bin/linux/amd64/
       export CONTAINER_RUNTIME=remote
       export CGROUP_DRIVER=systemd
       export CONTAINER_RUNTIME_ENDPOINT='/var/run/crio.sock --runtime-request-timeout=5m'
@@ -47,17 +47,3 @@
       export KUBE_ENABLE_CLUSTER_DNS=true
       ./hack/local-up-cluster.sh
     mode: "u=rwx,g=rwx,o=x"
-
-- name: Set kubernetes_provider to be local
-  lineinfile:
-    dest: /etc/environment
-    line: 'KUBERNETES_PROVIDER=local'
-    regexp: 'KUBERNETES_PROVIDER='
-    state: present
-
-- name: Set KUBECONFIG
-  lineinfile:
-    dest: /etc/environment
-    line: 'KUBECONFIG=/var/run/kubernetes/admin.kubeconfig'
-    regexp: 'KUBECONFIG='
-    state: present

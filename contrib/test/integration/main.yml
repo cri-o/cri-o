@@ -4,6 +4,8 @@
   gather_facts: False  # Requires low-level ansible-dependencies
   tags:
     - always
+  tags:
+    - setup
   tasks:
     - name: Ensure low-level ansible-dependencies are installed
       raw: $(type -P dnf || type -P yum) install -y python2 python2-dnf libselinux-python git rsync
@@ -26,6 +28,7 @@
 - hosts: '{{ subjects | default("localhost") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
+  environment: '{{ environment_variables }}'
   tags:
     - setup
   tasks:
@@ -54,6 +57,7 @@
 - hosts: '{{ subjects | default("localhost") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
+  environment: '{{ environment_variables }}'
   tags:
     - integration
     - e2e
@@ -64,6 +68,7 @@
 - hosts: '{{ subjects | default("localhost") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
+  environment: '{{ environment_variables }}'
   tags:
     - integration
   tasks:
@@ -73,6 +78,7 @@
 - hosts: '{{ subjects | default("localhost") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
+  environment: '{{ environment_variables }}'
   tags:
     - e2e
   tasks:
