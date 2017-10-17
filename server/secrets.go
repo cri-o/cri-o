@@ -113,18 +113,18 @@ func secretMounts(defaultMountsPaths []string, mountLabel, containerWorkingDir s
 			continue
 		}
 
-		ctrDir = filepath.Join(containerWorkingDir, ctrDir)
+		ctrDirOnHost := filepath.Join(containerWorkingDir, ctrDir)
 		// skip if ctrDir has already been mounted by caller
 		if isAlreadyMounted(runtimeMounts, ctrDir) {
 			logrus.Warnf("%q has already been mounted; cannot override mount", ctrDir)
 			continue
 		}
 
-		if err := os.RemoveAll(ctrDir); err != nil {
+		if err := os.RemoveAll(ctrDirOnHost); err != nil {
 			return nil, fmt.Errorf("remove container directory failed: %v", err)
 		}
 
-		if err := os.MkdirAll(ctrDir, 0755); err != nil {
+		if err := os.MkdirAll(ctrDirOnHost, 0755); err != nil {
 			return nil, fmt.Errorf("making container directory failed: %v", err)
 		}
 
@@ -138,12 +138,12 @@ func secretMounts(defaultMountsPaths []string, mountLabel, containerWorkingDir s
 			return nil, errors.Wrapf(err, "getting host secret data failed")
 		}
 		for _, s := range data {
-			s.SaveTo(ctrDir)
+			s.SaveTo(ctrDirOnHost)
 		}
-		label.Relabel(ctrDir, mountLabel, false)
+		label.Relabel(ctrDirOnHost, mountLabel, false)
 
 		m := rspec.Mount{
-			Source:      hostDir,
+			Source:      ctrDirOnHost,
 			Destination: ctrDir,
 		}
 
