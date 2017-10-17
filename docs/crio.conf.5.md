@@ -68,7 +68,7 @@ Example:
 ## CRIO.API TABLE
 
 **listen**=""
-  Path to crio socket (default: "/var/run/crio.sock")
+  Path to crio socket (default: "/var/run/crio/crio.sock")
 
 ## CRIO.RUNTIME TABLE
 
