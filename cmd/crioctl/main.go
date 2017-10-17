@@ -97,7 +97,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "connect",
-			Value: "/var/run/crio.sock",
+			Value: "/var/run/crio/crio.sock",
 			Usage: "Socket to connect to",
 		},
 		cli.DurationFlag{
