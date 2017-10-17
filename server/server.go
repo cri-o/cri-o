@@ -35,8 +35,7 @@ import (
 )
 
 const (
-	runtimeAPIVersion = "v1alpha1"
-	shutdownFile      = "/var/lib/crio/crio.shutdown"
+	shutdownFile = "/var/lib/crio/crio.shutdown"
 )
 
 func isTrue(annotaton string) bool {
