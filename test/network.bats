@@ -7,6 +7,7 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 	rm -f /var/lib/cni/networks/crionet_test_args/*
+	chmod 0755 $CONMON_BINARY
 	cleanup_test
 }
 
