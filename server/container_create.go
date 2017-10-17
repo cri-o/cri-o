@@ -393,7 +393,6 @@ func addSecretsBindMounts(mountLabel, ctrRunDir string, defaultMounts []string, 
 	}
 	for _, m := range mounts {
 		specgen.AddBindMount(m.Source, m.Destination, nil)
-
 	}
 	return nil
 }
