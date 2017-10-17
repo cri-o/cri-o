@@ -145,7 +145,7 @@ install -D -m 644 seccomp.json /etc/crio/seccomp.json
 If you are installing for the first time, generate config as follows:
 
 ```
-make install.config
+sudo make install.config
 ```
 
 Output:
