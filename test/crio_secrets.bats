@@ -24,7 +24,7 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     mount_info="$output"
-    grep $ctr_id/userdata/container/path1 <<< "$mount_info"
+    grep /container/path1 <<< "$mount_info"
     echo "$output"
     [ "$status" -eq 0 ]
     rm -rf MOUNT_PATH
