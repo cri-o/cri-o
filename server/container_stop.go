@@ -8,7 +8,7 @@ import (
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest) (*pb.StopContainerResponse, error) {
-	_, err := s.ContainerServer.ContainerStop(req.ContainerId, req.Timeout)
+	_, err := s.ContainerServer.ContainerStop(ctx, req.ContainerId, req.Timeout)
 	if err != nil {
 		return nil, err
 	}
