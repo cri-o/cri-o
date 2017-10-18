@@ -58,29 +58,18 @@
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   environment: '{{ environment_variables }}'
-  tags:
-    - integration
-    - e2e
   tasks:
     - name: Build and install cri-o
       include: "build/cri-o.yml"
+      tags:
+        - always
 
-- hosts: '{{ subjects | default("localhost") }}'
-  vars_files:
-    - "{{ playbook_dir }}/vars.yml"
-  environment: '{{ environment_variables }}'
-  tags:
-    - integration
-  tasks:
     - name: run cri-o integration tests
       include: test.yml
+      tags:
+        - integration
 
-- hosts: '{{ subjects | default("localhost") }}'
-  vars_files:
-    - "{{ playbook_dir }}/vars.yml"
-  environment: '{{ environment_variables }}'
-  tags:
-    - e2e
-  tasks:
     - name: run k8s e2e tests
       include: e2e.yml
+      tags:
+        - e2e
