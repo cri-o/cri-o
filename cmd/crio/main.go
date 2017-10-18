@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
 	"github.com/kubernetes-incubator/cri-o/server"
+	"github.com/kubernetes-incubator/cri-o/version"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
@@ -22,10 +23,6 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
-
-// This is populated by the Makefile from the VERSION file
-// in the repository
-var version = ""
 
 // gitCommit is the commit that the binary is being built from.
 // It will be populated by the Makefile.
@@ -182,9 +179,7 @@ func main() {
 	app := cli.NewApp()
 
 	var v []string
-	if version != "" {
-		v = append(v, version)
-	}
+	v = append(v, version.Version)
 	if gitCommit != "" {
 		v = append(v, fmt.Sprintf("commit: %s", gitCommit))
 	}
