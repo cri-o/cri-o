@@ -104,7 +104,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Config: *libkpod.DefaultConfig(),
 		APIConfig: APIConfig{
-			Listen:        "/var/run/crio.sock",
+			Listen:        "/var/run/crio/crio.sock",
 			StreamAddress: "",
 			StreamPort:    "10010",
 		},

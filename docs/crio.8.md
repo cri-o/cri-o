@@ -94,7 +94,7 @@ set the CPU profile file path
   ignore: All volumes are just ignored and no action is taken.
 
 **--listen**=""
-  Path to CRI-O socket (default: "/var/run/crio.sock")
+  Path to CRI-O socket (default: "/var/run/crio/crio.sock")
 
 **--log**=""
   Set the log file path where internal debug information is written
