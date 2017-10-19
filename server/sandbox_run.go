@@ -400,15 +400,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// extract linux sysctls from annotations and pass down to oci runtime
-	safe, unsafe, err := SysctlsFromPodAnnotations(kubeAnnotations)
-	if err != nil {
-		return nil, err
-	}
-	for _, sysctl := range safe {
-		g.AddLinuxSysctl(sysctl.Name, sysctl.Value)
-	}
-	for _, sysctl := range unsafe {
-		g.AddLinuxSysctl(sysctl.Name, sysctl.Value)
+	for key, value := range req.GetConfig().GetLinux().GetSysctls() {
+		g.AddLinuxSysctl(key, value)
 	}
 
 	// Set OOM score adjust of the infra container to be very low
