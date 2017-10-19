@@ -35,8 +35,8 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
-
-LDFLAGS := -ldflags '-X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO} -X main.kpodVersion=${KPOD_VERSION}'
+SHRINKFLAGS := -s -w
+LDFLAGS := -ldflags '${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO} -X main.kpodVersion=${KPOD_VERSION}'
 
 all: binaries crio.conf docs
 
