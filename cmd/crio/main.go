@@ -8,7 +8,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -418,10 +417,6 @@ func main() {
 		if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
 			// path to runtime does not exist
 			return fmt.Errorf("invalid --runtime value %q", err)
-		}
-
-		if err := os.MkdirAll(filepath.Dir(config.Listen), 0755); err != nil {
-			return err
 		}
 
 		// Remove the socket if it already exists
