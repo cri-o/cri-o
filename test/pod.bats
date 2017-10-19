@@ -210,7 +210,7 @@ function teardown() {
 
 @test "pass pod sysctls to runtime" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crioctl pod run --config "$TESTDATA"/sandbox_config_sysctl.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
