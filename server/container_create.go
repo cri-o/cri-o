@@ -769,8 +769,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	logrus.Debugf("pod container state %+v", podInfraState)
 
 	ipcNsPath := fmt.Sprintf("/proc/%d/ns/ipc", podInfraState.Pid)
-	if err := specgen.AddOrReplaceLinuxNamespace("ipc", ipcNsPath); err != nil {
+	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.IPCNamespace), ipcNsPath); err != nil {
 		return nil, err
+	}
+
+	utsNsPath := fmt.Sprintf("/proc/%d/ns/uts", podInfraState.Pid)
+	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UTSNamespace), utsNsPath); err != nil {
+		return nil, err
+	}
+
+	// Do not share pid ns for now
+	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() {
+		specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace))
 	}
 
 	netNsPath := sb.NetNsPath()
@@ -780,7 +790,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		netNsPath = fmt.Sprintf("/proc/%d/ns/net", podInfraState.Pid)
 	}
 
-	if err := specgen.AddOrReplaceLinuxNamespace("network", netNsPath); err != nil {
+	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
 		return nil, err
 	}
 
