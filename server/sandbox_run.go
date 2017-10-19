@@ -16,6 +16,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
+	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -419,7 +420,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// set up namespaces
 	if hostNetwork {
-		err = g.RemoveLinuxNamespace("network")
+		err = g.RemoveLinuxNamespace(string(runtimespec.NetworkNamespace))
 		if err != nil {
 			return nil, err
 		}
@@ -440,21 +441,21 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}()
 
 		// Pass the created namespace path to the runtime
-		err = g.AddOrReplaceLinuxNamespace("network", sb.NetNsPath())
+		err = g.AddOrReplaceLinuxNamespace(string(runtimespec.NetworkNamespace), sb.NetNsPath())
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if securityContext.GetNamespaceOptions().GetHostPid() {
-		err = g.RemoveLinuxNamespace("pid")
+		err = g.RemoveLinuxNamespace(string(runtimespec.PIDNamespace))
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if securityContext.GetNamespaceOptions().GetHostIpc() {
-		err = g.RemoveLinuxNamespace("ipc")
+		err = g.RemoveLinuxNamespace(string(runtimespec.IPCNamespace))
 		if err != nil {
 			return nil, err
 		}
