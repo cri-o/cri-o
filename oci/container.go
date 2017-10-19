@@ -48,6 +48,7 @@ type Container struct {
 	imageRef   string
 	volumes    []ContainerVolume
 	mountPoint string
+	spec       *specs.Spec
 }
 
 // ContainerVolume is a bind mount for the container.
@@ -97,6 +98,16 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		opLock:          new(sync.Mutex),
 	}
 	return c, nil
+}
+
+// SetSpec loads the OCI spec in the container struct
+func (c *Container) SetSpec(s *specs.Spec) {
+	c.spec = s
+}
+
+// Spec returns a copy of the spec for the container
+func (c *Container) Spec() specs.Spec {
+	return *c.spec
 }
 
 // GetStopSignal returns the container's own stop signal configured from the
