@@ -42,24 +42,8 @@ type Container struct {
 
 	pod         *Pod
 	runningSpec *spec.Spec
-	state       ContainerState
 
-	// The location of the on-disk OCI runtime spec
-	specfilePath string
-	// Path to the nonvolatile container configuration file
-	statefilePath string
-	// Path to the container's non-volatile directory
-	containerDir string
-	// Path to the container's volatile directory
-	containerRunDir string
-	// Path to the mountpoint of the container's root filesystem
-	containerMountPoint string
-
-	// Whether this container was configured with containers/storage
-	useContainerStorage bool
-	// Containers/storage information on container
-	// Will be empty if container is configured using a directory
-	containerStorageInfo *ContainerInfo
+	state *containerRuntimeInfo
 
 	// TODO move to storage.Locker from sync.Mutex
 	valid   bool
@@ -67,20 +51,57 @@ type Container struct {
 	runtime *Runtime
 }
 
+// containerState contains the current state of the container
+// It is stored as on disk in a per-boot directory
+type containerRuntimeInfo struct {
+	// The current state of the running container
+	State ContainerState `json:"state"`
+
+	// The path to the JSON OCI runtime spec for this container
+	ConfigPath string `json:"configPath,omitempty"`
+	// RunDir is a per-boot directory for container content
+	RunDir string `json:"runDir,omitempty"`
+
+	// Mounted indicates whether the container's storage has been mounted
+	// for use
+	Mounted bool `json:"-"`
+	// MountPoint contains the path to the container's mounted storage
+	Mountpoint string `json:"mountPoint,omitempty"`
+
+	// TODO: Save information about image used in container if one is used
+	// TODO save start time, create time (create time in the containerConfig?)
+}
+
 // containerConfig contains all information that was used to create the
 // container. It may not be changed once created.
 // It is stored as an unchanging part of on-disk state
 type containerConfig struct {
-	Spec               *spec.Spec        `json:"spec"`
-	ID                 string            `json:"id"`
-	Name               string            `json:"name"`
-	RootfsDir          *string           `json:"rootfsDir,omitempty"`
-	RootfsImageID      *string           `json:"rootfsImageID,omitempty"`
-	RootfsImageName    *string           `json:"rootfsImageName,omitempty"`
-	UseImageConfig     bool              `json:"useImageConfig"`
-	Pod                *string           `json:"pod,omitempty"`
+	Spec *spec.Spec `json:"spec"`
+	ID   string     `json:"id"`
+	Name string     `json:"name"`
+	// RootfsFromImage indicates whether the container uses a root
+	// filesystem from an image, or from a user-provided directory
+	RootfsFromImage bool
+	// Directory used as a root filesystem if not configured with an image
+	RootfsDir string `json:"rootfsDir,omitempty"`
+	// Information on the image used for the root filesystem
+	RootfsImageID   string `json:"rootfsImageID,omitempty"`
+	RootfsImageName string `json:"rootfsImageName,omitempty"`
+	UseImageConfig  bool   `json:"useImageConfig"`
+	// Whether to keep container STDIN open
+	Stdin bool
+	// Static directory for container content that will persist across
+	// reboot
+	StaticDir string `json:"staticDir"`
+	// Pod the container belongs to
+	Pod *string `json:"pod,omitempty"`
+	// Shared namespaces with container
 	SharedNamespaceCtr *string           `json:"shareNamespacesWith,omitempty"`
 	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
+
+	// TODO save create time
+	// TODO save log location here and pass into OCI code
+	// TODO allow overriding of log path
 }
 
 // ID returns the container's ID
@@ -113,7 +134,7 @@ func (c *Container) State() (ContainerState, error) {
 	// 	return ContainerStateUnknown, err
 	// }
 
-	return c.state, nil
+	return c.state.State, nil
 }
 
 // Make a new container
@@ -124,6 +145,7 @@ func newContainer(rspec *spec.Spec) (*Container, error) {
 
 	ctr := new(Container)
 	ctr.config = new(containerConfig)
+	ctr.state = new(containerRuntimeInfo)
 
 	ctr.config.ID = stringid.GenerateNonCryptoID()
 	ctr.config.Name = ctr.config.ID // TODO generate unique human-readable names
@@ -143,12 +165,12 @@ func (c *Container) setupStorage() error {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
 
-	if c.state != ContainerStateConfigured {
+	if c.state.State != ContainerStateConfigured {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Configured state to have storage set up", c.ID())
 	}
 
 	// If we're configured to use a directory, perform that setup
-	if c.config.RootfsDir != nil {
+	if !c.config.RootfsFromImage {
 		// TODO implement directory-based root filesystems
 		return ErrNotImplemented
 	}
@@ -160,20 +182,18 @@ func (c *Container) setupStorage() error {
 // Set up an image as root filesystem using containers/storage
 func (c *Container) setupImageRootfs() error {
 	// Need both an image ID and image name, plus a bool telling us whether to use the image configuration
-	if c.config.RootfsImageID == nil || c.config.RootfsImageName == nil {
+	if c.config.RootfsImageID == "" || c.config.RootfsImageName == "" {
 		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
 
 	// TODO SELinux mount label
-	containerInfo, err := c.runtime.storageService.CreateContainerStorage(c.runtime.imageContext, *c.config.RootfsImageName, *c.config.RootfsImageID, c.config.Name, c.config.ID, "")
+	containerInfo, err := c.runtime.storageService.CreateContainerStorage(c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, "")
 	if err != nil {
 		return errors.Wrapf(err, "error creating container storage")
 	}
 
-	c.useContainerStorage = true
-	c.containerStorageInfo = &containerInfo
-	c.containerDir = containerInfo.Dir
-	c.containerRunDir = containerInfo.RunDir
+	c.config.StaticDir = containerInfo.Dir
+	c.state.RunDir = containerInfo.RunDir
 
 	return nil
 }
@@ -187,12 +207,12 @@ func (c *Container) Create() (err error) {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
 
-	if c.state != ContainerStateConfigured {
+	if c.state.State != ContainerStateConfigured {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
 	// If using containers/storage, mount the container
-	if !c.useContainerStorage {
+	if !c.config.RootfsFromImage {
 		// TODO implemented directory-based root filesystems
 		return ErrNotImplemented
 	} else {
@@ -200,7 +220,8 @@ func (c *Container) Create() (err error) {
 		if err != nil {
 			return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
 		}
-		c.containerMountPoint = mountPoint
+		c.state.Mounted = true
+		c.state.Mountpoint = mountPoint
 
 		defer func() {
 			if err != nil {
@@ -208,7 +229,8 @@ func (c *Container) Create() (err error) {
 					logrus.Errorf("Error unmounting storage for container %s: %v", c.ID(), err2)
 				}
 
-				c.containerMountPoint = ""
+				c.state.Mounted = false
+				c.state.Mountpoint = ""
 			}
 		}()
 	}
@@ -216,12 +238,12 @@ func (c *Container) Create() (err error) {
 	// Make the OCI runtime spec we will use
 	c.runningSpec = new(spec.Spec)
 	deepcopier.Copy(c.config.Spec).To(c.runningSpec)
-	c.runningSpec.Root.Path = c.containerMountPoint
+	c.runningSpec.Root.Path = c.state.Mountpoint
 
 	// TODO Add annotation for start time to spec
 
 	// Save the OCI spec to disk
-	jsonPath := filepath.Join(c.containerRunDir, "config.json")
+	jsonPath := filepath.Join(c.state.RunDir, "config.json")
 	fileJSON, err := json.Marshal(c.runningSpec)
 	if err != nil {
 		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
@@ -229,6 +251,7 @@ func (c *Container) Create() (err error) {
 	if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
 		return errors.Wrapf(err, "error writing runtime spec JSON to file for container %s", c.ID())
 	}
+	c.state.ConfigPath = jsonPath
 
 	// With the spec complete, do an OCI create
 	// TODO set cgroup parent in a sane fashion
@@ -237,7 +260,7 @@ func (c *Container) Create() (err error) {
 	}
 
 	// TODO should flush this state to disk here
-	c.state = ContainerStateCreated
+	c.state.State = ContainerStateCreated
 
 	return nil
 }
@@ -252,7 +275,7 @@ func (c *Container) Start() error {
 	}
 
 	// Container must be created or stopped to be started
-	if !(c.state == ContainerStateCreated || c.state == ContainerStateStopped) {
+	if !(c.state.State == ContainerStateCreated || c.state.State == ContainerStateStopped) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
@@ -261,7 +284,7 @@ func (c *Container) Start() error {
 	}
 
 	// TODO should flush state to disk here
-	c.state = ContainerStateRunning
+	c.state.State = ContainerStateRunning
 
 	return nil
 }

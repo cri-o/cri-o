@@ -38,7 +38,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 	}
 
 	ctr.valid = true
-	ctr.state = ContainerStateConfigured
+	ctr.state.State = ContainerStateConfigured
 	ctr.runtime = r
 
 	if err := ctr.setupStorage(); err != nil {

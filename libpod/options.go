@@ -229,11 +229,12 @@ func WithRootFSFromPath(path string) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if ctr.config.RootfsDir != nil || ctr.config.RootfsImageID != nil || ctr.config.RootfsImageName != nil {
+		if ctr.config.RootfsDir != "" || ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
 			return fmt.Errorf("container already configured to with rootfs")
 		}
 
-		ctr.config.RootfsDir = &path
+		ctr.config.RootfsDir = path
+		ctr.config.RootfsFromImage = false
 
 		return nil
 	}
@@ -249,13 +250,27 @@ func WithRootFSFromImage(imageID string, imageName string, useImageConfig bool) 
 			return ErrCtrFinalized
 		}
 
-		if ctr.config.RootfsDir != nil || ctr.config.RootfsImageID != nil || ctr.config.RootfsImageName != nil {
+		if ctr.config.RootfsDir != "" || ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
 			return fmt.Errorf("container already configured to with rootfs")
 		}
 
-		ctr.config.RootfsImageID = &imageID
-		ctr.config.RootfsImageName = &imageName
+		ctr.config.RootfsImageID = imageID
+		ctr.config.RootfsImageName = imageName
 		ctr.config.UseImageConfig = useImageConfig
+		ctr.config.RootfsFromImage = true
+
+		return nil
+	}
+}
+
+// WithStdin keeps stdin on the container open to allow interaction
+func WithStdin() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Stdin = true
 
 		return nil
 	}
