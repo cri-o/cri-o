@@ -19,6 +19,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -168,6 +169,7 @@ func New(config *Config) (*ContainerServer, error) {
 			containers:      oci.NewMemoryStore(),
 			infraContainers: oci.NewMemoryStore(),
 			sandboxes:       make(map[string]*sandbox.Sandbox),
+			processLevels:   make(map[string]int),
 		},
 		config: config,
 	}, nil
@@ -609,6 +611,8 @@ type containerServerState struct {
 	containers      oci.ContainerStorer
 	infraContainers oci.ContainerStorer
 	sandboxes       map[string]*sandbox.Sandbox
+	// processLevels The number of sandboxes using the same SELinux MCS level. Need to release MCS Level, when count reaches 0
+	processLevels map[string]int
 }
 
 // AddContainer adds a container to the container state store
@@ -696,6 +700,7 @@ func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	c.state.sandboxes[sb.ID()] = sb
+	c.state.processLevels[selinux.NewContext(sb.ProcessLabel())["level"]]++
 }
 
 // GetSandbox returns a sandbox by its ID
@@ -728,7 +733,14 @@ func (c *ContainerServer) HasSandbox(id string) bool {
 func (c *ContainerServer) RemoveSandbox(id string) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
+	processLabel := c.state.sandboxes[id].ProcessLabel()
 	delete(c.state.sandboxes, id)
+	level := selinux.NewContext(processLabel)["level"]
+	c.state.processLevels[level]--
+	if c.state.processLevels[level] == 0 {
+		label.ReleaseLabel(processLabel)
+		delete(c.state.processLevels, level)
+	}
 }
 
 // ListSandboxes lists all sandboxes in the state store
