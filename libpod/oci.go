@@ -132,7 +132,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error 
 	args = append(args, "-c", ctr.ID())
 	args = append(args, "-u", ctr.ID())
 	args = append(args, "-r", r.path)
-	args = append(args, "-b", ctr.state.RunDir)
+	args = append(args, "-b", ctr.bundlePath())
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
 	// TODO container log location should be configurable
 	// The default also likely shouldn't be this

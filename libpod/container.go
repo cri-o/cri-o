@@ -5,9 +5,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/stringid"
+	crioAnnotations "github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -56,17 +58,21 @@ type Container struct {
 type containerRuntimeInfo struct {
 	// The current state of the running container
 	State ContainerState `json:"state"`
-
 	// The path to the JSON OCI runtime spec for this container
 	ConfigPath string `json:"configPath,omitempty"`
 	// RunDir is a per-boot directory for container content
 	RunDir string `json:"runDir,omitempty"`
-
 	// Mounted indicates whether the container's storage has been mounted
 	// for use
 	Mounted bool `json:"-"`
 	// MountPoint contains the path to the container's mounted storage
 	Mountpoint string `json:"mountPoint,omitempty"`
+	// StartedTime is the time the container was started
+	StartedTime time.Time `json:"startedTime,omitempty"`
+	// FinishedTime is the time the container finished executing
+	FinishedTime time.Time `json:"finishedTime,omitempty"`
+	// ExitCode is the exit code returned when the container stopped
+	ExitCode int32 `json:"exitCode,omitempty"`
 
 	// TODO: Save information about image used in container if one is used
 	// TODO save start time, create time (create time in the containerConfig?)
@@ -98,8 +104,9 @@ type containerConfig struct {
 	// Shared namespaces with container
 	SharedNamespaceCtr *string           `json:"shareNamespacesWith,omitempty"`
 	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
+	// Time container was created
+	CreatedTime time.Time `json:"createdTime"`
 
-	// TODO save create time
 	// TODO save log location here and pass into OCI code
 	// TODO allow overriding of log path
 }
@@ -137,6 +144,17 @@ func (c *Container) State() (ContainerState, error) {
 	return c.state.State, nil
 }
 
+// The path to the container's root filesystem - where the OCI spec will be
+// placed, amongst other things
+func (c *Container) bundlePath() string {
+	return c.state.RunDir
+}
+
+// Retrieves the path of the container's attach socket
+func (c *Container) attachSocketPath() string {
+	return filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
+}
+
 // Make a new container
 func newContainer(rspec *spec.Spec) (*Container, error) {
 	if rspec == nil {
@@ -152,6 +170,8 @@ func newContainer(rspec *spec.Spec) (*Container, error) {
 
 	ctr.config.Spec = new(spec.Spec)
 	deepcopier.Copy(rspec).To(ctr.config.Spec)
+
+	ctr.config.CreatedTime = time.Now()
 
 	return ctr, nil
 }
@@ -239,11 +259,10 @@ func (c *Container) Create() (err error) {
 	c.runningSpec = new(spec.Spec)
 	deepcopier.Copy(c.config.Spec).To(c.runningSpec)
 	c.runningSpec.Root.Path = c.state.Mountpoint
-
-	// TODO Add annotation for start time to spec
+	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
 
 	// Save the OCI spec to disk
-	jsonPath := filepath.Join(c.state.RunDir, "config.json")
+	jsonPath := filepath.Join(c.bundlePath(), "config.json")
 	fileJSON, err := json.Marshal(c.runningSpec)
 	if err != nil {
 		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
@@ -284,6 +303,7 @@ func (c *Container) Start() error {
 	}
 
 	// TODO should flush state to disk here
+	c.state.StartedTime = time.Now()
 	c.state.State = ContainerStateRunning
 
 	return nil
