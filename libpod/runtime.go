@@ -38,7 +38,8 @@ type RuntimeConfig struct {
 	ConmonPath            string
 	ConmonEnvVars         []string
 	CgroupManager         string
-	ExitsDir              string
+	StaticDir             string
+	TmpDir                string
 	SelinuxEnabled        bool
 	PidsLimit             int64
 	MaxLogSize            int64
@@ -56,7 +57,8 @@ var (
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		CgroupManager:  "cgroupfs",
-		ExitsDir:       "/var/run/libpod/exits",
+		StaticDir:      "/var/lib/libpod",
+		TmpDir:         "/var/run/libpod",
 		SelinuxEnabled: false,
 		PidsLimit:      1024,
 		MaxLogSize:     -1,
@@ -111,19 +113,28 @@ func NewRuntime(options ...RuntimeOption) (*Runtime, error) {
 	// Make an OCI runtime to perform container operations
 	ociRuntime, err := newOCIRuntime("runc", runtime.config.RuntimePath,
 		runtime.config.ConmonPath, runtime.config.ConmonEnvVars,
-		runtime.config.CgroupManager, runtime.config.ExitsDir,
+		runtime.config.CgroupManager, runtime.config.TmpDir,
 		runtime.config.MaxLogSize, runtime.config.NoPivotRoot)
 	if err != nil {
 		return nil, err
 	}
 	runtime.ociRuntime = ociRuntime
 
-	// Make the directory that will hold container exit files
-	if err := os.MkdirAll(runtime.config.ExitsDir, 0755); err != nil {
+	// Make the static files directory if it does not exist
+	if err := os.MkdirAll(runtime.config.StaticDir, 0755); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating container exit files directory %s",
-				runtime.config.ExitsDir)
+			return nil, errors.Wrapf(err, "error creating runtime static files directory %s",
+				runtime.config.StaticDir)
+		}
+	}
+
+	// Make the per-boot files directory if it does not exist
+	if err := os.MkdirAll(runtime.config.TmpDir, 0755); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "error creating runtime temporary files directory %s",
+				runtime.config.TmpDir)
 		}
 	}
 

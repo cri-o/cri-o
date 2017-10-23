@@ -41,7 +41,9 @@ type OCIRuntime struct {
 	conmonPath    string
 	conmonEnv     []string
 	cgroupManager string
+	tmpDir        string
 	exitsDir      string
+	socketsDir    string
 	logSizeMax    int64
 	noPivot       bool
 }
@@ -53,19 +55,38 @@ type syncInfo struct {
 }
 
 // Make a new OCI runtime with provided options
-func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []string, cgroupManager string, exitsDir string, logSizeMax int64, noPivotRoot bool) (*OCIRuntime, error) {
+func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool) (*OCIRuntime, error) {
 	runtime := new(OCIRuntime)
 	runtime.name = name
 	runtime.path = path
 	runtime.conmonPath = conmonPath
 	runtime.conmonEnv = conmonEnv
 	runtime.cgroupManager = cgroupManager
-	runtime.exitsDir = exitsDir
+	runtime.tmpDir = tmpDir
 	runtime.logSizeMax = logSizeMax
 	runtime.noPivot = noPivotRoot
 
+	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
+	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
+
 	if cgroupManager != CgroupfsCgroupsManager && cgroupManager != SystemdCgroupsManager {
 		return nil, errors.Wrapf(ErrInvalidArg, "invalid cgroup manager specified: %s", cgroupManager)
+	}
+
+	// Create the exit files and attach sockets directories
+	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "error creating OCI runtime exit files directory %s",
+				runtime.exitsDir)
+		}
+	}
+	if err := os.MkdirAll(runtime.socketsDir, 0750); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "error creating OCI runtime attach sockets directory %s",
+				runtime.socketsDir)
+		}
 	}
 
 	return runtime, nil
@@ -117,6 +138,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error 
 	// The default also likely shouldn't be this
 	args = append(args, "-l", filepath.Join(ctr.config.StaticDir, "ctr.log"))
 	args = append(args, "--exit-dir", r.exitsDir)
+	args = append(args, "--socket-dir-path", r.socketsDir)
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")
 	} else if ctr.config.Stdin {

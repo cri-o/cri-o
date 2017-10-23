@@ -150,15 +150,30 @@ func WithCgroupManager(manager string) RuntimeOption {
 	}
 }
 
-// WithExitsDir sets the directory that container exit files (containing exit
-// codes) will be created by conmon
-func WithExitsDir(dir string) RuntimeOption {
+// WithStaticDir sets the directory that static runtime files which persist
+// across reboots will be stored
+func WithStaticDir(dir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.ExitsDir = dir
+		rt.config.StaticDir = dir
+
+		return nil
+	}
+}
+
+// WithTmpDir sets the directory that temporary runtime files which are not
+// expected to survive across reboots will be stored
+// This should be located on a tmpfs mount (/tmp or /var/run for example)
+func WithTmpDir(dir string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.TmpDir = dir
 
 		return nil
 	}
