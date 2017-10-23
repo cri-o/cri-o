@@ -111,6 +111,7 @@ static char *opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
 static int64_t opt_log_size_max = -1;
+static char *opt_socket_path = NULL;
 static GOptionEntry opt_entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL },
@@ -128,6 +129,7 @@ static GOptionEntry opt_entries[] =
   { "log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL },
   { "timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL },
   { "log-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_size_max, "Maximum size of log file", NULL },
+  { "socket-path", 0, 0, G_OPTION_ARG_STRING, &opt_socket_path, "Location of container attach sockets", NULL },
   { NULL }
 };
 
@@ -989,14 +991,14 @@ static char *setup_attach_socket(void)
 	 * Create a symlink so we don't exceed unix domain socket
 	 * path length limit.
 	 */
-	attach_symlink_dir_path = g_build_filename("/var/run/crio", opt_cuuid, NULL);
+	attach_symlink_dir_path = g_build_filename(opt_socket_path, opt_cuuid, NULL);
 	if (unlink(attach_symlink_dir_path) == -1 && errno != ENOENT)
 		pexit("Failed to remove existing symlink for attach socket directory");
 
 	if (symlink(opt_bundle_path, attach_symlink_dir_path) == -1)
 		pexit("Failed to create symlink for attach socket");
 
-	attach_sock_path = g_build_filename("/var/run/crio", opt_cuuid, "attach", NULL);
+	attach_sock_path = g_build_filename(opt_socket_path, opt_cuuid, "attach", NULL);
 	ninfo("attach sock path: %s", attach_sock_path);
 
 	strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
@@ -1156,6 +1158,9 @@ int main(int argc, char *argv[])
 
 	if (opt_log_path == NULL)
 		nexit("Log file path not provided. Use --log-path");
+
+	if (opt_socket_path == NULL)
+		nexit("Socket path not provided. Use --socket-path");
 
 	start_pipe_fd = get_pipe_fd_from_env("_OCI_STARTPIPE");
 	if (start_pipe_fd >= 0) {
