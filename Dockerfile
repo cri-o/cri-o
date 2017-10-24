@@ -64,7 +64,7 @@ RUN set -x \
 	&& git fetch origin --tags \
 	&& git checkout -q "$RUNC_COMMIT" \
 	&& make static BUILDTAGS="seccomp selinux" \
-	&& cp runc /usr/local/bin/runc \
+	&& cp runc /usr/bin/runc \
 	&& rm -rf "$GOPATH"
 
 # Install CNI plugins
