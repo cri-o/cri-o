@@ -48,14 +48,15 @@
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax hilighting: "
 
-- name: disable SELinux
-  command: setenforce 0
-
 - block:
 
     - name: Disable swap during e2e tests
       command: 'swapoff -a'
       when: not e2e_swap_enabled
+
+    - name: Disable selinux during e2e tests
+      command: 'setenforce 0'
+      when: not e2e_selinux_enabled
 
     - name: run e2e tests
       shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
@@ -64,5 +65,8 @@
 
   always:
 
-    - name: Re-enable swap after e2e tests
+    - name: Re-enable SELinux after e2e tsts
+      command: 'setenforce 1'
+
+    - name: Re-enalbe swap after e2e tests
       command: 'swapon -a'

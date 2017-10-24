@@ -8,6 +8,11 @@ swapfileGB: 8
 integration_swap_enabled: False
 e2e_swap_enabled: True
 
+# When False, disable SELinux on the system only during
+# particular tests.
+integration_selinux_enabled: True
+e2e_selinux_enabled: False
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"
