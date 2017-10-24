@@ -179,7 +179,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
 	args = append(args, "-l", c.logPath)
 	args = append(args, "--exit-dir", r.containerExitsDir)
-	args = append(args, "--socket-path", ContainerAttachSocketDir)
+	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
@@ -437,7 +437,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		args = append(args, fmt.Sprintf("%d", timeout))
 	}
 	args = append(args, "-l", logPath)
-	args = append(args, "--socket-path", ContainerAttachSocketDir)
+	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
 
 	pspec := rspec.Process{
 		Env:  r.conmonEnv,
