@@ -435,11 +435,9 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	}
 	args = append(args, "-l", logPath)
 
-	pspec := rspec.Process{
-		Env:  r.conmonEnv,
-		Args: command,
-		Cwd:  "/",
-	}
+	pspec := c.Spec().Process
+	pspec.Env = append(pspec.Env, r.conmonEnv...)
+	pspec.Args = command
 	processJSON, err := json.Marshal(pspec)
 	if err != nil {
 		return nil, ExecSyncError{
