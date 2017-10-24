@@ -323,6 +323,8 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
+	spp := m.Annotations[annotations.SeccompProfilePath]
+
 	kubeAnnotations := make(map[string]string)
 	if err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
 		return err
@@ -337,6 +339,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	}
 	sb.AddHostnamePath(m.Annotations[annotations.HostnamePath])
 	sb.AddIP(ip)
+	sb.SetSeccompProfilePath(spp)
 
 	// We add a netNS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
@@ -512,6 +515,8 @@ func (c *ContainerServer) LoadContainer(id string) error {
 		return err
 	}
 	ctr.SetMountPoint(m.Annotations[annotations.MountPoint])
+	spp := m.Annotations[annotations.SeccompProfilePath]
+	ctr.SetSeccompProfilePath(spp)
 
 	c.ContainerStateFromDisk(ctr)
 

@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/term"
+	utilexec "k8s.io/utils/exec"
 )
 
 // Exec prepares a streaming endpoint to execute a command in the container.

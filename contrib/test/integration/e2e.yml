@@ -43,7 +43,7 @@
         /usr/bin/go run hack/e2e.go
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
-                        --ginkgo.focus=\[Conformance\]
+                        --ginkgo.skip=\[Flaky\]|\[Slow\]|\[Serial\]
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax hilighting: "
