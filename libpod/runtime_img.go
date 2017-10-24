@@ -13,7 +13,6 @@ import (
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/docker/tarfile"
-	"github.com/containers/image/manifest"
 	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/signature"
@@ -377,24 +376,11 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		return err
 	}
 	defer policyContext.Destroy()
-	// Look up the image name and its layer, then build the imagePushData from
-	// the image
-	img, err := r.getImage(source)
-	if err != nil {
-		return errors.Wrapf(err, "error locating image %q for importing settings", source)
-	}
-	cd, err := r.ImportCopyDataFromImage(r.imageContext, img.ID, "", "")
-	if err != nil {
-		return err
-	}
-	// Give the image we're producing the same ancestors as its source image
-	cd.FromImage = cd.Docker.ContainerConfig.Image
-	cd.FromImageID = string(cd.Docker.Parent)
 
-	// Prep the layers and manifest for export
-	src, err := cd.MakeImageRef(manifest.GuessMIMEType(cd.Manifest), options.Compression, img.Names, img.TopLayer, nil)
+	// Look up the source image, expecting it to be in local storage
+	src, err := is.Transport.ParseStoreReference(r.store, source)
 	if err != nil {
-		return errors.Wrapf(err, "error copying layers and metadata")
+		return errors.Wrapf(err, "error getting source imageReference for %q", source)
 	}
 
 	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions, options.AuthFile)
