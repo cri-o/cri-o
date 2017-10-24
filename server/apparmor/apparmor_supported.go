@@ -11,7 +11,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/docker/docker/utils/templates"
+	"github.com/docker/docker/pkg/templates"
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 )
 

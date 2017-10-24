@@ -871,3 +871,60 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "ctr update resources" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.limit_in_bytes"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "209715200" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "512" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "10000" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "20000" ]]
+
+	run crictl update --memory 524288000 --cpu-period 20000 --cpu-quota 10000 --cpu-share 256 "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.limit_in_bytes"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "524288000" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "256" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "20000" ]]
+	run crioctl ctr execsync --id "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "10000" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
