@@ -96,6 +96,8 @@ static inline void strv_cleanup(char ***strv)
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
 
+#define DEFAULT_SOCKET_PATH "/var/lib/crio"
+
 static bool opt_terminal = false;
 static bool opt_stdin = false;
 static char *opt_cid = NULL;
@@ -111,7 +113,7 @@ static char *opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
 static int64_t opt_log_size_max = -1;
-static char *opt_socket_path = NULL;
+static char *opt_socket_path = DEFAULT_SOCKET_PATH;
 static GOptionEntry opt_entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL },
@@ -1158,9 +1160,6 @@ int main(int argc, char *argv[])
 
 	if (opt_log_path == NULL)
 		nexit("Log file path not provided. Use --log-path");
-
-	if (opt_socket_path == NULL)
-		nexit("Socket path not provided. Use --socket-path");
 
 	start_pipe_fd = get_pipe_fd_from_env("_OCI_STARTPIPE");
 	if (start_pipe_fd >= 0) {
