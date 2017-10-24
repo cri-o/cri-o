@@ -26,6 +26,10 @@
       command: 'swapoff -a'
       when: not integration_swap_enabled
 
+    - name: Disable selinux during integration tests
+      command: 'setenforce 0'
+      when: not integration_selinux_enabled
+
     - name: run integration tests
       shell: "CGROUP_MANAGER=cgroupfs STORAGE_OPTIONS='--storage-driver=overlay{{ extra_storage_opts | default('') }}' make localintegration >& {{ artifacts }}/testout.txt"
       args:
@@ -35,5 +39,8 @@
 
   always:
 
-    - name: Re-enable swap after integration tests
+    - name: Re-enable SELinux after integration tsts
+      command: 'setenforce 1'
+
+    - name: Re-enalbe swap after integration tests
       command: 'swapon -a'
