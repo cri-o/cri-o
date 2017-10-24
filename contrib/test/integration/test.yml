@@ -17,9 +17,20 @@
     path: "{{ artifacts }}"
     state: directory
 
-- name: run integration tests
-  shell: "CGROUP_MANAGER=cgroupfs STORAGE_OPTIONS='--storage-driver=overlay{{ extra_storage_opts | default('') }}' make localintegration >& {{ artifacts }}/testout.txt"
-  args:
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
-  async: 5400
-  poll: 30
+- block:
+
+    - name: Disable swap during integration tests
+      command: 'swapoff -a'
+      when: not integration_swap_enabled
+
+    - name: run integration tests
+      shell: "CGROUP_MANAGER=cgroupfs STORAGE_OPTIONS='--storage-driver=overlay{{ extra_storage_opts | default('') }}' make localintegration >& {{ artifacts }}/testout.txt"
+      args:
+        chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+      async: 5400
+      poll: 30
+
+  always:
+
+    - name: Re-enable swap after integration tests
+      command: 'swapon -a'
