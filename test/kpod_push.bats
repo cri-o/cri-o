@@ -9,13 +9,24 @@ function teardown() {
 }
 
 @test "kpod push to containers/storage" {
-    run ${KPOD_BINARY} $KPOD_OPTIONS pull "$IMAGE"
+    echo # Pull down the image: it gets the name $IMAGE.
+    run ${KPOD_BINARY} $KPOD_OPTIONS --log-level=debug pull "$IMAGE"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} $KPOD_OPTIONS push "$IMAGE" containers-storage:busybox:test
+    echo # Push the image right back into storage: it now has two names.
+    run ${KPOD_BINARY} $KPOD_OPTIONS --log-level=debug push "$IMAGE" containers-storage:busybox:test
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} $KPOD_OPTIONS rmi "$IMAGE" busybox:test
+    echo # Try to remove it using the first name.  Should be refused.
+    run ${KPOD_BINARY} $KPOD_OPTIONS --log-level=debug rmi "$IMAGE"
+    echo "$output"
+    [ "$status" -ne 0 ]
+    echo # Try to remove it using the second name.  Should also be refused.
+    run ${KPOD_BINARY} $KPOD_OPTIONS --log-level=debug rmi busybox:test
+    echo "$output"
+    [ "$status" -ne 0 ]
+    echo # Force removal despite having multiple names.  Should succeed.
+    run ${KPOD_BINARY} $KPOD_OPTIONS --log-level=debug rmi -f busybox:test
     echo "$output"
     [ "$status" -eq 0 ]
 }
