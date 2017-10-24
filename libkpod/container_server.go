@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -168,6 +169,7 @@ func New(config *Config) (*ContainerServer, error) {
 			containers:      oci.NewMemoryStore(),
 			infraContainers: oci.NewMemoryStore(),
 			sandboxes:       make(map[string]*sandbox.Sandbox),
+			selinuxLevels:   make(map[string]int),
 		},
 		config: config,
 	}, nil
@@ -609,6 +611,8 @@ type containerServerState struct {
 	containers      oci.ContainerStorer
 	infraContainers oci.ContainerStorer
 	sandboxes       map[string]*sandbox.Sandbox
+	// process labels level reference counter to release them when not used anymore
+	selinuxLevels map[string]int
 }
 
 // AddContainer adds a container to the container state store
@@ -691,11 +695,21 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 	return filteredContainers, nil
 }
 
+// TODO: move this to opencontainers/selinux
+func getSELinuxLevel(label string) string {
+	if len(label) != 0 {
+		con := strings.SplitN(label, ":", 4)
+		return con[3]
+	}
+	return ""
+}
+
 // AddSandbox adds a sandbox to the sandbox state store
 func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	c.state.sandboxes[sb.ID()] = sb
+	c.state.selinuxLevels[getSELinuxLevel(sb.ProcessLabel())]++
 }
 
 // GetSandbox returns a sandbox by its ID
@@ -729,6 +743,14 @@ func (c *ContainerServer) RemoveSandbox(id string) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	delete(c.state.sandboxes, id)
+	processLabel := c.state.sandboxes[id].ProcessLabel()
+	level := getSELinuxLevel(processLabel)
+	c.state.selinuxLevels[level]--
+	labelCounter := c.state.selinuxLevels[level]
+	if labelCounter == 0 {
+		label.ReleaseLabel(processLabel)
+		delete(c.state.selinuxLevels, processLabel)
+	}
 }
 
 // ListSandboxes lists all sandboxes in the state store
