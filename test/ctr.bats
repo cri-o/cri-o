@@ -767,10 +767,16 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# Wait for container to OOM
-	sleep 100
-	run crioctl ctr status --id "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	attempt=0
+	while [ $attempt -le 100 ]; do
+		attempt=$((attempt+1))
+		run crioctl ctr status --id "$ctr_id"
+		echo "$output"
+		if [[ "$output" =~ "OOMKilled" ]]; then
+			break
+		fi
+		sleep 10
+	done
 	[[ "$output" =~ "OOMKilled" ]]
 	run crioctl pod stop --id "$pod_id"
 	echo "$output"
