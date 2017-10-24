@@ -51,7 +51,18 @@
 - name: disable SELinux
   command: setenforce 0
 
-- name: run e2e tests
-  shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
-  args:
-    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+- block:
+
+    - name: Disable swap during e2e tests
+      command: 'swapoff -a'
+      when: not e2e_swap_enabled
+
+    - name: run e2e tests
+      shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
+      args:
+        chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+
+  always:
+
+    - name: Re-enable swap after e2e tests
+      command: 'swapon -a'
