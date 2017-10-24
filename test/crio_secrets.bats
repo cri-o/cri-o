@@ -20,14 +20,14 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr execsync --id "$ctr_id" mount
+    run crioctl ctr execsync --id "$ctr_id" cat /proc/mounts
     echo "$output"
     [ "$status" -eq 0 ]
     mount_info="$output"
-    grep /container/path1 <<< "$mount_info"
+    run grep /container/path1 <<< "$mount_info"
     echo "$output"
     [ "$status" -eq 0 ]
-    rm -rf MOUNT_PATH
+    rm -rf ${MOUNT_PATH}
     cleanup_ctrs
     cleanup_pods
     stop_crio
