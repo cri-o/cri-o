@@ -320,6 +320,15 @@ func (ic *imageCopier) copyLayers() error {
 	srcInfos := ic.src.LayerInfos()
 	destInfos := []types.BlobInfo{}
 	diffIDs := []digest.Digest{}
+	updatedSrcInfos := ic.src.UpdatedLayerInfos()
+	srcInfosUpdated := false
+	if updatedSrcInfos != nil && !reflect.DeepEqual(srcInfos, updatedSrcInfos) {
+		if !ic.canModifyManifest {
+			return errors.Errorf("Internal error: copyLayers() needs to use an updated manifest but that was known to be forbidden")
+		}
+		srcInfos = updatedSrcInfos
+		srcInfosUpdated = true
+	}
 	for _, srcLayer := range srcInfos {
 		var (
 			destInfo types.BlobInfo
@@ -348,7 +357,7 @@ func (ic *imageCopier) copyLayers() error {
 	if ic.diffIDsAreNeeded {
 		ic.manifestUpdates.InformationOnly.LayerDiffIDs = diffIDs
 	}
-	if layerDigestsDiffer(srcInfos, destInfos) {
+	if srcInfosUpdated || layerDigestsDiffer(srcInfos, destInfos) {
 		ic.manifestUpdates.LayerInfos = destInfos
 	}
 	return nil

@@ -650,9 +650,20 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 func (d *Driver) Put(id string) error {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
+	dir := d.dir(id)
+	if _, err := os.Stat(dir); err != nil {
+		return err
+	}
 	mountpoint := path.Join(d.dir(id), "merged")
 	if count := d.ctr.Decrement(mountpoint); count > 0 {
 		return nil
+	}
+	if _, err := ioutil.ReadFile(path.Join(dir, lowerFile)); err != nil {
+		// If no lower, we used the diff directory, so no work to do
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
 	}
 	if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil {
 		logrus.Debugf("Failed to unmount %s overlay: %s - %v", id, mountpoint, err)

@@ -242,6 +242,10 @@ func (s *openshiftImageSource) GetSignatures(ctx context.Context) ([][]byte, err
 	return sigs, nil
 }
 
+func (s *openshiftImageSource) UpdatedLayerInfos() []types.BlobInfo {
+	return nil
+}
+
 // ensureImageIsResolved sets up s.docker and s.imageStreamImageName
 func (s *openshiftImageSource) ensureImageIsResolved(ctx context.Context) error {
 	if s.docker != nil {
