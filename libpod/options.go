@@ -50,7 +50,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
 		copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
 
-		rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.UIDMap))
+		rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
 		copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
 
 		return nil
