@@ -4,6 +4,7 @@ import (
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Contains the public Runtime API for containers
@@ -18,7 +19,7 @@ type CtrCreateOption func(*Container) error
 type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config
-func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
+func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (ctr *Container, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -26,7 +27,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 		return nil, ErrRuntimeStopped
 	}
 
-	ctr, err := newContainer(spec)
+	ctr, err = newContainer(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -41,19 +42,33 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 	ctr.state.State = ContainerStateConfigured
 	ctr.runtime = r
 
+	// Set up storage for the container
 	if err := ctr.setupStorage(); err != nil {
 		return nil, errors.Wrapf(err, "error configuring storage for container")
 	}
-	// TODO: once teardownStorage is implemented, do a defer here that tears down storage is AddContainer fails
-
-	if err := r.state.AddContainer(ctr); err != nil {
-		// If we joined a pod, remove ourself from it
-		if ctr.pod != nil {
-			if err2 := ctr.pod.removeContainer(ctr); err2 != nil {
-				return nil, errors.Wrapf(err, "error adding new container to state, container could not be removed from pod %s", ctr.pod.ID())
+	defer func() {
+		if err != nil {
+			if err2 := ctr.teardownStorage(); err2 != nil {
+				logrus.Errorf("Error removing partially-created container root filesystem: %s", err2)
 			}
 		}
+	}()
 
+	// If the container is in a pod, add it to the pod
+	if ctr.pod != nil {
+		if err := ctr.pod.addContainer(ctr); err != nil {
+			return nil, errors.Wrapf(err, "error adding new container to pod %s", ctr.pod.ID())
+		}
+	}
+	defer func() {
+		if err != nil {
+			if err2 := ctr.pod.removeContainer(ctr); err2 != nil {
+				logrus.Errorf("Error removing partially-created container from pod %s: %s", ctr.pod.ID(), err2)
+			}
+		}
+	}()
+
+	if err := r.state.AddContainer(ctr); err != nil {
 		// TODO: Might be worth making an effort to detect duplicate IDs
 		// We can recover from that by generating a new ID for the
 		// container

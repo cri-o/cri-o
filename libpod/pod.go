@@ -45,9 +45,15 @@ func newPod() (*Pod, error) {
 func (p *Pod) addContainer(ctr *Container) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	ctr.lock.Lock()
+	defer ctr.lock.Unlock()
 
 	if !p.valid {
 		return ErrPodRemoved
+	}
+
+	if !ctr.valid {
+		return ErrCtrRemoved
 	}
 
 	if _, ok := p.containers[ctr.ID()]; ok {

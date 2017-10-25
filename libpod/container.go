@@ -100,7 +100,7 @@ type containerConfig struct {
 	// reboot
 	StaticDir string `json:"staticDir"`
 	// Pod the container belongs to
-	Pod *string `json:"pod,omitempty"`
+	Pod string `json:"pod,omitempty"`
 	// Shared namespaces with container
 	SharedNamespaceCtr *string           `json:"shareNamespacesWith,omitempty"`
 	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
@@ -214,6 +214,44 @@ func (c *Container) setupImageRootfs() error {
 
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir
+
+	return nil
+}
+
+// Tear down a container's storage prior to removal
+func (c *Container) teardownStorage() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if !c.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
+	}
+
+	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
+	}
+
+	if !c.config.RootfsFromImage {
+		// TODO implement directory-based root filesystems
+		return ErrNotImplemented
+	}
+
+	return c.teardownImageRootfs()
+}
+
+// Completely remove image-based root filesystem for a container
+func (c *Container) teardownImageRootfs() error {
+	if c.state.Mounted {
+		if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
+			return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
+		}
+
+		c.state.Mounted = false
+	}
+
+	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
+		return errors.Wrapf(err, "error removing container %s root filesystem", c.ID())
+	}
 
 	return nil
 }

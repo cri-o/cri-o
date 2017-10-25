@@ -245,7 +245,7 @@ func WithRootFSFromPath(path string) CtrCreateOption {
 		}
 
 		if ctr.config.RootfsDir != "" || ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
-			return fmt.Errorf("container already configured to with rootfs")
+			return errors.Wrapf(ErrInvalidArg, "container already configured with root filesystem")
 		}
 
 		ctr.config.RootfsDir = path
@@ -266,7 +266,7 @@ func WithRootFSFromImage(imageID string, imageName string, useImageConfig bool) 
 		}
 
 		if ctr.config.RootfsDir != "" || ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
-			return fmt.Errorf("container already configured to with rootfs")
+			return errors.Wrapf(ErrInvalidArg, "container already configured with root filesystem")
 		}
 
 		ctr.config.RootfsImageID = imageID
@@ -307,21 +307,11 @@ func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if ctr.pod != nil {
-			return fmt.Errorf("container has already been added to a pod")
+		if pod == nil {
+			return ErrInvalidArg
 		}
 
-		exists, err := r.state.HasPod(pod.ID())
-		if err != nil {
-			return errors.Wrapf(err, "error searching state for pod %s", pod.ID())
-		} else if !exists {
-			return errors.Wrapf(ErrNoSuchPod, "pod %s cannot be found in state", pod.ID())
-		}
-
-		if err := pod.addContainer(ctr); err != nil {
-			return errors.Wrapf(err, "error adding container to pod")
-		}
-
+		ctr.config.Pod = pod.ID()
 		ctr.pod = pod
 
 		return nil
