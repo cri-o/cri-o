@@ -67,7 +67,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 		}
 	})
 
-	attachSocketPath := filepath.Join("/var/run/crio", c.ID(), "attach")
+	attachSocketPath := filepath.Join(oci.ContainerAttachSocketDir, c.ID(), "attach")
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
 	if err != nil {
 		return fmt.Errorf("failed to connect to container %s attach socket: %v", c.ID(), err)
