@@ -43,7 +43,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod(1)](/docs/kpod.1.md)                           | Simple management tool for pods and images                                ||
 | [kpod-attach(1)](/docs/kpod-attach.1.md)             | Instead of providing a `kpod attach` command, the man page `kpod-attach` describes how to use the `kpod logs` and `kpod exec` commands to achieve the same goals as `kpod attach`.||
 | [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Instead of providing a `kpod cp` command, the man page `kpod-cp` describes how to use the `kpod mount` command to have even more flexibility and functionality.||
-| [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                      ||
+| [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
 | [kpod-export(1)](/docs/kpod-export.1.md)             | Export container's filesystem contents as a tar archive                   |[![...](/docs/play.png)](https://asciinema.org/a/913lBIRAg5hK8asyIhhkQVLtV)|
 | [kpod-history(1)](/docs/kpod-history.1.md)           | Shows the history of an image                                             |[![...](/docs/play.png)](https://asciinema.org/a/bCvUQJ6DkxInMELZdc5DinNSx)|
 | [kpod-images(1)](/docs/kpod-images.1.md)             | List images in local storage                                              |[![...](/docs/play.png)](https://asciinema.org/a/133649)|
@@ -51,8 +51,8 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod-inspect(1)](/docs/kpod-inspect.1.md)           | Display the configuration of a container or image                         |[![...](/docs/play.png)](https://asciinema.org/a/133418)|
 | [kpod-kill(1)](/docs/kpod-kill.1.md)                 | Kill the main process in one or more running containers                   |[![...](/docs/play.png)](https://asciinema.org/a/3jNos0A5yzO4hChu7ddKkUPw7)|
 | [kpod-load(1)](/docs/kpod-load.1.md)                 | Load an image from docker archive or oci                                  |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
-| [kpod-login(1)](/docs/kpod-login.1.md)               | Login to a container registry	                                           ||
-| [kpod-logout(1)](/docs/kpod-logout.1.md)             | Logout of a container registry                                            ||
+| [kpod-login(1)](/docs/kpod-login.1.md)               | Login to a container registry	                                           |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
+| [kpod-logout(1)](/docs/kpod-logout.1.md)             | Logout of a container registry                                            |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
 | [kpod-logs(1)](/docs/kpod-logs.1.md)                 | Display the logs of a container                                           ||
 | [kpod-mount(1)](/docs/kpod-mount.1.md)               | Mount a working container's root filesystem                               ||
 | [kpod-pause(1)](/docs/kpod-pause.1.md)               | Pause one or more running containers                                      |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
