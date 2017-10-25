@@ -95,14 +95,19 @@ func loadCmd(c *cli.Context) error {
 		output = os.Stdout
 	}
 
+	options := libpod.CopyOptions{
+		SignaturePolicyPath: c.String("signature-policy"),
+		Writer:              output,
+	}
+
 	src := libpod.DockerArchive + ":" + input
-	if err := runtime.PullImage(src, false, c.String("signature-policy"), output); err != nil {
+	if err := runtime.PullImage(src, options); err != nil {
 		src = libpod.OCIArchive + ":" + input
 		// generate full src name with specified image:tag
 		if image != "" {
 			src = src + ":" + image
 		}
-		if err := runtime.PullImage(src, false, "", output); err != nil {
+		if err := runtime.PullImage(src, options); err != nil {
 			return errors.Wrapf(err, "error pulling %q", src)
 		}
 	}

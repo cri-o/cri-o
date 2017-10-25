@@ -17,15 +17,15 @@ var (
 )
 
 // GetCopyOptions constructs a new containers/image/copy.Options{} struct from the given parameters
-func GetCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions) *cp.Options {
+func GetCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions, authFile string) *cp.Options {
 	if srcDockerRegistry == nil {
 		srcDockerRegistry = &DockerRegistryOptions{}
 	}
 	if destDockerRegistry == nil {
 		destDockerRegistry = &DockerRegistryOptions{}
 	}
-	srcContext := srcDockerRegistry.GetSystemContext(signaturePolicyPath)
-	destContext := destDockerRegistry.GetSystemContext(signaturePolicyPath)
+	srcContext := srcDockerRegistry.GetSystemContext(signaturePolicyPath, authFile)
+	destContext := destDockerRegistry.GetSystemContext(signaturePolicyPath, authFile)
 	return &cp.Options{
 		RemoveSignatures: signing.RemoveSignatures,
 		SignBy:           signing.SignBy,

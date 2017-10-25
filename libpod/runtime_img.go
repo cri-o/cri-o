@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"syscall"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/containers/image/docker/tarfile"
 	"github.com/containers/image/manifest"
 	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
@@ -42,6 +44,9 @@ var (
 	// OCIArchive is the transport we prepend to an image name
 	// when saving to oci-archive
 	OCIArchive = ociarchive.Transport.Name()
+	// DirTransport is the transport for pushing and pulling
+	// images to and from a directory
+	DirTransport = "dir"
 )
 
 // CopyOptions contains the options given when pushing or pulling images
@@ -61,6 +66,10 @@ type CopyOptions struct {
 
 	// SigningPolicyPath this points to a alternative signature policy file, used mainly for testing
 	SignaturePolicyPath string
+	// AuthFile is the path of the cached credentials file defined by the user
+	AuthFile string
+	// Writer is the reportWriter for the output
+	Writer io.Writer
 }
 
 // Image API
@@ -76,45 +85,124 @@ type ImageFilterParams struct {
 	ImageInput       string
 }
 
+// struct for when a user passes a short or incomplete
+// image name
+type imageDecomposeStruct struct {
+	imageName   string
+	tag         string
+	registry    string
+	hasRegistry bool
+	transport   string
+}
+
 // ImageFilter is a function to determine whether an image is included in
 // command output. Images to be outputted are tested using the function. A true
 // return will include the image, a false return will exclude it.
 type ImageFilter func(*storage.Image, *types.ImageInspectInfo) bool
 
-// PullImage pulls an image from configured registries
-// By default, only the latest tag (or a specific tag if requested) will be
-// pulled. If allTags is true, all tags for the requested image will be pulled.
-// Signature validation will be performed if the Runtime has been appropriately
-// configured
-func (r *Runtime) PullImage(imgName string, allTags bool, signaturePolicyPath string, reportWriter io.Writer) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+func (ips imageDecomposeStruct) returnFQName() string {
+	return fmt.Sprintf("%s%s/%s:%s", ips.transport, ips.registry, ips.imageName, ips.tag)
+}
 
-	if !r.valid {
-		return ErrRuntimeStopped
-	}
-
-	// PullImage copies the image from the source to the destination
-	var (
-		images []string
-	)
-
-	if signaturePolicyPath == "" {
-		signaturePolicyPath = r.config.SignaturePolicyPath
-	}
-
-	sc := common.GetSystemContext(signaturePolicyPath, "")
-
-	srcRef, err := alltransports.ParseImageName(imgName)
+func getRegistriesToTry(image string, store storage.Store) ([]*pullStruct, error) {
+	var pStructs []*pullStruct
+	var imageError = fmt.Sprintf("unable to parse '%s'\n", image)
+	imgRef, err := reference.Parse(image)
 	if err != nil {
-		defaultName := DefaultRegistry + imgName
-		srcRef2, err2 := alltransports.ParseImageName(defaultName)
-		if err2 != nil {
-			return errors.Errorf("error parsing image name %q: %v", defaultName, err2)
+		return nil, errors.Wrapf(err, imageError)
+	}
+	tagged, isTagged := imgRef.(reference.NamedTagged)
+	tag := "latest"
+	if isTagged {
+		tag = tagged.Tag()
+	}
+	hasDomain := true
+	registry := reference.Domain(imgRef.(reference.Named))
+	if registry == "" {
+		hasDomain = false
+	}
+	imageName := reference.Path(imgRef.(reference.Named))
+	pImage := imageDecomposeStruct{
+		imageName,
+		tag,
+		registry,
+		hasDomain,
+		"docker://",
+	}
+	if pImage.hasRegistry {
+		// If input has a registry, we have to assume they included an image
+		// name but maybe not a tag
+		srcRef, err := alltransports.ParseImageName(pImage.returnFQName())
+		if err != nil {
+			return nil, errors.Errorf(imageError)
 		}
-		srcRef = srcRef2
+		pStruct := &pullStruct{
+			image:  srcRef.DockerReference().String(),
+			srcRef: srcRef,
+		}
+		pStructs = append(pStructs, pStruct)
+	} else {
+		// No registry means we check the globals registries configuration file
+		// and assemble a list of candidate sources to try
+		registryConfigPath := ""
+		envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
+		if len(envOverride) > 0 {
+			registryConfigPath = envOverride
+		}
+		searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
+		if err != nil {
+			fmt.Println(err)
+			return nil, errors.Errorf("unable to parse the registries.conf file and"+
+				" the image name '%s' is incomplete.", imageName)
+		}
+		for _, searchRegistry := range searchRegistries {
+			pImage.registry = searchRegistry
+			srcRef, err := alltransports.ParseImageName(pImage.returnFQName())
+			if err != nil {
+				return nil, errors.Errorf("unable to parse '%s'", pImage.returnFQName())
+			}
+			pStruct := &pullStruct{
+				image:  srcRef.DockerReference().String(),
+				srcRef: srcRef,
+			}
+			pStructs = append(pStructs, pStruct)
+		}
 	}
 
+	for _, pStruct := range pStructs {
+		destRef, err := is.Transport.ParseStoreReference(store, pStruct.image)
+		if err != nil {
+			return nil, errors.Errorf("error parsing dest reference name: %v", err)
+		}
+		pStruct.dstRef = destRef
+	}
+	return pStructs, nil
+}
+
+type pullStruct struct {
+	image  string
+	srcRef types.ImageReference
+	dstRef types.ImageReference
+}
+
+func (r *Runtime) getPullStruct(srcRef types.ImageReference, destName string) (*pullStruct, error) {
+	reference := destName
+	if srcRef.DockerReference() != nil {
+		reference = srcRef.DockerReference().String()
+	}
+	destRef, err := is.Transport.ParseStoreReference(r.store, reference)
+	if err != nil {
+		return nil, errors.Errorf("error parsing dest reference name: %v", err)
+	}
+	return &pullStruct{
+		image:  destName,
+		srcRef: srcRef,
+		dstRef: destRef,
+	}, nil
+}
+
+func (r *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullStruct, error) {
+	var pullStructs []*pullStruct
 	splitArr := strings.Split(imgName, ":")
 	archFile := splitArr[len(splitArr)-1]
 
@@ -123,41 +211,107 @@ func (r *Runtime) PullImage(imgName string, allTags bool, signaturePolicyPath st
 		tarSource := tarfile.NewSource(archFile)
 		manifest, err := tarSource.LoadTarManifest()
 		if err != nil {
-			return errors.Errorf("error retrieving manifest.json: %v", err)
+			return nil, errors.Errorf("error retrieving manifest.json: %v", err)
 		}
-		// to pull all the images stored in one tar file
-		for i := range manifest {
-			if manifest[i].RepoTags != nil {
-				images = append(images, manifest[i].RepoTags[0])
-			} else {
-				// create an image object and use the hex value of the digest as the image ID
-				// for parsing the store reference
-				newImg, err := srcRef.NewImage(sc)
-				if err != nil {
-					return err
-				}
-				defer newImg.Close()
-				digest := newImg.ConfigInfo().Digest
-				if err := digest.Validate(); err == nil {
-					images = append(images, "@"+digest.Hex())
-				} else {
-					return errors.Wrapf(err, "error getting config info")
-				}
+		// to pull the first image stored in the tar file
+		if len(manifest) == 0 {
+			// create an image object and use the hex value of the digest as the image ID
+			// for parsing the store reference
+			newImg, err := srcRef.NewImage(sc)
+			if err != nil {
+				return nil, err
 			}
+			defer newImg.Close()
+			digest := newImg.ConfigInfo().Digest
+			if err := digest.Validate(); err == nil {
+				pullInfo, err := r.getPullStruct(srcRef, "@"+digest.Hex())
+				if err != nil {
+					return nil, err
+				}
+				pullStructs = append(pullStructs, pullInfo)
+			} else {
+				return nil, errors.Wrapf(err, "error getting config info")
+			}
+		} else {
+			pullInfo, err := r.getPullStruct(srcRef, manifest[0].RepoTags[0])
+			if err != nil {
+				return nil, err
+			}
+			pullStructs = append(pullStructs, pullInfo)
 		}
+
 	} else if srcRef.Transport().Name() == OCIArchive {
 		// retrieve the manifest from index.json to access the image name
 		manifest, err := ociarchive.LoadManifestDescriptor(srcRef)
 		if err != nil {
-			return errors.Wrapf(err, "error loading manifest for %q", srcRef)
+			return nil, errors.Wrapf(err, "error loading manifest for %q", srcRef)
 		}
 
 		if manifest.Annotations == nil || manifest.Annotations["org.opencontainers.image.ref.name"] == "" {
-			return errors.Errorf("error, archive doesn't have a name annotation. Cannot store image with no name")
+			return nil, errors.Errorf("error, archive doesn't have a name annotation. Cannot store image with no name")
 		}
-		images = append(images, manifest.Annotations["org.opencontainers.image.ref.name"])
+		pullInfo, err := r.getPullStruct(srcRef, manifest.Annotations["org.opencontainers.image.ref.name"])
+		if err != nil {
+			return nil, err
+		}
+		pullStructs = append(pullStructs, pullInfo)
+	} else if srcRef.Transport().Name() == DirTransport {
+		// supports pull from a directory
+		image := splitArr[1]
+		// remove leading "/"
+		if image[:1] == "/" {
+			image = image[1:]
+		}
+		pullInfo, err := r.getPullStruct(srcRef, image)
+		if err != nil {
+			return nil, err
+		}
+		pullStructs = append(pullStructs, pullInfo)
 	} else {
-		images = append(images, imgName)
+		pullInfo, err := r.getPullStruct(srcRef, imgName)
+		if err != nil {
+			return nil, err
+		}
+		pullStructs = append(pullStructs, pullInfo)
+	}
+	return pullStructs, nil
+}
+
+// PullImage pulls an image from configured registries
+// By default, only the latest tag (or a specific tag if requested) will be
+// pulled. If allTags is true, all tags for the requested image will be pulled.
+// Signature validation will be performed if the Runtime has been appropriately
+// configured
+func (r *Runtime) PullImage(imgName string, options CopyOptions) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return ErrRuntimeStopped
+	}
+
+	// PullImage copies the image from the source to the destination
+	var pullStructs []*pullStruct
+
+	signaturePolicyPath := r.config.SignaturePolicyPath
+	if options.SignaturePolicyPath != "" {
+		signaturePolicyPath = options.SignaturePolicyPath
+	}
+
+	sc := common.GetSystemContext(signaturePolicyPath, options.AuthFile)
+
+	srcRef, err := alltransports.ParseImageName(imgName)
+	if err != nil {
+		// could be trying to pull from registry with short name
+		pullStructs, err = getRegistriesToTry(imgName, r.store)
+		if err != nil {
+			return errors.Wrap(err, "error getting default registries to try")
+		}
+	} else {
+		pullStructs, err = r.getPullListFromRef(srcRef, imgName, sc)
+		if err != nil {
+			return errors.Wrapf(err, "error getting pullStruct info to pull image %q", imgName)
+		}
 	}
 
 	policy, err := signature.DefaultPolicy(sc)
@@ -171,25 +325,21 @@ func (r *Runtime) PullImage(imgName string, allTags bool, signaturePolicyPath st
 	}
 	defer policyContext.Destroy()
 
-	copyOptions := common.GetCopyOptions(reportWriter, signaturePolicyPath, nil, nil, common.SigningOptions{})
-	for _, image := range images {
-		reference := image
-		if srcRef.DockerReference() != nil {
-			reference = srcRef.DockerReference().String()
-		}
-		destRef, err := is.Transport.ParseStoreReference(r.store, reference)
-		if err != nil {
-			return errors.Errorf("error parsing dest reference name: %v", err)
-		}
-		if err = cp.Image(policyContext, destRef, srcRef, copyOptions); err != nil {
-			return errors.Errorf("error loading image %q: %v", image, err)
+	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, &options.DockerRegistryOptions, nil, options.SigningOptions, options.AuthFile)
+
+	for _, imageInfo := range pullStructs {
+		fmt.Printf("Trying to pull %s...\n", imageInfo.image)
+		if err = cp.Image(policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
+			fmt.Println("Failed")
+		} else {
+			return nil
 		}
 	}
-	return nil
+	return errors.Wrapf(err, "error pulling image from %q", imgName)
 }
 
 // PushImage pushes the given image to a location described by the given path
-func (r *Runtime) PushImage(source string, destination string, options CopyOptions, reportWriter io.Writer) error {
+func (r *Runtime) PushImage(source string, destination string, options CopyOptions) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -214,9 +364,16 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		signaturePolicyPath = options.SignaturePolicyPath
 	}
 
-	policyContext, err := common.GetPolicyContext(signaturePolicyPath)
+	sc := common.GetSystemContext(signaturePolicyPath, options.AuthFile)
+
+	policy, err := signature.DefaultPolicy(sc)
 	if err != nil {
-		return errors.Wrapf(err, "Could not get default policy context for signature policy path %q", signaturePolicyPath)
+		return err
+	}
+
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return err
 	}
 	defer policyContext.Destroy()
 	// Look up the image name and its layer, then build the imagePushData from
@@ -239,7 +396,7 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		return errors.Wrapf(err, "error copying layers and metadata")
 	}
 
-	copyOptions := common.GetCopyOptions(reportWriter, signaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions)
+	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions, options.AuthFile)
 
 	// Copy the image to the remote destination
 	err = cp.Image(policyContext, dest, src, copyOptions)

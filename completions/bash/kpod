@@ -170,6 +170,8 @@ _kpod_logs() {
 
 _kpod_pull() {
     local options_with_args="
+    --authfile
+    --creds
     --signature-policy
     "
     local boolean_options="
@@ -222,18 +224,20 @@ _kpod_mount() {
 
 _kpod_push() {
     local boolean_options="
-     --disable-compression
-     -D
-     --quiet
-     -q
-     --signature-policy
-     --certs
-     --tls-verify
-     --remove-signatures
-     --sign-by
+    --disable-compression
+    -D
+    --quiet
+    -q
+    --remove-signatures
+    --tls-verify
   "
 
     local options_with_args="
+    --authfile
+    --cert-dir
+    --creds
+    --sign-by
+    --signature-policy
   "
 
     local all_options="$options_with_args $boolean_options"

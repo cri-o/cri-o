@@ -38,6 +38,9 @@ func logoutCmd(c *cli.Context) error {
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments, logout takes only 1 argument")
 	}
+	if len(args) == 0 {
+		return errors.Errorf("registry must be given")
+	}
 	var server string
 	if len(args) == 1 {
 		server = args[0]
