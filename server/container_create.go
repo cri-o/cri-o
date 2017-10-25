@@ -1042,6 +1042,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if err != nil {
 		return nil, err
 	}
+	container.SetSpec(specgen.Spec())
 	container.SetMountPoint(mountPoint)
 
 	for _, cv := range containerVolumes {

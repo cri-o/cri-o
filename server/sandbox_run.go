@@ -488,6 +488,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+	container.SetSpec(g.Spec())
 	container.SetMountPoint(mountPoint)
 
 	sb.SetInfraContainer(container)

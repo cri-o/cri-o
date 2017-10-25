@@ -388,6 +388,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	if err != nil {
 		return err
 	}
+	scontainer.SetSpec(&m)
 	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
 
 	if m.Annotations[annotations.Volumes] != "" {
@@ -511,6 +512,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	if err != nil {
 		return err
 	}
+	ctr.SetSpec(&m)
 	ctr.SetMountPoint(m.Annotations[annotations.MountPoint])
 
 	c.ContainerStateFromDisk(ctr)
