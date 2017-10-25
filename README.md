@@ -43,6 +43,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod(1)](/docs/kpod.1.md)                           | Simple management tool for pods and images                                ||
 | [kpod-attach(1)](/docs/kpod-attach.1.md)             | Instead of providing a `kpod attach` command, the man page `kpod-attach` describes how to use the `kpod logs` and `kpod exec` commands to achieve the same goals as `kpod attach`.||
 | [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Instead of providing a `kpod cp` command, the man page `kpod-cp` describes how to use the `kpod mount` command to have even more flexibility and functionality.||
+| [kpod-create(1)](/docs/kpod-create.1.md)             | Create a new container                                                    ||
 | [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                      ||
 | [kpod-export(1)](/docs/kpod-export.1.md)             | Export container's filesystem contents as a tar archive                   |[![...](/docs/play.png)](https://asciinema.org/a/913lBIRAg5hK8asyIhhkQVLtV)|
 | [kpod-history(1)](/docs/kpod-history.1.md)           | Shows the history of an image                                             |[![...](/docs/play.png)](https://asciinema.org/a/bCvUQJ6DkxInMELZdc5DinNSx)|
@@ -62,6 +63,7 @@ It is currently in active development in the Kubernetes community through the [d
 | [kpod-rename(1)](/docs/kpod-rename.1.md)             | Rename a container                                                        ||
 | [kpod-rm(1)](/docs/kpod-rm.1.md)                     | Removes one or more containers                                            |[![...](/docs/play.png)](https://asciinema.org/a/7EMk22WrfGtKWmgHJX9Nze1Qp)|
 | [kpod-rmi(1)](/docs/kpod-rmi.1.md)                   | Removes one or more images                                                |[![...](/docs/play.png)](https://asciinema.org/a/133799)|
+| [kpod-run(1)](/docs/kpod-run.1.md)                   | Run a command in a new container                                          ||
 | [kpod-save(1)](/docs/kpod-save.1.md)                 | Saves an image to an archive                                              |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
 | [kpod-stats(1)](/docs/kpod-stats.1.md)               | Display a live stream of one or more containers' resource usage statistics||
 | [kpod-stop(1)](/docs/kpod-stop.1.md)                 | Stops one or more running containers                                      ||
