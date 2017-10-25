@@ -45,9 +45,9 @@ type RuntimeContainerMetadata struct {
 	ImageName string `json:"image-name"` // Applicable to both PodSandboxes and Containers
 	ImageID   string `json:"image-id"`   // Applicable to both PodSandboxes and Containers
 	// The container's name, which for an infrastructure container is usually PodName + "-infra".
-	ContainerName string `json:"name"` // Applicable to both PodSandboxes and Containers, mandatory
-	CreatedAt    int64  `json:"created-at"`           // Applicable to both PodSandboxes and Containers
-	MountLabel   string `json:"mountlabel,omitempty"` // Applicable to both PodSandboxes and Containers
+	ContainerName string `json:"name"`                 // Applicable to both PodSandboxes and Containers, mandatory
+	CreatedAt     int64  `json:"created-at"`           // Applicable to both PodSandboxes and Containers
+	MountLabel    string `json:"mountlabel,omitempty"` // Applicable to both PodSandboxes and Containers
 }
 
 // SetMountLabel updates the mount label held by a RuntimeContainerMetadata

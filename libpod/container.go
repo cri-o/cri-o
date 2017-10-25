@@ -270,8 +270,10 @@ func (c *Container) Create() (err error) {
 
 	// If using containers/storage, mount the container
 	if !c.config.RootfsFromImage {
-		// TODO implemented directory-based root filesystems
-		return ErrNotImplemented
+		// TODO implement directory-based root filesystems
+		if !c.state.Mounted {
+			return ErrNotImplemented
+		}
 	} else {
 		mountPoint, err := c.runtime.storageService.StartContainer(c.ID())
 		if err != nil {
