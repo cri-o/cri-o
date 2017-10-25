@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -17,16 +18,28 @@ import (
 var (
 	pullFlags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "signature-policy",
-			Usage: "`pathname` of signature policy file (not usually used)",
-		},
-		cli.StringFlag{
 			Name:  "authfile",
 			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
 		},
 		cli.StringFlag{
+			Name:  "cert-dir",
+			Usage: "`pathname` of a directory containing TLS certificates and keys",
+		},
+		cli.StringFlag{
 			Name:  "creds",
 			Usage: "`credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
+		},
+		cli.BoolFlag{
+			Name:  "quiet, q",
+			Usage: "Suppress output information when pulling images",
+		},
+		cli.StringFlag{
+			Name:  "signature-policy",
+			Usage: "`pathname` of signature policy file (not usually used)",
+		},
+		cli.BoolTFlag{
+			Name:  "tls-verify",
+			Usage: "require HTTPS and verify certificates when contacting registries (default: true)",
 		},
 	}
 
@@ -84,13 +97,20 @@ func pullCmd(c *cli.Context) error {
 		registryCreds = creds
 	}
 
+	var writer io.Writer
+	if !c.Bool("quiet") {
+		writer = os.Stdout
+	}
+
 	options := libpod.CopyOptions{
 		SignaturePolicyPath: c.String("signature-policy"),
 		AuthFile:            c.String("authfile"),
 		DockerRegistryOptions: common.DockerRegistryOptions{
-			DockerRegistryCreds: registryCreds,
+			DockerRegistryCreds:         registryCreds,
+			DockerCertPath:              c.String("cert-dir"),
+			DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
 		},
-		Writer: os.Stdout,
+		Writer: writer,
 	}
 
 	return runtime.PullImage(image, options)

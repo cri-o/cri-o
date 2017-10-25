@@ -201,6 +201,7 @@ func (r *Runtime) getPullStruct(srcRef types.ImageReference, destName string) (*
 	}, nil
 }
 
+// returns a list of pullStruct with the srcRef and DstRef based on the transport being used
 func (r *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullStruct, error) {
 	var pullStructs []*pullStruct
 	splitArr := strings.Split(imgName, ":")

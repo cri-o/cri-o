@@ -90,14 +90,14 @@ func loadCmd(c *cli.Context) error {
 		}
 	}
 
-	var output io.Writer
+	var writer io.Writer
 	if !c.Bool("quiet") {
-		output = os.Stdout
+		writer = os.Stdout
 	}
 
 	options := libpod.CopyOptions{
 		SignaturePolicyPath: c.String("signature-policy"),
-		Writer:              output,
+		Writer:              writer,
 	}
 
 	src := libpod.DockerArchive + ":" + input
