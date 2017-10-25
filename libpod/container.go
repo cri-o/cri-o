@@ -54,7 +54,7 @@ type Container struct {
 }
 
 // containerState contains the current state of the container
-// It is stored as on disk in a per-boot directory
+// It is stored on disk in a tmpfs and recreated on reboot
 type containerRuntimeInfo struct {
 	// The current state of the running container
 	State ContainerState `json:"state"`
@@ -75,12 +75,11 @@ type containerRuntimeInfo struct {
 	ExitCode int32 `json:"exitCode,omitempty"`
 
 	// TODO: Save information about image used in container if one is used
-	// TODO save start time, create time (create time in the containerConfig?)
 }
 
 // containerConfig contains all information that was used to create the
 // container. It may not be changed once created.
-// It is stored as an unchanging part of on-disk state
+// It is stored, read-only, on disk
 type containerConfig struct {
 	Spec *spec.Spec `json:"spec"`
 	ID   string     `json:"id"`
@@ -281,6 +280,8 @@ func (c *Container) Create() (err error) {
 		c.state.Mounted = true
 		c.state.Mountpoint = mountPoint
 
+		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
+
 		defer func() {
 			if err != nil {
 				if err2 := c.runtime.storageService.StopContainer(c.ID()); err2 != nil {
@@ -310,11 +311,15 @@ func (c *Container) Create() (err error) {
 	}
 	c.state.ConfigPath = jsonPath
 
+	logrus.Debugf("Created OCI spec for container %s at %s", c.ID(), jsonPath)
+
 	// With the spec complete, do an OCI create
 	// TODO set cgroup parent in a sane fashion
 	if err := c.runtime.ociRuntime.createContainer(c, "/libpod_parent"); err != nil {
 		return err
 	}
+
+	logrus.Debugf("Created container %s in runc", c.ID())
 
 	// TODO should flush this state to disk here
 	c.state.State = ContainerStateCreated
@@ -339,6 +344,8 @@ func (c *Container) Start() error {
 	if err := c.runtime.ociRuntime.startContainer(c); err != nil {
 		return err
 	}
+
+	logrus.Debugf("Started container %s", c.ID())
 
 	// TODO should flush state to disk here
 	c.state.StartedTime = time.Now()

@@ -119,7 +119,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error 
 
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
-		return errors.Wrapf(err, "error creating socket pair")
+		return errors.Wrapf(err, "error creating socket pair for start pipe")
 	}
 
 	defer parentPipe.Close()

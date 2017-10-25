@@ -22,12 +22,11 @@ func getStorageService(store storage.Store) (*storageService, error) {
 	return &storageService{store: store}, nil
 }
 
-// ContainerInfo wraps a subset of information about a container: its ID and
-// the locations of its nonvolatile and volatile per-container directories,
-// along with a copy of the configuration blob from the image that was used to
-// create the container, if the image had a configuration.
+// ContainerInfo wraps a subset of information about a container: the locations
+// of its nonvolatile and volatile per-container directories, along with a copy
+// of the configuration blob from the image that was used to create the
+// container, if the image had a configuration.
 type ContainerInfo struct {
-	ID     string
 	Dir    string
 	RunDir string
 	Config *v1.Image
@@ -35,11 +34,11 @@ type ContainerInfo struct {
 
 // RuntimeContainerMetadata is the structure that we encode as JSON and store
 // in the metadata field of storage.Container objects.  It is used for
-// specifying attributes of pod sandboxes and containers when they are being
-// created, and allows a container's MountLabel, and possibly other values, to
-// be modified in one read/write cycle via calls to
-// RuntimeServer.ContainerMetadata, RuntimeContainerMetadata.SetMountLabel,
-// and RuntimeServer.SetContainerMetadata.
+// specifying attributes containers when they are being created, and allows a
+// container's MountLabel, and possibly other values, to be modified in one
+// read/write cycle via calls to storageService.ContainerMetadata,
+// RuntimeContainerMetadata.SetMountLabel, and
+// storageService.SetContainerMetadata.
 type RuntimeContainerMetadata struct {
 	// The provided name and the ID of the image that was used to
 	// instantiate the container.
@@ -158,7 +157,6 @@ func (r *storageService) CreateContainerStorage(systemContext *types.SystemConte
 	logrus.Debugf("container %q has run directory %q", container.ID, containerRunDir)
 
 	return ContainerInfo{
-		ID:     container.ID, // not needed
 		Dir:    containerDir,
 		RunDir: containerRunDir,
 		Config: imageConfig,
