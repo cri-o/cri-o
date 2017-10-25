@@ -3,6 +3,7 @@ package libpod
 import (
 	"sync"
 
+	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
@@ -80,6 +81,7 @@ func NewRuntime(options ...RuntimeOption) (*Runtime, error) {
 		return nil, err
 	}
 	runtime.store = store
+	is.Transport.SetStore(store)
 
 	// Set up containers/image
 	runtime.imageContext = &types.SystemContext{
