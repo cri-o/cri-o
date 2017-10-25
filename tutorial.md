@@ -36,17 +36,17 @@ This section will walk you through installing the following components:
 Download the `runc` release binary:
 
 ```
-wget https://github.com/opencontainers/runc/releases/download/v1.0.0-rc4/runc-linux-amd64
+wget https://github.com/opencontainers/runc/releases/download/v1.0.0-rc4/runc.amd64
 ```
 
 Set the executable bit and copy the `runc` binary into your PATH:
 
 ```
-chmod +x runc-linux-amd64
+chmod +x runc.amd64
 ```
 
 ```
-sudo mv runc-linux-amd64 /usr/bin/runc
+sudo mv runc.amd64 /usr/bin/runc
 ```
 
 Print the `runc` version:
