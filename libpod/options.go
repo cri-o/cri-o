@@ -320,12 +320,18 @@ func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 
 // WithLabels adds labels to the container
 func WithLabels(labels map[string]string) CtrCreateOption {
-	return ctrNotImplemented
-}
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
 
-// WithAnnotations adds annotations to the container
-func WithAnnotations(annotations map[string]string) CtrCreateOption {
-	return ctrNotImplemented
+		ctr.config.Labels = make(map[string]string)
+		for key, value := range labels {
+			ctr.config.Labels[key] = value
+		}
+
+		return nil
+	}
 }
 
 // WithName sets the container's name
@@ -343,7 +349,21 @@ func WithName(name string) CtrCreateOption {
 
 // WithStopSignal sets the signal that will be sent to stop the container
 func WithStopSignal(signal uint) CtrCreateOption {
-	return ctrNotImplemented
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if signal == 0 {
+			return errors.Wrapf(ErrInvalidArg, "stop signal cannot be 0")
+		} else if signal > 64 {
+			return errors.Wrapf(ErrInvalidArg, "stop signal cannot be greater than 64 (SIGRTMAX)")
+		}
+
+		ctr.config.StopSignal = signal
+
+		return nil
+	}
 }
 
 // Pod Creation Options

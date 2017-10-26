@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"sync"
@@ -100,6 +101,11 @@ type containerConfig struct {
 	StaticDir string `json:"staticDir"`
 	// Pod the container belongs to
 	Pod string `json:"pod,omitempty"`
+	// Labels is a set of key-value pairs providing additional information
+	// about a container
+	Labels map[string]string `json:"labels,omitempty"`
+	// StopSignal is the signal that will be used to stop the container
+	StopSignal uint `json:"stopSignal,omitempty"`
 	// Shared namespaces with container
 	SharedNamespaceCtr *string           `json:"shareNamespacesWith,omitempty"`
 	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
@@ -128,6 +134,16 @@ func (c *Container) Spec() *spec.Spec {
 	deepcopier.Copy(c.config.Spec).To(spec)
 
 	return spec
+}
+
+// Labels returns the container's labels
+func (c *Container) Labels() map[string]string {
+	labels := make(map[string]string)
+	for key, value := range c.config.Labels {
+		labels[key] = value
+	}
+
+	return labels
 }
 
 // State returns the current state of the container
@@ -301,6 +317,7 @@ func (c *Container) Create() (err error) {
 	deepcopier.Copy(c.config.Spec).To(c.runningSpec)
 	c.runningSpec.Root.Path = c.state.Mountpoint
 	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
+	c.runningSpec.Annotations["org.opencontainers.image.stopSignal"] = fmt.Sprintf("%d", c.config.StopSignal)
 
 	// Save the OCI spec to disk
 	jsonPath := filepath.Join(c.bundlePath(), "config.json")
