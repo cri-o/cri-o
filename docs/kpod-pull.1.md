@@ -58,15 +58,27 @@ Image stored in local container/storage
 
 Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json
 
+**--cert-dir**
+
+Pathname of a directory containing TLS certificates and keys
+
 **--creds**
 
 Credentials (USERNAME:PASSWORD) to use for authenticating to a registry
+
+**--quiet, -q**
+
+Suppress output information when pulling images
 
 **--signature-policy="PATHNAME"**
 
 Pathname of a signature policy file to use.  It is not recommended that this
 option be used, as the default behavior of using the system-wide default policy
 (frequently */etc/containers/policy.json*) is most often preferred
+
+**--tls-verify**
+
+Require HTTPS and verify certificates when contacting registries (default: true)
 
 ## EXAMPLES
 
@@ -95,7 +107,18 @@ Storing signatures
 ```
 
 ```
-# kpod pull docker.io/umohnani/finaltest
+# kpod pull --creds testuser:testpassword docker.io/umohnani/finaltest
+Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
+Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
+ 1.90 MB / 1.90 MB [========================================================] 0s
+Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
+ 1.41 KB / 1.41 KB [========================================================] 0s
+Writing manifest to image destination
+Storing signatures
+```
+
+```
+# kpod pull --tls-verify=false --cert-dir image/certs docker.io/umohnani/finaltest
 Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
 Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
  1.90 MB / 1.90 MB [========================================================] 0s

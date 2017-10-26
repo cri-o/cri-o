@@ -172,10 +172,14 @@ _kpod_pull() {
     local options_with_args="
     --authfile
     --creds
+    --cert-dir
     --signature-policy
     "
     local boolean_options="
     --all-tags -a
+    --quiet
+    -q
+    --tls-verify
     "
     _complete_ "$options_with_args" "$boolean_options"
 }
