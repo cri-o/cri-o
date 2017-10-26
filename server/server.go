@@ -418,6 +418,7 @@ func (s *Server) StartExitMonitor() {
 	}()
 	if err := watcher.Add(s.config.ContainerExitsDir); err != nil {
 		logrus.Errorf("watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
+		close(done)
 	}
 	<-done
 }
