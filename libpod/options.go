@@ -137,6 +137,7 @@ func WithConmonEnv(environment []string) RuntimeOption {
 
 // WithCgroupManager specifies the manager implementation name which is used to
 // handle cgroups for containers
+// Current valid values are "cgroupfs" and "systemd"
 func WithCgroupManager(manager string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -144,6 +145,35 @@ func WithCgroupManager(manager string) RuntimeOption {
 		}
 
 		rt.config.CgroupManager = manager
+
+		return nil
+	}
+}
+
+// WithStaticDir sets the directory that static runtime files which persist
+// across reboots will be stored
+func WithStaticDir(dir string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.StaticDir = dir
+
+		return nil
+	}
+}
+
+// WithTmpDir sets the directory that temporary runtime files which are not
+// expected to survive across reboots will be stored
+// This should be located on a tmpfs mount (/tmp or /var/run for example)
+func WithTmpDir(dir string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.TmpDir = dir
 
 		return nil
 	}
@@ -176,19 +206,89 @@ func WithPidsLimit(limit int64) RuntimeOption {
 	}
 }
 
+// WithMaxLogSize sets the maximum size of container logs
+// Positive sizes are limits in bytes, -1 is unlimited
+func WithMaxLogSize(limit int64) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.MaxLogSize = limit
+
+		return nil
+	}
+}
+
+// WithNoPivotRoot sets the runtime to use MS_MOVE instead of PIVOT_ROOT when
+// starting containers
+func WithNoPivotRoot(noPivot bool) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.NoPivotRoot = true
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithRootFSFromPath uses the given path as a container's root filesystem
 // No further setup is performed on this path
 func WithRootFSFromPath(path string) CtrCreateOption {
-	return ctrNotImplemented
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.RootfsDir != "" || ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
+			return errors.Wrapf(ErrInvalidArg, "container already configured with root filesystem")
+		}
+
+		ctr.config.RootfsDir = path
+		ctr.config.RootfsFromImage = false
+
+		return nil
+	}
 }
 
 // WithRootFSFromImage sets up a fresh root filesystem using the given image
 // If useImageConfig is specified, image volumes, environment variables, and
 // other configuration from the image will be added to the config
-func WithRootFSFromImage(image string, useImageConfig bool) CtrCreateOption {
-	return ctrNotImplemented
+// TODO: Replace image name and ID with a libpod.Image struct when that is finished
+func WithRootFSFromImage(imageID string, imageName string, useImageConfig bool) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.RootfsDir != "" || ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
+			return errors.Wrapf(ErrInvalidArg, "container already configured with root filesystem")
+		}
+
+		ctr.config.RootfsImageID = imageID
+		ctr.config.RootfsImageName = imageName
+		ctr.config.UseImageConfig = useImageConfig
+		ctr.config.RootfsFromImage = true
+
+		return nil
+	}
+}
+
+// WithStdin keeps stdin on the container open to allow interaction
+func WithStdin() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Stdin = true
+
+		return nil
+	}
 }
 
 // WithSharedNamespaces sets a container to share namespaces with another
@@ -203,25 +303,15 @@ func WithSharedNamespaces(from *Container, namespaces map[string]string) CtrCrea
 // WithPod adds the container to a pod
 func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
-		if !ctr.valid {
+		if ctr.valid {
 			return ErrCtrFinalized
 		}
 
-		if ctr.pod != nil {
-			return fmt.Errorf("container has already been added to a pod")
+		if pod == nil {
+			return ErrInvalidArg
 		}
 
-		exists, err := r.state.HasPod(pod.ID())
-		if err != nil {
-			return errors.Wrapf(err, "error searching state for pod %s", pod.ID())
-		} else if !exists {
-			return errors.Wrapf(ErrNoSuchPod, "pod %s cannot be found in state", pod.ID())
-		}
-
-		if err := pod.addContainer(ctr); err != nil {
-			return errors.Wrapf(err, "error adding container to pod")
-		}
-
+		ctr.config.Pod = pod.ID()
 		ctr.pod = pod
 
 		return nil
@@ -241,11 +331,11 @@ func WithAnnotations(annotations map[string]string) CtrCreateOption {
 // WithName sets the container's name
 func WithName(name string) CtrCreateOption {
 	return func(ctr *Container) error {
-		if !ctr.valid {
+		if ctr.valid {
 			return ErrCtrFinalized
 		}
 
-		ctr.name = name
+		ctr.config.Name = name
 
 		return nil
 	}

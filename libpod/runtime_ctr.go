@@ -4,6 +4,7 @@ import (
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Contains the public Runtime API for containers
@@ -18,7 +19,7 @@ type CtrCreateOption func(*Container) error
 type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config
-func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
+func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (ctr *Container, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -26,7 +27,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 		return nil, ErrRuntimeStopped
 	}
 
-	ctr, err := newContainer(spec)
+	ctr, err = newContainer(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -38,15 +39,36 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (*Co
 	}
 
 	ctr.valid = true
+	ctr.state.State = ContainerStateConfigured
+	ctr.runtime = r
 
-	if err := r.state.AddContainer(ctr); err != nil {
-		// If we joined a pod, remove ourself from it
-		if ctr.pod != nil {
-			if err2 := ctr.pod.removeContainer(ctr); err2 != nil {
-				return nil, errors.Wrapf(err, "error adding new container to state, container could not be removed from pod %s", ctr.pod.ID())
+	// Set up storage for the container
+	if err := ctr.setupStorage(); err != nil {
+		return nil, errors.Wrapf(err, "error configuring storage for container")
+	}
+	defer func() {
+		if err != nil {
+			if err2 := ctr.teardownStorage(); err2 != nil {
+				logrus.Errorf("Error removing partially-created container root filesystem: %s", err2)
 			}
 		}
+	}()
 
+	// If the container is in a pod, add it to the pod
+	if ctr.pod != nil {
+		if err := ctr.pod.addContainer(ctr); err != nil {
+			return nil, errors.Wrapf(err, "error adding new container to pod %s", ctr.pod.ID())
+		}
+	}
+	defer func() {
+		if err != nil {
+			if err2 := ctr.pod.removeContainer(ctr); err2 != nil {
+				logrus.Errorf("Error removing partially-created container from pod %s: %s", ctr.pod.ID(), err2)
+			}
+		}
+	}()
+
+	if err := r.state.AddContainer(ctr); err != nil {
 		// TODO: Might be worth making an effort to detect duplicate IDs
 		// We can recover from that by generating a new ID for the
 		// container
@@ -77,8 +99,14 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 	// TODO check container status and unmount storage
 	// TODO check that no other containers depend on this container's
 	// namespaces
-	if err := c.Status(); err != nil {
+	status, err := c.State()
+	if err != nil {
 		return err
+	}
+
+	// A container cannot be removed if it is running
+	if status == ContainerStateRunning {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is running", c.ID())
 	}
 
 	if err := r.state.RemoveContainer(c); err != nil {
@@ -185,6 +213,7 @@ func (r *Runtime) getContainersWithImage(imageID string) ([]storage.Container, e
 }
 
 // removeMultipleContainers deletes a list of containers from the store
+// TODO refactor this to remove libpod Containers
 func (r *Runtime) removeMultipleContainers(containers []storage.Container) error {
 	for _, ctr := range containers {
 		if err := r.store.DeleteContainer(ctr.ID); err != nil {
@@ -192,4 +221,9 @@ func (r *Runtime) removeMultipleContainers(containers []storage.Container) error
 		}
 	}
 	return nil
+}
+
+// ContainerConfigToDisk saves a container's nonvolatile configuration to disk
+func (r *Runtime) containerConfigToDisk(ctr *Container) error {
+	return ErrNotImplemented
 }
