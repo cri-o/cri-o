@@ -1,0 +1,7 @@
+---
+
+- name: Test-subjects are accessable, setup, and configured
+  hosts: '{{ subjects | default("all") }}'
+  gather_facts: False   # Ansible setup module dependencies may be missing
+  pre_tasks:
+    
