@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 )
 
@@ -68,8 +69,8 @@ var (
 
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
-func NewRuntime(options ...RuntimeOption) (*Runtime, error) {
-	runtime := new(Runtime)
+func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
+	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
 
 	// Copy the default configuration
@@ -89,9 +90,19 @@ func NewRuntime(options ...RuntimeOption) (*Runtime, error) {
 	}
 	runtime.store = store
 	is.Transport.SetStore(store)
+	defer func() {
+		if err != nil {
+			// Don't forcibly shut down
+			// We could be opening a store in use by another libpod
+			_, err2 := runtime.store.Shutdown(false)
+			if err2 != nil {
+				logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
+			}
+		}
+	}()
 
-	// TODO remove StorageImageServer and make its functions work directly
-	// on Runtime (or convert to something that satisfies an image)
+	// Set up a storage service for creating container root filesystems from
+	// images
 	storageService, err := getStorageService(runtime.store)
 	if err != nil {
 		return nil, err
