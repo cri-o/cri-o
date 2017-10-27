@@ -12,7 +12,7 @@ var infoCommand = cli.Command{
 	Name:  "info",
 	Usage: "get crio daemon info",
 	Action: func(context *cli.Context) error {
-		c, err := client.New(context.GlobalString("connect"))
+		c, err := client.New(context.GlobalString("connect-info"))
 		if err != nil {
 			return err
 		}

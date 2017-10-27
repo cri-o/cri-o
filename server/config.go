@@ -25,6 +25,12 @@ type APIConfig struct {
 	// a path.
 	Listen string `toml:"listen"`
 
+	// ListenInfo is the path to the AF_LOCAL socket on which cri-o will serve
+	// its info endpoint.
+	// This may support proto://addr formats later, but currently this is just
+	// a path.
+	ListenInfo string `toml:"listen_info"`
+
 	// StreamAddress is the IP address on which the stream server will listen.
 	StreamAddress string `toml:"stream_address"`
 
@@ -105,6 +111,7 @@ func DefaultConfig() *Config {
 		Config: *libkpod.DefaultConfig(),
 		APIConfig: APIConfig{
 			Listen:        "/var/run/crio.sock",
+			ListenInfo:    "/var/run/crio/info.sock",
 			StreamAddress: "",
 			StreamPort:    "10010",
 		},

@@ -100,6 +100,11 @@ func main() {
 			Value: "/var/run/crio.sock",
 			Usage: "Socket to connect to",
 		},
+		cli.StringFlag{
+			Name:  "connect-info",
+			Value: "/var/run/crio/info.sock",
+			Usage: "Socket to connect to for info endpoint",
+		},
 		cli.DurationFlag{
 			Name:  "timeout",
 			Value: 10 * time.Second,
