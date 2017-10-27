@@ -136,15 +136,15 @@ func validateFlags(c *cli.Context, flags []cli.Flag) error {
 
 // Common flags shared between commands
 var createFlags = []cli.Flag{
-	cli.StringSliceFlag{
+	cli.StringSliceFlag{ //
 		Name:  "add-host",
 		Usage: "Add a custom host-to-IP mapping (host:ip) (default [])",
 	},
-	cli.StringSliceFlag{
+	cli.StringSliceFlag{ //
 		Name:  "attach, a",
 		Usage: "Attach to STDIN, STDOUT or STDERR (default [])",
 	},
-	cli.Int64Flag{
+	cli.StringFlag{
 		Name:  "blkio-weight",
 		Usage: "Block IO weight (relative weight) accepts a weight value between 10 and 1000.",
 	},
@@ -168,11 +168,11 @@ var createFlags = []cli.Flag{
 		Name:  "cpu-count",
 		Usage: "Limit the number of CPUs available for execution by the container.",
 	},
-	cli.StringFlag{
+	cli.StringFlag{ //
 		Name:  "cid-file",
 		Usage: "Write the container ID to the file",
 	},
-	cli.Int64Flag{
+	cli.Uint64Flag{
 		Name:  "cpu-period",
 		Usage: "Limit the CPU CFS (Completely Fair Scheduler) period",
 	},
@@ -180,7 +180,7 @@ var createFlags = []cli.Flag{
 		Name:  "cpu-quota",
 		Usage: "Limit the CPU CFS (Completely Fair Scheduler) quota",
 	},
-	cli.Int64Flag{
+	cli.Uint64Flag{
 		Name:  "cpu-rt-period",
 		Usage: "Limit the CPU real-time period in microseconds",
 	},
@@ -188,7 +188,7 @@ var createFlags = []cli.Flag{
 		Name:  "cpu-rt-runtime",
 		Usage: "Limit the CPU real-time runtime in microseconds",
 	},
-	cli.Int64Flag{
+	cli.Uint64Flag{
 		Name:  "cpu-shares",
 		Usage: "CPU shares (relative weight)",
 	},
@@ -208,7 +208,7 @@ var createFlags = []cli.Flag{
 		Name:  "detach, d",
 		Usage: "Run container in background and print container ID",
 	},
-	cli.StringFlag{
+	cli.StringFlag{ //
 		Name:  "detach-keys",
 		Usage: "Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`",
 	},
@@ -253,7 +253,7 @@ var createFlags = []cli.Flag{
 		Usage: "Set environment variables in container",
 	},
 	cli.StringSliceFlag{
-		Name:  "env-file",
+		Name:  "env-file", //
 		Usage: "Read in a file of environment variables",
 	},
 	cli.StringSliceFlag{
@@ -280,7 +280,7 @@ var createFlags = []cli.Flag{
 		Name:  "ip6",
 		Usage: "Container IPv6 address (e.g. 2001:db8::1b99)",
 	},
-	cli.StringFlag{
+	cli.StringFlag{ //
 		Name:  "ipc",
 		Usage: "IPC Namespace to use",
 	},
@@ -292,7 +292,7 @@ var createFlags = []cli.Flag{
 		Name:  "label",
 		Usage: "Set metadata on container (default [])",
 	},
-	cli.StringSliceFlag{
+	cli.StringSliceFlag{ //
 		Name:  "label-file",
 		Usage: "Read in a line delimited file of labels (default [])",
 	},
@@ -324,7 +324,7 @@ var createFlags = []cli.Flag{
 		Name:  "memory-swap",
 		Usage: "Swap limit equal to memory plus swap: '-1' to enable unlimited swap",
 	},
-	cli.StringFlag{
+	cli.Int64Flag{
 		Name:  "memory-swappiness",
 		Usage: "Tune container memory swappiness (0 to 100) (default -1)",
 	},
@@ -344,7 +344,7 @@ var createFlags = []cli.Flag{
 		Name:  "network-alias",
 		Usage: "Add network-scoped alias for the container (default [])",
 	},
-	cli.BoolFlag{
+	cli.BoolFlag{ //
 		Name:  "oom-kill-disable",
 		Usage: "Disable OOM Killer",
 	},
