@@ -12,7 +12,7 @@ ExecStart=/usr/local/bin/crio \
           $CRIO_STORAGE_OPTIONS \
           $CRIO_NETWORK_OPTIONS
 ExecReload=/bin/kill -s HUP $MAINPID
-TasksMax=8192
+TasksMax=infinity
 LimitNOFILE=1048576
 LimitNPROC=1048576
 LimitCORE=infinity
