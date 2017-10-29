@@ -204,7 +204,6 @@ func New(config *Config) (*Server, error) {
 
 	s := &Server{
 		ContainerServer: containerServer,
-
 		netPlugin:       netPlugin,
 		hostportManager: hostportManager,
 		config:          *config,
