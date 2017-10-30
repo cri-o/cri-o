@@ -10,16 +10,16 @@ TESTDATA="${INTEGRATION_ROOT}/testdata"
 CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
 # Path of the crio binary.
-CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/crio}
+CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/bin/crio}
 # Path of the crictl binary.
 CRICTL_PATH=$(command -v crictl || true)
 CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
 # Path to kpod binary.
-KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/cri-o/kpod}
+KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/cri-o/bin/kpod}
 # Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/conmon/conmon}
+CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/bin/conmon}
 # Path of the pause binary.
-PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/cri-o/pause/pause}
+PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/cri-o/bin/pause}
 # Path of the default seccomp profile.
 SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/cri-o/seccomp.json}
 # Name of the default apparmor profile.
@@ -174,7 +174,7 @@ function crio() {
 }
 
 # DEPRECATED
-OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/crioctl}
+OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/bin/crioctl}
 # Run crioctl using the binary specified by $OCIC_BINARY.
 function crioctl() {
 	"$OCIC_BINARY" --connect "$CRIO_SOCKET" "$@"
