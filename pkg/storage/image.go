@@ -3,7 +3,7 @@ package storage
 import (
 	"errors"
 	"net"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"github.com/containers/image/copy"
@@ -21,6 +21,8 @@ import (
 var (
 	// ErrCannotParseImageID is returned when we try to ResolveNames for an image ID
 	ErrCannotParseImageID = errors.New("cannot parse an image ID")
+	// ErrImageMultiplyTagged is returned when we try to remove an image that still has multiple names
+	ErrImageMultiplyTagged = errors.New("image still has multiple names applied")
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
@@ -65,6 +67,9 @@ type ImageServer interface {
 	PrepareImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.Image, error)
 	// PullImage imports an image from the specified location.
 	PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error)
+	// UntagImage removes a name from the specified image, and if it was
+	// the only name the image had, removes the image.
+	UntagImage(systemContext *types.SystemContext, imageName string) error
 	// RemoveImage deletes the specified image.
 	RemoveImage(systemContext *types.SystemContext, imageName string) error
 	// GetStore returns the reference to the storage library Store which
@@ -389,6 +394,57 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	return destRef, nil
 }
 
+func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID string) error {
+	ref, err := alltransports.ParseImageName(nameOrID)
+	if err != nil {
+		ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+nameOrID)
+		if err2 != nil {
+			ref3, err3 := istorage.Transport.ParseStoreReference(svc.store, nameOrID)
+			if err3 != nil {
+				return err
+			}
+			ref2 = ref3
+		}
+		ref = ref2
+	}
+
+	img, err := istorage.Transport.GetStoreImage(svc.store, ref)
+	if err != nil {
+		return err
+	}
+
+	if !strings.HasPrefix(img.ID, nameOrID) {
+		namedRef, err := svc.prepareReference(nameOrID, &copy.Options{})
+		if err != nil {
+			return err
+		}
+
+		name := nameOrID
+		if namedRef.DockerReference() != nil {
+			name = namedRef.DockerReference().Name()
+			if tagged, ok := namedRef.DockerReference().(reference.NamedTagged); ok {
+				name = name + ":" + tagged.Tag()
+			}
+			if canonical, ok := namedRef.DockerReference().(reference.Canonical); ok {
+				name = name + "@" + canonical.Digest().String()
+			}
+		}
+
+		prunedNames := make([]string, 0, len(img.Names))
+		for _, imgName := range img.Names {
+			if imgName != name && imgName != nameOrID {
+				prunedNames = append(prunedNames, imgName)
+			}
+		}
+
+		if len(prunedNames) > 0 {
+			return svc.store.SetNames(img.ID, prunedNames)
+		}
+	}
+
+	return ref.DeleteImage(systemContext)
+}
+
 func (svc *imageService) RemoveImage(systemContext *types.SystemContext, nameOrID string) error {
 	ref, err := alltransports.ParseImageName(nameOrID)
 	if err != nil {
@@ -483,7 +539,7 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
 			rem = "library/" + rem
 		}
-		images = append(images, filepath.Join(r, rem))
+		images = append(images, path.Join(r, rem))
 	}
 	return images, nil
 }
