@@ -98,21 +98,21 @@ type imageDecomposeStruct struct {
 	transport   string
 }
 
-func (k *KpodImage) assembleFqName() string {
+func (k *Image) assembleFqName() string {
 	return fmt.Sprintf("%s/%s:%s", k.Registry, k.ImageName, k.Tag)
 }
 
-func (k *KpodImage) assembleFqNameTransport() string {
+func (k *Image) assembleFqNameTransport() string {
 	return fmt.Sprintf("%s%s/%s:%s", k.Transport, k.Registry, k.ImageName, k.Tag)
 }
 
-//KpodImage describes basic attributes of an image
-type KpodImage struct {
-	Name          string
-	ID            string
-	fqname        string
-	hasImageLocal bool
-	Runtime
+//Image describes basic attributes of an image
+type Image struct {
+	Name           string
+	ID             string
+	fqname         string
+	hasImageLocal  bool
+	runtime        *Runtime
 	Registry       string
 	ImageName      string
 	Tag            string
@@ -123,20 +123,20 @@ type KpodImage struct {
 }
 
 // NewImage creates a new image object based on its name
-func (r *Runtime) NewImage(name string) KpodImage {
-	return KpodImage{
+func (r *Runtime) NewImage(name string) Image {
+	return Image{
 		Name:    name,
-		Runtime: *r,
+		runtime: r,
 	}
 }
 
 // GetImageID returns the image ID of the image
-func (k *KpodImage) GetImageID() (string, error) {
+func (k *Image) GetImageID() (string, error) {
 	if k.ID != "" {
 		return k.ID, nil
 	}
 	image, _ := k.GetFQName()
-	img, err := k.Runtime.GetImage(image)
+	img, err := k.runtime.GetImage(image)
 	if err != nil {
 		return "", err
 	}
@@ -144,20 +144,19 @@ func (k *KpodImage) GetImageID() (string, error) {
 }
 
 // GetFQName returns the fully qualified image name if it can be determined
-func (k *KpodImage) GetFQName() (string, error) {
+func (k *Image) GetFQName() (string, error) {
 	// Check if the fqname has already been found
 	if k.fqname != "" {
 		return k.fqname, nil
 	}
-	err := k.Decompose()
-	if err != nil {
+	if err := k.Decompose(); err != nil {
 		return "", err
 	}
 	k.fqname = k.assembleFqName()
 	return k.fqname, nil
 }
 
-func (k *KpodImage) findImageOnRegistry() error {
+func (k *Image) findImageOnRegistry() error {
 	searchRegistries, err := GetRegistries()
 
 	if err != nil {
@@ -178,14 +177,14 @@ func (k *KpodImage) findImageOnRegistry() error {
 }
 
 // GetManifest tries to GET an images manifest, returns nil on success and err on failure
-func (k *KpodImage) GetManifest() error {
+func (k *Image) GetManifest() error {
 	pullRef, err := alltransports.ParseImageName(k.assembleFqNameTransport())
 	if err != nil {
-		return errors.Errorf("unable to parse '%s'", k.assembleFqName())
+		return errors.Errorf("unable to parse1 '%s'", k.assembleFqName())
 	}
 	imageSource, err := pullRef.NewImageSource(nil)
 	if err != nil {
-		return errors.Errorf("unable to create new image source")
+		return errors.Wrapf(err, "unable to create new image source")
 	}
 	_, _, err = imageSource.GetManifest()
 	if err == nil {
@@ -195,7 +194,10 @@ func (k *KpodImage) GetManifest() error {
 }
 
 //Decompose breaks up an image name into its parts
-func (k *KpodImage) Decompose() error {
+func (k *Image) Decompose() error {
+	if k.beenDecomposed {
+		return nil
+	}
 	k.beenDecomposed = true
 	k.Transport = "docker://"
 	decomposeName := k.Name
@@ -209,7 +211,7 @@ func (k *KpodImage) Decompose() error {
 	if k.Transport == "dir:" {
 		return nil
 	}
-	var imageError = fmt.Sprintf("unable to parse '%s'\n", k.Name)
+	var imageError = fmt.Sprintf("unable to parse '%s'\n", decomposeName)
 	imgRef, err := reference.Parse(decomposeName)
 	if err != nil {
 		return errors.Wrapf(err, imageError)
@@ -262,14 +264,14 @@ func (k *KpodImage) Decompose() error {
 }
 
 // HasImageLocal returns a bool true if the image is already pulled
-func (k *KpodImage) HasImageLocal() bool {
-	_, err := k.Runtime.GetImage(k.Name)
+func (k *Image) HasImageLocal() bool {
+	_, err := k.runtime.GetImage(k.Name)
 	if err == nil {
 		return true
 	}
 	fqname, _ := k.GetFQName()
 
-	_, err = k.Runtime.GetImage(fqname)
+	_, err = k.runtime.GetImage(fqname)
 	if err == nil {
 		return true
 	}
@@ -277,7 +279,7 @@ func (k *KpodImage) HasImageLocal() bool {
 }
 
 // HasLatest determines if we have the latest image local
-func (k *KpodImage) HasLatest() (bool, error) {
+func (k *Image) HasLatest() (bool, error) {
 	if !k.HasImageLocal() {
 		return false, nil
 	}
@@ -297,7 +299,7 @@ func (k *KpodImage) HasLatest() (bool, error) {
 }
 
 // Pull is a wrapper function to pull and image
-func (k *KpodImage) Pull() error {
+func (k *Image) Pull() error {
 	// If the image hasn't been decomposed yet
 	if !k.beenDecomposed {
 		err := k.Decompose()
@@ -305,7 +307,7 @@ func (k *KpodImage) Pull() error {
 			return err
 		}
 	}
-	k.Runtime.PullImage(k.PullName, CopyOptions{Writer: os.Stdout, SignaturePolicyPath: k.Runtime.config.SignaturePolicyPath})
+	k.runtime.PullImage(k.PullName, CopyOptions{Writer: os.Stdout, SignaturePolicyPath: k.runtime.config.SignaturePolicyPath})
 	return nil
 }
 

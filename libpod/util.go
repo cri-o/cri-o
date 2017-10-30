@@ -14,10 +14,10 @@ func WriteFile(content string, path string) error {
 		}
 	}
 	f, err := os.Create(path)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	f.WriteString(content)
 	f.Sync()
 	return nil

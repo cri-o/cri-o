@@ -24,7 +24,8 @@ func runCmd(c *cli.Context) error {
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}
-	runtime, err := libpod.NewRuntime()
+	runtime, err := getRuntime(c)
+
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -44,10 +45,10 @@ func runCmd(c *cli.Context) error {
 	}
 
 	runtimeSpec, err := createConfigToOCISpec(createConfig)
-	logrus.Debug("spec is ", runtimeSpec)
 	if err != nil {
 		return err
 	}
+	logrus.Debug("spec is ", runtimeSpec)
 
 	imageName, err := createImage.GetFQName()
 	if err != nil {
@@ -77,25 +78,21 @@ func runCmd(c *cli.Context) error {
 	if err := ctr.Create(); err != nil {
 		return err
 	}
-	logrus.Debug("container storage created for ", ctr.ID())
+	logrus.Debug("container storage created for %q", ctr.ID())
 
-	if c.String("cid-file") != "" {
-		libpod.WriteFile(ctr.ID(), c.String("cid-file"))
+	if c.String("cidfile") != "" {
+		libpod.WriteFile(ctr.ID(), c.String("cidfile"))
 		return nil
 	}
 	// Start the container
 	if err := ctr.Start(); err != nil {
-		return errors.Wrapf(err, "unable to start container ", ctr.ID())
+		return errors.Wrapf(err, "unable to start container %q", ctr.ID())
 	}
 	logrus.Debug("started container ", ctr.ID())
 	if createConfig.tty {
 		// Attach to the running container
-		keys := ""
-		if c.String("detach-keys") != "" {
-			keys = c.String("detach-keys")
-		}
 		logrus.Debug("trying to attach to the container %s", ctr.ID())
-		if err := ctr.Attach(false, keys); err != nil {
+		if err := ctr.Attach(false, c.String("detach-keys")); err != nil {
 			return errors.Wrapf(err, "unable to attach to container %s", ctr.ID())
 		}
 	} else {

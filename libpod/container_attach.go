@@ -3,6 +3,7 @@ package libpod
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,7 +15,6 @@ import (
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"net"
 )
 
 /* Sync with stdpipe_t in conmon.c */
@@ -39,7 +39,6 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	}
 
 	oldTermState, err := term.SaveState(inputStream.Fd())
-
 	if err != nil {
 		return errors.Wrapf(err, "unable to save terminal state")
 	}
@@ -58,16 +57,15 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	}
 
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-		logrus.Debug("Got a resize event: %+v", size)
+		logrus.Debugf("Received a resize event: %+v", size)
 		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
 		if err != nil {
-			logrus.Warn("Failed to write to control file to resize terminal: %v", err)
+			logrus.Warnf("Failed to write to control file to resize terminal: %v", err)
 		}
 	})
-	attachSocketPath := filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
-	logrus.Debug("connecting to socket ", attachSocketPath)
+	logrus.Debug("connecting to socket ", c.attachSocketPath())
 
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: c.attachSocketPath(), Net: "unixpacket"})
 	if err != nil {
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v")
 	}
@@ -117,7 +115,7 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, conn i
 			case AttachPipeStderr:
 				dst = errorStream
 			default:
-				logrus.Infof("Got unexpected attach type %+d", buf[0])
+				logrus.Infof("Received unexpected attach type %+d", buf[0])
 			}
 
 			if dst != nil {

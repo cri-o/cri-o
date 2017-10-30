@@ -1,3 +1,4 @@
+//nolint
 // most of these validate and parse functions have been taken from projectatomic/docker
 // and modified for cri-o
 package main
@@ -34,7 +35,7 @@ var (
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.
 // ExtraHost is in the form of name:ip where the ip has to be a valid ip (ipv4 or ipv6).
 // for add-host flag
-func validateExtraHost(val string) (string, error) {
+func validateExtraHost(val string) (string, error) { //nolint
 	// allow for IPv6 addresses in extra hosts by only splitting on first ":"
 	arr := strings.SplitN(val, ":", 2)
 	if len(arr) != 2 || len(arr[0]) == 0 {
@@ -58,7 +59,7 @@ func validateIPAddress(val string) (string, error) {
 
 // validateAttach validates that the specified string is a valid attach option.
 // for attach flag
-func validateAttach(val string) (string, error) {
+func validateAttach(val string) (string, error) { //nolint
 	s := strings.ToLower(val)
 	for _, str := range []string{"stdin", "stdout", "stderr"} {
 		if s == str {
@@ -70,7 +71,7 @@ func validateAttach(val string) (string, error) {
 
 // validate the blkioWeight falls in the range of 10 to 1000
 // for blkio-weight flag
-func validateBlkioWeight(val int64) (int64, error) {
+func validateBlkioWeight(val int64) (int64, error) { //nolint
 	if val >= 10 && val <= 1000 {
 		return val, nil
 	}
@@ -113,7 +114,7 @@ func validateweightDevice(val string) (*weightDevice, error) {
 
 // parseDevice parses a device mapping string to a container.DeviceMapping struct
 // for device flag
-func parseDevice(device string) (*pb.Device, error) {
+func parseDevice(device string) (*pb.Device, error) { //nolint
 	_, err := validateDevice(device)
 	if err != nil {
 		return nil, errors.Wrapf(err, "device string not valid %q", device)
@@ -256,7 +257,7 @@ func validateBpsDevice(val string) (*throttleDevice, error) {
 
 // validateIOpsDevice validates that the specified string has a valid device-rate format
 // for device-write-iops and device-read-iops flags
-func validateIOpsDevice(val string) (*throttleDevice, error) {
+func validateIOpsDevice(val string) (*throttleDevice, error) { //nolint
 	split := strings.SplitN(val, ":", 2)
 	if len(split) != 2 {
 		return nil, fmt.Errorf("bad format: %s", val)
@@ -281,7 +282,7 @@ func validateIOpsDevice(val string) (*throttleDevice, error) {
 // validateDNSSearch validates domain for resolvconf search configuration.
 // A zero length domain is represented by a dot (.).
 // for dns-search flag
-func validateDNSSearch(val string) (string, error) {
+func validateDNSSearch(val string) (string, error) { //nolint
 	if val = strings.Trim(val, " "); val == "." {
 		return val, nil
 	}
@@ -302,7 +303,7 @@ func validateDomain(val string) (string, error) {
 // validateEnv validates an environment variable and returns it.
 // If no value is specified, it returns the current value using os.Getenv.
 // for env flag
-func validateEnv(val string) (string, error) {
+func validateEnv(val string) (string, error) { //nolint
 	arr := strings.Split(val, "=")
 	if len(arr) > 1 {
 		return val, nil
@@ -424,7 +425,7 @@ func (n NsIpc) Container() string {
 // validateLabel validates that the specified string is a valid label, and returns it.
 // Labels are in the form on key=value.
 // for label flag
-func validateLabel(val string) (string, error) {
+func validateLabel(val string) (string, error) { //nolint
 	if strings.Count(val, "=") < 1 {
 		return "", fmt.Errorf("bad attribute format: %s", val)
 	}
@@ -433,7 +434,7 @@ func validateLabel(val string) (string, error) {
 
 // validateMACAddress validates a MAC address.
 // for mac-address flag
-func validateMACAddress(val string) (string, error) {
+func validateMACAddress(val string) (string, error) { //nolint
 	_, err := net.ParseMAC(strings.TrimSpace(val))
 	if err != nil {
 		return "", err
@@ -442,7 +443,7 @@ func validateMACAddress(val string) (string, error) {
 }
 
 // validateLink validates that the specified string has a valid link format (containerName:alias).
-func validateLink(val string) (string, error) {
+func validateLink(val string) (string, error) { //nolint
 	if _, _, err := parseLink(val); err != nil {
 		return val, err
 	}
@@ -473,7 +474,7 @@ func parseLink(val string) (string, string, error) {
 
 // parseLoggingOpts validates the logDriver and logDriverOpts
 // for log-opt and log-driver flags
-func parseLoggingOpts(logDriver string, logDriverOpt []string) (map[string]string, error) {
+func parseLoggingOpts(logDriver string, logDriverOpt []string) (map[string]string, error) { //nolint
 	logOptsMap := convertKVStringsToMap(logDriverOpt)
 	if logDriver == "none" && len(logDriverOpt) > 0 {
 		return map[string]string{}, errors.Errorf("invalid logging opts for driver %s", logDriver)
@@ -528,7 +529,7 @@ func (n NsPid) Container() string {
 // parsePortSpecs receives port specs in the format of ip:public:private/proto and parses
 // these in to the internal types
 // for publish, publish-all, and expose flags
-func parsePortSpecs(ports []string) ([]*pb.PortMapping, error) {
+func parsePortSpecs(ports []string) ([]*pb.PortMapping, error) { //nolint
 	var portMappings []*pb.PortMapping
 	for _, rawPort := range ports {
 		portMapping, err := parsePortSpec(rawPort)
@@ -694,7 +695,7 @@ func splitProtoPort(rawPort string) (string, string) {
 
 // takes a local seccomp file and reads its file contents
 // for security-opt flag
-func parseSecurityOpts(securityOpts []string) ([]string, error) {
+func parseSecurityOpts(securityOpts []string) ([]string, error) { //nolint
 	for key, opt := range securityOpts {
 		con := strings.SplitN(opt, "=", 2)
 		if len(con) == 1 && con[0] != "no-new-privileges" {
@@ -722,7 +723,7 @@ func parseSecurityOpts(securityOpts []string) ([]string, error) {
 
 // parses storage options per container into a map
 // for storage-opt flag
-func parseStorageOpts(storageOpts []string) (map[string]string, error) {
+func parseStorageOpts(storageOpts []string) (map[string]string, error) { //nolint
 	m := make(map[string]string)
 	for _, option := range storageOpts {
 		if strings.Contains(option, "=") {
@@ -738,7 +739,7 @@ func parseStorageOpts(storageOpts []string) (map[string]string, error) {
 // parseUser parses the the uid and gid in the format <name|uid>[:<group|gid>]
 // for user flag
 // FIXME: Issue from https://github.com/projectatomic/buildah/issues/66
-func parseUser(rootdir, userspec string) (specs.User, error) {
+func parseUser(rootdir, userspec string) (specs.User, error) { //nolint
 	var gid64 uint64
 	var gerr error = user.UnknownGroupError("error looking up group")
 
@@ -869,4 +870,17 @@ func (n NsUts) Valid() bool {
 		return false
 	}
 	return true
+}
+
+// Takes a stringslice and converts to a uint32slice
+func stringSlicetoUint32Slice(inputSlice []string) ([]uint32, error) {
+	var outputSlice []uint32
+	for _, v := range inputSlice {
+		u, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			return outputSlice, err
+		}
+		outputSlice = append(outputSlice, uint32(u))
+	}
+	return outputSlice, nil
 }
