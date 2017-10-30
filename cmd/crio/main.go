@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/libkpod"
@@ -470,7 +471,8 @@ func main() {
 
 		infoMux := service.GetInfoMux()
 		srv := &http.Server{
-			Handler: infoMux,
+			Handler:     infoMux,
+			ReadTimeout: 5 * time.Second,
 		}
 
 		graceful := false
