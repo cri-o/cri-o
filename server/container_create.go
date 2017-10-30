@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -46,29 +47,54 @@ const (
 	defaultSystemdParent  = "system.slice"
 )
 
-func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, error) {
+type orderedMounts []rspec.Mount
+
+// Len returns the number of mounts. Used in sorting.
+func (m orderedMounts) Len() int {
+	return len(m)
+}
+
+// Less returns true if the number of parts (a/b/c would be 3 parts) in the
+// mount indexed by parameter 1 is less than that of the mount indexed by
+// parameter 2. Used in sorting.
+func (m orderedMounts) Less(i, j int) bool {
+	return m.parts(i) < m.parts(j)
+}
+
+// Swap swaps two items in an array of mounts. Used in sorting
+func (m orderedMounts) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+// parts returns the number of parts in the destination of a mount. Used in sorting.
+func (m orderedMounts) parts(i int) int {
+	return strings.Count(filepath.Clean(m[i].Destination), string(os.PathSeparator))
+}
+
+func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
+	ociMounts := []rspec.Mount{}
 	mounts := containerConfig.GetMounts()
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
 		if dest == "" {
-			return nil, fmt.Errorf("Mount.ContainerPath is empty")
+			return nil, nil, fmt.Errorf("Mount.ContainerPath is empty")
 		}
 
 		src := mount.HostPath
 		if src == "" {
-			return nil, fmt.Errorf("Mount.HostPath is empty")
+			return nil, nil, fmt.Errorf("Mount.HostPath is empty")
 		}
 
 		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
-				return nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
+				return nil, nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
 			}
 		}
 
 		src, err := resolveSymbolicLink(src)
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
+			return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
 		}
 
 		options := []string{"rw"}
@@ -80,7 +106,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
 			if err := label.Relabel(src, mountLabel, true); err != nil && err != unix.ENOTSUP {
-				return nil, fmt.Errorf("relabel failed %s: %v", src, err)
+				return nil, nil, fmt.Errorf("relabel failed %s: %v", src, err)
 			}
 		}
 
@@ -90,45 +116,55 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 			Readonly:      mount.Readonly,
 		})
 
-		specgen.AddBindMount(src, dest, options)
+		ociMounts = append(ociMounts, rspec.Mount{
+			Source:      src,
+			Destination: dest,
+			Options:     options,
+		})
 	}
 
-	return volumes, nil
+	return volumes, ociMounts, nil
 }
 
-func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) error {
+func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) ([]rspec.Mount, error) {
+	mounts := []rspec.Mount{}
 	for dest := range containerInfo.Config.Config.Volumes {
 		fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, dest), rootfs)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		switch s.config.ImageVolumes {
 		case libkpod.ImageVolumesMkdir:
 			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
-				return err1
+				return nil, err1
 			}
 		case libkpod.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
-				return err1
+				return nil, err1
 			}
 			// Label the source with the sandbox selinux mount label
 			if mountLabel != "" {
 				if err1 := label.Relabel(src, mountLabel, true); err1 != nil && err1 != unix.ENOTSUP {
-					return fmt.Errorf("relabel failed %s: %v", src, err1)
+					return nil, fmt.Errorf("relabel failed %s: %v", src, err1)
 				}
 			}
 
 			logrus.Debugf("Adding bind mounted volume: %s to %s", src, dest)
-			specgen.AddBindMount(src, dest, []string{"rw"})
+			mounts = append(mounts, rspec.Mount{
+				Source:      src,
+				Destination: dest,
+				Options:     []string{"rw"},
+			})
+
 		case libkpod.ImageVolumesIgnore:
 			logrus.Debugf("Ignoring volume %v", dest)
 		default:
 			logrus.Fatalf("Unrecognized image volumes setting")
 		}
 	}
-	return nil
+	return mounts, nil
 }
 
 // resolveSymbolicLink resolves a possbile symlink path. If the path is a symlink, returns resolved
@@ -385,16 +421,13 @@ func ensureSaneLogPath(logPath string) error {
 }
 
 // addSecretsBindMounts mounts user defined secrets to the container
-func addSecretsBindMounts(mountLabel, ctrRunDir string, defaultMounts []string, specgen generate.Generator) error {
+func addSecretsBindMounts(mountLabel, ctrRunDir string, defaultMounts []string, specgen generate.Generator) ([]rspec.Mount, error) {
 	containerMounts := specgen.Spec().Mounts
 	mounts, err := secretMounts(defaultMounts, mountLabel, ctrRunDir, containerMounts)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, m := range mounts {
-		specgen.AddBindMount(m.Source, m.Destination, nil)
-	}
-	return nil
+	return mounts, nil
 }
 
 // CreateContainer creates a new container in specified PodSandbox
@@ -562,7 +595,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 
-	containerVolumes, err := addOCIBindMounts(mountLabel, containerConfig, &specgen)
+	containerVolumes, ociMounts, err := addOCIBindMounts(mountLabel, containerConfig, &specgen)
 	if err != nil {
 		return nil, err
 	}
@@ -934,12 +967,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	if len(s.config.DefaultMounts) > 0 {
-		if err = addSecretsBindMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMounts, specgen); err != nil {
-			return nil, fmt.Errorf("failed to mount secrets: %v", err)
-		}
-	}
-
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
@@ -957,7 +984,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// Add image volumes
-	if err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, mountLabel); err != nil {
+	volumeMounts, err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, mountLabel)
+	if err != nil {
 		return nil, err
 	}
 
@@ -1007,6 +1035,26 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		containerCwd = runtimeCwd
 	}
 	specgen.SetProcessCwd(containerCwd)
+
+	var secretMounts []rspec.Mount
+	if len(s.config.DefaultMounts) > 0 {
+		var err error
+		secretMounts, err = addSecretsBindMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMounts, specgen)
+		if err != nil {
+			return nil, fmt.Errorf("failed to mount secrets: %v", err)
+		}
+	}
+
+	mounts := []rspec.Mount{}
+	mounts = append(mounts, ociMounts...)
+	mounts = append(mounts, volumeMounts...)
+	mounts = append(mounts, secretMounts...)
+
+	sort.Sort(orderedMounts(mounts))
+
+	for _, m := range mounts {
+		specgen.AddBindMount(m.Source, m.Destination, m.Options)
+	}
 
 	if err := s.setupOCIHooks(&specgen, sb, containerConfig, processArgs[0]); err != nil {
 		return nil, err
