@@ -5,6 +5,7 @@
 /docs/*.[158]
 /docs/*.[158].gz
 /kpod
+/crio-release
 /crioctl
 /crio
 /crio.conf

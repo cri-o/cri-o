@@ -45,7 +45,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build crio, conmon and crioctl"
+	@echo " * 'binaries' - Build crio, conmon, crio-release and crioctl"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
@@ -86,6 +86,9 @@ crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
 crioctl: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crioctl $(PROJECT))
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crioctl
 
+crio-release: .gopathok
+	$(GO) build -o $@ $(PROJECT)/cmd/crio-release
+
 kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/kpod
 
@@ -101,7 +104,7 @@ endif
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
-	rm -f crioctl crio kpod
+	rm -f crioctl crio kpod crio-release
 	make -C conmon clean
 	make -C pause clean
 	rm -f test/bin2img/bin2img
@@ -123,7 +126,7 @@ testunit:
 localintegration: clean binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: crio crioctl kpod conmon pause test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
+binaries: crio crio-release crioctl kpod conmon pause test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)

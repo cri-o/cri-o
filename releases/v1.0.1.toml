@@ -1,0 +1,38 @@
+# commit to be tagged for new release
+commit = "HEAD"
+
+# previous release
+previous = "v1.0.0"
+
+pre_release = false
+
+preface = """\
+This releases is the first patch release in the v1.0.0 release. It includes
+bugfixes and performance fixes. No new features have been added."""
+
+# notable prs to include in the release notes, 1234 is the pr number
+#[notes]
+	#[notes.gc]
+	#title = "Garbage Collection"
+	#description = """\
+#Full garbage collection support for cleaning up content, snapshots and metadata
+#for containerd resources. The implementation is based on well-known concurrent
+#mark and sweep and the approach allows for extensibility in collection
+#policies.
+
+#The GC is triggered `Container.Delete and Image.Delete. Note that images may
+#need to be re-pulled for proper support."""
+
+	#[notes.migrations]
+	#title = "Migrations"
+	#description = """\
+#A lightweight migration framework is now part of containerd. This allows us to
+#safely evolve the schema between releases with the groundwork laid early.
+
+#As part of this release, a migration will be run to add back references in
+#support of garbage collection."""
+
+#[breaking]
+	#[breaking.metrics]
+	#pr = 1235
+	#description = """ """
