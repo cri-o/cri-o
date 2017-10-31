@@ -35,6 +35,10 @@ storage_option = [
 # listen is the path to the AF_LOCAL socket on which crio will listen.
 listen = "{{ .Listen }}"
 
+# listen_info is the path to the AF_LOCAL socket on which crio will serve its
+# info endpoint.
+listen_info = "{{ .ListenInfo }}"
+
 # stream_address is the IP address on which the stream server will listen
 stream_address = "{{ .StreamAddress }}"
 

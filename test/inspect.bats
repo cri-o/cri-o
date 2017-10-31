@@ -8,7 +8,7 @@ function teardown() {
 
 @test "info inspect" {
 	start_crio
-	out=`echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
+	out=`echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_INFO_SOCKET`
 	echo "$out"
 	[[ "$out" =~ "\"cgroup_driver\":\"$CGROUP_MANAGER\"" ]]
 	[[ "$out" =~ "\"storage_root\":\"$TESTDIR/crio\"" ]]
@@ -32,7 +32,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	out=`echo -e "GET /containers/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
+	out=`echo -e "GET /containers/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_INFO_SOCKET`
 	echo "$out"
 	[[ "$out" =~ "\"sandbox\":\"$pod_id\"" ]]
 	[[ "$out" =~ "\"image\":\"redis:alpine\"" ]]
@@ -64,7 +64,7 @@ function teardown() {
 
 @test "ctr inspect not found" {
 	start_crio
-	out=`echo -e "GET /containers/notexists HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
+	out=`echo -e "GET /containers/notexists HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_INFO_SOCKET`
 	echo "$out"
 	[[ "$out" =~ "can't find the container with id notexists" ]]
 

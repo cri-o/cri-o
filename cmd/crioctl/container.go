@@ -636,7 +636,7 @@ var inspectContainerCommand = cli.Command{
 		if ID == "" {
 			return fmt.Errorf("ID cannot be empty")
 		}
-		c, err := client.New(context.GlobalString("connect"))
+		c, err := client.New(context.GlobalString("connect-info"))
 		if err != nil {
 			return err
 		}

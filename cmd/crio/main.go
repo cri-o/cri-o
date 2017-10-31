@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -18,7 +19,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/version"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
-	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
@@ -100,6 +100,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	}
 	if ctx.GlobalIsSet("listen") {
 		config.Listen = ctx.GlobalString("listen")
+	}
+	if ctx.GlobalIsSet("listen-info") {
+		config.ListenInfo = ctx.GlobalString("listen-info")
 	}
 	if ctx.GlobalIsSet("stream-address") {
 		config.StreamAddress = ctx.GlobalString("stream-address")
@@ -204,6 +207,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "listen",
 			Usage: "path to crio socket",
+		},
+		cli.StringFlag{
+			Name:  "listen-info",
+			Usage: "path to crio info socket",
 		},
 		cli.StringFlag{
 			Name:  "stream-address",
@@ -465,9 +472,21 @@ func main() {
 			service.StartExitMonitor()
 		}()
 
-		m := cmux.New(lis)
-		grpcL := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
-		httpL := m.Match(cmux.HTTP1Fast())
+		socketDir := filepath.Dir(config.ListenInfo)
+		if err := os.MkdirAll(socketDir, 0744); err != nil {
+			logrus.Fatalf("error creating run directory %v", err)
+		}
+
+		// Remove the socket if it already exists
+		if _, err := os.Stat(config.ListenInfo); err == nil {
+			if err := os.Remove(config.ListenInfo); err != nil {
+				logrus.Fatal(err)
+			}
+		}
+		lisInfo, err := net.Listen("unix", config.ListenInfo)
+		if err != nil {
+			logrus.Fatalf("failed to listen: %v", err)
+		}
 
 		infoMux := service.GetInfoMux()
 		srv := &http.Server{
@@ -478,17 +497,26 @@ func main() {
 		graceful := false
 		catchShutdown(s, service, srv, &graceful)
 
-		go s.Serve(grpcL)
-		go srv.Serve(httpL)
-
 		serverCloseCh := make(chan struct{})
 		go func() {
 			defer close(serverCloseCh)
-			if err := m.Serve(); err != nil {
+			if err := s.Serve(lis); err != nil {
 				if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
 					err = nil
 				} else {
-					logrus.Errorf("Failed to serve grpc grpc request: %v", err)
+					logrus.Errorf("Failed to serve grpc request: %v", err)
+				}
+			}
+		}()
+
+		infoServerCloseCh := make(chan struct{})
+		go func() {
+			defer close(infoServerCloseCh)
+			if err := srv.Serve(lisInfo); err != nil {
+				if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
+					err = nil
+				} else {
+					logrus.Errorf("Failed to serve info request: %v", err)
 				}
 			}
 		}()
@@ -500,6 +528,7 @@ func main() {
 		// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
 		//case <-streamServerCloseCh:
 		case <-serverExitMonitorCh:
+		case <-infoServerCloseCh:
 		case <-serverCloseCh:
 		}
 
@@ -510,6 +539,8 @@ func main() {
 		//logrus.Debug("closed stream server")
 		<-serverExitMonitorCh
 		logrus.Debug("closed exit monitor")
+		<-infoServerCloseCh
+		logrus.Debug("closed info server")
 		<-serverCloseCh
 		logrus.Debug("closed main server")
 
