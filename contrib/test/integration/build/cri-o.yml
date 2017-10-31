@@ -3,12 +3,12 @@
 - name: stat the expected cri-o directory and Makefile exists
   stat:
     path: "{{ cri_o_dest_path }}/Makefile"
-  register: dir_stat
+  register: crio_stat
 
 - name: Verify cri-o Makefile exists in expected location
   fail:
-    msg: "Expected cri-o to be cloned at {{ cri_o_dest_path }} but it wasn't!"
-  when: not dir_stat.stat.exists or not dir_stat.stat.isreg
+    msg: "Expected cri-o to be cloned at {{ cri_o_dest_path }}, but its 'Makefile' seems to be missing."
+  when: not crio_stat.stat.exists or not crio_stat.stat.isreg
 
 - name: install cri-o tools
   make:
