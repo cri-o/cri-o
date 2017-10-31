@@ -95,6 +95,10 @@ func main() {
 			Usage: "path of a config file detailing container server configuration options",
 		},
 		cli.StringFlag{
+			Name:  "conmon",
+			Usage: "path of the conmon binary",
+		},
+		cli.StringFlag{
 			Name:  "log-level",
 			Usage: "log messages above specified level: debug, info, warn, error (default), fatal or panic",
 			Value: "error",

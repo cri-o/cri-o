@@ -154,7 +154,7 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
+	defer runtime.Shutdown(false)
 	imageName, err := createImage.GetFQName()
 	if err != nil {
 		return err
@@ -171,10 +171,6 @@ func createCmd(c *cli.Context) error {
 	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
-		return err
-	}
-
-	if err := ctr.Create(); err != nil {
 		return err
 	}
 

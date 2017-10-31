@@ -49,7 +49,7 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	options.GraphDriverName = config.Storage
 	options.GraphDriverOptions = config.StorageOptions
 
-	return libpod.NewRuntime(libpod.WithStorageConfig(options))
+	return libpod.NewRuntime(libpod.WithStorageConfig(options), libpod.WithConmonPath(config.Conmon), libpod.WithOCIRuntime(config.Runtime))
 }
 
 func shutdownStores() {
@@ -82,7 +82,9 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	if c.GlobalIsSet("runroot") {
 		config.RunRoot = c.GlobalString("runroot")
 	}
-
+	if c.GlobalIsSet("conmon") {
+		config.Conmon = c.GlobalString("conmon")
+	}
 	if c.GlobalIsSet("storage-driver") {
 		config.Storage = c.GlobalString("storage-driver")
 	}

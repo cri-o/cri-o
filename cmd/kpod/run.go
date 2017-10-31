@@ -48,6 +48,7 @@ func runCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer runtime.Shutdown(false)
 	logrus.Debug("spec is ", runtimeSpec)
 
 	imageName, err := createImage.GetFQName()

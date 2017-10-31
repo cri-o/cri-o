@@ -2,10 +2,6 @@
 
 load helpers
 
-function teardown() {
-    cleanup_test
-}
-
 ALPINE="docker.io/library/alpine:latest"
 
 @test "run a container based on local image" {
