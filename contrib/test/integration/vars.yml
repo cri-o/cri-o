@@ -1,6 +1,6 @@
 ---
 
-# Path to encode into /etc/environment on all hosts
+# Base directory for all go-related source, build, and install.
 go_path: "/go"
 
 # Absolute path on control-host where the cri-o source exists
@@ -8,15 +8,6 @@ cri_o_src_path: "{{ playbook_dir }}/../../../"
 
 # Absolute path on subject-host where cri-o source is expected
 cri_o_dest_path: "{{ go_path }}/src/github.com/kubernetes-incubator/cri-o"
-
-# Global environment variables to use for tasks on subject-hosts
-environment_variables:
-    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:{{ go_path }}/bin:/usr/local/go/bin"
-    GOPATH: "{{ go_path }}"
-    KUBERNETES_PROVIDER: "local"
-    KUBECONFIG: "/var/run/kubernetes/admin.kubeconfig"
-    CGROUP_MANAGER: "cgroupfs"
-    STORAGE_OPTS: '--storage-driver=overlay{{ extra_storage_opts | default("") }}'
 
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
