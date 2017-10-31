@@ -472,10 +472,7 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 	if r.Status.Image != nil {
 		fmt.Printf("Image: %v\n", r.Status.Image.Image)
 	}
-	//
-	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
-	//
-	//fmt.Printf("ImageRef: %v\n", r.Status.ImageRef)
+	fmt.Printf("ImageRef: %v\n", r.Status.ImageRef)
 
 	return nil
 }

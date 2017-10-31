@@ -254,22 +254,22 @@ func (s *Source) GetManifest() ([]byte, string, error) {
 		if err := s.ensureCachedDataIsPresent(); err != nil {
 			return nil, "", err
 		}
-		m := schema2Manifest{
+		m := manifest.Schema2{
 			SchemaVersion: 2,
 			MediaType:     manifest.DockerV2Schema2MediaType,
-			Config: distributionDescriptor{
+			ConfigDescriptor: manifest.Schema2Descriptor{
 				MediaType: manifest.DockerV2Schema2ConfigMediaType,
 				Size:      int64(len(s.configBytes)),
 				Digest:    s.configDigest,
 			},
-			Layers: []distributionDescriptor{},
+			LayersDescriptors: []manifest.Schema2Descriptor{},
 		}
 		for _, diffID := range s.orderedDiffIDList {
 			li, ok := s.knownLayers[diffID]
 			if !ok {
 				return nil, "", errors.Errorf("Internal inconsistency: Information about layer %s missing", diffID)
 			}
-			m.Layers = append(m.Layers, distributionDescriptor{
+			m.LayersDescriptors = append(m.LayersDescriptors, manifest.Schema2Descriptor{
 				Digest:    digest.Digest(diffID), // diffID is a digest of the uncompressed tarball
 				MediaType: manifest.DockerV2Schema2LayerMediaType,
 				Size:      li.size,

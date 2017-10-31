@@ -35,7 +35,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*
 		}
 	}
 	for _, img := range images {
-		err = s.StorageImageServer().RemoveImage(s.ImageContext(), img)
+		err = s.StorageImageServer().UntagImage(s.ImageContext(), img)
 		if err != nil {
 			logrus.Debugf("error deleting image %s: %v", img, err)
 			continue

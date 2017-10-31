@@ -1888,9 +1888,15 @@ func (s *store) layersByMappedDigest(m func(ROLayerStore, digest.Digest) ([]Laye
 		}
 		storeLayers, err := m(store, d)
 		if err != nil {
-			return nil, err
+			if errors.Cause(err) != ErrLayerUnknown {
+				return nil, err
+			}
+			continue
 		}
 		layers = append(layers, storeLayers...)
+	}
+	if len(layers) == 0 {
+		return nil, ErrLayerUnknown
 	}
 	return layers, nil
 }
