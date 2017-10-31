@@ -111,6 +111,7 @@ yum install -y \
   glibc-devel \
   glibc-static \
   go \
+  golang-github-cpuguy83-go-md2man \
   gpgme-devel \
   libassuan-devel \
   libgpg-error-devel \
