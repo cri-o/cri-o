@@ -7,6 +7,7 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 	rm -f /var/lib/cni/networks/crionet_test_args/*
+	chmod 0755 $CONMON_BINARY
 	cleanup_test
 }
 
@@ -171,11 +172,11 @@ function teardown() {
 
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured
-	chmod 0644 /go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon
+	chmod 0644 $CONMON_BINARY
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	chmod 0755 $CONMON_BINARY
 	echo "$output"
 	[ "$status" -ne 0 ]
-	chmod 0755 /go/src/github.com/kubernetes-incubator/cri-o/conmon/conmon
 
 	# ensure that the server cleaned up sandbox networking if the sandbox
 	# failed after network setup
