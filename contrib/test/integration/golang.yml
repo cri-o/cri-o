@@ -18,14 +18,14 @@
 
 - name: set up directories
   file:
-    path: "{{ go_path }}/{{ item }}"
+    path: "{{ go_path }}/src/github.com/{{ item }}"
     state: directory
   with_items:
-    - "src/github.com/containernetworking"
-    - "src/github.com/kubernetes-incubator"
-    - "src/github.com/k8s.io"
-    - "src/github.com/sstephenson"
-    - "src/github.com/opencontainers"
+    - "containernetworking"
+    - "kubernetes-incubator"
+    - "k8s.io"
+    - "sstephenson"
+    - "opencontainers"
 
 - name: install Go tools and dependencies
   shell: /usr/bin/go get -u "github.com/{{ item }}"

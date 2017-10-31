@@ -4,14 +4,34 @@
   gather_facts: False  # Requires low-level ansible-dependencies
   # Cannot use vars.yml - it references magic variables from setup module
   tags:
-    - setup
+    - always
   tasks:
-    - name: Ensure low-level ansible-dependencies are installed
-      raw: $(type -P dnf || type -P yum) install -y python2 python2-dnf libselinux-python git rsync
+    - name: Ansible setup-module dependencies are installed, ignoring errors (setup runs next).
+      raw: $(type -P dnf || type -P yum) install -y python2 python2-dnf libselinux-python
+      ignore_errors: True
 
     - name: Gather only networking facts for speed
       setup:
         gather_subset: network
+
+    - name: Variables from vars.yml are hauled in after setup
+      include_vars: "{{ playbook_dir }}/vars.yml"
+
+    - name: Global environment are defined, but can be overriden on a task-by-task basis.
+      set_fact:
+        extra_storage_opts: >
+            {%- if ansible_distribution in ["RedHat", "CentOS"] -%}
+                "--storage-opt overlay.override_kernel_check=1"
+            {%- else -%}
+                ""
+            {%- endif -%}
+        environment_variables:
+            PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:{{ go_path }}/bin:/usr/local/go/bin"
+            GOPATH: "{{ go_path }}"
+            KUBERNETES_PROVIDER: "local"
+            KUBECONFIG: "/var/run/kubernetes/admin.kubeconfig"
+            CGROUP_MANAGER: "cgroupfs"
+            STORAGE_OPTS: '--storage-driver=overlay {{ extra_storage_opts | default("") | trim }}'
 
 
 - hosts: '{{ subjects | default("none") }}'
