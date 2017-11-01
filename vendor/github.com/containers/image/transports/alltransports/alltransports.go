@@ -13,6 +13,7 @@ import (
 	_ "github.com/containers/image/oci/archive"
 	_ "github.com/containers/image/oci/layout"
 	_ "github.com/containers/image/openshift"
+	_ "github.com/containers/image/tarball"
 	// The ostree transport is registered by ostree*.go
 	// The storage transport is registered by storage*.go
 	"github.com/containers/image/transports"
