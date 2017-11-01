@@ -409,6 +409,16 @@ func main() {
 			}()
 		}
 
+		args := c.Args()
+		if len(args) > 0 {
+			for _, command := range app.Commands {
+				if args[0] == command.Name {
+					break
+				}
+			}
+			return fmt.Errorf("command %q not supported", args[0])
+		}
+
 		config := c.App.Metadata["config"].(*server.Config)
 
 		if !config.SELinux {
