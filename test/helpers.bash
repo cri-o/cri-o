@@ -290,8 +290,8 @@ function start_crio() {
 }
 
 function cleanup_ctrs() {
-	run crictl ps --quiet
-	if [ "$status" -eq 0 ]; then
+	output=$(crictl ps --quiet)
+	if [ $? -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
@@ -304,8 +304,8 @@ function cleanup_ctrs() {
 }
 
 function cleanup_images() {
-	run crictl images --quiet
-	if [ "$status" -eq 0 ]; then
+	output=$(crictl images --quiet)
+	if [ $? -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
@@ -316,8 +316,8 @@ function cleanup_images() {
 }
 
 function cleanup_pods() {
-	run crictl sandboxes --quiet
-	if [ "$status" -eq 0 ]; then
+	output=$(crictl sandboxes --quiet)
+	if [ $? -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
