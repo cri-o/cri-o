@@ -106,6 +106,12 @@
 - name: Flush the iptables
   command: iptables -F
 
+- name: Enable localnet routing
+  command: sysctl -w net.ipv4.conf.all.route_localnet=1
+
+- name: Add masquerade for localhost
+  command: iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
+
 - name: Update the kernel cmdline to include quota support
   command: grubby --update-kernel=ALL --args="rootflags=pquota"
   when: ansible_distribution in ['RedHat', 'CentOS']
