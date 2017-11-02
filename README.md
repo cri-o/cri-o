@@ -141,6 +141,7 @@ apt-get install -y \
   libseccomp-dev \
   libselinux1-dev \
   pkg-config \
+  go-md2man \
   runc \
   skopeo-containers
 ```
