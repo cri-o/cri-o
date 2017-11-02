@@ -86,7 +86,3 @@ func (s *ociArchiveImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int
 func (s *ociArchiveImageSource) GetSignatures(c context.Context) ([][]byte, error) {
 	return s.unpackedSrc.GetSignatures(c)
 }
-
-func (s *ociArchiveImageSource) UpdatedLayerInfos() []types.BlobInfo {
-	return nil
-}

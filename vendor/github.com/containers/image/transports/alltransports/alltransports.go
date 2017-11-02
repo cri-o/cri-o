@@ -14,7 +14,7 @@ import (
 	_ "github.com/containers/image/oci/layout"
 	_ "github.com/containers/image/openshift"
 	// The ostree transport is registered by ostree*.go
-	_ "github.com/containers/image/storage"
+	// The storage transport is registered by storage*.go
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
