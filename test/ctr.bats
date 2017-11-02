@@ -600,6 +600,31 @@ function teardown() {
 	stop_crio
 }
 
+@test "ctr hostname env" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr execsync --id "$ctr_id" env
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "HOSTNAME" ]]
+	run crioctl pod stop --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crioctl pod remove --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "ctr execsync failure" {
 	start_crio
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
