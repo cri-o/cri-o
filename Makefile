@@ -23,8 +23,6 @@ COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO := $(shell date +%s)
 
-KPOD_VERSION := ${shell cat ./KPOD_VERSION}
-
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
 export GOPATH := $(CURDIR)/_output
@@ -37,9 +35,7 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
 BASE_LDFLAGS := ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
-KPOD_LDFLAGS := -X main.kpodVersion=${KPOD_VERSION}
 LDFLAGS := -ldflags '${BASE_LDFLAGS}'
-LDFLAGS_KPOD := -ldflags '${BASE_LDFLAGS} ${KPOD_LDFLAGS}'
 
 all: binaries crio.conf docs
 
@@ -49,7 +45,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build crio, conmon, pause, crioctl and kpod"
+	@echo " * 'binaries' - Build crio, conmon, pause, and crioctl"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
@@ -90,9 +86,6 @@ crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
 crioctl: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crioctl $(PROJECT))
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o bin/$@ $(PROJECT)/cmd/crioctl
 
-kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
-	$(GO) build $(LDFLAGS_KPOD) -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/kpod
-
 crio.conf: crio
 	./bin/crio --config="" config --default > crio.conf
 
@@ -105,7 +98,7 @@ endif
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
-	rm -f bin/crioctl bin/crio bin/kpod
+	rm -f bin/crioctl bin/crio
 	make -C conmon clean
 	make -C pause clean
 	rm -f test/bin2img/bin2img
@@ -127,7 +120,7 @@ testunit:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: crio conmon pause kpod crioctl
+binaries: crio conmon pause crioctl
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -149,7 +142,6 @@ install: .gopathok install.bin install.man
 install.bin:
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 bin/crioctl $(BINDIR)/crioctl
-	install ${SELINUXOPT} -D -m 755 bin/kpod $(BINDIR)/kpod
 	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 
@@ -168,7 +160,6 @@ install.config:
 
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 -D completions/bash/kpod ${BASHINSTALLDIR}
 
 install.systemd:
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
