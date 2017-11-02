@@ -32,11 +32,11 @@
 	},
 	"annotations": {
 		"owner": "hmeng"
-		%VALUE%
 	},
 	"linux": {
 		"cgroup_parent": "/Burstable/pod_123-456",
 		"security_context": {
+			"seccomp_profile_path": "%VALUE%",
 			"namespace_options": {
 				"host_network": false,
 				"host_pid": false,

@@ -1,5 +1,8 @@
 ---
 
+- name: clone build and install cri-tools
+  include: "build/cri-tools.yml"
+
 - name: Make testing output verbose so it can be converted to xunit
   lineinfile:
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/make-rules/test.sh"

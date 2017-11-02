@@ -162,8 +162,7 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 			*signalled = true
 			gserver.GracefulStop()
 			hserver.Shutdown(context.Background())
-			// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
-			//sserver.StopStreamServer()
+			sserver.StopStreamServer()
 			sserver.StopExitMonitor()
 			if err := sserver.Shutdown(); err != nil {
 				logrus.Warnf("error shutting down main service %v", err)
@@ -503,21 +502,18 @@ func main() {
 			}
 		}()
 
-		// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
-		//streamServerCloseCh := service.StreamingServerCloseChan()
+		streamServerCloseCh := service.StreamingServerCloseChan()
 		serverExitMonitorCh := service.ExitMonitorCloseChan()
 		select {
-		// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
-		//case <-streamServerCloseCh:
+		case <-streamServerCloseCh:
 		case <-serverExitMonitorCh:
 		case <-serverCloseCh:
 		}
 
 		service.Shutdown()
 
-		// TODO(runcom): enable this after https://github.com/kubernetes/kubernetes/pull/51377
-		//<-streamServerCloseCh
-		//logrus.Debug("closed stream server")
+		<-streamServerCloseCh
+		logrus.Debug("closed stream server")
 		<-serverExitMonitorCh
 		logrus.Debug("closed exit monitor")
 		<-serverCloseCh

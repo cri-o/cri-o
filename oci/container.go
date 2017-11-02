@@ -42,13 +42,14 @@ type Container struct {
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
-	dir        string
-	stopSignal string
-	imageName  string
-	imageRef   string
-	volumes    []ContainerVolume
-	mountPoint string
-	spec       *specs.Spec
+	dir                string
+	stopSignal         string
+	imageName          string
+	imageRef           string
+	volumes            []ContainerVolume
+	mountPoint         string
+	seccompProfilePath string
+	spec               *specs.Spec
 }
 
 // ContainerVolume is a bind mount for the container.
@@ -154,6 +155,16 @@ func (c *Container) Name() string {
 // ID returns the id of the container.
 func (c *Container) ID() string {
 	return c.id
+}
+
+// SetSeccompProfilePath sets the seccomp profile path
+func (c *Container) SetSeccompProfilePath(pp string) {
+	c.seccompProfilePath = pp
+}
+
+// SeccompProfilePath returns the seccomp profile path
+func (c *Container) SeccompProfilePath() string {
+	return c.seccompProfilePath
 }
 
 // BundlePath returns the bundlePath of the container.

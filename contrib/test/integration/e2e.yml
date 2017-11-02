@@ -1,5 +1,8 @@
 ---
 
+- name: clone build and install kubernetes
+  include: "build/kubernetes.yml"
+
 - name: enable and start CRI-O
   systemd:
     name: crio
