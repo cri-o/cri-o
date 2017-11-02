@@ -123,10 +123,6 @@ type ImageSource interface {
 	GetBlob(BlobInfo) (io.ReadCloser, int64, error)
 	// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
 	GetSignatures(context.Context) ([][]byte, error)
-	// UpdatedLayerInfos returns either nil (meaning there are no updates), or updated values for the layer blobsums that are listed in the image's manifest.
-	// The Digest field is guaranteed to be provided; Size may be -1.
-	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	UpdatedLayerInfos() []BlobInfo
 }
 
 // ImageDestination is a service, possibly remote (= slow), to store components of a single image.
@@ -211,10 +207,6 @@ type UnparsedImage interface {
 	Manifest() ([]byte, string, error)
 	// Signatures is like ImageSource.GetSignatures, but the result is cached; it is OK to call this however often you need.
 	Signatures(ctx context.Context) ([][]byte, error)
-	// UpdatedLayerInfos returns either nil (meaning there are no updates), or updated values for the layer blobsums that are listed in the image's manifest.
-	// The Digest field is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
-	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	UpdatedLayerInfos() []BlobInfo
 }
 
 // Image is the primary API for inspecting properties of images.

@@ -1,7 +1,6 @@
 package image
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/containers/image/docker/reference"
@@ -89,8 +88,11 @@ type genericManifest interface {
 }
 
 func manifestInstanceFromBlob(src types.ImageSource, manblob []byte, mt string) (genericManifest, error) {
-	switch manifest.NormalizedMIMEType(mt) {
-	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType:
+	switch mt {
+	// "application/json" is a valid v2s1 value per https://github.com/docker/distribution/blob/master/docs/spec/manifest-v2-1.md .
+	// This works for now, when nothing else seems to return "application/json"; if that were not true, the mapping/detection might
+	// need to happen within the ImageSource.
+	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType, "application/json":
 		return manifestSchema1FromManifest(manblob)
 	case imgspecv1.MediaTypeImageManifest:
 		return manifestOCI1FromManifest(src, manblob)
@@ -98,8 +100,17 @@ func manifestInstanceFromBlob(src types.ImageSource, manblob []byte, mt string) 
 		return manifestSchema2FromManifest(src, manblob)
 	case manifest.DockerV2ListMediaType:
 		return manifestSchema2FromManifestList(src, manblob)
-	default: // Note that this may not be reachable, manifest.NormalizedMIMEType has a default for unknown values.
-		return nil, fmt.Errorf("Unimplemented manifest MIME type %s", mt)
+	default:
+		// If it's not a recognized manifest media type, or we have failed determining the type, we'll try one last time
+		// to deserialize using v2s1 as per https://github.com/docker/distribution/blob/master/manifests.go#L108
+		// and https://github.com/docker/distribution/blob/master/manifest/schema1/manifest.go#L50
+		//
+		// Crane registries can also return "text/plain", or pretty much anything else depending on a file extension “recognized” in the tag.
+		// This makes no real sense, but it happens
+		// because requests for manifests are
+		// redirected to a content distribution
+		// network which is configured that way. See https://bugzilla.redhat.com/show_bug.cgi?id=1389442
+		return manifestSchema1FromManifest(manblob)
 	}
 }
 

@@ -88,7 +88,3 @@ func (i *sourcedImage) Inspect() (*types.ImageInspectInfo, error) {
 func (i *sourcedImage) IsMultiImage() bool {
 	return i.manifestMIMEType == manifest.DockerV2ListMediaType
 }
-
-func (i *sourcedImage) UpdatedLayerInfos() []types.BlobInfo {
-	return i.UnparsedImage.UpdatedLayerInfos()
-}

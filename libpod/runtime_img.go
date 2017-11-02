@@ -18,6 +18,7 @@ import (
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
+	"github.com/containers/image/tarball"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
@@ -49,6 +50,9 @@ var (
 	DirTransport = "dir"
 	// TransportNames are the supported transports in string form
 	TransportNames = [...]string{DefaultRegistry, DockerArchive, OCIArchive, "ostree:", "dir:"}
+	// TarballTransport is the transport for importing a tar archive
+	// and creating a filesystem image
+	TarballTransport = "tarball"
 )
 
 // CopyOptions contains the options given when pushing or pulling images
@@ -72,6 +76,10 @@ type CopyOptions struct {
 	AuthFile string
 	// Writer is the reportWriter for the output
 	Writer io.Writer
+	// Reference is the name for the image created when a tar archive is imported
+	Reference string
+	// ImageConfig is the Image spec for the image created when a tar archive is imported
+	ImageConfig ociv1.Image
 }
 
 // Image API
@@ -877,8 +885,70 @@ func (r *Runtime) GetHistory(image string) ([]ociv1.History, []types.BlobInfo, s
 }
 
 // ImportImage imports an OCI format image archive into storage as an image
-func (r *Runtime) ImportImage(path string) (*storage.Image, error) {
-	return nil, ErrNotImplemented
+func (r *Runtime) ImportImage(path string, options CopyOptions) error {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return ErrRuntimeStopped
+	}
+
+	file := TarballTransport + ":" + path
+	src, err := alltransports.ParseImageName(file)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing image name %q", path)
+	}
+
+	updater, ok := src.(tarball.ConfigUpdater)
+	if !ok {
+		return errors.Wrapf(err, "unexpected type, a tarball reference should implement tarball.ConfigUpdater")
+	}
+
+	annotations := make(map[string]string)
+	annotations[ociv1.AnnotationDescription] = "test image built"
+
+	err = updater.ConfigUpdate(options.ImageConfig, annotations)
+	if err != nil {
+		return errors.Wrapf(err, "error updating image config")
+	}
+
+	var reference = options.Reference
+
+	sc := common.GetSystemContext("", "")
+
+	if reference == "" {
+		newImg, err := src.NewImage(sc)
+		if err != nil {
+			return err
+		}
+		defer newImg.Close()
+
+		digest := newImg.ConfigInfo().Digest
+		if err = digest.Validate(); err != nil {
+			return errors.Wrapf(err, "error getting config info")
+		}
+		reference = "@" + digest.Hex()
+	}
+
+	policy, err := signature.DefaultPolicy(sc)
+	if err != nil {
+		return err
+	}
+
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return err
+	}
+	defer policyContext.Destroy()
+
+	copyOptions := common.GetCopyOptions(os.Stdout, "", nil, nil, common.SigningOptions{}, "")
+
+	dest, err := is.Transport.ParseStoreReference(r.store, reference)
+	if err != nil {
+		errors.Wrapf(err, "error getting image reference for %q", options.Reference)
+	}
+
+	return cp.Image(policyContext, dest, src, copyOptions)
 }
 
 // GetImageInspectInfo returns the inspect information of an image
