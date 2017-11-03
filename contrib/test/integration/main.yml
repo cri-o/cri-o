@@ -31,6 +31,9 @@
     - integration
     - e2e
   tasks:
+    - name: clone build and install kubernetes
+      include: "build/kubernetes.yml"
+
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
 
