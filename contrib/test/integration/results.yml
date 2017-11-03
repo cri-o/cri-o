@@ -1,62 +1,99 @@
 ---
 # vim-syntax: ansible
 
-- hosts: '{{ hosts | default("all") }}'
+- hosts: '{{ subjects | default("all") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
-  vars:
-    _result_filepaths: []  # do not use
-    _dstfnbuff: []  # do not use
+  environment: '{{ environment_variables }}'
   tasks:
-    - name: The crio_integration_filepath is required
-      tags:
-          - integration
-      set_fact:
-       _result_filepaths: "{{ _result_filepaths + [crio_integration_filepath] }}"
-
-    - name: The crio_node_e2e_filepath is required
-      tags:
-          - e2e
-      set_fact:
-       _result_filepaths: "{{ _result_filepaths + [crio_node_e2e_filepath] }}"
 
     - name: Verify expectations
       assert:
         that:
-          - 'result_dest_basedir | default(False, True)'
-          - '_result_filepaths | default(False, True)'
-          - '_dstfnbuff == []'
-          - 'results_fetched is undefined'
+          # Combined "is defined" and "isn't blank" check
+          - 'artifacts | default("", True) | trim | length'
+          - 'generated_artifacts | default("", True) | trim | length'
+          - 'extra_artifact_filepaths is defined'
+          - 'parsed_artifacts is defined'
+          - 'canonical_junit is defined'
+          - 'playbook_dir ~ "/../parse2junit.py" | is_file'
 
-    - name: Results directory exists
+    - name: artifacts directory exists
       file:
-          path: "{{ result_dest_basedir }}"
+          path: "{{ artifacts }}"
           state: directory
-      delegate_to: localhost
 
-    - name: destination file paths are buffered for overwrite-checking and jUnit conversion
-      set_fact:
-          _dstfnbuff: >
-              {{ _dstfnbuff |
-                 union( [result_dest_basedir ~ "/" ~ inventory_hostname ~ "/" ~ item | basename] ) }}
-      with_items: '{{ _result_filepaths }}'
+    - name: Extra artifacts are collected, except missing or with clashing filenames
+      command: 'cp --no-clobber --verbose "{{ item }}" "{{ artifacts }}/"'
+      ignore_errors: True
+      with_items: '{{ extra_artifact_filepaths }}'
 
-    - name: Overwriting existing results assumed very very bad
-      fail:
-          msg: "Cowardly refusing to overwrite {{ item }}"
-      when: item | exists
-      delegate_to: localhost
-      with_items: '{{ _dstfnbuff }}'
+    - name: Generated artifacts directory exists
+      file:
+          path: "{{ artifacts }}/generated"
+          state: directory
 
-    # fetch module doesn't support directories
-    - name: Retrieve results from all hosts
+    - name: Generated artifacts are produced
+      shell: '{{ item.value }} || true &> {{ item.key }}'
+      args:
+        chdir: "{{ artifacts }}/generated"
+        creates: "{{ artifacts }}/generated/{{ item.key }}"
+      ignore_errors: True
+      with_dict: "{{ generated_artifacts }}"
+
+    - name: Subject produces a single canonical jUnit file by combining parsed_artifacts
+      script: '{{ playbook_dir }}/../parse2junit.py {{ parsed_artifacts | join(" ") }} "{{ canonical_junit }}"'
+      args:
+        chdir: "{{ artifacts }}"
+
+
+- hosts: '{{ control_host | default("none") }}'
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  environment: '{{ environment_variables }}'
+  tasks:
+
+    - name: Verify expectations
+      assert:
+        that:
+          # Combined "is defined" and "isn't blank" check
+          - 'artifacts | default("", True) | trim | length'
+          - 'canonical_junit is defined'
+          - 'playbook_dir ~ "/../parse2junit.py" | is_file'
+
+    - name: A subdirectory exists for this subject's artifacts
+      file:
+        path: "{{ collection_dirpath }}"
+        state: directory
+
+    - name: Artifacts are retrieved from subjects
       synchronize:
-          checksum: True  # Don't rely on date/time being in sync
           archive: False  # Don't bother with permissions or times
+          checksum: True  # Don't rely on date/time being in sync
           copy_links: True  # We want files, not links to files
           recursive: True
           mode: pull
-          dest: '{{ result_dest_basedir }}/{{ inventory_hostname }}/'  # must end in /
-          src: '{{ item }}'
-      register: results_fetched
-      with_items: '{{ _result_filepaths }}'
+          dest: '{{ collection_dirpath }}'
+          src: '{{ artifacts }}'
+          rsync_opts: '--ignore-missing-args'
+      delegate_to: '{{ item }}'
+      with_inventory_hostnames:
+        - '{{ subjects | default("all:!localhost") }}'
+
+    - name: The paths of canonical_junit files from all subjects are found
+      find:
+        paths:
+            - '{{ collection_dirpath }}'
+        patterns: "{{ canonical_junit | basename }}"
+        recurse: True
+      register: result
+
+    - name: Found paths are joined together into a single string
+      set_fact:
+        result: '{{ result.files | map(attribute="path") | join(" ") }}'
+
+    - name: The control host produces a top-level junit, combining all subject's canonical_junits
+      script: '{{ playbook_dir }}/../parse2junit.py {{ result }} "./{{ canonical_junit | basename }}"'
+      args:
+        chdir: "{{ collection_dirpath }}"
+      when: result | trim | length

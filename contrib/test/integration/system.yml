@@ -1,5 +1,12 @@
 ---
 
+- name: Update all packages
+  package:
+    name: '*'
+    state: latest
+  async: 600
+  poll: 10
+
 - name: Make sure we have all required packages
   package:
     name: "{{ item }}"
@@ -54,7 +61,7 @@
     - socat
     - tar
     - wget
-  async: 600
+  async: '{{ 20 * 60 }}'
   poll: 10
 
 - name: Add Btrfs for Fedora
@@ -63,22 +70,11 @@
     state: present
   with_items:
    - btrfs-progs-devel
+   - python2-virtualenv
   when: ansible_distribution in ['Fedora']
 
-- name: Update all packages
-  package:
-    name: '*'
-    state: latest
-  async: 600
-  poll: 10
-
-- name: Setup swap to prevent kernel firing off the OOM killer
-  shell: |
-    truncate -s 8G /root/swap && \
-    export SWAPDEV=$(losetup --show -f /root/swap | head -1) && \
-    mkswap $SWAPDEV && \
-    swapon $SWAPDEV && \
-    swapon --show
+- name: Check / setup swap
+  include: "swap.yml"
 
 - name: ensure directories exist as needed
   file:
