@@ -1013,7 +1013,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
 	}
 
+	// Set hostname and add env for hostname
 	specgen.SetHostname(sb.Hostname())
+	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
 
 	specgen.AddAnnotation(annotations.Name, containerName)
 	specgen.AddAnnotation(annotations.ContainerID, containerID)
