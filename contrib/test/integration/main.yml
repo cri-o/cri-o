@@ -17,9 +17,6 @@
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
 
-    - name: clone build and install kubernetes
-      include: "build/kubernetes.yml"
-
     - name: clone build and install runc
       include: "build/runc.yml"
 
