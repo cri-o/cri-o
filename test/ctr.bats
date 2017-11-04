@@ -953,3 +953,32 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "ctr correctly setup working directory" {
+	start_crio
+	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	notexistcwd=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["working_dir"] = "/thisshouldntexistatall"; json.dump(obj, sys.stdout)')
+	echo "$notexistcwd" > "$TESTDIR"/container_cwd_notexist.json
+	run crioctl ctr create --config "$TESTDIR"/container_cwd_notexist.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crioctl ctr start --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	filecwd=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["working_dir"] = "/etc/passwd"; obj["metadata"]["name"] = "container2"; json.dump(obj, sys.stdout)')
+	echo "$filecwd" > "$TESTDIR"/container_cwd_file.json
+	run crioctl ctr create --config "$TESTDIR"/container_cwd_file.json --pod "$pod_id"
+	echo "$output"
+	[ "$status" -ne 0 ]
+	ctr_id="$output"
+	[[ "$output" =~ "not a directory" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}

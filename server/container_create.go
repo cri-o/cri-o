@@ -1141,6 +1141,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		containerCwd = runtimeCwd
 	}
 	specgen.SetProcessCwd(containerCwd)
+	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
+		if err1 := s.StorageRuntimeServer().StopContainer(containerID); err1 != nil {
+			return nil, fmt.Errorf("can't umount container after cwd error %v: %v", err, err1)
+		}
+		return nil, err
+	}
 
 	var secretMounts []rspec.Mount
 	if len(s.config.DefaultMounts) > 0 {
@@ -1319,4 +1325,20 @@ func clearReadOnly(m *rspec.Mount) {
 		}
 	}
 	m.Options = opt
+}
+
+func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
+	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, containerCwd), rootfs)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(fp, 0755); err != nil {
+		return err
+	}
+	if mountLabel != "" {
+		if err1 := label.Relabel(fp, mountLabel, true); err1 != nil && err1 != unix.ENOTSUP {
+			return fmt.Errorf("relabel failed %s: %v", fp, err1)
+		}
+	}
+	return nil
 }
