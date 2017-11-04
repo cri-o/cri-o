@@ -2,7 +2,7 @@
 
 - name: clone kubernetes source repo
   git:
-    repo: "https://github.com/runcom/kubernetes.git"
+    repo: "https://github.com/mrunalp/kubernetes.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
     version: "cri-o-node-e2e-patched"
 
