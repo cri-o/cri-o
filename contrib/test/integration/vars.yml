@@ -18,6 +18,11 @@ git_operations:
       dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
       version: "dcf7368eeab15e2affc6256f0bb1e84dd46a34de"
 
+    # TODO: Okay to rename this plugins -> custom-bridge-plugins and drop force: yes?
+    - repo: "https://github.com/runcom/plugins.git"
+      dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/custom-bridge-plugins"
+      version: "custom-bridge"
+
     - repo: "https://github.com/opencontainers/runc.git"
       dest: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
       version: "84a082bfef6f932de921437815355186db37aeb1"

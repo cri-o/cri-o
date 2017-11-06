@@ -17,20 +17,16 @@
       always_force: False
 
   post_tasks:
-    - name: clone build and install bats
-      include: "build/bats.yml"
 
-    - name: clone build and install cri-tools
-      include: "build/cri-tools.yml"
-
-    - name: clone build and install kubernetes
+    - name: Install ETCD and Build Kubernetes
       include: "build/kubernetes.yml"
 
-    - name: clone build and install runc
+    - name: Build runc
       include: "build/runc.yml"
 
-    - name: clone build and install networking plugins
+    - name: Build networking plugins
       include: "build/plugins.yml"
+
 
 - hosts: all
   remote_user: root
@@ -45,8 +41,36 @@
       always_force: True
 
   post_tasks:
-    - name: clone build and install cri-o
+    - name: Install BATS
+      include: "install/bats.yml"
+
+    - name: Install cri-tools
+      include: "install/cri-tools.yml"
+
+    - name: Re-Install ETCD and Re-Build Kubernetes
+      include: "build/kubernetes.yml"
+
+    - name: Re-Install kubernetes
+      include: "install/kubernetes.yml"
+
+    - name: Build runc
+      include: "build/runc.yml"
+
+    - name: install runc
+      include: "install/runc.yml"
+
+    - name: Build networking plugins
+      include: "build/plugins.yml"
+
+    - name: Install networking plugins
+      include: "install/plugins.yml"
+
+    - name: Build CRI-O
       include: "build/cri-o.yml"
+
+    - name: Install CRI-O
+      include: "install/cri-o.yml"
+
 
 - hosts: all
   remote_user: root
