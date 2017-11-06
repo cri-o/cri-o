@@ -6,6 +6,9 @@ override CFLAGS += -std=c99 -Os -Wall -Wextra $(shell pkg-config --cflags glib-2
 
 conmon: $(obj)
 	$(CC) -o ../bin/$@ $^ $(CFLAGS) $(LIBS)
+ifndef DISTRO_BUILD
+	strip ../bin/$@
+endif
 
 .PHONY: clean
 clean:
