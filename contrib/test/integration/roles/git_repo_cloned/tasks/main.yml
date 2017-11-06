@@ -1,0 +1,23 @@
+---
+
+- assert:
+    that:
+        # Verify conformance with defaults, expected types, and values
+        - "git_op_timeout | default(0) >= 1"
+        - "git_op_status_delay | default(0) >= 1"
+        - "git_ops is defined"
+        # Verify vars were not overridden by command-line, include, or role override
+        - "async_results == []"
+        - "result == None"
+
+- name: All git operations are run in parallel
+  include: "{{ role_path }}/tasks/async_git.yml"
+  with_items: "{{ git_ops }}"
+  loop_control:
+    loop_var: "git_op"
+
+- name: All parallel git operations are completed and are successful
+  include: "{{ role_path }}/tasks/async_status.yml"
+  with_items: "{{ async_results }}"
+  loop_control:
+    loop_var: "async_result"
