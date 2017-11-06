@@ -4,7 +4,7 @@
   git:
     repo: "https://github.com/runcom/kubernetes.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-    version: "cri-o-node-e2e-patched"
+    version: "cri-o-node-e2e-patched-logs"
 
 - name: install etcd
   command: "hack/install-etcd.sh"
