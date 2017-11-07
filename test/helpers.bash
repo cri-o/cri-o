@@ -14,8 +14,6 @@ CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/bin/crio}
 # Path of the crictl binary.
 CRICTL_PATH=$(command -v crictl || true)
 CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
-# Path to kpod binary.
-KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/cri-o/bin/kpod}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/bin/conmon}
 # Path of the pause binary.
@@ -98,8 +96,6 @@ CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
 CRIO_CNI_PLUGIN=${CRIO_CNI_PLUGIN:-/opt/cni/bin/}
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
-
-KPOD_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY}"
 
 cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
