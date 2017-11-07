@@ -1,0 +1,28 @@
+---
+
+- name: install plugins
+  copy:
+    src: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins/bin/{{ item }}"
+    dest: "/opt/cni/bin"
+    mode: "o=rwx,g=rx,o=rx"
+    remote_src: yes
+  with_items:
+    - bridge
+    - dhcp
+    - flannel
+    - host-local
+    - ipvlan
+    - loopback
+    - macvlan
+    - ptp
+    - sample
+    - tuning
+    - vlan
+
+- name: install custom bridge
+  copy:
+    # TODO: Okay to rename this plugins -> custom-bridge-plugins?
+    src: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/custom-bridge-plugins/bin/bridge"
+    dest: "/opt/cni/bin/bridge-custom"
+    mode: "o=rwx,g=rx,o=rx"
+    remote_src: yes

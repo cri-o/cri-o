@@ -1,5 +1,32 @@
 ---
 
+# List of repositories to clone.  Each item accepts any option or value supported
+# by Ansible's ``git`` module.
+git_operations:
+    - repo: "https://github.com/sstephenson/bats.git"
+      dest: "{{ ansible_env.GOPATH }}/src/github.com/sstephenson/bats"
+
+    - repo: "https://github.com/kubernetes-incubator/cri-tools.git"
+      dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-tools"
+      version: "9ff5e8f78a4182ab8d5ba9bcccdda5f338600eab"
+
+    - repo: "https://github.com/runcom/kubernetes.git"
+      dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+      version: "cri-o-patched-1.8"
+
+    - repo: "https://github.com/containernetworking/plugins.git"
+      dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
+      version: "dcf7368eeab15e2affc6256f0bb1e84dd46a34de"
+
+    # TODO: Okay to rename this plugins -> custom-bridge-plugins and drop force: yes?
+    - repo: "https://github.com/runcom/plugins.git"
+      dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/custom-bridge-plugins"
+      version: "custom-bridge"
+
+    - repo: "https://github.com/opencontainers/runc.git"
+      dest: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
+      version: "84a082bfef6f932de921437815355186db37aeb1"
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"

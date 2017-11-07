@@ -1,0 +1,18 @@
+---
+
+# Maximum time to wait (in seconds) for each git operation to complete
+git_op_timeout: '{{ 60 * 30 }}'
+
+# Interval time (in seconds) to wait between each git status check
+git_op_status_delay: '10'
+
+# List of dictionaries, with options to the git ansible module.
+git_ops:
+
+# Default depth to use when no depth option specified (above).
+#     1: shallow clone only reference HEAD
+#     None: clone all commits
+git_def_depth: 1
+
+# When true, always force-clone, clobbering any posible local changes.
+always_force: False

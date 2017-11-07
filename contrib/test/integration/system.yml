@@ -23,10 +23,7 @@
     - libassuan-devel
     - libffi-devel
     - libgpg-error-devel
-    - libguestfs-tools
     - libseccomp-devel
-    - libvirt-client
-    - libvirt-python
     - libxml2-devel
     - libxslt-devel
     - make
@@ -41,8 +38,6 @@
     - ostree-devel
     - pkgconfig
     - python
-    - python2-boto
-    - python2-crypto
     - python-devel
     - python-virtualenv
     - PyYAML
