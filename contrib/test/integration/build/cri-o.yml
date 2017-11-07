@@ -1,42 +1,42 @@
 ---
 
-- name: stat the expected cri-o directory
+- name: stat the expected cri-o directory and Makefile exists
   stat:
-    path: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
-  register: dir_stat
+    path: "{{ cri_o_dest_path }}/Makefile"
+  register: crio_stat
 
-- name: expect cri-o to be cloned already
+- name: Verify cri-o Makefile exists in expected location
   fail:
-    msg: "Expected cri-o to be cloned at {{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o but it wasn't!"
-  when: not dir_stat.stat.exists
+    msg: "Expected cri-o to be cloned at {{ cri_o_dest_path }}, but its 'Makefile' seems to be missing."
+  when: not crio_stat.stat.exists or not crio_stat.stat.isreg
 
 - name: install cri-o tools
   make:
     target: install.tools
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+    chdir: "{{ cri_o_dest_path }}"
 
 - name: build cri-o
   make:
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+    chdir: "{{ cri_o_dest_path }}"
 
 - name: install cri-o
   make:
     target: install
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+    chdir: "{{ cri_o_dest_path }}"
 
 - name: install cri-o systemd files
   make:
     target: install.systemd
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+    chdir: "{{ cri_o_dest_path }}"
 
 - name: install cri-o config
   make:
     target: install.config
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+    chdir: "{{ cri_o_dest_path }}"
 
 - name: install configs
   copy:
-    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/{{ item.src }}"
+    src: "{{ cri_o_dest_path }}/{{ item.src }}"
     dest: "{{ item.dest }}"
     remote_src: yes
   with_items:

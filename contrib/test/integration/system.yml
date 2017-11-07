@@ -63,6 +63,7 @@
     state: present
   with_items:
    - btrfs-progs-devel
+   - python2-virtualenv
   when: ansible_distribution in ['Fedora']
 
 - name: Update all packages

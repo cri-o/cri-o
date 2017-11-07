@@ -1,5 +1,14 @@
 ---
 
+# Base directory for all go-related source, build, and install.
+go_path: "/go"
+
+# Absolute path on control-host where the cri-o source exists
+cri_o_src_path: "{{ playbook_dir }}/../../../"
+
+# Absolute path on subject-host where cri-o source is expected
+cri_o_dest_path: "{{ go_path }}/src/github.com/kubernetes-incubator/cri-o"
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"

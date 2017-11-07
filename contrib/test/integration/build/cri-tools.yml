@@ -3,7 +3,7 @@
 - name: clone cri-tools source repo
   git:
     repo: "https://github.com/kubernetes-incubator/cri-tools.git"
-    dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-tools"
+    dest: "{{ go_path }}/src/github.com/kubernetes-incubator/cri-tools"
     version: "9ff5e8f78a4182ab8d5ba9bcccdda5f338600eab"
 
 - name: install crictl
@@ -11,6 +11,6 @@
 
 - name: link crictl
   file:
-    src: "{{ ansible_env.GOPATH }}/bin/crictl"
+    src: "{{ go_path }}/bin/crictl"
     dest: /usr/bin/crictl
     state: link
