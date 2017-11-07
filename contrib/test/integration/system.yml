@@ -1,59 +1,62 @@
 ---
 
+- name: Required packages are buffered so package module can install all at once
+  set_fact:
+    required_packages:
+        - container-selinux
+        - curl
+        - device-mapper-devel
+        - expect
+        - findutils
+        - gcc
+        - git
+        - glib2-devel
+        - glibc-devel
+        - glibc-static
+        - gpgme-devel
+        - hostname
+        - iproute
+        - iptables
+        - krb5-workstation
+        - libassuan-devel
+        - libffi-devel
+        - libgpg-error-devel
+        - libguestfs-tools
+        - libseccomp-devel
+        - libvirt-client
+        - libvirt-python
+        - libxml2-devel
+        - libxslt-devel
+        - make
+        - mlocate
+        - nfs-utils
+        - nmap-ncat
+        - oci-register-machine
+        - oci-systemd-hook
+        - oci-umount
+        - openssl
+        - openssl-devel
+        - ostree-devel
+        - pkgconfig
+        - python
+        - python2-boto
+        - python2-crypto
+        - python-devel
+        - python-virtualenv
+        - PyYAML
+        - redhat-rpm-config
+        - rpcbind
+        - rsync
+        - sed
+        - skopeo-containers
+        - socat
+        - tar
+        - wget
+
 - name: Make sure we have all required packages
   package:
-    name: "{{ item }}"
+    name: "{{ required_packages | join(', ') }}"
     state: present
-  with_items:
-    - container-selinux
-    - curl
-    - device-mapper-devel
-    - expect
-    - findutils
-    - gcc
-    - git
-    - glib2-devel
-    - glibc-devel
-    - glibc-static
-    - gpgme-devel
-    - hostname
-    - iproute
-    - iptables
-    - krb5-workstation
-    - libassuan-devel
-    - libffi-devel
-    - libgpg-error-devel
-    - libguestfs-tools
-    - libseccomp-devel
-    - libvirt-client
-    - libvirt-python
-    - libxml2-devel
-    - libxslt-devel
-    - make
-    - mlocate
-    - nfs-utils
-    - nmap-ncat
-    - oci-register-machine
-    - oci-systemd-hook
-    - oci-umount
-    - openssl
-    - openssl-devel
-    - ostree-devel
-    - pkgconfig
-    - python
-    - python2-boto
-    - python2-crypto
-    - python-devel
-    - python-virtualenv
-    - PyYAML
-    - redhat-rpm-config
-    - rpcbind
-    - rsync
-    - sed
-    - skopeo-containers
-    - socat
-    - tar
-    - wget
   async: 600
   poll: 10
 
