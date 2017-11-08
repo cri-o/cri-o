@@ -1,7 +1,7 @@
 ---
 # vim-syntax: ansible
 
-- hosts: '{{ hosts | default("all") }}'
+- hosts: '{{ subjects | default("all") }}'
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   vars:

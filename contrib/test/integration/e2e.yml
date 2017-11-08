@@ -29,7 +29,7 @@
     daemon_reload: yes
 
 - name: wait for the cluster to be running
-  command: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/bin/kubectl get service kubernetes --namespace default"
+  command: "{{ go_path }}/src/k8s.io/kubernetes/_output/bin/kubectl get service kubernetes --namespace default"
   register: kube_poll
   until: kube_poll | succeeded
   retries: 100
@@ -51,10 +51,25 @@
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax hilighting: "
 
-- name: disable SELinux
-  command: setenforce 0
+- block:
 
-- name: run e2e tests
-  shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
-  args:
-    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+    - name: Disable swap during e2e tests
+      command: 'swapoff -a'
+      when: not e2e_swap_enabled
+
+    - name: Disable selinux during e2e tests
+      command: 'setenforce 0'
+      when: not e2e_selinux_enabled
+
+    - name: run e2e tests
+      shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
+      args:
+        chdir: "{{ go_path }}/src/k8s.io/kubernetes"
+
+  always:
+
+    - name: Re-enable SELinux after e2e tsts
+      command: 'setenforce 1'
+
+    - name: Re-enalbe swap after e2e tests
+      command: 'swapon -a'

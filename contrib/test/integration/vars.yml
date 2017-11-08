@@ -1,5 +1,31 @@
 ---
 
+# When swap setup is necessary, make it this size
+swapfileGB: 8
+
+# When False, turn off all swapping on the system during indicated test.
+integration_swap_enabled: False
+e2e_swap_enabled: True
+
+# When False, disable SELinux on the system only during
+# particular tests.
+integration_selinux_enabled: True
+e2e_selinux_enabled: False
+
+# Base directory for all go-related source, build, and install.
+go_path: "/go"
+
+# Absolute path on control-host where the cri-o source exists
+cri_o_src_path: "{{ playbook_dir }}/../../../"
+
+# Absolute path on subjects where cri-o source is expected
+cri_o_dest_path: "{{ go_path }}/src/github.com/kubernetes-incubator/cri-o"
+
+# Mapping of filenames to ansible_distribution (or default), to SELinux types
+set_setypes:
+    /usr/local/bin/crio:
+        default: 'container_runtime_exec_t'
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"

@@ -1,0 +1,27 @@
+---
+
+
+- name: Verify expectations
+  assert:
+    that:
+      - 'cri_o_dest_path is defined'
+      - 'cri_o_src_path is defined'
+
+- name: The cri-o repository directory exists
+  file:
+    path: "{{ cri_o_dest_path }}"
+    state: directory
+    mode: 0777
+
+- name: Synchronize cri-o from control-host to remote subject
+  synchronize:
+    archive: False
+    checksum: True
+    delete: True
+    dest: "{{ cri_o_dest_path }}/"
+    links: True
+    recursive: True
+    src: "{{ cri_o_src_path }}/"
+    times: True
+  # This task is excessively noisy, logging every change to every file :(
+  no_log: True
