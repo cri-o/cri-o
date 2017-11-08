@@ -5,6 +5,7 @@
     repo: "https://github.com/runcom/kubernetes.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
     version: "cri-o-patched-1.8"
+    force: "{{ force_clone | default(False) | bool}}"
 
 - name: install etcd
   command: "hack/install-etcd.sh"
