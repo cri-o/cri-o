@@ -94,7 +94,7 @@ ifneq ($(GOPATH),)
 	rm -f "$(GOPATH)/.gopathok"
 endif
 	rm -rf _output
-	rm -f docs/*.1 docs/*.5 docs/*.8
+	rm -f docs/*.5 docs/*.8
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
@@ -126,9 +126,6 @@ test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/check
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
-docs/%.1: docs/%.1.md .gopathok
-	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
-
 docs/%.5: docs/%.5.md .gopathok
 	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
@@ -146,10 +143,8 @@ install.bin:
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 
 install.man:
-	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man8
-	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 

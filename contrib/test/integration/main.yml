@@ -54,5 +54,10 @@
   tags:
     - e2e
   tasks:
+    - name: clone build and install kubernetes
+      include: "build/kubernetes.yml"
+      vars:
+          force_clone: True
+
     - name: run k8s e2e tests
       include: e2e.yml
