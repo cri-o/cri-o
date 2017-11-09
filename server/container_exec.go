@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/docker/docker/pkg/pools"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -18,10 +19,16 @@ import (
 )
 
 // Exec prepares a streaming endpoint to execute a command in the container.
-func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (*pb.ExecResponse, error) {
+func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (resp *pb.ExecResponse, err error) {
+	const operation = "exec"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("ExecRequest %+v", req)
 
-	resp, err := s.GetExec(req)
+	resp, err = s.GetExec(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare exec endpoint")
 	}

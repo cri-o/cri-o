@@ -1,13 +1,21 @@
 package server
 
 import (
+	"time"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
 // ListImages lists existing images.
-func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (*pb.ListImagesResponse, error) {
+func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (resp *pb.ListImagesResponse, err error) {
+	const operation = "list_images"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("ListImagesRequest: %+v", req)
 	filter := ""
 	reqFilter := req.GetFilter()
@@ -21,21 +29,21 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (*pb
 	if err != nil {
 		return nil, err
 	}
-	response := pb.ListImagesResponse{}
+	resp = &pb.ListImagesResponse{}
 	for _, result := range results {
 		if result.Size != nil {
-			response.Images = append(response.Images, &pb.Image{
+			resp.Images = append(resp.Images, &pb.Image{
 				Id:       result.ID,
 				RepoTags: result.Names,
 				Size_:    *result.Size,
 			})
 		} else {
-			response.Images = append(response.Images, &pb.Image{
+			resp.Images = append(resp.Images, &pb.Image{
 				Id:       result.ID,
 				RepoTags: result.Names,
 			})
 		}
 	}
-	logrus.Debugf("ListImagesResponse: %+v", response)
-	return &response, nil
+	logrus.Debugf("ListImagesResponse: %+v", resp)
+	return resp, nil
 }

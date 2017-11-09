@@ -532,6 +532,11 @@ func addSecretsBindMounts(mountLabel, ctrRunDir string, defaultMounts []string, 
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
+	const operation = "create_container"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
 	logrus.Debugf("CreateContainerRequest %+v", req)
 
 	s.updateLock.RLock()

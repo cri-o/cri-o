@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/base64"
 	"strings"
+	"time"
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
@@ -12,7 +13,13 @@ import (
 )
 
 // PullImage pulls a image with authentication config.
-func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.PullImageResponse, error) {
+func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp *pb.PullImageResponse, err error) {
+	const operation = "pull_image"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("PullImageRequest: %+v", req)
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
 	image := ""
@@ -24,7 +31,6 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	var (
 		images []string
 		pulled string
-		err    error
 	)
 	images, err = s.StorageImageServer().ResolveNames(image)
 	if err != nil {
@@ -85,7 +91,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	if pulled == "" && err != nil {
 		return nil, err
 	}
-	resp := &pb.PullImageResponse{
+	resp = &pb.PullImageResponse{
 		ImageRef: pulled,
 	}
 	logrus.Debugf("PullImageResponse: %+v", resp)

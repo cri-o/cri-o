@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -8,7 +10,13 @@ import (
 )
 
 // PodSandboxStatus returns the Status of the PodSandbox.
-func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
+func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (resp *pb.PodSandboxStatusResponse, err error) {
+	const operation = "pod_sandbox_status"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("PodSandboxStatusRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
@@ -24,7 +32,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	sandboxID := sb.ID()
-	resp := &pb.PodSandboxStatusResponse{
+	resp = &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
 			Id:          sandboxID,
 			CreatedAt:   podInfraContainer.CreatedAt().UnixNano(),

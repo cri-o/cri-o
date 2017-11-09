@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
@@ -28,7 +30,13 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 }
 
 // ListPodSandbox returns a list of SandBoxes.
-func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
+func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (resp *pb.ListPodSandboxResponse, err error) {
+	const operation = "list_pod_sandbox"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("ListPodSandboxRequest %+v", req)
 	var pods []*pb.PodSandbox
 	var podList []*sandbox.Sandbox
@@ -86,7 +94,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		}
 	}
 
-	resp := &pb.ListPodSandboxResponse{
+	resp = &pb.ListPodSandboxResponse{
 		Items: pods,
 	}
 	logrus.Debugf("ListPodSandboxResponse %+v", resp)

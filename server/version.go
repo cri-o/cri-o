@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/kubernetes-incubator/cri-o/version"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
@@ -17,7 +19,13 @@ const (
 )
 
 // Version returns the runtime name, runtime version and runtime API version
-func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (*pb.VersionResponse, error) {
+func (s *Server) Version(ctx context.Context, req *pb.VersionRequest) (resp *pb.VersionResponse, err error) {
+	const operation = "version"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	return &pb.VersionResponse{
 		Version:           kubeAPIVersion,
 		RuntimeName:       containerName,

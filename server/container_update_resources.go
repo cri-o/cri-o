@@ -1,14 +1,24 @@
 package server
 
 import (
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
 // UpdateContainerResources updates ContainerConfig of the container.
-func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateContainerResourcesRequest) (*pb.UpdateContainerResourcesResponse, error) {
+func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateContainerResourcesRequest) (resp *pb.UpdateContainerResourcesResponse, err error) {
+	const operation = "update_container_resources"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+	logrus.Debugf("UpdateContainerResources %+v", req)
+
 	c, err := s.GetContainerFromRequest(req.GetContainerId())
 	if err != nil {
 		return nil, err
