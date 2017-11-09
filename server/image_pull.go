@@ -66,14 +66,6 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 			continue
 		}
 
-		// let's be smart, docker doesn't repull if image already exists.
-		_, err = s.StorageImageServer().ImageStatus(s.ImageContext(), img)
-		if err == nil {
-			logrus.Debugf("image %s already in store, skipping pull", img)
-			pulled = img
-			break
-		}
-
 		_, err = s.StorageImageServer().PullImage(s.ImageContext(), img, options)
 		if err != nil {
 			logrus.Debugf("error pulling image %s: %v", img, err)
