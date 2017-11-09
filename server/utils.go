@@ -5,9 +5,11 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/server/metrics"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/syndtr/gocapability/capability"
 )
@@ -180,4 +182,17 @@ func getOCICapabilitiesList() []string {
 		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
 	}
 	return caps
+}
+
+func recordOperation(operation string, start time.Time) {
+	metrics.CRIOOperations.WithLabelValues(operation).Inc()
+	metrics.CRIOOperationsLatency.WithLabelValues(operation).Observe(metrics.SinceInMicroseconds(start))
+}
+
+// recordError records error for metric if an error occurred.
+func recordError(operation string, err error) {
+	if err != nil {
+		// TODO(runcom): handle timeout from ctx as well
+		metrics.CRIOOperationsErrors.WithLabelValues(operation).Inc()
+	}
 }

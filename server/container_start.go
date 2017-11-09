@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
@@ -10,7 +11,12 @@ import (
 )
 
 // StartContainer starts the container.
-func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (*pb.StartContainerResponse, error) {
+func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (resp *pb.StartContainerResponse, err error) {
+	const operation = "start_container"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
 	logrus.Debugf("StartContainerRequest %+v", req)
 	c, err := s.GetContainerFromRequest(req.ContainerId)
 	if err != nil {
@@ -37,7 +43,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 
-	resp := &pb.StartContainerResponse{}
+	resp = &pb.StartContainerResponse{}
 	logrus.Debugf("StartContainerResponse %+v", resp)
 	return resp, nil
 }

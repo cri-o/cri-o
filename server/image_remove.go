@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -10,7 +11,13 @@ import (
 )
 
 // RemoveImage removes the image.
-func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*pb.RemoveImageResponse, error) {
+func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (resp *pb.RemoveImageResponse, err error) {
+	const operation = "remove_image"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("RemoveImageRequest: %+v", req)
 	image := ""
 	img := req.GetImage()
@@ -22,7 +29,6 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*
 	}
 	var (
 		images  []string
-		err     error
 		deleted bool
 	)
 	images, err = s.StorageImageServer().ResolveNames(image)
@@ -46,7 +52,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*
 	if !deleted && err != nil {
 		return nil, err
 	}
-	resp := &pb.RemoveImageResponse{}
+	resp = &pb.RemoveImageResponse{}
 	logrus.Debugf("RemoveImageResponse: %+v", resp)
 	return resp, nil
 }
