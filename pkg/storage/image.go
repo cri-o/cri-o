@@ -159,8 +159,8 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	if err != nil {
 		return nil, err
 	}
+	defer img.Close()
 	size := imageSize(img)
-	img.Close()
 
 	result := ImageResult{
 		ID:           image.ID,
