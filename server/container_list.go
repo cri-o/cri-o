@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -27,8 +29,14 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 }
 
 // ListContainers lists all containers by filters.
-func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (*pb.ListContainersResponse, error) {
+func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (resp *pb.ListContainersResponse, err error) {
+	const operation = "list_containers"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
 	logrus.Debugf("ListContainersRequest %+v", req)
+
 	var ctrs []*pb.Container
 	filter := req.Filter
 	ctrList, err := s.ContainerServer.ListContainers()
@@ -104,7 +112,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		}
 	}
 
-	resp := &pb.ListContainersResponse{
+	resp = &pb.ListContainersResponse{
 		Containers: ctrs,
 	}
 	logrus.Debugf("ListContainersResponse: %+v", resp)

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -14,7 +16,12 @@ const (
 )
 
 // ContainerStatus returns status of the container.
-func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
+func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (resp *pb.ContainerStatusResponse, err error) {
+	const operation = "container_status"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
 	logrus.Debugf("ContainerStatusRequest %+v", req)
 	c, err := s.GetContainerFromRequest(req.ContainerId)
 	if err != nil {
@@ -22,7 +29,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 
 	containerID := c.ID()
-	resp := &pb.ContainerStatusResponse{
+	resp = &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
 			Id:          containerID,
 			Metadata:    c.Metadata(),

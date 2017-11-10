@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
@@ -15,7 +16,13 @@ import (
 
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
-func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
+func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (resp *pb.RemovePodSandboxResponse, err error) {
+	const operation = "remove_pod_sandbox"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("RemovePodSandboxRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
@@ -27,7 +34,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		// the the CRI interface which expects to not error out in not found
 		// cases.
 
-		resp := &pb.RemovePodSandboxResponse{}
+		resp = &pb.RemovePodSandboxResponse{}
 		logrus.Warnf("could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
 		return resp, nil
 	}
@@ -92,7 +99,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		return nil, fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.ID(), err)
 	}
 
-	resp := &pb.RemovePodSandboxResponse{}
+	resp = &pb.RemovePodSandboxResponse{}
 	logrus.Debugf("RemovePodSandboxResponse %+v", resp)
 	return resp, nil
 }

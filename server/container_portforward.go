@@ -6,6 +6,7 @@ import (
 	"io"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/pkg/pools"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -15,11 +16,15 @@ import (
 )
 
 // PortForward prepares a streaming endpoint to forward ports from a PodSandbox.
-func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (resp *pb.PortForwardResponse, err error) {
+	const operation = "port_forward"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
 	logrus.Debugf("PortForwardRequest %+v", req)
 
-	resp, err := s.GetPortForward(req)
-
+	resp, err = s.GetPortForward(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare portforward endpoint")
 	}
