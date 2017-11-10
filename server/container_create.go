@@ -921,9 +921,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	// Do not share pid ns for now
 	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() {
+		// kubernetes PodSpec specify to use Host PID namespace
 		specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace))
+	} else if !s.config.DisableSharedPIDNamespace {
+		// share Pod PID namespace
+		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", podInfraState.Pid)
+		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
+			return nil, err
+		}
 	}
 
 	netNsPath := sb.NetNsPath()
