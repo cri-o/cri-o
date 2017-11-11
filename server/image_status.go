@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -12,7 +13,13 @@ import (
 )
 
 // ImageStatus returns the status of the image.
-func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*pb.ImageStatusResponse, error) {
+func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (resp *pb.ImageStatusResponse, err error) {
+	const operation = "image_status"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("ImageStatusRequest: %+v", req)
 	image := ""
 	img := req.GetImage()
@@ -40,7 +47,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*
 		}
 		return nil, err
 	}
-	resp := &pb.ImageStatusResponse{
+	resp = &pb.ImageStatusResponse{
 		Image: &pb.Image{
 			Id:       status.ID,
 			RepoTags: status.Names,

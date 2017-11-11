@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/mount"
@@ -18,7 +19,13 @@ import (
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be force terminated.
-func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
+func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (resp *pb.StopPodSandboxResponse, err error) {
+	const operation = "stop_pod_sandbox"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	logrus.Debugf("StopPodSandboxRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
@@ -30,14 +37,14 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		// the the CRI interface which expects to not error out in not found
 		// cases.
 
-		resp := &pb.StopPodSandboxResponse{}
+		resp = &pb.StopPodSandboxResponse{}
 		logrus.Warnf("could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
 		logrus.Debugf("StopPodSandboxResponse %s: %+v", req.PodSandboxId, resp)
 		return resp, nil
 	}
 
 	if sb.Stopped() {
-		resp := &pb.StopPodSandboxResponse{}
+		resp = &pb.StopPodSandboxResponse{}
 		logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
 		return resp, nil
 	}
@@ -95,7 +102,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	sb.SetStopped()
-	resp := &pb.StopPodSandboxResponse{}
+	resp = &pb.StopPodSandboxResponse{}
 	logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
 	return resp, nil
 }

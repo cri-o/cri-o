@@ -17,6 +17,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	distreference "github.com/docker/distribution/reference"
+	digest "github.com/opencontainers/go-digest"
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
@@ -25,6 +26,10 @@ type ImageResult struct {
 	ID    string
 	Names []string
 	Size  *uint64
+	// TODO(runcom): this is an hack for https://github.com/kubernetes-incubator/cri-o/pull/1136
+	// drop this when we have proper image IDs (as in, image IDs should be just
+	// the config blog digest which is stable across same images).
+	ConfigDigest digest.Digest
 }
 
 type indexInfo struct {
@@ -47,6 +52,9 @@ type ImageServer interface {
 	ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error)
 	// ImageStatus returns status of an image which matches the filter.
 	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
+	// PrepareImage returns an Image where the config digest can be grabbed
+	// for further analysis. Call Close() on the resulting image.
+	PrepareImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.Image, error)
 	// PullImage imports an image from the specified location.
 	PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error)
 	// RemoveImage deletes the specified image.
@@ -146,14 +154,16 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	if err != nil {
 		return nil, err
 	}
+	defer img.Close()
 	size := imageSize(img)
-	img.Close()
 
-	return &ImageResult{
-		ID:    image.ID,
-		Names: image.Names,
-		Size:  size,
-	}, nil
+	res := &ImageResult{
+		ID:           image.ID,
+		Names:        image.Names,
+		Size:         size,
+		ConfigDigest: img.ConfigInfo().Digest,
+	}
+	return res, nil
 }
 
 func imageSize(img types.Image) *uint64 {
@@ -165,7 +175,7 @@ func imageSize(img types.Image) *uint64 {
 }
 
 func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool, error) {
-	srcRef, err := svc.prepareImage(imageName, options)
+	srcRef, err := svc.prepareReference(imageName, options)
 	if err != nil {
 		return false, err
 	}
@@ -182,9 +192,9 @@ func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool,
 	return true, nil
 }
 
-// prepareImage creates an image reference from an image string and set options
+// prepareReference creates an image reference from an image string and set options
 // for the source context
-func (svc *imageService) prepareImage(imageName string, options *copy.Options) (types.ImageReference, error) {
+func (svc *imageService) prepareReference(imageName string, options *copy.Options) (types.ImageReference, error) {
 	if imageName == "" {
 		return nil, storage.ErrNotAnImage
 	}
@@ -212,6 +222,18 @@ func (svc *imageService) prepareImage(imageName string, options *copy.Options) (
 	return srcRef, nil
 }
 
+func (svc *imageService) PrepareImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.Image, error) {
+	if options == nil {
+		options = &copy.Options{}
+	}
+
+	srcRef, err := svc.prepareReference(imageName, options)
+	if err != nil {
+		return nil, err
+	}
+	return srcRef.NewImage(systemContext)
+}
+
 func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error) {
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
@@ -225,7 +247,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 		options = &copy.Options{}
 	}
 
-	srcRef, err := svc.prepareImage(imageName, options)
+	srcRef, err := svc.prepareReference(imageName, options)
 	if err != nil {
 		return nil, err
 	}

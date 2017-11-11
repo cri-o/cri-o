@@ -20,6 +20,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
+	"github.com/kubernetes-incubator/cri-o/server/metrics"
 	"github.com/kubernetes-incubator/cri-o/server/seccomp"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -349,6 +350,7 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 // CreateMetricsEndpoint creates a /metrics endpoint
 // for prometheus monitoring
 func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
+	metrics.Register()
 	mux := &http.ServeMux{}
 	mux.Handle("/metrics", prometheus.Handler())
 	return mux, nil

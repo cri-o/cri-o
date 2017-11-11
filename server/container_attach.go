@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/utils"
@@ -25,10 +26,15 @@ const (
 )
 
 // Attach prepares a streaming endpoint to attach to a running container.
-func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (*pb.AttachResponse, error) {
+func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (resp *pb.AttachResponse, err error) {
+	const operation = "attach"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
 	logrus.Debugf("AttachRequest %+v", req)
 
-	resp, err := s.GetAttach(req)
+	resp, err = s.GetAttach(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare attach endpoint")
 	}

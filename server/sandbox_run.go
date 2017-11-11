@@ -95,6 +95,12 @@ var (
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
+	const operation = "run_pod_sandbox"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
+
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
 

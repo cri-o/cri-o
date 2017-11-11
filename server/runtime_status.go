@@ -1,12 +1,19 @@
 package server
 
 import (
+	"time"
+
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
 // Status returns the status of the runtime
-func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
+func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.StatusResponse, err error) {
+	const operation = "status"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
 
 	// Deal with Runtime conditions
 	runtimeReady, err := s.Runtime().RuntimeReady()
@@ -22,7 +29,7 @@ func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 	runtimeReadyConditionString := pb.RuntimeReady
 	networkReadyConditionString := pb.NetworkReady
 
-	resp := &pb.StatusResponse{
+	resp = &pb.StatusResponse{
 		Status: &pb.RuntimeStatus{
 			Conditions: []*pb.RuntimeCondition{
 				{

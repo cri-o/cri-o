@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
@@ -10,7 +11,12 @@ import (
 )
 
 // ExecSync runs a command in a container synchronously.
-func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.ExecSyncResponse, error) {
+func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *pb.ExecSyncResponse, err error) {
+	const operation = "exec_sync"
+	defer func() {
+		recordOperation(operation, time.Now())
+		recordError(operation, err)
+	}()
 	logrus.Debugf("ExecSyncRequest %+v", req)
 	c, err := s.GetContainerFromRequest(req.ContainerId)
 	if err != nil {
@@ -35,7 +41,7 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.Exe
 	if err != nil {
 		return nil, err
 	}
-	resp := &pb.ExecSyncResponse{
+	resp = &pb.ExecSyncResponse{
 		Stdout:   execResp.Stdout,
 		Stderr:   execResp.Stderr,
 		ExitCode: execResp.ExitCode,
