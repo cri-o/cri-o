@@ -101,7 +101,7 @@ cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
 PATH=$PATH:$TESTDIR
 
-# Make sure we have a copy of the redis:alpine image.
+# Make sure we have a copy of the redis:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/redis-image
     if ! "$COPYIMG_BINARY" --import-from=docker://redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
@@ -111,10 +111,10 @@ if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     fi
 fi
 
-# TODO: remove the code below for pulling redis:alpine using a canonical reference once
-#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete and we can
-#       pull the image using a tagged reference and then subsequently find the image without
-#       having to explicitly record the canonical reference as one of the image's names
+# TODO: remove the code below for redis digested image id when
+#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+#       as the digested reference will be auto-stored when pulling the tag
+#       above
 if ! [ -d "$ARTIFACTS_PATH"/redis-image-digest ]; then
     mkdir -p "$ARTIFACTS_PATH"/redis-image-digest
     if ! "$COPYIMG_BINARY" --import-from=docker://redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --export-to=dir:"$ARTIFACTS_PATH"/redis-image-digest --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
@@ -230,16 +230,16 @@ function start_crio() {
 	if ! [ "$3" = "--no-pause-image" ] ; then
 		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-# TODO: remove the code below for copying redis:alpine in using a canonical reference once
-#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete and we can
-#       copy the image using a tagged reference and then subsequently find the image without
-#       having to explicitly record the canonical reference as one of the image's names
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --import-from=dir:"$ARTIFACTS_PATH"/redis-image-digest --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/mrunalp/image-volume-test --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
+# TODO: remove the code below for redis:alpine digested image id when
+#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+#       as the digested reference will be auto-stored when pulling the tag
+#       above
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --import-from=dir:"$ARTIFACTS_PATH"/redis-image-digest --add-name=docker.io/library/redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --add-name=docker.io/library/mrunalp/oom --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/image-volume-test --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --add-name=docker.io/library/mrunalp/image-volume-test --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --add-name=docker.io/library/busybox:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --add-name=docker.io/runcom/stderr-test:latest --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --registry "docker.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --config /dev/null config >$CRIO_CONFIG
 
 	# Prepare the CNI configuration files, we're running with non host networking by default
@@ -258,17 +258,29 @@ function start_crio() {
 		crictl pull redis:alpine
 	fi
 	REDIS_IMAGEID=$(crictl inspecti redis:alpine | head -1 | sed -e "s/ID: //g")
-	run crictl inspecti redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b
-	if [ "$status" -ne 0 ] ; then
-		crictl pull redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b
-	fi
-	REDIS_IMAGEID_DIGESTED=$(crictl inspecti redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b | head -1 | sed -e "s/ID: //g")
 	run crictl inspecti mrunalp/oom
 	if [ "$status" -ne 0 ] ; then
 		  crictl pull mrunalp/oom
 	fi
-	OOM_IMAGEID=$(crictl inspecti mrunalp/oom | head -1 | sed -e "s/ID: //g")
-	run crioctl image status --id=runcom/stderr-test
+	#
+	#
+	#
+	# TODO: remove the code below for redis digested image id when
+	#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+	#       as the digested reference will be auto-stored when pulling the tag
+	#       above
+	#
+	#
+	#
+	REDIS_IMAGEID_DIGESTED="redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
+	run crictl inspecti $REDIS_IMAGEID_DIGESTED
+	if [ "$status" -ne 0 ]; then
+		crictl pull $REDIS_IMAGEID_DIGESTED
+	fi
+	#
+	#
+	#
+	run crictl inspecti runcom/stderr-test
 	if [ "$status" -ne 0 ] ; then
 		crictl pull runcom/stderr-test:latest
 	fi

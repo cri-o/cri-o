@@ -168,7 +168,7 @@ func (d *Destination) ReapplyBlob(info types.BlobInfo) (types.BlobInfo, error) {
 func (d *Destination) PutManifest(m []byte) error {
 	// We do not bother with types.ManifestTypeRejectedError; our .SupportedManifestMIMETypes() above is already providing only one alternative,
 	// so the caller trying a different manifest kind would be pointless.
-	var man manifest.Schema2
+	var man schema2Manifest
 	if err := json.Unmarshal(m, &man); err != nil {
 		return errors.Wrap(err, "Error parsing manifest")
 	}
@@ -177,12 +177,12 @@ func (d *Destination) PutManifest(m []byte) error {
 	}
 
 	layerPaths := []string{}
-	for _, l := range man.LayersDescriptors {
+	for _, l := range man.Layers {
 		layerPaths = append(layerPaths, l.Digest.String())
 	}
 
 	items := []ManifestItem{{
-		Config:       man.ConfigDescriptor.Digest.String(),
+		Config:       man.Config.Digest.String(),
 		RepoTags:     []string{d.repoTag},
 		Layers:       layerPaths,
 		Parent:       "",

@@ -53,14 +53,6 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	cState := s.Runtime().ContainerStatus(c)
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
-	imageName := c.Image()
-	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), imageName)
-	if err != nil {
-		return nil, err
-	}
-
-	resp.Status.ImageRef = status.ImageRef
-
 	// If we defaulted to exit code -1 earlier then we attempt to
 	// get the exit code from the exit file again.
 	if cState.ExitCode == -1 {

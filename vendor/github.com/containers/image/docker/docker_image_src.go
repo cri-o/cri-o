@@ -52,11 +52,6 @@ func (s *dockerImageSource) Close() error {
 	return nil
 }
 
-// UpdatedLayerInfos() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *dockerImageSource) UpdatedLayerInfos() []types.BlobInfo {
-	return nil
-}
-
 // simplifyContentType drops parameters from a HTTP media type (see https://tools.ietf.org/html/rfc7231#section-3.1.1.1)
 // Alternatively, an empty string is returned unchanged, and invalid values are "simplified" to an empty string.
 func simplifyContentType(contentType string) string {

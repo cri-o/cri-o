@@ -50,7 +50,9 @@ function teardown() {
 	stop_crio
 }
 
-@test "container status return image@digest if created by image ID" {
+@test "container status return image@digest if created by image ID and digest available" {
+	skip "depends on https://github.com/kubernetes-incubator/cri-o/issues/531"
+
 	start_crio
 
 	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
@@ -75,27 +77,11 @@ function teardown() {
 	stop_crio
 }
 
-@test "image pull and list" {
+@test "image pull" {
 	start_crio "" "" --no-pause-image
 	run crioctl image pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	run crioctl image list --quiet "$IMAGE"
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
-
-	run crioctl image list --quiet @"$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-
-	run crioctl image list --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
 	cleanup_images
 	stop_crio
 }
@@ -118,32 +104,7 @@ function teardown() {
 	stop_crio
 }
 
-@test "image pull and list by tag and ID" {
-	start_crio "" "" --no-pause-image
-	run crioctl image pull "$IMAGE:go"
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	run crioctl image list --quiet "$IMAGE:go"
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
-
-	run crioctl image list --quiet @"$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-
-	run crioctl image list --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	cleanup_images
-	stop_crio
-}
-
-@test "image pull and list by digest and ID" {
+@test "image pull and list by digest" {
 	start_crio "" "" --no-pause-image
 	run crioctl image pull nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	echo "$output"
@@ -153,14 +114,18 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
-	imageid="$output"
 
-	run crioctl image list --quiet @"$imageid"
+	run crioctl image list --quiet nginx@33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
 
-	run crioctl image list --quiet "$imageid"
+	run crioctl image list --quiet @33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	run crioctl image list --quiet 33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
