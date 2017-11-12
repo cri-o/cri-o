@@ -1066,7 +1066,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 	specgen.AddAnnotation(annotations.SeccompProfilePath, spp)
-	// TODO(runcom): add spp to container...
 
 	metaname := metadata.Name
 	attempt := metadata.Attempt
@@ -1213,6 +1212,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	container.SetSpec(specgen.Spec())
 	container.SetMountPoint(mountPoint)
+	container.SetSeccompProfilePath(spp)
 
 	for _, cv := range containerVolumes {
 		container.AddVolume(cv)
