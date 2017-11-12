@@ -211,9 +211,9 @@ function retry() {
 	false
 }
 
-# Waits until the given crio becomes reachable.
+# Waits until crio becomes reachable.
 function wait_until_reachable() {
-	retry 15 1 crictl status
+	retry 15 1 crictl version
 }
 
 # Start crio.
