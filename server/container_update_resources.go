@@ -1,9 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/kubernetes-incubator/cri-o/oci"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -23,6 +25,11 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateCon
 	if err != nil {
 		return nil, err
 	}
+	state := s.Runtime().ContainerStatus(c)
+	if !(state.Status == oci.ContainerStateRunning || state.Status == oci.ContainerStateCreated) {
+		return nil, fmt.Errorf("container %s is not running or created state: %s", c.ID(), state.Status)
+	}
+
 	resources := toOCIResources(req.GetLinux())
 	if err := s.Runtime().UpdateContainer(c, resources); err != nil {
 		return nil, err
