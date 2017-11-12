@@ -224,6 +224,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// add labels
 	labels := req.GetConfig().GetLabels()
 
+	if err := validateLabels(labels); err != nil {
+		return nil, err
+	}
+
 	// Add special container name label for the infra container
 	labelsJSON := []byte{}
 	if labels != nil {

@@ -18,6 +18,8 @@ const (
 	// According to http://man7.org/linux/man-pages/man5/resolv.conf.5.html:
 	// "The search list is currently limited to six domains with a total of 256 characters."
 	maxDNSSearches = 6
+
+	maxLabelSize = 4096
 )
 
 func copyFile(src, dest string) error {
@@ -195,4 +197,16 @@ func recordError(operation string, err error) {
 		// TODO(runcom): handle timeout from ctx as well
 		metrics.CRIOOperationsErrors.WithLabelValues(operation).Inc()
 	}
+}
+
+func validateLabels(labels map[string]string) error {
+	for k, v := range labels {
+		if (len(k) + len(v)) > maxLabelSize {
+			if len(k) > 10 {
+				k = k[:10]
+			}
+			return fmt.Errorf("label key and value greater than maximum size (%d bytes), key: %s", maxLabelSize, k)
+		}
+	}
+	return nil
 }

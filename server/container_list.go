@@ -38,41 +38,44 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	logrus.Debugf("ListContainersRequest %+v", req)
 
 	var ctrs []*pb.Container
-	filter := req.Filter
+	filter := req.GetFilter()
 	ctrList, err := s.ContainerServer.ListContainers()
 	if err != nil {
 		return nil, err
 	}
 
-	// Filter using container id and pod id first.
-	if filter.Id != "" {
-		id, err := s.CtrIDIndex().Get(filter.Id)
-		if err != nil {
-			// If we don't find a container ID with a filter, it should not
-			// be considered an error.  Log a warning and return an empty struct
-			logrus.Warn("unable to find container ID %s", filter.Id)
-			return &pb.ListContainersResponse{}, nil
-		}
-		c := s.ContainerServer.GetContainer(id)
-		if c != nil {
-			if filter.PodSandboxId != "" {
-				if c.Sandbox() == filter.PodSandboxId {
-					ctrList = []*oci.Container{c}
-				} else {
-					ctrList = []*oci.Container{}
-				}
+	if filter != nil {
 
-			} else {
-				ctrList = []*oci.Container{c}
+		// Filter using container id and pod id first.
+		if filter.Id != "" {
+			id, err := s.CtrIDIndex().Get(filter.Id)
+			if err != nil {
+				// If we don't find a container ID with a filter, it should not
+				// be considered an error.  Log a warning and return an empty struct
+				logrus.Warn("unable to find container ID %s", filter.Id)
+				return &pb.ListContainersResponse{}, nil
 			}
-		}
-	} else {
-		if filter.PodSandboxId != "" {
-			pod := s.ContainerServer.GetSandbox(filter.PodSandboxId)
-			if pod == nil {
-				ctrList = []*oci.Container{}
-			} else {
-				ctrList = pod.Containers().List()
+			c := s.ContainerServer.GetContainer(id)
+			if c != nil {
+				if filter.PodSandboxId != "" {
+					if c.Sandbox() == filter.PodSandboxId {
+						ctrList = []*oci.Container{c}
+					} else {
+						ctrList = []*oci.Container{}
+					}
+
+				} else {
+					ctrList = []*oci.Container{c}
+				}
+			}
+		} else {
+			if filter.PodSandboxId != "" {
+				pod := s.ContainerServer.GetSandbox(filter.PodSandboxId)
+				if pod == nil {
+					ctrList = []*oci.Container{}
+				} else {
+					ctrList = pod.Containers().List()
+				}
 			}
 		}
 	}

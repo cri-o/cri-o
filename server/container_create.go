@@ -720,6 +720,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	labels := containerConfig.GetLabels()
 
+	if err := validateLabels(labels); err != nil {
+		return nil, err
+	}
+
 	metadata := containerConfig.GetMetadata()
 
 	kubeAnnotations := containerConfig.GetAnnotations()

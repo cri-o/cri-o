@@ -21,7 +21,7 @@ type platformSpec struct {
 
 // A manifestDescriptor references a platform-specific manifest.
 type manifestDescriptor struct {
-	manifest.Schema2Descriptor
+	descriptor
 	Platform platformSpec `json:"platform"`
 }
 
