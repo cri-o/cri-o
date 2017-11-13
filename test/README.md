@@ -78,8 +78,7 @@ make localintegration RUNTIME=cc-oci-runtime
 
 ## Writing integration tests
 
-[Helper functions]
-(https://github.com/kubernetes-incubator/crio/blob/master/test/helpers.bash)
+[Helper functions](https://github.com/kubernetes-incubator/cri-o/blob/master/test/helpers.bash)
 are provided in order to facilitate writing tests.
 
 ```sh
