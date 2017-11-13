@@ -4,7 +4,8 @@
   git:
     repo: "https://github.com/runcom/kubernetes.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-    version: "cri-o-patched-1.8"
+    # based on kube v1.9.0-alpha.2, update as needed
+    version: "cri-o-patched-1.9"
     force: "{{ force_clone | default(False) | bool}}"
 
 - name: install etcd

@@ -815,7 +815,7 @@ message PodSecurityPolicySpec {
   optional bool defaultAllowPrivilegeEscalation = 15;
 
   // AllowPrivilegeEscalation determines if a pod can request to allow
-  // privilege escalation.
+  // privilege escalation. If unspecified, defaults to true.
   // +optional
   optional bool allowPrivilegeEscalation = 16;
 
@@ -826,7 +826,7 @@ message PodSecurityPolicySpec {
 
 // DEPRECATED - This group version of ReplicaSet is deprecated by apps/v1beta2/ReplicaSet. See the release notes for
 // more information.
-// ReplicaSet represents the configuration of a ReplicaSet.
+// ReplicaSet ensures that a specified number of pod replicas are running at any given time.
 message ReplicaSet {
   // If the Labels of a ReplicaSet are empty, they are defaulted to
   // be the same as the Pod(s) that the ReplicaSet manages.
@@ -1016,7 +1016,7 @@ message SELinuxStrategyOptions {
   optional string rule = 1;
 
   // seLinuxOptions required to run as; required for MustRunAs
-  // More info: https://git.k8s.io/community/contributors/design-proposals/security_context.md
+  // More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   // +optional
   optional k8s.io.api.core.v1.SELinuxOptions seLinuxOptions = 2;
 }

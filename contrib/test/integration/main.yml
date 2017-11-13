@@ -10,6 +10,8 @@
 
     - name: install Golang tools
       include: golang.yml
+      vars:
+        version: "1.8.4"
 
     - name: clone build and install bats
       include: "build/bats.yml"
@@ -54,6 +56,10 @@
   tags:
     - e2e
   tasks:
+    - name: install Golang tools
+      include: golang.yml
+      vars:
+          version: "1.9.2"
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
