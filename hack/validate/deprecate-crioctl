@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Check that no new tests are being added using crioctl
+
+export SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "${SCRIPTDIR}/.validate"
+
+IFS=$'\n'
+files=( $(validate_diff --diff-filter=ACMR --name-only -- 'test/*.bats' || true) )
+unset IFS
+
+badFiles=()
+for f in "${files[@]}"; do
+	# we use "git show" here to validate that what's committed doesn't contain crioctl calls
+	if git show "$VALIDATE_HEAD:$f" | grep -q crioctl; then
+		badFiles+=( "$f" )
+	fi
+done
+
+if [ ${#badFiles[@]} -eq 0 ]; then
+	echo 'Congratulations!  No new tests have been added using crioctl.'
+else
+	{
+		echo "These files use crioctl instead of crictl:"
+		echo ""
+		for f in "${badFiles[@]}"; do
+			echo " - $f"
+		done
+		echo
+	} >&2
+	false
+fi

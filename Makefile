@@ -66,6 +66,9 @@ lint: .gopathok
 gofmt:
 	@./hack/verify-gofmt.sh
 
+verify:
+	@./hack/validate/deprecate-crioctl
+
 conmon:
 	$(MAKE) -C $@
 
