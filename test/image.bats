@@ -20,6 +20,10 @@ function teardown() {
 	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
@@ -92,6 +96,10 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
 	run crictl inspect "$ctr_id" --output yaml
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -109,11 +117,20 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl inspecti "$IMAGE"
+	run crictl images --quiet "$IMAGE"
+	[ "$status" -eq 0 ]
 	echo "$output"
+	[ "$output" != "" ]
+	imageid="$output"
+
+	run crictl images @"$imageid"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "$IMAGE" ]]
 
+	run crictl images --quiet "$imageid"
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
 	cleanup_images
 	stop_crio
 }
@@ -169,12 +186,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 
 	run crictl images --quiet nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
-
-	run crictl images --quiet nginx@33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
@@ -254,7 +265,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[ "$output" != "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
-		run crictl inspecti "$id"
+		run crictl images -v "$id"
 		echo "$output"
 		[ "$status" -eq 0 ]
 		[ "$output" != "" ]
