@@ -21,6 +21,8 @@
 
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
+      vars:
+        k8s_git_version: "cri-o-node-e2e-patched-logs"
 
     - name: clone build and install runc
       include: "build/runc.yml"
@@ -64,6 +66,7 @@
       include: "build/kubernetes.yml"
       vars:
           force_clone: True
+          k8s_git_version: "cri-o-patched-1.9"
 
     - name: run k8s e2e tests
       include: e2e.yml
