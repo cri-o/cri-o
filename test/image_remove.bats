@@ -11,7 +11,7 @@ function teardown() {
 @test "image remove with multiple names, by name" {
 	start_crio "" "" --no-pause-image
 	# Pull the image, giving it one name.
-	run crioctl image pull "$IMAGE"
+	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# Add a second name to the image.
@@ -19,19 +19,19 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# Get the list of image names and IDs.
-	run crioctl image list
+	run crictl images -v
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" != "" ]
 	# Cycle through each name, removing it by name.  The image that we assigned a second
 	# name to should still be around when we get to removing its second name.
-	grep ^Tag: <<< "$output" | while read -r header tag ; do
-		run crioctl image remove --id "$tag"
+	grep ^RepoTags: <<< "$output" | while read -r header tag ignored ; do
+		run crictl rmi "$tag"
 		echo "$output"
 		[ "$status" -eq 0 ]
 	done
 	# List all images and their names.  There should be none now.
-	run crioctl image list --quiet
+	run crictl images --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" = "" ]
@@ -46,28 +46,29 @@ function teardown() {
 @test "image remove with multiple names, by ID" {
 	start_crio "" "" --no-pause-image
 	# Pull the image, giving it one name.
-	run crioctl image pull "$IMAGE"
+	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# Add a second name to the image.
 	run "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name="$IMAGE":latest --add-name="$IMAGE":othertag --signature-policy="$INTEGRATION_ROOT"/policy.json
 	echo "$output"
 	[ "$status" -eq 0 ]
-	# Get the image ID of the image we just saved.
-	run crioctl image status --id="$IMAGE"
+	# Get the list of the image's names and its ID.
+	run crictl images -v "$IMAGE":latest
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" != "" ]
 	# Try to remove the image using its ID.  That should succeed.
 	grep ^ID: <<< "$output" | while read -r header id ; do
-		run crioctl image remove --id "$id"
+		run crictl rmi "$id"
 		echo "$output"
-		[ "$status" -ne 0 ]
+		[ "$status" -eq 0 ]
 	done
 	# The image should be gone now.
-	run crioctl image status --id="$IMAGE"
+	run crictl images -v "$IMAGE"
 	echo "$output"
-	[ "$status" -ne 0 ]
+	[ "$status" -eq 0 ]
+	[ "$output" = "" ]
 	# All done.
 	cleanup_images
 	stop_crio
