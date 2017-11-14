@@ -51,3 +51,9 @@ six==1.11.0 --hash=sha256:832dc0e10feb1aa2c68dcc57dbb658f1c7e65b9b61af69048abc87
 virtualenv==15.1.0 --hash=sha256:39d88b533b422825d644087a21e78c45cf5af0ef7a99a1fc9fbb7b481e5c85b0
 
 pip==9.0.1 --hash=sha256:690b762c0a8460c303c089d5d0be034fb15a5ea2b75bdf565f40421f542fefb0
+
+# Needed for results processing
+future==0.16.0 --hash=sha256:e39ced1ab767b5936646cedba8bcce582398233d6a627067d4c6a454c90cfedb
+
+junitparser==1.0.0 --hash=sha256:5b0f0ffeef3548878b5ae2cac40b5b128ae18337e2a260a8265f5519b52c907c \
+                   --hash=sha256:789b99899f1545675ec09957dcc605a6bb88de322ea9d1e5c1dbd288b682835a
