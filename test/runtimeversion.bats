@@ -6,9 +6,9 @@ function teardown() {
 	cleanup_test
 }
 
-@test "crioctl runtimeversion" {
+@test "crictl runtimeversion" {
 	start_crio
-	run crioctl runtimeversion
+	run crictl info
 	echo "$output"
 	[ "$status" -eq 0 ]
 	stop_crio

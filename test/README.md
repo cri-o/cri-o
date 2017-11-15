@@ -96,9 +96,9 @@ function teardown() {
 	cleanup_test
 }
 
-@test "crioctl runtimeversion" {
+@test "crictl runtimeversion" {
 	start_crio
-	crioctl runtimeversion
+	crictl runtimeversion
 	[ "$status" -eq 0 ]
 }
 

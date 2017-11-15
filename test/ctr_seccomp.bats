@@ -22,18 +22,18 @@ function teardown() {
 	start_crio "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/unconfined/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run crioctl pod run --name seccomp1 --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --name testname --config "$TESTDIR"/seccomp1.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run crioctl ctr start --id "$ctr_id"
+	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
+	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -58,18 +58,18 @@ function teardown() {
 	start_crio "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp2.json
-	run crioctl pod run --name seccomp2 --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --name testname2 --config "$TESTDIR"/seccomp2.json --pod "$pod_id"
+	run crictl create "$TESTDIR"/seccomp2.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run crioctl ctr start --id "$ctr_id"
+	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
+	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "Exit code: 1" ]]
@@ -96,18 +96,18 @@ function teardown() {
 	start_crio "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%//g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run crioctl pod run --name seccomp1 --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --name testname --config "$TESTDIR"/seccomp1.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run crioctl ctr start --id "$ctr_id"
+	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
+	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -131,11 +131,11 @@ function teardown() {
 	start_crio "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/wontwork/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run crioctl pod run --name seccomp1 --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --name testname --config "$TESTDIR"/seccomp1.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$status" -ne 0 ]]
 	[[ "$output" =~ "unknown seccomp profile option:"  ]]
@@ -161,18 +161,18 @@ function teardown() {
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's@%VALUE%@localhost/'"$TESTDIR"'/seccomp_profile1.json@g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run crioctl pod run --name seccomp1 --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --name testname --config "$TESTDIR"/seccomp1.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run crioctl ctr start --id "$ctr_id"
+	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
+	run crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "Exit code: 1" ]]
 	[[ "$output" =~ "Operation not permitted" ]]
@@ -198,18 +198,18 @@ function teardown() {
 	start_crio "$TESTDIR"/seccomp_profile1.json
 
 	sed -e 's/%VALUE%/docker\/default/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp2.json
-	run crioctl pod run --name seccomp2 --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --name testname2 --config "$TESTDIR"/seccomp2.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDIR"/seccomp2.json "$TESTDIR"/seccomp_profile1.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run crioctl ctr start --id "$ctr_id"
+	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl ctr execsync --id "$ctr_id" chmod 777 .
+	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "Exit code: 1" ]]

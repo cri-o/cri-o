@@ -8,69 +8,71 @@ function teardown() {
 
 @test "crio restore" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	run crioctl pod list --id "$pod_id"
+	run crictl sandboxes --quiet --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_list_info="$output"
 
-	run crioctl pod status --id "$pod_id"
+	run crictl inspects "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	pod_status_info="$output"
+	pod_status_info=`echo "$output" | grep Status`
 
-	run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crioctl ctr list --id "$ctr_id"
+	run crictl ps --quiet --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_list_info="$output"
 
-	run crioctl ctr status --id "$ctr_id"
+	run crictl inspect "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	ctr_status_info="$output"
+	ctr_status_info=`echo "$output" | grep State`
 
 	stop_crio
 
 	start_crio
-	run crioctl pod list
+	run crictl sandboxes --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" != "" ]]
-	[[ "${output}" =~ "${pod_id}" ]]
+	[[ "${output}" == "${pod_id}" ]]
 
-	run crioctl pod list --id "$pod_id"
+	run crictl sandboxes --quiet --id "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${pod_list_info}" ]]
 
-	run crioctl pod status --id "$pod_id"
+	run crictl inspects "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	output=`echo "$output" | grep Status`
 	[[ "${output}" == "${pod_status_info}" ]]
 
-	run crioctl ctr list
+	run crictl ps --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" != "" ]]
-	[[ "${output}" =~ "${ctr_id}" ]]
+	[[ "${output}" == "${ctr_id}" ]]
 
-	run crioctl ctr list --id "$ctr_id"
+	run crictl ps --quiet --id "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${ctr_list_info}" ]]
 
-	run crioctl ctr status --id "$ctr_id"
+	run crictl inspect "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	output=`echo "$output" | grep State`
 	[[ "${output}" == "${ctr_status_info}" ]]
 
 	cleanup_ctrs
@@ -80,12 +82,12 @@ function teardown() {
 
 @test "crio restore with bad state and pod stopped" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	run crioctl pod stop --id "$pod_id"
+	run crictl stops "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -96,7 +98,7 @@ function teardown() {
 
 	start_crio
 
-	run crioctl pod stop --id "$pod_id"
+	run crictl stops "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -106,17 +108,17 @@ function teardown() {
 
 @test "crio restore with bad state and ctr stopped" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crioctl ctr stop --id "$ctr_id"
+	run crictl stop "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -127,7 +129,7 @@ function teardown() {
 
 	start_crio
 
-	run crioctl ctr stop --id "$ctr_id"
+	run crictl stop "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -138,21 +140,21 @@ function teardown() {
 
 @test "crio restore with bad state and ctr removed" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crioctl ctr stop --id "$ctr_id"
+	run crictl stop "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crioctl ctr remove --id "$ctr_id"
+	run crictl rm "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -163,7 +165,7 @@ function teardown() {
 
 	start_crio
 
-	run crioctl ctr stop --id "$ctr_id"
+	run crictl stop "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 1 ]
 	[[ "${output}" =~ "not found" ]]
@@ -175,16 +177,16 @@ function teardown() {
 
 @test "crio restore with bad state and pod removed" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	run crioctl pod stop --id "$pod_id"
+	run crictl stops "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crioctl pod remove --id "$pod_id"
+	run crictl rms "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -195,7 +197,7 @@ function teardown() {
 
 	start_crio
 
-	run crioctl pod stop --id "$pod_id"
+	run crictl stops "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
@@ -205,22 +207,22 @@ function teardown() {
 
 @test "crio restore with bad state" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	run crioctl pod status --id "$pod_id"
+	run crictl inspects "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" =~ "SANDBOX_READY" ]]
 
-	run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crioctl ctr status --id "$ctr_id"
+	run crictl inspect "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" =~ "CONTAINER_CREATED" ]]
@@ -231,33 +233,34 @@ function teardown() {
 	for i in $("$RUNTIME" list -q | xargs); do "$RUNTIME" delete -f $i; done
 
 	start_crio
-	run crioctl pod list
+	run crictl sandboxes --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" != "" ]]
 	[[ "${output}" =~ "${pod_id}" ]]
 
-	run crioctl pod status --id "$pod_id"
+	run crictl inspects "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" =~ "SANDBOX_NOTREADY" ]]
 
-	run crioctl ctr list
+	run crictl ps --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" != "" ]]
 	[[ "${output}" =~ "${ctr_id}" ]]
 
-	run crioctl ctr status --id "$ctr_id"
+	run crictl inspect "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" =~ "CONTAINER_EXITED" ]]
-	[[ "${output}" =~ "Exit Code: 255" ]]
+	# TODO: may be cri-tool should display Exit Code
+	#[[ "${output}" =~ "Exit Code: 255" ]]
 
-	run crioctl pod stop --id "$pod_id"
+	run crictl stops "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl pod remove --id "$pod_id"
+	run crictl rms "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 

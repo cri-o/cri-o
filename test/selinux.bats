@@ -8,15 +8,15 @@ function teardown() {
 
 @test "ctr termination reason Completed" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config_selinux.json
+	run crictl runs "$TESTDATA"/sandbox_config_selinux.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config_selinux.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run crioctl ctr start --id "$ctr_id"
+	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 

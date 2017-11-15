@@ -12,21 +12,21 @@ sed "s|HOOKSDIR|${HOOKSDIR}|" hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
 @test "pod test hooks" {
 	rm -f /run/hookscheck
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
-	run crioctl ctr start --id "$ctr_id"
+	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl pod stop --id "$pod_id"
+	run crictl stops "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl pod remove --id "$pod_id"
+	run crictl rms "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run cat /run/hookscheck
