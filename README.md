@@ -229,7 +229,7 @@ You can run a local version of kubernetes with CRI-O using `local-up-cluster.sh`
 ```shell
 CGROUP_DRIVER=systemd \
 CONTAINER_RUNTIME=remote \
-CONTAINER_RUNTIME_ENDPOINT='/var/run/crio.sock  --runtime-request-timeout=15m' \
+CONTAINER_RUNTIME_ENDPOINT='/var/run/crio/crio.sock  --runtime-request-timeout=15m' \
 ./hack/local-up-cluster.sh
 ```
 

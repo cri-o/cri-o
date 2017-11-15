@@ -79,7 +79,7 @@ KUBELET_ARGS="--pod-manifest-path=/etc/kubernetes/manifests
 You need to add following parameters to `KUBELET_ARGS`:
 * `--experimental-cri=true` - Use Container Runtime Interface. Will be true by default from kubernetes 1.6 release.
 * `--container-runtime=remote` - Use remote runtime with provided socket.
-* `--container-runtime-endpoint=/var/run/crio.sock` - Socket for remote runtime (default `crio` socket localization).
+* `--container-runtime-endpoint=/var/run/crio/crio.sock` - Socket for remote runtime (default `crio` socket localization).
 * `--runtime-request-timeout=10m` - Optional but useful. Some requests, especially pulling huge images, may take longer than default (2 minutes) and will cause an error. 
 
 Kubelet is prepared now.
