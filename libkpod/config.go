@@ -121,6 +121,9 @@ type RuntimeConfig struct {
 	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
 	NoPivot bool `toml:"no_pivot"`
 
+	// DisableSharePidNamespace instructs the runtime to disable share pid namespace
+	DisableSharedPIDNamespace bool `toml:"disable_shared_pid_namespace"`
+
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	Conmon string `toml:"conmon"`
 

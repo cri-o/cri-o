@@ -132,6 +132,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
+	if ctx.GlobalIsSet("disable-shared-pid-namespace") {
+		config.DisableSharedPIDNamespace = ctx.GlobalBool("disable-shared-pid-namespace")
+	}
 	if ctx.GlobalIsSet("log-size-max") {
 		config.LogSizeMax = ctx.GlobalInt64("log-size-max")
 	}
@@ -296,6 +299,10 @@ func main() {
 			Name:  "pids-limit",
 			Value: libkpod.DefaultPidsLimit,
 			Usage: "maximum number of processes allowed in a container",
+		},
+		cli.BoolFlag{
+			Name:  "disable-shared-pid-namespace",
+			Usage: "disable using a shared PID namespace for containers in a pod",
 		},
 		cli.Int64Flag{
 			Name:  "log-size-max",
