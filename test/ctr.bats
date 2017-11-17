@@ -191,8 +191,8 @@ function teardown() {
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	grep -E "^[^\n]+ stdout here is some output$" "$logpath"
-	grep -E "^[^\n]+ stderr and some from stderr$" "$logpath"
+	grep -E "^[^\n]+ stdout F here is some output$" "$logpath"
+	grep -E "^[^\n]+ stderr F and some from stderr$" "$logpath"
 
 	run crictl stops "$pod_id"
 	echo "$output"
@@ -238,7 +238,7 @@ function teardown() {
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	grep --binary -P "^[^\n]+ stdout here is some output\x0d$" "$logpath"
+	grep --binary -P "^[^\n]+ stdout F here is some output\x0d$" "$logpath"
 
 	run crictl stops "$pod_id"
 	echo "$output"

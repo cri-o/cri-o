@@ -359,9 +359,9 @@ func parseLog(log []byte) (stdout, stderr []byte) {
 			continue
 		}
 
-		// The format of log lines is "DATE pipe REST".
-		parts := bytes.SplitN(line, []byte{' '}, 3)
-		if len(parts) < 3 {
+		// The format of log lines is "DATE pipe LogTag REST".
+		parts := bytes.SplitN(line, []byte{' '}, 4)
+		if len(parts) < 4 {
 			// Ignore the line if it's formatted incorrectly, but complain
 			// about it so it can be debugged.
 			logrus.Warnf("hit invalid log format: %q", string(line))
@@ -369,7 +369,15 @@ func parseLog(log []byte) (stdout, stderr []byte) {
 		}
 
 		pipe := string(parts[1])
-		content := parts[2]
+		content := parts[3]
+
+		linetype := string(parts[2])
+		if linetype == "P" {
+			contentLen := len(content)
+			if content[contentLen-1] == '\n' {
+				content = content[:contentLen-1]
+			}
+		}
 
 		switch pipe {
 		case "stdout":

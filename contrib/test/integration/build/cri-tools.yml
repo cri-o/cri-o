@@ -4,7 +4,6 @@
   git:
     repo: "https://github.com/kubernetes-incubator/cri-tools.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-tools"
-    version: "b42fc3f364dd48f649d55926c34492beeb9b2e99"
     version: "{{ cri_tools_git_version }}"
     force: "{{ force_clone | default(False) | bool}}"
 
