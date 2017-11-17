@@ -69,6 +69,9 @@ func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
 // trustedSandbox returns true if the sandbox will run trusted workloads.
 func (s *Server) trustedSandbox(req *pb.RunPodSandboxRequest) bool {
 	kubeAnnotations := req.GetConfig().GetAnnotations()
+	if kubeAnnotations == nil {
+		return true
+	}
 
 	trustedAnnotation, ok := kubeAnnotations[annotations.TrustedSandbox]
 	if !ok {
