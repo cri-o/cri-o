@@ -1,5 +1,8 @@
 package main
 
+// #include "../../conmon/config.h"
+import "C"
+
 import (
 	"context"
 	"fmt"
@@ -40,9 +43,9 @@ func validateConfig(config *server.Config) error {
 
 	}
 
-	// This needs to match the read buffer size in conmon
-	if config.LogSizeMax >= 0 && config.LogSizeMax < 8192 {
-		return fmt.Errorf("log size max should be negative or >= 8192")
+	bufSize := int64(C.BUF_SIZE)
+	if config.LogSizeMax >= 0 && config.LogSizeMax < bufSize {
+		return fmt.Errorf("log size max should be negative or >= %d", bufSize)
 	}
 	return nil
 }

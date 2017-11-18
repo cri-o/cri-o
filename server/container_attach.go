@@ -1,5 +1,8 @@
 package server
 
+// #include "../conmon/config.h"
+import "C"
+
 import (
 	"fmt"
 	"io"
@@ -16,13 +19,6 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-)
-
-/* Sync with stdpipe_t in conmon.c */
-const (
-	AttachPipeStdin  = 1
-	AttachPipeStdout = 2
-	AttachPipeStderr = 3
 )
 
 // Attach prepares a streaming endpoint to attach to a running container.
@@ -113,16 +109,17 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 }
 
 func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, conn io.Reader) error {
+	stdioBufSize := int(C.STDIO_BUF_SIZE)
 	var err error
-	buf := make([]byte, 8192+1) /* Sync with conmon STDIO_BUF_SIZE */
+	buf := make([]byte, stdioBufSize+1)
 
 	for {
 		nr, er := conn.Read(buf)
 		if nr > 0 {
 			var dst io.Writer
-			if buf[0] == AttachPipeStdout {
+			if buf[0] == byte(C.STDOUT_PIPE) {
 				dst = outputStream
-			} else if buf[0] == AttachPipeStderr {
+			} else if buf[0] == byte(C.STDERR_PIPE) {
 				dst = errorStream
 			} else {
 				logrus.Infof("Got unexpected attach type %+d", buf[0])
