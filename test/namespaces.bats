@@ -7,7 +7,7 @@ function teardown() {
 }
 
 @test "pod disable shared pid namespace" {
-	DISABLE_SHARED_PID_NAMESPACE="true" start_crio
+	ENABLE_SHARED_PID_NAMESPACE="false" start_crio
 
 	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -37,7 +37,7 @@ function teardown() {
 }
 
 @test "pod enable shared pid namespace" {
-	DISABLE_SHARED_PID_NAMESPACE="false" start_crio
+	ENABLE_SHARED_PID_NAMESPACE="true" start_crio
 
 	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
