@@ -12,3 +12,8 @@
   raw: $(type -P dnf || type -P yum || echo ) install -y {{ ansible_dependencies }}
   failed_when: False  # Any missing & required packages will show up as failures in setup
   changed_when: True
+
+- name: Subject host's networking facts are gathered
+  setup:
+    # other modules are simply not needed
+    gather_subset: network

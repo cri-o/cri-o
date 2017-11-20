@@ -1,11 +1,19 @@
----
+#!/bin/bash
 
-- name: enable and start CRI-O
-  systemd:
-    name: crio
-    state: started
-    enabled: yes
-    daemon_reload: yes
+set -ex
+
+# Set by 'runscript' role
+DISTRO="$1"
+ARTIFACTS="$2"
+
+# Restarting CRI-O service
+systemctl --no-pager restart cri-o
+
+# Dump the CRI-O service journal
+journalctl --unit cri-o --no-pager
+
+# Fail if CRI-O service is not active
+systemctl is-active cri-o || exit $?
 
 - name: update the server address for the custom cluster
   lineinfile:

@@ -22,7 +22,7 @@ if [ "$DISTRO" == "RedHat" ] || [ "$DISTRO" == "Fedora" ]
 then
     export STORAGE_OPTIONS='--storage-driver=overlay --storage-opt overlay.override_kernel_check=1'
 else
-    export export STORAGE_OPTIONS='--storage-driver=overlay'
+    export STORAGE_OPTIONS='--storage-driver=overlay'
 fi
 
 ./test/test_runner.sh | tee /tmp/artifacts/integration_results.txt"

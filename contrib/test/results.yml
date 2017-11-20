@@ -1,99 +1,16 @@
 ---
-# vim-syntax: ansible
 
-- hosts: '{{ subjects | default("all") }}'
-  vars_files:
-    - "{{ playbook_dir }}/vars.yml"
-
-  # FIXME: Make a role out of this task-list
-  tasks:
-    - name: Verify expectations
-      assert:
-        that:
-          # Combined "is defined" and "isn't blank" check
-          - 'artifacts | default("", True) | trim | length'
-          - 'generated_artifacts | default("", True) | trim | length'
-          - 'extra_artifact_filepaths is defined'
-          - 'parsed_artifacts is defined'
-          - 'canonical_junit is defined'
-
-    - name: artifacts directory exists
-      file:
-          path: "{{ artifacts }}"
-          state: directory
-
-    - name: Extra artifacts are collected, except missing or with clashing filenames
-      command: 'cp --no-clobber --verbose "{{ item }}" "{{ artifacts }}/"'
-      failed_when: False
-      ignore_errors: True
-      with_items: '{{ extra_artifact_filepaths }}'
-
-    - name: Generated artifacts directory exists
-      file:
-          path: "{{ artifacts }}/generated"
-          state: directory
-
-    - name: Generated artifacts are produced
-      shell: '{{ item.value }} &> {{ item.key | basename }}.txt'
-      args:
-        chdir: "{{ artifacts }}/generated"
-        creates: "{{ artifacts }}/generated/{{ item.key | basename }}.txt"
-      failed_when: False
-      ignore_errors: True
-      with_dict: "{{ generated_artifacts }}"
-
-    - name: Wrapper and script path is buffered
-      set_fact:
-        # Full paths needed b/c command below runs over a list of files in parsed_artifacts
-        result: '{{ cri_o_dest_path }}/contrib/test/venv-cmd.sh {{ cri_o_dest_path }}/contrib/test/parse2junit.py'
-
-    - name: Subject produces a single canonical jUnit file by combining parsed_artifacts
-      command: '{{ result }} {{ parsed_artifacts | join(" ") }} "{{ canonical_junit }}"'
-      args:
-        chdir: "{{ artifacts }}"
-      environment:
-        ARTIFACTS: "{{ artifacts }}"
-      ignore_errors: True
-
-    - name: A subdirectory exists for this subject's artifacts
-      file:
-        path: "{{ collection_dirpath }}"
-        state: directory
-      delegate_to: '{{ control_host | default("", True) | trim }}'
-      when: control_host | default("", True) | trim
-
-    - name: Artifacts are retrieved from subjects
-      synchronize:
-          archive: False  # Don't bother with permissions or times
-          checksum: True  # Don't rely on date/time being in sync
-          copy_links: True  # We want files, not links to files
-          recursive: True
-          mode: "pull"
-          src: '{{ artifacts }}/'
-          dest: '{{ collection_dirpath }}'
-      no_log: True  # super-duper noisy
+- name: Subjects generate and gather their artifacts
+  hosts: SubjectHosts
+  roles:
+    - role: subject_artifacts
+      tags:
+        - results
 
 
-- hosts: '{{ control_host | default("NoHost") }}'
-  vars_files:
-    - "{{ playbook_dir }}/vars.yml"
-
-  tasks:
-    - name: The paths of canonical_junit files from all subjects are found
-      find:
-        paths:
-            - '{{ collection_dirpath }}'
-        patterns: "{{ canonical_junit | basename }}"
-        recurse: True
-      register: result
-
-    - name: Found paths are joined together into a single string
-      set_fact:
-        result: '{{ result.files | map(attribute="path") | join(" ") }}'
-
-    - name: The control host produces a top-level junit, combining all subject's canonical_junits
-      script: '{{ playbook_dir }}/parse2junit.py {{ result }} "{{ canonical_junit | basename }}"'
-      args:
-        chdir: "{{ collection_dirpath }}"
-      ignore_errors: True
-      when: result | trim | length
+- name: Non-subject control-host finalizes artifacts for downstream consumption
+  hosts: ControlHost:!SubjectHosts
+  roles:
+    - role: control_artifacts
+      tags:
+        - results

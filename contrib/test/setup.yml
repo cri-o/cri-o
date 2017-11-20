@@ -1,0 +1,47 @@
+---
+
+
+- name: Non-subject-host Control-host is initialized
+  hosts: ControlHost:!SubjectHosts
+  tags:
+    - setup
+
+  pre_tasks:
+    - debug: var=group_names
+
+  tasks:
+    - name: Control-host facts are gathered
+      setup:
+        gather_subset: network  # other facts simply not needed
+
+    - name: Minimum ansible version in use
+      assert:
+        that: 'ansible_version.string | version_compare("2.4.1", ">=")'
+
+
+- name: Subject-hosts are initialized and setup
+  hosts: SubjectHosts
+  tags:
+    - setup
+
+  pre_tasks:
+    - debug: var=group_names
+
+  roles:
+    - role: ansible_dependencies  # also gathers facts
+
+    - role: yumrepos
+
+    - role: test_subject
+
+    - role: runscript
+      execute: 'setup.sh'
+
+- name: The control-host is never to be rebooted
+  hosts: SubjectHosts:!ControlHost
+  tags:
+    - setup
+
+  tasks:
+    - role: rebooted
+      needs_reboot: '{{ needs_reboot | default(False) }}'

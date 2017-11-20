@@ -55,6 +55,9 @@ class CallbackModule(DEFAULT_MODULE.CallbackModule):  # pylint: disable=too-few-
         '''Return the text to output for a result.'''
         result['_ansible_verbose_always'] = True
 
+        if '_ansible_no_log' not in result.keys():
+            result['_ansible_no_log'] = False
+
         save = {}
         for key in ['stdout', 'stdout_lines', 'stderr', 'stderr_lines', 'msg']:
             if key in result:
@@ -63,7 +66,7 @@ class CallbackModule(DEFAULT_MODULE.CallbackModule):  # pylint: disable=too-few-
         output = BASECLASS._dump_results(self, result)  # pylint: disable=protected-access
 
         for key in ['stdout', 'stderr', 'msg']:
-            if key in save and save[key]:
+            if key in save and save[key] and result['_ansible_no_log'] is False:
                 output += '\n\n%s:\n---\n%s\n---' % (key.upper(), save[key])
 
         for key, value in save.items():
@@ -74,7 +77,7 @@ class CallbackModule(DEFAULT_MODULE.CallbackModule):  # pylint: disable=too-few-
     def v2_runner_on_unreachable(self, result):
         self.failed_task = result
 
-        if self._play.strategy == 'free' and self._last_task_banner != result._task._uuid:
+        if self._play.strategy == 'free' and getattr(self, '_last_task_banner', None) != result._task._uuid:
             self._print_task_banner(result._task)
 
         delegated_vars = result._result.get('_ansible_delegated_vars', None)
@@ -93,7 +96,7 @@ class CallbackModule(DEFAULT_MODULE.CallbackModule):  # pylint: disable=too-few-
             # Save last failure
             self.failed_task = result
 
-        if self._play.strategy == 'free' and self._last_task_banner != result._task._uuid:
+        if self._play.strategy == 'free' and getattr(self, '_last_task_banner', None) != result._task._uuid:
             self._print_task_banner(result._task)
 
         delegated_vars = result._result.get('_ansible_delegated_vars', None)

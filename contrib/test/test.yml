@@ -1,0 +1,29 @@
+---
+
+- name: Subject-hosts execute tests
+  hosts: SubjectHosts
+  gather_facts: False  # requires ansible-dependencies
+  roles:
+    - role: runscript
+      execute: "cri-o_smoke_test.sh"
+      tags:
+        - smoke
+        - test
+
+    - role: runscript
+      execute: "cri-o_integration_test.sh"
+      tags:
+        - integration
+        - test
+
+    - role: runscript
+      execute: "cri-o_cri_test.sh"
+      tags:
+        - integration
+        - test
+
+    - role: runscript
+      execute: "cri-o_e2e_test.sh"
+      tags:
+        - e2e
+        - test

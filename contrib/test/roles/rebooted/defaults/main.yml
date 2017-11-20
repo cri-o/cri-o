@@ -1,0 +1,15 @@
+---
+
+# Flag set True to reboot the host
+needs_reboot: False
+
+# Time to wait for ssh port to close
+shutdown_timeout: 30
+
+# Maximum time to wait for system to become available again (in seconds)
+bootup_timeout: 300
+
+# Timeout in (integer) seconds to wait for timeouts and retries when
+# confirming host is accessable.  The default (13) comes from two DNS
+# timeouts + one second
+wait_for_timeout: 13
