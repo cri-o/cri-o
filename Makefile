@@ -46,7 +46,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build crio, conmon, pause, and crioctl"
+	@echo " * 'binaries' - Build crio, conmon and pause"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
@@ -66,9 +66,6 @@ lint: .gopathok
 gofmt:
 	@./hack/verify-gofmt.sh
 
-verify:
-	@./hack/validate/deprecate-crioctl
-
 conmon:
 	$(MAKE) -C $@
 
@@ -87,9 +84,6 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o bin/$@ $(PROJECT)/cmd/crio
 
-crioctl: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crioctl $(PROJECT))
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o bin/$@ $(PROJECT)/cmd/crioctl
-
 crio.conf: crio
 	./bin/crio --config="" config --default > crio.conf
 
@@ -102,7 +96,7 @@ endif
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
-	rm -f bin/crioctl bin/crio
+	rm -f bin/crio
 	make -C conmon clean
 	make -C pause clean
 	rm -f test/bin2img/bin2img
@@ -124,7 +118,7 @@ testunit:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: crio conmon pause crioctl
+binaries: crio conmon pause
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -142,7 +136,6 @@ install: .gopathok install.bin install.man
 
 install.bin:
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
-	install ${SELINUXOPT} -D -m 755 bin/crioctl $(BINDIR)/crioctl
 	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 
@@ -168,7 +161,6 @@ install.systemd:
 
 uninstall:
 	rm -f $(BINDIR)/crio
-	rm -f $(BINDIR)/crioctl
 	rm -f $(LIBEXECDIR)/crio/conmon
 	rm -f $(LIBEXECDIR)/crio/pause
 	for i in $(filter %.1,$(MANPAGES)); do \

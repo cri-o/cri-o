@@ -26,7 +26,7 @@ gcloud compute ssh cri-o
 This section will walk you through installing the following components:
 
 * crio - The implementation of the Kubernetes CRI, which manages Pods.
-* crioctl - The crio client for testing.
+* crictl - The CRI client for testing.
 * cni - The Container Network Interface
 * runc - The OCI runtime to launch the container
 
@@ -100,6 +100,12 @@ go version
 go version go1.7.4 linux/amd64
 ```
 
+#### Get crictl
+
+```
+go get github.com/kubernetes-incubator/cri-tools/cmd/crictl
+```
+
 #### Build crio from source
 
 ```
@@ -130,7 +136,6 @@ Output:
 
 ```
 install -D -m 755 crio /usr/local/bin/crio
-install -D -m 755 crioctl /usr/local/bin/crioctl
 install -D -m 755 conmon/conmon /usr/local/libexec/crio/conmon
 install -D -m 755 pause/pause /usr/local/libexec/crio/pause
 install -d -m 755 /usr/local/share/man/man{1,5,8}
@@ -182,11 +187,18 @@ sudo systemctl start crio
 #### Ensure the crio service is running
 
 ```
-sudo crioctl runtimeversion
+sudo crictl --runtime-endpoint /var/run/crio/crio.sock info
 ```
 ```
-VersionResponse: Version: 0.1.0, RuntimeName: runc, RuntimeVersion: 1.0.0-rc4, RuntimeApiVersion: v1alpha1
+Version:  0.1.0
+RuntimeName:  cri-o
+RuntimeVersion:  1.9.0-dev
+RuntimeApiVersion:  v1alpha1
 ```
+
+> to avoid set --runtime-endpoint when call crictl,
+> you can export $CRI_RUNTIME_ENDPOINT=/var/run/crio/crio.sock
+> or cp crictl.yaml /etc/crictl.yaml from this repo
 
 ### CNI plugins
 
@@ -288,13 +300,15 @@ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
 Next create the Pod and capture the Pod ID for later use:
 
 ```
-POD_ID=$(sudo crioctl pod run --config test/testdata/sandbox_config.json)
+POD_ID=$(sudo crictl runs test/testdata/sandbox_config.json)
 ```
 
-Use the `crioctl` command to get the status of the Pod:
+> sudo crictl runs test/testdata/sandbox_config.json
+
+Use the `crictl` command to get the status of the Pod:
 
 ```
-sudo crioctl pod status --id $POD_ID
+sudo crictl inspects --output table $POD_ID
 ```
 
 Output:
@@ -320,25 +334,27 @@ Annotations:
 
 ### Create a Redis container inside the Pod
 
-Use the `crioctl` command to pull the redis image, create a redis container from a container configuration and attach it to the Pod created earlier:
+Use the `crictl` command to pull the redis image, create a redis container from a container configuration and attach it to the Pod created earlier:
 
 ```
-sudo crioctl image pull redis:alpine
-CONTAINER_ID=$(sudo crioctl ctr create --pod $POD_ID --config test/testdata/container_redis.json)
+sudo crictl pull redis:alpine
+CONTAINER_ID=$(sudo crictl create $POD_ID test/testdata/container_redis.json test/testdata/sandbox_config.json)
 ```
 
-The `crioctl ctr create` command  will take a few seconds to return because the redis container needs to be pulled.
+> sudo crictl create $POD_ID test/testdata/container_redis.json test/testdata/sandbox_config.json
+
+The `crictl create` command  will take a few seconds to return because the redis container needs to be pulled.
 
 Start the Redis container:
 
 ```
-sudo crioctl ctr start --id $CONTAINER_ID
+sudo crictl start $CONTAINER_ID
 ```
 
 Get the status for the Redis container:
 
 ```
-sudo crioctl ctr status --id $CONTAINER_ID
+sudo crictl inspect $CONTAINER_ID
 ```
 
 Output:
@@ -395,25 +411,25 @@ sudo journalctl -u crio --no-pager
 ### Stop the redis container and delete the Pod
 
 ```
-sudo crioctl ctr stop --id $CONTAINER_ID
+sudo crictl stop $CONTAINER_ID
 ```
 
 ```
-sudo crioctl ctr remove --id $CONTAINER_ID
+sudo crictl rm $CONTAINER_ID
 ```
 
 ```
-sudo crioctl pod stop --id $POD_ID
+sudo crictl stops $POD_ID
 ```
 
 ```
-sudo crioctl pod remove --id $POD_ID
+sudo crictl rms $POD_ID
 ```
 
 ```
-sudo crioctl pod list
+sudo crictl sandboxes
 ```
 
 ```
-sudo crioctl ctr list
+sudo crictl ps
 ```
