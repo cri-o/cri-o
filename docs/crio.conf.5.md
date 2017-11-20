@@ -87,6 +87,9 @@ Example:
 **pids_limit**=""
   Maximum number of processes allowed in a container (default: 1024)
 
+**enable_shared_pid_namespace**=""
+  Enable using a shared PID namespace for containers in a pod (default: false)
+
 **runtime**=""
   OCI runtime path (default: "/usr/bin/runc")
 
