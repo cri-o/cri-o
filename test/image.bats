@@ -12,12 +12,12 @@ function teardown() {
 
 @test "run container in pod with image ID" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
-	run crioctl ctr create --config "$TESTDIR"/ctr_by_imageid.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	cleanup_ctrs
@@ -28,22 +28,22 @@ function teardown() {
 @test "container status return image:tag if created by image ID" {
 	start_crio
 
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
 	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
 
-	run crioctl ctr create --config "$TESTDIR"/ctr_by_imageid.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crioctl ctr status --id "$ctr_id"
+	run crictl inspect "$ctr_id" --output yaml
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Image: redis:alpine" ]]
+	[[ "$output" =~ "image: redis:alpine" ]]
 
 	cleanup_ctrs
 	cleanup_pods
@@ -55,22 +55,22 @@ function teardown() {
 
 	start_crio
 
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
 	sed -e "s/%VALUE%/$REDIS_IMAGEID_DIGESTED/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
 
-	run crioctl ctr create --config "$TESTDIR"/ctr_by_imageid.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crioctl ctr status --id "$ctr_id"
+	run crictl inspect "$ctr_id" --output yaml
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "ImageRef: redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b" ]]
+	[[ "$output" =~ "image_ref: redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b" ]]
 
 	cleanup_ctrs
 	cleanup_pods
@@ -79,16 +79,20 @@ function teardown() {
 
 @test "image pull" {
 	start_crio "" "" --no-pause-image
-	run crioctl image pull "$IMAGE"
+	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run crictl inspecti "$IMAGE"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "$IMAGE" ]]
 	cleanup_images
 	stop_crio
 }
 
 @test "image pull with signature" {
 	start_crio "" "" --no-pause-image
-	run crioctl image pull "$SIGNED_IMAGE"
+	run crictl pull "$SIGNED_IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	cleanup_images
@@ -97,7 +101,7 @@ function teardown() {
 
 @test "image pull without signature" {
 	start_crio "" "" --no-pause-image
-	run crioctl image pull "$UNSIGNED_IMAGE"
+	run crictl image pull "$UNSIGNED_IMAGE"
 	echo "$output"
 	[ "$status" -ne 0 ]
 	cleanup_images
@@ -106,26 +110,26 @@ function teardown() {
 
 @test "image pull and list by digest" {
 	start_crio "" "" --no-pause-image
-	run crioctl image pull nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	run crictl pull nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crioctl image list --quiet nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-
-	run crioctl image list --quiet nginx@33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	run crictl images --quiet nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
 
-	run crioctl image list --quiet @33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	run crictl images --quiet nginx@33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
 
-	run crioctl image list --quiet 33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	run crictl images --quiet @33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	run crictl images --quiet 33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
@@ -136,18 +140,18 @@ function teardown() {
 
 @test "image list with filter" {
 	start_crio "" "" --no-pause-image
-	run crioctl image pull "$IMAGE"
+	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl image list --quiet "$IMAGE"
+	run crictl images --quiet "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
-		run crioctl image remove --id "$id"
+		run crictl rmi "$id"
 		echo "$output"
 		[ "$status" -eq 0 ]
 	done
-	run crioctl image list --quiet
+	run crictl images --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
@@ -160,19 +164,19 @@ function teardown() {
 
 @test "image list/remove" {
 	start_crio "" "" --no-pause-image
-	run crioctl image pull "$IMAGE"
+	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl image list --quiet
+	run crictl images --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" != "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
-		run crioctl image remove --id "$id"
+		run crictl rmi "$id"
 		echo "$output"
 		[ "$status" -eq 0 ]
 	done
-	run crioctl image list --quiet
+	run crictl images --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" = "" ]
@@ -186,23 +190,23 @@ function teardown() {
 
 @test "image status/remove" {
 	start_crio "" "" --no-pause-image
-	run crioctl image pull "$IMAGE"
+	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crioctl image list --quiet
+	run crictl images --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" != "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
-		run crioctl image status --id "$id"
+		run crictl inspecti "$id"
 		echo "$output"
 		[ "$status" -eq 0 ]
 		[ "$output" != "" ]
-		run crioctl image remove --id "$id"
+		run crictl rmi "$id"
 		echo "$output"
 		[ "$status" -eq 0 ]
 	done
-	run crioctl image list --quiet
+	run crictl images --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" = "" ]

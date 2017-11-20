@@ -19,18 +19,17 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname1": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor1.json
 
-    run crioctl pod run --name apparmor1 --config "$TESTDIR"/apparmor1.json
+    run crictl runs "$TESTDIR"/apparmor1.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
-    run crioctl ctr create --name testname1 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+    run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/apparmor1.json
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr execsync --id "$ctr_id" touch test.txt
+    run crictl exec --sync "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -eq 0 ]
-
 
     cleanup_ctrs
     cleanup_pods
@@ -51,15 +50,15 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname2": "apparmor-test-deny-write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor2.json
 
-    run crioctl pod run --name apparmor2 --config "$TESTDIR"/apparmor2.json
+    run crictl runs "$TESTDIR"/apparmor2.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
-    run crioctl ctr create --name testname2 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+    run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/apparmor2.json
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr execsync --id "$ctr_id" touch test.txt
+    run crictl exec --sync "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -ne 0 ]
     [[ "$output" =~ "Permission denied" ]]
@@ -84,15 +83,15 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname3": "apparmor-test-deny-write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor3.json
 
-    run crioctl pod run --name apparmor3 --config "$TESTDIR"/apparmor3.json
+    run crictl runs "$TESTDIR"/apparmor3.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
-    run crioctl ctr create --name testname3 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+    run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/apparmor3.json
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr execsync --id "$ctr_id" touch test.txt
+    run crictl exec --sync "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -ne 0 ]
     [[ "$output" =~ "Permission denied" ]]
@@ -116,15 +115,14 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname4": "not-exists"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor4.json
 
-    run crioctl pod run --name apparmor4 --config "$TESTDIR"/apparmor4.json
+    run crictl runs "$TESTDIR"/apparmor4.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
-    run crioctl ctr create --name testname4 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+    run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/apparmor4.json
     echo "$output"
     [ "$status" -ne 0 ]
     [[ "$output" =~ "Creating container failed" ]]
-
 
     cleanup_ctrs
     cleanup_pods
@@ -145,18 +143,17 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname5": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor5.json
 
-    run crioctl pod run --name apparmor5 --config "$TESTDIR"/apparmor5.json
+    run crictl runs "$TESTDIR"/apparmor5.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
-    run crioctl ctr create --name testname5 --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+    run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/apparmor5.json
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr execsync --id "$ctr_id" touch test.txt
+    run crictl exec --sync "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -eq 0 ]
-
 
     cleanup_ctrs
     cleanup_pods

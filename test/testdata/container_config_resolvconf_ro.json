@@ -1,6 +1,6 @@
 {
 	"metadata": {
-		"name": "container1",
+		"name": "test-resolve-ro",
 		"attempt": 1
 	},
 	"image": {

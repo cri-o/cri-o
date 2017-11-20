@@ -12,22 +12,17 @@ function teardown() {
 	echo "$out"
 	[[ "$out" =~ "\"cgroup_driver\":\"$CGROUP_MANAGER\"" ]]
 	[[ "$out" =~ "\"storage_root\":\"$TESTDIR/crio\"" ]]
-	run crioctl info
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "\"cgroup_driver\": \"$CGROUP_MANAGER\"" ]]
-	[[ "$output" =~ "\"storage_root\": \"$TESTDIR/crio\"" ]]
 
 	stop_crio
 }
 
 @test "ctr inspect" {
 	start_crio
-	run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+	run crictl runs "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -37,20 +32,22 @@ function teardown() {
 	[[ "$out" =~ "\"sandbox\":\"$pod_id\"" ]]
 	[[ "$out" =~ "\"image\":\"redis:alpine\"" ]]
 
-	run crioctl ctr inspect --id $ctr_id
+	run crictl inspect --output json "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "\"sandbox\": \"$pod_id\"" ]]
+	[[ "$output" =~ "\"id\": \"$ctr_id\"" ]]
 	[[ "$output" =~ "\"image\": \"redis:alpine\"" ]]
 
-	inet=`crioctl ctr execsync --id $ctr_id ip addr show dev eth0 scope global 2>&1 | grep inet`
+	run crictl inspects --output json "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	inet=`crictl exec --sync "$ctr_id" ip addr show dev eth0 scope global 2>&1 | grep inet`
 
 	IFS=" "
 	ip=`parse_pod_ip $inet`
 	[[ "$out" =~ "\"ip_address\":\"$ip\"" ]]
-	[[ "$out" =~ "\"name\":\"k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1\"" ]]
-	[[ "$output" =~ "\"ip_address\": \"$ip\"" ]]
-	[[ "$output" =~ "\"name\": \"k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1\"" ]]
+	[[ "$output" =~ "\"ip\": \"$ip\"" ]]
 
 
 # TODO: add some other check based on the json below:

@@ -5,7 +5,7 @@
 		"namespace": "redhat.test.crio",
 		"attempt": 1
 	},
-	"hostname": "crioctl_host",
+	"hostname": "crictl_host",
 	"log_directory": "",
 	"dns_config": {
 		"searches": [

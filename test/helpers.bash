@@ -171,13 +171,6 @@ function crio() {
 	"$CRIO_BINARY" --listen "$CRIO_SOCKET" "$@"
 }
 
-# DEPRECATED
-OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/bin/crioctl}
-# Run crioctl using the binary specified by $OCIC_BINARY.
-function crioctl() {
-	"$OCIC_BINARY" --connect "$CRIO_SOCKET" "$@"
-}
-
 # Run crictl using the binary specified by $CRICTL_BINARY.
 function crictl() {
 	"$CRICTL_BINARY" -r "$CRIO_SOCKET" -i "$CRIO_SOCKET" "$@"
@@ -446,7 +439,7 @@ EOF
 }
 
 function check_pod_cidr() {
-	run crioctl ctr execsync --id $1 ip addr show dev eth0 scope global 2>&1
+	run crictl exec --sync $1 ip addr show dev eth0 scope global 2>&1
 	echo "$output"
 	[ "$status" -eq 0  ]
 	[[ "$output" =~ $POD_CIDR_MASK  ]]
@@ -470,7 +463,7 @@ function get_host_ip() {
 }
 
 function ping_pod() {
-	inet=`crioctl ctr execsync --id $1 ip addr show dev eth0 scope global 2>&1 | grep inet`
+	inet=`crictl exec --sync $1 ip addr show dev eth0 scope global 2>&1 | grep inet`
 
 	IFS=" "
 	ip=`parse_pod_ip $inet`
@@ -481,12 +474,12 @@ function ping_pod() {
 }
 
 function ping_pod_from_pod() {
-	inet=`crioctl ctr execsync --id $1 ip addr show dev eth0 scope global 2>&1 | grep inet`
+	inet=`crictl exec --sync $1 ip addr show dev eth0 scope global 2>&1 | grep inet`
 
 	IFS=" "
 	ip=`parse_pod_ip $inet`
 
-	run crioctl ctr execsync --id $2 ping -W 1 -c 2 $ip
+	run crictl exec --sync $2 ping -W 1 -c 2 $ip
 	echo "$output"
 	[ "$status" -eq 0   ]
 }
