@@ -18,6 +18,8 @@
 
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
+      vars:
+        cri_tools_git_version: "b42fc3f364dd48f649d55926c34492beeb9b2e99"
 
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
@@ -48,6 +50,11 @@
   tags:
     - integration
   tasks:
+    - name: clone build and install cri-tools
+      include: "build/cri-tools.yml"
+      vars:
+        force_clone: True
+        cri_tools_git_version: "d9476a4d8632da6c28bf272018a0b9e059c3542f"
     - name: run cri-o integration tests
       include: test.yml
 
@@ -62,11 +69,17 @@
       include: golang.yml
       vars:
           version: "1.9.2"
+    - name: setup critest
+      include: "build/cri-tools.yml"
+      vars:
+          force_clone: True
+          cri_tools_git_version: "d9476a4d8632da6c28bf272018a0b9e059c3542f"
+    - name: run critest validation and benchmarks
+      include: critest.yml
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
           force_clone: True
           k8s_git_version: "cri-o-patched-1.9"
-
     - name: run k8s e2e tests
       include: e2e.yml
