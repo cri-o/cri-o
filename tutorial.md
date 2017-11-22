@@ -291,8 +291,6 @@ Next create the Pod and capture the Pod ID for later use:
 POD_ID=$(sudo crioctl pod run --config test/testdata/sandbox_config.json)
 ```
 
-> sudo crioctl pod run --config test/testdata/sandbox_config.json
-
 Use the `crioctl` command to get the status of the Pod:
 
 ```
@@ -328,8 +326,6 @@ Use the `crioctl` command to pull the redis image, create a redis container from
 sudo crioctl image pull redis:alpine
 CONTAINER_ID=$(sudo crioctl ctr create --pod $POD_ID --config test/testdata/container_redis.json)
 ```
-
-> sudo crioctl ctr create --pod $POD_ID --config test/testdata/container_redis.json
 
 The `crioctl ctr create` command  will take a few seconds to return because the redis container needs to be pulled.
 
