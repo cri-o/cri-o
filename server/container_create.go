@@ -788,6 +788,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 				"/proc/timer_list",
 				"/proc/timer_stats",
 				"/proc/sched_debug",
+				"/proc/scsi",
 				"/sys/firmware",
 			} {
 				specgen.AddLinuxMaskedPaths(mp)
