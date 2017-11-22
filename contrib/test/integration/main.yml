@@ -25,6 +25,7 @@
       include: "build/kubernetes.yml"
       vars:
         k8s_git_version: "cri-o-node-e2e-patched-logs"
+        crio_socket: "/var/run/crio.sock"
 
     - name: clone build and install runc
       include: "build/runc.yml"
@@ -81,5 +82,6 @@
       vars:
           force_clone: True
           k8s_git_version: "cri-o-patched-1.9"
+          crio_socket: "/var/run/crio/crio.sock"
     - name: run k8s e2e tests
       include: e2e.yml
