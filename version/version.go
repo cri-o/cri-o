@@ -1,4 +1,4 @@
 package version
 
-// Version is the version of the build.
-const Version = "1.9.0-dev"
+// Version is the app-global version string, which should be substituted with a real value during build.
+var Version = "UNKNOWN"
