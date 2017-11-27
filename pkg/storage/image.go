@@ -184,7 +184,11 @@ func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool,
 	if err != nil {
 		return false, err
 	}
-	src, err := image.FromSource(rawSource)
+	sourceCtx := &types.SystemContext{}
+	if options.SourceCtx != nil {
+		sourceCtx = options.SourceCtx
+	}
+	src, err := image.FromSource(sourceCtx, rawSource)
 	if err != nil {
 		rawSource.Close()
 		return false, err
