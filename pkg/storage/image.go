@@ -2,10 +2,8 @@ package storage
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/containers/image/copy"
@@ -16,8 +14,12 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	distreference "github.com/docker/distribution/reference"
 	digest "github.com/opencontainers/go-digest"
+)
+
+var (
+	// ErrCannotParseImageID is returned when we try to ResolveNames for an image ID
+	ErrCannotParseImageID = errors.New("cannot parse an image ID")
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
@@ -329,113 +331,27 @@ func (svc *imageService) isSecureIndex(indexName string) bool {
 	return true
 }
 
-func isValidHostname(hostname string) bool {
-	return hostname != "" && !strings.Contains(hostname, "/") &&
-		(strings.Contains(hostname, ".") ||
-			strings.Contains(hostname, ":") || hostname == "localhost")
-}
-
-func isReferenceFullyQualified(reposName reference.Named) bool {
-	indexName, _, _ := splitReposName(reposName)
-	return indexName != ""
-}
-
-const (
-	// defaultHostname is the default built-in hostname
-	defaultHostname = "docker.io"
-	// legacyDefaultHostname is automatically converted to DefaultHostname
-	legacyDefaultHostname = "index.docker.io"
-	// defaultRepoPrefix is the prefix used for default repositories in default host
-	defaultRepoPrefix = "library/"
-)
-
-// splitReposName breaks a reposName into an index name and remote name
-func splitReposName(reposName reference.Named) (indexName string, remoteName reference.Named, err error) {
-	var remoteNameStr string
-	indexName, remoteNameStr = distreference.SplitHostname(reposName)
-	if !isValidHostname(indexName) {
-		// This is a Docker Index repos (ex: samalba/hipache or ubuntu)
-		// 'docker.io'
-		indexName = ""
-		remoteName = reposName
-	} else {
-		remoteName, err = withName(remoteNameStr)
-	}
-	return
-}
-
-func validateName(name string) error {
-	if err := validateID(strings.TrimPrefix(name, defaultHostname+"/")); err == nil {
-		return fmt.Errorf("Invalid repository name (%s), cannot specify 64-byte hexadecimal strings", name)
-	}
-	return nil
-}
-
-var validHex = regexp.MustCompile(`^([a-f0-9]{64})$`)
-
-// validateID checks whether an ID string is a valid image ID.
-func validateID(id string) error {
-	if ok := validHex.MatchString(id); !ok {
-		return fmt.Errorf("image ID %q is invalid", id)
-	}
-	return nil
-}
-
-// withName returns a named object representing the given string. If the input
-// is invalid ErrReferenceInvalidFormat will be returned.
-func withName(name string) (reference.Named, error) {
-	name, err := normalize(name)
-	if err != nil {
-		return nil, err
-	}
-	if err := validateName(name); err != nil {
-		return nil, err
-	}
-	r, err := distreference.WithName(name)
-	return r, err
-}
-
-// splitHostname splits a repository name to hostname and remotename string.
-// If no valid hostname is found, empty string will be returned as a resulting
-// hostname. Repository name needs to be already validated before.
-func splitHostname(name string) (hostname, remoteName string) {
+func splitDockerDomain(name string) (domain, remainder string) {
 	i := strings.IndexRune(name, '/')
 	if i == -1 || (!strings.ContainsAny(name[:i], ".:") && name[:i] != "localhost") {
-		hostname, remoteName = "", name
+		domain, remainder = "", name
 	} else {
-		hostname, remoteName = name[:i], name[i+1:]
-	}
-	if hostname == legacyDefaultHostname {
-		hostname = defaultHostname
-	}
-	if hostname == defaultHostname && !strings.ContainsRune(remoteName, '/') {
-		remoteName = defaultRepoPrefix + remoteName
+		domain, remainder = name[:i], name[i+1:]
 	}
 	return
-}
-
-// normalize returns a repository name in its normalized form, meaning it
-// will contain library/ prefix for official images.
-func normalize(name string) (string, error) {
-	host, remoteName := splitHostname(name)
-	if strings.ToLower(remoteName) != remoteName {
-		return "", errors.New("invalid reference format: repository name must be lowercase")
-	}
-	if host == defaultHostname {
-		if strings.HasPrefix(remoteName, defaultRepoPrefix) {
-			remoteName = strings.TrimPrefix(remoteName, defaultRepoPrefix)
-		}
-		return host + "/" + remoteName, nil
-	}
-	return name, nil
 }
 
 func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
-	r, err := reference.ParseNormalizedNamed(imageName)
+	// This to prevent any image ID to go through this routine
+	_, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
+		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
+			return nil, ErrCannotParseImageID
+		}
 		return nil, err
 	}
-	if isReferenceFullyQualified(r) {
+	domain, remainder := splitDockerDomain(imageName)
+	if domain != "" {
 		// this means the image is already fully qualified
 		return []string{imageName}, nil
 	}
@@ -447,10 +363,13 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 	// this means we got an image in the form of "busybox"
 	// we need to use additional registries...
 	// normalize the unqualified image to be domain/repo/image...
-	_, rest := splitDomain(r.Name())
 	images := []string{}
 	for _, r := range svc.registries {
-		images = append(images, filepath.Join(r, rest))
+		rem := remainder
+		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
+			rem = "library/" + rem
+		}
+		images = append(images, filepath.Join(r, rem))
 	}
 	return images, nil
 }
