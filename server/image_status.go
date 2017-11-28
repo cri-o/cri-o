@@ -2,10 +2,10 @@ package server
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/containers/storage"
+	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -31,8 +31,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 	}
 	images, err := s.StorageImageServer().ResolveNames(image)
 	if err != nil {
-		// This means we got an image ID
-		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
+		if err == pkgstorage.ErrCannotParseImageID {
 			images = append(images, image)
 		} else {
 			return nil, err
