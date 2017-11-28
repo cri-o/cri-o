@@ -955,8 +955,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	images, err := s.StorageImageServer().ResolveNames(image)
 	if err != nil {
-		// This means we got an image ID
-		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
+		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
 		} else {
 			return nil, err
