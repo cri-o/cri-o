@@ -23,6 +23,7 @@ PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/kube
 COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO := $(shell date +%s)
+VERSION := $(shell git describe --tags --always --dirty)
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -31,11 +32,12 @@ unexport GOBIN
 endif
 GOPKGDIR := $(GOPATH)/src/$(PROJECT)
 GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
+VERSION_PATH := $(PROJECT)/version.Version
 
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
-BASE_LDFLAGS := ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
+BASE_LDFLAGS := ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO} -X ${VERSION_PATH}=${VERSION}
 LDFLAGS := -ldflags '${BASE_LDFLAGS}'
 
 all: binaries crio.conf docs
