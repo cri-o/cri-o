@@ -77,7 +77,12 @@ For sync communication we have an IRC channel #CRI-O, on chat.freenode.net, that
 
 ## Getting started
 
-### Prerequisites
+### Runtime dependencies
+
+- runc, Clear Containers runtime, or any other OCI compatible runtime
+- socat
+- iproute
+- iptables
 
 Latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by CRI-O.
 
