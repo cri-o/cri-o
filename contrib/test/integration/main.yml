@@ -25,6 +25,7 @@
       include: "build/kubernetes.yml"
       vars:
         k8s_git_version: "cri-o-node-e2e-patched-logs"
+        k8s_github_fork: "runcom"
         crio_socket: "/var/run/crio.sock"
 
     - name: clone build and install runc
@@ -55,7 +56,7 @@
       include: "build/cri-tools.yml"
       vars:
         force_clone: True
-        cri_tools_git_version: "d9476a4d8632da6c28bf272018a0b9e059c3542f"
+        cri_tools_git_version: "a9e38a4a000bc1a4052fb33de1c967b8cfe9ad40"
     - name: run cri-o integration tests
       include: test.yml
 
@@ -74,14 +75,15 @@
       include: "build/cri-tools.yml"
       vars:
           force_clone: True
-          cri_tools_git_version: "d9476a4d8632da6c28bf272018a0b9e059c3542f"
+          cri_tools_git_version: "a9e38a4a000bc1a4052fb33de1c967b8cfe9ad40"
     - name: run critest validation and benchmarks
       include: critest.yml
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
           force_clone: True
-          k8s_git_version: "cri-o-patched-1.9"
+          k8s_git_version: "release-1.9"
+          k8s_github_fork: "kubernetes"
           crio_socket: "/var/run/crio/crio.sock"
     - name: run k8s e2e tests
       include: e2e.yml

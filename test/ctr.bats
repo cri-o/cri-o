@@ -191,8 +191,8 @@ function teardown() {
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	grep -E "^[^\n]+ stdout here is some output$" "$logpath"
-	grep -E "^[^\n]+ stderr and some from stderr$" "$logpath"
+	grep -E "^[^\n]+ stdout F here is some output$" "$logpath"
+	grep -E "^[^\n]+ stderr F and some from stderr$" "$logpath"
 
 	run crictl stops "$pod_id"
 	echo "$output"
@@ -238,7 +238,7 @@ function teardown() {
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	grep --binary -P "^[^\n]+ stdout here is some output\x0d$" "$logpath"
+	grep --binary -P "^[^\n]+ stdout F here is some output\x0d$" "$logpath"
 
 	run crictl stops "$pod_id"
 	echo "$output"
@@ -283,6 +283,51 @@ function teardown() {
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
 	[ $len -lt 250 ]
+
+	run crictl stops "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rms "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr partial line logging" {
+	start_crio
+	run crictl runs "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	# Create a new container.
+	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
+	cp "$TESTDATA"/container_config_logging.json "$newconfig"
+	sed -i 's|"%shellcommand%"|"echo -n hello"|' "$newconfig"
+	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl stop "$ctr_id"
+	echo "$output"
+	# Ignore errors on stop.
+	run crictl inspect "$ctr_id"
+	[ "$status" -eq 0 ]
+	run crictl rm "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	# Check that the output is what we expect.
+	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
+	[ -f "$logpath" ]
+	echo "$logpath :: $(cat "$logpath")"
+	grep -E "^[^\n]+ stdout P hello$" "$logpath"
 
 	run crictl stops "$pod_id"
 	echo "$output"
