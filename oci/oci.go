@@ -172,6 +172,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	if r.cgroupManager == SystemdCgroupsManager {
 		args = append(args, "-s")
 	}
+	args = append(args, "-d")
 	args = append(args, "-c", c.id)
 	args = append(args, "-u", c.id)
 	args = append(args, "-r", r.Path(c))
@@ -427,7 +428,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	args = append(args, "-c", c.id)
 	args = append(args, "-r", r.Path(c))
 	args = append(args, "-p", pidFile.Name())
-	args = append(args, "-e")
+	args = append(args, "-e", "-d")
 	if c.terminal {
 		args = append(args, "-t")
 	}

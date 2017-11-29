@@ -2,6 +2,15 @@ language: go
 
 sudo: required
 
+matrix:
+  # If the latest unstable development version of go fails, that's OK.
+  allow_failures:
+    - go: tip
+
+  # Don't hold on the tip tests to finish.  Mark tests green if the
+  # stable versions pass.
+  fast_finish: true
+
 services:
   - docker
 
