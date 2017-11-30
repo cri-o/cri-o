@@ -28,8 +28,7 @@ storage_driver = "{{ .Storage }}"
 storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
-# The "crio.api" table contains settings for the kubelet/gRPC
-# interface (which is also used by crioctl).
+# The "crio.api" table contains settings for the kubelet/gRPC interface.
 [crio.api]
 
 # listen is the path to the AF_LOCAL socket on which crio will listen.

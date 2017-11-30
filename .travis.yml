@@ -32,7 +32,6 @@ jobs:
         - make .gitvalidation
         - make gofmt
         - make lint
-        - make verify
         - make testunit
         - make docs
         - make
@@ -42,14 +41,12 @@ jobs:
         - make .gitvalidation
         - make gofmt
         - make lint
-        - make verify
         - make testunit
         - make docs
         - make
       go: 1.9.x
     - script:
         - make .gitvalidation
-        - make verify
         - make testunit
         - make docs
         - make
