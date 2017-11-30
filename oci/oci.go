@@ -415,7 +415,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		os.RemoveAll(logPath)
 	}()
 
-	f, err := ioutil.TempFile("", "exec-process")
+	f, err := ioutil.TempFile("", "exec-sync-process")
 	if err != nil {
 		return nil, ExecSyncError{
 			ExitCode: -1,
@@ -440,7 +440,6 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
 
 	pspec := c.Spec().Process
-	pspec.Env = append(pspec.Env, r.conmonEnv...)
 	pspec.Args = command
 	processJSON, err := json.Marshal(pspec)
 	if err != nil {
