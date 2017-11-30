@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"

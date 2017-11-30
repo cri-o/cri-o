@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-incubator/cri-o/lib"
 )
 
 //CrioConfigPath is the default location for the conf file
@@ -14,7 +14,7 @@ const CrioConfigPath = "/etc/crio/crio.conf"
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
-	libkpod.Config
+	lib.Config
 	APIConfig
 }
 
@@ -37,11 +37,11 @@ type APIConfig struct {
 // conversions.
 type tomlConfig struct {
 	Crio struct {
-		libkpod.RootConfig
-		API     struct{ APIConfig }             `toml:"api"`
-		Runtime struct{ libkpod.RuntimeConfig } `toml:"runtime"`
-		Image   struct{ libkpod.ImageConfig }   `toml:"image"`
-		Network struct{ libkpod.NetworkConfig } `toml:"network"`
+		lib.RootConfig
+		API     struct{ APIConfig }         `toml:"api"`
+		Runtime struct{ lib.RuntimeConfig } `toml:"runtime"`
+		Image   struct{ lib.ImageConfig }   `toml:"image"`
+		Network struct{ lib.NetworkConfig } `toml:"network"`
 	} `toml:"crio"`
 }
 
@@ -102,7 +102,7 @@ func (c *Config) ToFile(path string) error {
 // DefaultConfig returns the default configuration for crio.
 func DefaultConfig() *Config {
 	return &Config{
-		Config: *libkpod.DefaultConfig(),
+		Config: *lib.DefaultConfig(),
 		APIConfig: APIConfig{
 			Listen:        "/var/run/crio/crio.sock",
 			StreamAddress: "",

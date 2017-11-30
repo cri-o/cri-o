@@ -1,4 +1,4 @@
-package libkpod
+package lib
 
 import (
 	"os"

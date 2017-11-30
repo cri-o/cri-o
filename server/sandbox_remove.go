@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/pkg/errors"

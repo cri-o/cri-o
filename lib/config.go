@@ -1,4 +1,4 @@
-package libkpod
+package lib
 
 import (
 	"bytes"
@@ -83,7 +83,7 @@ type RootConfig struct {
 	LogDir string `toml:"log_dir"`
 
 	// FileLocking specifies whether to use file-based or in-memory locking
-	// File-based locking is required when multiple users of libkpod are
+	// File-based locking is required when multiple users of lib are
 	// present on the same system
 	FileLocking bool `toml:"file_locking"`
 }

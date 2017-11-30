@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-incubator/cri-o/lib"
 )
 
 const fixturePath = "fixtures/crio.conf"
@@ -44,7 +44,7 @@ func assertAllFieldsEquality(t *testing.T, c Config) {
 		{c.ImageConfig.PauseImage, "kubernetes/pause"},
 		{c.ImageConfig.PauseCommand, "/pause"},
 		{c.ImageConfig.SignaturePolicyPath, "/tmp"},
-		{c.ImageConfig.ImageVolumes, libkpod.ImageVolumesType("mkdir")},
+		{c.ImageConfig.ImageVolumes, lib.ImageVolumesType("mkdir")},
 		{c.ImageConfig.InsecureRegistries[0], "insecure-registry:1234"},
 		{c.ImageConfig.Registries[0], "registry:4321"},
 

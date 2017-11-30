@@ -15,8 +15,8 @@ import (
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/lib"
+	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/apparmor"
@@ -53,7 +53,7 @@ type streamService struct {
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	*libkpod.ContainerServer
+	*lib.ContainerServer
 	config Config
 
 	updateLock      sync.RWMutex
@@ -190,7 +190,7 @@ func New(config *Config) (*Server, error) {
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := libkpod.New(&config.Config)
+	containerServer, err := lib.New(&config.Config)
 	if err != nil {
 		return nil, err
 	}
