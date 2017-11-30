@@ -34,7 +34,7 @@ type profileData struct {
 
 // EnsureDefaultApparmorProfile loads default apparmor profile, if it is not loaded.
 func EnsureDefaultApparmorProfile() error {
-	if apparmor.IsEnabled() {
+	if IsEnabled() {
 		loaded, err := IsLoaded(DefaultApparmorProfile)
 		if err != nil {
 			return fmt.Errorf("Could not check if %s AppArmor profile was loaded: %s", DefaultApparmorProfile, err)
@@ -57,12 +57,6 @@ func EnsureDefaultApparmorProfile() error {
 // IsEnabled returns true if apparmor is enabled for the host.
 func IsEnabled() bool {
 	return apparmor.IsEnabled()
-}
-
-// GetProfileNameFromPodAnnotations gets the name of the profile to use with container from
-// pod annotations
-func GetProfileNameFromPodAnnotations(annotations map[string]string, containerName string) string {
-	return annotations[ContainerAnnotationKeyPrefix+containerName]
 }
 
 // InstallDefault generates a default profile in a temp directory determined by
