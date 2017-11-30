@@ -740,7 +740,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// set this container's apparmor profile if it is set by sandbox
 	if s.appArmorEnabled && !privileged {
-		appArmorProfileName := s.getAppArmorProfileName(sb.Annotations(), metadata.Name)
+
+		appArmorProfileName := s.getAppArmorProfileName(containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile())
 		if appArmorProfileName != "" {
 			// reload default apparmor profile if it is unloaded.
 			if s.appArmorProfile == apparmor.DefaultApparmorProfile {
@@ -751,6 +752,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 			specgen.SetProcessApparmorProfile(appArmorProfileName)
 		}
+
 	}
 
 	logPath := containerConfig.LogPath
@@ -1259,9 +1261,7 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error
 }
 
 // getAppArmorProfileName gets the profile name for the given container.
-func (s *Server) getAppArmorProfileName(annotations map[string]string, ctrName string) string {
-	profile := apparmor.GetProfileNameFromPodAnnotations(annotations, ctrName)
-
+func (s *Server) getAppArmorProfileName(profile string) string {
 	if profile == "" {
 		return ""
 	}
