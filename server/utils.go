@@ -10,8 +10,10 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
 	"github.com/kubernetes-incubator/cri-o/server/metrics"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/syndtr/gocapability/capability"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
 const (
@@ -209,4 +211,45 @@ func validateLabels(labels map[string]string) error {
 		}
 	}
 	return nil
+}
+
+func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*pb.KeyValue) []string {
+	envs := []string{}
+	if kubeEnvs == nil && imageConfig != nil {
+		envs = imageConfig.Config.Env
+	} else {
+		for _, item := range kubeEnvs {
+			if item.GetKey() == "" {
+				continue
+			}
+			envs = append(envs, item.GetKey()+"="+item.GetValue())
+		}
+		if imageConfig != nil {
+			for _, imageEnv := range imageConfig.Config.Env {
+				var found bool
+				parts := strings.SplitN(imageEnv, "=", 2)
+				if len(parts) != 2 {
+					continue
+				}
+				imageEnvKey := parts[0]
+				if imageEnvKey == "" {
+					continue
+				}
+				for _, kubeEnv := range envs {
+					kubeEnvKey := strings.SplitN(kubeEnv, "=", 2)[0]
+					if kubeEnvKey == "" {
+						continue
+					}
+					if imageEnvKey == kubeEnvKey {
+						found = true
+						break
+					}
+				}
+				if !found {
+					envs = append(envs, imageEnv)
+				}
+			}
+		}
+	}
+	return envs
 }

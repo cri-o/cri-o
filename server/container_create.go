@@ -1115,30 +1115,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.SetProcessArgs(processArgs)
 
-	// Add environment variables from CRI and image config
-	envs := containerConfig.GetEnvs()
-	if envs != nil {
-		for _, item := range envs {
-			key := item.Key
-			value := item.Value
-			if key == "" {
-				continue
-			}
-			specgen.AddProcessEnv(key, value)
-		}
-	}
-	if containerImageConfig != nil {
-		for _, item := range containerImageConfig.Config.Env {
-			parts := strings.SplitN(item, "=", 2)
-			if len(parts) != 2 {
-				return nil, fmt.Errorf("invalid env from image: %s", item)
-			}
-
-			if parts[0] == "" {
-				continue
-			}
-			specgen.AddProcessEnv(parts[0], parts[1])
-		}
+	envs := mergeEnvs(containerImageConfig, containerConfig.GetEnvs())
+	for _, e := range envs {
+		parts := strings.SplitN(e, "=", 2)
+		specgen.AddProcessEnv(parts[0], parts[1])
 	}
 
 	// Set working directory
