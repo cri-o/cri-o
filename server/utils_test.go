@@ -4,6 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/opencontainers/image-spec/specs-go/v1"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
 const (
@@ -105,6 +108,36 @@ func TestSysctlsFromPodAnnotations(t *testing.T) {
 			if sysctl.Name != unsafe[index].Name || sysctl.Value != unsafe[index].Value {
 				t.Errorf("Expect unsafe: %v, but got: %v\n", safe[index], sysctl)
 			}
+		}
+	}
+}
+
+func TestMergeEnvs(t *testing.T) {
+	configImage := &v1.Image{
+		Config: v1.ImageConfig{
+			Env: []string{"VAR1=1", "VAR2=2"},
+		},
+	}
+
+	configKube := []*pb.KeyValue{
+		{
+			Key:   "VAR2",
+			Value: "3",
+		},
+		{
+			Key:   "VAR3",
+			Value: "3",
+		},
+	}
+
+	mergedEnvs := mergeEnvs(configImage, configKube)
+
+	if len(mergedEnvs) != 3 {
+		t.Fatalf("Expected 3 env var, VAR1=1, VAR2=3 and VAR3=3, found %d", len(mergedEnvs))
+	}
+	for _, env := range mergedEnvs {
+		if env != "VAR1=1" && env != "VAR2=3" && env != "VAR3=3" {
+			t.Fatalf("Expected VAR1=1 or VAR2=3 or VAR3=3, found %s", env)
 		}
 	}
 }
