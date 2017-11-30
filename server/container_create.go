@@ -1006,30 +1006,46 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.SetProcessArgs(processArgs)
 
-	// Add environment variables from CRI and image config
-	envs := containerConfig.GetEnvs()
-	if envs != nil {
-		for _, item := range envs {
-			key := item.Key
-			value := item.Value
-			if key == "" {
+	envs := []string{}
+	if containerConfig.GetEnvs() == nil && containerImageConfig != nil {
+		envs = containerImageConfig.Config.Env
+	} else {
+		for _, item := range containerConfig.GetEnvs() {
+			if item.GetKey() == "" {
 				continue
 			}
-			specgen.AddProcessEnv(key, value)
+			envs = append(envs, item.GetKey()+"="+item.GetValue())
+		}
+		if containerImageConfig != nil {
+			for _, imageEnv := range containerImageConfig.Config.Env {
+				var found bool
+				parts := strings.SplitN(imageEnv, "=", 2)
+				if len(parts) != 2 {
+					continue
+				}
+				imageEnvKey := parts[0]
+				if imageEnvKey == "" {
+					continue
+				}
+				for _, kubeEnv := range envs {
+					kubeEnvKey := strings.SplitN(kubeEnv, "=", 2)[0]
+					if kubeEnvKey == "" {
+						continue
+					}
+					if imageEnvKey == kubeEnvKey {
+						found = true
+						break
+					}
+				}
+				if !found {
+					envs = append(envs, imageEnv)
+				}
+			}
 		}
 	}
-	if containerImageConfig != nil {
-		for _, item := range containerImageConfig.Config.Env {
-			parts := strings.SplitN(item, "=", 2)
-			if len(parts) != 2 {
-				return nil, fmt.Errorf("invalid env from image: %s", item)
-			}
-
-			if parts[0] == "" {
-				continue
-			}
-			specgen.AddProcessEnv(parts[0], parts[1])
-		}
+	for _, e := range envs {
+		parts := strings.SplitN(e, "=", 2)
+		specgen.AddProcessEnv(parts[0], parts[1])
 	}
 
 	// Set working directory
