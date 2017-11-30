@@ -1,0 +1,12 @@
+---
+
+update_install_timeout: "{{ 10 * 60 }}"
+
+common_rpms: "python-devel, redhat-rpm-config, rpm-build, yum-utils, iptables, git, rsync, wget"
+
+rhel_centos_rpms: "python34, python34-devel, python-virtualenv, gcc, openssl-devel, libffi-devel, libselinux-python, yum-utils, python-pycurl, bats"
+
+packages:
+    Fedora: "{{ common_rpms }}, python3-devel, btrfs-progs-devel"
+    RedHat: "{{ common_rpms }}, {{ rhel_centos_rpms }}"
+    CentOS: "{{ common_rpms }}, {{ rhel_centos_rpms }}"

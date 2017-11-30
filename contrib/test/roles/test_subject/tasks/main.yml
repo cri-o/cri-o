@@ -1,0 +1,77 @@
+---
+
+- name: Verify expectations
+  assert:
+    that:
+      - 'artifacts | default("", True) | trim | length'
+      - 'go_path | default("", True) | trim | length'
+      - 'cri_o_dest_path | default("", True) | trim | length'
+      - 'cri_o_src_path | default("", True) | trim | length'
+      - 'update_install_timeout | int > 0'
+      - 'packages[ansible_distribution] | default("", True) | trim | length'
+
+- name: All packages are updated
+  package:
+    name: '*'
+    state: latest
+  async: '{{ update_install_timeout }}'
+  poll: 5
+
+- name: Required packages are installed
+  package:
+    name: "{{ packages[ansible_distribution]  }}"
+    state: present
+  async: '{{ update_install_timeout }}'
+  poll: 5
+
+- name: Hostname exists in /etc/hosts
+  blockinfile:
+    dest: /etc/hosts
+    block: '{{ ansible_default_ipv4.address }} {{ ansible_nodename }}'
+    state: present
+
+- name: Directory exists for setup logs
+  file:
+    path: "{{ artifacts }}"
+    state: directory
+
+- name: The cri-o repository directory exists
+  file:
+    path: "{{ cri_o_dest_path }}"
+    state: directory
+    mode: 0777
+
+- name: Synchronize cri-o from control-host to remote subject
+  synchronize:
+    archive: False
+    checksum: True
+    delete: True
+    dest: "{{ cri_o_dest_path }}/"
+    links: True
+    recursive: True
+    src: "{{ cri_o_src_path }}/"
+    times: True
+  # This task is excessively noisy, logging every change to every file :(
+  no_log: True
+
+- name: Sysctl's are set to 1
+  sysctl:
+    name: '{{ item }}'
+    state: present
+    value: 1
+  with_items:
+    - "vm.overcommit_memory"
+    - "net.ipv4.conf.all.route_localnet"
+
+- name: Flush the iptables
+  iptables:
+    flush: True
+
+- name: Add masquerade for localhost
+  iptables:
+    table: "nat"
+    action: "insert"
+    chain: "POSTROUTING"
+    source: "127.0.0.1"
+    destination: "!127.0.0.1"
+    jump: "MASQUERADE"

@@ -1,0 +1,7 @@
+---
+
+# Absolute path containing subject-subdirectories and top-level artifacts.
+collection_dirpath: '{{ playbook_dir }}/artifacts'
+
+# Filename for jUnit xml file combining all subject jUnit xml files of the same name
+collection_canonical_junit: "junit_03.xml"

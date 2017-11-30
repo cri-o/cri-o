@@ -1,0 +1,38 @@
+---
+
+- assert:
+    that:
+        - 'needs_reboot | bool in [True, False]'
+        - 'shutdown_timeout | default(0, True) | int > 0'
+        - 'bootup_timeout | default(0, True) | int > 0'
+
+- block:
+
+    - name: Reboot System
+      shell: sleep 5 && shutdown -r now
+      async: 120
+      poll: 0
+      ignore_errors: true
+      changed_when: True
+
+    - name: System started shutting down
+      wait_for:
+        host: '{{ ansible_host | default(inventory_hostname) }}'
+        state: stopped
+        timeout: '{{ shutdown_timeout }}'
+        connect_timeout: 1
+      delegate_to: 'localhost'
+
+    - name: Ansible universal accessability command is executed
+      raw: "/bin/true"
+      register: result
+      changed_when: result | success
+      until: result | success
+      retries: 12
+      delay: 10
+
+  when: needs_reboot == True
+
+- name: needs_reboot flag is set false
+  set_fact:
+    needs_reboot: False

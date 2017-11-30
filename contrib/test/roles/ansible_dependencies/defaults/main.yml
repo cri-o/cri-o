@@ -1,0 +1,7 @@
+---
+
+# Required rpms for ansible to function, missing packages are ignored
+ansible_dependencies: >
+    python python2 libselinux-python policycoreutils-python
+    python2-dnf python3-dnf python-pycurl python2-pycurl
+    python3-pycurl python2-simplejson python-simplejson

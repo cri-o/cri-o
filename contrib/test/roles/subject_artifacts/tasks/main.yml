@@ -1,0 +1,95 @@
+---
+# vim-syntax: ansible
+
+- name: Input expectations are verified
+  assert:
+    that:
+      # Control-host can be a subject as well
+      - 'inventory_hostname in groups.SubjectHosts'
+      # Combined "is defined" and "isn't blank" check
+      - 'artifacts | default("", True) | trim | length'
+      - 'extra_artifact_filepaths is defined'
+      - 'generated_artifacts is defined'
+      - 'parsed_artifacts is defined'
+      - 'canonical_junit is defined'
+
+- name: Top-level artifacts directory exists
+  file:
+      path: "{{ artifacts }}"
+      state: directory
+
+- block:
+    - name: Extra artifacts subdirectory exists
+      file:
+          path: "{{ artifacts }}/extra"
+          state: directory
+
+    - name: Extra artifacts are collected, except missing or with clashing filenames
+      command: 'cp --no-clobber --verbose "{{ item }}" "{{ artifacts }}/extra/"'
+      args:
+        creates: "{{ artifacts }}/extra/{{ item }}"
+        chdir: "/"
+      ignore_errors: True  # Don't abort play because a command fails
+      failed_when: False  # Don't make a spectical about failed command
+      with_items: '{{ extra_artifact_filepaths }}'
+  when:  extra_artifact_filepaths | length
+
+- block:
+    - name: Generated artifacts subdirectory exists
+      file:
+          path: "{{ artifacts }}/generated"
+          state: directory
+      when: generated_artifacts | length
+
+    - name: Generated artifacts are produced
+      shell: '{{ item.value }} &> {{ item.key | basename }}.txt'
+      args:
+        chdir: "{{ artifacts }}/generated"
+      ignore_errors: True  # Don't abort play because a command fails
+      failed_when: False  # Don't make a spectical about failed command
+      with_dict: "{{ generated_artifacts }}"
+  when: generated_artifacts | length
+
+- block:
+    - name: Virtual-env wrapper path is buffered
+      set_fact:
+        result: '{{ cri_o_dest_path }}/contrib/test/venv-cmd.sh'
+
+    - name: jUnit parsing script path is appended to buffer
+      set_fact:
+        result: '{{ result }} {{ cri_o_dest_path }}/contrib/test/parse2junit.py'
+
+    - name: Subject produces a single canonical jUnit file by combining parsed_artifacts
+      command: '{{ result }} {{ parsed_artifacts | join(" ") }} "{{ canonical_junit }}"'
+      args:
+        chdir: "{{ artifacts }}"
+        creates: "{{ canonical_junit }}"
+      environment:
+        # Needed by venv-cmd.sh for logging
+        ARTIFACTS: "{{ artifacts }}"
+      ignore_errors: True
+  when: parsed_artifacts | length
+
+- name: Non-subject control-host is synchronized with remote subject-host artifacts
+  block:
+    - name: The complete control-host path for this host's artifacts is buffered
+      set_fact:
+        result: "{{ hostvars[groups.ControlHost[0]].collection_dirpath }}/{{ inventory_hostname }}"
+
+    - name: A subdirectory exists for this subject's artifacts
+      file:
+        path: "{{ result }}"
+        state: directory
+      delegate_to: '{{ groups.ControlHost[0] }}'
+
+    - name: Artifacts are retrieved from subject-hosts, onto control-host
+      synchronize:
+          archive: False  # Don't bother with permissions or times
+          checksum: True  # Don't rely on date/time being in sync
+          copy_links: True  # We want files, not links to files
+          recursive: True
+          mode: "pull"
+          src: '{{ artifacts }}/'  # N/B: rsync path format
+          dest: '{{ result }}/'
+      no_log: True  # super-duper noisy
+  when: groups.ControlHost | length and inventory_hostname not in groups['ControlHost']

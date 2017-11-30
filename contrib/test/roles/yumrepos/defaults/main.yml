@@ -1,0 +1,25 @@
+---
+
+# There are situations where default repositories are broken.
+# Setting this true causes ALL subscription-manager supplied repos
+# to be disabled.
+disable_all_rh_repos: False
+
+# This is the opposite of ``disable_all_rh_repos`` (above).  It's
+# a list of subscription-manager supplied repos to explicitly enable.
+enable_rh_repos: []
+
+# When neither of the above meet testing requirements, or additional
+# local repositories should be added, this specifies them.  Each item
+# in the list is a dictionary of arguments to the standard
+# ``yum_repository`` Ansible module.  e.g.
+#
+# yum_repos:
+#     - name: "My special Repo"
+#       baseurl: "https://my.special.repo.example.com/"
+#       gpgcheck: False
+#       includepkgs: rocket2moon
+#     - name: "Other special repo"
+#       baseurl: "https://you.get.the.idea"
+#
+yum_repos: []

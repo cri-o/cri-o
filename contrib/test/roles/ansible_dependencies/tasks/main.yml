@@ -1,0 +1,19 @@
+---
+
+- name: Input expectations are verified
+  assert:
+    that:
+        - 'inventory_hostname != "localhost"'
+        - 'ansible_dependencies | default("", True) | trim | length'
+        # Contains fix for shell-module 'chdir' option not being passed through
+        - 'ansible_version.string | version_compare("2.4.1", ">=")'
+
+- name: Low-level Ansible setup module-dependencies are installed
+  raw: $(type -P dnf || type -P yum || echo ) install -y {{ ansible_dependencies }}
+  failed_when: False  # Any missing & required packages will show up as failures in setup
+  changed_when: True
+
+- name: Subject host's networking facts are gathered
+  setup:
+    # other modules are simply not needed
+    gather_subset: network

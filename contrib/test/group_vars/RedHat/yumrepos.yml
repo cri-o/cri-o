@@ -1,0 +1,15 @@
+---
+
+disable_all_rh_repos: True  # Because: Special Reasons
+
+enable_rh_repos:
+    - rhel-7-server-rpms
+    - rhel-7-server-extras-rpms
+    - rhel-7-server-optional-rpms
+    - rhel-7-server-supplementary-rpms
+
+yum_repos:
+    # TODO: Workaround not having any released crio spec file for RHEL yet
+    - name: virt7-container-common-candidate
+      baseurl: https://cbs.centos.org/repos/virt7-container-common-candidate/x86_64/os/
+      gpgcheck: False

@@ -1,0 +1,36 @@
+---
+
+- name: Input expectations are verified
+  assert:
+    that:
+      # Ensure control-host is NOT a subject for this role's tasks
+      - 'inventory_hostname in groups["ControlHost"]'
+      - 'inventory_hostname not in groups["SubjectHosts"]'
+      # Combined "is defined" and "isn't blank" check
+      - 'collection_dirpath | default("", True) | trim | length'
+      - 'collection_canonical_junit | default("", True) | trim | length'
+
+- name: The collection_dirpath directory exists
+  file:
+    path: "{{ collection_dirpath }}"
+    state: directory
+
+- name: The paths of canonical_junit files from all subjects are found
+  find:
+    paths:
+        - '{{ collection_dirpath }}'
+    # Subjects may produce more than one xml file, search exact file names
+    patterns: "{{ hostvars | map('extract', hostvars, 'canonical_junit') | list | unique }}"
+    recurse: True
+  register: result
+
+- name: Located subject canonical_junit files buffered into space-separated string
+  set_fact:
+    result: '{{ result.files | map(attribute="path") | join(" ") }}'
+
+- name: The control host produces a top-level jUnit xml, combining all subject's canonical_junits
+  script: '{{ playbook_dir }}/parse2junit.py {{ result }} "{{ collection_canonical_junit }}"'
+  args:
+    chdir: "{{ collection_dirpath }}"
+  ignore_errors: True
+  when: result | trim | length

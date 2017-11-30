@@ -1,0 +1,43 @@
+---
+
+# Base directory for all go-related source, build, and install.
+go_path: "/go"
+
+# Absolute path on control-host where the cri-o source exists
+cri_o_src_path: "{{ playbook_dir }}/../../"
+
+# Absolute path on subject-host where cri-o source is expected
+cri_o_dest_path: "{{ go_path }}/src/github.com/kubernetes-incubator/cri-o"
+
+# Subject-host, absolute source path for files to be synchronized to control-host
+artifacts: "/tmp/artifacts"  # Base-directory for collection
+
+# List of absolute paths to extra filenames to collect into {{ artifacts }}.
+# Non-existing files and any name-collisions will be skipped.
+extra_artifact_filepaths:
+    - "/go/src/k8s.io/kubernetes/e2e.log"
+    - "/tmp/kubelet.log"
+    - "/tmp/kube-apiserver.log"
+    - "/tmp/kube-controller-manager.log"
+    - "/tmp/kube-proxy.log"
+    - "/tmp/kube-proxy.yaml"
+    - "/tmp/kube-scheduler.log"
+
+# Mapping of generated artifact filenames and their commands.  All
+# are relative to {{ artifacts }}/generated/
+generated_artifacts:
+    installed_packages.log: '$(type -P dnf || type -P yum) list installed'
+    avc_denials.log: 'ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
+    filesystem.info: 'df -h && sudo pvs && sudo vgs && sudo lvs'
+    pid1.journal: 'journalctl _PID=1 --no-pager --all --lines=all'
+    crio.service: 'journalctl --unit crio.service --no-pager --all --lines=all'
+    customcluster.service: 'journalctl --unit customcluster.service --no-pager --all --lines=all'
+    systemd-journald.service: 'journalctl --unit systemd-journald.service --no-pager --all --lines=all'
+
+# Input filenames for parse2junit.py if found within artifacts directory
+parsed_artifacts:
+    - "integration_results.txt"
+    - "junit_01.xml"
+
+# Output filename for parse2junit.py to combining all parsed, parsed_artifacts files
+canonical_junit: "junit_02.xml"

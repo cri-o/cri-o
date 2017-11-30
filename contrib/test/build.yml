@@ -1,0 +1,12 @@
+---
+
+- name: Subjects build packages for testing
+  hosts: SubjectHosts
+  gather_facts: False  # requires ansible-dependencies
+  roles:
+    - role: runscript
+      execute: 'build.sh'
+      basedir: '{{ cri_o_dest_path }}'
+      tags:
+        - build
+        - test

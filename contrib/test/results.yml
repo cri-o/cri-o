@@ -1,0 +1,16 @@
+---
+
+- name: Subjects generate and gather their artifacts
+  hosts: SubjectHosts
+  roles:
+    - role: subject_artifacts
+      tags:
+        - results
+
+
+- name: Non-subject control-host finalizes artifacts for downstream consumption
+  hosts: ControlHost:!SubjectHosts
+  roles:
+    - role: control_artifacts
+      tags:
+        - results

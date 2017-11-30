@@ -1,0 +1,7 @@
+---
+
+- include: setup.yml
+- include: build.yml
+- include: install.yml
+- include: test.yml
+- include: results.yml

@@ -1,0 +1,12 @@
+
+# Dropped by venv-cmd.sh
+.venvbootstrap
+.cache
+.venv
+artifacts
+
+# Dropped by python3
+__pycache__
+
+# Dropped by python2
+.pyc
