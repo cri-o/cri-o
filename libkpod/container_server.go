@@ -168,7 +168,7 @@ func New(config *Config) (*ContainerServer, error) {
 		state: &containerServerState{
 			containers:      oci.NewMemoryStore(),
 			infraContainers: oci.NewMemoryStore(),
-			sandboxes:       make(map[string]*sandbox.Sandbox),
+			sandboxes:       sandbox.NewMemoryStore(),
 			processLevels:   make(map[string]int),
 		},
 		config: config,
@@ -617,7 +617,7 @@ func (c *ContainerServer) Shutdown() error {
 type containerServerState struct {
 	containers      oci.ContainerStorer
 	infraContainers oci.ContainerStorer
-	sandboxes       map[string]*sandbox.Sandbox
+	sandboxes       sandbox.Storer
 	// processLevels The number of sandboxes using the same SELinux MCS level. Need to release MCS Level, when count reaches 0
 	processLevels map[string]int
 }
@@ -626,7 +626,7 @@ type containerServerState struct {
 func (c *ContainerServer) AddContainer(ctr *oci.Container) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-	sandbox := c.state.sandboxes[ctr.Sandbox()]
+	sandbox := c.state.sandboxes.Get(ctr.Sandbox())
 	sandbox.AddContainer(ctr)
 	c.state.containers.Add(ctr.ID(), ctr)
 }
@@ -665,7 +665,7 @@ func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	sbID := ctr.Sandbox()
-	sb := c.state.sandboxes[sbID]
+	sb := c.state.sandboxes.Get(sbID)
 	sb.RemoveContainer(ctr)
 	c.state.containers.Delete(ctr.ID())
 }
@@ -706,7 +706,7 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-	c.state.sandboxes[sb.ID()] = sb
+	c.state.sandboxes.Add(sb.ID(), sb)
 	c.state.processLevels[selinux.NewContext(sb.ProcessLabel())["level"]]++
 }
 
@@ -714,17 +714,14 @@ func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
 func (c *ContainerServer) GetSandbox(id string) *sandbox.Sandbox {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-	return c.state.sandboxes[id]
+	return c.state.sandboxes.Get(id)
 }
 
 // GetSandboxContainer returns a sandbox's infra container
 func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-	sb, ok := c.state.sandboxes[id]
-	if !ok {
-		return nil
-	}
+	sb := c.state.sandboxes.Get(id)
 	return sb.InfraContainer()
 }
 
@@ -732,21 +729,25 @@ func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
 func (c *ContainerServer) HasSandbox(id string) bool {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-	_, ok := c.state.sandboxes[id]
-	return ok
+	sb := c.state.sandboxes.Get(id)
+	return sb != nil
 }
 
 // RemoveSandbox removes a sandbox from the state store
 func (c *ContainerServer) RemoveSandbox(id string) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-	processLabel := c.state.sandboxes[id].ProcessLabel()
-	delete(c.state.sandboxes, id)
+	sb := c.state.sandboxes.Get(id)
+	processLabel := sb.ProcessLabel()
+	c.state.sandboxes.Delete(id)
 	level := selinux.NewContext(processLabel)["level"]
-	c.state.processLevels[level]--
-	if c.state.processLevels[level] == 0 {
-		label.ReleaseLabel(processLabel)
-		delete(c.state.processLevels, level)
+	pl, ok := c.state.processLevels[level]
+	if ok {
+		c.state.processLevels[level] = pl - 1
+		if c.state.processLevels[level] == 0 {
+			label.ReleaseLabel(processLabel)
+			delete(c.state.processLevels, level)
+		}
 	}
 }
 
@@ -754,12 +755,7 @@ func (c *ContainerServer) RemoveSandbox(id string) {
 func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-	sbArray := make([]*sandbox.Sandbox, 0, len(c.state.sandboxes))
-	for _, sb := range c.state.sandboxes {
-		sbArray = append(sbArray, sb)
-	}
-
-	return sbArray
+	return c.state.sandboxes.List()
 }
 
 // LibcontainerStats gets the stats for the container with the given id from runc/libcontainer
