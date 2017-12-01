@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/docker/docker/pkg/mount"
@@ -158,6 +159,7 @@ type Sandbox struct {
 	// ipv4 or ipv6 cache
 	ip                 string
 	seccompProfilePath string
+	created            time.Time
 }
 
 const (
@@ -202,6 +204,7 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.resolvPath = resolvPath
 	sb.hostname = hostname
 	sb.portMappings = portMappings
+	sb.created = time.Now()
 
 	return sb, nil
 }
