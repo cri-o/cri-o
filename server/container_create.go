@@ -1078,6 +1078,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err != nil {
+			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
+			if err2 != nil {
+				logrus.Warnf("Failed to cleanup container directory: %v", err2)
+			}
+		}
+	}()
 
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
@@ -1087,7 +1095,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
-		return nil, fmt.Errorf("empty image config for %s", image)
+		err = fmt.Errorf("empty image config for %s", image)
+		return nil, err
 	}
 
 	if containerImageConfig.Config.StopSignal != "" {
