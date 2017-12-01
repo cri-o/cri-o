@@ -28,6 +28,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run sleep 5
 	run crictl inspect --output yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -53,6 +54,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run sleep 5
 	run crictl inspect --output yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
