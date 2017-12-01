@@ -18,8 +18,8 @@ import (
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-incubator/cri-o/lib"
+	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
@@ -234,11 +234,11 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 			return nil, err
 		}
 		switch s.config.ImageVolumes {
-		case libkpod.ImageVolumesMkdir:
+		case lib.ImageVolumesMkdir:
 			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
 				return nil, err1
 			}
-		case libkpod.ImageVolumesBind:
+		case lib.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
@@ -258,7 +258,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 				Options:     []string{"rw"},
 			})
 
-		case libkpod.ImageVolumesIgnore:
+		case lib.ImageVolumesIgnore:
 			logrus.Debugf("Ignoring volume %v", dest)
 		default:
 			logrus.Fatalf("Unrecognized image volumes setting")
@@ -424,7 +424,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 }
 
 // addOCIHook look for hooks programs installed in hooksDirPath and add them to spec
-func addOCIHook(specgen *generate.Generator, hook libkpod.HookParams) error {
+func addOCIHook(specgen *generate.Generator, hook lib.HookParams) error {
 	logrus.Debugf("AddOCIHook", hook)
 	for _, stage := range hook.Stage {
 		switch stage {
@@ -616,7 +616,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 func (s *Server) setupOCIHooks(specgen *generate.Generator, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, command string) error {
 	mounts := containerConfig.GetMounts()
 	addedHooks := map[string]struct{}{}
-	addHook := func(hook libkpod.HookParams) error {
+	addHook := func(hook lib.HookParams) error {
 		// Only add a hook once
 		if _, ok := addedHooks[hook.Hook]; !ok {
 			if err := addOCIHook(specgen, hook); err != nil {

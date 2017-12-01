@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-incubator/cri-o/lib"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/kubernetes-incubator/cri-o/version"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -32,9 +32,9 @@ var gitCommit = ""
 
 func validateConfig(config *server.Config) error {
 	switch config.ImageVolumes {
-	case libkpod.ImageVolumesMkdir:
-	case libkpod.ImageVolumesIgnore:
-	case libkpod.ImageVolumesBind:
+	case lib.ImageVolumesMkdir:
+	case lib.ImageVolumesIgnore:
+	case lib.ImageVolumesBind:
 	default:
 		return fmt.Errorf("Unrecognized image volume type specified")
 
@@ -145,7 +145,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		config.PluginDir = ctx.GlobalString("cni-plugin-dir")
 	}
 	if ctx.GlobalIsSet("image-volumes") {
-		config.ImageVolumes = libkpod.ImageVolumesType(ctx.GlobalString("image-volumes"))
+		config.ImageVolumes = lib.ImageVolumesType(ctx.GlobalString("image-volumes"))
 	}
 	return nil
 }
@@ -297,7 +297,7 @@ func main() {
 		},
 		cli.Int64Flag{
 			Name:  "pids-limit",
-			Value: libkpod.DefaultPidsLimit,
+			Value: lib.DefaultPidsLimit,
 			Usage: "maximum number of processes allowed in a container",
 		},
 		cli.BoolFlag{
@@ -306,7 +306,7 @@ func main() {
 		},
 		cli.Int64Flag{
 			Name:  "log-size-max",
-			Value: libkpod.DefaultLogSizeMax,
+			Value: lib.DefaultLogSizeMax,
 			Usage: "maximum log size in bytes for a container",
 		},
 		cli.StringFlag{
@@ -319,13 +319,13 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "image-volumes",
-			Value: string(libkpod.ImageVolumesMkdir),
+			Value: string(lib.ImageVolumesMkdir),
 			Usage: "image volume handling ('mkdir', 'bind', or 'ignore')",
 		},
 		cli.StringFlag{
 			Name:   "hooks-dir-path",
 			Usage:  "set the OCI hooks directory path",
-			Value:  libkpod.DefaultHooksDirPath,
+			Value:  lib.DefaultHooksDirPath,
 			Hidden: true,
 		},
 		cli.StringSliceFlag{
