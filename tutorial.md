@@ -66,16 +66,16 @@ The `crio` project does not ship binary releases so you'll need to build it from
 
 #### Install the Go runtime and tool chain
 
-Download the Go 1.7.4 binary release:
+Download the Go 1.8.5 binary release:
 
 ```
-wget https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz
+wget https://storage.googleapis.com/golang/go1.8.5.linux-amd64.tar.gz
 ```
 
-Install Go 1.7.4:
+Install Go 1.8.5:
 
 ```
-sudo tar -xvf go1.7.4.linux-amd64.tar.gz -C /usr/local/
+sudo tar -xvf go1.8.5.linux-amd64.tar.gz -C /usr/local/
 ```
 
 ```
@@ -90,14 +90,14 @@ export GOPATH=$HOME/go
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 ```
 
-At this point the Go 1.7.4 tool chain should be installed:
+At this point the Go 1.8.5 tool chain should be installed:
 
 ```
 go version
 ```
 
 ```
-go version go1.7.4 linux/amd64
+go version go1.8.5 linux/amd64
 ```
 
 #### Get crictl
@@ -109,7 +109,13 @@ go get github.com/kubernetes-incubator/cri-tools/cmd/crictl
 #### Build crio from source
 
 ```
-sudo apt-get install -y libglib2.0-dev libseccomp-dev libapparmor-dev
+sudo apt-get update && apt-get install -y libglib2.0-dev \
+                                          libseccomp-dev \
+                                          libapparmor-dev \
+                                          libgpgme11-dev \
+                                          libdevmapper-dev \
+                                          make \
+                                          git
 ```
 
 ```
@@ -281,6 +287,20 @@ sudo sh -c 'cat >/etc/cni/net.d/99-loopback.conf <<-EOF
     "type": "loopback"
 }
 EOF'
+```
+
+Install `skopeo-containers` package from `ppa:projectatomic/ppa`
+
+```
+sudo add-apt-repository ppa:projectatomic/ppa
+sudo apt-get update
+sudo apt-get install skopeo-containers -y
+```
+
+Restart crio in order to apply CNI config
+
+```
+systemctl restart crio
 ```
 
 At this point `CNI` is installed and configured to allocation IP address to containers from the `10.88.0.0/16` subnet.
