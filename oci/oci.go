@@ -669,7 +669,7 @@ func (r *Runtime) SetStartFailed(c *Container, err error) {
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	out, err := exec.Command(r.Path(c), "state", c.id).CombinedOutput()
+	out, err := exec.Command(r.Path(c), "state", c.id).Output()
 	if err != nil {
 		// there are many code paths that could lead to have a bad state in the
 		// underlying runtime.
