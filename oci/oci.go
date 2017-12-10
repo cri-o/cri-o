@@ -415,15 +415,6 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		os.RemoveAll(logPath)
 	}()
 
-	f, err := ioutil.TempFile("", "exec-sync-process")
-	if err != nil {
-		return nil, ExecSyncError{
-			ExitCode: -1,
-			Err:      err,
-		}
-	}
-	defer os.RemoveAll(f.Name())
-
 	var args []string
 	args = append(args, "-c", c.id)
 	args = append(args, "-r", r.Path(c))
@@ -439,24 +430,16 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	args = append(args, "-l", logPath)
 	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
 
-	pspec := c.Spec().Process
-	pspec.Args = command
-	processJSON, err := json.Marshal(pspec)
+	processFile, err := PrepareProcessExec(c, command, false)
 	if err != nil {
 		return nil, ExecSyncError{
 			ExitCode: -1,
 			Err:      err,
 		}
 	}
+	defer os.RemoveAll(processFile.Name())
 
-	if err := ioutil.WriteFile(f.Name(), processJSON, 0644); err != nil {
-		return nil, ExecSyncError{
-			ExitCode: -1,
-			Err:      err,
-		}
-	}
-
-	args = append(args, "--exec-process-spec", f.Name())
+	args = append(args, "--exec-process-spec", processFile.Name())
 
 	cmd := exec.Command(r.conmonPath, args...)
 
@@ -763,4 +746,28 @@ func (r *Runtime) UnpauseContainer(c *Container) error {
 	defer c.opLock.Unlock()
 	_, err := utils.ExecCmd(r.Path(c), "resume", c.id)
 	return err
+}
+
+// PrepareProcessExec returns the path of the process.json used in runc exec -p
+// caller is responsible to close the returned *os.File if needed.
+func PrepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) {
+	f, err := ioutil.TempFile("", "exec-process-")
+	if err != nil {
+		return nil, err
+	}
+
+	pspec := c.Spec().Process
+	pspec.Args = cmd
+	if tty {
+		pspec.Terminal = true
+	}
+	processJSON, err := json.Marshal(pspec)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ioutil.WriteFile(f.Name(), processJSON, 0644); err != nil {
+		return nil, err
+	}
+	return f, nil
 }
