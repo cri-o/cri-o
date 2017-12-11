@@ -19,6 +19,7 @@ package extensions
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
@@ -51,19 +52,15 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&DeploymentList{},
 		&DeploymentRollback{},
 		&ReplicationControllerDummy{},
-		&Scale{},
-		&ThirdPartyResource{},
-		&ThirdPartyResourceList{},
 		&DaemonSetList{},
 		&DaemonSet{},
-		&ThirdPartyResourceData{},
-		&ThirdPartyResourceDataList{},
 		&Ingress{},
 		&IngressList{},
 		&ReplicaSet{},
 		&ReplicaSetList{},
 		&PodSecurityPolicy{},
 		&PodSecurityPolicyList{},
+		&autoscaling.Scale{},
 		&networking.NetworkPolicy{},
 		&networking.NetworkPolicyList{},
 	)
