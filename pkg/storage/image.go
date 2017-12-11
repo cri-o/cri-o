@@ -18,6 +18,10 @@ import (
 	digest "github.com/opencontainers/go-digest"
 )
 
+const (
+	minimumTruncatedIDLength = 3
+)
+
 var (
 	// ErrCannotParseImageID is returned when we try to ResolveNames for an image ID
 	ErrCannotParseImageID = errors.New("cannot parse an image ID")
@@ -512,6 +516,14 @@ func splitDockerDomain(name string) (domain, remainder string) {
 }
 
 func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
+	// _Maybe_ it's a truncated image ID.  Don't prepend a registry name, then.
+	if len(imageName) >= minimumTruncatedIDLength && svc.store != nil {
+		if img, err := svc.store.Image(imageName); err == nil && img != nil && strings.HasPrefix(img.ID, imageName) {
+			// It's a truncated version of the ID of an image that's present in local storage;
+			// we need to expand it.
+			return []string{img.ID}, nil
+		}
+	}
 	// This to prevent any image ID to go through this routine
 	_, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
