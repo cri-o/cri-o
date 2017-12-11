@@ -5,6 +5,7 @@
     name: "{{ item }}"
     state: present
   with_items:
+    - atomic-registries
     - container-selinux
     - curl
     - device-mapper-devel
