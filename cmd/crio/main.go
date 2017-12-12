@@ -509,7 +509,7 @@ func main() {
 				if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
 					err = nil
 				} else {
-					logrus.Errorf("Failed to serve grpc grpc request: %v", err)
+					logrus.Errorf("Failed to serve grpc request: %v", err)
 				}
 			}
 		}()
