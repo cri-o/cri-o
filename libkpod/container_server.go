@@ -624,8 +624,6 @@ type containerServerState struct {
 
 // AddContainer adds a container to the container state store
 func (c *ContainerServer) AddContainer(ctr *oci.Container) {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	sandbox := c.state.sandboxes.Get(ctr.Sandbox())
 	sandbox.AddContainer(ctr)
 	c.state.containers.Add(ctr.ID(), ctr)
@@ -633,37 +631,26 @@ func (c *ContainerServer) AddContainer(ctr *oci.Container) {
 
 // AddInfraContainer adds a container to the container state store
 func (c *ContainerServer) AddInfraContainer(ctr *oci.Container) {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	c.state.infraContainers.Add(ctr.ID(), ctr)
 }
 
 // GetContainer returns a container by its ID
 func (c *ContainerServer) GetContainer(id string) *oci.Container {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	return c.state.containers.Get(id)
 }
 
 // GetInfraContainer returns a container by its ID
 func (c *ContainerServer) GetInfraContainer(id string) *oci.Container {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	return c.state.infraContainers.Get(id)
 }
 
 // HasContainer checks if a container exists in the state
 func (c *ContainerServer) HasContainer(id string) bool {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
-	ctr := c.state.containers.Get(id)
-	return ctr != nil
+	return c.state.containers.Get(id) != nil
 }
 
 // RemoveContainer removes a container from the container state store
 func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	sbID := ctr.Sandbox()
 	sb := c.state.sandboxes.Get(sbID)
 	sb.RemoveContainer(ctr)
@@ -672,15 +659,11 @@ func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 
 // RemoveInfraContainer removes a container from the container state store
 func (c *ContainerServer) RemoveInfraContainer(ctr *oci.Container) {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	c.state.infraContainers.Delete(ctr.ID())
 }
 
 // listContainers returns a list of all containers stored by the server state
 func (c *ContainerServer) listContainers() []*oci.Container {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	return c.state.containers.List()
 }
 
@@ -704,43 +687,36 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 
 // AddSandbox adds a sandbox to the sandbox state store
 func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	c.state.sandboxes.Add(sb.ID(), sb)
+
+	c.stateLock.Lock()
 	c.state.processLevels[selinux.NewContext(sb.ProcessLabel())["level"]]++
+	c.stateLock.Unlock()
 }
 
 // GetSandbox returns a sandbox by its ID
 func (c *ContainerServer) GetSandbox(id string) *sandbox.Sandbox {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	return c.state.sandboxes.Get(id)
 }
 
 // GetSandboxContainer returns a sandbox's infra container
 func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	sb := c.state.sandboxes.Get(id)
 	return sb.InfraContainer()
 }
 
 // HasSandbox checks if a sandbox exists in the state
 func (c *ContainerServer) HasSandbox(id string) bool {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
-	sb := c.state.sandboxes.Get(id)
-	return sb != nil
+	return c.state.sandboxes.Get(id) != nil
 }
 
 // RemoveSandbox removes a sandbox from the state store
 func (c *ContainerServer) RemoveSandbox(id string) {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	sb := c.state.sandboxes.Get(id)
 	processLabel := sb.ProcessLabel()
-	c.state.sandboxes.Delete(id)
 	level := selinux.NewContext(processLabel)["level"]
+
+	c.stateLock.Lock()
 	pl, ok := c.state.processLevels[level]
 	if ok {
 		c.state.processLevels[level] = pl - 1
@@ -749,12 +725,13 @@ func (c *ContainerServer) RemoveSandbox(id string) {
 			delete(c.state.processLevels, level)
 		}
 	}
+	c.stateLock.Unlock()
+
+	c.state.sandboxes.Delete(id)
 }
 
 // ListSandboxes lists all sandboxes in the state store
 func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
-	c.stateLock.Lock()
-	defer c.stateLock.Unlock()
 	return c.state.sandboxes.List()
 }
 
