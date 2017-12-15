@@ -25,8 +25,9 @@ func (c *memoryStore) Add(id string, cont *Sandbox) {
 
 // Get returns a sandbox from the store by id.
 func (c *memoryStore) Get(id string) *Sandbox {
+	var res *Sandbox
 	c.RLock()
-	res := c.s[id]
+	res = c.s[id]
 	c.RUnlock()
 	return res
 }
