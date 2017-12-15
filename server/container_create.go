@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/distribution/reference"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
@@ -963,40 +962,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			return nil, err
 		}
 	}
-	image = images[0]
 
-	// Get imageName and imageRef that are requested in container status
-	imageName := image
-	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), image)
+	// Get imageName and imageRef that are later requested in container status
+	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), images[0])
 	if err != nil {
 		return nil, err
 	}
-
+	imageName := status.Name
 	imageRef := status.ID
-	//
-	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
-	//
-	//for _, n := range status.Names {
-	//r, err := reference.ParseNormalizedNamed(n)
-	//if err != nil {
-	//return nil, fmt.Errorf("failed to normalize image name for ImageRef: %v", err)
-	//}
-	//if digested, isDigested := r.(reference.Canonical); isDigested {
-	//imageRef = reference.FamiliarString(digested)
-	//break
-	//}
-	//}
-	for _, n := range status.Names {
-		r, err := reference.ParseNormalizedNamed(n)
-		if err != nil {
-			return nil, fmt.Errorf("failed to normalize image name for Image: %v", err)
-		}
-		if tagged, isTagged := r.(reference.Tagged); isTagged {
-			imageName = reference.FamiliarString(tagged)
-			break
-		}
+	if len(status.RepoDigests) > 0 {
+		imageRef = status.RepoDigests[0]
 	}
 
+	specgen.AddAnnotation(annotations.Image, image)
 	specgen.AddAnnotation(annotations.ImageName, imageName)
 	specgen.AddAnnotation(annotations.ImageRef, imageRef)
 	specgen.AddAnnotation(annotations.IP, sb.IP())
@@ -1043,7 +1021,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.AddAnnotation(annotations.TTY, fmt.Sprintf("%v", containerConfig.Tty))
 	specgen.AddAnnotation(annotations.Stdin, fmt.Sprintf("%v", containerConfig.Stdin))
 	specgen.AddAnnotation(annotations.StdinOnce, fmt.Sprintf("%v", containerConfig.StdinOnce))
-	specgen.AddAnnotation(annotations.Image, image)
 	specgen.AddAnnotation(annotations.ResolvPath, sb.InfraContainer().CrioAnnotations()[annotations.ResolvPath])
 
 	created := time.Now()
@@ -1079,7 +1056,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	attempt := metadata.Attempt
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.ImageContext(),
 		sb.Name(), sb.ID(),
-		image, image,
+		image, status.ID,
 		containerName, containerID,
 		metaname,
 		attempt,
@@ -1088,6 +1065,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err != nil {
+			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
+			if err2 != nil {
+				logrus.Warnf("Failed to cleanup container directory: %v", err2)
+			}
+		}
+	}()
 
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
@@ -1097,7 +1082,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
-		return nil, fmt.Errorf("empty image config for %s", image)
+		err = fmt.Errorf("empty image config for %s", image)
+		return nil, err
 	}
 
 	if containerImageConfig.Config.StopSignal != "" {

@@ -48,10 +48,10 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 	}
 	resp = &pb.ImageStatusResponse{
 		Image: &pb.Image{
-			Id:       status.ID,
-			RepoTags: status.Names,
-			Size_:    *status.Size,
-			// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
+			Id:          status.ID,
+			RepoTags:    status.RepoTags,
+			RepoDigests: status.RepoDigests,
+			Size_:       *status.Size,
 		},
 	}
 	logrus.Debugf("ImageStatusResponse: %+v", resp)
