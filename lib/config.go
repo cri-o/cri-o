@@ -24,6 +24,7 @@ const (
 	cgroupManager       = oci.CgroupfsCgroupsManager
 	lockPath            = "/run/crio.lock"
 	containerExitsDir   = oci.ContainerExitsDir
+	defaultRegistry     = "docker.io"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -302,6 +303,7 @@ func DefaultConfig() *Config {
 			PauseCommand:        pauseCommand,
 			SignaturePolicyPath: "",
 			ImageVolumes:        ImageVolumesMkdir,
+			Registries:          []string{defaultRegistry},
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
