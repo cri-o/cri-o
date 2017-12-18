@@ -47,6 +47,8 @@
       export API_HOST={{ ansible_default_ipv4.address }}
       export API_HOST_IP={{ ansible_default_ipv4.address }}
       export KUBE_ENABLE_CLUSTER_DNS=true
+      export ENABLE_HOSTPATH_PROVISIONER=true
+      export KUBE_ENABLE_CLUSTER_DASHBOARD=true
       ./hack/local-up-cluster.sh
     mode: "u=rwx,g=rwx,o=x"
 
