@@ -53,9 +53,13 @@ func readHook(hookPath string) (HookParams, error) {
 			return hook, errors.Wrapf(err, "invalid cmd regular expression %q defined in hook config %q", cmd, hookPath)
 		}
 	}
-	for _, stage := range hook.Stage {
-		if !validStage[stage] {
-			return hook, errors.Wrapf(err, "unknown stage %q defined in hook config %q", stage, hookPath)
+	if len(hook.Stage) == 0 {
+		logrus.Warnf("No stage defined in hook config %q, hook will never run", hookPath)
+	} else {
+		for _, stage := range hook.Stage {
+			if !validStage[stage] {
+				return hook, errors.Wrapf(err, "unknown stage %q defined in hook config %q", stage, hookPath)
+			}
 		}
 	}
 	return hook, nil
