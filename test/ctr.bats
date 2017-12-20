@@ -1061,3 +1061,31 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "ctr resources" {
+	start_crio
+	run crictl runs "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.cpus"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "0-1" ]]
+	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.mems"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "0" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
