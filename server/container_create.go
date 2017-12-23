@@ -785,28 +785,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if linux != nil {
 		resources := linux.GetResources()
 		if resources != nil {
-			cpuPeriod := resources.CpuPeriod
-			if cpuPeriod != 0 {
-				specgen.SetLinuxResourcesCPUPeriod(uint64(cpuPeriod))
-			}
-
-			cpuQuota := resources.CpuQuota
-			if cpuQuota != 0 {
-				specgen.SetLinuxResourcesCPUQuota(cpuQuota)
-			}
-
-			cpuShares := resources.CpuShares
-			if cpuShares != 0 {
-				specgen.SetLinuxResourcesCPUShares(uint64(cpuShares))
-			}
-
-			memoryLimit := resources.MemoryLimitInBytes
-			if memoryLimit != 0 {
-				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
-			}
-
-			oomScoreAdj := resources.OomScoreAdj
-			specgen.SetProcessOOMScoreAdj(int(oomScoreAdj))
+			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.GetCpuPeriod()))
+			specgen.SetLinuxResourcesCPUQuota(resources.GetCpuQuota())
+			specgen.SetLinuxResourcesCPUShares(uint64(resources.GetCpuShares()))
+			specgen.SetLinuxResourcesMemoryLimit(resources.GetMemoryLimitInBytes())
+			specgen.SetProcessOOMScoreAdj(int(resources.GetOomScoreAdj()))
+			specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
+			specgen.SetLinuxResourcesCPUMems(resources.GetCpusetMems())
 		}
 
 		var cgPath string
