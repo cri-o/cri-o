@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y \
     netcat \
     socat \
     --no-install-recommends \
+    bsdmainutils \
     && apt-get clean
 
 # install bats
