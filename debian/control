@@ -1,0 +1,31 @@
+Source: cri-o-testonly
+Section: devel
+Priority: optional
+Maintainer: Lokesh Mandvekar <lsm5@fedoraproject.org>
+Build-Depends: debhelper (>=9),
+    rsync,
+    libdevmapper-dev,
+    libgpgme11-dev,
+    libseccomp-dev,
+    golang,
+    golang-1.8,
+    btrfs-tools,
+    libglib2.0-dev,
+    go-md2man,
+    dh-golang,
+    git,
+    libostree-dev
+Standards-Version: 3.9.6
+Homepage: https://github.com/kubernetes-incubator/cri-o
+#Vcs-Git: git://anonscm.debian.org/collab-maint/cri-o.git
+#Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/cri-o.git
+
+Package: cri-o-testonly
+Architecture: all
+Depends: ${misc:Depends},
+    libdevmapper1.02.1,
+    libgpgme11,
+    cri-o-runc,
+    skopeo
+Suggests: containernetworking-plugins
+Description: OCI-based implementation of Kubernetes Container Runtime Interface.

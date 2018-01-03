@@ -92,7 +92,28 @@ crio.conf: crio
 release-note:
 	@$(GOPATH)/bin/containerd-release -n $(release)
 
-clean:
+tarball-prep:
+	git archive --format=tar.gz --prefix=cri-o-testonly/ HEAD > ../cri-o-testonly_1.8.0.orig.tar.gz
+
+# -E needed to preserve CRIO_GIT_* and DEBUG envariables used in script
+test-rpm: tarball-prep
+	sudo -E ./contrib/rpm/make-testonly-rpms		\
+		../cri-o-testonly_1.8.0.orig.tar.gz
+
+test-deb: tarball-prep
+	sudo apt-add-repository -y ppa:projectatomic/ppa
+	sudo sed -i '/deb-src/s/# //g' /etc/apt/sources.list.d/projectatomic-ubuntu-ppa-zesty.list
+	sudo apt update
+	sudo apt build-dep cri-o
+	dpkg-buildpackage -us -uc
+
+clean-rpm:
+	rm -rf cri-o*.rpm ../cri-o-testonly*.tar.gz
+
+clean-deb:
+	rm -rf debian/cri-o ../*ppa*
+
+clean: clean-rpm clean-deb
 ifneq ($(GOPATH),)
 	rm -f "$(GOPATH)/.gopathok"
 endif

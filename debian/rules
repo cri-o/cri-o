@@ -1,0 +1,71 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+
+# see FEATURE AREAS in dpkg-buildflags(1)
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# see ENVIRONMENT in dpkg-buildflags(1)
+# package maintainers to append CFLAGS
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# package maintainers to append LDFLAGS
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+export DH_VERBOSE=1
+export DH_GOPKG := github.com/kubernetes-incubator/cri-o
+# Include test fixtures.
+#export DH_GOLANG_INSTALL_EXTRA := discovery/file/fixtures \
+    storage/local/fixtures config/testdata promql/testdata retrieval/testdata \
+    promql/fuzz-data
+# Do not build examples.
+#export DH_GOLANG_EXCLUDES := documentation vendor
+
+# Lots of shameless copy-paste from the debian package for prometheus
+
+BUILDDIR := $(shell pwd)
+GO := /usr/lib/go-1.8/bin/go
+DESTDIR := $(BUILDDIR)/debian/cri-o
+BUILDTAGS := 'selinux seccomp $(shell $(BUILDDIR)/hack/btrfs_tag.sh) $(shell $(BUILDDIR)/hack/libdm_tag.sh) containers_image_ostree_stub'
+
+%:
+	dh_clean
+	make clean
+	rm -rf $(BUILDDIR)/src $(BUILDDIR)/crio.conf
+	dh $@ --buildsystem=golang --with=golang --builddirectory=$(BUILDDIR)
+
+override_dh_auto_configure:
+	dh_auto_configure -O--buildsystem=golang
+	# Include vendored dependencies.
+	cp -rp $(BUILDDIR)/vendor $(BUILDDIR)/src
+	mkdir -p $(BUILDDIR)/src/$(DH_GOPKG)
+	rsync -a $(BUILDDIR)/* $(BUILDDIR)/src/$(DH_GOPKG) --exclude src
+
+override_dh_auto_build:
+	GOPATH=$(BUILDDIR) GO=$(GO) BUILDTAGS=$(BUILDTAGS) make binaries docs crio.conf
+	$(BUILDDIR)/crio --storage-driver=overlay2 --runtime /usr/lib/cri-o-runc/sbin/runc \
+		--conmon /usr/lib/crio/bin/conmon \
+		--cgroup-manager=systemd config > $(BUILDDIR)/crio.conf
+
+override_dh_auto_test:
+
+override_dh_auto_install:
+	PREFIX=$(DESTDIR)/usr ETCDIR_CRIO=$(DESTDIR)/etc/crio \
+		   make install.config install.completions
+	# install binaries
+	install -dp $(DESTDIR)/usr/bin
+	install -p -m 755 crio $(DESTDIR)/usr/bin
+	install -p -m 755 crioctl $(DESTDIR)/usr/bin
+	install -p -m 755 kpod $(DESTDIR)/usr/bin
+	install -dp $(DESTDIR)/usr/lib/crio/bin
+	install -p -m 755 conmon/conmon $(DESTDIR)/usr/lib/crio/bin
+	install -p -m 755 pause/pause $(DESTDIR)/usr/lib/crio/bin
+	install -dp $(DESTDIR)/etc/cni/net.d
+	install -p -m 644 contrib/cni/10-crio-bridge.conf $(DESTDIR)/etc/cni/net.d/100-crio-bridge.conf
+	install -p -m 644 contrib/cni/99-loopback.conf $(DESTDIR)/etc/cni/net.d/200-loopback.conf
+	install -dp $(DESTDIR)/lib/systemd/system
+	install -p -m 644 contrib/systemd/crio.service $(DESTDIR)/lib/systemd/system
+	install -p -m 644 contrib/systemd/crio-shutdown.service $(DESTDIR)/lib/systemd/system
+	sed -i 's/\/usr\/local\/bin\/crio/\/usr\/bin\/crio/g' $(DESTDIR)/lib/systemd/system/crio.service
+	rm -rf $(BUILDDIR)/obj-x86_64-linux-gnu

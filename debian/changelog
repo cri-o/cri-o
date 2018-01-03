@@ -1,0 +1,109 @@
+cri-o-testonly (1.8.0-1~ubuntu17.04~ppa1) zesty; urgency=medium
+
+  * test bump to v1.8.0-dev
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 22 Sep 2017 08:33:33 -0400
+
+cri-o (1.0.0-rc1-1~ubuntu17.04~ppa6) zesty; urgency=medium
+
+  * include golang as build dep to make dh_golang happy
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Mon, 11 Sep 2017 10:27:25 -0400
+
+cri-o (1.0.0-rc1-1~ubuntu17.04~ppa5) zesty; urgency=medium
+
+  * bump to v1.0.0-rc1
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Mon, 11 Sep 2017 09:20:57 -0400
+
+cri-o (1.0.0-alpha.0.1-1~ubuntu17.04~ppa4) zesty; urgency=medium
+
+  * include golang as build dep to make dh_golang happy
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Tue, 29 Aug 2017 14:49:33 -0400
+
+cri-o (1.0.0-alpha.0.1-1~ubuntu17.04~ppa3) zesty; urgency=medium
+
+  * bump to ppa3, should build successfully now
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Tue, 29 Aug 2017 14:32:46 -0400
+
+cri-o (1.0.0-alpha.0.1-1~ubuntu17.04~ppa1) zesty; urgency=medium
+
+  * append ".1" to version to get PPA to shut up about prior tarballs
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 25 Aug 2017 18:58:42 -0400
+
+cri-o (1.0.0-alpha.0-1~ubuntu17.04~ppa2) zesty; urgency=medium
+
+  * built commit a38419a
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 25 Aug 2017 15:52:13 -0400
+
+cri-o (1.0.0-alpha.0-1~ubuntu17.04~ppa1) zesty; urgency=medium
+
+  * bump to v1.0.0-alpha
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Tue, 18 Jul 2017 16:19:44 -0400
+
+cri-o (0.3-1~ubuntu17.04~ppa10) zesty; urgency=medium
+
+  * update release tag format to mention distro version
+  * remove ppa9 build from PPA and rebuild
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Tue, 04 Jul 2017 23:12:07 -0400
+
+cri-o (0.3-1ppa9) zesty; urgency=medium
+
+  * correct conmon install location
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 30 Jun 2017 00:57:34 -0400
+
+cri-o (0.3-1ppa8) zesty; urgency=medium
+
+  * update release tag cause previous release exists already
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 30 Jun 2017 00:33:44 -0400
+
+cri-o (0.3-1ppa7) zesty; urgency=medium
+
+  * correct crio.conf file and install paths for binaries and unitfiles
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Thu, 29 Jun 2017 14:50:03 -0400
+
+cri-o (0.3-1ppa6) zesty; urgency=medium
+
+  * add additional config files and correct unitfile
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Thu, 29 Jun 2017 13:45:10 -0400
+
+cri-o (0.3-1ppa5) zesty; urgency=medium
+
+  * include skopeo-containers as install-time dep
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Thu, 29 Jun 2017 11:01:54 -0400
+
+cri-o (0.3-1ppa4) zesty; urgency=medium
+
+  * use correct path for runc executable from cri-o-runc in /etc/crio.conf
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Thu, 29 Jun 2017 00:47:38 -0400
+
+cri-o (0.3-1ppa3) zesty; urgency=medium
+
+  * add dh-golang as build dep
+  * upstream commit 88037b1 used for building package
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Thu, 29 Jun 2017 00:23:57 -0400
+
+cri-o (0.3-1ppa2) zesty; urgency=medium
+
+  * update debian/control Section field
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Thu, 29 Jun 2017 00:18:16 -0400
+
+cri-o (0.3-1ppa1) zesty; urgency=medium
+
+  * Initial package
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Thu, 29 Jun 2017 00:07:46 -0400

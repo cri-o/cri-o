@@ -1,0 +1,141 @@
+#!/bin/bash
+#
+# make-testonly-rpms - build cri-o testing rpms
+#
+# Invocation: run this while cd'ed to a checked-out copy of cri-o from git.
+#
+SCRIPT=$(basename $0)
+
+# Default settings.
+#
+# Where to fetch the rpm spec + extras. Can be overridden, see $usage
+DEFAULT_GIT_REPO_URL=https://src.fedoraproject.org/rpms/cri-o.git
+DEFAULT_GIT_REPO_BRANCH=master
+
+# Special case for CI: if this subdirectory exists and contains a specfile,
+# its contents will be used for building instead of the git repo.
+TEST_SPEC_DIR=spec-dir-for-ci--DO-NOT-MERGE
+
+# boilerplate: command-line option and arg processing
+missing=" argument is missing; see $SCRIPT --help for details"
+usage="Usage: $SCRIPT [--help] TARBALL_PATH
+
+--help          display usage message
+
+$SCRIPT builds installable cri-o RPMs
+
+Command-line arguments:
+
+    TARBALL_PATH is a path (relative is OK) to a tarball containing
+                 cri-o sources. It should unpack into a subdirectory
+                 named 'cri-o-testonly'.
+
+Environment:
+
+    CRIO_GIT_REPO_URL if present in environment, is a URL to a git repo
+                      containing an RPM spec file and all other files (e.g.
+                      patches) needed to build and package cri-o.
+                      Default: $DEFAULT_GIT_REPO_URL
+
+                      Special case for CI: if the subdirectory
+                      $TEST_SPEC_DIR exists
+                      under the current directory, and contains a file
+                      with the extension .spec, this subdirectory
+                      will be used as the base from which to build.
+
+    GIT_BRANCH        is a branch to use on the above git repo. This
+                      allows testing spec PRs, e.g. 'pull/1/head'
+                      Default: $DEFAULT_GIT_REPO_BRANCH
+"
+
+for i
+do
+    value=`expr "$i" : '[^=]*=\(.*\)'`
+    case "$i" in
+    -h*|--help) echo "$usage"; exit 0;;
+    -*) echo "$SCRIPT: unrecognized option $i" >&2
+        echo "$usage" >&2
+        exit 1;;
+    *)  break;;
+    esac
+done
+
+# First arg: path to tarball. Get its full path now, before we cd out.
+# ${...?...} means: if arg is missing, abort with given error message.
+TARBALL_PATH=${1?TARBALL_PATH$missing}
+full_tarball_path=$(realpath $TARBALL_PATH)
+
+# fedpkg/rhpkg repo containing specfile, patches, what's needed for build
+GIT_REPO_URL=${CRIO_GIT_REPO_URL-$DEFAULT_GIT_REPO_URL}
+
+# If present, final arg is a git branch
+GIT_BRANCH=${CRIO_GIT_REPO_BRANCH-$DEFAULT_GIT_REPO_BRANCH}
+
+# Special case for CI. If certain well-known not-for-real-world-use
+# subdirectory exists and contains a specfile, override the git repo.
+if [ -d $TEST_SPEC_DIR ]; then
+    if [ -f $TEST_SPEC_DIR/*.spec ]; then
+        echo "$ME: WARNING: Using specfile in $TEST_SPEC_DIR" >&2
+        GIT_REPO_URL=$(realpath $TEST_SPEC_DIR)
+        GIT_BRANCH=
+    else
+        echo "$ME: WARNING: no specfile found in $TEST_SPEC_DIR" >&2
+        echo "$ME: Please delete that directory if you are done with it." >&2
+    fi
+fi
+
+# Done with boilerplate. Start working.
+set -e
+
+orig_dir=$(realpath .)
+
+# Pull the RPM-building components
+workdir=$(mktemp --tmpdir -d $SCRIPT.XXXXXXX)
+trap 'test -z "$DEBUG" && cd / && rm -rf $workdir' EXIT
+cd $workdir
+
+# The usual case is that we fetch the spec and associated files from
+# a git repo, probably the fedpkg or rhpkg one. But for debugging, if
+# the repo arg is a local directory, just copy it as-is.
+if [[ "$GIT_REPO_URL" =~ ^/ && -d $GIT_REPO_URL ]]; then
+    cp -r $GIT_REPO_URL rpm_spec_dir
+    cd rpm_spec_dir
+else
+    # The usual case.
+    git clone $GIT_REPO_URL rpm_spec_dir
+    cd rpm_spec_dir
+    git fetch origin $GIT_BRANCH:rpm_spec_branch
+    git checkout rpm_spec_branch
+fi
+
+# "testonl" (no "y") because this is a pretend git hash; specfile uses abbrev.
+cp $full_tarball_path ./cri-o-testonl.tar.gz
+
+# Grab the other source tarball (cri-tools). Adding %dump to a specfile
+# causes it to list all defined macros; this gives us a full URL to source1
+SPEC=$(echo *.spec)
+tmpspec=$(mktemp --suffix=.spec $SCRIPT.XXXXXXX)
+
+sed -e '/^%description/ a%dump\nexit 1\n' <$SPEC >$tmpspec
+url=$(rpm -q --specfile $tmpspec 2>&1  |awk '/SOURCEURL1/ { print $3 }'|tail -1)
+if [ -z "$url" ]; then
+    echo "$ME: FATAL: No SOURCEURL1 found in $tmpspec"
+    exit 1
+fi
+rm -f $tmpspec
+wget $url
+
+# Update source0 to point to the tarball we created above
+sed -i -e 's/^\(%global[ ]\+commit0[ ]\+\)[0-9a-f]\+/\1 testonly/' $SPEC
+
+# Build it
+yum-builddep -y $SPEC
+rpmbuild -ba --define "_topdir $(pwd)"         \
+             --define "_sourcedir $(pwd)" $SPEC
+
+# Move rpms back into the directory from which we were invoked
+mv RPMS/*/*.rpm $orig_dir/
+
+# Clean up
+cd /
+rm -rf $workdir
