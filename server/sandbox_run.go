@@ -210,8 +210,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err := label.Relabel(resolvPath, mountLabel, true); err != nil && err != unix.ENOTSUP {
 			return nil, err
 		}
-
-		g.AddBindMount(resolvPath, "/etc/resolv.conf", []string{"ro"})
+		mnt := runtimespec.Mount{
+			Type:        "bind",
+			Source:      resolvPath,
+			Destination: "/etc/resolv.conf",
+			Options:     []string{"ro", "bind"},
+		}
+		g.AddMount(mnt)
 	}
 
 	// add metadata
@@ -480,7 +485,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := label.Relabel(hostnamePath, mountLabel, true); err != nil && err != unix.ENOTSUP {
 		return nil, err
 	}
-	g.AddBindMount(hostnamePath, "/etc/hostname", []string{"ro"})
+	mnt := runtimespec.Mount{
+		Type:        "bind",
+		Source:      hostnamePath,
+		Destination: "/etc/hostname",
+		Options:     []string{"ro", "bind"},
+	}
+	g.AddMount(mnt)
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 

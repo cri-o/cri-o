@@ -426,15 +426,18 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 func addOCIHook(specgen *generate.Generator, hook lib.HookParams) error {
 	logrus.Debugf("AddOCIHook", hook)
 	for _, stage := range hook.Stage {
+		h := rspec.Hook{
+			Path: hook.Hook,
+			Args: append([]string{hook.Hook}, hook.Arguments...),
+			Env:  []string{fmt.Sprintf("stage=%s", stage)},
+		}
 		switch stage {
 		case "prestart":
-			specgen.AddPreStartHook(hook.Hook, []string{hook.Hook, "prestart"})
-
+			specgen.AddPreStartHook(h)
 		case "poststart":
-			specgen.AddPostStartHook(hook.Hook, []string{hook.Hook, "poststart"})
-
+			specgen.AddPostStartHook(h)
 		case "poststop":
-			specgen.AddPostStopHook(hook.Hook, []string{hook.Hook, "poststop"})
+			specgen.AddPostStopHook(h)
 		}
 	}
 	return nil
@@ -710,8 +713,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
+	mnt := rspec.Mount{
+		Destination: "/sys/fs/cgroup",
+		Type:        "cgroup",
+		Source:      "cgroup",
+		Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+	}
 	// Add cgroup mount so container process can introspect its own limits
-	specgen.AddCgroupsMount("ro")
+	specgen.AddMount(mnt)
 
 	if err := addDevices(sb, containerConfig, &specgen); err != nil {
 		return nil, err
@@ -830,14 +839,38 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			// see https://github.com/kubernetes/kubernetes/issues/51980
 			if inStringSlice(capabilities.GetAddCapabilities(), "ALL") {
 				for _, c := range getOCICapabilitiesList() {
-					if err := specgen.AddProcessCapability(c); err != nil {
+					if err := specgen.AddProcessCapabilityAmbient(c); err != nil {
+						return nil, err
+					}
+					if err := specgen.AddProcessCapabilityBounding(c); err != nil {
+						return nil, err
+					}
+					if err := specgen.AddProcessCapabilityEffective(c); err != nil {
+						return nil, err
+					}
+					if err := specgen.AddProcessCapabilityInheritable(c); err != nil {
+						return nil, err
+					}
+					if err := specgen.AddProcessCapabilityPermitted(c); err != nil {
 						return nil, err
 					}
 				}
 			}
 			if inStringSlice(capabilities.GetDropCapabilities(), "ALL") {
 				for _, c := range getOCICapabilitiesList() {
-					if err := specgen.DropProcessCapability(c); err != nil {
+					if err := specgen.DropProcessCapabilityAmbient(c); err != nil {
+						return nil, err
+					}
+					if err := specgen.DropProcessCapabilityBounding(c); err != nil {
+						return nil, err
+					}
+					if err := specgen.DropProcessCapabilityEffective(c); err != nil {
+						return nil, err
+					}
+					if err := specgen.DropProcessCapabilityInheritable(c); err != nil {
+						return nil, err
+					}
+					if err := specgen.DropProcessCapabilityPermitted(c); err != nil {
 						return nil, err
 					}
 				}
@@ -848,7 +881,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 					if strings.ToUpper(cap) == "ALL" {
 						continue
 					}
-					if err := specgen.AddProcessCapability(toCAPPrefixed(cap)); err != nil {
+					if err := specgen.AddProcessCapabilityAmbient(toCAPPrefixed(cap)); err != nil {
+						return nil, err
+					}
+					if err := specgen.AddProcessCapabilityBounding(toCAPPrefixed(cap)); err != nil {
+						return nil, err
+					}
+					if err := specgen.AddProcessCapabilityEffective(toCAPPrefixed(cap)); err != nil {
+						return nil, err
+					}
+					if err := specgen.AddProcessCapabilityInheritable(toCAPPrefixed(cap)); err != nil {
+						return nil, err
+					}
+					if err := specgen.AddProcessCapabilityPermitted(toCAPPrefixed(cap)); err != nil {
 						return nil, err
 					}
 				}
@@ -857,7 +902,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 					if strings.ToUpper(cap) == "ALL" {
 						continue
 					}
-					if err := specgen.DropProcessCapability(toCAPPrefixed(cap)); err != nil {
+					if err := specgen.DropProcessCapabilityAmbient(toCAPPrefixed(cap)); err != nil {
+						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
+					}
+					if err := specgen.DropProcessCapabilityBounding(toCAPPrefixed(cap)); err != nil {
+						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
+					}
+					if err := specgen.DropProcessCapabilityEffective(toCAPPrefixed(cap)); err != nil {
+						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
+					}
+					if err := specgen.DropProcessCapabilityInheritable(toCAPPrefixed(cap)); err != nil {
+						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
+					}
+					if err := specgen.DropProcessCapabilityPermitted(toCAPPrefixed(cap)); err != nil {
 						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
 					}
 				}
@@ -964,8 +1021,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.AddAnnotation(annotations.ImageRef, imageRef)
 	specgen.AddAnnotation(annotations.IP, sb.IP())
 
+	mnt = rspec.Mount{
+		Type:        "bind",
+		Source:      sb.ShmPath(),
+		Destination: "/etc/shm",
+		Options:     []string{"rw", "bind"},
+	}
 	// bind mount the pod shm
-	specgen.AddBindMount(sb.ShmPath(), "/dev/shm", []string{"rw"})
+	specgen.AddMount(mnt)
 
 	options := []string{"rw"}
 	if readOnlyRootfs {
@@ -976,8 +1039,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			return nil, err
 		}
 
+		mnt = rspec.Mount{
+			Type:        "bind",
+			Source:      sb.ResolvPath(),
+			Destination: "/etc/resolv.conf",
+			Options:     append(options, "bind"),
+		}
 		// bind mount the pod resolver file
-		specgen.AddBindMount(sb.ResolvPath(), "/etc/resolv.conf", options)
+		specgen.AddMount(mnt)
 	}
 
 	if sb.HostnamePath() != "" {
@@ -985,12 +1054,24 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			return nil, err
 		}
 
-		specgen.AddBindMount(sb.HostnamePath(), "/etc/hostname", options)
+		mnt = rspec.Mount{
+			Type:        "bind",
+			Source:      sb.HostnamePath(),
+			Destination: "/etc/hostname",
+			Options:     append(options, "bind"),
+		}
+		specgen.AddMount(mnt)
 	}
 
 	// Bind mount /etc/hosts for host networking containers
 	if hostNetwork(containerConfig) {
-		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
+		mnt = rspec.Mount{
+			Type:        "bind",
+			Source:      "/etc/hosts",
+			Destination: "/etc/hosts",
+			Options:     append(options, "bind"),
+		}
+		specgen.AddMount(mnt)
 	}
 
 	// Set hostname and add env for hostname
@@ -1132,7 +1213,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	sort.Sort(orderedMounts(mounts))
 
 	for _, m := range mounts {
-		specgen.AddBindMount(m.Source, m.Destination, m.Options)
+		mnt = rspec.Mount{
+			Type:        "bind",
+			Source:      m.Source,
+			Destination: m.Destination,
+			Options:     append(m.Options, "bind"),
+		}
+		specgen.AddMount(mnt)
 	}
 
 	if err := s.setupOCIHooks(&specgen, sb, containerConfig, processArgs[0]); err != nil {
