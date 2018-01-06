@@ -12,7 +12,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/eventfd.h>
 #include <sys/stat.h>
@@ -350,7 +349,7 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 			/* Open the log path file again */
 			log_fd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
 			if (log_fd < 0)
-				pexit("Failed to open log file");
+				pexit("Failed to open log file %s: %s", opt_log_path, strerror(errno));
 			fd = log_fd;
 		}
 
@@ -1121,6 +1120,8 @@ int main(int argc, char *argv[])
 
 	if (opt_runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
+	if (access(opt_runtime_path, X_OK) < 0)
+		pexit("Runtime path %s is not valid: %s", opt_runtime_path, strerror(errno));
 
 	if (!opt_exec && opt_exit_dir == NULL)
 		nexit("Container exit directory not provided. Use --exit-dir");
