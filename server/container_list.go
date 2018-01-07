@@ -28,6 +28,44 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 	return true
 }
 
+// filterContainerList applies a protobuf-defined filter to retrieve only intended containers. Not matching
+// the filter is not considered an error but will return an empty response.
+func (s *Server) filterContainerList(filter *pb.ContainerFilter) (ctrList []*oci.Container, err error) {
+	// Filter using container id and pod id first.
+	if filter.Id != "" {
+		id, err := s.CtrIDIndex().Get(filter.Id)
+		if err != nil {
+			// If we don't find a container ID with a filter, it should not
+			// be considered an error.  Log a warning and return an empty struct
+			logrus.Warn("unable to find container ID %s", filter.Id)
+			return []*oci.Container{}, nil
+		}
+		c := s.ContainerServer.GetContainer(id)
+		if c != nil {
+			if filter.PodSandboxId != "" {
+				if c.Sandbox() == filter.PodSandboxId {
+					ctrList = []*oci.Container{c}
+				} else {
+					ctrList = []*oci.Container{}
+				}
+
+			} else {
+				ctrList = []*oci.Container{c}
+			}
+		}
+	} else {
+		if filter.PodSandboxId != "" {
+			pod := s.ContainerServer.GetSandbox(filter.PodSandboxId)
+			if pod == nil {
+				ctrList = []*oci.Container{}
+			} else {
+				ctrList = pod.Containers().List()
+			}
+		}
+	}
+	return
+}
+
 // ListContainers lists all containers by filters.
 func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (resp *pb.ListContainersResponse, err error) {
 	const operation = "list_containers"
@@ -45,38 +83,9 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	}
 
 	if filter != nil {
-
-		// Filter using container id and pod id first.
-		if filter.Id != "" {
-			id, err := s.CtrIDIndex().Get(filter.Id)
-			if err != nil {
-				// If we don't find a container ID with a filter, it should not
-				// be considered an error.  Log a warning and return an empty struct
-				logrus.Warn("unable to find container ID %s", filter.Id)
-				return &pb.ListContainersResponse{}, nil
-			}
-			c := s.ContainerServer.GetContainer(id)
-			if c != nil {
-				if filter.PodSandboxId != "" {
-					if c.Sandbox() == filter.PodSandboxId {
-						ctrList = []*oci.Container{c}
-					} else {
-						ctrList = []*oci.Container{}
-					}
-
-				} else {
-					ctrList = []*oci.Container{c}
-				}
-			}
-		} else {
-			if filter.PodSandboxId != "" {
-				pod := s.ContainerServer.GetSandbox(filter.PodSandboxId)
-				if pod == nil {
-					ctrList = []*oci.Container{}
-				} else {
-					ctrList = pod.Containers().List()
-				}
-			}
+		ctrList, err = s.filterContainerList(filter)
+		if err != nil {
+			return nil, err
 		}
 	}
 
