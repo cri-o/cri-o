@@ -1,9 +1,10 @@
 package server
 
 import (
-	"fmt"
 	"time"
 
+	"github.com/kubernetes-incubator/cri-o/lib"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
@@ -15,5 +16,37 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	return nil, fmt.Errorf("not implemented")
+
+	ctrList, err := s.ContainerServer.ListContainers()
+	if err != nil {
+		return nil, err
+	}
+	filter := req.GetFilter()
+	if filter != nil {
+		cFilter := &pb.ContainerFilter{
+			Id:            req.Filter.Id,
+			PodSandboxId:  req.Filter.PodSandboxId,
+			LabelSelector: req.Filter.LabelSelector,
+		}
+		ctrList, err = s.filterContainerList(cFilter)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var allStats []*pb.ContainerStats
+
+	for _, container := range ctrList {
+		stats, err := s.GetContainerStats(container, &lib.ContainerStats{})
+		if err != nil {
+			logrus.Warn("unable to get stats for container %s", container.ID())
+			continue
+		}
+		response := buildContainerStats(stats, container)
+		allStats = append(allStats, response)
+	}
+
+	return &pb.ListContainerStatsResponse{
+		Stats: allStats,
+	}, nil
 }
