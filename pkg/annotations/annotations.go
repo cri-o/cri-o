@@ -84,6 +84,9 @@ const (
 
 	// Volumes is the volumes annotatoin
 	Volumes = "io.kubernetes.cri-o.Volumes"
+
+	// Strace is enable strace debug annotation.
+	Strace = "io.kubernetes.cri-o.Strace"
 )
 
 // ContainerType values

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -284,6 +285,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 		if ss.err != nil {
 			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
 		}
+		c.state.Pid = ss.si.Pid
 		logrus.Debugf("Received container pid: %d", ss.si.Pid)
 		if ss.si.Pid == -1 {
 			if ss.si.Message != "" {
@@ -296,6 +298,28 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	case <-time.After(ContainerCreateTimeout):
 		logrus.Errorf("Container creation timeout (%v)", ContainerCreateTimeout)
 		return fmt.Errorf("create container timeout")
+	}
+
+	enableStrace := false
+	if _, ok := c.annotations[annotations.Strace]; ok {
+		logrus.Debugf("Enabling strace from annotation")
+		enableStrace = true
+	}
+	if !enableStrace {
+		if _, ok := c.labels[annotations.Strace]; ok {
+			logrus.Debugf("Enabling strace from label")
+			enableStrace = true
+		}
+	}
+
+	if enableStrace {
+		go func() {
+			straceCmd := exec.Command("strace", "-f", "-o", fmt.Sprintf("/tmp/%v", c.id), "-p", fmt.Sprintf("%d", c.state.Pid))
+			_, err := straceCmd.CombinedOutput()
+			if err != nil {
+				logrus.Errorf("Failed to execute strace: %v", err)
+			}
+		}()
 	}
 	return nil
 }

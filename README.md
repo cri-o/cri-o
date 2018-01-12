@@ -83,6 +83,7 @@ For sync communication we have an IRC channel #CRI-O, on chat.freenode.net, that
 - socat
 - iproute
 - iptables
+- strace (required for debugging using cri-o strace annotation)
 
 Latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by CRI-O.
 
