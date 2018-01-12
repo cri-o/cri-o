@@ -101,16 +101,20 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
 
+	if req.GetConfig().GetMetadata() == nil {
+		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Metadata is nil")
+	}
+
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
 	var processLabel, mountLabel, resolvPath string
 	// process req.Name
-	kubeName := req.GetConfig().GetMetadata().Name
+	kubeName := req.GetConfig().GetMetadata().GetName()
 	if kubeName == "" {
 		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
 	}
 
-	namespace := req.GetConfig().GetMetadata().Namespace
-	attempt := req.GetConfig().GetMetadata().Attempt
+	namespace := req.GetConfig().GetMetadata().GetNamespace()
+	attempt := req.GetConfig().GetMetadata().GetAttempt()
 
 	id, name, err := s.generatePodIDandName(req.GetConfig())
 	if err != nil {
@@ -156,8 +160,8 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		name, id,
 		s.config.PauseImage, "",
 		containerName,
-		req.GetConfig().GetMetadata().Name,
-		req.GetConfig().GetMetadata().Uid,
+		req.GetConfig().GetMetadata().GetName(),
+		req.GetConfig().GetMetadata().GetUid(),
 		namespace,
 		attempt,
 		nil)

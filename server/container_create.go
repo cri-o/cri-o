@@ -562,7 +562,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig is nil")
 	}
 
-	name := containerConfig.GetMetadata().Name
+	if containerConfig.GetMetadata() == nil {
+		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Metadata is nil")
+	}
+
+	name := containerConfig.GetMetadata().GetName()
 	if name == "" {
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
