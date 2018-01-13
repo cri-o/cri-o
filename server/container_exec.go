@@ -1,8 +1,10 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"time"
@@ -53,14 +55,28 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 		return fmt.Errorf("container is not created or running")
 	}
 
-	processFile, err := oci.PrepareProcessExec(c, cmd, tty)
+	f, err := ioutil.TempFile("", "exec-process")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(processFile.Name())
+	defer os.RemoveAll(f.Name())
+
+	pspec := c.Spec().Process
+	pspec.Args = cmd
+	processJSON, err := json.Marshal(pspec)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(f.Name(), processJSON, 0644); err != nil {
+		return err
+	}
 
 	args := []string{"exec"}
-	args = append(args, "--process", processFile.Name())
+	if tty {
+		args = append(args, "-t")
+	}
+	args = append(args, "-p", f.Name())
 	args = append(args, c.ID())
 	execCmd := exec.Command(ss.runtimeServer.Runtime().Path(c), args...)
 	var cmdErr error
