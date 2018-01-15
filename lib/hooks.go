@@ -27,6 +27,7 @@ type HookParams struct {
 	Cmds          []string `json:"cmd"`
 	Annotations   []string `json:"annotation"`
 	HasBindMounts bool     `json:"hasbindmounts"`
+	Arguments     []string `json:"arguments"`
 }
 
 // readHook reads hooks json files, verifies it and returns the json config

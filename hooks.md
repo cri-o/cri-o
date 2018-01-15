@@ -53,6 +53,7 @@ type HookParams struct {
 	Cmds          []string `json:"cmds"`
 	Annotations   []string `json:"annotations"`
 	HasBindMounts bool     `json:"hasbindmounts"`
+	Arguments     []string `json:"arguments"`
 }
 ```
 
@@ -63,6 +64,7 @@ type HookParams struct {
 | cmds   | List of regular expressions to match the command for running the container.  If the command matches a regex, the hook will be run  | Optional |
 | annotations | List of regular expressions to match against the Annotations in the container runtime spec, if an Annotation matches the hook will be run|optional |
 | hasbindmounts | Tells CRI-O to run the hook if the container has bind mounts from the host into the container | Optional |
+| arguments | Additional arguments to append to the hook command when executing it. For example --debug | Optional |
 
 ### Example
 
@@ -85,6 +87,7 @@ cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
     "hasbindmounts": true,
     "hook": "/usr/libexec/oci/hooks.d/oci-umount",
     "stages": [ "prestart" ]
+    "arguments": [ "--debug" ]
 }
 ```
-In this example the oci-umount will only be run during the prestart phase if the container has volume/bind mounts from the host into the container.
+In this example the oci-umount will only be run during the prestart phase if the container has volume/bind mounts from the host into the container, it will also execute oci-umount with the --debug argument.
