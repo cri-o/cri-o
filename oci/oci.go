@@ -312,7 +312,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 		}
 	}
 
-	if enableStrace {
+	if enableStrace && c.allowStrace {
 		go func() {
 			straceCmd := exec.Command("strace", "-f", "-o", fmt.Sprintf("/tmp/%v", c.id), "-p", fmt.Sprintf("%d", c.state.Pid))
 			_, err := straceCmd.CombinedOutput()
@@ -321,6 +321,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 			}
 		}()
 	}
+
 	return nil
 }
 

@@ -147,6 +147,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("image-volumes") {
 		config.ImageVolumes = lib.ImageVolumesType(ctx.GlobalString("image-volumes"))
 	}
+	if ctx.GlobalIsSet("allow-strace") {
+		config.AllowStrace = ctx.GlobalBool("allow-strace")
+	}
 	return nil
 }
 
@@ -350,6 +353,10 @@ func main() {
 			Name:  "metrics-port",
 			Value: 9090,
 			Usage: "port for the metrics endpoint",
+		},
+		cli.BoolFlag{
+			Name:  "allow-strace",
+			Usage: "allow the cri-o strace annotation/label to take effect",
 		},
 	}
 

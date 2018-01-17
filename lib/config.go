@@ -168,6 +168,10 @@ type RuntimeConfig struct {
 	// ContainerExitsDir is the directory in which container exit files are
 	// written to by conmon.
 	ContainerExitsDir string `toml:"container_exits_dir"`
+
+	// AllowStrace determinates whether strace is started for a container
+	// which has the CRI-O strace annotation/label "io.kubernetes.cri-o.Strace=true".
+	AllowStrace bool `toml:"allow_strace"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
