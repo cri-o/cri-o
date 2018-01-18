@@ -138,30 +138,10 @@ make
 sudo make install
 ```
 
-Output:
-
-```
-install -D -m 755 crio /usr/local/bin/crio
-install -D -m 755 conmon/conmon /usr/local/libexec/crio/conmon
-install -D -m 755 pause/pause /usr/local/libexec/crio/pause
-install -d -m 755 /usr/local/share/man/man{1,5,8}
-install -m 644 docs/crio.conf.5 -t /usr/local/share/man/man5
-install -m 644 docs/crio.8 -t /usr/local/share/man/man8
-install -D -m 644 crio.conf /etc/crio/crio.conf
-install -D -m 644 seccomp.json /etc/crio/seccomp.json
-```
-
-If you are installing for the first time, generate config as follows:
+If you are installing for the first time, generate and install configuration files with:
 
 ```
 sudo make install.config
-```
-
-Output:
-
-```
-install -D -m 644 crio.conf /etc/crio/crio.conf
-install -D -m 644 seccomp.json /etc/crio/seccomp.json
 ```
 
 #### Start the crio system daemon

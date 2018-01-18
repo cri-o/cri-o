@@ -13,17 +13,15 @@ Below, you can find an instruction how to switch one or more nodes on running ku
 
 ### Preparing crio
 
-You must prepare and install `crio` on each node you would like to switch. Here's the list of files that must be provided:
+You must prepare and install `crio` on each node you would like to switch.
+Besides the files installed by `make install install.config`, here's the list of files that must be provided:
 
-| File path                                  | Description                | Location                                            |
-|--------------------------------------------|----------------------------|-----------------------------------------------------|
-| `/etc/crio/crio.conf`                      | crio configuration         | Generated on cri-o `make install`                   |
-| `/etc/crio/seccomp.conf`                   | seccomp config             | Example stored in cri-o repository                  |
-| `/etc/containers/policy.json`              | containers policy          | Example stored in cri-o repository                  |
-| `/bin/{crio, runc}`                        | `crio` and `runc` binaries | Built from cri-o repository                         |
-| `/usr/local/libexec/crio/conmon`           | `conmon` binary            | Built from cri-o repository                         |
-| `/opt/cni/bin/{flannel, bridge,...}`       | CNI plugins binaries       | Can be built from sources `containernetworking/cni` |
-| `/etc/cni/net.d/10-mynet.conf`             | Network config             | Example stored in [README file](README.md)          |
+| File path                                  | Description                 | Location                                                |
+|--------------------------------------------|-----------------------------|---------------------------------------------------------|
+| `/etc/containers/policy.json`              | containers policy           | [Example](test/policy.json) stored in cri-o repository  |
+| `/bin/runc`                                | `runc` or other OCI runtime | Can be build from sources `opencontainers/runc`         |
+| `/opt/cni/bin/{flannel, bridge,...}`       | CNI plugins binaries        | Can be built from sources `containernetworking/plugins` |
+| `/etc/cni/net.d/...`                       | CNI network config          | Example [here](contrib/cni)                             |
 
 `crio` binary can be executed directly on host, inside the container or in any way.
 However, recommended way is to set it as a systemd service.
