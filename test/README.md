@@ -69,11 +69,11 @@ Tests on the host will run with `runc` as the default runtime.
 However you can select other OCI compatible runtimes by setting
 the `RUNTIME` environment variable.
 
-For example one could use the [Clear Containers](https://github.com/01org/cc-oci-runtime/wiki/Installation)
+For example one could use the [Clear Containers](https://github.com/clearcontainers/runtime)
 runtime instead of `runc`:
 
 ```
-make localintegration RUNTIME=cc-oci-runtime
+make localintegration RUNTIME=cc-runtime
 ```
 
 ## Writing integration tests
