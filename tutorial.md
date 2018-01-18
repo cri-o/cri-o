@@ -151,17 +151,10 @@ install -D -m 644 crio.conf /etc/crio/crio.conf
 install -D -m 644 seccomp.json /etc/crio/seccomp.json
 ```
 
-If you are installing for the first time, generate config as follows:
+If you are installing for the first time, generate and install configuration files with:
 
 ```
 sudo make install.config
-```
-
-Output:
-
-```
-install -D -m 644 crio.conf /etc/crio/crio.conf
-install -D -m 644 seccomp.json /etc/crio/seccomp.json
 ```
 
 #### Start the crio system daemon
