@@ -41,11 +41,12 @@ You will also need to install the [CNI](https://github.com/containernetworking/c
 the the default pod test template runs without host networking:
 
 ```
-$ go get github.com/containernetworking/cni
-$ cd "$GOPATH/src/github.com/containernetworking/cni"
-$ git checkout -q d4bbce1865270cd2d2be558d6a23e63d314fe769
-$ ./build.sh \
-$ mkdir -p /opt/cni/bin \
+$ cd "$GOPATH/src/github.com/containernetworking"
+$ git clone https://github.com/containernetworking/plugins.git
+$ cd plugins
+$ git checkout -q dcf7368eeab15e2affc6256f0bb1e84dd46a34de
+$ ./build.sh
+$ mkdir -p /opt/cni/bin
 $ cp bin/* /opt/cni/bin/
 ```
 
