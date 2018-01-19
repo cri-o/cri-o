@@ -242,18 +242,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, ociConfig *v1.
 		return nil, fmt.Errorf("no command specified")
 	}
 
-	// create entrypoint and args
-	var entrypoint string
-	var args []string
-	if len(kubeCommands) != 0 {
-		entrypoint = kubeCommands[0]
-		args = append(kubeCommands[1:], kubeArgs...)
-	} else {
-		entrypoint = kubeArgs[0]
-		args = kubeArgs[1:]
-	}
-
-	processArgs := append([]string{entrypoint}, args...)
+	processArgs := append(kubeCommands, kubeArgs...)
 
 	logrus.Debugf("OCI process args %v", processArgs)
 
