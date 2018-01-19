@@ -120,6 +120,8 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--cpu-profile**: Set the CPU profile file path
 
+**--allow-strace**: Allow strace for containers when the strace annotation/label "io.kubernetes.cri-o.Strace=true" is set
+
 **--version, -v**: Print the version
 
 # COMMANDS
