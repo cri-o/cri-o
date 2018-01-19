@@ -8,7 +8,6 @@ that we follow.
 * [Reporting Issues](#reporting-issues)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
-* [Becoming a Maintainer](#becoming-a-maintainer)
 
 ## Reporting Issues
 
@@ -55,9 +54,7 @@ PRs that fix issues should include a reference like `Closes #XXXX` in the
 commit message so that github will automatically close the referenced issue
 when the PR is merged.
 
-<!--
-All PRs require at least two LGTMs (Looks Good To Me) from maintainers.
--->
+Most PRs will be reviewed by two [approvers][prow-approvers] (listed [here](OWNERS)).
 
 ### Sign your PRs
 
@@ -125,18 +122,4 @@ and
 [PRs](https://github.com/kubernetes-incubator/cri-o/pulls)
 tracking system.
 
-<!--
-## Becoming a Maintainer
-
-To become a maintainer you must first be nominated by an existing maintainer.
-If a majority (>50%) of maintainers agree then the proposal is adopted and
-you will be added to the list.
-
-Removing a maintainer requires at least 75% of the remaining maintainers
-approval, or if the person requests to be removed then it is automatic.
-Normally, a maintainer will only be removed if they are considered to be
-inactive for a long period of time or are viewed as disruptive to the community.
-
-The current list of maintainers can be found in the
-[MAINTAINERS](MAINTAINERS) file.
--->
+[prow-approvers]: https://github.com/kubernetes/test-infra/blob/master/prow/plugins/approve/approvers/README.md#overview
