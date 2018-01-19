@@ -238,10 +238,6 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, ociConfig *v1.
 		}
 	}
 
-	if len(kubeCommands) == 0 && len(kubeArgs) == 0 {
-		return nil, fmt.Errorf("no command specified")
-	}
-
 	processArgs := append(kubeCommands, kubeArgs...)
 
 	logrus.Debugf("OCI process args %v", processArgs)

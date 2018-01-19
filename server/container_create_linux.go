@@ -817,6 +817,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			return nil, err
 		}
 	}
+	if len(processArgs) == 0 {
+		return nil, fmt.Errorf("no command specified")
+	}
 	specgen.SetProcessArgs(processArgs)
 
 	envs := mergeEnvs(containerImageConfig, containerConfig.GetEnvs())
