@@ -219,7 +219,7 @@ func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specge
 }
 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
-func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
+func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, ociConfig *v1.ImageConfig) ([]string, error) {
 	//# Start the nginx container using the default command, but use custom
 	//arguments (arg1 .. argN) for that command.
 	//kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
@@ -231,15 +231,10 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 	kubeArgs := containerKubeConfig.Args
 
 	// merge image config and kube config
-	// same as docker does today...
-	if imageOCIConfig != nil {
-		if len(kubeCommands) == 0 {
-			if len(kubeArgs) == 0 {
-				kubeArgs = imageOCIConfig.Config.Cmd
-			}
-			if kubeCommands == nil {
-				kubeCommands = imageOCIConfig.Config.Entrypoint
-			}
+	if ociConfig != nil && len(kubeCommands) == 0 {
+		kubeCommands = ociConfig.Entrypoint
+		if len(kubeArgs) == 0 {
+			kubeArgs = ociConfig.Cmd
 		}
 	}
 
