@@ -18,6 +18,7 @@
 #include <sys/uio.h>
 #include <sys/ioctl.h>
 #include <termios.h>
+#include <sched.h>
 #include <syslog.h>
 #include <unistd.h>
 #include <inttypes.h>
@@ -104,6 +105,7 @@ static char *opt_cuuid = NULL;
 static char *opt_runtime_path = NULL;
 static char *opt_bundle_path = NULL;
 static char *opt_pid_file = NULL;
+static char *opt_pid_namespace = NULL;
 static bool opt_systemd_cgroup = false;
 static bool opt_no_pivot = false;
 static char *opt_exec_process_spec = NULL;
@@ -123,6 +125,7 @@ static GOptionEntry opt_entries[] =
   { "no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "do not use pivot_root", NULL },
   { "bundle", 'b', 0, G_OPTION_ARG_STRING, &opt_bundle_path, "Bundle path", NULL },
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_pid_file, "PID file", NULL },
+  { "pid-namespace", 0, 0, G_OPTION_ARG_STRING, &opt_pid_namespace, "PID namespace", NULL },
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL },
   { "exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL },
   { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL },
@@ -1095,6 +1098,7 @@ int main(int argc, char *argv[])
 	int num_read;
 	int sync_pipe_fd = -1;
 	int start_pipe_fd = -1;
+	int pid_namespace_fd = -1;
 	GError *error = NULL;
 	GOptionContext *context;
         GPtrArray *runtime_argv = NULL;
@@ -1200,6 +1204,22 @@ int main(int argc, char *argv[])
 	ret = prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0);
 	if (ret != 0) {
 		pexit("Failed to set as subreaper");
+	}
+
+	if (opt_pid_namespace) {
+		pid_namespace_fd = open(opt_pid_namespace, O_RDONLY);
+		if (pid_namespace_fd == -1) {
+			pexit("Failed to open PID namespace at %s", opt_pid_namespace);
+		}
+		ret = setns(pid_namespace_fd, CLONE_NEWPID);
+		if (ret != 0) {
+			close(pid_namespace_fd);
+			pexit("Failed to join the PID namespace at %s: %s", opt_pid_namespace, strerror(errno));
+		}
+		ret = close(pid_namespace_fd);
+		if (ret != 0) {
+			pexit("Failed to close the PID namespace at %s", opt_pid_namespace);
+		}
 	}
 
 	if (opt_terminal) {
