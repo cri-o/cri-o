@@ -114,12 +114,23 @@ default_mounts = [
 # pids_limit is the number of processes allowed in a container
 pids_limit = {{ .PidsLimit }}
 
-# enable using a shared PID namespace for containers in a pod
+# enable using a shared PID namespace for containers in a pod.
+# Deprecated: use pid_namespace = "pod" instead.
 enable_shared_pid_namespace = {{ .EnableSharedPIDNamespace }}
 
 # log_size_max is the max limit for the container log size in bytes.
 # Negative values indicate that no limit is imposed.
 log_size_max = {{ .LogSizeMax }}
+
+# Select the PID namespace scope.  Choose from 'container' for all
+# containers (including pod infra containers) to have sibling PID
+# namespaces (the default), 'pod' for all containers to share a
+# single, per-pod namespace, or 'pod-container' to have the pod's
+# infra container in one PID namespace with the non-infra containers
+# in per-container PID namespaces that are children of the pod's infra
+# PID namespace .  A 'hostPID' Kubernetes pod specification overrides
+# this setting.
+pid_namespace = "{{ .PIDNamespace }}"
 
 # The "crio.image" table contains settings pertaining to the
 # management of OCI images.

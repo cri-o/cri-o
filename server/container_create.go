@@ -981,13 +981,26 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
+	var pidNamespace string
 	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() {
 		// kubernetes PodSpec specify to use Host PID namespace
 		specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace))
-	} else if s.config.EnableSharedPIDNamespace {
-		// share Pod PID namespace
-		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", podInfraState.Pid)
-		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
+	} else {
+		if s.config.EnableSharedPIDNamespace && len(s.config.PIDNamespace) == 0 {
+			s.config.PIDNamespace = lib.PIDNamespacePod
+		}
+		podPIDNsPath := fmt.Sprintf("/proc/%d/ns/pid", podInfraState.Pid)
+		var pidNsPath string
+		switch s.config.PIDNamespace {
+		case lib.PIDNamespaceContainer:
+		case lib.PIDNamespacePod:
+			pidNsPath = podPIDNsPath
+		case lib.PIDNamespacePodContainer:
+			pidNamespace = podPIDNsPath
+		default:
+			return nil, fmt.Errorf("unrecognized PID namespace configuration: %s", s.config.PIDNamespace)
+		}
+		if err = specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
 			return nil, err
 		}
 	}
@@ -1268,7 +1281,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	crioAnnotations := specgen.Spec().Annotations
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), pidNamespace, labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

@@ -47,6 +47,24 @@ const (
 	ImageVolumesBind ImageVolumesType = "bind"
 )
 
+// PIDNamespaceType describes pod PID namespace strategies.
+type PIDNamespaceType string
+
+const (
+	// PIDNamespaceContainer is for all containers (including pod infra
+	// containers) to have sibling PID namespaces.
+	PIDNamespaceContainer PIDNamespaceType = "container"
+
+	// PIDNamespacePod is for all containers to share a single, per-pod
+	// namespace.
+	PIDNamespacePod PIDNamespaceType = "pod"
+
+	// PIDNamespacePodContainer is for the pod's infra container in one
+	// PID namespace with the non-infra container in per-container PID
+	// namespaces that are children of the pod's infra PID namespace.
+	PIDNamespacePodContainer PIDNamespaceType = "pod-container"
+)
+
 const (
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
@@ -121,7 +139,10 @@ type RuntimeConfig struct {
 	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
 	NoPivot bool `toml:"no_pivot"`
 
-	// EnableSharePidNamespace instructs the runtime to enable share pid namespace
+	// EnableSharePidNamespace instructs the runtime to enable share pid
+	// namespace.
+	//
+	// Deprecated: use PIDNamespace = PIDNamespacePod instead.
 	EnableSharedPIDNamespace bool `toml:"enable_shared_pid_namespace"`
 
 	// Conmon is the path to conmon binary, used for managing the runtime.
@@ -154,6 +175,10 @@ type RuntimeConfig struct {
 
 	// Hooks List of hooks to run with container
 	Hooks map[string]HookParams
+
+	// PIDNamespace selects the PID namespace scope.  A 'hostPID'
+	// Kubernetes pod specification overrides this setting.
+	PIDNamespace PIDNamespaceType `toml:"pid_namespace"`
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.

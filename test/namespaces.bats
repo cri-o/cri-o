@@ -25,6 +25,16 @@ function pid_namespace_test() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "${EXPECTED_INIT:-redis}" ]]
 
+	run crictl exec --sync "$pod_id" cat /proc/*/cmdline
+	echo "$output"
+	[ "$status" -eq 0 ]
+	if [ -n "${REDIS_IN_INFRA}" ]
+	then
+		[[ "$output" =~ "redis" ]]
+	else
+		! [[ "$output" =~ "redis" ]]
+	fi
+
 	run crictl stops "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -36,10 +46,22 @@ function pid_namespace_test() {
 	stop_crio
 }
 
+@test "container pid namespace" {
+	ADDITIONAL_CRIO_OPTIONS=--pid-namespace=container pid_namespace_test
+}
+
+@test "pod pid namespace" {
+	ADDITIONAL_CRIO_OPTIONS=--pid-namespace=pod REDIS_IN_INFRA=1 EXPECTED_INIT=pause pid_namespace_test
+}
+
+@test "pod-container pid namespace" {
+	ADDITIONAL_CRIO_OPTIONS=--pid-namespace=pod-container REDIS_IN_INFRA=1 pid_namespace_test
+}
+
 @test "pod disable shared pid namespace" {
-	ENABLE_SHARED_PID_NAMESPACE=false pid_namespace_test
+	ADDITIONAL_CRIO_OPTIONS=--enable-shared-pid-namespace=false pid_namespace_test
 }
 
 @test "pod enable shared pid namespace" {
-	ENABLE_SHARED_PID_NAMESPACE=true EXPECTED_INIT=pause pid_namespace_test
+	ADDITIONAL_CRIO_OPTIONS=--enable-shared-pid-namespace=true EXPECTED_INIT=pause pid_namespace_test
 }

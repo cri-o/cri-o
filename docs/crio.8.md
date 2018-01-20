@@ -23,6 +23,7 @@ crio
 [--log-level value]
 [--pause-command=[value]]
 [--pause-image=[value]]
+[--pid-namespace=[value]]
 [--registry=[value]]
 [--root=[value]]
 [--runroot=[value]]
@@ -92,9 +93,11 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--pause-image**="": Image which contains the pause executable (default: "kubernetes/pause")
 
+**--pid-namespace**="": Select the PID namespace scope.  Choose from `container` for all containers (including pod infra containers) to have sibling PID namespaces (the default), `pod` for all containers to share a single, per-pod namespace, or `pod-container` to have the pod's infra container in one PID namespace with the non-infra containers in per-container PID namespaces that are children of the pod's infra PID namespace.  A `hostPID` Kubernetes pod specification overrides this setting.
+
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
 
-**--enable-shared-pid-namespace**="": Enable using a shared PID namespace for containers in a pod (default: false)
+**--enable-shared-pid-namespace**="": Enable using a shared PID namespace for containers in a pod.  Deprecated: use `--pid-namespace=pod` instead.
 
 **--root**="": The crio root dir (default: "/var/lib/containers/storage")
 

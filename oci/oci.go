@@ -186,6 +186,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	if r.noPivot {
 		args = append(args, "--no-pivot")
 	}
+	if c.pidNamespace != "" {
+		args = append(args, "--pid-namespace", c.pidNamespace)
+	}
 	if c.terminal {
 		args = append(args, "-t")
 	} else if c.stdin {

@@ -129,11 +129,15 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("default-mounts") {
 		config.DefaultMounts = ctx.GlobalStringSlice("default-mounts")
 	}
+	if ctx.GlobalIsSet("pid-namespace") {
+		config.PIDNamespace = lib.PIDNamespaceType(ctx.GlobalString("pid-namespace"))
+	} else if ctx.GlobalIsSet("enable-shared-pid-namespace") {
+		if ctx.GlobalBool("enable-shared-pid-namespace") {
+			config.PIDNamespace = lib.PIDNamespacePod
+		}
+	}
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
-	}
-	if ctx.GlobalIsSet("enable-shared-pid-namespace") {
-		config.EnableSharedPIDNamespace = ctx.GlobalBool("enable-shared-pid-namespace")
 	}
 	if ctx.GlobalIsSet("log-size-max") {
 		config.LogSizeMax = ctx.GlobalInt64("log-size-max")
@@ -295,6 +299,10 @@ func main() {
 			Name:  "cgroup-manager",
 			Usage: "cgroup manager (cgroupfs or systemd)",
 		},
+		cli.StringFlag{
+			Name:  "pid-namespace",
+			Usage: "select the PID namespace scope (\"container\" default, \"pod\", or \"pod-container\")",
+		},
 		cli.Int64Flag{
 			Name:  "pids-limit",
 			Value: lib.DefaultPidsLimit,
@@ -302,7 +310,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "enable-shared-pid-namespace",
-			Usage: "enable using a shared PID namespace for containers in a pod",
+			Usage: "enable using a shared PID namespace for containers in a pod.  Deprecated: use --pid-namespace=pod instead.",
 		},
 		cli.Int64Flag{
 			Name:  "log-size-max",
