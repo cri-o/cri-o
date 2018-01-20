@@ -12,6 +12,7 @@
 |----------------------------|-------------------------------|--------------------|
 | CRI-O 1.0.x  - release-1.0 | Kubernetes 1.7 branch, v1.7.x | =                  |
 | CRI-O 1.8.x  - release-1.8 | Kubernetes 1.8 branch, v1.8.x | =                  |
+| CRI-O 1.9.x  - release-1.9 | Kubernetes 1.9 branch, v1.9.x | =                  |
 | CRI-O HEAD - master        | Kubernetes master branch      | ✓                  |
 
 Key:
