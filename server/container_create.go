@@ -490,6 +490,110 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	return nil
 }
 
+// setupCapabilities sets process.capabilities in the OCI runtime config.
+func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability) error {
+	if capabilities == nil {
+		return nil
+	}
+
+	toCAPPrefixed := func(cap string) string {
+		if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
+			return "CAP_" + strings.ToUpper(cap)
+		}
+		return cap
+	}
+
+	// Add/drop all capabilities if "all" is specified, so that
+	// following individual add/drop could still work. E.g.
+	// AddCapabilities: []string{"ALL"}, DropCapabilities: []string{"CHOWN"}
+	// will be all capabilities without `CAP_CHOWN`.
+	// see https://github.com/kubernetes/kubernetes/issues/51980
+	if inStringSlice(capabilities.GetAddCapabilities(), "ALL") {
+		for _, c := range getOCICapabilitiesList() {
+			if err := specgen.AddProcessCapabilityAmbient(c); err != nil {
+				return err
+			}
+			if err := specgen.AddProcessCapabilityBounding(c); err != nil {
+				return err
+			}
+			if err := specgen.AddProcessCapabilityEffective(c); err != nil {
+				return err
+			}
+			if err := specgen.AddProcessCapabilityInheritable(c); err != nil {
+				return err
+			}
+			if err := specgen.AddProcessCapabilityPermitted(c); err != nil {
+				return err
+			}
+		}
+	}
+	if inStringSlice(capabilities.GetDropCapabilities(), "ALL") {
+		for _, c := range getOCICapabilitiesList() {
+			if err := specgen.DropProcessCapabilityAmbient(c); err != nil {
+				return err
+			}
+			if err := specgen.DropProcessCapabilityBounding(c); err != nil {
+				return err
+			}
+			if err := specgen.DropProcessCapabilityEffective(c); err != nil {
+				return err
+			}
+			if err := specgen.DropProcessCapabilityInheritable(c); err != nil {
+				return err
+			}
+			if err := specgen.DropProcessCapabilityPermitted(c); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, cap := range capabilities.GetAddCapabilities() {
+		if strings.ToUpper(cap) == "ALL" {
+			continue
+		}
+		capPrefixed := toCAPPrefixed(cap)
+		if err := specgen.AddProcessCapabilityAmbient(capPrefixed); err != nil {
+			return err
+		}
+		if err := specgen.AddProcessCapabilityBounding(capPrefixed); err != nil {
+			return err
+		}
+		if err := specgen.AddProcessCapabilityEffective(capPrefixed); err != nil {
+			return err
+		}
+		if err := specgen.AddProcessCapabilityInheritable(capPrefixed); err != nil {
+			return err
+		}
+		if err := specgen.AddProcessCapabilityPermitted(capPrefixed); err != nil {
+			return err
+		}
+	}
+
+	for _, cap := range capabilities.GetDropCapabilities() {
+		if strings.ToUpper(cap) == "ALL" {
+			continue
+		}
+		capPrefixed := toCAPPrefixed(cap)
+		if err := specgen.DropProcessCapabilityAmbient(capPrefixed); err != nil {
+			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
+		}
+		if err := specgen.DropProcessCapabilityBounding(capPrefixed); err != nil {
+			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
+		}
+		if err := specgen.DropProcessCapabilityEffective(capPrefixed); err != nil {
+			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
+		}
+		if err := specgen.DropProcessCapabilityInheritable(capPrefixed); err != nil {
+			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
+		}
+		if err := specgen.DropProcessCapabilityPermitted(capPrefixed); err != nil {
+			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
+		}
+	}
+
+	return nil
+}
+
 func hostNetwork(containerConfig *pb.ContainerConfig) bool {
 	securityContext := containerConfig.GetLinux().GetSecurityContext()
 	if securityContext == nil || securityContext.GetNamespaceOptions() == nil {
@@ -819,105 +923,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 		specgen.SetLinuxCgroupsPath(cgPath)
 
-		capabilities := linux.GetSecurityContext().GetCapabilities()
 		if privileged {
-			// this is setting correct capabilities as well for privileged mode
 			specgen.SetupPrivileged(true)
 			setOCIBindMountsPrivileged(&specgen)
 		} else {
-			toCAPPrefixed := func(cap string) string {
-				if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
-					return "CAP_" + strings.ToUpper(cap)
-				}
-				return cap
-			}
-
-			// Add/drop all capabilities if "all" is specified, so that
-			// following individual add/drop could still work. E.g.
-			// AddCapabilities: []string{"ALL"}, DropCapabilities: []string{"CHOWN"}
-			// will be all capabilities without `CAP_CHOWN`.
-			// see https://github.com/kubernetes/kubernetes/issues/51980
-			if inStringSlice(capabilities.GetAddCapabilities(), "ALL") {
-				for _, c := range getOCICapabilitiesList() {
-					if err := specgen.AddProcessCapabilityAmbient(c); err != nil {
-						return nil, err
-					}
-					if err := specgen.AddProcessCapabilityBounding(c); err != nil {
-						return nil, err
-					}
-					if err := specgen.AddProcessCapabilityEffective(c); err != nil {
-						return nil, err
-					}
-					if err := specgen.AddProcessCapabilityInheritable(c); err != nil {
-						return nil, err
-					}
-					if err := specgen.AddProcessCapabilityPermitted(c); err != nil {
-						return nil, err
-					}
-				}
-			}
-			if inStringSlice(capabilities.GetDropCapabilities(), "ALL") {
-				for _, c := range getOCICapabilitiesList() {
-					if err := specgen.DropProcessCapabilityAmbient(c); err != nil {
-						return nil, err
-					}
-					if err := specgen.DropProcessCapabilityBounding(c); err != nil {
-						return nil, err
-					}
-					if err := specgen.DropProcessCapabilityEffective(c); err != nil {
-						return nil, err
-					}
-					if err := specgen.DropProcessCapabilityInheritable(c); err != nil {
-						return nil, err
-					}
-					if err := specgen.DropProcessCapabilityPermitted(c); err != nil {
-						return nil, err
-					}
-				}
-			}
-
-			if capabilities != nil {
-				for _, cap := range capabilities.GetAddCapabilities() {
-					if strings.ToUpper(cap) == "ALL" {
-						continue
-					}
-					if err := specgen.AddProcessCapabilityAmbient(toCAPPrefixed(cap)); err != nil {
-						return nil, err
-					}
-					if err := specgen.AddProcessCapabilityBounding(toCAPPrefixed(cap)); err != nil {
-						return nil, err
-					}
-					if err := specgen.AddProcessCapabilityEffective(toCAPPrefixed(cap)); err != nil {
-						return nil, err
-					}
-					if err := specgen.AddProcessCapabilityInheritable(toCAPPrefixed(cap)); err != nil {
-						return nil, err
-					}
-					if err := specgen.AddProcessCapabilityPermitted(toCAPPrefixed(cap)); err != nil {
-						return nil, err
-					}
-				}
-
-				for _, cap := range capabilities.GetDropCapabilities() {
-					if strings.ToUpper(cap) == "ALL" {
-						continue
-					}
-					if err := specgen.DropProcessCapabilityAmbient(toCAPPrefixed(cap)); err != nil {
-						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
-					}
-					if err := specgen.DropProcessCapabilityBounding(toCAPPrefixed(cap)); err != nil {
-						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
-					}
-					if err := specgen.DropProcessCapabilityEffective(toCAPPrefixed(cap)); err != nil {
-						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
-					}
-					if err := specgen.DropProcessCapabilityInheritable(toCAPPrefixed(cap)); err != nil {
-						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
-					}
-					if err := specgen.DropProcessCapabilityPermitted(toCAPPrefixed(cap)); err != nil {
-						return nil, fmt.Errorf("failed to drop cap %s %v", toCAPPrefixed(cap), err)
-					}
-				}
+			err = setupCapabilities(&specgen, linux.GetSecurityContext().GetCapabilities())
+			if err != nil {
+				return nil, err
 			}
 		}
 		specgen.SetProcessSelinuxLabel(processLabel)
