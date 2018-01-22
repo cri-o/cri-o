@@ -17,7 +17,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/lib"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/kubernetes-incubator/cri-o/version"
-	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli"
@@ -429,7 +428,7 @@ func main() {
 		config := c.App.Metadata["config"].(*server.Config)
 
 		if !config.SELinux {
-			selinux.SetDisabled()
+			disableSELinux()
 		}
 
 		if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
