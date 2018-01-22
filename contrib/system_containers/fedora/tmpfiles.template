@@ -1,4 +1,4 @@
-d    ${RUN_DIRECTORY}/${NAME}               -        -           -       - -
+d    ${RUN_DIRECTORY}/crio               -        -           -       - -
 d    /etc/crio - - - - -
 Z    /etc/crio - - - - -
 d    ${STATE_DIRECTORY}/origin               -        -           -       - -
