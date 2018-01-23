@@ -46,9 +46,6 @@ func (c *ContainerServer) GetLogs(container string, logChan chan string, opts Lo
 			continue
 		}
 		logMessage := line.Text[secondSpaceIndex(line.Text):]
-		if opts.Details {
-			// add additional information to line
-		}
 		logChan <- logMessage
 	}
 	return err

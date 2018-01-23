@@ -1,73 +1,17 @@
 package sandbox
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
-	"sync"
 	"time"
 
-	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
-
-// NetNs handles data pertaining a network namespace
-type NetNs struct {
-	sync.Mutex
-	netNS    ns.NetNS
-	symlink  *os.File
-	closed   bool
-	restored bool
-}
-
-func (netns *NetNs) symlinkCreate(name string) error {
-	b := make([]byte, 4)
-	_, randErr := rand.Reader.Read(b)
-	if randErr != nil {
-		return randErr
-	}
-
-	nsName := fmt.Sprintf("%s-%x", name, b)
-	symlinkPath := filepath.Join(NsRunDir, nsName)
-
-	if err := os.Symlink(netns.netNS.Path(), symlinkPath); err != nil {
-		return err
-	}
-
-	fd, err := os.Open(symlinkPath)
-	if err != nil {
-		if removeErr := os.RemoveAll(symlinkPath); removeErr != nil {
-			return removeErr
-		}
-
-		return err
-	}
-
-	netns.symlink = fd
-
-	return nil
-}
-
-func (netns *NetNs) symlinkRemove() error {
-	if err := netns.symlink.Close(); err != nil {
-		return fmt.Errorf("failed to close net ns symlink: %v", err)
-	}
-
-	if err := os.RemoveAll(netns.symlink.Name()); err != nil {
-		return fmt.Errorf("failed to remove net ns symlink: %v", err)
-	}
-
-	return nil
-}
 
 func isSymbolicLink(path string) (bool, error) {
 	fi, err := os.Lstat(path)
@@ -80,7 +24,7 @@ func isSymbolicLink(path string) (bool, error) {
 
 // NetNsGet returns the NetNs associated with the given nspath and name
 func NetNsGet(nspath, name string) (*NetNs, error) {
-	if err := ns.IsNSorErr(nspath); err != nil {
+	if err := isNSorErr(nspath); err != nil {
 		return nil, ErrClosedNetNS
 	}
 
@@ -100,12 +44,10 @@ func NetNsGet(nspath, name string) (*NetNs, error) {
 		resolvedNsPath = nspath
 	}
 
-	netNS, err := ns.GetNS(resolvedNsPath)
+	netNs, err := getNetNs(resolvedNsPath)
 	if err != nil {
 		return nil, err
 	}
-
-	netNs := &NetNs{netNS: netNS, closed: false, restored: true}
 
 	if symlink {
 		fd, err := os.Open(nspath)
@@ -125,13 +67,7 @@ func NetNsGet(nspath, name string) (*NetNs, error) {
 
 // HostNetNsPath returns the current network namespace for the host
 func HostNetNsPath() (string, error) {
-	netNS, err := ns.GetCurrentNS()
-	if err != nil {
-		return "", err
-	}
-
-	defer netNS.Close()
-	return netNS.Path(), nil
+	return hostNetNsPath()
 }
 
 // Sandbox contains data surrounding kubernetes sandboxes on the server
@@ -398,18 +334,14 @@ func (s *Sandbox) RemoveInfraContainer() {
 
 // NetNs retrieves the network namespace of the sandbox
 // If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) NetNs() ns.NetNS {
-	if s.netns == nil {
-		return nil
-	}
-
-	return s.netns.netNS
+func (s *Sandbox) NetNs() *NetNs {
+	return s.netns
 }
 
 // NetNsPath returns the path to the network namespace of the sandbox.
 // If the sandbox uses the host namespace, nil is returned
 func (s *Sandbox) NetNsPath() string {
-	if s.netns == nil {
+	if s.netns == nil || s.netns.symlink == nil {
 		if s.infraContainer != nil {
 			return fmt.Sprintf("/proc/%v/ns/net", s.infraContainer.State().Pid)
 		}
@@ -434,20 +366,16 @@ func (s *Sandbox) NetNsCreate() error {
 		return fmt.Errorf("net NS already created")
 	}
 
-	netNS, err := ns.NewNS()
+	netNS, err := newNetNs()
 	if err != nil {
 		return err
 	}
-
-	s.netns = &NetNs{
-		netNS:  netNS,
-		closed: false,
-	}
+	s.netns = netNS
 
 	if err := s.netns.symlinkCreate(s.name); err != nil {
 		logrus.Warnf("Could not create nentns symlink %v", err)
 
-		if err1 := s.netns.netNS.Close(); err1 != nil {
+		if err1 := s.netns.Close(); err1 != nil {
 			return err1
 		}
 
@@ -494,44 +422,5 @@ func (s *Sandbox) NetNsRemove() error {
 		return nil
 	}
 
-	s.netns.Lock()
-	defer s.netns.Unlock()
-
-	if s.netns.closed {
-		// netNsRemove() can be called multiple
-		// times without returning an error.
-		return nil
-	}
-
-	if err := s.netns.symlinkRemove(); err != nil {
-		return err
-	}
-
-	if err := s.netns.netNS.Close(); err != nil {
-		return err
-	}
-
-	s.netns.closed = true
-
-	if s.netns.restored {
-		// we got namespaces in the form of
-		// /var/run/netns/cni-0d08effa-06eb-a963-f51a-e2b0eceffc5d
-		// but /var/run on most system is symlinked to /run so we first resolve
-		// the symlink and then try and see if it's mounted
-		fp, err := symlink.FollowSymlinkInScope(s.netns.netNS.Path(), "/")
-		if err != nil {
-			return err
-		}
-		if mounted, err := mount.Mounted(fp); err == nil && mounted {
-			if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
-				return err
-			}
-		}
-
-		if err := os.RemoveAll(s.netns.netNS.Path()); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return s.netns.Remove()
 }

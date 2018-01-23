@@ -1,12 +1,12 @@
 package lib
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 // Remove removes a container

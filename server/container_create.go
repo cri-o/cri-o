@@ -347,6 +347,9 @@ func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specge
 
 				// mount the internal devices recursively
 				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {
+					if e != nil {
+						logrus.Infof("addDevice walk: %v", e)
+					}
 					childDevice, e := devices.DeviceFromPath(dpath, device.Permissions)
 					if e != nil {
 						// ignore the device
@@ -925,15 +928,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	metadata := containerConfig.GetMetadata()
 
 	kubeAnnotations := containerConfig.GetAnnotations()
-	if kubeAnnotations != nil {
-		for k, v := range kubeAnnotations {
-			specgen.AddAnnotation(k, v)
-		}
+	for k, v := range kubeAnnotations {
+		specgen.AddAnnotation(k, v)
 	}
-	if labels != nil {
-		for k, v := range labels {
-			specgen.AddAnnotation(k, v)
-		}
+	for k, v := range labels {
+		specgen.AddAnnotation(k, v)
 	}
 
 	// set this container's apparmor profile if it is set by sandbox
@@ -1393,7 +1392,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	crioAnnotations := specgen.Spec().Annotations
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs().Path(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
@@ -1439,8 +1438,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container.SetMountPoint(mountPoint)
 	container.SetSpec(specgen.Spec())
+	container.SetMountPoint(mountPoint)
 	container.SetSeccompProfilePath(spp)
 
 	for _, cv := range containerVolumes {

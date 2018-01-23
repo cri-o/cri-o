@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -32,7 +33,7 @@ func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 	}
 	// No need for compression in local communications.
 	tr.DisableCompression = true
-	tr.Dial = func(_, _ string) (net.Conn, error) {
+	tr.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 		return net.DialTimeout(proto, addr, 32*time.Second)
 	}
 	return nil
@@ -77,10 +78,8 @@ func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
 		return info, err
 	}
 	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return info, err
-	}
-	return info, nil
+	err = json.NewDecoder(resp.Body).Decode(&info)
+	return info, err
 }
 
 // ContainerInfo returns container info by querying

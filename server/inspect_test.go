@@ -6,7 +6,6 @@ import (
 
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/kubernetes-incubator/cri-o/lib"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -34,26 +33,6 @@ func TestGetInfo(t *testing.T) {
 	}
 }
 
-type mockNetNS struct {
-}
-
-func (ns mockNetNS) Close() error {
-	return nil
-}
-func (ns mockNetNS) Fd() uintptr {
-	ptr := new(uintptr)
-	return *ptr
-}
-func (ns mockNetNS) Do(toRun func(ns.NetNS) error) error {
-	return nil
-}
-func (ns mockNetNS) Set() error {
-	return nil
-}
-func (ns mockNetNS) Path() string {
-	return ""
-}
-
 func TestGetContainerInfo(t *testing.T) {
 	s := &Server{}
 	created := time.Now()
@@ -67,7 +46,7 @@ func TestGetContainerInfo(t *testing.T) {
 		"io.kubernetes.test1": "value1",
 	}
 	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", mockNetNS{}, labels, annotations, annotations, "image", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, false, "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", "", labels, annotations, annotations, "image", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, false, "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -184,7 +163,7 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 	labels := map[string]string{}
 	annotations := map[string]string{}
 	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", mockNetNS{}, labels, annotations, annotations, "imageName", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, false, "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", "", labels, annotations, annotations, "imageName", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, false, "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -215,7 +194,7 @@ func TestGetContainerInfoSandboxNotFound(t *testing.T) {
 	labels := map[string]string{}
 	annotations := map[string]string{}
 	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", mockNetNS{}, labels, annotations, annotations, "imageName", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, false, "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", "", labels, annotations, annotations, "imageName", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, false, "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}

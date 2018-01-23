@@ -410,10 +410,6 @@ func (s *Server) getSandbox(id string) *sandbox.Sandbox {
 	return s.ContainerServer.GetSandbox(id)
 }
 
-func (s *Server) hasSandbox(id string) bool {
-	return s.ContainerServer.HasSandbox(id)
-}
-
 func (s *Server) removeSandbox(id string) {
 	s.ContainerServer.RemoveSandbox(id)
 }
