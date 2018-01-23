@@ -23,13 +23,13 @@ import (
 // NetNs handles data pertaining a network namespace
 type NetNs struct {
 	sync.Mutex
-	ns       ns.NetNS
+	netNS    ns.NetNS
 	symlink  *os.File
 	closed   bool
 	restored bool
 }
 
-func (ns *NetNs) symlinkCreate(name string) error {
+func (netns *NetNs) symlinkCreate(name string) error {
 	b := make([]byte, 4)
 	_, randErr := rand.Reader.Read(b)
 	if randErr != nil {
@@ -39,7 +39,7 @@ func (ns *NetNs) symlinkCreate(name string) error {
 	nsName := fmt.Sprintf("%s-%x", name, b)
 	symlinkPath := filepath.Join(NsRunDir, nsName)
 
-	if err := os.Symlink(ns.ns.Path(), symlinkPath); err != nil {
+	if err := os.Symlink(netns.netNS.Path(), symlinkPath); err != nil {
 		return err
 	}
 
@@ -52,17 +52,17 @@ func (ns *NetNs) symlinkCreate(name string) error {
 		return err
 	}
 
-	ns.symlink = fd
+	netns.symlink = fd
 
 	return nil
 }
 
-func (ns *NetNs) symlinkRemove() error {
-	if err := ns.symlink.Close(); err != nil {
+func (netns *NetNs) symlinkRemove() error {
+	if err := netns.symlink.Close(); err != nil {
 		return fmt.Errorf("failed to close net ns symlink: %v", err)
 	}
 
-	if err := os.RemoveAll(ns.symlink.Name()); err != nil {
+	if err := os.RemoveAll(netns.symlink.Name()); err != nil {
 		return fmt.Errorf("failed to remove net ns symlink: %v", err)
 	}
 
@@ -105,7 +105,7 @@ func NetNsGet(nspath, name string) (*NetNs, error) {
 		return nil, err
 	}
 
-	netNs := &NetNs{ns: netNS, closed: false, restored: true}
+	netNs := &NetNs{netNS: netNS, closed: false, restored: true}
 
 	if symlink {
 		fd, err := os.Open(nspath)
@@ -393,7 +393,7 @@ func (s *Sandbox) NetNs() ns.NetNS {
 		return nil
 	}
 
-	return s.netns.ns
+	return s.netns.netNS
 }
 
 // NetNsPath returns the path to the network namespace of the sandbox.
@@ -418,14 +418,14 @@ func (s *Sandbox) NetNsCreate() error {
 	}
 
 	s.netns = &NetNs{
-		ns:     netNS,
+		netNS:  netNS,
 		closed: false,
 	}
 
 	if err := s.netns.symlinkCreate(s.name); err != nil {
 		logrus.Warnf("Could not create nentns symlink %v", err)
 
-		if err1 := s.netns.ns.Close(); err1 != nil {
+		if err1 := s.netns.netNS.Close(); err1 != nil {
 			return err1
 		}
 
@@ -485,7 +485,7 @@ func (s *Sandbox) NetNsRemove() error {
 		return err
 	}
 
-	if err := s.netns.ns.Close(); err != nil {
+	if err := s.netns.netNS.Close(); err != nil {
 		return err
 	}
 
@@ -496,7 +496,7 @@ func (s *Sandbox) NetNsRemove() error {
 		// /var/run/netns/cni-0d08effa-06eb-a963-f51a-e2b0eceffc5d
 		// but /var/run on most system is symlinked to /run so we first resolve
 		// the symlink and then try and see if it's mounted
-		fp, err := symlink.FollowSymlinkInScope(s.netns.ns.Path(), "/")
+		fp, err := symlink.FollowSymlinkInScope(s.netns.netNS.Path(), "/")
 		if err != nil {
 			return err
 		}
@@ -506,7 +506,7 @@ func (s *Sandbox) NetNsRemove() error {
 			}
 		}
 
-		if err := os.RemoveAll(s.netns.ns.Path()); err != nil {
+		if err := os.RemoveAll(s.netns.netNS.Path()); err != nil {
 			return err
 		}
 	}
