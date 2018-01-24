@@ -64,7 +64,8 @@ lint: .gopathok
 	@./.tool/lint
 
 gofmt:
-	@./hack/verify-gofmt.sh
+	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
+	git diff --exit-code
 
 conmon:
 	$(MAKE) -C $@
