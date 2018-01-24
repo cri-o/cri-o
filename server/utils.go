@@ -11,7 +11,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/server/metrics"
 	"github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/syndtr/gocapability/capability"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
@@ -179,11 +178,11 @@ func inStringSlice(ss []string, str string) bool {
 // getOCICapabilitiesList returns a list of all available capabilities.
 func getOCICapabilitiesList() []string {
 	var caps []string
-	for _, cap := range capability.List() {
-		if cap > validate.LastCap() {
+	for _, c := range capability.List() {
+		if c > lastCapability() {
 			continue
 		}
-		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
+		caps = append(caps, "CAP_"+strings.ToUpper(c.String()))
 	}
 	return caps
 }
