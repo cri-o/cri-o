@@ -1025,8 +1025,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddBindMount(sb.HostnamePath(), "/etc/hostname", options)
 	}
 
-	// Bind mount /etc/hosts for host networking containers
-	if hostNetwork(containerConfig) {
+	isInCRIMounts := func(dst string, mounts []*pb.Mount) bool {
+		for _, m := range mounts {
+			if m.ContainerPath == dst {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !isInCRIMounts("/etc/hosts", containerConfig.GetMounts()) && hostNetwork(containerConfig) {
+		// Only bind mount for host netns and when CRI does not give us any hosts file
 		specgen.AddBindMount("/etc/hosts", "/etc/hosts", options)
 	}
 
