@@ -300,15 +300,15 @@ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
 Next create the Pod and capture the Pod ID for later use:
 
 ```
-POD_ID=$(sudo crictl runs test/testdata/sandbox_config.json)
+POD_ID=$(sudo crictl runp test/testdata/sandbox_config.json)
 ```
 
-> sudo crictl runs test/testdata/sandbox_config.json
+> sudo crictl runp test/testdata/sandbox_config.json
 
 Use the `crictl` command to get the status of the Pod:
 
 ```
-sudo crictl inspects --output table $POD_ID
+sudo crictl inspectp --output table $POD_ID
 ```
 
 Output:
