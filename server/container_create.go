@@ -1150,8 +1150,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddMount(mnt)
 	}
 
-	if !isInCRIMounts("/etc/hosts", containerConfig.GetMounts()) && hostNetwork(containerConfig) {
-		// Only bind mount for host netns and when CRI does not give us any hosts file
+	if hostNetwork(containerConfig) {
 		mnt = rspec.Mount{
 			Type:        "bind",
 			Source:      "/etc/hosts",
@@ -1299,14 +1298,32 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	sort.Sort(orderedMounts(mounts))
 
+	config := specgen.Spec()
+	mountDestinations := map[string]int{}
+	for j, mount := range config.Mounts {
+		if i, ok := mountDestinations[mount.Destination]; ok {
+			return nil, fmt.Errorf("CRI-O configured duplicate mounts for %q (%d and %d)", mount.Destination, i, j)
+		}
+		mountDestinations[mount.Destination] = j
+	}
+
 	for _, m := range mounts {
+		if i, ok := mountDestinations[m.Destination]; ok {
+			delete(mountDestinations, m.Destination)
+			config.Mounts = append(config.Mounts[:i], config.Mounts[i+1:]...)
+			for destination, index := range mountDestinations {
+				if index > i {
+					mountDestinations[destination] = index - 1
+				}
+			}
+		}
 		mnt = rspec.Mount{
 			Type:        "bind",
 			Source:      m.Source,
 			Destination: m.Destination,
 			Options:     append(m.Options, "bind"),
 		}
-		specgen.AddMount(mnt)
+		config.Mounts = append(config.Mounts, mnt)
 	}
 
 	if err := s.setupOCIHooks(&specgen, sb, containerConfig, processArgs[0]); err != nil {
