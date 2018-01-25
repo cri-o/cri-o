@@ -5,10 +5,10 @@ set -o nounset
 set -o pipefail
 
 # Create the linter path for use later
-LINTER=${GOPATH}/bin/gometalinter
+LINTER="${LINTER:-${GOPATH}/bin/gometalinter}"
 
 # Make sure gometalinter is installed
-if [ ! -f ${LINTER} ]; then
+if ! command -v ${LINTER} >/dev/null 2>/dev/null; then
 	echo >&2 "gometalinter must be installed. Please run 'make install.tools' and try again"
 	exit 1
 fi
