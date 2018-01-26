@@ -19,7 +19,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname1": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor1.json
 
-    run crictl runs "$TESTDIR"/apparmor1.json
+    run crictl runp "$TESTDIR"/apparmor1.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -50,7 +50,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname2": "apparmor-test-deny-write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor2.json
 
-    run crictl runs "$TESTDIR"/apparmor2.json
+    run crictl runp "$TESTDIR"/apparmor2.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -83,7 +83,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname3": "apparmor-test-deny-write"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor3.json
 
-    run crictl runs "$TESTDIR"/apparmor3.json
+    run crictl runp "$TESTDIR"/apparmor3.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -115,7 +115,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname4": "not-exists"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor4.json
 
-    run crictl runs "$TESTDIR"/apparmor4.json
+    run crictl runp "$TESTDIR"/apparmor4.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -143,7 +143,7 @@ function teardown() {
 
     sed -e 's/%VALUE%/,"container\.apparmor\.security\.beta\.kubernetes\.io\/testname5": "runtime\/default"/g' "$TESTDATA"/sandbox_config_seccomp.json > "$TESTDIR"/apparmor5.json
 
-    run crictl runs "$TESTDIR"/apparmor5.json
+    run crictl runp "$TESTDIR"/apparmor5.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"

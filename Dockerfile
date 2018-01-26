@@ -98,7 +98,7 @@ RUN set -x \
        && rm -rf "$GOPATH"
 
 # Install crictl
-ENV CRICTL_COMMIT b42fc3f364dd48f649d55926c34492beeb9b2e99
+ENV CRICTL_COMMIT f1a58d681c056f259802f5cae2fe1fbcc6b28667
 RUN set -x \
        && export GOPATH="$(mktemp -d)" \
        && git clone https://github.com/kubernetes-incubator/cri-tools.git "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \

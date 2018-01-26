@@ -419,15 +419,15 @@ sudo crictl rm $CONTAINER_ID
 ```
 
 ```
-sudo crictl stops $POD_ID
+sudo crictl stopp $POD_ID
 ```
 
 ```
-sudo crictl rms $POD_ID
+sudo crictl rmp $POD_ID
 ```
 
 ```
-sudo crictl sandboxes
+sudo crictl pods
 ```
 
 ```

@@ -234,8 +234,8 @@ function start_crio() {
 	if [ "$status" -ne 0 ] ; then
 		crictl pull redis:alpine
 	fi
-	REDIS_IMAGEID=$(crictl inspecti redis:alpine | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-	REDIS_IMAGEREF=$(crictl inspecti redis:alpine | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
+	REDIS_IMAGEID=$(crictl inspecti redis:alpine --output table | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	REDIS_IMAGEREF=$(crictl inspecti redis:alpine --output table | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
 	run crictl inspecti mrunalp/oom
 	if [ "$status" -ne 0 ] ; then
 		  crictl pull mrunalp/oom
@@ -285,13 +285,13 @@ function cleanup_images() {
 }
 
 function cleanup_pods() {
-	output=$(crictl sandboxes --quiet)
+	output=$(crictl pods --quiet)
 	if [ $? -eq 0 ]; then
 		if [ "$output" != "" ]; then
 			printf '%s\n' "$output" | while IFS= read -r line
 			do
-			   crictl stops "$line"
-			   crictl rms "$line"
+			   crictl stopp "$line"
+			   crictl rmp "$line"
 			done
 		fi
 	fi

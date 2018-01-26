@@ -13,7 +13,7 @@ function teardown() {
 
 @test "ensure correct hostname" {
 	start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -43,7 +43,7 @@ function teardown() {
 	start_crio
 	hostnetworkconfig=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["host_network"] = True; obj["annotations"] = {}; obj["hostname"] = ""; json.dump(obj, sys.stdout)')
 	echo "$hostnetworkconfig" > "$TESTDIR"/sandbox_hostnetwork_config.json
-	run crictl runs "$TESTDIR"/sandbox_hostnetwork_config.json
+	run crictl runp "$TESTDIR"/sandbox_hostnetwork_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -71,7 +71,7 @@ function teardown() {
 
 @test "Check for valid pod netns CIDR" {
 	start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -87,7 +87,7 @@ function teardown() {
 
 @test "Ping pod from the host" {
 	start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -102,7 +102,7 @@ function teardown() {
 
 @test "Ping pod from another pod" {
 	start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod1_id="$output"
@@ -113,7 +113,7 @@ function teardown() {
 
 	temp_sandbox_conf cni_test
 
-	run crictl runs "$TESTDIR"/sandbox_config_cni_test.json
+	run crictl runp "$TESTDIR"/sandbox_config_cni_test.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod2_id="$output"
@@ -132,7 +132,7 @@ function teardown() {
 		skip "bridge-custom plugin not available"
 	fi
 	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	[ "$status" -eq 0 ]
 
 	. /tmp/plugin_test_args.out
@@ -147,7 +147,7 @@ function teardown() {
 
 @test "Connect to pod hostport from the host" {
 	start_crio
-	run crictl runs "$TESTDATA"/sandbox_config_hostport.json
+	run crictl runp "$TESTDATA"/sandbox_config_hostport.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -180,7 +180,7 @@ function teardown() {
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured
 	chmod 0644 $CONMON_BINARY
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	chmod 0755 $CONMON_BINARY
 	echo "$output"
 	[ "$status" -ne 0 ]

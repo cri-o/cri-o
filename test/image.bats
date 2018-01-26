@@ -12,7 +12,7 @@ function teardown() {
 
 @test "run container in pod with image ID" {
 	start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -32,7 +32,7 @@ function teardown() {
 @test "container status when created by image ID" {
 	start_crio
 
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -58,7 +58,7 @@ function teardown() {
 @test "container status when created by image tagged reference" {
 	start_crio
 
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -84,7 +84,7 @@ function teardown() {
 @test "container status when created by image canonical reference" {
 	start_crio
 
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
