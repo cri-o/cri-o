@@ -64,6 +64,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 	if err != nil {
 		return fmt.Errorf("failed to open container ctl file: %v", err)
 	}
+	defer controlFile.Close()
 
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		logrus.Infof("Got a resize event: %+v", size)
