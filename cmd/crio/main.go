@@ -16,12 +16,12 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/lib"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-incubator/cri-o/pkg/signals"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/kubernetes-incubator/cri-o/version"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli"
-	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
@@ -151,13 +151,13 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 
 func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
 	sig := make(chan os.Signal, 10)
-	signal.Notify(sig, unix.SIGINT, unix.SIGTERM)
+	signal.Notify(sig, signals.Interrupt, signals.Term)
 	go func() {
 		for s := range sig {
 			switch s {
-			case unix.SIGINT:
+			case signals.Interrupt:
 				logrus.Debugf("Caught SIGINT")
-			case unix.SIGTERM:
+			case signals.Term:
 				logrus.Debugf("Caught SIGTERM")
 			default:
 				continue
