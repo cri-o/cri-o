@@ -17,7 +17,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/kubernetes-incubator/cri-o/pkg/registrar"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
-	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -770,21 +769,4 @@ func (c *ContainerServer) RemoveSandbox(id string) {
 // ListSandboxes lists all sandboxes in the state store
 func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
 	return c.state.sandboxes.List()
-}
-
-// LibcontainerStats gets the stats for the container with the given id from runc/libcontainer
-func (c *ContainerServer) LibcontainerStats(ctr *oci.Container) (*libcontainer.Stats, error) {
-	// TODO: make this not hardcoded
-	// was: c.runtime.Path(ociContainer) but that returns /usr/bin/runc - how do we get /run/runc?
-	// runroot is /var/run/runc
-	// Hardcoding probably breaks ClearContainers compatibility
-	factory, err := loadFactory("/run/runc")
-	if err != nil {
-		return nil, err
-	}
-	container, err := factory.Load(ctr.ID())
-	if err != nil {
-		return nil, err
-	}
-	return container.Stats()
 }
