@@ -47,6 +47,7 @@ help:
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
 	@echo " * 'binaries' - Build crio, conmon and pause"
+	@echo " * 'release-note' - Generate release note"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
@@ -87,6 +88,9 @@ crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
 
 crio.conf: crio
 	./bin/crio --config="" config --default > crio.conf
+
+release-note:
+	@$(GOPATH)/bin/containerd-release -n $(release)
 
 clean:
 ifneq ($(GOPATH),)
@@ -185,7 +189,12 @@ endif
 
 .PHONY: install.tools
 
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man
+install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.release
+
+.install.release:
+	if [ ! -x "$(GOPATH)/bin/containerd-release" ]; then \
+		go get -u github.com/containerd/containerd/cmd/containerd-release; \
+	fi
 
 .install.gitvalidation: .gopathok
 	if [ ! -x "$(GOPATH)/bin/git-validation" ]; then \
