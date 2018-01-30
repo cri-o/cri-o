@@ -10,7 +10,7 @@ function teardown() {
 
 @test "bind secrets mounts to container" {
     start_crio
-    run crictl runs "$TESTDATA"/sandbox_config.json
+    run crictl runp "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
@@ -34,7 +34,7 @@ function teardown() {
 
 @test "default mounts correctly sorted with other mounts" {
     start_crio
-    run crictl runs "$TESTDATA"/sandbox_config.json
+    run crictl runp "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"

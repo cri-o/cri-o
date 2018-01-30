@@ -11,7 +11,7 @@ function teardown() {
 		skip "pids cgroup controller is not mounted"
 	fi
 	PIDS_LIMIT=1234 start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -28,10 +28,10 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "1234" ]]
-	run crictl stops "$pod_id"
+	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl rms "$pod_id"
+	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	cleanup_ctrs

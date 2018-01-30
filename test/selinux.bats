@@ -8,7 +8,7 @@ function teardown() {
 
 @test "ctr termination reason Completed" {
 	start_crio
-	run crictl runs "$TESTDATA"/sandbox_config_selinux.json
+	run crictl runp "$TESTDATA"/sandbox_config_selinux.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"

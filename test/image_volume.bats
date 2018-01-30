@@ -8,7 +8,7 @@ function teardown() {
 
 @test "image volume ignore" {
 	IMAGE_VOLUMES=ignore start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -26,10 +26,10 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "Exit code: 1" ]]
 	[[ "$output" =~ "ls: /imagevolume: No such file or directory" ]]
-	run crictl stops "$pod_id"
+	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl rms "$pod_id"
+	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	cleanup_ctrs
@@ -39,7 +39,7 @@ function teardown() {
 
 @test "image volume bind" {
 	IMAGE_VOLUMES=bind start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -56,10 +56,10 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" = "" ]
-	run crictl stops "$pod_id"
+	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl rms "$pod_id"
+	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	cleanup_ctrs

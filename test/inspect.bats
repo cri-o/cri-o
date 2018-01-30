@@ -18,7 +18,7 @@ function teardown() {
 
 @test "ctr inspect" {
 	start_crio
-	run crictl runs "$TESTDATA"/sandbox_config.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
@@ -40,7 +40,7 @@ function teardown() {
 	[[ "$output" =~ "\"image\": \"docker.io/library/redis:alpine\"" ]]
 	[[ "$output" =~ "\"imageRef\": \"$REDIS_IMAGEREF\"" ]]
 
-	run crictl inspects --output json "$pod_id"
+	run crictl inspectp --output json "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
