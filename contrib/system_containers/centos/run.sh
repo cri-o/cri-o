@@ -8,4 +8,4 @@ printf %s $LABEL > /proc/self/attr/exec
 test -e /etc/sysconfig/crio-storage && source /etc/sysconfig/crio-storage
 test -e /etc/sysconfig/crio-network && source /etc/sysconfig/crio-network
 
-exec /usr/bin/crio --log-level=$LOG_LEVEL
+exec /usr/bin/crio --log-level=$LOG_LEVEL --enable-metrics --metrics-port 4242
