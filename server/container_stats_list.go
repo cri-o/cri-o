@@ -28,7 +28,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 			PodSandboxId:  req.Filter.PodSandboxId,
 			LabelSelector: req.Filter.LabelSelector,
 		}
-		ctrList, err = s.filterContainerList(cFilter)
+		ctrList, err = s.filterContainerList(cFilter, ctrList)
 		if err != nil {
 			return nil, err
 		}
