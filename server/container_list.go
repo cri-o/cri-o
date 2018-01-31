@@ -30,7 +30,9 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 
 // filterContainerList applies a protobuf-defined filter to retrieve only intended containers. Not matching
 // the filter is not considered an error but will return an empty response.
-func (s *Server) filterContainerList(filter *pb.ContainerFilter) (ctrList []*oci.Container, err error) {
+func (s *Server) filterContainerList(filter *pb.ContainerFilter, origCtrList []*oci.Container) (ctrList []*oci.Container, err error) {
+	ctrList = origCtrList
+
 	// Filter using container id and pod id first.
 	if filter.Id != "" {
 		id, err := s.CtrIDIndex().Get(filter.Id)
@@ -83,7 +85,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	}
 
 	if filter != nil {
-		ctrList, err = s.filterContainerList(filter)
+		ctrList, err = s.filterContainerList(filter, ctrList)
 		if err != nil {
 			return nil, err
 		}
