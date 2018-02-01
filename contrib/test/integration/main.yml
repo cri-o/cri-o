@@ -30,6 +30,7 @@
 
     - name: clone build and install runc
       include: "build/runc.yml"
+      when: "{{ not use_system_runc | default(True) | bool}}"
 
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
