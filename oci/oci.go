@@ -189,6 +189,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	if c.terminal {
 		args = append(args, "-t")
 	} else if c.stdin {
+		if !c.stdinOnce {
+			args = append(args, "--leave-stdin-open")
+		}
 		args = append(args, "-i")
 	}
 	logrus.WithFields(logrus.Fields{

@@ -99,6 +99,7 @@ static inline void strv_cleanup(char ***strv)
 
 static bool opt_terminal = false;
 static bool opt_stdin = false;
+static bool opt_leave_stdin_open = false;
 static char *opt_cid = NULL;
 static char *opt_cuuid = NULL;
 static char *opt_runtime_path = NULL;
@@ -117,6 +118,7 @@ static GOptionEntry opt_entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL },
   { "stdin", 'i', 0, G_OPTION_ARG_NONE, &opt_stdin, "Stdin", NULL },
+  { "leave-stdin-open", 0, 0, G_OPTION_ARG_NONE, &opt_leave_stdin_open, "Leave stdin open when attached client disconnects", NULL },
   { "cid", 'c', 0, G_OPTION_ARG_STRING, &opt_cid, "Container ID", NULL },
   { "cuuid", 'u', 0, G_OPTION_ARG_STRING, &opt_cuuid, "Container UUID", NULL },
   { "runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL },
@@ -755,8 +757,12 @@ static gboolean conn_sock_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpoin
 	/* End of input */
 	conn_sock_shutdown(SHUT_RD);
 	if (masterfd_stdin >= 0 && opt_stdin) {
-		close(masterfd_stdin);
-		masterfd_stdin = -1;
+		if (!opt_leave_stdin_open) {
+			close(masterfd_stdin);
+			masterfd_stdin = -1;
+		} else {
+			ninfo("Not closing input");
+		}
 	}
 	return G_SOURCE_REMOVE;
 }
