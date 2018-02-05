@@ -1,3 +1,5 @@
+// +build !containers_image_storage_stub
+
 package storage
 
 import (
@@ -157,11 +159,11 @@ func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (
 		refname = verboseName(name)
 	}
 	if refname == "" {
-		logrus.Debugf("parsed reference into %q", storeSpec+"@"+id)
+		logrus.Debugf("parsed reference to id into %q", storeSpec+"@"+id)
 	} else if id == "" {
-		logrus.Debugf("parsed reference into %q", storeSpec+refname)
+		logrus.Debugf("parsed reference to refname into %q", storeSpec+refname)
 	} else {
-		logrus.Debugf("parsed reference into %q", storeSpec+refname+"@"+id)
+		logrus.Debugf("parsed reference to refname@id into %q", storeSpec+refname+"@"+id)
 	}
 	return newReference(storageTransport{store: store, defaultUIDMap: s.defaultUIDMap, defaultGIDMap: s.defaultGIDMap}, refname, id, name), nil
 }

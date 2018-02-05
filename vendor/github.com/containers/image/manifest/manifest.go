@@ -35,7 +35,7 @@ var DefaultRequestedManifestMIMETypes = []string{
 	DockerV2Schema2MediaType,
 	DockerV2Schema1SignedMediaType,
 	DockerV2Schema1MediaType,
-	// DockerV2ListMediaType, // FIXME: Restore this ASAP
+	DockerV2ListMediaType,
 }
 
 // GuessMIMEType guesses MIME type of a manifest and returns it _if it is recognized_, or "" if unknown or unrecognized.
@@ -141,4 +141,9 @@ func AddDummyV2S1Signature(manifest []byte) ([]byte, error) {
 		return nil, err
 	}
 	return js.PrettySignature("signatures")
+}
+
+// MIMETypeIsMultiImage returns true if mimeType is a list of images
+func MIMETypeIsMultiImage(mimeType string) bool {
+	return mimeType == DockerV2ListMediaType
 }

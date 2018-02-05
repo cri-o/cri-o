@@ -11,14 +11,13 @@ import (
 	"time"
 
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/internal/tmpdir"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-const temporaryDirectoryForBigFiles = "/var/tmp" // Do not use the system default of os.TempDir(), usually /tmp, because with systemd it could be a tmpfs.
 
 // Destination is a partial implementation of types.ImageDestination for writing to an io.Writer.
 type Destination struct {
@@ -107,7 +106,7 @@ func (d *Destination) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types
 
 	if inputInfo.Size == -1 { // Ouch, we need to stream the blob into a temporary file just to determine the size.
 		logrus.Debugf("docker tarfile: input with unknown size, streaming to disk first ...")
-		streamCopy, err := ioutil.TempFile(temporaryDirectoryForBigFiles, "docker-tarfile-blob")
+		streamCopy, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(), "docker-tarfile-blob")
 		if err != nil {
 			return types.BlobInfo{}, err
 		}

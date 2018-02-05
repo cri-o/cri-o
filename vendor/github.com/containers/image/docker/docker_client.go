@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -123,69 +122,6 @@ func dockerCertDir(ctx *types.SystemContext, hostPort string) string {
 		hostCertDir = systemPerHostCertDirPath
 	}
 	return filepath.Join(hostCertDir, hostPort)
-}
-
-func setupCertificates(dir string, tlsc *tls.Config) error {
-	logrus.Debugf("Looking for TLS certificates and private keys in %s", dir)
-	fs, err := ioutil.ReadDir(dir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		if os.IsPermission(err) {
-			logrus.Debugf("Skipping scan of %s due to permission error: %v", dir, err)
-			return nil
-		}
-		return err
-	}
-
-	for _, f := range fs {
-		fullPath := filepath.Join(dir, f.Name())
-		if strings.HasSuffix(f.Name(), ".crt") {
-			systemPool, err := tlsconfig.SystemCertPool()
-			if err != nil {
-				return errors.Wrap(err, "unable to get system cert pool")
-			}
-			tlsc.RootCAs = systemPool
-			logrus.Debugf(" crt: %s", fullPath)
-			data, err := ioutil.ReadFile(fullPath)
-			if err != nil {
-				return err
-			}
-			tlsc.RootCAs.AppendCertsFromPEM(data)
-		}
-		if strings.HasSuffix(f.Name(), ".cert") {
-			certName := f.Name()
-			keyName := certName[:len(certName)-5] + ".key"
-			logrus.Debugf(" cert: %s", fullPath)
-			if !hasFile(fs, keyName) {
-				return errors.Errorf("missing key %s for client certificate %s. Note that CA certificates should use the extension .crt", keyName, certName)
-			}
-			cert, err := tls.LoadX509KeyPair(filepath.Join(dir, certName), filepath.Join(dir, keyName))
-			if err != nil {
-				return err
-			}
-			tlsc.Certificates = append(tlsc.Certificates, cert)
-		}
-		if strings.HasSuffix(f.Name(), ".key") {
-			keyName := f.Name()
-			certName := keyName[:len(keyName)-4] + ".cert"
-			logrus.Debugf(" key: %s", fullPath)
-			if !hasFile(fs, certName) {
-				return errors.Errorf("missing client certificate %s for key %s", certName, keyName)
-			}
-		}
-	}
-	return nil
-}
-
-func hasFile(files []os.FileInfo, name string) bool {
-	for _, f := range files {
-		if f.Name() == name {
-			return true
-		}
-	}
-	return false
 }
 
 // newDockerClientFromRef returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
