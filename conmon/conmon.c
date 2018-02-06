@@ -114,6 +114,7 @@ static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
 static int64_t opt_log_size_max = -1;
 static char *opt_socket_path = DEFAULT_SOCKET_PATH;
+static bool opt_no_new_keyring = false;
 static GOptionEntry opt_entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL },
@@ -122,7 +123,8 @@ static GOptionEntry opt_entries[] =
   { "cid", 'c', 0, G_OPTION_ARG_STRING, &opt_cid, "Container ID", NULL },
   { "cuuid", 'u', 0, G_OPTION_ARG_STRING, &opt_cuuid, "Container UUID", NULL },
   { "runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL },
-  { "no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "do not use pivot_root", NULL },
+  { "no-new_keyring", 0, 0, G_OPTION_ARG_NONE, &opt_no_new_keyring, "Do not create a new session keyring for the container", NULL },
+  { "no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "Do not use pivot_root", NULL },
   { "bundle", 'b', 0, G_OPTION_ARG_STRING, &opt_bundle_path, "Bundle path", NULL },
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_pid_file, "PID file", NULL },
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL },
@@ -1272,6 +1274,12 @@ int main(int argc, char *argv[])
 	if (!opt_exec && opt_no_pivot) {
 		add_argv(runtime_argv,
 			"--no-pivot",
+			NULL);
+	}
+
+	if (!opt_exec && opt_no_new_keyring) {
+		add_argv(runtime_argv,
+			"--no-new-keyring",
 			NULL);
 	}
 
