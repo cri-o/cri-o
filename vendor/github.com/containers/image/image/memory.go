@@ -33,11 +33,6 @@ func (i *memoryImage) Reference() types.ImageReference {
 	return nil
 }
 
-// Close removes resources associated with an initialized UnparsedImage, if any.
-func (i *memoryImage) Close() error {
-	return nil
-}
-
 // Size returns the size of the image as stored, if known, or -1 if not.
 func (i *memoryImage) Size() (int64, error) {
 	return -1, nil
@@ -65,9 +60,4 @@ func (i *memoryImage) Signatures(ctx context.Context) ([][]byte, error) {
 // Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
 func (i *memoryImage) Inspect() (*types.ImageInspectInfo, error) {
 	return inspectManifest(i.genericManifest)
-}
-
-// IsMultiImage returns true if the image's manifest is a list of images, false otherwise.
-func (i *memoryImage) IsMultiImage() bool {
-	return false
 }

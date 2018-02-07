@@ -1,3 +1,5 @@
+// +build !containers_image_storage_stub
+
 package storage
 
 import (
@@ -27,8 +29,8 @@ var (
 	// ErrBlobSizeMismatch is returned when PutBlob() is given a blob
 	// with an expected size that doesn't match the reader.
 	ErrBlobSizeMismatch = errors.New("blob size mismatch")
-	// ErrNoManifestLists is returned when GetTargetManifest() is
-	// called.
+	// ErrNoManifestLists is returned when GetManifest() is called.
+	// with a non-nil instanceDigest.
 	ErrNoManifestLists = errors.New("manifest lists are not supported by this transport")
 	// ErrNoSuchImage is returned when we attempt to access an image which
 	// doesn't exist in the storage area.
@@ -65,8 +67,8 @@ type storageLayerMetadata struct {
 	CompressedSize int64  `json:"compressed-size,omitempty"`
 }
 
-type storageImage struct {
-	types.Image
+type storageImageCloser struct {
+	types.ImageCloser
 	size int64
 }
 
@@ -310,6 +312,9 @@ func (s *storageImageDestination) ReapplyBlob(blobinfo types.BlobInfo) (types.Bl
 	if layerList, ok := s.Layers[blobinfo.Digest]; !ok || len(layerList) < 1 {
 		b, err := s.imageRef.transport.store.ImageBigData(s.ID, blobinfo.Digest.String())
 		if err != nil {
+			if blob, ok := s.BlobData[blobinfo.Digest]; ok {
+				return types.BlobInfo{Digest: blobinfo.Digest, Size: int64(len(blob))}, nil
+			}
 			return types.BlobInfo{}, err
 		}
 		return types.BlobInfo{Digest: blobinfo.Digest, Size: int64(len(b))}, nil
@@ -529,16 +534,26 @@ func diffLayer(store storage.Store, layerID string) (rc io.ReadCloser, n int64, 
 	return diff, n, nil
 }
 
-func (s *storageImageSource) GetManifest() (manifestBlob []byte, MIMEType string, err error) {
+// GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
+// It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
+// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+func (s *storageImageSource) GetManifest(instanceDigest *ddigest.Digest) (manifestBlob []byte, MIMEType string, err error) {
+	if instanceDigest != nil {
+		return nil, "", ErrNoManifestLists
+	}
 	manifestBlob, err = s.imageRef.transport.store.ImageBigData(s.ID, "manifest")
 	return manifestBlob, manifest.GuessMIMEType(manifestBlob), err
 }
 
-func (s *storageImageSource) GetTargetManifest(digest ddigest.Digest) (manifestBlob []byte, MIMEType string, err error) {
-	return nil, "", ErrNoManifestLists
-}
-
-func (s *storageImageSource) GetSignatures(ctx context.Context) (signatures [][]byte, err error) {
+// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (s *storageImageSource) GetSignatures(ctx context.Context, instanceDigest *ddigest.Digest) ([][]byte, error) {
+	if instanceDigest != nil {
+		return nil, ErrNoManifestLists
+	}
 	var offset int
 	signature, err := s.imageRef.transport.store.ImageBigData(s.ID, "signatures")
 	if err != nil {
@@ -550,7 +565,7 @@ func (s *storageImageSource) GetSignatures(ctx context.Context) (signatures [][]
 		offset += length
 	}
 	if offset != len(signature) {
-		return nil, errors.Errorf("signatures data contained %d extra bytes", len(signatures)-offset)
+		return nil, errors.Errorf("signatures data contained %d extra bytes", len(signature)-offset)
 	}
 	return sigslice, nil
 }
@@ -594,17 +609,17 @@ func (s *storageImageSource) getSize() (int64, error) {
 	return sum, nil
 }
 
-func (s *storageImage) Size() (int64, error) {
+func (s *storageImageCloser) Size() (int64, error) {
 	return s.size, nil
 }
 
-// newImage creates an image that also knows its size
-func newImage(s storageReference) (types.Image, error) {
+// newImage creates an ImageCloser that also knows its size
+func newImage(ctx *types.SystemContext, s storageReference) (types.ImageCloser, error) {
 	src, err := newImageSource(s)
 	if err != nil {
 		return nil, err
 	}
-	img, err := image.FromSource(src)
+	img, err := image.FromSource(ctx, src)
 	if err != nil {
 		return nil, err
 	}
@@ -612,5 +627,5 @@ func newImage(s storageReference) (types.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &storageImage{Image: img, size: size}, nil
+	return &storageImageCloser{ImageCloser: img, size: size}, nil
 }

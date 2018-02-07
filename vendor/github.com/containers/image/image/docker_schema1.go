@@ -161,14 +161,17 @@ func (m *manifestSchema1) imageInspectInfo() (*types.ImageInspectInfo, error) {
 	if err := json.Unmarshal([]byte(m.History[0].V1Compatibility), v1); err != nil {
 		return nil, err
 	}
-	return &types.ImageInspectInfo{
+	i := &types.ImageInspectInfo{
 		Tag:           m.Tag,
 		DockerVersion: v1.DockerVersion,
 		Created:       v1.Created,
-		Labels:        v1.Config.Labels,
 		Architecture:  v1.Architecture,
 		Os:            v1.OS,
-	}, nil
+	}
+	if v1.Config != nil {
+		i.Labels = v1.Config.Labels
+	}
+	return i, nil
 }
 
 // UpdatedImageNeedsLayerDiffIDs returns true iff UpdatedImage(options) needs InformationOnly.LayerDiffIDs.
@@ -209,7 +212,21 @@ func (m *manifestSchema1) UpdatedImage(options types.ManifestUpdateOptions) (typ
 	// We have 2 MIME types for schema 1, which are basically equivalent (even the un-"Signed" MIME type will be rejected if there isn’t a signature; so,
 	// handle conversions between them by doing nothing.
 	case manifest.DockerV2Schema2MediaType:
-		return copy.convertToManifestSchema2(options.InformationOnly.LayerInfos, options.InformationOnly.LayerDiffIDs)
+		m2, err := copy.convertToManifestSchema2(options.InformationOnly.LayerInfos, options.InformationOnly.LayerDiffIDs)
+		if err != nil {
+			return nil, err
+		}
+		return memoryImageFromManifest(m2), nil
+	case imgspecv1.MediaTypeImageManifest:
+		// We can't directly convert to OCI, but we can transitively convert via a Docker V2.2 Distribution manifest
+		m2, err := copy.convertToManifestSchema2(options.InformationOnly.LayerInfos, options.InformationOnly.LayerDiffIDs)
+		if err != nil {
+			return nil, err
+		}
+		return m2.UpdatedImage(types.ManifestUpdateOptions{
+			ManifestMIMEType: imgspecv1.MediaTypeImageManifest,
+			InformationOnly:  options.InformationOnly,
+		})
 	default:
 		return nil, errors.Errorf("Conversion of image manifest from %s to %s is not implemented", manifest.DockerV2Schema1SignedMediaType, options.ManifestMIMEType)
 	}
@@ -276,7 +293,7 @@ func validateV1ID(id string) error {
 }
 
 // Based on github.com/docker/docker/distribution/pull_v2.go
-func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.BlobInfo, layerDiffIDs []digest.Digest) (types.Image, error) {
+func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.BlobInfo, layerDiffIDs []digest.Digest) (genericManifest, error) {
 	if len(m.History) == 0 {
 		// What would this even mean?! Anyhow, the rest of the code depends on fsLayers[0] and history[0] existing.
 		return nil, errors.Errorf("Cannot convert an image with 0 history entries to %s", manifest.DockerV2Schema2MediaType)
@@ -340,8 +357,7 @@ func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.Bl
 		Digest:    digest.FromBytes(configJSON),
 	}
 
-	m2 := manifestSchema2FromComponents(configDescriptor, nil, configJSON, layers)
-	return memoryImageFromManifest(m2), nil
+	return manifestSchema2FromComponents(configDescriptor, nil, configJSON, layers), nil
 }
 
 func configJSONFromV1Config(v1ConfigJSON []byte, rootFS rootFS, history []imageHistory) ([]byte, error) {
