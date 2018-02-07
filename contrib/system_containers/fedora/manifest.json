@@ -5,6 +5,7 @@
         "OPT_CNI" : "/opt/cni",
         "VAR_LIB_CONTAINERS_STORAGE" : "/var/lib/containers/storage",
         "VAR_LIB_ORIGIN" : "/var/lib/origin",
-        "VAR_LIB_KUBE" : "/var/lib/kubelet"
+        "VAR_LIB_KUBE" : "/var/lib/kubelet",
+        "ADDTL_MOUNTS" : ""
     }
 }
