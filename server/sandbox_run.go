@@ -255,7 +255,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// set log directory
-	logDir := req.GetConfig().LogDirectory
+	logDir := req.GetConfig().GetLogDirectory()
 	if logDir == "" {
 		logDir = filepath.Join(s.config.LogDir, id)
 	}
@@ -343,6 +343,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 	g.AddAnnotation(annotations.LogPath, logPath)
 	g.AddAnnotation(annotations.Name, name)
+	g.AddAnnotation(annotations.Namespace, namespace)
 	g.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeSandbox)
 	g.AddAnnotation(annotations.SandboxID, id)
 	g.AddAnnotation(annotations.ContainerName, containerName)
@@ -384,6 +385,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			g.SetLinuxCgroupsPath(cgPath)
 		}
 	}
+	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
 	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings)
 	if err != nil {
