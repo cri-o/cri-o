@@ -335,7 +335,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	trusted := isTrue(m.Annotations[annotations.TrustedSandbox])
 
-	sb, err := sandbox.New(id, name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), "", labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], "", privileged, trusted, m.Annotations[annotations.ResolvPath], "", nil)
+	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, trusted, m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], nil)
 	if err != nil {
 		return err
 	}
