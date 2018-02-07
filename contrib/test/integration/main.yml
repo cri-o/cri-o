@@ -34,6 +34,11 @@
     - integration
     - e2e
   tasks:
+    - name: fixup go-md2man
+      shell: |
+              cd {{ ansible_env.GOPATH }}/src/github.com/cpuguy83/go-md2man
+              git checkout 20f5889cbdc3c73dbd2862796665e7c465ade7d1
+              go install github.com/cpuguy83/go-md2man
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
 
