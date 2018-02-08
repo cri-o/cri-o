@@ -663,7 +663,7 @@ func (s *Server) setupOCIHooks(specgen *generate.Generator, sb *sandbox.Sandbox,
 	}
 	return nil
 }
-func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, SandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
@@ -755,15 +755,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	}
 
-	logPath := containerConfig.LogPath
+	logPath := containerConfig.GetLogPath()
+	sboxLogDir := sandboxConfig.GetLogDirectory()
+	if sboxLogDir == "" {
+		sboxLogDir = sb.LogDir()
+	}
 	if logPath == "" {
-		// TODO: Should we use sandboxConfig.GetLogDirectory() here?
-		logPath = filepath.Join(sb.LogDir(), containerID+".log")
+		logPath = filepath.Join(sboxLogDir, containerID+".log")
 	}
 	if !filepath.IsAbs(logPath) {
 		// XXX: It's not really clear what this should be versus the sbox logDirectory.
 		logrus.Warnf("requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
-		logPath = filepath.Join(sb.LogDir(), logPath)
+		logPath = filepath.Join(sboxLogDir, logPath)
+		logrus.Warnf("logPath from relative path is now absolute: %s", logPath)
 	}
 
 	// Handle https://issues.k8s.io/44043
@@ -772,8 +776,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	logrus.WithFields(logrus.Fields{
-		"sbox.logdir": sb.LogDir(),
-		"ctr.logfile": containerConfig.LogPath,
+		"sbox.logdir": sboxLogDir,
+		"ctr.logfile": containerConfig.GetLogPath(),
 		"log_path":    logPath,
 	}).Debugf("setting container's log_path")
 

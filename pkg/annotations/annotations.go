@@ -19,6 +19,9 @@ const (
 	// HostName is the container host name annotation
 	HostName = "io.kubernetes.cri-o.HostName"
 
+	// CgroupParent is the sandbox cgroup parent
+	CgroupParent = "io.kubernetes.cri-o.CgroupParent"
+
 	// IP is the container ipv4 or ipv6 address
 	IP = "io.kubernetes.cri-o.IP"
 
@@ -48,6 +51,9 @@ const (
 
 	// Name is the pod name annotation
 	Name = "io.kubernetes.cri-o.Name"
+
+	// Namespace is the pod namespace annotation
+	Namespace = "io.kubernetes.cri-o.Namespace"
 
 	// PrivilegedRuntime is the annotation for the privileged runtime path
 	PrivilegedRuntime = "io.kubernetes.cri-o.PrivilegedRuntime"
