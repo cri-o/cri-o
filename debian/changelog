@@ -1,0 +1,143 @@
+cri-o (1.9.2-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.9.2
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 09 Feb 2018 05:09:25 +0000
+
+cri-o (1.9.1-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.9.1 
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Sun, 28 Jan 2018 16:17:39 +0000
+
+cri-o (1.9.0-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.9.0
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Mon, 18 Dec 2017 16:40:14 +0000
+
+cri-o (1.8.4-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.8.4
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Wed, 13 Dec 2017 02:09:27 +0000
+
+cri-o (1.8.1-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.8.1
+  * do not depend on ostree at all
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Tue, 28 Nov 2017 15:40:56 -0500
+
+cri-o (1.0.3-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.0.3
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 10 Nov 2017 09:50:05 -0500
+
+cri-o (1.0.2-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.0.2
+  * built commit 748bc46
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Tue, 31 Oct 2017 09:36:26 -0400
+
+cri-o (1.0.1-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.0.1
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Thu, 26 Oct 2017 10:42:31 -0400
+
+cri-o (1.0.0-release-5~ubuntu16.04.2~ppa5) xenial; urgency=medium
+
+  * bump to v1.0.0-release
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Mon, 16 Oct 2017 14:38:55 -0400
+
+cri-o (1.0.0-rc3-1~ubuntu16.04.2~ppa2) xenial; urgency=medium
+
+  * bump to v1.0.0-rc3 
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 06 Oct 2017 06:27:30 -0400
+
+cri-o (1.0.0-rc2-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.0.0-rc2
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 22 Sep 2017 09:32:32 -0400
+
+cri-o (1.0.0-rc1-1~ubuntu16.04.2~ppa4) xenial; urgency=medium
+
+  * move containernetworking-plugins to Suggests as even Recommends tries to
+  install it and this conflicts with kubelet-cni 
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Mon, 11 Sep 2017 16:08:20 -0400
+
+cri-o (1.0.0-rc1-1~ubuntu16.04.2~ppa3) xenial; urgency=medium
+
+  * containernetworking-plugins moved to Recommends in control file
+  * containernetworking-plugins conflicts with kubelet-cni, so this change
+  should hopefully resolve conflicts.
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Mon, 11 Sep 2017 15:13:43 -0400
+
+cri-o (1.0.0-rc1-1~ubuntu16.04.2~ppa2) xenial; urgency=medium
+
+  * bump to v1.0.0-rc1 
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Mon, 11 Sep 2017 08:34:28 -0400
+
+cri-o (1.0.0-alpha.0.2-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * built commit a38419a
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Wed, 30 Aug 2017 08:54:47 -0400
+
+cri-o (1.0.0-alpha.0.1-1~ubuntu16.04.2~ppa4) xenial; urgency=medium
+
+  * install libostree-1-1 and not libostree at install time 
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Mon, 28 Aug 2017 00:14:07 -0400
+
+cri-o (1.0.0-alpha.0.1-1~ubuntu16.04.2~ppa3) xenial; urgency=medium
+
+  * install libostree and skopeo at install time 
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Sun, 27 Aug 2017 23:52:00 -0400
+
+cri-o (1.0.0-alpha.0.1-1~ubuntu16.04.2~ppa2) xenial; urgency=medium
+
+  * add git and libostree-dev to build deps
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 25 Aug 2017 18:33:28 -0400
+
+cri-o (1.0.0-alpha.0.1-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * include a ".1" after alpha.0, to get launchpad to shutup about tarball
+  names
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 25 Aug 2017 18:00:37 -0400
+
+cri-o (1.0.0-alpha.0-1~ubuntu16.04.2~ppa3) xenial; urgency=medium
+
+  * bump release tag to ppa3, previous build rejected (grrr) 
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 25 Aug 2017 17:53:20 -0400
+
+cri-o (1.0.0-alpha.0-1~ubuntu16.04.2~ppa2) xenial; urgency=medium
+
+  * built commit a38419a
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Fri, 25 Aug 2017 15:58:01 -0400
+
+cri-o (1.0.0-alpha.0-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * bump to v1.0.0.alpha
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Tue, 18 Jul 2017 15:59:14 -0400
+
+cri-o (0.3-1~ubuntu16.04.2~ppa1) xenial; urgency=medium
+
+  * Initial package for xenial
+
+ -- Lokesh Mandvekar <lsm5@fedoraproject.org>  Wed, 05 Jul 2017 09:47:46 -0400
