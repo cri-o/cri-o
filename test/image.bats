@@ -20,12 +20,16 @@ function teardown() {
 	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
 }
 
-@test "container status return image:tag if created by image ID" {
+@test "container status when created by image ID" {
 	start_crio
 
 	run crictl runs "$TESTDATA"/sandbox_config.json
@@ -43,16 +47,15 @@ function teardown() {
 	run crictl inspect "$ctr_id" --output yaml
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image: redis:alpine" ]]
+	[[ "$output" =~ "image: docker.io/library/redis:alpine" ]]
+	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
 
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
 }
 
-@test "container status return image@digest if created by image ID and digest available" {
-	skip "depends on https://github.com/kubernetes-incubator/cri-o/issues/531"
-
+@test "container status when created by image tagged reference" {
 	start_crio
 
 	run crictl runs "$TESTDATA"/sandbox_config.json
@@ -60,9 +63,9 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	sed -e "s/%VALUE%/$REDIS_IMAGEID_DIGESTED/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
+	sed -e "s/%VALUE%/redis:alpine/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagetag.json
 
-	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
+	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imagetag.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -70,22 +73,64 @@ function teardown() {
 	run crictl inspect "$ctr_id" --output yaml
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image_ref: redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b" ]]
+	[[ "$output" =~ "image: docker.io/library/redis:alpine" ]]
+	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
 
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
 }
 
-@test "image pull" {
+@test "container status when created by image canonical reference" {
+	start_crio
+
+	run crictl runs "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	sed -e "s|%VALUE%|$REDIS_IMAGEREF|g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageref.json
+
+	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageref.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crictl inspect "$ctr_id" --output yaml
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "image: docker.io/library/redis:alpine" ]]
+	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "image pull and list" {
 	start_crio "" "" --no-pause-image
 	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl inspecti "$IMAGE"
+
+	run crictl images --quiet "$IMAGE"
+	[ "$status" -eq 0 ]
 	echo "$output"
+	[ "$output" != "" ]
+	imageid="$output"
+
+	run crictl images @"$imageid"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "$IMAGE" ]]
+
+	run crictl images --quiet "$imageid"
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
 	cleanup_images
 	stop_crio
 }
@@ -108,7 +153,33 @@ function teardown() {
 	stop_crio
 }
 
-@test "image pull and list by digest" {
+@test "image pull and list by tag and ID" {
+	start_crio "" "" --no-pause-image
+	run crictl pull "$IMAGE:go"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crictl images --quiet "$IMAGE:go"
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+	imageid="$output"
+
+	run crictl images --quiet @"$imageid"
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	run crictl images --quiet "$imageid"
+	[ "$status" -eq 0 ]
+	echo "$output"
+	[ "$output" != "" ]
+
+	cleanup_images
+	stop_crio
+}
+
+@test "image pull and list by digest and ID" {
 	start_crio "" "" --no-pause-image
 	run crictl pull nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
 	echo "$output"
@@ -118,18 +189,14 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
+	imageid="$output"
 
-	run crictl images --quiet nginx@33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	run crictl images --quiet @"$imageid"
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
 
-	run crictl images --quiet @33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-
-	run crictl images --quiet 33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	run crictl images --quiet "$imageid"
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
@@ -198,7 +265,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[ "$output" != "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
-		run crictl inspecti "$id"
+		run crictl images -v "$id"
 		echo "$output"
 		[ "$status" -eq 0 ]
 		[ "$output" != "" ]

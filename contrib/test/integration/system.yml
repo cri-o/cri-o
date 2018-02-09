@@ -5,6 +5,7 @@
     name: "{{ item }}"
     state: present
   with_items:
+    - atomic-registries
     - container-selinux
     - curl
     - device-mapper-devel
@@ -41,9 +42,9 @@
     - ostree-devel
     - pkgconfig
     - python
-    - python2-boto
     - python2-crypto
     - python-devel
+    - python-rhsm-certificates
     - python-virtualenv
     - PyYAML
     - redhat-rpm-config
@@ -56,6 +57,22 @@
     - wget
   async: 600
   poll: 10
+
+- name: Add python2-boto for Fedora
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+   - python2-boto
+  when: ansible_distribution in ['Fedora']
+
+- name: Add python-boto for RHEL and CentOS
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+   - python-boto
+  when: ansible_distribution in ['RedHat', 'CentOS']
 
 - name: Add Btrfs for Fedora
   package:

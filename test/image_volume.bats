@@ -55,7 +55,7 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" touch /imagevolume/test_file
 	echo "$output"
 	[ "$status" -eq 0 ]
-
+	[ "$output" = "" ]
 	run crictl stops "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
