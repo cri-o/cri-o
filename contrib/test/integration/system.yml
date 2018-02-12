@@ -89,13 +89,8 @@
   async: 600
   poll: 10
 
-- name: Setup swap to prevent kernel firing off the OOM killer
-  shell: |
-    truncate -s 8G /root/swap && \
-    export SWAPDEV=$(losetup --show -f /root/swap | head -1) && \
-    mkswap $SWAPDEV && \
-    swapon $SWAPDEV && \
-    swapon --show
+- name: Check / setup swap
+  include: "swap.yml"
 
 - name: ensure directories exist as needed
   file:
