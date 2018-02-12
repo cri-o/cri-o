@@ -7,7 +7,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/lib"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
 func buildContainerStats(stats *lib.ContainerStats, container *oci.Container) *pb.ContainerStats {

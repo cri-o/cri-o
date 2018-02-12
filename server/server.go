@@ -26,7 +26,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	knet "k8s.io/apimachinery/pkg/util/net"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 	iptablesproxy "k8s.io/kubernetes/pkg/proxy/iptables"

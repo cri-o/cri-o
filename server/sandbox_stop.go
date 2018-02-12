@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the

@@ -41,7 +41,7 @@ function teardown() {
 
 @test "ensure correct hostname for hostnetwork:true" {
 	start_crio
-	hostnetworkconfig=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["host_network"] = True; obj["annotations"] = {}; obj["hostname"] = ""; json.dump(obj, sys.stdout)')
+	hostnetworkconfig=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["network"] = 2; obj["annotations"] = {}; obj["hostname"] = ""; json.dump(obj, sys.stdout)')
 	echo "$hostnetworkconfig" > "$TESTDIR"/sandbox_hostnetwork_config.json
 	run crictl runp "$TESTDIR"/sandbox_hostnetwork_config.json
 	echo "$output"

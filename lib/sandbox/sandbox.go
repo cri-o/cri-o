@@ -16,7 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 )
 
@@ -147,6 +147,7 @@ type Sandbox struct {
 	mountLabel     string
 	netns          *NetNs
 	metadata       *pb.PodSandboxMetadata
+	nsOpts         *pb.NamespaceOption
 	shmPath        string
 	cgroupParent   string
 	privileged     bool
@@ -225,14 +226,14 @@ func (s *Sandbox) AddIP(ip string) {
 	s.ip = ip
 }
 
-// SetHostNetwork sets whether the pod is running using host network
-func (s *Sandbox) SetHostNetwork(hn bool) {
-	s.hostNetwork = hn
+// SetNamespaceOptions sets whether the pod is running using host network
+func (s *Sandbox) SetNamespaceOptions(nsOpts *pb.NamespaceOption) {
+	s.nsOpts = nsOpts
 }
 
-// HostNetwork returns whether the pod is using host network
-func (s *Sandbox) HostNetwork() bool {
-	return s.hostNetwork
+// NamespaceOptions returns the namespace options for the sandbox
+func (s *Sandbox) NamespaceOptions() *pb.NamespaceOption {
+	return s.nsOpts
 }
 
 // IP returns the ip of the sandbox

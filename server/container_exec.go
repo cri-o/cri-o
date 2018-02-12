@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/util/term"
 	utilexec "k8s.io/utils/exec"

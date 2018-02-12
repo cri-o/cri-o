@@ -6,7 +6,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
 // PodSandboxStatus returns the Status of the PodSandbox.
@@ -34,7 +34,9 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	linux := &pb.LinuxPodSandboxStatus{
 		Namespaces: &pb.Namespace{
 			Options: &pb.NamespaceOption{
-				HostNetwork: sb.HostNetwork(),
+				Network: sb.NamespaceOptions().GetNetwork(),
+				Ipc:     sb.NamespaceOptions().GetIpc(),
+				Pid:     sb.NamespaceOptions().GetPid(),
 			},
 		},
 	}

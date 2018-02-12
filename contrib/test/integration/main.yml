@@ -59,7 +59,7 @@
       include: "build/cri-tools.yml"
       vars:
         force_clone: True
-        cri_tools_git_version: "f1a58d681c056f259802f5cae2fe1fbcc6b28667"
+        cri_tools_git_version: "240a840375cdabb5860c75c99e8b0d0a776006b4"
     - name: run cri-o integration tests
       include: test.yml
 
@@ -78,7 +78,7 @@
       include: "build/cri-tools.yml"
       vars:
           force_clone: True
-          cri_tools_git_version: "f1a58d681c056f259802f5cae2fe1fbcc6b28667"
+          cri_tools_git_version: "240a840375cdabb5860c75c99e8b0d0a776006b4"
     - name: run critest validation and benchmarks
       include: critest.yml
 
@@ -118,9 +118,8 @@
       include: "build/kubernetes.yml"
       vars:
           force_clone: True
-          # master as of 12/11/2017
-          k8s_git_version: "master-nfs-fix"
-          k8s_github_fork: "runcom"
+          k8s_git_version: "master"
+          k8s_github_fork: "kubernetes"
           crio_socket: "/var/run/crio/crio.sock"
     - name: run k8s e2e tests
       include: e2e.yml
