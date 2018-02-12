@@ -254,6 +254,17 @@
             "type": "bind"
         },
         {
+            "destination": "/var/tmp",
+            "options": [
+                "private",
+                "bind",
+                "rw",
+                "mode=755"
+            ],
+            "source": "/var/tmp",
+            "type": "bind"
+        },
+        {
             "destination": "/etc",
             "options": [
                 "rbind",
