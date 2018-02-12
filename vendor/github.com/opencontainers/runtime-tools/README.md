@@ -37,17 +37,29 @@ If your distribution does not package node-tap, you can install [npm][] (for exa
 $ npm install tap
 ```
 
+Build the validation executables:
+
 ```console
 $ make runtimetest validation-executables
+```
+
+Runtime validation currently [only supports](docs/runtime-compliance-testing.md) the [OCI Runtime Command Line Interface](doc/command-line-interface.md).
+If we add support for alternative APIs in the future, runtime validation will gain an option to select the desired runtime API.
+For the command line interface, the `RUNTIME` option selects the runtime command (`funC` in the [OCI Runtime Command Line Interface](doc/command-line-interface.md)).
+
+```
+$ sudo make RUNTIME=runc localvalidation
 RUNTIME=runc tap validation/linux_rootfs_propagation_shared.t validation/create.t validation/default.t validation/linux_readonly_paths.t validation/linux_masked_paths.t validation/mounts.t validation/process.t validation/root_readonly_false.t validation/linux_sysctl.t validation/linux_devices.t validation/linux_gid_mappings.t validation/process_oom_score_adj.t validation/process_capabilities.t validation/process_rlimits.t validation/root_readonly_true.t validation/linux_rootfs_propagation_unbindable.t validation/hostname.t validation/linux_uid_mappings.t
 validation/linux_rootfs_propagation_shared.t ........ 18/19
   not ok rootfs propagation
+    error: 'rootfs should be shared, but not'
 
 validation/create.t ................................... 4/4
 validation/default.t ................................ 19/19
 validation/linux_readonly_paths.t ................... 19/19
 validation/linux_masked_paths.t ..................... 18/19
   not ok masked paths
+    error: /masktest should not be readable
 
 validation/mounts.t ................................... 0/1
   Skipped: 1

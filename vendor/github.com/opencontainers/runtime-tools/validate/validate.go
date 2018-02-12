@@ -142,6 +142,8 @@ func JSONSchemaURL(version string) (url string, err error) {
 // runtime-spec JSON Schema, using the version of the schema that
 // matches the configuration's declared version.
 func (v *Validator) CheckJSONSchema() (errs error) {
+	logrus.Debugf("check JSON schema")
+
 	url, err := JSONSchemaURL(v.spec.Version)
 	if err != nil {
 		errs = multierror.Append(errs, err)
@@ -733,7 +735,7 @@ func (v *Validator) CheckLinux() (errs error) {
 		}
 
 		if _, exists := devTypeList[devID]; exists {
-			logrus.Warnf("type:%s, major:%d and minor:%d for linux devices is duplicated", device.Type, device.Major, device.Minor)
+			logrus.Warnf("%v", specerror.NewError(specerror.DevicesErrorOnDup, fmt.Errorf("type:%s, major:%d and minor:%d for linux devices is duplicated", device.Type, device.Major, device.Minor), rspec.Version))
 		} else {
 			devTypeList[devID] = true
 		}
@@ -813,6 +815,18 @@ func (v *Validator) CheckLinuxResources() (errs error) {
 			default:
 				errs = multierror.Append(errs, fmt.Errorf("access %s is invalid", r.Devices[index].Access))
 				return
+			}
+		}
+	}
+
+	if r.BlockIO != nil && r.BlockIO.WeightDevice != nil {
+		for i, weightDevice := range r.BlockIO.WeightDevice {
+			if weightDevice.Weight == nil && weightDevice.LeafWeight == nil {
+				errs = multierror.Append(errs,
+					specerror.NewError(
+						specerror.BlkIOWeightOrLeafWeightExist,
+						fmt.Errorf("linux.resources.blockIO.weightDevice[%d] specifies neither weight nor leafWeight", i),
+						rspec.Version))
 			}
 		}
 	}
@@ -989,6 +1003,10 @@ func checkMandatory(obj interface{}) (errs error) {
 // CheckMandatoryFields checks mandatory field of container's config file
 func (v *Validator) CheckMandatoryFields() error {
 	logrus.Debugf("check mandatory fields")
+
+	if v.spec == nil {
+		return fmt.Errorf("Spec can't be nil")
+	}
 
 	return checkMandatory(v.spec)
 }
