@@ -40,6 +40,9 @@ const (
 	// KubeName is the kubernetes name annotation
 	KubeName = "io.kubernetes.cri-o.KubeName"
 
+	// PortMappings holds the port mappings for the sandbox
+	PortMappings = "io.kubernetes.cri-o.PortMappings"
+
 	// Labels are the kubernetes labels annotation
 	Labels = "io.kubernetes.cri-o.Labels"
 
