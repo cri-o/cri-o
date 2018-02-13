@@ -17,6 +17,11 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	}()
 	logrus.Debugf("StopContainerRequest %+v", req)
 
+	if err := s.addContainerToWatcherIgnoreList(req.ContainerId); err != nil {
+		return nil, err
+	}
+	defer s.removeContainerFromWatcherIgnoreList(req.ContainerId)
+
 	_, err = s.ContainerServer.ContainerStop(ctx, req.ContainerId, req.Timeout)
 	if err != nil {
 		return nil, err

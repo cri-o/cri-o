@@ -63,9 +63,14 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	for _, c := range containers {
 		cStatus := s.Runtime().ContainerStatus(c)
 		if cStatus.Status != oci.ContainerStateStopped {
+			if err := s.addContainerToWatcherIgnoreList(c.ID()); err != nil {
+				return nil, err
+			}
 			if err := s.Runtime().StopContainer(ctx, c, 10); err != nil {
+				s.removeContainerFromWatcherIgnoreList(c.ID())
 				return nil, fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 			}
+			s.removeContainerFromWatcherIgnoreList(c.ID())
 			if c.ID() == podInfraContainer.ID() {
 				continue
 			}

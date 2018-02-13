@@ -604,6 +604,53 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration)
 	return nil
 }
 
+func (r *Runtime) waitContainerStateStopped(ctx context.Context, c *Container, timeout time.Duration) (err error) {
+	done := make(chan error)
+	// we could potentially re-use "done" channel to exit the loop on timeout
+	// but we use another channel "chControl" so that we won't never incur in the
+	// case the "done" channel is closed in the "default" select case and we also
+	// reach the timeout in the select below. If that happens we could raise
+	// a panic closing a closed channel so better be safe and use another new
+	// channel just to control the loop.
+	chControl := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-chControl:
+				return
+			default:
+				// Check if the container is stopped
+				if err := r.UnlockedUpdateStatus(c); err != nil {
+					done <- err
+					close(done)
+					return
+				}
+				if c.state.Status == ContainerStateStopped {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+	select {
+	case err = <-done:
+		break
+	case <-ctx.Done():
+		close(chControl)
+		return ctx.Err()
+	case <-time.After(timeout):
+		close(chControl)
+		return fmt.Errorf("failed to get container stopped status")
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to get container stopped status: %v", err)
+	}
+
+	return nil
+}
+
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64) error {
 	c.opLock.Lock()
@@ -622,7 +669,7 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 		}
 		err = waitContainerStop(ctx, c, time.Duration(timeout)*time.Second)
 		if err == nil {
-			return nil
+			return r.waitContainerStateStopped(ctx, c, time.Duration(timeout)*time.Second)
 		}
 		logrus.Warnf("Stop container %q timed out: %v", c.ID(), err)
 	}
@@ -631,7 +678,11 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 		return fmt.Errorf("failed to stop container %s, %v", c.id, err)
 	}
 
-	return waitContainerStop(ctx, c, killContainerTimeout)
+	if err := waitContainerStop(ctx, c, killContainerTimeout); err != nil {
+		return fmt.Errorf("failed to stop container %s, %v", c.id, err)
+	}
+
+	return r.waitContainerStateStopped(ctx, c, killContainerTimeout)
 }
 
 // DeleteContainer deletes a container.
@@ -655,6 +706,12 @@ func (r *Runtime) SetStartFailed(c *Container, err error) {
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	return r.UnlockedUpdateStatus(c)
+}
+
+// UnlockedUpdateStatus is the unlocked version of UpdateStatus.
+func (r *Runtime) UnlockedUpdateStatus(c *Container) error {
 	out, err := exec.Command(r.Path(c), "state", c.id).Output()
 	if err != nil {
 		// there are many code paths that could lead to have a bad state in the

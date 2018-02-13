@@ -69,6 +69,9 @@ type Server struct {
 	bindAddress     string
 	stream          streamService
 	exitMonitorChan chan struct{}
+
+	watcherLock       sync.Mutex
+	watcherIgnoreList map[string]struct{}
 }
 
 // StopStreamServer stops the stream server
@@ -204,14 +207,15 @@ func New(config *Config) (*Server, error) {
 	hostportManager := hostport.NewHostportManager(iptInterface)
 
 	s := &Server{
-		ContainerServer: containerServer,
-		netPlugin:       netPlugin,
-		hostportManager: hostportManager,
-		config:          *config,
-		seccompEnabled:  seccomp.IsEnabled(),
-		appArmorEnabled: apparmor.IsEnabled(),
-		appArmorProfile: config.ApparmorProfile,
-		exitMonitorChan: make(chan struct{}),
+		ContainerServer:   containerServer,
+		netPlugin:         netPlugin,
+		hostportManager:   hostportManager,
+		config:            *config,
+		seccompEnabled:    seccomp.IsEnabled(),
+		appArmorEnabled:   apparmor.IsEnabled(),
+		appArmorProfile:   config.ApparmorProfile,
+		exitMonitorChan:   make(chan struct{}),
+		watcherIgnoreList: make(map[string]struct{}),
 	}
 
 	if s.seccompEnabled {
@@ -383,6 +387,10 @@ func (s *Server) StartExitMonitor() {
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					containerID := filepath.Base(event.Name)
 					logrus.Debugf("container or sandbox exited: %v", containerID)
+					if s.watcherIgnoreContainer(containerID) {
+						logrus.Debugf("container or sandbox ignored: %v", containerID)
+						continue
+					}
 					c := s.GetContainer(containerID)
 					if c != nil {
 						logrus.Debugf("container exited and found: %v", containerID)
@@ -422,4 +430,33 @@ func (s *Server) StartExitMonitor() {
 		close(done)
 	}
 	<-done
+}
+
+func (s *Server) addContainerToWatcherIgnoreList(containerID string) error {
+	s.watcherLock.Lock()
+	defer s.watcherLock.Unlock()
+
+	if _, exist := s.watcherIgnoreList[containerID]; exist {
+		return fmt.Errorf("container %v already in the watcher ignore list", containerID)
+	}
+
+	var emptyVal struct{}
+	s.watcherIgnoreList[containerID] = emptyVal
+
+	return nil
+}
+
+func (s *Server) removeContainerFromWatcherIgnoreList(containerID string) {
+	s.watcherLock.Lock()
+	defer s.watcherLock.Unlock()
+
+	delete(s.watcherIgnoreList, containerID)
+}
+
+func (s *Server) watcherIgnoreContainer(containerID string) bool {
+	s.watcherLock.Lock()
+	defer s.watcherLock.Unlock()
+
+	_, exist := s.watcherIgnoreList[containerID]
+	return exist
 }
