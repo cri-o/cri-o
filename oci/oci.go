@@ -604,6 +604,56 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration)
 	return nil
 }
 
+// WaitContainerStateStopped runs a loop polling UpdateStatus(), seeking for
+// the container status to be updated to 'stopped'. Either it gets the expected
+// status and returns nil, or it reaches the timeout and returns an error.
+func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container, timeout int64) (err error) {
+	// No need to go further and spawn the go routine if the container
+	// is already in the expected status.
+	if r.ContainerStatus(c).Status == ContainerStateStopped {
+		return nil
+	}
+
+	done := make(chan error)
+	chControl := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-chControl:
+				return
+			default:
+				// Check if the container is stopped
+				if err := r.UpdateStatus(c); err != nil {
+					done <- err
+					close(done)
+					return
+				}
+				if r.ContainerStatus(c).Status == ContainerStateStopped {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+	select {
+	case err = <-done:
+		break
+	case <-ctx.Done():
+		close(chControl)
+		return ctx.Err()
+	case <-time.After(time.Duration(timeout) * time.Second):
+		close(chControl)
+		return fmt.Errorf("failed to get container stopped status: %ds timeout reached", timeout)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to get container stopped status: %v", err)
+	}
+
+	return nil
+}
+
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64) error {
 	c.opLock.Lock()
@@ -655,6 +705,7 @@ func (r *Runtime) SetStartFailed(c *Container, err error) {
 func (r *Runtime) UpdateStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
 	out, err := exec.Command(r.Path(c), "state", c.id).Output()
 	if err != nil {
 		// there are many code paths that could lead to have a bad state in the

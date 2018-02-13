@@ -48,9 +48,13 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		if !sb.Stopped() {
 			cState := s.Runtime().ContainerStatus(c)
 			if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
-				if err := s.Runtime().StopContainer(ctx, c, 10); err != nil {
+				timeout := int64(10)
+				if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
 					// Assume container is already stopped
 					logrus.Warnf("failed to stop container %s: %v", c.Name(), err)
+				}
+				if err := s.Runtime().WaitContainerStateStopped(ctx, c, timeout); err != nil {
+					return nil, fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 				}
 			}
 		}
