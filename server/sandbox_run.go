@@ -363,6 +363,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	portMappings := convertPortMappings(req.GetConfig().GetPortMappings())
+	portMappingsJSON, err := json.Marshal(portMappings)
+	if err != nil {
+		return nil, err
+	}
+	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
 
 	// setup cgroup settings
 	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()

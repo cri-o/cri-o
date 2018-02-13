@@ -99,6 +99,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 
 	resp.Status.State = rStatus
+	resp.Status.LogPath = c.LogPath()
 
 	logrus.Debugf("ContainerStatusResponse: %+v", resp)
 	return resp, nil

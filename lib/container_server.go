@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 )
 
 // ContainerServer implements the ImageServer
@@ -332,10 +333,15 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
+	portMappings := []*hostport.PortMapping{}
+	if err := json.Unmarshal([]byte(m.Annotations[annotations.PortMappings]), &portMappings); err != nil {
+		return err
+	}
+
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	trusted := isTrue(m.Annotations[annotations.TrustedSandbox])
 
-	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, trusted, m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], nil)
+	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, trusted, m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings)
 	if err != nil {
 		return err
 	}

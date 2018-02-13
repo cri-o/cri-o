@@ -757,6 +757,18 @@ func (s *Server) setupOCIHooks(specgen *generate.Generator, sb *sandbox.Sandbox,
 			}
 		}
 		for _, annotationRegex := range hook.Annotations {
+			for _, annotation := range containerConfig.GetAnnotations() {
+				match, err := regexp.MatchString(annotationRegex, annotation)
+				if err != nil {
+					logrus.Errorf("Invalid regex %q:%q", annotationRegex, err)
+					continue
+				}
+				if match {
+					if err := addHook(hook); err != nil {
+						return err
+					}
+				}
+			}
 			for _, annotation := range sb.Annotations() {
 				match, err := regexp.MatchString(annotationRegex, annotation)
 				if err != nil {
