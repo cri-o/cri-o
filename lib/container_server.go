@@ -340,6 +340,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	trusted := isTrue(m.Annotations[annotations.TrustedSandbox])
+	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
 
 	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, trusted, m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings)
 	if err != nil {
@@ -348,6 +349,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	sb.AddHostnamePath(m.Annotations[annotations.HostnamePath])
 	sb.AddIP(ip)
 	sb.SetSeccompProfilePath(spp)
+	sb.SetHostNetwork(hostNetwork)
 
 	// We add a netNS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
