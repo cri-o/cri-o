@@ -160,6 +160,7 @@ type Sandbox struct {
 	ip                 string
 	seccompProfilePath string
 	created            time.Time
+	hostNetwork        bool
 }
 
 const (
@@ -222,6 +223,16 @@ func (s *Sandbox) SeccompProfilePath() string {
 // AddIP stores the ip in the sandbox
 func (s *Sandbox) AddIP(ip string) {
 	s.ip = ip
+}
+
+// SetHostNetwork sets whether the pod is running using host network
+func (s *Sandbox) SetHostNetwork(hn bool) {
+	s.hostNetwork = hn
+}
+
+// HostNetwork returns whether the pod is using host network
+func (s *Sandbox) HostNetwork() bool {
+	return s.hostNetwork
 }
 
 // IP returns the ip of the sandbox

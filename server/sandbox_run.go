@@ -353,6 +353,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.TrustedSandbox, fmt.Sprintf("%v", trusted))
 	g.AddAnnotation(annotations.ResolvPath, resolvPath)
 	g.AddAnnotation(annotations.HostName, hostname)
+	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
 	g.AddAnnotation(annotations.KubeName, kubeName)
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
@@ -528,6 +529,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	g.AddAnnotation(annotations.IP, ip)
 	sb.AddIP(ip)
+	sb.SetHostNetwork(hostNetwork)
 
 	spp := req.GetConfig().GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)

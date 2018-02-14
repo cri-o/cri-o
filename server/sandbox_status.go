@@ -31,6 +31,14 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		rStatus = pb.PodSandboxState_SANDBOX_READY
 	}
 
+	linux := &pb.LinuxPodSandboxStatus{
+		Namespaces: &pb.Namespace{
+			Options: &pb.NamespaceOption{
+				HostNetwork: sb.HostNetwork(),
+			},
+		},
+	}
+
 	sandboxID := sb.ID()
 	resp = &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
@@ -41,6 +49,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),
 			Metadata:    sb.Metadata(),
+			Linux:       linux,
 		},
 	}
 
