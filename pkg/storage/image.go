@@ -39,6 +39,7 @@ type ImageResult struct {
 	Size         *uint64
 	Digest       digest.Digest
 	ConfigDigest digest.Digest
+	User         string
 }
 
 type indexInfo struct {
@@ -181,6 +182,16 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			if err != nil {
 				return nil, err
 			}
+			imageFull, err := ref.NewImage(systemContext)
+			if err != nil {
+				return nil, err
+			}
+			defer imageFull.Close()
+
+			imageConfig, err := imageFull.OCIConfig()
+			if err != nil {
+				return nil, err
+			}
 			name, tags, digests := sortNamesByType(image.Names)
 			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
 			results = append(results, ImageResult{
@@ -191,6 +202,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 				Size:         size,
 				Digest:       imageDigest,
 				ConfigDigest: configDigest,
+				User:         imageConfig.Config.User,
 			})
 		}
 	} else {
@@ -213,6 +225,16 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			if err != nil {
 				return nil, err
 			}
+			imageFull, err := ref.NewImage(systemContext)
+			if err != nil {
+				return nil, err
+			}
+			defer imageFull.Close()
+
+			imageConfig, err := imageFull.OCIConfig()
+			if err != nil {
+				return nil, err
+			}
 			name, tags, digests := sortNamesByType(image.Names)
 			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
 			results = append(results, ImageResult{
@@ -223,6 +245,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 				Size:         size,
 				Digest:       imageDigest,
 				ConfigDigest: configDigest,
+				User:         imageConfig.Config.User,
 			})
 		}
 	}
@@ -243,6 +266,16 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		ref = ref2
 	}
 	image, err := istorage.Transport.GetStoreImage(svc.store, ref)
+	if err != nil {
+		return nil, err
+	}
+	imageFull, err := ref.NewImage(systemContext)
+	if err != nil {
+		return nil, err
+	}
+	defer imageFull.Close()
+
+	imageConfig, err := imageFull.OCIConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +301,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		Size:         size,
 		Digest:       imageDigest,
 		ConfigDigest: configDigest,
+		User:         imageConfig.Config.User,
 	}
 
 	return &result, nil
