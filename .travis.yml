@@ -35,15 +35,15 @@ jobs:
       go: tip
     - stage: Build and Verify
       script:
-        - make testunit
+        - sudo "PATH=$PATH" make testunit
         - make
       go: 1.8.x
     - script:
-        - make testunit
+        - sudo "PATH=$PATH" make testunit
         - make
       go: 1.9.x
     - script:
-        - make testunit
+        - sudo "PATH=$PATH" make testunit
         - make
       go: tip
     - stage: Integration Test

@@ -10,12 +10,6 @@ import (
 
 const fixturePath = "fixtures/crio.conf"
 
-func must(t *testing.T, err error) {
-	if err != nil {
-		t.Error(err)
-	}
-}
-
 func assertAllFieldsEquality(t *testing.T, c Config) {
 	testCases := []struct {
 		fieldValue, expected interface{}
