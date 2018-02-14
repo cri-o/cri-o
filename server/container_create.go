@@ -695,9 +695,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerID)
-			if err2 != nil {
-				logrus.Warnf("Failed to cleanup container directory: %v", err2)
+			err1 := s.StorageRuntimeServer().DeleteContainer(containerID)
+			if err1 != nil {
+				logrus.Warnf("Failed to cleanup container directory: %v", err1)
 			}
 		}
 	}()
@@ -1174,18 +1174,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	defer func() {
 		if err != nil {
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
-			if err2 != nil {
-				logrus.Warnf("Failed to cleanup container directory: %v", err2)
+			err1 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
+			if err1 != nil {
+				logrus.Warnf("Failed to cleanup container directory: %v", err1)
 			}
 		}
 	}()
 
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
-	}
-	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
+	specgen.AddAnnotation(annotations.MountPoint, containerInfo.MountDir)
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
@@ -1199,7 +1195,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// Add image volumes
-	volumeMounts, err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, mountLabel)
+	volumeMounts, err := addImageVolumes(containerInfo.MountDir, s, &containerInfo, &specgen, mountLabel)
 	if err != nil {
 		return nil, err
 	}
@@ -1230,10 +1226,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		containerCwd = runtimeCwd
 	}
 	specgen.SetProcessCwd(containerCwd)
-	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
-		if err1 := s.StorageRuntimeServer().StopContainer(containerID); err1 != nil {
-			return nil, fmt.Errorf("can't umount container after cwd error %v: %v", err, err1)
-		}
+	if err := setupWorkingDirectory(containerInfo.MountDir, mountLabel, containerCwd); err != nil {
 		return nil, err
 	}
 
@@ -1269,7 +1262,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// Setup user and groups
 	if linux != nil {
-		if err = setupContainerUser(&specgen, mountPoint, linux.GetSecurityContext(), containerImageConfig); err != nil {
+		if err = setupContainerUser(&specgen, containerInfo.MountDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -1281,7 +1274,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// by default, the root path is an empty string. set it now.
-	specgen.SetRootPath(mountPoint)
+	specgen.SetRootPath(containerInfo.MountDir)
 
 	saveOptions := generate.ExportOptions{}
 	if err = specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
@@ -1298,7 +1291,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 	container.SetSpec(specgen.Spec())
-	container.SetMountPoint(mountPoint)
+	container.SetMountPoint(containerInfo.MountDir)
 	container.SetSeccompProfilePath(spp)
 
 	for _, cv := range containerVolumes {

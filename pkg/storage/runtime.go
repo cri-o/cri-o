@@ -48,10 +48,11 @@ type runtimeService struct {
 // along with a copy of the configuration blob from the image that was used to
 // create the container, if the image had a configuration.
 type ContainerInfo struct {
-	ID     string
-	Dir    string
-	RunDir string
-	Config *v1.Image
+	ID       string
+	Dir      string
+	RunDir   string
+	MountDir string
+	Config   *v1.Image
 }
 
 // RuntimeServer wraps up various CRI-related activities into a reusable
@@ -86,14 +87,6 @@ type RuntimeServer interface {
 	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, mountLabel string, copyOptions *copy.Options) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
 	DeleteContainer(idOrName string) error
-
-	// StartContainer makes sure a container's filesystem is mounted, and
-	// returns the location of its root filesystem, which is not guaranteed
-	// by lower-level drivers to never change.
-	StartContainer(idOrName string) (string, error)
-	// StopContainer attempts to unmount a container's root filesystem,
-	// freeing up any kernel resources which may be limited.
-	StopContainer(idOrName string) error
 
 	// GetWorkDir returns the path of a nonvolatile directory on the
 	// filesystem (somewhere under the Store's Root directory) which can be
@@ -312,11 +305,22 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		logrus.Debugf("container %q has run directory %q", container.ID, containerRunDir)
 	}
 
+	containerMountDir, err := r.storageImageServer.GetStore().Mount(container.ID, metadata.MountLabel)
+	if err != nil {
+		return ContainerInfo{}, err
+	}
+	if metadata.Pod {
+		logrus.Debugf("pod sandbox %q has mount directory %q", container.ID, containerMountDir)
+	} else {
+		logrus.Debugf("container %q has mount directory %q", container.ID, containerMountDir)
+	}
+
 	return ContainerInfo{
-		ID:     container.ID,
-		Dir:    containerDir,
-		RunDir: containerRunDir,
-		Config: imageConfig,
+		ID:       container.ID,
+		Dir:      containerDir,
+		RunDir:   containerRunDir,
+		MountDir: containerMountDir,
+		Config:   imageConfig,
 	}, nil
 }
 
@@ -329,32 +333,33 @@ func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, pod
 }
 
 func (r *runtimeService) RemovePodSandbox(idOrName string) error {
-	container, err := r.storageImageServer.GetStore().Container(idOrName)
-	if err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
-			return ErrInvalidSandboxID
-		}
-		return err
-	}
-	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
-	if err != nil {
-		logrus.Debugf("failed to delete pod sandbox %q: %v", container.ID, err)
-		return err
-	}
-	return nil
+	return r.deleteContainer(idOrName, "pod sandbox")
 }
 
 func (r *runtimeService) DeleteContainer(idOrName string) error {
+	return r.deleteContainer(idOrName, "container")
+}
+
+func (r *runtimeService) deleteContainer(idOrName string, class string) error {
 	if idOrName == "" {
 		return ErrInvalidContainerID
 	}
+
 	container, err := r.storageImageServer.GetStore().Container(idOrName)
 	if err != nil {
 		return err
 	}
+
+	err = r.storageImageServer.GetStore().Unmount(container.ID)
+	if err != nil {
+		logrus.Debugf("failed to unmount %s %q: %v", class, container.ID, err)
+		return err
+	}
+	logrus.Debugf("unmounted %s %q", class, container.ID)
+
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
 	if err != nil {
-		logrus.Debugf("failed to delete container %q: %v", container.ID, err)
+		logrus.Debugf("failed to delete %s %q: %v", class, container.ID, err)
 		return err
 	}
 	return nil
@@ -379,44 +384,6 @@ func (r *runtimeService) GetContainerMetadata(idOrName string) (RuntimeContainer
 		return metadata, err
 	}
 	return metadata, nil
-}
-
-func (r *runtimeService) StartContainer(idOrName string) (string, error) {
-	container, err := r.storageImageServer.GetStore().Container(idOrName)
-	if err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
-			return "", ErrInvalidContainerID
-		}
-		return "", err
-	}
-	metadata := RuntimeContainerMetadata{}
-	if err = json.Unmarshal([]byte(container.Metadata), &metadata); err != nil {
-		return "", err
-	}
-	mountPoint, err := r.storageImageServer.GetStore().Mount(container.ID, metadata.MountLabel)
-	if err != nil {
-		logrus.Debugf("failed to mount container %q: %v", container.ID, err)
-		return "", err
-	}
-	logrus.Debugf("mounted container %q at %q", container.ID, mountPoint)
-	return mountPoint, nil
-}
-
-func (r *runtimeService) StopContainer(idOrName string) error {
-	if idOrName == "" {
-		return ErrInvalidContainerID
-	}
-	container, err := r.storageImageServer.GetStore().Container(idOrName)
-	if err != nil {
-		return err
-	}
-	err = r.storageImageServer.GetStore().Unmount(container.ID)
-	if err != nil {
-		logrus.Debugf("failed to unmount container %q: %v", container.ID, err)
-		return err
-	}
-	logrus.Debugf("unmounted container %q", container.ID)
-	return nil
 }
 
 func (r *runtimeService) GetWorkDir(id string) (string, error) {

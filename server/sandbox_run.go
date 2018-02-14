@@ -483,12 +483,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	saveOptions := generate.ExportOptions{}
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
-	}
-	g.AddAnnotation(annotations.MountPoint, mountPoint)
-	g.SetRootPath(mountPoint)
+
+	g.AddAnnotation(annotations.MountPoint, podContainer.MountDir)
+	g.SetRootPath(podContainer.MountDir)
 
 	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
 	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
@@ -512,7 +509,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 	container.SetSpec(g.Spec())
-	container.SetMountPoint(mountPoint)
+	container.SetMountPoint(podContainer.MountDir)
 
 	sb.SetInfraContainer(container)
 
