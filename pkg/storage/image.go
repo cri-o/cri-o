@@ -5,6 +5,7 @@ import (
 	"net"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
@@ -39,11 +40,21 @@ type ImageResult struct {
 	Size         *uint64
 	Digest       digest.Digest
 	ConfigDigest digest.Digest
+	User         string
 }
 
 type indexInfo struct {
 	name   string
 	secure bool
+}
+
+// A set of information that we prefer to cache about images, so that we can
+// avoid having to reread them every time we need to return information about
+// images.
+type imageCacheItem struct {
+	user         string
+	size         *uint64
+	configDigest digest.Digest
 }
 
 type imageService struct {
@@ -52,6 +63,8 @@ type imageService struct {
 	insecureRegistryCIDRs []*net.IPNet
 	indexConfigs          map[string]*indexInfo
 	registries            []string
+	imageCache            map[string]imageCacheItem
+	imageCacheLock        sync.Mutex
 }
 
 // sizer knows its size.
@@ -171,15 +184,38 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			return nil, err
 		}
 		if image, err := istorage.Transport.GetStoreImage(svc.store, ref); err == nil {
-			img, err := ref.NewImageSource(systemContext)
-			if err != nil {
-				return nil, err
-			}
-			size := imageSize(img)
-			configDigest, err := imageConfigDigest(img, nil)
-			img.Close()
-			if err != nil {
-				return nil, err
+			var user string
+			var size *uint64
+			var configDigest digest.Digest
+			if cacheItem, ok := svc.imageCache[image.ID]; ok {
+				user, size, configDigest = cacheItem.user, cacheItem.size, cacheItem.configDigest
+			} else {
+				img, err := ref.NewImageSource(systemContext)
+				if err != nil {
+					return nil, err
+				}
+				size = imageSize(img)
+				configDigest, err = imageConfigDigest(img, nil)
+				img.Close()
+				if err != nil {
+					return nil, err
+				}
+				imageFull, err := ref.NewImage(systemContext)
+				if err != nil {
+					return nil, err
+				}
+				defer imageFull.Close()
+				imageConfig, err := imageFull.OCIConfig()
+				if err != nil {
+					return nil, err
+				}
+				user = imageConfig.Config.User
+				cacheItem := imageCacheItem{
+					user:         user,
+					size:         size,
+					configDigest: configDigest,
+				}
+				svc.imageCache[image.ID] = cacheItem
 			}
 			name, tags, digests := sortNamesByType(image.Names)
 			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
@@ -191,6 +227,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 				Size:         size,
 				Digest:       imageDigest,
 				ConfigDigest: configDigest,
+				User:         user,
 			})
 		}
 	} else {
@@ -198,20 +235,72 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 		if err != nil {
 			return nil, err
 		}
+		visited := make(map[string]struct{})
+		defer func() {
+			// We built a map using IDs of images that we looked
+			// at, so remove any items from the cache that don't
+			// correspond to any of those IDs.
+			removedIDs := make([]string, 0, len(svc.imageCache))
+			for imageID := range svc.imageCache {
+				if _, keep := visited[imageID]; !keep {
+					// We have cached data for an image
+					// with this ID, but it's not in the
+					// list of images now, so the image has
+					// been removed.
+					removedIDs = append(removedIDs, imageID)
+				}
+			}
+			// Handle the removals.
+			svc.imageCacheLock.Lock()
+			for _, removedID := range removedIDs {
+				delete(svc.imageCache, removedID)
+			}
+			svc.imageCacheLock.Unlock()
+		}()
 		for _, image := range images {
-			ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
-			if err != nil {
-				return nil, err
-			}
-			img, err := ref.NewImageSource(systemContext)
-			if err != nil {
-				return nil, err
-			}
-			size := imageSize(img)
-			configDigest, err := imageConfigDigest(img, nil)
-			img.Close()
-			if err != nil {
-				return nil, err
+			visited[image.ID] = struct{}{}
+			var user string
+			var size *uint64
+			var configDigest digest.Digest
+			svc.imageCacheLock.Lock()
+			cacheItem, ok := svc.imageCache[image.ID]
+			svc.imageCacheLock.Unlock()
+			if ok {
+				user, size, configDigest = cacheItem.user, cacheItem.size, cacheItem.configDigest
+			} else {
+				ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
+				if err != nil {
+					return nil, err
+				}
+				img, err := ref.NewImageSource(systemContext)
+				if err != nil {
+					return nil, err
+				}
+				size = imageSize(img)
+				configDigest, err = imageConfigDigest(img, nil)
+				img.Close()
+				if err != nil {
+					return nil, err
+				}
+				imageFull, err := ref.NewImage(systemContext)
+				if err != nil {
+					return nil, err
+				}
+				defer imageFull.Close()
+
+				imageConfig, err := imageFull.OCIConfig()
+				if err != nil {
+					return nil, err
+				}
+				user = imageConfig.Config.User
+				cacheItem := imageCacheItem{
+					user:         user,
+					size:         size,
+					configDigest: configDigest,
+				}
+				svc.imageCacheLock.Lock()
+				svc.imageCache[image.ID] = cacheItem
+				svc.imageCacheLock.Unlock()
 			}
 			name, tags, digests := sortNamesByType(image.Names)
 			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
@@ -223,6 +312,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 				Size:         size,
 				Digest:       imageDigest,
 				ConfigDigest: configDigest,
+				User:         user,
 			})
 		}
 	}
@@ -243,6 +333,16 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		ref = ref2
 	}
 	image, err := istorage.Transport.GetStoreImage(svc.store, ref)
+	if err != nil {
+		return nil, err
+	}
+	imageFull, err := ref.NewImage(systemContext)
+	if err != nil {
+		return nil, err
+	}
+	defer imageFull.Close()
+
+	imageConfig, err := imageFull.OCIConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +368,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		Size:         size,
 		Digest:       imageDigest,
 		ConfigDigest: configDigest,
+		User:         imageConfig.Config.User,
 	}
 
 	return &result, nil
@@ -585,6 +686,7 @@ func GetImageService(store storage.Store, defaultTransport string, insecureRegis
 		indexConfigs:          make(map[string]*indexInfo, 0),
 		insecureRegistryCIDRs: make([]*net.IPNet, 0),
 		registries:            cleanRegistries,
+		imageCache:            make(map[string]imageCacheItem),
 	}
 
 	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")

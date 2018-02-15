@@ -31,20 +31,20 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 	}
 	resp = &pb.ListImagesResponse{}
 	for _, result := range results {
-		if result.Size != nil {
-			resp.Images = append(resp.Images, &pb.Image{
-				Id:          result.ID,
-				RepoTags:    result.RepoTags,
-				RepoDigests: result.RepoDigests,
-				Size_:       *result.Size,
-			})
-		} else {
-			resp.Images = append(resp.Images, &pb.Image{
-				Id:          result.ID,
-				RepoTags:    result.RepoTags,
-				RepoDigests: result.RepoDigests,
-			})
+		resImg := &pb.Image{
+			Id:          result.ID,
+			RepoTags:    result.RepoTags,
+			RepoDigests: result.RepoDigests,
 		}
+		uid, username := getUserFromImage(result.User)
+		if uid != nil {
+			resImg.Uid = &pb.Int64Value{Value: *uid}
+		}
+		resImg.Username = username
+		if result.Size != nil {
+			resImg.Size_ = *result.Size
+		}
+		resp.Images = append(resp.Images, resImg)
 	}
 	logrus.Debugf("ListImagesResponse: %+v", resp)
 	return resp, nil

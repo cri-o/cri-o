@@ -449,7 +449,7 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 		containerUser := ""
 		// Case 1: run as user is set by kubelet
 		if sc.GetRunAsUser() != nil {
-			containerUser = strconv.FormatInt(sc.GetRunAsUser().Value, 10)
+			containerUser = strconv.FormatInt(sc.GetRunAsUser().GetValue(), 10)
 		} else {
 			// Case 2: run as username is set by kubelet
 			userName := sc.GetRunAsUsername()
