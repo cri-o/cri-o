@@ -5,6 +5,7 @@ import (
 	"net"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
@@ -63,6 +64,7 @@ type imageService struct {
 	indexConfigs          map[string]*indexInfo
 	registries            []string
 	imageCache            map[string]imageCacheItem
+	imageCacheLock        sync.Mutex
 }
 
 // sizer knows its size.
@@ -249,16 +251,21 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 				}
 			}
 			// Handle the removals.
+			svc.imageCacheLock.Lock()
 			for _, removedID := range removedIDs {
 				delete(svc.imageCache, removedID)
 			}
+			svc.imageCacheLock.Unlock()
 		}()
 		for _, image := range images {
 			visited[image.ID] = struct{}{}
 			var user string
 			var size *uint64
 			var configDigest digest.Digest
-			if cacheItem, ok := svc.imageCache[image.ID]; ok {
+			svc.imageCacheLock.Lock()
+			cacheItem, ok := svc.imageCache[image.ID]
+			svc.imageCacheLock.Unlock()
+			if ok {
 				user, size, configDigest = cacheItem.user, cacheItem.size, cacheItem.configDigest
 			} else {
 				ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
@@ -291,7 +298,9 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 					size:         size,
 					configDigest: configDigest,
 				}
+				svc.imageCacheLock.Lock()
 				svc.imageCache[image.ID] = cacheItem
+				svc.imageCacheLock.Unlock()
 			}
 			name, tags, digests := sortNamesByType(image.Names)
 			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
