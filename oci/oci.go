@@ -563,12 +563,12 @@ func (r *Runtime) UpdateContainer(c *Container, res *rspec.LinuxResources) error
 
 func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration) error {
 	done := make(chan struct{})
-	// we could potentially re-use "done" channel to exit the loop on timeout
-	// but we use another channel "chControl" so that we won't never incur in the
-	// case the "done" channel is closed in the "default" select case and we also
-	// reach the timeout in the select below. If that happens we could raise
-	// a panic closing a closed channel so better be safe and use another new
-	// channel just to control the loop.
+	// we could potentially re-use "done" channel to exit the loop on timeout,
+	// but we use another channel "chControl" so that we never panic
+	// attempting to close an already-closed "done" channel.  The panic
+	// would occur in the "default" select case below if we'd closed the
+	// "done" channel (instead of the "chControl" channel) in the timeout
+	// select case.
 	chControl := make(chan struct{})
 	go func() {
 		for {
