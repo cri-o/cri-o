@@ -3,10 +3,8 @@
 package server
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
@@ -53,11 +51,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		return resp, nil
 	}
 
-	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
-	if podInfraContainer != nil {
-		containers = append(containers, podInfraContainer)
-	}
 
 	// Clean up sandbox networking and close its network namespace.
 	s.networkStop(sb)
@@ -70,42 +64,32 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			max = len(containers)
 		}
 		for _, ctr := range containers[i:max] {
-			cStatus := ctr.State()
-			if cStatus.Status != oci.ContainerStateStopped {
-				if ctr.ID() == podInfraContainer.ID() {
-					continue
-				}
-				c := ctr
-				waitGroup.Go(func() error {
-					timeout := int64(10)
-					if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
-						return fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-					}
-					if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
-						return fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-					}
-					if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
-						// assume container already umounted
-						logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-					}
-					s.ContainerStateToDisk(c)
-					return nil
-				})
-			}
+			id := ctr.ID()
+			waitGroup.Go(func() error {
+				_, err := s.ContainerServer.ContainerStop(ctx, id, 10)
+				return err
+			})
 		}
 		if err := waitGroup.Wait(); err != nil {
 			return nil, err
 		}
 	}
 
-	podInfraStatus := podInfraContainer.State()
-	if podInfraStatus.Status != oci.ContainerStateStopped {
-		timeout := int64(10)
-		if err := s.Runtime().StopContainer(ctx, podInfraContainer, timeout); err != nil {
-			return nil, fmt.Errorf("failed to stop infra container %s in pod sandbox %s: %v", podInfraContainer.Name(), sb.ID(), err)
-		}
-		if err := s.Runtime().WaitContainerStateStopped(ctx, podInfraContainer); err != nil {
-			return nil, fmt.Errorf("failed to get infra container 'stopped' status %s in pod sandbox %s: %v", podInfraContainer.Name(), sb.ID(), err)
+	podInfraContainer := sb.InfraContainer()
+	if podInfraContainer != nil {
+		podInfraStatus := podInfraContainer.State()
+
+		switch podInfraStatus.Status {
+		case oci.ContainerStateStopped: // no-op
+		case oci.ContainerStatePaused:
+			return nil, errors.Errorf("cannot stop paused infra container %s in pod sandbox %s", podInfraContainer.Name(), sb.ID())
+		default:
+			if err := s.Runtime().StopContainer(ctx, podInfraContainer, 10); err != nil {
+				return nil, errors.Wrapf(err, "failed to stop infra container %s in pod sandbox %s", podInfraContainer.Name(), sb.ID())
+			}
+			if err := s.Runtime().WaitContainerStateStopped(ctx, podInfraContainer); err != nil {
+				return nil, errors.Wrapf(err, "failed to get infra container 'stopped' status %s in pod sandbox %s", podInfraContainer.Name(), sb.ID())
+			}
 		}
 	}
 	if s.config.Config.ManageNetworkNSLifecycle {
@@ -135,11 +119,11 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		}
 	}
 
-	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
-		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
+	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmount infra container %s in pod sandbox %s", podInfraContainer.Name(), sb.ID())
 	}
 
-	logrus.Infof("Stopped pod sandbox: %s", podInfraContainer.Description())
+	logrus.Infof("Stopped pod sandbox %s", sb.ID())
 	sb.SetStopped()
 	resp = &pb.StopPodSandboxResponse{}
 	logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
