@@ -167,7 +167,7 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 			gserver.GracefulStop()
 			hserver.Shutdown(context.Background())
 			sserver.StopStreamServer()
-			sserver.StopExitMonitor()
+			sserver.StopMonitors()
 			if err := sserver.Shutdown(); err != nil {
 				logrus.Warnf("error shutting down main service %v", err)
 			}
@@ -515,10 +515,10 @@ func main() {
 		}()
 
 		streamServerCloseCh := service.StreamingServerCloseChan()
-		serverExitMonitorCh := service.ExitMonitorCloseChan()
+		serverMonitorsCh := service.MonitorsCloseChan()
 		select {
 		case <-streamServerCloseCh:
-		case <-serverExitMonitorCh:
+		case <-serverMonitorsCh:
 		case <-serverCloseCh:
 		}
 
@@ -526,7 +526,7 @@ func main() {
 
 		<-streamServerCloseCh
 		logrus.Debug("closed stream server")
-		<-serverExitMonitorCh
+		<-serverMonitorsCh
 		logrus.Debug("closed exit monitor")
 		<-serverCloseCh
 		logrus.Debug("closed main server")

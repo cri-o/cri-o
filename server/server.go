@@ -66,9 +66,9 @@ type Server struct {
 	appArmorEnabled bool
 	appArmorProfile string
 
-	bindAddress     string
-	stream          streamService
-	exitMonitorChan chan struct{}
+	bindAddress  string
+	stream       streamService
+	monitorsChan chan struct{}
 }
 
 // StopStreamServer stops the stream server
@@ -211,7 +211,7 @@ func New(config *Config) (*Server, error) {
 		seccompEnabled:  seccomp.IsEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
 		appArmorProfile: config.ApparmorProfile,
-		exitMonitorChan: make(chan struct{}),
+		monitorsChan:    make(chan struct{}),
 	}
 
 	if s.seccompEnabled {
@@ -355,14 +355,14 @@ func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
 	return mux, nil
 }
 
-// StopExitMonitor stops the exit monitor
-func (s *Server) StopExitMonitor() {
-	close(s.exitMonitorChan)
+// StopMonitors stops al the monitors
+func (s *Server) StopMonitors() {
+	close(s.monitorsChan)
 }
 
-// ExitMonitorCloseChan returns the close chan for the exit monitor
-func (s *Server) ExitMonitorCloseChan() chan struct{} {
-	return s.exitMonitorChan
+// MonitorsCloseChan returns the close chan for the exit monitor
+func (s *Server) MonitorsCloseChan() chan struct{} {
+	return s.monitorsChan
 }
 
 // StartExitMonitor start a routine that monitors container exits
@@ -410,7 +410,7 @@ func (s *Server) StartExitMonitor() {
 				logrus.Debugf("watch error: %v", err)
 				close(done)
 				return
-			case <-s.exitMonitorChan:
+			case <-s.monitorsChan:
 				logrus.Debug("closing exit monitor...")
 				close(done)
 				return
