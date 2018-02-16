@@ -485,6 +485,9 @@ func main() {
 		go func() {
 			service.StartExitMonitor()
 		}()
+		go func() {
+			service.StartHooksMonitor()
+		}()
 
 		m := cmux.New(lis)
 		grpcL := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
@@ -527,7 +530,7 @@ func main() {
 		<-streamServerCloseCh
 		logrus.Debug("closed stream server")
 		<-serverMonitorsCh
-		logrus.Debug("closed exit monitor")
+		logrus.Debug("closed monitors")
 		<-serverCloseCh
 		logrus.Debug("closed main server")
 

@@ -365,6 +365,46 @@ func (s *Server) MonitorsCloseChan() chan struct{} {
 	return s.monitorsChan
 }
 
+// StartHooksMonitor starts a goroutine to dynamically add hooks at runtime
+func (s *Server) StartHooksMonitor() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logrus.Fatalf("Failed to create new watch: %v", err)
+	}
+	defer watcher.Close()
+
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logrus.Debugf("event: %v", event)
+				if event.Op&fsnotify.Remove == fsnotify.Remove {
+					logrus.Debugf("removing hook %s", event.Name)
+					s.ContainerServer.RemoveHook(filepath.Base(event.Name))
+				}
+				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
+					logrus.Debugf("adding hook %s", event.Name)
+					s.ContainerServer.AddHook(event.Name)
+				}
+			case err := <-watcher.Errors:
+				logrus.Debugf("watch error: %v", err)
+				close(done)
+				return
+			case <-s.monitorsChan:
+				logrus.Debug("closing hooks monitor...")
+				close(done)
+				return
+			}
+		}
+	}()
+	if err := watcher.Add(s.config.HooksDirPath); err != nil {
+		logrus.Errorf("watcher.Add(%q) failed: %s", s.config.HooksDirPath, err)
+		close(done)
+	}
+	<-done
+}
+
 // StartExitMonitor start a routine that monitors container exits
 // and updates the container status
 func (s *Server) StartExitMonitor() {
