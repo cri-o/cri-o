@@ -691,7 +691,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 				return true, nil
 			})
 		if err != nil {
-			logrus.Warnf("failed to find container exit file: %v", err)
+			logrus.Warnf("failed to find container exit file for %v: %v", c.id, err)
 			c.state.ExitCode = -1
 		} else {
 			c.state.Finished = getFinishedTime(fi)
