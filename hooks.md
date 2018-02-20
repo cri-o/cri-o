@@ -2,7 +2,7 @@
 
 For POSIX platforms, the [OCI runtime configuration][runtime-spec] supports [hooks][spec-hooks] for configuring custom actions related to the life cycle of the container.
 The way you enable the hooks above is by editing the OCI runtime configuration before running the OCI runtime (e.g. [`runc`][runc]).
-CRI-O and `Kpod create` create the OCI configuration for you, and this documentation allows developers to configure CRI-O to set their intended hooks.
+CRI-O and `podman create` create the OCI configuration for you, and this documentation allows developers to configure CRI-O to set their intended hooks.
 
 One problem with hooks is that the runtime actually stalls execution of the container before running the hooks and stalls completion of the container, until all hooks complete.  This can cause some performance issues.  Also a lot of hooks just check if certain configuration is set and then exit early, without doing anything.  For example the [oci-systemd-hook](https://github.com/projectatomic/oci-systemd-hook) only executes if the command is `init` or `systemd`, otherwise it just exits.  This means if we automatically enabled all hooks, every container would have to execute `oci-systemd-hook`, even if they don't run systemd inside of the container.   Performance would also suffer if we exectuted each hook at each stage ([pre-start][], [post-start][], and [post-stop][]).
 
@@ -35,8 +35,10 @@ The matching properties (`cmds`, `annotations` and `hasbindmounts`) are orthogon
 
 ## Example
 
-```
-cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
+The following configuration tells CRI-O to inject `oci-systemd-hook` in the [pre-start][] and [post-stop][] stages if [`process.args[0]`][spec-process] ends with `/init` or `/systemd`:
+
+```console
+$ cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
 {
     "cmds": [".*/init$" , ".*/systemd$" ],
     "hook": "/usr/libexec/oci/hooks.d/oci-systemd-hook",
@@ -44,10 +46,9 @@ cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
 }
 ```
 
-In the above example CRI-O will only run the oci-systemd-hook in the prestart and poststop stage, if the command ends with /init or /systemd
+The following example tells CRI-O to inject `oci-umount --debug` in the [pre-start][] phase if the container is configured to bind-mount host directories into the container.
 
-
-```
+```console
 cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
 {
     "hasbindmounts": true,
@@ -56,7 +57,6 @@ cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
     "arguments": [ "--debug" ]
 }
 ```
-In this example the oci-umount will only be run during the prestart phase if the container has volume/bind mounts from the host into the container, it will also execute oci-umount with the --debug argument.
 
 [JSON]: https://tools.ietf.org/html/rfc8259
 [POSIX-ERE]: http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04
