@@ -118,7 +118,7 @@ integration: crioimage
 	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
 testunit:
-	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
+	$(GO) test -tags "$(BUILDTAGS) containers_image_ostree_stub" -cover $(PACKAGES)
 
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
