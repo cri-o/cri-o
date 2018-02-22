@@ -34,7 +34,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
 const (
@@ -600,7 +600,7 @@ func hostNetwork(containerConfig *pb.ContainerConfig) bool {
 		return false
 	}
 
-	return securityContext.GetNamespaceOptions().HostNetwork
+	return securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 }
 
 // ensureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes
@@ -997,7 +997,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetHostPid() {
+	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 		// kubernetes PodSpec specify to use Host PID namespace
 		specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace))
 	} else if s.config.EnableSharedPIDNamespace {

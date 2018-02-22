@@ -7,20 +7,13 @@ import (
 	"github.com/containers/storage"
 	crioStorage "github.com/kubernetes-incubator/cri-o/utils"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
 func getStorageFsInfo(store storage.Store) (*pb.FilesystemUsage, error) {
 	rootPath := store.GraphRoot()
 	storageDriver := store.GraphDriverName()
 	imagesPath := path.Join(rootPath, storageDriver+"-images")
-
-	deviceName, err := crioStorage.GetDeviceNameFromPath(imagesPath)
-
-	uuid, err := crioStorage.GetDeviceUUIDFromPath(deviceName)
-	if err != nil {
-		return nil, err
-	}
 
 	bytesUsed, inodesUsed, err := crioStorage.GetDiskUsageStats(imagesPath)
 	if err != nil {
@@ -29,9 +22,9 @@ func getStorageFsInfo(store storage.Store) (*pb.FilesystemUsage, error) {
 
 	usage := pb.FilesystemUsage{
 		Timestamp:  time.Now().UnixNano(),
-		StorageId:  &pb.StorageIdentifier{uuid},
-		UsedBytes:  &pb.UInt64Value{bytesUsed},
-		InodesUsed: &pb.UInt64Value{inodesUsed},
+		FsId:       &pb.FilesystemIdentifier{Mountpoint: imagesPath},
+		UsedBytes:  &pb.UInt64Value{Value: bytesUsed},
+		InodesUsed: &pb.UInt64Value{Value: inodesUsed},
 	}
 
 	return &usage, nil

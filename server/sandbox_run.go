@@ -24,7 +24,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"k8s.io/api/core/v1"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/leaky"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	"k8s.io/kubernetes/pkg/kubelet/types"
@@ -57,9 +57,9 @@ func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
 		return false
 	}
 
-	if namespaceOptions.HostNetwork ||
-		namespaceOptions.HostPid ||
-		namespaceOptions.HostIpc {
+	if namespaceOptions.GetNetwork() == pb.NamespaceMode_NODE ||
+		namespaceOptions.GetPid() == pb.NamespaceMode_NODE ||
+		namespaceOptions.GetIpc() == pb.NamespaceMode_NODE {
 		return true
 	}
 
@@ -274,13 +274,19 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		logrus.Warn("no security context found in config.")
 	}
 
+	nsOptsJSON, err := json.Marshal(securityContext.GetNamespaceOptions())
+	if err != nil {
+		return nil, err
+	}
+
 	processLabel, mountLabel, err = getSELinuxLabels(securityContext.GetSelinuxOptions(), privileged)
 	if err != nil {
 		return nil, err
 	}
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
-	if securityContext.GetNamespaceOptions().GetHostPid() || securityContext.GetNamespaceOptions().GetHostIpc() {
+	if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE ||
+		securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
 		processLabel, mountLabel = "", ""
 	}
 	g.SetProcessSelinuxLabel(processLabel)
@@ -288,7 +294,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// create shm mount for the pod containers.
 	var shmPath string
-	if securityContext.GetNamespaceOptions().GetHostIpc() {
+	if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
 		shmPath = "/dev/shm"
 	} else {
 		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
@@ -329,7 +335,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	hostNetwork := securityContext.GetNamespaceOptions().GetHostNetwork()
+	hostNetwork := securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 
 	hostname, err := getHostname(id, req.GetConfig().Hostname, hostNetwork)
 	if err != nil {
@@ -353,7 +359,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.TrustedSandbox, fmt.Sprintf("%v", trusted))
 	g.AddAnnotation(annotations.ResolvPath, resolvPath)
 	g.AddAnnotation(annotations.HostName, hostname)
-	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
+	g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
 	g.AddAnnotation(annotations.KubeName, kubeName)
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
@@ -464,14 +470,14 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if securityContext.GetNamespaceOptions().GetHostPid() {
+	if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 		err = g.RemoveLinuxNamespace(string(runtimespec.PIDNamespace))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if securityContext.GetNamespaceOptions().GetHostIpc() {
+	if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
 		err = g.RemoveLinuxNamespace(string(runtimespec.IPCNamespace))
 		if err != nil {
 			return nil, err
@@ -529,7 +535,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	g.AddAnnotation(annotations.IP, ip)
 	sb.AddIP(ip)
-	sb.SetHostNetwork(hostNetwork)
+	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
 
 	spp := req.GetConfig().GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)

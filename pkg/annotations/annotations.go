@@ -25,8 +25,8 @@ const (
 	// IP is the container ipv4 or ipv6 address
 	IP = "io.kubernetes.cri-o.IP"
 
-	// HostNetwork tells whether the sandbox is using hostnetwork
-	HostNetwork = "io.kubernetes.cri-o.HostNetwork"
+	// NamespaceOptions store the options for namespaces
+	NamespaceOptions = "io.kubernetes.cri-o.NamespaceOptions"
 
 	// SeccompProfilePath is the node seccomp profile path
 	SeccompProfilePath = "io.kubernetes.cri-o.SeccompProfilePath"

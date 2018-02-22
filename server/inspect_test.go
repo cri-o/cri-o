@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/kubernetes-incubator/cri-o/lib"
