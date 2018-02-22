@@ -5,6 +5,10 @@ sudo: required
 services:
   - docker
 
+env:
+  global:
+    - CFLAGS='-std=c99 -Os -Wall -Wextra'
+
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev
