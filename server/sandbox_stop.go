@@ -49,13 +49,6 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		return resp, nil
 	}
 
-	// Clean up sandbox networking and close its network namespace.
-	hostNetwork := sb.NetNsPath() == ""
-	s.networkStop(hostNetwork, sb)
-	if err := sb.NetNsRemove(); err != nil {
-		return nil, err
-	}
-
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
 	containers = append(containers, podInfraContainer)
@@ -75,6 +68,13 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			}
 		}
 		s.ContainerStateToDisk(c)
+	}
+
+	// Clean up sandbox networking and close its network namespace.
+	hostNetwork := sb.NetNsPath() == ""
+	s.networkStop(hostNetwork, sb)
+	if err := sb.NetNsRemove(); err != nil {
+		return nil, err
 	}
 
 	if err := label.ReleaseLabel(sb.ProcessLabel()); err != nil {
@@ -97,6 +97,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			}
 		}
 	}
+
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
