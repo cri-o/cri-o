@@ -168,9 +168,6 @@ uninstall:
 	rm -f $(BINDIR)/crio
 	rm -f $(LIBEXECDIR)/crio/conmon
 	rm -f $(LIBEXECDIR)/crio/pause
-	for i in $(filter %.1,$(MANPAGES)); do \
-		rm -f $(MANDIR)/man8/$$(basename $${i}); \
-	done
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
 	done
