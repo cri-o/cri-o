@@ -429,7 +429,6 @@ func addOCIHook(specgen *generate.Generator, hook lib.HookParams) error {
 		h := rspec.Hook{
 			Path: hook.Hook,
 			Args: append([]string{hook.Hook}, hook.Arguments...),
-			Env:  []string{fmt.Sprintf("stage=%s", stage)},
 		}
 		switch stage {
 		case "prestart":
