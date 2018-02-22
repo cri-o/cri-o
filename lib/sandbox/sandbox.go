@@ -485,6 +485,8 @@ func (s *Sandbox) NetNsRemove() error {
 		return err
 	}
 
+	s.netns.closed = true
+
 	if s.netns.restored {
 		// we got namespaces in the form of
 		// /var/run/netns/cni-0d08effa-06eb-a963-f51a-e2b0eceffc5d
@@ -505,6 +507,5 @@ func (s *Sandbox) NetNsRemove() error {
 		}
 	}
 
-	s.netns.closed = true
 	return nil
 }
