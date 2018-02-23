@@ -27,18 +27,18 @@
 
 #include "cmsg.h"
 
-#define pexit(s)                                               \
-	do {                                                   \
-		fprintf(stderr, "[conmon:e]: %s %m\n", s);     \
-		syslog(LOG_ERR, "conmon <error>: %s %m\n", s); \
-		exit(EXIT_FAILURE);                            \
+#define pexit(s)                                                                \
+	do {                                                                    \
+		fprintf(stderr, "[conmon:e]: %s %s\n", s, strerror(errno));     \
+		syslog(LOG_ERR, "conmon <error>: %s %s\n", s, strerror(errno)); \
+		exit(EXIT_FAILURE);                                             \
 	} while (0)
 
-#define pexitf(fmt, ...)                                                         \
-	do {                                                                     \
-		fprintf(stderr, "[conmon:e]: " fmt " %m\n", ##__VA_ARGS__);      \
-		syslog(LOG_ERR, "conmon <error>: " fmt ": %m\n", ##__VA_ARGS__); \
-		exit(EXIT_FAILURE);                                              \
+#define pexitf(fmt, ...)                                                                          \
+	do {                                                                                      \
+		fprintf(stderr, "[conmon:e]: " fmt " %s\n", ##__VA_ARGS__, strerror(errno));      \
+		syslog(LOG_ERR, "conmon <error>: " fmt ": %s\n", ##__VA_ARGS__, strerror(errno)); \
+		exit(EXIT_FAILURE);                                                               \
 	} while (0)
 
 #define nexit(s)                                            \
