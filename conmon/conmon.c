@@ -97,6 +97,7 @@ static inline void strv_cleanup(char ***strv)
 
 #define DEFAULT_SOCKET_PATH "/var/lib/crio"
 
+static bool opt_version = false;
 static bool opt_terminal = false;
 static bool opt_stdin = false;
 static bool opt_leave_stdin_open = false;
@@ -135,6 +136,7 @@ static GOptionEntry opt_entries[] =
   { "timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL },
   { "log-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_size_max, "Maximum size of log file", NULL },
   { "socket-dir-path", 0, 0, G_OPTION_ARG_STRING, &opt_socket_path, "Location of container attach sockets", NULL },
+  { "version", 0, 0, G_OPTION_ARG_NONE, &opt_version, "Print the version and exit", NULL },
   { NULL }
 };
 
@@ -1118,6 +1120,10 @@ int main(int argc, char *argv[])
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 	        g_print("option parsing failed: %s\n", error->message);
 	        exit(1);
+	}
+	if (opt_version) {
+		g_print("conmon version " VERSION "\ncommit: " GIT_COMMIT "\n");
+		exit(0);
 	}
 
 	if (opt_cid == NULL)

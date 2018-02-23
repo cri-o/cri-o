@@ -1,3 +1,5 @@
+include Makefile.inc
+
 GO ?= go
 EPOCH_TEST_COMMIT ?= 1cc5a27
 PROJECT := github.com/kubernetes-incubator/cri-o
@@ -20,8 +22,6 @@ OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 SELINUXOPT ?= $(shell command -v selinuxenabled >/dev/null 2>&1 && selinuxenabled && echo -Z)
 PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/kubernetes-incubator/cri-o/vendor)
 
-COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
-GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO := $(shell date +%s)
 
 # If GOPATH not specified, use one in the local directory
