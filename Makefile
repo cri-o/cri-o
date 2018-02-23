@@ -17,7 +17,7 @@ CRICTL_CONFIG_DIR=${DESTDIR}/etc
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
-SELINUXOPT ?= $(shell command -v selinuxenabled && selinuxenabled && echo -Z)
+SELINUXOPT ?= $(shell command -v selinuxenabled >/dev/null 2>&1 && selinuxenabled && echo -Z)
 PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/kubernetes-incubator/cri-o/vendor)
 
 COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
