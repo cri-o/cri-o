@@ -1172,7 +1172,10 @@ int main(int argc, char *argv[])
 		/* Block for an initial write to the start pipe before
 		   spawning any childred or exiting, to ensure the
 		   parent can put us in the right cgroup. */
-		read(start_pipe_fd, buf, BUF_SIZE);
+		num_read = read(start_pipe_fd, buf, BUF_SIZE);
+		if (num_read < 0) {
+			pexit("start-pipe read failed");
+		}
 		close(start_pipe_fd);
 	}
 
