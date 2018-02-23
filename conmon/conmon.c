@@ -22,6 +22,12 @@
 #include <unistd.h>
 #include <inttypes.h>
 
+#if __STDC_VERSION__ >= 199901L
+/* C99 or later */
+#else
+#error conmon.c requires C99 or later
+#endif
+
 #include <glib.h>
 #include <glib-unix.h>
 
