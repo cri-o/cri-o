@@ -341,21 +341,23 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		 * a timestamp.
 		 */
 		if ((opt_log_size_max > 0) && (bytes_written + bytes_to_be_written) > opt_log_size_max) {
+			_cleanup_free_ char *opt_log_path_tmp = g_strdup_printf("%s.tmp", opt_log_path);
 			ninfo("Creating new log file");
 			bytes_written = 0;
 
 			/* Close the existing fd */
 			close(fd);
 
-			/* Unlink the file */
-			if (unlink(opt_log_path) < 0) {
-				pexit("Failed to unlink log file");
-			}
-
 			/* Open the log path file again */
-			log_fd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
+			log_fd = open(opt_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
 			if (log_fd < 0)
 				pexit("Failed to open log file %s: %s", opt_log_path, strerror(errno));
+
+			/* Replace the previous file */
+			if (rename(opt_log_path_tmp, opt_log_path) < 0) {
+				pexit("Failed to rename log file");
+			}
+
 			fd = log_fd;
 		}
 
