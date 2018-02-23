@@ -27,18 +27,18 @@
 #include "cmsg.h"
 
 #define error(s)								\
-	({									\
+	do {									\
 		fprintf(stderr, "nsenter: %s %s\n", s, strerror(errno));	\
 		errno = ECOMM;							\
 		goto err; /* return value */					\
-	})
+	} while (0)
 
 #define errorf(fmt, ...)									\
-	({											\
+	do {											\
 		fprintf(stderr, "nsenter: " fmt ": %s\n", ##__VA_ARGS__, strerror(errno));	\
 		errno = ECOMM;									\
 		goto err; /* return value */							\
-	})
+	} while (0)
 
 /*
  * Sends a file descriptor along the sockfd provided. Returns the return
