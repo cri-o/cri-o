@@ -401,7 +401,7 @@
             "options": [
                 "rbind",
                 "rprivate",
-                "ro",
+                "rw",
                 "mode=755"
             ],
             "source": "${OPT_CNI}",
