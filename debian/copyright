@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: cri-o
+Source: https://github.com/kubernetes-incubator/cri-o.git
+Comment:
+ All golang deps bundled.
+ FIles under vendor/ could have their own independent licenses.
+
+Files: *
+License: Apache-2.0
