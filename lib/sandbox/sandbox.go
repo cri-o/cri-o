@@ -59,10 +59,14 @@ func (ns *NetNs) symlinkCreate(name string) error {
 
 func (ns *NetNs) symlinkRemove() error {
 	if err := ns.symlink.Close(); err != nil {
-		return err
+		return fmt.Errorf("failed to close net ns symlink: %v", err)
 	}
 
-	return os.RemoveAll(ns.symlink.Name())
+	if err := os.RemoveAll(ns.symlink.Name()); err != nil {
+		return fmt.Errorf("failed to remove net ns symlink: %v", err)
+	}
+
+	return nil
 }
 
 func isSymbolicLink(path string) (bool, error) {
