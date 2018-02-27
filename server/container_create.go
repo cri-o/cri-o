@@ -102,6 +102,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		if mount.Readonly {
 			options = []string{"ro"}
 		}
+
 		options = append(options, "rbind")
 
 		// mount propagation
@@ -939,12 +940,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	netNsPath := sb.NetNsPath()
-	if netNsPath == "" {
-		// The sandbox does not have a permanent namespace,
-		// it's on the host one.
-		netNsPath = fmt.Sprintf("/proc/%d/ns/net", podInfraState.Pid)
-	}
-
 	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
 		return nil, err
 	}

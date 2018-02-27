@@ -71,10 +71,11 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	// Clean up sandbox networking and close its network namespace.
-	hostNetwork := sb.NetNsPath() == ""
-	s.networkStop(hostNetwork, sb)
-	if err := sb.NetNsRemove(); err != nil {
-		return nil, err
+	s.networkStop(sb)
+	if s.config.Config.ManageNetworkNSLifecycle {
+		if err := sb.NetNsRemove(); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := label.ReleaseLabel(sb.ProcessLabel()); err != nil {
