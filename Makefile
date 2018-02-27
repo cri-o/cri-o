@@ -14,6 +14,11 @@ ETCDIR_CRIO ?= ${ETCDIR}/crio
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 
+# For ubuntu packaging
+CURRENT_VERSION = $(shell dpkg-parsechangelog --show-field Version | sed -e 's/-.*//')
+VERSION = $(shell grep 'const Version' version/version.go | sed -e 's/const Version = //' -e 's/"//g' -e 's/-dev//g' )
+DEBPKGNAME_VERSION = $(shell echo "${VERSION}" | sed -e 's~\(.*\.\).*~\1~' -e 's/.$$//')
+
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
@@ -131,6 +136,15 @@ docs/%.8: docs/%.8.md .gopathok
 	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
 docs: $(MANPAGES)
+
+xenial:
+	git archive --format=tar.gz --prefix=build-dir/ HEAD > ../cri-o-$(DEBPKGNAME_VERSION)_$(VERSION).orig.tar.gz
+ifeq ($(VERSION),$(CURRENT_VERSION))
+	debchange -i -D xenial "bump to $(VERSION)"
+else
+	debchange -v "$(VERSION)-1~ubuntu16.04.2~ppa1" -D xenial "bump to $(VERSION)"
+endif
+	debuild -i -us -uc -S
 
 install: .gopathok install.bin install.man
 
