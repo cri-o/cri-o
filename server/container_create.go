@@ -1000,7 +1000,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 		// kubernetes PodSpec specify to use Host PID namespace
 		specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace))
-	} else if s.config.EnableSharedPIDNamespace {
+	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
 		// share Pod PID namespace
 		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", podInfraState.Pid)
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {

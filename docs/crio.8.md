@@ -94,8 +94,6 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
 
-**--enable-shared-pid-namespace**="": Enable using a shared PID namespace for containers in a pod (default: false)
-
 **--root**="": The crio root dir (default: "/var/lib/containers/storage")
 
 **--registry**="": Registry host which will be prepended to unqualified images, can be specified multiple times
