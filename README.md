@@ -158,28 +158,9 @@ apt-get install -y \
 
 ### Get Source Code
 
-As with other Go projects, CRI-O must be cloned into a directory structure like:
-
-```
-GOPATH
-└── src
-    └── github.com
-        └── kubernetes-incubator
-            └── cri-o
-```
-
-First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`).
+Clone the source code using:
 
 ```bash
-export GOPATH=~/go
-mkdir -p $GOPATH
-```
-
-Next, clone the source code using:
-
-```bash
-mkdir -p $GOPATH/src/github.com/kubernetes-incubator
-cd $_ # or cd $GOPATH/src/github.com/kubernetes-incubator
 git clone https://github.com/kubernetes-incubator/cri-o # or your fork
 cd cri-o
 ```
@@ -187,7 +168,6 @@ cd cri-o
 ### Build
 
 ```bash
-make install.tools
 make
 sudo make install
 ```
