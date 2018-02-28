@@ -1,4 +1,5 @@
 /.artifacts/
+/.gopathok
 /_output/
 /conmon/conmon.o
 /docs/*.[158]
