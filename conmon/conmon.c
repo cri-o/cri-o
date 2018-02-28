@@ -1137,9 +1137,6 @@ int main(int argc, char *argv[])
 	if (access(opt_runtime_path, X_OK) < 0)
 		pexit("Runtime path %s is not valid: %s", opt_runtime_path, strerror(errno));
 
-	if (!opt_exec && opt_exit_dir == NULL)
-		nexit("Container exit directory not provided. Use --exit-dir");
-
 	if (opt_bundle_path == NULL && !opt_exec) {
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
 			nexit("Failed to get working directory");
@@ -1466,13 +1463,15 @@ int main(int argc, char *argv[])
 		exit_status = WEXITSTATUS(container_status);
 	}
 
-	if (!opt_exec) {
+	if (opt_exit_dir) {
 		_cleanup_free_ char *status_str = g_strdup_printf("%d", exit_status);
 		_cleanup_free_ char *exit_file_path = g_build_filename(opt_exit_dir, opt_cid, NULL);
 		if (!g_file_set_contents(exit_file_path, status_str, -1, &err))
 			nexit("Failed to write %s to exit file: %s\n",
 			      status_str, err->message);
-	} else {
+	}
+
+	if (opt_exec) {
 		/* Send the command exec exit code back to the parent */
 		write_sync_fd(sync_pipe_fd, exit_status, exit_message);
 	}
