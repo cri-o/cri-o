@@ -25,6 +25,11 @@ PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/kube
 
 BUILD_INFO := $(shell date +%s)
 
+CROSS_BUILD_TARGETS := \
+	bin/crio.cross.windows.amd64 \
+	bin/crio.cross.darwin.amd64 \
+	bin/crio.cross.linux.amd64
+
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
 export GOPATH := $(CURDIR)/_output
@@ -113,11 +118,25 @@ endif
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 	rm -f bin/crio
+	rm -f bin/crio.cross.*
 	$(MAKE) -C conmon clean
 	$(MAKE) -C pause clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
+
+# the approach here, rather than this target depending on the build targets
+# directly, is such that each target should try to build regardless if it
+# fails. And return a non-zero exit if _any_ target fails.
+local-cross:
+	@$(MAKE) --keep-going $(CROSS_BUILD_TARGETS)
+
+bin/crio.cross.%: .gopathok
+	@echo "==> make $@"; \
+	TARGET="$*"; \
+	GOOS="$${TARGET%%.*}" \
+	GOARCH="$${TARGET##*.}" \
+	$(GO) build -i $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
 crioimage:
 	docker build -t ${CRIO_IMAGE} .
@@ -233,6 +252,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	.gitvalidation \
 	bin/conmon \
 	bin/crio \
+	bin/crio.cross.% \
 	bin/pause \
 	binaries \
 	clean \
@@ -243,4 +263,5 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	install \
 	install.tools \
 	lint \
+	local-cross \
 	uninstall
