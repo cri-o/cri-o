@@ -178,7 +178,7 @@ sudo crictl --runtime-endpoint /var/run/crio/crio.sock info
 ```
 Version:  0.1.0
 RuntimeName:  cri-o
-RuntimeVersion:  1.9.0-dev
+RuntimeVersion:  1.10.0-dev
 RuntimeApiVersion:  v1alpha1
 ```
 
