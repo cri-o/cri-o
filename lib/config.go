@@ -168,6 +168,10 @@ type RuntimeConfig struct {
 	// ContainerExitsDir is the directory in which container exit files are
 	// written to by conmon.
 	ContainerExitsDir string `toml:"container_exits_dir"`
+
+	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
+	// and manage its lifecycle
+	ManageNetworkNSLifecycle bool `toml:"manage_network_ns_lifecycle"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.

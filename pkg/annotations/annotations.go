@@ -64,6 +64,9 @@ const (
 	// HostnamePath is the path to /etc/hostname to bind mount annotation
 	HostnamePath = "io.kubernetes.cri-o.HostnamePath"
 
+	// HostNetwork indicates whether the host network namespace is used or not
+	HostNetwork = "io.kubernetes.cri-o.HostNetwork"
+
 	// SandboxID is the sandbox ID annotation
 	SandboxID = "io.kubernetes.cri-o.SandboxID"
 

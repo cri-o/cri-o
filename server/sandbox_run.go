@@ -342,6 +342,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.ShmPath, shmPath)
 	g.AddAnnotation(annotations.PrivilegedRuntime, fmt.Sprintf("%v", privileged))
 	g.AddAnnotation(annotations.TrustedSandbox, fmt.Sprintf("%v", trusted))
+	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
 	g.AddAnnotation(annotations.ResolvPath, resolvPath)
 	g.AddAnnotation(annotations.HostName, hostname)
 	g.AddAnnotation(annotations.KubeName, kubeName)
@@ -378,7 +379,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
-	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings)
+	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings, hostNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -427,25 +428,27 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 	} else {
-		// Create the sandbox network namespace
-		if err = sb.NetNsCreate(); err != nil {
-			return nil, err
-		}
-
-		defer func() {
-			if err == nil {
-				return
+		if s.config.Config.ManageNetworkNSLifecycle {
+			// Create the sandbox network namespace
+			if err = sb.NetNsCreate(); err != nil {
+				return nil, err
 			}
 
-			if netnsErr := sb.NetNsRemove(); netnsErr != nil {
-				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
-			}
-		}()
+			defer func() {
+				if err == nil {
+					return
+				}
 
-		// Pass the created namespace path to the runtime
-		err = g.AddOrReplaceLinuxNamespace(string(runtimespec.NetworkNamespace), sb.NetNsPath())
-		if err != nil {
-			return nil, err
+				if netnsErr := sb.NetNsRemove(); netnsErr != nil {
+					logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
+				}
+			}()
+
+			// Pass the created namespace path to the runtime
+			err = g.AddOrReplaceLinuxNamespace(string(runtimespec.NetworkNamespace), sb.NetNsPath())
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -496,18 +499,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	sb.SetInfraContainer(container)
 
 	var ip string
-	ip, err = s.networkStart(hostNetwork, sb)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
+	if s.config.Config.ManageNetworkNSLifecycle {
+		ip, err = s.networkStart(sb)
 		if err != nil {
-			s.networkStop(hostNetwork, sb)
+			return nil, err
 		}
-	}()
-
-	g.AddAnnotation(annotations.IP, ip)
-	sb.AddIP(ip)
+		defer func() {
+			if err != nil {
+				s.networkStop(sb)
+			}
+		}()
+	}
 
 	spp := req.GetConfig().GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)
@@ -533,6 +535,19 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	s.addInfraContainer(container)
 
 	s.ContainerStateToDisk(container)
+
+	if !s.config.Config.ManageNetworkNSLifecycle {
+		ip, err = s.networkStart(sb)
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if err != nil {
+				s.networkStop(sb)
+			}
+		}()
+	}
+	sb.AddIP(ip)
 
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
