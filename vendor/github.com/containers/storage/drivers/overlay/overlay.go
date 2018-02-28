@@ -142,14 +142,16 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		return nil, err
 	}
 
-	supportsDType, err := supportsOverlay(home, fsMagic, rootUID, rootGID)
-	if err != nil {
-		return nil, errors.Wrap(graphdriver.ErrNotSupported, "kernel does not support overlay fs")
-	}
-
 	// Create the driver home dir
 	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
 		return nil, err
+	}
+
+	supportsDType, err := supportsOverlay(home, fsMagic, rootUID, rootGID)
+	if err != nil {
+		os.Remove(filepath.Join(home, linkDir))
+		os.Remove(home)
+		return nil, errors.Wrap(graphdriver.ErrNotSupported, "kernel does not support overlay fs")
 	}
 
 	if err := mount.MakePrivate(home); err != nil {
@@ -181,7 +183,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		return nil, fmt.Errorf("Storage option overlay.size only supported for backingFS XFS. Found %v", backingFs)
 	}
 
-	logrus.Debugf("backingFs=%s, projectQuotaSupported=%v", backingFs, projectQuotaSupported)
+	logrus.Debugf("backingFs=%s, projectQuotaSupported=%v, useNativeDiff=%v", backingFs, projectQuotaSupported, !useNaiveDiff(home))
 
 	return d, nil
 }
@@ -245,9 +247,7 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 			return false, err
 		}
 		if !supportsDType {
-			logrus.Warn(overlayutils.ErrDTypeNotSupported("overlay", backingFs))
-			// TODO: Will make fatal when CRI-O Has AMI built on RHEL7.4
-			// return nil, overlayutils.ErrDTypeNotSupported("overlay", backingFs)
+			return false, overlayutils.ErrDTypeNotSupported("overlay", backingFs)
 		}
 
 		// Try a test mount in the specific location we're looking at using.
@@ -426,16 +426,16 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) (retErr
 		return err
 	}
 
-	// if no parent directory, done
-	if parent == "" {
-		return nil
-	}
-
 	if err := idtools.MkdirAs(path.Join(dir, "work"), 0700, rootUID, rootGID); err != nil {
 		return err
 	}
 	if err := idtools.MkdirAs(path.Join(dir, "merged"), 0700, rootUID, rootGID); err != nil {
 		return err
+	}
+
+	// if no parent directory, create a dummy lower directory and skip writing a "lowers" file
+	if parent == "" {
+		return idtools.MkdirAs(path.Join(dir, "empty"), 0700, rootUID, rootGID)
 	}
 
 	lower, err := d.getLower(parent)
@@ -558,11 +558,7 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 
 	diffDir := path.Join(dir, "diff")
 	lowers, err := ioutil.ReadFile(path.Join(dir, lowerFile))
-	if err != nil {
-		// If no lower, just return diff directory
-		if os.IsNotExist(err) {
-			return diffDir, nil
-		}
+	if err != nil && !os.IsNotExist(err) {
 		return "", err
 	}
 
@@ -589,6 +585,10 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 		} else {
 			newlowers = newlowers + ":" + lower
 		}
+	}
+	if len(lowers) == 0 {
+		newlowers = path.Join(dir, "empty")
+		lowers = []byte(newlowers)
 	}
 
 	mergedDir := path.Join(dir, "merged")
@@ -660,11 +660,7 @@ func (d *Driver) Put(id string) error {
 	if count := d.ctr.Decrement(mountpoint); count > 0 {
 		return nil
 	}
-	if _, err := ioutil.ReadFile(path.Join(dir, lowerFile)); err != nil {
-		// If no lower, we used the diff directory, so no work to do
-		if os.IsNotExist(err) {
-			return nil
-		}
+	if _, err := ioutil.ReadFile(path.Join(dir, lowerFile)); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil {
@@ -701,9 +697,9 @@ func (d *Driver) isParent(id, parent string) bool {
 }
 
 // ApplyDiff applies the new layer into a root
-func (d *Driver) ApplyDiff(id string, parent string, diff io.Reader) (size int64, err error) {
+func (d *Driver) ApplyDiff(id, parent, mountLabel string, diff io.Reader) (size int64, err error) {
 	if !d.isParent(id, parent) {
-		return d.naiveDiff.ApplyDiff(id, parent, diff)
+		return d.naiveDiff.ApplyDiff(id, parent, mountLabel, diff)
 	}
 
 	applyDir := d.getDiffPath(id)
@@ -730,18 +726,18 @@ func (d *Driver) getDiffPath(id string) string {
 // DiffSize calculates the changes between the specified id
 // and its parent and returns the size in bytes of the changes
 // relative to its base filesystem directory.
-func (d *Driver) DiffSize(id, parent string) (size int64, err error) {
+func (d *Driver) DiffSize(id, parent, mountLabel string) (size int64, err error) {
 	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
-		return d.naiveDiff.DiffSize(id, parent)
+		return d.naiveDiff.DiffSize(id, parent, mountLabel)
 	}
 	return directory.Size(d.getDiffPath(id))
 }
 
 // Diff produces an archive of the changes between the specified
 // layer and its parent layer which may be "".
-func (d *Driver) Diff(id, parent string) (io.ReadCloser, error) {
+func (d *Driver) Diff(id, parent, mountLabel string) (io.ReadCloser, error) {
 	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
-		return d.naiveDiff.Diff(id, parent)
+		return d.naiveDiff.Diff(id, parent, mountLabel)
 	}
 
 	diffPath := d.getDiffPath(id)
@@ -756,9 +752,9 @@ func (d *Driver) Diff(id, parent string) (io.ReadCloser, error) {
 
 // Changes produces a list of changes between the specified layer
 // and its parent layer. If parent is "", then all changes will be ADD changes.
-func (d *Driver) Changes(id, parent string) ([]archive.Change, error) {
+func (d *Driver) Changes(id, parent, mountLabel string) ([]archive.Change, error) {
 	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
-		return d.naiveDiff.Changes(id, parent)
+		return d.naiveDiff.Changes(id, parent, mountLabel)
 	}
 	// Overlay doesn't have snapshots, so we need to get changes from all parent
 	// layers.
