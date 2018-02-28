@@ -438,7 +438,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	args = append(args, "-l", logPath)
 	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
 
-	processFile, err := PrepareProcessExec(c, command, false)
+	processFile, err := PrepareProcessExec(c, command, c.terminal)
 	if err != nil {
 		return nil, ExecSyncError{
 			ExitCode: -1,
