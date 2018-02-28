@@ -168,6 +168,7 @@ cd cri-o
 ### Build
 
 ```bash
+make install.tools
 make
 sudo make install
 ```
@@ -175,6 +176,7 @@ sudo make install
 Otherwise, if you do not want to build `CRI-O` with seccomp support you can add `BUILDTAGS=""` when running make.
 
 ```bash
+make install.tools
 make BUILDTAGS=""
 sudo make install
 ```

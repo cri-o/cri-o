@@ -104,6 +104,9 @@ go version go1.8.5 linux/amd64
 
 ```
 go get github.com/kubernetes-incubator/cri-tools/cmd/crictl
+cd ./src/github.com/kubernetes-incubator/cri-tools/cmd/crictl
+make
+make install
 ```
 
 #### Build crio from source
@@ -142,6 +145,14 @@ If you are installing for the first time, generate and install configuration fil
 
 ```
 sudo make install.config
+```
+
+#### Validate registries option in /etc/crio/crio.conf
+
+Edit `/etc/crio/crio.conf` and verify that the registries option has valid values in it.  For example:
+
+```
+registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'docker.io']
 ```
 
 #### Start the crio system daemon
