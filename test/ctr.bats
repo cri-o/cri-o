@@ -1079,7 +1079,7 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.cpus"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "0-1" ]]
+	[[ "$output" =~ "0" ]]
 	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.mems"
 	echo "$output"
 	[ "$status" -eq 0 ]

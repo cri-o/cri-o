@@ -50,7 +50,7 @@
 			"cpu_quota": 20000,
 			"cpu_shares": 512,
 			"oom_score_adj": 30,
-			"cpuset_cpus": "0-1",
+			"cpuset_cpus": "0",
 			"cpuset_mems": "0"
 		},
 		"security_context": {
