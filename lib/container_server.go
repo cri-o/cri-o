@@ -39,6 +39,7 @@ type ContainerServer struct {
 	podNameIndex         *registrar.Registrar
 	podIDIndex           *truncindex.TruncIndex
 	hooks                map[string]HookParams
+	hooksLock            sync.Mutex
 
 	imageContext *types.SystemContext
 	stateLock    sync.Locker
@@ -53,7 +54,41 @@ func (c *ContainerServer) Runtime() *oci.Runtime {
 
 // Hooks returns the oci hooks for the ContainerServer
 func (c *ContainerServer) Hooks() map[string]HookParams {
-	return c.hooks
+	hooks := map[string]HookParams{}
+	c.hooksLock.Lock()
+	defer c.hooksLock.Unlock()
+	for key, h := range c.hooks {
+		hooks[key] = h
+	}
+	return hooks
+}
+
+// RemoveHook removes an hook by name
+func (c *ContainerServer) RemoveHook(hook string) {
+	c.hooksLock.Lock()
+	defer c.hooksLock.Unlock()
+	if _, ok := c.hooks[hook]; ok {
+		delete(c.hooks, hook)
+	}
+}
+
+// AddHook adds an hook by hook's path
+func (c *ContainerServer) AddHook(hookPath string) {
+	c.hooksLock.Lock()
+	defer c.hooksLock.Unlock()
+	hook, err := readHook(hookPath)
+	if err != nil {
+		logrus.Debugf("error while reading hook %s", hookPath)
+		return
+	}
+	for key, h := range c.hooks {
+		// hook.Hook can only be defined in one hook file, unless it has the
+		// same name in the override path.
+		if hook.Hook == h.Hook && key != filepath.Base(hookPath) {
+			logrus.Debugf("duplicate path,  hook %q from %q already defined in %q", hook.Hook, c.config.HooksDirPath, key)
+		}
+	}
+	c.hooks[filepath.Base(hookPath)] = hook
 }
 
 // Store returns the Store for the ContainerServer
@@ -153,6 +188,7 @@ func New(config *Config) (*ContainerServer, error) {
 			}
 		}
 	}
+	logrus.Debugf("hooks %+v", hooks)
 
 	return &ContainerServer{
 		runtime:              runtime,

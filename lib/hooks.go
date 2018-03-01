@@ -30,9 +30,16 @@ type HookParams struct {
 	Arguments     []string `json:"arguments"`
 }
 
+var (
+	errNotJSON = errors.New("hook file isn't a JSON")
+)
+
 // readHook reads hooks json files, verifies it and returns the json config
 func readHook(hookPath string) (HookParams, error) {
 	var hook HookParams
+	if !strings.HasSuffix(hookPath, ".json") {
+		return hook, errNotJSON
+	}
 	raw, err := ioutil.ReadFile(hookPath)
 	if err != nil {
 		return hook, errors.Wrapf(err, "error Reading hook %q", hookPath)
@@ -83,11 +90,11 @@ func readHooks(hooksPath string, hooks map[string]HookParams) error {
 	}
 
 	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".json") {
-			continue
-		}
 		hook, err := readHook(filepath.Join(hooksPath, file.Name()))
 		if err != nil {
+			if err == errNotJSON {
+				continue
+			}
 			return err
 		}
 		for key, h := range hooks {

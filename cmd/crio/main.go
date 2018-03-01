@@ -166,7 +166,7 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 			gserver.GracefulStop()
 			hserver.Shutdown(context.Background())
 			sserver.StopStreamServer()
-			sserver.StopExitMonitor()
+			sserver.StopMonitors()
 			if err := sserver.Shutdown(); err != nil {
 				logrus.Warnf("error shutting down main service %v", err)
 			}
@@ -484,6 +484,9 @@ func main() {
 		go func() {
 			service.StartExitMonitor()
 		}()
+		go func() {
+			service.StartHooksMonitor()
+		}()
 
 		m := cmux.New(lis)
 		grpcL := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
@@ -514,10 +517,10 @@ func main() {
 		}()
 
 		streamServerCloseCh := service.StreamingServerCloseChan()
-		serverExitMonitorCh := service.ExitMonitorCloseChan()
+		serverMonitorsCh := service.MonitorsCloseChan()
 		select {
 		case <-streamServerCloseCh:
-		case <-serverExitMonitorCh:
+		case <-serverMonitorsCh:
 		case <-serverCloseCh:
 		}
 
@@ -525,8 +528,8 @@ func main() {
 
 		<-streamServerCloseCh
 		logrus.Debug("closed stream server")
-		<-serverExitMonitorCh
-		logrus.Debug("closed exit monitor")
+		<-serverMonitorsCh
+		logrus.Debug("closed monitors")
 		<-serverCloseCh
 		logrus.Debug("closed main server")
 

@@ -66,9 +66,9 @@ type Server struct {
 	appArmorEnabled bool
 	appArmorProfile string
 
-	bindAddress     string
-	stream          streamService
-	exitMonitorChan chan struct{}
+	bindAddress  string
+	stream       streamService
+	monitorsChan chan struct{}
 }
 
 // StopStreamServer stops the stream server
@@ -211,7 +211,7 @@ func New(config *Config) (*Server, error) {
 		seccompEnabled:  seccomp.IsEnabled(),
 		appArmorEnabled: apparmor.IsEnabled(),
 		appArmorProfile: config.ApparmorProfile,
-		exitMonitorChan: make(chan struct{}),
+		monitorsChan:    make(chan struct{}),
 	}
 
 	if s.seccompEnabled {
@@ -355,14 +355,54 @@ func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
 	return mux, nil
 }
 
-// StopExitMonitor stops the exit monitor
-func (s *Server) StopExitMonitor() {
-	close(s.exitMonitorChan)
+// StopMonitors stops al the monitors
+func (s *Server) StopMonitors() {
+	close(s.monitorsChan)
 }
 
-// ExitMonitorCloseChan returns the close chan for the exit monitor
-func (s *Server) ExitMonitorCloseChan() chan struct{} {
-	return s.exitMonitorChan
+// MonitorsCloseChan returns the close chan for the exit monitor
+func (s *Server) MonitorsCloseChan() chan struct{} {
+	return s.monitorsChan
+}
+
+// StartHooksMonitor starts a goroutine to dynamically add hooks at runtime
+func (s *Server) StartHooksMonitor() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logrus.Fatalf("Failed to create new watch: %v", err)
+	}
+	defer watcher.Close()
+
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logrus.Debugf("event: %v", event)
+				if event.Op&fsnotify.Remove == fsnotify.Remove {
+					logrus.Debugf("removing hook %s", event.Name)
+					s.ContainerServer.RemoveHook(filepath.Base(event.Name))
+				}
+				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
+					logrus.Debugf("adding hook %s", event.Name)
+					s.ContainerServer.AddHook(event.Name)
+				}
+			case err := <-watcher.Errors:
+				logrus.Debugf("watch error: %v", err)
+				close(done)
+				return
+			case <-s.monitorsChan:
+				logrus.Debug("closing hooks monitor...")
+				close(done)
+				return
+			}
+		}
+	}()
+	if err := watcher.Add(s.config.HooksDirPath); err != nil {
+		logrus.Errorf("watcher.Add(%q) failed: %s", s.config.HooksDirPath, err)
+		close(done)
+	}
+	<-done
 }
 
 // StartExitMonitor start a routine that monitors container exits
@@ -410,7 +450,7 @@ func (s *Server) StartExitMonitor() {
 				logrus.Debugf("watch error: %v", err)
 				close(done)
 				return
-			case <-s.exitMonitorChan:
+			case <-s.monitorsChan:
 				logrus.Debug("closing exit monitor...")
 				close(done)
 				return
