@@ -1038,14 +1038,24 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// Get imageName and imageRef that are later requested in container status
-	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), images[0])
-	if err != nil {
-		return nil, err
+	var (
+		imgResult    *storage.ImageResult
+		imgResultErr error
+	)
+	for _, img := range images {
+		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.ImageContext(), img)
+		if imgResultErr == nil {
+			break
+		}
 	}
-	imageName := status.Name
-	imageRef := status.ID
-	if len(status.RepoDigests) > 0 {
-		imageRef = status.RepoDigests[0]
+	if imgResultErr != nil {
+		return nil, imgResultErr
+	}
+
+	imageName := imgResult.Name
+	imageRef := imgResult.ID
+	if len(imgResult.RepoDigests) > 0 {
+		imageRef = imgResult.RepoDigests[0]
 	}
 
 	specgen.AddAnnotation(annotations.Image, image)
@@ -1163,7 +1173,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	attempt := metadata.Attempt
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.ImageContext(),
 		sb.Name(), sb.ID(),
-		image, status.ID,
+		image, imgResult.ID,
 		containerName, containerID,
 		metaname,
 		attempt,
