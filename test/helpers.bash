@@ -61,7 +61,7 @@ ENABLE_SHARED_PID_NAMESPACE=${ENABLE_SHARED_PID_NAMESPACE:-false}
 
 TESTDIR=$(mktemp -d)
 
-# kpod pull needs a configuration file for shortname pulls
+# podman pull needs a configuration file for shortname pulls
 export REGISTRIES_CONFIG_PATH="$INTEGRATION_ROOT/registries.conf"
 
 # Setup default hooks dir

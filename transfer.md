@@ -9,7 +9,7 @@ This document outlines useful information for ops and dev transfer as it relates
 The `crio` daemon is intended to provide the [CRI](https://github.com/kubernetes/community/blob/master/contributors/devel/container-runtime-interface.md) socket needed for Kubernetes to use for automating deployment, scaling, and management of containerized applications (See the document for [configuring kubernetes to use CRI-O](./kubernetes.md) for more information on that).
 Therefore the [crictl](https://github.com/kubernetes-incubator/cri-tools) command line is a client that interfaces to the same grpc socket as the kubernetes daemon would, for talking to the `crio` daemon.
 In many ways [crictl](https://github.com/kubernetes-incubator/cri-tools) is only as feature rich as the Kubernetes CRI requires.
-There are additional tools e.g. `kpod` and [`buildah`](https://github.com/projectatomic/buildah) that provide a feature rich set of commands for all operational needs in a Kubernetes environment.
+There are additional tools e.g. [`podman`](https://github.com/projectatomic/libpod) and [`buildah`](https://github.com/projectatomic/buildah) that provide a feature rich set of commands for all operational needs in a Kubernetes environment.
 
 
 ## System Tools
@@ -25,11 +25,11 @@ Following provides equivalent with CRI-O tools for gathering information or jump
 | Existing Step | CRI-O (and friends) |
 | :---: | :---: |
 | `docker exec` | [`crictl exec`](https://github.com/kubernetes-incubator/cri-tools/blob/master/docs/crictl.md) |
-| `docker info` | [`kpod info`](./docs/kpod-info.1.md)  |
-| `docker inspect` | [`kpod inspect`](./docs/kpod-inspect.1.md)       |
-| `docker logs` | [`kpod logs`](./docs/kpod-logs.1.md)                 |
+| `docker info` | [`podman info`](./docs/podman-info.1.md)  |
+| `docker inspect` | [`podman inspect`](./docs/podman-inspect.1.md)       |
+| `docker logs` | [`podman logs`](./docs/podman-logs.1.md)                 |
 | `docker ps` | [`crictl ps`](https://github.com/kubernetes-incubator/cri-tools/blob/master/docs/crictl.md) or [`runc list`](https://github.com/opencontainers/runc/blob/master/man/runc-list.8.md) |
-| `docker stats` | [`kpod stats`](./docs/kpod-stats.1.md) |
+| `docker stats` | [`podman stats`](./docs/podman-stats.1.md) |
 
 If you were already using steps like `kubectl exec` (or `oc exec` on OpenShift), they will continue to function the same way.
 
@@ -39,32 +39,32 @@ There are other equivalents for these tools
 
 | Existing Step | CRI-O (and friends) |
 | :---: | :---: |
-| `docker attach` | [`kpod exec`](./docs/kpod-attach.1.md) ***|
+| `docker attach` | [`podman exec`](./docs/podman-attach.1.md) ***|
 | `docker build`  | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
-| `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md) ****   |
-| `docker create` | [`kpod create`](./docs/kpod-create.1.md)  |
-| `docker diff`   | [`kpod diff`](./docs/kpod-diff.1.md)      |
-| `docker export` | [`kpod export`](./docs/kpod-export.1.md)  |
-| `docker history`| [`kpod history`](./docs/kpod-history.1.md)|
-| `docker images` | [`kpod images`](./docs/kpod-images.1.md)  |
-| `docker kill`   | [`kpod kill`](./docs/kpod-kill.1.md)      |
-| `docker load`   | [`kpod load`](./docs/kpod-load.1.md)      |
-| `docker login`  | [`kpod login`](./docs/kpod-login.1.md)    |
-| `docker logout` | [`kpod logout`](./docs/kpod-logout.1.md)  |
-| `docker pause`  | [`kpod pause`](./docs/kpod-pause.1.md)    |
-| `docker ps`     | [`kpod ps`](./docs/kpod-ps.1.md)          |
-| `docker pull`   | [`kpod pull`](./docs/kpod-pull.1.md)      |
-| `docker push`   | [`kpod push`](./docs/kpod-push.1.md)      |
-| `docker rename` | [`kpod rename`](./docs/kpod-rename.1.md)  |
-| `docker rm`     | [`kpod rm`](./docs/kpod-rm.1.md)          |
-| `docker rmi`    | [`kpod rmi`](./docs/kpod-rmi.1.md)        |
-| `docker run`    | [`kpod run`](./docs/kpod-run.1.md)        |
-| `docker save`   | [`kpod save`](./docs/kpod-save.1.md)      |
-| `docker stop`   | [`kpod stop`](./docs/kpod-stop.1.md)      |
-| `docker tag`    | [`kpod tag`](./docs/kpod-tag.1.md)        |
-| `docker unpause`| [`kpod unpause`](./docs/kpod-unpause.1.md)|
-| `docker version`| [`kpod version`](./docs/kpod-version.1.md)|
-| `docker wait`   | [`kpod wait`](./docs/kpod-wait.1.md)   |
+| `docker cp`     | [`podman mount`](./docs/podman-cp.1.md) ****   |
+| `docker create` | [`podman create`](./docs/podman-create.1.md)  |
+| `docker diff`   | [`podman diff`](./docs/podman-diff.1.md)      |
+| `docker export` | [`podman export`](./docs/podman-export.1.md)  |
+| `docker history`| [`podman history`](./docs/podman-history.1.md)|
+| `docker images` | [`podman images`](./docs/podman-images.1.md)  |
+| `docker kill`   | [`podman kill`](./docs/podman-kill.1.md)      |
+| `docker load`   | [`podman load`](./docs/podman-load.1.md)      |
+| `docker login`  | [`podman login`](./docs/podman-login.1.md)    |
+| `docker logout` | [`podman logout`](./docs/podman-logout.1.md)  |
+| `docker pause`  | [`podman pause`](./docs/podman-pause.1.md)    |
+| `docker ps`     | [`podman ps`](./docs/podman-ps.1.md)          |
+| `docker pull`   | [`podman pull`](./docs/podman-pull.1.md)      |
+| `docker push`   | [`podman push`](./docs/podman-push.1.md)      |
+| `docker rename` | [`podman rename`](./docs/podman-rename.1.md)  |
+| `docker rm`     | [`podman rm`](./docs/podman-rm.1.md)          |
+| `docker rmi`    | [`podman rmi`](./docs/podman-rmi.1.md)        |
+| `docker run`    | [`podman run`](./docs/podman-run.1.md)        |
+| `docker save`   | [`podman save`](./docs/podman-save.1.md)      |
+| `docker stop`   | [`podman stop`](./docs/podman-stop.1.md)      |
+| `docker tag`    | [`podman tag`](./docs/podman-tag.1.md)        |
+| `docker unpause`| [`podman unpause`](./docs/podman-unpause.1.md)|
+| `docker version`| [`podman version`](./docs/podman-version.1.md)|
+| `docker wait`   | [`podman wait`](./docs/podman-wait.1.md)   |
 
-*** Use `kpod exec` to enter a container and `kpod logs` to view the output of pid 1 of a container.
-**** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/kpod-cp.1.md) for more information.
+*** Use `podman exec` to enter a container and `podman logs` to view the output of pid 1 of a container.
+**** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/podman-cp.1.md) for more information.

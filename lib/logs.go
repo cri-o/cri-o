@@ -8,7 +8,7 @@ import (
 	"github.com/hpcloud/tail"
 )
 
-// LogOptions contains all of the options for displaying logs in kpod
+// LogOptions contains all of the options for displaying logs in podman
 type LogOptions struct {
 	Details   bool
 	Follow    bool
