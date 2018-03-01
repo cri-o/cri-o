@@ -268,7 +268,7 @@
             "destination": "/etc",
             "options": [
                 "rbind",
-                "rprivate",
+                "rslave",
                 "rw",
                 "mode=755"
             ],
@@ -313,7 +313,7 @@
             "options": [
                 "rbind",
                 "rw",
-                "rprivate",
+                "rslave",
                 "mode=755"
             ],
             "source": "/mnt",
@@ -352,10 +352,20 @@
             "type": "bind"
         },
         {
+            "destination": "/var",
+            "options": [
+                "rbind",
+                "rslave",
+                "rw"
+            ],
+            "source": "/var",
+            "type": "bind"
+        },
+        {
             "destination": "/var/lib",
             "options": [
                 "rbind",
-                "rprivate",
+                "rslave",
                 "rw"
             ],
             "source": "${STATE_DIRECTORY}",
@@ -392,14 +402,14 @@
             "type": "bind"
         },
         {
-            "destination": "/opt/cni",
+            "destination": "/opt",
             "options": [
                 "rbind",
-                "rprivate",
+                "rslave",
                 "rw",
                 "mode=755"
             ],
-            "source": "${OPT_CNI}",
+            "source": "/opt",
             "type": "bind"
         },
         {
