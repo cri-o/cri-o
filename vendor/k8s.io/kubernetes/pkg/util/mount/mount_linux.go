@@ -266,7 +266,7 @@ func (mounter *Mounter) IsLikelyNotMountPoint(file string) (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	rootStat, err := os.Lstat(file + "/..")
+	rootStat, err := os.Lstat(filepath.Dir(strings.TrimSuffix(file, "/")))
 	if err != nil {
 		return true, err
 	}
@@ -432,7 +432,7 @@ func (mounter *Mounter) GetFileType(pathname string) (FileType, error) {
 	case syscall.S_IFBLK:
 		return FileTypeBlockDev, nil
 	case syscall.S_IFCHR:
-		return FileTypeBlockDev, nil
+		return FileTypeCharDev, nil
 	case syscall.S_IFDIR:
 		return FileTypeDirectory, nil
 	case syscall.S_IFREG:
