@@ -19,7 +19,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -737,7 +736,7 @@ func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
 	c.state.sandboxes.Add(sb.ID(), sb)
 
 	c.stateLock.Lock()
-	c.state.processLevels[selinux.NewContext(sb.ProcessLabel())["level"]]++
+	c.addSandboxPlatform(sb)
 	c.stateLock.Unlock()
 }
 
@@ -760,18 +759,9 @@ func (c *ContainerServer) HasSandbox(id string) bool {
 // RemoveSandbox removes a sandbox from the state store
 func (c *ContainerServer) RemoveSandbox(id string) {
 	sb := c.state.sandboxes.Get(id)
-	processLabel := sb.ProcessLabel()
-	level := selinux.NewContext(processLabel)["level"]
 
 	c.stateLock.Lock()
-	pl, ok := c.state.processLevels[level]
-	if ok {
-		c.state.processLevels[level] = pl - 1
-		if c.state.processLevels[level] == 0 {
-			label.ReleaseLabel(processLabel)
-			delete(c.state.processLevels, level)
-		}
-	}
+	c.removeSandboxPlatform(sb)
 	c.stateLock.Unlock()
 
 	c.state.sandboxes.Delete(id)
