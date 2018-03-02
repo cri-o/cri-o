@@ -389,7 +389,6 @@ func (s *Server) StartHooksMonitor() {
 				}
 			case err := <-watcher.Errors:
 				logrus.Debugf("watch error: %v", err)
-				close(done)
 				return
 			case <-s.monitorsChan:
 				logrus.Debug("closing hooks monitor...")
@@ -448,7 +447,6 @@ func (s *Server) StartExitMonitor() {
 				}
 			case err := <-watcher.Errors:
 				logrus.Debugf("watch error: %v", err)
-				close(done)
 				return
 			case <-s.monitorsChan:
 				logrus.Debug("closing exit monitor...")
