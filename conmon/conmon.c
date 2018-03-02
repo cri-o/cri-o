@@ -97,6 +97,8 @@ static inline void strv_cleanup(char ***strv)
 
 #define DEFAULT_SOCKET_PATH "/var/lib/crio"
 
+static volatile pid_t container_pid = -1;
+static volatile pid_t create_pid = -1;
 static bool opt_version = false;
 static bool opt_terminal = false;
 static bool opt_stdin = false;
@@ -618,7 +620,25 @@ static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 
 static void on_sigchld(G_GNUC_UNUSED int signal)
 {
-	raise (SIGUSR1);
+	raise(SIGUSR1);
+}
+
+static void on_sig_exit(int signal)
+{
+	if (container_pid > 0) {
+		if (kill(container_pid, signal) == 0)
+			return;
+	} else if (create_pid > 0) {
+		if (kill(create_pid, signal) == 0)
+			return;
+		if (errno == ESRCH) {
+			/* The create_pid process might have exited, so try container_pid again.  */
+			if (container_pid > 0 && kill(container_pid, signal) == 0)
+				return;
+		}
+	}
+	/* Just force a check if we get here.  */
+	raise(SIGUSR1);
 }
 
 static void check_child_processes(GHashTable *pid_to_handler)
@@ -912,6 +932,7 @@ static void
 runtime_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user_data)
 {
 	runtime_status = status;
+	create_pid = -1;
 	g_main_loop_quit (main_loop);
 }
 
@@ -920,6 +941,7 @@ container_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer us
 {
 	ninfo("container %d exited with status %d\n", pid, status);
 	container_status = status;
+	container_pid = -1;
 	g_main_loop_quit (main_loop);
 }
 
@@ -1126,8 +1148,7 @@ int main(int argc, char *argv[])
 	_cleanup_free_ char *csname = NULL;
 	GError *err = NULL;
 	_cleanup_free_ char *contents = NULL;
-	int container_pid = -1;
-	pid_t main_pid, create_pid;
+	pid_t main_pid;
 	/* Used for !terminal cases. */
 	int slavefd_stdin = -1;
 	int slavefd_stdout = -1;
@@ -1337,6 +1358,10 @@ int main(int argc, char *argv[])
 	add_argv(runtime_argv, opt_cid, NULL);
 	end_argv(runtime_argv);
 
+	sigset_t mask, oldmask;
+	if ((sigemptyset(&mask) < 0) || (sigaddset(&mask, SIGTERM) < 0) || (sigaddset(&mask, SIGQUIT) < 0)
+		|| (sigaddset(&mask, SIGINT) < 0) || sigprocmask (SIG_BLOCK, &mask, &oldmask) < 0)
+		pexit("Failed to block signals");
 	/*
 	 * We have to fork here because the current runC API dups the stdio of the
 	 * calling process over the container's fds. This is actually *very bad*
@@ -1351,6 +1376,11 @@ int main(int argc, char *argv[])
 		pexit("Failed to fork the create command");
 	} else if (!create_pid) {
 		/* FIXME: This results in us not outputting runc error messages to crio's log. */
+		if (prctl(PR_SET_PDEATHSIG, SIGKILL) < 0)
+			pexit("Failed to set PDEATHSIG");
+		if (sigprocmask (SIG_SETMASK, &oldmask, NULL) < 0)
+			pexit("Failed to unblock signals");
+
 		if (slavefd_stdin < 0)
 			slavefd_stdin = dev_null_r;
 		if (dup2(slavefd_stdin, STDIN_FILENO) < 0)
@@ -1370,6 +1400,12 @@ int main(int argc, char *argv[])
 		exit(127);
 	}
 
+	if ((signal(SIGTERM, on_sig_exit) == SIG_ERR) || (signal(SIGQUIT, on_sig_exit) == SIG_ERR) || (signal(SIGINT, on_sig_exit) == SIG_ERR))
+		pexit("Failed to register the signal handler");
+
+	if (sigprocmask (SIG_SETMASK, &oldmask, NULL) < 0)
+		pexit("Failed to unblock signals");
+
 	if (opt_exit_command)
 		atexit(do_exit_command);
 
@@ -1382,13 +1418,13 @@ int main(int argc, char *argv[])
 
 	/* Map pid to its handler.  */
 	GHashTable *pid_to_handler = g_hash_table_new (g_int_hash, g_int_equal);
-	g_hash_table_insert (pid_to_handler, &create_pid, runtime_exit_cb);
+	g_hash_table_insert (pid_to_handler, (pid_t *) &create_pid, runtime_exit_cb);
 
 	/*
 	 * Glib does not support SIGCHLD so use SIGUSR1 with the same semantic.  We will
          * catch SIGCHLD and raise(SIGUSR1) in the signal handler.
 	 */
-	g_unix_signal_add (SIGUSR1, on_sigusr1_cb, pid_to_handler);
+	g_unix_signal_add(SIGUSR1, on_sigusr1_cb, pid_to_handler);
 
 	if (signal(SIGCHLD, on_sigchld) == SIG_ERR)
 		pexit("Failed to set handler for SIGCHLD");
@@ -1444,7 +1480,7 @@ int main(int argc, char *argv[])
 	container_pid = atoi(contents);
 	ninfo("container PID: %d", container_pid);
 
-	g_hash_table_insert (pid_to_handler, &container_pid, container_exit_cb);
+	g_hash_table_insert (pid_to_handler, (pid_t *) &container_pid, container_exit_cb);
 
 	/* Setup endpoint for attach */
 	_cleanup_free_ char *attach_symlink_dir_path = NULL;
