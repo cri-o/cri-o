@@ -131,9 +131,6 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
-	if ctx.GlobalIsSet("enable-shared-pid-namespace") {
-		config.EnableSharedPIDNamespace = ctx.GlobalBool("enable-shared-pid-namespace")
-	}
 	if ctx.GlobalIsSet("log-size-max") {
 		config.LogSizeMax = ctx.GlobalInt64("log-size-max")
 	}
@@ -298,10 +295,6 @@ func main() {
 			Name:  "pids-limit",
 			Value: lib.DefaultPidsLimit,
 			Usage: "maximum number of processes allowed in a container",
-		},
-		cli.BoolFlag{
-			Name:  "enable-shared-pid-namespace",
-			Usage: "enable using a shared PID namespace for containers in a pod",
 		},
 		cli.Int64Flag{
 			Name:  "log-size-max",

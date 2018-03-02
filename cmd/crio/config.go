@@ -114,9 +114,6 @@ default_mounts = [
 # pids_limit is the number of processes allowed in a container
 pids_limit = {{ .PidsLimit }}
 
-# enable using a shared PID namespace for containers in a pod
-enable_shared_pid_namespace = {{ .EnableSharedPIDNamespace }}
-
 # log_size_max is the max limit for the container log size in bytes.
 # Negative values indicate that no limit is imposed.
 log_size_max = {{ .LogSizeMax }}

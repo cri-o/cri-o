@@ -1,5 +1,3 @@
-// +build !linux
-
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -16,15 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+// +k8s:deepcopy-gen=package
 
-// FindMultipathDeviceForDevice unsupported returns ""
-func (handler *deviceHandler) FindMultipathDeviceForDevice(device string) string {
-	return ""
-}
-
-// FindSlaveDevicesOnMultipath unsupported returns ""
-func (handler *deviceHandler) FindSlaveDevicesOnMultipath(disk string) []string {
-	out := []string{}
-	return out
-}
+// Package api contains scheduler API objects.
+package api // import "k8s.io/kubernetes/pkg/scheduler/api"

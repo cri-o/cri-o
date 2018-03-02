@@ -1066,7 +1066,7 @@ func (m *PodSandboxStatus) GetAnnotations() map[string]string {
 type PodSandboxStatusResponse struct {
 	// Status of the PodSandbox.
 	Status *PodSandboxStatus `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
-	// Info is extra information of the PodSandbox. The key could be abitrary string, and
+	// Info is extra information of the PodSandbox. The key could be arbitrary string, and
 	// value should be in json format. The information could include anything useful for
 	// debug, e.g. network namespace for linux container based container runtime.
 	// It should only be returned non-empty when Verbose is true.
@@ -2401,7 +2401,7 @@ func (m *ContainerStatus) GetLogPath() string {
 type ContainerStatusResponse struct {
 	// Status of the container.
 	Status *ContainerStatus `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
-	// Info is extra information of the Container. The key could be abitrary string, and
+	// Info is extra information of the Container. The key could be arbitrary string, and
 	// value should be in json format. The information could include anything useful for
 	// debug, e.g. pid for linux container based container runtime.
 	// It should only be returned non-empty when Verbose is true.
@@ -2870,7 +2870,7 @@ func (m *ImageStatusRequest) GetVerbose() bool {
 type ImageStatusResponse struct {
 	// Status of the image.
 	Image *Image `protobuf:"bytes,1,opt,name=image" json:"image,omitempty"`
-	// Info is extra information of the Image. The key could be abitrary string, and
+	// Info is extra information of the Image. The key could be arbitrary string, and
 	// value should be in json format. The information could include anything useful
 	// for debug, e.g. image config for oci image based container runtime.
 	// It should only be returned non-empty when Verbose is true.
@@ -3173,7 +3173,7 @@ func (m *StatusRequest) GetVerbose() bool {
 type StatusResponse struct {
 	// Status of the Runtime.
 	Status *RuntimeStatus `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
-	// Info is extra information of the Runtime. The key could be abitrary string, and
+	// Info is extra information of the Runtime. The key could be arbitrary string, and
 	// value should be in json format. The information could include anything useful for
 	// debug, e.g. plugins used by the container runtime.
 	// It should only be returned non-empty when Verbose is true.
@@ -3739,7 +3739,9 @@ type RuntimeServiceClient interface {
 	UpdateContainerResources(ctx context.Context, in *UpdateContainerResourcesRequest, opts ...grpc.CallOption) (*UpdateContainerResourcesResponse, error)
 	// ReopenContainerLog asks runtime to reopen the stdout/stderr log file
 	// for the container. This is often called after the log file has been
-	// rotated.
+	// rotated. If the container is not running, container runtime can choose
+	// to either create a new log file and return nil, or return an error.
+	// Once it returns error, new container log file MUST NOT be created.
 	ReopenContainerLog(ctx context.Context, in *ReopenContainerLogRequest, opts ...grpc.CallOption) (*ReopenContainerLogResponse, error)
 	// ExecSync runs a command in a container synchronously.
 	ExecSync(ctx context.Context, in *ExecSyncRequest, opts ...grpc.CallOption) (*ExecSyncResponse, error)
@@ -4017,7 +4019,9 @@ type RuntimeServiceServer interface {
 	UpdateContainerResources(context.Context, *UpdateContainerResourcesRequest) (*UpdateContainerResourcesResponse, error)
 	// ReopenContainerLog asks runtime to reopen the stdout/stderr log file
 	// for the container. This is often called after the log file has been
-	// rotated.
+	// rotated. If the container is not running, container runtime can choose
+	// to either create a new log file and return nil, or return an error.
+	// Once it returns error, new container log file MUST NOT be created.
 	ReopenContainerLog(context.Context, *ReopenContainerLogRequest) (*ReopenContainerLogResponse, error)
 	// ExecSync runs a command in a container synchronously.
 	ExecSync(context.Context, *ExecSyncRequest) (*ExecSyncResponse, error)
