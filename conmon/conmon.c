@@ -116,6 +116,8 @@ static int opt_timeout = 0;
 static int64_t opt_log_size_max = -1;
 static char *opt_socket_path = DEFAULT_SOCKET_PATH;
 static bool opt_no_new_keyring = false;
+static char *opt_exit_command = NULL;
+static gchar **opt_exit_args = NULL;
 static GOptionEntry opt_entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL },
@@ -132,6 +134,8 @@ static GOptionEntry opt_entries[] =
   { "exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL },
   { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL },
   { "exit-dir", 0, 0, G_OPTION_ARG_STRING, &opt_exit_dir, "Path to the directory where exit files are written", NULL },
+  { "exit-command", 0, 0, G_OPTION_ARG_STRING, &opt_exit_command, "Path to the program to execute when the container terminates its execution", NULL },
+  { "exit-command-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_exit_args, "Additional arg to pass to the exit command.  Can be specified multiple times", NULL },
   { "log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL },
   { "timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL },
   { "log-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_size_max, "Maximum size of log file", NULL },
@@ -1089,6 +1093,31 @@ static void setup_oom_handling(int container_pid)
 	g_unix_fd_add (oom_event_fd, G_IO_IN, oom_cb, NULL);
 }
 
+static void do_exit_command()
+{
+	gchar **args;
+	size_t n_args = 0;
+
+	/* Count the additional args, if any.  */
+	if (opt_exit_args)
+		for (; opt_exit_args[n_args]; n_args++);
+
+	args = malloc(sizeof (gchar *) * (n_args + 2));
+	if (args == NULL)
+		_exit(EXIT_FAILURE);
+
+	args[0] = opt_exit_command;
+	if (opt_exit_args)
+		for (n_args = 0; opt_exit_args[n_args]; n_args++)
+			args[n_args + 1] = opt_exit_args[n_args];
+	args[n_args + 1] = NULL;
+
+	execve(opt_exit_command, args, NULL);
+
+        /* Should not happen, but better be safe. */
+	_exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
@@ -1340,6 +1369,9 @@ int main(int argc, char *argv[])
 		execv(g_ptr_array_index(runtime_argv,0), (char **)runtime_argv->pdata);
 		exit(127);
 	}
+
+	if (opt_exit_command)
+		atexit(do_exit_command);
 
 	g_ptr_array_free (runtime_argv, TRUE);
 
