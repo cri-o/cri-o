@@ -26,6 +26,12 @@
 
 #include "cmsg.h"
 
+#if __STDC_VERSION__ >= 199901L
+	/* C99 or later */
+#else
+#error cmsg.c requires C99 or later
+#endif
+
 #define error(fmt, ...)							\
 	({								\
 		fprintf(stderr, "nsenter: " fmt ": %m\n", ##__VA_ARGS__); \
