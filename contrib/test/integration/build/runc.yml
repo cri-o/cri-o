@@ -4,7 +4,7 @@
   git:
     repo: "https://github.com/opencontainers/runc.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
-    version: "9f9c96235cc97674e935002fc3d78361b696a69e"
+    version: "ce80fa0a64803d52883955cb77b2708b438a0b28"
 
 - name: build runc
   make:
