@@ -26,6 +26,7 @@
 #include <glib-unix.h>
 
 #include "cmsg.h"
+#include "config.h"
 
 #define pexit(fmt, ...)                                                          \
 	do {                                                                     \
@@ -91,7 +92,6 @@ static inline void strv_cleanup(char ***strv)
 #define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
 #define _cleanup_strv_ _cleanup_(strv_cleanup)
 
-#define BUF_SIZE 8192
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
 
@@ -272,15 +272,6 @@ int set_k8s_timestamp(char *buf, ssize_t buflen, const char *pipename)
 		err = 0;
 	return err;
 }
-
-/* stdpipe_t represents one of the std pipes (or NONE).
- * Sync with const in container_attach.go */
-typedef enum {
-	NO_PIPE,
-	STDIN_PIPE, /* unused */
-	STDOUT_PIPE,
-	STDERR_PIPE,
-} stdpipe_t;
 
 const char *stdpipe_name(stdpipe_t pipe)
 {
@@ -583,11 +574,10 @@ static gboolean tty_hup_timeout_cb (G_GNUC_UNUSED gpointer user_data)
 
 static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 {
-	#define STDIO_BUF_SIZE 8192 /* Sync with redirectResponseToOutputStreams() */
 	/* We use one extra byte at the start, which we don't read into, instead
 	   we use that for marking the pipe when we write to the attached socket */
 	char real_buf[STDIO_BUF_SIZE + 1];
-        char *buf = real_buf + 1;
+	char *buf = real_buf + 1;
 	ssize_t num_read = 0;
 
 	if (eof)
