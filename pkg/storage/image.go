@@ -616,6 +616,8 @@ func splitDockerDomain(name string) (domain, remainder string) {
 	return
 }
 
+// ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
+// Will only return an empty slice if err != nil.
 func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 	// _Maybe_ it's a truncated image ID.  Don't prepend a registry name, then.
 	if len(imageName) >= minimumTruncatedIDLength && svc.store != nil {
