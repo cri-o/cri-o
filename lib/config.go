@@ -6,7 +6,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/opencontainers/selinux/go-selinux"
 )
 
 // Default paths if none are specified
@@ -284,7 +283,7 @@ func DefaultConfig() *Config {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			SELinux:           selinux.GetEnabled(),
+			SELinux:           selinuxEnabled(),
 			SeccompProfile:    seccompProfilePath,
 			ApparmorProfile:   apparmorProfileName,
 			CgroupManager:     cgroupManager,
