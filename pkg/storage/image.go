@@ -320,17 +320,9 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 }
 
 func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrID string) (*ImageResult, error) {
-	ref, err := alltransports.ParseImageName(nameOrID)
+	ref, err := svc.getRef(nameOrID)
 	if err != nil {
-		ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+nameOrID)
-		if err2 != nil {
-			ref3, err3 := istorage.Transport.ParseStoreReference(svc.store, nameOrID)
-			if err3 != nil {
-				return nil, err
-			}
-			ref2 = ref3
-		}
-		ref = ref2
+		return nil, err
 	}
 	image, err := istorage.Transport.GetStoreImage(svc.store, ref)
 	if err != nil {
@@ -500,19 +492,10 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 }
 
 func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID string) error {
-	ref, err := alltransports.ParseImageName(nameOrID)
+	ref, err := svc.getRef(nameOrID)
 	if err != nil {
-		ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+nameOrID)
-		if err2 != nil {
-			ref3, err3 := istorage.Transport.ParseStoreReference(svc.store, nameOrID)
-			if err3 != nil {
-				return err
-			}
-			ref2 = ref3
-		}
-		ref = ref2
+		return err
 	}
-
 	img, err := istorage.Transport.GetStoreImage(svc.store, ref)
 	if err != nil {
 		return err
@@ -551,17 +534,9 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 }
 
 func (svc *imageService) RemoveImage(systemContext *types.SystemContext, nameOrID string) error {
-	ref, err := alltransports.ParseImageName(nameOrID)
+	ref, err := svc.getRef(nameOrID)
 	if err != nil {
-		ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+nameOrID)
-		if err2 != nil {
-			ref3, err3 := istorage.Transport.ParseStoreReference(svc.store, nameOrID)
-			if err3 != nil {
-				return err
-			}
-			ref2 = ref3
-		}
-		ref = ref2
+		return err
 	}
 	return ref.DeleteImage(systemContext)
 }
