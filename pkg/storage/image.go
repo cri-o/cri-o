@@ -57,13 +57,15 @@ type imageCacheItem struct {
 	configDigest digest.Digest
 }
 
+type imageCache map[string]imageCacheItem
+
 type imageService struct {
 	store                 storage.Store
 	defaultTransport      string
 	insecureRegistryCIDRs []*net.IPNet
 	indexConfigs          map[string]*indexInfo
 	registries            []string
-	imageCache            map[string]imageCacheItem
+	imageCache            imageCache
 	imageCacheLock        sync.Mutex
 }
 
@@ -203,7 +205,7 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	}, nil
 }
 
-func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image, results []ImageResult) ([]ImageResult, error) {
+func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image, results []ImageResult, newImageCache imageCache) ([]ImageResult, error) {
 	var err error
 	svc.imageCacheLock.Lock()
 	cacheItem, ok := svc.imageCache[image.ID]
@@ -213,9 +215,15 @@ func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, 
 		if err != nil {
 			return results, err
 		}
-		svc.imageCacheLock.Lock()
-		svc.imageCache[image.ID] = cacheItem
-		svc.imageCacheLock.Unlock()
+		if newImageCache == nil {
+			svc.imageCacheLock.Lock()
+			svc.imageCache[image.ID] = cacheItem
+			svc.imageCacheLock.Unlock()
+		} else {
+			newImageCache[image.ID] = cacheItem
+		}
+	} else if newImageCache != nil {
+		newImageCache[image.ID] = cacheItem
 	}
 
 	name, tags, digests := sortNamesByType(image.Names)
@@ -233,15 +241,15 @@ func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, 
 }
 
 func (svc *imageService) ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error) {
-	results := []ImageResult{}
+	var results []ImageResult
 	if filter != "" {
-		// WHY: we never remove entries from cache unless unfiltered ListImages call is made. Is it safe?
+		// we never remove entries from cache unless unfiltered ListImages call is made. Is it safe?
 		ref, err := svc.getRef(filter)
 		if err != nil {
 			return nil, err
 		}
 		if image, err := istorage.Transport.GetStoreImage(svc.store, ref); err == nil {
-			results, err = svc.appendCachedResult(systemContext, ref, image, results)
+			results, err = svc.appendCachedResult(systemContext, ref, image, []ImageResult{}, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -253,39 +261,23 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 		if err != nil {
 			return nil, err
 		}
-		visited := make(map[string]struct{})
-		defer func() {
-			// We built a map using IDs of images that we looked
-			// at, so remove any items from the cache that don't
-			// correspond to any of those IDs.
-			removedIDs := make([]string, 0, len(svc.imageCache))
-			for imageID := range svc.imageCache {
-				if _, keep := visited[imageID]; !keep {
-					// We have cached data for an image
-					// with this ID, but it's not in the
-					// list of images now, so the image has
-					// been removed.
-					removedIDs = append(removedIDs, imageID)
-				}
-			}
-			// Handle the removals.
-			svc.imageCacheLock.Lock()
-			for _, removedID := range removedIDs {
-				delete(svc.imageCache, removedID)
-			}
-			svc.imageCacheLock.Unlock()
-		}()
+		newImageCache := make(imageCache, len(images))
+		results = make([]ImageResult, len(images))
 		for _, image := range images {
-			visited[image.ID] = struct{}{}
 			ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
 			if err != nil {
 				return nil, err
 			}
-			results, err = svc.appendCachedResult(systemContext, ref, &image, results)
+			results, err = svc.appendCachedResult(systemContext, ref, &image, results, newImageCache)
 			if err != nil {
 				return nil, err
 			}
 		}
+		// replace image cache with cache we just built
+		// this invalidates all stale entries in cache
+		svc.imageCacheLock.Lock()
+		svc.imageCache = newImageCache
+		svc.imageCacheLock.Unlock()
 	}
 	return results, nil
 }
