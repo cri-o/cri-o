@@ -254,7 +254,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 				return nil, err
 			}
 		} else {
-			return nil, err
+			//return nil, err
 		}
 	} else {
 		images, err := svc.store.Images()
