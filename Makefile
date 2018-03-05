@@ -57,7 +57,7 @@ help:
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
-	ln -s "$(CURDIR)" "$(GOPKGBASEDIR)"
+	ln -s "$(CURDIR)" "$(GOPKGDIR)"
 endif
 	touch "$(GOPATH)/.gopathok"
 
