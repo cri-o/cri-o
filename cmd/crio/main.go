@@ -143,6 +143,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("image-volumes") {
 		config.ImageVolumes = lib.ImageVolumesType(ctx.GlobalString("image-volumes"))
 	}
+	if ctx.GlobalIsSet("read-only") {
+		config.ReadOnly = ctx.GlobalBool("read-only")
+	}
 	return nil
 }
 
@@ -342,6 +345,10 @@ func main() {
 			Name:  "metrics-port",
 			Value: 9090,
 			Usage: "port for the metrics endpoint",
+		},
+		cli.BoolFlag{
+			Name:  "read-only",
+			Usage: "setup all unprivileged containers to run as read-only",
 		},
 	}
 

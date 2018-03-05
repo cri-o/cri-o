@@ -23,6 +23,7 @@ crio
 [--log-level value]
 [--pause-command=[value]]
 [--pause-image=[value]]
+[--read-only]
 [--registry=[value]]
 [--root=[value]]
 [--runroot=[value]]
@@ -93,6 +94,8 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--pause-image**="": Image which contains the pause executable (default: "kubernetes/pause")
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
+
+**--read-only**=**true**|**false**: Run all containers in read-only mode (default: false). Automatically mount tmpfs on `/run`, `/tmp` and `/var/tmp`.
 
 **--root**="": The crio root dir (default: "/var/lib/containers/storage")
 
