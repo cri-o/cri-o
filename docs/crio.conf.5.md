@@ -108,6 +108,10 @@ Example:
 **default_mounts**=[]
   List of mount points, in the form host:container, to be mounted in every container
 
+**read_only**==*true*|*false*
+  Run every container in read-only mode. Automatically mount tmpfs on /run, /tmp and /var/tmp.  Setup
+  images to run in read-only.
+
 ## CRIO.IMAGE TABLE
 
 **default_transport**
