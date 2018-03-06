@@ -27,6 +27,8 @@
 
 #include "cmsg.h"
 
+struct winsize term_ws;
+
 #define pexit(fmt, ...)                                                          \
 	do {                                                                     \
 		fprintf(stderr, "[conmon:e]: " fmt " %m\n", ##__VA_ARGS__);      \
@@ -863,7 +865,7 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 	return G_SOURCE_CONTINUE;
 }
 
-static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
+static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition, gpointer user_data)
 {
 	const char *csname = user_data;
 	struct file_t console;
@@ -901,6 +903,11 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	 * stdout. stderr is ignored. */
 	masterfd_stdin = console.fd;
 	masterfd_stdout = console.fd;
+
+	ninfo("Existing Terminal size: %d %d", term_ws.ws_row, term_ws.ws_col);
+	if (ioctl(masterfd_stdout, TIOCSWINSZ, &term_ws) == -1) {
+		nwarn("Failed to set process pty terminal size");
+	}
 
 	/* Clean up everything */
 	close(connfd);
@@ -1395,6 +1402,9 @@ int main(int argc, char *argv[])
 
 	ninfo("about to waitpid: %d", create_pid);
 	if (csname != NULL) {
+		if (ioctl(1, TIOCGWINSZ, &term_ws) == -1)
+			pexit("Failed to get terminal size of stdout");
+
 		guint terminal_watch = g_unix_fd_add (console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
 		/* Process any SIGCHLD we may have missed before the signal handler was in place.  */
 		check_child_processes (pid_to_handler);
