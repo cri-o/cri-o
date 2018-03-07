@@ -902,6 +902,9 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 			case 1:
 				resize_winsz(height, width);
 				break;
+			case 2:
+				reopen_log_file();
+				break;
 			default:
 				ninfof("Unknown message type: %d", ctl_msg_type);
 				break;
