@@ -851,6 +851,21 @@ static gboolean attach_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_U
 	return G_SOURCE_CONTINUE;
 }
 
+/*
+ * resize_winsz resizes the pty window size.
+ */
+static void resize_winsz(int height, int width) {
+	struct winsize ws;
+	int ret;
+
+	ws.ws_row = height;
+	ws.ws_col = width;
+	ret = ioctl(masterfd_stdout, TIOCSWINSZ, &ws);
+	if (ret == -1) {
+		nwarn("Failed to set process pty terminal size");
+	}
+}
+
 static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
 {
 	#define CTLBUFSZ 200
@@ -861,7 +876,6 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 	int ctl_msg_type = -1;
 	int height = -1;
 	int width = -1;
-	struct winsize ws;
 	int ret;
 
 	num_read = read(fd, readptr, readsz);
@@ -883,13 +897,14 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 			return G_SOURCE_CONTINUE;
 		}
 		ninfof("Message type: %d, Height: %d, Width: %d", ctl_msg_type, height, width);
-		ret = ioctl(masterfd_stdout, TIOCGWINSZ, &ws);
-		ninfof("Existing size: %d %d", ws.ws_row, ws.ws_col);
-		ws.ws_row = height;
-		ws.ws_col = width;
-		ret = ioctl(masterfd_stdout, TIOCSWINSZ, &ws);
-		if (ret == -1) {
-			nwarn("Failed to set process pty terminal size");
+		switch (ctl_msg_type) {
+			// This matches what we write from container_attach.go
+			case 1:
+				resize_winsz(height, width);
+				break;
+			default:
+				ninfof("Unknown message type: %d", ctl_msg_type);
+				break;
 		}
 		beg = newline + 1;
 		newline = strchrnul(beg, '\n');
