@@ -21,6 +21,6 @@
     make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio/crio.sock TEST_ARGS='--prepull-images=true --kubelet-flags="--cgroup-driver=systemd"' FOCUS="\[Conformance\]" &> {{ artifacts }}/node-e2e.log
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-  async: 7200
-  poll: 10
+  async: '{{ 60 * 60 * 2 }}'  # seconds
+  poll: 60
   ignore_errors: true
