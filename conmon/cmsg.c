@@ -26,12 +26,19 @@
 
 #include "cmsg.h"
 
-#define error(fmt, ...)							\
-	({								\
-		fprintf(stderr, "nsenter: " fmt ": %m\n", ##__VA_ARGS__); \
-		errno = ECOMM;						\
-		goto err; /* return value */				\
-	})
+#define error(s)								\
+	do {									\
+		fprintf(stderr, "nsenter: %s %s\n", s, strerror(errno));	\
+		errno = ECOMM;							\
+		goto err; /* return value */					\
+	} while (0)
+
+#define errorf(fmt, ...)									\
+	do {											\
+		fprintf(stderr, "nsenter: " fmt ": %s\n", ##__VA_ARGS__, strerror(errno));	\
+		errno = ECOMM;									\
+		goto err; /* return value */							\
+	} while (0)
 
 /*
  * Sends a file descriptor along the sockfd provided. Returns the return
@@ -103,7 +110,7 @@ struct file_t recvfd(int sockfd)
 	/* TODO: Make this dynamic with MSG_PEEK. */
 	file.name = malloc(TAG_BUFFER);
 	if (!file.name)
-		error("recvfd: failed to allocate file.tag buffer\n");
+		error("recvfd: failed to allocate file.tag buffer");
 
 	/*
 	 * We need to "recieve" the non-ancillary data even though we don't
@@ -128,11 +135,11 @@ struct file_t recvfd(int sockfd)
 	if (!cmsg)
 		error("recvfd: got NULL from CMSG_FIRSTHDR");
 	if (cmsg->cmsg_level != SOL_SOCKET)
-		error("recvfd: expected SOL_SOCKET in cmsg: %d", cmsg->cmsg_level);
+		errorf("recvfd: expected SOL_SOCKET in cmsg: %d", cmsg->cmsg_level);
 	if (cmsg->cmsg_type != SCM_RIGHTS)
-		error("recvfd: expected SCM_RIGHTS in cmsg: %d", cmsg->cmsg_type);
+		errorf("recvfd: expected SCM_RIGHTS in cmsg: %d", cmsg->cmsg_type);
 	if (cmsg->cmsg_len != CMSG_LEN(sizeof(int)))
-		error("recvfd: expected correct CMSG_LEN in cmsg: %lu", cmsg->cmsg_len);
+		errorf("recvfd: expected correct CMSG_LEN in cmsg: %lu", cmsg->cmsg_len);
 
 	fdptr = (int *) CMSG_DATA(cmsg);
 	if (!fdptr || *fdptr < 0)

@@ -27,27 +27,53 @@
 
 #include "cmsg.h"
 
-#define pexit(fmt, ...)                                                          \
-	do {                                                                     \
-		fprintf(stderr, "[conmon:e]: " fmt " %m\n", ##__VA_ARGS__);      \
-		syslog(LOG_ERR, "conmon <error>: " fmt ": %m\n", ##__VA_ARGS__); \
-		exit(EXIT_FAILURE);                                              \
+#define pexit(s)                                                                \
+	do {                                                                    \
+		fprintf(stderr, "[conmon:e]: %s %s\n", s, strerror(errno));     \
+		syslog(LOG_ERR, "conmon <error>: %s %s\n", s, strerror(errno)); \
+		exit(EXIT_FAILURE);                                             \
 	} while (0)
 
-#define nexit(fmt, ...)                                                       \
+#define pexitf(fmt, ...)                                                                          \
+	do {                                                                                      \
+		fprintf(stderr, "[conmon:e]: " fmt " %s\n", ##__VA_ARGS__, strerror(errno));      \
+		syslog(LOG_ERR, "conmon <error>: " fmt ": %s\n", ##__VA_ARGS__, strerror(errno)); \
+		exit(EXIT_FAILURE);                                                               \
+	} while (0)
+
+#define nexit(s)                                            \
+	do {                                                \
+		fprintf(stderr, "[conmon:e] %s\n", s);      \
+		syslog(LOG_ERR, "conmon <error>: %s\n", s); \
+		exit(EXIT_FAILURE);                         \
+	} while (0)
+
+#define nexitf(fmt, ...)                                                      \
 	do {                                                                  \
 		fprintf(stderr, "[conmon:e]: " fmt "\n", ##__VA_ARGS__);      \
 		syslog(LOG_ERR, "conmon <error>: " fmt " \n", ##__VA_ARGS__); \
 		exit(EXIT_FAILURE);                                           \
 	} while (0)
 
-#define nwarn(fmt, ...)                                                        \
+#define nwarn(s)                                             \
+	do {                                                 \
+		fprintf(stderr, "[conmon:w]: %s\n", s);      \
+		syslog(LOG_INFO, "conmon <nwarn>: %s\n", s); \
+	} while (0)
+
+#define nwarnf(fmt, ...)                                                       \
 	do {                                                                   \
 		fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__);       \
 		syslog(LOG_INFO, "conmon <nwarn>: " fmt " \n", ##__VA_ARGS__); \
 	} while (0)
 
-#define ninfo(fmt, ...)                                                        \
+#define ninfo(s)                                             \
+	do {                                                 \
+		fprintf(stderr, "[conmon:i]: %s\n", s);      \
+		syslog(LOG_INFO, "conmon <ninfo>: %s\n", s); \
+	} while (0)
+
+#define ninfof(fmt, ...)                                                       \
 	do {                                                                   \
 		fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__);       \
 		syslog(LOG_INFO, "conmon <ninfo>: " fmt " \n", ##__VA_ARGS__); \
@@ -355,7 +381,7 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 			/* Open the log path file again */
 			log_fd = open(opt_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
 			if (log_fd < 0)
-				pexit("Failed to open log file %s: %s", opt_log_path, strerror(errno));
+				pexitf("Failed to open log file %s", opt_log_path);
 
 			/* Replace the previous file */
 			if (rename(opt_log_path_tmp, opt_log_path) < 0) {
@@ -409,7 +435,7 @@ next:
 		nwarn("failed to flush buffer to log");
 	}
 
-	ninfo("Total bytes written: %"PRId64"", bytes_written);
+	ninfof("Total bytes written: %"PRId64"", bytes_written);
 
 	return 0;
 }
@@ -423,7 +449,7 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 	_cleanup_fclose_ FILE *fp = NULL;
 	fp = fopen(cgroups_file_path, "re");
 	if (fp == NULL) {
-		nwarn("Failed to open cgroups file: %s", cgroups_file_path);
+		nwarnf("Failed to open cgroups file: %s", cgroups_file_path);
 		return NULL;
 	}
 
@@ -437,13 +463,13 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem) {
 		_cleanup_strv_ char **subsystems = NULL;
 		ptr = strchr(line, ':');
 		if (ptr == NULL) {
-			nwarn("Error parsing cgroup, ':' not found: %s", line);
+			nwarnf("Error parsing cgroup, ':' not found: %s", line);
 			return NULL;
 		}
 		ptr++;
 		path = strchr(ptr, ':');
 		if (path == NULL) {
-			nwarn("Error parsing cgroup, second ':' not found: %s", line);
+			nwarnf("Error parsing cgroup, second ':' not found: %s", line);
 			return NULL;
 		}
 		*path = 0;
@@ -507,9 +533,9 @@ static int get_pipe_fd_from_env(const char *envname)
 	errno = 0;
 	pipe_fd = strtol(pipe_str, &endptr, 10);
 	if (errno != 0 || *endptr != '\0')
-		pexit("unable to parse %s", envname);
+		pexitf("unable to parse %s", envname);
 	if (fcntl(pipe_fd, F_SETFD, FD_CLOEXEC) == -1)
-		pexit("unable to make %s CLOEXEC", envname);
+		pexitf("unable to make %s CLOEXEC", envname);
 
 	return pipe_fd;
 }
@@ -599,7 +625,7 @@ static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 			*eof = true;
 		return false;
 	} else if (num_read < 0) {
-		nwarn("stdio_input read failed %s", strerror(errno));
+		nwarnf("stdio_input read failed %s", strerror(errno));
 		return false;
 	} else {
 		if (write_k8s_log(log_fd, pipe, buf, num_read) < 0) {
@@ -787,7 +813,7 @@ static gboolean attach_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_U
 		conn_sock_readable = true;
 		conn_sock_writable = true;
 		g_unix_fd_add (conn_sock, G_IO_IN|G_IO_HUP|G_IO_ERR, conn_sock_cb, GINT_TO_POINTER(STDOUT_PIPE));
-		ninfo("Accepted connection %d", conn_sock);
+		ninfof("Accepted connection %d", conn_sock);
 	}
 
 	return G_SOURCE_CONTINUE;
@@ -813,7 +839,7 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 	}
 
 	readptr[num_read] = '\0';
-	ninfo("Got ctl message: %s\n", ctlbuf);
+	ninfof("Got ctl message: %s", ctlbuf);
 
 	char *beg = ctlbuf;
 	char *newline = strchrnul(beg, '\n');
@@ -824,9 +850,9 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 			nwarn("Failed to sscanf message");
 			return G_SOURCE_CONTINUE;
 		}
-		ninfo("Message type: %d, Height: %d, Width: %d", ctl_msg_type, height, width);
+		ninfof("Message type: %d, Height: %d, Width: %d", ctl_msg_type, height, width);
 		ret = ioctl(masterfd_stdout, TIOCGWINSZ, &ws);
-		ninfo("Existing size: %d %d", ws.ws_row, ws.ws_col);
+		ninfof("Existing size: %d %d", ws.ws_row, ws.ws_col);
 		ws.ws_row = height;
 		ws.ws_col = width;
 		ret = ioctl(masterfd_stdout, TIOCSWINSZ, &ws);
@@ -842,7 +868,7 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 		 * This shouldn't happen as our buffer is larger than
 		 * the message that we expect to receive.
 		 */
-		nwarn("Could not find newline in entire buffer\n");
+		nwarn("Could not find newline in entire buffer");
 	} else if (*beg == '\0') {
 		/* We exhausted all messages that were complete */
 		readptr = ctlbuf;
@@ -870,7 +896,7 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	int connfd = -1;
 	struct termios tset;
 
-	ninfo("about to accept from console_socket_fd: %d", fd);
+	ninfof("about to accept from console_socket_fd: %d", fd);
 	connfd = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
 	if (connfd < 0) {
 		nwarn("Failed to accept console-socket connection");
@@ -882,10 +908,10 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	unlink(csname);
 
 	/* We exit if this fails. */
-	ninfo("about to recvfd from connfd: %d", connfd);
+	ninfof("about to recvfd from connfd: %d", connfd);
 	console = recvfd(connfd);
 
-	ninfo("console = {.name = '%s'; .fd = %d}", console.name, console.fd);
+	ninfof("console = {.name = '%s'; .fd = %d}", console.name, console.fd);
 	free(console.name);
 
 	/* We change the terminal settings to match kube settings */
@@ -918,7 +944,7 @@ runtime_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user
 static void
 container_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user_data)
 {
-	ninfo("container %d exited with status %d\n", pid, status);
+	ninfof("container %d exited with status %d", pid, status);
 	container_status = status;
 	g_main_loop_quit (main_loop);
 }
@@ -969,7 +995,7 @@ static char *setup_console_socket(void)
 	addr.sun_family = AF_UNIX;
 	strncpy(addr.sun_path, csname, sizeof(addr.sun_path)-1);
 
-	ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", addr.sun_path);
+	ninfof("addr{sun_family=AF_UNIX, sun_path=%s}", addr.sun_path);
 
 	/* Bind to the console socket path. */
 	console_socket_fd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
@@ -1007,10 +1033,10 @@ static char *setup_attach_socket(void)
 		pexit("Failed to create symlink for attach socket");
 
 	attach_sock_path = g_build_filename(opt_socket_path, opt_cuuid, "attach", NULL);
-	ninfo("attach sock path: %s", attach_sock_path);
+	ninfof("attach sock path: %s", attach_sock_path);
 
 	strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
-	ninfo("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
+	ninfof("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
 
 	/*
 	 * We make the socket non-blocking to avoid a race where client aborts connection
@@ -1025,10 +1051,10 @@ static char *setup_attach_socket(void)
 		pexit("Failed to change attach socket permissions");
 
 	if (bind(attach_socket_fd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
-		pexit("Failed to bind attach socket: %s", attach_sock_path);
+		pexitf("Failed to bind attach socket: %s", attach_sock_path);
 
 	if (listen(attach_socket_fd, 10) == -1)
-		pexit("Failed to listen on attach socket: %s", attach_sock_path);
+		pexitf("Failed to listen on attach socket: %s", attach_sock_path);
 
 	g_unix_fd_add (attach_socket_fd, G_IO_IN, attach_cb, NULL);
 
@@ -1038,12 +1064,12 @@ static char *setup_attach_socket(void)
 static void setup_terminal_control_fifo()
 {
 	_cleanup_free_ char *ctl_fifo_path = g_build_filename(opt_bundle_path, "ctl", NULL);
-	ninfo("ctl fifo path: %s", ctl_fifo_path);
+	ninfof("ctl fifo path: %s", ctl_fifo_path);
 
 	/* Setup fifo for reading in terminal resize and other stdio control messages */
 
 	if (mkfifo(ctl_fifo_path, 0666) == -1)
-		pexit("Failed to mkfifo at %s", ctl_fifo_path);
+		pexitf("Failed to mkfifo at %s", ctl_fifo_path);
 
 	terminal_ctrl_fd = open(ctl_fifo_path, O_RDONLY|O_NONBLOCK|O_CLOEXEC);
 	if (terminal_ctrl_fd == -1)
@@ -1059,7 +1085,7 @@ static void setup_terminal_control_fifo()
 
 	g_unix_fd_add (terminal_ctrl_fd, G_IO_IN, ctrl_cb, NULL);
 
-	ninfo("terminal_ctrl_fd: %d", terminal_ctrl_fd);
+	ninfof("terminal_ctrl_fd: %d", terminal_ctrl_fd);
 }
 
 static void setup_oom_handling(int container_pid)
@@ -1075,13 +1101,13 @@ static void setup_oom_handling(int container_pid)
 	_cleanup_free_ char *memory_cgroup_file_path = g_build_filename(memory_cgroup_path, "cgroup.event_control", NULL);
 
 	if ((cfd = open(memory_cgroup_file_path, O_WRONLY | O_CLOEXEC)) == -1) {
-		nwarn("Failed to open %s", memory_cgroup_file_path);
+		nwarnf("Failed to open %s", memory_cgroup_file_path);
 		return;
 	}
 
 	_cleanup_free_ char *memory_cgroup_file_oom_path = g_build_filename(memory_cgroup_path, "memory.oom_control", NULL);
 	if ((ofd = open(memory_cgroup_file_oom_path, O_RDONLY | O_CLOEXEC)) == -1)
-		pexit("Failed to open %s", memory_cgroup_file_oom_path);
+		pexitf("Failed to open %s", memory_cgroup_file_oom_path);
 
 	if ((oom_event_fd = eventfd(0, EFD_CLOEXEC)) == -1)
 		pexit("Failed to create eventfd");
@@ -1166,7 +1192,7 @@ int main(int argc, char *argv[])
 	if (opt_runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
 	if (access(opt_runtime_path, X_OK) < 0)
-		pexit("Runtime path %s is not valid: %s", opt_runtime_path, strerror(errno));
+		pexitf("Runtime path %s is not valid", opt_runtime_path);
 
 	if (opt_bundle_path == NULL && !opt_exec) {
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
@@ -1393,7 +1419,7 @@ int main(int argc, char *argv[])
 	if (signal(SIGCHLD, on_sigchld) == SIG_ERR)
 		pexit("Failed to set handler for SIGCHLD");
 
-	ninfo("about to waitpid: %d", create_pid);
+	ninfof("about to waitpid: %d", create_pid);
 	if (csname != NULL) {
 		guint terminal_watch = g_unix_fd_add (console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
 		/* Process any SIGCHLD we may have missed before the signal handler was in place.  */
@@ -1410,7 +1436,7 @@ int main(int argc, char *argv[])
 			int old_errno = errno;
 			kill(create_pid, SIGKILL);
 			errno = old_errno;
-			pexit("Failed to wait for `runtime %s`", opt_exec ? "exec" : "create");
+			pexitf("Failed to wait for `runtime %s`", opt_exec ? "exec" : "create");
 		}
 
 	}
@@ -1427,7 +1453,7 @@ int main(int argc, char *argv[])
 				write_sync_fd(sync_pipe_fd, -1, buf);
 			}
 		}
-		nexit("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
+		nexitf("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
 	}
 
 	if (opt_terminal && masterfd_stdout == -1)
@@ -1436,13 +1462,13 @@ int main(int argc, char *argv[])
 	/* Read the pid so we can wait for the process to exit */
 	g_file_get_contents(opt_pid_file, &contents, NULL, &err);
 	if (err) {
-		nwarn("Failed to read pidfile: %s", err->message);
+		nwarnf("Failed to read pidfile: %s", err->message);
 		g_error_free(err);
 		exit(1);
 	}
 
 	container_pid = atoi(contents);
-	ninfo("container PID: %d", container_pid);
+	ninfof("container PID: %d", container_pid);
 
 	g_hash_table_insert (pid_to_handler, &container_pid, container_exit_cb);
 
@@ -1504,7 +1530,7 @@ int main(int argc, char *argv[])
 		_cleanup_free_ char *status_str = g_strdup_printf("%d", exit_status);
 		_cleanup_free_ char *exit_file_path = g_build_filename(opt_exit_dir, opt_cid, NULL);
 		if (!g_file_set_contents(exit_file_path, status_str, -1, &err))
-			nexit("Failed to write %s to exit file: %s\n",
+			nexitf("Failed to write %s to exit file: %s",
 			      status_str, err->message);
 	}
 
