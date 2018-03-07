@@ -15,6 +15,7 @@ import (
 
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/lib"
+	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/kubernetes-incubator/cri-o/version"
 	"github.com/sirupsen/logrus"
@@ -40,8 +41,8 @@ func validateConfig(config *server.Config) error {
 	}
 
 	// This needs to match the read buffer size in conmon
-	if config.LogSizeMax >= 0 && config.LogSizeMax < 8192 {
-		return fmt.Errorf("log size max should be negative or >= 8192")
+	if config.LogSizeMax >= 0 && config.LogSizeMax < oci.BufSize {
+		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}
 	return nil
 }
