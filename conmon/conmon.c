@@ -327,6 +327,27 @@ const char *stdpipe_name(stdpipe_t pipe)
 }
 
 /*
+* reopen_log_file reopens the log file fd.
+*/
+static void reopen_log_file(void)
+{
+	_cleanup_free_ char *opt_log_path_tmp = g_strdup_printf("%s.tmp", opt_log_path);
+
+	/* Close the current log_fd */
+	close(log_fd);
+
+	/* Open the log path file again */
+	log_fd = open(opt_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
+	if (log_fd < 0)
+		pexitf("Failed to open log file %s", opt_log_path);
+
+	/* Replace the previous file */
+	if (rename(opt_log_path_tmp, opt_log_path) < 0) {
+		pexit("Failed to rename log file");
+	}
+}
+
+/*
  * The CRI requires us to write logs with a (timestamp, stream, line) format
  * for every newline-separated line. write_k8s_log writes said format for every
  * line in buf, and will partially write the final line of the log if buf is
@@ -375,23 +396,12 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		 * a timestamp.
 		 */
 		if ((opt_log_size_max > 0) && (bytes_written + bytes_to_be_written) > opt_log_size_max) {
-			_cleanup_free_ char *opt_log_path_tmp = g_strdup_printf("%s.tmp", opt_log_path);
 			ninfo("Creating new log file");
 			bytes_written = 0;
 
-			/* Close the existing fd */
-			close(fd);
+			reopen_log_file();
 
-			/* Open the log path file again */
-			log_fd = open(opt_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
-			if (log_fd < 0)
-				pexitf("Failed to open log file %s", opt_log_path);
-
-			/* Replace the previous file */
-			if (rename(opt_log_path_tmp, opt_log_path) < 0) {
-				pexit("Failed to rename log file");
-			}
-
+			/* Reassign to the new log file fd */
 			fd = log_fd;
 		}
 
