@@ -146,6 +146,7 @@ static char *opt_socket_path = DEFAULT_SOCKET_PATH;
 static bool opt_no_new_keyring = false;
 static char *opt_exit_command = NULL;
 static gchar **opt_exit_args = NULL;
+static bool opt_replace_listen_pid = false;
 static GOptionEntry opt_entries[] =
 {
   { "terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL },
@@ -156,6 +157,7 @@ static GOptionEntry opt_entries[] =
   { "runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL },
   { "no-new-keyring", 0, 0, G_OPTION_ARG_NONE, &opt_no_new_keyring, "Do not create a new session keyring for the container", NULL },
   { "no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "Do not use pivot_root", NULL },
+  { "replace-listen-pid", 0, 0, G_OPTION_ARG_NONE, &opt_replace_listen_pid, "Replace listen pid if set for oci-runtime pid", NULL },
   { "bundle", 'b', 0, G_OPTION_ARG_STRING, &opt_bundle_path, "Bundle path", NULL },
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_pid_file, "PID file", NULL },
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL },
@@ -1421,6 +1423,24 @@ int main(int argc, char *argv[])
 			slavefd_stderr = slavefd_stdout;
 		if (dup2(slavefd_stderr, STDERR_FILENO) < 0)
 			pexit("Failed to dup over stderr");
+
+		/* If LISTEN_PID env is set, we need to set the LISTEN_PID
+		   it to the new child process */
+		char *listenpid = getenv("LISTEN_PID");
+		if (listenpid != NULL) {
+			errno=0;
+			int lpid = strtol(listenpid, NULL, 10);
+			if (errno != 0 || lpid <=0)
+				pexitf("Invalid LISTEN_PID %s", listenpid);
+			if (opt_replace_listen_pid || lpid == getppid()) {
+				gchar *pidstr = g_strdup_printf("%d", getpid());
+				if (!pidstr)
+					pexit("Failed to g_strdup_sprintf pid");
+				if (setenv("LISTEN_PID",pidstr,true) < 0)
+					pexit("Failed to setenv LISTEN_PID");
+				free(pidstr);
+			}
+		}
 
 		execv(g_ptr_array_index(runtime_argv,0), (char **)runtime_argv->pdata);
 		exit(127);
