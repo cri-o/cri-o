@@ -6,9 +6,9 @@ services:
   - docker
 
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev
-  - sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq update; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext; fi
 
 install:
   - make install.tools
@@ -46,10 +46,16 @@ jobs:
         - make testunit
         - make
       go: tip
+    - script:
+        - make testunit
+        - make
+      os: osx
     - stage: Integration Test
       script:
         - make integration
       go: 1.9.x
+  allow_failures:
+    - os: osx
 
 notifications:
   irc: "chat.freenode.net#cri-o"
