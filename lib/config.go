@@ -164,6 +164,11 @@ type RuntimeConfig struct {
 	// ContainerExitsDir is the directory in which container exit files are
 	// written to by conmon.
 	ContainerExitsDir string `toml:"container_exits_dir"`
+	// ReadOnly run all pods/containers in read-only mode.
+	// This mode will mount tmpfs on /run, /tmp and /var/tmp, if those are not mountpoints
+	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
+	// will only be able to write to volumes mounted into them
+	ReadOnly bool `toml:"read_only"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.

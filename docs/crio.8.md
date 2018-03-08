@@ -24,6 +24,7 @@ crio
 [--pause-command=[value]]
 [--pause-image=[value]]
 [--registry=[value]]
+[--read-only]
 [--root=[value]]
 [--runroot=[value]]
 [--runtime=[value]]
@@ -93,6 +94,10 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--pause-image**="": Image which contains the pause executable (default: "kubernetes/pause")
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
+
+**--enable-shared-pid-namespace**="": Enable using a shared PID namespace for containers in a pod (default: false)
+
+**--read-only**=**true**|**false**: Run all containers in read-only mode (default: false)
 
 **--root**="": The crio root dir (default: "/var/lib/containers/storage")
 
