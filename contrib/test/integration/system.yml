@@ -55,7 +55,7 @@
     - socat
     - tar
     - wget
-  async: 600
+  async: '{{ 20 * 60 }}'
   poll: 10
 
 - name: Add python2-boto for Fedora
