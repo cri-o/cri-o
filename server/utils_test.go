@@ -15,6 +15,12 @@ const (
 	dnsPath        = "fixtures/resolv.conf"
 )
 
+func must(t *testing.T, err error) {
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestParseDNSOptions(t *testing.T) {
 	testCases := []struct {
 		Servers, Searches, Options []string
