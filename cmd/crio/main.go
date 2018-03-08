@@ -40,7 +40,6 @@ func validateConfig(config *server.Config) error {
 
 	}
 
-	// This needs to match the read buffer size in conmon
 	if config.LogSizeMax >= 0 && config.LogSizeMax < oci.BufSize {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}
