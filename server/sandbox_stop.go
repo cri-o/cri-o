@@ -56,11 +56,11 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	for _, c := range containers {
 		cStatus := s.Runtime().ContainerStatus(c)
 		if cStatus.Status != oci.ContainerStateStopped {
-			if err := s.Runtime().StopContainer(ctx, c, 10); err != nil {
-				return nil, fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-			}
 			if c.ID() == podInfraContainer.ID() {
 				continue
+			}
+			if err := s.Runtime().StopContainer(ctx, c, 10); err != nil {
+				return nil, fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 			}
 			if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
 				// assume container already umounted
@@ -72,6 +72,12 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 	// Clean up sandbox networking and close its network namespace.
 	s.networkStop(sb)
+	podInfraStatus := s.Runtime().ContainerStatus(podInfraContainer)
+	if podInfraStatus.Status != oci.ContainerStateStopped {
+		if err := s.Runtime().StopContainer(ctx, podInfraContainer, 10); err != nil {
+			return nil, fmt.Errorf("failed to stop infra container %s in pod sandbox %s: %v", podInfraContainer.Name(), sb.ID(), err)
+		}
+	}
 	if s.config.Config.ManageNetworkNSLifecycle {
 		if err := sb.NetNsRemove(); err != nil {
 			return nil, err
