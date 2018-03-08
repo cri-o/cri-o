@@ -57,13 +57,15 @@ type imageCacheItem struct {
 	configDigest digest.Digest
 }
 
+type imageCache map[string]imageCacheItem
+
 type imageService struct {
 	store                 storage.Store
 	defaultTransport      string
 	insecureRegistryCIDRs []*net.IPNet
 	indexConfigs          map[string]*indexInfo
 	registries            []string
-	imageCache            map[string]imageCacheItem
+	imageCache            imageCache
 	imageCacheLock        sync.Mutex
 }
 
@@ -176,145 +178,106 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, imageI
 	return imageDigest, repoDigests
 }
 
+func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (imageCacheItem, error) {
+	img, err := ref.NewImageSource(systemContext)
+	if err != nil {
+		return imageCacheItem{}, err
+	}
+	size := imageSize(img)
+	configDigest, err := imageConfigDigest(img, nil)
+	img.Close()
+	if err != nil {
+		return imageCacheItem{}, err
+	}
+	imageFull, err := ref.NewImage(systemContext)
+	if err != nil {
+		return imageCacheItem{}, err
+	}
+	defer imageFull.Close()
+	imageConfig, err := imageFull.OCIConfig()
+	if err != nil {
+		return imageCacheItem{}, err
+	}
+	return imageCacheItem{
+		user:         imageConfig.Config.User,
+		size:         size,
+		configDigest: configDigest,
+	}, nil
+}
+
+func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image, results []ImageResult, newImageCache imageCache) ([]ImageResult, error) {
+	var err error
+	svc.imageCacheLock.Lock()
+	cacheItem, ok := svc.imageCache[image.ID]
+	svc.imageCacheLock.Unlock()
+	if !ok {
+		cacheItem, err = svc.buildImageCacheItem(systemContext, ref, image)
+		if err != nil {
+			return results, err
+		}
+		if newImageCache == nil {
+			svc.imageCacheLock.Lock()
+			svc.imageCache[image.ID] = cacheItem
+			svc.imageCacheLock.Unlock()
+		} else {
+			newImageCache[image.ID] = cacheItem
+		}
+	} else if newImageCache != nil {
+		newImageCache[image.ID] = cacheItem
+	}
+
+	name, tags, digests := sortNamesByType(image.Names)
+	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
+	return append(results, ImageResult{
+		ID:           image.ID,
+		Name:         name,
+		RepoTags:     tags,
+		RepoDigests:  repoDigests,
+		Size:         cacheItem.size,
+		Digest:       imageDigest,
+		ConfigDigest: cacheItem.configDigest,
+		User:         cacheItem.user,
+	}), nil
+}
+
 func (svc *imageService) ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error) {
-	results := []ImageResult{}
+	var results []ImageResult
 	if filter != "" {
+		// we never remove entries from cache unless unfiltered ListImages call is made. Is it safe?
 		ref, err := svc.getRef(filter)
 		if err != nil {
 			return nil, err
 		}
 		if image, err := istorage.Transport.GetStoreImage(svc.store, ref); err == nil {
-			var user string
-			var size *uint64
-			var configDigest digest.Digest
-			if cacheItem, ok := svc.imageCache[image.ID]; ok {
-				user, size, configDigest = cacheItem.user, cacheItem.size, cacheItem.configDigest
-			} else {
-				img, err := ref.NewImageSource(systemContext)
-				if err != nil {
-					return nil, err
-				}
-				size = imageSize(img)
-				configDigest, err = imageConfigDigest(img, nil)
-				img.Close()
-				if err != nil {
-					return nil, err
-				}
-				imageFull, err := ref.NewImage(systemContext)
-				if err != nil {
-					return nil, err
-				}
-				defer imageFull.Close()
-				imageConfig, err := imageFull.OCIConfig()
-				if err != nil {
-					return nil, err
-				}
-				user = imageConfig.Config.User
-				cacheItem := imageCacheItem{
-					user:         user,
-					size:         size,
-					configDigest: configDigest,
-				}
-				svc.imageCache[image.ID] = cacheItem
+			results, err = svc.appendCachedResult(systemContext, ref, image, []ImageResult{}, nil)
+			if err != nil {
+				return nil, err
 			}
-			name, tags, digests := sortNamesByType(image.Names)
-			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
-			results = append(results, ImageResult{
-				ID:           image.ID,
-				Name:         name,
-				RepoTags:     tags,
-				RepoDigests:  repoDigests,
-				Size:         size,
-				Digest:       imageDigest,
-				ConfigDigest: configDigest,
-				User:         user,
-			})
+		} else {
+			//return nil, err
 		}
 	} else {
 		images, err := svc.store.Images()
 		if err != nil {
 			return nil, err
 		}
-		visited := make(map[string]struct{})
-		defer func() {
-			// We built a map using IDs of images that we looked
-			// at, so remove any items from the cache that don't
-			// correspond to any of those IDs.
-			removedIDs := make([]string, 0, len(svc.imageCache))
-			for imageID := range svc.imageCache {
-				if _, keep := visited[imageID]; !keep {
-					// We have cached data for an image
-					// with this ID, but it's not in the
-					// list of images now, so the image has
-					// been removed.
-					removedIDs = append(removedIDs, imageID)
-				}
-			}
-			// Handle the removals.
-			svc.imageCacheLock.Lock()
-			for _, removedID := range removedIDs {
-				delete(svc.imageCache, removedID)
-			}
-			svc.imageCacheLock.Unlock()
-		}()
+		newImageCache := make(imageCache, len(images))
+		results = make([]ImageResult, len(images))
 		for _, image := range images {
-			visited[image.ID] = struct{}{}
-			var user string
-			var size *uint64
-			var configDigest digest.Digest
-			svc.imageCacheLock.Lock()
-			cacheItem, ok := svc.imageCache[image.ID]
-			svc.imageCacheLock.Unlock()
-			if ok {
-				user, size, configDigest = cacheItem.user, cacheItem.size, cacheItem.configDigest
-			} else {
-				ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
-				if err != nil {
-					return nil, err
-				}
-				img, err := ref.NewImageSource(systemContext)
-				if err != nil {
-					return nil, err
-				}
-				size = imageSize(img)
-				configDigest, err = imageConfigDigest(img, nil)
-				img.Close()
-				if err != nil {
-					return nil, err
-				}
-				imageFull, err := ref.NewImage(systemContext)
-				if err != nil {
-					return nil, err
-				}
-				defer imageFull.Close()
-
-				imageConfig, err := imageFull.OCIConfig()
-				if err != nil {
-					return nil, err
-				}
-				user = imageConfig.Config.User
-				cacheItem := imageCacheItem{
-					user:         user,
-					size:         size,
-					configDigest: configDigest,
-				}
-				svc.imageCacheLock.Lock()
-				svc.imageCache[image.ID] = cacheItem
-				svc.imageCacheLock.Unlock()
+			ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
+			if err != nil {
+				return nil, err
 			}
-			name, tags, digests := sortNamesByType(image.Names)
-			imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
-			results = append(results, ImageResult{
-				ID:           image.ID,
-				Name:         name,
-				RepoTags:     tags,
-				RepoDigests:  repoDigests,
-				Size:         size,
-				Digest:       imageDigest,
-				ConfigDigest: configDigest,
-				User:         user,
-			})
+			results, err = svc.appendCachedResult(systemContext, ref, &image, results, newImageCache)
+			if err != nil {
+				return nil, err
+			}
 		}
+		// replace image cache with cache we just built
+		// this invalidates all stale entries in cache
+		svc.imageCacheLock.Lock()
+		svc.imageCache = newImageCache
+		svc.imageCacheLock.Unlock()
 	}
 	return results, nil
 }
