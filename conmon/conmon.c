@@ -327,6 +327,27 @@ const char *stdpipe_name(stdpipe_t pipe)
 }
 
 /*
+* reopen_log_file reopens the log file fd.
+*/
+static void reopen_log_file(void)
+{
+	_cleanup_free_ char *opt_log_path_tmp = g_strdup_printf("%s.tmp", opt_log_path);
+
+	/* Close the current log_fd */
+	close(log_fd);
+
+	/* Open the log path file again */
+	log_fd = open(opt_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
+	if (log_fd < 0)
+		pexitf("Failed to open log file %s", opt_log_path);
+
+	/* Replace the previous file */
+	if (rename(opt_log_path_tmp, opt_log_path) < 0) {
+		pexit("Failed to rename log file");
+	}
+}
+
+/*
  * The CRI requires us to write logs with a (timestamp, stream, line) format
  * for every newline-separated line. write_k8s_log writes said format for every
  * line in buf, and will partially write the final line of the log if buf is
@@ -375,23 +396,12 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		 * a timestamp.
 		 */
 		if ((opt_log_size_max > 0) && (bytes_written + bytes_to_be_written) > opt_log_size_max) {
-			_cleanup_free_ char *opt_log_path_tmp = g_strdup_printf("%s.tmp", opt_log_path);
 			ninfo("Creating new log file");
 			bytes_written = 0;
 
-			/* Close the existing fd */
-			close(fd);
+			reopen_log_file();
 
-			/* Open the log path file again */
-			log_fd = open(opt_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
-			if (log_fd < 0)
-				pexitf("Failed to open log file %s", opt_log_path);
-
-			/* Replace the previous file */
-			if (rename(opt_log_path_tmp, opt_log_path) < 0) {
-				pexit("Failed to rename log file");
-			}
-
+			/* Reassign to the new log file fd */
 			fd = log_fd;
 		}
 
@@ -841,6 +851,21 @@ static gboolean attach_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_U
 	return G_SOURCE_CONTINUE;
 }
 
+/*
+ * resize_winsz resizes the pty window size.
+ */
+static void resize_winsz(int height, int width) {
+	struct winsize ws;
+	int ret;
+
+	ws.ws_row = height;
+	ws.ws_col = width;
+	ret = ioctl(masterfd_stdout, TIOCSWINSZ, &ws);
+	if (ret == -1) {
+		nwarn("Failed to set process pty terminal size");
+	}
+}
+
 static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
 {
 	#define CTLBUFSZ 200
@@ -851,7 +876,6 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 	int ctl_msg_type = -1;
 	int height = -1;
 	int width = -1;
-	struct winsize ws;
 	int ret;
 
 	num_read = read(fd, readptr, readsz);
@@ -873,13 +897,17 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 			return G_SOURCE_CONTINUE;
 		}
 		ninfof("Message type: %d, Height: %d, Width: %d", ctl_msg_type, height, width);
-		ret = ioctl(masterfd_stdout, TIOCGWINSZ, &ws);
-		ninfof("Existing size: %d %d", ws.ws_row, ws.ws_col);
-		ws.ws_row = height;
-		ws.ws_col = width;
-		ret = ioctl(masterfd_stdout, TIOCSWINSZ, &ws);
-		if (ret == -1) {
-			nwarn("Failed to set process pty terminal size");
+		switch (ctl_msg_type) {
+			// This matches what we write from container_attach.go
+			case 1:
+				resize_winsz(height, width);
+				break;
+			case 2:
+				reopen_log_file();
+				break;
+			default:
+				ninfof("Unknown message type: %d", ctl_msg_type);
+				break;
 		}
 		beg = newline + 1;
 		newline = strchrnul(beg, '\n');
