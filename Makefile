@@ -14,7 +14,7 @@ MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_CRIO ?= ${ETCDIR}/crio
 DATAROOTDIR ?= ${PREFIX}/share/containers
-BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
+BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
