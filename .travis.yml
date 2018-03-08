@@ -6,20 +6,24 @@ services:
   - docker
 
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev
-  - sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq update; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext; fi
 
 install:
   - make install.tools
-  - OSTREE_VERSION=v2017.9
-  - git clone https://github.com/ostreedev/ostree ${TRAVIS_BUILD_DIR}/ostree
-  - pushd ${TRAVIS_BUILD_DIR}/ostree
-  -   git checkout $OSTREE_VERSION
-  -   ./autogen.sh --prefix=/usr/local
-  -   make all
-  -   sudo make install
-  - popd
+  - >
+    if [ "{TRAVIS_OS_NAME}" = linux ]; then
+      OSTREE_VERSION=v2017.9;
+      git clone https://github.com/ostreedev/ostree ${TRAVIS_BUILD_DIR}/ostree &&
+      (
+        cd ${TRAVIS_BUILD_DIR}/ostree &&
+        git checkout $OSTREE_VERSION &&
+        ./autogen.sh --prefix=/usr/local &&
+        make all &&
+        sudo make install
+      )
+    fi
 
 before_script:
   - export PATH=$HOME/gopath/bin:$PATH
@@ -46,10 +50,16 @@ jobs:
         - sudo "PATH=$PATH" make testunit
         - make
       go: tip
+    - script:
+        - make testunit
+        - make
+      os: osx
     - stage: Integration Test
       script:
         - make integration
       go: 1.9.x
+  allow_failures:
+    - os: osx
 
 notifications:
   irc: "chat.freenode.net#cri-o"
