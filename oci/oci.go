@@ -42,6 +42,8 @@ const (
 	ContainerExitsDir = "/var/run/crio/exits"
 	// ContainerAttachSocketDir is the location for container attach sockets
 	ContainerAttachSocketDir = "/var/run/crio"
+	// BufSize is the size of buffers passed in to socekts
+	BufSize = 8192
 
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.
