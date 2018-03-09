@@ -563,7 +563,7 @@ func (r *Runtime) UpdateContainer(c *Container, res *rspec.LinuxResources) error
 	return nil
 }
 
-func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration) error {
+func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration, ignoreKill bool) error {
 	done := make(chan struct{})
 	// we could potentially re-use "done" channel to exit the loop on timeout,
 	// but we use another channel "chControl" so that we never panic
@@ -596,6 +596,10 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration)
 		return ctx.Err()
 	case <-time.After(timeout):
 		close(chControl)
+		if ignoreKill {
+			return fmt.Errorf("failed to wait process, timeout reached after %.0f seconds",
+				timeout.Seconds())
+		}
 		err := unix.Kill(c.state.Pid, unix.SIGKILL)
 		if err != nil && err != unix.ESRCH {
 			return fmt.Errorf("failed to kill process: %v", err)
@@ -672,7 +676,7 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.id, c.GetStopSignal()); err != nil {
 			return fmt.Errorf("failed to stop container %s, %v", c.id, err)
 		}
-		err = waitContainerStop(ctx, c, time.Duration(timeout)*time.Second)
+		err = waitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
 		if err == nil {
 			return nil
 		}
@@ -683,7 +687,7 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 		return fmt.Errorf("failed to stop container %s, %v", c.id, err)
 	}
 
-	return waitContainerStop(ctx, c, killContainerTimeout)
+	return waitContainerStop(ctx, c, killContainerTimeout, false)
 }
 
 // DeleteContainer deletes a container.
