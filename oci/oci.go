@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/kubernetes-incubator/cri-o/pkg/findprocess"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -578,11 +579,17 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			case <-chControl:
 				return
 			default:
-				// Check if the process is still around
-				err := unix.Kill(c.state.Pid, 0)
-				if err == unix.ESRCH {
+				process, err := findprocess.FindProcess(c.state.Pid)
+				if err != nil {
+					if err != findprocess.ErrNotFound {
+						logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.ID(), err)
+					}
 					close(done)
 					return
+				}
+				err = process.Release()
+				if err != nil {
+					logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.ID(), err)
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -666,10 +673,18 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 	defer c.opLock.Unlock()
 
 	// Check if the process is around before sending a signal
-	err := unix.Kill(c.state.Pid, 0)
-	if err == unix.ESRCH {
+	process, err := findprocess.FindProcess(c.state.Pid)
+	if err == findprocess.ErrNotFound {
 		c.state.Finished = time.Now()
 		return nil
+	}
+	if err != nil {
+		logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.ID(), err)
+	} else {
+		err = process.Release()
+		if err != nil {
+			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.ID(), err)
+		}
 	}
 
 	if timeout > 0 {
