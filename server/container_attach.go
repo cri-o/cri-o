@@ -115,7 +115,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 
 func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, conn io.Reader) error {
 	var err error
-	buf := make([]byte, oci.BufSize+1) /* Sync with conmon STDIO_BUF_SIZE */
+	buf := make([]byte, oci.BufSize+1)
 
 	for {
 		nr, er := conn.Read(buf)

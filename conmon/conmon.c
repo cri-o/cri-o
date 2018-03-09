@@ -394,7 +394,6 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		 * a timestamp.
 		 */
 		if ((opt_log_size_max > 0) && (bytes_written + bytes_to_be_written) > opt_log_size_max) {
-			ninfo("Creating new log file");
 			bytes_written = 0;
 
 			reopen_log_file();
@@ -446,8 +445,6 @@ next:
 	if (writev_buffer_flush (fd, &bufv) < 0) {
 		nwarn("failed to flush buffer to log");
 	}
-
-	ninfof("Total bytes written: %"PRId64"", bytes_written);
 
 	return 0;
 }
