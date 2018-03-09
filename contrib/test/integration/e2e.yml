@@ -51,14 +51,13 @@
     state: latest
   when: ansible_distribution in ['RedHat']
 
-# TODO remove the last test skipped once https://github.com/kubernetes-incubator/cri-o/pull/1217 is merged
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
   set_fact:
     e2e_shell_cmd: >
         /usr/bin/go run hack/e2e.go
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
-                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.support.inline.execution.and.attach|should.propagate.mounts.to.the.host
+                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.propagate.mounts.to.the.host
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax hilighting: "
