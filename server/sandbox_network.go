@@ -11,8 +11,8 @@ import (
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error
-func (s *Server) networkStart(hostNetwork bool, sb *sandbox.Sandbox) (string, error) {
-	if hostNetwork {
+func (s *Server) networkStart(sb *sandbox.Sandbox) (string, error) {
+	if sb.HostNetwork() {
 		return s.BindAddress(), nil
 	}
 
@@ -46,10 +46,25 @@ func (s *Server) networkStart(hostNetwork bool, sb *sandbox.Sandbox) (string, er
 	return ip, nil
 }
 
+// GetSandboxIP retrieves the IP address for the sandbox
+func (s *Server) GetSandboxIP(sb *sandbox.Sandbox) (string, error) {
+	if sb.HostNetwork() {
+		return s.BindAddress(), nil
+	}
+
+	podNetwork := newPodNetwork(sb)
+	ip, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
+	if err != nil {
+		return "", fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+	}
+
+	return ip, nil
+}
+
 // networkStop cleans up and removes a pod's network.  It is best-effort and
 // must call the network plugin even if the network namespace is already gone
-func (s *Server) networkStop(hostNetwork bool, sb *sandbox.Sandbox) error {
-	if !hostNetwork {
+func (s *Server) networkStop(sb *sandbox.Sandbox) error {
+	if !sb.HostNetwork() {
 		if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
 			Name:         sb.Name(),
 			PortMappings: sb.PortMappings(),

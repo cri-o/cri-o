@@ -125,6 +125,14 @@ func (s *Server) restore() {
 			logrus.Warnf("could not restore container %s: %v", containerID, err)
 		}
 	}
+	// Restore sandbox IPs
+	for _, sb := range s.ListSandboxes() {
+		ip, err := s.GetSandboxIP(sb)
+		if err != nil {
+			logrus.Warnf("could not restore sandbox IP for %v: %v", sb.ID(), err)
+		}
+		sb.AddIP(ip)
+	}
 }
 
 // Update makes changes to the server's state (lists of pods and containers) to

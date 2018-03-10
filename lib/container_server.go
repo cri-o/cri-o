@@ -353,8 +353,6 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
-	ip := m.Annotations[annotations.IP]
-
 	processLabel, mountLabel, err := label.InitLabels(label.DupSecOpt(m.Process.SelinuxLabel))
 	if err != nil {
 		return err
@@ -384,20 +382,21 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 	sb.AddHostnamePath(m.Annotations[annotations.HostnamePath])
-	sb.AddIP(ip)
 	sb.SetSeccompProfilePath(spp)
 	sb.SetNamespaceOptions(&nsOpts)
 
 	// We add a netNS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	netNsPath, err := configNetNsPath(m)
-	if err == nil {
-		nsErr := sb.NetNsJoin(netNsPath, sb.Name())
-		// If we can't load the networking namespace
-		// because it's closed, we just set the sb netns
-		// pointer to nil. Otherwise we return an error.
-		if nsErr != nil && nsErr != sandbox.ErrClosedNetNS {
-			return nsErr
+	if c.config.ManageNetworkNSLifecycle {
+		netNsPath, err := configNetNsPath(m)
+		if err == nil {
+			nsErr := sb.NetNsJoin(netNsPath, sb.Name())
+			// If we can't load the networking namespace
+			// because it's closed, we just set the sb netns
+			// pointer to nil. Otherwise we return an error.
+			if nsErr != nil && nsErr != sandbox.ErrClosedNetNS {
+				return nsErr
+			}
 		}
 	}
 

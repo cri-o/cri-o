@@ -327,6 +327,11 @@ func (s *Sandbox) Trusted() bool {
 	return s.trusted
 }
 
+// HostNetwork returns whether the sandbox runs in the host network namespace
+func (s *Sandbox) HostNetwork() bool {
+	return s.NamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
+}
+
 // ResolvPath returns the resolv path for the sandbox
 func (s *Sandbox) ResolvPath() string {
 	return s.resolvPath
@@ -400,6 +405,9 @@ func (s *Sandbox) NetNs() ns.NetNS {
 // If the sandbox uses the host namespace, nil is returned
 func (s *Sandbox) NetNsPath() string {
 	if s.netns == nil {
+		if s.infraContainer != nil {
+			return fmt.Sprintf("/proc/%v/ns/net", s.infraContainer.State().Pid)
+		}
 		return ""
 	}
 
