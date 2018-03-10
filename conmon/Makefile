@@ -11,8 +11,8 @@ VERSION = $(shell sed -n -e 's/^const Version = "\([^"]*\)"/\1/p' ../version/ver
 
 override CFLAGS += -std=c99 -Os -Wall -Wextra $(shell pkg-config --cflags glib-2.0) -DVERSION=\"$(VERSION)\" -DGIT_COMMIT=\"$(GIT_COMMIT)\"
 
-config.h: config.go ../oci/oci.go
-	go run config.go
+config.h: ../bin/crio
+	../bin/crio --show-config-h > config.h
 
 conmon: config.h $(obj)
 	$(CC) -o ../bin/$@ $^ $(CFLAGS) $(LIBS)

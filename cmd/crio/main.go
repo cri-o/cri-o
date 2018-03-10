@@ -172,9 +172,27 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 	}()
 }
 
+func printConfigH() {
+	output := `
+#if !defined(CONFIG_H)
+#define CONFIG_H
+
+#define BUF_SIZE %d
+#define STDIO_BUF_SIZE %d
+#define DEFAULT_SOCKET_PATH "%s"
+
+#endif // CONFIG_H
+`
+	fmt.Printf(output, oci.BufSize, oci.BufSize, oci.ContainerAttachSocketDir)
+}
+
 func main() {
 	if reexec.Init() {
 		return
+	}
+	if len(os.Args) == 2 && os.Args[1] == "--show-config-h" {
+		printConfigH()
+		os.Exit(0)
 	}
 	app := cli.NewApp()
 

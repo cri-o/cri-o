@@ -69,7 +69,7 @@ gofmt:
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
 
-conmon:
+conmon: crio
 	$(MAKE) -C $@
 
 pause:
