@@ -766,6 +766,9 @@ func PrepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) 
 
 	pspec := c.Spec().Process
 	pspec.Args = cmd
+	// We need to default this to false else it will inherit terminal as true
+	// from the container.
+	pspec.Terminal = false
 	if tty {
 		pspec.Terminal = true
 	}
