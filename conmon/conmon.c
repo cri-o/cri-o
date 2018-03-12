@@ -212,9 +212,6 @@ ssize_t writev_buffer_append_segment(int fd, writev_buffer_t *buf, const void *d
 	if (data == NULL)
 		return 1;
 
-	if (len < 0)
-		len = strlen ((char *)data);
-
 	if (buf->iovcnt == WRITEV_BUFFER_N_IOV &&
 	    writev_buffer_flush (fd, buf) < 0)
 		return -1;
@@ -354,19 +351,19 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		}
 
 		/* Output the timestamp */
-		if (writev_buffer_append_segment(fd, &bufv, tsbuf, -1) < 0) {
+		if (writev_buffer_append_segment(fd, &bufv, tsbuf, TSBUFLEN - 1) < 0) {
 			nwarn("failed to write (timestamp, stream) to log");
 			goto next;
 		}
 
 		/* Output log tag for partial or newline */
 		if (partial) {
-			if (writev_buffer_append_segment(fd, &bufv, "P ", -1) < 0) {
+			if (writev_buffer_append_segment(fd, &bufv, "P ", 2) < 0) {
 				nwarn("failed to write partial log tag");
 				goto next;
 			}
 		} else {
-			if (writev_buffer_append_segment(fd, &bufv, "F ", -1) < 0) {
+			if (writev_buffer_append_segment(fd, &bufv, "F ", 2) < 0) {
 				nwarn("failed to write end log tag");
 				goto next;
 			}
@@ -380,7 +377,7 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 
 		/* Output a newline for partial */
 		if (partial) {
-			if (writev_buffer_append_segment(fd, &bufv, "\n", -1) < 0) {
+			if (writev_buffer_append_segment(fd, &bufv, "\n", 1) < 0) {
 				nwarn("failed to write newline to log");
 				goto next;
 			}
