@@ -75,8 +75,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	// Clean up sandbox networking and close its network namespace.
-	hostNetwork := sb.NetNsPath() == ""
-	s.networkStop(hostNetwork, sb)
+	s.networkStop(sb)
 	podInfraStatus := s.Runtime().ContainerStatus(podInfraContainer)
 	if podInfraStatus.Status != oci.ContainerStateStopped {
 		timeout := int64(10)
@@ -87,8 +86,10 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			return nil, fmt.Errorf("failed to get infra container 'stopped' status %s in pod sandbox %s: %v", podInfraContainer.Name(), sb.ID(), err)
 		}
 	}
-	if err := sb.NetNsRemove(); err != nil {
-		return nil, err
+	if s.config.Config.ManageNetworkNSLifecycle {
+		if err := sb.NetNsRemove(); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := label.ReleaseLabel(sb.ProcessLabel()); err != nil {
