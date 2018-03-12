@@ -69,7 +69,7 @@ gofmt:
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
 
-conmon:
+conmon: conmon/config.h
 	$(MAKE) -C $@
 
 pause:
@@ -92,6 +92,10 @@ crio.conf: crio
 
 release-note:
 	@$(GOPATH)/bin/containerd-release -n $(release)
+
+conmon/config.h: cmd/crio-config/config.go oci/oci.go
+	$(GO) build -i $(LDFLAGS) -o bin/crio-config $(PROJECT)/cmd/crio-config
+	( cd conmon && $(CURDIR)/bin/crio-config )
 
 clean:
 ifneq ($(GOPATH),)
