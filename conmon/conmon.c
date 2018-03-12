@@ -136,6 +136,7 @@ static bool opt_systemd_cgroup = false;
 static bool opt_no_pivot = false;
 static char *opt_exec_process_spec = NULL;
 static bool opt_exec = false;
+static char *opt_restore_path = NULL;
 static char *opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
@@ -153,6 +154,7 @@ static GOptionEntry opt_entries[] =
   { "cid", 'c', 0, G_OPTION_ARG_STRING, &opt_cid, "Container ID", NULL },
   { "cuuid", 'u', 0, G_OPTION_ARG_STRING, &opt_cuuid, "Container UUID", NULL },
   { "runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL },
+  { "restore", 0, 0, G_OPTION_ARG_STRING, &opt_restore_path, "Restore a container from a checkpoint", NULL },
   { "no-new-keyring", 0, 0, G_OPTION_ARG_NONE, &opt_no_new_keyring, "Do not create a new session keyring for the container", NULL },
   { "no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "Do not use pivot_root", NULL },
   { "replace-listen-pid", 0, 0, G_OPTION_ARG_NONE, &opt_replace_listen_pid, "Replace listen pid if set for oci-runtime pid", NULL },
@@ -1228,6 +1230,9 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (opt_restore_path && opt_exec)
+		nexit("Cannot use 'exec' and 'restore' at the same time.");
+
 	if (opt_cid == NULL)
 		nexit("Container ID not provided. Use --cid");
 
@@ -1372,11 +1377,38 @@ int main(int argc, char *argv[])
 			 "--pid-file", opt_pid_file,
 			 NULL);
         } else {
+		char *command;
+		if (opt_restore_path)
+			command = "restore";
+		else
+			command = "create";
+
 		add_argv(runtime_argv,
-			 "create",
+			 command,
 			 "--bundle", opt_bundle_path,
 			 "--pid-file", opt_pid_file,
 			 NULL);
+
+		if (opt_restore_path) {
+			/*
+			 * 'runc restore' is different from 'runc create'
+			 * as the container is immediately running after
+			 * a restore. Therefore the '--detach is needed'
+			 * so that runc returns once the container is running.
+			 *
+			 * '--image-path' is the path to the checkpoint
+			 * which will be become important when using pre-copy
+			 * migration where multiple checkpoints can be created
+			 * to reduce the container downtime during migration.
+			 *
+			 * '--work-path' is the directory CRIU will run in and
+			 * also place its log files.
+			 */
+			add_argv(runtime_argv, "--detach",
+				 "--image-path", opt_restore_path,
+				 "--work-path", opt_bundle_path,
+				 NULL);
+		}
 	}
 
 	if (!opt_exec && opt_no_pivot) {
