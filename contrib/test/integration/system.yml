@@ -132,3 +132,6 @@
 - name: Update the kernel cmdline to include quota support
   command: grubby --update-kernel=ALL --args="rootflags=pquota"
   when: ansible_distribution in ['RedHat', 'CentOS']
+
+- name: Containers using cgroups and/or systemd after 7.5 are permitted
+  seboolean: name=container_manage_cgroup persistent=yes state=yes
