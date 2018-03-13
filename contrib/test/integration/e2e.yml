@@ -70,3 +70,5 @@
   shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+  async: '{{ 60 * 60 * 4 }}'  # seconds
+  poll: 60
