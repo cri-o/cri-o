@@ -18,7 +18,7 @@
     # parametrize crio socket
     # cgroup-driver???
     # TODO(runcom): remove conformance focus, we want everything for testgrid
-    make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=/var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio/crio.sock TEST_ARGS='--prepull-images=true --kubelet-flags="--cgroup-driver=systemd"' FOCUS="\[Conformance\]" &> {{ artifacts }}/node-e2e.log
+    make test-e2e-node PARALLELISM=1 RUNTIME=remote CONTAINER_RUNTIME_ENDPOINT=unix:///var/run/crio.sock IMAGE_SERVICE_ENDPOINT=/var/run/crio/crio.sock TEST_ARGS='--prepull-images=true --kubelet-flags="--cgroup-driver=systemd"' FOCUS="\[Conformance\]" &> {{ artifacts }}/node-e2e.log
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
   async: 7200
