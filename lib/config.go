@@ -5,13 +5,12 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
 )
 
 // Default paths if none are specified
 const (
-	crioRoot            = "/var/lib/containers/storage"
-	crioRunRoot         = "/var/run/containers/storage"
 	conmonPath          = "/usr/local/libexec/crio/conmon"
 	pauseImage          = "kubernetes/pause"
 	pauseCommand        = "/pause"
@@ -273,10 +272,12 @@ func (c *Config) ToFile(path string) error {
 func DefaultConfig() *Config {
 	return &Config{
 		RootConfig: RootConfig{
-			Root:        crioRoot,
-			RunRoot:     crioRunRoot,
-			LogDir:      "/var/log/crio/pods",
-			FileLocking: true,
+			Root:           storage.DefaultStoreOptions.GraphRoot,
+			RunRoot:        storage.DefaultStoreOptions.RunRoot,
+			Storage:        storage.DefaultStoreOptions.GraphDriverName,
+			StorageOptions: storage.DefaultStoreOptions.GraphDriverOptions,
+			LogDir:         "/var/log/crio/pods",
+			FileLocking:    true,
 		},
 		RuntimeConfig: RuntimeConfig{
 			Runtime:                  "/usr/bin/runc",
