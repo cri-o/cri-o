@@ -21,7 +21,7 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateCon
 	}()
 	logrus.Debugf("UpdateContainerResources %+v", req)
 
-	c, err := s.GetContainerFromRequest(req.GetContainerId())
+	c, err := s.GetContainerFromShortID(req.GetContainerId())
 	if err != nil {
 		return nil, err
 	}

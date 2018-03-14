@@ -18,7 +18,7 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		recordError(operation, err)
 	}()
 	logrus.Debugf("ExecSyncRequest %+v", req)
-	c, err := s.GetContainerFromRequest(req.ContainerId)
+	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err
 	}

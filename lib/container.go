@@ -85,8 +85,8 @@ func (c *ContainerServer) GetContainerRootFsSize(containerID string) (int64, err
 	return size + layerSize, err
 }
 
-// GetContainerFromRequest gets an oci container matching the specified full or partial id
-func (c *ContainerServer) GetContainerFromRequest(cid string) (*oci.Container, error) {
+// GetContainerFromShortID gets an oci container matching the specified full or partial id
+func (c *ContainerServer) GetContainerFromShortID(cid string) (*oci.Container, error) {
 	if cid == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
@@ -135,7 +135,7 @@ func (c *ContainerServer) LookupContainer(idOrName string) (*oci.Container, erro
 		}
 	}
 
-	return c.GetContainerFromRequest(ctrID)
+	return c.GetContainerFromShortID(ctrID)
 }
 
 // LookupSandbox returns the pod sandbox with the given name or full or partial id
