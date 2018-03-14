@@ -1,5 +1,10 @@
 ---
 
+# When False, disable SELinux on the system during specific tests
+integration_selinux_enabled: True
+e2e_selinux_enabled: False
+node_e2e_selinux_enabled: False
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"
