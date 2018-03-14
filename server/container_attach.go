@@ -44,10 +44,9 @@ func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (resp *pb.At
 
 // Attach endpoint for streaming.Runtime
 func (ss streamService) Attach(containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	c := ss.runtimeServer.GetContainer(containerID)
-
-	if c == nil {
-		return fmt.Errorf("could not find container %q", containerID)
+	c, err := ss.runtimeServer.GetContainerFromShortID(containerID)
+	if err != nil {
+		return fmt.Errorf("could not find container %q: %v", containerID, err)
 	}
 
 	if err := ss.runtimeServer.Runtime().UpdateStatus(c); err != nil {

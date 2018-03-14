@@ -24,7 +24,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		recordError(operation, err)
 	}()
 	logrus.Debugf("ContainerStatusRequest %+v", req)
-	c, err := s.GetContainerFromRequest(req.ContainerId)
+	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err
 	}
