@@ -30,7 +30,7 @@ func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (resp *pb.ExecRe
 
 	resp, err = s.GetExec(req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to prepare exec endpoint")
+		return nil, fmt.Errorf("unable to prepare exec endpoint: %v", err)
 	}
 
 	return resp, nil
