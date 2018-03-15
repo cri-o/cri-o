@@ -301,6 +301,7 @@ function stop_crio() {
 		kill "$CRIO_PID" >/dev/null 2>&1
 		wait "$CRIO_PID"
 		rm -f "$CRIO_CONFIG"
+		CRIO_PID=
 	fi
 
 	cleanup_network_conf
@@ -318,6 +319,9 @@ function restart_crio() {
 }
 
 function cleanup_test() {
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
 	rm -rf "$TESTDIR"
 }
 
