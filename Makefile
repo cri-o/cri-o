@@ -69,11 +69,11 @@ gofmt:
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
 
-conmon: conmon/config.h
-	$(MAKE) -C $@
+bin/conmon: conmon/config.h
+	$(MAKE) -C conmon
 
-pause:
-	$(MAKE) -C $@
+bin/pause:
+	$(MAKE) -C pause
 
 test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
@@ -84,10 +84,10 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
-crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o bin/$@ $(PROJECT)/cmd/crio
+bin/crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
+	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/cmd/crio
 
-crio.conf: crio
+crio.conf: bin/crio
 	./bin/crio --config="" config --default > crio.conf
 
 release-note:
@@ -128,7 +128,7 @@ testunit:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: crio conmon pause
+binaries: bin/crio bin/conmon bin/pause
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -227,14 +227,14 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	fi
 
 .PHONY: \
+	bin/conmon \
+	bin/pause \
 	binaries \
 	clean \
-	conmon \
 	default \
 	docs \
 	gofmt \
 	help \
 	install \
 	lint \
-	pause \
 	uninstall
