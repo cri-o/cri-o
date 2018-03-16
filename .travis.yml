@@ -41,11 +41,11 @@ jobs:
       script:
         - sudo "PATH=$PATH" make testunit
         - make
-      go: 1.8.x
+      go: "1.9.x"
     - script:
         - sudo "PATH=$PATH" make testunit
         - make
-      go: 1.9.x
+      go: "1.10.x"
     - script:
         - sudo "PATH=$PATH" make testunit
         - make
@@ -57,7 +57,7 @@ jobs:
     - stage: Integration Test
       script:
         - make integration
-      go: 1.9.x
+      go: "1.10.x"
   allow_failures:
     - os: osx
 
