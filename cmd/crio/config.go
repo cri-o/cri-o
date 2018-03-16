@@ -12,21 +12,27 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 # The "crio" table contains all of the server options.
 [crio]
 
+# CRI-O reads its storage defaults from the containers/storage configuration
+# file, /etc/containers/storage.conf. Modify storage.conf if you want to
+# change default storage for all tools that use containers/storage.  If you
+# want to modify just crio, you can change the storage configuration in this
+# file.
+
 # root is a path to the "root directory". CRIO stores all of its data,
 # including container images, in this directory.
-root = "{{ .Root }}"
+#root = "{{ .Root }}"
 
 # run is a path to the "run directory". CRIO stores all of its state
 # in this directory.
-runroot = "{{ .RunRoot }}"
+#runroot = "{{ .RunRoot }}"
 
 # storage_driver select which storage driver is used to manage storage
 # of images and containers.
-storage_driver = "{{ .Storage }}"
+#storage_driver = "{{ .Storage }}"
 
 # storage_option is used to pass an option to the storage driver.
-storage_option = [
-{{ range $opt := .StorageOptions }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+#storage_option = [
+{{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
 # The "crio.api" table contains settings for the kubelet/gRPC interface.
 [crio.api]

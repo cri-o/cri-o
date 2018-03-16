@@ -19,7 +19,7 @@ RUN yum-config-manager --nogpgcheck --add-repo https://cbs.centos.org/repos/virt
     cp /etc/crio/* /exports/hostfs/etc/crio && \
     if test -e /usr/libexec/cni; then cp -Lr /usr/libexec/cni/* /exports/hostfs/opt/cni/bin/; fi
 
-RUN sed -i '/storage_option =/s/.*/&\n"overlay.override_kernel_check=1",/' /exports/hostfs/etc/crio/crio.conf
+RUN sed -i '/^#storage_option =/s/.*/storage_option = [\n\t"overlay.override_kernel_check=1",\n]/' /exports/hostfs/etc/crio/crio.conf
 
 COPY manifest.json tmpfiles.template config.json.template service.template /exports/
 

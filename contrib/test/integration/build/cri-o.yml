@@ -72,7 +72,7 @@
 - name: add overlay storage opts on RHEL/CentOS
   lineinfile:
     dest: /etc/crio/crio.conf
-    line: '"overlay.override_kernel_check=1"'
+    line: 'storage_option = [ "overlay.override_kernel_check=1", ]'
     insertafter: 'storage_option = \['
     regexp: 'overlay\.override_kernel_check=1'
     state: present

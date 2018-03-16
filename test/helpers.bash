@@ -216,7 +216,7 @@ function start_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --registry "docker.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --config /dev/null config >$CRIO_CONFIG
-
+	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$4" ]]; then
 		netfunc="$4"
