@@ -14,8 +14,11 @@ override CFLAGS += -std=c99 -Os -Wall -Wextra $(shell pkg-config --cflags glib-2
 config.h: ../oci/oci.go
 	$(MAKE) -C .. conmon/config.h
 
-../bin/conmon: config.h $(obj)
+../bin/conmon: config.h $(obj) | ../bin
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
+../bin:
+	mkdir -p $@
 
 .PHONY: clean
 clean:
