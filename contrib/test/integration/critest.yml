@@ -17,7 +17,7 @@
   command: iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
 
 - name: run critest validation
-  shell: "critest -c --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock v"
+  shell: "critest --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock v"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
   async: 5400
@@ -30,7 +30,7 @@
   # https://bugzilla.redhat.com/show_bug.cgi?id=1414236
   # https://access.redhat.com/solutions/2897781
 - name: run critest validation
-  shell: "critest -c --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock -s 'should not allow privilege escalation when true' v"
+  shell: "critest --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --ginkgo.skip='should not allow privilege escalation when true' v"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
   async: 5400
@@ -38,7 +38,7 @@
   when: ansible_distribution in ['RedHat', 'CentOS']
 
 - name: run critest benchmarks
-  shell: "critest -c --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock b"
+  shell: "critest --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock b"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
   async: 5400
