@@ -15,7 +15,7 @@ const (
 	pauseImage          = "kubernetes/pause"
 	pauseCommand        = "/pause"
 	defaultTransport    = "docker://"
-	seccompProfilePath  = "/etc/crio/seccomp.json"
+	seccompProfilePath  = "/usr/lib/crio/seccomp.json"
 	apparmorProfileName = "crio-default"
 	cniConfigDir        = "/etc/cni/net.d/"
 	cniBinDir           = "/opt/cni/bin/"

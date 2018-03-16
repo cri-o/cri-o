@@ -10,6 +10,11 @@ The CRI-O configuration file specifies all of the available command-line options
 for the crio(8) program, but in a TOML format that can be more easily modified
 and versioned.
 
+The default location for the crio.conf file is /usr/lib/crio/crio.conf.  You can
+override the contents by copying crio.conf to /etc/crio/crio.conf and making your changes there.
+Tools that read crio.conf will attempt to read /etc/crio/crio.conf if it exists, if not they
+fail over to read /usr/lib/crio/crio.conf.
+
 # FORMAT
 The [TOML format][toml] is used as the encoding of the configuration file.
 Every option and subtable listed here is nested under a global "crio" table.
@@ -97,7 +102,7 @@ Example:
   Path to the signature policy json file (default: "", to use the system-wide default)
 
 **seccomp_profile**=""
-  Path to the seccomp json profile to be used as the runtime's default (default: "/etc/crio/seccomp.json")
+  Path to the seccomp json profile to be used as the runtime's default (default: "/usr/lib/crio/seccomp.json")
 
 **apparmor_profile**=""
   Name of the apparmor profile to be used as the runtime's default (default: "crio-default")

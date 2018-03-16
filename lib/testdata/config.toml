@@ -11,7 +11,7 @@
     conmon = "/usr/local/libexec/crio/conmon"
     conmon_env = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
     selinux = true
-    seccomp_profile = "/etc/crio/seccomp.json"
+    seccomp_profile = "/usr/lib/crio/seccomp.json"
     apparmor_profile = "crio-default"
     cgroup_manager = "cgroupfs"
     hooks_dir_path = "/usr/share/containers/oci/hooks.d"

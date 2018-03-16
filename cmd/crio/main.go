@@ -47,17 +47,22 @@ func validateConfig(config *server.Config) error {
 }
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
-	// Don't parse the config if the user explicitly set it to "".
-	if path := ctx.GlobalString("config"); path != "" {
-		if err := config.UpdateFromFile(path); err != nil {
-			if ctx.GlobalIsSet("config") || !os.IsNotExist(err) {
+	configFile := server.CrioConfigPath
+	if ctx.GlobalIsSet("config") {
+		configFile = ctx.GlobalString("config")
+	} else if _, err := os.Stat(server.OverrideCrioConfigPath); err == nil {
+		configFile = server.OverrideCrioConfigPath
+	}
+	if configFile != "" {
+		if err := config.UpdateFromFile(configFile); err != nil {
+			if !os.IsNotExist(err) {
 				return err
 			}
 
 			// We don't error out if --config wasn't explicitly set and the
 			// default doesn't exist. But we will log a warning about it, so
 			// the user doesn't miss it.
-			logrus.Warnf("default configuration file does not exist: %s", server.CrioConfigPath)
+			logrus.Warnf("default configuration file does not exist: %s", configFile)
 		}
 	}
 
