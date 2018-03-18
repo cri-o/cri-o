@@ -26,18 +26,18 @@
 
 #include "cmsg.h"
 
-#define error(s)								\
-	do {									\
-		fprintf(stderr, "nsenter: %s %s\n", s, strerror(errno));	\
-		errno = ECOMM;							\
-		goto err; /* return value */					\
+#define error(s) \
+	do { \
+		fprintf(stderr, "nsenter: %s %s\n", s, strerror(errno)); \
+		errno = ECOMM; \
+		goto err; /* return value */ \
 	} while (0)
 
-#define errorf(fmt, ...)									\
-	do {											\
-		fprintf(stderr, "nsenter: " fmt ": %s\n", ##__VA_ARGS__, strerror(errno));	\
-		errno = ECOMM;									\
-		goto err; /* return value */							\
+#define errorf(fmt, ...) \
+	do { \
+		fprintf(stderr, "nsenter: " fmt ": %s\n", ##__VA_ARGS__, strerror(errno)); \
+		errno = ECOMM; \
+		goto err; /* return value */ \
 	} while (0)
 
 /*
@@ -79,7 +79,7 @@ ssize_t sendfd(int sockfd, struct file_t file)
 	cmsg->cmsg_type = SCM_RIGHTS;
 	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
 
-	fdptr = (int *) CMSG_DATA(cmsg);
+	fdptr = (int *)CMSG_DATA(cmsg);
 	memcpy(fdptr, &file.fd, sizeof(int));
 
 	return sendmsg(sockfd, &msg, 0);
@@ -141,7 +141,7 @@ struct file_t recvfd(int sockfd)
 	if (cmsg->cmsg_len != CMSG_LEN(sizeof(int)))
 		errorf("recvfd: expected correct CMSG_LEN in cmsg: %lu", cmsg->cmsg_len);
 
-	fdptr = (int *) CMSG_DATA(cmsg);
+	fdptr = (int *)CMSG_DATA(cmsg);
 	if (!fdptr || *fdptr < 0)
 		error("recvfd: recieved invalid pointer");
 
