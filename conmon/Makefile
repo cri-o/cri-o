@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-all: conmon
+all: ../bin/conmon
 
 src = $(wildcard *.c)
 obj = $(src:.c=.o)
@@ -14,8 +14,8 @@ override CFLAGS += -std=c99 -Os -Wall -Wextra $(shell pkg-config --cflags glib-2
 config.h: ../oci/oci.go
 	$(MAKE) -C .. conmon/config.h
 
-conmon: config.h $(obj)
-	$(CC) -o ../bin/$@ $^ $(CFLAGS) $(LIBS)
+../bin/conmon: config.h $(obj)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 clean:

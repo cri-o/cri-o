@@ -4,8 +4,8 @@ obj = $(src:.c=.o)
 override LIBS +=
 override CFLAGS += -std=c99 -Os -Wall -Wextra -static
 
-pause: $(obj)
-	$(CC) -o ../bin/$@ $^ $(CFLAGS) $(LIBS)
+../bin/pause: $(obj)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 clean:
