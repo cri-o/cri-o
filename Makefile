@@ -65,6 +65,12 @@ lint: .gopathok
 	@echo "checking lint"
 	@./.tool/lint
 
+fmt: gofmt cfmt
+
+cfmt:
+	find . '(' -name '*.h' -o -name '*.c' ')' ! -path './vendor/*'  -exec clang-format -i {} \+
+	git diff --exit-code
+
 gofmt:
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
