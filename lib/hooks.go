@@ -31,14 +31,16 @@ type HookParams struct {
 }
 
 var (
-	errNotJSON = errors.New("hook file isn't a JSON")
+	// ErrNoJSONSuffix represents hook-add attempts where the filename
+	// does not end in '.json'.
+	ErrNoJSONSuffix = errors.New("hook filename does not end in '.json'")
 )
 
 // readHook reads hooks json files, verifies it and returns the json config
 func readHook(hookPath string) (HookParams, error) {
 	var hook HookParams
 	if !strings.HasSuffix(hookPath, ".json") {
-		return hook, errNotJSON
+		return hook, ErrNoJSONSuffix
 	}
 	raw, err := ioutil.ReadFile(hookPath)
 	if err != nil {
@@ -92,7 +94,7 @@ func readHooks(hooksPath string, hooks map[string]HookParams) error {
 	for _, file := range files {
 		hook, err := readHook(filepath.Join(hooksPath, file.Name()))
 		if err != nil {
-			if err == errNotJSON {
+			if err == ErrNoJSONSuffix {
 				continue
 			}
 			return err

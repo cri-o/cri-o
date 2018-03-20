@@ -388,12 +388,18 @@ func (s *Server) StartHooksMonitor() {
 			case event := <-watcher.Events:
 				logrus.Debugf("event: %v", event)
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					logrus.Debugf("removing hook %s", event.Name)
-					s.ContainerServer.RemoveHook(filepath.Base(event.Name))
+					ok := s.ContainerServer.RemoveHook(filepath.Base(event.Name))
+					if ok {
+						logrus.Debugf("removed hook %s", event.Name)
+					}
 				}
 				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
-					logrus.Debugf("adding hook %s", event.Name)
-					s.ContainerServer.AddHook(event.Name)
+					err := s.ContainerServer.AddHook(event.Name)
+					if err == nil {
+						logrus.Debugf("added hook %s", event.Name)
+					} else if err != lib.ErrNoJSONSuffix {
+						logrus.Errorf("failed to add hook %s: %v", event.Name, err)
+					}
 				}
 			case err := <-watcher.Errors:
 				logrus.Debugf("watch error: %v", err)

@@ -62,22 +62,23 @@ func (c *ContainerServer) Hooks() map[string]HookParams {
 }
 
 // RemoveHook removes an hook by name
-func (c *ContainerServer) RemoveHook(hook string) {
+func (c *ContainerServer) RemoveHook(hook string) (ok bool) {
 	c.hooksLock.Lock()
 	defer c.hooksLock.Unlock()
-	if _, ok := c.hooks[hook]; ok {
+	_, ok = c.hooks[hook]
+	if ok {
 		delete(c.hooks, hook)
 	}
+	return ok
 }
 
 // AddHook adds an hook by hook's path
-func (c *ContainerServer) AddHook(hookPath string) {
+func (c *ContainerServer) AddHook(hookPath string) (err error) {
 	c.hooksLock.Lock()
 	defer c.hooksLock.Unlock()
 	hook, err := readHook(hookPath)
 	if err != nil {
-		logrus.Debugf("error while reading hook %s", hookPath)
-		return
+		return err
 	}
 	for key, h := range c.hooks {
 		// hook.Hook can only be defined in one hook file, unless it has the
@@ -87,6 +88,7 @@ func (c *ContainerServer) AddHook(hookPath string) {
 		}
 	}
 	c.hooks[filepath.Base(hookPath)] = hook
+	return nil
 }
 
 // Store returns the Store for the ContainerServer
