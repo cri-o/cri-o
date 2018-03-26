@@ -11,7 +11,7 @@
   command: "/usr/bin/go install github.com/kubernetes-incubator/cri-tools/cmd/crictl"
 
 - name: install critest
-  command: "/usr/bin/go install github.com/kubernetes-incubator/cri-tools/cmd/critest"
+  command: "/usr/bin/go test -c github.com/kubernetes-incubator/cri-tools/cmd/critest -o {{ ansible_env.GOPATH }}/bin/critest"
 
 - name: link crictl
   file:
