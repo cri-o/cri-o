@@ -180,8 +180,9 @@ func New(config *Config) (*ContainerServer, error) {
 		if err := readHooks(config.HooksDirPath, hooks); err != nil {
 			return nil, err
 		}
-		// If user overrode default hooks, this means it is in a test, so don't
-		// use OverrideHooksDirPath
+		// If user overrode default hooks, this means it is in a test, so
+		// don't use OverrideHooksDirPath.  Sync with server/server.go's
+		// StartHooksMonitor.
 		if config.HooksDirPath == DefaultHooksDirPath {
 			if err := readHooks(OverrideHooksDirPath, hooks); err != nil {
 				return nil, err
