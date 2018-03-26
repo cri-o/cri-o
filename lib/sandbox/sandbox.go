@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
@@ -166,6 +167,8 @@ type Sandbox struct {
 	seccompProfilePath string
 	created            time.Time
 	hostNetwork        bool
+	uidMap             []specs.LinuxIDMapping
+	gidMap             []specs.LinuxIDMapping
 }
 
 const (
@@ -190,7 +193,7 @@ var (
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
 // An infra container must be attached before the sandbox is added to the state
-func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged, trusted bool, resolvPath, hostname string, portMappings []*hostport.PortMapping) (*Sandbox, error) {
+func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged, trusted bool, resolvPath, hostname string, portMappings []*hostport.PortMapping, uidMap, gidMap []specs.LinuxIDMapping) (*Sandbox, error) {
 	sb := new(Sandbox)
 	sb.id = id
 	sb.namespace = namespace
@@ -211,6 +214,8 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.hostname = hostname
 	sb.portMappings = portMappings
 	sb.created = time.Now()
+	sb.uidMap = uidMap
+	sb.gidMap = gidMap
 
 	return sb, nil
 }
@@ -357,6 +362,18 @@ func (s *Sandbox) PortMappings() []*hostport.PortMapping {
 	return s.portMappings
 }
 
+// UIDMap returns a list of uid mappings being used by the sandbox's
+// infrastructure container and its user namespace
+func (s *Sandbox) UIDMap() []specs.LinuxIDMapping {
+	return s.uidMap
+}
+
+// GIDMap returns a list of gid mappings being used by the sandbox's
+// infrastructure container and its user namespace
+func (s *Sandbox) GIDMap() []specs.LinuxIDMapping {
+	return s.gidMap
+}
+
 // AddContainer adds a container to the sandbox
 func (s *Sandbox) AddContainer(c *oci.Container) {
 	s.containers.Add(c.Name(), c)
@@ -431,7 +448,7 @@ func (s *Sandbox) NetNsCreate() error {
 	}
 
 	if err := s.netns.symlinkCreate(s.name); err != nil {
-		logrus.Warnf("Could not create nentns symlink %v", err)
+		logrus.Warnf("Could not create netns symlink %v", err)
 
 		if err1 := s.netns.netNS.Close(); err1 != nil {
 			return err1

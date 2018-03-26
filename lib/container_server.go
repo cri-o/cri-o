@@ -371,8 +371,19 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
 		return err
 	}
+	var uidMap, gidMap []rspec.LinuxIDMapping
+	if len(m.Annotations[annotations.UIDMappings]) > 0 {
+		if err := json.Unmarshal([]byte(m.Annotations[annotations.UIDMappings]), &uidMap); err != nil {
+			return err
+		}
+	}
+	if len(m.Annotations[annotations.GIDMappings]) > 0 {
+		if err := json.Unmarshal([]byte(m.Annotations[annotations.GIDMappings]), &gidMap); err != nil {
+			return err
+		}
+	}
 
-	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, trusted, m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings)
+	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, trusted, m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, uidMap, gidMap)
 	if err != nil {
 		return err
 	}

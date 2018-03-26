@@ -383,6 +383,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
 
+	uidMapJSON, err := json.Marshal(podContainer.UIDMap)
+	if err != nil {
+		return nil, err
+	}
+	g.AddAnnotation(annotations.UIDMappings, string(uidMapJSON))
+	gidMapJSON, err := json.Marshal(podContainer.GIDMap)
+	if err != nil {
+		return nil, err
+	}
+	g.AddAnnotation(annotations.GIDMappings, string(gidMapJSON))
+
 	// setup cgroup settings
 	cgroupParent := req.GetConfig().GetLinux().GetCgroupParent()
 	if cgroupParent != "" {
@@ -406,7 +417,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
-	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings)
+	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings, podContainer.UIDMap, podContainer.GIDMap)
 	if err != nil {
 		return nil, err
 	}

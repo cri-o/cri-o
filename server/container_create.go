@@ -1254,6 +1254,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddAnnotation("org.opencontainers.image.stopSignal", containerImageConfig.Config.StopSignal)
 	}
 
+	uidMapJSON, err := json.Marshal(containerInfo.UIDMap)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation(annotations.UIDMappings, string(uidMapJSON))
+	gidMapJSON, err := json.Marshal(containerInfo.GIDMap)
+	if err != nil {
+		return nil, err
+	}
+	specgen.AddAnnotation(annotations.GIDMappings, string(gidMapJSON))
+
 	// Add image volumes
 	volumeMounts, err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, mountLabel)
 	if err != nil {

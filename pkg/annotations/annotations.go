@@ -46,6 +46,12 @@ const (
 	// PortMappings holds the port mappings for the sandbox
 	PortMappings = "io.kubernetes.cri-o.PortMappings"
 
+	// UIDMappings holds the UID mappings for the sandbox's or container's user namespace
+	UIDMappings = "io.kubernetes.cri-o.UIDMappings"
+
+	// GIDMappings holds the GID mappings for the sandbox's or container's user namespace
+	GIDMappings = "io.kubernetes.cri-o.GIDMappings"
+
 	// Labels are the kubernetes labels annotation
 	Labels = "io.kubernetes.cri-o.Labels"
 

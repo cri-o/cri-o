@@ -65,6 +65,8 @@ func (s *Server) getContainerInfo(id string, getContainerFunc func(id string) *o
 		LogPath:         ctr.LogPath(),
 		Sandbox:         ctr.Sandbox(),
 		IP:              sb.IP(),
+		UIDMap:          ctr.UIDMap(),
+		GIDMap:          ctr.GIDMap(),
 	}, nil
 
 }
