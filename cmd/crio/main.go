@@ -10,8 +10,10 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/kubernetes-incubator/cri-o/lib"
@@ -44,6 +46,32 @@ func validateConfig(config *server.Config) error {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}
 	return nil
+}
+
+func parseIDMap(spec []string) (m [][3]int, err error) {
+	for _, s := range spec {
+		args := strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsDigit(r) })
+		if len(args)%3 != 0 {
+			return nil, fmt.Errorf("mapping %q is not in the form containerid:hostid:size", s)
+		}
+		for len(args) >= 3 {
+			cid, err := strconv.ParseInt(args[0], 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing container ID %q from mapping %q as a number: %v", args[0], s, err)
+			}
+			hostid, err := strconv.ParseInt(args[1], 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing host ID %q from mapping %q as a number: %v", args[1], s, err)
+			}
+			size, err := strconv.ParseInt(args[2], 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing %q from mapping %q as a number: %v", args[2], s, err)
+			}
+			m = append(m, [3]int{int(cid), int(hostid), int(size)})
+			args = args[3:]
+		}
+	}
+	return m, nil
 }
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
@@ -85,6 +113,26 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	}
 	if ctx.GlobalIsSet("storage-opt") {
 		config.StorageOptions = ctx.GlobalStringSlice("storage-opt")
+	}
+	if ctx.GlobalIsSet("userns-uid-map") {
+		idmap, err := parseIDMap(ctx.GlobalStringSlice("userns-uid-map"))
+		if err != nil {
+			return err
+		}
+		config.UIDMap = idmap
+	}
+	if ctx.GlobalIsSet("userns-gid-map") {
+		idmap, err := parseIDMap(ctx.GlobalStringSlice("userns-gid-map"))
+		if err != nil {
+			return err
+		}
+		config.GIDMap = idmap
+	}
+	if ctx.GlobalIsSet("userns-uid-map-user") {
+		config.UIDMapUser = ctx.GlobalString("userns-uid-map-user")
+	}
+	if ctx.GlobalIsSet("userns-gid-map-group") {
+		config.GIDMapGroup = ctx.GlobalString("userns-gid-map-group")
 	}
 	if ctx.GlobalIsSet("file-locking") {
 		config.FileLocking = ctx.GlobalBool("file-locking")
@@ -261,6 +309,22 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "storage-opt",
 			Usage: "storage driver option",
+		},
+		cli.StringSliceFlag{
+			Name:  "userns-uid-map",
+			Usage: "storage default uid map",
+		},
+		cli.StringSliceFlag{
+			Name:  "userns-gid-map",
+			Usage: "storage default gid map",
+		},
+		cli.StringFlag{
+			Name:  "userns-uid-map-user",
+			Usage: "storage default uid map subuid entry name",
+		},
+		cli.StringFlag{
+			Name:  "userns-gid-map-group",
+			Usage: "storage default gid map subgid entry name",
 		},
 		cli.BoolFlag{
 			Name:  "file-locking",

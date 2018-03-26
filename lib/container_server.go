@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
@@ -129,13 +130,46 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 	return c.storageRuntimeServer
 }
 
+// parseIDMaps makes sense of the four ID mapping options that we might have to
+// process, returning maps for UIDs and GIDs to use as defaults for storage.
+func parseIDMaps(uidMap, gidMap [][3]int, uidMapUser, gidMapGroup string) (uidmap, gidmap []idtools.IDMap, _ error) {
+	if uidMapUser == "" && gidMapGroup != "" {
+		uidMapUser = gidMapGroup
+	}
+	if gidMapGroup == "" && uidMapUser != "" {
+		gidMapGroup = uidMapUser
+	}
+	if uidMapUser != "" {
+		mappings, err := idtools.NewIDMappings(uidMapUser, gidMapGroup)
+		if err != nil {
+			return nil, nil, err
+		}
+		uidmap = mappings.UIDs()
+		gidmap = mappings.GIDs()
+	}
+	for _, m := range uidMap {
+		uidmap = append(uidmap, idtools.IDMap{ContainerID: m[0], HostID: m[1], Size: m[2]})
+	}
+	for _, m := range gidMap {
+		gidmap = append(gidmap, idtools.IDMap{ContainerID: m[0], HostID: m[1], Size: m[2]})
+	}
+	return uidmap, gidmap, nil
+}
+
 // New creates a new ContainerServer with options provided
 func New(config *Config) (*ContainerServer, error) {
+	uidmap, gidmap, err := parseIDMaps(config.UIDMap, config.GIDMap, config.UIDMapUser, config.GIDMapGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	store, err := cstorage.GetStore(cstorage.StoreOptions{
 		RunRoot:            config.RunRoot,
 		GraphRoot:          config.Root,
 		GraphDriverName:    config.Storage,
 		GraphDriverOptions: config.StorageOptions,
+		UIDMap:             uidmap,
+		GIDMap:             gidmap,
 	})
 	if err != nil {
 		return nil, err
