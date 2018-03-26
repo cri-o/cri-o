@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/storage/pkg/idtools"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
@@ -606,6 +607,15 @@ func hostNetwork(containerConfig *pb.ContainerConfig) bool {
 	return securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 }
 
+func containerNetwork(containerConfig *pb.ContainerConfig) bool {
+	securityContext := containerConfig.GetLinux().GetSecurityContext()
+	if securityContext == nil || securityContext.GetNamespaceOptions() == nil {
+		return false
+	}
+
+	return securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_CONTAINER
+}
+
 // ensureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes
 // logPath to be a broken symlink to some magical Docker path. Ideally we
 // wouldn't have to deal with this, but until that issue is fixed we have to
@@ -1056,10 +1066,126 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 
-	// Force host mapping for the container's content.
-	idmapOptions := &storage.IDMapOptions{
-		HostUIDMapping: true,
-		HostGIDMapping: true,
+	// Decide which user namespace to use and what ID mappings we should specify for the container's storage.
+	var idmapOptions *storage.IDMapOptions
+	userNamespaceMode := pb.NamespaceMode_NODE
+	if linux != nil {
+		// If we ever get User namespace options, this should probably key off of that.  In the
+		// meantime, if we're privileged, use the host user namespace.  Otherwise, use the pod's
+		// user namespace, unless we were passed annotations telling us which mappings to use,
+		// in which case we'll set up a user namespace for just the container.
+		if !privileged {
+			userNamespaceMode = pb.NamespaceMode_POD
+			if kubeAnnotations[annotations.UIDMappings] != "" || kubeAnnotations[annotations.GIDMappings] != "" {
+				userNamespaceMode = pb.NamespaceMode_CONTAINER
+			}
+		}
+		switch userNamespaceMode {
+		case pb.NamespaceMode_NODE:
+			// We're going to use the host user namespace, so use no ID mappings.
+			if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
+				return nil, err
+			}
+			idmapOptions = &storage.IDMapOptions{
+				HostUIDMapping: true,
+				HostGIDMapping: true,
+			}
+		case pb.NamespaceMode_POD:
+			// Use the sandbox's user namespace and ID mappings.
+			userns, err := sb.UserNsPath()
+			if err != nil {
+				if !os.IsNotExist(err) {
+					return nil, fmt.Errorf("error determining path of user namespace for pod: %v", err)
+				}
+				empty := ""
+				userns = &empty
+			}
+			if userns == nil || *userns == "" {
+				// The sandbox is also in the host user namespace.
+				if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
+					return nil, err
+				}
+				idmapOptions = &storage.IDMapOptions{
+					HostUIDMapping: true,
+					HostGIDMapping: true,
+				}
+			} else {
+				// The sandbox is in its own user namespace -- configure to use its ID mappings.
+				if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UserNamespace), *userns); err != nil {
+					return nil, err
+				}
+				idmapOptions = &storage.IDMapOptions{
+					UIDMap: sb.UIDMap(),
+					GIDMap: sb.GIDMap(),
+				}
+			}
+		case pb.NamespaceMode_CONTAINER:
+			// Use a fresh namespace and the mappings from the daemon's configuration.
+			if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UserNamespace), ""); err != nil {
+				return nil, err
+			}
+			// Start with our defaults, but allow overriding the mappings using annotations.
+			uidmap := s.Store().UIDMap()
+			gidmap := s.Store().GIDMap()
+			if uidmapAnnotation, ok := kubeAnnotations[annotations.UIDMappings]; ok {
+				m := []idtools.IDMap{}
+				if err = json.Unmarshal([]byte(uidmapAnnotation), &m); err != nil {
+					return nil, fmt.Errorf("error decoding uid mapping array %q", uidmapAnnotation)
+				}
+				uidmap = m
+			}
+			if gidmapAnnotation, ok := kubeAnnotations[annotations.GIDMappings]; ok {
+				m := []idtools.IDMap{}
+				if err = json.Unmarshal([]byte(gidmapAnnotation), &m); err != nil {
+					return nil, fmt.Errorf("error decoding gid mapping array %q", gidmapAnnotation)
+				}
+				gidmap = m
+			}
+			idmapOptions = &storage.IDMapOptions{}
+			for _, m := range uidmap {
+				idmapOptions.UIDMap = append(idmapOptions.UIDMap, rspec.LinuxIDMapping{
+					ContainerID: uint32(m.ContainerID),
+					HostID:      uint32(m.HostID),
+					Size:        uint32(m.Size),
+				})
+			}
+			for _, m := range gidmap {
+				idmapOptions.GIDMap = append(idmapOptions.GIDMap, rspec.LinuxIDMapping{
+					ContainerID: uint32(m.ContainerID),
+					HostID:      uint32(m.HostID),
+					Size:        uint32(m.Size),
+				})
+			}
+		default:
+			return nil, fmt.Errorf("unknown user namespace mode %v", userNamespaceMode)
+		}
+		// Multiple tools check for a uid_map/gid_map node under /proc that contains just
+		// one identity mapping, and assume they're in the initial user namespace if they
+		// find it.  If we're not using the host namespace, but have no specific mappings
+		// to set, configure this namespace to produce the same mapping, but in a way that
+		// they'll correctly detect as being in a non-host namespace.
+		if !idmapOptions.HostUIDMapping && len(idmapOptions.UIDMap) == 0 {
+			idmapOptions.UIDMap = append(idmapOptions.UIDMap, rspec.LinuxIDMapping{
+				HostID:      0,
+				ContainerID: 0,
+				Size:        0x80000000,
+			}, rspec.LinuxIDMapping{
+				HostID:      0x80000000,
+				ContainerID: 0x80000000,
+				Size:        0x7fffffff,
+			})
+		}
+		if !idmapOptions.HostGIDMapping && len(idmapOptions.GIDMap) == 0 {
+			idmapOptions.GIDMap = append(idmapOptions.GIDMap, rspec.LinuxIDMapping{
+				HostID:      0,
+				ContainerID: 0,
+				Size:        0x80000000,
+			}, rspec.LinuxIDMapping{
+				HostID:      0x80000000,
+				ContainerID: 0x80000000,
+				Size:        0x7fffffff,
+			})
+		}
 	}
 
 	netNsPath := sb.NetNsPath()
@@ -1139,7 +1265,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			Type:        "bind",
 			Source:      sb.ResolvPath(),
 			Destination: "/etc/resolv.conf",
-			Options:     append(options, "bind"),
+			Options:     append(options, "bind", "nosuid", "nodev"),
 		}
 		// bind mount the pod resolver file
 		specgen.AddMount(mnt)
@@ -1154,7 +1280,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			Type:        "bind",
 			Source:      sb.HostnamePath(),
 			Destination: "/etc/hostname",
-			Options:     append(options, "bind"),
+			Options:     append(options, "bind", "nosuid", "nodev"),
 		}
 		specgen.AddMount(mnt)
 	}
@@ -1165,7 +1291,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			Type:        "bind",
 			Source:      "/etc/hosts",
 			Destination: "/etc/hosts",
-			Options:     append(options, "bind"),
+			Options:     append(options, "bind", "nosuid", "nodev"),
 		}
 		specgen.AddMount(mnt)
 	}
@@ -1249,6 +1375,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
 
+	// Map owners of parent directories of the container's root directory.
 	if len(containerInfo.UIDMap) > 0 || len(containerInfo.GIDMap) > 0 {
 		uids, gids, err := containerInfo.UnmappedIDs()
 		if err != nil {
@@ -1266,6 +1393,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.AddLinuxGIDMapping(gid, availableID, 1)
 			availableID--
 		}
+	}
+
+	// If our user namespace doesn't own our network namespace, don't mount a fresh /sys, bind mount the host's.
+	if userNamespaceMode == pb.NamespaceMode_CONTAINER && !containerNetwork(containerConfig) {
+		specgen.RemoveMount("/sys")
+		mnt := rspec.Mount{
+			Type:        "bind",
+			Source:      "/sys",
+			Destination: "/sys",
+			Options:     []string{"ro", "rbind", "nosuid", "nodev"},
+		}
+		specgen.AddMount(mnt)
 	}
 
 	containerImageConfig := containerInfo.Config
@@ -1372,13 +1511,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			}
 			for _, m := range containerInfo.GIDMap {
 				specgen.AddLinuxGIDMapping(m.HostID, m.ContainerID, m.Size)
-			}
-			if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UserNamespace), ""); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
-				return nil, err
 			}
 		}
 	}

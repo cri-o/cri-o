@@ -259,17 +259,17 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		return ContainerInfo{}, err
 	}
 
-	// Force host ID mapping (i.e., no mapping) for ownership for the contents of the container.
+	// Sort out how the ownership for the contents of the container should work.
 	if idmapOptions == nil {
 		idmapOptions = &IDMapOptions{}
 	}
-	if !idmapOptions.HostUIDMapping || !idmapOptions.HostGIDMapping {
-		return ContainerInfo{}, fmt.Errorf("unable to configure UID or GID mappings")
-	}
+	idmaps := convertRuntimeIDMaps(idmapOptions.UIDMap, idmapOptions.GIDMap)
 	containerOptions := &storage.ContainerOptions{
 		IDMappingOptions: storage.IDMappingOptions{
 			HostUIDMapping: idmapOptions.HostUIDMapping,
 			HostGIDMapping: idmapOptions.HostGIDMapping,
+			UIDMap:         idmaps.UIDs(),
+			GIDMap:         idmaps.GIDs(),
 		},
 	}
 
@@ -531,4 +531,26 @@ func convertStorageIDMaps(UIDMap, GIDMap []idtools.IDMap) ([]specs.LinuxIDMappin
 		}
 	}
 	return uidmap, gidmap
+}
+
+// convertRuntimeIDMaps converts ID maps from the format that we want to pass
+// to a runtime to the format that the storage library uses internally.
+func convertRuntimeIDMaps(UIDMap, GIDMap []specs.LinuxIDMapping) *idtools.IDMappings {
+	uidmap := make([]idtools.IDMap, len(UIDMap))
+	gidmap := make([]idtools.IDMap, len(GIDMap))
+	for i, m := range UIDMap {
+		uidmap[i] = idtools.IDMap{
+			ContainerID: int(m.ContainerID),
+			HostID:      int(m.HostID),
+			Size:        int(m.Size),
+		}
+	}
+	for i, m := range GIDMap {
+		gidmap[i] = idtools.IDMap{
+			ContainerID: int(m.ContainerID),
+			HostID:      int(m.HostID),
+			Size:        int(m.Size),
+		}
+	}
+	return idtools.NewIDMappingsFromMaps(uidmap, gidmap)
 }

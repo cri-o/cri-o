@@ -460,6 +460,29 @@ func (s *Sandbox) NetNsCreate() error {
 	return nil
 }
 
+// UserNsPath returns the path to the user namespace of the sandbox.
+// If the sandbox uses the same namespace as the caller, nil is returned
+func (s *Sandbox) UserNsPath() (*string, error) {
+	hostNS, err := os.Readlink("/proc/self/ns/user")
+	if err != nil {
+		return nil, err
+	}
+	if s.infraContainer != nil {
+		if pid := s.infraContainer.State().Pid; pid != 0 {
+			podPath := fmt.Sprintf("/proc/%v/ns/user", pid)
+			podNS, err := os.Readlink(podPath)
+			if err != nil {
+				return nil, err
+			}
+			if podNS == hostNS {
+				return nil, nil
+			}
+			return &podPath, nil
+		}
+	}
+	return nil, nil
+}
+
 // SetStopped sets the sandbox state to stopped.
 // This should be set after a stop operation succeeds
 // so that subsequent stops can return fast.

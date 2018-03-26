@@ -13,6 +13,7 @@ import (
 	"time"
 
 	cstorage "github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
@@ -114,6 +115,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
 	}
 
+	kubeAnnotations := req.GetConfig().GetAnnotations()
 	namespace := req.GetConfig().GetMetadata().GetNamespace()
 	attempt := req.GetConfig().GetMetadata().GetAttempt()
 
@@ -157,10 +159,52 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	// Force host ID mapping for the infrastructure container's contents.
+	// Use our configuration to specify ID mappings for the container's storage.  Maybe this will be
+	// configurable in req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions() later.
+	// Until then, we'll do some guesswork.
+	uidmap := []idtools.IDMap{}
+	gidmap := []idtools.IDMap{}
+	if s.privilegedSandbox(req) {
+		// Privileged sandboxes use the host user namespace.
+		uidmap = nil
+		gidmap = nil
+	} else {
+		// Allow overriding the default mappings using annotations, else default to our global
+		// defaults, which may still be "no mappings".
+		uidmap = s.Store().UIDMap()
+		if uidmapAnnotation, ok := kubeAnnotations[annotations.UIDMappings]; ok {
+			m := []idtools.IDMap{}
+			if err = json.Unmarshal([]byte(uidmapAnnotation), &m); err != nil {
+				return nil, fmt.Errorf("error decoding uid mapping array %q", uidmapAnnotation)
+			}
+			uidmap = m
+		}
+		gidmap = s.Store().GIDMap()
+		if gidmapAnnotation, ok := kubeAnnotations[annotations.GIDMappings]; ok {
+			m := []idtools.IDMap{}
+			if err = json.Unmarshal([]byte(gidmapAnnotation), &m); err != nil {
+				return nil, fmt.Errorf("error decoding gid mapping array %q", gidmapAnnotation)
+			}
+			gidmap = m
+		}
+	}
 	idmapOptions := storage.IDMapOptions{
-		HostUIDMapping: true,
-		HostGIDMapping: true,
+		HostUIDMapping: len(uidmap) == 0,
+		HostGIDMapping: len(gidmap) == 0,
+	}
+	for _, m := range uidmap {
+		idmapOptions.UIDMap = append(idmapOptions.UIDMap, runtimespec.LinuxIDMapping{
+			ContainerID: uint32(m.ContainerID),
+			HostID:      uint32(m.HostID),
+			Size:        uint32(m.Size),
+		})
+	}
+	for _, m := range gidmap {
+		idmapOptions.GIDMap = append(idmapOptions.GIDMap, runtimespec.LinuxIDMapping{
+			ContainerID: uint32(m.ContainerID),
+			HostID:      uint32(m.HostID),
+			Size:        uint32(m.Size),
+		})
 	}
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.ImageContext(),
 		name, id,
@@ -228,7 +272,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			Type:        "bind",
 			Source:      resolvPath,
 			Destination: "/etc/resolv.conf",
-			Options:     []string{"ro", "bind"},
+			Options:     []string{"ro", "bind", "nosuid", "nodev"},
 		}
 		g.AddMount(mnt)
 	}
@@ -258,7 +302,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// add annotations
-	kubeAnnotations := req.GetConfig().GetAnnotations()
 	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
 		return nil, err
