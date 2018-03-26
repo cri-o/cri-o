@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -98,13 +97,6 @@ func readHooks(hooksPath string, hooks map[string]HookParams) error {
 				continue
 			}
 			return err
-		}
-		for key, h := range hooks {
-			// hook.Hook can only be defined in one hook file, unless it has the
-			// same name in the override path.
-			if hook.Hook == h.Hook && key != file.Name() {
-				return errors.Wrapf(syscall.EINVAL, "duplicate path,  hook %q from %q already defined in %q", hook.Hook, hooksPath, key)
-			}
 		}
 		hooks[file.Name()] = hook
 	}
