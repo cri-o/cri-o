@@ -221,6 +221,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err := label.Relabel(resolvPath, mountLabel, true); err != nil && err != unix.ENOTSUP {
 			return nil, err
 		}
+		if err := unix.Chown(resolvPath, int(podContainer.RootUID), int(podContainer.RootGID)); err != nil {
+			return nil, err
+		}
 		mnt := runtimespec.Mount{
 			Type:        "bind",
 			Source:      resolvPath,
@@ -417,6 +420,24 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
+	if len(podContainer.UIDMap) > 0 || len(podContainer.GIDMap) > 0 {
+		// Set ID mappings in the namespace to match the on-disk values, which may have been
+		// set even if we didn't specifically request any.
+		for _, m := range podContainer.UIDMap {
+			g.AddLinuxUIDMapping(m.HostID, m.ContainerID, m.Size)
+		}
+		for _, m := range podContainer.GIDMap {
+			g.AddLinuxGIDMapping(m.HostID, m.ContainerID, m.Size)
+		}
+		if err := g.AddOrReplaceLinuxNamespace(string(runtimespec.UserNamespace), ""); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := g.RemoveLinuxNamespace(string(runtimespec.UserNamespace)); err != nil {
+			return nil, err
+		}
+	}
+
 	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings, podContainer.UIDMap, podContainer.GIDMap)
 	if err != nil {
 		return nil, err
@@ -516,6 +537,25 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 	g.SetRootPath(mountPoint)
 
+	if len(podContainer.UIDMap) > 0 || len(podContainer.GIDMap) > 0 {
+		uids, gids, err := podContainer.UnmappedIDs()
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve list of unmapped IDs for container %s above pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
+		}
+		availableID := uint32(0xffffffff) - 1
+		for _, uid := range uids {
+			logrus.Debugf("mapping host UID %d to container UID %d", uid, availableID)
+			g.AddLinuxUIDMapping(uid, availableID, 1)
+			availableID--
+		}
+		availableID = uint32(0xffffffff) - 1
+		for _, gid := range gids {
+			logrus.Debugf("mapping host GID %d to container GID %d", gid, availableID)
+			g.AddLinuxGIDMapping(gid, availableID, 1)
+			availableID--
+		}
+	}
+
 	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
 	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
 		return nil, err
@@ -527,7 +567,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		Type:        "bind",
 		Source:      hostnamePath,
 		Destination: "/etc/hostname",
-		Options:     []string{"ro", "bind"},
+		Options:     []string{"ro", "bind", "nosuid", "nodev"},
 	}
 	g.AddMount(mnt)
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)

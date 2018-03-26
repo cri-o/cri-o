@@ -1237,11 +1237,36 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}()
 
+	if sb.ResolvPath() != "" {
+		if err := unix.Chown(sb.ResolvPath(), int(containerInfo.RootUID), int(containerInfo.RootGID)); err != nil {
+			return nil, err
+		}
+	}
+
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
 	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
+
+	if len(containerInfo.UIDMap) > 0 || len(containerInfo.GIDMap) > 0 {
+		uids, gids, err := containerInfo.UnmappedIDs()
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve list of unmapped-but-relevant IDs for container %s(%s): %v", containerName, containerID, err)
+		}
+		availableID := uint32(0xffffffff) - 1
+		for _, uid := range uids {
+			logrus.Debugf("mapping host UID %d to container UID %d", uid, availableID)
+			specgen.AddLinuxUIDMapping(uid, availableID, 1)
+			availableID--
+		}
+		availableID = uint32(0xffffffff) - 1
+		for _, gid := range gids {
+			logrus.Debugf("mapping host GID %d to container GID %d", gid, availableID)
+			specgen.AddLinuxGIDMapping(gid, availableID, 1)
+			availableID--
+		}
+	}
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
@@ -1338,6 +1363,23 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if linux != nil {
 		if err = setupContainerUser(&specgen, mountPoint, linux.GetSecurityContext(), containerImageConfig); err != nil {
 			return nil, err
+		}
+		// Set ID mappings in the namespace to match the on-disk values, which may have been
+		// set even if we didn't specifically request any.
+		if len(containerInfo.UIDMap) > 0 || len(containerInfo.GIDMap) > 0 {
+			for _, m := range containerInfo.UIDMap {
+				specgen.AddLinuxUIDMapping(m.HostID, m.ContainerID, m.Size)
+			}
+			for _, m := range containerInfo.GIDMap {
+				specgen.AddLinuxGIDMapping(m.HostID, m.ContainerID, m.Size)
+			}
+			if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UserNamespace), ""); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
+				return nil, err
+			}
 		}
 	}
 
