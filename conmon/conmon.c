@@ -139,6 +139,7 @@ static char *opt_cuuid = NULL;
 static char *opt_runtime_path = NULL;
 static char *opt_bundle_path = NULL;
 static char *opt_container_pid_file = NULL;
+static char *opt_conmon_pid_file = NULL;
 static bool opt_systemd_cgroup = false;
 static bool opt_no_pivot = false;
 static char *opt_exec_process_spec = NULL;
@@ -167,6 +168,7 @@ static GOptionEntry opt_entries[] = {
 	{"bundle", 'b', 0, G_OPTION_ARG_STRING, &opt_bundle_path, "Bundle path", NULL},
 	{"pidfile", 0, 0, G_OPTION_ARG_STRING, &opt_container_pid_file, "PID file (DEPRECATED)", NULL},
 	{"container-pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_container_pid_file, "Container PID file", NULL},
+	{"conmon-pidfile", 'P', 0, G_OPTION_ARG_STRING, &opt_conmon_pid_file, "Conmon daemon PID file", NULL},
 	{"systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL},
 	{"exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL},
 	{"exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL},
@@ -1293,6 +1295,14 @@ int main(int argc, char *argv[])
 	if (main_pid < 0) {
 		pexit("Failed to fork the create command");
 	} else if (main_pid != 0) {
+		if (opt_conmon_pid_file) {
+			char content[12];
+			sprintf(content, "%i", main_pid);
+			g_file_set_contents(opt_conmon_pid_file, content, strlen(content), &err);
+			if (err) {
+				nexitf("Failed to write conmon pidfile: %s", err->message);
+			}
+		}
 		exit(0);
 	}
 
