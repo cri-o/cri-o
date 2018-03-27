@@ -138,7 +138,7 @@ static char *opt_cid = NULL;
 static char *opt_cuuid = NULL;
 static char *opt_runtime_path = NULL;
 static char *opt_bundle_path = NULL;
-static char *opt_pid_file = NULL;
+static char *opt_container_pid_file = NULL;
 static bool opt_systemd_cgroup = false;
 static bool opt_no_pivot = false;
 static char *opt_exec_process_spec = NULL;
@@ -165,7 +165,8 @@ static GOptionEntry opt_entries[] = {
 	{"no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "Do not use pivot_root", NULL},
 	{"replace-listen-pid", 0, 0, G_OPTION_ARG_NONE, &opt_replace_listen_pid, "Replace listen pid if set for oci-runtime pid", NULL},
 	{"bundle", 'b', 0, G_OPTION_ARG_STRING, &opt_bundle_path, "Bundle path", NULL},
-	{"pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_pid_file, "PID file", NULL},
+	{"pidfile", 0, 0, G_OPTION_ARG_STRING, &opt_container_pid_file, "PID file (DEPRECATED)", NULL},
+	{"container-pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_container_pid_file, "Container PID file", NULL},
 	{"systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL},
 	{"exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL},
 	{"exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL},
@@ -1265,9 +1266,9 @@ int main(int argc, char *argv[])
 		nexit("Exec process spec path not provided. Use --exec-process-spec");
 	}
 
-	if (opt_pid_file == NULL) {
+	if (opt_container_pid_file == NULL) {
 		default_pid_file = g_strdup_printf("%s/pidfile-%s", cwd, opt_cid);
-		opt_pid_file = default_pid_file;
+		opt_container_pid_file = default_pid_file;
 	}
 
 	if (opt_log_path == NULL)
@@ -1370,7 +1371,7 @@ int main(int argc, char *argv[])
 		add_argv(runtime_argv, "--systemd-cgroup", NULL);
 
 	if (opt_exec) {
-		add_argv(runtime_argv, "exec", "-d", "--pid-file", opt_pid_file, NULL);
+		add_argv(runtime_argv, "exec", "-d", "--pid-file", opt_container_pid_file, NULL);
 	} else {
 		char *command;
 		if (opt_restore_path)
@@ -1378,7 +1379,7 @@ int main(int argc, char *argv[])
 		else
 			command = "create";
 
-		add_argv(runtime_argv, command, "--bundle", opt_bundle_path, "--pid-file", opt_pid_file, NULL);
+		add_argv(runtime_argv, command, "--bundle", opt_bundle_path, "--pid-file", opt_container_pid_file, NULL);
 
 		if (opt_restore_path) {
 			/*
@@ -1550,7 +1551,7 @@ int main(int argc, char *argv[])
 		nexit("Runtime did not set up terminal");
 
 	/* Read the pid so we can wait for the process to exit */
-	g_file_get_contents(opt_pid_file, &contents, NULL, &err);
+	g_file_get_contents(opt_container_pid_file, &contents, NULL, &err);
 	if (err) {
 		nwarnf("Failed to read pidfile: %s", err->message);
 		g_error_free(err);
