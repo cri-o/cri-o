@@ -50,6 +50,20 @@ separate from the rest of the PRs. But, squashing down to just one commit is ok
 too since in the end the entire PR will be reviewed anyway. When in doubt,
 squash.
 
+Test your changes by running:
+
+```console
+$ make fmt
+$ make lint
+```
+
+And you can run the test suite if you have access to elevated permissions:
+
+```console
+# make testunit
+# make integration  # or, if you don't want to use Docker, localintegration
+```
+
 PRs that fix issues should include a reference like `Closes #XXXX` in the
 commit message so that github will automatically close the referenced issue
 when the PR is merged.
