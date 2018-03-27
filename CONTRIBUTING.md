@@ -55,6 +55,7 @@ commit message so that github will automatically close the referenced issue
 when the PR is merged.
 
 Most PRs will be reviewed by two [approvers][prow-approvers] (listed [here](OWNERS)).
+Some maintainers add themselves to [`CODEOWNERS`](.github/CODEOWNERS) to manage their [review notifications][code-owners], but those entries have no governance significance.
 
 ### Sign your PRs
 
@@ -122,4 +123,5 @@ and
 [PRs](https://github.com/kubernetes-incubator/cri-o/pulls)
 tracking system.
 
+[code-owners]: https://help.github.com/articles/about-codeowners/
 [prow-approvers]: https://github.com/kubernetes/test-infra/blob/master/prow/plugins/approve/approvers/README.md#overview
