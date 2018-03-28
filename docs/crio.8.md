@@ -56,6 +56,10 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--cgroup-manager**="": cgroup manager (cgroupfs or systemd)
 
+**--cni-config-dir**="": CNI configuration files directory (default: "/etc/cni/net.d/")
+
+**--cni-plugin-dir**="": CNI plugin binaries directory (default: "/opt/cni/bin/")
+
 **--config**="": path to configuration file
 
 **--conmon**="": path to the conmon executable (default: "/usr/local/libexec/crio/conmon")
@@ -111,12 +115,6 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--storage-driver**: OCI storage driver (default: "devicemapper")
 
 **--storage-opt**: OCI storage driver option (no default)
-
-**--cni-config-dir**="": CNI configuration files directory (default: "/etc/cni/net.d/")
-
-**--cni-plugin-dir**="": CNI plugin binaries directory (default: "/opt/cni/bin/")
-
-**--cpu-profile**: Set the CPU profile file path
 
 **--version, -v**: Print the version
 
