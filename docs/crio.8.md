@@ -116,8 +116,6 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--cni-plugin-dir**="": CNI plugin binaries directory (default: "/opt/cni/bin/")
 
-**--cpu-profile**: Set the CPU profile file path
-
 **--version, -v**: Print the version
 
 # COMMANDS
