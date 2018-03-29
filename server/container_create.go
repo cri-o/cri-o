@@ -785,6 +785,15 @@ func (s *Server) setupOCIHooks(specgen *generate.Generator, sb *sandbox.Sandbox,
 	}
 	return nil
 }
+func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
+	for _, m := range mounts {
+		if m.ContainerPath == dst {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
@@ -798,19 +807,55 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
-	var readOnlyRootfs bool
+	readOnlyRootfs := s.config.ReadOnly
+
 	var privileged bool
 	if containerConfig.GetLinux().GetSecurityContext() != nil {
 		if containerConfig.GetLinux().GetSecurityContext().Privileged {
 			privileged = true
 		}
-
 		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
 			readOnlyRootfs = true
-			specgen.SetRootReadonly(true)
 		}
 	}
+	specgen.SetRootReadonly(readOnlyRootfs)
 
+	if s.config.ReadOnly {
+		// tmpcopyup is a runc extension and is not part of the OCI spec.
+		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
+		// Look at https://github.com/kubernetes-incubator/cri-o/pull/1434#discussion_r177200245 for more info on this
+		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
+		if !isInCRIMounts("/run", containerConfig.GetMounts()) {
+			mnt := rspec.Mount{
+				Destination: "/run",
+				Type:        "tmpfs",
+				Source:      "tmpfs",
+				Options:     append(options, "mode=0755"),
+			}
+			// Add tmpfs mount on /run
+			specgen.AddMount(mnt)
+		}
+		if !isInCRIMounts("/tmp", containerConfig.GetMounts()) {
+			mnt := rspec.Mount{
+				Destination: "/tmp",
+				Type:        "tmpfs",
+				Source:      "tmpfs",
+				Options:     append(options, "mode=1777"),
+			}
+			// Add tmpfs mount on /tmp
+			specgen.AddMount(mnt)
+		}
+		if !isInCRIMounts("/var/tmp", containerConfig.GetMounts()) {
+			mnt := rspec.Mount{
+				Destination: "/var/tmp",
+				Type:        "tmpfs",
+				Source:      "tmpfs",
+				Options:     append(options, "mode=1777"),
+			}
+			// Add tmpfs mount on /var/tmp
+			specgen.AddMount(mnt)
+		}
+	}
 	mountLabel := sb.MountLabel()
 	processLabel := sb.ProcessLabel()
 	selinuxConfig := containerConfig.GetLinux().GetSecurityContext().GetSelinuxOptions()
@@ -1103,15 +1148,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			Options:     append(options, "bind"),
 		}
 		specgen.AddMount(mnt)
-	}
-
-	isInCRIMounts := func(dst string, mounts []*pb.Mount) bool {
-		for _, m := range mounts {
-			if m.ContainerPath == dst {
-				return true
-			}
-		}
-		return false
 	}
 
 	if !isInCRIMounts("/etc/hosts", containerConfig.GetMounts()) && hostNetwork(containerConfig) {

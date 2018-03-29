@@ -124,6 +124,9 @@ pids_limit = {{ .PidsLimit }}
 # Negative values indicate that no limit is imposed.
 log_size_max = {{ .LogSizeMax }}
 
+# read-only indicates whether all containers will run in read-only mode
+read_only = {{ .ReadOnly }}
+
 # The "crio.image" table contains settings pertaining to the
 # management of OCI images.
 [crio.image]
