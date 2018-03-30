@@ -134,8 +134,19 @@ it later with **--config**. Global options will modify the output.
 **--default**
   Output the default configuration (without taking into account any configuration options).
 
+## FILES
+
+**crio.conf** (`/etc/crio/crio.conf`)
+  `cri-o` configuration file for all of the available command-line options for the crio(8) program, but in a TOML format that can be more easily modified and versioned.
+
+**registries.conf** (`/etc/containers/registries.conf`)
+  Registry configuration file specifies registries which are consulted when completing image names that do not include a registry or domain portion.
+
+**storage.conf** (`/etc/containers/storage.conf`)
+  Storage configuration file specifies all of the available container storage options for tools using shared container storage.
+
 # SEE ALSO
-crio.conf(5)
+crio.conf(5),registries.conf(5),storage.conf(5)
 
 # HISTORY
 Sept 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com> and Aleksa Sarai <asarai@suse.de>
