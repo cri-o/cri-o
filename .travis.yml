@@ -7,7 +7,7 @@ services:
 
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq update; fi
-  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libseccomp-dev; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison clang-format-3.9 e2fslibs-dev libfuse-dev libtool liblzma-dev gettext; fi
 
 install:

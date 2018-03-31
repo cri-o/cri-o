@@ -114,7 +114,6 @@ make install
 ```
 sudo apt-get update && apt-get install -y libglib2.0-dev \
                                           libseccomp-dev \
-                                          libapparmor-dev \
                                           libgpgme11-dev \
                                           libdevmapper-dev \
                                           make \
