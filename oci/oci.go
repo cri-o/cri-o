@@ -689,7 +689,9 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 
 	if timeout > 0 {
 		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.id, c.GetStopSignal()); err != nil {
-			return fmt.Errorf("failed to stop container %s, %v", c.id, err)
+			if err := checkProcessGone(c); err != nil {
+				return fmt.Errorf("failed to stop container %q: %v", c.id, err)
+			}
 		}
 		err = waitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
 		if err == nil {
@@ -699,10 +701,27 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 	}
 
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", "--all", c.id, "KILL"); err != nil {
-		return fmt.Errorf("failed to stop container %s, %v", c.id, err)
+		if err := checkProcessGone(c); err != nil {
+			return fmt.Errorf("failed to stop container %q: %v", c.id, err)
+		}
 	}
 
 	return waitContainerStop(ctx, c, killContainerTimeout, false)
+}
+
+func checkProcessGone(c *Container) error {
+	process, perr := findprocess.FindProcess(c.state.Pid)
+	if perr == findprocess.ErrNotFound {
+		c.state.Finished = time.Now()
+		return nil
+	}
+	if perr == nil {
+		err := process.Release()
+		if err != nil {
+			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.ID(), err)
+		}
+	}
+	return fmt.Errorf("failed to find process: %v", perr)
 }
 
 // DeleteContainer deletes a container.
