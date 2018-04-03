@@ -339,7 +339,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "enable-metrics",
-			Usage: "enable metrics endpoint for the servier on localhost:9090",
+			Usage: "enable metrics endpoint for the server on localhost:9090",
 		},
 		cli.IntFlag{
 			Name:  "metrics-port",
