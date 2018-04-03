@@ -589,7 +589,7 @@ struct conn_sock_s {
 	gboolean readable;
 	gboolean writable;
 };
-static struct conn_sock_s conn_sock = {-1, false, false};
+GPtrArray *conn_socks = NULL;
 
 static int oom_event_fd = -1;
 static int attach_socket_fd = -1;
@@ -612,6 +612,7 @@ static void conn_sock_shutdown(struct conn_sock_s *sock, int how)
 	if (!sock->writable && !sock->readable) {
 		close(sock->fd);
 		sock->fd = -1;
+		g_ptr_array_remove(conn_socks, sock);
 	}
 }
 
@@ -633,6 +634,7 @@ static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 	char real_buf[STDIO_BUF_SIZE + 1];
 	char *buf = real_buf + 1;
 	ssize_t num_read = 0;
+	size_t i;
 
 	if (eof)
 		*eof = false;
@@ -651,10 +653,18 @@ static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 			return G_SOURCE_CONTINUE;
 		}
 
+		if (conn_socks == NULL) {
+			return true;
+		}
+
 		real_buf[0] = pipe;
-		if (conn_sock.writable && write_all(conn_sock.fd, real_buf, num_read + 1) < 0) {
-			nwarn("Failed to write to socket");
-			conn_sock_shutdown(&conn_sock, SHUT_WR);
+		for (i = conn_socks->len; i > 0; i--) {
+			struct conn_sock_s *conn_sock = g_ptr_array_index(conn_socks, i - 1);
+
+			if (conn_sock->writable && write_all(conn_sock->fd, real_buf, num_read + 1) < 0) {
+				nwarn("Failed to write to socket");
+				conn_sock_shutdown(conn_sock, SHUT_WR);
+			}
 		}
 		return true;
 	}
@@ -842,15 +852,25 @@ static gboolean conn_sock_cb(int fd, GIOCondition condition, gpointer user_data)
 
 static gboolean attach_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
 {
-	conn_sock.fd = accept(fd, NULL, NULL);
-	if (conn_sock.fd == -1) {
+	int conn_fd = accept(fd, NULL, NULL);
+	if (conn_fd == -1) {
 		if (errno != EWOULDBLOCK)
 			nwarn("Failed to accept client connection on attach socket");
 	} else {
-		conn_sock.readable = true;
-		conn_sock.writable = true;
-		g_unix_fd_add(conn_sock.fd, G_IO_IN | G_IO_HUP | G_IO_ERR, conn_sock_cb, &conn_sock);
-		ninfof("Accepted connection %d", conn_sock.fd);
+		struct conn_sock_s *conn_sock;
+		if (conn_socks == NULL) {
+			conn_socks = g_ptr_array_new_with_free_func(free);
+		}
+		conn_sock = malloc(sizeof(*conn_sock));
+		if (conn_sock == NULL) {
+			pexit("Failed to allocate memory");
+		}
+		conn_sock->fd = conn_fd;
+		conn_sock->readable = true;
+		conn_sock->writable = true;
+		g_unix_fd_add(conn_sock->fd, G_IO_IN | G_IO_HUP | G_IO_ERR, conn_sock_cb, conn_sock);
+		g_ptr_array_add(conn_socks, conn_sock);
+		ninfof("Accepted connection %d", conn_sock->fd);
 	}
 
 	return G_SOURCE_CONTINUE;
