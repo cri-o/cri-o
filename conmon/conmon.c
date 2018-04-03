@@ -584,9 +584,12 @@ static int masterfd_stdout = -1;
 static int masterfd_stderr = -1;
 
 /* Used for attach */
-static int conn_sock = -1;
-static int conn_sock_readable;
-static int conn_sock_writable;
+struct conn_sock_s {
+	int fd;
+	gboolean readable;
+	gboolean writable;
+};
+static struct conn_sock_s conn_sock = {-1, false, false};
 
 static int oom_event_fd = -1;
 static int attach_socket_fd = -1;
@@ -597,18 +600,18 @@ static bool timed_out = FALSE;
 
 static GMainLoop *main_loop = NULL;
 
-static void conn_sock_shutdown(int how)
+static void conn_sock_shutdown(struct conn_sock_s *sock, int how)
 {
-	if (conn_sock == -1)
+	if (sock->fd == -1)
 		return;
-	shutdown(conn_sock, how);
+	shutdown(sock->fd, how);
 	if (how & SHUT_RD)
-		conn_sock_readable = false;
+		sock->readable = false;
 	if (how & SHUT_WR)
-		conn_sock_writable = false;
-	if (!conn_sock_writable && !conn_sock_readable) {
-		close(conn_sock);
-		conn_sock = -1;
+		sock->writable = false;
+	if (!sock->writable && !sock->readable) {
+		close(sock->fd);
+		sock->fd = -1;
 	}
 }
 
@@ -649,9 +652,9 @@ static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 		}
 
 		real_buf[0] = pipe;
-		if (conn_sock_writable && write_all(conn_sock, real_buf, num_read + 1) < 0) {
+		if (conn_sock.writable && write_all(conn_sock.fd, real_buf, num_read + 1) < 0) {
 			nwarn("Failed to write to socket");
-			conn_sock_shutdown(SHUT_WR);
+			conn_sock_shutdown(&conn_sock, SHUT_WR);
 		}
 		return true;
 	}
@@ -805,10 +808,11 @@ static gboolean oom_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer us
 }
 
 #define CONN_SOCK_BUF_SIZE 32 * 1024 /* Match the write size in CopyDetachable */
-static gboolean conn_sock_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
+static gboolean conn_sock_cb(int fd, GIOCondition condition, gpointer user_data)
 {
 	char buf[CONN_SOCK_BUF_SIZE];
 	ssize_t num_read = 0;
+	struct conn_sock_s *sock = (struct conn_sock_s *)user_data;
 
 	if ((condition & G_IO_IN) != 0) {
 		num_read = read(fd, buf, CONN_SOCK_BUF_SIZE);
@@ -824,7 +828,7 @@ static gboolean conn_sock_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpoin
 	}
 
 	/* End of input */
-	conn_sock_shutdown(SHUT_RD);
+	conn_sock_shutdown(sock, SHUT_RD);
 	if (masterfd_stdin >= 0 && opt_stdin) {
 		if (!opt_leave_stdin_open) {
 			close(masterfd_stdin);
@@ -838,15 +842,15 @@ static gboolean conn_sock_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpoin
 
 static gboolean attach_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
 {
-	conn_sock = accept(fd, NULL, NULL);
-	if (conn_sock == -1) {
+	conn_sock.fd = accept(fd, NULL, NULL);
+	if (conn_sock.fd == -1) {
 		if (errno != EWOULDBLOCK)
 			nwarn("Failed to accept client connection on attach socket");
 	} else {
-		conn_sock_readable = true;
-		conn_sock_writable = true;
-		g_unix_fd_add(conn_sock, G_IO_IN | G_IO_HUP | G_IO_ERR, conn_sock_cb, GINT_TO_POINTER(STDOUT_PIPE));
-		ninfof("Accepted connection %d", conn_sock);
+		conn_sock.readable = true;
+		conn_sock.writable = true;
+		g_unix_fd_add(conn_sock.fd, G_IO_IN | G_IO_HUP | G_IO_ERR, conn_sock_cb, &conn_sock);
+		ninfof("Accepted connection %d", conn_sock.fd);
 	}
 
 	return G_SOURCE_CONTINUE;
