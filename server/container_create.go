@@ -72,7 +72,7 @@ func (m orderedMounts) parts(i int) int {
 	return strings.Count(filepath.Clean(m[i].Destination), string(os.PathSeparator))
 }
 
-func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	mounts := containerConfig.GetMounts()
@@ -82,18 +82,18 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 			return nil, nil, fmt.Errorf("Mount.ContainerPath is empty")
 		}
 
-		src := mount.HostPath
-		if src == "" {
+		if mount.HostPath == "" {
 			return nil, nil, fmt.Errorf("Mount.HostPath is empty")
 		}
+		src := filepath.Join(bindMountPrefix, mount.HostPath)
 
-		if _, err := os.Stat(src); err != nil && os.IsNotExist(err) {
+		if _, err := os.Lstat(src); err != nil && os.IsNotExist(err) {
 			if err1 := os.MkdirAll(src, 0644); err1 != nil {
 				return nil, nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
 			}
 		}
 
-		src, err := resolveSymbolicLink(src)
+		src, err := resolveSymbolicLink(src, bindMountPrefix)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
 		}
@@ -268,7 +268,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 
 // resolveSymbolicLink resolves a possbile symlink path. If the path is a symlink, returns resolved
 // path; if not, returns the original path.
-func resolveSymbolicLink(path string) (string, error) {
+func resolveSymbolicLink(path, scope string) (string, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return "", err
@@ -276,7 +276,10 @@ func resolveSymbolicLink(path string) (string, error) {
 	if info.Mode()&os.ModeSymlink != os.ModeSymlink {
 		return path, nil
 	}
-	return filepath.EvalSymlinks(path)
+	if scope == "" {
+		scope = "/"
+	}
+	return symlink.FollowSymlinkInScope(path, scope)
 }
 
 func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
@@ -310,7 +313,7 @@ func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specge
 		return nil
 	}
 	for _, device := range containerConfig.GetDevices() {
-		path, err := resolveSymbolicLink(device.HostPath)
+		path, err := resolveSymbolicLink(device.HostPath, "/")
 		if err != nil {
 			return err
 		}
@@ -867,7 +870,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(mountLabel, containerConfig, &specgen)
+	containerVolumes, ociMounts, err := addOCIBindMounts(mountLabel, containerConfig, &specgen, s.config.RuntimeConfig.BindMountPrefix)
 	if err != nil {
 		return nil, err
 	}
