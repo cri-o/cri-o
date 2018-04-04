@@ -882,11 +882,19 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl inspect "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "State: CONTAINER_EXITED" ]]
-	[[ "$output" =~ "Exit Code: 0" ]]
+	# Wait for container to exit
+	attempt=0
+	while [ $attempt -le 100 ]; do
+		attempt=$((attempt+1))
+		run crictl inspect "$ctr_id"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
+			[[ "$output" =~ "Exit Code: 0" ]]
+			break
+		fi
+		sleep 1
+	done
 
 	run crictl create "$pod_id" "$TESTDATA"/container_config_resolvconf_ro.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -895,10 +903,18 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl inspect "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "State: CONTAINER_EXITED" ]]
+	# Wait for container to exit
+	attempt=0
+	while [ $attempt -le 100 ]; do
+		attempt=$((attempt+1))
+		run crictl inspect "$ctr_id"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
+			break
+		fi
+		sleep 1
+	done
 
 	cleanup_ctrs
 	cleanup_pods
