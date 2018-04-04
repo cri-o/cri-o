@@ -582,14 +582,14 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 				process, err := findprocess.FindProcess(c.state.Pid)
 				if err != nil {
 					if err != findprocess.ErrNotFound {
-						logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.ID(), err)
+						logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.id, err)
 					}
 					close(done)
 					return
 				}
 				err = process.Release()
 				if err != nil {
-					logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.ID(), err)
+					logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.id, err)
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -679,11 +679,11 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 		return nil
 	}
 	if err != nil {
-		logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.ID(), err)
+		logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.id, err)
 	} else {
 		err = process.Release()
 		if err != nil {
-			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.ID(), err)
+			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.id, err)
 		}
 	}
 
@@ -697,7 +697,7 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 		if err == nil {
 			return nil
 		}
-		logrus.Warnf("Stop container %q timed out: %v", c.ID(), err)
+		logrus.Warnf("Stop container %q timed out: %v", c.id, err)
 	}
 
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", "--all", c.id, "KILL"); err != nil {
@@ -718,7 +718,7 @@ func checkProcessGone(c *Container) error {
 	if perr == nil {
 		err := process.Release()
 		if err != nil {
-			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.ID(), err)
+			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.id, err)
 		}
 	}
 	return fmt.Errorf("failed to find process: %v", perr)
