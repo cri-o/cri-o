@@ -139,6 +139,9 @@ it later with **--config**. Global options will modify the output.
 **crio.conf** (`/etc/crio/crio.conf`)
   `cri-o` configuration file for all of the available command-line options for the crio(8) program, but in a TOML format that can be more easily modified and versioned.
 
+**policy.json** (`/etc/containers/policy.json`)
+  Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid.
+
 **registries.conf** (`/etc/containers/registries.conf`)
   Registry configuration file specifies registries which are consulted when completing image names that do not include a registry or domain portion.
 
@@ -146,7 +149,7 @@ it later with **--config**. Global options will modify the output.
   Storage configuration file specifies all of the available container storage options for tools using shared container storage.
 
 # SEE ALSO
-crio.conf(5),registries.conf(5),storage.conf(5)
+crio.conf(5),policy.json(5),registries.conf(5),storage.conf(5)
 
 # HISTORY
 Sept 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com> and Aleksa Sarai <asarai@suse.de>
