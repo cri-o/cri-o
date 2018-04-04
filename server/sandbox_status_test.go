@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -80,11 +81,12 @@ func setupServer(t *testing.T) (*Server, string, func()) {
 }
 
 func TestPodSandboxStatus(t *testing.T) {
+	ctx := context.Background()
 	server, sandboxID, teardown := setupServer(t)
 	defer teardown()
 
 	t.Run("Without verbose information", func(t *testing.T) {
-		resp, err := server.PodSandboxStatus(nil, &pb.PodSandboxStatusRequest{
+		resp, err := server.PodSandboxStatus(ctx, &pb.PodSandboxStatusRequest{
 			PodSandboxId: sandboxID,
 		})
 		if err != nil {
@@ -100,7 +102,7 @@ func TestPodSandboxStatus(t *testing.T) {
 	})
 
 	t.Run("With verbose information", func(t *testing.T) {
-		resp, err := server.PodSandboxStatus(nil, &pb.PodSandboxStatusRequest{
+		resp, err := server.PodSandboxStatus(ctx, &pb.PodSandboxStatusRequest{
 			PodSandboxId: sandboxID,
 			Verbose:      true,
 		})
