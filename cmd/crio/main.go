@@ -163,11 +163,12 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 				continue
 			}
 			*signalled = true
+			ctx := context.Background()
 			gserver.GracefulStop()
-			hserver.Shutdown(context.Background())
+			hserver.Shutdown(ctx)
 			sserver.StopStreamServer()
 			sserver.StopMonitors()
-			if err := sserver.Shutdown(); err != nil {
+			if err := sserver.Shutdown(ctx); err != nil {
 				logrus.Warnf("error shutting down main service %v", err)
 			}
 			return
@@ -407,6 +408,7 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
+		ctx := context.Background()
 		if c.GlobalBool("profile") {
 			profilePort := c.GlobalInt("profile-port")
 			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
@@ -453,7 +455,7 @@ func main() {
 
 		s := grpc.NewServer()
 
-		service, err := server.New(config)
+		service, err := server.New(ctx, config)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -524,7 +526,7 @@ func main() {
 		case <-serverCloseCh:
 		}
 
-		service.Shutdown()
+		service.Shutdown(ctx)
 
 		<-streamServerCloseCh
 		logrus.Debug("closed stream server")
