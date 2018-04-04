@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
 )
@@ -276,6 +278,8 @@ func (c *Config) ToFile(path string) error {
 
 // DefaultConfig returns the default configuration for crio.
 func DefaultConfig() *Config {
+	registries, _ := sysregistries.GetRegistries(&types.SystemContext{})
+	insecureRegistries, _ := sysregistries.GetInsecureRegistries(&types.SystemContext{})
 	return &Config{
 		RootConfig: RootConfig{
 			Root:           storage.DefaultStoreOptions.GraphRoot,
@@ -309,6 +313,8 @@ func DefaultConfig() *Config {
 			PauseCommand:        pauseCommand,
 			SignaturePolicyPath: "",
 			ImageVolumes:        ImageVolumesMkdir,
+			Registries:          registries,
+			InsecureRegistries:  insecureRegistries,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,

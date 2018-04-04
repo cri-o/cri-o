@@ -64,7 +64,9 @@
 - name: add docker.io default registry
   lineinfile:
     dest: /etc/crio/crio.conf
-    line: '"docker.io"'
+    line: |
+          # Added by Ansible from build/cri-o.yml
+          registries = [ "docker.io" ]
     insertafter: 'registries = \['
     regexp: 'docker\.io'
     state: present
@@ -72,7 +74,9 @@
 - name: add overlay storage opts on RHEL/CentOS
   lineinfile:
     dest: /etc/crio/crio.conf
-    line: 'storage_option = [ "overlay.override_kernel_check=1", ]'
+    line: |
+          # Added by Ansible from build/cri-o.yml
+          storage_option = [ "overlay.override_kernel_check=1", ]
     insertafter: 'storage_option = \['
     regexp: 'overlay\.override_kernel_check=1'
     state: present
