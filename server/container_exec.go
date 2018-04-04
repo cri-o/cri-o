@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/pools"
+	"github.com/kr/pty"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -64,7 +65,7 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 	execCmd := exec.Command(ss.runtimeServer.Runtime().Path(c), args...)
 	var cmdErr error
 	if tty {
-		p, err := kubecontainer.StartPty(execCmd)
+		p, err := pty.Start(execCmd)
 		if err != nil {
 			return err
 		}

@@ -17,7 +17,7 @@ import (
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // NetNs handles data pertaining a network namespace
