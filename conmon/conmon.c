@@ -28,32 +28,6 @@
 
 #include "cmsg.h"
 
-#define pexit(fmt, ...)                                                          \
-	do {                                                                     \
-		fprintf(stderr, "[conmon:e]: " fmt " %m\n", ##__VA_ARGS__);      \
-		syslog(LOG_ERR, "conmon <error>: " fmt ": %m\n", ##__VA_ARGS__); \
-		exit(EXIT_FAILURE);                                              \
-	} while (0)
-
-#define nexit(fmt, ...)                                                       \
-	do {                                                                  \
-		fprintf(stderr, "[conmon:e]: " fmt "\n", ##__VA_ARGS__);      \
-		syslog(LOG_ERR, "conmon <error>: " fmt " \n", ##__VA_ARGS__); \
-		exit(EXIT_FAILURE);                                           \
-	} while (0)
-
-#define nwarn(fmt, ...)                                                        \
-	do {                                                                   \
-		fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__);       \
-		syslog(LOG_INFO, "conmon <nwarn>: " fmt " \n", ##__VA_ARGS__); \
-	} while (0)
-
-#define ninfo(fmt, ...)                                                        \
-	do {                                                                   \
-		fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__);       \
-		syslog(LOG_INFO, "conmon <ninfo>: " fmt " \n", ##__VA_ARGS__); \
-	} while (0)
-
 #define _cleanup_(x) __attribute__((cleanup(x)))
 
 static inline void freep(void *p)
@@ -141,6 +115,33 @@ static GOptionEntry opt_entries[] =
 #define CGROUP_ROOT "/sys/fs/cgroup"
 
 static int log_fd = -1;
+
+#define pexit(fmt, ...)                                                                         \
+	do {                                                                                    \
+		fprintf(stderr, "[conmon:e]: " fmt " %m\n", ##__VA_ARGS__);                     \
+		syslog(LOG_ERR, "conmon %.20s <error>: " fmt ": %m\n", opt_cid, ##__VA_ARGS__); \
+		exit(EXIT_FAILURE);                                                             \
+	} while (0)
+
+#define nexit(fmt, ...)                                                                      \
+	do {                                                                                 \
+		fprintf(stderr, "[conmon:e]: " fmt "\n", ##__VA_ARGS__);                     \
+		syslog(LOG_ERR, "conmon %.20s <error>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+		exit(EXIT_FAILURE);                                                          \
+	} while (0)
+
+#define nwarn(fmt, ...)                                                                       \
+	do {                                                                                  \
+		fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__);                      \
+		syslog(LOG_INFO, "conmon %.20s <nwarn>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+	} while (0)
+
+#define ninfo(fmt, ...)                                                                       \
+	do {                                                                                  \
+		fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__);                      \
+		syslog(LOG_INFO, "conmon %.20s <ninfo>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+	} while (0)
+
 
 static ssize_t write_all(int fd, const void *buf, size_t count)
 {
@@ -1107,8 +1108,10 @@ int main(int argc, char *argv[])
 	        exit(1);
 	}
 
-	if (opt_cid == NULL)
-		nexit("Container ID not provided. Use --cid");
+	if (opt_cid == NULL) {
+		fprintf(stderr, "Container ID not provided. Use --cid");
+		exit(EXIT_FAILURE);
+	}
 
 	if (!opt_exec && opt_cuuid == NULL)
 		nexit("Container UUID not provided. Use --cuuid");
