@@ -37,6 +37,7 @@
     content: |
       #!/bin/bash
 
+      # Whole script added by Ansible from build/kubernetes.yml
       export PATH=/usr/local/go/bin:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/root/bin:{{ ansible_env.GOPATH }}/bin:{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/third_party/etcd:{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/local/bin/linux/amd64/
       export CONTAINER_RUNTIME=remote
       export CGROUP_DRIVER=systemd
@@ -55,13 +56,17 @@
 - name: Set kubernetes_provider to be local
   lineinfile:
     dest: /etc/environment
-    line: 'KUBERNETES_PROVIDER=local'
+    line: |
+        # Added by Ansible from build/kubernetes.yml
+        KUBERNETES_PROVIDER=local
     regexp: 'KUBERNETES_PROVIDER='
     state: present
 
 - name: Set KUBECONFIG
   lineinfile:
     dest: /etc/environment
-    line: 'KUBECONFIG=/var/run/kubernetes/admin.kubeconfig'
+    line: |
+        # Added by Ansible from build/kubernetes.yml
+        KUBECONFIG=/var/run/kubernetes/admin.kubeconfig
     regexp: 'KUBECONFIG='
     state: present

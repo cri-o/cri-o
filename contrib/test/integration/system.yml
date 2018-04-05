@@ -107,7 +107,9 @@
 - name: inject hostname into /etc/hosts
   lineinfile:
     dest: /etc/hosts
-    line: '{{ ansible_default_ipv4.address }} {{ ansible_nodename }}'
+    line: |
+        # Added by Ansible from system.yml
+        {{ ansible_default_ipv4.address }} {{ ansible_nodename }}
     insertafter: 'EOF'
     regexp: '{{ ansible_default_ipv4.address }}\s+{{ ansible_nodename }}'
     state: present

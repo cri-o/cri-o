@@ -3,7 +3,7 @@
 - name: Make testing output verbose so it can be converted to xunit
   lineinfile:
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/make-rules/test.sh"
-    line: ' go test -v "${goflags[@]:+${goflags[@]}}" \'
+    line: ' go test -v "${goflags[@]:+${goflags[@]}}" \  # Added by ansible from test.yml'
     regexp: ' go test \"\$'
     state: present
 
