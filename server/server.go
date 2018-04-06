@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -146,11 +147,11 @@ func (s *Server) Update() {
 }
 
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
-func (s *Server) cleanupSandboxesOnShutdown() {
+func (s *Server) cleanupSandboxesOnShutdown(ctx context.Context) {
 	_, err := os.Stat(shutdownFile)
 	if err == nil || !os.IsNotExist(err) {
 		logrus.Debugf("shutting down all sandboxes, on shutdown")
-		s.StopAllPodSandboxes()
+		s.StopAllPodSandboxes(ctx)
 		err = os.Remove(shutdownFile)
 		if err != nil {
 			logrus.Warnf("Failed to remove %q", shutdownFile)
@@ -160,12 +161,12 @@ func (s *Server) cleanupSandboxesOnShutdown() {
 }
 
 // Shutdown attempts to shut down the server's storage cleanly
-func (s *Server) Shutdown() error {
+func (s *Server) Shutdown(ctx context.Context) error {
 	// why do this on clean shutdown! we want containers left running when crio
 	// is down for whatever reason no?!
 	// notice this won't trigger just on system halt but also on normal
 	// crio.service restart!!!
-	s.cleanupSandboxesOnShutdown()
+	s.cleanupSandboxesOnShutdown(ctx)
 	return s.ContainerServer.Shutdown()
 }
 
@@ -187,7 +188,7 @@ func configureMaxThreads() error {
 }
 
 // New creates a new Server with options provided
-func New(config *Config) (*Server, error) {
+func New(ctx context.Context, config *Config) (*Server, error) {
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
 		return nil, err
 	}
@@ -245,7 +246,7 @@ func New(config *Config) (*Server, error) {
 	}
 
 	s.restore()
-	s.cleanupSandboxesOnShutdown()
+	s.cleanupSandboxesOnShutdown(ctx)
 
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
