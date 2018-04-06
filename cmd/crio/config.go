@@ -153,14 +153,20 @@ signature_policy = "{{ .SignaturePolicyPath }}"
 # The valid values are mkdir and ignore.
 image_volumes = "{{ .ImageVolumes }}"
 
+# CRI-O reads its configured registries defaults from the containers/image configuration
+# file, /etc/containers/registries.conf. Modify registries.conf if you want to
+# change default registries for all tools that use containers/image.  If you
+# want to modify just crio, you can change the registies configuration in this
+# file.
+
 # insecure_registries is used to skip TLS verification when pulling images.
-insecure_registries = [
-{{ range $opt := .InsecureRegistries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+# insecure_registries = [
+# {{ range $opt := .InsecureRegistries }}{{ printf "\t%q,\n#" $opt }}{{ end }}]
 
 # registries is used to specify a comma separated list of registries to be used
 # when pulling an unqualified image (e.g. fedora:rawhide).
-registries = [
-{{ range $opt := .Registries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+#registries = [
+# {{ range $opt := .Registries }}{{ printf "\t%q,\n#" $opt }}{{ end }}]
 
 # The "crio.network" table contains settings pertaining to the
 # management of CNI plugins.
