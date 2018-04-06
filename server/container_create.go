@@ -87,15 +87,15 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		}
 		src := filepath.Join(bindMountPrefix, mount.HostPath)
 
-		if _, err := os.Lstat(src); err != nil && os.IsNotExist(err) {
-			if err1 := os.MkdirAll(src, 0644); err1 != nil {
+		resolvedSrc, err := resolveSymbolicLink(src, bindMountPrefix)
+		if err == nil {
+			src = resolvedSrc
+		} else {
+			if !os.IsNotExist(err) {
+				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
+			} else if err = os.MkdirAll(src, 0644); err != nil {
 				return nil, nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
 			}
-		}
-
-		src, err := resolveSymbolicLink(src, bindMountPrefix)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
 		}
 
 		options := []string{"rw"}
