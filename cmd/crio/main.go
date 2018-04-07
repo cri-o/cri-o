@@ -20,6 +20,8 @@ import (
 	"github.com/kubernetes-incubator/cri-o/pkg/signals"
 	"github.com/kubernetes-incubator/cri-o/server"
 	"github.com/kubernetes-incubator/cri-o/version"
+	"github.com/projectatomic/libpod/pkg/hooks"
+	_ "github.com/projectatomic/libpod/pkg/hooks/0.1.0"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli"
@@ -172,7 +174,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	return nil
 }
 
-func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
+func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
 	sig := make(chan os.Signal, 10)
 	signal.Notify(sig, signals.Interrupt, signals.Term)
 	go func() {
@@ -186,11 +188,11 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 				continue
 			}
 			*signalled = true
-			ctx := context.Background()
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx)
 			sserver.StopStreamServer()
 			sserver.StopMonitors()
+			cancel()
 			if err := sserver.Shutdown(ctx); err != nil {
 				logrus.Warnf("error shutting down main service %v", err)
 			}
@@ -347,7 +349,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "hooks-dir-path",
 			Usage:  "set the OCI hooks directory path",
-			Value:  lib.DefaultHooksDirPath,
+			Value:  hooks.DefaultDir,
 			Hidden: true,
 		},
 		cli.StringSliceFlag{
@@ -456,7 +458,8 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		ctx := context.Background()
+		ctx, cancel := context.WithCancel(context.Background())
+
 		if c.GlobalBool("profile") {
 			profilePort := c.GlobalInt("profile-port")
 			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
@@ -534,9 +537,17 @@ func main() {
 		go func() {
 			service.StartExitMonitor()
 		}()
-		go func() {
-			service.StartHooksMonitor()
-		}()
+		hookSync := make(chan error, 2)
+		if service.ContainerServer.Hooks == nil {
+			hookSync <- err // so we don't block during cleanup
+		} else {
+			go service.ContainerServer.Hooks.Monitor(ctx, hookSync)
+			err = <-hookSync
+			if err != nil {
+				cancel()
+				logrus.Fatal(err)
+			}
+		}
 
 		m := cmux.New(lis)
 		grpcL := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
@@ -549,7 +560,7 @@ func main() {
 		}
 
 		graceful := false
-		catchShutdown(s, service, srv, &graceful)
+		catchShutdown(ctx, cancel, s, service, srv, &graceful)
 
 		go s.Serve(grpcL)
 		go srv.Serve(httpL)
@@ -575,11 +586,18 @@ func main() {
 		}
 
 		service.Shutdown(ctx)
+		cancel()
 
 		<-streamServerCloseCh
 		logrus.Debug("closed stream server")
 		<-serverMonitorsCh
 		logrus.Debug("closed monitors")
+		err = <-hookSync
+		if err == nil || err == context.Canceled {
+			logrus.Debug("closed hook monitor")
+		} else {
+			logrus.Errorf("hook monitor failed: %v", err)
+		}
 		<-serverCloseCh
 		logrus.Debug("closed main server")
 

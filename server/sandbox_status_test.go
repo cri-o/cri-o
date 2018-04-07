@@ -37,6 +37,7 @@ func newTestContainerServerOrFailNow(t *testing.T) (cs *lib.ContainerServer, dir
 	}
 	config.RootConfig.Root = root
 	config.RootConfig.Storage = "vfs"
+	config.HooksDirPath = ""
 	cs, err = lib.New(ctx, config)
 	if err != nil {
 		t.Fatal(err)

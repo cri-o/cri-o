@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,9 +22,20 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/hooks"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/text/language"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
+)
+
+var (
+	// localeToLanguage maps from locale values to language tags.
+	localeToLanguage = map[string]string{
+		"":      "und-u-va-posix",
+		"c":     "und-u-va-posix",
+		"posix": "und-u-va-posix",
+	}
 )
 
 // ContainerServer implements the ImageServer
@@ -37,8 +49,7 @@ type ContainerServer struct {
 	ctrIDIndex           *truncindex.TruncIndex
 	podNameIndex         *registrar.Registrar
 	podIDIndex           *truncindex.TruncIndex
-	hooks                map[string]HookParams
-	hooksLock            sync.Mutex
+	Hooks                *hooks.Manager
 
 	imageContext *types.SystemContext
 	stateLock    sync.Locker
@@ -49,40 +60,6 @@ type ContainerServer struct {
 // Runtime returns the oci runtime for the ContainerServer
 func (c *ContainerServer) Runtime() *oci.Runtime {
 	return c.runtime
-}
-
-// Hooks returns the oci hooks for the ContainerServer
-func (c *ContainerServer) Hooks() map[string]HookParams {
-	hooks := map[string]HookParams{}
-	c.hooksLock.Lock()
-	defer c.hooksLock.Unlock()
-	for key, h := range c.hooks {
-		hooks[key] = h
-	}
-	return hooks
-}
-
-// RemoveHook removes an hook by name
-func (c *ContainerServer) RemoveHook(hook string) (ok bool) {
-	c.hooksLock.Lock()
-	defer c.hooksLock.Unlock()
-	_, ok = c.hooks[hook]
-	if ok {
-		delete(c.hooks, hook)
-	}
-	return ok
-}
-
-// AddHook adds an hook by hook's path
-func (c *ContainerServer) AddHook(hookPath string) (err error) {
-	c.hooksLock.Lock()
-	defer c.hooksLock.Unlock()
-	hook, err := readHook(hookPath)
-	if err != nil {
-		return err
-	}
-	c.hooks[filepath.Base(hookPath)] = hook
-	return nil
 }
 
 // Store returns the Store for the ContainerServer
@@ -168,21 +145,56 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		lock = new(sync.Mutex)
 	}
 
-	hooks := make(map[string]HookParams)
+	hookDirectories := []string{}
+	missingHookDirectoryFatal := false
+
 	// If hooks directory is set in config use it
 	if config.HooksDirPath != "" {
-		if err := readHooks(config.HooksDirPath, hooks); err != nil {
-			return nil, err
-		}
+		hookDirectories = append(hookDirectories, config.HooksDirPath)
+
 		// If user overrode default hooks, this means it is in a test, so don't
 		// use OverrideHooksDirPath
-		if config.HooksDirPath == DefaultHooksDirPath {
-			if err := readHooks(OverrideHooksDirPath, hooks); err != nil {
-				return nil, err
-			}
+		if config.HooksDirPath == hooks.DefaultDir {
+			hookDirectories = append(hookDirectories, hooks.OverrideDir)
+		} else {
+			missingHookDirectoryFatal = true
 		}
 	}
-	logrus.Debugf("hooks %+v", hooks)
+
+	var locale string
+	var ok bool
+	for _, envVar := range []string{
+		"LC_ALL",
+		"LC_COLLATE",
+		"LANG",
+	} {
+		locale, ok = os.LookupEnv(envVar)
+		if ok {
+			break
+		}
+	}
+
+	langString, ok := localeToLanguage[strings.ToLower(locale)]
+	if !ok {
+		langString = locale
+	}
+
+	lang, err := language.Parse(langString)
+	if err != nil {
+		logrus.Warnf("failed to parse language %q: %s", langString, err)
+		lang, err = language.Parse("und-u-va-posix")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	hooks, err := hooks.New(ctx, hookDirectories, []string{}, lang)
+	if err != nil {
+		if missingHookDirectoryFatal || !os.IsNotExist(err) {
+			return nil, err
+		}
+		logrus.Warnf("failed to load hooks: {}", err)
+	}
 
 	return &ContainerServer{
 		runtime:              runtime,
@@ -194,7 +206,7 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		podNameIndex:         registrar.NewRegistrar(),
 		podIDIndex:           truncindex.NewTruncIndex([]string{}),
 		imageContext:         &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
-		hooks:                hooks,
+		Hooks:                hooks,
 		stateLock:            lock,
 		state: &containerServerState{
 			containers:      oci.NewMemoryStore(),

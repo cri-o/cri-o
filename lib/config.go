@@ -9,6 +9,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/projectatomic/libpod/pkg/hooks"
 )
 
 // Defaults if none are specified
@@ -161,9 +162,6 @@ type RuntimeConfig struct {
 	// DefaultMountsFile is the file path for the default mounts to be mounted for the container
 	// Note, for testing purposes mainly
 	DefaultMountsFile string `toml:"default_mounts_file"`
-
-	// Hooks List of hooks to run with container
-	Hooks map[string]HookParams
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
@@ -333,7 +331,7 @@ func DefaultConfig() *Config {
 			CgroupManager:       cgroupManager,
 			PidsLimit:           DefaultPidsLimit,
 			ContainerExitsDir:   containerExitsDir,
-			HooksDirPath:        DefaultHooksDirPath,
+			HooksDirPath:        hooks.DefaultDir,
 			LogSizeMax:          DefaultLogSizeMax,
 			DefaultMountsFile:   "",
 			DefaultCapabilities: DefaultCapabilities,

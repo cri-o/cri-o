@@ -465,51 +465,6 @@ func (s *Server) MonitorsCloseChan() chan struct{} {
 	return s.monitorsChan
 }
 
-// StartHooksMonitor starts a goroutine to dynamically add hooks at runtime
-func (s *Server) StartHooksMonitor() {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		logrus.Fatalf("Failed to create new watch: %v", err)
-	}
-	defer watcher.Close()
-
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case event := <-watcher.Events:
-				logrus.Debugf("event: %v", event)
-				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					ok := s.ContainerServer.RemoveHook(filepath.Base(event.Name))
-					if ok {
-						logrus.Debugf("removed hook %s", event.Name)
-					}
-				}
-				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
-					err := s.ContainerServer.AddHook(event.Name)
-					if err == nil {
-						logrus.Debugf("added hook %s", event.Name)
-					} else if err != lib.ErrNoJSONSuffix {
-						logrus.Errorf("failed to add hook %s: %v", event.Name, err)
-					}
-				}
-			case err := <-watcher.Errors:
-				logrus.Debugf("watch error: %v", err)
-				return
-			case <-s.monitorsChan:
-				logrus.Debug("closing hooks monitor...")
-				close(done)
-				return
-			}
-		}
-	}()
-	if err := watcher.Add(s.config.HooksDirPath); err != nil {
-		logrus.Errorf("watcher.Add(%q) failed: %s", s.config.HooksDirPath, err)
-		close(done)
-	}
-	<-done
-}
-
 // StartExitMonitor start a routine that monitors container exits
 // and updates the container status
 func (s *Server) StartExitMonitor() {
