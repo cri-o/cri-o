@@ -80,13 +80,6 @@ func (c *ContainerServer) AddHook(hookPath string) (err error) {
 	if err != nil {
 		return err
 	}
-	for key, h := range c.hooks {
-		// hook.Hook can only be defined in one hook file, unless it has the
-		// same name in the override path.
-		if hook.Hook == h.Hook && key != filepath.Base(hookPath) {
-			logrus.Debugf("duplicate path,  hook %q from %q already defined in %q", hook.Hook, c.config.HooksDirPath, key)
-		}
-	}
 	c.hooks[filepath.Base(hookPath)] = hook
 	return nil
 }
