@@ -29,7 +29,9 @@
 - name: set up PATH for Go toolchain and built binaries
   lineinfile:
     dest: "{{ ansible_user_dir }}/.profile"
-    line: 'PATH={{ ansible_env.PATH }}:{{ ansible_env.GOPATH }}/bin:/usr/local/go/bin'
+    line: |
+        # Added by Ansible from golang.yml
+        PATH={{ ansible_env.PATH }}:{{ ansible_env.GOPATH }}/bin:/usr/local/go/bin
     regexp: '^PATH='
     state: present
 
