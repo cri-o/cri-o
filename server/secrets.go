@@ -128,7 +128,7 @@ func secretMounts(defaultMountsPaths []string, mountLabel, containerWorkingDir s
 			return nil, fmt.Errorf("making container directory failed: %v", err)
 		}
 
-		hostDir, err = resolveSymbolicLink(hostDir)
+		hostDir, err = resolveSymbolicLink(hostDir, "/")
 		if err != nil {
 			return nil, err
 		}

@@ -175,6 +175,9 @@ type RuntimeConfig struct {
 	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
+
+	// BindMountPrefix is the prefix to use for the source of the bind mounts.
+	BindMountPrefix string `toml:"bind_mount_prefix"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.

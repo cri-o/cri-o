@@ -146,6 +146,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("read-only") {
 		config.ReadOnly = ctx.GlobalBool("read-only")
 	}
+	if ctx.GlobalIsSet("bind-mount-prefix") {
+		config.BindMountPrefix = ctx.GlobalString("bind-mount-prefix")
+	}
 	return nil
 }
 
@@ -350,6 +353,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "read-only",
 			Usage: "setup all unprivileged containers to run as read-only",
+		},
+		cli.StringFlag{
+			Name:  "bind-mount-prefix",
+			Usage: "specify a prefix to prepend to the source of a bind mount",
 		},
 	}
 
