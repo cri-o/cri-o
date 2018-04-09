@@ -1010,6 +1010,15 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	return G_SOURCE_CONTINUE;
 }
 
+static int get_exit_status(int status)
+{
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	if (WIFSIGNALED(status))
+		return 128 + WTERMSIG(status);
+	return -1;
+}
+
 static void runtime_exit_cb(G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user_data)
 {
 	runtime_status = status;
@@ -1019,7 +1028,7 @@ static void runtime_exit_cb(G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gp
 
 static void container_exit_cb(G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user_data)
 {
-	ninfof("container %d exited with status %d", pid, status);
+	ninfof("container %d exited with status %d", pid, get_exit_status(status));
 	container_status = status;
 	container_pid = -1;
 	g_main_loop_quit(main_loop);
@@ -1581,7 +1590,7 @@ int main(int argc, char *argv[])
 				write_sync_fd(sync_pipe_fd, -1, buf);
 			}
 		}
-		nexitf("Failed to create container: exit status %d", WEXITSTATUS(runtime_status));
+		nexitf("Failed to create container: exit status %d", get_exit_status(runtime_status));
 	}
 
 	if (opt_terminal && masterfd_stdout == -1)
@@ -1651,7 +1660,7 @@ int main(int argc, char *argv[])
 		kill(container_pid, SIGKILL);
 		exit_message = "command timed out";
 	} else {
-		exit_status = WEXITSTATUS(container_status);
+		exit_status = get_exit_status(container_status);
 	}
 
 	if (opt_exit_dir) {
