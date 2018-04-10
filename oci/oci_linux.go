@@ -18,15 +18,12 @@ func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid
 	// Move conmon to specified cgroup
 	if r.cgroupManager == SystemdCgroupsManager {
 		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
-		if err := utils.RunUnderSystemdScope(pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
-			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
-		}
-		return nil
+		return utils.RunUnderSystemdScope(pid, cgroupParent, createUnitName("crio-conmon", c.id))
 	}
 
 	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
 	if err != nil {
-		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+		return err
 	}
 
 	// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
@@ -35,10 +32,7 @@ func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid
 	// only happens in corner case where one does a manual deletion of the container
 	// through e.g. runc. This should be handled by implementing a conmon monitoring
 	// routine that does the cgroup cleanup once conmon is terminated.
-	if err := control.Add(cgroups.Process{Pid: pid}); err != nil {
-		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-	}
-	return nil
+	return control.Add(cgroups.Process{Pid: pid})
 }
 
 func sysProcAttrPlatform() *syscall.SysProcAttr {

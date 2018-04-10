@@ -224,7 +224,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 
 	// Platform specific container setup
 	if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
-		logrus.Warnf("%s", err)
+		return err
 	}
 
 	/* We set the cgroup, now the child can start creating children */
