@@ -1,4 +1,4 @@
-// +build !arm,!386
+// +build linux,!arm,!386
 
 package oci
 

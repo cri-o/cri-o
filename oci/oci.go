@@ -10,16 +10,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/kubernetes-incubator/cri-o/pkg/findprocess"
 	"github.com/kubernetes-incubator/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"golang.org/x/sys/unix"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -203,9 +200,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 
 	cmd := exec.Command(r.conmonPath, args...)
 	cmd.Dir = c.bundlePath
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
+	cmd.SysProcAttr = sysProcAttrPlatform()
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -227,27 +222,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	childPipe.Close()
 	childStartPipe.Close()
 
-	// Move conmon to specified cgroup
-	if r.cgroupManager == SystemdCgroupsManager {
-		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
-		if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
-			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
-		}
-	} else {
-		control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
-		if err != nil {
-			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-		} else {
-			// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
-			// always fail as conmon's pid is still there.
-			// Fortunately, kubelet takes care of deleting this for us, so the leak will
-			// only happens in corner case where one does a manual deletion of the container
-			// through e.g. runc. This should be handled by implementing a conmon monitoring
-			// routine that does the cgroup cleanup once conmon is terminated.
-			if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			}
-		}
+	// Platform specific container setup
+	if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
+		logrus.Warnf("%s", err)
 	}
 
 	/* We set the cgroup, now the child can start creating children */
@@ -480,22 +457,11 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 
 	err = cmd.Wait()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exitErr.Sys().(unix.WaitStatus); ok {
-				return nil, ExecSyncError{
-					Stdout:   stdoutBuf,
-					Stderr:   stderrBuf,
-					ExitCode: int32(status.ExitStatus()),
-					Err:      err,
-				}
-			}
-		} else {
-			return nil, ExecSyncError{
-				Stdout:   stdoutBuf,
-				Stderr:   stderrBuf,
-				ExitCode: -1,
-				Err:      err,
-			}
+		return nil, ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: getExitCode(err),
+			Err:      err,
 		}
 	}
 
@@ -607,8 +573,8 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			return fmt.Errorf("failed to wait process, timeout reached after %.0f seconds",
 				timeout.Seconds())
 		}
-		err := unix.Kill(c.state.Pid, unix.SIGKILL)
-		if err != nil && err != unix.ESRCH {
+		err := kill(c.state.Pid)
+		if err != nil {
 			return fmt.Errorf("failed to kill process: %v", err)
 		}
 	}
@@ -811,15 +777,6 @@ func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 	return c.state
-}
-
-// newPipe creates a unix socket pair for communication
-func newPipe() (parent *os.File, child *os.File, err error) {
-	fds, err := unix.Socketpair(unix.AF_LOCAL, unix.SOCK_STREAM|unix.SOCK_CLOEXEC, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
 // RuntimeReady checks if the runtime is up and ready to accept
