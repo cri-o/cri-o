@@ -47,7 +47,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build crio, conmon and pause"
+	@echo " * 'binaries' - Build crio and conmon"
 	@echo " * 'release-note' - Generate release note"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
@@ -77,9 +77,6 @@ gofmt:
 
 bin/conmon: conmon/config.h
 	$(MAKE) -C conmon
-
-bin/pause:
-	$(MAKE) -C pause
 
 test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
@@ -114,7 +111,6 @@ endif
 	find . -name \#\* -delete
 	rm -f bin/crio
 	make -C conmon clean
-	make -C pause clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
@@ -134,7 +130,7 @@ testunit:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/conmon bin/pause
+binaries: bin/crio bin/conmon
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -153,7 +149,6 @@ install: .gopathok install.bin install.man
 install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
-	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 
 install.man: $(MANPAGES)
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
@@ -179,7 +174,6 @@ install.systemd:
 uninstall:
 	rm -f $(BINDIR)/crio
 	rm -f $(LIBEXECDIR)/crio/conmon
-	rm -f $(LIBEXECDIR)/crio/pause
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
 	done
@@ -234,7 +228,6 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 
 .PHONY: \
 	bin/conmon \
-	bin/pause \
 	binaries \
 	clean \
 	default \
