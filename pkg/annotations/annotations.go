@@ -96,6 +96,9 @@ const (
 
 	// Volumes is the volumes annotatoin
 	Volumes = "io.kubernetes.cri-o.Volumes"
+
+	// HostNetwork indicates whether the host network namespace is used or not
+	HostNetwork = "io.kubernetes.cri-o.HostNetwork"
 )
 
 // ContainerType values
