@@ -190,7 +190,7 @@ var (
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
 // An infra container must be attached before the sandbox is added to the state
-func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged, trusted bool, resolvPath, hostname string, portMappings []*hostport.PortMapping) (*Sandbox, error) {
+func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged, trusted bool, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool) (*Sandbox, error) {
 	sb := new(Sandbox)
 	sb.id = id
 	sb.namespace = namespace
@@ -211,6 +211,7 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.hostname = hostname
 	sb.portMappings = portMappings
 	sb.created = time.Now()
+	sb.hostNetwork = hostNetwork
 
 	return sb, nil
 }
@@ -329,7 +330,7 @@ func (s *Sandbox) Trusted() bool {
 
 // HostNetwork returns whether the sandbox runs in the host network namespace
 func (s *Sandbox) HostNetwork() bool {
-	return s.NamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
+	return s.hostNetwork
 }
 
 // ResolvPath returns the resolv path for the sandbox
