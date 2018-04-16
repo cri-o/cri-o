@@ -43,7 +43,6 @@ const (
 	seccompDockerDefault   = "docker/default"
 	seccompLocalhostPrefix = "localhost/"
 
-	scopePrefix           = "crio"
 	defaultCgroupfsParent = "/crio"
 	defaultSystemdParent  = "system.slice"
 )
