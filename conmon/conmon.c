@@ -78,30 +78,30 @@ static inline void strv_cleanup(char ***strv)
 
 static volatile pid_t container_pid = -1;
 static volatile pid_t create_pid = -1;
-static bool opt_version = false;
-static bool opt_terminal = false;
-static bool opt_stdin = false;
-static bool opt_leave_stdin_open = false;
+static gboolean opt_version = FALSE;
+static gboolean opt_terminal = FALSE;
+static gboolean opt_stdin = FALSE;
+static gboolean opt_leave_stdin_open = FALSE;
 static char *opt_cid = NULL;
 static char *opt_cuuid = NULL;
 static char *opt_runtime_path = NULL;
 static char *opt_bundle_path = NULL;
 static char *opt_container_pid_file = NULL;
 static char *opt_conmon_pid_file = NULL;
-static bool opt_systemd_cgroup = false;
-static bool opt_no_pivot = false;
+static gboolean opt_systemd_cgroup = FALSE;
+static gboolean opt_no_pivot = FALSE;
 static char *opt_exec_process_spec = NULL;
-static bool opt_exec = false;
+static gboolean opt_exec = FALSE;
 static char *opt_restore_path = NULL;
 static char *opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
 static int64_t opt_log_size_max = -1;
 static char *opt_socket_path = DEFAULT_SOCKET_PATH;
-static bool opt_no_new_keyring = false;
+static gboolean opt_no_new_keyring = FALSE;
 static char *opt_exit_command = NULL;
 static gchar **opt_exit_args = NULL;
-static bool opt_replace_listen_pid = false;
+static gboolean opt_replace_listen_pid = FALSE;
 static GOptionEntry opt_entries[] = {
 	{"terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL},
 	{"stdin", 'i', 0, G_OPTION_ARG_NONE, &opt_stdin, "Stdin", NULL},
@@ -596,7 +596,7 @@ static int attach_socket_fd = -1;
 static int console_socket_fd = -1;
 static int terminal_ctrl_fd = -1;
 
-static bool timed_out = FALSE;
+static gboolean timed_out = FALSE;
 
 static GMainLoop *main_loop = NULL;
 
@@ -627,7 +627,7 @@ static gboolean tty_hup_timeout_cb(G_GNUC_UNUSED gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
-static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
+static bool read_stdio(int fd, stdpipe_t pipe, gboolean *eof)
 {
 	/* We use one extra byte at the start, which we don't read into, instead
 	   we use that for marking the pipe when we write to the attached socket */
@@ -730,9 +730,9 @@ static gboolean on_sigusr1_cb(gpointer user_data)
 static gboolean stdio_cb(int fd, GIOCondition condition, gpointer user_data)
 {
 	stdpipe_t pipe = GPOINTER_TO_INT(user_data);
-	bool read_eof = false;
-	bool has_input = (condition & G_IO_IN) != 0;
-	bool has_hup = (condition & G_IO_HUP) != 0;
+	gboolean read_eof = FALSE;
+	gboolean has_input = (condition & G_IO_IN) != 0;
+	gboolean has_hup = (condition & G_IO_HUP) != 0;
 
 	/* When we get here, condition can be G_IO_IN and/or G_IO_HUP.
 	   IN means there is some data to read.
