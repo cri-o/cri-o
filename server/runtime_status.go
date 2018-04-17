@@ -1,11 +1,15 @@
 package server
 
 import (
+	"fmt"
 	"time"
 
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
+
+// networkNotReadyReason is the reason reported when network is not ready.
+const networkNotReadyReason = "NetworkPluginNotReady"
 
 // Status returns the status of the runtime
 func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.StatusResponse, err error) {
@@ -15,31 +19,26 @@ func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.St
 		recordError(operation, err)
 	}()
 
-	// Deal with Runtime conditions
-	runtimeReady, err := s.Runtime().RuntimeReady()
-	if err != nil {
-		return nil, err
+	runtimeCondition := &pb.RuntimeCondition{
+		Type:   pb.RuntimeReady,
+		Status: true,
 	}
-	networkReady, err := s.Runtime().NetworkReady()
-	if err != nil {
-		return nil, err
+	networkCondition := &pb.RuntimeCondition{
+		Type:   pb.NetworkReady,
+		Status: true,
 	}
 
-	// Use vendored strings
-	runtimeReadyConditionString := pb.RuntimeReady
-	networkReadyConditionString := pb.NetworkReady
+	if err := s.netPlugin.Status(); err != nil {
+		networkCondition.Status = false
+		networkCondition.Reason = networkNotReadyReason
+		networkCondition.Message = fmt.Sprintf("Network plugin returns error: %v", err)
+	}
 
 	resp = &pb.StatusResponse{
 		Status: &pb.RuntimeStatus{
 			Conditions: []*pb.RuntimeCondition{
-				{
-					Type:   runtimeReadyConditionString,
-					Status: runtimeReady,
-				},
-				{
-					Type:   networkReadyConditionString,
-					Status: networkReady,
-				},
+				runtimeCondition,
+				networkCondition,
 			},
 		},
 	}
