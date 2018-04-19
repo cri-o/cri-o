@@ -383,13 +383,13 @@ EOF
 	echo 0
 }
 
-function prepare_plugin_test_args_network_conf() {
+function write_plugin_test_args_network_conf() {
 	mkdir -p $CRIO_CNI_CONFIG
 	cat >$CRIO_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
     "cniVersion": "0.2.0",
     "name": "crionet_test_args",
-    "type": "bridge-custom",
+    "type": "cni_plugin_helper.bash",
     "bridge": "cni0",
     "isGateway": true,
     "ipMasq": true,
@@ -403,15 +403,15 @@ function prepare_plugin_test_args_network_conf() {
 }
 EOF
 
+	if [[ -n "$2" ]]; then
+		echo "DEBUG_ARGS=$2" > /tmp/cni_plugin_helper_input.env
+	fi
+
 	echo 0
 }
 
 function prepare_plugin_test_args_network_conf() {
 	write_plugin_test_args_network_conf $1 ""
-}
-
-function prepare_plugin_test_args_network_conf_malformed_result() {
-	write_plugin_test_args_network_conf $1 "malformed-result"
 }
 
 function check_pod_cidr() {
