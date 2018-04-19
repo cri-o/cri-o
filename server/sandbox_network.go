@@ -11,39 +11,52 @@ import (
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error
-func (s *Server) networkStart(sb *sandbox.Sandbox) (string, error) {
+func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, err error) {
 	if sb.HostNetwork() {
 		return s.BindAddress(), nil
 	}
 
+	// Ensure network resources are cleaned up if the plugin succeeded
+	// but an error happened between plugin success and the end of networkStart()
+	defer func() {
+		if err != nil {
+			s.networkStop(sb)
+		}
+	}()
+
 	podNetwork := newPodNetwork(sb)
-	err := s.netPlugin.SetUpPod(podNetwork)
+	err = s.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
-		return "", fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		return
 	}
 
-	var ip string
-	if ip, err = s.netPlugin.GetPodNetworkStatus(podNetwork); err != nil {
-		return "", fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+	podIP, err = s.netPlugin.GetPodNetworkStatus(podNetwork)
+	if err != nil {
+		err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		return
 	}
 
 	if len(sb.PortMappings()) > 0 {
-		ip4 := net.ParseIP(ip).To4()
+		ip4 := net.ParseIP(podIP).To4()
 		if ip4 == nil {
-			return "", fmt.Errorf("failed to get valid ipv4 address for sandbox %s(%s)", sb.Name(), sb.ID())
+			err = fmt.Errorf("failed to get valid ipv4 address for sandbox %s(%s)", sb.Name(), sb.ID())
+			return
 		}
 
-		if err = s.hostportManager.Add(sb.ID(), &hostport.PodPortMapping{
+		err = s.hostportManager.Add(sb.ID(), &hostport.PodPortMapping{
 			Name:         sb.Name(),
 			PortMappings: sb.PortMappings(),
 			IP:           ip4,
 			HostNetwork:  false,
-		}, "lo"); err != nil {
-			return "", fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		}, "lo")
+		if err != nil {
+			err = fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+			return
 		}
 
 	}
-	return ip, nil
+	return
 }
 
 // GetSandboxIP retrieves the IP address for the sandbox
