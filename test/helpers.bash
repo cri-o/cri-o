@@ -373,13 +373,6 @@ function prepare_network_conf() {
 }
 EOF
 
-	cat >$CRIO_CNI_CONFIG/99-loopback.conf <<-EOF
-{
-    "cniVersion": "0.2.0",
-    "type": "loopback"
-}
-EOF
-
 	echo 0
 }
 
@@ -412,6 +405,10 @@ EOF
 
 function prepare_plugin_test_args_network_conf() {
 	write_plugin_test_args_network_conf $1 ""
+}
+
+function prepare_plugin_test_args_network_conf_malformed_result() {
+	write_plugin_test_args_network_conf $1 "malformed-result"
 }
 
 function check_pod_cidr() {

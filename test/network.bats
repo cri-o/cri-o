@@ -128,7 +128,7 @@ function teardown() {
 }
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
-	start_crio "" "" "" "" "prepare_plugin_test_args_network_conf"
+	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	[ "$status" -eq 0 ]
 
@@ -169,7 +169,7 @@ function teardown() {
 }
 
 @test "Clean up network if pod sandbox fails" {
-	start_crio "" "" "" "" "prepare_plugin_test_args_network_conf"
+	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
 
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured
@@ -187,7 +187,7 @@ function teardown() {
 }
 
 @test "Clean up network if pod sandbox fails after plugin success" {
-	start_crio "" "" "" "" "prepare_plugin_test_args_network_conf_malformed_result"
+	start_crio "" "" "" "prepare_plugin_test_args_network_conf_malformed_result"
 
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
