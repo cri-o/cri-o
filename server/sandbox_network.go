@@ -76,7 +76,7 @@ func (s *Server) GetSandboxIP(sb *sandbox.Sandbox) (string, error) {
 
 // networkStop cleans up and removes a pod's network.  It is best-effort and
 // must call the network plugin even if the network namespace is already gone
-func (s *Server) networkStop(sb *sandbox.Sandbox) error {
+func (s *Server) networkStop(sb *sandbox.Sandbox) {
 	if !sb.HostNetwork() {
 		if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
 			Name:         sb.Name(),
@@ -93,6 +93,4 @@ func (s *Server) networkStop(sb *sandbox.Sandbox) error {
 				sb.Name(), sb.ID(), err)
 		}
 	}
-
-	return nil
 }
