@@ -406,6 +406,14 @@ EOF
 	echo 0
 }
 
+function prepare_plugin_test_args_network_conf() {
+	write_plugin_test_args_network_conf $1 ""
+}
+
+function prepare_plugin_test_args_network_conf_malformed_result() {
+	write_plugin_test_args_network_conf $1 "malformed-result"
+}
+
 function check_pod_cidr() {
 	run crictl exec --sync $1 ip addr show dev eth0 scope global 2>&1
 	echo "$output"
