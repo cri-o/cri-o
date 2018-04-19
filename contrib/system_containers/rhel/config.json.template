@@ -293,28 +293,6 @@
       "type": "bind"
     },
     {
-      "destination": "/home",
-      "options": [
-        "rbind",
-        "rprivate",
-        "rw",
-        "mode=755"
-      ],
-      "source": "/home",
-      "type": "bind"
-    },
-    {
-      "destination": "/mnt",
-      "options": [
-        "rbind",
-        "rw",
-        "rprivate",
-        "mode=755"
-      ],
-      "source": "/mnt",
-      "type": "bind"
-    },
-    {
       "type": "bind",
       "source": "${RUN_DIRECTORY}",
       "destination": "/run",
