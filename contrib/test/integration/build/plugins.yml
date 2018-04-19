@@ -30,21 +30,14 @@
     - tuning
     - vlan
 
-- name: clone runcom plugins source repo
-  git:
-    repo: "https://github.com/runcom/plugins.git"
-    dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
-    version: "custom-bridge"
-    force: yes
-
 - name: build plugins
   command: "./build.sh"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
 
-- name: install custom bridge
+- name: install CNI plugin test helper
   copy:
-    src: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins/bin/bridge"
-    dest: "/opt/cni/bin/bridge-custom"
+    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/test/cni_plugin_helper.bash"
+    dest: "/opt/cni/bin/cni_plugin_helper.bash"
     mode: "o=rwx,g=rx,o=rx"
     remote_src: yes
