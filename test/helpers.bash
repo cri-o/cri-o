@@ -396,13 +396,6 @@ function prepare_network_conf() {
 }
 EOF
 
-	cat >$CRIO_CNI_CONFIG/99-loopback.conf <<-EOF
-{
-    "cniVersion": "0.2.0",
-    "type": "loopback"
-}
-EOF
-
 	echo 0
 }
 
