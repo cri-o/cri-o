@@ -61,14 +61,14 @@
     name: /etc/crio/crio.conf
     backup: yes
 
-- name: add docker.io default registry
+- name: add quay.io default registry
   lineinfile:
     dest: /etc/crio/crio.conf
     line: |
           # Added by Ansible from build/cri-o.yml
-          registries = [ "docker.io" ]
+          registries = [ "quay.io", "docker.io" ]
     insertafter: 'registries = \['
-    regexp: 'docker\.io'
+    regexp: 'quay\.io, docker\.io'
     state: present
 
 - name: add overlay storage opts on RHEL/CentOS

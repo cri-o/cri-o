@@ -6,7 +6,7 @@
     ],
     "transports": {
         "docker": {
-            "docker.io/library/hello-world": [
+            "quay.io/crio/hello-world": [
                 {
                     "type": "reject"
                 }

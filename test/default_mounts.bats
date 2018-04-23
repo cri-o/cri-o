@@ -2,7 +2,7 @@
 
 load helpers
 
-IMAGE="redis:alpine"
+IMAGE="quay.io/crio/redis:alpine"
 
 function teardown() {
 	cleanup_test

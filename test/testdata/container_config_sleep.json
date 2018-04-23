@@ -4,7 +4,7 @@
 		"attempt": 1
 	},
 	"image": {
-		"image": "docker.io/library/busybox:latest"
+		"image": "quay.io/crio/busybox:latest"
 	},
 	"command": [
 		"sleep",

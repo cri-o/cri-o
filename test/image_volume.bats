@@ -12,7 +12,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	image_volume_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "mrunalp/image-volume-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
+	image_volume_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/image-volume-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
 	echo "$image_volume_config" > "$TESTDIR"/container_image_volume.json
 	run crictl create "$pod_id" "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -43,7 +43,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	image_volume_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "mrunalp/image-volume-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
+	image_volume_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/image-volume-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
 	echo "$image_volume_config" > "$TESTDIR"/container_image_volume.json
 	run crictl create "$pod_id" "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
