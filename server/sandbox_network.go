@@ -6,7 +6,7 @@ import (
 
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/sirupsen/logrus"
-	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
