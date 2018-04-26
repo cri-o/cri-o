@@ -2,9 +2,9 @@
 
 load helpers
 
-IMAGE=kubernetes/pause
+IMAGE=quay.io/crio/pause
 SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
-UNSIGNED_IMAGE=docker.io/library/hello-world:latest
+UNSIGNED_IMAGE=quay.io/crio/hello-world:latest
 
 function teardown() {
 	cleanup_test
@@ -47,7 +47,7 @@ function teardown() {
 	run crictl inspect "$ctr_id" --output yaml
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image: docker.io/library/redis:alpine" ]]
+	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
 	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
 
 	cleanup_ctrs
@@ -63,7 +63,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	sed -e "s/%VALUE%/redis:alpine/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagetag.json
+	sed -e "s/%VALUE%/quay.io\/crio\/redis:alpine/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagetag.json
 
 	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imagetag.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -73,7 +73,7 @@ function teardown() {
 	run crictl inspect "$ctr_id" --output yaml
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image: docker.io/library/redis:alpine" ]]
+	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
 	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
 
 	cleanup_ctrs
@@ -103,7 +103,7 @@ function teardown() {
 	run crictl inspect "$ctr_id" --output yaml
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image: docker.io/library/redis:alpine" ]]
+	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
 	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
 
 	cleanup_ctrs
@@ -182,11 +182,11 @@ function teardown() {
 
 @test "image pull and list by digest and ID" {
 	start_crio "" "" --no-pause-image
-	run crictl pull nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	run crictl pull quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl images --quiet nginx@sha256:33eb1ed1e802d4f71e52421f56af028cdf12bb3bfff5affeaf5bf0e328ffa1bc
+	run crictl images --quiet quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]

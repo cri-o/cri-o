@@ -741,7 +741,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "hello0 stdout" ]]
 
-	stderrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "runcom/stderr-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
+	stderrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/stderr-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
 	echo "$stderrconfig" > "$TESTDIR"/container_config_stderr.json
 	run crictl create "$pod_id" "$TESTDIR"/container_config_stderr.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -836,7 +836,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	oomconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "mrunalp/oom"; obj["linux"]["resources"]["memory_limit_in_bytes"] = 5120000; obj["command"] = ["/oom"]; json.dump(obj, sys.stdout)')
+	oomconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/oom"; obj["linux"]["resources"]["memory_limit_in_bytes"] = 5120000; obj["command"] = ["/oom"]; json.dump(obj, sys.stdout)')
 	echo "$oomconfig" > "$TESTDIR"/container_config_oom.json
 	run crictl create "$pod_id" "$TESTDIR"/container_config_oom.json "$TESTDATA"/sandbox_config.json
 	echo "$output"

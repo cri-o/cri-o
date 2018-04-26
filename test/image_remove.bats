@@ -2,7 +2,7 @@
 
 load helpers
 
-IMAGE=docker.io/kubernetes/pause
+IMAGE=quay.io/crio/pause
 
 function teardown() {
 	cleanup_test

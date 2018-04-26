@@ -4,7 +4,7 @@
 		"attempt": 1
 	},
 	"image": {
-		"image": "busybox:latest"
+		"image": "quay.io/crio/busybox:latest"
 	},
 	"command": [
 		"/bin/sh", "-c"

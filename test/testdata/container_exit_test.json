@@ -3,7 +3,7 @@
 		"name": "podsandbox1-exit-test"
 	},
 	"image": {
-		"image": "docker://mrunalp/exit_test:latest"
+		"image": "quay.io/crio/exit_test:latest"
 	},
 	"args": [
                 "/exit_test"

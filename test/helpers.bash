@@ -104,8 +104,8 @@ PATH=$PATH:$TESTDIR
 # Make sure we have a copy of the redis:alpine image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/redis-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling docker://redis"
+    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling quay.io/crio/redis"
         rm -fr "$ARTIFACTS_PATH"/redis-image
         exit 1
     fi
@@ -114,8 +114,8 @@ fi
 # Make sure we have a copy of the runcom/stderr-test image.
 if ! [ -d "$ARTIFACTS_PATH"/stderr-test ]; then
     mkdir -p "$ARTIFACTS_PATH"/stderr-test
-    if ! "$COPYIMG_BINARY" --import-from=docker://runcom/stderr-test:latest --export-to=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling docker://stderr-test"
+    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/stderr-test:latest --export-to=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling quay.io/crio/stderr-test"
         rm -fr "$ARTIFACTS_PATH"/stderr-test
         exit 1
     fi
@@ -124,8 +124,8 @@ fi
 # Make sure we have a copy of the busybox:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/busybox-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://busybox --export-to=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling docker://busybox"
+    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/busybox:latest --export-to=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling quay.io/crio/busybox"
         rm -fr "$ARTIFACTS_PATH"/busybox-image
         exit 1
     fi
@@ -134,8 +134,8 @@ fi
 # Make sure we have a copy of the mrunalp/oom:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/oom-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/oom-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://mrunalp/oom --export-to=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling docker://mrunalp/oom"
+    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/oom:latest --export-to=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling quay.io/crio/oom"
         rm -fr "$ARTIFACTS_PATH"/oom-image
         exit 1
     fi
@@ -144,8 +144,8 @@ fi
 # Make sure we have a copy of the mrunalp/image-volume-test:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://mrunalp/image-volume-test --export-to=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling docker://mrunalp/image-volume-test-image"
+    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/image-volume-test:latest --export-to=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling quay.io/crio/image-volume-test-image"
         rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
         exit 1
     fi
@@ -210,12 +210,12 @@ function start_crio() {
 	if ! [ "$3" = "--no-pause-image" ] ; then
 		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
 	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/mrunalp/oom:latest --import-from=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/mrunalp/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --registry "docker.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --config /dev/null config >$CRIO_CONFIG
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/oom:latest --import-from=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
+	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --registry "quay.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$4" ]]; then
@@ -228,32 +228,32 @@ function start_crio() {
 	"$CRIO_BINARY" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 
-	run crictl inspecti redis:alpine
+	run crictl inspecti quay.io/crio/redis:alpine
 	if [ "$status" -ne 0 ] ; then
-		crictl pull redis:alpine
+		crictl pull quay.io/crio/redis:alpine
 	fi
-	REDIS_IMAGEID=$(crictl inspecti redis:alpine --output table | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-	REDIS_IMAGEREF=$(crictl inspecti redis:alpine --output table | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
-	run crictl inspecti mrunalp/oom
+	REDIS_IMAGEID=$(crictl inspecti quay.io/crio/redis:alpine --output table | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	REDIS_IMAGEREF=$(crictl inspecti quay.io/crio/redis:alpine --output table | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
+	run crictl inspecti quay.io/crio/oom
 	if [ "$status" -ne 0 ] ; then
-		  crictl pull mrunalp/oom
+		  crictl pull quay.io/crio/oom
 	fi
-	OOM_IMAGEID=$(crictl inspecti mrunalp/oom | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-	run crioctl image status --id=runcom/stderr-test
+	OOM_IMAGEID=$(crictl inspecti quay.io/crio/oom | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	run crictl inspecti quay.io/crio/stderr-test
 	if [ "$status" -ne 0 ] ; then
-		crictl pull runcom/stderr-test:latest
+		crictl pull quay.io/crio/stderr-test:latest
 	fi
-	STDERR_IMAGEID=$(crictl inspecti runcom/stderr-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-	run crictl inspecti busybox
+	STDERR_IMAGEID=$(crictl inspecti quay.io/crio/stderr-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	run crictl inspecti quay.io/crio/busybox
 	if [ "$status" -ne 0 ] ; then
-		crictl pull busybox:latest
+		crictl pull quay.io/crio/busybox:latest
 	fi
-	BUSYBOX_IMAGEID=$(crictl inspecti busybox | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-	run crictl inspecti mrunalp/image-volume-test
+	BUSYBOX_IMAGEID=$(crictl inspecti quay.io/crio/busybox | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	run crictl inspecti quay.io/crio/image-volume-test
 	if [ "$status" -ne 0 ] ; then
-		  crictl pull mrunalp/image-volume-test:latest
+		  crictl pull quay.io/crio/image-volume-test:latest
 	fi
-	VOLUME_IMAGEID=$(crictl inspecti mrunalp/image-volume-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	VOLUME_IMAGEID=$(crictl inspecti quay.io/crio/image-volume-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
 }
 
 function cleanup_ctrs() {
