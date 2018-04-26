@@ -9,6 +9,7 @@ import (
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/godbus/dbus"
+	"github.com/sirupsen/logrus"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
@@ -60,6 +61,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	properties = append(properties, newProp("Delegate", true))
 	properties = append(properties, newProp("DefaultDependencies", false))
 	ch := make(chan string)
+	logrus.Debugf("start transient unit %s (%+v)", unitName, properties)
 	_, err = conn.StartTransientUnit(unitName, "replace", properties, ch)
 	if err != nil {
 		return err
