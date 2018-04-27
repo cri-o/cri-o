@@ -61,7 +61,7 @@
     name: /etc/crio/crio.conf
     backup: yes
 
-- name: add quay.io default registry
+- name: add quay.io and docker.io as default registries
   lineinfile:
     dest: /etc/crio/crio.conf
     line: |

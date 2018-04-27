@@ -1,4 +1,4 @@
-package server
+package secrets
 
 import (
 	"testing"
@@ -32,15 +32,15 @@ func TestGetMountsMap(t *testing.T) {
 func TestGetHostSecretData(t *testing.T) {
 	testCases := []struct {
 		Path string
-		Want []SecretData
+		Want []secretData
 	}{
 		{
 			"emptyPath",
-			[]SecretData{},
+			[]secretData{},
 		},
 		{
 			secretDataPath,
-			[]SecretData{
+			[]secretData{
 				{"testDataA", []byte("secretDataA")},
 				{"testDataB", []byte("secretDataB")},
 			},
@@ -51,9 +51,9 @@ func TestGetHostSecretData(t *testing.T) {
 			t.Error(err)
 		} else {
 			for index, data := range secretData {
-				if data.Name != c.Want[index].Name || string(data.Data) != string(c.Want[index].Data) {
+				if data.name != c.Want[index].name || string(data.data) != string(c.Want[index].data) {
 					t.Errorf("expect: (%v, %v) \n but got: (%v, %v) \n",
-						c.Want[index].Name, string(c.Want[index].Data), data.Name, string(data.Data))
+						c.Want[index].name, string(c.Want[index].data), data.name, string(data.data))
 				}
 			}
 		}

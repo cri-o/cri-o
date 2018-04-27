@@ -31,6 +31,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -1288,12 +1289,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	var secretMounts []rspec.Mount
 	if len(s.config.DefaultMounts) > 0 {
+		// This option has been deprecated, once it is removed in the later versions, delete the server/secrets.go file as well
+		logrus.Warnf("--default-mounts has been deprecated and will be removed in future versions. Add mounts to either %q or %q", secrets.DefaultMountsFile, secrets.OverrideMountsFile)
 		var err error
 		secretMounts, err = addSecretsBindMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMounts, specgen)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount secrets: %v", err)
 		}
 	}
+	// Add secrets from the default and override mounts.conf files
+	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile)...)
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)
