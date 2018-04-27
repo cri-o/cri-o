@@ -34,6 +34,26 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
+# userns_uid_map is a list of container_id:host_id:size triples which are used
+# to map default permissions used for on-disk image and container content.
+userns_uid_map = [
+{{ range $n, $opt := .UIDMap }}{{ printf "\t[%d, %d, %d],\n" (index $opt 0) (index $opt 1) (index $opt 2) }}{{ end }}]
+
+# userns_gid_map is a list of container_id:host_id:size triples which are used
+# to map default permissions used for on-disk image and container content.
+userns_gid_map = [
+{{ range $n, $opt := .GIDMap }}{{ printf "\t[%d, %d, %d],\n" (index $opt 0) (index $opt 1) (index $opt 2) }}{{ end }}]
+
+# userns_uid_map_user is the name of one or more entries in /etc/subuid
+# which are used to map default permissions used for on-disk image and
+# container content.
+userns_uid_map_user = "{{ .UIDMapUser }}"
+
+# userns_gid_map_group is the name of one or more entries in /etc/subgid
+# which are used to map default permissions used for on-disk image and container
+# content.
+userns_gid_map_group = "{{ .GIDMapGroup }}"
+
 # The "crio.api" table contains settings for the kubelet/gRPC interface.
 [crio.api]
 

@@ -82,6 +82,15 @@ type RootConfig struct {
 	// tells us to put them somewhere else.
 	LogDir string `toml:"log_dir"`
 
+	// UIDMap and GIDMap are default ID mappings to use to supplement those
+	// assigned to the UIDMapUser and GIDMapGroup, if specified, to use
+	// when launching containers, using user namespaces if any of them are
+	// specified.
+	UIDMap      [][3]int `toml:"userns_uid_map"`
+	GIDMap      [][3]int `toml:"userns_gid_map"`
+	UIDMapUser  string   `toml:"userns_uid_map_user"`
+	GIDMapGroup string   `toml:"userns_gid_map_group"`
+
 	// FileLocking specifies whether to use file-based or in-memory locking
 	// File-based locking is required when multiple users of lib are
 	// present on the same system

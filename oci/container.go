@@ -263,6 +263,28 @@ func (c *Container) MountPoint() string {
 	return c.mountPoint
 }
 
+// UIDMap returns the container's UID map
+func (c *Container) UIDMap() []specs.LinuxIDMapping {
+	if c.spec == nil {
+		return nil
+	}
+	if c.spec.Linux == nil {
+		return nil
+	}
+	return c.spec.Linux.UIDMappings
+}
+
+// GIDMap returns the container's GID map
+func (c *Container) GIDMap() []specs.LinuxIDMapping {
+	if c.spec == nil {
+		return nil
+	}
+	if c.spec.Linux == nil {
+		return nil
+	}
+	return c.spec.Linux.GIDMappings
+}
+
 // SetState sets the conainer state
 //
 // XXX: DO NOT EVER USE THIS, THIS IS JUST USEFUL FOR MOCKING!!!

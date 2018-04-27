@@ -1,5 +1,7 @@
 package types
 
+import rspec "github.com/opencontainers/runtime-spec/specs-go"
+
 // ContainerInfo stores information about containers
 type ContainerInfo struct {
 	Name            string            `json:"name"`
@@ -14,6 +16,9 @@ type ContainerInfo struct {
 	Root            string            `json:"root"`
 	Sandbox         string            `json:"sandbox"`
 	IP              string            `json:"ip_address"`
+
+	UIDMap []rspec.LinuxIDMapping `json:"uid_map,omitempty"`
+	GIDMap []rspec.LinuxIDMapping `json:"gid_map,omitempty"`
 }
 
 // CrioInfo stores information about the crio daemon
