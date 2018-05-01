@@ -128,6 +128,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("default-mounts") {
 		config.DefaultMounts = ctx.GlobalStringSlice("default-mounts")
 	}
+	if ctx.GlobalIsSet("default-mounts-file") {
+		config.DefaultMountsFile = ctx.GlobalString("default-mounts-file")
+	}
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
@@ -328,8 +331,12 @@ func main() {
 			Hidden: true,
 		},
 		cli.StringSliceFlag{
-			Name:   "default-mounts",
-			Usage:  "add one or more default mount paths in the form host:container",
+			Name:  "default-mounts",
+			Usage: "add one or more default mount paths in the form host:container (deprecated)",
+		},
+		cli.StringFlag{
+			Name:   "default-mounts-file",
+			Usage:  "path to default mounts file",
 			Hidden: true,
 		},
 		cli.BoolFlag{

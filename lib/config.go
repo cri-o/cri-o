@@ -149,6 +149,10 @@ type RuntimeConfig struct {
 	// The format of each mount is "host-path:container-path"
 	DefaultMounts []string `toml:"default_mounts"`
 
+	// DefaultMountsFile is the file path for the default mounts to be mounted for the container
+	// Note, for testing purposes mainly
+	DefaultMountsFile string `toml:"default_mounts_file"`
+
 	// Hooks List of hooks to run with container
 	Hooks map[string]HookParams
 
@@ -309,6 +313,7 @@ func DefaultConfig() *Config {
 			ContainerExitsDir: containerExitsDir,
 			HooksDirPath:      DefaultHooksDirPath,
 			LogSizeMax:        DefaultLogSizeMax,
+			DefaultMountsFile: "",
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,

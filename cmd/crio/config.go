@@ -114,8 +114,23 @@ cgroup_manager = "{{ .CgroupManager }}"
 hooks_dir_path = "{{ .HooksDirPath }}"
 
 # default_mounts is the mounts list to be mounted for the container when created
+# deprecated, will be taken out in future versions, add default mounts to either
+# /usr/share/containers/mounts.conf or /etc/containers/mounts.conf
 default_mounts = [
 {{ range $mount := .DefaultMounts }}{{ printf "\t%q, \n" $mount }}{{ end }}]
+
+# CRI-O reads its default mounts from the following two files:
+# 1) /etc/containers/mounts.conf - this is the override file, where users can
+# either add in their own default mounts, or override the default mounts shipped
+# with the package.
+# 2) /usr/share/containers/mounts.conf - this is the default file read for mounts.
+# If you want CRI-O to read from a different, specific mounts file, you can change
+# the default_mounts_file path right below. Note, if this is done, CRI-O will only add
+# mounts it finds in this file.
+
+# default_mounts_file is the file path holding the default mounts to be mounted for the
+# container when created.
+# default_mounts_file = "{{ .DefaultMountsFile }}"
 
 # pids_limit is the number of processes allowed in a container
 pids_limit = {{ .PidsLimit }}

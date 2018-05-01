@@ -67,14 +67,25 @@ HOOKSDIR=$TESTDIR/hooks
 mkdir ${HOOKSDIR}
 HOOKS_OPTS="--hooks-dir-path=$HOOKSDIR"
 
-# Setup default secrets mounts
+# Setup default mounts using deprecated --default-mounts flag
+# should be removed, once the flag is removed
 MOUNT_PATH="$TESTDIR/secrets"
 mkdir ${MOUNT_PATH}
 MOUNT_FILE="${MOUNT_PATH}/test.txt"
 touch ${MOUNT_FILE}
 echo "Testing secrets mounts!" > ${MOUNT_FILE}
-
 DEFAULT_MOUNTS_OPTS="--default-mounts=${MOUNT_PATH}:/container/path1"
+
+# Setup default secrets mounts
+mkdir $TESTDIR/containers
+touch $TESTDIR/containers/mounts.conf
+echo "$TESTDIR/rhel/secrets:/run/secrets" > $TESTDIR/containers/mounts.conf
+mkdir -p $TESTDIR/rhel/secrets
+touch $TESTDIR/rhel/secrets/test.txt
+echo "Testing secrets mounts. I am mounted!" > $TESTDIR/rhel/secrets/test.txt
+mkdir -p $TESTDIR/symlink/target
+touch $TESTDIR/symlink/target/key.pem
+ln -s $TESTDIR/symlink/target $TESTDIR/rhel/secrets/mysymlink
 
 # We may need to set some default storage options.
 case "$(stat -f -c %T ${TESTDIR})" in
@@ -215,7 +226,7 @@ function start_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --registry "quay.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --default-mounts-file "$TESTDIR/containers/mounts.conf" --registry "quay.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$4" ]]; then
@@ -225,7 +236,7 @@ function start_crio() {
 	fi
 	${netfunc} $POD_CIDR
 
-	"$CRIO_BINARY" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 
 	run crictl inspecti quay.io/crio/redis:alpine
