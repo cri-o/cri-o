@@ -496,6 +496,11 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 
 // setupCapabilities sets process.capabilities in the OCI runtime config.
 func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability) error {
+	// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
+	// and pods expect that switching to a non-root user results in the capabilities being
+	// dropped. This should be revisited in the future.
+	specgen.Spec().Process.Capabilities.Ambient = []string{}
+
 	if capabilities == nil {
 		return nil
 	}
@@ -514,9 +519,6 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	// see https://github.com/kubernetes/kubernetes/issues/51980
 	if inStringSlice(capabilities.GetAddCapabilities(), "ALL") {
 		for _, c := range getOCICapabilitiesList() {
-			if err := specgen.AddProcessCapabilityAmbient(c); err != nil {
-				return err
-			}
 			if err := specgen.AddProcessCapabilityBounding(c); err != nil {
 				return err
 			}
@@ -533,9 +535,6 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	}
 	if inStringSlice(capabilities.GetDropCapabilities(), "ALL") {
 		for _, c := range getOCICapabilitiesList() {
-			if err := specgen.DropProcessCapabilityAmbient(c); err != nil {
-				return err
-			}
 			if err := specgen.DropProcessCapabilityBounding(c); err != nil {
 				return err
 			}
@@ -556,9 +555,6 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 			continue
 		}
 		capPrefixed := toCAPPrefixed(cap)
-		if err := specgen.AddProcessCapabilityAmbient(capPrefixed); err != nil {
-			return err
-		}
 		if err := specgen.AddProcessCapabilityBounding(capPrefixed); err != nil {
 			return err
 		}
@@ -578,9 +574,6 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 			continue
 		}
 		capPrefixed := toCAPPrefixed(cap)
-		if err := specgen.DropProcessCapabilityAmbient(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
-		}
 		if err := specgen.DropProcessCapabilityBounding(capPrefixed); err != nil {
 			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
 		}
