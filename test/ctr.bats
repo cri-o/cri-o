@@ -1077,3 +1077,35 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "ctr with non-root user has no effective capabilities" {
+	start_crio
+	run crictl runs "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	newconfig=$(cat "$TESTDATA"/container_redis.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["run_as_username"] = "redis"; json.dump(obj, sys.stdout)')
+	echo "$newconfig" > "$TESTDIR"/container_user.json
+
+	run crictl create "$pod_id" "$TESTDIR"/container_user.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	[ "$status" -eq 0 ]
+
+	run crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crictl stops "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rms "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
