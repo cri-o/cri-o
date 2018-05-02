@@ -411,10 +411,15 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	privileged := s.privilegedSandbox(req)
 
-	// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
-	// and pods expect that switching to a non-root user results in the capabilities being
-	// dropped. This should be revisited in the future.
-	g.Spec().Process.Capabilities.Ambient = []string{}
+	// Add capabilities from crio.conf if default_capabilities is defined
+	capabilities := &pb.Capability{}
+	if s.config.DefaultCapabilities != nil {
+		g.ClearProcessCapabilities()
+		capabilities.AddCapabilities = append(capabilities.AddCapabilities, s.config.DefaultCapabilities...)
+	}
+	if err := setupCapabilities(&g, capabilities); err != nil {
+		return nil, err
+	}
 
 	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
 	if securityContext == nil {

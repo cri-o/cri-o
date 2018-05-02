@@ -8,13 +8,11 @@ function teardown() {
 
 @test "pid_namespace_mode_pod_test" {
 	start_crio
-	pidNamespaceMode=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["pid"] = 0; json.dump(obj, sys.stdout)')
-	echo "$pidNamespaceMode" > "$TESTDIR"/sandbox_pidnamespacemode_config.json
-	run crictl runp "$TESTDIR"/sandbox_pidnamespacemode_config.json
+	run crictl runp "$TESTDATA"/sandbox_pidnamespacemode_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_pidnamespacemode_config.json
+	run crictl create "$pod_id" "$TESTDATA"/container_redis_namespace.json "$TESTDATA"/sandbox_pidnamespacemode_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"

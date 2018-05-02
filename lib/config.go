@@ -57,6 +57,21 @@ const (
 	DefaultLogSizeMax = -1
 )
 
+// DefaultCapabilities for the capabilities option in the crio.conf file
+var DefaultCapabilities = []string{
+	"CHOWN",
+	"DAC_OVERRIDE",
+	"FSETID",
+	"FOWNER",
+	"NET_RAW",
+	"SETGID",
+	"SETUID",
+	"SETPCAP",
+	"NET_BIND_SERVICE",
+	"SYS_CHROOT",
+	"KILL",
+}
+
 // This structure is necessary to fake the TOML tables when parsing,
 // while also not requiring a bunch of layered structs for no good
 // reason.
@@ -192,6 +207,9 @@ type RuntimeConfig struct {
 	// A range is specified in the form containerUID:HostUID:Size.  Multiple
 	// ranges are separed by comma.
 	GIDMappings string `toml:"gid_mappings"`
+
+	// Capabilities to add to all containers.
+	DefaultCapabilities []string `toml:"default_capabilities"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -315,15 +333,16 @@ func DefaultConfig() *Config {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			SELinux:           selinuxEnabled(),
-			SeccompProfile:    seccompProfilePath,
-			ApparmorProfile:   apparmorProfileName,
-			CgroupManager:     cgroupManager,
-			PidsLimit:         DefaultPidsLimit,
-			ContainerExitsDir: containerExitsDir,
-			HooksDirPath:      DefaultHooksDirPath,
-			LogSizeMax:        DefaultLogSizeMax,
-			DefaultMountsFile: "",
+			SELinux:             selinuxEnabled(),
+			SeccompProfile:      seccompProfilePath,
+			ApparmorProfile:     apparmorProfileName,
+			CgroupManager:       cgroupManager,
+			PidsLimit:           DefaultPidsLimit,
+			ContainerExitsDir:   containerExitsDir,
+			HooksDirPath:        DefaultHooksDirPath,
+			LogSizeMax:          DefaultLogSizeMax,
+			DefaultMountsFile:   "",
+			DefaultCapabilities: DefaultCapabilities,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,

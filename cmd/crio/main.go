@@ -138,6 +138,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("default-mounts-file") {
 		config.DefaultMountsFile = ctx.GlobalString("default-mounts-file")
 	}
+	if ctx.GlobalIsSet("default-capabilities") {
+		config.DefaultCapabilities = strings.Split(ctx.GlobalString("default-capabilities"), ",")
+	}
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
@@ -351,6 +354,10 @@ func main() {
 			Name:   "default-mounts-file",
 			Usage:  "path to default mounts file",
 			Hidden: true,
+		},
+		cli.StringFlag{
+			Name:  "default-capabilities",
+			Usage: "capabilities to add to the containers",
 		},
 		cli.BoolFlag{
 			Name:  "profile",
