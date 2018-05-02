@@ -292,6 +292,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.SetProcessSelinuxLabel(processLabel)
 	g.SetLinuxMountLabel(mountLabel)
 
+	// Remove the default /dev/shm mount to ensure we overwrite it
+	g.RemoveMount("/dev/shm")
+
 	// create shm mount for the pod containers.
 	var shmPath string
 	if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
@@ -309,6 +312,15 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 		}()
 	}
+
+	mnt := runtimespec.Mount{
+		Type:        "bind",
+		Source:      shmPath,
+		Destination: "/dev/shm",
+		Options:     []string{"rw", "bind"},
+	}
+	// bind mount the pod shm
+	g.AddMount(mnt)
 
 	err = s.setPodSandboxMountLabel(id, mountLabel)
 	if err != nil {
@@ -506,7 +518,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := label.Relabel(hostnamePath, mountLabel, true); err != nil && err != unix.ENOTSUP {
 		return nil, err
 	}
-	mnt := runtimespec.Mount{
+	mnt = runtimespec.Mount{
 		Type:        "bind",
 		Source:      hostnamePath,
 		Destination: "/etc/hostname",
