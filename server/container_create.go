@@ -1063,10 +1063,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.AddAnnotation(annotations.ImageRef, imageRef)
 	specgen.AddAnnotation(annotations.IP, sb.IP())
 
+	// Remove the default /dev/shm mount to ensure we overwrite it
+	specgen.RemoveMount("/dev/shm")
+
 	mnt = rspec.Mount{
 		Type:        "bind",
 		Source:      sb.ShmPath(),
-		Destination: "/etc/shm",
+		Destination: "/dev/shm",
 		Options:     []string{"rw", "bind"},
 	}
 	// bind mount the pod shm
