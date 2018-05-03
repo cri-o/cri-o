@@ -269,6 +269,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	privileged := s.privilegedSandbox(req)
 
+	// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
+	// and pods expect that switching to a non-root user results in the capabilities being
+	// dropped. This should be revisited in the future.
+	g.Spec().Process.Capabilities.Ambient = []string{}
+
 	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
 	if securityContext == nil {
 		logrus.Warn("no security context found in config.")
