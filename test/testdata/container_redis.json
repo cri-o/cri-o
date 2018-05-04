@@ -3,7 +3,7 @@
 		"name": "podsandbox1-redis"
 	},
 	"image": {
-		"image": "quay.io/crio/redis:alpine"
+		"image": "redis:alpine"
 	},
 	"args": [
                 "docker-entrypoint.sh",
