@@ -1,0 +1,37 @@
+{
+	"metadata": {
+		"name": "podsandbox-sleep"
+	},
+	"image": {
+		"image": "quay.io/crio/redis:alpine"
+	},
+	"command": [
+		  "/bin/sleep", "6000"
+	],
+	"args": [
+                "6000"
+	],
+	"working_dir": "/",
+	"envs": [
+		{
+			"key": "PATH",
+			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+		}
+	],
+	"annotations": {
+		"pod": "podsandbox"
+	},
+	"readonly_rootfs": false,
+	"log_path": "",
+	"stdin": false,
+	"stdin_once": false,
+	"tty": false,
+	"linux": {
+		"resources": {
+			"cpu_period": 10000,
+			"cpu_quota": 20000,
+			"cpu_shares": 512,
+			"oom_score_adj": 30
+		}
+	}
+}
