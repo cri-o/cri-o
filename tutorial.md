@@ -308,7 +308,7 @@ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
 ```
 
 
-Copy the policy template into /etc/containers/:
+In case the file /etc/containers/policy.json does not exist on your filesystem, copy it from the source tree:
 
 ```
 sudo mkdir /etc/containers/
@@ -355,7 +355,7 @@ Annotations:
 Use the `crictl` command to pull the redis image, create a redis container from a container configuration and attach it to the Pod created earlier while capturing the container ID:
 
 ```
-sudo crictl pull redis:alpine
+sudo crictl pull quay.io/crio/redis:alpine
 CONTAINER_ID=$(sudo crictl create $POD_ID test/testdata/container_redis.json test/testdata/sandbox_config.json)
 ```
 
