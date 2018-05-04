@@ -104,7 +104,7 @@ go version go1.8.5 linux/amd64
 
 ```
 go get github.com/kubernetes-incubator/cri-tools/cmd/crictl
-cd ./src/github.com/kubernetes-incubator/cri-tools/cmd/crictl
+cd $GOPATH/src/github.com/kubernetes-incubator/cri-tools/cmd/crictl
 make
 make install
 ```
@@ -183,7 +183,7 @@ sudo systemctl start crio
 #### Ensure the crio service is running
 
 ```
-sudo crictl --runtime-endpoint /var/run/crio/crio.sock info
+sudo crictl --runtime-endpoint unix:///var/run/crio/crio.sock info
 ```
 ```
 Version:  0.1.0
@@ -192,7 +192,7 @@ RuntimeVersion:  1.10.0-dev
 RuntimeApiVersion:  v1alpha1
 ```
 
-> to avoid set --runtime-endpoint when call crictl,
+> to avoid set --runtime-endpoint when calling crictl,
 > you can export $CRI_RUNTIME_ENDPOINT=/var/run/crio/crio.sock
 > or cp crictl.yaml /etc/crictl.yaml from this repo
 
@@ -290,7 +290,7 @@ sudo apt-get install skopeo-containers -y
 Restart crio in order to apply CNI config
 
 ```
-systemctl restart crio
+sudo systemctl restart crio
 ```
 
 At this point `CNI` is installed and configured to allocation IP address to containers from the `10.88.0.0/16` subnet.
@@ -307,13 +307,21 @@ First we need to setup a Pod sandbox using a Pod configuration, which can be fou
 cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
 ```
 
+
+Copy the policy template into /etc/containers/:
+
+```
+sudo mkdir /etc/containers/
+sudo cp test/policy.json /etc/containers
+```
+
+
 Next create the Pod and capture the Pod ID for later use:
 
 ```
 POD_ID=$(sudo crictl runp test/testdata/sandbox_config.json)
 ```
 
-> sudo crictl runp test/testdata/sandbox_config.json
 
 Use the `crictl` command to get the status of the Pod:
 
@@ -344,14 +352,13 @@ Annotations:
 
 ### Create a Redis container inside the Pod
 
-Use the `crictl` command to pull the redis image, create a redis container from a container configuration and attach it to the Pod created earlier:
+Use the `crictl` command to pull the redis image, create a redis container from a container configuration and attach it to the Pod created earlier while capturing the container ID:
 
 ```
 sudo crictl pull redis:alpine
 CONTAINER_ID=$(sudo crictl create $POD_ID test/testdata/container_redis.json test/testdata/sandbox_config.json)
 ```
 
-> sudo crictl create $POD_ID test/testdata/container_redis.json test/testdata/sandbox_config.json
 
 The `crictl create` command  will take a few seconds to return because the redis container needs to be pulled.
 
