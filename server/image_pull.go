@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
+	"github.com/kubernetes-incubator/cri-o/server/useragent"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -54,8 +55,11 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			}
 		}
 		options := &copy.Options{
-			SourceCtx: &types.SystemContext{},
+			SourceCtx: &types.SystemContext{
+				DockerRegistryUserAgent: useragent.Get(ctx),
+			},
 		}
+
 		// Specifying a username indicates the user intends to send authentication to the registry.
 		if username != "" {
 			options.SourceCtx = &types.SystemContext{
