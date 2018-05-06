@@ -883,6 +883,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 				}
 			}
 		}
+
+		// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
+		// and pods expect that switching to a non-root user results in the capabilities being
+		// dropped. This should be revisited in the future.
+		specgen.Spec().Process.Capabilities.Ambient = []string{}
+
 		specgen.SetProcessSelinuxLabel(processLabel)
 		specgen.SetLinuxMountLabel(mountLabel)
 		specgen.SetProcessNoNewPrivileges(linux.GetSecurityContext().GetNoNewPrivs())
