@@ -12,10 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/storage"
+	cstorage "github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
+	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -156,6 +157,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
+	// Force host ID mapping for the infrastructure container's contents.
+	idmapOptions := storage.IDMapOptions{
+		HostUIDMapping: true,
+		HostGIDMapping: true,
+	}
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.ImageContext(),
 		name, id,
 		s.config.PauseImage, "",
@@ -164,8 +170,9 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		req.GetConfig().GetMetadata().GetUid(),
 		namespace,
 		attempt,
-		nil)
-	if errors.Cause(err) == storage.ErrDuplicateName {
+		nil,
+		&idmapOptions)
+	if errors.Cause(err) == cstorage.ErrDuplicateName {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
 	}
 	if err != nil {

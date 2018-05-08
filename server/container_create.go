@@ -1050,6 +1050,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 
+	// Force host mapping for the container's content.
+	idmapOptions := &storage.IDMapOptions{
+		HostUIDMapping: true,
+		HostGIDMapping: true,
+	}
+
 	netNsPath := sb.NetNsPath()
 	if netNsPath == "" {
 		// The sandbox does not have a permanent namespace,
@@ -1214,7 +1220,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		metaname,
 		attempt,
 		mountLabel,
-		nil)
+		nil,
+		idmapOptions)
 	if err != nil {
 		return nil, err
 	}
