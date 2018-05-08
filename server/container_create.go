@@ -699,7 +699,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err = s.Runtime().CreateContainer(container, sb.CgroupParent()); err != nil {
+	if err = s.createContainer(container, sb.InfraContainer(), sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
@@ -1205,6 +1205,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	specgen.AddAnnotation(annotations.SeccompProfilePath, spp)
 
+	containerIDMappings := s.defaultIDMappings
+
 	metaname := metadata.Name
 	attempt := metadata.Attempt
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.ImageContext(),
@@ -1214,7 +1216,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		metaname,
 		attempt,
 		mountLabel,
-		s.defaultIDMappings,
+		containerIDMappings,
 		nil)
 	if err != nil {
 		return nil, err
@@ -1334,6 +1336,36 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// by default, the root path is an empty string. set it now.
 	specgen.SetRootPath(mountPoint)
 
+	crioAnnotations := specgen.Spec().Annotations
+
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	if err != nil {
+		return nil, err
+	}
+
+	container.SetIDMappings(containerIDMappings)
+	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
+		userNsPath := sb.UserNsPath()
+		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UserNamespace), userNsPath); err != nil {
+			return nil, err
+		}
+		for _, uidmap := range s.defaultIDMappings.UIDs() {
+			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
+		for _, gidmap := range s.defaultIDMappings.GIDs() {
+			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+		err = s.configureIntermediateNamespace(&specgen, container, sb.InfraContainer())
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if err != nil {
+				os.RemoveAll(container.IntermediateMountPoint())
+			}
+		}()
+	}
+
 	saveOptions := generate.ExportOptions{}
 	if err = specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
 		return nil, err
@@ -1342,14 +1374,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	crioAnnotations := specgen.Spec().Annotations
-
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
-	if err != nil {
-		return nil, err
-	}
-	container.SetSpec(specgen.Spec())
 	container.SetMountPoint(mountPoint)
+	container.SetSpec(specgen.Spec())
 	container.SetSeccompProfilePath(spp)
 
 	for _, cv := range containerVolumes {
