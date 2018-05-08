@@ -40,6 +40,13 @@ func validateConfig(config *server.Config) error {
 
 	}
 
+	if config.UIDMappings != "" && config.ManageNetworkNSLifecycle {
+		return fmt.Errorf("Cannot use UIDMappings with ManageNetworkNSLifecycle")
+	}
+	if config.GIDMappings != "" && config.ManageNetworkNSLifecycle {
+		return fmt.Errorf("Cannot use GIDMappings with ManageNetworkNSLifecycle")
+	}
+
 	if config.LogSizeMax >= 0 && config.LogSizeMax < oci.BufSize {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}

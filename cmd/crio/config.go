@@ -144,6 +144,17 @@ read_only = {{ .ReadOnly }}
 
 # The "crio.image" table contains settings pertaining to the
 # management of OCI images.
+
+# uid_mappings specifies the UID mappings to have in the user namespace.
+# A range is specified in the form containerUID:HostUID:Size.  Multiple
+# ranges are separed by comma.
+uid_mappings = "{{ .UIDMappings }}"
+
+# gid_mappings specifies the GID mappings to have in the user namespace.
+# A range is specified in the form containerGID:HostGID:Size.  Multiple
+# ranges are separed by comma.
+gid_mappings = "{{ .GIDMappings }}"
+
 [crio.image]
 
 # default_transport is the prefix we try prepending to an image name if the

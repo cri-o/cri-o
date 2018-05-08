@@ -1214,6 +1214,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		metaname,
 		attempt,
 		mountLabel,
+		s.defaultIDMappings,
 		nil)
 	if err != nil {
 		return nil, err
