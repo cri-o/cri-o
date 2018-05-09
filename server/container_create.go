@@ -1130,7 +1130,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			Type:        "bind",
 			Source:      sb.ResolvPath(),
 			Destination: "/etc/resolv.conf",
-			Options:     append(options, "bind"),
+			Options:     []string{"bind", "nodev", "nosuid", "noexec"},
 		}
 		// bind mount the pod resolver file
 		specgen.AddMount(mnt)

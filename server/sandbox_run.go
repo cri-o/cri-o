@@ -220,7 +220,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			Type:        "bind",
 			Source:      resolvPath,
 			Destination: "/etc/resolv.conf",
-			Options:     []string{"ro", "bind"},
+			Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 		}
 		g.AddMount(mnt)
 	}
@@ -539,7 +539,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		Type:        "bind",
 		Source:      hostnamePath,
 		Destination: "/etc/hostname",
-		Options:     []string{"ro", "bind"},
+		Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 	}
 	g.AddMount(mnt)
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
