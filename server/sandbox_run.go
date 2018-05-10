@@ -693,6 +693,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	container.SetIDMappings(s.defaultIDMappings)
 
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
+		if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
+			g.RemoveMount("/proc")
+			proc := runtimespec.Mount{
+				Type:        "bind",
+				Source:      "/proc",
+				Destination: "/proc",
+				Options:     []string{"rw", "rbind", "nodev", "nosuid", "noexec"},
+			}
+			g.AddMount(proc)
+		}
+
 		err = s.configureIntermediateNamespace(&g, container, nil)
 		if err != nil {
 			return nil, err
