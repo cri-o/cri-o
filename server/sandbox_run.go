@@ -693,6 +693,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	container.SetIDMappings(s.defaultIDMappings)
 
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
+		if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
+			g.RemoveMount("/dev/mqueue")
+			mqueue := runtimespec.Mount{
+				Type:        "bind",
+				Source:      "/dev/mqueue",
+				Destination: "/dev/mqueue",
+				Options:     []string{"rw", "rbind", "nodev", "nosuid", "noexec"},
+			}
+			g.AddMount(mqueue)
+		}
+
 		if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 			g.RemoveMount("/proc")
 			proc := runtimespec.Mount{
