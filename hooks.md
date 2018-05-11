@@ -15,6 +15,8 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 CRI-O reads all [JSON][] files in `/usr/share/containers/oci/hooks.d/*.json` and `/etc/containers/oci/hooks.d/*.json` to load hook configuration.
 If the same file is in both directories, the one in `/etc/containers/oci/hooks.d` takes precedence.
 
+CRI-O watches both hook directories for file creation, writes, and removals, so you can adjust the hooks there without restarting `crio`.
+
 Each JSON file should contain an object with the following properties:
 
 * **`hook`** (REQUIRED, string) Sets [`path`][spec-hooks] in the injected hook.

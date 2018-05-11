@@ -388,13 +388,36 @@ func (s *Server) StartHooksMonitor() {
 			select {
 			case event := <-watcher.Events:
 				logrus.Debugf("event: %v", event)
+				filename := filepath.Base(event.Name)
+				overridePath := filepath.Join(lib.OverrideHooksDirPath, filename)
+				overriddenPath := filepath.Join(s.config.HooksDirPath, filename)
+				override := event.Name == overridePath
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					ok := s.ContainerServer.RemoveHook(filepath.Base(event.Name))
+					if override {
+						err = s.ContainerServer.AddHook(overriddenPath)
+						if err == nil {
+							logrus.Debugf("override %q removed, falling back to %q", event.Name, overriddenPath)
+							break
+						} else if err != lib.ErrNoJSONSuffix && !os.IsNotExist(err) {
+							logrus.Errorf("failed to fall back to %q: %v", overriddenPath, err)
+							break
+						}
+					}
+					ok := s.ContainerServer.RemoveHook(filename)
 					if ok {
-						logrus.Debugf("removed hook %s", event.Name)
+						logrus.Debugf("removed hook %q", event.Name)
 					}
 				}
 				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
+					if !override && s.config.HooksDirPath == lib.DefaultHooksDirPath {
+						_, err = os.Lstat(overridePath)
+						if err == nil {
+							logrus.Errorf("%q updated, but it is overridden by %q", event.Name, overridePath)
+							break // the touched path is being overridden
+						} else if !os.IsNotExist(err) {
+							logrus.Errorf("failed to check for override %q: %v", overridePath, err)
+						}
+					}
 					err := s.ContainerServer.AddHook(event.Name)
 					if err == nil {
 						logrus.Debugf("added hook %s", event.Name)
@@ -412,6 +435,16 @@ func (s *Server) StartHooksMonitor() {
 			}
 		}
 	}()
+	// If user overrode default hooks, this means it is in a test, so
+	// don't use OverrideHooksDirPath.  Sync with lib/container_server.go's
+	// New.
+	if s.config.HooksDirPath == lib.DefaultHooksDirPath {
+		if err := watcher.Add(lib.OverrideHooksDirPath); err != nil {
+			logrus.Errorf("watcher.Add(%q) failed: %s", lib.OverrideHooksDirPath, err)
+			close(done)
+			return
+		}
+	}
 	if err := watcher.Add(s.config.HooksDirPath); err != nil {
 		logrus.Errorf("watcher.Add(%q) failed: %s", s.config.HooksDirPath, err)
 		close(done)

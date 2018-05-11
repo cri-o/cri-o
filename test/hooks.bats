@@ -36,3 +36,33 @@ sed "s|HOOKSDIR|${HOOKSDIR}|" hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
 	cleanup_pods
 	stop_crio
 }
+
+@test "pod fs-notify hooks" {
+	rm -f /run/hookscheck
+	start_crio
+	sed -i 's/}/, "arguments": ["a", "b"]}/' ${HOOKSDIR}/checkhook.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run cat /run/hookscheck
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[ "${lines[0]}" = 'a b' ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
