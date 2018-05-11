@@ -52,6 +52,9 @@
 			"oom_score_adj": 30
 		},
 		"security_context": {
+			"namespace_options": {
+				"pid": 1
+			},
 			"readonly_rootfs": true,
 			"capabilities": {
 				"add_capabilities": [

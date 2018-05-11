@@ -58,6 +58,9 @@
 			"oom_score_adj": 30
 		},
 		"security_context": {
+			"namespace_options": {
+				"pid": 1
+			},
 			"capabilities": {
 				"add_capabilities": [
 					"sys_admin"

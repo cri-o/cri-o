@@ -18,5 +18,12 @@
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
-	"tty": false
+	"tty": false,
+	"linux": {
+		"security_context": {
+			"namespace_options": {
+				"pid": 1
+			}
+		}
+	}
 }
