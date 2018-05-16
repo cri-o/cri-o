@@ -28,6 +28,8 @@ var (
 	ErrCannotParseImageID = errors.New("cannot parse an image ID")
 	// ErrImageMultiplyTagged is returned when we try to remove an image that still has multiple names
 	ErrImageMultiplyTagged = errors.New("image still has multiple names applied")
+	// ErrNoRegistriesConfigured is returned when there are no registries configured in /etc/crio.conf#additional_registries
+	ErrNoRegistriesConfigured = errors.New(`no registries configured while trying to pull an unqualified image, add at least one in /etc/crio/crio.conf under the "registries" key`)
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
@@ -580,7 +582,7 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 	// we got an unqualified image here, we can't go ahead w/o registries configured
 	// properly.
 	if len(svc.registries) == 0 {
-		return nil, errors.New("no registries configured while trying to pull an unqualified image")
+		return nil, ErrNoRegistriesConfigured
 	}
 	// this means we got an image in the form of "busybox"
 	// we need to use additional registries...
