@@ -124,10 +124,25 @@ type imageStore struct {
 	bydigest map[digest.Digest][]*Image
 }
 
+func copyImage(i *Image) *Image {
+	return &Image{
+		ID:             i.ID,
+		Digest:         i.Digest,
+		Names:          copyStringSlice(i.Names),
+		TopLayer:       i.TopLayer,
+		Metadata:       i.Metadata,
+		BigDataNames:   copyStringSlice(i.BigDataNames),
+		BigDataSizes:   copyStringInt64Map(i.BigDataSizes),
+		BigDataDigests: copyStringDigestMap(i.BigDataDigests),
+		Created:        i.Created,
+		Flags:          copyStringInterfaceMap(i.Flags),
+	}
+}
+
 func (r *imageStore) Images() ([]Image, error) {
 	images := make([]Image, len(r.images))
 	for i := range r.images {
-		images[i] = *(r.images[i])
+		images[i] = *copyImage(r.images[i])
 	}
 	return images, nil
 }
@@ -342,6 +357,7 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 			r.byname[name] = image
 		}
 		err = r.Save()
+		image = copyImage(image)
 	}
 	return image, err
 }
@@ -450,7 +466,7 @@ func (r *imageStore) Delete(id string) error {
 
 func (r *imageStore) Get(id string) (*Image, error) {
 	if image, ok := r.lookup(id); ok {
-		return image, nil
+		return copyImage(image), nil
 	}
 	return nil, ErrImageUnknown
 }
@@ -546,7 +562,7 @@ func (r *imageStore) BigDataNames(id string) ([]string, error) {
 	if !ok {
 		return nil, ErrImageUnknown
 	}
-	return image.BigDataNames, nil
+	return copyStringSlice(image.BigDataNames), nil
 }
 
 func imageSliceWithoutValue(slice []*Image, value *Image) []*Image {
