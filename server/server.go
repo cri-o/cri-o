@@ -199,7 +199,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := lib.New(&config.Config)
+	containerServer, err := lib.New(ctx, &config.Config)
 	if err != nil {
 		return nil, err
 	}

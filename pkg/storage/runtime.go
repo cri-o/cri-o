@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -41,6 +42,7 @@ var (
 type runtimeService struct {
 	storageImageServer ImageServer
 	pauseImage         string
+	ctx                context.Context
 }
 
 // ContainerInfo wraps a subset of information about a container: its ID and
@@ -205,13 +207,13 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	}
 
 	// Pull out a copy of the image's configuration.
-	image, err := ref.NewImage(systemContext)
+	image, err := ref.NewImage(r.ctx, systemContext)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
 	defer image.Close()
 
-	imageConfig, err := image.OCIConfig()
+	imageConfig, err := image.OCIConfig(r.ctx)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
@@ -444,9 +446,10 @@ func (r *runtimeService) GetRunDir(id string) (string, error) {
 // GetRuntimeService returns a RuntimeServer that uses the passed-in image
 // service to pull and manage images, and its store to manage containers based
 // on those images.
-func GetRuntimeService(storageImageServer ImageServer, pauseImage string) RuntimeServer {
+func GetRuntimeService(ctx context.Context, storageImageServer ImageServer, pauseImage string) RuntimeServer {
 	return &runtimeService{
 		storageImageServer: storageImageServer,
 		pauseImage:         pauseImage,
+		ctx:                ctx,
 	}
 }

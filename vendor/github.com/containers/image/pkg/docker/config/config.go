@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/docker/docker/pkg/homedir"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type dockerAuthConfig struct {
@@ -27,7 +28,7 @@ type dockerConfigFile struct {
 }
 
 const (
-	defaultPath       = "/run/user"
+	defaultPath       = "/run"
 	authCfg           = "containers"
 	authCfgFileName   = "auth.json"
 	dockerCfg         = ".docker"
@@ -42,8 +43,8 @@ var (
 )
 
 // SetAuthentication stores the username and password in the auth.json file
-func SetAuthentication(ctx *types.SystemContext, registry, username, password string) error {
-	return modifyJSON(ctx, func(auths *dockerConfigFile) (bool, error) {
+func SetAuthentication(sys *types.SystemContext, registry, username, password string) error {
+	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
 		if ch, exists := auths.CredHelpers[registry]; exists {
 			return false, setAuthToCredHelper(ch, registry, username, password)
 		}
@@ -58,13 +59,23 @@ func SetAuthentication(ctx *types.SystemContext, registry, username, password st
 // GetAuthentication returns the registry credentials stored in
 // either auth.json file or .docker/config.json
 // If an entry is not found empty strings are returned for the username and password
-func GetAuthentication(ctx *types.SystemContext, registry string) (string, string, error) {
-	if ctx != nil && ctx.DockerAuthConfig != nil {
-		return ctx.DockerAuthConfig.Username, ctx.DockerAuthConfig.Password, nil
+func GetAuthentication(sys *types.SystemContext, registry string) (string, string, error) {
+	if sys != nil && sys.DockerAuthConfig != nil {
+		return sys.DockerAuthConfig.Username, sys.DockerAuthConfig.Password, nil
 	}
 
 	dockerLegacyPath := filepath.Join(homedir.Get(), dockerLegacyCfg)
-	paths := [3]string{getPathToAuth(ctx), filepath.Join(homedir.Get(), dockerCfg, dockerCfgFileName), dockerLegacyPath}
+	var paths []string
+	pathToAuth, err := getPathToAuth(sys)
+	if err == nil {
+		paths = append(paths, pathToAuth)
+	} else {
+		// Error means that the path set for XDG_RUNTIME_DIR does not exist
+		// but we don't want to completely fail in the case that the user is pulling a public image
+		// Logging the error as a warning instead and moving on to pulling the image
+		logrus.Warnf("%v: Trying to pull image in the event that it is a public image.", err)
+	}
+	paths = append(paths, filepath.Join(homedir.Get(), dockerCfg, dockerCfgFileName), dockerLegacyPath)
 
 	for _, path := range paths {
 		legacyFormat := path == dockerLegacyPath
@@ -82,18 +93,21 @@ func GetAuthentication(ctx *types.SystemContext, registry string) (string, strin
 // GetUserLoggedIn returns the username logged in to registry from either
 // auth.json or XDG_RUNTIME_DIR
 // Used to tell the user if someone is logged in to the registry when logging in
-func GetUserLoggedIn(ctx *types.SystemContext, registry string) string {
-	path := getPathToAuth(ctx)
+func GetUserLoggedIn(sys *types.SystemContext, registry string) (string, error) {
+	path, err := getPathToAuth(sys)
+	if err != nil {
+		return "", err
+	}
 	username, _, _ := findAuthentication(registry, path, false)
 	if username != "" {
-		return username
+		return username, nil
 	}
-	return ""
+	return "", nil
 }
 
 // RemoveAuthentication deletes the credentials stored in auth.json
-func RemoveAuthentication(ctx *types.SystemContext, registry string) error {
-	return modifyJSON(ctx, func(auths *dockerConfigFile) (bool, error) {
+func RemoveAuthentication(sys *types.SystemContext, registry string) error {
+	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
 		// First try cred helpers.
 		if ch, exists := auths.CredHelpers[registry]; exists {
 			return false, deleteAuthFromCredHelper(ch, registry)
@@ -111,8 +125,8 @@ func RemoveAuthentication(ctx *types.SystemContext, registry string) error {
 }
 
 // RemoveAllAuthentication deletes all the credentials stored in auth.json
-func RemoveAllAuthentication(ctx *types.SystemContext) error {
-	return modifyJSON(ctx, func(auths *dockerConfigFile) (bool, error) {
+func RemoveAllAuthentication(sys *types.SystemContext) error {
+	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
 		auths.CredHelpers = make(map[string]string)
 		auths.AuthConfigs = make(map[string]dockerAuthConfig)
 		return true, nil
@@ -123,20 +137,32 @@ func RemoveAllAuthentication(ctx *types.SystemContext) error {
 // The path can be overriden by the user if the overwrite-path flag is set
 // If the flag is not set and XDG_RUNTIME_DIR is ser, the auth.json file is saved in XDG_RUNTIME_DIR/containers
 // Otherwise, the auth.json file is stored in /run/user/UID/containers
-func getPathToAuth(ctx *types.SystemContext) string {
-	if ctx != nil {
-		if ctx.AuthFilePath != "" {
-			return ctx.AuthFilePath
+func getPathToAuth(sys *types.SystemContext) (string, error) {
+	if sys != nil {
+		if sys.AuthFilePath != "" {
+			return sys.AuthFilePath, nil
 		}
-		if ctx.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(ctx.RootForImplicitAbsolutePaths, defaultPath, strconv.Itoa(os.Getuid()), authCfg, authCfgFileName)
+		if sys.RootForImplicitAbsolutePaths != "" {
+			return filepath.Join(sys.RootForImplicitAbsolutePaths, defaultPath, strconv.Itoa(os.Getuid()), authCfg, authCfgFileName), nil
 		}
 	}
+
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	if runtimeDir == "" {
-		runtimeDir = filepath.Join(defaultPath, strconv.Itoa(os.Getuid()))
+	if runtimeDir != "" {
+		// This function does not in general need to separately check that the returned path exists; that’s racy, and callers will fail accessing the file anyway.
+		// We are checking for os.IsNotExist here only to give the user better guidance what to do in this special case.
+		_, err := os.Stat(runtimeDir)
+		if os.IsNotExist(err) {
+			// This means the user set the XDG_RUNTIME_DIR variable and either forgot to create the directory
+			// or made a typo while setting the environment variable,
+			// so return an error referring to $XDG_RUNTIME_DIR instead of …/authCfgFileName inside.
+			return "", errors.Wrapf(err, "%q directory set by $XDG_RUNTIME_DIR does not exist. Either create the directory or unset $XDG_RUNTIME_DIR.", runtimeDir)
+		} // else ignore err and let the caller fail accessing …/authCfgFileName.
+		runtimeDir = filepath.Join(runtimeDir, authCfg)
+	} else {
+		runtimeDir = filepath.Join(defaultPath, authCfg, strconv.Itoa(os.Getuid()))
 	}
-	return filepath.Join(runtimeDir, authCfg, authCfgFileName)
+	return filepath.Join(runtimeDir, authCfgFileName), nil
 }
 
 // readJSONFile unmarshals the authentications stored in the auth.json file and returns it
@@ -166,11 +192,15 @@ func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
 }
 
 // modifyJSON writes to auth.json if the dockerConfigFile has been updated
-func modifyJSON(ctx *types.SystemContext, editor func(auths *dockerConfigFile) (bool, error)) error {
-	path := getPathToAuth(ctx)
+func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (bool, error)) error {
+	path, err := getPathToAuth(sys)
+	if err != nil {
+		return err
+	}
+
 	dir := filepath.Dir(path)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err = os.Mkdir(dir, 0700); err != nil {
+		if err = os.MkdirAll(dir, 0700); err != nil {
 			return errors.Wrapf(err, "error creating directory %q", dir)
 		}
 	}
