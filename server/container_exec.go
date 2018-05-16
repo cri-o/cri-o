@@ -8,14 +8,11 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/pools"
-	"github.com/kr/pty"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/util/term"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -65,28 +62,7 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 	execCmd := exec.Command(ss.runtimeServer.Runtime().Path(c), args...)
 	var cmdErr error
 	if tty {
-		p, err := pty.Start(execCmd)
-		if err != nil {
-			return err
-		}
-		defer p.Close()
-
-		// make sure to close the stdout stream
-		defer stdout.Close()
-
-		kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-			term.SetSize(p.Fd(), size)
-		})
-
-		if stdin != nil {
-			go pools.Copy(p, stdin)
-		}
-
-		if stdout != nil {
-			go pools.Copy(stdout, p)
-		}
-
-		cmdErr = execCmd.Wait()
+		cmdErr = ss.ttyCmd(execCmd, stdin, stdout, resize)
 	} else {
 		if stdin != nil {
 			// Use an os.Pipe here as it returns true *os.File objects.
