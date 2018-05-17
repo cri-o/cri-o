@@ -8,9 +8,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/lib"
 )
 
-//CrioConfigPath is the default location for the conf file
-const CrioConfigPath = "/etc/crio/crio.conf"
-
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
@@ -117,7 +114,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Config: *lib.DefaultConfig(),
 		APIConfig: APIConfig{
-			Listen:        "/var/run/crio/crio.sock",
+			Listen:        CrioSocketPath,
 			StreamAddress: "",
 			StreamPort:    "10010",
 		},
