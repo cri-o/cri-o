@@ -104,7 +104,7 @@ go version go1.8.5 linux/amd64
 
 ```
 go get github.com/kubernetes-incubator/cri-tools/cmd/crictl
-cd $GOPATH/src/github.com/kubernetes-incubator/cri-tools/cmd/crictl
+cd $GOPATH/src/github.com/kubernetes-incubator/cri-tools
 make
 make install
 ```
