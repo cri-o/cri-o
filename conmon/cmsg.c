@@ -55,7 +55,7 @@
 ssize_t sendfd(int sockfd, struct file_t file)
 {
 	struct msghdr msg = {0};
-	struct iovec iov[1] = {0};
+	struct iovec iov[1] = {{0}};
 	struct cmsghdr *cmsg;
 	int *fdptr;
 
@@ -101,7 +101,7 @@ ssize_t sendfd(int sockfd, struct file_t file)
 struct file_t recvfd(int sockfd)
 {
 	struct msghdr msg = {0};
-	struct iovec iov[1] = {0};
+	struct iovec iov[1] = {{0}};
 	struct cmsghdr *cmsg;
 	struct file_t file = {0};
 	int *fdptr;
