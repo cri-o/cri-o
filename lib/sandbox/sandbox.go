@@ -371,6 +371,10 @@ func (s *Sandbox) GetContainer(name string) *oci.Container {
 // RemoveContainer deletes a container from the sandbox
 func (s *Sandbox) RemoveContainer(c *oci.Container) {
 	s.containers.Delete(c.Name())
+	intermediateMountPoint := c.IntermediateMountPoint()
+	if intermediateMountPoint != "" {
+		os.RemoveAll(intermediateMountPoint)
+	}
 }
 
 // SetInfraContainer sets the infrastructure container of a sandbox
@@ -413,6 +417,15 @@ func (s *Sandbox) NetNsPath() string {
 	}
 
 	return s.netns.symlink.Name()
+}
+
+// UserNsPath returns the path to the user namespace of the sandbox.
+// If the sandbox uses the host namespace, nil is returned
+func (s *Sandbox) UserNsPath() string {
+	if s.infraContainer != nil {
+		return fmt.Sprintf("/proc/%v/ns/user", s.infraContainer.State().Pid)
+	}
+	return ""
 }
 
 // NetNsCreate creates a new network namespace for the sandbox

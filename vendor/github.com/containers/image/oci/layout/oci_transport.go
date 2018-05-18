@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -54,7 +55,9 @@ type ociReference struct {
 	// (But in general, we make no attempt to be completely safe against concurrent hostile filesystem modifications.)
 	dir         string // As specified by the user. May be relative, contain symlinks, etc.
 	resolvedDir string // Absolute path with no symlinks, at least at the time of its creation. Primarily used for policy namespaces.
-	image       string // If image=="", it means the only image in the index.json is used
+	// If image=="", it means the "only image" in the index.json is used in the case it is a source
+	// for destinations, the image name annotation "image.ref.name" is not added to the index.json
+	image string
 }
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an OCI ImageReference.
@@ -144,12 +147,12 @@ func (ref ociReference) PolicyConfigurationNamespaces() []string {
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
-func (ref ociReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
-	src, err := newImageSource(ctx, ref)
+func (ref ociReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
+	src, err := newImageSource(sys, ref)
 	if err != nil {
 		return nil, err
 	}
-	return image.FromSource(ctx, src)
+	return image.FromSource(ctx, sys, src)
 }
 
 // getIndex returns a pointer to the index references by this ociReference. If an error occurs opening an index nil is returned together
@@ -217,18 +220,18 @@ func LoadManifestDescriptor(imgRef types.ImageReference) (imgspecv1.Descriptor, 
 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
-func (ref ociReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(ctx, ref)
+func (ref ociReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
+	return newImageSource(sys, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
-func (ref ociReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
-	return newImageDestination(ctx, ref)
+func (ref ociReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
+	return newImageDestination(sys, ref)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
-func (ref ociReference) DeleteImage(ctx *types.SystemContext) error {
+func (ref ociReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	return errors.Errorf("Deleting images not implemented for oci: images")
 }
 

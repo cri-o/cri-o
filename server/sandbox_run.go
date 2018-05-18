@@ -8,15 +8,18 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -79,16 +82,154 @@ func (s *Server) trustedSandbox(req *pb.RunPodSandboxRequest) bool {
 	return isTrue(trustedAnnotation)
 }
 
-func (s *Server) runContainer(container *oci.Container, cgroupParent string) error {
-	if err := s.Runtime().CreateContainer(container, cgroupParent); err != nil {
-		return err
+func (s *Server) createContainer(container *oci.Container, infraContainer *oci.Container, cgroupParent string) error {
+	intermediateMountPoint := container.IntermediateMountPoint()
+
+	if intermediateMountPoint == "" {
+		return s.Runtime().CreateContainer(container, cgroupParent)
 	}
-	return s.Runtime().StartContainer(container)
+
+	errc := make(chan error)
+	go func() {
+		// We create a new mount namespace before running the container as the rootfs of the
+		// container is accessible only to the root user.  We use the intermediate mount
+		// namespace to bind mount the root to a directory that is accessible to the user which
+		// maps to root inside of the container/
+		// We carefully unlock the OS thread only if no errors happened.  The thread might have failed
+		// to restore the original mount namespace, and unlocking it will let it keep running
+		// in a different context than the other threads.  A thread that is still locked when the
+		// goroutine terminates is automatically destroyed.
+		var err error
+		runtime.LockOSThread()
+		defer func() {
+			if err == nil {
+				runtime.UnlockOSThread()
+			}
+			errc <- err
+		}()
+
+		fd, err := os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
+		if err != nil {
+			return
+		}
+		defer fd.Close()
+
+		// create a new mountns on the current thread
+		if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
+			return
+		}
+		defer unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
+
+		// don't spread our mounts around
+		err = unix.Mount("/", "/", "none", unix.MS_REC|unix.MS_SLAVE, "")
+		if err != nil {
+			return
+		}
+
+		rootUID, rootGID, err := idtools.GetRootUIDGID(container.IDMappings().UIDs(), container.IDMappings().GIDs())
+		if err != nil {
+			return
+		}
+
+		err = os.Chown(intermediateMountPoint, rootUID, rootGID)
+		if err != nil {
+			return
+		}
+
+		mountPoint := container.MountPoint()
+		err = os.Chown(mountPoint, rootUID, rootGID)
+		if err != nil {
+			return
+		}
+
+		rootPath := filepath.Join(intermediateMountPoint, "root")
+		err = idtools.MkdirAllAs(rootPath, 0700, rootUID, rootGID)
+		if err != nil {
+			return
+		}
+
+		err = unix.Mount(mountPoint, rootPath, "none", unix.MS_BIND, "")
+		if err != nil {
+			return
+		}
+
+		if infraContainer != nil {
+			infraRunDir := filepath.Join(intermediateMountPoint, "infra-rundir")
+			err = idtools.MkdirAllAs(infraRunDir, 0700, rootUID, rootGID)
+			if err != nil {
+				return
+			}
+
+			err = unix.Mount(infraContainer.BundlePath(), infraRunDir, "none", unix.MS_BIND, "")
+			if err != nil {
+				return
+			}
+			err = os.Chown(infraRunDir, rootUID, rootGID)
+			if err != nil {
+				return
+			}
+		}
+
+		runDirPath := filepath.Join(intermediateMountPoint, "rundir")
+		err = os.MkdirAll(runDirPath, 0700)
+		if err != nil {
+			return
+		}
+
+		err = unix.Mount(container.BundlePath(), runDirPath, "none", unix.MS_BIND, "suid")
+		if err != nil {
+			return
+		}
+		err = os.Chown(runDirPath, rootUID, rootGID)
+		if err != nil {
+			return
+		}
+
+		err = s.Runtime().CreateContainer(container, cgroupParent)
+	}()
+
+	err := <-errc
+	return err
 }
 
 var (
 	conflictRE = regexp.MustCompile(`already reserved for pod "([0-9a-z]+)"`)
 )
+
+func (s *Server) configureIntermediateNamespace(g *generate.Generator, container *oci.Container, infraContainer *oci.Container) error {
+	intermediateMountPoint, err := ioutil.TempDir("/var/run/crio", "intermediate-mount")
+	if err != nil {
+		return errors.Wrapf(err, "failed to create intermediate directory")
+	}
+	defer func() {
+		if err != nil {
+			os.RemoveAll(intermediateMountPoint)
+		}
+	}()
+
+	resolvedIntermediateMountPoint, err := filepath.EvalSymlinks(intermediateMountPoint)
+	if err != nil {
+		return errors.Wrapf(err, "failed to eval symlinks for %s", intermediateMountPoint)
+	}
+
+	container.SetIntermediateMountPoint(resolvedIntermediateMountPoint)
+
+	g.SetRootPath(filepath.Join(resolvedIntermediateMountPoint, "root"))
+
+	newRunDir := filepath.Join(resolvedIntermediateMountPoint, "rundir")
+	mounts := g.Mounts()
+	g.ClearMounts()
+	for _, mount := range mounts {
+		if strings.HasPrefix(mount.Source, container.BundlePath()) {
+			mount.Source = filepath.Join(newRunDir, mount.Source[len(container.BundlePath()):])
+		} else if infraContainer != nil && strings.HasPrefix(mount.Source, infraContainer.BundlePath()) {
+			newInfraRunDir := filepath.Join(resolvedIntermediateMountPoint, "infra-rundir")
+			mount.Source = filepath.Join(newInfraRunDir, mount.Source[len(infraContainer.BundlePath()):])
+		}
+		g.AddMount(mount)
+	}
+	return nil
+}
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
@@ -164,6 +305,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		req.GetConfig().GetMetadata().GetUid(),
 		namespace,
 		attempt,
+		s.defaultIDMappings,
 		nil)
 	if errors.Cause(err) == storage.ErrDuplicateName {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
@@ -218,7 +360,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			Type:        "bind",
 			Source:      resolvPath,
 			Destination: "/etc/resolv.conf",
-			Options:     []string{"ro", "bind"},
+			Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 		}
 		g.AddMount(mnt)
 	}
@@ -417,6 +559,16 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
+	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
+		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, "")
+		for _, uidmap := range s.defaultIDMappings.UIDs() {
+			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
+		for _, gidmap := range s.defaultIDMappings.GIDs() {
+			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+	}
+
 	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings, hostNetwork)
 	if err != nil {
 		return nil, err
@@ -514,7 +666,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
 	}
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
-	g.SetRootPath(mountPoint)
 
 	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
 	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
@@ -527,7 +678,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		Type:        "bind",
 		Source:      hostnamePath,
 		Destination: "/etc/hostname",
-		Options:     []string{"ro", "bind"},
+		Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 	}
 	g.AddMount(mnt)
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
@@ -537,8 +688,47 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
-	container.SetSpec(g.Spec())
 	container.SetMountPoint(mountPoint)
+
+	container.SetIDMappings(s.defaultIDMappings)
+
+	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
+		if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
+			g.RemoveMount("/dev/mqueue")
+			mqueue := runtimespec.Mount{
+				Type:        "bind",
+				Source:      "/dev/mqueue",
+				Destination: "/dev/mqueue",
+				Options:     []string{"rw", "rbind", "nodev", "nosuid", "noexec"},
+			}
+			g.AddMount(mqueue)
+		}
+
+		if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
+			g.RemoveMount("/proc")
+			proc := runtimespec.Mount{
+				Type:        "bind",
+				Source:      "/proc",
+				Destination: "/proc",
+				Options:     []string{"rw", "rbind", "nodev", "nosuid", "noexec"},
+			}
+			g.AddMount(proc)
+		}
+
+		err = s.configureIntermediateNamespace(&g, container, nil)
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if err != nil {
+				os.RemoveAll(container.IntermediateMountPoint())
+			}
+		}()
+	} else {
+		g.SetRootPath(mountPoint)
+	}
+
+	container.SetSpec(g.Spec())
 
 	sb.SetInfraContainer(container)
 
@@ -574,7 +764,11 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
 
-	if err = s.runContainer(container, sb.CgroupParent()); err != nil {
+	if err = s.createContainer(container, nil, sb.CgroupParent()); err != nil {
+		return nil, err
+	}
+
+	if err = s.Runtime().StartContainer(container); err != nil {
 		return nil, err
 	}
 

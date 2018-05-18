@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -130,7 +131,7 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 }
 
 // New creates a new ContainerServer with options provided
-func New(config *Config) (*ContainerServer, error) {
+func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 	store, err := cstorage.GetStore(cstorage.StoreOptions{
 		RunRoot:            config.RunRoot,
 		GraphRoot:          config.Root,
@@ -141,12 +142,12 @@ func New(config *Config) (*ContainerServer, error) {
 		return nil, err
 	}
 
-	imageService, err := storage.GetImageService(store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
+	imageService, err := storage.GetImageService(ctx, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(imageService, config.PauseImage)
+	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, config.PauseImage)
 	if err != nil {
 		return nil, err
 	}

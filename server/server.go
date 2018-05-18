@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	"github.com/kubernetes-incubator/cri-o/lib"
@@ -70,6 +71,8 @@ type Server struct {
 	bindAddress  string
 	stream       streamService
 	monitorsChan chan struct{}
+
+	defaultIDMappings *idtools.IDMappings
 }
 
 // StopStreamServer stops the stream server
@@ -187,6 +190,58 @@ func configureMaxThreads() error {
 	return nil
 }
 
+func getIDMappings(config *Config) (*idtools.IDMappings, error) {
+	if config.UIDMappings == "" || config.GIDMappings == "" {
+		return nil, nil
+	}
+
+	parseTriple := func(spec []string) (container, host, size int, err error) {
+		cid, err := strconv.ParseUint(spec[0], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[0], err)
+		}
+		hid, err := strconv.ParseUint(spec[1], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[1], err)
+		}
+		sz, err := strconv.ParseUint(spec[2], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[2], err)
+		}
+		return int(cid), int(hid), int(sz), nil
+	}
+	parseIDMap := func(spec []string) (idmap []idtools.IDMap, err error) {
+		for _, uid := range spec {
+			splitmap := strings.SplitN(uid, ":", 3)
+			if len(splitmap) < 3 {
+				return nil, fmt.Errorf("invalid mapping requires 3 fields: %q", uid)
+			}
+			cid, hid, size, err := parseTriple(splitmap)
+			if err != nil {
+				return nil, err
+			}
+			pmap := idtools.IDMap{
+				ContainerID: cid,
+				HostID:      hid,
+				Size:        size,
+			}
+			idmap = append(idmap, pmap)
+		}
+		return idmap, nil
+	}
+
+	parsedUIDsMappings, err := parseIDMap(strings.Split(config.UIDMappings, ","))
+	if err != nil {
+		return nil, err
+	}
+	parsedGIDsMappings, err := parseIDMap(strings.Split(config.GIDMappings, ","))
+	if err != nil {
+		return nil, err
+	}
+
+	return idtools.NewIDMappingsFromMaps(parsedUIDsMappings, parsedGIDsMappings), nil
+}
+
 // New creates a new Server with options provided
 func New(ctx context.Context, config *Config) (*Server, error) {
 	if err := os.MkdirAll("/var/run/crio", 0755); err != nil {
@@ -199,7 +254,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := lib.New(&config.Config)
+	containerServer, err := lib.New(ctx, &config.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -212,15 +267,21 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain)
 	hostportManager := hostport.NewHostportManager(iptInterface)
 
+	idMappings, err := getIDMappings(config)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Server{
-		ContainerServer: containerServer,
-		netPlugin:       netPlugin,
-		hostportManager: hostportManager,
-		config:          *config,
-		seccompEnabled:  seccomp.IsEnabled(),
-		appArmorEnabled: apparmor.IsEnabled(),
-		appArmorProfile: config.ApparmorProfile,
-		monitorsChan:    make(chan struct{}),
+		ContainerServer:   containerServer,
+		netPlugin:         netPlugin,
+		hostportManager:   hostportManager,
+		config:            *config,
+		seccompEnabled:    seccomp.IsEnabled(),
+		appArmorEnabled:   apparmor.IsEnabled(),
+		appArmorProfile:   config.ApparmorProfile,
+		monitorsChan:      make(chan struct{}),
+		defaultIDMappings: idMappings,
 	}
 
 	if s.seccompEnabled {

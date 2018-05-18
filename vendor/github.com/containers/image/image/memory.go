@@ -39,7 +39,7 @@ func (i *memoryImage) Size() (int64, error) {
 }
 
 // Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
-func (i *memoryImage) Manifest() ([]byte, string, error) {
+func (i *memoryImage) Manifest(ctx context.Context) ([]byte, string, error) {
 	if i.serializedManifest == nil {
 		m, err := i.genericManifest.serialize()
 		if err != nil {
@@ -57,14 +57,9 @@ func (i *memoryImage) Signatures(ctx context.Context) ([][]byte, error) {
 	return nil, errors.New("Internal error: Image.Signatures() is not supported for images modified in memory")
 }
 
-// Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
-func (i *memoryImage) Inspect() (*types.ImageInspectInfo, error) {
-	return inspectManifest(i.genericManifest)
-}
-
 // LayerInfosForCopy returns an updated set of layer blob information which may not match the manifest.
 // The Digest field is guaranteed to be provided; Size may be -1.
 // WARNING: The list may contain duplicates, and they are semantically relevant.
-func (i *memoryImage) LayerInfosForCopy() ([]types.BlobInfo, error) {
+func (i *memoryImage) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	return nil, nil
 }

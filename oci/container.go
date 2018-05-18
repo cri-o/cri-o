@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/apimachinery/pkg/fields"
@@ -50,6 +51,9 @@ type Container struct {
 	mountPoint         string
 	seccompProfilePath string
 	spec               *specs.Spec
+
+	idMappings             *idtools.IDMappings
+	intermediateMountPoint string
 }
 
 // ContainerVolume is a bind mount for the container.
@@ -261,6 +265,26 @@ func (c *Container) SetMountPoint(mp string) {
 // MountPoint returns the container mount point
 func (c *Container) MountPoint() string {
 	return c.mountPoint
+}
+
+// SetIntermediateMountPoint sets the container intermediate mount point
+func (c *Container) SetIntermediateMountPoint(imp string) {
+	c.intermediateMountPoint = imp
+}
+
+// IntermediateMountPoint returns the container mount point
+func (c *Container) IntermediateMountPoint() string {
+	return c.intermediateMountPoint
+}
+
+// SetIDMappings sets the ID/GID mappings used for the container
+func (c *Container) SetIDMappings(mappings *idtools.IDMappings) {
+	c.idMappings = mappings
+}
+
+// IDMappings returns the ID/GID mappings used for the container
+func (c *Container) IDMappings() *idtools.IDMappings {
+	return c.idMappings
 }
 
 // SetState sets the conainer state

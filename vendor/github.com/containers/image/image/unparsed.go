@@ -41,9 +41,9 @@ func (i *UnparsedImage) Reference() types.ImageReference {
 }
 
 // Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
-func (i *UnparsedImage) Manifest() ([]byte, string, error) {
+func (i *UnparsedImage) Manifest(ctx context.Context) ([]byte, string, error) {
 	if i.cachedManifest == nil {
-		m, mt, err := i.src.GetManifest(i.instanceDigest)
+		m, mt, err := i.src.GetManifest(ctx, i.instanceDigest)
 		if err != nil {
 			return nil, "", err
 		}
@@ -92,11 +92,4 @@ func (i *UnparsedImage) Signatures(ctx context.Context) ([][]byte, error) {
 		i.cachedSignatures = sigs
 	}
 	return i.cachedSignatures, nil
-}
-
-// LayerInfosForCopy returns an updated set of layer blob information which may not match the manifest.
-// The Digest field is guaranteed to be provided; Size may be -1.
-// WARNING: The list may contain duplicates, and they are semantically relevant.
-func (i *UnparsedImage) LayerInfosForCopy() ([]types.BlobInfo, error) {
-	return i.src.LayerInfosForCopy()
 }

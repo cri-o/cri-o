@@ -1,6 +1,8 @@
 package sysregistries
 
 import (
+	"strings"
+
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
 	"io/ioutil"
@@ -29,15 +31,23 @@ type tomlConfig struct {
 	} `toml:"registries"`
 }
 
+// normalizeRegistries removes trailing slashes from registries, which is a
+// common pitfall when configuring registries (e.g., "docker.io/library/).
+func normalizeRegistries(regs *registries) {
+	for i := range regs.Registries {
+		regs.Registries[i] = strings.TrimRight(regs.Registries[i], "/")
+	}
+}
+
 // Reads the global registry file from the filesystem. Returns
 // a byte array
-func readRegistryConf(ctx *types.SystemContext) ([]byte, error) {
+func readRegistryConf(sys *types.SystemContext) ([]byte, error) {
 	dirPath := systemRegistriesConfPath
-	if ctx != nil {
-		if ctx.SystemRegistriesConfPath != "" {
-			dirPath = ctx.SystemRegistriesConfPath
-		} else if ctx.RootForImplicitAbsolutePaths != "" {
-			dirPath = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfPath)
+	if sys != nil {
+		if sys.SystemRegistriesConfPath != "" {
+			dirPath = sys.SystemRegistriesConfPath
+		} else if sys.RootForImplicitAbsolutePaths != "" {
+			dirPath = filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesConfPath)
 		}
 	}
 	configBytes, err := ioutil.ReadFile(dirPath)
@@ -49,15 +59,18 @@ var readConf = readRegistryConf
 
 // Loads the registry configuration file from the filesystem and
 // then unmarshals it.  Returns the unmarshalled object.
-func loadRegistryConf(ctx *types.SystemContext) (*tomlConfig, error) {
+func loadRegistryConf(sys *types.SystemContext) (*tomlConfig, error) {
 	config := &tomlConfig{}
 
-	configBytes, err := readConf(ctx)
+	configBytes, err := readConf(sys)
 	if err != nil {
 		return nil, err
 	}
 
 	err = toml.Unmarshal(configBytes, &config)
+	normalizeRegistries(&config.Registries.Search)
+	normalizeRegistries(&config.Registries.Insecure)
+	normalizeRegistries(&config.Registries.Block)
 	return config, err
 }
 
@@ -65,8 +78,8 @@ func loadRegistryConf(ctx *types.SystemContext) (*tomlConfig, error) {
 // of the registries as defined in the system-wide
 // registries file.  it returns an empty array if none are
 // defined
-func GetRegistries(ctx *types.SystemContext) ([]string, error) {
-	config, err := loadRegistryConf(ctx)
+func GetRegistries(sys *types.SystemContext) ([]string, error) {
+	config, err := loadRegistryConf(sys)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +90,8 @@ func GetRegistries(ctx *types.SystemContext) ([]string, error) {
 // of the insecure registries as defined in the system-wide
 // registries file.  it returns an empty array if none are
 // defined
-func GetInsecureRegistries(ctx *types.SystemContext) ([]string, error) {
-	config, err := loadRegistryConf(ctx)
+func GetInsecureRegistries(sys *types.SystemContext) ([]string, error) {
+	config, err := loadRegistryConf(sys)
 	if err != nil {
 		return nil, err
 	}

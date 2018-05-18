@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"net"
 	"path"
@@ -69,6 +70,7 @@ type imageService struct {
 	registries            []string
 	imageCache            imageCache
 	imageCacheLock        sync.Mutex
+	ctx                   context.Context
 }
 
 // sizer knows its size.
@@ -181,22 +183,22 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, imageI
 }
 
 func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (imageCacheItem, error) {
-	img, err := ref.NewImageSource(systemContext)
+	img, err := ref.NewImageSource(svc.ctx, systemContext)
 	if err != nil {
 		return imageCacheItem{}, err
 	}
 	size := imageSize(img)
-	configDigest, err := imageConfigDigest(img, nil)
+	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
 	img.Close()
 	if err != nil {
 		return imageCacheItem{}, err
 	}
-	imageFull, err := ref.NewImage(systemContext)
+	imageFull, err := ref.NewImage(svc.ctx, systemContext)
 	if err != nil {
 		return imageCacheItem{}, err
 	}
 	defer imageFull.Close()
-	imageConfig, err := imageFull.OCIConfig()
+	imageConfig, err := imageFull.OCIConfig(svc.ctx)
 	if err != nil {
 		return imageCacheItem{}, err
 	}
@@ -292,24 +294,24 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	if err != nil {
 		return nil, err
 	}
-	imageFull, err := ref.NewImage(systemContext)
+	imageFull, err := ref.NewImage(svc.ctx, systemContext)
 	if err != nil {
 		return nil, err
 	}
 	defer imageFull.Close()
 
-	imageConfig, err := imageFull.OCIConfig()
+	imageConfig, err := imageFull.OCIConfig(svc.ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	img, err := ref.NewImageSource(systemContext)
+	img, err := ref.NewImageSource(svc.ctx, systemContext)
 	if err != nil {
 		return nil, err
 	}
 	defer img.Close()
 	size := imageSize(img)
-	configDigest, err := imageConfigDigest(img, nil)
+	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -340,8 +342,8 @@ func imageSize(img types.ImageSource) *uint64 {
 	return nil
 }
 
-func imageConfigDigest(img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
-	manifestBytes, manifestType, err := img.GetManifest(instanceDigest)
+func imageConfigDigest(ctx context.Context, img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
+	manifestBytes, manifestType, err := img.GetManifest(nil, instanceDigest)
 	if err != nil {
 		return "", err
 	}
@@ -357,7 +359,7 @@ func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool,
 	if err != nil {
 		return false, err
 	}
-	rawSource, err := srcRef.NewImageSource(options.SourceCtx)
+	rawSource, err := srcRef.NewImageSource(svc.ctx, options.SourceCtx)
 	if err != nil {
 		return false, err
 	}
@@ -365,7 +367,7 @@ func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool,
 	if options.SourceCtx != nil {
 		sourceCtx = options.SourceCtx
 	}
-	src, err := image.FromSource(sourceCtx, rawSource)
+	src, err := image.FromSource(svc.ctx, sourceCtx, rawSource)
 	if err != nil {
 		rawSource.Close()
 		return false, err
@@ -413,7 +415,7 @@ func (svc *imageService) PrepareImage(systemContext *types.SystemContext, imageN
 	if err != nil {
 		return nil, err
 	}
-	return srcRef.NewImage(systemContext)
+	return srcRef.NewImage(svc.ctx, systemContext)
 }
 
 func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error) {
@@ -448,7 +450,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	if err != nil {
 		return nil, err
 	}
-	err = copy.Image(policyContext, destRef, srcRef, options)
+	err = copy.Image(svc.ctx, policyContext, destRef, srcRef, options)
 	if err != nil {
 		return nil, err
 	}
@@ -494,7 +496,7 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 		}
 	}
 
-	return ref.DeleteImage(systemContext)
+	return ref.DeleteImage(svc.ctx, systemContext)
 }
 
 func (svc *imageService) RemoveImage(systemContext *types.SystemContext, nameOrID string) error {
@@ -502,7 +504,7 @@ func (svc *imageService) RemoveImage(systemContext *types.SystemContext, nameOrI
 	if err != nil {
 		return err
 	}
-	return ref.DeleteImage(systemContext)
+	return ref.DeleteImage(svc.ctx, systemContext)
 }
 
 func (svc *imageService) GetStore() storage.Store {
@@ -602,7 +604,7 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 // which will prepend the passed-in defaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(store storage.Store, defaultTransport string, insecureRegistries []string, registries []string) (ImageServer, error) {
+func GetImageService(ctx context.Context, store storage.Store, defaultTransport string, insecureRegistries []string, registries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
 		store, err = storage.GetStore(storage.DefaultStoreOptions)
@@ -628,6 +630,7 @@ func GetImageService(store storage.Store, defaultTransport string, insecureRegis
 		insecureRegistryCIDRs: make([]*net.IPNet, 0),
 		registries:            cleanRegistries,
 		imageCache:            make(map[string]imageCacheItem),
+		ctx:                   ctx,
 	}
 
 	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")

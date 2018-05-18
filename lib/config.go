@@ -182,6 +182,16 @@ type RuntimeConfig struct {
 
 	// BindMountPrefix is the prefix to use for the source of the bind mounts.
 	BindMountPrefix string `toml:"bind_mount_prefix"`
+
+	// UIDMappings specifies the UID mappings to have in the user namespace.
+	// A range is specified in the form containerUID:HostUID:Size.  Multiple
+	// ranges are separed by comma.
+	UIDMappings string `toml:"uid_mappings"`
+
+	// GIDMappings specifies the GID mappings to have in the user namespace.
+	// A range is specified in the form containerUID:HostUID:Size.  Multiple
+	// ranges are separed by comma.
+	GIDMappings string `toml:"gid_mappings"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.

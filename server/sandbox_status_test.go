@@ -22,6 +22,7 @@ func init() {
 }
 
 func newTestContainerServerOrFailNow(t *testing.T) (cs *lib.ContainerServer, dirsToCleanUp []string) {
+	ctx := context.Background()
 	tmpdir := os.Getenv("TMPDIR")
 
 	config := lib.DefaultConfig()
@@ -36,7 +37,7 @@ func newTestContainerServerOrFailNow(t *testing.T) (cs *lib.ContainerServer, dir
 	}
 	config.RootConfig.Root = root
 	config.RootConfig.Storage = "vfs"
-	cs, err = lib.New(config)
+	cs, err = lib.New(ctx, config)
 	if err != nil {
 		t.Fatal(err)
 	}

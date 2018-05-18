@@ -40,6 +40,13 @@ func validateConfig(config *server.Config) error {
 
 	}
 
+	if config.UIDMappings != "" && config.ManageNetworkNSLifecycle {
+		return fmt.Errorf("Cannot use UIDMappings with ManageNetworkNSLifecycle")
+	}
+	if config.GIDMappings != "" && config.ManageNetworkNSLifecycle {
+		return fmt.Errorf("Cannot use GIDMappings with ManageNetworkNSLifecycle")
+	}
+
 	if config.LogSizeMax >= 0 && config.LogSizeMax < oci.BufSize {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}
@@ -151,6 +158,12 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	}
 	if ctx.GlobalIsSet("bind-mount-prefix") {
 		config.BindMountPrefix = ctx.GlobalString("bind-mount-prefix")
+	}
+	if ctx.GlobalIsSet("uid-mappings") {
+		config.UIDMappings = ctx.GlobalString("uid-mappings")
+	}
+	if ctx.GlobalIsSet("gid-mappings") {
+		config.GIDMappings = ctx.GlobalString("gid-mappings")
 	}
 	return nil
 }
@@ -364,6 +377,16 @@ func main() {
 		cli.StringFlag{
 			Name:  "bind-mount-prefix",
 			Usage: "specify a prefix to prepend to the source of a bind mount",
+		},
+		cli.StringFlag{
+			Name:  "uid-mappings",
+			Usage: "specify the UID mappings to use for the user namespace",
+			Value: "",
+		},
+		cli.StringFlag{
+			Name:  "gid-mappings",
+			Usage: "specify the GID mappings to use for the user namespace",
+			Value: "",
 		},
 	}
 

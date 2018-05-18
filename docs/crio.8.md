@@ -16,6 +16,7 @@ crio
 [--conmon=[value]]
 [--cpu-profile=[value]]
 [--default-transport=[value]]
+[--gid-mappings=[value]]
 [--help|-h]
 [--insecure-registry=[value]]
 [--listen=[value]]
@@ -34,6 +35,7 @@ crio
 [--signature-policy=[value]]
 [--storage-driver=[value]]
 [--storage-opt=[value]]
+[--uid-mappings=[value]]
 [--version|-v]
 ```
 # DESCRIPTION
@@ -71,6 +73,8 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--cpu-profile**="": set the CPU profile file path
 
 **--default-transport**: A prefix to prepend to image names that can't be pulled as-is.
+
+**--gid-mappings**: Specify the GID mappings to use for user namespace.
 
 **--help, -h**: Print usage statement
 
@@ -121,6 +125,8 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--storage-driver**: OCI storage driver (default: "devicemapper")
 
 **--storage-opt**: OCI storage driver option (no default)
+
+**--uid-mappings**: Specify the UID mappings to use for user namespace.
 
 **--version, -v**: Print the version
 
