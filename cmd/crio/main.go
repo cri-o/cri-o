@@ -496,7 +496,7 @@ func main() {
 				logrus.Fatal(err)
 			}
 		}
-		lis, err := net.Listen("unix", config.Listen)
+		lis, err := server.Listen("unix", config.Listen)
 		if err != nil {
 			logrus.Fatalf("failed to listen: %v", err)
 		}
