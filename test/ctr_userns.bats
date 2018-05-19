@@ -37,7 +37,15 @@ function teardown() {
 	state=$($RUNTIME state "$ctr_id")
 	pid=$(echo $state | python -c 'import json; import sys; d=json.load(sys.stdin); print d["pid"]')
 	grep 100000 /proc/$pid/uid_map
+	[ "$status" -eq 0 ]
 	grep 200000 /proc/$pid/gid_map
+	[ "$status" -eq 0 ]
+
+	out=`echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
+	echo "$out"
+	[[ "$out" =~ "100000" ]]
+	[[ "$out" =~ "200000" ]]
+
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
