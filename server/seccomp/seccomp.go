@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/docker/docker/pkg/stringutils"
+	"github.com/containers/storage/pkg/stringutils"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	libseccomp "github.com/seccomp/libseccomp-golang"
