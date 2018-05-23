@@ -1,28 +1,19 @@
+
 {
 	"metadata": {
 		"name": "podsandbox1",
-		"uid": "redhat-test-crio",
+		"uid": "redhat-test-crio-1",
 		"namespace": "redhat.test.crio",
 		"attempt": 1
 	},
 	"hostname": "crictl_host",
 	"log_directory": "",
-	"dns_options": {
-		"servers": [
-			"server1.redhat.com",
-			"server2.redhat.com"
-		],
+	"dns_config": {
 		"searches": [
 			"8.8.8.8"
 		]
 	},
-	"port_mappings": [
-		{
-			"protocol": 0,
-			"container_port": 80,
-			"host_port": 4888
-		}
-	],
+	"port_mappings": [],
 	"resources": {
 		"cpu": {
 			"limits": 3,
@@ -34,7 +25,9 @@
 		}
 	},
 	"labels": {
-		"group": "test"
+		"name": "podsandbox1",
+		"group": "test",
+		"version": "v1.0.0"
 	},
 	"annotations": {
 		"owner": "hmeng",
@@ -44,9 +37,16 @@
 		"cgroup_parent": "/Burstable/pod_123-456",
 		"security_context": {
 			"namespace_options": {
-				"network": 0,
-				"pid": 1,
-				"ipc": 0
+				"host_network": false,
+				"host_pid": false,
+                "host_ipc": false,
+                "pid": 0
+			},
+			"selinux_options": {
+				"user": "system_u",
+				"role": "system_r",
+				"type": "svirt_lxc_net_t",
+				"level": "s0:c4,c5"
 			}
 		}
 	}

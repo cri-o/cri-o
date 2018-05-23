@@ -6,7 +6,7 @@
 	"image": {
 		"image": "${IMAGE}"
 	},
-	"command": ${COMMAND},
+	"command": "${COMMAND}",
 	"args": [],
 	"working_dir": "/",
 	"envs": [

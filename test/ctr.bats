@@ -807,6 +807,64 @@ function teardown() {
 	stop_crio
 }
 
+@test "ctr with default list of capabilities from crio.conf" {
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl exec --sync $ctr_id grep Cap /proc/1/status
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ 00000000002425fb ]]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr with list of capabilities given by user in crio.conf" {
+	start_crio "" "" "" "CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID" ""
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl exec --sync $ctr_id grep Cap /proc/1/status
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ 00000000002020db ]]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "run ctr with image with Config.Volumes" {
 	start_crio
 	run crictl pull gcr.io/k8s-testimages/redis:e2e

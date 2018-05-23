@@ -27,6 +27,11 @@
 	"stdin_once": false,
 	"tty": false,
 	"linux": {
+		"security_context": {
+			"namespace_options": {
+				"pid": 1
+			}
+		},
 		"resources": {
 			"cpu_period": 10000,
 			"cpu_quota": 20000,

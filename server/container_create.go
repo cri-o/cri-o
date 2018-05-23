@@ -555,6 +555,12 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 			continue
 		}
 		capPrefixed := toCAPPrefixed(cap)
+		// Validate capability
+		if !inStringSlice(getOCICapabilitiesList(), capPrefixed) {
+			// invalid capability, logging and moving on to next capability in list.
+			logrus.Warnf("invalid capability %q, skipping...", cap)
+			continue
+		}
 		if err := specgen.AddProcessCapabilityBounding(capPrefixed); err != nil {
 			return err
 		}
@@ -989,7 +995,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetupPrivileged(true)
 			setOCIBindMountsPrivileged(&specgen)
 		} else {
-			err = setupCapabilities(&specgen, linux.GetSecurityContext().GetCapabilities())
+			capabilities := linux.GetSecurityContext().GetCapabilities()
+			// Ensure we don't get a nil pointer error if the config
+			// doesn't set any capabilities
+			if capabilities == nil {
+				capabilities = &pb.Capability{}
+			}
+			// Clear default capabilities from spec
+			specgen.ClearProcessCapabilities()
+			for _, defaultCap := range s.config.DefaultCapabilities {
+				capabilities.AddCapabilities = append(capabilities.AddCapabilities, defaultCap)
+			}
+			err = setupCapabilities(&specgen, capabilities)
 			if err != nil {
 				return nil, err
 			}

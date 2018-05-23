@@ -131,7 +131,7 @@ function teardown() {
 	if [[ ! -e "$CRIO_CNI_PLUGIN"/bridge-custom ]]; then
 		skip "bridge-custom plugin not available"
 	fi
-	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
+	start_crio "" "" "" "" "prepare_plugin_test_args_network_conf"
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	[ "$status" -eq 0 ]
 
@@ -175,7 +175,7 @@ function teardown() {
 	if [[ ! -e "$CRIO_CNI_PLUGIN"/bridge-custom ]]; then
 		skip "bridge-custom plugin not available"
 	fi
-	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
+	start_crio "" "" "" "" "prepare_plugin_test_args_network_conf"
 
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured

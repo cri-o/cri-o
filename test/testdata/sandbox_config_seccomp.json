@@ -38,9 +38,9 @@
 		"security_context": {
 			"seccomp_profile_path": "%VALUE%",
 			"namespace_options": {
-				"host_network": false,
-				"host_pid": false,
-				"host_ipc": false
+				"network": 0,
+				"pid": 1,
+				"ipc": 0
 			},
 			"selinux_options": {
 				"user": "system_u",

@@ -51,6 +51,9 @@
 			"oom_score_adj": 30
 		},
 		"security_context": {
+			"namespace_options": {
+				"pid": 1
+			},
 			"seccomp_profile_path": "%VALUE%",
 			"capabilities": {
 				"add_capabilities": [

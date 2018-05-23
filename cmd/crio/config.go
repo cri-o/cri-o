@@ -110,6 +110,14 @@ apparmor_profile = "{{ .ApparmorProfile }}"
 # for the runtime.
 cgroup_manager = "{{ .CgroupManager }}"
 
+# default_capabilities is the list of capabilities to add and can be modified here.
+# If capabilities below is commented out, the default list of capabilities defined in the
+# spec will be added.
+# If capabilities is empty below, only the capabilities defined in the container json
+# file by the user/kube will be added.
+default_capabilities = [
+{{ range $capability := .DefaultCapabilities}}{{ printf "\t%q, \n" $capability}}{{ end }}]
+
 # hooks_dir_path is the oci hooks directory for automatically executed hooks
 hooks_dir_path = "{{ .HooksDirPath }}"
 

@@ -13,7 +13,7 @@
 	"envs": [
 		{
 			"key": "PATH",
-			"value": "/acustompathinpath:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 		},
 		{
 			"key": "TERM",
@@ -49,12 +49,11 @@
 			"cpu_period": 10000,
 			"cpu_quota": 20000,
 			"cpu_shares": 512,
-			"oom_score_adj": 30
+			"oom_score_adj": 30,
+			"cpuset_cpus": "0",
+			"cpuset_mems": "0"
 		},
 		"security_context": {
-			"namespace_options": {
-				"pid": 1
-			},
 			"capabilities": {
 				"add_capabilities": [
 					"sys_admin"
