@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	cimage "github.com/containers/image/types"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/go-zoo/bone"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
@@ -14,11 +15,30 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func (s *Server) getIDMappingsInfo() types.IDMappings {
+	if s.defaultIDMappings == nil {
+		fullMapping := idtools.IDMap{
+			ContainerID: 0,
+			HostID:      0,
+			Size:        4294967295,
+		}
+		return types.IDMappings{
+			Uids: []idtools.IDMap{fullMapping},
+			Gids: []idtools.IDMap{fullMapping},
+		}
+	}
+	return types.IDMappings{
+		Uids: s.defaultIDMappings.UIDs(),
+		Gids: s.defaultIDMappings.GIDs(),
+	}
+}
+
 func (s *Server) getInfo() types.CrioInfo {
 	return types.CrioInfo{
-		StorageDriver: s.config.Config.Storage,
-		StorageRoot:   s.config.Config.Root,
-		CgroupDriver:  s.config.Config.CgroupManager,
+		StorageDriver:     s.config.Config.Storage,
+		StorageRoot:       s.config.Config.Root,
+		CgroupDriver:      s.config.Config.CgroupManager,
+		DefaultIDMappings: s.getIDMappingsInfo(),
 	}
 }
 
