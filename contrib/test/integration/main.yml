@@ -41,6 +41,7 @@
     - "{{ playbook_dir }}/vars.yml"
   tags:
     - integration
+    - userns
     - e2e
     - node-e2e
     - critest

@@ -12,6 +12,14 @@
     extra_storage_opts: " --storage-opt overlay.override_kernel_check=1"
   when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
 
+- name: Usernamespace integration testing uses updated environment variables
+  set_fact:
+    # Keys/Values in userns_int_test_env update int_test_env (from vars.yml)
+    int_test_env: '{{ int_test_env | combine(userns_int_test_env) }}'
+  tags:
+    - integration
+    - userns
+
 - name: ensure directory exists for e2e reports
   file:
     path: "{{ artifacts }}"
@@ -24,9 +32,10 @@
       when: not integration_selinux_enabled
 
     - name: run integration tests
-      shell: "CGROUP_MANAGER=cgroupfs STORAGE_OPTIONS='--storage-driver=overlay{{ extra_storage_opts | default('') }}' make localintegration >& {{ artifacts }}/testout.txt"
+      shell: "{{ int_test_cmd }}"
       args:
         chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+      environment: '{{ int_test_env }}'  # from vars.yml
       async: '{{ 60 * 30 }}'  # seconds
       poll: 30
 

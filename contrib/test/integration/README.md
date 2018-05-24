@@ -12,6 +12,7 @@ When running the `main.yml` playbook, multiple tags are present:
  - `e2e`: build CRI-O from source and run Kubernetes end-to-end tests.
  - `node-e2e`: build CRI-O from source and run Kubernetes 'node' end-to-end tests.
  - `integration`: build CRI-O from source and run the local integration suite.
+-  `userns`: Same as `integration`, except with usernamespaces enabled.
 
 The playbooks assume the following things about your system:
 
