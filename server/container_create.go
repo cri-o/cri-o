@@ -1067,15 +1067,22 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 
-	netNsPath := sb.NetNsPath()
-	if netNsPath == "" {
-		// The sandbox does not have a permanent namespace,
-		// it's on the host one.
-		netNsPath = fmt.Sprintf("/proc/%d/ns/net", podInfraState.Pid)
-	}
+	// If the sandbox is configured to run in the host network, do not create a new network namespace
+	if sb.HostNetwork() {
+		if err := specgen.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); err != nil {
+			return nil, err
+		}
+	} else {
+		netNsPath := sb.NetNsPath()
+		if netNsPath == "" {
+			// The sandbox does not have a permanent namespace,
+			// it's on the host one.
+			netNsPath = fmt.Sprintf("/proc/%d/ns/net", podInfraState.Pid)
+		}
 
-	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
-		return nil, err
+		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
+			return nil, err
+		}
 	}
 
 	imageSpec := containerConfig.GetImage()
