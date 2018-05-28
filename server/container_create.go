@@ -1072,6 +1072,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		if err := specgen.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); err != nil {
 			return nil, err
 		}
+		specgen.RemoveMount("/sys")
+		specgen.RemoveMount("/sys/cgroup")
+		sysMnt := rspec.Mount{
+			Destination: "/sys",
+			Type:        "bind",
+			Source:      "/sys",
+			Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+		}
+		specgen.AddMount(sysMnt)
 	} else {
 		netNsPath := sb.NetNsPath()
 		if netNsPath == "" {

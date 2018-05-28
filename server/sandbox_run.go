@@ -708,7 +708,17 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			g.AddMount(mqueue)
 		}
-
+		if hostNetwork {
+			g.RemoveMount("/sys")
+			g.RemoveMount("/sys/cgroup")
+			sysMnt := spec.Mount{
+				Destination: "/sys",
+				Type:        "bind",
+				Source:      "/sys",
+				Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+			}
+			g.AddMount(sysMnt)
+		}
 		if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 			g.RemoveMount("/proc")
 			proc := runtimespec.Mount{
