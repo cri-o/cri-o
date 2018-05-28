@@ -203,6 +203,9 @@ function teardown() {
 }
 
 @test "pass pod sysctls to runtime" {
+	if test -n "$UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config_sysctl.json
 	echo "$output"
