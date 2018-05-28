@@ -871,6 +871,9 @@ function teardown() {
 }
 
 @test "run ctr with image with Config.Volumes" {
+	if test -n "$UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
 	start_crio
 	run crictl pull gcr.io/k8s-testimages/redis:e2e
 	echo "$output"
