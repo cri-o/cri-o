@@ -7,6 +7,9 @@ function teardown() {
 }
 
 @test "bind secrets mounts to container" {
+    if test -n "$UID_MAPPINGS"; then
+        skip "userNS enabled"
+    fi
     start_crio
     run crictl runp "$TESTDATA"/sandbox_config.json
     echo "$output"
