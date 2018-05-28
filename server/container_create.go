@@ -1363,6 +1363,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	container.SetIDMappings(containerIDMappings)
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		userNsPath := sb.UserNsPath()
+		rootPair := s.defaultIDMappings.RootPair()
+
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UserNamespace), userNsPath); err != nil {
 			return nil, err
 		}
@@ -1376,6 +1378,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		if err != nil {
 			return nil, err
 		}
+
+		if sb.ResolvPath() != "" {
+			err = os.Chown(sb.ResolvPath(), rootPair.UID, rootPair.GID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		defer func() {
 			if err != nil {
 				os.RemoveAll(container.IntermediateMountPoint())
