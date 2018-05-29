@@ -7,11 +7,6 @@
     regexp: ' go test \"\$'
     state: present
 
-- name: set extra storage options
-  set_fact:
-    extra_storage_opts: " --storage-opt overlay.override_kernel_check=1"
-  when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
-
 - name: Usernamespace integration testing uses updated environment variables
   set_fact:
     # Keys/Values in userns_int_test_env update int_test_env (from vars.yml)
