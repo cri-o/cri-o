@@ -46,6 +46,22 @@ stream_address = "{{ .StreamAddress }}"
 # stream_port is the port on which the stream server will listen
 stream_port = "{{ .StreamPort }}"
 
+# stream_enable_tls enables encrypted tls transport of the stream server
+stream_enable_tls = {{ .StreamEnableTLS }}
+
+# stream_tls_cert is the x509 certificate file path used to serve the encrypted stream.
+# This file can change, and CRIO will automatically pick up the changes within 5 minutes.
+stream_tls_cert = "{{ .StreamTLSCert }}"
+
+# stream_tls_key is the key file path used to serve the encrypted stream.
+# This file can change, and CRIO will automatically pick up the changes within 5 minutes.
+stream_tls_key = "{{ .StreamTLSKey }}"
+
+# stream_tls_ca is the x509 CA(s) file used to verify and authenticate client
+# communication with the tls encrypted stream.
+# This file can change, and CRIO will automatically pick up the changes within 5 minutes.
+stream_tls_ca = "{{ .StreamTLSCA }}"
+
 # file_locking is whether file-based locking will be used instead of
 # in-memory locking
 file_locking = {{ .FileLocking }}

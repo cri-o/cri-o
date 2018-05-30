@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -38,7 +41,8 @@ import (
 )
 
 const (
-	shutdownFile = "/var/lib/crio/crio.shutdown"
+	shutdownFile        = "/var/lib/crio/crio.shutdown"
+	certRefreshInterval = time.Minute * 5
 )
 
 func isTrue(annotaton string) bool {
@@ -73,6 +77,42 @@ type Server struct {
 	monitorsChan chan struct{}
 
 	defaultIDMappings *idtools.IDMappings
+}
+
+type certConfigCache struct {
+	config  *tls.Config
+	expires time.Time
+
+	tlsCert string
+	tlsKey  string
+	tlsCA   string
+}
+
+// GetConfigForClient gets the tlsConfig for the streaming server.
+// This allows the certs to be swapped, without shutting down crio.
+func (cc *certConfigCache) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
+	if cc.config != nil && time.Now().Before(cc.expires) {
+		return cc.config, nil
+	}
+	config := new(tls.Config)
+	cert, err := tls.LoadX509KeyPair(cc.tlsCert, cc.tlsKey)
+	if err != nil {
+		return nil, err
+	}
+	config.Certificates = []tls.Certificate{cert}
+	if len(cc.tlsCA) > 0 {
+		caBytes, err := ioutil.ReadFile(cc.tlsCA)
+		if err != nil {
+			return nil, err
+		}
+		certPool := x509.NewCertPool()
+		certPool.AppendCertsFromPEM(caBytes)
+		config.ClientCAs = certPool
+		config.ClientAuth = tls.RequireAndVerifyClientCert
+	}
+	cc.config = config
+	cc.expires = time.Now().Add(certRefreshInterval)
+	return config, nil
 }
 
 // StopStreamServer stops the stream server
@@ -326,6 +366,24 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	// Prepare streaming server
 	streamServerConfig := streaming.DefaultConfig
 	streamServerConfig.Addr = net.JoinHostPort(bindAddress.String(), config.StreamPort)
+	if config.StreamEnableTLS {
+		certCache := &certConfigCache{
+			tlsCert: config.StreamTLSCert,
+			tlsKey:  config.StreamTLSKey,
+			tlsCA:   config.StreamTLSCA,
+		}
+		// We add the certs to the config, even thought the config is dynamic, because
+		// the http package method, ServeTLS, checks to make sure there is a cert in the
+		// config or it throws an error.
+		cert, err := tls.LoadX509KeyPair(config.StreamTLSCert, config.StreamTLSKey)
+		if err != nil {
+			return nil, err
+		}
+		streamServerConfig.TLSConfig = &tls.Config{
+			GetConfigForClient: certCache.GetConfigForClient,
+			Certificates:       []tls.Certificate{cert},
+		}
+	}
 	s.stream.runtimeServer = s
 	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
 	if err != nil {
