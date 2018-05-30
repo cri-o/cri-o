@@ -37,7 +37,7 @@ jobs:
         - make .gitvalidation
         - make fmt
         - make lint
-      go: tip
+      go: "1.10.x"
     - stage: Build and Verify
       script:
         - sudo "PATH=$PATH" make testunit
@@ -61,6 +61,7 @@ jobs:
       go: "1.10.x"
   allow_failures:
     - os: osx
+    - go: tip
 
 notifications:
   irc: "chat.freenode.net#cri-o"
