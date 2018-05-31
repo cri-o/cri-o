@@ -627,6 +627,11 @@ function teardown() {
 }
 
 @test "ctr device add" {
+	# In an user namespace we can only bind mount devices from the host, not mknod
+	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
+	if test -n "$UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -866,6 +871,9 @@ function teardown() {
 }
 
 @test "run ctr with image with Config.Volumes" {
+	if test -n "$UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
 	start_crio
 	run crictl pull gcr.io/k8s-testimages/redis:e2e
 	echo "$output"

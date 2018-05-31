@@ -38,6 +38,9 @@ function teardown() {
 }
 
 @test "image volume bind" {
+	if test -n "$UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
 	IMAGE_VOLUMES=bind start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
