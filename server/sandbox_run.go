@@ -1,23 +1,19 @@
 package server
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
-	"golang.org/x/sys/unix"
 	"k8s.io/api/core/v1"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
@@ -70,116 +66,6 @@ func (s *Server) trustedSandbox(req *pb.RunPodSandboxRequest) bool {
 	}
 
 	return isTrue(trustedAnnotation)
-}
-
-func (s *Server) createContainer(container *oci.Container, infraContainer *oci.Container, cgroupParent string) error {
-	intermediateMountPoint := container.IntermediateMountPoint()
-
-	if intermediateMountPoint == "" {
-		return s.Runtime().CreateContainer(container, cgroupParent)
-	}
-
-	errc := make(chan error)
-	go func() {
-		// We create a new mount namespace before running the container as the rootfs of the
-		// container is accessible only to the root user.  We use the intermediate mount
-		// namespace to bind mount the root to a directory that is accessible to the user which
-		// maps to root inside of the container/
-		// We carefully unlock the OS thread only if no errors happened.  The thread might have failed
-		// to restore the original mount namespace, and unlocking it will let it keep running
-		// in a different context than the other threads.  A thread that is still locked when the
-		// goroutine terminates is automatically destroyed.
-		var err error
-		runtime.LockOSThread()
-		defer func() {
-			if err == nil {
-				runtime.UnlockOSThread()
-			}
-			errc <- err
-		}()
-
-		fd, err := os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
-		if err != nil {
-			return
-		}
-		defer fd.Close()
-
-		// create a new mountns on the current thread
-		if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
-			return
-		}
-		defer unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
-
-		// don't spread our mounts around
-		err = unix.Mount("/", "/", "none", unix.MS_REC|unix.MS_SLAVE, "")
-		if err != nil {
-			return
-		}
-
-		rootUID, rootGID, err := idtools.GetRootUIDGID(container.IDMappings().UIDs(), container.IDMappings().GIDs())
-		if err != nil {
-			return
-		}
-
-		err = os.Chown(intermediateMountPoint, rootUID, rootGID)
-		if err != nil {
-			return
-		}
-
-		mountPoint := container.MountPoint()
-		err = os.Chown(mountPoint, rootUID, rootGID)
-		if err != nil {
-			return
-		}
-
-		rootPath := filepath.Join(intermediateMountPoint, "root")
-		err = idtools.MkdirAllAs(rootPath, 0700, rootUID, rootGID)
-		if err != nil {
-			return
-		}
-
-		err = unix.Mount(mountPoint, rootPath, "none", unix.MS_BIND, "")
-		if err != nil {
-			return
-		}
-
-		if infraContainer != nil {
-			infraRunDir := filepath.Join(intermediateMountPoint, "infra-rundir")
-			err = idtools.MkdirAllAs(infraRunDir, 0700, rootUID, rootGID)
-			if err != nil {
-				return
-			}
-
-			err = unix.Mount(infraContainer.BundlePath(), infraRunDir, "none", unix.MS_BIND, "")
-			if err != nil {
-				return
-			}
-			err = os.Chown(infraRunDir, rootUID, rootGID)
-			if err != nil {
-				return
-			}
-		}
-
-		runDirPath := filepath.Join(intermediateMountPoint, "rundir")
-		err = os.MkdirAll(runDirPath, 0700)
-		if err != nil {
-			return
-		}
-
-		err = unix.Mount(container.BundlePath(), runDirPath, "none", unix.MS_BIND, "suid")
-		if err != nil {
-			return
-		}
-		err = os.Chown(runDirPath, rootUID, rootGID)
-		if err != nil {
-			return
-		}
-
-		err = s.Runtime().CreateContainer(container, cgroupParent)
-	}()
-
-	err := <-errc
-	return err
 }
 
 var (

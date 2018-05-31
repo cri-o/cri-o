@@ -633,7 +633,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err = s.createContainer(container, sb.InfraContainer(), sb.CgroupParent()); err != nil {
+	if err = s.createContainerPlatform(container, sb.InfraContainer(), sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
