@@ -73,9 +73,6 @@ static inline void strv_cleanup(char ***strv)
 #define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
 #define _cleanup_strv_ _cleanup_(strv_cleanup)
 
-#define CMD_SIZE 1024
-#define MAX_EVENTS 10
-
 static volatile pid_t container_pid = -1;
 static volatile pid_t create_pid = -1;
 static gboolean opt_version = FALSE;
