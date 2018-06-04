@@ -113,8 +113,8 @@ endif
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 	rm -f bin/crio
-	make -C conmon clean
-	make -C pause clean
+	$(MAKE) -C conmon clean
+	$(MAKE) -C pause clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
@@ -229,7 +229,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 		git clone https://github.com/ostreedev/ostree $(GOPATH)/src/github.com/ostreedev/ostree ; \
 		cd $(GOPATH)/src/github.com/ostreedev/ostree ; \
 		./autogen.sh --prefix=/usr/local; \
-		make all install; \
+		$(MAKE) all install; \
 	fi
 
 .PHONY: \
