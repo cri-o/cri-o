@@ -8,4 +8,6 @@ printf %s $LABEL > /proc/self/attr/exec
 test -e /etc/sysconfig/crio-storage && source /etc/sysconfig/crio-storage
 test -e /etc/sysconfig/crio-network && source /etc/sysconfig/crio-network
 
+export HTTP_PROXY HTTPS_PROXY NO_PROXY
+
 exec /usr/bin/crio --bind-mount-prefix=/host --log-level=$LOG_LEVEL
