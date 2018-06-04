@@ -90,7 +90,7 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
-bin/crio: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/crio $(PROJECT))
+bin/crio: .gopathok
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/cmd/crio
 
 crio.conf: bin/crio
@@ -234,6 +234,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 
 .PHONY: \
 	bin/conmon \
+	bin/crio \
 	bin/pause \
 	binaries \
 	clean \
