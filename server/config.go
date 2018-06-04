@@ -9,7 +9,10 @@ import (
 )
 
 //CrioConfigPath is the default location for the conf file
-const CrioConfigPath = "/etc/crio/crio.conf"
+const CrioConfigPath = "/usr/lib/crio/crio.conf"
+
+//OverrideCrioConfigPath is the default location for the conf file
+const OverrideCrioConfigPath = "/etc/crio/crio.conf"
 
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.

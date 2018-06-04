@@ -17,7 +17,6 @@ RUN dnf install --enablerepo=updates-testing --setopt=tsflags=nodocs -y iptables
     rpm -V iptables cri-o iproute runc && \
     dnf clean all && \
     mkdir -p /exports/hostfs/etc/crio /exports/hostfs/opt/cni/bin/ /exports/hostfs/var/lib/containers/storage/ && \
-    cp /etc/crio/* /exports/hostfs/etc/crio && \
     if test -e /usr/libexec/cni; then cp -Lr /usr/libexec/cni/* /exports/hostfs/opt/cni/bin/; fi
 
 COPY manifest.json tmpfiles.template config.json.template service.template /exports/

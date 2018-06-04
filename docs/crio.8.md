@@ -118,7 +118,7 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--selinux**=**true**|**false**: Enable selinux support (default: false)
 
-**--seccomp-profile**="": Path to the seccomp json profile to be used as the runtime's default (default: "/etc/crio/seccomp.json")
+**--seccomp-profile**="": Path to the seccomp json profile to be used as the runtime's default (default: "/usr/lib/crio/seccomp.json")
 
 **--signature-policy**="": Path to the signature policy json file (default: "", to use the system-wide default)
 

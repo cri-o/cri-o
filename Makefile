@@ -11,12 +11,10 @@ PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
-ETCDIR ?= ${DESTDIR}/etc
-ETCDIR_CRIO ?= ${ETCDIR}/crio
+CONFIGDIR ?= ${PREFIX}/lib/crio
 DATAROOTDIR ?= ${PREFIX}/share/containers
 BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
-
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
@@ -163,8 +161,8 @@ install.man: $(MANPAGES)
 
 install.config: crio.conf
 	install ${SELINUXOPT} -d $(DATAROOTDIR)/oci/hooks.d
-	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
-	install ${SELINUXOPT} -D -m 644 seccomp.json $(ETCDIR_CRIO)/seccomp.json
+	install ${SELINUXOPT} -D -m 644 crio.conf $(CONFIGDIR)/crio.conf
+	install ${SELINUXOPT} -D -m 644 seccomp.json $(CONFIGDIR)/seccomp.json
 	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	install ${SELINUXOPT} -D -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
 
