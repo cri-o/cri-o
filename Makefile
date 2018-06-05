@@ -187,7 +187,6 @@ uninstall:
 		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done
 
-.PHONY: .gitvalidation
 # When this is running in travis, it will only check the travis commit range
 .gitvalidation: .gopathok
 ifeq ($(TRAVIS),true)
@@ -195,8 +194,6 @@ ifeq ($(TRAVIS),true)
 else
 	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
-
-.PHONY: install.tools
 
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.release
 
@@ -233,6 +230,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	fi
 
 .PHONY: \
+	.gitvalidation \
 	bin/conmon \
 	bin/crio \
 	bin/pause \
@@ -243,5 +241,6 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	gofmt \
 	help \
 	install \
+	install.tools \
 	lint \
 	uninstall
