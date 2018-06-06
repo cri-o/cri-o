@@ -1773,27 +1773,26 @@ func ValidatePersistentVolumeClaimSpec(spec *core.PersistentVolumeClaimSpec, fld
 func ValidatePersistentVolumeClaimUpdate(newPvc, oldPvc *core.PersistentVolumeClaim) field.ErrorList {
 	allErrs := ValidateObjectMetaUpdate(&newPvc.ObjectMeta, &oldPvc.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidatePersistentVolumeClaim(newPvc)...)
+	newPvcClone := newPvc.DeepCopy()
+	oldPvcClone := oldPvc.DeepCopy()
+
 	// PVController needs to update PVC.Spec w/ VolumeName.
 	// Claims are immutable in order to enforce quota, range limits, etc. without gaming the system.
 	if len(oldPvc.Spec.VolumeName) == 0 {
 		// volumeName changes are allowed once.
-		// Reset back to empty string after equality check
-		oldPvc.Spec.VolumeName = newPvc.Spec.VolumeName
-		defer func() { oldPvc.Spec.VolumeName = "" }()
+		oldPvcClone.Spec.VolumeName = newPvcClone.Spec.VolumeName
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.ExpandPersistentVolumes) {
-		newPVCSpecCopy := newPvc.Spec.DeepCopy()
-
 		// lets make sure storage values are same.
-		if newPvc.Status.Phase == core.ClaimBound && newPVCSpecCopy.Resources.Requests != nil {
-			newPVCSpecCopy.Resources.Requests["storage"] = oldPvc.Spec.Resources.Requests["storage"]
+		if newPvc.Status.Phase == core.ClaimBound && newPvcClone.Spec.Resources.Requests != nil {
+			newPvcClone.Spec.Resources.Requests["storage"] = oldPvc.Spec.Resources.Requests["storage"]
 		}
 
 		oldSize := oldPvc.Spec.Resources.Requests["storage"]
 		newSize := newPvc.Spec.Resources.Requests["storage"]
 
-		if !apiequality.Semantic.DeepEqual(*newPVCSpecCopy, oldPvc.Spec) {
+		if !apiequality.Semantic.DeepEqual(newPvcClone.Spec, oldPvcClone.Spec) {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "is immutable after creation except resources.requests for bound claims"))
 		}
 		if newSize.Cmp(oldSize) < 0 {
@@ -1803,7 +1802,7 @@ func ValidatePersistentVolumeClaimUpdate(newPvc, oldPvc *core.PersistentVolumeCl
 	} else {
 		// changes to Spec are not allowed, but updates to label/and some annotations are OK.
 		// no-op updates pass validation.
-		if !apiequality.Semantic.DeepEqual(newPvc.Spec, oldPvc.Spec) {
+		if !apiequality.Semantic.DeepEqual(newPvcClone.Spec, oldPvcClone.Spec) {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "field is immutable after creation"))
 		}
 	}
@@ -1815,8 +1814,6 @@ func ValidatePersistentVolumeClaimUpdate(newPvc, oldPvc *core.PersistentVolumeCl
 	if utilfeature.DefaultFeatureGate.Enabled(features.BlockVolume) {
 		allErrs = append(allErrs, ValidateImmutableField(newPvc.Spec.VolumeMode, oldPvc.Spec.VolumeMode, field.NewPath("volumeMode"))...)
 	}
-
-	newPvc.Status = oldPvc.Status
 	return allErrs
 }
 
@@ -2175,7 +2172,11 @@ func ValidateVolumeMounts(mounts []core.VolumeMount, voldevices map[string]strin
 		}
 
 		if len(mnt.SubPath) > 0 {
-			allErrs = append(allErrs, validateLocalDescendingPath(mnt.SubPath, fldPath.Child("subPath"))...)
+			if !utilfeature.DefaultFeatureGate.Enabled(features.VolumeSubpath) {
+				allErrs = append(allErrs, field.Forbidden(fldPath.Child("subPath"), "subPath is disabled by feature-gate"))
+			} else {
+				allErrs = append(allErrs, validateLocalDescendingPath(mnt.SubPath, fldPath.Child("subPath"))...)
+			}
 		}
 
 		if mnt.MountPropagation != nil {
@@ -3365,7 +3366,7 @@ func ValidatePodTemplate(pod *core.PodTemplate) field.ErrorList {
 // ValidatePodTemplateUpdate tests to see if the update is legal for an end user to make. newPod is updated with fields
 // that cannot be changed.
 func ValidatePodTemplateUpdate(newPod, oldPod *core.PodTemplate) field.ErrorList {
-	allErrs := ValidateObjectMetaUpdate(&oldPod.ObjectMeta, &newPod.ObjectMeta, field.NewPath("metadata"))
+	allErrs := ValidateObjectMetaUpdate(&newPod.ObjectMeta, &oldPod.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidatePodTemplateSpec(&newPod.Template, field.NewPath("template"))...)
 	return allErrs
 }
