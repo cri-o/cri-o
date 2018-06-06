@@ -59,9 +59,9 @@ jobs:
       script:
         - make integration
       go: "1.10.x"
-    - stage: Integration Test with User namespaces enabled
-      script:
-        - TEST_USERNS=1 make integration
+    - script:
+        - make integration
+      env: TEST_USERNS=1
       go: "1.10.x"
   allow_failures:
     - os: osx
