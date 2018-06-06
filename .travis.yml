@@ -14,7 +14,7 @@ before_install:
 install:
   - make install.tools
   - >
-    if [ "{TRAVIS_OS_NAME}" = linux ]; then
+    if [ "${TRAVIS_OS_NAME}" = linux ]; then
       OSTREE_VERSION=v2017.9;
       git clone https://github.com/ostreedev/ostree ${TRAVIS_BUILD_DIR}/ostree &&
       (
