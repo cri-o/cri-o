@@ -14,7 +14,7 @@ import (
 // Default paths if none are specified
 const (
 	conmonPath          = "/usr/local/libexec/crio/conmon"
-	pauseImage          = "kubernetes/pause"
+	pauseImage          = "k8s.gcr.io/pause:3.1"
 	pauseCommand        = "/pause"
 	defaultTransport    = "docker://"
 	seccompProfilePath  = "/etc/crio/seccomp.json"
