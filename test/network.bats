@@ -128,9 +128,6 @@ function teardown() {
 }
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
-	if [[ ! -e "$CRIO_CNI_PLUGIN"/bridge-custom ]]; then
-		skip "bridge-custom plugin not available"
-	fi
 	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	[ "$status" -eq 0 ]
@@ -172,9 +169,6 @@ function teardown() {
 }
 
 @test "Clean up network if pod sandbox fails" {
-	if [[ ! -e "$CRIO_CNI_PLUGIN"/bridge-custom ]]; then
-		skip "bridge-custom plugin not available"
-	fi
 	start_crio "" "" "" "prepare_plugin_test_args_network_conf"
 
 	# make conmon non-executable to cause the sandbox setup to fail after
@@ -187,6 +181,20 @@ function teardown() {
 
 	# ensure that the server cleaned up sandbox networking if the sandbox
 	# failed after network setup
+	rm -f /var/lib/cni/networks/crionet_test_args/last_reserved_ip
+	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | wc -l)
+	[[ "${num_allocated}" == "0" ]]
+}
+
+@test "Clean up network if pod sandbox fails after plugin success" {
+	start_crio "" "" "" "prepare_plugin_test_args_network_conf_malformed_result"
+
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -ne 0 ]
+
+	# ensure that the server cleaned up sandbox networking if the sandbox
+	# failed during network setup after the CNI plugin itself succeeded
 	rm -f /var/lib/cni/networks/crionet_test_args/last_reserved_ip
 	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | wc -l)
 	[[ "${num_allocated}" == "0" ]]
