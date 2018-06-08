@@ -158,7 +158,7 @@ function crio() {
 
 # Run crictl using the binary specified by $CRICTL_BINARY.
 function crictl() {
-	"$CRICTL_BINARY" -r "$CRIO_SOCKET" -i "$CRIO_SOCKET" "$@"
+	"$CRICTL_BINARY" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" "$@"
 }
 
 # Communicate with Docker on the host machine.
@@ -232,8 +232,8 @@ function start_crio() {
 	if [ "$status" -ne 0 ] ; then
 		crictl pull redis:alpine
 	fi
-	REDIS_IMAGEID=$(crictl inspecti redis:alpine --output table | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-	REDIS_IMAGEREF=$(crictl inspecti redis:alpine --output table | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
+	REDIS_IMAGEID=$(crictl inspecti --output=table redis:alpine | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+	REDIS_IMAGEREF=$(crictl inspecti --output=table redis:alpine | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
 	run crictl inspecti mrunalp/oom
 	if [ "$status" -ne 0 ] ; then
 		  crictl pull mrunalp/oom

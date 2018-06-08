@@ -18,7 +18,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_list_info="$output"
 
-	run crictl inspectp "$pod_id" --output table
+	run crictl inspectp --output=table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_status_info=`echo "$output" | grep Status`
@@ -52,7 +52,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${pod_list_info}" ]]
 
-	run crictl inspectp "$pod_id" --output table
+	run crictl inspectp --output=table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	output=`echo "$output" | grep Status`

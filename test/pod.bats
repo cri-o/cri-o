@@ -189,7 +189,7 @@ function teardown() {
 	[[ "$output" =~ "Namespace: redhat.test.crio" ]]
 	[[ "$output" =~ "Attempt: 1" ]]
 
-	run crictl inspectp "$pod_id" --output table
+	run crictl inspectp --output=table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# TODO: expected value should not hard coded here
