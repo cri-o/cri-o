@@ -129,7 +129,7 @@ function teardown() {
 	run crictl inspect "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl ps --quiet --state stopped
+	run crictl ps --quiet --state exited
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr_id" ]]
@@ -421,11 +421,11 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr1_id" ]]
-	run crictl ps --id "$ctr2_id" --podsandbox "$pod2_id" --quiet --all
+	run crictl ps --id "$ctr2_id" --pod "$pod2_id" --quiet --all
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr2_id" ]]
-	run crictl ps --id "$ctr2_id" --podsandbox "$pod3_id" --quiet --all
+	run crictl ps --id "$ctr2_id" --pod "$pod3_id" --quiet --all
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "" ]]
@@ -437,19 +437,19 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr1_id" ]]
-	run crictl ps --state stopped --quiet
+	run crictl ps --state exited --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr3_id" ]]
-	run crictl ps --podsandbox "$pod1_id" --quiet --all
+	run crictl ps --pod "$pod1_id" --quiet --all
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr1_id" ]]
-	run crictl ps --podsandbox "$pod2_id" --quiet --all
+	run crictl ps --pod "$pod2_id" --quiet --all
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr2_id" ]]
-	run crictl ps --podsandbox "$pod3_id" --quiet --all
+	run crictl ps --pod "$pod3_id" --quiet --all
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr3_id" ]]
