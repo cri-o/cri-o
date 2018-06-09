@@ -132,6 +132,9 @@ static GOptionEntry opt_entries[] = {
 /* strlen("1997-03-25T13:20:42.999999999+01:00 stdout ") + 1 */
 #define TSBUFLEN 44
 
+/* strlen("1997-03-25T13:20:42.999999999+01:00 stdout 999999999 ") + 1 */
+#define TSSTREAMBUFLEN 54
+
 #define CGROUP_ROOT "/sys/fs/cgroup"
 
 static int log_fd = -1;
@@ -304,6 +307,43 @@ int set_k8s_timestamp(char *buf, ssize_t buflen, const char *pipename)
 	return err;
 }
 
+
+static int set_k8s_stream_timestamp(char *buf, ssize_t buflen, ssize_t *tsbuflen, const char *pipename, ssize_t buflen, ssize_t *btbw)
+{
+	struct tm *tm;
+	struct timespec ts;
+	char off_sign = '+';
+	int off, len, err = -1;
+
+	if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
+		/* If CLOCK_REALTIME is not supported, we set nano seconds to 0 */
+		if (errno == EINVAL) {
+			ts.tv_nsec = 0;
+		} else {
+			return err;
+		}
+	}
+
+	if ((tm = localtime(&ts.tv_sec)) == NULL)
+		return err;
+
+	off = (int)tm->tm_gmtoff;
+	if (tm->tm_gmtoff < 0) {
+		off_sign = '-';
+		off = -off;
+	}
+
+	len = snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d.%09ld%c%02d:%02d %s %lld ", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+		       tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec, off_sign, off / 3600, off % 3600, pipename, buflen);
+
+	if (len < buflen)
+		err = 0;
+
+	*tsbuflen = len;
+	*btbw = len + buflen;
+	return err;
+}
+
 /* stdpipe_t represents one of the std pipes (or NONE).
  * Sync with const in container_attach.go */
 typedef enum {
@@ -444,6 +484,68 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		buf += line_len;
 		buflen -= line_len;
 	}
+
+	if (writev_buffer_flush(fd, &bufv) < 0) {
+		nwarn("failed to flush buffer to log");
+	}
+
+	return 0;
+}
+
+/*
+ * PROPOSED: CRI Stream Format, variable length file format
+ *
+ * %d-%02d-%02dT%02d:%02d:%02d.%09ld%c%02d:%02d %(stream)s %(buflen)d %(buf)s
+ *
+ * The CRI stream fromat requires us to write each buffer read with a
+ * timestamp, stream, length (human readable ascii), and the buffer contents
+ * read (with a space character separating the buffer length string from the
+ * buffer.
+ */
+static int write_k8s_stream_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
+{
+	char tsbuf[TSSTREAMBUFLEN];
+	writev_buffer_t bufv = {0};
+	static int64_t bytes_written = 0;
+	int64_t bytes_to_be_written = 0;
+	int64_t tsbuflen = 0;
+
+	/*
+	 * Use the same timestamp for every line of the log in this buffer.
+	 * There is no practical difference in the output since write(2) is
+	 * fast.
+	 */
+	if (set_k8s_stream_timestamp(tsbuf, sizeof tsbuf, &tsbuflen, stdpipe_name(pipe), buflen, &bytes_to_be_written))
+		/* TODO: We should handle failures much more cleanly than this. */
+		return -1;
+
+	/*
+	 * We re-open the log file if writing out the bytes will exceed the max
+	 * log size. We also reset the state so that the new file is started with
+	 * a timestamp.
+	 */
+	if ((opt_log_size_max > 0) && (bytes_written + bytes_to_be_written) > opt_log_size_max) {
+		bytes_written = 0;
+
+		reopen_log_file();
+
+		/* Reassign to the new log file fd */
+		fd = log_fd;
+	}
+
+	/* Output the timestamp, stream, and length */
+	if (writev_buffer_append_segment(fd, &bufv, tsbuf, tsbuflen) < 0) {
+		nwarn("failed to write (timestamp, stream) to log");
+		goto next;
+	}
+
+	/* Output the actual contents. */
+	if (writev_buffer_append_segment(fd, &bufv, buf, line_len) < 0) {
+		nwarn("failed to write buffer to log");
+		goto next;
+	}
+
+	bytes_written += bytes_to_be_written;
 
 	if (writev_buffer_flush(fd, &bufv) < 0) {
 		nwarn("failed to flush buffer to log");
