@@ -30,6 +30,19 @@ type APIConfig struct {
 
 	// StreamPort is the port on which the stream server will listen.
 	StreamPort string `toml:"stream_port"`
+
+	// StreamEnableTLS enables encrypted tls transport of the stream server
+	StreamEnableTLS bool `toml:"stream_enable_tls"`
+
+	// StreamTLSCert is the x509 certificate file path used to serve the encrypted stream
+	StreamTLSCert string `toml:"stream_tls_cert"`
+
+	// StreamTLSKey is the key file path used to serve the encrypted stream
+	StreamTLSKey string `toml:"stream_tls_key"`
+
+	// StreamTLSCA is the x509 CA(s) file used to verify and authenticate client
+	// communication with the tls encrypted stream
+	StreamTLSCA string `toml:"stream_tls_ca"`
 }
 
 // tomlConfig is another way of looking at a Config, which is
