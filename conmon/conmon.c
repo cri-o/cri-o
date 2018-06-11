@@ -232,6 +232,7 @@ static ssize_t writev_buffer_flush (int fd, writev_buffer_t *buf)
 		while (res > 0) {
 			size_t from_this = MIN((size_t)res, iov->iov_len);
 			iov->iov_len -= from_this;
+			iov->iov_base += from_this;
 			res -= from_this;
 
 			if (iov->iov_len == 0) {
