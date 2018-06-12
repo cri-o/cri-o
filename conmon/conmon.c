@@ -398,6 +398,11 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 
 			if (writev_buffer_flush(fd, &bufv) < 0) {
 				nwarn("failed to flush buffer to log");
+				/*
+				 * We are going to reopen the file anyway, in case of
+				 * errors discard all we have in the buffer.
+				 */
+				bufv.iovcnt = 0;
 			}
 			reopen_log_file();
 
