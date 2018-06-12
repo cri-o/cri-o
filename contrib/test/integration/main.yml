@@ -45,6 +45,10 @@
     - node-e2e
     - critest
   tasks:
+    - name: install Golang tools
+      include: golang.yml
+      vars:
+          version: "1.10.3"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
   post_tasks:
@@ -73,10 +77,6 @@
   tags:
     - critest
   tasks:
-    - name: install Golang tools
-      include: golang.yml
-      vars:
-          version: "1.10.2"
     - name: setup critest
       include: "build/cri-tools.yml"
       vars:
@@ -92,10 +92,6 @@
   tags:
     - node-e2e
   tasks:
-    - name: install Golang tools
-      include: golang.yml
-      vars:
-          version: "1.10.2"
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
@@ -113,10 +109,6 @@
   tags:
     - e2e
   tasks:
-    - name: install Golang tools
-      include: golang.yml
-      vars:
-          version: "1.10.2"
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
