@@ -115,7 +115,6 @@ func SetObjectDefaults_NamespaceList(in *v1.NamespaceList) {
 }
 
 func SetObjectDefaults_Node(in *v1.Node) {
-	SetDefaults_Node(in)
 	SetDefaults_NodeStatus(&in.Status)
 	SetDefaults_ResourceList(&in.Status.Capacity)
 	SetDefaults_ResourceList(&in.Status.Allocatable)
@@ -213,6 +212,9 @@ func SetObjectDefaults_Pod(in *v1.Pod) {
 							SetDefaults_ObjectFieldSelector(c.FieldRef)
 						}
 					}
+				}
+				if b.ServiceAccountToken != nil {
+					SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
 				}
 			}
 		}
@@ -356,6 +358,9 @@ func SetObjectDefaults_PodTemplate(in *v1.PodTemplate) {
 							SetDefaults_ObjectFieldSelector(c.FieldRef)
 						}
 					}
+				}
+				if b.ServiceAccountToken != nil {
+					SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
 				}
 			}
 		}
@@ -501,6 +506,9 @@ func SetObjectDefaults_ReplicationController(in *v1.ReplicationController) {
 								SetDefaults_ObjectFieldSelector(c.FieldRef)
 							}
 						}
+					}
+					if b.ServiceAccountToken != nil {
+						SetDefaults_ServiceAccountTokenProjection(b.ServiceAccountToken)
 					}
 				}
 			}
