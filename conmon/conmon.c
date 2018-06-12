@@ -239,6 +239,7 @@ static ssize_t writev_buffer_flush(int fd, writev_buffer_t *buf)
 		while (res > 0) {
 			size_t from_this = MIN((size_t)res, iov->iov_len);
 			iov->iov_len -= from_this;
+			iov->iov_base += from_this;
 			res -= from_this;
 
 			if (iov->iov_len == 0) {
@@ -399,6 +400,14 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		if ((opt_log_size_max > 0) && (bytes_written + bytes_to_be_written) > opt_log_size_max) {
 			bytes_written = 0;
 
+			if (writev_buffer_flush(fd, &bufv) < 0) {
+				nwarn("failed to flush buffer to log");
+				/*
+				 * We are going to reopen the file anyway, in case of
+				 * errors discard all we have in the buffer.
+				 */
+				bufv.iovcnt = 0;
+			}
 			reopen_log_file();
 
 			/* Reassign to the new log file fd */
