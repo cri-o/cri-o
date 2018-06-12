@@ -84,7 +84,7 @@ RUN set -x \
 COPY test/cni_plugin_helper.bash /opt/cni/bin/cni_plugin_helper.bash
 
 # Install crictl
-ENV CRICTL_COMMIT 207e773f72fde8d8aed1447692d8f800a6686d6c
+ENV CRICTL_COMMIT release-1.10
 RUN set -x \
        && export GOPATH="$(mktemp -d)" \
        && git clone https://github.com/kubernetes-incubator/cri-tools.git "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \

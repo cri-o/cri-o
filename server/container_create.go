@@ -465,6 +465,13 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 				}
 			}
 		}
+		if sc.GetRunAsUser() == nil && sc.GetRunAsUsername() == "" && sc.GetRunAsGroup() != nil {
+			return fmt.Errorf("RunAsGroup should be specified only with RunAsUser or RunAsUsername")
+		}
+		groupstr := strconv.FormatInt(sc.GetRunAsGroup().GetValue(), 10)
+		if groupstr != "" {
+			containerUser = containerUser + ":" + groupstr
+		}
 
 		logrus.Debugf("CONTAINER USER: %+v", containerUser)
 
