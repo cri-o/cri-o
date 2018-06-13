@@ -66,7 +66,7 @@ static inline void strv_cleanup(char ***strv)
 #define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
 #define _cleanup_strv_ _cleanup_(strv_cleanup)
 
-#define BUF_SIZE 8192
+#define BUF_SIZE 65536
 #define CMD_SIZE 1024
 #define MAX_EVENTS 10
 
@@ -164,7 +164,7 @@ static ssize_t write_all(int fd, const void *buf, size_t count)
 	return count;
 }
 
-#define WRITEV_BUFFER_N_IOV 128
+#define WRITEV_BUFFER_N_IOV 1024
 
 typedef struct {
 	int iovcnt;
@@ -567,7 +567,7 @@ static gboolean tty_hup_timeout_cb (G_GNUC_UNUSED gpointer user_data)
 
 static bool read_stdio(int fd, stdpipe_t pipe, bool *eof)
 {
-	#define STDIO_BUF_SIZE 8192 /* Sync with redirectResponseToOutputStreams() */
+	#define STDIO_BUF_SIZE 65536 /* Sync with redirectResponseToOutputStreams() */
 	/* We use one extra byte at the start, which we don't read into, instead
 	   we use that for marking the pipe when we write to the attached socket */
 	char real_buf[STDIO_BUF_SIZE + 1];
