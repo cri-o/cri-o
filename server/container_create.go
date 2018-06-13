@@ -1545,7 +1545,7 @@ func clearReadOnly(m *rspec.Mount) {
 			opt = append(opt, o)
 		}
 	}
-	m.Options = opt
+	m.Options = append(opt, "rw")
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
