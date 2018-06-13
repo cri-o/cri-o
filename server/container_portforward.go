@@ -33,7 +33,11 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (r
 }
 
 func (ss streamService) PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error {
-	c := ss.runtimeServer.GetSandboxContainer(podSandboxID)
+	sandboxID, err := ss.runtimeServer.PodIDIndex().Get(podSandboxID)
+	if err != nil {
+		return fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
+	}
+	c := ss.runtimeServer.GetSandboxContainer(sandboxID)
 
 	if c == nil {
 		return fmt.Errorf("could not find container for sandbox %q", podSandboxID)
