@@ -821,10 +821,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	var privileged bool
 	if containerConfig.GetLinux().GetSecurityContext() != nil {
-		if containerConfig.GetLinux().GetSecurityContext().Privileged {
+		if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 			privileged = true
 		}
-		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
+		if privileged {
+			if !sandboxConfig.GetLinux().GetSecurityContext().GetPrivileged() {
+				return nil, errors.New("no privileged container allowed in sandbox")
+			}
+		}
+		if containerConfig.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
 			readOnlyRootfs = true
 		}
 	}
