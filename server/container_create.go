@@ -821,10 +821,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	var privileged bool
 	if containerConfig.GetLinux().GetSecurityContext() != nil {
-		if containerConfig.GetLinux().GetSecurityContext().Privileged {
+		if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 			privileged = true
 		}
-		if containerConfig.GetLinux().GetSecurityContext().ReadonlyRootfs {
+		if privileged {
+			if !sandboxConfig.GetLinux().GetSecurityContext().GetPrivileged() {
+				return nil, errors.New("no privileged container allowed in sandbox")
+			}
+		}
+		if containerConfig.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
 			readOnlyRootfs = true
 		}
 	}
@@ -1527,7 +1532,7 @@ func setOCIBindMountsPrivileged(g *generate.Generator) {
 	spec := g.Spec()
 	// clear readonly for /sys and cgroup
 	for i, m := range spec.Mounts {
-		if spec.Mounts[i].Destination == "/sys" && !spec.Root.Readonly {
+		if spec.Mounts[i].Destination == "/sys" {
 			clearReadOnly(&spec.Mounts[i])
 		}
 		if m.Type == "cgroup" {
@@ -1545,7 +1550,7 @@ func clearReadOnly(m *rspec.Mount) {
 			opt = append(opt, o)
 		}
 	}
-	m.Options = opt
+	m.Options = append(opt, "rw")
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
