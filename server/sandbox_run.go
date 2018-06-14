@@ -779,6 +779,13 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
 
+	s.addInfraContainer(container)
+	defer func() {
+		if err != nil {
+			s.removeInfraContainer(container)
+		}
+	}()
+
 	if err = s.createContainer(container, nil, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
@@ -786,8 +793,6 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err = s.Runtime().StartContainer(container); err != nil {
 		return nil, err
 	}
-
-	s.addInfraContainer(container)
 
 	s.ContainerStateToDisk(container)
 
