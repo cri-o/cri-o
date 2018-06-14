@@ -712,14 +712,25 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err = s.createContainer(container, sb.InfraContainer(), sb.CgroupParent()); err != nil {
-		return nil, err
-	}
-
 	s.addContainer(container)
+	defer func() {
+		if err != nil {
+			s.removeContainer(container)
+		}
+	}()
 
 	if err = s.CtrIDIndex().Add(containerID); err != nil {
-		s.removeContainer(container)
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			if err2 := s.CtrIDIndex().Delete(containerID); err2 != nil {
+				logrus.Warnf("couldn't delete ctr id %s from idIndex", containerID)
+			}
+		}
+	}()
+
+	if err = s.createContainer(container, sb.InfraContainer(), sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
