@@ -172,6 +172,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	if r.cgroupManager == SystemdCgroupsManager {
 		args = append(args, "-s")
 	}
+	if r.cgroupManager == CgroupfsCgroupsManager {
+		args = append(args, "--syslog")
+	}
 	args = append(args, "-c", c.id)
 	args = append(args, "-u", c.id)
 	args = append(args, "-r", r.Path(c))
