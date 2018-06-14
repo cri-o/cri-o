@@ -55,6 +55,8 @@ jobs:
       script:
         - make integration
       go: 1.8.x
+  allow_failures:
+    - go: tip
 
 notifications:
   irc: "chat.freenode.net#cri-o"
