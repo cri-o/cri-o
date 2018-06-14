@@ -26,4 +26,4 @@ int_test_env:
 
 # Additional environment variables for int_test_cmd with usernamespaces
 userns_int_test_env:
-    TEST_USERNS: "1"
+    TEST_USERNS: "1"  # Consumed by test/test_runner.sh, by way of Makefile
