@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	goflag "flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -174,6 +175,9 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 }
 
 func main() {
+	// https://github.com/kubernetes/kubernetes/issues/17162
+	goflag.CommandLine.Parse([]string{})
+
 	if reexec.Init() {
 		return
 	}
