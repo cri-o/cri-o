@@ -79,6 +79,7 @@ static gboolean opt_version = FALSE;
 static gboolean opt_terminal = FALSE;
 static gboolean opt_stdin = FALSE;
 static gboolean opt_leave_stdin_open = FALSE;
+static gboolean opt_syslog = FALSE;
 static char *opt_cid = NULL;
 static char *opt_cuuid = NULL;
 static char *opt_runtime_path = NULL;
@@ -127,6 +128,7 @@ static GOptionEntry opt_entries[] = {
 	{"log-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_size_max, "Maximum size of log file", NULL},
 	{"socket-dir-path", 0, 0, G_OPTION_ARG_STRING, &opt_socket_path, "Location of container attach sockets", NULL},
 	{"version", 0, 0, G_OPTION_ARG_NONE, &opt_version, "Print the version and exit", NULL},
+	{"syslog", 0, 0, G_OPTION_ARG_NONE, &opt_syslog, "Log to syslog (use with cgroupfs cgroup manager)", NULL},
 	{NULL}};
 
 /* strlen("1997-03-25T13:20:42.999999999+01:00 stdout ") + 1 */
@@ -139,53 +141,61 @@ static int log_fd = -1;
 #define pexit(s) \
 	do { \
 		fprintf(stderr, "[conmon:e]: %s %s\n", s, strerror(errno)); \
-		syslog(LOG_ERR, "conmon %.20s <error>: %s %s\n", opt_cid, s, strerror(errno)); \
+		if (opt_syslog) \
+			syslog(LOG_ERR, "conmon %.20s <error>: %s %s\n", opt_cid, s, strerror(errno)); \
 		exit(EXIT_FAILURE); \
 	} while (0)
 
 #define pexitf(fmt, ...) \
 	do { \
 		fprintf(stderr, "[conmon:e]: " fmt " %s\n", ##__VA_ARGS__, strerror(errno)); \
-		syslog(LOG_ERR, "conmon %.20s <error>: " fmt ": %s\n", opt_cid, ##__VA_ARGS__, strerror(errno)); \
+		if (opt_syslog) \
+			syslog(LOG_ERR, "conmon %.20s <error>: " fmt ": %s\n", opt_cid, ##__VA_ARGS__, strerror(errno)); \
 		exit(EXIT_FAILURE); \
 	} while (0)
 
 #define nexit(s) \
 	do { \
 		fprintf(stderr, "[conmon:e] %s\n", s); \
-		syslog(LOG_ERR, "conmon %.20s <error>: %s\n", opt_cid, s); \
+		if (opt_syslog) \
+			syslog(LOG_ERR, "conmon %.20s <error>: %s\n", opt_cid, s); \
 		exit(EXIT_FAILURE); \
 	} while (0)
 
 #define nexitf(fmt, ...) \
 	do { \
 		fprintf(stderr, "[conmon:e]: " fmt "\n", ##__VA_ARGS__); \
-		syslog(LOG_ERR, "conmon %.20s <error>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+		if (opt_syslog) \
+			syslog(LOG_ERR, "conmon %.20s <error>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
 		exit(EXIT_FAILURE); \
 	} while (0)
 
 #define nwarn(s) \
 	do { \
 		fprintf(stderr, "[conmon:w]: %s\n", s); \
-		syslog(LOG_INFO, "conmon %.20s <nwarn>: %s\n", opt_cid, s); \
+		if (opt_syslog) \
+			syslog(LOG_INFO, "conmon %.20s <nwarn>: %s\n", opt_cid, s); \
 	} while (0)
 
 #define nwarnf(fmt, ...) \
 	do { \
 		fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__); \
-		syslog(LOG_INFO, "conmon %.20s <nwarn>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+		if (opt_syslog) \
+			syslog(LOG_INFO, "conmon %.20s <nwarn>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
 	} while (0)
 
 #define ninfo(s) \
 	do { \
 		fprintf(stderr, "[conmon:i]: %s\n", s); \
-		syslog(LOG_INFO, "conmon %.20s <ninfo>: %s\n", opt_cid, s); \
+		if (opt_syslog) \
+			syslog(LOG_INFO, "conmon %.20s <ninfo>: %s\n", opt_cid, s); \
 	} while (0)
 
 #define ninfof(fmt, ...) \
 	do { \
 		fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__); \
-		syslog(LOG_INFO, "conmon %.20s <ninfo>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+		if (opt_syslog) \
+			syslog(LOG_INFO, "conmon %.20s <ninfo>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
 	} while (0)
 
 static ssize_t write_all(int fd, const void *buf, size_t count)
