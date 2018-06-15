@@ -22,6 +22,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_status_info=`echo "$output" | grep Status`
+	pod_ip=`echo "$output" | grep IP`
 
 	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -55,8 +56,10 @@ function teardown() {
 	run crictl inspectp --output=table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	output=`echo "$output" | grep Status`
-	[[ "${output}" == "${pod_status_info}" ]]
+	status_output=`echo "$output" | grep Status`
+	ip_output=`echo "$output" | grep IP`
+	[[ "${status_output}" == "${pod_status_info}" ]]
+	[[ "${ip_output}" == "${pod_ip}" ]]
 
 	run crictl ps --quiet --all
 	echo "$output"
