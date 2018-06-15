@@ -136,7 +136,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 
 		if mount.SelinuxRelabel {
 			// Need a way in kubernetes to determine if the volume is shared or private
-			if err := label.Relabel(src, mountLabel, true); err != nil && err != unix.ENOTSUP {
+			if err := label.Relabel(src, mountLabel, false); err != nil && err != unix.ENOTSUP {
 				return nil, nil, fmt.Errorf("relabel failed %s: %v", src, err)
 			}
 		}
