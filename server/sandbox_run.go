@@ -353,7 +353,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			return nil, err
 		}
-		if err := label.Relabel(resolvPath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+		if err := label.Relabel(resolvPath, mountLabel, false); err != nil && err != unix.ENOTSUP {
 			return nil, err
 		}
 		mnt := runtimespec.Mount{
@@ -676,7 +676,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
 		return nil, err
 	}
-	if err := label.Relabel(hostnamePath, mountLabel, true); err != nil && err != unix.ENOTSUP {
+	if err := label.Relabel(hostnamePath, mountLabel, false); err != nil && err != unix.ENOTSUP {
 		return nil, err
 	}
 	mnt = runtimespec.Mount{
