@@ -8,12 +8,13 @@
 
 ## Compatibility matrix: CRI-O <-> Kubernetes clusters
 
-| Version - Branch           | Kubernetes branch/version     | Maintenance status |
-|----------------------------|-------------------------------|--------------------|
-| CRI-O 1.0.x  - release-1.0 | Kubernetes 1.7 branch, v1.7.x | =                  |
-| CRI-O 1.8.x  - release-1.8 | Kubernetes 1.8 branch, v1.8.x | =                  |
-| CRI-O 1.9.x  - release-1.9 | Kubernetes 1.9 branch, v1.9.x | =                  |
-| CRI-O HEAD - master        | Kubernetes master branch      | ✓                  |
+| Version - Branch             | Kubernetes branch/version       | Maintenance status |
+|------------------------------|---------------------------------|--------------------|
+| CRI-O 1.0.x   - release-1.0  | Kubernetes 1.7 branch, v1.7.x   | =                  |
+| CRI-O 1.8.x   - release-1.8  | Kubernetes 1.8 branch, v1.8.x   | =                  |
+| CRI-O 1.9.x   - release-1.9  | Kubernetes 1.9 branch, v1.9.x   | =                  |
+| CRI-O 1.10.x  - release-1.10 | Kubernetes 1.10 branch, v1.10.x | =                  |
+| CRI-O HEAD    - master       | Kubernetes master branch        | ✓                  |
 
 Key:
 
