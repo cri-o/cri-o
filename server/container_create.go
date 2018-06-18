@@ -136,7 +136,6 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		}
 
 		if mount.SelinuxRelabel {
-			// Need a way in kubernetes to determine if the volume is shared or private
 			if err := label.Relabel(src, mountLabel, false); err != nil && err != unix.ENOTSUP {
 				return nil, nil, fmt.Errorf("relabel failed %s: %v", src, err)
 			}
@@ -1178,7 +1177,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
-		if err := label.Relabel(sb.ResolvPath(), mountLabel, true); err != nil && err != unix.ENOTSUP {
+		if err := label.Relabel(sb.ResolvPath(), mountLabel, false); err != nil && err != unix.ENOTSUP {
 			return nil, err
 		}
 
@@ -1193,7 +1192,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	if sb.HostnamePath() != "" {
-		if err := label.Relabel(sb.HostnamePath(), mountLabel, true); err != nil && err != unix.ENOTSUP {
+		if err := label.Relabel(sb.HostnamePath(), mountLabel, false); err != nil && err != unix.ENOTSUP {
 			return nil, err
 		}
 
@@ -1573,7 +1572,7 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 		return err
 	}
 	if mountLabel != "" {
-		if err1 := label.Relabel(fp, mountLabel, true); err1 != nil && err1 != unix.ENOTSUP {
+		if err1 := label.Relabel(fp, mountLabel, false); err1 != nil && err1 != unix.ENOTSUP {
 			return fmt.Errorf("relabel failed %s: %v", fp, err1)
 		}
 	}
