@@ -130,8 +130,8 @@ func (s *Server) GetExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
 	return s.stream.streamServer.GetExec(req)
 }
 
-// GetAttach returns attach stream request
-func (s *Server) GetAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
+// getAttach returns attach stream request
+func (s *Server) getAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
 	return s.stream.streamServer.GetAttach(req)
 }
 

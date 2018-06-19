@@ -34,7 +34,7 @@ func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (resp *pb.At
 	}()
 	logrus.Debugf("AttachRequest %+v", req)
 
-	resp, err = s.GetAttach(req)
+	resp, err = s.getAttach(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare attach endpoint")
 	}
