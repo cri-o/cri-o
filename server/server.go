@@ -439,11 +439,6 @@ func (s *Server) BindAddress() string {
 	return s.bindAddress
 }
 
-// GetSandboxContainer returns the infra container for a given sandbox
-func (s *Server) GetSandboxContainer(id string) *oci.Container {
-	return s.ContainerServer.GetSandboxContainer(id)
-}
-
 // GetContainer returns a container by its ID
 func (s *Server) GetContainer(id string) *oci.Container {
 	return s.getContainer(id)
