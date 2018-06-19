@@ -425,11 +425,6 @@ func (s *Server) getInfraContainer(id string) *oci.Container {
 	return s.ContainerServer.GetInfraContainer(id)
 }
 
-// BindAddress is used to retrieve host's IP
-func (s *Server) BindAddress() string {
-	return s.bindAddress
-}
-
 func (s *Server) removeContainer(c *oci.Container) {
 	s.ContainerServer.RemoveContainer(c)
 }
