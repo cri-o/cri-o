@@ -59,8 +59,8 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, err error) {
 	return
 }
 
-// GetSandboxIP retrieves the IP address for the sandbox
-func (s *Server) GetSandboxIP(sb *sandbox.Sandbox) (string, error) {
+// getSandboxIP retrieves the IP address for the sandbox
+func (s *Server) getSandboxIP(sb *sandbox.Sandbox) (string, error) {
 	if sb.HostNetwork() {
 		return s.BindAddress(), nil
 	}

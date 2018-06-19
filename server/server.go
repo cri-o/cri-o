@@ -171,7 +171,7 @@ func (s *Server) restore() {
 	}
 	// Restore sandbox IPs
 	for _, sb := range s.ListSandboxes() {
-		ip, err := s.GetSandboxIP(sb)
+		ip, err := s.getSandboxIP(sb)
 		if err != nil {
 			logrus.Warnf("could not restore sandbox IP for %v: %v", sb.ID(), err)
 		}
