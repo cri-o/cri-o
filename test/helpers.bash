@@ -318,10 +318,20 @@ function restart_crio() {
 	fi
 }
 
+function cleanup_lvm() {
+	if [ "$LVM_DEVICE" != "" ]; then
+		lvm lvremove -y storage/thinpool
+		lvm vgremove -y storage
+		lvm pvremove -y $LVM_DEVICE
+	fi
+}
+
+
 function cleanup_test() {
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
+	cleanup_lvm
 	rm -rf "$TESTDIR"
 }
 
