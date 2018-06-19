@@ -426,6 +426,7 @@ func (s *Server) addInfraContainer(c *oci.Container) {
 	s.ContainerServer.AddInfraContainer(c)
 }
 
+// getContainer returns a container by its ID
 func (s *Server) getContainer(id string) *oci.Container {
 	return s.ContainerServer.GetContainer(id)
 }
@@ -437,11 +438,6 @@ func (s *Server) getInfraContainer(id string) *oci.Container {
 // BindAddress is used to retrieve host's IP
 func (s *Server) BindAddress() string {
 	return s.bindAddress
-}
-
-// GetContainer returns a container by its ID
-func (s *Server) GetContainer(id string) *oci.Container {
-	return s.getContainer(id)
 }
 
 func (s *Server) removeContainer(c *oci.Container) {
