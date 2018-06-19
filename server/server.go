@@ -135,8 +135,8 @@ func (s *Server) GetAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
 	return s.stream.streamServer.GetAttach(req)
 }
 
-// GetPortForward returns port forward stream request
-func (s *Server) GetPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+// getPortForward returns port forward stream request
+func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
 	return s.stream.streamServer.GetPortForward(req)
 }
 
