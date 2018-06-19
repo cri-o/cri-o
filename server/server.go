@@ -179,16 +179,6 @@ func (s *Server) restore() {
 	}
 }
 
-// Update makes changes to the server's state (lists of pods and containers) to
-// reflect the list of pods and containers that are stored on disk, possibly
-// having been modified by other parties
-func (s *Server) Update() {
-	logrus.Debugf("updating sandbox and container information")
-	if err := s.ContainerServer.Update(); err != nil {
-		logrus.Errorf("error updating sandbox and container information: %v", err)
-	}
-}
-
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
 func (s *Server) cleanupSandboxesOnShutdown(ctx context.Context) {
 	_, err := os.Stat(shutdownFile)
