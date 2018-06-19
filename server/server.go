@@ -125,8 +125,8 @@ func (s *Server) StreamingServerCloseChan() chan struct{} {
 	return s.stream.streamServerCloseCh
 }
 
-// GetExec returns exec stream request
-func (s *Server) GetExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
+// getExec returns exec stream request
+func (s *Server) getExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
 	return s.stream.streamServer.GetExec(req)
 }
 
