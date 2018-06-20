@@ -86,7 +86,7 @@ func updateMetadata(specAnnotations map[string]string, name string) string {
 	containerType := specAnnotations[annotations.ContainerType]
 	if containerType == "container" {
 		metadata := runtime.ContainerMetadata{}
-		err := json.Unmarshal([]byte(oldMetadata), metadata)
+		err := json.Unmarshal([]byte(oldMetadata), &metadata)
 		if err != nil {
 			return oldMetadata
 		}
@@ -98,7 +98,7 @@ func updateMetadata(specAnnotations map[string]string, name string) string {
 		return string(m)
 	} else if containerType == "sandbox" {
 		metadata := runtime.PodSandboxMetadata{}
-		err := json.Unmarshal([]byte(oldMetadata), metadata)
+		err := json.Unmarshal([]byte(oldMetadata), &metadata)
 		if err != nil {
 			return oldMetadata
 		}

@@ -57,7 +57,7 @@ func newTestSandboxOrFailNow(t *testing.T) (string, *sandbox.Sandbox) {
 func newTestContainerOrFailNow(t *testing.T) *oci.Container {
 	id := fmt.Sprintf("id-for-container-%d", rand.Int())
 
-	c, err := oci.NewContainer(id, "", "", "", nil, nil, nil, nil, "", "", "", nil, "", false, false, false, false, false, "", time.Now(), "")
+	c, err := oci.NewContainer(id, "", "", "", "", nil, nil, nil, "", "", "", nil, "", false, false, false, false, false, "", time.Now(), "")
 	if err != nil {
 		t.Fatal(err)
 	}

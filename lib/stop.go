@@ -1,9 +1,10 @@
 package lib
 
 import (
+	"context"
+
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 // ContainerStop stops a running container with a grace period (i.e., timeout).

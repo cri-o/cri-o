@@ -3,6 +3,8 @@ package oci
 import (
 	"os"
 	"os/exec"
+
+	"golang.org/x/sys/windows"
 )
 
 func kill(pid int) error {

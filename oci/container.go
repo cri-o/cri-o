@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -31,7 +30,7 @@ type Container struct {
 	crioAnnotations fields.Set
 	image           string
 	sandbox         string
-	netns           ns.NetNS
+	netns           string
 	terminal        bool
 	stdin           bool
 	stdinOnce       bool
@@ -75,7 +74,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns ns.NetNS, labels map[string]string, crioAnnotations map[string]string, annotations map[string]string, image string, imageName string, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns string, labels map[string]string, crioAnnotations map[string]string, annotations map[string]string, image string, imageName string, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -227,11 +226,11 @@ func (c *Container) NetNsPath() (string, error) {
 		return "", fmt.Errorf("container state is not populated")
 	}
 
-	if c.netns == nil {
+	if c.netns == "" {
 		return fmt.Sprintf("/proc/%d/ns/net", c.state.Pid), nil
 	}
 
-	return c.netns.Path(), nil
+	return c.netns, nil
 }
 
 // Metadata returns the metadata of the container.

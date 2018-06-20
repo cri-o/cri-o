@@ -9,10 +9,7 @@ import (
 func isStopped(c *ContainerServer, ctr *oci.Container) bool {
 	c.runtime.UpdateStatus(ctr)
 	cStatus := c.runtime.ContainerStatus(ctr)
-	if cStatus.Status == oci.ContainerStateStopped {
-		return true
-	}
-	return false
+	return cStatus.Status == oci.ContainerStateStopped
 }
 
 // ContainerWait stops a running container with a grace period (i.e., timeout).

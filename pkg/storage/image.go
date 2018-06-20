@@ -257,8 +257,6 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			//return nil, err
 		}
 	} else {
 		images, err := svc.store.Images()
@@ -626,7 +624,7 @@ func GetImageService(ctx context.Context, store storage.Store, defaultTransport 
 	is := &imageService{
 		store:                 store,
 		defaultTransport:      defaultTransport,
-		indexConfigs:          make(map[string]*indexInfo, 0),
+		indexConfigs:          make(map[string]*indexInfo),
 		insecureRegistryCIDRs: make([]*net.IPNet, 0),
 		registries:            cleanRegistries,
 		imageCache:            make(map[string]imageCacheItem),
