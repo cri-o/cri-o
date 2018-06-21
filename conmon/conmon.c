@@ -308,7 +308,7 @@ int set_k8s_timestamp(char *buf, ssize_t buflen, const char *pipename)
 	}
 
 	len = snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d.%09ld%c%02d:%02d %s ", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-		       tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec, off_sign, off / 3600, off % 3600, pipename);
+		       tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec, off_sign, off / 3600, (off % 3600) / 60, pipename);
 
 	if (len < buflen)
 		err = 0;
