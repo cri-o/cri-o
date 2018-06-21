@@ -193,7 +193,7 @@ RuntimeApiVersion:  v1alpha1
 ```
 
 > to avoid setting --runtime-endpoint when calling crictl,
-> you can run `export $CRI_RUNTIME_ENDPOINT=unix:///var/run/crio/crio.sock version`
+> you can run `export CONTAINER_RUNTIME_ENDPOINT=unix:///var/run/crio/crio.sock`
 > or `cp crictl.yaml /etc/crictl.yaml` from this repo
 
 ### CNI plugins
