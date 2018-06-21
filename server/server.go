@@ -125,18 +125,18 @@ func (s *Server) StreamingServerCloseChan() chan struct{} {
 	return s.stream.streamServerCloseCh
 }
 
-// GetExec returns exec stream request
-func (s *Server) GetExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
+// getExec returns exec stream request
+func (s *Server) getExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
 	return s.stream.streamServer.GetExec(req)
 }
 
-// GetAttach returns attach stream request
-func (s *Server) GetAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
+// getAttach returns attach stream request
+func (s *Server) getAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
 	return s.stream.streamServer.GetAttach(req)
 }
 
-// GetPortForward returns port forward stream request
-func (s *Server) GetPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+// getPortForward returns port forward stream request
+func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
 	return s.stream.streamServer.GetPortForward(req)
 }
 
@@ -171,21 +171,11 @@ func (s *Server) restore() {
 	}
 	// Restore sandbox IPs
 	for _, sb := range s.ListSandboxes() {
-		ip, err := s.GetSandboxIP(sb)
+		ip, err := s.getSandboxIP(sb)
 		if err != nil {
 			logrus.Warnf("could not restore sandbox IP for %v: %v", sb.ID(), err)
 		}
 		sb.AddIP(ip)
-	}
-}
-
-// Update makes changes to the server's state (lists of pods and containers) to
-// reflect the list of pods and containers that are stored on disk, possibly
-// having been modified by other parties
-func (s *Server) Update() {
-	logrus.Debugf("updating sandbox and container information")
-	if err := s.ContainerServer.Update(); err != nil {
-		logrus.Errorf("error updating sandbox and container information: %v", err)
 	}
 }
 
@@ -194,7 +184,7 @@ func (s *Server) cleanupSandboxesOnShutdown(ctx context.Context) {
 	_, err := os.Stat(shutdownFile)
 	if err == nil || !os.IsNotExist(err) {
 		logrus.Debugf("shutting down all sandboxes, on shutdown")
-		s.StopAllPodSandboxes(ctx)
+		s.stopAllPodSandboxes(ctx)
 		err = os.Remove(shutdownFile)
 		if err != nil {
 			logrus.Warnf("Failed to remove %q", shutdownFile)
@@ -422,27 +412,13 @@ func (s *Server) addInfraContainer(c *oci.Container) {
 	s.ContainerServer.AddInfraContainer(c)
 }
 
+// getContainer returns a container by its ID
 func (s *Server) getContainer(id string) *oci.Container {
 	return s.ContainerServer.GetContainer(id)
 }
 
 func (s *Server) getInfraContainer(id string) *oci.Container {
 	return s.ContainerServer.GetInfraContainer(id)
-}
-
-// BindAddress is used to retrieve host's IP
-func (s *Server) BindAddress() string {
-	return s.bindAddress
-}
-
-// GetSandboxContainer returns the infra container for a given sandbox
-func (s *Server) GetSandboxContainer(id string) *oci.Container {
-	return s.ContainerServer.GetSandboxContainer(id)
-}
-
-// GetContainer returns a container by its ID
-func (s *Server) GetContainer(id string) *oci.Container {
-	return s.getContainer(id)
 }
 
 func (s *Server) removeContainer(c *oci.Container) {

@@ -26,7 +26,7 @@ func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (resp *pb.ExecRe
 
 	logrus.Debugf("ExecRequest %+v", req)
 
-	resp, err = s.GetExec(req)
+	resp, err = s.getExec(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare exec endpoint: %v", err)
 	}

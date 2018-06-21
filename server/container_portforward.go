@@ -24,7 +24,7 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (r
 	}()
 	logrus.Debugf("PortForwardRequest %+v", req)
 
-	resp, err = s.GetPortForward(req)
+	resp, err = s.getPortForward(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare portforward endpoint")
 	}
