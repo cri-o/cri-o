@@ -46,7 +46,7 @@ func newTestContainerServerOrFailNow(t *testing.T) (cs *lib.ContainerServer, dir
 func newTestSandboxOrFailNow(t *testing.T) (string, *sandbox.Sandbox) {
 	id := fmt.Sprintf("id-for-sandbox-%d", rand.Int())
 
-	sb, err := sandbox.New(id, "", "", "", "", nil, nil, "", "", nil, "", "", false, false, "", "", nil)
+	sb, err := sandbox.New(id, "", "", "", "", nil, nil, "", "", nil, "", "", false, false, "", "", nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
