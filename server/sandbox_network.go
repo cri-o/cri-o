@@ -25,11 +25,12 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, err error) {
 	}()
 
 	podNetwork := newPodNetwork(sb)
-	err = s.netPlugin.SetUpPod(podNetwork)
+	result, err := s.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
 	}
+	logrus.Debugf("CNI setup result: %v", result)
 
 	podIP, err = s.netPlugin.GetPodNetworkStatus(podNetwork)
 	if err != nil {
