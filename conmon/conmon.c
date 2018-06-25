@@ -1240,7 +1240,7 @@ static void do_exit_command()
 			args[n_args + 1] = opt_exit_args[n_args];
 	args[n_args + 1] = NULL;
 
-	execve(opt_exit_command, args, NULL);
+	execv(opt_exit_command, args);
 
 	/* Should not happen, but better be safe. */
 	_exit(EXIT_FAILURE);
