@@ -66,10 +66,10 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 	defer controlFile.Close()
 
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-		logrus.Infof("Got a resize event: %+v", size)
+		logrus.Debugf("Got a resize event: %+v", size)
 		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
 		if err != nil {
-			logrus.Infof("Failed to write to control file to resize terminal: %v", err)
+			logrus.Debugf("Failed to write to control file to resize terminal: %v", err)
 		}
 	})
 
@@ -125,7 +125,7 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, conn i
 			} else if buf[0] == AttachPipeStderr {
 				dst = errorStream
 			} else {
-				logrus.Infof("Got unexpected attach type %+d", buf[0])
+				logrus.Debugf("Got unexpected attach type %+d", buf[0])
 			}
 
 			if dst != nil {

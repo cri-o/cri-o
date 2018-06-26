@@ -997,7 +997,9 @@ runtime_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user
 static void
 container_exit_cb (G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user_data)
 {
-	ninfof("container %d exited with status %d", pid, status);
+	if (status != 0) {
+		ninfof("container %d exited with status %d", pid, status);
+	}
 	container_status = status;
 	container_pid = -1;
 	g_main_loop_quit (main_loop);
@@ -1535,7 +1537,6 @@ int main(int argc, char *argv[])
 	if (signal(SIGCHLD, on_sigchld) == SIG_ERR)
 		pexit("Failed to set handler for SIGCHLD");
 
-	ninfof("about to waitpid: %d", create_pid);
 	if (csname != NULL) {
 		guint terminal_watch = g_unix_fd_add (console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
 		/* Process any SIGCHLD we may have missed before the signal handler was in place.  */
@@ -1620,13 +1621,13 @@ int main(int argc, char *argv[])
 
 	g_main_loop_run (main_loop);
 
-	/* Drain stdout and stderr */
-	if (masterfd_stdout != -1) {
+	/* Drain stdout and stderr only if a timeout doesn't occur */
+	if (masterfd_stdout != -1 && !timed_out) {
 		g_unix_set_fd_nonblocking(masterfd_stdout, TRUE, NULL);
 		while (read_stdio(masterfd_stdout, STDOUT_PIPE, NULL))
 			;
 	}
-	if (masterfd_stderr != -1) {
+	if (masterfd_stderr != -1 && !timed_out) {
 		g_unix_set_fd_nonblocking(masterfd_stderr, TRUE, NULL);
 		while (read_stdio(masterfd_stderr, STDERR_PIPE, NULL))
 			;

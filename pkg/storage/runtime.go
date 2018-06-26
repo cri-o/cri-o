@@ -268,13 +268,13 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		if err != nil {
 			if err2 := r.storageImageServer.GetStore().DeleteContainer(container.ID); err2 != nil {
 				if metadata.Pod {
-					logrus.Infof("%v deleting partially-created pod sandbox %q", err2, container.ID)
+					logrus.Debugf("%v deleting partially-created pod sandbox %q", err2, container.ID)
 				} else {
-					logrus.Infof("%v deleting partially-created container %q", err2, container.ID)
+					logrus.Debugf("%v deleting partially-created container %q", err2, container.ID)
 				}
 				return
 			}
-			logrus.Infof("deleted partially-created container %q", container.ID)
+			logrus.Debugf("deleted partially-created container %q", container.ID)
 		}
 	}()
 

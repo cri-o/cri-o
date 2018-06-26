@@ -229,7 +229,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 
 	// Move conmon to specified cgroup
 	if r.cgroupManager == SystemdCgroupsManager {
-		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
+		logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
 		if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
 			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 		}
@@ -509,7 +509,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}
 
-	logrus.Infof("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
+	logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
 
 	if ec.ExitCode == -1 {
 		return nil, ExecSyncError{
