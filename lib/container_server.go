@@ -306,7 +306,7 @@ func (c *ContainerServer) Update() error {
 		if err = c.LoadSandbox(sandboxID); err != nil {
 			logrus.Warnf("could not load new pod sandbox %s: %v, ignoring", sandboxID, err)
 		} else {
-			logrus.Debugf("loaded new pod sandbox %s", sandboxID, err)
+			logrus.Debugf("loaded new pod sandbox %s: %v", sandboxID, err)
 		}
 	}
 	for containerID := range newPodContainers {
@@ -314,7 +314,7 @@ func (c *ContainerServer) Update() error {
 		if err = c.LoadContainer(containerID); err != nil {
 			logrus.Warnf("could not load new sandbox container %s: %v, ignoring", containerID, err)
 		} else {
-			logrus.Debugf("loaded new pod container %s", containerID, err)
+			logrus.Debugf("loaded new pod container %s: %v", containerID, err)
 		}
 	}
 	return nil

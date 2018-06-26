@@ -36,7 +36,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 	for _, container := range ctrList {
 		stats, err := s.GetContainerStats(container, &lib.ContainerStats{})
 		if err != nil {
-			logrus.Warn("unable to get stats for container %s", container.ID())
+			logrus.Warnf("unable to get stats for container %s", container.ID())
 			continue
 		}
 		response := buildContainerStats(stats, container)
