@@ -5,5 +5,5 @@ package main
 import "github.com/sirupsen/logrus"
 
 func disableSELinux() {
-	logrus.Infof("there is no selinux to disable")
+	logrus.Debugf("there is no selinux to disable")
 }
