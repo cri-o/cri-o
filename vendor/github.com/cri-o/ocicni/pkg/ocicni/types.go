@@ -1,16 +1,14 @@
 package ocicni
 
+import (
+	"github.com/containernetworking/cni/pkg/types"
+)
+
 const (
 	// DefaultInterfaceName is the string to be used for the interface name inside the net namespace
 	DefaultInterfaceName = "eth0"
 	// CNIPluginName is the default name of the plugin
 	CNIPluginName = "cni"
-	// DefaultNetDir is the place to look for CNI Network
-	DefaultNetDir = "/etc/cni/net.d"
-	// DefaultCNIDir is the place to look for cni config files
-	DefaultCNIDir = "/opt/cni/bin"
-	// VendorCNIDirTemplate is the template for looking up vendor specific cni config/executable files
-	VendorCNIDirTemplate = "%s/opt/%s/bin"
 )
 
 // PortMapping maps to the standard CNI portmapping Capability
@@ -49,7 +47,7 @@ type CNIPlugin interface {
 	// SetUpPod is the method called after the sandbox container of
 	// the pod has been created but before the other containers of the
 	// pod are launched.
-	SetUpPod(network PodNetwork) error
+	SetUpPod(network PodNetwork) (types.Result, error)
 
 	// TearDownPod is the method called before a pod's sandbox container will be deleted
 	TearDownPod(network PodNetwork) error
