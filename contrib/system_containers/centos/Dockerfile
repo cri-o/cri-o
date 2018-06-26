@@ -8,7 +8,7 @@ LABEL com.redhat.component="cri-o" \
       architecture="$ARCH" \
       usage="atomic install --system --system-package=no crio && systemctl start crio" \
       summary="The cri-o daemon as a system container." \
-      maintainer="Yu Qi Zhang <jzehrarnyg@gmail.com>" \
+      maintainer="Giuseppe Scrivano <gscrivan@redhat.com>" \
       atomic.type="system"
 
 RUN yum-config-manager --nogpgcheck --add-repo https://cbs.centos.org/repos/virt7-container-common-candidate/x86_64/os/ && \
