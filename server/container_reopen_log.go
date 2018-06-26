@@ -83,7 +83,7 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainer
 	}
 
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
-		logrus.Infof("Failed to write to control file to reopen log file: %v", err)
+		logrus.Debugf("Failed to write to control file to reopen log file: %v", err)
 	}
 
 	select {
