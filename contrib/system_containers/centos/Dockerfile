@@ -12,6 +12,7 @@ LABEL com.redhat.component="cri-o" \
       atomic.type="system"
 
 RUN yum-config-manager --nogpgcheck --add-repo https://cbs.centos.org/repos/virt7-container-common-candidate/x86_64/os/ && \
+    yum-config-manager --nogpgcheck --add-repo https://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin39/ && \
     yum install --disablerepo=extras --nogpgcheck --setopt=tsflags=nodocs -y iptables cri-o socat iproute runc && \
     rpm -V iptables cri-o iproute runc && \
     yum clean all && \
