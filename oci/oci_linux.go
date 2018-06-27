@@ -17,7 +17,7 @@ import (
 func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
 	// Move conmon to specified cgroup
 	if r.cgroupManager == SystemdCgroupsManager {
-		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
+		logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
 		if err := utils.RunUnderSystemdScope(pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
 			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 		}

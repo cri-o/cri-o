@@ -478,7 +478,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		}
 	}
 
-	logrus.Infof("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
+	logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
 
 	if ec.ExitCode == -1 {
 		return nil, ExecSyncError{

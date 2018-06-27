@@ -348,7 +348,7 @@ func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specge
 				// mount the internal devices recursively
 				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {
 					if e != nil {
-						logrus.Infof("addDevice walk: %v", e)
+						logrus.Debugf("addDevice walk: %v", e)
 					}
 					childDevice, e := devices.DeviceFromPath(dpath, device.Permissions)
 					if e != nil {
