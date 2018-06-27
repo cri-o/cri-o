@@ -136,7 +136,7 @@ bin/crio.cross.%: .gopathok
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO) build -i $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
+	$(GO) build -i $(LDFLAGS) -tags 'containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay' -o "$@" $(PROJECT)/cmd/crio
 
 crioimage:
 	docker build -t ${CRIO_IMAGE} .

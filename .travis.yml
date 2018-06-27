@@ -54,6 +54,11 @@ jobs:
       go: "1.10.x"
       env: CROSS_PLATFORM=true
     - script:
+        - make local-cross
+      go: "1.10.x"
+      env: CROSS_PLATFORM=true
+      os: osx
+    - script:
         - sudo "PATH=$PATH" make testunit
         - make
       go: tip
