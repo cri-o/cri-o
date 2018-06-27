@@ -59,6 +59,9 @@ help:
 	@echo " * 'lint' - Execute the source code linter"
 	@echo " * 'gofmt' - Verify the source code gofmt"
 
+# Dummy target for marking pattern rules phony
+.explicit_phony:
+
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
@@ -131,7 +134,7 @@ endif
 local-cross:
 	@$(MAKE) --keep-going $(CROSS_BUILD_TARGETS)
 
-bin/crio.cross.%: .gopathok
+bin/crio.cross.%: .gopathok .explicit_phony
 	@echo "==> make $@"; \
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
@@ -249,10 +252,10 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	fi
 
 .PHONY: \
+	.explicit_phony \
 	.gitvalidation \
 	bin/conmon \
 	bin/crio \
-	bin/crio.cross.% \
 	bin/pause \
 	binaries \
 	clean \
