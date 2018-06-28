@@ -36,10 +36,7 @@ const (
 	CgroupfsCgroupsManager = "cgroupfs"
 	// SystemdCgroupsManager represents systemd native cgroup manager
 	SystemdCgroupsManager = "systemd"
-	// ContainerExitsDir is the location of container exit dirs
-	ContainerExitsDir = "/var/run/crio/exits"
-	// ContainerAttachSocketDir is the location for container attach sockets
-	ContainerAttachSocketDir = "/var/run/crio"
+
 	// BufSize is the size of buffers passed in to socekts
 	BufSize = 8192
 

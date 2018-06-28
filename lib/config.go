@@ -11,19 +11,13 @@ import (
 	"github.com/kubernetes-incubator/cri-o/oci"
 )
 
-// Default paths if none are specified
+// Defaults if none are specified
 const (
-	conmonPath          = "/usr/local/libexec/crio/conmon"
 	pauseImage          = "k8s.gcr.io/pause:3.1"
 	pauseCommand        = "/pause"
 	defaultTransport    = "docker://"
-	seccompProfilePath  = "/etc/crio/seccomp.json"
 	apparmorProfileName = "crio-default"
-	cniConfigDir        = "/etc/cni/net.d/"
-	cniBinDir           = "/opt/cni/bin/"
 	cgroupManager       = oci.CgroupfsCgroupsManager
-	lockPath            = "/run/crio.lock"
-	containerExitsDir   = oci.ContainerExitsDir
 )
 
 // Config represents the entire set of configuration values that can be set for

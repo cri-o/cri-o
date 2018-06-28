@@ -7,6 +7,13 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+const (
+	// ContainerExitsDir is the location of container exit dirs
+	ContainerExitsDir = "C:\\crio\\run\\exits\\"
+	// ContainerAttachSocketDir is the location for container attach sockets
+	ContainerAttachSocketDir = "C:\\crio\\run\\"
+)
+
 func kill(pid int) error {
 	proc, err := os.FindProcess(pid)
 	if err != nil {
