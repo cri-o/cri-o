@@ -51,7 +51,6 @@ jobs:
     - script:
         - make local-cross
       go: "1.11.x"
-      env: CROSS_PLATFORM=true
     - script:
         - sudo "PATH=$PATH" make testunit
         - make
@@ -71,7 +70,6 @@ jobs:
   allow_failures:
     - os: osx
     - go: tip
-    - env: CROSS_PLATFORM=true
 
 notifications:
   irc: "chat.freenode.net#cri-o"
