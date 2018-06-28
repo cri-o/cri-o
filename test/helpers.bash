@@ -489,7 +489,6 @@ function ping_pod_from_pod() {
 	[ "$status" -eq 0   ]
 }
 
-
 function cleanup_network_conf() {
 	rm -rf $CRIO_CNI_CONFIG
 
@@ -498,4 +497,22 @@ function cleanup_network_conf() {
 
 function temp_sandbox_conf() {
 	sed -e s/\"namespace\":.*/\"namespace\":\ \"$1\",/g "$TESTDATA"/sandbox_config.json > $TESTDIR/sandbox_config_$1.json
+}
+
+function wait_until_exit() {
+	ctr_id=$1
+	# Wait for container to exit
+	attempt=0
+	while [ $attempt -le 100 ]; do
+		attempt=$((attempt+1))
+		run crictl inspect "$ctr_id" --output table
+		echo "$output"
+		[ "$status" -eq 0 ]
+		if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
+			[[ "$output" =~ "Exit Code: 0" ]]
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
 }
