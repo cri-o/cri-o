@@ -66,7 +66,7 @@
       include: "build/cri-tools.yml"
       vars:
         force_clone: True
-        cri_tools_git_version: "9da2549287cbbdbfa045b3246ab34ffea703dce4"
+        cri_tools_git_version: "release-1.11"
     - name: run cri-o integration tests
       include: test.yml
 
@@ -81,7 +81,7 @@
       include: "build/cri-tools.yml"
       vars:
           force_clone: True
-          cri_tools_git_version: "9da2549287cbbdbfa045b3246ab34ffea703dce4"
+          cri_tools_git_version: "release-1.11"
     - name: run critest validation and benchmarks
       include: critest.yml
 
