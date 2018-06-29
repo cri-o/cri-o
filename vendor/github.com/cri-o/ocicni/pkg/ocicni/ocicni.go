@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"sort"
 	"strings"
 	"sync"
@@ -21,7 +20,7 @@ type cniNetworkPlugin struct {
 	sync.RWMutex
 	defaultNetwork *cniNetwork
 
-	nsenterPath        string
+	nsManager          *nsManager
 	pluginDir          string
 	cniDirs            []string
 	vendorCNIDirPrefix string
@@ -170,11 +169,11 @@ func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
 		pods:               make(map[string]*podLock),
 	}
 
-	var err error
-	plugin.nsenterPath, err = exec.LookPath("nsenter")
+	nsm, err := newNSManager()
 	if err != nil {
 		return nil, err
 	}
+	plugin.nsManager = nsm
 
 	// Ensure plugin directory exists, because the following monitoring logic
 	// relies on that.
@@ -352,9 +351,9 @@ func (plugin *cniNetworkPlugin) GetPodNetworkStatus(podNetwork PodNetwork) (stri
 	plugin.podLock(podNetwork).Lock()
 	defer plugin.podUnlock(podNetwork)
 
-	ip, err := getContainerIP(plugin.nsenterPath, podNetwork.NetNS, DefaultInterfaceName, "-4")
+	ip, err := getContainerIP(plugin.nsManager, podNetwork.NetNS, DefaultInterfaceName, "-4")
 	if err != nil {
-		ip, err = getContainerIP(plugin.nsenterPath, podNetwork.NetNS, DefaultInterfaceName, "-6")
+		ip, err = getContainerIP(plugin.nsManager, podNetwork.NetNS, DefaultInterfaceName, "-6")
 	}
 	if err != nil {
 		return "", err
