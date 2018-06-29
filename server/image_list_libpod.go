@@ -1,12 +1,12 @@
-// +build !libpod
+// +build libpod
 
 package server
 
 import (
+	"context"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
@@ -27,25 +27,36 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 			filter = filterImage.Image
 		}
 	}
-	results, err := s.StorageImageServer().ListImages(s.ImageContext(), filter)
+
+	// TODO fix the filtering.
+	_ = filter
+
+	results, err := s.ImageRuntime().GetImages()
 	if err != nil {
 		return nil, err
 	}
+
 	resp = &pb.ListImagesResponse{}
 	for _, result := range results {
 		resImg := &pb.Image{
-			Id:          result.ID,
-			RepoTags:    result.RepoTags,
-			RepoDigests: result.RepoDigests,
+			Id:          result.ID(),
+			RepoTags:    result.Names(),
+			RepoDigests: result.RepoDigests(),
 		}
 		uid, username := getUserFromImage(result.User)
 		if uid != nil {
 			resImg.Uid = &pb.Int64Value{Value: *uid}
 		}
 		resImg.Username = username
-		if result.Size != nil {
-			resImg.Size_ = *result.Size
+		size, err := result.Size(ctx)
+
+		// Dont think size should be a fatal error
+		if err != nil {
+			resImg.Size_ = 0
+		} else {
+			resImg.Size_ = *size
 		}
+
 		resp.Images = append(resp.Images, resImg)
 	}
 	logrus.Debugf("ListImagesResponse: %+v", resp)

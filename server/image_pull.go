@@ -1,3 +1,5 @@
+// +build !libpod
+
 package server
 
 import (

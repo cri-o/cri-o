@@ -43,9 +43,9 @@ Build the validation executables:
 $ make runtimetest validation-executables
 ```
 
-Runtime validation currently [only supports](docs/runtime-compliance-testing.md) the [OCI Runtime Command Line Interface](doc/command-line-interface.md).
+Runtime validation currently [only supports](docs/runtime-compliance-testing.md) the [OCI Runtime Command Line Interface](docs/command-line-interface.md).
 If we add support for alternative APIs in the future, runtime validation will gain an option to select the desired runtime API.
-For the command line interface, the `RUNTIME` option selects the runtime command (`funC` in the [OCI Runtime Command Line Interface](doc/command-line-interface.md)).
+For the command line interface, the `RUNTIME` option selects the runtime command (`funC` in the [OCI Runtime Command Line Interface](docs/command-line-interface.md)).
 
 ```
 $ sudo make RUNTIME=runc localvalidation
