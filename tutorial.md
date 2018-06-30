@@ -66,16 +66,16 @@ The `crio` project does not ship binary releases so you'll need to build it from
 
 #### Install the Go runtime and tool chain
 
-Download the Go 1.8.5 binary release:
+Download the Go 1.10.3 binary release:
 
 ```
-wget https://storage.googleapis.com/golang/go1.8.5.linux-amd64.tar.gz
+wget https://storage.googleapis.com/golang/go1.10.3.linux-amd64.tar.gz
 ```
 
-Install Go 1.8.5:
+Install Go 1.10.3:
 
 ```
-sudo tar -xvf go1.8.5.linux-amd64.tar.gz -C /usr/local/
+sudo tar -xvf go1.10.3.linux-amd64.tar.gz -C /usr/local/
 ```
 
 ```
@@ -90,19 +90,21 @@ export GOPATH=$HOME/go
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 ```
 
-At this point the Go 1.8.5 tool chain should be installed:
+At this point the Go 1.10.3 tool chain should be installed:
 
 ```
 go version
 ```
 
 ```
-go version go1.8.5 linux/amd64
+go version go1.10.3 linux/amd64
 ```
 
 #### Get crictl
 
 ```
+sudo apt-get update && apt-get install -y git
+					  
 go get github.com/kubernetes-incubator/cri-tools/cmd/crictl
 cd $GOPATH/src/github.com/kubernetes-incubator/cri-tools
 make
@@ -116,8 +118,11 @@ sudo apt-get update && apt-get install -y libglib2.0-dev \
                                           libseccomp-dev \
                                           libgpgme11-dev \
                                           libdevmapper-dev \
-                                          make \
-                                          git
+					  libudev-dev \
+					  go-md2man \
+					  software-properties-common \
+					  gcc \
+                                          make
 ```
 
 ```
