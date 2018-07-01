@@ -118,10 +118,10 @@ sudo apt-get update && apt-get install -y libglib2.0-dev \
                                           libseccomp-dev \
                                           libgpgme11-dev \
                                           libdevmapper-dev \
-					  libudev-dev \
-					  go-md2man \
-					  software-properties-common \
-					  gcc \
+                                          libudev-dev \
+                                          go-md2man \
+                                          software-properties-common \
+                                          gcc \
                                           make
 ```
 
@@ -454,4 +454,3 @@ sudo crictl pods
 ```
 sudo crictl ps
 ```
-
