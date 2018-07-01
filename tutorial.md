@@ -119,7 +119,6 @@ sudo apt-get update && apt-get install -y libglib2.0-dev \
                                           libgpgme11-dev \
                                           libdevmapper-dev \
                                           libudev-dev \
-                                          go-md2man \
                                           software-properties-common \
                                           gcc \
                                           make
