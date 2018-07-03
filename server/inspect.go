@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 
 	cimage "github.com/containers/image/types"
@@ -20,7 +21,7 @@ func (s *Server) getIDMappingsInfo() types.IDMappings {
 		fullMapping := idtools.IDMap{
 			ContainerID: 0,
 			HostID:      0,
-			Size:        4294967295,
+			Size:        math.MaxInt32,
 		}
 		return types.IDMappings{
 			Uids: []idtools.IDMap{fullMapping},
