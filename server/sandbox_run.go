@@ -324,7 +324,10 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// TODO: factor generating/updating the spec into something other projects can vendor
 
 	// creates a spec Generator with the default spec.
-	g := generate.New()
+	g, err := generate.New("linux")
+	if err != nil {
+		return nil, err
+	}
 
 	// setup defaults for the pod sandbox
 	g.SetRootReadonly(true)

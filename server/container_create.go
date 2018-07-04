@@ -826,7 +826,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// TODO: factor generating/updating the spec into something other projects can vendor
 
 	// creates a spec Generator with the default spec.
-	specgen := generate.New()
+	specgen, err := generate.New("linux")
+	if err != nil {
+		return nil, err
+	}
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 

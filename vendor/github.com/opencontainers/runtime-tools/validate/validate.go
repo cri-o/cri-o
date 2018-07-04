@@ -114,6 +114,7 @@ func (v *Validator) CheckAll() error {
 	errs = multierror.Append(errs, v.CheckMounts())
 	errs = multierror.Append(errs, v.CheckProcess())
 	errs = multierror.Append(errs, v.CheckLinux())
+	errs = multierror.Append(errs, v.CheckAnnotations())
 	if v.platform == "linux" || v.platform == "solaris" {
 		errs = multierror.Append(errs, v.CheckHooks())
 	}
@@ -576,6 +577,11 @@ func (v *Validator) CheckPlatform() (errs error) {
 		return
 	}
 
+	if v.HostSpecific && v.platform != runtime.GOOS {
+		errs = multierror.Append(errs, fmt.Errorf("platform %q differs from the host %q, skipping host-specific checks", v.platform, runtime.GOOS))
+		v.HostSpecific = false
+	}
+
 	if v.platform == "windows" {
 		if v.spec.Windows == nil {
 			errs = multierror.Append(errs,
@@ -655,6 +661,32 @@ func (v *Validator) CheckLinuxResources() (errs error) {
 	return
 }
 
+// CheckAnnotations checks v.spec.Annotations
+func (v *Validator) CheckAnnotations() (errs error) {
+	logrus.Debugf("check annotations")
+
+	reversedDomain := regexp.MustCompile(`^[A-Za-z]{2,6}(\.[A-Za-z0-9-]{1,63})+$`)
+	for key := range v.spec.Annotations {
+		if strings.HasPrefix(key, "org.opencontainers") {
+			errs = multierror.Append(errs,
+				specerror.NewError(
+					specerror.AnnotationsKeyReservedNS,
+					fmt.Errorf("key %q is reserved", key),
+					rspec.Version))
+		}
+
+		if !reversedDomain.MatchString(key) {
+			errs = multierror.Append(errs,
+				specerror.NewError(
+					specerror.AnnotationsKeyReversedDomain,
+					fmt.Errorf("key %q SHOULD be named using a reverse domain notation", key),
+					rspec.Version))
+		}
+	}
+
+	return
+}
+
 // CapValid checks whether a capability is valid
 func CapValid(c string, hostSpecific bool) error {
 	isValid := false
@@ -718,22 +750,6 @@ func (v *Validator) rlimitValid(rlimit rspec.POSIXRlimit) (errs error) {
 	}
 
 	return
-}
-
-func deviceValid(d rspec.LinuxDevice) bool {
-	switch d.Type {
-	case "b", "c", "u":
-		if d.Major <= 0 || d.Minor <= 0 {
-			return false
-		}
-	case "p":
-		if d.Major != 0 || d.Minor != 0 {
-			return false
-		}
-	default:
-		return false
-	}
-	return true
 }
 
 func isStruct(t reflect.Type) bool {
