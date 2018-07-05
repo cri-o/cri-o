@@ -30,6 +30,22 @@ func LastCap() capability.Cap {
 	return last
 }
 
+func deviceValid(d rspec.LinuxDevice) bool {
+	switch d.Type {
+	case "b", "c", "u":
+		if d.Major <= 0 || d.Minor <= 0 {
+			return false
+		}
+	case "p":
+		if d.Major != 0 || d.Minor != 0 {
+			return false
+		}
+	default:
+		return false
+	}
+	return true
+}
+
 // CheckLinux checks v.spec.Linux
 func (v *Validator) CheckLinux() (errs error) {
 	logrus.Debugf("check linux")
@@ -180,7 +196,7 @@ func (v *Validator) CheckLinux() (errs error) {
 		}
 
 		if _, exists := devTypeList[devID]; exists {
-			logrus.Warnf("type:%s, major:%d and minor:%d for linux devices is duplicated", device.Type, device.Major, device.Minor)
+			logrus.Warnf("%v", specerror.NewError(specerror.DevicesErrorOnDup, fmt.Errorf("type:%s, major:%d and minor:%d for linux devices is duplicated", device.Type, device.Major, device.Minor), rspec.Version))
 		} else {
 			devTypeList[devID] = true
 		}
