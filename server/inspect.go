@@ -20,7 +20,7 @@ func (s *Server) getIDMappingsInfo() types.IDMappings {
 		fullMapping := idtools.IDMap{
 			ContainerID: 0,
 			HostID:      0,
-			Size:        4294967295,
+			Size:        2147483647,
 		}
 		return types.IDMappings{
 			Uids: []idtools.IDMap{fullMapping},
