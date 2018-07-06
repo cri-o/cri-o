@@ -510,7 +510,7 @@ function wait_until_exit() {
 		echo "$output"
 		[ "$status" -eq 0 ]
 		if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
-			[[ "$output" =~ "Exit Code: 0" ]]
+			[[ "$output" =~ "Exit Code: ${EXPECTED_EXIT_STATUS:-0}" ]]
 			return 0
 		fi
 		sleep 1
