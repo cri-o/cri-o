@@ -1042,6 +1042,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
 			!containerConfig.GetLinux().GetSecurityContext().Privileged {
 			for _, mp := range []string{
+				"/proc/acpi",
 				"/proc/kcore",
 				"/proc/latency_stats",
 				"/proc/timer_list",
