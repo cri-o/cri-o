@@ -145,10 +145,10 @@ crioimage:
 	docker build -t ${CRIO_IMAGE} .
 
 dbuild: crioimage
-	docker run --name=${CRIO_INSTANCE} -e BUILDTAGS --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${CRIO_IMAGE} make binaries
+	docker run --name=${CRIO_INSTANCE} -e BUILDTAGS --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${CRIO_IMAGE} make BUILDTAGS='$(BUILDTAGS)' binaries
 
 integration: crioimage
-	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
+	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make BUILDTAGS='$(BUILDTAGS)' localintegration
 
 testunit:
 	$(GO) test -tags "$(BUILDTAGS) containers_image_ostree_stub" -cover $(PACKAGES)

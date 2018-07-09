@@ -42,12 +42,12 @@ jobs:
       go: "1.10.x"
     - stage: Build and Verify
       script:
-        - sudo "PATH=$PATH" make testunit
-        - make
+        - sudo "PATH=$PATH" make BUILDTAGS='btrfs_noversion libdm_no_deferred_remove seccomp selinux containers_image_ostree_stub libpod' testunit
+        - make BUILDTAGS='btrfs_noversion libdm_no_deferred_remove seccomp selinux containers_image_ostree_stub libpod'
       go: "1.9.x"
     - script:
-        - sudo "PATH=$PATH" make testunit
-        - make
+        - sudo "PATH=$PATH" make BUILDTAGS='btrfs_noversion libdm_no_deferred_remove seccomp selinux containers_image_ostree_stub libpod' testunit
+        - make BUILDTAGS='btrfs_noversion libdm_no_deferred_remove seccomp selinux containers_image_ostree_stub libpod'
       go: "1.10.x"
     - script:
         - make local-cross
@@ -63,10 +63,10 @@ jobs:
       os: osx
     - stage: Integration Test
       script:
-        - make integration
+        - make BUILDTAGS='btrfs_noversion libdm_no_deferred_remove seccomp selinux containers_image_ostree_stub libpod' integration
       go: "1.10.x"
     - script:
-        - make integration
+        - make BUILDTAGS='btrfs_noversion libdm_no_deferred_remove seccomp selinux containers_image_ostree_stub libpod' integration
       env: TEST_USERNS=1
       go: "1.10.x"
   allow_failures:
