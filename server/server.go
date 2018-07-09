@@ -436,7 +436,7 @@ func (s *Server) StartExitMonitor() {
 						logrus.Debugf("container exited and found: %v", containerID)
 						err := s.Runtime().UpdateStatus(c)
 						if err != nil {
-							logrus.Warnf("Failed to update container status %s: %v", c, err)
+							logrus.Warnf("Failed to update container status %s: %v", containerID, err)
 						} else {
 							s.ContainerStateToDisk(c)
 						}
@@ -447,7 +447,7 @@ func (s *Server) StartExitMonitor() {
 							logrus.Debugf("sandbox exited and found: %v", containerID)
 							err := s.Runtime().UpdateStatus(c)
 							if err != nil {
-								logrus.Warnf("Failed to update sandbox infra container status %s: %v", c, err)
+								logrus.Warnf("Failed to update sandbox infra container status %s: %v", c.ID(), err)
 							} else {
 								s.ContainerStateToDisk(c)
 							}
