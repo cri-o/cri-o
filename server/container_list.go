@@ -37,7 +37,7 @@ func (s *Server) filterContainerList(filter *pb.ContainerFilter, origCtrList []*
 		if err != nil {
 			// If we don't find a container ID with a filter, it should not
 			// be considered an error.  Log a warning and return an empty struct
-			logrus.Warn("unable to find container ID %s", filter.Id)
+			logrus.Warnf("unable to find container ID %s", filter.Id)
 			return []*oci.Container{}
 		}
 		c := s.ContainerServer.GetContainer(id)
