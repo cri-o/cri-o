@@ -204,6 +204,10 @@ type RuntimeConfig struct {
 
 	// Capabilities to add to all containers.
 	DefaultCapabilities []string `toml:"default_capabilities"`
+
+	// LogLevel determines the verbosity of the logs based on the level it is set to.
+	// Options are fatal, panic, error (default), warn, info, and debug.
+	LogLevel string `toml:"log_level"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -337,6 +341,7 @@ func DefaultConfig() *Config {
 			LogSizeMax:          DefaultLogSizeMax,
 			DefaultMountsFile:   "",
 			DefaultCapabilities: DefaultCapabilities,
+			LogLevel:            "error",
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,

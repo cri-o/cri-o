@@ -166,6 +166,10 @@ log_size_max = {{ .LogSizeMax }}
 # read-only indicates whether all containers will run in read-only mode
 read_only = {{ .ReadOnly }}
 
+# log_level changes the verbosity of the logs printed.
+# Options are: error (default), fatal, panic, warn, info, and debug
+log_level = "{{ .LogLevel }}"
+
 # The "crio.image" table contains settings pertaining to the
 # management of OCI images.
 
