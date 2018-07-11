@@ -84,7 +84,7 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--log-format**="": Set the format used by logs ('text' (default), or 'json') (default: "text")
 
-**--log-level**="": log crio messages above specified level: debug, info (default), warn, error, fatal or panic
+**--log-level**="": log crio messages above specified level: debug, info, warn, error (default), fatal or panic
 
 **--log-size-max**="": Maximum log size in bytes for a container (default: -1 (no limit)). If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
 

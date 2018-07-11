@@ -168,6 +168,10 @@ type RuntimeConfig struct {
 	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
 	// and manage its lifecycle
 	ManageNetworkNSLifecycle bool `toml:"manage_network_ns_lifecycle"`
+
+	// LogLevel determines the verbosity of the logs based on the level it is set to.
+	// Options are fatal, panic, error (default), warn, info, and debug.
+	LogLevel string `toml:"log_level"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -295,6 +299,7 @@ func DefaultConfig() *Config {
 			ContainerExitsDir: containerExitsDir,
 			HooksDirPath:      DefaultHooksDirPath,
 			LogSizeMax:        DefaultLogSizeMax,
+			LogLevel:          "error",
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,

@@ -118,6 +118,10 @@ pids_limit = {{ .PidsLimit }}
 # Negative values indicate that no limit is imposed.
 log_size_max = {{ .LogSizeMax }}
 
+# log_level changes the verbosity of the logs printed.
+# Options are: error (default), fatal, panic, warn, info, and debug
+log_level = "{{ .LogLevel }}"
+
 # The "crio.image" table contains settings pertaining to the
 # management of OCI images.
 [crio.image]
