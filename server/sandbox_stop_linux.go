@@ -63,7 +63,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
 				return nil, fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 			}
-			if err := s.Runtime().WaitContainerStateStopped(ctx, c, timeout); err != nil {
+			if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
 				return nil, fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 			}
 			if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
@@ -82,7 +82,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		if err := s.Runtime().StopContainer(ctx, podInfraContainer, timeout); err != nil {
 			return nil, fmt.Errorf("failed to stop infra container %s in pod sandbox %s: %v", podInfraContainer.Name(), sb.ID(), err)
 		}
-		if err := s.Runtime().WaitContainerStateStopped(ctx, podInfraContainer, timeout); err != nil {
+		if err := s.Runtime().WaitContainerStateStopped(ctx, podInfraContainer); err != nil {
 			return nil, fmt.Errorf("failed to get infra container 'stopped' status %s in pod sandbox %s: %v", podInfraContainer.Name(), sb.ID(), err)
 		}
 	}

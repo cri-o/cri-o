@@ -193,6 +193,10 @@ uid_mappings = "{{ .UIDMappings }}"
 # ranges are separed by comma.
 gid_mappings = "{{ .GIDMappings }}"
 
+# ctr_stop_timeout specifies the time to wait before to generate an error
+# because the container state is still tagged as "running".
+ctr_stop_timeout = {{ .CtrStopTimeout }}
+
 [crio.image]
 
 # default_transport is the prefix we try prepending to an image name if the

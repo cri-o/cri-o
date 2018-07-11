@@ -43,6 +43,11 @@ const (
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.
 	killContainerTimeout = 2 * time.Minute
+
+	// minCtrStopTimeout is the minimal amout of time in seconds to wait
+	// before issuing a timeout regarding the proper termination of the
+	// container.
+	minCtrStopTimeout = 10
 )
 
 // New creates a new Runtime with options provided
@@ -55,7 +60,8 @@ func New(runtimeTrustedPath string,
 	containerExitsDir string,
 	containerAttachSocketDir string,
 	logSizeMax int64,
-	noPivot bool) (*Runtime, error) {
+	noPivot bool,
+	ctrStopTimeout int64) (*Runtime, error) {
 	r := &Runtime{
 		name:                     filepath.Base(runtimeTrustedPath),
 		trustedPath:              runtimeTrustedPath,
@@ -68,6 +74,7 @@ func New(runtimeTrustedPath string,
 		containerAttachSocketDir: containerAttachSocketDir,
 		logSizeMax:               logSizeMax,
 		noPivot:                  noPivot,
+		ctrStopTimeout:           ctrStopTimeout,
 	}
 	return r, nil
 }
@@ -85,6 +92,7 @@ type Runtime struct {
 	containerAttachSocketDir string
 	logSizeMax               int64
 	noPivot                  bool
+	ctrStopTimeout           int64
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -586,11 +594,19 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 // WaitContainerStateStopped runs a loop polling UpdateStatus(), seeking for
 // the container status to be updated to 'stopped'. Either it gets the expected
 // status and returns nil, or it reaches the timeout and returns an error.
-func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container, timeout int64) (err error) {
+func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (err error) {
 	// No need to go further and spawn the go routine if the container
 	// is already in the expected status.
 	if r.ContainerStatus(c).Status == ContainerStateStopped {
 		return nil
+	}
+
+	// We need to ensure the container termination will be properly waited
+	// for by defining a minimal timeout value. This will prevent timeout
+	// value defined in the configuration file to be too low.
+	timeout := r.ctrStopTimeout
+	if timeout < minCtrStopTimeout {
+		timeout = minCtrStopTimeout
 	}
 
 	done := make(chan error)

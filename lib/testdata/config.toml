@@ -17,6 +17,7 @@
     hooks_dir_path = "/usr/share/containers/oci/hooks.d"
     pids_limit = 2048
     container_exits_dir = "/var/run/podman/exits"
+    ctr_stop_timeout = 10
   [crio.image]
     default_transport = "docker://"
     pause_image = "kubernetes/pause"
