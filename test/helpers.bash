@@ -319,7 +319,16 @@ function restart_crio() {
 	fi
 }
 
+function cleanup_lvm() {
+	if [ "$LVM_DEVICE" != "" ]; then
+		lvm lvremove -y storage/thinpool
+		lvm vgremove -y storage
+		lvm pvremove -y $LVM_DEVICE
+	fi
+}
+
 function cleanup_test() {
+	cleanup_lvm
 	rm -rf "$TESTDIR"
 }
 
@@ -459,4 +468,22 @@ function cleanup_network_conf() {
 
 function temp_sandbox_conf() {
 	sed -e s/\"namespace\":.*/\"namespace\":\ \"$1\",/g "$TESTDATA"/sandbox_config.json > $TESTDIR/sandbox_config_$1.json
+}
+
+function wait_until_exit() {
+	ctr_id=$1
+	# Wait for container to exit
+	attempt=0
+	while [ $attempt -le 100 ]; do
+		attempt=$((attempt+1))
+		run crictl inspect "$ctr_id" --output table
+		echo "$output"
+		[ "$status" -eq 0 ]
+		if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
+			[[ "$output" =~ "Exit Code: ${EXPECTED_EXIT_STATUS:-0}" ]]
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
 }
