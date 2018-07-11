@@ -154,6 +154,16 @@ Edit `/etc/crio/crio.conf` and verify that the registries option has valid value
 registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'docker.io']
 ```
 
+#### Optional - Modify verbosity of logs in /etc/crio/crio.conf
+
+Can modify the `log_level` field in `/etc/crio/crio.conf` to change the verbosity of
+the logs.
+Options are fatal, panic, error (default), warn, info, and debug.
+
+```
+log_level = "info"
+```
+
 #### Start the crio system daemon
 
 ```
