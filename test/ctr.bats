@@ -28,7 +28,8 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run sleep 5
+	run wait_until_exit "$ctr_id"
+	[ "$status" -eq 0 ]
 	run crictl inspect --output yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -54,7 +55,8 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run sleep 5
+	EXPECTED_EXIT_STATUS=1 run wait_until_exit "$ctr_id"
+	[ "$status" -eq 0 ]
 	run crictl inspect --output yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -180,10 +182,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl stop "$ctr_id"
-	echo "$output"
-	# Ignore errors on stop.
-	run crictl inspect "$ctr_id"
+	run wait_until_exit "$ctr_id"
 	[ "$status" -eq 0 ]
 	run crictl rm "$ctr_id"
 	echo "$output"
@@ -227,10 +226,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl stop "$ctr_id"
-	echo "$output"
-	# Ignore errors on stop.
-	run crictl inspect "$ctr_id"
+	run wait_until_exit "$ctr_id"
 	[ "$status" -eq 0 ]
 	run crictl rm "$ctr_id"
 	echo "$output"
@@ -272,8 +268,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	sleep 6
-	run crictl inspect "$ctr_id"
+	run wait_until_exit "$ctr_id"
 	[ "$status" -eq 0 ]
 	run crictl rm "$ctr_id"
 	echo "$output"
@@ -316,10 +311,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl stop "$ctr_id"
-	echo "$output"
-	# Ignore errors on stop.
-	run crictl inspect "$ctr_id"
+	run wait_until_exit "$ctr_id"
 	[ "$status" -eq 0 ]
 	run crictl rm "$ctr_id"
 	echo "$output"
@@ -882,19 +874,8 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	# Wait for container to exit
-	attempt=0
-	while [ $attempt -le 100 ]; do
-		attempt=$((attempt+1))
-		run crictl inspect "$ctr_id"
-		echo "$output"
-		[ "$status" -eq 0 ]
-		if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
-			[[ "$output" =~ "Exit Code: 0" ]]
-			break
-		fi
-		sleep 1
-	done
+	run wait_until_exit "$ctr_id"
+	[ "$status" -eq 0 ]
 
 	run crictl create "$pod_id" "$TESTDATA"/container_config_resolvconf_ro.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -903,18 +884,8 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	# Wait for container to exit
-	attempt=0
-	while [ $attempt -le 100 ]; do
-		attempt=$((attempt+1))
-		run crictl inspect "$ctr_id"
-		echo "$output"
-		[ "$status" -eq 0 ]
-		if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
-			break
-		fi
-		sleep 1
-	done
+	run wait_until_exit "$ctr_id"
+	[ "$status" -eq 0 ]
 
 	cleanup_ctrs
 	cleanup_pods
