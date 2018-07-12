@@ -12,7 +12,6 @@ import (
 	"github.com/kubernetes-incubator/cri-o/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -59,7 +58,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 	}
 
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
-	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
+	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open container ctl file: %v", err)
 	}
