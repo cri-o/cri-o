@@ -140,7 +140,7 @@ bin/crio.cross.%: .gopathok .explicit_phony
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO) build -i $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
+	$(GO) build -i $(LDFLAGS) -tags "containers_image_openpgp libdm_no_deferred_remove btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
 crioimage:
 	$(CONTAINER_RUNTIME) build -t ${CRIO_IMAGE} .
