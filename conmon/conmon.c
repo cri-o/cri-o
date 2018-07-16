@@ -1250,7 +1250,7 @@ static void do_exit_command()
 
 int main(int argc, char *argv[])
 {
-	int ret;
+	int fd, ret;
 	char cwd[PATH_MAX];
 	_cleanup_free_ char *default_pid_file = NULL;
 	_cleanup_free_ char *csname = NULL;
@@ -1685,6 +1685,18 @@ int main(int argc, char *argv[])
 		_cleanup_free_ char *exit_file_path = g_build_filename(opt_exit_dir, opt_cid, NULL);
 		if (!g_file_set_contents(exit_file_path, status_str, -1, &err))
 			nexitf("Failed to write %s to exit file: %s", status_str, err->message);
+	}
+
+	/*
+	 * Podman injects some fd's into the conmon process so that exposed ports are kept busy while
+	 * the container runs.  Close them before we notify the container exited, so that they can be
+	 * reused immediately.
+	 */
+	for (fd = 3;; fd++) {
+		if (fd == sync_pipe_fd || fd == dev_null_r || fd == dev_null_w)
+			continue;
+		if (close(fd) < 0 && errno == EBADF)
+			break;
 	}
 
 	if (opt_exec) {
