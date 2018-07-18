@@ -60,24 +60,16 @@
   remote_user: root
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - integration
   tasks:
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
       vars:
         force_clone: True
         cri_tools_git_version: "9da2549287cbbdbfa045b3246ab34ffea703dce4"
-      tags:
-        - integration
-    - name: Usernamespace integration testing needs updated environment variables
-      set_fact:
-        # Keys/Values in userns_int_test_env update int_test_env (from vars.yml)
-        int_test_env: '{{ int_test_env | combine(userns_int_test_env) }}'
-      tags:
-        - userns
     - name: run cri-o integration tests
       include: test.yml
-      tags:
-        - integration
 
 - hosts: all
   remote_user: root
