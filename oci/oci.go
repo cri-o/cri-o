@@ -106,12 +106,6 @@ func (r *Runtime) Name() string {
 // this will return either the trusted or untrusted runtime path.
 func (r *Runtime) Path(c *Container) string {
 	if !c.trusted {
-		// We have an explicitly untrusted container.
-		if c.privileged {
-			logrus.Warnf("Running an untrusted but privileged container")
-			return r.trustedPath
-		}
-
 		if r.untrustedPath != "" {
 			return r.untrustedPath
 		}
