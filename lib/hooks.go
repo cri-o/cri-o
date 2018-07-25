@@ -22,9 +22,9 @@ const (
 // HookParams is the structure returned from read the hooks configuration
 type HookParams struct {
 	Hook          string   `json:"hook"`
-	Stage         []string `json:"stage"`
-	Cmds          []string `json:"cmd"`
-	Annotations   []string `json:"annotation"`
+	Stages        []string `json:"stages"`
+	Cmds          []string `json:"cmds"`
+	Annotations   []string `json:"annotations"`
 	HasBindMounts bool     `json:"hasbindmounts"`
 	Arguments     []string `json:"arguments"`
 }
@@ -62,10 +62,10 @@ func readHook(hookPath string) (HookParams, error) {
 			return hook, errors.Wrapf(err, "invalid cmd regular expression %q defined in hook config %q", cmd, hookPath)
 		}
 	}
-	if len(hook.Stage) == 0 {
+	if len(hook.Stages) == 0 {
 		logrus.Warnf("No stage defined in hook config %q, hook will never run", hookPath)
 	} else {
-		for _, stage := range hook.Stage {
+		for _, stage := range hook.Stages {
 			if !validStage[stage] {
 				return hook, errors.Wrapf(err, "unknown stage %q defined in hook config %q", stage, hookPath)
 			}
