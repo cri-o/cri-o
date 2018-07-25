@@ -242,7 +242,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 // addOCIHook look for hooks programs installed in hooksDirPath and add them to spec
 func addOCIHook(specgen *generate.Generator, hook lib.HookParams) error {
 	logrus.Debugf("AddOCIHook %s", hook.Hook)
-	for _, stage := range hook.Stage {
+	for _, stage := range hook.Stages {
 		h := rspec.Hook{
 			Path: hook.Hook,
 			Args: append([]string{hook.Hook}, hook.Arguments...),
