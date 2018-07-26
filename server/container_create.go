@@ -566,9 +566,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 		capPrefixed := toCAPPrefixed(cap)
 		// Validate capability
 		if !inStringSlice(getOCICapabilitiesList(), capPrefixed) {
-			// invalid capability, logging and moving on to next capability in list.
-			logrus.Warnf("invalid capability %q, skipping...", cap)
-			continue
+			return fmt.Errorf("unknown capability %q to add", capPrefixed)
 		}
 		if err := specgen.AddProcessCapabilityBounding(capPrefixed); err != nil {
 			return err
