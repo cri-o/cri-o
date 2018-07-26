@@ -557,6 +557,9 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 			continue
 		}
 		capPrefixed := toCAPPrefixed(cap)
+		if !inStringSlice(getOCICapabilitiesList(), capPrefixed) {
+			return fmt.Errorf("unknown capability %q to add", capPrefixed)
+		}
 		if err := specgen.AddProcessCapabilityBounding(capPrefixed); err != nil {
 			return err
 		}
