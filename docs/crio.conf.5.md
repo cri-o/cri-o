@@ -84,6 +84,10 @@ Example:
   If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
   The file is truncated and re-opened so the limit is never exceeded.
 
+**log_level**=""
+  Changes the verbosity of the logs based on the level it is set to.
+  Options are fatal, panic, error (default), warn, info, and debug.
+
 **pids_limit**=""
   Maximum number of processes allowed in a container (default: 1024)
 
@@ -107,6 +111,10 @@ Example:
 
 **default_mounts**=[]
   List of mount points, in the form host:container, to be mounted in every container
+
+**read_only**==*true*|*false*
+  Run every container in read-only mode. Automatically mount tmpfs on `/run`, `/tmp` and `/var/tmp`.
+  Setup images to run in read-only. (default: false)
 
 ## CRIO.IMAGE TABLE
 

@@ -183,6 +183,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	args = append(args, "-l", c.logPath)
 	args = append(args, "--exit-dir", r.containerExitsDir)
 	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
+	args = append(args, "--log-level", logrus.GetLevel().String())
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
@@ -443,6 +444,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	}
 	args = append(args, "-l", logPath)
 	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
+	args = append(args, "--log-level", logrus.GetLevel().String())
 
 	processFile, err := PrepareProcessExec(c, command, c.terminal)
 	if err != nil {
