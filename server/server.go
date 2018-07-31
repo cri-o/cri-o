@@ -341,7 +341,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
-		bindAddress, err = knet.ChooseBindAddress(net.IP{0, 0, 0, 0})
+		bindAddress, err = knet.ChooseBindAddress(nil)
 		if err != nil {
 			return nil, err
 		}
