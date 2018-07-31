@@ -240,7 +240,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "stream-port",
-			Usage: "bind port for streaming socket (default: \"10010\")",
+			Usage: "bind port for streaming socket (default: \"0\")",
 		},
 		cli.StringFlag{
 			Name:  "log",

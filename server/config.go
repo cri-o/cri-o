@@ -115,8 +115,8 @@ func DefaultConfig() *Config {
 		Config: *lib.DefaultConfig(),
 		APIConfig: APIConfig{
 			Listen:        CrioSocketPath,
-			StreamAddress: "",
-			StreamPort:    "10010",
+			StreamAddress: "127.0.0.1",
+			StreamPort:    "0",
 		},
 	}
 }
