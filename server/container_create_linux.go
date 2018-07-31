@@ -806,8 +806,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddMount(mnt)
 	}
 
-	if err := s.setupOCIHooks(&specgen, sb, containerConfig, processArgs[0]); err != nil {
-		return nil, err
+	annotations := map[string]string{}
+	for key, value := range containerConfig.GetAnnotations() {
+		annotations[key] = value
+	}
+	for key, value := range sb.Annotations() {
+		annotations[key] = value
+	}
+	if s.ContainerServer.Hooks != nil {
+		if _, err := s.ContainerServer.Hooks.Hooks(specgen.Config, annotations, len(containerConfig.GetMounts()) > 0); err != nil {
+			return nil, err
+		}
 	}
 
 	// Setup user and groups

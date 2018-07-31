@@ -69,7 +69,7 @@ Note that kpod and its container management and debugging commands have moved to
 
 ## OCI Hooks Support
 
-[CRI-O configures OCI Hooks to run when launching a container](./hooks.md)
+[You can configure CRI-O][libpod-hooks] to inject [OCI Hooks][spec-hooks] when creating containers.
 
 ## CRI-O Usage Transfer
 
@@ -224,3 +224,6 @@ To run a full cluster, see [the instructions](kubernetes.md).
 1. Support for exec/attach (done)
 1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/kubernetes-incubator/cri-o/issues/533)
 1. Track upstream k8s releases
+
+[libpod-hooks]: https://github.com/projectatomic/libpod/blob/v0.6.2/pkg/hooks/README.md
+[spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks

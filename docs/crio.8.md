@@ -148,6 +148,16 @@ it later with **--config**. Global options will modify the output.
 **crio.conf** (`/etc/crio/crio.conf`)
   `cri-o` configuration file for all of the available command-line options for the crio(8) program, but in a TOML format that can be more easily modified and versioned.
 
+**hook JSON** (`/etc/containers/oci/hooks.d/*.json`, `/usr/share/containers/oci/hooks.d/*.json`)
+
+  Each `*.json` file in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` configures a hook for CRI-O containers, with `/etc/containers/oci/hooks.d` having higher precedence.  `crio(8)` monitors the hook directories for changes, so there is no need to restart the server after adjusting the hook configuration.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
+
+  CRI-O currently supports both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
+
+  For the annotation conditions, CRI-O uses the Kubernetes annotations, which are a subset of the annotations passed to the OCI runtime.  For example, io.kubernetes.cri-o.Volumes is part of the OCI runtime configuration annotations, but it is not part of the Kubernetes annotations being matched for hooks.
+
+  For the bind-mount conditions, only mounts explicitly requested by Kubernetes configuration are considered.  Bind mounts that CRI-O inserts by default (e.g. `/dev/shm`) are not considered.
+
 **policy.json** (`/etc/containers/policy.json`)
   Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid.
 
@@ -158,7 +168,7 @@ it later with **--config**. Global options will modify the output.
   Storage configuration file specifies all of the available container storage options for tools using shared container storage.
 
 # SEE ALSO
-crio.conf(5),policy.json(5),registries.conf(5),storage.conf(5)
+`crio.conf(5)`, `oci-hooks(5)`, `policy.json(5)`, `registries.conf(5)`, `storage.conf(5)`
 
 # HISTORY
 Sept 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com> and Aleksa Sarai <asarai@suse.de>

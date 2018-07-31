@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -237,27 +236,6 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 	logrus.Debugf("OCI process args %v", processArgs)
 
 	return processArgs, nil
-}
-
-// addOCIHook look for hooks programs installed in hooksDirPath and add them to spec
-func addOCIHook(specgen *generate.Generator, hook lib.HookParams) error {
-	logrus.Debugf("AddOCIHook %s", hook.Hook)
-	for _, stage := range hook.Stage {
-		h := rspec.Hook{
-			Path: hook.Hook,
-			Args: append([]string{hook.Hook}, hook.Arguments...),
-			Env:  []string{fmt.Sprintf("stage=%s", stage)},
-		}
-		switch stage {
-		case "prestart":
-			specgen.AddPreStartHook(h)
-		case "poststart":
-			specgen.AddPostStartHook(h)
-		case "poststop":
-			specgen.AddPostStopHook(h)
-		}
-	}
-	return nil
 }
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
@@ -555,68 +533,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	return resp, nil
 }
 
-func (s *Server) setupOCIHooks(specgen *generate.Generator, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, command string) error {
-	mounts := containerConfig.GetMounts()
-	addedHooks := map[string]struct{}{}
-	addHook := func(hook lib.HookParams) error {
-		// Only add a hook once
-		if _, ok := addedHooks[hook.Hook]; !ok {
-			if err := addOCIHook(specgen, hook); err != nil {
-				return err
-			}
-			addedHooks[hook.Hook] = struct{}{}
-		}
-		return nil
-	}
-	for _, hook := range s.Hooks() {
-		logrus.Debugf("SetupOCIHooks: %s", hook.Hook)
-		if hook.HasBindMounts && len(mounts) > 0 {
-			if err := addHook(hook); err != nil {
-				return err
-			}
-			continue
-		}
-		for _, cmd := range hook.Cmds {
-			match, err := regexp.MatchString(cmd, command)
-			if err != nil {
-				logrus.Errorf("Invalid regex %q:%q", cmd, err)
-				continue
-			}
-			if match {
-				if err := addHook(hook); err != nil {
-					return err
-				}
-			}
-		}
-		for _, annotationRegex := range hook.Annotations {
-			for _, annotation := range containerConfig.GetAnnotations() {
-				match, err := regexp.MatchString(annotationRegex, annotation)
-				if err != nil {
-					logrus.Errorf("Invalid regex %q:%q", annotationRegex, err)
-					continue
-				}
-				if match {
-					if err := addHook(hook); err != nil {
-						return err
-					}
-				}
-			}
-			for _, annotation := range sb.Annotations() {
-				match, err := regexp.MatchString(annotationRegex, annotation)
-				if err != nil {
-					logrus.Errorf("Invalid regex %q:%q", annotationRegex, err)
-					continue
-				}
-				if match {
-					if err := addHook(hook); err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
 func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
 	for _, m := range mounts {
 		if m.ContainerPath == dst {
