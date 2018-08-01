@@ -100,6 +100,7 @@ static gboolean opt_no_new_keyring = FALSE;
 static char *opt_exit_command = NULL;
 static gchar **opt_exit_args = NULL;
 static gboolean opt_replace_listen_pid = FALSE;
+static char *opt_log_level = NULL;
 static GOptionEntry opt_entries[] = {
 	{"terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL},
 	{"stdin", 'i', 0, G_OPTION_ARG_NONE, &opt_stdin, "Stdin", NULL},
@@ -129,6 +130,7 @@ static GOptionEntry opt_entries[] = {
 	{"socket-dir-path", 0, 0, G_OPTION_ARG_STRING, &opt_socket_path, "Location of container attach sockets", NULL},
 	{"version", 0, 0, G_OPTION_ARG_NONE, &opt_version, "Print the version and exit", NULL},
 	{"syslog", 0, 0, G_OPTION_ARG_NONE, &opt_syslog, "Log to syslog (use with cgroupfs cgroup manager)", NULL},
+	{"log-level", 0, 0, G_OPTION_ARG_STRING, &opt_log_level, "Print debug logs based on log level", NULL},
 	{NULL}};
 
 /* strlen("1997-03-25T13:20:42.999999999+01:00 stdout ") + 1 */
@@ -171,32 +173,81 @@ static int log_fd = -1;
 	} while (0)
 
 #define nwarn(s) \
-	do { \
-		fprintf(stderr, "[conmon:w]: %s\n", s); \
-		if (opt_syslog) \
-			syslog(LOG_INFO, "conmon %.20s <nwarn>: %s\n", opt_cid, s); \
-	} while (0)
+	if (parse_level(opt_log_level) >= WARN_LEVEL) { \
+		do { \
+			fprintf(stderr, "[conmon:w]: %s\n", s); \
+			if (opt_syslog) \
+				syslog(LOG_INFO, "conmon %.20s <nwarn>: %s\n", opt_cid, s); \
+		} while (0); \
+	}
 
 #define nwarnf(fmt, ...) \
-	do { \
-		fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__); \
-		if (opt_syslog) \
-			syslog(LOG_INFO, "conmon %.20s <nwarn>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
-	} while (0)
+	if (parse_level(opt_log_level) >= WARN_LEVEL) { \
+		do { \
+			fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__); \
+			if (opt_syslog) \
+				syslog(LOG_INFO, "conmon %.20s <nwarn>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+		} while (0); \
+	}
 
 #define ninfo(s) \
-	do { \
-		fprintf(stderr, "[conmon:i]: %s\n", s); \
-		if (opt_syslog) \
-			syslog(LOG_INFO, "conmon %.20s <ninfo>: %s\n", opt_cid, s); \
-	} while (0)
+	if (parse_level(opt_log_level) >= INFO_LEVEL) { \
+		do { \
+			fprintf(stderr, "[conmon:i]: %s\n", s); \
+			if (opt_syslog) \
+				syslog(LOG_INFO, "conmon %.20s <ninfo>: %s\n", opt_cid, s); \
+		} while (0); \
+	}
 
 #define ninfof(fmt, ...) \
-	do { \
-		fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__); \
-		if (opt_syslog) \
-			syslog(LOG_INFO, "conmon %.20s <ninfo>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
-	} while (0)
+	if (parse_level(opt_log_level) >= INFO_LEVEL) { \
+		do { \
+			fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__); \
+			if (opt_syslog) \
+				syslog(LOG_INFO, "conmon %.20s <ninfo>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+		} while (0); \
+	}
+
+#define ndebug(s) \
+	if (parse_level(opt_log_level) >= DEBUG_LEVEL) { \
+		do { \
+			fprintf(stderr, "[conmon:d]: %s\n", s); \
+			if (opt_syslog) \
+				syslog(LOG_INFO, "conmon %.20s <ndebug>: %s\n", opt_cid, s); \
+		} while (0); \
+	}
+
+#define ndebugf(fmt, ...) \
+	if (parse_level(opt_log_level) >= DEBUG_LEVEL) { \
+		do { \
+			fprintf(stderr, "[conmon:d]: " fmt "\n", ##__VA_ARGS__); \
+			if (opt_syslog) \
+				syslog(LOG_INFO, "conmon %.20s <ndebug>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
+		} while (0); \
+	}
+
+/* Different levels of logging */
+typedef enum {
+	EXIT_LEVEL,
+	WARN_LEVEL,
+	INFO_LEVEL,
+	DEBUG_LEVEL,
+} log_level_t;
+
+/* Parse_level parses the string value of the --log_level flag to its matching enum */
+static log_level_t parse_level(char *level_name)
+{
+	if (!strcmp(level_name, "error") || !strcmp(level_name, "fatal") || !strcmp(level_name, "panic")) {
+		return EXIT_LEVEL;
+	} else if (!strcmp(level_name, "warn") || !strcmp(level_name, "warning")) {
+		return WARN_LEVEL;
+	} else if (!strcmp(level_name, "info")) {
+		return INFO_LEVEL;
+	} else if (!strcmp(level_name, "debug")) {
+		return DEBUG_LEVEL;
+	}
+	nexitf("No such log level %s", level_name);
+}
 
 static ssize_t write_all(int fd, const void *buf, size_t count)
 {
@@ -1622,7 +1673,7 @@ int main(int argc, char *argv[])
 	}
 
 	container_pid = atoi(contents);
-	ninfof("container PID: %d", container_pid);
+	ndebugf("container PID: %d", container_pid);
 
 	g_hash_table_insert(pid_to_handler, (pid_t *)&container_pid, container_exit_cb);
 
