@@ -39,16 +39,16 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, err error) {
 	}
 
 	if len(sb.PortMappings()) > 0 {
-		ip4 := net.ParseIP(podIP).To4()
-		if ip4 == nil {
-			err = fmt.Errorf("failed to get valid ipv4 address for sandbox %s(%s)", sb.Name(), sb.ID())
+		ip := net.ParseIP(podIP)
+		if ip == nil {
+			err = fmt.Errorf("failed to get valid ip address for sandbox %s(%s)", sb.Name(), sb.ID())
 			return
 		}
 
 		err = s.hostportManager.Add(sb.ID(), &hostport.PodPortMapping{
 			Name:         sb.Name(),
 			PortMappings: sb.PortMappings(),
-			IP:           ip4,
+			IP:           ip,
 			HostNetwork:  false,
 		}, "lo")
 		if err != nil {
