@@ -1562,7 +1562,7 @@ int main(int argc, char *argv[])
 		if (slavefd_stdin < 0)
 			slavefd_stdin = dev_null_r;
 		if (dup2(slavefd_stdin, STDIN_FILENO) < 0)
-			pexit("Failed to dup over stdout");
+			pexit("Failed to dup over stdin");
 
 		if (slavefd_stdout < 0)
 			slavefd_stdout = dev_null_w;
