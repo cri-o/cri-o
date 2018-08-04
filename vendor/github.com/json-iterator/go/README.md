@@ -8,6 +8,8 @@
 
 A high-performance 100% compatible drop-in replacement of "encoding/json"
 
+You can also use thrift like JSON using [thrift-iterator](https://github.com/thrift-iterator/go)
+
 ```
 Go开发者们请加入我们，滴滴出行平台技术部 taowen@didichuxing.com
 ```
@@ -29,6 +31,9 @@ Raw Result (easyjson requires static code generation)
 | easyjson encode | 883 ns/op | 576 B/op | 3 allocs/op |
 | jsoniter encode | 837 ns/op | 384 B/op | 4 allocs/op |
 
+Always benchmark with your own workload. 
+The result depends heavily on the data input.
+
 # Usage
 
 100% compatibility with standard lib
@@ -40,11 +45,13 @@ import "encoding/json"
 json.Marshal(&data)
 ```
 
-with
+with 
 
 ```go
 import "github.com/json-iterator/go"
-jsoniter.Marshal(&data)
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
+json.Marshal(&data)
 ```
 
 Replace
@@ -58,7 +65,9 @@ with
 
 ```go
 import "github.com/json-iterator/go"
-jsoniter.Unmarshal(input, &data)
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
+json.Unmarshal(input, &data)
 ```
 
 [More documentation](http://jsoniter.com/migrate-from-go-std.html)
@@ -73,8 +82,10 @@ go get github.com/json-iterator/go
 
 Contributors
 
-* [thockin](https://github.com/thockin)
+* [thockin](https://github.com/thockin) 
 * [mattn](https://github.com/mattn)
 * [cch123](https://github.com/cch123)
+* [Oleg Shaldybin](https://github.com/olegshaldybin)
+* [Jason Toffaletti](https://github.com/toffaletti)
 
 Report issue or pull request, or email taowen@gmail.com, or [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/json-iterator/Lobby)
