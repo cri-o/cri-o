@@ -47,6 +47,10 @@ const (
 	scopePrefix           = "crio"
 	defaultCgroupfsParent = "/crio"
 	defaultSystemdParent  = "system.slice"
+
+	// minMemoryLimit is the minimum memory that must be set for a container.
+	// A lower value would result in the container failing to start.
+	minMemoryLimit = 4194304
 )
 
 type orderedMounts []rspec.Mount
@@ -988,7 +992,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.GetCpuPeriod()))
 			specgen.SetLinuxResourcesCPUQuota(resources.GetCpuQuota())
 			specgen.SetLinuxResourcesCPUShares(uint64(resources.GetCpuShares()))
-			specgen.SetLinuxResourcesMemoryLimit(resources.GetMemoryLimitInBytes())
+
+			memoryLimit := resources.GetMemoryLimitInBytes()
+			if memoryLimit != 0 && memoryLimit < minMemoryLimit {
+				return nil, fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+			}
+
+			specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
 			specgen.SetProcessOOMScoreAdj(int(resources.GetOomScoreAdj()))
 			specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
 			specgen.SetLinuxResourcesCPUMems(resources.GetCpusetMems())
