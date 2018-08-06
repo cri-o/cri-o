@@ -12,6 +12,7 @@ import (
 	"github.com/kubernetes-incubator/cri-o/server/metrics"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
+	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
@@ -252,4 +253,59 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*pb.KeyValue) []string {
 		}
 	}
 	return envs
+}
+
+// Namespace represents a kernel namespace name.
+type Namespace string
+
+const (
+	// IpcNamespace is the Linux IPC namespace
+	IpcNamespace = Namespace("ipc")
+
+	// NetNamespace is the network namespace
+	NetNamespace = Namespace("net")
+
+	// UnknownNamespace is the zero value if no namespace is known
+	UnknownNamespace = Namespace("")
+)
+
+var namespaces = map[string]Namespace{
+	"kernel.sem": IpcNamespace,
+}
+
+var prefixNamespaces = map[string]Namespace{
+	"kernel.shm": IpcNamespace,
+	"kernel.msg": IpcNamespace,
+	"fs.mqueue.": IpcNamespace,
+	"net.":       NetNamespace,
+}
+
+// validateSysctl checks that a sysctl is whitelisted because it is known
+// to be namespaced by the Linux kernel.
+// The parameters hostNet and hostIPC are used to forbid sysctls for pod sharing the
+// respective namespaces with the host. This check is only used on sysctls defined by
+// the user in the crio.conf file.
+func validateSysctl(sysctl string, hostNet, hostIPC bool) error {
+	nsErrorFmt := "%q not allowed with host %s enabled"
+	if ns, found := namespaces[sysctl]; found {
+		if ns == IpcNamespace && hostIPC {
+			return errors.Errorf(nsErrorFmt, sysctl, ns)
+		}
+		if ns == NetNamespace && hostNet {
+			return errors.Errorf(nsErrorFmt, sysctl, ns)
+		}
+		return nil
+	}
+	for p, ns := range prefixNamespaces {
+		if strings.HasPrefix(sysctl, p) {
+			if ns == IpcNamespace && hostIPC {
+				return errors.Errorf(nsErrorFmt, sysctl, ns)
+			}
+			if ns == NetNamespace && hostNet {
+				return errors.Errorf(nsErrorFmt, sysctl, ns)
+			}
+			return nil
+		}
+	}
+	return errors.Errorf("%q not whitelisted", sysctl)
 }

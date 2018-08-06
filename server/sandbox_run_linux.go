@@ -237,9 +237,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
+	hostIPC := securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE
+
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
-	if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE ||
-		securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
+	if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE || hostIPC {
 		processLabel, mountLabel = "", ""
 	}
 	g.SetProcessSelinuxLabel(processLabel)
@@ -250,7 +251,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// create shm mount for the pod containers.
 	var shmPath string
-	if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
+	if hostIPC {
 		shmPath = "/dev/shm"
 	} else {
 		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
@@ -406,7 +407,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.AddAnnotation(k, v)
 	}
 
+	// Add default sysctls given in crio.conf
+	for _, defaultSysctl := range s.config.DefaultSysctls {
+		split := strings.SplitN(defaultSysctl, "=", 2)
+		if len(split) == 2 {
+			if err := validateSysctl(split[0], hostNetwork, hostIPC); err != nil {
+				logrus.Warnf("sysctl not valid %q: %v - skipping...", defaultSysctl, err)
+				continue
+			}
+			g.AddLinuxSysctl(split[0], split[1])
+			continue
+		}
+		logrus.Warnf("sysctl %q not of the format sysctl_name=value", defaultSysctl)
+	}
 	// extract linux sysctls from annotations and pass down to oci runtime
+	// Will override any duplicate default systcl from crio.conf
 	for key, value := range req.GetConfig().GetLinux().GetSysctls() {
 		g.AddLinuxSysctl(key, value)
 	}

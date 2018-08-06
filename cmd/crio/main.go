@@ -144,6 +144,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("default-capabilities") {
 		config.DefaultCapabilities = strings.Split(ctx.GlobalString("default-capabilities"), ",")
 	}
+	if ctx.GlobalIsSet("default-sysctls") {
+		config.DefaultSysctls = strings.Split(ctx.GlobalString("default-sysctls"), ",")
+	}
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
@@ -367,6 +370,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "default-capabilities",
 			Usage: "capabilities to add to the containers",
+		},
+		cli.StringFlag{
+			Name:  "default-sysctls",
+			Usage: "sysctls to add to the containers",
 		},
 		cli.BoolFlag{
 			Name:  "profile",
