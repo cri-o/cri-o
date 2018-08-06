@@ -56,68 +56,6 @@ func TestParseDNSOptions(t *testing.T) {
 	}
 }
 
-func TestSysctlsFromPodAnnotations(t *testing.T) {
-	testCases := []struct {
-		Annotations   map[string]string
-		SafeSysctls   []Sysctl
-		UnsafeSysctls []Sysctl
-	}{
-		{
-			map[string]string{
-				"foo-":                  "bar",
-				SysctlsPodAnnotationKey: "kernel.shmmax=100000000,safe=20000000",
-			},
-			[]Sysctl{
-				{"kernel.shmmax", "100000000"},
-				{"safe", "20000000"},
-			},
-			[]Sysctl{},
-		},
-		{
-			map[string]string{
-				UnsafeSysctlsPodAnnotationKey: "kernel.shmmax=10,unsafe=20",
-			},
-			[]Sysctl{},
-			[]Sysctl{
-				{"kernel.shmmax", "10"},
-				{"unsafe", "20"},
-			},
-		},
-		{
-			map[string]string{
-				"bar..":                       "42",
-				SysctlsPodAnnotationKey:       "kernel.shmmax=20000000,safe=40000000",
-				UnsafeSysctlsPodAnnotationKey: "kernel.shmmax=10,unsafe=20",
-			},
-			[]Sysctl{
-				{"kernel.shmmax", "20000000"},
-				{"safe", "40000000"},
-			},
-			[]Sysctl{
-				{"kernel.shmmax", "10"},
-				{"unsafe", "20"},
-			},
-		},
-	}
-
-	for _, c := range testCases {
-		safe, unsafe, err := SysctlsFromPodAnnotations(c.Annotations)
-		if err != nil {
-			t.Error(err)
-		}
-		for index, sysctl := range safe {
-			if sysctl.Name != safe[index].Name || sysctl.Value != safe[index].Value {
-				t.Errorf("Expect safe: %v, but got: %v\n", safe[index], sysctl)
-			}
-		}
-		for index, sysctl := range unsafe {
-			if sysctl.Name != unsafe[index].Name || sysctl.Value != unsafe[index].Value {
-				t.Errorf("Expect unsafe: %v, but got: %v\n", safe[index], sysctl)
-			}
-		}
-	}
-}
-
 func TestMergeEnvs(t *testing.T) {
 	configImage := &v1.Image{
 		Config: v1.ImageConfig{
