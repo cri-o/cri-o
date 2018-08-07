@@ -237,6 +237,8 @@ typedef enum {
 /* Parse_level parses the string value of the --log_level flag to its matching enum */
 static log_level_t parse_level(char *level_name)
 {
+	if (level_name == NULL)
+		return WARN_LEVEL;
 	if (!strcmp(level_name, "error") || !strcmp(level_name, "fatal") || !strcmp(level_name, "panic")) {
 		return EXIT_LEVEL;
 	} else if (!strcmp(level_name, "warn") || !strcmp(level_name, "warning")) {
