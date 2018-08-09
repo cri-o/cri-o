@@ -544,6 +544,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.SetRootPath(mountPoint)
 	}
 
+	if os.Getenv("_CRIO_ROOTLESS") != "" {
+		if err := makeOCIConfigurationRootless(&g); err != nil {
+			return nil, err
+		}
+	}
+
 	container.SetSpec(g.Spec())
 
 	sb.SetInfraContainer(container)
