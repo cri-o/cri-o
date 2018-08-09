@@ -166,6 +166,10 @@ pids_limit = {{ .PidsLimit }}
 # Negative values indicate that no limit is imposed.
 log_size_max = {{ .LogSizeMax }}
 
+# container_exits_dir is the directory in which container exit files are
+# written to by conmon.
+container_exits_dir = "{{ .ContainerExitsDir }}"
+
 # read-only indicates whether all containers will run in read-only mode
 read_only = {{ .ReadOnly }}
 
