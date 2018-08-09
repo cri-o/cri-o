@@ -284,6 +284,7 @@ EOF'
 sudo sh -c 'cat >/etc/cni/net.d/99-loopback.conf <<-EOF
 {
     "cniVersion": "0.2.0",
+    "name": "lo",
     "type": "loopback"
 }
 EOF'
