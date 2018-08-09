@@ -136,7 +136,7 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 
 	var lock sync.Locker
 	if config.FileLocking {
-		fileLock, err := cstorage.GetLockfile(lockPath)
+		fileLock, err := cstorage.GetLockfile(config.FileLockingPath)
 		if err != nil {
 			return nil, fmt.Errorf("error obtaining lockfile: %v", err)
 		}

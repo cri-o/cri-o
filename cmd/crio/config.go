@@ -38,6 +38,9 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 # in-memory locking
 file_locking = {{ .FileLocking }}
 
+# file_locking_path is the file used for file-based locking
+file_locking_path = "{{ .FileLockingPath }}"
+
 # The "crio.api" table contains settings for the kubelet/gRPC interface.
 [crio.api]
 

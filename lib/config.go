@@ -96,6 +96,9 @@ type RootConfig struct {
 	// File-based locking is required when multiple users of lib are
 	// present on the same system
 	FileLocking bool `toml:"file_locking"`
+
+	// FileLockingPath specifies the path to use for the locking.
+	FileLockingPath string `toml:"file_locking_path"`
 }
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -313,12 +316,13 @@ func DefaultConfig() *Config {
 	insecureRegistries, _ := sysregistries.GetInsecureRegistries(&types.SystemContext{})
 	return &Config{
 		RootConfig: RootConfig{
-			Root:           storage.DefaultStoreOptions.GraphRoot,
-			RunRoot:        storage.DefaultStoreOptions.RunRoot,
-			Storage:        storage.DefaultStoreOptions.GraphDriverName,
-			StorageOptions: storage.DefaultStoreOptions.GraphDriverOptions,
-			LogDir:         "/var/log/crio/pods",
-			FileLocking:    true,
+			Root:            storage.DefaultStoreOptions.GraphRoot,
+			RunRoot:         storage.DefaultStoreOptions.RunRoot,
+			Storage:         storage.DefaultStoreOptions.GraphDriverName,
+			StorageOptions:  storage.DefaultStoreOptions.GraphDriverOptions,
+			LogDir:          "/var/log/crio/pods",
+			FileLocking:     true,
+			FileLockingPath: lockPath,
 		},
 		RuntimeConfig: RuntimeConfig{
 			Runtime:                  "/usr/bin/runc",
