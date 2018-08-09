@@ -170,6 +170,9 @@ log_size_max = {{ .LogSizeMax }}
 # written to by conmon.
 container_exits_dir = "{{ .ContainerExitsDir }}"
 
+# container_attach_socket_dir is the location for container attach sockets.
+container_attach_socket_dir = "{{ .ContainerAttachSocketDir }}"
+
 # read-only indicates whether all containers will run in read-only mode
 read_only = {{ .ReadOnly }}
 

@@ -53,35 +53,38 @@ func New(runtimeTrustedPath string,
 	conmonEnv []string,
 	cgroupManager string,
 	containerExitsDir string,
+	containerAttachSocketDir string,
 	logSizeMax int64,
 	noPivot bool) (*Runtime, error) {
 	r := &Runtime{
-		name:              filepath.Base(runtimeTrustedPath),
-		trustedPath:       runtimeTrustedPath,
-		untrustedPath:     runtimeUntrustedPath,
-		trustLevel:        trustLevel,
-		conmonPath:        conmonPath,
-		conmonEnv:         conmonEnv,
-		cgroupManager:     cgroupManager,
-		containerExitsDir: containerExitsDir,
-		logSizeMax:        logSizeMax,
-		noPivot:           noPivot,
+		name:                     filepath.Base(runtimeTrustedPath),
+		trustedPath:              runtimeTrustedPath,
+		untrustedPath:            runtimeUntrustedPath,
+		trustLevel:               trustLevel,
+		conmonPath:               conmonPath,
+		conmonEnv:                conmonEnv,
+		cgroupManager:            cgroupManager,
+		containerExitsDir:        containerExitsDir,
+		containerAttachSocketDir: containerAttachSocketDir,
+		logSizeMax:               logSizeMax,
+		noPivot:                  noPivot,
 	}
 	return r, nil
 }
 
 // Runtime stores the information about a oci runtime
 type Runtime struct {
-	name              string
-	trustedPath       string
-	untrustedPath     string
-	trustLevel        string
-	conmonPath        string
-	conmonEnv         []string
-	cgroupManager     string
-	containerExitsDir string
-	logSizeMax        int64
-	noPivot           bool
+	name                     string
+	trustedPath              string
+	untrustedPath            string
+	trustLevel               string
+	conmonPath               string
+	conmonEnv                []string
+	cgroupManager            string
+	containerExitsDir        string
+	containerAttachSocketDir string
+	logSizeMax               int64
+	noPivot                  bool
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -173,7 +176,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
 	args = append(args, "-l", c.logPath)
 	args = append(args, "--exit-dir", r.containerExitsDir)
-	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
+	args = append(args, "--socket-dir-path", r.containerAttachSocketDir)
 	args = append(args, "--log-level", logrus.GetLevel().String())
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))

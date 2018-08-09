@@ -180,6 +180,9 @@ type RuntimeConfig struct {
 	// written to by conmon.
 	ContainerExitsDir string `toml:"container_exits_dir"`
 
+	// ContainerAttachSocketDir is the location for container attach sockets.
+	ContainerAttachSocketDir string `toml:"container_attach_socket_dir"`
+
 	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
 	// and manage its lifecycle
 	ManageNetworkNSLifecycle bool `toml:"manage_network_ns_lifecycle"`
@@ -333,17 +336,18 @@ func DefaultConfig() *Config {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			SELinux:             selinuxEnabled(),
-			SeccompProfile:      seccompProfilePath,
-			ApparmorProfile:     apparmorProfileName,
-			CgroupManager:       cgroupManager,
-			PidsLimit:           DefaultPidsLimit,
-			ContainerExitsDir:   containerExitsDir,
-			HooksDirPath:        hooks.DefaultDir,
-			LogSizeMax:          DefaultLogSizeMax,
-			DefaultMountsFile:   "",
-			DefaultCapabilities: DefaultCapabilities,
-			LogLevel:            "error",
+			SELinux:                  selinuxEnabled(),
+			SeccompProfile:           seccompProfilePath,
+			ApparmorProfile:          apparmorProfileName,
+			CgroupManager:            cgroupManager,
+			PidsLimit:                DefaultPidsLimit,
+			ContainerExitsDir:        containerExitsDir,
+			ContainerAttachSocketDir: oci.ContainerAttachSocketDir,
+			HooksDirPath:             hooks.DefaultDir,
+			LogSizeMax:               DefaultLogSizeMax,
+			DefaultMountsFile:        "",
+			DefaultCapabilities:      DefaultCapabilities,
+			LogLevel:                 "error",
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
