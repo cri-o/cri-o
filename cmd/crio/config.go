@@ -34,6 +34,10 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
+# file_locking is whether file-based locking will be used instead of
+# in-memory locking
+file_locking = {{ .FileLocking }}
+
 # The "crio.api" table contains settings for the kubelet/gRPC interface.
 [crio.api]
 
@@ -61,10 +65,6 @@ stream_tls_key = "{{ .StreamTLSKey }}"
 # communication with the tls encrypted stream.
 # This file can change, and CRIO will automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
-
-# file_locking is whether file-based locking will be used instead of
-# in-memory locking
-file_locking = {{ .FileLocking }}
 
 # The "crio.runtime" table contains settings pertaining to the OCI
 # runtime used and options for how to set up and manage the OCI runtime.
