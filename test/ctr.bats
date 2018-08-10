@@ -1172,3 +1172,26 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "ctr with low memory configured should not be created" {
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	low_mem_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["resources"]["memory_limit_in_bytes"] = 2000; json.dump(obj, sys.stdout)')
+	echo "$low_mem_config" > "$TESTDIR"/container_config_low_mem.json
+	run crictl create "$pod_id" "$TESTDIR"/container_config_low_mem.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ ! "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
