@@ -258,7 +258,8 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 			mounts = append(mounts, rspec.Mount{
 				Source:      src,
 				Destination: dest,
-				Options:     []string{"rw"},
+				Type:        "bind",
+				Options:     []string{"private", "bind", "rw"},
 			})
 
 		case lib.ImageVolumesIgnore:
