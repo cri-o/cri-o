@@ -32,6 +32,10 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
+// minMemoryLimit is the minimum memory that must be set for a container.
+// A lower value would result in the container failing to start.
+const minMemoryLimit = 4194304
+
 func findCgroupMountpoint(name string) error {
 	// Set up pids limit if pids cgroup is mounted
 	_, err := cgroups.FindCgroupMountpoint(name)
@@ -424,7 +428,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.GetCpuPeriod()))
 			specgen.SetLinuxResourcesCPUQuota(resources.GetCpuQuota())
 			specgen.SetLinuxResourcesCPUShares(uint64(resources.GetCpuShares()))
-			specgen.SetLinuxResourcesMemoryLimit(resources.GetMemoryLimitInBytes())
+
+			memoryLimit := resources.GetMemoryLimitInBytes()
+			if memoryLimit != 0 && memoryLimit < minMemoryLimit {
+				return nil, fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+			}
+			specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
+
 			specgen.SetProcessOOMScoreAdj(int(resources.GetOomScoreAdj()))
 			specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
 			specgen.SetLinuxResourcesCPUMems(resources.GetCpusetMems())
