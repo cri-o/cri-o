@@ -10,8 +10,8 @@ import (
 	"os"
 	"path"
 	"strings"
+	"text/template"
 
-	"github.com/docker/docker/pkg/templates"
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 )
 
@@ -108,7 +108,7 @@ func IsLoaded(name string) (bool, error) {
 
 // generateDefault creates an apparmor profile from ProfileData.
 func (p *profileData) generateDefault(out io.Writer) error {
-	compiled, err := templates.NewParse("apparmor_profile", baseTemplate)
+	compiled, err := template.New("apparmor_profile").Parse(baseTemplate)
 	if err != nil {
 		return err
 	}
