@@ -334,7 +334,7 @@ func (c *ContainerServer) Update() error {
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store
 func (c *ContainerServer) LoadSandbox(id string) error {
-	config, err := c.store.FromContainerRunDirectory(id, "config.json")
+	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
 	}
@@ -422,6 +422,11 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
+	sandboxDir, err := c.store.ContainerDirectory(id)
+	if err != nil {
+		return err
+	}
+
 	cname, err := c.ReserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
 	if err != nil {
 		return err
@@ -437,7 +442,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, trusted, sandboxPath, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, trusted, sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -487,7 +492,7 @@ func configNetNsPath(spec rspec.Spec) (string, error) {
 
 // LoadContainer loads a container from the disk into the container store
 func (c *ContainerServer) LoadContainer(id string) error {
-	config, err := c.store.FromContainerRunDirectory(id, "config.json")
+	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
 	}
@@ -529,6 +534,11 @@ func (c *ContainerServer) LoadContainer(id string) error {
 		return err
 	}
 
+	containerDir, err := c.store.ContainerDirectory(id)
+	if err != nil {
+		return err
+	}
+
 	img, ok := m.Annotations[annotations.Image]
 	if !ok {
 		img = ""
@@ -554,7 +564,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, img, imgName, imgRef, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.Trusted(), containerPath, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, img, imgName, imgRef, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.Trusted(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
