@@ -1,9 +1,8 @@
-// +build apparmor
+// +build linux,apparmor
 
 package apparmor
 
-// baseTemplate defines the default apparmor profile for containers.
-const baseTemplate = `
+const libpodProfileTemplate = `
 {{range $value := .Imports}}
 {{$value}}
 {{end}}
@@ -24,8 +23,6 @@ profile {{.Name}} flags=(attach_disconnected,mediate_deleted) {
   deny @{PROC}/sys/[^k]** w,  # deny /proc/sys except /proc/sys/k* (effectively /proc/sys/kernel)
   deny @{PROC}/sys/kernel/{?,??,[^s][^h][^m]**} w,  # deny everything except shm* in /proc/sys/kernel/
   deny @{PROC}/sysrq-trigger rwklx,
-  deny @{PROC}/mem rwklx,
-  deny @{PROC}/kmem rwklx,
   deny @{PROC}/kcore rwklx,
 
   deny mount,
@@ -39,6 +36,7 @@ profile {{.Name}} flags=(attach_disconnected,mediate_deleted) {
   deny /sys/kernel/security/** rwklx,
 
 {{if ge .Version 208095}}
+  # suppress ptrace denials when using using 'ps' inside a container
   ptrace (trace,read) peer={{.Name}},
 {{end}}
 }

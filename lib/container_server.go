@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/pkg/hooks"
 	cstorage "github.com/containers/storage"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/truncindex"
@@ -22,7 +23,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/hooks"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
