@@ -96,6 +96,9 @@ type RootConfig struct {
 	// File-based locking is required when multiple users of lib are
 	// present on the same system
 	FileLocking bool `toml:"file_locking"`
+
+	// FileLockingPath specifies the path to use for the locking.
+	FileLockingPath string `toml:"file_locking_path"`
 }
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -176,6 +179,9 @@ type RuntimeConfig struct {
 	// ContainerExitsDir is the directory in which container exit files are
 	// written to by conmon.
 	ContainerExitsDir string `toml:"container_exits_dir"`
+
+	// ContainerAttachSocketDir is the location for container attach sockets.
+	ContainerAttachSocketDir string `toml:"container_attach_socket_dir"`
 
 	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
 	// and manage its lifecycle
@@ -313,12 +319,13 @@ func DefaultConfig() *Config {
 	insecureRegistries, _ := sysregistries.GetInsecureRegistries(&types.SystemContext{})
 	return &Config{
 		RootConfig: RootConfig{
-			Root:           storage.DefaultStoreOptions.GraphRoot,
-			RunRoot:        storage.DefaultStoreOptions.RunRoot,
-			Storage:        storage.DefaultStoreOptions.GraphDriverName,
-			StorageOptions: storage.DefaultStoreOptions.GraphDriverOptions,
-			LogDir:         "/var/log/crio/pods",
-			FileLocking:    true,
+			Root:            storage.DefaultStoreOptions.GraphRoot,
+			RunRoot:         storage.DefaultStoreOptions.RunRoot,
+			Storage:         storage.DefaultStoreOptions.GraphDriverName,
+			StorageOptions:  storage.DefaultStoreOptions.GraphDriverOptions,
+			LogDir:          "/var/log/crio/pods",
+			FileLocking:     true,
+			FileLockingPath: lockPath,
 		},
 		RuntimeConfig: RuntimeConfig{
 			Runtime:                  "/usr/bin/runc",
@@ -329,17 +336,18 @@ func DefaultConfig() *Config {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			SELinux:             selinuxEnabled(),
-			SeccompProfile:      seccompProfilePath,
-			ApparmorProfile:     apparmorProfileName,
-			CgroupManager:       cgroupManager,
-			PidsLimit:           DefaultPidsLimit,
-			ContainerExitsDir:   containerExitsDir,
-			HooksDirPath:        hooks.DefaultDir,
-			LogSizeMax:          DefaultLogSizeMax,
-			DefaultMountsFile:   "",
-			DefaultCapabilities: DefaultCapabilities,
-			LogLevel:            "error",
+			SELinux:                  selinuxEnabled(),
+			SeccompProfile:           seccompProfilePath,
+			ApparmorProfile:          apparmorProfileName,
+			CgroupManager:            cgroupManager,
+			PidsLimit:                DefaultPidsLimit,
+			ContainerExitsDir:        containerExitsDir,
+			ContainerAttachSocketDir: oci.ContainerAttachSocketDir,
+			HooksDirPath:             hooks.DefaultDir,
+			LogSizeMax:               DefaultLogSizeMax,
+			DefaultMountsFile:        "",
+			DefaultCapabilities:      DefaultCapabilities,
+			LogLevel:                 "error",
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,

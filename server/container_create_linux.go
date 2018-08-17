@@ -884,6 +884,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}()
 	}
 
+	if os.Getenv("_CRIO_ROOTLESS") != "" {
+		if err := makeOCIConfigurationRootless(&specgen); err != nil {
+			return nil, err
+		}
+	}
+
 	saveOptions := generate.ExportOptions{}
 	if err = specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
 		return nil, err

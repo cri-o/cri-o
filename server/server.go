@@ -278,8 +278,6 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	config.ContainerExitsDir = oci.ContainerExitsDir
-
 	// This is used to monitor container exits using inotify
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err

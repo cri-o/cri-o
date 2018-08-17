@@ -34,6 +34,13 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
+# file_locking is whether file-based locking will be used instead of
+# in-memory locking
+file_locking = {{ .FileLocking }}
+
+# file_locking_path is the file used for file-based locking
+file_locking_path = "{{ .FileLockingPath }}"
+
 # The "crio.api" table contains settings for the kubelet/gRPC interface.
 [crio.api]
 
@@ -61,10 +68,6 @@ stream_tls_key = "{{ .StreamTLSKey }}"
 # communication with the tls encrypted stream.
 # This file can change, and CRIO will automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
-
-# file_locking is whether file-based locking will be used instead of
-# in-memory locking
-file_locking = {{ .FileLocking }}
 
 # The "crio.runtime" table contains settings pertaining to the OCI
 # runtime used and options for how to set up and manage the OCI runtime.
@@ -162,6 +165,13 @@ pids_limit = {{ .PidsLimit }}
 # log_size_max is the max limit for the container log size in bytes.
 # Negative values indicate that no limit is imposed.
 log_size_max = {{ .LogSizeMax }}
+
+# container_exits_dir is the directory in which container exit files are
+# written to by conmon.
+container_exits_dir = "{{ .ContainerExitsDir }}"
+
+# container_attach_socket_dir is the location for container attach sockets.
+container_attach_socket_dir = "{{ .ContainerAttachSocketDir }}"
 
 # read-only indicates whether all containers will run in read-only mode
 read_only = {{ .ReadOnly }}

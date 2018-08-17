@@ -27,6 +27,7 @@ func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid
 	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
 	if err != nil {
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+		return nil
 	}
 
 	// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will

@@ -129,14 +129,14 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		return nil, err
 	}
 
-	runtime, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager, config.ContainerExitsDir, config.LogSizeMax, config.NoPivot)
+	runtime, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.Conmon, config.ConmonEnv, config.CgroupManager, config.ContainerExitsDir, config.ContainerAttachSocketDir, config.LogSizeMax, config.NoPivot)
 	if err != nil {
 		return nil, err
 	}
 
 	var lock sync.Locker
 	if config.FileLocking {
-		fileLock, err := cstorage.GetLockfile(lockPath)
+		fileLock, err := cstorage.GetLockfile(config.FileLockingPath)
 		if err != nil {
 			return nil, fmt.Errorf("error obtaining lockfile: %v", err)
 		}
