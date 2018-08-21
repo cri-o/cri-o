@@ -212,6 +212,10 @@ type RuntimeConfig struct {
 	// LogLevel determines the verbosity of the logs based on the level it is set to.
 	// Options are fatal, panic, error (default), warn, info, and debug.
 	LogLevel string `toml:"log_level"`
+
+	// CtrStopTimeout specifies the time to wait before to generate an
+	// error because the container state is still tagged as "running".
+	CtrStopTimeout int64 `toml:"ctr_stop_timeout"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
