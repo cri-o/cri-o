@@ -8,252 +8,256 @@ import (
 	"github.com/urfave/cli"
 )
 
+// NOTE: please propagate any changes to the template to docs/crio.conf.5.md
+
 var commentedConfigTemplate = template.Must(template.New("config").Parse(`
-# The "crio" table contains all of the server options.
+# The CRI-O configuration file specifies all of the available configuration
+# options and command-line flags for the crio(8) OCI Kubernetes Container Runtime
+# daemon, but in a TOML format that can be more easily modified and versioned.
+#
+# Please refer to crio.conf(5) for details of all configuration options.
+
+# CRI-O reads its storage defaults from the containers-storage.conf(5) file
+# located at /etc/containers/storage.conf. Modify this storage configuration if
+# you want to change the system's defaults. If you want to modify storage just
+# for CRI-O, you can change the storage configuration options here.
 [crio]
 
-# CRI-O reads its storage defaults from the containers/storage configuration
-# file, /etc/containers/storage.conf. Modify storage.conf if you want to
-# change default storage for all tools that use containers/storage.  If you
-# want to modify just crio, you can change the storage configuration in this
-# file.
-
-# root is a path to the "root directory". CRIO stores all of its data,
-# including container images, in this directory.
+# Path to the "root directory". CRI-O stores all of its data, including
+# containers images, in this directory.
 #root = "{{ .Root }}"
 
-# run is a path to the "run directory". CRIO stores all of its state
-# in this directory.
+# Path to the "run directory". CRI-O stores all of its state in this directory.
 #runroot = "{{ .RunRoot }}"
 
-# storage_driver select which storage driver is used to manage storage
-# of images and containers.
+# Storage driver used to manage the storage of images and containers. Please
+# refer to containers-storage.conf(5) to see all available storage drivers.
 #storage_driver = "{{ .Storage }}"
 
-# storage_option is used to pass an option to the storage driver.
+# List to pass options to the storage driver. Please refer to
+# containers-storage.conf(5) to see all available storage options.
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
-# file_locking is whether file-based locking will be used instead of
-# in-memory locking
+# If set to false, in-memory locking will be used instead of file-based locking.
 file_locking = {{ .FileLocking }}
 
-# file_locking_path is the file used for file-based locking
+# Path to the lock file.
 file_locking_path = "{{ .FileLockingPath }}"
 
-# The "crio.api" table contains settings for the kubelet/gRPC interface.
+
+# The crio.api table contains settings for the kubelet/gRPC interface.
 [crio.api]
 
-# listen is the path to the AF_LOCAL socket on which crio will listen.
+# Path to AF_LOCAL socket on which CRI-O will listen.
 listen = "{{ .Listen }}"
 
-# stream_address is the IP address on which the stream server will listen
+# IP address on which the stream server will listen.
 stream_address = "{{ .StreamAddress }}"
 
-# stream_port is the port on which the stream server will listen
+# The port on which the stream server will listen.
 stream_port = "{{ .StreamPort }}"
 
-# stream_enable_tls enables encrypted tls transport of the stream server
+# Enable encrypted TLS transport of the stream server.
 stream_enable_tls = {{ .StreamEnableTLS }}
 
-# stream_tls_cert is the x509 certificate file path used to serve the encrypted stream.
-# This file can change, and CRIO will automatically pick up the changes within 5 minutes.
+# Path to the x509 certificate file used to serve the encrypted stream. This
+# file can change, and CRI-O will automatically pick up the changes within 5
+# minutes.
 stream_tls_cert = "{{ .StreamTLSCert }}"
 
-# stream_tls_key is the key file path used to serve the encrypted stream.
-# This file can change, and CRIO will automatically pick up the changes within 5 minutes.
+# Path to the key file used to serve the encrypted stream. This file can
+# change, and CRI-O will automatically pick up the changes within 5 minutes.
 stream_tls_key = "{{ .StreamTLSKey }}"
 
-# stream_tls_ca is the x509 CA(s) file used to verify and authenticate client
-# communication with the tls encrypted stream.
-# This file can change, and CRIO will automatically pick up the changes within 5 minutes.
+# Path to the x509 CA(s) file used to verify and authenticate client
+# communication with the encrypted stream. This file can change, and CRI-O will
+# automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
 
-# The "crio.runtime" table contains settings pertaining to the OCI
-# runtime used and options for how to set up and manage the OCI runtime.
+
+# The crio.runtime table contains settings pertaining to the OCI runtime used
+# and options for how to set up and manage the OCI runtime.
 [crio.runtime]
 
-# runtime is the OCI compatible runtime used for trusted container workloads.
-# This is a mandatory setting as this runtime will be the default one
-# and will also be used for untrusted container workloads if
-# runtime_untrusted_workload is not set.
+# Path to the OCI compatible runtime used for trusted container workloads. This
+# is a mandatory setting as this runtime will be the default and will also be
+# used for untrusted container workloads if runtime_untrusted_workload is not
+# set.
 runtime = "{{ .Runtime }}"
 
-# runtime_untrusted_workload is the OCI compatible runtime used for untrusted
-# container workloads. This is an optional setting, except if
-# default_container_trust is set to "untrusted".
+# Path to OCI compatible runtime used for untrusted container workloads. This
+# is an optional setting, except if default_container_trust is set to
+# "untrusted".
 runtime_untrusted_workload = "{{ .RuntimeUntrustedWorkload }}"
 
-# default_workload_trust is the default level of trust crio puts in container
-# workloads. It can either be "trusted" or "untrusted", and the default
-# is "trusted".
-# Containers can be run through different container runtimes, depending on
-# the trust hints we receive from kubelet:
-# - If kubelet tags a container workload as untrusted, crio will try first to
-# run it through the untrusted container workload runtime. If it is not set,
-# crio will use the trusted runtime.
-# - If kubelet does not provide any information about the container workload trust
-# level, the selected runtime will depend on the default_container_trust setting.
-# If it is set to "untrusted", then all containers except for the host privileged
-# ones, will be run by the runtime_untrusted_workload runtime. Host privileged
-# containers are by definition trusted and will always use the trusted container
-# runtime. If default_container_trust is set to "trusted", crio will use the trusted
-# container runtime for all containers.
+# Default level of trust CRI-O puts in container workloads. It can either be
+# "trusted" or "untrusted", and the default is "trusted". Containers can be run
+# through different container runtimes, depending on the trust hints we receive
+# from kubelet:
+#
+#   - If kubelet tags a container workload as untrusted, CRI-O will try first
+#     to run it through the untrusted container workload runtime. If it is not
+#     set, CRI-O will use the trusted runtime.
+#
+#   - If kubelet does not provide any information about the container workload
+#     trust level, the selected runtime will depend on the default_container_trust
+#     setting. If it is set to untrusted, then all containers except for the host
+#     privileged ones, will be run by the runtime_untrusted_workload runtime. Host
+#     privileged containers are by definition trusted and will always use the
+#     trusted container runtime. If default_container_trust is set to "trusted",
+#     CRI-O will use the trusted container runtime for all containers.
 default_workload_trust = "{{ .DefaultWorkloadTrust }}"
 
-# no_pivot instructs the runtime to not use pivot_root, but instead use MS_MOVE
+# If true, the runtime will not use use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
 
-# conmon is the path to conmon binary, used for managing the runtime.
+# Path to the conmon binary, used for monitoring the OCI runtime.
 conmon = "{{ .Conmon }}"
 
-# conmon_env is the environment variable list for conmon process,
-# used for passing necessary environment variable to conmon or runtime.
+# Environment variable list for the conmon process, used for passing necessary
+# environment variables to conmon or the runtime.
 conmon_env = [
 {{ range $env := .ConmonEnv }}{{ printf "\t%q,\n" $env }}{{ end }}]
 
-# selinux indicates whether or not SELinux will be used for pod
-# separation on the host. If you enable this flag, SELinux must be running
-# on the host.
+# If true, SELinux will be used for pod separation on the host.
 selinux = {{ .SELinux }}
 
-# seccomp_profile is the seccomp json profile path which is used as the
-# default for the runtime.
+# Path to the seccomp.json profile which is used as the default seccomp profile
+# for the runtime.
 seccomp_profile = "{{ .SeccompProfile }}"
 
-# apparmor_profile is the apparmor profile name which is used as the
-# default for the runtime.
+# Used to change the name of the default AppArmor profile of CRI-O. The default
+# profile name is "crio-default-" followed by the version string of CRI-O.
 apparmor_profile = "{{ .ApparmorProfile }}"
 
-# cgroup_manager is the cgroup management implementation to be used
-# for the runtime.
+# Cgroup management implementation used for the runtime.
 cgroup_manager = "{{ .CgroupManager }}"
 
-# default_capabilities is the list of capabilities to add and can be modified here.
-# If capabilities is empty below or commented out, only the capabilities defined in the container json
-# file by the user/kube will be added.
+# List of default capabilities for containers. If it is empty or commented out,
+# only the capabilities defined in the containers json file by the user/kube
+# will be added.
 default_capabilities = [
 {{ range $capability := .DefaultCapabilities}}{{ printf "\t%q, \n" $capability}}{{ end }}]
 
-# default-sysctls is the list of sysctls to add and can be modified here.append
-# If sysctls is empty below or commented out, only the sysctls defined in the container json
-# file by the user/kube will be added.
+# List of default sysctls. If it is empty or commented out, only the sysctls
+# defined in the container json file by the user/kube will be added.
 default_sysctls = [
 {{ range $sysctl := .DefaultSysctls}}{{ printf "\t%q, \n" $sysctl}}{{ end }}]
 
-# hooks_dir_path is the oci hooks directory for automatically executed hooks
+# Path to the OCI hooks directory for automatically executed hooks.
 hooks_dir_path = "{{ .HooksDirPath }}"
 
-# default_mounts is the mounts list to be mounted for the container when created
-# deprecated, will be taken out in future versions, add default mounts to either
-# /usr/share/containers/mounts.conf or /etc/containers/mounts.conf
+# List of default mounts for each container. **Deprecated:** this option will
+# be removed in future versions in favor of default_mounts_file.
 default_mounts = [
 {{ range $mount := .DefaultMounts }}{{ printf "\t%q, \n" $mount }}{{ end }}]
 
-# CRI-O reads its default mounts from the following two files:
-# 1) /etc/containers/mounts.conf - this is the override file, where users can
-# either add in their own default mounts, or override the default mounts shipped
-# with the package.
-# 2) /usr/share/containers/mounts.conf - this is the default file read for mounts.
-# If you want CRI-O to read from a different, specific mounts file, you can change
-# the default_mounts_file path right below. Note, if this is done, CRI-O will only add
-# mounts it finds in this file.
+# Path to the file specifying the defaults mounts for each container. The
+# format of the config is /SRC:/DST, one mount per line. Notice that CRI-O reads
+# its default mounts from the following two files:
+#
+#   1) /etc/containers/mounts.conf (i.e., default_mounts_file): This is the
+#      override file, where users can either add in their own default mounts, or
+#      override the default mounts shipped with the package.
+#
+#   2) /usr/share/containers/mounts.conf: This is the default file read for
+#      mounts. If you want CRI-O to read from a different, specific mounts file,
+#      you can change the default_mounts_file. Note, if this is done, CRI-O will
+#      only add mounts it finds in this file.
+#
+#default_mounts_file = "{{ .DefaultMountsFile }}"
 
-# default_mounts_file is the file path holding the default mounts to be mounted for the
-# container when created.
-# default_mounts_file = "{{ .DefaultMountsFile }}"
-
-# pids_limit is the number of processes allowed in a container
+# Maximum number of processes allowed in a container.
 pids_limit = {{ .PidsLimit }}
 
-# log_size_max is the max limit for the container log size in bytes.
-# Negative values indicate that no limit is imposed.
+# Maximum sized allowed for the container log file. Negative numbers indicate
+# that no size limit is imposed. If it is positive, it must be >= 8192 to
+# match/exceed conmon's read buffer. The file is truncated and re-opened so the
+# limit is never exceeded.
 log_size_max = {{ .LogSizeMax }}
 
-# container_exits_dir is the directory in which container exit files are
-# written to by conmon.
+# Path to directory in which container exit files are written to by conmon.
 container_exits_dir = "{{ .ContainerExitsDir }}"
 
-# container_attach_socket_dir is the location for container attach sockets.
+# Path to directory for container attach sockets.
 container_attach_socket_dir = "{{ .ContainerAttachSocketDir }}"
 
-# read-only indicates whether all containers will run in read-only mode
+# If set to true, all containers will run in read-only mode.
 read_only = {{ .ReadOnly }}
 
-# log_level changes the verbosity of the logs printed.
-# Options are: error (default), fatal, panic, warn, info, and debug
+# Changes the verbosity of the logs based on the level it is set to. Options
+# are fatal, panic, error, warn, info, and debug.
 log_level = "{{ .LogLevel }}"
 
-# The "crio.image" table contains settings pertaining to the
-# management of OCI images.
-
-# uid_mappings specifies the UID mappings to have in the user namespace.
-# A range is specified in the form containerUID:HostUID:Size.  Multiple
-# ranges are separed by comma.
+# The UID mappings for the user namespace of each container. A range is
+# specified in the form containerUID:HostUID:Size. Multiple ranges must be
+# separated by comma.
 uid_mappings = "{{ .UIDMappings }}"
 
-# gid_mappings specifies the GID mappings to have in the user namespace.
-# A range is specified in the form containerGID:HostGID:Size.  Multiple
-# ranges are separed by comma.
+# The GID mappings for the user namespace of each container. A range is
+# specified in the form containerGID:HostGID:Size. Multiple ranges must be
+# separated by comma.
 gid_mappings = "{{ .GIDMappings }}"
 
-# ctr_stop_timeout specifies the time to wait before to generate an error
-# because the container state is still tagged as "running".
+# The minimal amount of time in seconds to wait before issuing a timeout
+# regarding the proper termination of the container.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
+
+# The crio.image table contains settings pertaining to the management of OCI images.
+#
+# CRI-O reads its configured registries defaults from the system wide
+# containers-registries.conf(5) located in /etc/containers/registries.conf. If
+# you want to modify just CRI-O, you can change the registies configuration in
+# this file. Otherwise, leave insecure_registries and registries commented out to
+# use the system's defaults from /etc/containers/registries.conf.
 [crio.image]
 
-# default_transport is the prefix we try prepending to an image name if the
-# image name as we receive it can't be parsed as a valid source reference
+# Default transport for pulling images from a remote container storage.
 default_transport = "{{ .DefaultTransport }}"
 
-# pause_image is the image which we use to instantiate infra containers.
+# The image used to instantiate infra containers.
 pause_image = "{{ .PauseImage }}"
 
-# pause_command is the command to run in a pause_image to have a container just
-# sit there.  If the image contains the necessary information, this value need
-# not be specified.
+# The command to run to have a container stay in the paused state.
 pause_command = "{{ .PauseCommand }}"
 
-# signature_policy is the name of the file which decides what sort of policy we
-# use when deciding whether or not to trust an image that we've pulled.
-# Outside of testing situations, it is strongly advised that this be left
-# unspecified so that the default system-wide policy will be used.
+# Path to the file which decides what sort of policy we use when deciding
+# whether or not to trust an image that we've pulled. It is not recommended that
+# this option be used, as the default behavior of using the system-wide default
+# policy (i.e., /etc/containers/policy.json) is most often preferred. Please
+# refer to containers-policy.json(5) for more details.
 signature_policy = "{{ .SignaturePolicyPath }}"
 
-# image_volumes controls how image volumes are handled.
-# The valid values are mkdir and ignore.
+# Controls how image volumes are handled. The valid values are mkdir, bind and
+# ignore; the latter will ignore volumes entirely.
 image_volumes = "{{ .ImageVolumes }}"
 
-# CRI-O reads its configured registries defaults from the containers/image configuration
-# file, /etc/containers/registries.conf. Modify registries.conf if you want to
-# change default registries for all tools that use containers/image.  If you
-# want to modify just crio, you can change the registies configuration in this
-# file.
-
-# insecure_registries is used to skip TLS verification when pulling images.
-# insecure_registries = [
-# {{ range $opt := .InsecureRegistries }}{{ printf "\t%q,\n#" $opt }}{{ end }}]
-
-# registries is used to specify a comma separated list of registries to be used
-# when pulling an unqualified image (e.g. fedora:rawhide).
+# List of registries to be used when pulling an unqualified image (e.g.,
+# "alpine:latest"). By default, registries is set to "docker.io" for
+# compatibility reasons. Depending on your workload and usecase you may add more
+# registries (e.g., "quay.io", "registry.fedoraproject.org",
+# "registry.opensuse.org", etc.).
 #registries = [
 # {{ range $opt := .Registries }}{{ printf "\t%q,\n#" $opt }}{{ end }}]
 
-# The "crio.network" table contains settings pertaining to the
-# management of CNI plugins.
+
+# The crio.network table containers settings pertaining to the management of
+# CNI plugins.
 [crio.network]
 
-# network_dir is is where CNI network configuration
-# files are stored.
+# Path to the directory where CNI configuration files are located.
 network_dir = "{{ .NetworkDir }}"
 
-# plugin_dir is is where CNI plugin binaries are stored.
+# Path to directory where CNI plugin binaries are located.
 plugin_dir = "{{ .PluginDir }}"
 `))
 
 // TODO: Currently ImageDir isn't really used, so we haven't added it to this
 //       template. Add it once the storage code has been merged.
+
+// NOTE: please propagate any changes to the template to docs/crio.conf.5.md
 
 var configCommand = cli.Command{
 	Name:  "config",
