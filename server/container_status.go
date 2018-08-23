@@ -1,6 +1,7 @@
 package server
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/containers/image/types"
@@ -98,6 +99,13 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 
 	resp.Status.State = rStatus
 	resp.Status.LogPath = c.LogPath()
+
+	if req.Verbose {
+		resp.Info = map[string]string{
+			"pid":       strconv.Itoa(c.State().Pid),
+			"sandboxId": c.Sandbox(),
+		}
+	}
 
 	logrus.Debugf("ContainerStatusResponse: %+v", resp)
 	return resp, nil
