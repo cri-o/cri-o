@@ -57,7 +57,7 @@ It is currently in active development in the Kubernetes community through the [d
 | ---------------------------------------------------- | --------------------------------------------------------------------------|-----|
 | [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   ||
 
-Note that kpod and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/projectatomic/libpod).
+Note that kpod and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/containers/libpod).
 
 ## Configuration
 | File                                       | Description                                                                                          |
@@ -225,5 +225,5 @@ To run a full cluster, see [the instructions](kubernetes.md).
 1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/kubernetes-incubator/cri-o/issues/533)
 1. Track upstream k8s releases
 
-[libpod-hooks]: https://github.com/projectatomic/libpod/blob/v0.6.2/pkg/hooks/README.md
+[libpod-hooks]: https://github.com/containers/libpod/blob/v0.6.2/pkg/hooks/README.md
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks

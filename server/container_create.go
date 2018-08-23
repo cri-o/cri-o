@@ -15,7 +15,6 @@ import (
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/lib"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
-	"github.com/kubernetes-incubator/cri-o/pkg/apparmor"
 	"github.com/kubernetes-incubator/cri-o/pkg/seccomp"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -580,12 +579,12 @@ func (s *Server) getAppArmorProfileName(profile string) string {
 		return ""
 	}
 
-	if profile == apparmor.ProfileRuntimeDefault {
+	if profile == apparmorRuntimeDefault {
 		// If the value is runtime/default, then return default profile.
 		return s.appArmorProfile
 	}
 
-	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
+	return strings.TrimPrefix(profile, apparmorLocalHostPrefix)
 }
 
 // openContainerFile opens a file inside a container rootfs safely

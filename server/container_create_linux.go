@@ -12,20 +12,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/pkg/apparmor"
+	"github.com/containers/libpod/pkg/secrets"
 	"github.com/containers/storage/pkg/idtools"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
-	"github.com/kubernetes-incubator/cri-o/pkg/apparmor"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -379,9 +379,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		appArmorProfileName := s.getAppArmorProfileName(containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile())
 		if appArmorProfileName != "" {
 			// reload default apparmor profile if it is unloaded.
-			if s.appArmorProfile == apparmor.DefaultApparmorProfile {
-				if err := apparmor.EnsureDefaultApparmorProfile(); err != nil {
+			if s.appArmorProfile == apparmorDefaultProfile {
+				isLoaded, err := apparmor.IsLoaded(apparmorDefaultProfile)
+				if err != nil {
 					return nil, err
+				}
+				if !isLoaded {
+					if err := apparmor.InstallDefault(apparmorDefaultProfile); err != nil {
+						return nil, err
+					}
 				}
 			}
 

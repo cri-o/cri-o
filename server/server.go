@@ -17,16 +17,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	"github.com/kubernetes-incubator/cri-o/lib"
 	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/pkg/apparmor"
 	"github.com/kubernetes-incubator/cri-o/pkg/seccomp"
 	"github.com/kubernetes-incubator/cri-o/pkg/storage"
 	"github.com/kubernetes-incubator/cri-o/server/metrics"
+	"github.com/kubernetes-incubator/cri-o/version"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -43,6 +44,10 @@ import (
 const (
 	shutdownFile        = "/var/lib/crio/crio.shutdown"
 	certRefreshInterval = time.Minute * 5
+
+	apparmorDefaultProfile  = "crio-default-" + version.Version
+	apparmorRuntimeDefault  = "runtime/default"
+	apparmorLocalHostPrefix = "localhost/"
 )
 
 func isTrue(annotaton string) bool {
@@ -324,9 +329,9 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 		s.seccompProfile = seccompConfig
 	}
 
-	if s.appArmorEnabled && s.appArmorProfile == apparmor.DefaultApparmorProfile {
-		if apparmorErr := apparmor.EnsureDefaultApparmorProfile(); apparmorErr != nil {
-			return nil, fmt.Errorf("ensuring the default apparmor profile is installed failed: %v", apparmorErr)
+	if s.appArmorEnabled && s.appArmorProfile == apparmorDefaultProfile {
+		if err := apparmor.InstallDefault(apparmorDefaultProfile); err != nil {
+			return nil, fmt.Errorf("ensuring the default apparmor profile %q is installed failed: %v", apparmorDefaultProfile, err)
 		}
 	}
 

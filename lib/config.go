@@ -7,9 +7,9 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/storage"
 	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/projectatomic/libpod/pkg/hooks"
 )
 
 // Defaults if none are specified
