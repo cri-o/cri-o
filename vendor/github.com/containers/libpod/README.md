@@ -19,7 +19,7 @@ At a high level, the scope of libpod and podman is the following:
 
 ## What is not in scope for this project?
 
-* Signing and pushing images to various image storages. See [Skopeo](https://github.com/projectatomic/skopeo/).
+* Signing and pushing images to various image storages. See [Skopeo](https://github.com/containers/skopeo/).
 * Container Runtimes daemons for working with Kubernetes CRIs. See [CRI-O](https://github.com/kubernetes-incubator/cri-o). We are working to integrate libpod into CRI-O to share containers and backend code with Podman.
 
 ## OCI Projects Plans
@@ -56,6 +56,9 @@ includes tables showing Docker commands and their Podman equivalent commands.
 
 **[Tutorials](docs/tutorials)**
 Tutorials on using Podman.
+
+**[Release Notes](RELEASE_NOTES.md)**
+Release notes for recent Podman versions
 
 **[Contributing](CONTRIBUTING.md)**
 Information about contributing to this project.
