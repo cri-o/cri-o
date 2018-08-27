@@ -39,19 +39,18 @@ jobs:
         - make .gitvalidation
         - make fmt
         - make lint
-      go: "1.10.x"
-    - stage: Build and Verify
-      script:
-        - sudo "PATH=$PATH" make testunit
-        - make
-      go: "1.9.x"
+      go: "1.11.x"
     - script:
         - sudo "PATH=$PATH" make testunit
         - make
       go: "1.10.x"
+    - script:
+        - sudo "PATH=$PATH" make testunit
+        - make
+      go: "1.11.x"
     - script:
         - make local-cross
-      go: "1.10.x"
+      go: "1.11.x"
       env: CROSS_PLATFORM=true
     - script:
         - sudo "PATH=$PATH" make testunit
@@ -64,11 +63,11 @@ jobs:
     - stage: Integration Test
       script:
         - make CONTAINER_RUNTIME=docker integration
-      go: "1.10.x"
+      go: "1.11.x"
     - script:
         - make CONTAINER_RUNTIME=docker integration
       env: TEST_USERNS=1
-      go: "1.10.x"
+      go: "1.11.x"
   allow_failures:
     - os: osx
     - go: tip
