@@ -383,7 +383,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	s.stream.streamServerCloseCh = make(chan struct{})
 	go func() {
 		defer close(s.stream.streamServerCloseCh)
-		if err := s.stream.streamServer.Start(true); err != nil {
+		if err := s.stream.streamServer.Start(true); err != nil && err != http.ErrServerClosed {
 			logrus.Errorf("Failed to start streaming server: %v", err)
 		}
 	}()
