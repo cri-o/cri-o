@@ -193,7 +193,7 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		if missingHookDirectoryFatal || !os.IsNotExist(err) {
 			return nil, err
 		}
-		logrus.Warnf("failed to load hooks: {}", err)
+		logrus.Warnf("failed to load hooks: %v", err)
 	}
 
 	return &ContainerServer{
