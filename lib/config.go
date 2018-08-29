@@ -52,7 +52,7 @@ const (
 	DefaultLogSizeMax = -1
 )
 
-// DefaultCapabilities for the capabilities option in the crio.conf file
+// DefaultCapabilities for the default_capabilities option in the crio.conf file
 var DefaultCapabilities = []string{
 	"CHOWN",
 	"DAC_OVERRIDE",
@@ -216,6 +216,9 @@ type RuntimeConfig struct {
 	// CtrStopTimeout specifies the time to wait before to generate an
 	// error because the container state is still tagged as "running".
 	CtrStopTimeout int64 `toml:"ctr_stop_timeout"`
+
+	// Sysctls to add to all containers.
+	DefaultSysctls []string `toml:"default_sysctls"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -352,6 +355,7 @@ func DefaultConfig() *Config {
 			DefaultMountsFile:        "",
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "error",
+			DefaultSysctls:           []string{},
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,

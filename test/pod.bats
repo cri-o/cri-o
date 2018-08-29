@@ -206,6 +206,7 @@ function teardown() {
 	if test -n "$UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
+	export TEST_SYSCTL="net.ipv4.ip_forward=1"
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config_sysctl.json
 	echo "$output"
@@ -235,6 +236,11 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "net.ipv4.ip_local_port_range = 1024	65000" ]]
+
+	run crictl exec --sync "$ctr_id" sysctl net.ipv4.ip_forward
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "net.ipv4.ip_forward = 1" ]]
 
 	cleanup_pods
 	stop_crio

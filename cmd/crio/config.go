@@ -130,12 +130,16 @@ apparmor_profile = "{{ .ApparmorProfile }}"
 cgroup_manager = "{{ .CgroupManager }}"
 
 # default_capabilities is the list of capabilities to add and can be modified here.
-# If capabilities below is commented out, the default list of capabilities defined in the
-# spec will be added.
-# If capabilities is empty below, only the capabilities defined in the container json
+# If capabilities is empty below or commented out, only the capabilities defined in the container json
 # file by the user/kube will be added.
 default_capabilities = [
 {{ range $capability := .DefaultCapabilities}}{{ printf "\t%q, \n" $capability}}{{ end }}]
+
+# default-sysctls is the list of sysctls to add and can be modified here.append
+# If sysctls is empty below or commented out, only the sysctls defined in the container json
+# file by the user/kube will be added.
+default_sysctls = [
+{{ range $sysctl := .DefaultSysctls}}{{ printf "\t%q, \n" $sysctl}}{{ end }}]
 
 # hooks_dir_path is the oci hooks directory for automatically executed hooks
 hooks_dir_path = "{{ .HooksDirPath }}"
