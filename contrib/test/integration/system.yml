@@ -1,5 +1,11 @@
 ---
 
+- name: Enable EPEL repository for 'jq' on RHEL/CentOS
+  package:
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    state: present
+  when: ansible_distribution in ['RedHat', 'CentOS']
+
 - name: Make sure we have all required packages
   package:
     name: "{{ item }}"
@@ -20,6 +26,7 @@
     - hostname
     - iproute
     - iptables
+    - jq
     - krb5-workstation
     - libassuan-devel
     - libffi-devel
