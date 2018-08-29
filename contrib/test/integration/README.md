@@ -8,10 +8,11 @@ for both RHEL and Fedora hosts. Two entry-point playbooks exist:
 
 When running the `main.yml` playbook, multiple tags are present:
 
- - `setup`: run all tasks to set up the system for testing.
- - `e2e`: build CRI-O from source and run Kubernetes end-to-end tests.
- - `node-e2e`: build CRI-O from source and run Kubernetes 'node' end-to-end tests.
- - `integration`: build CRI-O from source and run the local integration suite.
+ - `setup`: Run all tasks to set up the system for testing.
+ - `e2e`: Build CRI-O from source and run Kubernetes end-to-end tests.
+ - `node-e2e`: Build CRI-O from source and run Kubernetes 'node' end-to-end tests.
+ - `integration`: Build CRI-O from source and run the local integration suite twice.
+                  First normally, then again with user-namespace support enabled.
 
 The playbooks assume the following things about your system:
 
