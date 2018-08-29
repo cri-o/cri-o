@@ -10,7 +10,6 @@ import (
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/image"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/signature"
 	istorage "github.com/containers/image/storage"
@@ -99,8 +98,6 @@ type ImageServer interface {
 	// the image server uses to hold images, and is the destination used
 	// when it's asked to pull an image.
 	GetStore() storage.Store
-	// CanPull preliminary checks whether we're allowed to pull an image
-	CanPull(imageName string, options *copy.Options) (bool, error)
 	// ResolveNames takes an image reference and if it's unqualified (w/o hostname),
 	// it uses crio's default registries to qualify it.
 	ResolveNames(imageName string) ([]string, error)
@@ -350,28 +347,6 @@ func imageConfigDigest(ctx context.Context, img types.ImageSource, instanceDiges
 		return "", err
 	}
 	return imgManifest.ConfigInfo().Digest, nil
-}
-
-func (svc *imageService) CanPull(imageName string, options *copy.Options) (bool, error) {
-	srcRef, err := svc.prepareReference(imageName, options)
-	if err != nil {
-		return false, err
-	}
-	rawSource, err := srcRef.NewImageSource(svc.ctx, options.SourceCtx)
-	if err != nil {
-		return false, err
-	}
-	sourceCtx := &types.SystemContext{}
-	if options.SourceCtx != nil {
-		sourceCtx = options.SourceCtx
-	}
-	src, err := image.FromSource(svc.ctx, sourceCtx, rawSource)
-	if err != nil {
-		rawSource.Close()
-		return false, err
-	}
-	src.Close()
-	return true, nil
 }
 
 // prepareReference creates an image reference from an image string and set options
