@@ -15,6 +15,7 @@
     - container-selinux
     - curl
     - device-mapper-devel
+    - docker
     - expect
     - findutils
     - gcc
