@@ -119,3 +119,13 @@
           crio_socket: "/var/run/crio/crio.sock"
     - name: run k8s e2e tests
       include: e2e.yml
+
+# N/B: This is done after all testing, so it doesn't get in the way.
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - always
+  tasks:
+    - include: results.yml
