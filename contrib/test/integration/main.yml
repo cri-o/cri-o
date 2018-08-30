@@ -54,10 +54,6 @@
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
       include: "disable_swap.yml"
-    - name: The docker daemon is NOT running during testing
-      systemd:
-        name: docker
-        state: stopped
 
 - hosts: all
   remote_user: root
@@ -131,7 +127,4 @@
   tags:
     - always
   tasks:
-    - name: The docker daemon must be running to post GCE results
-      systemd:
-        name: docker
-        state: started
+    - include: results.yml
