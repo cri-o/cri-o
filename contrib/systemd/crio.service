@@ -9,6 +9,8 @@ Type=notify
 EnvironmentFile=-/etc/sysconfig/crio
 Environment=GOTRACEBACK=crash
 ExecStart=/usr/local/bin/crio \
+          $CRIO_CONFIG_OPTIONS \
+          $CRIO_RUNTIME_OPTIONS \
           $CRIO_STORAGE_OPTIONS \
           $CRIO_NETWORK_OPTIONS \
           $CRIO_METRICS_OPTIONS
