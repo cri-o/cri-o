@@ -46,6 +46,9 @@ GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
 NIX_IMAGE := saschagrunert/crionix:1.0.0
 
+# pass crio CLI options to generate custom crio.conf build time
+CONF_OVERRIDES ?=
+
 CROSS_BUILD_TARGETS := \
 	bin/crio.cross.windows.amd64 \
 	bin/crio.cross.darwin.amd64 \
@@ -132,7 +135,7 @@ nix-image: git-vars
 		--build-arg COMMIT=$(COMMIT_NO) -f Dockerfile-nix .
 
 crio.conf: bin/crio
-	./bin/crio --config="" config --default > crio.conf
+	./bin/crio --config="" $(CONF_OVERRIDES) config  > crio.conf
 
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
