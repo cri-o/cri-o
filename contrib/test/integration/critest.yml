@@ -41,10 +41,3 @@
   async: 5400
   poll: 30
   when: ansible_distribution in ['RedHat', 'CentOS']
-
-- name: run critest benchmarks
-  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --benchmark"
-  args:
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
-  async: 5400
-  poll: 30
