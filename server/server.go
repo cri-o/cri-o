@@ -487,7 +487,13 @@ func (s *Server) StartExitMonitor() {
 					containerID := filepath.Base(event.Name)
 					logrus.Debugf("container or sandbox exited: %v", containerID)
 					c := s.GetContainer(containerID)
-					if c != nil {
+					if c == nil {
+						c = s.getInfraContainer(containerID)
+						if c == nil {
+							continue
+						}
+					}
+					go func() {
 						logrus.Debugf("container exited and found: %v", containerID)
 						err := s.Runtime().UpdateStatus(c)
 						if err != nil {
@@ -495,19 +501,7 @@ func (s *Server) StartExitMonitor() {
 						} else {
 							s.ContainerStateToDisk(c)
 						}
-					} else {
-						sb := s.GetSandbox(containerID)
-						if sb != nil {
-							c := sb.InfraContainer()
-							logrus.Debugf("sandbox exited and found: %v", containerID)
-							err := s.Runtime().UpdateStatus(c)
-							if err != nil {
-								logrus.Warnf("Failed to update sandbox infra container status %s: %v", c.ID(), err)
-							} else {
-								s.ContainerStateToDisk(c)
-							}
-						}
-					}
+					}()
 				}
 			case err := <-watcher.Errors:
 				logrus.Debugf("watch error: %v", err)
