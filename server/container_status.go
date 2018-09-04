@@ -67,20 +67,18 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		cState = s.Runtime().ContainerStatus(c)
 	}
 
+	created := c.CreatedAt().UnixNano()
 	switch cState.Status {
 	case oci.ContainerStateCreated:
 		rStatus = pb.ContainerState_CONTAINER_CREATED
-		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = created
 	case oci.ContainerStateRunning:
 		rStatus = pb.ContainerState_CONTAINER_RUNNING
-		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
 	case oci.ContainerStateStopped:
 		rStatus = pb.ContainerState_CONTAINER_EXITED
-		created := cState.Created.UnixNano()
 		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
