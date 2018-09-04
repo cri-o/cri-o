@@ -44,10 +44,11 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # install bats
+ENV BATS_COMMIT v1.1.0
 RUN cd /tmp \
-    && git clone https://github.com/sstephenson/bats.git \
-    && cd bats \
-    && git reset --hard 03608115df2071fff4eaaff1605768c275e5f81f \
+    && git clone https://github.com/bats-core/bats-core.git \
+    && cd bats-core \
+    && git checkout -q "$BATS_COMMIT" \
     && ./install.sh /usr/local
 
 # install criu
