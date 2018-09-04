@@ -122,7 +122,7 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--signature-policy**="": Path to the signature policy json file (default: "", to use the system-wide default)
 
-**--storage-driver**: OCI storage driver (default: "devicemapper")
+**--storage-driver**: OCI storage driver (default: "overlay")
 
 **--storage-opt**: OCI storage driver option (no default)
 
