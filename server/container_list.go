@@ -87,7 +87,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	for _, ctr := range ctrList {
 		podSandboxID := ctr.Sandbox()
 		cState := s.Runtime().ContainerStatus(ctr)
-		created := cState.Created.UnixNano()
+		created := ctr.CreatedAt().UnixNano()
 		rState := pb.ContainerState_CONTAINER_UNKNOWN
 		cID := ctr.ID()
 		img := &pb.ImageSpec{
