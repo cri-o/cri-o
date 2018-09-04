@@ -16,8 +16,13 @@
 - name: Add masquerade for localhost
   command: iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
 
+- name: ensure directory exists for e2e reports
+  file:
+    path: "{{ artifacts }}"
+    state: directory
+
 - name: run critest validation
-  shell: "critest --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock v"
+  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
   async: 5400
@@ -30,7 +35,7 @@
   # https://bugzilla.redhat.com/show_bug.cgi?id=1414236
   # https://access.redhat.com/solutions/2897781
 - name: run critest validation
-  shell: "critest --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --ginkgo.skip='should not allow privilege escalation when true'"
+  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --ginkgo.skip='should not allow privilege escalation when true'"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
   async: 5400
@@ -38,7 +43,7 @@
   when: ansible_distribution in ['RedHat', 'CentOS']
 
 - name: run critest benchmarks
-  shell: "critest --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --benchmark"
+  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --benchmark"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
   async: 5400
