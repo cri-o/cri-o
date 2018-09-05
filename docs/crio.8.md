@@ -16,6 +16,7 @@ crio
 [--conmon=[value]]
 [--cpu-profile=[value]]
 [--default-transport=[value]]
+[--enable-metrics]
 [--gid-mappings=[value]]
 [--help|-h]
 [--insecure-registry=[value]]
@@ -23,6 +24,7 @@ crio
 [--log=[value]]
 [--log-format value]
 [--log-level value]
+[--metrics-port value]
 [--pause-command=[value]]
 [--pause-image=[value]]
 [--read-only]
@@ -74,6 +76,8 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--default-transport**: A prefix to prepend to image names that can't be pulled as-is.
 
+**--enable-metrics**: Enable metrics endpoint. Default is localhost:9090
+
 **--gid-mappings**: Specify the GID mappings to use for user namespace.
 
 **--help, -h**: Print usage statement
@@ -99,6 +103,8 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--log-level**="": log crio messages above specified level: debug, info, warn, error (default), fatal or panic
 
 **--log-size-max**="": Maximum log size in bytes for a container (default: -1 (no limit)). If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
+
+**--metrics-port**="": Port for the metrics endpoint (default: 9090)
 
 **--pause-command**="": Path to the pause executable in the pause image (default: "/pause")
 
