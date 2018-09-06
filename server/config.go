@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kubernetes-incubator/cri-o/lib"
+	"github.com/kubernetes-sigs/cri-o/lib"
 )
 
 // Config represents the entire set of configuration values that can be set for

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
-	"github.com/kubernetes-incubator/cri-o/server/metrics"
+	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	"github.com/kubernetes-sigs/cri-o/server/metrics"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"

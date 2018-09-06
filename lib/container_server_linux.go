@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/opencontainers/runc/libcontainer"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"

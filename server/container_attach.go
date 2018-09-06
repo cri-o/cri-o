@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
