@@ -155,10 +155,7 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 	return s.StorageRuntimeServer().SetContainerMetadata(id, storageMetadata)
 }
 
-func getSELinuxLabels(selinuxOptions *pb.SELinuxOption, privileged bool) (processLabel string, mountLabel string, err error) {
-	if privileged {
-		return "", "", nil
-	}
+func getSELinuxLabels(selinuxOptions *pb.SELinuxOption, privileged bool) (string, string, error) {
 	labels := []string{}
 	if selinuxOptions != nil {
 		if selinuxOptions.User != "" {
@@ -174,7 +171,18 @@ func getSELinuxLabels(selinuxOptions *pb.SELinuxOption, privileged bool) (proces
 			labels = append(labels, "level:"+selinuxOptions.Level)
 		}
 	}
-	return label.InitLabels(labels)
+	var (
+		processLabel, mountLabel string
+		err                      error
+	)
+	processLabel, mountLabel, err = label.InitLabels(labels)
+	if err != nil {
+		return "", "", err
+	}
+	if privileged {
+		processLabel = ""
+	}
+	return processLabel, mountLabel, nil
 }
 
 // convertCgroupFsNameToSystemd converts an expanded cgroupfs name to its systemd name.
