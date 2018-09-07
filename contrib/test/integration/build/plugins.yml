@@ -37,7 +37,7 @@
 
 - name: install CNI plugin test helper
   copy:
-    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/test/cni_plugin_helper.bash"
+    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o/test/cni_plugin_helper.bash"
     dest: "/opt/cni/bin/cni_plugin_helper.bash"
     mode: "o=rwx,g=rx,o=rx"
     remote_src: yes
