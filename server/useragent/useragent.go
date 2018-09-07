@@ -4,7 +4,7 @@ import (
 	"context"
 	"runtime"
 
-	"github.com/kubernetes-incubator/cri-o/version"
+	"github.com/kubernetes-sigs/cri-o/version"
 )
 
 // Get is the User-Agent the CRI-O daemon uses to identify itself.

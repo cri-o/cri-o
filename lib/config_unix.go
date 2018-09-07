@@ -2,7 +2,7 @@
 
 package lib
 
-import "github.com/kubernetes-incubator/cri-o/oci"
+import "github.com/kubernetes-sigs/cri-o/oci"
 
 // Defaults for linux/unix if none are specified
 const (

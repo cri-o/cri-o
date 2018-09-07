@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
+	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/pkg/annotations"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"

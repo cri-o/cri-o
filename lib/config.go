@@ -9,7 +9,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/oci"
 )
 
 // Defaults if none are specified

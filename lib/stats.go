@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/oci"
 )
 
 // ContainerStats contains the statistics information for a running container

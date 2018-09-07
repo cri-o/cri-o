@@ -1,6 +1,6 @@
 <!--
 Please make sure you've read and understood our contributing guidelines;
-https://github.com/kubernetes-incubator/cri-o/blob/master/CONTRIBUTING.md
+https://github.com/kubernetes-sigs/cri-o/blob/master/CONTRIBUTING.md
 
 ** Make sure all your commits include a signature generated with `git commit -s` **
 
