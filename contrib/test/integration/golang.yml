@@ -42,6 +42,7 @@
   with_items:
     - "{{ ansible_env.GOPATH }}/src/github.com/containernetworking"
     - "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator"
+    - "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs"
     - "{{ ansible_env.GOPATH }}/src/github.com/k8s.io"
     - "{{ ansible_env.GOPATH }}/src/github.com/sstephenson"
     - "{{ ansible_env.GOPATH }}/src/github.com/opencontainers"
