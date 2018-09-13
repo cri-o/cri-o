@@ -89,10 +89,10 @@ COPY test/cni_plugin_helper.bash /opt/cni/bin/cni_plugin_helper.bash
 ENV CRICTL_COMMIT release-1.11
 RUN set -x \
        && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/kubernetes-incubator/cri-tools.git "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
-       && cd "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
+       && git clone https://github.com/kubernetes-sigs/cri-tools.git "$GOPATH/src/github.com/kubernetes-sigs/cri-tools" \
+       && cd "$GOPATH/src/github.com/kubernetes-sigs/cri-tools" \
        && git checkout -q "$CRICTL_COMMIT" \
-       && go install github.com/kubernetes-incubator/cri-tools/cmd/crictl \
+       && go install github.com/kubernetes-sigs/cri-tools/cmd/crictl \
        && cp "$GOPATH"/bin/crictl /usr/bin/ \
        && rm -rf "$GOPATH"
 
