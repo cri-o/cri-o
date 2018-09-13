@@ -7,8 +7,8 @@ This document outlines useful information for ops and dev transfer as it relates
 ## Abstract
 
 The `crio` daemon is intended to provide the [CRI](https://github.com/kubernetes/community/blob/master/contributors/devel/container-runtime-interface.md) socket needed for Kubernetes to use for automating deployment, scaling, and management of containerized applications (See the document for [configuring kubernetes to use CRI-O](./kubernetes.md) for more information on that).
-Therefore the [crictl](https://github.com/kubernetes-incubator/cri-tools) command line is a client that interfaces to the same grpc socket as the kubernetes daemon would, for talking to the `crio` daemon.
-In many ways [crictl](https://github.com/kubernetes-incubator/cri-tools) is only as feature rich as the Kubernetes CRI requires.
+Therefore the [crictl](https://github.com/kubernetes-sigs/cri-tools) command line is a client that interfaces to the same grpc socket as the kubernetes daemon would, for talking to the `crio` daemon.
+In many ways [crictl](https://github.com/kubernetes-sigs/cri-tools) is only as feature rich as the Kubernetes CRI requires.
 There are additional tools e.g. [`podman`](https://github.com/projectatomic/libpod) and [`buildah`](https://github.com/projectatomic/buildah) that provide a feature rich set of commands for all operational needs in a Kubernetes environment.
 
 
@@ -24,11 +24,11 @@ Following provides equivalent with CRI-O tools for gathering information or jump
 
 | Existing Step | CRI-O (and friends) |
 | :---: | :---: |
-| `docker exec` | [`crictl exec`](https://github.com/kubernetes-incubator/cri-tools/blob/master/docs/crictl.md) |
+| `docker exec` | [`crictl exec`](https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md) |
 | `docker info` | [`podman info`](./docs/podman-info.1.md)  |
 | `docker inspect` | [`podman inspect`](./docs/podman-inspect.1.md)       |
 | `docker logs` | [`podman logs`](./docs/podman-logs.1.md)                 |
-| `docker ps` | [`crictl ps`](https://github.com/kubernetes-incubator/cri-tools/blob/master/docs/crictl.md) or [`runc list`](https://github.com/opencontainers/runc/blob/master/man/runc-list.8.md) |
+| `docker ps` | [`crictl ps`](https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md) or [`runc list`](https://github.com/opencontainers/runc/blob/master/man/runc-list.8.md) |
 | `docker stats` | [`podman stats`](./docs/podman-stats.1.md) |
 
 If you were already using steps like `kubectl exec` (or `oc exec` on OpenShift), they will continue to function the same way.

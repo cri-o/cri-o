@@ -2,8 +2,8 @@ package lib
 
 import (
 	"github.com/docker/docker/pkg/signal"
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/utils"
 	"github.com/pkg/errors"
 	"os"
 	"syscall"

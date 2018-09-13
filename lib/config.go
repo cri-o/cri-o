@@ -8,7 +8,7 @@ import (
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/oci"
 )
 
 // Default paths if none are specified
