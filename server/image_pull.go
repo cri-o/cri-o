@@ -57,6 +57,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		options := &copy.Options{
 			SourceCtx: &types.SystemContext{
 				DockerRegistryUserAgent: useragent.Get(ctx),
+				SignaturePolicyPath:     s.ImageContext().SignaturePolicyPath,
 			},
 		}
 
@@ -70,13 +71,13 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			}
 		}
 
-		tmpImg, err := s.StorageImageServer().PrepareImage(s.ImageContext(), img, options)
+		var tmpImg types.Image
+		tmpImg, err = s.StorageImageServer().PrepareImage(img, options)
 		if err != nil {
 			logrus.Debugf("error preparing image %s: %v", img, err)
 			continue
 		}
 
-		// let's be smart, docker doesn't repull if image already exists.
 		var storedImage *storage.ImageResult
 		storedImage, err = s.StorageImageServer().ImageStatus(s.ImageContext(), img)
 		if err == nil {
