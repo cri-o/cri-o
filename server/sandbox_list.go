@@ -71,7 +71,6 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 			continue
 		}
 		cState := s.Runtime().ContainerStatus(podInfraContainer)
-		created := cState.Created.UnixNano()
 		rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
 		if cState.Status == oci.ContainerStateRunning {
 			rStatus = pb.PodSandboxState_SANDBOX_READY
@@ -79,7 +78,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 
 		pod := &pb.PodSandbox{
 			Id:          sb.ID(),
-			CreatedAt:   created,
+			CreatedAt:   podInfraContainer.CreatedAt().UnixNano(),
 			State:       rStatus,
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),
