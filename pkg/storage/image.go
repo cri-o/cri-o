@@ -86,7 +86,7 @@ type ImageServer interface {
 	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
 	// PrepareImage returns an Image where the config digest can be grabbed
 	// for further analysis. Call Close() on the resulting image.
-	PrepareImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.Image, error)
+	PrepareImage(imageName string, options *copy.Options) (types.Image, error)
 	// PullImage imports an image from the specified location.
 	PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error)
 	// UntagImage removes a name from the specified image, and if it was
@@ -379,16 +379,17 @@ func (svc *imageService) prepareReference(imageName string, options *copy.Option
 	return srcRef, nil
 }
 
-func (svc *imageService) PrepareImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.Image, error) {
-	if options == nil {
-		options = &copy.Options{}
-	}
-
+func (svc *imageService) PrepareImage(imageName string, options *copy.Options) (types.Image, error) {
 	srcRef, err := svc.prepareReference(imageName, options)
 	if err != nil {
 		return nil, err
 	}
-	return srcRef.NewImage(svc.ctx, systemContext)
+
+	sourceCtx := &types.SystemContext{}
+	if options.SourceCtx != nil {
+		sourceCtx = options.SourceCtx
+	}
+	return srcRef.NewImage(svc.ctx, sourceCtx)
 }
 
 func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error) {
