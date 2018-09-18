@@ -96,6 +96,7 @@ type Sandbox struct {
 	hostnamePath   string
 	hostname       string
 	portMappings   []*hostport.PortMapping
+	created        bool
 	stopped        bool
 	// ipv4 or ipv6 cache
 	ip                 string
@@ -423,4 +424,14 @@ func (s *Sandbox) NetNsRemove() error {
 	}
 
 	return s.netns.Remove()
+}
+
+// SetCreated sets the created status of sandbox to true
+func (s *Sandbox) SetCreated() {
+	s.created = true
+}
+
+// Created returns the created status of sandbox
+func (s *Sandbox) Created() bool {
+	return s.created
 }
