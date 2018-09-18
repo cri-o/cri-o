@@ -448,6 +448,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	}
 
 	c.ContainerStateFromDisk(scontainer)
+	sb.SetCreated()
 
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err

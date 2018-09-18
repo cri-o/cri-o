@@ -64,6 +64,10 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	}
 
 	for _, sb := range podList {
+		// skip sandboxes that aren't created yet
+		if !sb.Created() {
+			continue
+		}
 		podInfraContainer := sb.InfraContainer()
 		if podInfraContainer == nil {
 			// this can't really happen, but if it does because of a bug
