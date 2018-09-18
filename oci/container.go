@@ -65,7 +65,7 @@ type ContainerVolume struct {
 // ContainerState represents the status of a container.
 type ContainerState struct {
 	specs.State
-	Created   time.Time `json:"created"`
+	Created   time.Time `json:"createdat"`
 	Started   time.Time `json:"started,omitempty"`
 	Finished  time.Time `json:"finished,omitempty"`
 	ExitCode  int32     `json:"exitCode,omitempty"`
