@@ -85,6 +85,10 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	}
 
 	for _, ctr := range ctrList {
+		// Skip over containers that are still being created
+		if !ctr.Created() {
+			continue
+		}
 		podSandboxID := ctr.Sandbox()
 		cState := s.Runtime().ContainerStatus(ctr)
 		created := ctr.CreatedAt().UnixNano()

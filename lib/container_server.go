@@ -574,6 +574,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	ctr.SetSeccompProfilePath(spp)
 
 	c.ContainerStateFromDisk(ctr)
+	ctr.SetCreated()
 
 	c.AddContainer(ctr)
 	return c.ctrIDIndex.Add(id)
