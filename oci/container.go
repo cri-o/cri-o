@@ -36,6 +36,7 @@ type Container struct {
 	stdinOnce       bool
 	privileged      bool
 	trusted         bool
+	created         bool
 	state           *ContainerState
 	metadata        *pb.ContainerMetadata
 	opLock          sync.Locker
@@ -291,4 +292,14 @@ func (c *Container) IDMappings() *idtools.IDMappings {
 // XXX: DO NOT EVER USE THIS, THIS IS JUST USEFUL FOR MOCKING!!!
 func (c *Container) SetState(state *ContainerState) {
 	c.state = state
+}
+
+// SetCreated sets the created flag to true once container is created
+func (c *Container) SetCreated() {
+	c.created = true
+}
+
+// Created returns whether the container was created successfully
+func (c *Container) Created() bool {
+	return c.created
 }
