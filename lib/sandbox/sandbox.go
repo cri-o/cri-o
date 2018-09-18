@@ -100,7 +100,7 @@ type Sandbox struct {
 	// ipv4 or ipv6 cache
 	ip                 string
 	seccompProfilePath string
-	created            time.Time
+	createdAt          time.Time
 	hostNetwork        bool
 }
 
@@ -146,7 +146,7 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.resolvPath = resolvPath
 	sb.hostname = hostname
 	sb.portMappings = portMappings
-	sb.created = time.Now()
+	sb.createdAt = time.Now()
 	sb.hostNetwork = hostNetwork
 
 	return sb, nil
