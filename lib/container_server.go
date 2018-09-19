@@ -448,6 +448,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	}
 
 	c.ContainerStateFromDisk(scontainer)
+	sb.SetCreated()
 
 	if err = label.ReserveLabel(processLabel); err != nil {
 		return err
@@ -562,6 +563,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	ctr.SetSeccompProfilePath(spp)
 
 	c.ContainerStateFromDisk(ctr)
+	ctr.SetCreated()
 
 	c.AddContainer(ctr)
 	return c.ctrIDIndex.Add(id)

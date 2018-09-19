@@ -741,6 +741,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	s.ContainerStateToDisk(container)
 
+	container.SetCreated()
+
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
 	}
