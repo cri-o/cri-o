@@ -13,6 +13,7 @@
 /test/bin2img/bin2img
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
+/test/crilog/crilog
 
 Vagrantfile
 .vagrant/

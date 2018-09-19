@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os/exec"
 	"strings"
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/godbus/dbus"
+	"github.com/sirupsen/logrus"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
@@ -137,4 +139,54 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 		}
 	}
 	return written, err
+}
+
+// ParseCRILog parses a log file in CRI format and return it stdout and stderr bytes
+func ParseCRILog(logPath string) (stdout, stderr []byte, err error) {
+	// Split the log on newlines, which is what separates entries.
+	logBytes, err := ioutil.ReadFile(logPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	lines := bytes.SplitAfter(logBytes, []byte{'\n'})
+	for _, line := range lines {
+		// Ignore empty lines.
+		if len(line) == 0 {
+			continue
+		}
+
+		// The format of log lines is "DATE pipe LogTag REST".
+		parts := bytes.SplitN(line, []byte{' '}, 4)
+		if len(parts) < 4 {
+			// Ignore the line if it's formatted incorrectly, but complain
+			// about it so it can be debugged.
+			logrus.Warnf("hit invalid log format: %q", string(line))
+			continue
+		}
+
+		pipe := string(parts[1])
+		content := parts[3]
+
+		linetype := string(parts[2])
+		if linetype == "P" {
+			contentLen := len(content)
+			if content[contentLen-1] == '\n' {
+				content = content[:contentLen-1]
+			}
+		}
+
+		switch pipe {
+		case "stdout":
+			stdout = append(stdout, content...)
+		case "stderr":
+			stderr = append(stderr, content...)
+		default:
+			// Complain about unknown pipes.
+			logrus.Warnf("hit invalid log format [unknown pipe %s]: %q", pipe, string(line))
+			continue
+		}
+	}
+
+	return stdout, stderr, nil
 }

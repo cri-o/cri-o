@@ -45,6 +45,8 @@ APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/appar
 BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/cri-o/test/bin2img/bin2img}
 # Path of the copyimg binary.
 COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/cri-o/test/copyimg/copyimg}
+# Path of the crilog binary.
+CRILOG_BINARY=${CRILOG_BINARY:-${CRIO_ROOT}/cri-o/test/crilog/crilog}
 # Path of tests artifacts.
 ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/cri-o/.artifacts}
 # Path of the checkseccomp binary.
