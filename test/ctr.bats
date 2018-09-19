@@ -236,7 +236,7 @@ function teardown() {
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	grep --binary -P "^[^\n]+ stdout F here is some output\x0d$" "$logpath"
+	awk '{$1=$2=$3=""; print $0}' $logpath | sed '$!N;s/\n//' | sed -e 's/^[[:space:]]*//' | grep 'here is some output'
 
 	run crictl stopp "$pod_id"
 	echo "$output"
