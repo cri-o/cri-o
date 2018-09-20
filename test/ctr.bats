@@ -228,16 +228,19 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run wait_until_exit "$ctr_id"
 	[ "$status" -eq 0 ]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	grep --binary -P "^[^\n]+ stdout F here is some output\x0d$" "$logpath"
+	run crictl logs "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "here is some output" ]]
 
+	run crictl rm "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
