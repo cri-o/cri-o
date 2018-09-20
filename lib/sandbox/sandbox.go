@@ -96,11 +96,12 @@ type Sandbox struct {
 	hostnamePath   string
 	hostname       string
 	portMappings   []*hostport.PortMapping
+	created        bool
 	stopped        bool
 	// ipv4 or ipv6 cache
 	ip                 string
 	seccompProfilePath string
-	created            time.Time
+	createdAt          time.Time
 	hostNetwork        bool
 }
 
@@ -146,7 +147,7 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.resolvPath = resolvPath
 	sb.hostname = hostname
 	sb.portMappings = portMappings
-	sb.created = time.Now()
+	sb.createdAt = time.Now()
 	sb.hostNetwork = hostNetwork
 
 	return sb, nil
@@ -423,4 +424,14 @@ func (s *Sandbox) NetNsRemove() error {
 	}
 
 	return s.netns.Remove()
+}
+
+// SetCreated sets the created status of sandbox to true
+func (s *Sandbox) SetCreated() {
+	s.created = true
+}
+
+// Created returns the created status of sandbox
+func (s *Sandbox) Created() bool {
+	return s.created
 }
