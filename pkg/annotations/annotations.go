@@ -99,6 +99,9 @@ const (
 
 	// HostNetwork indicates whether the host network namespace is used or not
 	HostNetwork = "io.kubernetes.cri-o.HostNetwork"
+
+	// CNIResult is the JSON string representation of the Result from CNI
+	CNIResult = "io.kubernetes.cri-o.CNIResult"
 )
 
 // ContainerType values

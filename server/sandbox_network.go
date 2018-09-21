@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
@@ -11,9 +12,9 @@ import (
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error
-func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, err error) {
+func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitypes.Result, err error) {
 	if sb.HostNetwork() {
-		return s.bindAddress, nil
+		return s.bindAddress, nil, nil
 	}
 
 	// Ensure network resources are cleaned up if the plugin succeeded
@@ -25,7 +26,7 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, err error) {
 	}()
 
 	podNetwork := newPodNetwork(sb)
-	result, err := s.netPlugin.SetUpPod(podNetwork)
+	result, err = s.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/containers/storage"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/oci"
@@ -570,10 +571,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	sb.SetInfraContainer(container)
 
 	var ip string
+	var result cnitypes.Result
+
 	if s.config.Config.ManageNetworkNSLifecycle {
-		ip, err = s.networkStart(sb)
+		ip, result, err = s.networkStart(sb)
 		if err != nil {
 			return nil, err
+		}
+		if result != nil {
+			g.AddAnnotation(annotations.CNIResult, result.String())
 		}
 		defer func() {
 			if err != nil {
@@ -621,7 +627,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	s.ContainerStateToDisk(container)
 
 	if !s.config.Config.ManageNetworkNSLifecycle {
-		ip, err = s.networkStart(sb)
+		ip, _, err = s.networkStart(sb)
 		if err != nil {
 			return nil, err
 		}
