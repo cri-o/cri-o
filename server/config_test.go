@@ -57,7 +57,7 @@ func assertAllFieldsEquality(t *testing.T, c Config) {
 		{c.ImageConfig.Registries[0], "registry:4321"},
 
 		{c.NetworkConfig.NetworkDir, "/etc/cni/net.d/"},
-		{c.NetworkConfig.PluginDir, "/opt/cni/bin/"},
+		{c.NetworkConfig.PluginDir[0], "/opt/cni/bin/"},
 	}
 	for _, tc := range testCases {
 		if tc.fieldValue != tc.expected {

@@ -3,8 +3,10 @@ package server
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
@@ -26,18 +28,29 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 	}()
 
 	podNetwork := newPodNetwork(sb)
-	result, err = s.netPlugin.SetUpPod(podNetwork)
+	_, err = s.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
 	}
-	logrus.Debugf("CNI setup result: %v", result)
 
-	podIP, err = s.netPlugin.GetPodNetworkStatus(podNetwork)
+	tmp, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
 	}
+
+	// only one cnitypes.Result is returned since newPodNetwork sets Networks list empty
+	result = tmp[0]
+	logrus.Debugf("CNI setup result: %v", result)
+
+	network, err := cnicurrent.GetResult(result)
+	if err != nil {
+		err = fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		return
+	}
+
+	podIP = strings.Split(network.IPs[0].Address.String(), "/")[0]
 
 	if len(sb.PortMappings()) > 0 {
 		ip := net.ParseIP(podIP)
@@ -68,12 +81,17 @@ func (s *Server) getSandboxIP(sb *sandbox.Sandbox) (string, error) {
 	}
 
 	podNetwork := newPodNetwork(sb)
-	ip, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
+	result, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
 	if err != nil {
 		return "", fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}
 
-	return ip, nil
+	res, err := cnicurrent.GetResult(result[0])
+	if err != nil {
+		return "", fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+	}
+
+	return strings.Split(res.IPs[0].Address.String(), "/")[0], nil
 }
 
 // networkStop cleans up and removes a pod's network.  It is best-effort and

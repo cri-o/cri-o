@@ -229,8 +229,8 @@ The `crio.network` table containers settings pertaining to the management of CNI
 **network_dir**="/etc/cni/net.d/"
   Path to the directory where CNI configuration files are located.
 
-**plugin_dir**="/opt/cni/bin/"
-  Path to directory where CNI plugin binaries are located.
+**plugin_dir**=["/opt/cni/bin/",]
+  List of paths to directories where CNI plugin binaries are located.
 
 # SEE ALSO
 containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
