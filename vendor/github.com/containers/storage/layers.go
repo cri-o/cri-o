@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -208,10 +209,14 @@ type LayerStore interface {
 	// Mount mounts a layer for use.  If the specified layer is the parent of other
 	// layers, it should not be written to.  An SELinux label to be applied to the
 	// mount can be specified to override the one configured for the layer.
-	Mount(id, mountLabel string) (string, error)
+	// The mappings used by the container can be specified.
+	Mount(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error)
 
 	// Unmount unmounts a layer when it is no longer in use.
-	Unmount(id string) error
+	Unmount(id string, force bool) (bool, error)
+
+	// Mounted returns number of times the layer has been mounted.
+	Mounted(id string) (int, error)
 
 	// ParentOwners returns the UIDs and GIDs of parents of the layer's mountpoint
 	// for which the layer's UID and GID maps don't contain corresponding entries.
@@ -365,6 +370,9 @@ func (r *layerStore) Load() error {
 func (r *layerStore) Save() error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to modify the layer store at %q", r.layerspath())
+	}
+	if !r.Locked() {
+		return errors.New("layer store is not locked")
 	}
 	rpath := r.layerspath()
 	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
@@ -550,13 +558,22 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		StorageOpt: options,
 	}
 	if writeable {
-		err = r.driver.CreateReadWrite(id, parent, &opts)
+		if err = r.driver.CreateReadWrite(id, parent, &opts); err != nil {
+			if id != "" {
+				return nil, -1, errors.Wrapf(err, "error creating read-write layer with ID %q", id)
+			}
+			return nil, -1, errors.Wrapf(err, "error creating read-write layer")
+		}
 	} else {
-		err = r.driver.Create(id, parent, &opts)
+		if err = r.driver.Create(id, parent, &opts); err != nil {
+			if id != "" {
+				return nil, -1, errors.Wrapf(err, "error creating layer with ID %q", id)
+			}
+			return nil, -1, errors.Wrapf(err, "error creating layer")
+		}
 	}
 	if !reflect.DeepEqual(parentMappings.UIDs(), idMappings.UIDs()) || !reflect.DeepEqual(parentMappings.GIDs(), idMappings.GIDs()) {
-		err = r.driver.UpdateLayerIDMap(id, parentMappings, idMappings, mountLabel)
-		if err != nil {
+		if err = r.driver.UpdateLayerIDMap(id, parentMappings, idMappings, mountLabel); err != nil {
 			// We don't have a record of this layer, but at least
 			// try to clean it up underneath us.
 			r.driver.Remove(id)
@@ -624,7 +641,15 @@ func (r *layerStore) Create(id string, parent *Layer, names []string, mountLabel
 	return r.CreateWithFlags(id, parent, names, mountLabel, options, moreOptions, writeable, nil)
 }
 
-func (r *layerStore) Mount(id, mountLabel string) (string, error) {
+func (r *layerStore) Mounted(id string) (int, error) {
+	layer, ok := r.lookup(id)
+	if !ok {
+		return 0, ErrLayerUnknown
+	}
+	return layer.MountCount, nil
+}
+
+func (r *layerStore) Mount(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
 	if !r.IsReadWrite() {
 		return "", errors.Wrapf(ErrStoreIsReadOnly, "not allowed to update mount locations for layers at %q", r.mountspath())
 	}
@@ -639,7 +664,13 @@ func (r *layerStore) Mount(id, mountLabel string) (string, error) {
 	if mountLabel == "" {
 		mountLabel = layer.MountLabel
 	}
-	mountpoint, err := r.driver.Get(id, mountLabel)
+
+	if (uidMaps != nil || gidMaps != nil) && !r.driver.SupportsShifting() {
+		if !reflect.DeepEqual(uidMaps, layer.UIDMap) || !reflect.DeepEqual(gidMaps, layer.GIDMap) {
+			return "", fmt.Errorf("cannot mount layer %v: shifting not enabled", layer.ID)
+		}
+	}
+	mountpoint, err := r.driver.Get(id, mountLabel, uidMaps, gidMaps)
 	if mountpoint != "" && err == nil {
 		if layer.MountPoint != "" {
 			delete(r.bymount, layer.MountPoint)
@@ -652,21 +683,24 @@ func (r *layerStore) Mount(id, mountLabel string) (string, error) {
 	return mountpoint, err
 }
 
-func (r *layerStore) Unmount(id string) error {
+func (r *layerStore) Unmount(id string, force bool) (bool, error) {
 	if !r.IsReadWrite() {
-		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to update mount locations for layers at %q", r.mountspath())
+		return false, errors.Wrapf(ErrStoreIsReadOnly, "not allowed to update mount locations for layers at %q", r.mountspath())
 	}
 	layer, ok := r.lookup(id)
 	if !ok {
 		layerByMount, ok := r.bymount[filepath.Clean(id)]
 		if !ok {
-			return ErrLayerUnknown
+			return false, ErrLayerUnknown
 		}
 		layer = layerByMount
 	}
+	if force {
+		layer.MountCount = 1
+	}
 	if layer.MountCount > 1 {
 		layer.MountCount--
-		return r.Save()
+		return true, r.Save()
 	}
 	err := r.driver.Put(id)
 	if err == nil || os.IsNotExist(err) {
@@ -675,9 +709,9 @@ func (r *layerStore) Unmount(id string) error {
 		}
 		layer.MountCount--
 		layer.MountPoint = ""
-		err = r.Save()
+		return false, r.Save()
 	}
-	return err
+	return true, err
 }
 
 func (r *layerStore) ParentOwners(id string) (uids, gids []int, err error) {
@@ -797,10 +831,8 @@ func (r *layerStore) Delete(id string) error {
 		return ErrLayerUnknown
 	}
 	id = layer.ID
-	for layer.MountCount > 0 {
-		if err := r.Unmount(id); err != nil {
-			return err
-		}
+	if _, err := r.Unmount(id, true); err != nil {
+		return err
 	}
 	err := r.driver.Remove(id)
 	if err == nil {
@@ -917,14 +949,15 @@ func (s *simpleGetCloser) Get(path string) (io.ReadCloser, error) {
 }
 
 func (s *simpleGetCloser) Close() error {
-	return s.r.Unmount(s.id)
+	_, err := s.r.Unmount(s.id, false)
+	return err
 }
 
 func (r *layerStore) newFileGetter(id string) (drivers.FileGetCloser, error) {
 	if getter, ok := r.driver.(drivers.DiffGetterDriver); ok {
 		return getter.DiffGetter(id)
 	}
-	path, err := r.Mount(id, "")
+	path, err := r.Mount(id, "", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1159,4 +1192,8 @@ func (r *layerStore) IsReadWrite() bool {
 
 func (r *layerStore) TouchedSince(when time.Time) bool {
 	return r.lockfile.TouchedSince(when)
+}
+
+func (r *layerStore) Locked() bool {
+	return r.lockfile.Locked()
 }

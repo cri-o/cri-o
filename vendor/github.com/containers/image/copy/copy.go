@@ -71,7 +71,6 @@ func (d *digestingReader) Read(p []byte) (int, error) {
 // copier allows us to keep track of diffID values for blobs, and other
 // data shared across one or more images in a possible manifest list.
 type copier struct {
-	copiedBlobs      map[digest.Digest]digest.Digest
 	cachedDiffIDs    map[digest.Digest]digest.Digest
 	dest             types.ImageDestination
 	rawSource        types.ImageSource
@@ -141,7 +140,6 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 	}()
 
 	c := &copier{
-		copiedBlobs:      make(map[digest.Digest]digest.Digest),
 		cachedDiffIDs:    make(map[digest.Digest]digest.Digest),
 		dest:             dest,
 		rawSource:        rawSource,
@@ -535,20 +533,21 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo) (t
 	if err != nil {
 		return types.BlobInfo{}, "", err
 	}
-	var diffIDResult diffIDResult // = {digest:""}
 	if diffIDIsNeeded {
 		select {
 		case <-ctx.Done():
 			return types.BlobInfo{}, "", ctx.Err()
-		case diffIDResult = <-diffIDChan:
+		case diffIDResult := <-diffIDChan:
 			if diffIDResult.err != nil {
 				return types.BlobInfo{}, "", errors.Wrap(diffIDResult.err, "Error computing layer DiffID")
 			}
 			logrus.Debugf("Computed DiffID %s for layer %s", diffIDResult.digest, srcInfo.Digest)
 			ic.c.cachedDiffIDs[srcInfo.Digest] = diffIDResult.digest
+			return blobInfo, diffIDResult.digest, nil
 		}
+	} else {
+		return blobInfo, ic.c.cachedDiffIDs[srcInfo.Digest], nil
 	}
-	return blobInfo, diffIDResult.digest, nil
 }
 
 // copyLayerFromStream is an implementation detail of copyLayer; mostly providing a separate “defer” scope.
