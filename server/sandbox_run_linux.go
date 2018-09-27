@@ -624,6 +624,23 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
+	defer func() {
+		if err != nil {
+			// Clean-up steps from RemovePodSanbox
+			timeout := int64(10)
+			if err2 := s.Runtime().StopContainer(ctx, container, timeout); err2 != nil {
+				logrus.Warnf("failed to stop container %s: %v", container.Name(), err2)
+			}
+			if err2 := s.Runtime().WaitContainerStateStopped(ctx, container); err2 != nil {
+				logrus.Warnf("failed to get container 'stopped' status %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+			}
+			if err2 := s.Runtime().DeleteContainer(container); err2 != nil {
+				logrus.Warnf("failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+			}
+			s.ContainerStateToDisk(container)
+		}
+	}()
+
 	s.ContainerStateToDisk(container)
 
 	if !s.config.Config.ManageNetworkNSLifecycle {
