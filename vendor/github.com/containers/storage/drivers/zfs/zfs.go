@@ -24,8 +24,9 @@ import (
 )
 
 type zfsOptions struct {
-	fsName    string
-	mountPath string
+	fsName       string
+	mountPath    string
+	mountOptions string
 }
 
 func init() {
@@ -134,6 +135,8 @@ func parseOptions(opt []string) (zfsOptions, error) {
 		switch key {
 		case "zfs.fsname":
 			options.fsName = val
+		case "zfs.mountopt":
+			options.mountOptions = val
 		default:
 			return options, fmt.Errorf("Unknown option %s", key)
 		}
@@ -357,14 +360,14 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get returns the mountpoint for the given id after creating the target directories if necessary.
-func (d *Driver) Get(id, mountLabel string) (string, error) {
+func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
 	mountpoint := d.mountPath(id)
 	if count := d.ctr.Increment(mountpoint); count > 1 {
 		return mountpoint, nil
 	}
 
 	filesystem := d.zfsPath(id)
-	options := label.FormatMountLabel("", mountLabel)
+	options := label.FormatMountLabel(d.options.mountOptions, mountLabel)
 	logrus.Debugf(`[zfs] mount("%s", "%s", "%s")`, filesystem, mountpoint, options)
 
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)

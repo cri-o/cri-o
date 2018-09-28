@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -191,6 +192,9 @@ func (r *containerStore) Load() error {
 }
 
 func (r *containerStore) Save() error {
+	if !r.Locked() {
+		return errors.New("container store is not locked")
+	}
 	rpath := r.containerspath()
 	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
 		return err
@@ -278,7 +282,8 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 	names = dedupeNames(names)
 	for _, name := range names {
 		if _, nameInUse := r.byname[name]; nameInUse {
-			return nil, ErrDuplicateName
+			return nil, errors.Wrapf(ErrDuplicateName,
+				fmt.Sprintf("the container name \"%s\" is already in use by \"%s\". You have to remove that container to be able to reuse that name.", name, r.byname[name].ID))
 		}
 	}
 	if err == nil {
@@ -557,4 +562,8 @@ func (r *containerStore) IsReadWrite() bool {
 
 func (r *containerStore) TouchedSince(when time.Time) bool {
 	return r.lockfile.TouchedSince(when)
+}
+
+func (r *containerStore) Locked() bool {
+	return r.lockfile.Locked()
 }
