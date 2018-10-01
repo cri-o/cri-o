@@ -496,6 +496,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
 			!containerConfig.GetLinux().GetSecurityContext().Privileged {
+			// TODO(runcom): have just one of this var at the top of the function
+			securityContext := containerConfig.GetLinux().GetSecurityContext()
 			for _, mp := range []string{
 				"/proc/acpi",
 				"/proc/kcore",
@@ -509,6 +511,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			} {
 				specgen.AddLinuxMaskedPaths(mp)
 			}
+			if securityContext.GetMaskedPaths() != nil {
+				specgen.Spec().Linux.MaskedPaths = nil
+				for _, path := range securityContext.GetMaskedPaths() {
+					specgen.AddLinuxMaskedPaths(path)
+				}
+			}
 
 			for _, rp := range []string{
 				"/proc/asound",
@@ -519,6 +527,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 				"/proc/sysrq-trigger",
 			} {
 				specgen.AddLinuxReadonlyPaths(rp)
+			}
+			if securityContext.GetReadonlyPaths() != nil {
+				specgen.Spec().Linux.ReadonlyPaths = nil
+				for _, path := range securityContext.GetReadonlyPaths() {
+					specgen.AddLinuxReadonlyPaths(path)
+				}
 			}
 		}
 	}
