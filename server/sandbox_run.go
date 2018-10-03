@@ -68,6 +68,23 @@ func (s *Server) trustedSandbox(req *pb.RunPodSandboxRequest) bool {
 	return isTrue(trustedAnnotation)
 }
 
+// runtimeHandler returns the runtime handler key provided by CRI if the key
+// does exist and the associated data are valid. If the key is empty, there
+// is nothing to do, and the empty key is returned. For every other case, this
+// function will return an empty string with the error associated.
+func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
+	handler := req.GetRuntimeHandler()
+	if handler == "" {
+		return handler, nil
+	}
+
+	if _, err := s.Runtime().ValidateRuntimeHandler(handler); err != nil {
+		return "", err
+	}
+
+	return handler, nil
+}
+
 var (
 	conflictRE = regexp.MustCompile(`already reserved for pod "([0-9a-z]+)"`)
 )

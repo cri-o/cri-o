@@ -6,8 +6,6 @@
   file_locking = true
   [crio.runtime]
     runtime = "/usr/bin/runc"
-    runtime_untrusted_workload = ""
-    default_workload_trust = "trusted"
     conmon = "/usr/local/libexec/crio/conmon"
     conmon_env = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
     selinux = true
