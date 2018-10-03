@@ -320,6 +320,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.SetHostname(hostname)
 
+	// validate the runtime handler
+	runtimeHandler, err := s.runtimeHandler(req)
+	if err != nil {
+		return nil, err
+	}
+
 	trusted := s.trustedSandbox(req)
 	g.AddAnnotation(annotations.Metadata, string(metadataJSON))
 	g.AddAnnotation(annotations.Labels, string(labelsJSON))
@@ -334,6 +340,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.ShmPath, shmPath)
 	g.AddAnnotation(annotations.PrivilegedRuntime, fmt.Sprintf("%v", privileged))
 	g.AddAnnotation(annotations.TrustedSandbox, fmt.Sprintf("%v", trusted))
+	g.AddAnnotation(annotations.RuntimeHandler, runtimeHandler)
 	g.AddAnnotation(annotations.ResolvPath, resolvPath)
 	g.AddAnnotation(annotations.HostName, hostname)
 	g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
@@ -387,7 +394,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, resolvPath, hostname, portMappings, hostNetwork)
+	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -516,7 +523,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs().Path(), labels, g.Spec().Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.Trusted(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs().Path(), labels, g.Spec().Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.Trusted(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

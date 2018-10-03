@@ -36,6 +36,31 @@ import (
 // It will be populated by the Makefile.
 var gitCommit = ""
 
+var deprecatedRuntimeMsg = `
+/*\ Warning /*\
+DEPRECATED: Use Runtimes instead.
+
+The support of this option will continue through versions 1.12 and 1.13. By
+version 1.14, this option will no longer exist.
+/*\ Warning /*\
+`
+
+func validateRuntimeConfig(config *server.Config) error {
+	if config.RuntimeConfig.RuntimeUntrustedWorkload != "" {
+		logrus.Warnf("RuntimeUntrustedWorkload deprecated\n%s", deprecatedRuntimeMsg)
+	}
+	if config.RuntimeConfig.DefaultWorkloadTrust != "" {
+		logrus.Warnf("DefaultWorkloadTrust deprecated\n%s", deprecatedRuntimeMsg)
+	}
+
+	_, ok := config.RuntimeConfig.Runtimes[oci.UntrustedRuntime]
+	if ok && config.RuntimeConfig.RuntimeUntrustedWorkload != "" {
+		return fmt.Errorf("conflicting definitions: configuration includes runtime_untrusted_workload and runtimes[%q]", oci.UntrustedRuntime)
+	}
+
+	return nil
+}
+
 func validateConfig(config *server.Config) error {
 	switch config.ImageVolumes {
 	case lib.ImageVolumesMkdir:
@@ -72,7 +97,8 @@ func validateConfig(config *server.Config) error {
 	if config.LogSizeMax >= 0 && config.LogSizeMax < oci.BufSize {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}
-	return nil
+
+	return validateRuntimeConfig(config)
 }
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {

@@ -95,7 +95,15 @@ runtime = "{{ .Runtime }}"
 # Path to OCI compatible runtime used for untrusted container workloads. This
 # is an optional setting, except if default_container_trust is set to
 # "untrusted".
-runtime_untrusted_workload = "{{ .RuntimeUntrustedWorkload }}"
+# DEPRECATED: use "crio.runtime.runtimes" instead. If provided, this
+#     runtime is mapped to the runtime handler named 'untrusted'. It is
+#     a configuration error to provide both the (now deprecated)
+#     runtime_untrusted_workload and a handler in the Runtimes handler
+#     map (below) for 'untrusted' workloads at the same time. Please
+#     provide one or the other.
+#     The support of this option will continue through versions 1.12 and 1.13.
+#     By version 1.14, this option will no longer exist.
+#runtime_untrusted_workload = "{{ .RuntimeUntrustedWorkload }}"
 
 # Default level of trust CRI-O puts in container workloads. It can either be
 # "trusted" or "untrusted", and the default is "trusted". Containers can be run
@@ -113,7 +121,20 @@ runtime_untrusted_workload = "{{ .RuntimeUntrustedWorkload }}"
 #     privileged containers are by definition trusted and will always use the
 #     trusted container runtime. If default_container_trust is set to "trusted",
 #     CRI-O will use the trusted container runtime for all containers.
-default_workload_trust = "{{ .DefaultWorkloadTrust }}"
+#
+# DEPRECATED: The runtime handler should provide a key to the map of runtimes,
+#     avoiding the need to rely on the level of trust of the workload to choose
+#     an appropriate runtime.
+#     The support of this option will continue through versions 1.12 and 1.13.
+#     By version 1.14, this option will no longer exist.
+#default_workload_trust = "{{ .DefaultWorkloadTrust }}"
+
+  # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
+  # The runtime to use is picked based on the runtime_handler provided by the CRI.
+  # If no runtime_handler is provided, the runtime will be picked based on the level
+  # of trust of the workload.
+  [crio.runtime.runtimes.runtime_handler_name]
+    runtime_path = ""
 
 # If true, the runtime will not use use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
