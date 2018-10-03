@@ -28,13 +28,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 	}
 
 	defer func() {
-		// if the call to StartContainer fails below we still want to fill
-		// some fields of a container status. In particular, we're going to
-		// adjust container started/finished time and set an error to be
-		// returned in the Reason field for container status call.
-		if err != nil {
-			s.Runtime().SetStartFailed(c, err)
-		}
+		// always set container state to disk, especially for failures
 		s.ContainerStateToDisk(c)
 	}()
 
