@@ -75,22 +75,31 @@ stream_tls_key = "{{ .StreamTLSKey }}"
 # automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
 
+# TODO(runcom)
+#[crio.runtimes.runtime_handler_name]
+
 
 # The crio.runtime table contains settings pertaining to the OCI runtime used
 # and options for how to set up and manage the OCI runtime.
 [crio.runtime]
 
+# DEPRECATED: use runtimes instead
+#
 # Path to the OCI compatible runtime used for trusted container workloads. This
 # is a mandatory setting as this runtime will be the default and will also be
 # used for untrusted container workloads if runtime_untrusted_workload is not
 # set.
 runtime = "{{ .Runtime }}"
 
+# DEPRECATED: use runtimes instead
+#
 # Path to OCI compatible runtime used for untrusted container workloads. This
 # is an optional setting, except if default_container_trust is set to
 # "untrusted".
 runtime_untrusted_workload = "{{ .RuntimeUntrustedWorkload }}"
 
+# DEPRECATED: use runtimes instead
+#
 # Default level of trust CRI-O puts in container workloads. It can either be
 # "trusted" or "untrusted", and the default is "trusted". Containers can be run
 # through different container runtimes, depending on the trust hints we receive
@@ -110,6 +119,7 @@ runtime_untrusted_workload = "{{ .RuntimeUntrustedWorkload }}"
 default_workload_trust = "{{ .DefaultWorkloadTrust }}"
 
 # If true, the runtime will not use use pivot_root, but instead use MS_MOVE.
+# WARNING: This setting has effect on only some runtimes (e.g. runc).
 no_pivot = {{ .NoPivot }}
 
 # Path to the conmon binary, used for monitoring the OCI runtime.

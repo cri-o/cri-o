@@ -36,13 +36,16 @@ type ImageVolumesType string
 const (
 	// ImageVolumesMkdir option is for using mkdir to handle image volumes
 	ImageVolumesMkdir ImageVolumesType = "mkdir"
+
 	// ImageVolumesIgnore option is for ignoring image volumes altogether
 	ImageVolumesIgnore ImageVolumesType = "ignore"
+
 	// ImageVolumesBind option is for using bind mounted volumes
 	ImageVolumesBind ImageVolumesType = "bind"
-)
 
-const (
+	// RuntimeUntrusted is the implicit runtime defined for UntrustedWorkloadRuntime
+	RuntimeUntrusted = "untrusted"
+
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
 	DefaultPidsLimit = 1024
@@ -103,17 +106,33 @@ type RootConfig struct {
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
+	// Runtimes is the map from runtime_handler(s) and runtime binaries
+	// At least one runtime is mandatory.
+	Runtimes map[string]string
+
+	// DEPRECATED: use the Runtimes map
+	//
 	// Runtime is the OCI compatible runtime used for trusted container workloads.
 	// This is a mandatory setting as this runtime will be the default one and
 	// will also be used for untrusted container workloads if
 	// RuntimeUntrustedWorkload is not set.
 	Runtime string `toml:"runtime"`
 
+	// DEPRECATED: use the Runtimes map
+	//
 	// RuntimeUntrustedWorkload is the OCI compatible runtime used for untrusted
 	// container workloads. This is an optional setting, except if
 	// DefaultWorkloadTrust is set to "untrusted".
+	//
+	// If provided, this runtime is mapped to the
+	// runtime handler named 'untrusted'. It is a configuration error to provide both the (now
+	// deprecated) RuntimeUntrustedWorkload and a handler in the Runtimes handler map for
+	// 'untrusted' workloads at the same time. Please provide one or the other.
 	RuntimeUntrustedWorkload string `toml:"runtime_untrusted_workload"`
 
+	// DEPRECATED: this setting is deprecated in favor of the Runtimes map.
+	// Setting it will be a no-op for CRI-O.
+	//
 	// DefaultWorkloadTrust is the default level of trust crio puts in container
 	// workloads. This can either be "trusted" or "untrusted" and the default
 	// is "trusted"

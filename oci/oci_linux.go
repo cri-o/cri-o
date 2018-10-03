@@ -3,6 +3,7 @@
 package oci
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -13,6 +14,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
+
+func createUnitName(prefix string, name string) string {
+	return fmt.Sprintf("%s-%s.scope", prefix, name)
+}
 
 func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
 	// Move conmon to specified cgroup

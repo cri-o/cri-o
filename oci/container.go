@@ -303,3 +303,10 @@ func (c *Container) SetCreated() {
 func (c *Container) Created() bool {
 	return c.created
 }
+
+// SetStartFailed sets the container state appropriately after a start failure
+func (c *Container) setStartFailed(err error) {
+	// adjust finished and started times
+	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
+	c.state.Error = err.Error()
+}
