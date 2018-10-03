@@ -37,7 +37,11 @@ func (c *ContainerServer) ContainerKill(container string, killSignal syscall.Sig
 	if err != nil {
 		return "", err
 	}
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, c.runtime.Path(ctr), "kill", ctr.ID(), signalString); err != nil {
+	rPath, err := c.runtime.Path(ctr)
+	if err != nil {
+		return "", err
+	}
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", ctr.ID(), signalString); err != nil {
 		return "", err
 	}
 	c.ContainerStateToDisk(ctr)
