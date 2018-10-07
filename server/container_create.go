@@ -102,7 +102,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		if mount.Readonly {
 			options = []string{"ro"}
 		}
-		options = append(options, "rbind")
+		options = append(options, "rbind", "nodev")
 
 		// mount propagation
 		mountInfos, err := dockermounts.GetMounts()
