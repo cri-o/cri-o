@@ -218,7 +218,7 @@ func (c *Container) Sandbox() string {
 	return c.sandbox
 }
 
-// Dir returns the the dir of the container
+// Dir returns the dir of the container
 func (c *Container) Dir() string {
 	return c.dir
 }

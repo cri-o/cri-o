@@ -136,7 +136,7 @@ runtime = "{{ .Runtime }}"
   [crio.runtime.runtimes.runtime_handler_name]
     runtime_path = ""
 
-# If true, the runtime will not use use pivot_root, but instead use MS_MOVE.
+# If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
 
 # Path to the conmon binary, used for monitoring the OCI runtime.

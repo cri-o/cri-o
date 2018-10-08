@@ -34,7 +34,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
-		// the the CRI interface which expects to not error out in not found
+		// the CRI interface which expects to not error out in not found
 		// cases.
 
 		resp = &pb.StopPodSandboxResponse{}
