@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -158,4 +159,17 @@ func WriteGoroutineStacks(w io.Writer) error {
 	}
 	_, err := w.Write(buf)
 	return err
+}
+
+// WriteGoroutineStacksToFile write goroutine stacks
+// to the specified file.
+func WriteGoroutineStacksToFile(path string) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	defer f.Sync()
+
+	return WriteGoroutineStacks(f)
 }
