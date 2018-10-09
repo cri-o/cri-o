@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/containers/libpod/pkg/hooks"
@@ -23,6 +22,7 @@ import (
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/kubernetes-sigs/cri-o/pkg/signals"
 	"github.com/kubernetes-sigs/cri-o/server"
+	"github.com/kubernetes-sigs/cri-o/utils"
 	"github.com/kubernetes-sigs/cri-o/version"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
@@ -202,17 +202,32 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	return nil
 }
 
+func writeCrioGoroutineStacks() {
+	path := filepath.Join("/tmp", fmt.Sprintf("crio-goroutine-stacks-%s.log", strings.Replace(time.Now().Format(time.RFC3339), ":", "", -1)))
+	if err := utils.WriteGoroutineStacksToFile(path); err != nil {
+		logrus.Warnf("Failed to write goroutine stacks: %s", err)
+	}
+}
+
 func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
+
 	sig := make(chan os.Signal, 2048)
-	signal.Notify(sig, signals.Interrupt, signals.Term, syscall.SIGPIPE)
+	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGPIPE)
 	go func() {
 		for s := range sig {
 			logrus.WithFields(logrus.Fields{
 				"signal": s,
 			}).Debug("received signal")
 			switch s {
+			case unix.SIGUSR1:
+				writeCrioGoroutineStacks()
+				continue
 			case unix.SIGPIPE:
 				continue
+			case signals.Interrupt:
+				logrus.Debugf("Caught SIGINT")
+			case signals.Term:
+				logrus.Debugf("Caught SIGTERM")
 			default:
 				continue
 			}
