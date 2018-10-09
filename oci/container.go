@@ -39,7 +39,7 @@ type Container struct {
 	created         bool
 	state           *ContainerState
 	metadata        *pb.ContainerMetadata
-	opLock          sync.Locker
+	opLock          sync.RWMutex
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
@@ -100,7 +100,6 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		dir:             dir,
 		state:           state,
 		stopSignal:      stopSignal,
-		opLock:          new(sync.Mutex),
 	}
 	return c, nil
 }
@@ -241,8 +240,8 @@ func (c *Container) Metadata() *pb.ContainerMetadata {
 
 // State returns the state of the running container
 func (c *Container) State() *ContainerState {
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
 	return c.state
 }
 
