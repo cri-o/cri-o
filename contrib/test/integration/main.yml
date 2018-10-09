@@ -49,7 +49,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-          version: "1.11"
+          version: "1.11.1"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
   post_tasks:
