@@ -127,6 +127,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+	g.HostSpecific = true
+	g.ClearProcessRlimits()
+
+	ulimits, err := getUlimitsFromConfig(s.config)
+	if err != nil {
+		return nil, err
+	}
+	for _, u := range ulimits {
+		g.AddProcessRlimits(u.name, u.hard, u.soft)
+	}
 
 	// setup defaults for the pod sandbox
 	g.SetRootReadonly(true)

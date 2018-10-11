@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/hooks"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
+	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/kubernetes-sigs/cri-o/pkg/signals"
@@ -40,7 +41,23 @@ func validateConfig(config *server.Config) error {
 	case lib.ImageVolumesBind:
 	default:
 		return fmt.Errorf("Unrecognized image volume type specified")
+	}
 
+	// This is somehow duplicated with server.getUlimitsFromConfig under server/utils.go
+	// but I don't want to export that function for the sake of validation here
+	// so, keep it in mind if things start to blow up.
+	// Reason for having this here is that I don't want people to start crio
+	// with invalid ulimits but realize that only after starting a couple of
+	// containers and watching them fail.
+	for _, u := range config.RuntimeConfig.DefaultUlimits {
+		ul, err := units.ParseUlimit(u)
+		if err != nil {
+			return fmt.Errorf("unrecognized ulimit %s: %v", u, err)
+		}
+		_, err = ul.GetRlimit()
+		if err != nil {
+			return err
+		}
 	}
 
 	if config.UIDMappings != "" && config.ManageNetworkNSLifecycle {
@@ -146,6 +163,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	}
 	if ctx.GlobalIsSet("default-sysctls") {
 		config.DefaultSysctls = strings.Split(ctx.GlobalString("default-sysctls"), ",")
+	}
+	if ctx.GlobalIsSet("default-ulimits") {
+		config.DefaultUlimits = ctx.GlobalStringSlice("default-ulimits")
 	}
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
@@ -374,6 +394,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "default-sysctls",
 			Usage: "sysctls to add to the containers",
+		},
+		cli.StringSliceFlag{
+			Name:  "default-ulimits",
+			Usage: "ulimits to apply to conatainers by default (name=soft:hard)",
 		},
 		cli.BoolFlag{
 			Name:  "profile",
