@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/server/metrics"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -247,4 +248,27 @@ func validateSysctl(sysctl string, hostNet, hostIPC bool) error {
 		}
 	}
 	return errors.Errorf("%q not whitelisted", sysctl)
+}
+
+type ulimit struct {
+	name string
+	hard uint64
+	soft uint64
+}
+
+func getUlimitsFromConfig(config Config) ([]ulimit, error) {
+	var ulimits []ulimit
+	for _, u := range config.RuntimeConfig.DefaultUlimits {
+		ul, err := units.ParseUlimit(u)
+		if err != nil {
+			return nil, err
+		}
+		rl, err := ul.GetRlimit()
+		if err != nil {
+			return nil, err
+		}
+		// This sucks, but it's the runtime-tools interface
+		ulimits = append(ulimits, ulimit{name: "RLIMIT_" + strings.ToUpper(ul.Name), hard: rl.Hard, soft: rl.Soft})
+	}
+	return ulimits, nil
 }

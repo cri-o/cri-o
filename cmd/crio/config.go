@@ -75,10 +75,16 @@ stream_tls_key = "{{ .StreamTLSKey }}"
 # automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
 
-
 # The crio.runtime table contains settings pertaining to the OCI runtime used
 # and options for how to set up and manage the OCI runtime.
 [crio.runtime]
+
+# A list of ulimits to be set in containers by default, specified as
+# "<ulimit name>=<soft limit>:<hard limit>", for example:
+# "nofile=1024:2048"
+# If nothing is set here, settings will be inherited from the CRI-O daemon
+#default_ulimits = [
+{{ range $ulimit := .DefaultUlimits }}{{ printf "#\t%q,\n" $ulimit }}{{ end }}#]
 
 # Path to the OCI compatible runtime used for trusted container workloads. This
 # is a mandatory setting as this runtime will be the default and will also be
