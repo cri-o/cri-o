@@ -109,7 +109,7 @@ runtime_untrusted_workload = "{{ .RuntimeUntrustedWorkload }}"
 #     CRI-O will use the trusted container runtime for all containers.
 default_workload_trust = "{{ .DefaultWorkloadTrust }}"
 
-# If true, the runtime will not use use pivot_root, but instead use MS_MOVE.
+# If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
 
 # Path to the conmon binary, used for monitoring the OCI runtime.
