@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
@@ -137,4 +139,37 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 		}
 	}
 	return written, err
+}
+
+// WriteGoroutineStacks writes out the goroutine stacks
+// of the caller. Up to 32 MB is allocated to print the
+// stack.
+func WriteGoroutineStacks(w io.Writer) error {
+	buf := make([]byte, 1<<20)
+	for i := 0; ; i++ {
+		n := runtime.Stack(buf, true)
+		if n < len(buf) {
+			buf = buf[:n]
+			break
+		}
+		if len(buf) >= 32<<20 {
+			break
+		}
+		buf = make([]byte, 2*len(buf))
+	}
+	_, err := w.Write(buf)
+	return err
+}
+
+// WriteGoroutineStacksToFile write goroutine stacks
+// to the specified file.
+func WriteGoroutineStacksToFile(path string) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	defer f.Sync()
+
+	return WriteGoroutineStacks(f)
 }
