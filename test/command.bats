@@ -10,3 +10,16 @@ load helpers
 	echo "$output"
 	[ "$status" -ne 0 ]
 }
+
+@test "invalid ulimits" {
+	run ${CRIO_BINARY} --default-ulimits doesntexist=2042
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "invalid ulimit type: doesntexist" ]]
+	run ${CRIO_BINARY} --default-ulimits nproc=2042:42
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "ulimit soft limit must be less than or equal to hard limit: 2042 > 42" ]]
+	# can't cover everything here, ulimits parsing is tested in
+	# github.com/docker/go-units package
+}
