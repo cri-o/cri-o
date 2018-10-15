@@ -56,10 +56,15 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 	}
 	defer os.RemoveAll(processFile.Name())
 
+	rPath, err := ss.runtimeServer.Runtime().Path(c)
+	if err != nil {
+		return err
+	}
+
 	args := []string{"exec"}
 	args = append(args, "--process", processFile.Name())
 	args = append(args, c.ID())
-	execCmd := exec.Command(ss.runtimeServer.Runtime().Path(c), args...)
+	execCmd := exec.Command(rPath, args...)
 	var cmdErr error
 	if tty {
 		cmdErr = ss.ttyCmd(execCmd, stdin, stdout, resize)

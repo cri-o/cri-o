@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	goflag "flag"
 	"fmt"
 	"net"
@@ -33,6 +34,38 @@ import (
 // gitCommit is the commit that the binary is being built from.
 // It will be populated by the Makefile.
 var gitCommit = ""
+
+var deprecatedRuntimeMsg = `
+/*\ Warning /*\
+DEPRECATED: Use Runtimes instead.
+
+The support of this option will continue through versions 1.12 and 1.13. By
+version 1.14, this option will no longer exist.
+/*\ Warning /*\
+`
+
+func validateRuntimeConfig(config *server.Config) error {
+	if config.RuntimeConfig.RuntimeUntrustedWorkload != "" {
+		logrus.Warnf("RuntimeUntrustedWorkload deprecated\n%s", deprecatedRuntimeMsg)
+	}
+	if config.RuntimeConfig.DefaultWorkloadTrust != "" {
+		logrus.Warnf("DefaultWorkloadTrust deprecated\n%s", deprecatedRuntimeMsg)
+	}
+
+	_, ok := config.RuntimeConfig.Runtimes[oci.UntrustedRuntime]
+	if ok && config.RuntimeConfig.RuntimeUntrustedWorkload != "" {
+		return fmt.Errorf("conflicting definitions: configuration includes runtime_untrusted_workload and runtimes[%q]", oci.UntrustedRuntime)
+	}
+	if config.RuntimeConfig.Runtime != "" {
+		logrus.Warn("runtime is deprecated in favor of runtimes, please switch to that")
+	}
+	_, ok = config.RuntimeConfig.Runtimes[config.RuntimeConfig.DefaultRuntime]
+	if !ok && config.RuntimeConfig.Runtime == "" {
+		return errors.New("no default runtime configured")
+	}
+
+	return nil
+}
 
 func validateConfig(config *server.Config) error {
 	switch config.ImageVolumes {
@@ -70,7 +103,8 @@ func validateConfig(config *server.Config) error {
 	if config.LogSizeMax >= 0 && config.LogSizeMax < oci.BufSize {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}
-	return nil
+
+	return validateRuntimeConfig(config)
 }
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
@@ -135,6 +169,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		config.StreamPort = ctx.GlobalString("stream-port")
 	}
 	if ctx.GlobalIsSet("runtime") {
+		logrus.Warn("--runtime is deprecated, use the runtimes key in the config directly")
 		config.Runtime = ctx.GlobalString("runtime")
 	}
 	if ctx.GlobalIsSet("selinux") {
@@ -515,9 +550,11 @@ func main() {
 			disableSELinux()
 		}
 
-		if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
-			// path to runtime does not exist
-			return fmt.Errorf("invalid --runtime value %q", err)
+		if config.Runtime != "" {
+			if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
+				// path to runtime does not exist
+				return fmt.Errorf("invalid --runtime value %q", err)
+			}
 		}
 
 		if err := os.MkdirAll(filepath.Dir(config.Listen), 0755); err != nil {
