@@ -90,7 +90,14 @@ stream_tls_ca = "{{ .StreamTLSCA }}"
 # is a mandatory setting as this runtime will be the default and will also be
 # used for untrusted container workloads if runtime_untrusted_workload is not
 # set.
-runtime = "{{ .Runtime }}"
+#
+# DEPRECATED: use Runtimes instead.
+#
+# runtime = "{{ .Runtime }}"
+
+# default_runtime is the _name_ of the OCI runtime to be used as the default.
+# The name is matched against the runtimes map below.
+default_runtime = "{{ .DefaultRuntime }}"
 
 # Path to OCI compatible runtime used for untrusted container workloads. This
 # is an optional setting, except if default_container_trust is set to
@@ -128,13 +135,6 @@ runtime = "{{ .Runtime }}"
 #     The support of this option will continue through versions 1.12 and 1.13.
 #     By version 1.14, this option will no longer exist.
 #default_workload_trust = "{{ .DefaultWorkloadTrust }}"
-
-  # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
-  # The runtime to use is picked based on the runtime_handler provided by the CRI.
-  # If no runtime_handler is provided, the runtime will be picked based on the level
-  # of trust of the workload.
-  [crio.runtime.runtimes.runtime_handler_name]
-    runtime_path = ""
 
 # If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
@@ -230,6 +230,15 @@ gid_mappings = "{{ .GIDMappings }}"
 # The minimal amount of time in seconds to wait before issuing a timeout
 # regarding the proper termination of the container.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
+
+  # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
+  # The runtime to use is picked based on the runtime_handler provided by the CRI.
+  # If no runtime_handler is provided, the runtime will be picked based on the level
+  # of trust of the workload.
+  {{ range $runtime_name, $runtime_handler := .Runtimes  }}
+  [crio.runtime.runtimes.{{ $runtime_name }}]
+  runtime_path = "{{ $runtime_handler.RuntimePath }}"
+  {{ end  }}
 
 
 # The crio.image table contains settings pertaining to the management of OCI images.

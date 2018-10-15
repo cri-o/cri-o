@@ -58,6 +58,7 @@ const (
 func New(runtimeTrustedPath string,
 	runtimeUntrustedPath string,
 	trustLevel string,
+	defaultRuntime string,
 	runtimes map[string]RuntimeHandler,
 	conmonPath string,
 	conmonEnv []string,
@@ -67,6 +68,15 @@ func New(runtimeTrustedPath string,
 	logSizeMax int64,
 	noPivot bool,
 	ctrStopTimeout int64) (*Runtime, error) {
+	if runtimeTrustedPath == "" {
+		// this means no "runtime" key in config as it's deprecated, fallback to
+		// the runtime handler configured as default.
+		r, ok := runtimes[defaultRuntime]
+		if !ok {
+			return nil, fmt.Errorf("no runtime configured for default_runtime=%q", defaultRuntime)
+		}
+		runtimeTrustedPath = r.RuntimePath
+	}
 	r := &Runtime{
 		name:                     filepath.Base(runtimeTrustedPath),
 		trustedPath:              runtimeTrustedPath,

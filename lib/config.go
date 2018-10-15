@@ -107,7 +107,14 @@ type RuntimeConfig struct {
 	// This is a mandatory setting as this runtime will be the default one and
 	// will also be used for untrusted container workloads if
 	// RuntimeUntrustedWorkload is not set.
+	//
+	// DEPRECATED: use Runtimes instead.
+	//
 	Runtime string `toml:"runtime"`
+
+	// DefaultRuntime is the _name_ of the OCI runtime to be used as the default.
+	// The name is matched against the Runtimes map below.
+	DefaultRuntime string `toml:"default_runtime"`
 
 	// RuntimeUntrustedWorkload is the OCI compatible runtime used for
 	// untrusted container workloads. This is an optional setting, except
@@ -357,9 +364,12 @@ func DefaultConfig() *Config {
 			FileLockingPath: lockPath,
 		},
 		RuntimeConfig: RuntimeConfig{
-			Runtime:  "/usr/bin/runc",
-			Runtimes: map[string]oci.RuntimeHandler{},
-
+			DefaultRuntime: "runc",
+			Runtimes: map[string]oci.RuntimeHandler{
+				"runc": {
+					RuntimePath: "/usr/bin/runc",
+				},
+			},
 			Conmon: conmonPath,
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -373,7 +383,6 @@ func DefaultConfig() *Config {
 			ContainerAttachSocketDir: oci.ContainerAttachSocketDir,
 			HooksDirPath:             hooks.DefaultDir,
 			LogSizeMax:               DefaultLogSizeMax,
-			DefaultMountsFile:        "",
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "error",
 			DefaultSysctls:           []string{},
