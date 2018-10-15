@@ -58,8 +58,9 @@ func validateRuntimeConfig(config *server.Config) error {
 	if config.RuntimeConfig.Runtime != "" {
 		logrus.Warn("runtime is deprecated in favor of runtimes, please switch to that")
 	}
-	if len(config.RuntimeConfig.Runtimes) == 0 && config.RuntimeConfig.Runtime == "" {
-		return errors.New("no deafult runtime configured")
+	_, ok = config.RuntimeConfig.Runtimes[config.RuntimeConfig.DefaultRuntime]
+	if !ok && config.RuntimeConfig.Runtime == "" {
+		return errors.New("no default runtime configured")
 	}
 
 	return nil
