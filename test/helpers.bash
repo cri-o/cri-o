@@ -23,6 +23,8 @@ SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/cri-o/seccomp.json}
 # Name of the default apparmor profile.
 APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
 # Runtime
+DEFAULT_RUNTIME=${DEFAULT_RUNTIME:-runc}
+RUNTIME_NAME=${RUNTIME_NAME:-runc}
 RUNTIME=${RUNTIME:-runc}
 UID_MAPPINGS=${UID_MAPPINGS:-}
 GID_MAPPINGS=${GID_MAPPINGS:-}
@@ -240,7 +242,8 @@ function start_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --default-capabilities "$capabilities" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --stream-port "$STREAM_PORT" --cgroup-manager "$CGROUP_MANAGER" --default-mounts-file "$TESTDIR/containers/mounts.conf" --registry "quay.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --uid-mappings "$UID_MAPPINGS" --gid-mappings "$GID_MAPPINGS" --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --default-capabilities "$capabilities" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --stream-port "$STREAM_PORT" --cgroup-manager "$CGROUP_MANAGER" --default-mounts-file "$TESTDIR/containers/mounts.conf" --registry "quay.io" --default-runtime $DEFAULT_RUNTIME --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --uid-mappings "$UID_MAPPINGS" --gid-mappings "$GID_MAPPINGS" --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
+	cat $CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$5" ]]; then
@@ -249,7 +252,6 @@ function start_crio() {
 		netfunc="prepare_network_conf"
 	fi
 	${netfunc} $POD_CIDR
-	sed -i "s@runtime_path = \"/usr/bin/runc\"@runtime_path = \"$RUNTIME_BINARY\"@g" $CRIO_CONFIG
 
 	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable

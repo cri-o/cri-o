@@ -155,6 +155,19 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		logrus.Warn("--runtime is deprecated, use the runtimes key in the config directly")
 		config.Runtime = ctx.GlobalString("runtime")
 	}
+	if ctx.GlobalIsSet("default-runtime") {
+		config.DefaultRuntime = ctx.GlobalString("default-runtime")
+	}
+	if ctx.GlobalIsSet("runtimes") {
+		runtimes := ctx.GlobalStringSlice("runtimes")
+		for _, r := range runtimes {
+			fields := strings.Split(r, ":")
+			if fields[0] == "" {
+				return fmt.Errorf("wrong format for --runtimes: %q", r)
+			}
+			config.Runtimes[fields[0]] = oci.RuntimeHandler{RuntimePath: fields[1]}
+		}
+	}
 	if ctx.GlobalIsSet("selinux") {
 		config.SELinux = ctx.GlobalBool("selinux")
 	}
@@ -344,9 +357,18 @@ func main() {
 			Name:  "default-transport",
 			Usage: "default transport",
 		},
+		// XXX: DEPRECATED
 		cli.StringFlag{
 			Name:  "runtime",
 			Usage: "OCI runtime path",
+		},
+		cli.StringFlag{
+			Name:  "default-runtime",
+			Usage: "default OCI runtime from the runtimes config",
+		},
+		cli.StringSliceFlag{
+			Name:  "runtimes",
+			Usage: "OCI runtimes, format is runtime_name:runtime_path",
 		},
 		cli.StringFlag{
 			Name:  "seccomp-profile",
