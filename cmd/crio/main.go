@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	goflag "flag"
 	"fmt"
 	"net"
@@ -53,6 +54,9 @@ func validateRuntimeConfig(config *server.Config) error {
 	_, ok := config.RuntimeConfig.Runtimes[oci.UntrustedRuntime]
 	if ok && config.RuntimeConfig.RuntimeUntrustedWorkload != "" {
 		return fmt.Errorf("conflicting definitions: configuration includes runtime_untrusted_workload and runtimes[%q]", oci.UntrustedRuntime)
+	}
+	if len(config.RuntimeConfig.Runtimes) == 0 && config.RuntimeConfig.Runtime == "" {
+		return errors.New("no deafult runtime configured")
 	}
 
 	return nil
@@ -144,6 +148,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		config.StreamPort = ctx.GlobalString("stream-port")
 	}
 	if ctx.GlobalIsSet("runtime") {
+		logrus.Warn("--runtime is deprecated, use the runtimes key in the config directly")
 		config.Runtime = ctx.GlobalString("runtime")
 	}
 	if ctx.GlobalIsSet("selinux") {
@@ -517,9 +522,11 @@ func main() {
 			disableSELinux()
 		}
 
-		if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
-			// path to runtime does not exist
-			return fmt.Errorf("invalid --runtime value %q", err)
+		if config.Runtime != "" {
+			if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
+				// path to runtime does not exist
+				return fmt.Errorf("invalid --runtime value %q", err)
+			}
 		}
 
 		if err := os.MkdirAll(filepath.Dir(config.Listen), 0755); err != nil {
