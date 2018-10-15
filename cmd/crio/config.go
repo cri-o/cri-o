@@ -84,7 +84,10 @@ stream_tls_ca = "{{ .StreamTLSCA }}"
 # is a mandatory setting as this runtime will be the default and will also be
 # used for untrusted container workloads if runtime_untrusted_workload is not
 # set.
-runtime = "{{ .Runtime }}"
+#
+# DEPRECATED: use Runtimes instead.
+#
+# runtime = "{{ .Runtime }}"
 
 # Path to OCI compatible runtime used for untrusted container workloads. This
 # is an optional setting, except if default_container_trust is set to
@@ -127,8 +130,10 @@ runtime = "{{ .Runtime }}"
   # The runtime to use is picked based on the runtime_handler provided by the CRI.
   # If no runtime_handler is provided, the runtime will be picked based on the level
   # of trust of the workload.
-  [crio.runtime.runtimes.runtime_handler_name]
-    runtime_path = ""
+  {{ range $runtime_name, $runtime_path := .Runtimes  }}
+  [crio.runtime.runtimes.{{ $runtime_name }}]
+  runtime_path = "{{ $runtime_path.RuntimePath }}"
+  {{ end  }}
 
 # If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
