@@ -89,6 +89,10 @@ stream_tls_ca = "{{ .StreamTLSCA }}"
 #
 # runtime = "{{ .Runtime }}"
 
+# default_runtime is the _name_ of the OCI runtime to be used as the default.
+# The name is matched against the runtimes map below.
+default_runtime = {{ .DefaultRuntime }}
+
 # Path to OCI compatible runtime used for untrusted container workloads. This
 # is an optional setting, except if default_container_trust is set to
 # "untrusted".

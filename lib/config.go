@@ -112,6 +112,10 @@ type RuntimeConfig struct {
 	//
 	Runtime string `toml:"runtime"`
 
+	// DefaultRuntime is the _name_ of the OCI runtime to be used as the default.
+	// The name is matched against the Runtimes map below.
+	DefaultRuntime string `toml:"default_runtime"`
+
 	// RuntimeUntrustedWorkload is the OCI compatible runtime used for
 	// untrusted container workloads. This is an optional setting, except
 	// if DefaultWorkloadTrust is set to "untrusted".
@@ -357,6 +361,7 @@ func DefaultConfig() *Config {
 			FileLockingPath: lockPath,
 		},
 		RuntimeConfig: RuntimeConfig{
+			DefaultRuntime: "runc",
 			Runtimes: map[string]oci.RuntimeHandler{
 				"runc": {
 					RuntimePath: "/usr/bin/runc",
