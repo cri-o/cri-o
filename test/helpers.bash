@@ -249,6 +249,7 @@ function start_crio() {
 		netfunc="prepare_network_conf"
 	fi
 	${netfunc} $POD_CIDR
+	sed -i "s@runtime_path = \"/usr/bin/runc\"@runtime_path = \"$RUNTIME_BINARY\"@g" $CRIO_CONFIG
 
 	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
