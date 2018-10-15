@@ -55,6 +55,9 @@ func validateRuntimeConfig(config *server.Config) error {
 	if ok && config.RuntimeConfig.RuntimeUntrustedWorkload != "" {
 		return fmt.Errorf("conflicting definitions: configuration includes runtime_untrusted_workload and runtimes[%q]", oci.UntrustedRuntime)
 	}
+	if config.RuntimeConfig.Runtime != "" {
+		logrus.Warn("runtime is deprecated in favor of runtimes, please switch to that")
+	}
 	if len(config.RuntimeConfig.Runtimes) == 0 && config.RuntimeConfig.Runtime == "" {
 		return errors.New("no deafult runtime configured")
 	}
