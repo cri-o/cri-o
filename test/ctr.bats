@@ -67,6 +67,48 @@ function teardown() {
 	stop_crio
 }
 
+@test "ulimits" {
+	ULIMITS="--default-ulimits nofile=42:42 --default-ulimits nproc=1024:2048" start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	ulimits=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin); obj["command"] = ["/bin/sh", "-c", "sleep 600"]; json.dump(obj, sys.stdout)')
+	echo "$ulimits" > "$TESTDIR"/container_config_ulimits.json
+	run crictl create "$pod_id" "$TESTDIR"/container_config_ulimits.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crictl exec --sync "$ctr_id" sh -c "ulimit -n"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "42" ]]
+	run crictl exec --sync "$ctr_id" sh -c "ulimit -p"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "1024" ]]
+
+	run crictl exec --sync "$ctr_id" sh -c "ulimit -Hp"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "2048" ]]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "ctr remove" {
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
