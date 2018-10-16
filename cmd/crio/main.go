@@ -25,6 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli"
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
@@ -185,13 +186,18 @@ func writeCrioGoroutineStacks() {
 }
 
 func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
-	sig := make(chan os.Signal, 10)
-	signal.Notify(sig, signals.Interrupt, signals.Term, syscall.SIGUSR1)
+	sig := make(chan os.Signal, 2048)
+	signal.Notify(sig, signals.Interrupt, signals.Term, syscall.SIGUSR1, syscall.SIGPIPE)
 	go func() {
 		for s := range sig {
+			logrus.WithFields(logrus.Fields{
+				"signal": s,
+			}).Debug("received signal")
 			switch s {
 			case syscall.SIGUSR1:
 				writeCrioGoroutineStacks()
+				continue
+			case unix.SIGPIPE:
 				continue
 			case signals.Interrupt:
 				logrus.Debugf("Caught SIGINT")
