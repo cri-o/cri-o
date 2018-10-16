@@ -61,9 +61,21 @@
         GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y /usr/bin/go run hack/e2e.go
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
-                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.support.inline.execution.and.attach|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config|Pods.should.support.pod.readiness.gates
+            --ginkgo.skip=\[Experimental\]|\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:\w+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.support.inline.execution.and.attach|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config|Pods.should.support.pod.readiness.gates|AppArmor|SELinux
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
+  # Fix vim syntax hilighting: "
+
+- name: Buffer the e2e securitycontext testing command to workaround Ansible YAML folding "feature"
+  set_fact:
+    e2e_security_shell_cmd: >
+        GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y /usr/bin/go run hack/e2e.go
+            --test
+            --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
+                        --ginkgo.focus=\[Feature:SecurityContext\]|\[sig-node\]
+                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|AppArmor|SELinux
+                        --report-dir={{ artifacts }}"
+            &> {{ artifacts }}/e2e_security.log
   # Fix vim syntax hilighting: "
 
 - block:
@@ -74,6 +86,13 @@
 
     - name: run e2e tests
       shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
+      args:
+        chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+      async: '{{ 60 * 60 * 4 }}'  # seconds
+      poll: 60
+
+    - name: run e2e security tests
+      shell: "{{ e2e_security_shell_cmd | regex_replace('\\s+', ' ') }}"
       args:
         chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
       async: '{{ 60 * 60 * 4 }}'  # seconds
