@@ -68,6 +68,23 @@ func (s *Server) trustedSandbox(req *pb.RunPodSandboxRequest) bool {
 	return isTrue(trustedAnnotation)
 }
 
+// runtimeHandler returns the runtime handler key provided by CRI if the key
+// does exist and the associated data are valid. If the key is empty, there
+// is nothing to do, and the empty key is returned. For every other case, this
+// function will return an empty string with the error associated.
+func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
+	handler := req.GetRuntimeHandler()
+	if handler == "" {
+		return handler, nil
+	}
+
+	if _, err := s.Runtime().ValidateRuntimeHandler(handler); err != nil {
+		return "", err
+	}
+
+	return handler, nil
+}
+
 var (
 	conflictRE = regexp.MustCompile(`already reserved for pod "([0-9a-z]+)"`)
 )
@@ -114,17 +131,20 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 }
 
 func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
-	if in == nil {
-		return nil
-	}
-	out := make([]*hostport.PortMapping, len(in))
-	for i, v := range in {
-		out[i] = &hostport.PortMapping{
+	var out []*hostport.PortMapping
+	for _, v := range in {
+		if v.HostPort <= 0 {
+			continue
+		}
+		if v.Protocol != pb.Protocol_TCP && v.Protocol != pb.Protocol_UDP {
+			continue
+		}
+		out = append(out, &hostport.PortMapping{
 			HostPort:      v.HostPort,
 			ContainerPort: v.ContainerPort,
 			Protocol:      v1.Protocol(v.Protocol.String()),
 			HostIP:        v.HostIp,
-		}
+		})
 	}
 	return out
 }

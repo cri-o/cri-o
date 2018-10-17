@@ -107,11 +107,26 @@ type RuntimeConfig struct {
 	// This is a mandatory setting as this runtime will be the default one and
 	// will also be used for untrusted container workloads if
 	// RuntimeUntrustedWorkload is not set.
+	//
+	// DEPRECATED: use Runtimes instead.
+	//
 	Runtime string `toml:"runtime"`
 
-	// RuntimeUntrustedWorkload is the OCI compatible runtime used for untrusted
-	// container workloads. This is an optional setting, except if
-	// DefaultWorkloadTrust is set to "untrusted".
+	// DefaultRuntime is the _name_ of the OCI runtime to be used as the default.
+	// The name is matched against the Runtimes map below.
+	DefaultRuntime string `toml:"default_runtime"`
+
+	// RuntimeUntrustedWorkload is the OCI compatible runtime used for
+	// untrusted container workloads. This is an optional setting, except
+	// if DefaultWorkloadTrust is set to "untrusted".
+	// DEPRECATED: use Runtimes instead. If provided, this runtime is
+	//     mapped to the runtime handler named 'untrusted'. It is a
+	//     configuration error to provide both the (now deprecated)
+	//     RuntimeUntrustedWorkload and a handler in the Runtimes handler
+	//     map (below) for 'untrusted' workloads at the same time. Please
+	//     provide one or the other.
+	//     The support of this option will continue through versions 1.12 and 1.13.
+	//     By version 1.14, this option will no longer exist.
 	RuntimeUntrustedWorkload string `toml:"runtime_untrusted_workload"`
 
 	// DefaultWorkloadTrust is the default level of trust crio puts in container
@@ -129,7 +144,18 @@ type RuntimeConfig struct {
 	// containers are by definition trusted and will always use the trusted container
 	// runtime. If DefaultWorkloadTrust is set to "trusted", crio will use the trusted
 	// container runtime for all containers.
+	// DEPRECATED: The runtime handler should provide a key to the map of runtimes,
+	//     avoiding the need to rely on the level of trust of the workload to choose
+	//     an appropriate runtime.
+	//     The support of this option will continue through versions 1.12 and 1.13.
+	//     By version 1.14, this option will no longer exist.
 	DefaultWorkloadTrust string `toml:"default_workload_trust"`
+
+	// Runtimes defines a list of OCI compatible runtimes. The runtime to
+	// use is picked based on the runtime_handler provided by the CRI. If
+	// no runtime_handler is provided, the runtime will be picked based on
+	// the level of trust of the workload.
+	Runtimes map[string]oci.RuntimeHandler `toml:"runtimes"`
 
 	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
 	NoPivot bool `toml:"no_pivot"`
@@ -338,10 +364,12 @@ func DefaultConfig() *Config {
 			FileLockingPath: lockPath,
 		},
 		RuntimeConfig: RuntimeConfig{
-			Runtime:                  "/usr/bin/runc",
-			RuntimeUntrustedWorkload: "",
-			DefaultWorkloadTrust:     "trusted",
-
+			DefaultRuntime: "runc",
+			Runtimes: map[string]oci.RuntimeHandler{
+				"runc": {
+					RuntimePath: "/usr/bin/runc",
+				},
+			},
 			Conmon: conmonPath,
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -355,7 +383,6 @@ func DefaultConfig() *Config {
 			ContainerAttachSocketDir: oci.ContainerAttachSocketDir,
 			HooksDirPath:             hooks.DefaultDir,
 			LogSizeMax:               DefaultLogSizeMax,
-			DefaultMountsFile:        "",
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "error",
 			DefaultSysctls:           []string{},

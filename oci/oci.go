@@ -48,12 +48,18 @@ const (
 	// before issuing a timeout regarding the proper termination of the
 	// container.
 	minCtrStopTimeout = 10
+
+	// UntrustedRuntime is the implicit runtime handler name used to
+	// fallback to the untrusted runtime.
+	UntrustedRuntime = "untrusted"
 )
 
 // New creates a new Runtime with options provided
 func New(runtimeTrustedPath string,
 	runtimeUntrustedPath string,
 	trustLevel string,
+	defaultRuntime string,
+	runtimes map[string]RuntimeHandler,
 	conmonPath string,
 	conmonEnv []string,
 	cgroupManager string,
@@ -62,11 +68,21 @@ func New(runtimeTrustedPath string,
 	logSizeMax int64,
 	noPivot bool,
 	ctrStopTimeout int64) (*Runtime, error) {
+	if runtimeTrustedPath == "" {
+		// this means no "runtime" key in config as it's deprecated, fallback to
+		// the runtime handler configured as default.
+		r, ok := runtimes[defaultRuntime]
+		if !ok {
+			return nil, fmt.Errorf("no runtime configured for default_runtime=%q", defaultRuntime)
+		}
+		runtimeTrustedPath = r.RuntimePath
+	}
 	r := &Runtime{
 		name:                     filepath.Base(runtimeTrustedPath),
 		trustedPath:              runtimeTrustedPath,
 		untrustedPath:            runtimeUntrustedPath,
 		trustLevel:               trustLevel,
+		runtimes:                 runtimes,
 		conmonPath:               conmonPath,
 		conmonEnv:                conmonEnv,
 		cgroupManager:            cgroupManager,
@@ -85,6 +101,7 @@ type Runtime struct {
 	trustedPath              string
 	untrustedPath            string
 	trustLevel               string
+	runtimes                 map[string]RuntimeHandler
 	conmonPath               string
 	conmonEnv                []string
 	cgroupManager            string
@@ -93,6 +110,12 @@ type Runtime struct {
 	logSizeMax               int64
 	noPivot                  bool
 	ctrStopTimeout           int64
+}
+
+// RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
+// config table.
+type RuntimeHandler struct {
+	RuntimePath string `toml:"runtime_path"`
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -112,31 +135,69 @@ func (r *Runtime) Name() string {
 	return r.name
 }
 
+// Runtimes returns the map of OCI runtimes.
+func (r *Runtime) Runtimes() map[string]RuntimeHandler {
+	return r.runtimes
+}
+
+// ValidateRuntimeHandler returns an error if the runtime handler string
+// provided does not match any valid use case.
+func (r *Runtime) ValidateRuntimeHandler(handler string) (RuntimeHandler, error) {
+	if handler == "" {
+		return RuntimeHandler{}, fmt.Errorf("empty runtime handler")
+	}
+
+	runtimeHandler, ok := r.runtimes[handler]
+	if !ok {
+		if handler == UntrustedRuntime && r.untrustedPath != "" {
+			return RuntimeHandler{
+				RuntimePath: r.untrustedPath,
+			}, nil
+		}
+		return RuntimeHandler{}, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
+			handler, r.runtimes)
+	}
+	if runtimeHandler.RuntimePath == "" {
+		return RuntimeHandler{}, fmt.Errorf("empty runtime path for runtime handler %s", handler)
+	}
+
+	return runtimeHandler, nil
+}
+
 // Path returns the full path the OCI Runtime executable.
 // Depending if the container is privileged and/or trusted,
 // this will return either the trusted or untrusted runtime path.
-func (r *Runtime) Path(c *Container) string {
-	if !c.trusted {
-		if r.untrustedPath != "" {
-			return r.untrustedPath
+func (r *Runtime) Path(c *Container) (string, error) {
+	if c.runtimeHandler != "" {
+		runtimeHandler, err := r.ValidateRuntimeHandler(c.runtimeHandler)
+		if err != nil {
+			return "", err
 		}
 
-		return r.trustedPath
+		return runtimeHandler.RuntimePath, nil
+	}
+
+	if !c.trusted {
+		if r.untrustedPath != "" {
+			return r.untrustedPath, nil
+		}
+
+		return r.trustedPath, nil
 	}
 
 	// Our container is trusted. Let's look at the configured trust level.
 	if r.trustLevel == "trusted" {
-		return r.trustedPath
+		return r.trustedPath, nil
 	}
 
 	// Our container is trusted, but we are running untrusted.
 	// We will use the untrusted container runtime if it's set
 	// and if it's not a privileged container.
 	if c.privileged || r.untrustedPath == "" {
-		return r.trustedPath
+		return r.trustedPath, nil
 	}
 
-	return r.untrustedPath
+	return r.untrustedPath, nil
 }
 
 // Version returns the version of the OCI Runtime
@@ -177,9 +238,15 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	if r.cgroupManager == CgroupfsCgroupsManager {
 		args = append(args, "--syslog")
 	}
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
 	args = append(args, "-c", c.id)
 	args = append(args, "-u", c.id)
-	args = append(args, "-r", r.Path(c))
+	args = append(args, "-r", rPath)
 	args = append(args, "-b", c.bundlePath)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
 	args = append(args, "-l", c.logPath)
@@ -298,7 +365,13 @@ func createUnitName(prefix string, name string) string {
 func (r *Runtime) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "start", c.id); err != nil {
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "start", c.id); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -413,9 +486,17 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		os.RemoveAll(logPath)
 	}()
 
+	rPath, err := r.Path(c)
+	if err != nil {
+		return nil, ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+
 	var args []string
 	args = append(args, "-c", c.id)
-	args = append(args, "-r", r.Path(c))
+	args = append(args, "-r", rPath)
 	args = append(args, "-p", pidFile.Name())
 	args = append(args, "-e")
 	if c.terminal {
@@ -521,7 +602,12 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 
 // UpdateContainer updates container resources
 func (r *Runtime) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
-	cmd := exec.Command(r.Path(c), "update", "--resources", "-", c.id)
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(rPath, "update", "--resources", "-", c.id)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -669,8 +755,13 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 		}
 	}
 
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
 	if timeout > 0 {
-		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.id, c.GetStopSignal()); err != nil {
+		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", c.id, c.GetStopSignal()); err != nil {
 			if err := checkProcessGone(c); err != nil {
 				return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 			}
@@ -682,7 +773,7 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 		logrus.Warnf("Stop container %q timed out: %v", c.id, err)
 	}
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.Path(c), "kill", c.id, "KILL"); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", c.id, "KILL"); err != nil {
 		if err := checkProcessGone(c); err != nil {
 			return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 		}
@@ -710,7 +801,13 @@ func checkProcessGone(c *Container) error {
 func (r *Runtime) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	_, err := utils.ExecCmd(r.Path(c), "delete", "--force", c.id)
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	_, err = utils.ExecCmd(rPath, "delete", "--force", c.id)
 	return err
 }
 
@@ -728,7 +825,12 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	out, err := exec.Command(r.Path(c), "state", c.id).Output()
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	out, err := exec.Command(rPath, "state", c.id).Output()
 	if err != nil {
 		// there are many code paths that could lead to have a bad state in the
 		// underlying runtime.
@@ -799,7 +901,13 @@ func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
 func (r *Runtime) PauseContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	_, err := utils.ExecCmd(r.Path(c), "pause", c.id)
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	_, err = utils.ExecCmd(rPath, "pause", c.id)
 	return err
 }
 
@@ -807,7 +915,13 @@ func (r *Runtime) PauseContainer(c *Container) error {
 func (r *Runtime) UnpauseContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	_, err := utils.ExecCmd(r.Path(c), "resume", c.id)
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	_, err = utils.ExecCmd(rPath, "resume", c.id)
 	return err
 }
 
