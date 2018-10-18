@@ -29,7 +29,8 @@ crio
 [--registry=[value]]
 [--root=[value]]
 [--runroot=[value]]
-[--runtime=[value]]
+[--default-runtime=[value]]
+[--runtimes=[value]]
 [--seccomp-profile=[value]]
 [--selinux]
 [--signature-policy=[value]]
@@ -114,7 +115,9 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--runroot**="": The crio state dir (default: "/var/run/containers/storage")
 
-**--runtime**="": OCI runtime path (default: "/usr/bin/runc")
+**--default-runtime**="":Default OCI runtime name from the runtimes configuration or flags
+
+**--runtimes**="": OCI runtime handlers in the form of "runtime_name:runtime_path", can be specified multiple times
 
 **--selinux**=**true**|**false**: Enable selinux support (default: false)
 
