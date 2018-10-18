@@ -72,14 +72,20 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
 
+**default_runtime**="runc"
+  default_runtime is the _name_ of the OCI runtime to be used as the default. The name is matched against the runtimes list below.
+
+**runtimes**=[]
+  The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes. The runtime to use is picked based on the runtime_handler provided by the CRI.  If no runtime_handler is provided, the runtime will be picked based on the level of trust of the workload.
+
 **runtime**="/usr/bin/runc"
-  Path to the OCI compatible runtime used for trusted container workloads. This is a mandatory setting as this runtime will be the default and will also be used for untrusted container workloads if `runtime_untrusted_workload` is not set.
+  **DEPRECATED:** Path to the OCI compatible runtime used for trusted container workloads. This is a mandatory setting as this runtime will be the default and will also be used for untrusted container workloads if `runtime_untrusted_workload` is not set.
 
 **runtime_untrusted_workload**=""
-  Path to OCI compatible runtime used for untrusted container workloads. This is an optional setting, except if `default_container_trust` is set to "untrusted".
+  **DEPRECATED:** Path to OCI compatible runtime used for untrusted container workloads. This is an optional setting, except if `default_container_trust` is set to "untrusted".
 
 **default_workload_trust**="trusted"
-  Default level of trust CRI-O puts in container workloads. It can either be "trusted" or "untrusted", and the default is "trusted". Containers can be run through different container runtimes, depending on the trust hints we receive from kubelet:
+  **DEPRECATED**: Default level of trust CRI-O puts in container workloads. It can either be "trusted" or "untrusted", and the default is "trusted". Containers can be run through different container runtimes, depending on the trust hints we receive from kubelet:
 
     - If kubelet tags a container workload as untrusted, CRI-O will try first to run it through the untrusted container workload runtime. If it is not set, CRI-O will use the trusted runtime.
 

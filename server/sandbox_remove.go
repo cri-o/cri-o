@@ -31,7 +31,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
-		// the the CRI interface which expects to not error out in not found
+		// the CRI interface which expects to not error out in not found
 		// cases.
 
 		resp = &pb.RemovePodSandboxResponse{}

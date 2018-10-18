@@ -85,6 +85,9 @@ const (
 	// TrustedSandbox is the annotation for trusted sandboxes
 	TrustedSandbox = "io.kubernetes.cri-o.TrustedSandbox"
 
+	// RuntimeHandler is the annotation for runtime handler
+	RuntimeHandler = "io.kubernetes.cri-o.RuntimeHandler"
+
 	// TTY is the terminal path annotation
 	TTY = "io.kubernetes.cri-o.TTY"
 

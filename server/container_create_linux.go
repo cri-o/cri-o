@@ -496,6 +496,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
 			!containerConfig.GetLinux().GetSecurityContext().Privileged {
+			// TODO(runcom): have just one of this var at the top of the function
+			securityContext := containerConfig.GetLinux().GetSecurityContext()
 			for _, mp := range []string{
 				"/proc/acpi",
 				"/proc/kcore",
@@ -509,6 +511,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			} {
 				specgen.AddLinuxMaskedPaths(mp)
 			}
+			if securityContext.GetMaskedPaths() != nil {
+				specgen.Spec().Linux.MaskedPaths = nil
+				for _, path := range securityContext.GetMaskedPaths() {
+					specgen.AddLinuxMaskedPaths(path)
+				}
+			}
 
 			for _, rp := range []string{
 				"/proc/asound",
@@ -519,6 +527,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 				"/proc/sysrq-trigger",
 			} {
 				specgen.AddLinuxReadonlyPaths(rp)
+			}
+			if securityContext.GetReadonlyPaths() != nil {
+				specgen.Spec().Linux.ReadonlyPaths = nil
+				for _, path := range securityContext.GetReadonlyPaths() {
+					specgen.AddLinuxReadonlyPaths(path)
+				}
 			}
 		}
 	}
@@ -860,7 +874,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	crioAnnotations := specgen.Spec().Annotations
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs().Path(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs().Path(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.Trusted(), sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
