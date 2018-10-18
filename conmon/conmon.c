@@ -156,6 +156,13 @@ static int log_fd = -1;
 		exit(EXIT_FAILURE); \
 	} while (0)
 
+#define pwarn(s) \
+	do { \
+		fprintf(stderr, "[conmon:w]: %s %s\n", s, strerror(errno)); \
+		if (opt_syslog) \
+			syslog(LOG_INFO, "conmon %.20s <pwarn>: %s %s\n", opt_cid, s, strerror(errno)); \
+	} while (0)
+
 #define nexit(s) \
 	do { \
 		fprintf(stderr, "[conmon:e] %s\n", s); \
@@ -397,6 +404,11 @@ const char *stdpipe_name(stdpipe_t pipe)
 static void reopen_log_file(void)
 {
 	_cleanup_free_ char *opt_log_path_tmp = g_strdup_printf("%s.tmp", opt_log_path);
+
+	/* Sync the logs to disk */
+	if (fsync(log_fd) < 0) {
+		pwarn("Failed to sync log file on reopen");
+	}
 
 	/* Close the current log_fd */
 	close(log_fd);
@@ -1721,6 +1733,13 @@ int main(int argc, char *argv[])
 		g_unix_set_fd_nonblocking(masterfd_stderr, TRUE, NULL);
 		while (read_stdio(masterfd_stderr, STDERR_PIPE, NULL))
 			;
+	}
+
+	/* Sync the logs to disk */
+	if (log_fd > 0) {
+		if (fsync(log_fd) < 0) {
+			pwarn("Failed to sync log file before exit");
+		}
 	}
 
 	int exit_status = -1;
