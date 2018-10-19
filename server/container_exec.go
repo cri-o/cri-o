@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/pools"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"

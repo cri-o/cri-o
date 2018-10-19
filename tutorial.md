@@ -1,6 +1,6 @@
 # CRI-O Tutorial
 
-This tutorial will walk you through the installation of [CRI-O](https://github.com/kubernetes-incubator/cri-o), an Open Container Initiative-based implementation of [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md), and the creation of [Redis](https://redis.io/) server running in a [Pod](http://kubernetes.io/docs/user-guide/pods/).
+This tutorial will walk you through the installation of [CRI-O](https://github.com/kubernetes-sigs/cri-o), an Open Container Initiative-based implementation of [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md), and the creation of [Redis](https://redis.io/) server running in a [Pod](http://kubernetes.io/docs/user-guide/pods/).
 
 ## Prerequisites
 
@@ -103,8 +103,8 @@ go version go1.8.5 linux/amd64
 #### Get crictl
 
 ```
-go get github.com/kubernetes-incubator/cri-tools/cmd/crictl
-cd ./src/github.com/kubernetes-incubator/cri-tools/cmd/crictl
+go get github.com/kubernetes-sigs/cri-tools/cmd/crictl
+cd ./src/github.com/kubernetes-sigs/cri-tools/cmd/crictl
 make
 make install
 ```
@@ -122,11 +122,11 @@ sudo apt-get update && apt-get install -y libglib2.0-dev \
 ```
 
 ```
-go get -d github.com/kubernetes-incubator/cri-o
+go get -d github.com/kubernetes-sigs/cri-o
 ```
 
 ```
-cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
+cd $GOPATH/src/github.com/kubernetes-sigs/cri-o
 ```
 
 ```
@@ -170,7 +170,7 @@ log_level = "info"
 ```
 sudo sh -c 'echo "[Unit]
 Description=OCI-based implementation of Kubernetes Container Runtime Interface
-Documentation=https://github.com/kubernetes-incubator/cri-o
+Documentation=https://github.com/kubernetes-sigs/cri-o
 
 [Service]
 ExecStart=/usr/local/bin/crio
@@ -315,7 +315,7 @@ Now that the `CRI-O` components have been installed and configured we are ready 
 First we need to setup a Pod sandbox using a Pod configuration, which can be found in the `cri-o` source tree:
 
 ```
-cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
+cd $GOPATH/src/github.com/kubernetes-sigs/cri-o
 ```
 
 Next create the Pod and capture the Pod ID for later use:

@@ -87,10 +87,10 @@ COPY test/cni_plugin_helper.bash /opt/cni/bin/cni_plugin_helper.bash
 ENV CRICTL_COMMIT release-1.10
 RUN set -x \
        && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/kubernetes-incubator/cri-tools.git "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
-       && cd "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
+       && git clone https://github.com/kubernetes-sigs/cri-tools.git "$GOPATH/src/github.com/kubernetes-sigs/cri-tools" \
+       && cd "$GOPATH/src/github.com/kubernetes-sigs/cri-tools" \
        && git checkout -q "$CRICTL_COMMIT" \
-       && go install github.com/kubernetes-incubator/cri-tools/cmd/crictl \
+       && go install github.com/kubernetes-sigs/cri-tools/cmd/crictl \
        && cp "$GOPATH"/bin/crictl /usr/bin/ \
        && rm -rf "$GOPATH"
 
@@ -99,6 +99,6 @@ RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
-WORKDIR /go/src/github.com/kubernetes-incubator/cri-o
+WORKDIR /go/src/github.com/kubernetes-sigs/cri-o
 
-ADD . /go/src/github.com/kubernetes-incubator/cri-o
+ADD . /go/src/github.com/kubernetes-sigs/cri-o
