@@ -34,6 +34,9 @@ import (
 // It will be populated by the Makefile.
 var gitCommit = ""
 
+// DefaultsPath is the path to default configuration files set at build time
+var DefaultsPath string
+
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
 	if path := ctx.GlobalString("config"); path != "" {
@@ -42,10 +45,20 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 				return err
 			}
 
+			// Use the build-time-defined defaults path
+			if DefaultsPath != "" && os.IsNotExist(err) {
+				path = filepath.Join(DefaultsPath, "/crio.conf")
+				if err := config.UpdateFromFile(path); err != nil {
+					if ctx.GlobalIsSet("config") || !os.IsNotExist(err) {
+						return err
+					}
+				}
+			}
+
 			// We don't error out if --config wasn't explicitly set and the
 			// default doesn't exist. But we will log a warning about it, so
 			// the user doesn't miss it.
-			logrus.Warnf("default configuration file does not exist: %s", server.CrioConfigPath)
+			logrus.Warnf("default configuration file does not exist: %s", path)
 		}
 	}
 
