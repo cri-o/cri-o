@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )

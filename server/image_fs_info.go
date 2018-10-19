@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	crioStorage "github.com/kubernetes-incubator/cri-o/utils"
+	crioStorage "github.com/kubernetes-sigs/cri-o/utils"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )

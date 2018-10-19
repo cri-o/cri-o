@@ -5,7 +5,7 @@ This is the cri-o daemon as a system container.
 ## Building the image from source:
 
 ```
-# git clone https://github.com/kubernetes-incubator/cri-o
+# git clone https://github.com/kubernetes-sigs/cri-o
 # cd contrib/test/system-container
 # docker build -t cri-o .
 ```

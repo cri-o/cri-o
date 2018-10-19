@@ -31,8 +31,8 @@ ENV CRIO_PR ""
 ENV CRIO_COMMIT release-1.9
 RUN set -x \
        && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/kubernetes-incubator/cri-o.git "$GOPATH/src/github.com/kubernetes-incubator/cri-o" \
-       && cd "$GOPATH/src/github.com/kubernetes-incubator/cri-o" \
+       && git clone https://github.com/kubernetes-sigs/cri-o.git "$GOPATH/src/github.com/kubernetes-sigs/cri-o" \
+       && cd "$GOPATH/src/github.com/kubernetes-sigs/cri-o" \
        && if [[ -n "$CRIO_PR" ]]; then git fetch origin "pull/$CRIO_PR/head:pr$CRIO_PR" && git checkout "pr$CRIO_PR"; else git checkout -q "$CRIO_COMMIT"; fi \
        && make binaries docs \
        && ./bin/crio --selinux=true --storage-driver=overlay --conmon /usr/libexec/crio/conmon --cni-plugin-dir /usr/libexec/cni --default-mounts /usr/share/rhel/secrets:/run/secrets --cgroup-manager=systemd config > crio.conf \
