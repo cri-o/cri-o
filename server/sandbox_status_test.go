@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -111,9 +112,12 @@ func TestPodSandboxStatus(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		infoVersion := resp.Info["version"]
-		if version.Version != infoVersion {
-			t.Errorf("expected: %s\ngot: %s", version.Version, infoVersion)
+		marshaledVersion := resp.Info["version"]
+		var versionPayload VersionPayload
+		must(t, json.Unmarshal([]byte(marshaledVersion), &versionPayload))
+
+		if version.Version != versionPayload.Version {
+			t.Errorf("expected: %s\ngot: %s", version.Version, versionPayload.Version)
 		}
 	})
 }
