@@ -41,11 +41,11 @@ jobs:
         - make lint
       go: "1.11.x"
     - script:
-        - sudo "PATH=$PATH" make testunit
+        - make testunit
         - make
       go: "1.10.x"
     - script:
-        - sudo "PATH=$PATH" make testunit
+        - make testunit
         - make
       go: "1.11.x"
     - script:
@@ -53,7 +53,7 @@ jobs:
       go: "1.11.x"
       env: CROSS_PLATFORM=true
     - script:
-        - sudo "PATH=$PATH" make testunit
+        - make testunit
         - make
       go: tip
     - script:
