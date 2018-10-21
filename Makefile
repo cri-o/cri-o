@@ -154,6 +154,20 @@ integration: crioimage
 testunit:
 	$(GO) test -tags "$(BUILDTAGS) containers_image_ostree_stub" -cover $(PACKAGES)
 
+coverage:
+	@rm -f coverage.txt
+	$(GO) test -tags "$(BUILDTAGS) containers_image_ostree_stub" $(PACKAGES)
+	@( for pkg in $(PACKAGES); do \
+		$(GO) test -tags "$(BUILDTAGS) containers_image_ostree_stub" \
+			-cover \
+			-coverprofile=profile.out \
+			-covermode=atomic $$pkg || exit; \
+		if [ -f profile.out ]; then \
+			cat profile.out >> coverage.txt; \
+			rm profile.out; \
+		fi; \
+	done )
+
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
