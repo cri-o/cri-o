@@ -1,6 +1,7 @@
 ![CRI-O logo](https://cdn.rawgit.com/kubernetes-sigs/cri-o/master/logo/crio-logo.svg)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
+[![GoDoc](https://godoc.org/github.com/kubernetes-sigs/cri-o?status.svg)](https://godoc.org/github.com/kubernetes-sigs/cri-o)
 [![Build Status](https://img.shields.io/travis/kubernetes-sigs/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-sigs/cri-o)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-sigs/cri-o)
 
