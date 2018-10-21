@@ -38,7 +38,7 @@ $ ./install.sh /usr/local
 ```
 
 You will also need to install the [CNI](https://github.com/containernetworking/cni) plugins as
-the the default pod test template runs without host networking:
+the default pod test template runs without host networking:
 
 ```
 $ cd "$GOPATH/src/github.com/containernetworking"
