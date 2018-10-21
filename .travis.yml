@@ -68,10 +68,15 @@ jobs:
         - make CONTAINER_RUNTIME=docker integration
       env: TEST_USERNS=1
       go: "1.11.x"
+    - script:
+	- make coverage
   allow_failures:
     - os: osx
     - go: tip
     - env: CROSS_PLATFORM=true
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -F linux
 
 notifications:
   irc: "chat.freenode.net#cri-o"
