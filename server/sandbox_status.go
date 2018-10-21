@@ -1,11 +1,9 @@
 package server
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/kubernetes-sigs/cri-o/version"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -57,25 +55,6 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		},
 	}
 
-	if req.Verbose {
-		resp = amendVerboseInfo(resp)
-	}
-
 	logrus.Debugf("PodSandboxStatusResponse: %+v", resp)
 	return resp, nil
-}
-
-// VersionPayload is a helper struct to create the JSON payload to show the version
-type VersionPayload struct {
-	Version string `json:"version"`
-}
-
-func amendVerboseInfo(resp *pb.PodSandboxStatusResponse) *pb.PodSandboxStatusResponse {
-	resp.Info = make(map[string]string)
-	bs, err := json.Marshal(VersionPayload{Version: version.Version})
-	if err != nil {
-		return resp // Just ignore the error and don't marshal the info
-	}
-	resp.Info["version"] = string(bs)
-	return resp
 }
