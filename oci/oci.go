@@ -2,7 +2,6 @@ package oci
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/json-iterator/go"
 	"github.com/kubernetes-sigs/cri-o/pkg/findprocess"
 	"github.com/kubernetes-sigs/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -329,6 +329,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	ch := make(chan syncStruct)
 	go func() {
 		var si *syncInfo
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		if err = json.NewDecoder(parentPipe).Decode(&si); err != nil {
 			ch <- syncStruct{err: err}
 			return
@@ -555,6 +556,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	}
 
 	var ec *exitCodeInfo
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewDecoder(parentPipe).Decode(&ec); err != nil {
 		return nil, ExecSyncError{
 			Stdout:   stdoutBuf,
@@ -612,6 +614,7 @@ func (r *Runtime) UpdateContainer(c *Container, res *rspec.LinuxResources) error
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonResources, err := json.Marshal(res)
 	if err != nil {
 		return err
@@ -843,6 +846,7 @@ func (r *Runtime) UpdateStatus(c *Container) error {
 		c.state.ExitCode = 255
 		return nil
 	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {
 		return fmt.Errorf("failed to decode container status for %s: %s", c.id, err)
 	}
@@ -941,6 +945,7 @@ func PrepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) 
 	if tty {
 		pspec.Terminal = true
 	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	processJSON, err := json.Marshal(pspec)
 	if err != nil {
 		return nil, err

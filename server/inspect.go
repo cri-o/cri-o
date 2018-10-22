@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -10,6 +9,7 @@ import (
 	cimage "github.com/containers/image/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/go-zoo/bone"
+	"github.com/json-iterator/go"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/kubernetes-sigs/cri-o/types"
@@ -97,6 +97,7 @@ func (s *Server) getContainerInfo(id string, getContainerFunc func(id string) *o
 
 // GetInfoMux returns the mux used to serve info requests
 func (s *Server) GetInfoMux() *bone.Mux {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	mux := bone.New()
 
 	mux.Get("/info", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

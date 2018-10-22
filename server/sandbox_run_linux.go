@@ -3,7 +3,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,6 +14,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/containers/storage"
+	"github.com/json-iterator/go"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/kubernetes-sigs/cri-o/pkg/annotations"
@@ -179,6 +179,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// add metadata
 	metadata := req.GetConfig().GetMetadata()
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err

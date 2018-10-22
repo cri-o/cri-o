@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -21,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
+	"github.com/json-iterator/go"
 	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/oci"
@@ -323,6 +323,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, fileErr)
 		}
 		var seccompConfig seccomp.Seccomp
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
 			return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
 		}

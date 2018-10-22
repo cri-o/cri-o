@@ -3,11 +3,11 @@
 package seccomp
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/containers/storage/pkg/stringutils"
+	"github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	libseccomp "github.com/seccomp/libseccomp-golang"
@@ -37,6 +37,7 @@ func LoadProfileFromStruct(config Seccomp, specgen *generate.Generator) error {
 // LoadProfileFromBytes takes a byte slice and decodes the seccomp profile.
 func LoadProfileFromBytes(body []byte, specgen *generate.Generator) error {
 	var config Seccomp
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal(body, &config); err != nil {
 		return fmt.Errorf("decoding seccomp profile failed: %v", err)
 	}

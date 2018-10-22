@@ -1,7 +1,6 @@
 package oci
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
+	"github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -138,6 +138,7 @@ func (c *Container) FromDisk() error {
 	}
 	defer jsonSource.Close()
 
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	dec := json.NewDecoder(jsonSource)
 	return dec.Decode(c.state)
 }

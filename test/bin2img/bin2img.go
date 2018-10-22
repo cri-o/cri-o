@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"os"
 	"runtime"
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -177,6 +177,7 @@ func main() {
 				},
 			},
 		}
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		cbytes, err := json.Marshal(config)
 		if err != nil {
 			logrus.Errorf("error encoding configuration: %v", err)

@@ -2,13 +2,13 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"syscall"
 	"time"
 
+	"github.com/json-iterator/go"
 	"github.com/kubernetes-sigs/cri-o/types"
 )
 
@@ -78,6 +78,7 @@ func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
 		return info, err
 	}
 	defer resp.Body.Close()
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.NewDecoder(resp.Body).Decode(&info)
 	return info, err
 }
@@ -95,6 +96,7 @@ func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) 
 	}
 	defer resp.Body.Close()
 	cInfo := types.ContainerInfo{}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewDecoder(resp.Body).Decode(&cInfo); err != nil {
 		return nil, err
 	}

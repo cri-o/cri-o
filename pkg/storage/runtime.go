@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/json-iterator/go"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -241,6 +241,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		CreatedAt:     time.Now().Unix(),
 		MountLabel:    mountLabel,
 	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	mdata, err := json.Marshal(&metadata)
 	if err != nil {
 		return ContainerInfo{}, err
@@ -371,6 +372,7 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 }
 
 func (r *runtimeService) SetContainerMetadata(idOrName string, metadata RuntimeContainerMetadata) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	mdata, err := json.Marshal(&metadata)
 	if err != nil {
 		logrus.Debugf("failed to encode metadata for %q: %v", idOrName, err)
@@ -385,6 +387,7 @@ func (r *runtimeService) GetContainerMetadata(idOrName string) (RuntimeContainer
 	if err != nil {
 		return metadata, err
 	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	if err = json.Unmarshal([]byte(mdata), &metadata); err != nil {
 		return metadata, err
 	}
@@ -400,6 +403,7 @@ func (r *runtimeService) StartContainer(idOrName string) (string, error) {
 		return "", err
 	}
 	metadata := RuntimeContainerMetadata{}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	if err = json.Unmarshal([]byte(container.Metadata), &metadata); err != nil {
 		return "", err
 	}

@@ -1,15 +1,14 @@
 package lib
 
 import (
-	"encoding/json"
 	"path/filepath"
 
-	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-
 	"github.com/docker/docker/pkg/ioutils"
+	"github.com/json-iterator/go"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/kubernetes-sigs/cri-o/pkg/annotations"
 	"github.com/opencontainers/runtime-tools/generate"
+	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
 const configFile = "config.json"
@@ -76,12 +75,14 @@ func (c *ContainerServer) updateStateName(ctr *oci.Container, name string) error
 		return err
 	}
 	defer jsonSource.Close()
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	enc := json.NewEncoder(jsonSource)
 	return enc.Encode(c.runtime.ContainerStatus(ctr))
 }
 
 // Attempts to update a metadata annotation
 func updateMetadata(specAnnotations map[string]string, name string) string {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	oldMetadata := specAnnotations[annotations.Metadata]
 	containerType := specAnnotations[annotations.ContainerType]
 	if containerType == "container" {
