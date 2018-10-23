@@ -91,7 +91,7 @@ crio.conf: crio
 	./bin/crio --config="" config --default > crio.conf
 
 release-note:
-	@$(GOPATH)/bin/containerd-release -n $(release)
+	@$(GOPATH)/bin/release-tool -n $(release)
 
 conmon/config.h: cmd/crio-config/config.go oci/oci.go
 	$(GO) build -i $(LDFLAGS) -o bin/crio-config $(PROJECT)/cmd/crio-config
@@ -195,8 +195,8 @@ endif
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.release
 
 .install.release:
-	if [ ! -x "$(GOPATH)/bin/containerd-release" ]; then \
-		go get -u github.com/containerd/containerd/cmd/containerd-release; \
+	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
+		go get -u github.com/containerd/project/cmd/release-tool; \
 	fi
 
 .install.gitvalidation: .gopathok
