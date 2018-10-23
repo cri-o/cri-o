@@ -2,12 +2,12 @@
 package generate
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate/seccomp"
 	"github.com/opencontainers/runtime-tools/validate"
@@ -259,6 +259,7 @@ func NewFromFile(path string) (Generator, error) {
 // configuration Generator.
 func NewFromTemplate(r io.Reader) (Generator, error) {
 	var config rspec.Spec
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewDecoder(r).Decode(&config); err != nil {
 		return Generator{}, err
 	}
@@ -286,6 +287,7 @@ func (g *Generator) Spec() *rspec.Spec {
 // Save writes the configuration into w.
 func (g *Generator) Save(w io.Writer, exportOpts ExportOptions) (err error) {
 	var data []byte
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	if g.Config.Linux != nil {
 		buf, err := json.Marshal(g.Config.Linux)
