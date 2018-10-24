@@ -897,6 +897,11 @@ func (r *Runtime) ContainerStatus(c *Container) *ContainerState {
 	return c.state
 }
 
+// CurrentContainerStatus returns the state of a container without using a lock.
+func (r *Runtime) CurrentContainerStatus(c *Container) *ContainerState {
+	return c.state
+}
+
 // PauseContainer pauses a container.
 func (r *Runtime) PauseContainer(c *Container) error {
 	c.opLock.Lock()
