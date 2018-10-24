@@ -90,7 +90,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			continue
 		}
 		podSandboxID := ctr.Sandbox()
-		cState := s.Runtime().ContainerStatus(ctr)
+		cState := s.Runtime().CurrentContainerStatus(ctr)
 		created := ctr.CreatedAt().UnixNano()
 		rState := pb.ContainerState_CONTAINER_UNKNOWN
 		cID := ctr.ID()
