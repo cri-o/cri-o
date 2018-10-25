@@ -32,12 +32,16 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 
 # Storage driver used to manage the storage of images and containers. Please
 # refer to containers-storage.conf(5) to see all available storage drivers.
-#storage_driver = "{{ .Storage }}"
+{{ if .Storage }}
+storage_driver = "{{ .Storage }}"
+{{ end }}
 
 # List to pass options to the storage driver. Please refer to
 # containers-storage.conf(5) to see all available storage options.
-#storage_option = [
-{{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
+{{ if .StorageOptions }}
+storage_option = [
+{{ range $opt := .StorageOptions }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+{{ end }}
 
 # If set to false, in-memory locking will be used instead of file-based locking.
 file_locking = {{ .FileLocking }}
@@ -83,8 +87,8 @@ stream_tls_ca = "{{ .StreamTLSCA }}"
 # "<ulimit name>=<soft limit>:<hard limit>", for example:
 # "nofile=1024:2048"
 # If nothing is set here, settings will be inherited from the CRI-O daemon
-#default_ulimits = [
-{{ range $ulimit := .DefaultUlimits }}{{ printf "#\t%q,\n" $ulimit }}{{ end }}#]
+default_ulimits = [
+{{ range $ulimit := .DefaultUlimits }}{{ printf "\t%q,\n" $ulimit }}{{ end }}]
 
 # Path to the OCI compatible runtime used for trusted container workloads. This
 # is a mandatory setting as this runtime will be the default and will also be
