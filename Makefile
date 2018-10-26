@@ -2,7 +2,7 @@ include Makefile.inc
 
 GO ?= go
 EPOCH_TEST_COMMIT ?= 1cc5a27
-PROJECT := github.com/kubernetes-incubator/cri-o
+PROJECT := github.com/kubernetes-sigs/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 CRIO_IMAGE := crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
@@ -21,7 +21,7 @@ BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell selinuxenabled 2>/dev/null && echo -Z)
-PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/kubernetes-incubator/cri-o/vendor)
+PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/kubernetes-sigs/cri-o/vendor)
 
 BUILD_INFO := $(shell date +%s)
 
@@ -91,7 +91,7 @@ crio.conf: crio
 	./bin/crio --config="" config --default > crio.conf
 
 release-note:
-	@$(GOPATH)/bin/containerd-release -n $(release)
+	@$(GOPATH)/bin/release-tool -n $(release)
 
 conmon/config.h: cmd/crio-config/config.go oci/oci.go
 	$(GO) build -i $(LDFLAGS) -o bin/crio-config $(PROJECT)/cmd/crio-config
@@ -195,8 +195,8 @@ endif
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.release
 
 .install.release:
-	if [ ! -x "$(GOPATH)/bin/containerd-release" ]; then \
-		go get -u github.com/containerd/containerd/cmd/containerd-release; \
+	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
+		go get -u github.com/containerd/project/cmd/release-tool; \
 	fi
 
 .install.gitvalidation: .gopathok

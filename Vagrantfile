@@ -37,7 +37,7 @@ Vagrant.configure("2") do |config|
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
-  config.vm.synced_folder "./", "/home/vagrant/go/src/github.com/kubernetes-incubator/cri-o", type: "rsync"
+  config.vm.synced_folder "./", "/home/vagrant/go/src/github.com/kubernetes-sigs/cri-o", type: "rsync"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -99,7 +99,7 @@ Vagrant.configure("2") do |config|
   SHELL
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
     export GOPATH=/home/vagrant/go
-    SRCDIR=$GOPATH/src/github.com/kubernetes-incubator/cri-o
+    SRCDIR=$GOPATH/src/github.com/kubernetes-sigs/cri-o
     echo "export GOPATH=$GOPATH" >> $HOME/.bashrc
     echo "export PATH=$PATH:$GOPATH/bin" >> $HOME/.bashrc
     # convenience: drop into the cri-o dir when login to vm

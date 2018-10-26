@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/oci"
 )
 
 // Default paths if none are specified
