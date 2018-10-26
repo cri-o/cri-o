@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/kubernetes-sigs/cri-o/version"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -54,12 +53,6 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 			Metadata:    sb.Metadata(),
 			Linux:       linux,
 		},
-	}
-
-	if req.Verbose {
-		resp.Info = map[string]string{
-			"version": version.Version,
-		}
 	}
 
 	logrus.Debugf("PodSandboxStatusResponse: %+v", resp)
