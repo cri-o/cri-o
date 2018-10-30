@@ -86,7 +86,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
     - If kubelet does not provide any information about the container workload trust level, the selected runtime will depend on the default_container_trust setting. If it is set to untrusted, then all containers except for the host privileged ones, will be run by the runtime_untrusted_workload runtime. Host privileged containers are by definition trusted and will always use the trusted container runtime. If default_container_trust is set to "trusted", CRI-O will use the trusted container runtime for all containers.
 
 **no_pivot**=*false*
-  If true, the runtime will not use use `pivot_root`, but instead use `MS_MOVE`.
+  If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 
 **conmon**="/usr/local/libexec/crio/conmon"
   Path to the conmon binary, used for monitoring the OCI runtime.
