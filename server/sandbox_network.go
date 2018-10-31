@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
+	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 )

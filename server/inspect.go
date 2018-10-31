@@ -8,9 +8,9 @@ import (
 
 	cimage "github.com/containers/image/types"
 	"github.com/go-zoo/bone"
-	"github.com/kubernetes-incubator/cri-o/lib/sandbox"
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/types"
+	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/types"
 	"github.com/sirupsen/logrus"
 )
 

@@ -1,8 +1,8 @@
-![CRI-O logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/crio-logo.svg)
+![CRI-O logo](https://cdn.rawgit.com/kubernetes-sigs/cri-o/master/logo/crio-logo.svg)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
-[![Build Status](https://img.shields.io/travis/kubernetes-incubator/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-incubator/cri-o)
-[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-incubator/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-incubator/cri-o)
+[![Build Status](https://img.shields.io/travis/kubernetes-sigs/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-sigs/cri-o)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-sigs/cri-o)
 
 ### Status: Stable
 
@@ -163,7 +163,7 @@ As with other Go projects, CRI-O must be cloned into a directory structure like:
 GOPATH
 └── src
     └── github.com
-        └── kubernetes-incubator
+        └── kubernetes-sigs
             └── cri-o
 ```
 
@@ -177,9 +177,9 @@ mkdir -p $GOPATH
 Next, clone the source code using:
 
 ```bash
-mkdir -p $GOPATH/src/github.com/kubernetes-incubator
-cd $_ # or cd $GOPATH/src/github.com/kubernetes-incubator
-git clone https://github.com/kubernetes-incubator/cri-o # or your fork
+mkdir -p $GOPATH/src/github.com/kubernetes-sigs
+cd $_ # or cd $GOPATH/src/github.com/kubernetes-sigs
+git clone https://github.com/kubernetes-sigs/cri-o # or your fork
 cd cri-o
 ```
 
@@ -247,5 +247,5 @@ To run a full cluster, see [the instructions](kubernetes.md).
 1. Basic integration with kubelet once client side changes are ready (done)
 1. Support for log management, networking integration using CNI, pluggable image/storage management (done)
 1. Support for exec/attach (done)
-1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/kubernetes-incubator/cri-o/issues/533)
+1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/kubernetes-sigs/cri-o/issues/533)
 1. Track upstream k8s releases

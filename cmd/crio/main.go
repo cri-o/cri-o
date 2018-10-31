@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/kubernetes-incubator/cri-o/lib"
-	"github.com/kubernetes-incubator/cri-o/server"
-	"github.com/kubernetes-incubator/cri-o/version"
+	"github.com/kubernetes-sigs/cri-o/lib"
+	"github.com/kubernetes-sigs/cri-o/server"
+	"github.com/kubernetes-sigs/cri-o/version"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"

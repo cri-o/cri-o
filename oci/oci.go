@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
-	"github.com/kubernetes-incubator/cri-o/pkg/findprocess"
-	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/kubernetes-sigs/cri-o/pkg/findprocess"
+	"github.com/kubernetes-sigs/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kubernetes-incubator/cri-o/types"
+	"github.com/kubernetes-sigs/cri-o/types"
 )
 
 const (
