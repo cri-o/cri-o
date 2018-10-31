@@ -129,6 +129,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **default_sysctls**=[]
  List of default sysctls. If it is empty or commented out, only the sysctls defined in the container json file by the user/kube will be added.
 
+**additional_devices**=[]
+  List of additional devices. If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
+
 **hooks_dir_path**="/usr/share/containers/oci/hooks.d"
   Path to the OCI hooks directory for automatically executed hooks.
 

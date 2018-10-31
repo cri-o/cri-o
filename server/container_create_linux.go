@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/secrets"
+	"github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/idtools"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
@@ -360,6 +361,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 	// Add cgroup mount so container process can introspect its own limits
 	specgen.AddMount(mnt)
+
+	devices, err := getDevicesFromConfig(s.config)
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range devices {
+		specgen.AddDevice(d)
+	}
 
 	if err := addDevices(sb, containerConfig, &specgen); err != nil {
 		return nil, err
@@ -1087,4 +1096,30 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	}
 
 	return volumes, ociMounts, nil
+}
+
+func getDevicesFromConfig(config Config) ([]rspec.LinuxDevice, error) {
+	var linuxdevs []rspec.LinuxDevice
+	for _, d := range config.RuntimeConfig.AdditionalDevices {
+		src, dst, permissions, err := createconfig.ParseDevice(d)
+		if err != nil {
+			return nil, err
+		}
+		dev, err := devices.DeviceFromPath(src, permissions)
+		if err != nil {
+			return nil, errors.Wrapf(err, "%s is not a valid device", src)
+		}
+		dev.Path = dst
+		linuxdev := rspec.LinuxDevice{
+			Path:     dev.Path,
+			Type:     string(dev.Type),
+			Major:    dev.Major,
+			Minor:    dev.Minor,
+			FileMode: &dev.FileMode,
+			UID:      &dev.Uid,
+			GID:      &dev.Gid,
+		}
+		linuxdevs = append(linuxdevs, linuxdev)
+	}
+	return linuxdevs, nil
 }

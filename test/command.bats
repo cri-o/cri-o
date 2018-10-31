@@ -23,3 +23,18 @@ load helpers
 	# can't cover everything here, ulimits parsing is tested in
 	# github.com/docker/go-units package
 }
+
+@test "invalid devices" {
+	run ${CRIO_BINARY} --additional-devices /dev/sda:/dev/foo:123
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "invalid device mode:" ]]
+	run ${CRIO_BINARY} --additional-devices /dev/sda:/dee/foo:rm
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "invalid device mode:" ]]
+	run ${CRIO_BINARY} --additional-devices /dee/sda:rmw
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "invalid device mode:" ]]
+}
