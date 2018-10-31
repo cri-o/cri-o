@@ -1072,14 +1072,17 @@ static gboolean terminal_accept_cb(int fd, G_GNUC_UNUSED GIOCondition condition,
 	free(console.name);
 
 	/* We change the terminal settings to match kube settings */
-	if (tcgetattr(console.fd, &tset) == -1)
-		pexit("Failed to get console terminal settings");
+	if (tcgetattr(console.fd, &tset) == -1) {
+		nwarn("Failed to get console terminal settings");
+		goto exit;
+	}
 
 	tset.c_oflag |= ONLCR;
 
 	if (tcsetattr(console.fd, TCSANOW, &tset) == -1)
-		pexit("Failed to set console terminal settings");
+		nwarn("Failed to set console terminal settings");
 
+exit:
 	/* We only have a single fd for both pipes, so we just treat it as
 	 * stdout. stderr is ignored. */
 	masterfd_stdin = console.fd;
