@@ -53,6 +53,33 @@ const (
 	minMemoryLimit = 4194304
 )
 
+// mounts defines how to sort runtime.Mount.
+// This is the same with the Docker implementation:
+//   https://github.com/moby/moby/blob/17.05.x/daemon/volumes.go#L26
+type criOrderedMounts []*pb.Mount
+
+// Len returns the number of mounts. Used in sorting.
+func (m criOrderedMounts) Len() int {
+	return len(m)
+}
+
+// Less returns true if the number of parts (a/b/c would be 3 parts) in the
+// mount indexed by parameter 1 is less than that of the mount indexed by
+// parameter 2. Used in sorting.
+func (m criOrderedMounts) Less(i, j int) bool {
+	return m.parts(i) < m.parts(j)
+}
+
+// Swap swaps two items in an array of mounts. Used in sorting
+func (m criOrderedMounts) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+// parts returns the number of parts in the destination of a mount. Used in sorting.
+func (m criOrderedMounts) parts(i int) int {
+	return strings.Count(filepath.Clean(m[i].ContainerPath), string(os.PathSeparator))
+}
+
 type orderedMounts []rspec.Mount
 
 // Len returns the number of mounts. Used in sorting.
@@ -81,6 +108,32 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	mounts := containerConfig.GetMounts()
+
+	// Sort mounts in number of parts. This ensures that high level mounts don't
+	// shadow other mounts.
+	sort.Sort(criOrderedMounts(mounts))
+	// Copy all mounts from default mounts, except for
+	// - mounts overridden by supplied mount;
+	// - all mounts under /dev if a supplied /dev is present.
+	mountSet := make(map[string]struct{})
+	for _, m := range mounts {
+		mountSet[filepath.Clean(m.ContainerPath)] = struct{}{}
+	}
+	defaultMounts := specgen.Mounts()
+	specgen.ClearMounts()
+	for _, m := range defaultMounts {
+		dst := filepath.Clean(m.Destination)
+		if _, ok := mountSet[dst]; ok {
+			// filter out mount overridden by a supplied mount
+			continue
+		}
+		if _, mountDev := mountSet["/dev"]; mountDev && strings.HasPrefix(dst, "/dev/") {
+			// filter out everything under /dev if /dev is a supplied mount
+			continue
+		}
+		specgen.AddMount(m)
+	}
+
 	for _, mount := range mounts {
 		dest := mount.ContainerPath
 		if dest == "" {
@@ -107,7 +160,11 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		if mount.Readonly {
 			options = []string{"ro"}
 		}
-		options = append(options, "rbind", "nodev")
+		options = append(options, "rbind")
+
+		if !strings.HasPrefix(dest, "/dev") {
+			options = append(options, "nodev")
+		}
 
 		// mount propagation
 		mountInfos, err := dockermounts.GetMounts(nil)
