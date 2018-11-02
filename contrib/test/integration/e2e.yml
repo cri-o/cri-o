@@ -16,7 +16,7 @@
     regexp: "^export {{ item }}="
     state: present
   with_items:
-    - DNS_SERVER_IP
+    - KUBE_DNS_SERVER_IP
     - API_HOST
     - API_HOST_IP
 
