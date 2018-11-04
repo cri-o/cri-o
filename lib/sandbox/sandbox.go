@@ -294,7 +294,7 @@ func (s *Sandbox) HostnamePath() string {
 	return s.hostnamePath
 }
 
-// Hostname returns the hsotname of the sandbox
+// Hostname returns the hostname of the sandbox
 func (s *Sandbox) Hostname() string {
 	return s.hostname
 }
