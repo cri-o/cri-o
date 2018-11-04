@@ -288,7 +288,7 @@ func (c *Container) IDMappings() *idtools.IDMappings {
 	return c.idMappings
 }
 
-// SetState sets the conainer state
+// SetState sets the container state
 //
 // XXX: DO NOT EVER USE THIS, THIS IS JUST USEFUL FOR MOCKING!!!
 func (c *Container) SetState(state *ContainerState) {
