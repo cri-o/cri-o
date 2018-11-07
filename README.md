@@ -66,8 +66,8 @@ Note that kpod and its container management and debugging commands have moved to
 | File                                       | Description                                                                                          |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [crio.conf(5)](/docs/crio.conf.5.md)       | CRI-O Configuation file |
-| [policy.json(5)](https://github.com/containers/image/blob/master/docs/policy.json.md)     | Signature Verification Policy File(s) |
-| [registries.conf(5)](https://github.com/containers/image/blob/master/docs/registries.conf.5.md) | Registries Configuration file |
+| [policy.json(5)](https://github.com/containers/image/blob/master/docs/containers-policy.json.md)     | Signature Verification Policy File(s) |
+| [registries.conf(5)](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md) | Registries Configuration file |
 | [storage.conf(5)](https://github.com/containers/storage/blob/master/docs/containers-storage.conf.5.md) | Storage Configuation file |
 
 ## OCI Hooks Support
