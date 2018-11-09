@@ -138,10 +138,12 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	}
 
 	// check if they are running over btrfs, aufs, zfs, overlay, or ecryptfs
-	switch fsMagic {
-	case graphdriver.FsMagicAufs, graphdriver.FsMagicZfs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
-		logrus.Errorf("'overlay' is not supported over %s", backingFs)
-		return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "'overlay' is not supported over %s", backingFs)
+	if opts.mountProgram == "" {
+		switch fsMagic {
+		case graphdriver.FsMagicAufs, graphdriver.FsMagicZfs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
+			logrus.Errorf("'overlay' is not supported over %s", backingFs)
+			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "'overlay' is not supported over %s", backingFs)
+		}
 	}
 
 	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
@@ -204,7 +206,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		return nil, fmt.Errorf("Storage option overlay.size only supported for backingFS XFS. Found %v", backingFs)
 	}
 
-	logrus.Debugf("backingFs=%s, projectQuotaSupported=%v, useNativeDiff=%v", backingFs, projectQuotaSupported, !useNaiveDiff(home))
+	logrus.Debugf("backingFs=%s, projectQuotaSupported=%v, useNativeDiff=%v", backingFs, projectQuotaSupported, !d.useNaiveDiff())
 
 	return d, nil
 }
@@ -336,9 +338,13 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 	return supportsDType, errors.Wrap(graphdriver.ErrNotSupported, "'overlay' not found as a supported filesystem on this host. Please ensure kernel is new enough and has overlay support loaded.")
 }
 
-func useNaiveDiff(home string) bool {
+func (d *Driver) useNaiveDiff() bool {
 	useNaiveDiffLock.Do(func() {
-		if err := doesSupportNativeDiff(home); err != nil {
+		if d.options.mountProgram != "" {
+			useNaiveDiffOnly = true
+			return
+		}
+		if err := doesSupportNativeDiff(d.home, d.options.mountOptions); err != nil {
 			logrus.Warnf("Not using native diff for overlay, this may cause degraded performance for building images: %v", err)
 			useNaiveDiffOnly = true
 		}
@@ -356,7 +362,7 @@ func (d *Driver) Status() [][2]string {
 	return [][2]string{
 		{"Backing Filesystem", backingFs},
 		{"Supports d_type", strconv.FormatBool(d.supportsDType)},
-		{"Native Overlay Diff", strconv.FormatBool(!useNaiveDiff(d.home))},
+		{"Native Overlay Diff", strconv.FormatBool(!d.useNaiveDiff())},
 	}
 }
 
@@ -642,11 +648,11 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get creates and mounts the required file system for the given id and returns the mount path.
-func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (_ string, retErr error) {
-	return d.get(id, mountLabel, false, uidMaps, gidMaps)
+func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
+	return d.get(id, false, options)
 }
 
-func (d *Driver) get(id, mountLabel string, disableShifting bool, uidMaps, gidMaps []idtools.IDMap) (_ string, retErr error) {
+func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountOpts) (_ string, retErr error) {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
 	dir := d.dir(id)
@@ -740,7 +746,7 @@ func (d *Driver) get(id, mountLabel string, disableShifting bool, uidMaps, gidMa
 	if d.options.mountOptions != "" {
 		opts = fmt.Sprintf("%s,%s", d.options.mountOptions, opts)
 	}
-	mountData := label.FormatMountLabel(opts, mountLabel)
+	mountData := label.FormatMountLabel(opts, options.MountLabel)
 	mountFunc := unix.Mount
 	mountTarget := mergedDir
 
@@ -753,7 +759,7 @@ func (d *Driver) get(id, mountLabel string, disableShifting bool, uidMaps, gidMa
 	if d.options.mountProgram != "" {
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 			if !disableShifting {
-				label = d.optsAppendMappings(label, uidMaps, gidMaps)
+				label = d.optsAppendMappings(label, options.UidMaps, options.GidMaps)
 			}
 
 			mountProgram := exec.Command(d.options.mountProgram, "-o", label, target)
@@ -763,7 +769,7 @@ func (d *Driver) get(id, mountLabel string, disableShifting bool, uidMaps, gidMa
 	} else if len(mountData) > pageSize {
 		//FIXME: We need to figure out to get this to work with additional stores
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), path.Join(id, "diff"), path.Join(id, "work"))
-		mountData = label.FormatMountLabel(opts, mountLabel)
+		mountData = label.FormatMountLabel(opts, options.MountLabel)
 		if len(mountData) > pageSize {
 			return "", fmt.Errorf("cannot mount layer, mount label too large %d", len(mountData))
 		}
@@ -881,7 +887,7 @@ func (d *Driver) getDiffPath(id string) string {
 // and its parent and returns the size in bytes of the changes
 // relative to its base filesystem directory.
 func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
-	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
+	if d.useNaiveDiff() || !d.isParent(id, parent) {
 		return d.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
 	}
 	return directory.Size(d.getDiffPath(id))
@@ -890,7 +896,7 @@ func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent stri
 // Diff produces an archive of the changes between the specified
 // layer and its parent layer which may be "".
 func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (io.ReadCloser, error) {
-	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
+	if d.useNaiveDiff() || !d.isParent(id, parent) {
 		return d.naiveDiff.Diff(id, idMappings, parent, parentMappings, mountLabel)
 	}
 
@@ -917,7 +923,7 @@ func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, 
 // Changes produces a list of changes between the specified layer
 // and its parent layer. If parent is "", then all changes will be ADD changes.
 func (d *Driver) Changes(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) ([]archive.Change, error) {
-	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
+	if d.useNaiveDiff() || !d.isParent(id, parent) {
 		return d.naiveDiff.Changes(id, idMappings, parent, parentMappings, mountLabel)
 	}
 	// Overlay doesn't have snapshots, so we need to get changes from all parent
@@ -952,7 +958,10 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 	}
 
 	// Mount the new layer and handle ownership changes and possible copy_ups in it.
-	layerFs, err := d.get(id, mountLabel, true, nil, nil)
+	options := graphdriver.MountOpts{
+		MountLabel: mountLabel,
+	}
+	layerFs, err := d.get(id, true, options)
 	if err != nil {
 		return err
 	}
