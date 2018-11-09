@@ -982,8 +982,35 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	mounts := containerConfig.GetMounts()
+
+	// Sort mounts in number of parts. This ensures that high level mounts don't
+	// shadow other mounts.
+	sort.Sort(criOrderedMounts(mounts))
+
+	// Copy all mounts from default mounts, except for
+	// - mounts overridden by supplied mount;
+	// - all mounts under /dev if a supplied /dev is present.
+	mountSet := make(map[string]struct{})
+	for _, m := range mounts {
+		mountSet[filepath.Clean(m.ContainerPath)] = struct{}{}
+	}
+	defaultMounts := specgen.Mounts()
+	specgen.ClearMounts()
+	for _, m := range defaultMounts {
+		dst := filepath.Clean(m.Destination)
+		if _, ok := mountSet[dst]; ok {
+			// filter out mount overridden by a supplied mount
+			continue
+		}
+		if _, mountDev := mountSet["/dev"]; mountDev && strings.HasPrefix(dst, "/dev/") {
+			// filter out everything under /dev if /dev is a supplied mount
+			continue
+		}
+		specgen.AddMount(m)
+	}
+
 	for _, mount := range mounts {
-		dest := mount.ContainerPath
+		dest := mount.GetContainerPath()
 		if dest == "" {
 			return nil, nil, fmt.Errorf("Mount.ContainerPath is empty")
 		}
@@ -991,7 +1018,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		if mount.HostPath == "" {
 			return nil, nil, fmt.Errorf("Mount.HostPath is empty")
 		}
-		src := filepath.Join(bindMountPrefix, mount.HostPath)
+		src := filepath.Join(bindMountPrefix, mount.GetHostPath())
 
 		resolvedSrc, err := resolveSymbolicLink(src, bindMountPrefix)
 		if err == nil {
@@ -1008,7 +1035,11 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		if mount.Readonly {
 			options = []string{"ro"}
 		}
-		options = append(options, "rbind", "nodev")
+		options = append(options, "rbind")
+
+		if !strings.HasPrefix(dest, "/dev") {
+			options = append(options, "nodev")
+		}
 
 		// mount propagation
 		mountInfos, err := dockermounts.GetMounts(nil)
