@@ -420,7 +420,7 @@ func (r *runtimeService) StopContainer(idOrName string) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.storageImageServer.GetStore().Unmount(container.ID, false)
+	_, err = r.storageImageServer.GetStore().Unmount(container.ID, true)
 	if err != nil {
 		logrus.Debugf("failed to unmount container %q: %v", container.ID, err)
 		return err
