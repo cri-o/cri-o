@@ -53,6 +53,13 @@
     state: latest
   when: ansible_distribution in ['RedHat']
 
+- name: load br_netfilter module
+  command: modprobe br_netfilter
+
+- name: Enable iptables NAT for the bridge
+  command: sysctl -w net.bridge.bridge-nf-call-iptables=1
+
+
 # TODO remove the second to last test skipped once https://github.com/kubernetes-sigs/cri-o/pull/1217 is merged
 # TODO remove the last six tests once the newtworking issue with AWS is figured out https://github.com/kubernetes-sigs/cri-o/issues/1529
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
