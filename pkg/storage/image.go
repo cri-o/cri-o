@@ -338,7 +338,7 @@ func imageSize(img types.ImageSource) *uint64 {
 }
 
 func imageConfigDigest(ctx context.Context, img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
-	manifestBytes, manifestType, err := img.GetManifest(nil, instanceDigest)
+	manifestBytes, manifestType, err := img.GetManifest(ctx, instanceDigest)
 	if err != nil {
 		return "", err
 	}
