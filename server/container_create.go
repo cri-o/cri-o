@@ -162,10 +162,6 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		}
 		options = append(options, "rbind")
 
-		if !strings.HasPrefix(dest, "/dev") {
-			options = append(options, "nodev")
-		}
-
 		// mount propagation
 		mountInfos, err := dockermounts.GetMounts(nil)
 		if err != nil {
