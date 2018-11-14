@@ -1679,7 +1679,7 @@ int main(int argc, char *argv[])
 			 * Read from container stderr for any error and send it to parent
 			 * We send -1 as pid to signal to parent that create container has failed.
 			 */
-			num_read = read(masterfd_stderr, buf, BUF_SIZE);
+			num_read = read(masterfd_stderr, buf, BUF_SIZE - 1);
 			if (num_read > 0) {
 				buf[num_read] = '\0';
 				write_sync_fd(sync_pipe_fd, -1, buf);
