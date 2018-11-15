@@ -92,6 +92,8 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 				break
 			}
 			logrus.Debugf("image in store has different ID, re-pulling %s", img)
+		} else {
+			return nil, err
 		}
 
 		_, err = s.StorageImageServer().PullImage(s.ImageContext(), img, options)
