@@ -10,11 +10,10 @@
 
 ## Compatibility matrix: CRI-O <-> Kubernetes clusters
 
+CRI-O and Kubernetes follow the same release cycle and deprecation policy. For more information visit the [Kubernetes versioning documentation](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md).
+
 | Version - Branch             | Kubernetes branch/version       | Maintenance status |
 |------------------------------|---------------------------------|--------------------|
-| CRI-O 1.0.x   - release-1.0  | Kubernetes 1.7 branch, v1.7.x   | =                  |
-| CRI-O 1.8.x   - release-1.8  | Kubernetes 1.8 branch, v1.8.x   | =                  |
-| CRI-O 1.9.x   - release-1.9  | Kubernetes 1.9 branch, v1.9.x   | =                  |
 | CRI-O 1.10.x  - release-1.10 | Kubernetes 1.10 branch, v1.10.x | =                  |
 | CRI-O 1.11.x  - release-1.11 | Kubernetes 1.11 branch, v1.11.x | =                  |
 | CRI-O 1.12.x  - release-1.12 | Kubernetes 1.12 branch, v1.12.x | =                  |
