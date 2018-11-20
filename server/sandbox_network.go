@@ -14,7 +14,7 @@ import (
 // or an error
 func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitypes.Result, err error) {
 	if sb.HostNetwork() {
-		return s.bindAddress, nil, nil
+		return s.hostIP, nil, nil
 	}
 
 	// Ensure network resources are cleaned up if the plugin succeeded
@@ -64,7 +64,7 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 // getSandboxIP retrieves the IP address for the sandbox
 func (s *Server) getSandboxIP(sb *sandbox.Sandbox) (string, error) {
 	if sb.HostNetwork() {
-		return s.bindAddress, nil
+		return s.hostIP, nil
 	}
 
 	podNetwork := newPodNetwork(sb)

@@ -77,6 +77,7 @@ type Server struct {
 	appArmorEnabled bool
 	appArmorProfile string
 
+	hostIP       string
 	bindAddress  string
 	stream       streamService
 	monitorsChan chan struct{}
@@ -342,14 +343,16 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
+	hostIP, err := knet.ChooseBindAddress(nil)
+	if err != nil {
+		return nil, err
+	}
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
-		bindAddress, err = knet.ChooseBindAddress(nil)
-		if err != nil {
-			return nil, err
-		}
+		bindAddress = hostIP
 	}
 	s.bindAddress = bindAddress.String()
+	s.hostIP = hostIP.String()
 
 	_, err = net.LookupPort("tcp", config.StreamPort)
 	if err != nil {
