@@ -91,6 +91,7 @@ static gboolean opt_no_pivot = FALSE;
 static char *opt_exec_process_spec = NULL;
 static gboolean opt_exec = FALSE;
 static char *opt_restore_path = NULL;
+static gchar **opt_restore_args = NULL;
 static char *opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
@@ -109,6 +110,8 @@ static GOptionEntry opt_entries[] = {
 	{"cuuid", 'u', 0, G_OPTION_ARG_STRING, &opt_cuuid, "Container UUID", NULL},
 	{"runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL},
 	{"restore", 0, 0, G_OPTION_ARG_STRING, &opt_restore_path, "Restore a container from a checkpoint", NULL},
+	{"restore-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_restore_args,
+	 "Additional arg to pass to the restore command. Can be specified multiple times", NULL},
 	{"no-new-keyring", 0, 0, G_OPTION_ARG_NONE, &opt_no_new_keyring, "Do not create a new session keyring for the container", NULL},
 	{"no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "Do not use pivot_root", NULL},
 	{"replace-listen-pid", 0, 0, G_OPTION_ARG_NONE, &opt_replace_listen_pid, "Replace listen pid if set for oci-runtime pid", NULL},
@@ -1539,6 +1542,19 @@ int main(int argc, char *argv[])
 			 * also place its log files.
 			 */
 			add_argv(runtime_argv, "--detach", "--image-path", opt_restore_path, "--work-path", opt_bundle_path, NULL);
+
+			/*
+			 *  opt_restore_args can contain 'runc restore' options like
+			 *  '--tcp-established'. Instead of listing each option as
+			 *  a special conmon option, this (--restore-arg) provides
+			 *  a generic interface to pass all those options to conmon
+			 *  without requiring a code change for each new option.
+			 */
+			if (opt_restore_args) {
+				size_t n_restore_args = 0;
+				while (opt_restore_args[n_restore_args])
+					add_argv(runtime_argv, opt_restore_args[n_restore_args++], NULL);
+			}
 		}
 	}
 
