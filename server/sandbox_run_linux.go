@@ -100,6 +100,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
+	var labelOptions []string
+	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
+	selinuxConfig := securityContext.GetSelinuxOptions()
+	if selinuxConfig != nil {
+		labelOptions = getLabelOptions(selinuxConfig)
+	}
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.ImageContext(),
 		name, id,
 		s.config.PauseImage, "",
@@ -108,7 +114,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		req.GetConfig().GetMetadata().GetUid(),
 		namespace,
 		attempt,
-		s.defaultIDMappings)
+		s.defaultIDMappings,
+		labelOptions,
+		nil)
+	mountLabel = podContainer.MountLabel
+	if !s.privilegedSandbox(req) {
+		processLabel = podContainer.ProcessLabel
+	}
 	if errors.Cause(err) == storage.ErrDuplicateName {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
 	}
@@ -237,25 +249,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
-	if securityContext == nil {
-		logrus.Warn("no security context found in config.")
-	}
-
 	nsOptsJSON, err := json.Marshal(securityContext.GetNamespaceOptions())
 	if err != nil {
 		return nil, err
 	}
 
-	processLabel, mountLabel, err = getSELinuxLabels(securityContext.GetSelinuxOptions(), privileged)
-	if err != nil {
-		return nil, err
-	}
-
 	hostIPC := securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE
+	hostPID := securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
-	if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE || hostIPC {
+	if hostPID || hostIPC {
 		processLabel, mountLabel = "", ""
 	}
 	g.SetProcessSelinuxLabel(processLabel)
@@ -595,7 +598,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	sb.AddIP(ip)
 	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
 
-	spp := req.GetConfig().GetLinux().GetSecurityContext().GetSeccompProfilePath()
+	spp := securityContext.GetSeccompProfilePath()
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)
 	sb.SetSeccompProfilePath(spp)
 	if !privileged {

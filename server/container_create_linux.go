@@ -26,6 +26,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -277,16 +278,98 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			specgen.AddMount(mnt)
 		}
 	}
-	mountLabel := sb.MountLabel()
-	processLabel := sb.ProcessLabel()
-	selinuxConfig := containerConfig.GetLinux().GetSecurityContext().GetSelinuxOptions()
-	if selinuxConfig != nil {
-		var err error
-		processLabel, mountLabel, err = getSELinuxLabels(selinuxConfig, privileged)
-		if err != nil {
+
+	imageSpec := containerConfig.GetImage()
+	if imageSpec == nil {
+		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image is nil")
+	}
+
+	image := imageSpec.Image
+	if image == "" {
+		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
+	}
+	images, err := s.StorageImageServer().ResolveNames(image)
+	if err != nil {
+		if err == storage.ErrCannotParseImageID {
+			images = append(images, image)
+		} else {
 			return nil, err
 		}
 	}
+
+	// Get imageName and imageRef that are later requested in container status
+	var (
+		imgResult    *storage.ImageResult
+		imgResultErr error
+	)
+	for _, img := range images {
+		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.ImageContext(), img)
+		if imgResultErr == nil {
+			break
+		}
+	}
+	if imgResultErr != nil {
+		return nil, imgResultErr
+	}
+
+	imageName := imgResult.Name
+	imageRef := imgResult.ID
+	if len(imgResult.RepoDigests) > 0 {
+		imageRef = imgResult.RepoDigests[0]
+	}
+
+	specgen.AddAnnotation(annotations.Image, image)
+	specgen.AddAnnotation(annotations.ImageName, imageName)
+	specgen.AddAnnotation(annotations.ImageRef, imageRef)
+
+	selinuxConfig := containerConfig.GetLinux().GetSecurityContext().GetSelinuxOptions()
+	var labelOptions []string
+	if selinuxConfig == nil {
+		labelOptions, err = label.DupSecOpt(sb.ProcessLabel())
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		labelOptions = getLabelOptions(selinuxConfig)
+	}
+
+	containerIDMappings := s.defaultIDMappings
+	metadata := containerConfig.GetMetadata()
+
+	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.ImageContext(),
+		sb.Name(), sb.ID(),
+		image, imgResult.ID,
+		containerName, containerID,
+		metadata.Name,
+		metadata.Attempt,
+		containerIDMappings,
+		labelOptions,
+		nil)
+	if err != nil {
+		return nil, err
+	}
+	mountLabel := containerInfo.MountLabel
+	var processLabel string
+	if !privileged {
+		processLabel = containerInfo.ProcessLabel
+	}
+	hostIPC := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE
+	hostPID := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE
+
+	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
+	if hostPID || hostIPC {
+		processLabel, mountLabel = "", ""
+	}
+	defer func() {
+		if err != nil {
+			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
+			if err2 != nil {
+				logrus.Warnf("Failed to cleanup container directory: %v", err2)
+			}
+		}
+	}()
+	specgen.SetLinuxMountLabel(mountLabel)
+	specgen.SetProcessSelinuxLabel(processLabel)
 
 	containerVolumes, ociMounts, err := addOCIBindMounts(mountLabel, containerConfig, &specgen, s.config.RuntimeConfig.BindMountPrefix)
 	if err != nil {
@@ -325,8 +408,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if err := validateLabels(labels); err != nil {
 		return nil, err
 	}
-
-	metadata := containerConfig.GetMetadata()
 
 	kubeAnnotations := containerConfig.GetAnnotations()
 	for k, v := range kubeAnnotations {
@@ -443,8 +524,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 				return nil, err
 			}
 		}
-		specgen.SetProcessSelinuxLabel(processLabel)
-		specgen.SetLinuxMountLabel(mountLabel)
 		specgen.SetProcessNoNewPrivileges(linux.GetSecurityContext().GetNoNewPrivs())
 
 		if containerConfig.GetLinux().GetSecurityContext() != nil &&
@@ -542,48 +621,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 
-	imageSpec := containerConfig.GetImage()
-	if imageSpec == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image is nil")
-	}
-
-	image := imageSpec.Image
-	if image == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
-	}
-	images, err := s.StorageImageServer().ResolveNames(image)
-	if err != nil {
-		if err == storage.ErrCannotParseImageID {
-			images = append(images, image)
-		} else {
-			return nil, err
-		}
-	}
-
-	// Get imageName and imageRef that are later requested in container status
-	var (
-		imgResult    *storage.ImageResult
-		imgResultErr error
-	)
-	for _, img := range images {
-		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.ImageContext(), img)
-		if imgResultErr == nil {
-			break
-		}
-	}
-	if imgResultErr != nil {
-		return nil, imgResultErr
-	}
-
-	imageName := imgResult.Name
-	imageRef := imgResult.ID
-	if len(imgResult.RepoDigests) > 0 {
-		imageRef = imgResult.RepoDigests[0]
-	}
-
-	specgen.AddAnnotation(annotations.Image, image)
-	specgen.AddAnnotation(annotations.ImageName, imageName)
-	specgen.AddAnnotation(annotations.ImageRef, imageRef)
 	specgen.AddAnnotation(annotations.IP, sb.IP())
 
 	// Remove the default /dev/shm mount to ensure we overwrite it
@@ -685,30 +722,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 	specgen.AddAnnotation(annotations.SeccompProfilePath, spp)
-
-	containerIDMappings := s.defaultIDMappings
-
-	metaname := metadata.Name
-	attempt := metadata.Attempt
-	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.ImageContext(),
-		sb.Name(), sb.ID(),
-		image, imgResult.ID,
-		containerName, containerID,
-		metaname,
-		attempt,
-		mountLabel,
-		containerIDMappings)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err != nil {
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
-			if err2 != nil {
-				logrus.Warnf("Failed to cleanup container directory: %v", err2)
-			}
-		}
-	}()
 
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {

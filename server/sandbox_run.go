@@ -7,7 +7,6 @@ import (
 	"regexp"
 
 	"github.com/cri-o/cri-o/oci"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -127,7 +126,7 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 	return s.StorageRuntimeServer().SetContainerMetadata(id, &storageMetadata)
 }
 
-func getSELinuxLabels(selinuxOptions *pb.SELinuxOption, privileged bool) (string, string, error) {
+func getLabelOptions(selinuxOptions *pb.SELinuxOption) []string {
 	labels := []string{}
 	if selinuxOptions != nil {
 		if selinuxOptions.User != "" {
@@ -143,18 +142,7 @@ func getSELinuxLabels(selinuxOptions *pb.SELinuxOption, privileged bool) (string
 			labels = append(labels, "level:"+selinuxOptions.Level)
 		}
 	}
-	var (
-		processLabel, mountLabel string
-		err                      error
-	)
-	processLabel, mountLabel, err = label.InitLabels(labels)
-	if err != nil {
-		return "", "", err
-	}
-	if privileged {
-		processLabel = ""
-	}
-	return processLabel, mountLabel, nil
+	return labels
 }
 
 // convertCgroupFsNameToSystemd converts an expanded cgroupfs name to its systemd name.
