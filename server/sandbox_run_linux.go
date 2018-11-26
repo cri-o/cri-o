@@ -46,7 +46,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
-	var processLabel, mountLabel, resolvPath string
+	var resolvPath string
 	// process req.Name
 	kubeName := req.GetConfig().GetMetadata().GetName()
 	if kubeName == "" {
@@ -96,6 +96,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
+	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
+	labelOptions := getLabelOptions(securityContext.GetSelinuxOptions())
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.ImageContext(),
 		name, id,
 		s.config.PauseImage, "",
@@ -105,7 +107,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		namespace,
 		attempt,
 		s.defaultIDMappings,
+		labelOptions,
 		nil)
+	mountLabel := podContainer.MountLabel
+	var processLabel string
+	if !s.privilegedSandbox(req) {
+		processLabel = podContainer.ProcessLabel
+	}
 	if errors.Cause(err) == storage.ErrDuplicateName {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
 	}
@@ -233,17 +241,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
-	if securityContext == nil {
-		logrus.Warn("no security context found in config.")
-	}
-
 	nsOptsJSON, err := json.Marshal(securityContext.GetNamespaceOptions())
-	if err != nil {
-		return nil, err
-	}
-
-	processLabel, mountLabel, err = getSELinuxLabels(securityContext.GetSelinuxOptions(), privileged)
 	if err != nil {
 		return nil, err
 	}
@@ -609,7 +607,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	sb.AddIP(ip)
 	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
 
-	spp := req.GetConfig().GetLinux().GetSecurityContext().GetSeccompProfilePath()
+	spp := securityContext.GetSeccompProfilePath()
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)
 	sb.SetSeccompProfilePath(spp)
 	if !privileged {

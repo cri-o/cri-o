@@ -11,7 +11,6 @@ import (
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -112,10 +111,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		if err := sb.NetNsRemove(); err != nil {
 			return nil, err
 		}
-	}
-
-	if err := label.ReleaseLabel(sb.ProcessLabel()); err != nil {
-		return nil, err
 	}
 
 	// unmount the shm for the pod

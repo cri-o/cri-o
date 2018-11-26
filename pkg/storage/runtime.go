@@ -52,10 +52,12 @@ type runtimeService struct {
 // along with a copy of the configuration blob from the image that was used to
 // create the container, if the image had a configuration.
 type ContainerInfo struct {
-	ID     string
-	Dir    string
-	RunDir string
-	Config *v1.Image
+	ID           string
+	Dir          string
+	RunDir       string
+	Config       *v1.Image
+	ProcessLabel string
+	MountLabel   string
 }
 
 // RuntimeServer wraps up various CRI-related activities into a reusable
@@ -72,7 +74,7 @@ type RuntimeServer interface {
 	// both its pod's ID and its container ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, copyOptions *copy.Options) (ContainerInfo, error)
+	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, copyOptions *copy.Options) (ContainerInfo, error)
 	// RemovePodSandbox deletes a pod sandbox's infrastructure container.
 	// The CRI expects that a sandbox can't be removed unless its only
 	// container is its infrastructure container, but we don't enforce that
@@ -87,7 +89,7 @@ type RuntimeServer interface {
 	// CreateContainer creates a container with the specified ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings, copyOptions *copy.Options) (ContainerInfo, error)
+	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, copyOptions *copy.Options) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
 	DeleteContainer(idOrName string) error
 
@@ -147,7 +149,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 	metadata.MountLabel = mountLabel
 }
 
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings, options *copy.Options) (ContainerInfo, error) {
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, options *copy.Options) (ContainerInfo, error) {
 	var ref types.ImageReference
 	if podName == "" || podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
@@ -239,7 +241,6 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		Namespace:     namespace,
 		Attempt:       attempt,
 		CreatedAt:     time.Now().Unix(),
-		MountLabel:    mountLabel,
 	}
 	mdata, err := json.Marshal(&metadata)
 	if err != nil {
@@ -252,12 +253,14 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		names = append(names, metadata.PodName)
 	}
 
-	var coptions *cstorage.ContainerOptions
+	coptions := cstorage.ContainerOptions{
+		LabelOpts: labelOptions,
+	}
 	if idMappings != nil {
-		coptions = &cstorage.ContainerOptions{IDMappingOptions: cstorage.IDMappingOptions{UIDMap: idMappings.UIDs(), GIDMap: idMappings.GIDs()}}
+		coptions.IDMappingOptions = cstorage.IDMappingOptions{UIDMap: idMappings.UIDs(), GIDMap: idMappings.GIDs()}
 	}
 
-	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, img.ID, "", string(mdata), coptions)
+	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, img.ID, "", string(mdata), &coptions)
 	if err != nil {
 		if metadata.Pod {
 			logrus.Debugf("failed to create pod sandbox %s(%s): %v", metadata.PodName, metadata.PodID, err)
@@ -323,19 +326,21 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	}
 
 	return ContainerInfo{
-		ID:     container.ID,
-		Dir:    containerDir,
-		RunDir: containerRunDir,
-		Config: imageConfig,
+		ID:           container.ID,
+		Dir:          containerDir,
+		RunDir:       containerRunDir,
+		Config:       imageConfig,
+		ProcessLabel: container.ProcessLabel(),
+		MountLabel:   container.MountLabel(),
 	}, nil
 }
 
-func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, copyOptions *copy.Options) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, podID, metadataName, uid, namespace, attempt, "", idMappings, copyOptions)
+func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, copyOptions *copy.Options) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappings, labelOptions, copyOptions)
 }
 
-func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings, copyOptions *copy.Options) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, "", "", attempt, mountLabel, idMappings, copyOptions)
+func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, copyOptions *copy.Options) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, "", "", attempt, idMappings, labelOptions, copyOptions)
 }
 
 func (r *runtimeService) RemovePodSandbox(idOrName string) error {
