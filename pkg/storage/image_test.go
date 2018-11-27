@@ -66,7 +66,7 @@ func TestResolveNames(t *testing.T) {
 	}
 	for _, c := range cases {
 		svc := &imageService{
-			registries: c.additionalRegistries,
+			unqualifiedSearchRegistries: c.additionalRegistries,
 		}
 		names, err := svc.ResolveNames(c.imageName)
 		if !c.err {
