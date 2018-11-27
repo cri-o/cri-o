@@ -11,6 +11,22 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <string.h>
+
+static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
+static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
+
+static int
+syscall_setresuid (uid_t ruid, uid_t euid, uid_t suid)
+{
+  return (int) syscall (__NR_setresuid, ruid, euid, suid);
+}
+
+static int
+syscall_setresgid (gid_t rgid, gid_t egid, gid_t sgid)
+{
+  return (int) syscall (__NR_setresgid, rgid, egid, sgid);
+}
 
 static int
 syscall_clone (unsigned long flags, void *child_stack)
@@ -83,7 +99,76 @@ get_cmd_line_args (pid_t pid)
 }
 
 int
-reexec_in_user_namespace(int ready)
+reexec_userns_join (int userns)
+{
+  pid_t ppid = getpid ();
+  char uid[16];
+  char **argv;
+  int pid;
+
+  sprintf (uid, "%d", geteuid ());
+
+  argv = get_cmd_line_args (ppid);
+  if (argv == NULL)
+    {
+      fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  pid = fork ();
+  if (pid < 0)
+    fprintf (stderr, "cannot fork: %s\n", strerror (errno));
+  if (pid)
+    return pid;
+
+  setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
+  setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
+
+  if (setns (userns, 0) < 0)
+    {
+      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  close (userns);
+
+  if (syscall_setresgid (0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  if (syscall_setresuid (0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  execvp (argv[0], argv);
+
+  _exit (EXIT_FAILURE);
+}
+
+static void
+check_proc_sys_userns_file (const char *path)
+{
+  FILE *fp;
+  fp = fopen (path, "r");
+  if (fp)
+    {
+      char buf[32];
+      size_t n_read = fread (buf, 1, sizeof(buf) - 1, fp);
+      if (n_read > 0)
+        {
+          buf[n_read] = '\0';
+          if (strtol (buf, NULL, 10) == 0)
+            fprintf (stderr, "user namespaces are not enabled in %s\n", path);
+        }
+      fclose (fp);
+    }
+}
+
+int
+reexec_in_user_namespace (int ready)
 {
   int ret;
   pid_t pid;
@@ -95,12 +180,22 @@ reexec_in_user_namespace(int ready)
   sprintf (uid, "%d", geteuid ());
 
   pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
+  if (pid < 0)
+    {
+      FILE *fp;
+      fprintf (stderr, "cannot clone: %s\n", strerror (errno));
+      check_proc_sys_userns_file (_max_user_namespaces);
+      check_proc_sys_userns_file (_unprivileged_user_namespaces);
+    }
   if (pid)
     return pid;
 
   argv = get_cmd_line_args (ppid);
   if (argv == NULL)
-    _exit (EXIT_FAILURE);
+    {
+      fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
   setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
@@ -109,12 +204,23 @@ reexec_in_user_namespace(int ready)
     ret = read (ready, &b, 1) < 0;
   while (ret < 0 && errno == EINTR);
   if (ret < 0)
-    _exit (EXIT_FAILURE);
+    {
+      fprintf (stderr, "cannot read from sync pipe: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
   close (ready);
 
-  if (setresgid (0, 0, 0) < 0 ||
-      setresuid (0, 0, 0) < 0)
-    _exit (EXIT_FAILURE);
+  if (syscall_setresgid (0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  if (syscall_setresuid (0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   execvp (argv[0], argv);
 

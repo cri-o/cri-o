@@ -172,6 +172,13 @@ default_capabilities = [
 default_sysctls = [
 {{ range $sysctl := .DefaultSysctls}}{{ printf "\t%q, \n" $sysctl}}{{ end }}]
 
+# List of additional devices. specified as
+# "<device-on-host>:<device-on-container>:<permissions>", for example: "--device=/dev/sdc:/dev/xvdc:rwm".
+#If it is empty or commented out, only the devices
+# defined in the container json file by the user/kube will be added.
+additional_devices = [
+{{ range $device := .AdditionalDevices}}{{ printf "\t%q, \n" $device}}{{ end }}]
+
 # Path to the OCI hooks directory for automatically executed hooks.
 hooks_dir_path = "{{ .HooksDirPath }}"
 

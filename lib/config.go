@@ -248,6 +248,9 @@ type RuntimeConfig struct {
 
 	// DefeultUlimits specifies the default ulimits to apply to containers
 	DefaultUlimits []string `toml:"default_ulimits"`
+
+	// Devices to add to containers
+	AdditionalDevices []string `toml:"additional_devices"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -387,6 +390,7 @@ func DefaultConfig() *Config {
 			LogLevel:                 "error",
 			DefaultSysctls:           []string{},
 			DefaultUlimits:           []string{},
+			AdditionalDevices:        []string{},
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
