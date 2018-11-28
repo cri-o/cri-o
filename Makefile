@@ -103,13 +103,12 @@ bin/crio: .gopathok
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/cmd/crio
 
 crio.conf: bin/crio
-	./bin/crio --config="" config --default > crio.conf
+	./bin/host-crio --config="" config --default > crio.conf
 
 release-note:
 	@$(GOPATH)/bin/release-tool -n $(release)
 
 conmon/config.h: cmd/crio-config/config.go oci/oci.go
-	$(GO) build -i $(LDFLAGS) -o bin/crio-config $(PROJECT)/cmd/crio-config
 	( cd conmon && $(CURDIR)/bin/crio-config )
 
 clean:
@@ -218,7 +217,13 @@ else
 	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.release
+install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.release .install.crio-config .install.host-crio
+
+.install.host-crio:
+	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o bin/host-crio $(PROJECT)/cmd/crio
+
+.install.crio-config: cmd/crio-config/config.go oci/oci.go
+	$(GO) build -i $(LDFLAGS) -o bin/crio-config $(PROJECT)/cmd/crio-config
 
 .install.release:
 	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
