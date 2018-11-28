@@ -512,6 +512,9 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	if sc == nil {
 		return nil
 	}
+	if sc.GetRunAsGroup() != nil && sc.GetRunAsUser() == nil && sc.GetRunAsUsername() == "" {
+		return fmt.Errorf("user group is specified without user or username")
+	}
 	imageUser := ""
 	if imageConfig != nil {
 		imageUser = imageConfig.Config.User
@@ -520,7 +523,6 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 		sc.GetRunAsUsername(),
 		imageUser,
 		sc.GetRunAsUser(),
-		sc.GetRunAsGroup(),
 	)
 	if err != nil {
 		return err
@@ -529,30 +531,17 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	logrus.Debugf("CONTAINER USER: %+v", containerUser)
 
 	// Add uid, gid and groups from user
-	uid, gid, addGroups, err := getUserInfo(rootfs, containerUser)
+	uid, _, addGroups, err := getUserInfo(rootfs, containerUser)
 	if err != nil {
 		return err
 	}
 
-	logrus.Debugf("UID: %v, GID: %v, Groups: %+v", uid, gid, addGroups)
 	specgen.SetProcessUID(uid)
-	specgen.SetProcessGID(gid)
-
-	if sc.GetRunAsUsername() != "" {
-		containerUser = sc.GetRunAsUsername()
-	} else {
-		containerUser = strconv.FormatInt(sc.GetRunAsUser().GetValue(), 10)
-	}
-
-	_, _, addGroups2, err := getUserInfo(rootfs, containerUser)
-	if err != nil {
-		return err
+	if sc.GetRunAsGroup() != nil {
+		specgen.SetProcessGID(uint32(sc.GetRunAsGroup().GetValue()))
 	}
 
 	for _, group := range addGroups {
-		specgen.AddProcessAdditionalGid(group)
-	}
-	for _, group := range addGroups2 {
 		specgen.AddProcessAdditionalGid(group)
 	}
 
@@ -565,29 +554,20 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 }
 
 // generateUserString generates valid user string based on OCI Image Spec v1.0.0.
-func generateUserString(username, imageUser string, uid, gid *pb.Int64Value) (string, error) {
-	var userstr, groupstr string
+func generateUserString(username, imageUser string, uid *pb.Int64Value) (string, error) {
+	var userstr string
 	if uid != nil {
 		userstr = strconv.FormatInt(uid.GetValue(), 10)
 	}
 	if username != "" {
 		userstr = username
 	}
-	if gid != nil {
-		groupstr = strconv.FormatInt(gid.GetValue(), 10)
-	}
 	// We use the user from the image config if nothing is provided
 	if userstr == "" {
 		userstr = imageUser
 	}
 	if userstr == "" {
-		if groupstr != "" {
-			return "", fmt.Errorf("user group %q is specified without user", groupstr)
-		}
 		return "", nil
-	}
-	if groupstr != "" {
-		userstr = userstr + ":" + groupstr
 	}
 	return userstr, nil
 }
