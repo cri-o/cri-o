@@ -72,11 +72,17 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
 
+**default_ulimits**=[]
+  A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>", for example:"nofile=1024:2048". If nothing is set here, settings will be inherited from the CRI-O daemon.
+
 **runtime**="/usr/bin/runc"
-  Path to the OCI compatible runtime used for trusted container workloads. This is a mandatory setting as this runtime will be the default and will also be used for untrusted container workloads if `runtime_untrusted_workload` is not set.
+  Path to the OCI compatible runtime used for trusted container workloads. This is a mandatory setting as this runtime will be the default and will also be used for untrusted container workloads if `runtime_untrusted_workload` is not set(DEPRECATED: use Runtimes instead).
+
+**default_runtime**="runc"
+  default_runtime is the _name_ of the OCI runtime to be used as the default. The name is matched against the runtimes map below.`
 
 **runtime_untrusted_workload**=""
-  Path to OCI compatible runtime used for untrusted container workloads. This is an optional setting, except if `default_container_trust` is set to "untrusted".
+  Path to OCI compatible runtime used for untrusted container workloads. This is an optional setting, except if `default_container_trust` is set to "untrusted"(DEPRECATED: use "crio.runtime.runtimes").
 
 **default_workload_trust**="trusted"
   Default level of trust CRI-O puts in container workloads. It can either be "trusted" or "untrusted", and the default is "trusted". Containers can be run through different container runtimes, depending on the trust hints we receive from kubelet:
@@ -130,7 +136,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
  List of default sysctls. If it is empty or commented out, only the sysctls defined in the container json file by the user/kube will be added.
 
 **additional_devices**=[]
-  List of additional devices. If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
+  List of additional devices. specified as "<device-on-host>:<device-on-container>:<permissions>", for example: "--device=/dev/sdc:/dev/xvdc:rwm". If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
 
 **hooks_dir_path**="/usr/share/containers/oci/hooks.d"
   Path to the OCI hooks directory for automatically executed hooks.
@@ -144,6 +150,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
     1) `/etc/containers/mounts.conf` (i.e., default_mounts_file): This is the override file, where users can either add in their own default mounts, or override the default mounts shipped with the package.
 
     2) `/usr/share/containers/mounts.conf`: This is the default file read for mounts. If you want CRI-O to read from a different, specific mounts file, you can change the default_mounts_file. Note, if this is done, CRI-O will only add mounts it finds in this file.
+
+**bind_mount_prefix**="prefix"
+  A prefix to use for the source of the bind mounts.  This option would be useful if you were running CRI-O in a container and had the / on the host mounted as /host on your container.  Then if you ran CRI-O with the --bind-mount-prefix=/host option, CRI-O would add /host to any bind mounts it is handed over CRI.  If Kubernetes asked to have /var/lib/foobar bind mounted into the container, then CRI-O would bind mount /host/var/lib/foobar.  Since CRI-O itself is running in a container with / or the host mounted on /host, the container would end up with /var/lib/foobar from the host mounted in the container rather then /var/lib/foobar from the CRI-O container.
 
 **pids_limit**=1024
   Maximum number of processes allowed in a container.
