@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/pkg/lookup"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
@@ -21,6 +22,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/user"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -266,7 +268,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 }
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
-func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
+func setupContainerUser(specgen *generate.Generator, rootfs, ctrRunDir string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
 	if sc == nil {
 		return nil
 	}
@@ -285,13 +287,27 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	if err != nil {
 		return err
 	}
-
 	logrus.Debugf("CONTAINER USER: %+v", containerUser)
 
 	// Add uid, gid and groups from user
-	uid, _, addGroups, err := getUserInfo(rootfs, containerUser)
+	uid, gid, addGroups, err := getUserInfo(rootfs, containerUser)
 	if err != nil {
 		return err
+	}
+
+	// verify uid exists in containers /etc/passwd, else generate a passwd with the user entry
+	passwdPath, err := generatePasswd(uid, gid, rootfs, ctrRunDir)
+	if err != nil {
+		return err
+	}
+	if passwdPath != "" {
+		mnt := rspec.Mount{
+			Type:        "bind",
+			Source:      passwdPath,
+			Destination: "/etc/passwd",
+			Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
+		}
+		specgen.AddMount(mnt)
 	}
 
 	specgen.SetProcessUID(uid)
@@ -674,4 +690,33 @@ func getUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, erro
 	}
 
 	return uid, gid, additionalGids, nil
+}
+
+// generatePasswd generates a container specific passwd file,
+// iff uid is not defined in the containers /etc/passwd
+func generatePasswd(uid, gid uint32, rootfs, rundir string) (string, error) {
+	// if UID exists inside of container rootfs /etc/passwd then
+	// don't generate passwd
+	if _, err := lookup.GetUser(rootfs, strconv.FormatUint(uint64(uid), 32)); err == nil {
+		return "", nil
+	}
+	passwdFile := filepath.Join(rundir, "passwd")
+	originPasswdFile, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, "/etc/passwd"), rootfs)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to follow symlinks to passwd file")
+	}
+	orig, err := ioutil.ReadFile(originPasswdFile)
+	if err != nil {
+		// If no /etc/passwd in container ignore and return
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
+	}
+
+	pwd := fmt.Sprintf("%s%d:x:%d:%d:container user:%s:/bin/sh\n", orig, uid, uid, gid, "/")
+	if err := ioutil.WriteFile(passwdFile, []byte(pwd), 0644); err != nil {
+		return "", errors.Wrapf(err, "failed to create temporary passwd file")
+	}
+	return passwdFile, nil
 }
