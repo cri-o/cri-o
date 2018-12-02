@@ -196,7 +196,7 @@ func (s *Server) createContainerPlatform(container *oci.Container, infraContaine
 		if err != nil {
 			return
 		}
-
+		logrus.Debugf("intermediateMountPoint %s, rootUID %v, rootGID %v", intermediateMountPoint, rootUID, rootGID)
 		mountPoint := container.MountPoint()
 		err = os.Chown(mountPoint, rootUID, rootGID)
 		if err != nil {
@@ -232,16 +232,17 @@ func (s *Server) createContainerPlatform(container *oci.Container, infraContaine
 		}
 
 		runDirPath := filepath.Join(intermediateMountPoint, "rundir")
-		err = os.MkdirAll(runDirPath, 0700)
+		err = idtools.MkdirAllAs(runDirPath, 0700, rootUID, rootGID)
 		if err != nil {
 			return
 		}
-
+		err = chownAllFilesAt(container.BundlePath(), rootUID, rootGID)
+		if err != nil {
+			logrus.Errorf("err in chowning container.BundlePath() with rootUID %v rootGID %v: %v", rootUID, rootGID, err)
+			return
+		}
+		logrus.Debugf("chowned container.BundlePath(), %s,  with rootUID %v rootGID %v", container.BundlePath(), rootUID, rootGID)
 		err = unix.Mount(container.BundlePath(), runDirPath, "none", unix.MS_BIND, "suid")
-		if err != nil {
-			return
-		}
-		err = os.Chown(runDirPath, rootUID, rootGID)
 		if err != nil {
 			return
 		}
@@ -251,6 +252,25 @@ func (s *Server) createContainerPlatform(container *oci.Container, infraContaine
 
 	err := <-errc
 	return err
+}
+
+func chownAllFilesAt(dir string, uid int, gid int) error {
+	var files []string
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		err = os.Chown(file, uid, gid)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
