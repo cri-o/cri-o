@@ -58,7 +58,9 @@ crio [GLOBAL OPTIONS]
 crio [GLOBAL OPTIONS] config [OPTIONS]
 ```
 # GLOBAL OPTIONS
-**--apparmor_profile**="": Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
+**--additional-devices**="": devices to add to the containers.
+
+**--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
 
 **--bind-mount-prefix**="": A prefix to use for the source of the bind mounts.  This option would be useful if you were running CRI-O in a container.  And had `/` mounted on `/host` in your container.  Then if you ran CRI-O with the `--bind-mount-prefix=/host` option, CRI-O would add /host to any bind mounts it is handed over CRI.  If Kubernetes asked to have `/var/lib/foobar` bind mounted into the container, then CRI-O would bind mount `/host/var/lib/foobar`.  Since CRI-O itself is running in a container with `/` or the host mounted on `/host`, the container would end up with `/var/lib/foobar` from the host mounted in the container rather then `/var/lib/foobar` from the CRI-O container.
 
@@ -74,9 +76,21 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--cpu-profile**="": set the CPU profile file path
 
+**--default-capabilities**="": capabilities to add to the containers.
+
+**--default-mounts**="": add one or more default mount paths in the form host:container (deprecated)
+
+**--default-runtime**="": default OCI runtime from the runtimes config.
+
+**--default-sysctls**="": sysctls to add to the containers.
+
+**--default-ulimits**="": ulimits to apply to containers by default (name=soft:hard)
+
 **--default-transport**: A prefix to prepend to image names that can't be pulled as-is.
 
 **--enable-metrics**: Enable metrics endpoint. Default is localhost:9090
+
+**--file-locking**: enable or disable file-based locking.
 
 **--gid-mappings**: Specify the GID mappings to use for user namespace.
 
@@ -114,6 +128,10 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--read-only**=**true**|**false**: Run all containers in read-only mode (default: false). Automatically mount tmpfs on `/run`, `/tmp` and `/var/tmp`.
 
+**--profile**="": enable pprof remote profiler on localhost:6060
+
+**--profile-port**="": port for the pprof profiler (default: 6060)
+
 **--root**="": The crio root dir (default: "/var/lib/containers/storage")
 
 **--registry**="": Registry host which will be prepended to unqualified images, can be specified multiple times
@@ -131,6 +149,10 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--storage-driver**: OCI storage driver (default: "overlay")
 
 **--storage-opt**: OCI storage driver option (no default)
+
+**--stream-address**="": bind address for streaming socket.
+
+**--stream-port**="":  bind port for streaming socket (default: "0")
 
 **--uid-mappings**: Specify the UID mappings to use for user namespace.
 
