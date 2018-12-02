@@ -392,6 +392,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		for _, gidmap := range s.defaultIDMappings.GIDs() {
 			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
+		for _, group := range req.GetConfig().GetLinux().GetSecurityContext().GetSupplementalGroups() {
+			logrus.Debugf("Adding namespace 1:1 mapping for group id %v", group)
+			err = s.addAdditionalGIDToLinuxGIDMappings(&g, uint32(group))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, trusted, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork)
