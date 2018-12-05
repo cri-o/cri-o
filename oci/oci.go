@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,12 +13,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/pkg/pools"
 	"github.com/kubernetes-sigs/cri-o/pkg/findprocess"
 	"github.com/kubernetes-sigs/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/remotecommand"
+	utilexec "k8s.io/utils/exec"
 )
 
 const (
@@ -457,6 +461,56 @@ func parseLog(log []byte) (stdout, stderr []byte) {
 	return stdout, stderr
 }
 
+// Exec prepares a streaming endpoint to execute a command in the container.
+func (r *Runtime) Exec(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	processFile, err := prepareProcessExec(c, cmd, tty)
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(processFile.Name())
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	args := []string{"exec"}
+	args = append(args, "--process", processFile.Name())
+	args = append(args, c.ID())
+	execCmd := exec.Command(rPath, args...)
+	var cmdErr error
+	if tty {
+		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
+	} else {
+		if stdin != nil {
+			// Use an os.Pipe here as it returns true *os.File objects.
+			// This way, if you run 'kubectl exec <pod> -i bash' (no tty) and type 'exit',
+			// the call below to execCmd.Run() can unblock because its Stdin is the read half
+			// of the pipe.
+			r, w, err := os.Pipe()
+			if err != nil {
+				return err
+			}
+			go pools.Copy(w, stdin)
+
+			execCmd.Stdin = r
+		}
+		if stdout != nil {
+			execCmd.Stdout = stdout
+		}
+		if stderr != nil {
+			execCmd.Stderr = stderr
+		}
+
+		cmdErr = execCmd.Run()
+	}
+
+	if exitErr, ok := cmdErr.(*exec.ExitError); ok {
+		return &utilexec.ExitErrorWrapper{ExitError: exitErr}
+	}
+	return cmdErr
+}
+
 // ExecSync execs a command in a container and returns it's stdout, stderr and return code.
 func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	pidFile, parentPipe, childPipe, err := prepareExec()
@@ -510,7 +564,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
 	args = append(args, "--log-level", logrus.GetLevel().String())
 
-	processFile, err := PrepareProcessExec(c, command, c.terminal)
+	processFile, err := prepareProcessExec(c, command, c.terminal)
 	if err != nil {
 		return nil, ExecSyncError{
 			ExitCode: -1,
@@ -938,9 +992,9 @@ func (r *Runtime) ContainerStats(c *Container) (*ContainerStats, error) {
 	return containerStats(c)
 }
 
-// PrepareProcessExec returns the path of the process.json used in runc exec -p
+// prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible to close the returned *os.File if needed.
-func PrepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) {
+func prepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) {
 	f, err := ioutil.TempFile("", "exec-process-")
 	if err != nil {
 		return nil, err

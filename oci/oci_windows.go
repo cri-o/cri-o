@@ -1,10 +1,15 @@
+// +build windows
+
 package oci
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
 	"golang.org/x/sys/windows"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -29,4 +34,8 @@ func getExitCode(err error) int32 {
 		}
 	}
 	return -1
+}
+
+func ttyCmd(cmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-chan remotecommand.TerminalSize) error {
+	return fmt.Errorf("unsupported")
 }
