@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/docker/docker/pkg/pools"
@@ -990,6 +991,24 @@ func (r *Runtime) ContainerStats(c *Container) (*ContainerStats, error) {
 	defer c.opLock.Unlock()
 
 	return containerStats(c)
+}
+
+// SignalContainer sends a signal to a container process.
+func (r *Runtime) SignalContainer(c *Container, sig syscall.Signal) error {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	signalString, err := findStringInSignalMap(sig)
+	if err != nil {
+		return err
+	}
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", c.ID(), signalString)
 }
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
