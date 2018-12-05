@@ -930,6 +930,14 @@ func (r *Runtime) UnpauseContainer(c *Container) error {
 	return err
 }
 
+// ContainerStats provides statistics of a container.
+func (r *Runtime) ContainerStats(c *Container) (*ContainerStats, error) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	return containerStats(c)
+}
+
 // PrepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible to close the returned *os.File if needed.
 func PrepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) {

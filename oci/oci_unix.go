@@ -5,7 +5,9 @@ package oci
 import (
 	"fmt"
 	"os/exec"
+	"time"
 
+	"github.com/opencontainers/runc/libcontainer"
 	"golang.org/x/sys/unix"
 )
 
@@ -31,4 +33,18 @@ func getExitCode(err error) int32 {
 		}
 	}
 	return -1
+}
+
+func calculateCPUPercent(stats *libcontainer.Stats) float64 {
+	var (
+		cpuPercent = 0.0
+		cpuUsage   = float64(stats.CgroupStats.CpuStats.CpuUsage.TotalUsage)
+		systemTime = float64(uint64(time.Now().UnixNano()))
+	)
+	if systemTime > 0.0 && cpuUsage > 0.0 {
+		// gets a ratio of container cpu usage total, multiplies it by the number of cores (4 cores running
+		// at 100% utilization should be 400% utilization), and multiplies that by 100 to get a percentage
+		cpuPercent = (cpuUsage / systemTime) * float64(len(stats.CgroupStats.CpuStats.CpuUsage.PercpuUsage)) * 100
+	}
+	return cpuPercent
 }

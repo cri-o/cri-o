@@ -6,9 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/containerd/cgroups"
 	"github.com/kubernetes-sigs/cri-o/utils"
+	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -55,4 +57,51 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 		return nil, nil, err
 	}
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
+}
+
+func loadFactory(root string) (libcontainer.Factory, error) {
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
+	cgroupManager := libcontainer.Cgroupfs
+	return libcontainer.New(abs, cgroupManager, libcontainer.CriuPath(""))
+}
+
+// libcontainerStats gets the stats for the container with the given id from runc/libcontainer
+func libcontainerStats(ctr *Container) (*libcontainer.Stats, error) {
+	// TODO: make this not hardcoded
+	// was: c.runtime.Path(ociContainer) but that returns /usr/bin/runc - how do we get /run/runc?
+	// runroot is /var/run/runc
+	// Hardcoding probably breaks Kata Containers compatibility
+	factory, err := loadFactory("/run/runc")
+	if err != nil {
+		return nil, err
+	}
+	container, err := factory.Load(ctr.ID())
+	if err != nil {
+		return nil, err
+	}
+	return container.Stats()
+}
+
+func containerStats(ctr *Container) (*ContainerStats, error) {
+	libcontainerStats, err := libcontainerStats(ctr)
+	if err != nil {
+		return nil, err
+	}
+	cgroupStats := libcontainerStats.CgroupStats
+	stats := new(ContainerStats)
+	stats.Container = ctr.ID()
+	stats.CPUNano = cgroupStats.CpuStats.CpuUsage.TotalUsage
+	stats.SystemNano = time.Now().UnixNano()
+	stats.CPU = calculateCPUPercent(libcontainerStats)
+	stats.MemUsage = cgroupStats.MemoryStats.Usage.Usage
+	stats.MemLimit = getMemLimit(cgroupStats.MemoryStats.Usage.Limit)
+	stats.MemPerc = float64(stats.MemUsage) / float64(stats.MemLimit)
+	stats.PIDs = cgroupStats.PidsStats.Current
+	stats.BlockInput, stats.BlockOutput = calculateBlockIO(libcontainerStats)
+	stats.NetInput, stats.NetOutput = getContainerNetIO(libcontainerStats)
+
+	return stats, nil
 }

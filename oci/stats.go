@@ -1,12 +1,27 @@
-package lib
+package oci
 
 import (
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/opencontainers/runc/libcontainer"
 )
+
+// ContainerStats contains the statistics information for a running container
+type ContainerStats struct {
+	Container   string
+	CPU         float64
+	CPUNano     uint64
+	SystemNano  int64
+	MemUsage    uint64
+	MemLimit    uint64
+	MemPerc     float64
+	NetInput    uint64
+	NetOutput   uint64
+	BlockInput  uint64
+	BlockOutput uint64
+	PIDs        uint64
+}
 
 // Returns the total number of bytes transmitted and received for the given container stats
 func getContainerNetIO(stats *libcontainer.Stats) (received uint64, transmitted uint64) {
@@ -15,20 +30,6 @@ func getContainerNetIO(stats *libcontainer.Stats) (received uint64, transmitted 
 		transmitted += iface.TxBytes
 	}
 	return
-}
-
-func calculateCPUPercent(stats *libcontainer.Stats, previousCPU uint64, previousSystem int64) float64 {
-	var (
-		cpuPercent  = 0.0
-		cpuDelta    = float64(stats.CgroupStats.CpuStats.CpuUsage.TotalUsage - previousCPU)
-		systemDelta = float64(uint64(time.Now().UnixNano()) - uint64(previousSystem))
-	)
-	if systemDelta > 0.0 && cpuDelta > 0.0 {
-		// gets a ratio of container cpu usage total, multiplies it by the number of cores (4 cores running
-		// at 100% utilization should be 400% utilization), and multiplies that by 100 to get a percentage
-		cpuPercent = (cpuDelta / systemDelta) * float64(len(stats.CgroupStats.CpuStats.CpuUsage.PercpuUsage)) * 100
-	}
-	return cpuPercent
 }
 
 func calculateBlockIO(stats *libcontainer.Stats) (read uint64, write uint64) {
