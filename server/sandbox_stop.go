@@ -51,7 +51,9 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
-	containers = append(containers, podInfraContainer)
+	if podInfraContainer != nil {
+		containers = append(containers, podInfraContainer)
+	}
 
 	for _, c := range containers {
 		cStatus := s.Runtime().ContainerStatus(c)
