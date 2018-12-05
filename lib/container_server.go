@@ -766,6 +766,9 @@ func (c *ContainerServer) HasSandbox(id string) bool {
 // RemoveSandbox removes a sandbox from the state store
 func (c *ContainerServer) RemoveSandbox(id string) {
 	sb := c.state.sandboxes.Get(id)
+	if sb == nil {
+		return
+	}
 
 	c.stateLock.Lock()
 	c.removeSandboxPlatform(sb)
