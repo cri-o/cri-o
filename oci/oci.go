@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +23,7 @@ import (
 	"golang.org/x/net/context"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
+	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -1009,6 +1011,62 @@ func (r *Runtime) SignalContainer(c *Container, sig syscall.Signal) error {
 	}
 
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", c.ID(), signalString)
+}
+
+// AttachContainer attaches IO to a running container.
+func (r *Runtime) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.Writer, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	controlPath := filepath.Join(c.BundlePath(), "ctl")
+	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open container ctl file: %v", err)
+	}
+	defer controlFile.Close()
+
+	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+		logrus.Debugf("Got a resize event: %+v", size)
+		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
+		if err != nil {
+			logrus.Debugf("Failed to write to control file to resize terminal: %v", err)
+		}
+	})
+
+	attachSocketPath := filepath.Join(r.containerAttachSocketDir, c.ID(), "attach")
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
+	if err != nil {
+		return fmt.Errorf("failed to connect to container %s attach socket: %v", c.ID(), err)
+	}
+	defer conn.Close()
+
+	receiveStdout := make(chan error)
+	if outputStream != nil || errorStream != nil {
+		go func() {
+			receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
+		}()
+	}
+
+	stdinDone := make(chan error)
+	go func() {
+		var err error
+		if inputStream != nil {
+			_, err = utils.CopyDetachable(conn, inputStream, nil)
+			conn.CloseWrite()
+		}
+		stdinDone <- err
+	}()
+
+	select {
+	case err := <-receiveStdout:
+		return err
+	case err := <-stdinDone:
+		if _, ok := err.(utils.DetachError); ok {
+			return nil
+		}
+		if outputStream != nil || errorStream != nil {
+			return <-receiveStdout
+		}
+	}
+
+	return nil
 }
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
