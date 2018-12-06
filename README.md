@@ -17,6 +17,7 @@ CRI-O and Kubernetes follow the same release cycle and deprecation policy. For m
 | CRI-O 1.10.x  - release-1.10 | Kubernetes 1.10 branch, v1.10.x | =                  |
 | CRI-O 1.11.x  - release-1.11 | Kubernetes 1.11 branch, v1.11.x | =                  |
 | CRI-O 1.12.x  - release-1.12 | Kubernetes 1.12 branch, v1.12.x | =                  |
+| CRI-O 1.13.x  - release-1.13 | Kubernetes 1.13 branch, v1.13.x | =                  |
 | CRI-O HEAD    - master       | Kubernetes master branch        | ✓                  |
 
 Key:
