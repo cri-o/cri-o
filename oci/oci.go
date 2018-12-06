@@ -1069,6 +1069,55 @@ func (r *Runtime) AttachContainer(c *Container, inputStream io.Reader, outputStr
 	return nil
 }
 
+// PortForwardContainer forwards the specified port provides statistics of a container.
+func (r *Runtime) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
+	containerPid := c.State().Pid
+	socatPath, lookupErr := exec.LookPath("socat")
+	if lookupErr != nil {
+		return fmt.Errorf("unable to do port forwarding: socat not found")
+	}
+
+	args := []string{"-t", fmt.Sprintf("%d", containerPid), "-n", socatPath, "-", fmt.Sprintf("TCP4:localhost:%d", port)}
+
+	nsenterPath, lookupErr := exec.LookPath("nsenter")
+	if lookupErr != nil {
+		return fmt.Errorf("unable to do port forwarding: nsenter not found")
+	}
+
+	commandString := fmt.Sprintf("%s %s", nsenterPath, strings.Join(args, " "))
+	logrus.Debugf("executing port forwarding command: %s", commandString)
+
+	command := exec.Command(nsenterPath, args...)
+	command.Stdout = stream
+
+	stderr := new(bytes.Buffer)
+	command.Stderr = stderr
+
+	// If we use Stdin, command.Run() won't return until the goroutine that's copying
+	// from stream finishes. Unfortunately, if you have a client like telnet connected
+	// via port forwarding, as long as the user's telnet client is connected to the user's
+	// local listener that port forwarding sets up, the telnet session never exits. This
+	// means that even if socat has finished running, command.Run() won't ever return
+	// (because the client still has the connection and stream open).
+	//
+	// The work around is to use StdinPipe(), as Wait() (called by Run()) closes the pipe
+	// when the command (socat) exits.
+	inPipe, err := command.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("unable to do port forwarding: error creating stdin pipe: %v", err)
+	}
+	go func() {
+		pools.Copy(inPipe, stream)
+		inPipe.Close()
+	}()
+
+	if err := command.Run(); err != nil {
+		return fmt.Errorf("%v: %s", err, stderr.String())
+	}
+
+	return nil
+}
+
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible to close the returned *os.File if needed.
 func prepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) {
