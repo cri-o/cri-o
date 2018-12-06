@@ -145,22 +145,6 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		lock = new(sync.Mutex)
 	}
 
-	hookDirectories := []string{}
-	missingHookDirectoryFatal := false
-
-	// If hooks directory is set in config use it
-	if config.HooksDirPath != "" {
-		hookDirectories = append(hookDirectories, config.HooksDirPath)
-
-		// If user overrode default hooks, this means it is in a test, so don't
-		// use OverrideHooksDirPath
-		if config.HooksDirPath == hooks.DefaultDir {
-			hookDirectories = append(hookDirectories, hooks.OverrideDir)
-		} else {
-			missingHookDirectoryFatal = true
-		}
-	}
-
 	var locale string
 	var ok bool
 	for _, envVar := range []string{
@@ -188,12 +172,20 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		}
 	}
 
+	hookDirectories := config.HooksDir
+	if config.HooksDir == nil {
+		for _, hooksDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
+			_, err = os.Stat(hooksDir)
+			if err == nil {
+				hookDirectories = append(hookDirectories, hooksDir)
+				logrus.Warnf("implicit hook directories are deprecated; set --hooks-dir=%q explicitly to continue to load hooks from this directory", hooksDir)
+			}
+		}
+	}
+
 	hooks, err := hooks.New(ctx, hookDirectories, []string{}, lang)
 	if err != nil {
-		if missingHookDirectoryFatal || !os.IsNotExist(err) {
-			return nil, err
-		}
-		logrus.Warnf("failed to load hooks: %v", err)
+		return nil, err
 	}
 
 	return &ContainerServer{
