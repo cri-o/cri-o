@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/sys/unix"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
@@ -55,25 +56,33 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		containers = append(containers, podInfraContainer)
 	}
 
-	for _, c := range containers {
-		cStatus := s.Runtime().ContainerStatus(c)
+	var waitGroup errgroup.Group
+	for _, ctr := range containers {
+		cStatus := s.Runtime().ContainerStatus(ctr)
 		if cStatus.Status != oci.ContainerStateStopped {
-			if c.ID() == podInfraContainer.ID() {
+			if ctr.ID() == podInfraContainer.ID() {
 				continue
 			}
-			timeout := int64(10)
-			if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
-				return nil, fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-			}
-			if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
-				return nil, fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-			}
-			if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
-				// assume container already umounted
-				logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-			}
+			c := ctr
+			waitGroup.Go(func() error {
+				timeout := int64(10)
+				if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
+					return fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+				}
+				if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
+					return fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+				}
+				if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
+					// assume container already umounted
+					logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+				}
+				s.ContainerStateToDisk(c)
+				return nil
+			})
 		}
-		s.ContainerStateToDisk(c)
+	}
+	if err := waitGroup.Wait(); err != nil {
+		return nil, err
 	}
 
 	// Clean up sandbox networking and close its network namespace.
