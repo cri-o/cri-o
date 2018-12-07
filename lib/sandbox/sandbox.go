@@ -161,6 +161,7 @@ type Sandbox struct {
 	hostname       string
 	portMappings   []*hostport.PortMapping
 	stopped        bool
+	stopMutex      sync.Mutex
 	// ipv4 or ipv6 cache
 	ip                 string
 	seccompProfilePath string
@@ -228,6 +229,11 @@ func (s *Sandbox) SeccompProfilePath() string {
 // AddIP stores the ip in the sandbox
 func (s *Sandbox) AddIP(ip string) {
 	s.ip = ip
+}
+
+// StopMutex returns the mutex to use when stopping the sandbox
+func (s *Sandbox) StopMutex() *sync.Mutex {
+	return &s.stopMutex
 }
 
 // IP returns the ip of the sandbox
