@@ -42,6 +42,9 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		logrus.Debugf("StopPodSandboxResponse %s: %+v", req.PodSandboxId, resp)
 		return resp, nil
 	}
+	stopMutex := sb.StopMutex()
+	stopMutex.Lock()
+	defer stopMutex.Unlock()
 
 	if sb.Stopped() {
 		resp = &pb.StopPodSandboxResponse{}
