@@ -665,6 +665,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	if sb == nil {
 		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
 	}
+	stopMutex := sb.StopMutex()
+	stopMutex.RLock()
+	defer stopMutex.RUnlock()
+	if sb.Stopped() {
+		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %v", sbID)
+	}
 
 	// The config of the container
 	containerConfig := req.GetConfig()
