@@ -56,6 +56,9 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		containers = append(containers, podInfraContainer)
 	}
 
+	// Clean up sandbox networking and close its network namespace.
+	s.networkStop(sb)
+
 	var waitGroup errgroup.Group
 	for _, ctr := range containers {
 		cStatus := s.Runtime().ContainerStatus(ctr)
@@ -85,8 +88,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		return nil, err
 	}
 
-	// Clean up sandbox networking and close its network namespace.
-	s.networkStop(sb)
 	podInfraStatus := s.Runtime().ContainerStatus(podInfraContainer)
 	if podInfraStatus.Status != oci.ContainerStateStopped {
 		timeout := int64(10)
