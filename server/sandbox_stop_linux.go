@@ -59,33 +59,40 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	// Clean up sandbox networking and close its network namespace.
 	s.networkStop(sb)
 
+	const maxWorkers = 128
 	var waitGroup errgroup.Group
-	for _, ctr := range containers {
-		cStatus := s.Runtime().ContainerStatus(ctr)
-		if cStatus.Status != oci.ContainerStateStopped {
-			if ctr.ID() == podInfraContainer.ID() {
-				continue
-			}
-			c := ctr
-			waitGroup.Go(func() error {
-				timeout := int64(10)
-				if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
-					return fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-				}
-				if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
-					return fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-				}
-				if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
-					// assume container already umounted
-					logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-				}
-				s.ContainerStateToDisk(c)
-				return nil
-			})
+	for i := 0; i < len(containers); i += maxWorkers {
+		max := i + maxWorkers
+		if len(containers) < max {
+			max = len(containers)
 		}
-	}
-	if err := waitGroup.Wait(); err != nil {
-		return nil, err
+		for _, ctr := range containers[i:max] {
+			cStatus := s.Runtime().ContainerStatus(ctr)
+			if cStatus.Status != oci.ContainerStateStopped {
+				if ctr.ID() == podInfraContainer.ID() {
+					continue
+				}
+				c := ctr
+				waitGroup.Go(func() error {
+					timeout := int64(10)
+					if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
+						return fmt.Errorf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+					}
+					if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
+						return fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+					}
+					if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
+						// assume container already umounted
+						logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+					}
+					s.ContainerStateToDisk(c)
+					return nil
+				})
+			}
+		}
+		if err := waitGroup.Wait(); err != nil {
+			return nil, err
+		}
 	}
 
 	podInfraStatus := s.Runtime().ContainerStatus(podInfraContainer)
