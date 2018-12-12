@@ -678,6 +678,9 @@ type containerServerState struct {
 // AddContainer adds a container to the container state store
 func (c *ContainerServer) AddContainer(ctr *oci.Container) {
 	sandbox := c.state.sandboxes.Get(ctr.Sandbox())
+	if sandbox == nil {
+		return
+	}
 	sandbox.AddContainer(ctr)
 	c.state.containers.Add(ctr.ID(), ctr)
 }
@@ -706,6 +709,9 @@ func (c *ContainerServer) HasContainer(id string) bool {
 func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 	sbID := ctr.Sandbox()
 	sb := c.state.sandboxes.Get(sbID)
+	if sb == nil {
+		return
+	}
 	sb.RemoveContainer(ctr)
 	c.state.containers.Delete(ctr.ID())
 }
@@ -755,6 +761,9 @@ func (c *ContainerServer) GetSandbox(id string) *sandbox.Sandbox {
 // GetSandboxContainer returns a sandbox's infra container
 func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
 	sb := c.state.sandboxes.Get(id)
+	if sb == nil {
+		return nil
+	}
 	return sb.InfraContainer()
 }
 
