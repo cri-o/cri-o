@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/containers/image/pkg/blobinfocache"
 	"github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage"
@@ -158,7 +159,8 @@ func main() {
 			os.Exit(1)
 		}
 		defer img.Close()
-		layer, err := img.PutBlob(ctx, layerBuffer, layerInfo, true)
+		cache := blobinfocache.NewMemoryCache()
+		layer, err := img.PutBlob(ctx, layerBuffer, layerInfo, cache, true)
 		if err != nil {
 			logrus.Errorf("error preparing to write image: %v", err)
 			os.Exit(1)
@@ -186,7 +188,7 @@ func main() {
 			Digest: digest.Canonical.FromBytes(cbytes),
 			Size:   int64(len(cbytes)),
 		}
-		configInfo, err = img.PutBlob(ctx, bytes.NewBuffer(cbytes), configInfo, false)
+		configInfo, err = img.PutBlob(ctx, bytes.NewBuffer(cbytes), configInfo, cache, false)
 		if err != nil {
 			logrus.Errorf("error saving configuration: %v", err)
 			os.Exit(1)
