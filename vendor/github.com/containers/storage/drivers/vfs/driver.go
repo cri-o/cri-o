@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/storage/drivers"
-	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ostree"
 	"github.com/containers/storage/pkg/system"
@@ -15,8 +14,8 @@ import (
 )
 
 var (
-	// CopyWithTar defines the copy method to use.
-	CopyWithTar = chrootarchive.NewArchiver(nil).CopyWithTar
+	// CopyDir defines the copy method to use.
+	CopyDir = dirCopy
 )
 
 func init() {
@@ -141,7 +140,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		if err != nil {
 			return fmt.Errorf("%s: %s", parent, err)
 		}
-		if err := CopyWithTar(parentDir, dir); err != nil {
+		if err := dirCopy(parentDir, dir); err != nil {
 			return err
 		}
 	}
@@ -181,6 +180,9 @@ func (d *Driver) Remove(id string) error {
 // Get returns the directory for the given id.
 func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
 	dir := d.dir(id)
+	if len(options.Options) > 0 {
+		return "", fmt.Errorf("vfs driver does not support mount options")
+	}
 	if st, err := os.Stat(dir); err != nil {
 		return "", err
 	} else if !st.IsDir() {
