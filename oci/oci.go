@@ -4,20 +4,28 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/docker/docker/pkg/pools"
+	"github.com/fsnotify/fsnotify"
 	"github.com/kubernetes-sigs/cri-o/pkg/findprocess"
 	"github.com/kubernetes-sigs/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/remotecommand"
+	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	utilexec "k8s.io/utils/exec"
 )
 
 const (
@@ -457,6 +465,56 @@ func parseLog(log []byte) (stdout, stderr []byte) {
 	return stdout, stderr
 }
 
+// Exec prepares a streaming endpoint to execute a command in the container.
+func (r *Runtime) Exec(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	processFile, err := prepareProcessExec(c, cmd, tty)
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(processFile.Name())
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	args := []string{"exec"}
+	args = append(args, "--process", processFile.Name())
+	args = append(args, c.ID())
+	execCmd := exec.Command(rPath, args...)
+	var cmdErr error
+	if tty {
+		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
+	} else {
+		if stdin != nil {
+			// Use an os.Pipe here as it returns true *os.File objects.
+			// This way, if you run 'kubectl exec <pod> -i bash' (no tty) and type 'exit',
+			// the call below to execCmd.Run() can unblock because its Stdin is the read half
+			// of the pipe.
+			r, w, err := os.Pipe()
+			if err != nil {
+				return err
+			}
+			go pools.Copy(w, stdin)
+
+			execCmd.Stdin = r
+		}
+		if stdout != nil {
+			execCmd.Stdout = stdout
+		}
+		if stderr != nil {
+			execCmd.Stderr = stderr
+		}
+
+		cmdErr = execCmd.Run()
+	}
+
+	if exitErr, ok := cmdErr.(*exec.ExitError); ok {
+		return &utilexec.ExitErrorWrapper{ExitError: exitErr}
+	}
+	return cmdErr
+}
+
 // ExecSync execs a command in a container and returns it's stdout, stderr and return code.
 func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	pidFile, parentPipe, childPipe, err := prepareExec()
@@ -510,7 +568,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
 	args = append(args, "--log-level", logrus.GetLevel().String())
 
-	processFile, err := PrepareProcessExec(c, command, c.terminal)
+	processFile, err := prepareProcessExec(c, command, c.terminal)
 	if err != nil {
 		return nil, ExecSyncError{
 			ExitCode: -1,
@@ -930,9 +988,196 @@ func (r *Runtime) UnpauseContainer(c *Container) error {
 	return err
 }
 
-// PrepareProcessExec returns the path of the process.json used in runc exec -p
+// ContainerStats provides statistics of a container.
+func (r *Runtime) ContainerStats(c *Container) (*ContainerStats, error) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	return containerStats(c)
+}
+
+// SignalContainer sends a signal to a container process.
+func (r *Runtime) SignalContainer(c *Container, sig syscall.Signal) error {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	signalString, err := findStringInSignalMap(sig)
+	if err != nil {
+		return err
+	}
+
+	rPath, err := r.Path(c)
+	if err != nil {
+		return err
+	}
+
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", c.ID(), signalString)
+}
+
+// AttachContainer attaches IO to a running container.
+func (r *Runtime) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.Writer, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	controlPath := filepath.Join(c.BundlePath(), "ctl")
+	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open container ctl file: %v", err)
+	}
+	defer controlFile.Close()
+
+	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+		logrus.Debugf("Got a resize event: %+v", size)
+		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
+		if err != nil {
+			logrus.Debugf("Failed to write to control file to resize terminal: %v", err)
+		}
+	})
+
+	attachSocketPath := filepath.Join(r.containerAttachSocketDir, c.ID(), "attach")
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
+	if err != nil {
+		return fmt.Errorf("failed to connect to container %s attach socket: %v", c.ID(), err)
+	}
+	defer conn.Close()
+
+	receiveStdout := make(chan error)
+	if outputStream != nil || errorStream != nil {
+		go func() {
+			receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
+		}()
+	}
+
+	stdinDone := make(chan error)
+	go func() {
+		var err error
+		if inputStream != nil {
+			_, err = utils.CopyDetachable(conn, inputStream, nil)
+			conn.CloseWrite()
+		}
+		stdinDone <- err
+	}()
+
+	select {
+	case err := <-receiveStdout:
+		return err
+	case err := <-stdinDone:
+		if _, ok := err.(utils.DetachError); ok {
+			return nil
+		}
+		if outputStream != nil || errorStream != nil {
+			return <-receiveStdout
+		}
+	}
+
+	return nil
+}
+
+// PortForwardContainer forwards the specified port provides statistics of a container.
+func (r *Runtime) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
+	containerPid := c.State().Pid
+	socatPath, lookupErr := exec.LookPath("socat")
+	if lookupErr != nil {
+		return fmt.Errorf("unable to do port forwarding: socat not found")
+	}
+
+	args := []string{"-t", fmt.Sprintf("%d", containerPid), "-n", socatPath, "-", fmt.Sprintf("TCP4:localhost:%d", port)}
+
+	nsenterPath, lookupErr := exec.LookPath("nsenter")
+	if lookupErr != nil {
+		return fmt.Errorf("unable to do port forwarding: nsenter not found")
+	}
+
+	commandString := fmt.Sprintf("%s %s", nsenterPath, strings.Join(args, " "))
+	logrus.Debugf("executing port forwarding command: %s", commandString)
+
+	command := exec.Command(nsenterPath, args...)
+	command.Stdout = stream
+
+	stderr := new(bytes.Buffer)
+	command.Stderr = stderr
+
+	// If we use Stdin, command.Run() won't return until the goroutine that's copying
+	// from stream finishes. Unfortunately, if you have a client like telnet connected
+	// via port forwarding, as long as the user's telnet client is connected to the user's
+	// local listener that port forwarding sets up, the telnet session never exits. This
+	// means that even if socat has finished running, command.Run() won't ever return
+	// (because the client still has the connection and stream open).
+	//
+	// The work around is to use StdinPipe(), as Wait() (called by Run()) closes the pipe
+	// when the command (socat) exits.
+	inPipe, err := command.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("unable to do port forwarding: error creating stdin pipe: %v", err)
+	}
+	go func() {
+		pools.Copy(inPipe, stream)
+		inPipe.Close()
+	}()
+
+	if err := command.Run(); err != nil {
+		return fmt.Errorf("%v: %s", err, stderr.String())
+	}
+
+	return nil
+}
+
+// ReopenContainerLog reopens the log file of a container.
+func (r *Runtime) ReopenContainerLog(c *Container) error {
+	controlPath := filepath.Join(c.BundlePath(), "ctl")
+	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open container ctl file: %v", err)
+	}
+	defer controlFile.Close()
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("Failed to create new watch: %v", err)
+	}
+	defer watcher.Close()
+
+	done := make(chan struct{})
+	errorCh := make(chan error)
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logrus.Debugf("event: %v", event)
+				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
+					logrus.Debugf("file created %s", event.Name)
+					if event.Name == c.LogPath() {
+						logrus.Debugf("expected log file created")
+						close(done)
+						return
+					}
+				}
+			case err := <-watcher.Errors:
+				errorCh <- fmt.Errorf("watch error for container log reopen %v: %v", c.ID(), err)
+				return
+			}
+		}
+	}()
+	cLogDir := filepath.Dir(c.LogPath())
+	if err := watcher.Add(cLogDir); err != nil {
+		logrus.Errorf("watcher.Add(%q) failed: %s", cLogDir, err)
+		close(done)
+	}
+
+	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
+		logrus.Debugf("Failed to write to control file to reopen log file: %v", err)
+	}
+
+	select {
+	case err := <-errorCh:
+		return err
+	case <-done:
+		break
+	}
+
+	return nil
+}
+
+// prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible to close the returned *os.File if needed.
-func PrepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) {
+func prepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) {
 	f, err := ioutil.TempFile("", "exec-process-")
 	if err != nil {
 		return nil, err

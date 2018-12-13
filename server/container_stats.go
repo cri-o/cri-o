@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
-func buildContainerStats(stats *lib.ContainerStats, container *oci.Container) *pb.ContainerStats {
+func buildContainerStats(stats *oci.ContainerStats, container *oci.Container) *pb.ContainerStats {
 	return &pb.ContainerStats{
 		Attributes: &pb.ContainerAttributes{
 			Id:          container.ID(),
@@ -44,7 +43,7 @@ func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsReque
 		return nil, fmt.Errorf("invalid container")
 	}
 
-	stats, err := s.GetContainerStats(container, &lib.ContainerStats{})
+	stats, err := s.Runtime().ContainerStats(container)
 	if err != nil {
 		return nil, err
 	}

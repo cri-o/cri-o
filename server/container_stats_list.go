@@ -3,7 +3,6 @@ package server
 import (
 	"time"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -34,7 +33,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 	var allStats []*pb.ContainerStats
 
 	for _, container := range ctrList {
-		stats, err := s.GetContainerStats(container, &lib.ContainerStats{})
+		stats, err := s.Runtime().ContainerStats(container)
 		if err != nil {
 			logrus.Warnf("unable to get stats for container %s", container.ID())
 			continue
