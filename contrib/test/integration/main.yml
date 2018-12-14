@@ -11,7 +11,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-        version: "1.10.5"
+        version: "1.10.6"
 
     - name: clone build and install bats
       include: "build/bats.yml"
@@ -50,7 +50,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-          version: "1.11.1"
+          version: "1.11.3"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
   post_tasks:
