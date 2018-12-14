@@ -10,8 +10,8 @@
 FROM rhel7:7-released
 
 RUN \
-    yum install --setopt=tsflags=nodocs -y socat iptables cri-o iproute runc skopeo-containers container-selinux && \
-    rpm -V socat iptables cri-o iproute runc skopeo-containers container-selinux && \
+    yum install --setopt=tsflags=nodocs -y socat iptables cri-o iproute runc containers-common container-selinux && \
+    rpm -V socat iptables cri-o iproute runc containers-common container-selinux && \
     yum clean all && \
     mkdir -p /exports/hostfs/etc/crio /exports/hostfs/opt/cni/bin/ /exports/hostfs/var/lib/containers/storage/ && \
     cp /etc/crio/* /exports/hostfs/etc/crio && \
