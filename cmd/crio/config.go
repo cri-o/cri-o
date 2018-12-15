@@ -181,7 +181,7 @@ additional_devices = [
 
 # Path to OCI hooks directories for automatically executed hooks.
 hooks_dir = [
-{{ range $hooksDir := .HooksDir }}{{ printf "\t%q\n" $hooksDir}}{{ end }}]
+{{ range $hooksDir := .HooksDir }}{{ printf "\t%q, \n" $hooksDir}}{{ end }}]
 
 # List of default mounts for each container. **Deprecated:** this option will
 # be removed in future versions in favor of default_mounts_file.
