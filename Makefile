@@ -17,6 +17,9 @@ DATAROOTDIR ?= ${PREFIX}/share/containers
 BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
+BUILD_PATH := ${PWD}/build
+BUILD_BIN_PATH := ${BUILD_PATH}/bin
+COVERAGE_PATH := ${BUILD_PATH}/coverage
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
@@ -151,8 +154,24 @@ dbuild: crioimage
 integration: crioimage
 	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
-testunit:
-	$(GO) test -tags "$(BUILDTAGS) containers_image_ostree_stub" -cover $(PACKAGES)
+${BUILD_BIN_PATH}/ginkgo:
+	mkdir -p ${BUILD_BIN_PATH}
+	$(GO) build -o ${BUILD_BIN_PATH}/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo
+
+testunit: ${BUILD_BIN_PATH}/ginkgo
+	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
+	${BUILD_BIN_PATH}/ginkgo \
+		${TESTFLAGS} \
+		-r \
+		--cover \
+		--covermode atomic \
+		--outputdir ${COVERAGE_PATH} \
+		--coverprofile coverprofile \
+		--tags "containers_image_ostree_stub $(BUILDTAGS)" \
+		--succinct
+	# fixes https://github.com/onsi/ginkgo/issues/518
+	sed -i '2,$${/^mode: atomic/d;}' ${COVERAGE_PATH}/coverprofile
+	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
