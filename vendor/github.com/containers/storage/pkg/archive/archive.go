@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/bzip2"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,6 +21,8 @@ import (
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/promise"
 	"github.com/containers/storage/pkg/system"
+	gzip "github.com/klauspost/pgzip"
+	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/sirupsen/logrus"
 )
 
@@ -498,6 +499,8 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 		hdr.Gid = ta.ChownOpts.GID
 	}
 
+	maybeTruncateHeaderModTime(hdr)
+
 	if ta.WhiteoutConverter != nil {
 		wo, err := ta.WhiteoutConverter.ConvertWrite(hdr, path, fi)
 		if err != nil {
@@ -639,11 +642,12 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 	var errors []string
 	for key, value := range hdr.Xattrs {
 		if err := system.Lsetxattr(path, key, []byte(value), 0); err != nil {
-			if err == syscall.ENOTSUP {
+			if err == syscall.ENOTSUP || (err == syscall.EPERM && inUserns) {
 				// We ignore errors here because not all graphdrivers support
 				// xattrs *cough* old versions of AUFS *cough*. However only
 				// ENOTSUP should be emitted in that case, otherwise we still
-				// bail.
+				// bail.  We also ignore EPERM errors if we are running in a
+				// user namespace.
 				errors = append(errors, err.Error())
 				continue
 			}
@@ -1054,6 +1058,7 @@ func (archiver *Archiver) TarUntar(src, dst string) error {
 		GIDMaps:     tarMappings.GIDs(),
 		Compression: Uncompressed,
 		CopyPass:    true,
+		InUserNS:    rsystem.RunningInUserNS(),
 	}
 	archive, err := TarWithOptions(src, options)
 	if err != nil {
@@ -1068,6 +1073,7 @@ func (archiver *Archiver) TarUntar(src, dst string) error {
 		UIDMaps:   untarMappings.UIDs(),
 		GIDMaps:   untarMappings.GIDs(),
 		ChownOpts: archiver.ChownOpts,
+		InUserNS:  rsystem.RunningInUserNS(),
 	}
 	return archiver.Untar(archive, dst, options)
 }
@@ -1087,6 +1093,7 @@ func (archiver *Archiver) UntarPath(src, dst string) error {
 		UIDMaps:   untarMappings.UIDs(),
 		GIDMaps:   untarMappings.GIDs(),
 		ChownOpts: archiver.ChownOpts,
+		InUserNS:  rsystem.RunningInUserNS(),
 	}
 	return archiver.Untar(archive, dst, options)
 }
@@ -1186,6 +1193,7 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 		UIDMaps:   archiver.UntarIDMappings.UIDs(),
 		GIDMaps:   archiver.UntarIDMappings.GIDs(),
 		ChownOpts: archiver.ChownOpts,
+		InUserNS:  rsystem.RunningInUserNS(),
 	}
 	err = archiver.Untar(r, filepath.Dir(dst), options)
 	if err != nil {
