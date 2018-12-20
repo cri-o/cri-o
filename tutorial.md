@@ -223,7 +223,7 @@ cd $GOPATH/src/github.com/containernetworking/plugins
 Build the `CNI` plugins:
 
 ```
-./build.sh
+./build_linux.sh # or build_windows.sh
 ```
 
 Output:
