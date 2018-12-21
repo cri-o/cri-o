@@ -4,7 +4,6 @@ package ostree
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/klauspost/pgzip"
 	"github.com/opencontainers/go-digest"
 	glib "github.com/ostreedev/ostree-go/pkg/glibobject"
 	"github.com/pkg/errors"
@@ -255,8 +255,10 @@ func (s *ostreeImageSource) readSingleFile(commit, path string) (io.ReadCloser, 
 	return getter.Get(path)
 }
 
-// GetBlob returns a stream for the specified blob, and the blob's size.
-func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
+// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
+// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
+// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
+func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 
 	blob := info.Digest.Hex()
 
@@ -302,7 +304,7 @@ func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (i
 	}
 
 	mf := bytes.NewReader(tarsplit)
-	mfz, err := gzip.NewReader(mf)
+	mfz, err := pgzip.NewReader(mf)
 	if err != nil {
 		return nil, 0, err
 	}
