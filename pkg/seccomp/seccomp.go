@@ -31,7 +31,7 @@ func IsEnabled() bool {
 
 // LoadProfileFromStruct takes a Seccomp struct and setup seccomp in the spec.
 func LoadProfileFromStruct(config Seccomp, specgen *generate.Generator) error {
-	return setupSeccomp(&config, specgen)
+	return setupSeccomp(config, specgen)
 }
 
 // LoadProfileFromBytes takes a byte slice and decodes the seccomp profile.
@@ -40,7 +40,7 @@ func LoadProfileFromBytes(body []byte, specgen *generate.Generator) error {
 	if err := json.Unmarshal(body, &config); err != nil {
 		return fmt.Errorf("decoding seccomp profile failed: %v", err)
 	}
-	return setupSeccomp(&config, specgen)
+	return setupSeccomp(config, specgen)
 }
 
 var nativeToSeccomp = map[string]Arch{
@@ -53,11 +53,7 @@ var nativeToSeccomp = map[string]Arch{
 	"s390x":       ArchS390X,
 }
 
-func setupSeccomp(config *Seccomp, specgen *generate.Generator) error {
-	if config == nil {
-		return nil
-	}
-
+func setupSeccomp(config Seccomp, specgen *generate.Generator) error {
 	// No default action specified, no syscalls listed, assume seccomp disabled
 	if config.DefaultAction == "" && len(config.Syscalls) == 0 {
 		return nil
@@ -73,7 +69,13 @@ func setupSeccomp(config *Seccomp, specgen *generate.Generator) error {
 		return errors.New("'architectures' and 'archMap' were specified in the seccomp profile, use either 'architectures' or 'archMap'")
 	}
 
-	customspec := specgen.Spec()
+	if specgen == nil {
+		return fmt.Errorf("specification generator is nil")
+	}
+	customspec := specgen.Config
+	if customspec.Linux == nil {
+		return fmt.Errorf("specification generator is invalid")
+	}
 	customspec.Linux.Seccomp = &specs.LinuxSeccomp{}
 
 	// if config.Architectures == 0 then libseccomp will figure out the architecture to use
@@ -110,7 +112,9 @@ Loop:
 		}
 		if len(call.Excludes.Caps) > 0 {
 			for _, c := range call.Excludes.Caps {
-				if stringutils.InSlice(customspec.Process.Capabilities.Permitted, c) {
+				if customspec.Process != nil &&
+					customspec.Process.Capabilities != nil &&
+					stringutils.InSlice(customspec.Process.Capabilities.Permitted, c) {
 					continue Loop
 				}
 			}
@@ -122,7 +126,9 @@ Loop:
 		}
 		if len(call.Includes.Caps) > 0 {
 			for _, c := range call.Includes.Caps {
-				if !stringutils.InSlice(customspec.Process.Capabilities.Permitted, c) {
+				if customspec.Process != nil &&
+					customspec.Process.Capabilities != nil &&
+					!stringutils.InSlice(customspec.Process.Capabilities.Permitted, c) {
 					continue Loop
 				}
 			}
