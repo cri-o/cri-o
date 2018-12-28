@@ -125,9 +125,6 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 	}
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, config.PauseImage)
-	if err != nil {
-		return nil, err
-	}
 
 	runtime, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.DefaultRuntime, config.Runtimes, config.Conmon, config.ConmonEnv, config.CgroupManager, config.ContainerExitsDir, config.ContainerAttachSocketDir, config.LogSizeMax, config.NoPivot, config.CtrStopTimeout)
 	if err != nil {
