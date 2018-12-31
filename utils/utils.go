@@ -90,6 +90,10 @@ func (DetachError) Error() string {
 
 // CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
 func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
+	// Sanity check interfaces
+	if dst == nil || src == nil {
+		return 0, fmt.Errorf("src/dst reader/writer nil")
+	}
 	if len(keys) == 0 {
 		// Default keys : ctrl-p ctrl-q
 		keys = []byte{16, 17}
@@ -111,14 +115,8 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 				}
 				nr, er = src.Read(buf)
 			}
-			var nw int
-			var ew error
-			if len(preservBuf) > 0 {
-				nw, ew = dst.Write(preservBuf)
-				nr = len(preservBuf)
-			} else {
-				nw, ew = dst.Write(buf[0:nr])
-			}
+			nw, ew := dst.Write(preservBuf)
+			nr = len(preservBuf)
 			if nw > 0 {
 				written += int64(nw)
 			}
@@ -145,6 +143,9 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 // of the caller. Up to 32 MB is allocated to print the
 // stack.
 func WriteGoroutineStacks(w io.Writer) error {
+	if w == nil {
+		return fmt.Errorf("writer nil")
+	}
 	buf := make([]byte, 1<<20)
 	for i := 0; ; i++ {
 		n := runtime.Stack(buf, true)
