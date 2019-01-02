@@ -13,6 +13,8 @@
 /test/bin2img/bin2img
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
+/build
+coverprofile
 
 Vagrantfile
 .vagrant/
