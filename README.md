@@ -104,6 +104,7 @@ Fedora, CentOS, RHEL, and related distributions:
 ```bash
 yum install -y \
   btrfs-progs-devel \
+  containers-common \
   device-mapper-devel \
   git \
   glib2-devel \
@@ -118,8 +119,7 @@ yum install -y \
   libselinux-devel \
   ostree-devel \
   pkgconfig \
-  runc \
-  skopeo-containers
+  runc
 ```
 
 Debian, Ubuntu, and related distributions:
@@ -127,6 +127,7 @@ Debian, Ubuntu, and related distributions:
 ```bash
 apt-get install -y \
   btrfs-tools \
+  containers-common \
   git \
   golang-go \
   libassuan-dev \
@@ -139,8 +140,7 @@ apt-get install -y \
   libselinux1-dev \
   pkg-config \
   go-md2man \
-  runc \
-  skopeo-containers
+  runc
 ```
 
 Debian, Ubuntu, and related distributions will also need a copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
