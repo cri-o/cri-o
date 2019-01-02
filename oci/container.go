@@ -247,6 +247,11 @@ func (c *Container) State() *ContainerState {
 	return c.state
 }
 
+// StateNoLock returns the state of a container without using a lock.
+func (c *Container) StateNoLock() *ContainerState {
+	return c.state
+}
+
 // AddVolume adds a volume to list of container volumes.
 func (c *Container) AddVolume(v ContainerVolume) {
 	c.volumes = append(c.volumes, v)
@@ -303,4 +308,13 @@ func (c *Container) SetCreated() {
 // Created returns whether the container was created successfully
 func (c *Container) Created() bool {
 	return c.created
+}
+
+// SetStartFailed sets the container state appropriately after a start failure
+func (c *Container) SetStartFailed(err error) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	// adjust finished and started times
+	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
+	c.state.Error = err.Error()
 }

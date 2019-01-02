@@ -24,7 +24,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	podInfraContainer := sb.InfraContainer()
-	cState := s.Runtime().ContainerStatus(podInfraContainer)
+	cState := podInfraContainer.State()
 
 	rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
 	if cState.Status == oci.ContainerStateRunning {

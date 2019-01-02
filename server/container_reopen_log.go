@@ -30,7 +30,7 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainer
 		return nil, err
 	}
 
-	cState := s.ContainerServer.Runtime().ContainerStatus(c)
+	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return nil, fmt.Errorf("container is not created or running")
 	}

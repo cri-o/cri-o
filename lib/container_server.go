@@ -600,7 +600,7 @@ func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 	}
 	defer jsonSource.Close()
 	enc := json.NewEncoder(jsonSource)
-	return enc.Encode(c.runtime.ContainerStatus(ctr))
+	return enc.Encode(ctr.State())
 }
 
 // ReserveContainerName holds a name for a container that is being created

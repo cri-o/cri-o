@@ -22,7 +22,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 	if err != nil {
 		return nil, err
 	}
-	state := s.Runtime().ContainerStatus(c)
+	state := c.State()
 	if state.Status != oci.ContainerStateCreated {
 		return nil, fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
 	}
@@ -33,7 +33,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		// adjust container started/finished time and set an error to be
 		// returned in the Reason field for container status call.
 		if err != nil {
-			s.Runtime().SetStartFailed(c, err)
+			c.SetStartFailed(err)
 		}
 		s.ContainerStateToDisk(c)
 	}()

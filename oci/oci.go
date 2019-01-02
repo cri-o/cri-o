@@ -253,24 +253,3 @@ type ExecSyncError struct {
 func (e ExecSyncError) Error() string {
 	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
 }
-
-// SetStartFailed sets the container state appropriately after a start failure
-func (r *RuntimeBase) SetStartFailed(c *Container, err error) {
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-	// adjust finished and started times
-	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
-	c.state.Error = err.Error()
-}
-
-// ContainerStatus returns the state of a container.
-func (r *RuntimeBase) ContainerStatus(c *Container) *ContainerState {
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-	return c.state
-}
-
-// CurrentContainerStatus returns the state of a container without using a lock.
-func (r *RuntimeBase) CurrentContainerStatus(c *Container) *ContainerState {
-	return c.state
-}

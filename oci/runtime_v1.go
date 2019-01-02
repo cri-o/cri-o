@@ -565,7 +565,7 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 func (r *RuntimeV1) WaitContainerStateStopped(ctx context.Context, c *Container) (err error) {
 	// No need to go further and spawn the go routine if the container
 	// is already in the expected status.
-	if r.ContainerStatus(c).Status == ContainerStateStopped {
+	if c.State().Status == ContainerStateStopped {
 		return nil
 	}
 
@@ -591,7 +591,7 @@ func (r *RuntimeV1) WaitContainerStateStopped(ctx context.Context, c *Container)
 					close(done)
 					return
 				}
-				if r.ContainerStatus(c).Status == ContainerStateStopped {
+				if c.State().Status == ContainerStateStopped {
 					close(done)
 					return
 				}

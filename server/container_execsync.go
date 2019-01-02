@@ -27,7 +27,7 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		return nil, err
 	}
 
-	cState := s.Runtime().ContainerStatus(c)
+	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return nil, fmt.Errorf("container is not created or running")
 	}

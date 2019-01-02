@@ -43,7 +43,7 @@ func (ss streamService) PortForward(podSandboxID string, port int32, stream io.R
 		return err
 	}
 
-	cState := ss.runtimeServer.Runtime().ContainerStatus(c)
+	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return fmt.Errorf("container is not created or running")
 	}

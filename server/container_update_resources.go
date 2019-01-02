@@ -25,7 +25,7 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateCon
 	if err != nil {
 		return nil, err
 	}
-	state := s.Runtime().ContainerStatus(c)
+	state := c.State()
 	if !(state.Status == oci.ContainerStateRunning || state.Status == oci.ContainerStateCreated) {
 		return nil, fmt.Errorf("container %s is not running or created state: %s", c.ID(), state.Status)
 	}

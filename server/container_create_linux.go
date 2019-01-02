@@ -566,7 +566,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 	// Join the namespace paths for the pod sandbox container.
-	podInfraState := s.Runtime().ContainerStatus(sb.InfraContainer())
+	podInfraState := sb.InfraContainer().State()
 
 	logrus.Debugf("pod container state %+v", podInfraState)
 

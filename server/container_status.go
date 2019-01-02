@@ -55,7 +55,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 	resp.Status.Mounts = mounts
 
-	cState := s.Runtime().ContainerStatus(c)
+	cState := c.State()
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
 	// If we defaulted to exit code -1 earlier then we attempt to
@@ -65,7 +65,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		if err != nil {
 			logrus.Warnf("Failed to UpdateStatus of container %s: %v", c.ID(), err)
 		}
-		cState = s.Runtime().ContainerStatus(c)
+		cState = c.State()
 	}
 
 	created := c.CreatedAt().UnixNano()

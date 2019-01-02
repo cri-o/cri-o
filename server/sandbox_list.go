@@ -74,7 +74,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 			// it's better not to panic
 			continue
 		}
-		cState := s.Runtime().CurrentContainerStatus(podInfraContainer)
+		cState := podInfraContainer.StateNoLock()
 		rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
 		if cState.Status == oci.ContainerStateRunning {
 			rStatus = pb.PodSandboxState_SANDBOX_READY
