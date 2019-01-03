@@ -1026,7 +1026,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		} else {
 			if !os.IsNotExist(err) {
 				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
-			} else if err = os.MkdirAll(src, 0644); err != nil {
+			} else if err = os.MkdirAll(src, 0755); err != nil {
 				return nil, nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
 			}
 		}
