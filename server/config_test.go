@@ -6,12 +6,19 @@ import (
 	"testing"
 
 	"github.com/kubernetes-sigs/cri-o/lib"
+	"github.com/kubernetes-sigs/cri-o/oci"
 )
 
 const fixturePath = "fixtures/crio.conf"
 
 func must(t *testing.T, err error) {
 	if err != nil {
+		t.Error(err)
+	}
+}
+
+func fails(t *testing.T, err error) {
+	if err == nil {
 		t.Error(err)
 	}
 }
@@ -86,4 +93,51 @@ func TestToFile(t *testing.T) {
 	}
 
 	assertAllFieldsEquality(t, writtenConfig)
+}
+
+func TestConfigValidateDefaultSuccess(t *testing.T) {
+	defaultConfig := DefaultConfig()
+	must(t, defaultConfig.Validate(false))
+}
+
+func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
+	defaultConfig := DefaultConfig()
+
+	// since some test systems do not have runc installed, assume a more
+	// generally available executable
+	defaultConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/sh"}
+
+	must(t, defaultConfig.Validate(true))
+}
+
+func TestConfigValidateFailsOnUnrecognizedImageVolumeType(t *testing.T) {
+	defaultConfig := DefaultConfig()
+	defaultConfig.ImageVolumes = "wrong"
+	fails(t, defaultConfig.Validate(false))
+}
+
+func TestConfigValidateFailsOnInvalidRuntimeConfig(t *testing.T) {
+	defaultConfig := DefaultConfig()
+	defaultConfig.DefaultUlimits = []string{"wrong"}
+	fails(t, defaultConfig.Validate(false))
+}
+
+func TestConfigValidateFailsOnUIDMappings(t *testing.T) {
+	defaultConfig := DefaultConfig()
+	defaultConfig.UIDMappings = "value"
+	defaultConfig.ManageNetworkNSLifecycle = true
+	fails(t, defaultConfig.Validate(false))
+}
+
+func TestConfigValidateFailsOnGIDMappings(t *testing.T) {
+	defaultConfig := DefaultConfig()
+	defaultConfig.GIDMappings = "value"
+	defaultConfig.ManageNetworkNSLifecycle = true
+	fails(t, defaultConfig.Validate(false))
+}
+
+func TestConfigValidateFailsOnInvalidLogSizeMax(t *testing.T) {
+	defaultConfig := DefaultConfig()
+	defaultConfig.LogSizeMax = 1
+	fails(t, defaultConfig.Validate(false))
 }

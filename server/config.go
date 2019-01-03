@@ -2,10 +2,12 @@ package server
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
 	"github.com/kubernetes-sigs/cri-o/lib"
+	"github.com/kubernetes-sigs/cri-o/oci"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -119,4 +121,35 @@ func DefaultConfig() *Config {
 			StreamPort:    "0",
 		},
 	}
+}
+
+// Validate is the main entry point for configuration validation
+// The parameter `onExecution` specifies if the validation should include
+// execution checks. It returns an `error` on validation failure, otherwise
+// `nil`.
+func (c *Config) Validate(onExecution bool) error {
+	switch c.ImageVolumes {
+	case lib.ImageVolumesMkdir:
+	case lib.ImageVolumesIgnore:
+	case lib.ImageVolumesBind:
+	default:
+		return fmt.Errorf("Unrecognized image volume type specified")
+	}
+
+	if err := c.RuntimeConfig.Validate(onExecution); err != nil {
+		return err
+	}
+
+	if c.UIDMappings != "" && c.ManageNetworkNSLifecycle {
+		return fmt.Errorf("Cannot use UIDMappings with ManageNetworkNSLifecycle")
+	}
+	if c.GIDMappings != "" && c.ManageNetworkNSLifecycle {
+		return fmt.Errorf("Cannot use GIDMappings with ManageNetworkNSLifecycle")
+	}
+
+	if c.LogSizeMax >= 0 && c.LogSizeMax < oci.BufSize {
+		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
+	}
+
+	return nil
 }

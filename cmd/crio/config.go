@@ -320,6 +320,11 @@ var configCommand = cli.Command{
 			config = server.DefaultConfig()
 		}
 
+		// Validate the configuration during generation
+		if err := config.Validate(false); err != nil {
+			return err
+		}
+
 		// Output the commented config.
 		return commentedConfigTemplate.ExecuteTemplate(os.Stdout, "config", config)
 	},
