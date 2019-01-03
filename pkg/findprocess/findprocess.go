@@ -19,7 +19,7 @@ var ErrNotFound = errors.New("process not found")
 func FindProcess(pid int) (process *os.Process, err error) {
 	process, err = findProcess(pid)
 	if err != nil {
-		process.Release()
+		_ = process.Release()
 		process = nil
 	}
 	return process, err

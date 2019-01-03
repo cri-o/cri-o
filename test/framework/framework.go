@@ -1,14 +1,17 @@
 package framework
 
 import (
+	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
 
 // TestFramework is used to support commonnly used test features
 type TestFramework struct {
-	setup    func(*TestFramework) error
-	teardown func(*TestFramework) error
+	setup     func(*TestFramework) error
+	teardown  func(*TestFramework) error
+	TestError error
 }
 
 // NewTestFramework creates a new test framework instance for a given `setup`
@@ -20,6 +23,7 @@ func NewTestFramework(
 	return &TestFramework{
 		setup,
 		teardown,
+		fmt.Errorf("error"),
 	}
 }
 

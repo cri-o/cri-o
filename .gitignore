@@ -15,6 +15,9 @@
 /test/copyimg/copyimg
 /build
 coverprofile
+.gdb_history
+*gomock_reflect*
+lib/state.json
 
 Vagrantfile
 .vagrant/
