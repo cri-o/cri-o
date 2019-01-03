@@ -291,13 +291,13 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 		}
 		switch s.config.ImageVolumes {
 		case lib.ImageVolumesMkdir:
-			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
+			if err1 := os.MkdirAll(fp, 0755); err1 != nil {
 				return nil, err1
 			}
 		case lib.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
-			if err1 := os.MkdirAll(src, 0644); err1 != nil {
+			if err1 := os.MkdirAll(src, 0755); err1 != nil {
 				return nil, err1
 			}
 			// Label the source with the sandbox selinux mount label
