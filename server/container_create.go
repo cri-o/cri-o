@@ -151,7 +151,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		} else {
 			if !os.IsNotExist(err) {
 				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
-			} else if err = os.MkdirAll(src, 0644); err != nil {
+			} else if err = os.MkdirAll(src, 0755); err != nil {
 				return nil, nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
 			}
 		}
@@ -291,13 +291,13 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 		}
 		switch s.config.ImageVolumes {
 		case lib.ImageVolumesMkdir:
-			if err1 := os.MkdirAll(fp, 0644); err1 != nil {
+			if err1 := os.MkdirAll(fp, 0755); err1 != nil {
 				return nil, err1
 			}
 		case lib.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
-			if err1 := os.MkdirAll(src, 0644); err1 != nil {
+			if err1 := os.MkdirAll(src, 0755); err1 != nil {
 				return nil, err1
 			}
 			// Label the source with the sandbox selinux mount label
