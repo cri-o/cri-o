@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	goflag "flag"
 	"fmt"
 	"net"
@@ -16,9 +15,7 @@ import (
 	"time"
 
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
-	"github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/reexec"
-	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/kubernetes-sigs/cri-o/pkg/signals"
@@ -36,104 +33,6 @@ import (
 // gitCommit is the commit that the binary is being built from.
 // It will be populated by the Makefile.
 var gitCommit = ""
-
-var deprecatedRuntimeMsg = `
-/*\ Warning /*\
-DEPRECATED: Use Runtimes instead.
-
-The support of this option will continue through versions 1.12 and 1.13. By
-version 1.14, this option will no longer exist.
-/*\ Warning /*\
-`
-
-func validateRuntimeConfig(config *server.Config) error {
-	// check we do have at least a runtime
-	_, ok := config.RuntimeConfig.Runtimes[config.RuntimeConfig.DefaultRuntime]
-	if !ok && config.RuntimeConfig.Runtime == "" && config.RuntimeConfig.RuntimeUntrustedWorkload == "" {
-		return errors.New("no default runtime configured")
-	}
-
-	// check for deprecated options
-	if config.RuntimeConfig.RuntimeUntrustedWorkload != "" {
-		logrus.Warnf("RuntimeUntrustedWorkload deprecated\n%s", deprecatedRuntimeMsg)
-	}
-	if config.RuntimeConfig.DefaultWorkloadTrust != "" {
-		logrus.Warnf("DefaultWorkloadTrust deprecated\n%s", deprecatedRuntimeMsg)
-	}
-	if config.RuntimeConfig.Runtime != "" {
-		logrus.Warn("runtime is deprecated in favor of runtimes, please switch to that")
-	}
-
-	// check for conflicting options
-	_, ok = config.RuntimeConfig.Runtimes[oci.UntrustedRuntime]
-	if ok && config.RuntimeConfig.RuntimeUntrustedWorkload != "" {
-		return fmt.Errorf("conflicting definitions: configuration includes runtime_untrusted_workload and runtimes[%q]", oci.UntrustedRuntime)
-	}
-
-	return nil
-}
-
-func validateConfig(config *server.Config) error {
-	switch config.ImageVolumes {
-	case lib.ImageVolumesMkdir:
-	case lib.ImageVolumesIgnore:
-	case lib.ImageVolumesBind:
-	default:
-		return fmt.Errorf("Unrecognized image volume type specified")
-	}
-
-	// This is somehow duplicated with server.getUlimitsFromConfig under server/utils.go
-	// but I don't want to export that function for the sake of validation here
-	// so, keep it in mind if things start to blow up.
-	// Reason for having this here is that I don't want people to start crio
-	// with invalid ulimits but realize that only after starting a couple of
-	// containers and watching them fail.
-	for _, u := range config.RuntimeConfig.DefaultUlimits {
-		ul, err := units.ParseUlimit(u)
-		if err != nil {
-			return fmt.Errorf("unrecognized ulimit %s: %v", u, err)
-		}
-		_, err = ul.GetRlimit()
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, d := range config.RuntimeConfig.AdditionalDevices {
-		split := strings.Split(d, ":")
-		switch len(split) {
-		case 3:
-			if !createconfig.IsValidDeviceMode(split[2]) {
-				return fmt.Errorf("invalid device mode: %s", split[2])
-			}
-			fallthrough
-		case 2:
-			if (!createconfig.IsValidDeviceMode(split[1]) && !strings.HasPrefix(split[1], "/dev/")) || (len(split) == 3 && createconfig.IsValidDeviceMode(split[1])) {
-				return fmt.Errorf("invalid device mode: %s", split[1])
-			}
-			fallthrough
-		case 1:
-			if !strings.HasPrefix(split[0], "/dev/") {
-				return fmt.Errorf("invalid device mode: %s", split[0])
-			}
-		default:
-			return fmt.Errorf("invalid device specification: %s", d)
-		}
-	}
-
-	if config.UIDMappings != "" && config.ManageNetworkNSLifecycle {
-		return fmt.Errorf("Cannot use UIDMappings with ManageNetworkNSLifecycle")
-	}
-	if config.GIDMappings != "" && config.ManageNetworkNSLifecycle {
-		return fmt.Errorf("Cannot use GIDMappings with ManageNetworkNSLifecycle")
-	}
-
-	if config.LogSizeMax >= 0 && config.LogSizeMax < oci.BufSize {
-		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
-	}
-
-	return validateRuntimeConfig(config)
-}
 
 func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
@@ -557,10 +456,6 @@ func main() {
 			return err
 		}
 
-		if err := validateConfig(config); err != nil {
-			return err
-		}
-
 		cf := &logrus.TextFormatter{
 			TimestampFormat: "2006-01-02 15:04:05.000000000Z07:00",
 			FullTimestamp:   true,
@@ -616,15 +511,13 @@ func main() {
 
 		config := c.App.Metadata["config"].(*server.Config)
 
-		if !config.SELinux {
-			disableSELinux()
+		// Validate the configuration during runtime
+		if err := config.Validate(true); err != nil {
+			return err
 		}
 
-		if config.Runtime != "" {
-			if _, err := os.Stat(config.Runtime); os.IsNotExist(err) {
-				// path to runtime does not exist
-				return fmt.Errorf("invalid --runtime value %q", err)
-			}
+		if !config.SELinux {
+			disableSELinux()
 		}
 
 		if err := os.MkdirAll(filepath.Dir(config.Listen), 0755); err != nil {

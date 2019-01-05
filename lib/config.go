@@ -2,13 +2,20 @@ package lib
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
+	"os"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
+	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/sirupsen/logrus"
 )
 
 // Defaults if none are specified
@@ -407,4 +414,107 @@ func DefaultConfig() *Config {
 			PluginDir:  cniBinDir,
 		},
 	}
+}
+
+// Validate is the main entry point for runtime configuration validation
+// The parameter `onExecution` specifies if the validation should include
+// execution checks. It returns an `error` on validation failure, otherwise
+// `nil`.
+func (c *RuntimeConfig) Validate(onExecution bool) error {
+	// This is somehow duplicated with server.getUlimitsFromConfig under server/utils.go
+	// but I don't want to export that function for the sake of validation here
+	// so, keep it in mind if things start to blow up.
+	// Reason for having this here is that I don't want people to start crio
+	// with invalid ulimits but realize that only after starting a couple of
+	// containers and watching them fail.
+	for _, u := range c.DefaultUlimits {
+		ul, err := units.ParseUlimit(u)
+		if err != nil {
+			return fmt.Errorf("unrecognized ulimit %s: %v", u, err)
+		}
+		_, err = ul.GetRlimit()
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, d := range c.AdditionalDevices {
+		split := strings.Split(d, ":")
+		switch len(split) {
+		case 3:
+			if !createconfig.IsValidDeviceMode(split[2]) {
+				return fmt.Errorf("invalid device mode: %s", split[2])
+			}
+			fallthrough
+		case 2:
+			if (!createconfig.IsValidDeviceMode(split[1]) && !strings.HasPrefix(split[1], "/dev/")) ||
+				(len(split) == 3 && createconfig.IsValidDeviceMode(split[1])) {
+				return fmt.Errorf("invalid device mode: %s", split[1])
+			}
+			fallthrough
+		case 1:
+			if !strings.HasPrefix(split[0], "/dev/") {
+				return fmt.Errorf("invalid device mode: %s", split[0])
+			}
+		default:
+			return fmt.Errorf("invalid device specification: %s", d)
+		}
+	}
+
+	// check we do have at least a runtime
+	_, ok := c.Runtimes[c.DefaultRuntime]
+	if !ok && c.Runtime == "" && c.RuntimeUntrustedWorkload == "" {
+		return errors.New("no default runtime configured")
+	}
+
+	const deprecatedRuntimeMsg = `
+/*\ Warning /*\
+DEPRECATED: Use Runtimes instead.
+
+The support of this option will continue through versions 1.12 and 1.13. By
+version 1.14, this option will no longer exist.
+/*\ Warning /*\
+`
+
+	// check for deprecated options
+	if c.RuntimeUntrustedWorkload != "" {
+		logrus.Warnf("RuntimeUntrustedWorkload deprecated\n%s", deprecatedRuntimeMsg)
+	}
+	if c.DefaultWorkloadTrust != "" {
+		logrus.Warnf("DefaultWorkloadTrust deprecated\n%s", deprecatedRuntimeMsg)
+	}
+	if c.Runtime != "" {
+		logrus.Warn("runtime is deprecated in favor of runtimes, please switch to that")
+	}
+
+	// check for conflicting options
+	_, ok = c.Runtimes[oci.UntrustedRuntime]
+	if ok && c.RuntimeUntrustedWorkload != "" {
+		return fmt.Errorf(
+			"conflicting definitions: configuration includes runtime_untrusted_workload and runtimes[%q]",
+			oci.UntrustedRuntime,
+		)
+	}
+
+	// check for validation on execution
+	if onExecution {
+		if c.Runtime != "" {
+			if _, err := os.Stat(c.Runtime); os.IsNotExist(err) {
+				// path to runtime does not exist
+				return fmt.Errorf("invalid --runtime value %q", err)
+			}
+		}
+
+		// Validate if runtime_path does exist for each runtime
+		for runtime, handler := range c.Runtimes {
+			if _, err := os.Stat(handler.RuntimePath); os.IsNotExist(err) {
+				return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
+					runtime, err)
+			}
+			logrus.Debugf("found valid runtime '%s' for runtime_path '%s'\n",
+				runtime, handler.RuntimePath)
+		}
+	}
+
+	return nil
 }
