@@ -609,15 +609,9 @@ func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 // ReserveContainerName holds a name for a container that is being created
 func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) {
 	if err := c.ctrNameIndex.Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := c.ctrNameIndex.Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, ctr name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for ctr %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving ctr name %s", name)
+		err = fmt.Errorf("error reserving ctr name %s for id %s", name, id)
+		logrus.Warn(err)
+		return "", err
 	}
 	return name, nil
 }
@@ -631,15 +625,9 @@ func (c *ContainerServer) ReleaseContainerName(name string) {
 // ReservePodName holds a name for a pod that is being created
 func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
 	if err := c.podNameIndex.Reserve(name, id); err != nil {
-		if err == registrar.ErrNameReserved {
-			id, err := c.podNameIndex.Get(name)
-			if err != nil {
-				logrus.Warnf("conflict, pod name %q already reserved", name)
-				return "", err
-			}
-			return "", fmt.Errorf("conflict, name %q already reserved for pod %q", name, id)
-		}
-		return "", fmt.Errorf("error reserving pod name %q", name)
+		err = fmt.Errorf("error reserving pod name %s for id %s", name, id)
+		logrus.Warn(err)
+		return "", err
 	}
 	return name, nil
 }
