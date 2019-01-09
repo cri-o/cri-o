@@ -230,3 +230,8 @@ To run a full cluster, see [the instructions](kubernetes.md).
 
 [libpod-hooks]: https://github.com/containers/libpod/blob/v0.6.2/pkg/hooks/README.md
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks
+
+
+### Weekly Meeting
+A weekly meeting is held to discuss CRI-O development. It is open to everyone.
+The details to join the meeting are on the [wiki](https://github.com/kubernetes-sigs/cri-o/wiki/CRI-O-Weekly-Meeting).
