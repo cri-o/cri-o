@@ -36,7 +36,7 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 		return fmt.Errorf("could not find container %q: %v", containerID, err)
 	}
 
-	if err := ss.runtimeServer.Runtime().UpdateStatus(c); err != nil {
+	if err := ss.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
 		return err
 	}
 

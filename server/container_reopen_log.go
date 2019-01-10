@@ -26,7 +26,7 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainer
 		return nil, fmt.Errorf("could not find container %q", containerID)
 	}
 
-	if err := s.ContainerServer.Runtime().UpdateStatus(c); err != nil {
+	if err := s.ContainerServer.Runtime().UpdateContainerStatus(c); err != nil {
 		return nil, err
 	}
 

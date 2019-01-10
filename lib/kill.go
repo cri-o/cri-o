@@ -12,7 +12,7 @@ func (c *ContainerServer) ContainerKill(container string, killSignal syscall.Sig
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)
 	}
-	c.runtime.UpdateStatus(ctr)
+	c.runtime.UpdateContainerStatus(ctr)
 	cStatus := ctr.State()
 
 	// If the container is not running, error and move on.

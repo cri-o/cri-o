@@ -39,7 +39,7 @@ func (ss streamService) PortForward(podSandboxID string, port int32, stream io.R
 		return fmt.Errorf("could not find container for sandbox %q", podSandboxID)
 	}
 
-	if err := ss.runtimeServer.Runtime().UpdateStatus(c); err != nil {
+	if err := ss.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
 		return err
 	}
 

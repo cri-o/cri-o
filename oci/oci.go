@@ -84,14 +84,14 @@ type RuntimeImpl interface {
 	Version() (string, error)
 	CreateContainer(*Container, string) error
 	StartContainer(*Container) error
-	Exec(*Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
+	ExecContainer(*Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
-	ExecSync(*Container, []string, int64) (*ExecSyncResponse, error)
+	ExecSyncContainer(*Container, []string, int64) (*ExecSyncResponse, error)
 	UpdateContainer(*Container, *rspec.LinuxResources) error
 	WaitContainerStateStopped(context.Context, *Container) error
 	StopContainer(context.Context, *Container, int64) error
 	DeleteContainer(*Container) error
-	UpdateStatus(*Container) error
+	UpdateContainerStatus(*Container) error
 	PauseContainer(*Container) error
 	UnpauseContainer(*Container) error
 	ContainerStats(*Container) (*ContainerStats, error)

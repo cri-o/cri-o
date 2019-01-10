@@ -7,7 +7,7 @@ import (
 )
 
 func isStopped(c *ContainerServer, ctr *oci.Container) bool {
-	c.runtime.UpdateStatus(ctr)
+	c.runtime.UpdateContainerStatus(ctr)
 	cStatus := ctr.State()
 	return cStatus.Status == oci.ContainerStateStopped
 }

@@ -582,7 +582,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 	}
 	// ignore errors, this is a best effort to have up-to-date info about
 	// a given container before its state gets stored
-	c.runtime.UpdateStatus(ctr)
+	c.runtime.UpdateContainerStatus(ctr)
 
 	return nil
 }
@@ -592,7 +592,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 	// ignore errors, this is a best effort to have up-to-date info about
 	// a given container before its state gets stored
-	c.Runtime().UpdateStatus(ctr)
+	c.Runtime().UpdateContainerStatus(ctr)
 
 	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0644)
 	if err != nil {

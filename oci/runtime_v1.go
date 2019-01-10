@@ -289,8 +289,8 @@ func parseLog(log []byte) (stdout, stderr []byte) {
 	return stdout, stderr
 }
 
-// Exec prepares a streaming endpoint to execute a command in the container.
-func (r *RuntimeV1) Exec(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+// ExecContainer prepares a streaming endpoint to execute a command in the container.
+func (r *RuntimeV1) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	processFile, err := prepareProcessExec(c, cmd, tty)
 	if err != nil {
 		return err
@@ -339,8 +339,8 @@ func (r *RuntimeV1) Exec(c *Container, cmd []string, stdin io.Reader, stdout, st
 	return cmdErr
 }
 
-// ExecSync execs a command in a container and returns it's stdout, stderr and return code.
-func (r *RuntimeV1) ExecSync(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
+// ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
+func (r *RuntimeV1) ExecSyncContainer(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	pidFile, parentPipe, childPipe, err := prepareExec()
 	if err != nil {
 		return nil, ExecSyncError{
@@ -586,7 +586,7 @@ func (r *RuntimeV1) WaitContainerStateStopped(ctx context.Context, c *Container)
 				return
 			default:
 				// Check if the container is stopped
-				if err := r.UpdateStatus(c); err != nil {
+				if err := r.UpdateContainerStatus(c); err != nil {
 					done <- err
 					close(done)
 					return
@@ -693,8 +693,8 @@ func (r *RuntimeV1) DeleteContainer(c *Container) error {
 	return err
 }
 
-// UpdateStatus refreshes the status of the container.
-func (r *RuntimeV1) UpdateStatus(c *Container) error {
+// UpdateContainerStatus refreshes the status of the container.
+func (r *RuntimeV1) UpdateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
