@@ -55,7 +55,7 @@ const (
 	// minCtrStopTimeout is the minimal amout of time in seconds to wait
 	// before issuing a timeout regarding the proper termination of the
 	// container.
-	minCtrStopTimeout = 10
+	minCtrStopTimeout = 30
 
 	// UntrustedRuntime is the implicit runtime handler name used to
 	// fallback to the untrusted runtime.
