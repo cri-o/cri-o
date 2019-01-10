@@ -313,6 +313,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	someData := []byte{0}
 	_, err = parentStartPipe.Write(someData)
 	if err != nil {
+		cmd.Wait()
 		return err
 	}
 
