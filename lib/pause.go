@@ -12,7 +12,7 @@ func (c *ContainerServer) ContainerPause(container string) (string, error) {
 		return "", errors.Wrapf(err, "failed to find container %s", container)
 	}
 
-	cStatus := c.runtime.ContainerStatus(ctr)
+	cStatus := ctr.State()
 	if cStatus.Status != oci.ContainerStatePaused {
 		if err := c.runtime.PauseContainer(ctr); err != nil {
 			return "", errors.Wrapf(err, "failed to pause container %s", ctr.ID())
@@ -32,7 +32,7 @@ func (c *ContainerServer) ContainerUnpause(container string) (string, error) {
 		return "", errors.Wrapf(err, "failed to find container %s", container)
 	}
 
-	cStatus := c.runtime.ContainerStatus(ctr)
+	cStatus := ctr.State()
 	if cStatus.Status == oci.ContainerStatePaused {
 		if err := c.runtime.UnpauseContainer(ctr); err != nil {
 			return "", errors.Wrapf(err, "failed to unpause container %s", ctr.ID())

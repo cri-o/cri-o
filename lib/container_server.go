@@ -126,7 +126,7 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, config.PauseImage)
 
-	runtime, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.DefaultRuntime, config.Runtimes, config.Conmon, config.ConmonEnv, config.CgroupManager, config.ContainerExitsDir, config.ContainerAttachSocketDir, config.LogSizeMax, config.NoPivot, config.CtrStopTimeout)
+	runtime, err := oci.New(config.Runtime, config.RuntimeUntrustedWorkload, config.DefaultWorkloadTrust, config.DefaultRuntime, config.Runtimes, config.Conmon, config.ConmonEnv, config.CgroupManager, config.ContainerExitsDir, config.ContainerAttachSocketDir, config.LogSizeMax, config.NoPivot, config.CtrStopTimeout, "v1")
 	if err != nil {
 		return nil, err
 	}
@@ -582,7 +582,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 	}
 	// ignore errors, this is a best effort to have up-to-date info about
 	// a given container before its state gets stored
-	c.runtime.UpdateStatus(ctr)
+	c.runtime.UpdateContainerStatus(ctr)
 
 	return nil
 }
@@ -592,7 +592,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 	// ignore errors, this is a best effort to have up-to-date info about
 	// a given container before its state gets stored
-	c.Runtime().UpdateStatus(ctr)
+	c.Runtime().UpdateContainerStatus(ctr)
 
 	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0644)
 	if err != nil {
@@ -600,7 +600,7 @@ func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 	}
 	defer jsonSource.Close()
 	enc := json.NewEncoder(jsonSource)
-	return enc.Encode(c.runtime.ContainerStatus(ctr))
+	return enc.Encode(ctr.State())
 }
 
 // ReserveContainerName holds a name for a container that is being created

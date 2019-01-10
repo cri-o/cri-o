@@ -15,7 +15,7 @@ func (c *ContainerServer) ContainerStop(ctx context.Context, container string, t
 	}
 	ctrID := ctr.ID()
 
-	cStatus := c.runtime.ContainerStatus(ctr)
+	cStatus := ctr.State()
 	switch cStatus.Status {
 
 	case oci.ContainerStatePaused:

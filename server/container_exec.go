@@ -37,14 +37,14 @@ func (ss streamService) Exec(containerID string, cmd []string, stdin io.Reader, 
 		return fmt.Errorf("could not find container %q: %v", containerID, err)
 	}
 
-	if err := ss.runtimeServer.Runtime().UpdateStatus(c); err != nil {
+	if err := ss.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
 		return err
 	}
 
-	cState := ss.runtimeServer.Runtime().ContainerStatus(c)
+	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return fmt.Errorf("container is not created or running")
 	}
 
-	return ss.runtimeServer.Runtime().Exec(c, cmd, stdin, stdout, stderr, tty, resize)
+	return ss.runtimeServer.Runtime().ExecContainer(c, cmd, stdin, stdout, stderr, tty, resize)
 }

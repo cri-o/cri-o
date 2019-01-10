@@ -26,11 +26,11 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainer
 		return nil, fmt.Errorf("could not find container %q", containerID)
 	}
 
-	if err := s.ContainerServer.Runtime().UpdateStatus(c); err != nil {
+	if err := s.ContainerServer.Runtime().UpdateContainerStatus(c); err != nil {
 		return nil, err
 	}
 
-	cState := s.ContainerServer.Runtime().ContainerStatus(c)
+	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return nil, fmt.Errorf("container is not created or running")
 	}

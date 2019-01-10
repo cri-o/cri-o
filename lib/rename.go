@@ -77,7 +77,7 @@ func (c *ContainerServer) updateStateName(ctr *oci.Container, name string) error
 	}
 	defer jsonSource.Close()
 	enc := json.NewEncoder(jsonSource)
-	return enc.Encode(c.runtime.ContainerStatus(ctr))
+	return enc.Encode(ctr.State())
 }
 
 // Attempts to update a metadata annotation

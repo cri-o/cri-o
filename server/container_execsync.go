@@ -23,11 +23,11 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		return nil, err
 	}
 
-	if err = s.Runtime().UpdateStatus(c); err != nil {
+	if err = s.Runtime().UpdateContainerStatus(c); err != nil {
 		return nil, err
 	}
 
-	cState := s.Runtime().ContainerStatus(c)
+	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
 		return nil, fmt.Errorf("container is not created or running")
 	}
@@ -37,7 +37,7 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		return nil, fmt.Errorf("exec command cannot be empty")
 	}
 
-	execResp, err := s.Runtime().ExecSync(c, cmd, req.Timeout)
+	execResp, err := s.Runtime().ExecSyncContainer(c, cmd, req.Timeout)
 	if err != nil {
 		return nil, err
 	}
