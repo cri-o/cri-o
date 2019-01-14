@@ -253,3 +253,61 @@ type ExecSyncError struct {
 func (e ExecSyncError) Error() string {
 	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
 }
+
+// waitContainerStateStopped runs a loop polling UpdateStatus(), seeking for
+// the container status to be updated to 'stopped'. Either it gets the expected
+// status and returns nil, or it reaches the timeout and returns an error.
+func waitContainerStateStopped(ctx context.Context, c *Container, ri RuntimeImpl, rb RuntimeBase) (err error) {
+	// No need to go further and spawn the go routine if the container
+	// is already in the expected status.
+	if c.State().Status == ContainerStateStopped {
+		return nil
+	}
+
+	// We need to ensure the container termination will be properly waited
+	// for by defining a minimal timeout value. This will prevent timeout
+	// value defined in the configuration file to be too low.
+	timeout := rb.ctrStopTimeout
+	if timeout < minCtrStopTimeout {
+		timeout = minCtrStopTimeout
+	}
+
+	done := make(chan error)
+	chControl := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-chControl:
+				return
+			default:
+				// Check if the container is stopped
+				if err := ri.UpdateContainerStatus(c); err != nil {
+					done <- err
+					close(done)
+					return
+				}
+				if c.State().Status == ContainerStateStopped {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+	select {
+	case err = <-done:
+		break
+	case <-ctx.Done():
+		close(chControl)
+		return ctx.Err()
+	case <-time.After(time.Duration(timeout) * time.Second):
+		close(chControl)
+		return fmt.Errorf("failed to get container stopped status: %ds timeout reached", timeout)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to get container stopped status: %v", err)
+	}
+
+	return nil
+}
