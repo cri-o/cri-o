@@ -689,10 +689,18 @@ static void conn_sock_shutdown(struct conn_sock_s *sock, int how)
 	if (sock->fd == -1)
 		return;
 	shutdown(sock->fd, how);
-	if (how & SHUT_RD)
+	switch (how) {
+	case SHUT_RD:
 		sock->readable = false;
-	if (how & SHUT_WR)
+		break;
+	case SHUT_WR:
 		sock->writable = false;
+		break;
+	case SHUT_RDWR:
+		sock->readable = false;
+		sock->writable = false;
+		break;
+	}
 	if (!sock->writable && !sock->readable) {
 		close(sock->fd);
 		sock->fd = -1;
@@ -1624,7 +1632,7 @@ int main(int argc, char *argv[])
 			errno = 0;
 			int lpid = strtol(listenpid, NULL, 10);
 			if (errno != 0 || lpid <= 0)
-				pexitf("Invalid LISTEN_PID %s", listenpid);
+				pexitf("Invalid LISTEN_PID %10s", listenpid);
 			if (opt_replace_listen_pid || lpid == getppid()) {
 				gchar *pidstr = g_strdup_printf("%d", getpid());
 				if (!pidstr)
@@ -1652,9 +1660,12 @@ int main(int argc, char *argv[])
 	g_ptr_array_free(runtime_argv, TRUE);
 
 	/* The runtime has that fd now. We don't need to touch it anymore. */
-	close(slavefd_stdin);
-	close(slavefd_stdout);
-	close(slavefd_stderr);
+	if (slavefd_stdin > -1)
+		close(slavefd_stdin);
+	if (slavefd_stdout > -1)
+		close(slavefd_stdout);
+	if (slavefd_stderr > -1)
+		close(slavefd_stderr);
 
 	/* Map pid to its handler.  */
 	GHashTable *pid_to_handler = g_hash_table_new(g_int_hash, g_int_equal);
