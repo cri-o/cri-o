@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/signature"
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
@@ -29,7 +30,7 @@ var (
 	// ErrImageMultiplyTagged is returned when we try to remove an image that still has multiple names
 	ErrImageMultiplyTagged = errors.New("image still has multiple names applied")
 	// ErrNoRegistriesConfigured is returned when there are no registries configured in /etc/crio.conf#additional_registries
-	ErrNoRegistriesConfigured = errors.New(`no registries configured while trying to pull an unqualified image, add at least one in /etc/crio/crio.conf under the "registries" key`)
+	ErrNoRegistriesConfigured = errors.New(`no registries configured while trying to pull an unqualified image, add at least one in either /etc/crio/crio.conf or /etc/containers/registries.conf`)
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
@@ -62,14 +63,14 @@ type imageCacheItem struct {
 type imageCache map[string]imageCacheItem
 
 type imageService struct {
-	store                 storage.Store
-	defaultTransport      string
-	insecureRegistryCIDRs []*net.IPNet
-	indexConfigs          map[string]*indexInfo
-	registries            []string
-	imageCache            imageCache
-	imageCacheLock        sync.Mutex
-	ctx                   context.Context
+	store                       storage.Store
+	defaultTransport            string
+	insecureRegistryCIDRs       []*net.IPNet
+	indexConfigs                map[string]*indexInfo
+	unqualifiedSearchRegistries []string
+	imageCache                  imageCache
+	imageCacheLock              sync.Mutex
+	ctx                         context.Context
 }
 
 // sizer knows its size.
@@ -559,14 +560,14 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 	}
 	// we got an unqualified image here, we can't go ahead w/o registries configured
 	// properly.
-	if len(svc.registries) == 0 {
+	if len(svc.unqualifiedSearchRegistries) == 0 {
 		return nil, ErrNoRegistriesConfigured
 	}
 	// this means we got an image in the form of "busybox"
 	// we need to use additional registries...
 	// normalize the unqualified image to be domain/repo/image...
 	images := []string{}
-	for _, r := range svc.registries {
+	for _, r := range svc.unqualifiedSearchRegistries {
 		rem := remainder
 		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
 			rem = "library/" + rem
@@ -580,7 +581,7 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 // which will prepend the passed-in defaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(ctx context.Context, store storage.Store, defaultTransport string, insecureRegistries []string, registries []string) (ImageServer, error) {
+func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries []string, registries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
 		store, err = storage.GetStore(storage.DefaultStoreOptions)
@@ -589,24 +590,34 @@ func GetImageService(ctx context.Context, store storage.Store, defaultTransport 
 		}
 	}
 
-	seenRegistries := make(map[string]bool, len(registries))
-	cleanRegistries := []string{}
-	for _, r := range registries {
-		if seenRegistries[r] {
-			continue
-		}
-		cleanRegistries = append(cleanRegistries, r)
-		seenRegistries[r] = true
-	}
-
 	is := &imageService{
 		store:                 store,
 		defaultTransport:      defaultTransport,
 		indexConfigs:          make(map[string]*indexInfo),
 		insecureRegistryCIDRs: make([]*net.IPNet, 0),
-		registries:            cleanRegistries,
 		imageCache:            make(map[string]imageCacheItem),
 		ctx:                   ctx,
+	}
+	if len(registries) != 0 {
+		seenRegistries := make(map[string]bool, len(registries))
+		cleanRegistries := []string{}
+		for _, r := range registries {
+			if seenRegistries[r] {
+				continue
+			}
+			cleanRegistries = append(cleanRegistries, r)
+			seenRegistries[r] = true
+		}
+
+		is.unqualifiedSearchRegistries = cleanRegistries
+	} else {
+		systemRegistries, err := sysregistriesv2.FindUnqualifiedSearchRegistries(sc)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range systemRegistries {
+			is.unqualifiedSearchRegistries = append(is.unqualifiedSearchRegistries, r.URL)
+		}
 	}
 
 	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")

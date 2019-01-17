@@ -119,7 +119,7 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		return nil, err
 	}
 
-	imageService, err := storage.GetImageService(ctx, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
+	imageService, err := storage.GetImageService(ctx, nil, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err
 	}
