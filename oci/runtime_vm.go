@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	tasktypes "github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	client "github.com/containerd/containerd/runtime/v2/shim"
@@ -547,6 +548,39 @@ func (r *RuntimeVM) DeleteContainer(c *Container) error {
 
 // UpdateContainerStatus refreshes the status of the container.
 func (r *RuntimeVM) UpdateContainerStatus(c *Container) error {
+	logrus.Debug("RuntimeVM.UpdateContainerStatus() start")
+	defer logrus.Debug("RuntimeVM.UpdateContainerStatus() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	response, err := r.task.State(r.ctx, &task.StateRequest{
+		ID: c.ID(),
+	})
+	if err != nil {
+		if errors.Cause(err) != ttrpc.ErrClosed {
+			return errdefs.FromGRPC(err)
+		}
+		return errdefs.ErrNotFound
+	}
+
+	status := c.state.Status
+	switch response.Status {
+	case tasktypes.StatusCreated:
+		status = ContainerStateCreated
+	case tasktypes.StatusRunning:
+		status = ContainerStateRunning
+	case tasktypes.StatusStopped:
+		status = ContainerStateStopped
+	case tasktypes.StatusPaused:
+		status = ContainerStatePaused
+	}
+
+	c.state.Status = status
+	c.state.Finished = response.ExitedAt
+	c.state.ExitCode = int32(response.ExitStatus)
+
 	return nil
 }
 
