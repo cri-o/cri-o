@@ -767,7 +767,7 @@ func (r *RuntimeV1) SignalContainer(c *Container, sig syscall.Signal) error {
 }
 
 // AttachContainer attaches IO to a running container.
-func (r *RuntimeV1) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.Writer, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *RuntimeV1) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {

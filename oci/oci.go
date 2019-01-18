@@ -96,8 +96,8 @@ type RuntimeImpl interface {
 	UnpauseContainer(*Container) error
 	ContainerStats(*Container) (*ContainerStats, error)
 	SignalContainer(*Container, syscall.Signal) error
-	AttachContainer(*Container, io.Reader, io.Writer, io.Writer, bool,
-		<-chan remotecommand.TerminalSize) error
+	AttachContainer(*Container, io.Reader, io.WriteCloser, io.WriteCloser,
+		bool, <-chan remotecommand.TerminalSize) error
 	PortForwardContainer(*Container, int32, io.ReadWriter) error
 	ReopenContainerLog(*Container) error
 }
