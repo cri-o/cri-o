@@ -2,28 +2,208 @@ package oci
 
 import (
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"syscall"
+	"time"
 
+	"github.com/containerd/containerd/errdefs"
+	"github.com/containerd/containerd/namespaces"
+	client "github.com/containerd/containerd/runtime/v2/shim"
+	"github.com/containerd/containerd/runtime/v2/task"
+	cio "github.com/containerd/cri/pkg/server/io"
+	"github.com/containerd/fifo"
+	"github.com/containerd/ttrpc"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
+)
+
+const (
+	fifoGlobalDir = "/tmp/crio/fifo"
 )
 
 // RuntimeVM is the Runtime interface implementation that is more appropriate
 // for VM based container runtimes.
 type RuntimeVM struct {
 	RuntimeBase
+
+	ctx    context.Context
+	client *ttrpc.Client
+	task   task.TaskService
+
+	ctrs map[string]containerInfo
+}
+
+type containerInfo struct {
+	cio *cio.ContainerIO
 }
 
 // NewRuntimeVM creates a new RuntimeVM instance
 func NewRuntimeVM(rb RuntimeBase) (RuntimeImpl, error) {
 	return &RuntimeVM{
 		RuntimeBase: rb,
+		ctx:         context.Background(),
+		ctrs:        make(map[string]containerInfo),
 	}, nil
 }
 
 // CreateContainer creates a container.
 func (r *RuntimeVM) CreateContainer(c *Container, cgroupParent string) (err error) {
+	logrus.Debug("RuntimeVM.CreateContainer() start")
+	defer logrus.Debug("RuntimeVM.CreateContainer() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	// First thing, we need to start the runtime daemon
+	if err = r.startRuntimeDaemon(c); err != nil {
+		return err
+	}
+
+	// Create IO fifos
+	containerIO, err := cio.NewContainerIO(c.ID(),
+		cio.WithNewFIFOs(fifoGlobalDir, c.terminal, c.stdin))
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			containerIO.Close()
+		}
+	}()
+
+	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
+	if err != nil {
+		return err
+	}
+
+	containerIO.AddOutput("logfile", f, f)
+	containerIO.Pipe()
+
+	r.ctrs[c.ID()] = containerInfo{
+		cio: containerIO,
+	}
+
+	defer func() {
+		if err != nil {
+			delete(r.ctrs, c.ID())
+		}
+	}()
+
+	// We can now create the container, interacting with the server
+	request := &task.CreateTaskRequest{
+		ID:       c.ID(),
+		Bundle:   c.BundlePath(),
+		Stdin:    containerIO.Config().Stdin,
+		Stdout:   containerIO.Config().Stdout,
+		Stderr:   containerIO.Config().Stderr,
+		Terminal: containerIO.Config().Terminal,
+	}
+
+	createdCh := make(chan error)
+	go func() {
+		// Create the container
+		if _, err := r.task.Create(r.ctx, request); err != nil {
+			createdCh <- errdefs.FromGRPC(err)
+		}
+
+		close(createdCh)
+	}()
+
+	select {
+	case err = <-createdCh:
+		if err != nil {
+			return errors.Errorf("CreateContainer failed: %v", err)
+		}
+	case <-time.After(ContainerCreateTimeout):
+		r.remove(r.ctx, c.ID(), "")
+		<-createdCh
+		return errors.Errorf("CreateContainer timeout (%v)", ContainerCreateTimeout)
+	}
+
+	return nil
+}
+
+func (r *RuntimeVM) startRuntimeDaemon(c *Container) error {
+	logrus.Debug("RuntimeVM.startRuntimeDaemon() start")
+	defer logrus.Debug("RuntimeVM.startRuntimeDaemon() end")
+
+	// Prepare the command to run
+	args := []string{"-id", c.ID()}
+	if logrus.GetLevel() == logrus.DebugLevel {
+		args = append(args, "-debug")
+	}
+	args = append(args, "start")
+
+	rPath, err := r.path(c)
+	if err != nil {
+		return err
+	}
+
+	// Modify the runtime path so that it complies with v2 shim API
+	newRuntimePath := strings.Replace(rPath, "-", ".", -1)
+
+	// Setup default namespace
+	r.ctx = namespaces.WithNamespace(r.ctx, namespaces.Default)
+
+	// Prepare the command to exec
+	cmd, err := client.Command(
+		r.ctx,
+		newRuntimePath,
+		"",
+		c.BundlePath(),
+		args...,
+	)
+	if err != nil {
+		return err
+	}
+
+	// Create the log file expected by shim-v2 API
+	f, err := fifo.OpenFifo(r.ctx, filepath.Join(c.BundlePath(), "log"),
+		unix.O_RDONLY|unix.O_CREAT|unix.O_NONBLOCK, 0700)
+	if err != nil {
+		return err
+	}
+
+	// Open the log pipe and block until the writer is ready. This
+	// helps with synchronization of the shim. Copy the shim's logs
+	// to CRI-O's output.
+	go func() {
+		defer f.Close()
+		if _, err := io.Copy(os.Stderr, f); err != nil {
+			logrus.WithError(err).Error("copy shim log")
+		}
+	}()
+
+	// Start the server
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "%s", out)
+	}
+
+	// Retrieve the address from the output
+	address := strings.TrimSpace(string(out))
+
+	// Now the RPC server is running, let's connect to it
+	conn, err := client.Connect(address, client.AnonDialer)
+	if err != nil {
+		return err
+	}
+
+	cl := ttrpc.NewClient(conn)
+	cl.OnClose(func() { conn.Close() })
+
+	// Update the runtime structure
+	r.client = cl
+	r.task = task.NewTaskClient(cl)
+
 	return nil
 }
 
@@ -101,5 +281,16 @@ func (r *RuntimeVM) PortForwardContainer(c *Container, port int32, stream io.Rea
 
 // ReopenContainerLog reopens the log file of a container.
 func (r *RuntimeVM) ReopenContainerLog(c *Container) error {
+	return nil
+}
+
+func (r *RuntimeVM) remove(ctx context.Context, ctrID, execID string) error {
+	if _, err := r.task.Delete(ctx, &task.DeleteRequest{
+		ID:     ctrID,
+		ExecID: execID,
+	}); err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
 	return nil
 }
