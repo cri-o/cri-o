@@ -453,7 +453,65 @@ func (r *RuntimeVM) WaitContainerStateStopped(ctx context.Context, c *Container)
 
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *RuntimeVM) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+	logrus.Debug("RuntimeVM.StopContainer() start")
+	defer logrus.Debug("RuntimeVM.StopContainer() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	// Cancel the context before returning to ensure goroutines are stopped.
+	ctx, cancel := context.WithCancel(r.ctx)
+	defer cancel()
+
+	stopCh := make(chan error)
+	go func() {
+		if _, _, err := r.wait(ctx, c.ID(), ""); err != nil {
+			stopCh <- errdefs.FromGRPC(err)
+		}
+
+		close(stopCh)
+	}()
+
+	var sig syscall.Signal
+
+	if timeout > 0 {
+		sig = c.StopSignal()
+		// Send a stopping signal to the container
+		if err := r.kill(ctx, c.ID(), "", sig, false); err != nil {
+			return err
+		}
+
+		timeoutDuration := time.Duration(timeout) * time.Second
+
+		err := r.waitCtrTerminate(sig, stopCh, timeoutDuration)
+		if err == nil {
+			return nil
+		}
+		logrus.Warnf("%v", err)
+	}
+
+	sig = syscall.SIGKILL
+	// Send a SIGKILL signal to the container
+	if err := r.kill(ctx, c.ID(), "", sig, false); err != nil {
+		return err
+	}
+
+	if err := r.waitCtrTerminate(sig, stopCh, killContainerTimeout); err != nil {
+		logrus.Errorf("%v", err)
+		return err
+	}
+
 	return nil
+}
+
+func (r *RuntimeVM) waitCtrTerminate(sig syscall.Signal, stopCh chan error, timeout time.Duration) error {
+	select {
+	case err := <-stopCh:
+		return err
+	case <-time.After(timeout):
+		return errors.Errorf("StopContainer with signal %v timed out after (%v)", sig, timeout)
+	}
 }
 
 // DeleteContainer deletes a container.
