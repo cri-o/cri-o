@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -109,4 +110,69 @@ func containerStats(ctr *Container) (*ContainerStats, error) {
 	stats.NetInput, stats.NetOutput = getContainerNetIO(libcontainerStats)
 
 	return stats, nil
+}
+
+func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
+	var (
+		cpu         float64
+		cpuNano     uint64
+		memUsage    uint64
+		memLimit    uint64
+		memPerc     float64
+		netInput    uint64
+		netOutput   uint64
+		blockInput  uint64
+		blockOutput uint64
+		pids        uint64
+	)
+
+	if m != nil {
+		if m.Pids != nil {
+			pids = m.Pids.Current
+		}
+
+		if m.CPU != nil {
+			if m.CPU.Usage != nil {
+				cpuNano = m.CPU.Usage.Total
+				cpu = genericCalculateCPUPercent(cpuNano, m.CPU.Usage.PerCPU)
+			}
+		}
+
+		if m.Memory != nil {
+			if m.Memory.Usage != nil {
+				memUsage = m.Memory.Usage.Usage
+				memLimit = getMemLimit(m.Memory.Usage.Limit)
+				memPerc = float64(memUsage) / float64(memLimit)
+			}
+		}
+
+		if m.Blkio != nil {
+			for _, entry := range m.Blkio.IoServiceBytesRecursive {
+				if entry == nil {
+					continue
+				}
+				switch strings.ToLower(entry.Op) {
+				case "read":
+					blockInput += entry.Value
+				case "write":
+					blockOutput += entry.Value
+				}
+			}
+		}
+	}
+
+	return &ContainerStats{
+		Container:   c.ID(),
+		CPU:         cpu,
+		CPUNano:     cpuNano,
+		SystemNano:  time.Now().UnixNano(),
+		MemUsage:    memUsage,
+		MemLimit:    memLimit,
+		MemPerc:     memPerc,
+		NetInput:    netInput,
+		NetOutput:   netOutput,
+		BlockInput:  blockInput,
+		BlockOutput: blockOutput,
+		PIDs:        pids,
+	}
 }

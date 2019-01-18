@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containerd/cgroups"
 	tasktypes "github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
@@ -622,7 +623,34 @@ func (r *RuntimeVM) UnpauseContainer(c *Container) error {
 
 // ContainerStats provides statistics of a container.
 func (r *RuntimeVM) ContainerStats(c *Container) (*ContainerStats, error) {
-	return &ContainerStats{}, nil
+	logrus.Debug("RuntimeVM.ContainerStats() start")
+	defer logrus.Debug("RuntimeVM.ContainerStats() end")
+
+	// Lock the container with a shared lock
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	resp, err := r.task.Stats(r.ctx, &task.StatsRequest{
+		ID: c.ID(),
+	})
+	if err != nil {
+		return nil, errdefs.FromGRPC(err)
+	}
+	if resp == nil {
+		return nil, errors.New("Could not retrieve container stats")
+	}
+
+	stats, err := typeurl.UnmarshalAny(resp.Stats)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to extract container metrics")
+	}
+
+	metrics, ok := stats.(*cgroups.Metrics)
+	if !ok {
+		return nil, errors.Errorf("Unknown stats type %T", stats)
+	}
+
+	return metricsToCtrStats(c, metrics), nil
 }
 
 // SignalContainer sends a signal to a container process.
