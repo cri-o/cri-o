@@ -418,6 +418,26 @@ func generateID() string {
 
 // UpdateContainer updates container resources
 func (r *RuntimeVM) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
+	logrus.Debug("RuntimeVM.UpdateContainer() start")
+	defer logrus.Debug("RuntimeVM.UpdateContainer() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	// Convert resources into protobuf Any type
+	any, err := typeurl.MarshalAny(res)
+	if err != nil {
+		return err
+	}
+
+	if _, err := r.task.Update(r.ctx, &task.UpdateTaskRequest{
+		ID:        c.ID(),
+		Resources: any,
+	}); err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
 	return nil
 }
 
