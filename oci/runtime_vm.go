@@ -586,6 +586,19 @@ func (r *RuntimeVM) UpdateContainerStatus(c *Container) error {
 
 // PauseContainer pauses a container.
 func (r *RuntimeVM) PauseContainer(c *Container) error {
+	logrus.Debug("RuntimeVM.PauseContainer() start")
+	defer logrus.Debug("RuntimeVM.PauseContainer() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	if _, err := r.task.Pause(r.ctx, &task.PauseRequest{
+		ID: c.ID(),
+	}); err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
 	return nil
 }
 
