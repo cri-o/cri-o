@@ -1,6 +1,7 @@
 package oci
 
 import (
+	"bytes"
 	"encoding/hex"
 	"io"
 	"math/rand"
@@ -15,6 +16,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/containerd/runtime/v2/task"
+	cioutil "github.com/containerd/cri/pkg/ioutil"
 	cio "github.com/containerd/cri/pkg/server/io"
 	"github.com/containerd/fifo"
 	"github.com/containerd/ttrpc"
@@ -268,8 +270,27 @@ func (r *RuntimeVM) ExecContainer(c *Container, cmd []string, stdin io.Reader, s
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *RuntimeVM) ExecSyncContainer(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
-	return &ExecSyncResponse{}, nil
+func (r *RuntimeVM) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+	logrus.Debug("RuntimeVM.ExecSyncContainer() start")
+	defer logrus.Debug("RuntimeVM.ExecSyncContainer() end")
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	stdout := cioutil.NewNopWriteCloser(&stdoutBuf)
+	stderr := cioutil.NewNopWriteCloser(&stderrBuf)
+
+	exitCode, err := r.execContainer(c, command, timeout, nil, stdout, stderr, c.terminal, nil)
+	if err != nil {
+		return nil, ExecSyncError{
+			ExitCode: -1,
+			Err:      errors.Wrapf(err, "ExecSyncContainer failed"),
+		}
+	}
+
+	return &ExecSyncResponse{
+		Stdout:   stdoutBuf.Bytes(),
+		Stderr:   stderrBuf.Bytes(),
+		ExitCode: exitCode,
+	}, nil
 }
 
 func (r *RuntimeVM) execContainer(c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) (exitCode int32, err error) {
