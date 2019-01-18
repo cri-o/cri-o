@@ -516,6 +516,32 @@ func (r *RuntimeVM) waitCtrTerminate(sig syscall.Signal, stopCh chan error, time
 
 // DeleteContainer deletes a container.
 func (r *RuntimeVM) DeleteContainer(c *Container) error {
+	logrus.Debug("RuntimeVM.DeleteContainer() start")
+	defer logrus.Debug("RuntimeVM.DeleteContainer() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	cInfo, ok := r.ctrs[c.ID()]
+	if !ok {
+		return errors.New("Could not retrieve container information")
+	}
+
+	if err := cInfo.cio.Close(); err != nil {
+		return err
+	}
+
+	if err := r.remove(r.ctx, c.ID(), ""); err != nil {
+		return err
+	}
+
+	r.task.Shutdown(r.ctx, &task.ShutdownRequest{
+		ID: c.ID(),
+	})
+
+	delete(r.ctrs, c.ID())
+
 	return nil
 }
 
