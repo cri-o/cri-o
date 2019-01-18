@@ -667,6 +667,36 @@ func (r *RuntimeVM) SignalContainer(c *Container, sig syscall.Signal) error {
 
 // AttachContainer attaches IO to a running container.
 func (r *RuntimeVM) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	logrus.Debug("RuntimeVM.AttachContainer() start")
+	defer logrus.Debug("RuntimeVM.AttachContainer() end")
+
+	// Initialize terminal resizing
+	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+		logrus.Debugf("Got a resize event: %+v", size)
+
+		if err := r.resizePty(r.ctx, c.ID(), "", size); err != nil {
+			logrus.Warnf("Failed to resize terminal: %v", err)
+		}
+	})
+
+	cInfo, ok := r.ctrs[c.ID()]
+	if !ok {
+		return errors.New("Could not retrieve container information")
+	}
+
+	opts := cio.AttachOptions{
+		Stdin:     inputStream,
+		Stdout:    outputStream,
+		Stderr:    errorStream,
+		Tty:       tty,
+		StdinOnce: c.stdinOnce,
+		CloseStdin: func() error {
+			return r.closeIO(r.ctx, c.ID(), "")
+		},
+	}
+
+	cInfo.cio.Attach(opts)
+
 	return nil
 }
 
