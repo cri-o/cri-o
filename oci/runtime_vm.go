@@ -655,7 +655,14 @@ func (r *RuntimeVM) ContainerStats(c *Container) (*ContainerStats, error) {
 
 // SignalContainer sends a signal to a container process.
 func (r *RuntimeVM) SignalContainer(c *Container, sig syscall.Signal) error {
-	return nil
+	logrus.Debug("RuntimeVM.SignalContainer() start")
+	defer logrus.Debug("RuntimeVM.SignalContainer() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	return r.kill(r.ctx, c.ID(), "", sig, true)
 }
 
 // AttachContainer attaches IO to a running container.
