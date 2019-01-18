@@ -209,6 +209,24 @@ func (r *RuntimeVM) startRuntimeDaemon(c *Container) error {
 
 // StartContainer starts a container.
 func (r *RuntimeVM) StartContainer(c *Container) error {
+	logrus.Debug("RuntimeVM.StartContainer() start")
+	defer logrus.Debug("RuntimeVM.StartContainer() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	if err := r.start(r.ctx, c.ID(), ""); err != nil {
+		return err
+	}
+
+	// Spawn a goroutine waiting for the container to terminate. Once it
+	// happens, the container status is retrieved to be updated.
+	go func() {
+		r.wait(r.ctx, c.ID(), "")
+		r.UpdateContainerStatus(c)
+	}()
+
 	return nil
 }
 
@@ -282,6 +300,29 @@ func (r *RuntimeVM) PortForwardContainer(c *Container, port int32, stream io.Rea
 // ReopenContainerLog reopens the log file of a container.
 func (r *RuntimeVM) ReopenContainerLog(c *Container) error {
 	return nil
+}
+
+func (r *RuntimeVM) start(ctx context.Context, ctrID, execID string) error {
+	if _, err := r.task.Start(ctx, &task.StartRequest{
+		ID:     ctrID,
+		ExecID: execID,
+	}); err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
+	return nil
+}
+
+func (r *RuntimeVM) wait(ctx context.Context, ctrID, execID string) (int32, time.Time, error) {
+	resp, err := r.task.Wait(ctx, &task.WaitRequest{
+		ID:     ctrID,
+		ExecID: execID,
+	})
+	if err != nil {
+		return -1, time.Time{}, errdefs.FromGRPC(err)
+	}
+
+	return int32(resp.ExitStatus), resp.ExitedAt, nil
 }
 
 func (r *RuntimeVM) remove(ctx context.Context, ctrID, execID string) error {
