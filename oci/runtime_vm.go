@@ -604,6 +604,19 @@ func (r *RuntimeVM) PauseContainer(c *Container) error {
 
 // UnpauseContainer unpauses a container.
 func (r *RuntimeVM) UnpauseContainer(c *Container) error {
+	logrus.Debug("RuntimeVM.UnpauseContainer() start")
+	defer logrus.Debug("RuntimeVM.UnpauseContainer() end")
+
+	// Lock the container
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	if _, err := r.task.Resume(r.ctx, &task.ResumeRequest{
+		ID: c.ID(),
+	}); err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
 	return nil
 }
 
