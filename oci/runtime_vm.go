@@ -710,6 +710,9 @@ func (r *RuntimeVM) PortForwardContainer(c *Container, port int32, stream io.Rea
 
 // ReopenContainerLog reopens the log file of a container.
 func (r *RuntimeVM) ReopenContainerLog(c *Container) error {
+	logrus.Debug("RuntimeVM.ReopenContainerLog() start")
+	defer logrus.Debug("RuntimeVM.ReopenContainerLog() end")
+
 	return nil
 }
 
