@@ -445,7 +445,10 @@ func (r *RuntimeVM) UpdateContainer(c *Container, res *rspec.LinuxResources) err
 // the container status to be updated to 'stopped'. Either it gets the expected
 // status and returns nil, or it reaches the timeout and returns an error.
 func (r *RuntimeVM) WaitContainerStateStopped(ctx context.Context, c *Container) (err error) {
-	return nil
+	logrus.Debug("RuntimeVM.WaitContainerStateStopped() start")
+	defer logrus.Debug("RuntimeVM.WaitContainerStateStopped() end")
+
+	return waitContainerStateStopped(ctx, c, r, r.RuntimeBase)
 }
 
 // StopContainer stops a container. Timeout is given in seconds.
