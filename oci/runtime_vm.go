@@ -1,9 +1,12 @@
 package oci
 
 import (
+	"encoding/hex"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -15,12 +18,15 @@ import (
 	cio "github.com/containerd/cri/pkg/server/io"
 	"github.com/containerd/fifo"
 	"github.com/containerd/ttrpc"
+	"github.com/containerd/typeurl"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
+	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	utilexec "k8s.io/utils/exec"
 )
 
 const (
@@ -45,6 +51,18 @@ type containerInfo struct {
 
 // NewRuntimeVM creates a new RuntimeVM instance
 func NewRuntimeVM(rb RuntimeBase) (RuntimeImpl, error) {
+	// FIXME: We need to register those types for now, but this should be
+	// defined as a specific package that would be shared both by CRI-O and
+	// containerd. This would allow shim implementation to import a single
+	// package to do the proper registration.
+	const prefix = "types.containerd.io"
+	// register TypeUrls for commonly marshaled external types
+	major := strconv.Itoa(rspec.VersionMajor)
+	typeurl.Register(&rspec.Spec{}, prefix, "opencontainers/runtime-spec", major, "Spec")
+	typeurl.Register(&rspec.Process{}, prefix, "opencontainers/runtime-spec", major, "Process")
+	typeurl.Register(&rspec.LinuxResources{}, prefix, "opencontainers/runtime-spec", major, "LinuxResources")
+	typeurl.Register(&rspec.WindowsResources{}, prefix, "opencontainers/runtime-spec", major, "WindowsResources")
+
 	return &RuntimeVM{
 		RuntimeBase: rb,
 		ctx:         context.Background(),
@@ -232,12 +250,149 @@ func (r *RuntimeVM) StartContainer(c *Container) error {
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
 func (r *RuntimeVM) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	logrus.Debug("RuntimeVM.ExecContainer() start")
+	defer logrus.Debug("RuntimeVM.ExecContainer() end")
+
+	exitCode, err := r.execContainer(c, cmd, 0, stdin, stdout, stderr, tty, resize)
+	if err != nil {
+		return err
+	}
+	if exitCode != 0 {
+		return &utilexec.CodeExitError{
+			Err:  errors.Errorf("error executing command %v, exit code %d", cmd, exitCode),
+			Code: int(exitCode),
+		}
+	}
+
 	return nil
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *RuntimeVM) ExecSyncContainer(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	return &ExecSyncResponse{}, nil
+}
+
+func (r *RuntimeVM) execContainer(c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) (exitCode int32, err error) {
+
+	logrus.Debug("RuntimeVM.execContainer() start")
+	defer logrus.Debug("RuntimeVM.execContainer() end")
+
+	// Cancel the context before returning to ensure goroutines are stopped.
+	ctx, cancel := context.WithCancel(r.ctx)
+	defer cancel()
+
+	// Generate a unique execID
+	execID := generateID()
+
+	// Create IO fifos
+	execIO, err := cio.NewExecIO(c.ID(), fifoGlobalDir, tty, stdin != nil)
+	if err != nil {
+		return -1, errdefs.FromGRPC(err)
+	}
+	defer execIO.Close()
+
+	execIO.Attach(cio.AttachOptions{
+		Stdin:     stdin,
+		Stdout:    stdout,
+		Stderr:    stderr,
+		Tty:       tty,
+		StdinOnce: true,
+		CloseStdin: func() error {
+			return r.closeIO(ctx, c.ID(), execID)
+		},
+	})
+
+	pSpec := c.Spec().Process
+	pSpec.Args = cmd
+
+	any, err := typeurl.MarshalAny(pSpec)
+	if err != nil {
+		return -1, errdefs.FromGRPC(err)
+	}
+
+	request := &task.ExecProcessRequest{
+		ID:       c.ID(),
+		ExecID:   execID,
+		Stdin:    execIO.Config().Stdin,
+		Stdout:   execIO.Config().Stdout,
+		Stderr:   execIO.Config().Stderr,
+		Terminal: execIO.Config().Terminal,
+		Spec:     any,
+	}
+
+	// Create the "exec" process
+	if _, err = r.task.Exec(ctx, request); err != nil {
+		return -1, errdefs.FromGRPC(err)
+	}
+
+	defer func() {
+		if err != nil {
+			r.remove(ctx, c.ID(), execID)
+		}
+	}()
+
+	// Start the process
+	if err = r.start(ctx, c.ID(), execID); err != nil {
+		return -1, err
+	}
+
+	// Initialize terminal resizing if necessary
+	if resize != nil {
+		kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+			logrus.Debugf("Got a resize event: %+v", size)
+
+			if err := r.resizePty(ctx, c.ID(), execID, size); err != nil {
+				logrus.Warnf("Failed to resize terminal: %v", err)
+			}
+		})
+	}
+
+	timeoutDuration := time.Duration(timeout) * time.Second
+
+	var timeoutCh <-chan time.Time
+	if timeoutDuration == 0 {
+		// Do not set timeout if it's 0
+		timeoutCh = make(chan time.Time)
+	} else {
+		timeoutCh = time.After(timeoutDuration)
+	}
+
+	execCh := make(chan error)
+	go func() {
+		// Wait for the process to terminate
+		exitCode, _, err = r.wait(ctx, c.ID(), execID)
+		if err != nil {
+			execCh <- err
+		}
+
+		close(execCh)
+	}()
+
+	select {
+	case err = <-execCh:
+		if err != nil {
+			r.kill(ctx, c.ID(), execID, syscall.SIGKILL, false)
+			return -1, err
+		}
+	case <-timeoutCh:
+		r.kill(ctx, c.ID(), execID, syscall.SIGKILL, false)
+		<-execCh
+		return -1, errors.Errorf("ExecSyncContainer timeout (%v)", timeoutDuration)
+	}
+
+	// Delete the process
+	if err := r.remove(ctx, c.ID(), execID); err != nil {
+		return -1, err
+	}
+
+	return
+}
+
+// generateID generates a random unique id.
+func generateID() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 // UpdateContainer updates container resources
@@ -325,11 +480,51 @@ func (r *RuntimeVM) wait(ctx context.Context, ctrID, execID string) (int32, time
 	return int32(resp.ExitStatus), resp.ExitedAt, nil
 }
 
+func (r *RuntimeVM) kill(ctx context.Context, ctrID, execID string, signal syscall.Signal, all bool) error {
+	if _, err := r.task.Kill(ctx, &task.KillRequest{
+		ID:     ctrID,
+		ExecID: execID,
+		Signal: uint32(signal),
+		All:    all,
+	}); err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
+	return nil
+}
+
 func (r *RuntimeVM) remove(ctx context.Context, ctrID, execID string) error {
 	if _, err := r.task.Delete(ctx, &task.DeleteRequest{
 		ID:     ctrID,
 		ExecID: execID,
 	}); err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
+	return nil
+}
+
+func (r RuntimeVM) resizePty(ctx context.Context, ctrID, execID string, size remotecommand.TerminalSize) error {
+	_, err := r.task.ResizePty(ctx, &task.ResizePtyRequest{
+		ID:     ctrID,
+		ExecID: execID,
+		Width:  uint32(size.Width),
+		Height: uint32(size.Height),
+	})
+	if err != nil {
+		return errdefs.FromGRPC(err)
+	}
+
+	return nil
+}
+
+func (r *RuntimeVM) closeIO(ctx context.Context, ctrID, execID string) error {
+	_, err := r.task.CloseIO(ctx, &task.CloseIORequest{
+		ID:     ctrID,
+		ExecID: execID,
+		Stdin:  true,
+	})
+	if err != nil {
 		return errdefs.FromGRPC(err)
 	}
 
