@@ -702,6 +702,9 @@ func (r *RuntimeVM) AttachContainer(c *Container, inputStream io.Reader, outputS
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
 func (r *RuntimeVM) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
+	logrus.Debug("RuntimeVM.PortForwardContainer() start")
+	defer logrus.Debug("RuntimeVM.PortForwardContainer() end")
+
 	return nil
 }
 
