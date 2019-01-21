@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"path"
 	"strings"
@@ -553,9 +554,17 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 		}
 		return nil, err
 	}
+
 	domain, remainder := splitDockerDomain(imageName)
 	if domain != "" {
 		// this means the image is already fully qualified
+		registry, err := sysregistriesv2.FindRegistry(nil, imageName)
+		if err != nil {
+			return nil, err
+		}
+		if registry != nil && registry.Blocked {
+			return nil, fmt.Errorf("cannot use %q because it's blocked", imageName)
+		}
 		return []string{imageName}, nil
 	}
 	// we got an unqualified image here, we can't go ahead w/o registries configured
@@ -572,7 +581,18 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
 			rem = "library/" + rem
 		}
-		images = append(images, path.Join(r, rem))
+		image := path.Join(r, rem)
+		registry, err := sysregistriesv2.FindRegistry(nil, image)
+		if err != nil {
+			return nil, err
+		}
+		if registry != nil && registry.Blocked {
+			continue
+		}
+		images = append(images, image)
+	}
+	if len(images) == 0 {
+		return nil, fmt.Errorf("all search registries for %q are blocked", remainder)
 	}
 	return images, nil
 }
@@ -598,6 +618,7 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 		imageCache:            make(map[string]imageCacheItem),
 		ctx:                   ctx,
 	}
+
 	if len(registries) != 0 {
 		seenRegistries := make(map[string]bool, len(registries))
 		cleanRegistries := []string{}
