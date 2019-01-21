@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"path"
 	"strings"
@@ -553,9 +554,16 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 		}
 		return nil, err
 	}
+	registry, err := sysregistriesv2.FindRegistry(nil, imageName)
+	if err != nil {
+		return nil, err
+	}
+	if registry != nil && registry.Blocked {
+		return nil, fmt.Errorf("cannot resolve names from registry %q because it's blocked", imageName)
+	}
 	domain, remainder := splitDockerDomain(imageName)
+	// this means the image is already fully qualified
 	if domain != "" {
-		// this means the image is already fully qualified
 		return []string{imageName}, nil
 	}
 	// we got an unqualified image here, we can't go ahead w/o registries configured
@@ -598,6 +606,7 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 		imageCache:            make(map[string]imageCacheItem),
 		ctx:                   ctx,
 	}
+
 	if len(registries) != 0 {
 		seenRegistries := make(map[string]bool, len(registries))
 		cleanRegistries := []string{}
