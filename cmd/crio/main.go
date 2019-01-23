@@ -110,6 +110,13 @@ func validateConfig(config *server.Config) error {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}
 
+	if config.GRPCMaxSendMsgSize <= 0 {
+		config.GRPCMaxSendMsgSize = server.DefaultGRPCMaxMsgSize
+	}
+	if config.GRPCMaxRecvMsgSize <= 0 {
+		config.GRPCMaxRecvMsgSize = server.DefaultGRPCMaxMsgSize
+	}
+
 	return validateRuntimeConfig(config)
 }
 
@@ -615,7 +622,10 @@ func main() {
 			logrus.Fatalf("failed to listen: %v", err)
 		}
 
-		s := grpc.NewServer()
+		s := grpc.NewServer(
+			grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
+			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
+		)
 
 		service, err := server.New(ctx, config)
 		if err != nil {
