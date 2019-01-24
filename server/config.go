@@ -10,6 +10,11 @@ import (
 	"github.com/kubernetes-sigs/cri-o/oci"
 )
 
+const (
+	// DefaultGRPCMaxMsgSize is the default message size maximum for grpc APIs.
+	DefaultGRPCMaxMsgSize = 16 * 1024 * 1024
+)
+
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
@@ -19,6 +24,12 @@ type Config struct {
 
 // APIConfig represents the "crio.api" TOML config table.
 type APIConfig struct {
+	// GRPCMaxSendMsgSize is the maximum grpc send message size in bytes.
+	GRPCMaxSendMsgSize int `toml:"grpc_max_send_msg_size"`
+
+	// GRPCMaxRecvMsgSize is the maximum grpc receive message size in bytes.
+	GRPCMaxRecvMsgSize int `toml:"grpc_max_recv_msg_size"`
+
 	// Listen is the path to the AF_LOCAL socket on which cri-o will listen.
 	// This may support proto://addr formats later, but currently this is just
 	// a path.
@@ -116,9 +127,11 @@ func DefaultConfig() *Config {
 	return &Config{
 		Config: *lib.DefaultConfig(),
 		APIConfig: APIConfig{
-			Listen:        CrioSocketPath,
-			StreamAddress: "127.0.0.1",
-			StreamPort:    "0",
+			Listen:             CrioSocketPath,
+			StreamAddress:      "127.0.0.1",
+			StreamPort:         "0",
+			GRPCMaxSendMsgSize: DefaultGRPCMaxMsgSize,
+			GRPCMaxRecvMsgSize: DefaultGRPCMaxMsgSize,
 		},
 	}
 }

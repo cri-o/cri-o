@@ -75,6 +75,12 @@ stream_tls_key = "{{ .StreamTLSKey }}"
 # automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
 
+# Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
+grpc_max_send_msg_size = {{ .GRPCMaxSendMsgSize }}
+
+# Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 * 1024 * 1024.
+grpc_max_recv_msg_size = {{ .GRPCMaxRecvMsgSize }}
+
 # The crio.runtime table contains settings pertaining to the OCI runtime used
 # and options for how to set up and manage the OCI runtime.
 [crio.runtime]
