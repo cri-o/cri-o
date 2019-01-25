@@ -10,6 +10,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
@@ -513,6 +514,11 @@ version 1.14, this option will no longer exist.
 			}
 			logrus.Debugf("found valid runtime '%s' for runtime_path '%s'\n",
 				runtime, handler.RuntimePath)
+		}
+
+		// Validate the system registries configuration
+		if _, err := sysregistriesv2.GetRegistries(nil); err != nil {
+			return fmt.Errorf("invalid /etc/containers/registries.conf: %q", err)
 		}
 	}
 
