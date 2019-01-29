@@ -21,7 +21,7 @@ func createUnitName(prefix string, name string) string {
 	return fmt.Sprintf("%s-%s.scope", prefix, name)
 }
 
-func (r *RuntimeV1) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
+func (r *RuntimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
 	// Move conmon to specified cgroup
 	if r.cgroupManager == SystemdCgroupsManager {
 		logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))

@@ -79,7 +79,7 @@ type RuntimeBase struct {
 // interact with containers. This will allow for new implementations of
 // this interface, especially useful for the case of VM based container
 // runtimes. Assumptions based on the fact that a container process runs
-// on the host will be limited to the RuntimeV1 implementation.
+// on the host will be limited to the RuntimeOCI implementation.
 type RuntimeImpl interface {
 	Version() (string, error)
 	CreateContainer(*Container, string) error
@@ -162,7 +162,7 @@ func New(runtimeTrustedPath string,
 
 // newRuntimeImpl creates a new Runtime implementation based on the version.
 func newRuntimeImpl(runtimeVersion string, rb RuntimeBase) (RuntimeImpl, error) {
-	return NewRuntimeV1(rb)
+	return NewRuntimeOCI(rb)
 }
 
 // Name returns the name of the OCI Runtime
