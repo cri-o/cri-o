@@ -157,6 +157,9 @@ ${BUILD_BIN_PATH}/ginkgo:
 	mkdir -p ${BUILD_BIN_PATH}
 	$(GO) build -o ${BUILD_BIN_PATH}/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo
 
+vendor:
+	vndr -whitelist "github.com/onsi/ginkgo/ginkgo/.*" ${PKG}
+
 testunit: ${BUILD_BIN_PATH}/ginkgo
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	${BUILD_BIN_PATH}/ginkgo \
@@ -286,4 +289,5 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	install.tools \
 	lint \
 	local-cross \
-	uninstall
+	uninstall \
+	vendor
