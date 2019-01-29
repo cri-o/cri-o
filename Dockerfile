@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     iptables \
     pkg-config \
     libaio-dev \
+    libapparmor-dev \
     libcap-dev \
     libfuse-dev \
     libnet-dev \
@@ -67,7 +68,7 @@ RUN set -x \
 	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
 	&& git fetch origin --tags \
 	&& git checkout -q "$RUNC_COMMIT" \
-	&& make static BUILDTAGS="seccomp selinux" \
+	&& make static BUILDTAGS="seccomp selinux apparmor" \
 	&& cp runc /usr/bin/runc \
 	&& rm -rf "$GOPATH"
 
