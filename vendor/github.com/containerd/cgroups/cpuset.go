@@ -1,3 +1,19 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package cgroups
 
 import (
@@ -41,21 +57,21 @@ func (c *cpusetController) Create(path string, resources *specs.LinuxResources) 
 	if resources.CPU != nil {
 		for _, t := range []struct {
 			name  string
-			value *string
+			value string
 		}{
 			{
 				name:  "cpus",
-				value: &resources.CPU.Cpus,
+				value: resources.CPU.Cpus,
 			},
 			{
 				name:  "mems",
-				value: &resources.CPU.Mems,
+				value: resources.CPU.Mems,
 			},
 		} {
-			if t.value != nil {
+			if t.value != "" {
 				if err := ioutil.WriteFile(
 					filepath.Join(c.Path(path), fmt.Sprintf("cpuset.%s", t.name)),
-					[]byte(*t.value),
+					[]byte(t.value),
 					defaultFilePerm,
 				); err != nil {
 					return err
@@ -64,6 +80,10 @@ func (c *cpusetController) Create(path string, resources *specs.LinuxResources) 
 		}
 	}
 	return nil
+}
+
+func (c *cpusetController) Update(path string, resources *specs.LinuxResources) error {
+	return c.Create(path, resources)
 }
 
 func (c *cpusetController) getValues(path string) (cpus []byte, mems []byte, err error) {

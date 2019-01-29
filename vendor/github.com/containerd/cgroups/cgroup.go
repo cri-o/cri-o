@@ -1,3 +1,19 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package cgroups
 
 import (
@@ -10,6 +26,7 @@ import (
 	"sync"
 
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 )
 
 // New returns a new control via the cgroup cgroups interface
@@ -31,26 +48,31 @@ func New(hierarchy Hierarchy, path Path, resources *specs.LinuxResources) (Cgrou
 
 // Load will load an existing cgroup and allow it to be controlled
 func Load(hierarchy Hierarchy, path Path) (Cgroup, error) {
+	var activeSubsystems []Subsystem
 	subsystems, err := hierarchy()
 	if err != nil {
 		return nil, err
 	}
-	// check the the subsystems still exist
+	// check that the subsystems still exist, and keep only those that actually exist
 	for _, s := range pathers(subsystems) {
 		p, err := path(s.Name())
 		if err != nil {
-			return nil, err
-		}
-		if _, err := os.Lstat(s.Path(p)); err != nil {
-			if os.IsNotExist(err) {
+			if os.IsNotExist(errors.Cause(err)) {
 				return nil, ErrCgroupDeleted
 			}
 			return nil, err
 		}
+		if _, err := os.Lstat(s.Path(p)); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+		activeSubsystems = append(activeSubsystems, s)
 	}
 	return &cgroup{
 		path:       path,
-		subsystems: subsystems,
+		subsystems: activeSubsystems,
 	}, nil
 }
 
@@ -117,6 +139,36 @@ func (c *cgroup) add(process Process) error {
 	return nil
 }
 
+// AddTask moves the provided tasks (threads) into the new cgroup
+func (c *cgroup) AddTask(process Process) error {
+	if process.Pid <= 0 {
+		return ErrInvalidPid
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.err != nil {
+		return c.err
+	}
+	return c.addTask(process)
+}
+
+func (c *cgroup) addTask(process Process) error {
+	for _, s := range pathers(c.subsystems) {
+		p, err := c.path(s.Name())
+		if err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(
+			filepath.Join(s.Path(p), cgroupTasks),
+			[]byte(strconv.Itoa(process.Pid)),
+			defaultFilePerm,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Delete will remove the control group from each of the subsystems registered
 func (c *cgroup) Delete() error {
 	c.mu.Lock()
@@ -154,8 +206,8 @@ func (c *cgroup) Delete() error {
 	return nil
 }
 
-// Stat returns the current stats for the cgroup
-func (c *cgroup) Stat(handlers ...ErrorHandler) (*Stats, error) {
+// Stat returns the current metrics for the cgroup
+func (c *cgroup) Stat(handlers ...ErrorHandler) (*Metrics, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.err != nil {
@@ -165,9 +217,14 @@ func (c *cgroup) Stat(handlers ...ErrorHandler) (*Stats, error) {
 		handlers = append(handlers, errPassthrough)
 	}
 	var (
-		stats = &Stats{}
-		wg    = &sync.WaitGroup{}
-		errs  = make(chan error, len(c.subsystems))
+		stats = &Metrics{
+			CPU: &CPUStat{
+				Throttling: &Throttle{},
+				Usage:      &CPUUsage{},
+			},
+		}
+		wg   = &sync.WaitGroup{}
+		errs = make(chan error, len(c.subsystems))
 	)
 	for _, s := range c.subsystems {
 		if ss, ok := s.(stater); ok {
@@ -264,6 +321,49 @@ func (c *cgroup) processes(subsystem Name, recursive bool) ([]Process, error) {
 	return processes, err
 }
 
+// Tasks returns the tasks running inside the cgroup along
+// with the subsystem used, pid, and path
+func (c *cgroup) Tasks(subsystem Name, recursive bool) ([]Task, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.err != nil {
+		return nil, c.err
+	}
+	return c.tasks(subsystem, recursive)
+}
+
+func (c *cgroup) tasks(subsystem Name, recursive bool) ([]Task, error) {
+	s := c.getSubsystem(subsystem)
+	sp, err := c.path(subsystem)
+	if err != nil {
+		return nil, err
+	}
+	path := s.(pather).Path(sp)
+	var tasks []Task
+	err = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !recursive && info.IsDir() {
+			if p == path {
+				return nil
+			}
+			return filepath.SkipDir
+		}
+		dir, name := filepath.Split(p)
+		if name != cgroupTasks {
+			return nil
+		}
+		procs, err := readTasksPids(dir, subsystem)
+		if err != nil {
+			return err
+		}
+		tasks = append(tasks, procs...)
+		return nil
+	})
+	return tasks, err
+}
+
 // Freeze freezes the entire cgroup and all the processes inside it
 func (c *cgroup) Freeze() error {
 	c.mu.Lock()
@@ -301,7 +401,8 @@ func (c *cgroup) Thaw() error {
 }
 
 // OOMEventFD returns the memory cgroup's out of memory event fd that triggers
-// when processes inside the cgroup receive an oom event
+// when processes inside the cgroup receive an oom event. Returns
+// ErrMemoryNotSupported if memory cgroups is not supported.
 func (c *cgroup) OOMEventFD() (uintptr, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

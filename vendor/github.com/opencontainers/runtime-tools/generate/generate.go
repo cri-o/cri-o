@@ -39,23 +39,43 @@ type ExportOptions struct {
 // New creates a configuration Generator with the default
 // configuration for the target operating system.
 func New(os string) (generator Generator, err error) {
-	if os != "linux" && os != "solaris" {
+	if os != "linux" && os != "solaris" && os != "windows" {
 		return generator, fmt.Errorf("no defaults configured for %s", os)
 	}
 
 	config := rspec.Spec{
-		Version: rspec.Version,
-		Root: &rspec.Root{
+		Version:  rspec.Version,
+		Hostname: "mrsdalloway",
+	}
+
+	if os == "windows" {
+		config.Process = &rspec.Process{
+			Args: []string{
+				"cmd",
+			},
+			Cwd: `C:\`,
+			ConsoleSize: &rspec.Box{
+				Width:  80,
+				Height: 20,
+			},
+		}
+		config.Windows = &rspec.Windows{
+			IgnoreFlushesDuringBoot: true,
+			Network: &rspec.WindowsNetwork{
+				AllowUnqualifiedDNSQuery: true,
+			},
+		}
+	} else {
+		config.Root = &rspec.Root{
 			Path:     "rootfs",
 			Readonly: false,
-		},
-		Process: &rspec.Process{
+		}
+		config.Process = &rspec.Process{
 			Terminal: false,
 			Args: []string{
 				"sh",
 			},
-		},
-		Hostname: "mrsdalloway",
+		}
 	}
 
 	if os == "linux" || os == "solaris" {
@@ -162,7 +182,7 @@ func New(os string) (generator Generator, err error) {
 				Destination: "/proc",
 				Type:        "proc",
 				Source:      "proc",
-				Options:     nil,
+				Options:     []string{"nosuid", "noexec", "nodev"},
 			},
 			{
 				Destination: "/dev",
@@ -703,43 +723,43 @@ func (g *Generator) DropLinuxResourcesBlockIOThrottleWriteIOPSDevice(major int64
 
 // SetLinuxResourcesCPUShares sets g.Config.Linux.Resources.CPU.Shares.
 func (g *Generator) SetLinuxResourcesCPUShares(shares uint64) {
-	g.initConfigLinuxResourcesCPU()
+	g.InitConfigLinuxResourcesCPU()
 	g.Config.Linux.Resources.CPU.Shares = &shares
 }
 
 // SetLinuxResourcesCPUQuota sets g.Config.Linux.Resources.CPU.Quota.
 func (g *Generator) SetLinuxResourcesCPUQuota(quota int64) {
-	g.initConfigLinuxResourcesCPU()
+	g.InitConfigLinuxResourcesCPU()
 	g.Config.Linux.Resources.CPU.Quota = &quota
 }
 
 // SetLinuxResourcesCPUPeriod sets g.Config.Linux.Resources.CPU.Period.
 func (g *Generator) SetLinuxResourcesCPUPeriod(period uint64) {
-	g.initConfigLinuxResourcesCPU()
+	g.InitConfigLinuxResourcesCPU()
 	g.Config.Linux.Resources.CPU.Period = &period
 }
 
 // SetLinuxResourcesCPURealtimeRuntime sets g.Config.Linux.Resources.CPU.RealtimeRuntime.
 func (g *Generator) SetLinuxResourcesCPURealtimeRuntime(time int64) {
-	g.initConfigLinuxResourcesCPU()
+	g.InitConfigLinuxResourcesCPU()
 	g.Config.Linux.Resources.CPU.RealtimeRuntime = &time
 }
 
 // SetLinuxResourcesCPURealtimePeriod sets g.Config.Linux.Resources.CPU.RealtimePeriod.
 func (g *Generator) SetLinuxResourcesCPURealtimePeriod(period uint64) {
-	g.initConfigLinuxResourcesCPU()
+	g.InitConfigLinuxResourcesCPU()
 	g.Config.Linux.Resources.CPU.RealtimePeriod = &period
 }
 
 // SetLinuxResourcesCPUCpus sets g.Config.Linux.Resources.CPU.Cpus.
 func (g *Generator) SetLinuxResourcesCPUCpus(cpus string) {
-	g.initConfigLinuxResourcesCPU()
+	g.InitConfigLinuxResourcesCPU()
 	g.Config.Linux.Resources.CPU.Cpus = cpus
 }
 
 // SetLinuxResourcesCPUMems sets g.Config.Linux.Resources.CPU.Mems.
 func (g *Generator) SetLinuxResourcesCPUMems(mems string) {
-	g.initConfigLinuxResourcesCPU()
+	g.InitConfigLinuxResourcesCPU()
 	g.Config.Linux.Resources.CPU.Mems = mems
 }
 

@@ -1,3 +1,19 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package cgroups
 
 import (
@@ -51,20 +67,21 @@ func (h *hugetlbController) Create(path string, resources *specs.LinuxResources)
 	return nil
 }
 
-func (h *hugetlbController) Stat(path string, stats *Stats) error {
-	stats.Hugetlb = make(map[string]HugetlbStat)
+func (h *hugetlbController) Stat(path string, stats *Metrics) error {
 	for _, size := range h.sizes {
 		s, err := h.readSizeStat(path, size)
 		if err != nil {
 			return err
 		}
-		stats.Hugetlb[size] = s
+		stats.Hugetlb = append(stats.Hugetlb, s)
 	}
 	return nil
 }
 
-func (h *hugetlbController) readSizeStat(path, size string) (HugetlbStat, error) {
-	var s HugetlbStat
+func (h *hugetlbController) readSizeStat(path, size string) (*HugetlbStat, error) {
+	s := HugetlbStat{
+		Pagesize: size,
+	}
 	for _, t := range []struct {
 		name  string
 		value *uint64
@@ -84,9 +101,9 @@ func (h *hugetlbController) readSizeStat(path, size string) (HugetlbStat, error)
 	} {
 		v, err := readUint(filepath.Join(h.Path(path), strings.Join([]string{"hugetlb", size, t.name}, ".")))
 		if err != nil {
-			return s, err
+			return nil, err
 		}
 		*t.value = v
 	}
-	return s, nil
+	return &s, nil
 }

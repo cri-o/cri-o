@@ -8,13 +8,22 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
-func (c *ContainerServer) addSandboxPlatform(sb *sandbox.Sandbox) {
-	c.state.processLevels[selinux.NewContext(sb.ProcessLabel())["level"]]++
+func (c *ContainerServer) addSandboxPlatform(sb *sandbox.Sandbox) error {
+	selinuxCtx, err := selinux.NewContext(sb.ProcessLabel())
+	if err != nil {
+		return err
+	}
+	c.state.processLevels[selinuxCtx["level"]]++
+	return nil
 }
 
-func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) {
+func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) error {
 	processLabel := sb.ProcessLabel()
-	level := selinux.NewContext(processLabel)["level"]
+	selinuxCtx, err := selinux.NewContext(processLabel)
+	if err != nil {
+		return err
+	}
+	level := selinuxCtx["level"]
 	pl, ok := c.state.processLevels[level]
 	if ok {
 		c.state.processLevels[level] = pl - 1
@@ -23,4 +32,5 @@ func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) {
 			delete(c.state.processLevels, level)
 		}
 	}
+	return nil
 }

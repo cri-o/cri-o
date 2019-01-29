@@ -1,13 +1,15 @@
 ![PODMAN logo](logo/podman-logo-source.svg)
-# libpod - library for running OCI-based containers in Pods
 
-### Latest Version: 0.10.1.3
-### Status: Active Development
+# Library and tool for running OCI-based containers in Pods
 
-## What is the scope of this project?
+Libpod provides a library for applications looking to use the Container Pod concept,
+popularized by Kubernetes.  libpod also contains the `podman` tool, for managing
+Pods, Containers, and Container Images.
 
-libpod provides a library for applications looking to use the Container Pod concept popularized by Kubernetes.
-libpod also contains a tool called podman for managing Pods, Containers, and Container Images.
+* [Latest Version: 1.0.0](https://github.com/containers/libpod/releases/latest)
+* [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
+
+## Overview and scope
 
 At a high level, the scope of libpod and podman is the following:
 
@@ -17,16 +19,26 @@ At a high level, the scope of libpod and podman is the following:
 * Full management of container lifecycle
 * Support for pods to manage groups of containers together
 * Resource isolation of containers and pods.
+* Integration with CRI-O to share containers and backend code.
 
-## What is not in scope for this project?
+## Roadmap
 
-* Signing and pushing images to various image storages. See [Skopeo](https://github.com/containers/skopeo/).
-* Container Runtimes daemons for working with Kubernetes CRIs. See [CRI-O](https://github.com/kubernetes-sigs/cri-o). We are working to integrate libpod into CRI-O to share containers and backend code with Podman.
+1. Allow the Podman CLI to use a Varlink backend to connect to remote Podman instances
+1. Integrate libpod into CRI-O to replace its existing container management backend
+1. Further work on the podman pod command
+1. Further improvements on rootless containers
+
+## Out of scope
+
+* Signing and pushing images to various image storages.
+  See [Skopeo](https://github.com/containers/skopeo/).
+* Container Runtimes daemons for working with the Kubernetes CRI interface.
+  See [CRI-O](https://github.com/kubernetes-sigs/cri-o).
 
 ## OCI Projects Plans
 
 The plan is to use OCI projects and best of breed libraries for different aspects:
-- Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI compliant runtime) and [oci runtime tools](https://github.com/opencontainers/runtime-tools) to generate the spec
+- Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI compliant runtime) and [OCI runtime tools](https://github.com/opencontainers/runtime-tools) to generate the spec
 - Images: Image management using [containers/image](https://github.com/containers/image)
 - Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage)
 - Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
@@ -66,14 +78,6 @@ Release notes for recent Podman versions
 **[Contributing](CONTRIBUTING.md)**
 Information about contributing to this project.
 
-## Current Roadmap
-
-1. Python frontend for Varlink API
-1. Integrate libpod into CRI-O to replace its existing container management backend
-1. Further work on the podman pod command
-1. Further improvements on rootless containers
-1. In-memory locking to replace file locks
-
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v2.0.1/config.md#posix-platform-hooks
 
 ## Buildah and Podman relationship
@@ -101,7 +105,7 @@ to be long lived.  While Buildah containers are really just created to allow con
 to be added back to the container image.   An easy way to think of it is the
 `buildah run` command emulates the RUN command in a Dockerfile while the `podman run`
 command emulates the `docker run` command in functionality.  Because of this and their underlying
-storage differences, you can not see Podman containers from within Buildah or vice versa.
+storage differences, you cannot see Podman containers from within Buildah or vice versa.
 
 In short Buildah is an efficient way to create OCI images  while Podman allows
 you to manage and maintain those images and containers in a production environment using

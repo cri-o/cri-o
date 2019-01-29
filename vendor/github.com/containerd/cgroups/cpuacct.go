@@ -1,3 +1,19 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package cgroups
 
 import (
@@ -30,7 +46,7 @@ func (c *cpuacctController) Path(path string) string {
 	return filepath.Join(c.root, path)
 }
 
-func (c *cpuacctController) Stat(path string, stats *Stats) error {
+func (c *cpuacctController) Stat(path string, stats *Metrics) error {
 	user, kernel, err := c.getUsage(path)
 	if err != nil {
 		return err
@@ -43,17 +59,10 @@ func (c *cpuacctController) Stat(path string, stats *Stats) error {
 	if err != nil {
 		return err
 	}
-	stats.cpuMu.Lock()
-	cpu := stats.Cpu
-	if cpu == nil {
-		cpu = &CpuStat{}
-		stats.Cpu = cpu
-	}
-	stats.cpuMu.Unlock()
-	cpu.Usage.Total = total
-	cpu.Usage.User = user
-	cpu.Usage.Kernel = kernel
-	cpu.Usage.PerCpu = percpu
+	stats.CPU.Usage.Total = total
+	stats.CPU.Usage.User = user
+	stats.CPU.Usage.Kernel = kernel
+	stats.CPU.Usage.PerCPU = percpu
 	return nil
 }
 

@@ -399,7 +399,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	s.addSandbox(sb)
+	if err := s.addSandbox(sb); err != nil {
+		return nil, err
+	}
 	defer func() {
 		if err != nil {
 			s.removeSandbox(id)

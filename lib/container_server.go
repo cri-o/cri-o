@@ -350,7 +350,11 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
-	processLabel, mountLabel, err := label.InitLabels(label.DupSecOpt(m.Process.SelinuxLabel))
+	opts, err := label.DupSecOpt(m.Process.SelinuxLabel)
+	if err != nil {
+		return err
+	}
+	processLabel, mountLabel, err := label.InitLabels(opts)
 	if err != nil {
 		return err
 	}
@@ -398,7 +402,9 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		}
 	}
 
-	c.AddSandbox(sb)
+	if err := c.AddSandbox(sb); err != nil {
+		return err
+	}
 
 	defer func() {
 		if err != nil {
@@ -722,12 +728,12 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 }
 
 // AddSandbox adds a sandbox to the sandbox state store
-func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
+func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) error {
 	c.state.sandboxes.Add(sb.ID(), sb)
 
 	c.stateLock.Lock()
-	c.addSandboxPlatform(sb)
-	c.stateLock.Unlock()
+	defer c.stateLock.Unlock()
+	return c.addSandboxPlatform(sb)
 }
 
 // GetSandbox returns a sandbox by its ID

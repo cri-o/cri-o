@@ -398,8 +398,8 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) addSandbox(sb *sandbox.Sandbox) {
-	s.ContainerServer.AddSandbox(sb)
+func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
+	return s.ContainerServer.AddSandbox(sb)
 }
 
 func (s *Server) getSandbox(id string) *sandbox.Sandbox {

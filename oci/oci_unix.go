@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/pools"
+	"github.com/docker/docker/pkg/term"
 	"github.com/kr/pty"
 	"github.com/opencontainers/runc/libcontainer"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/util/term"
 )
 
 const (
@@ -66,7 +66,7 @@ func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-
 	defer stdout.Close()
 
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-		term.SetSize(p.Fd(), size)
+		term.SetWinsize(p.Fd(), &term.Winsize{Height: size.Height, Width: size.Width})
 	})
 
 	if stdin != nil {

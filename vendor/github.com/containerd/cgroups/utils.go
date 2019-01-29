@@ -1,3 +1,19 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package cgroups
 
 import (
@@ -64,6 +80,7 @@ func defaults(root string) ([]Subsystem, error) {
 		NewCpuacct(root),
 		NewMemory(root),
 		NewBlkio(root),
+		NewRdma(root),
 	}
 	// only add the devices cgroup if we are not in a user namespace
 	// because modifications are not allowed
@@ -94,7 +111,7 @@ func remove(path string) error {
 	return fmt.Errorf("cgroups: unable to remove path %q", path)
 }
 
-// readPids will read all the pids in a cgroup by the provided path
+// readPids will read all the pids of processes in a cgroup by the provided path
 func readPids(path string, subsystem Name) ([]Process, error) {
 	f, err := os.Open(filepath.Join(path, cgroupProcs))
 	if err != nil {
@@ -112,6 +129,33 @@ func readPids(path string, subsystem Name) ([]Process, error) {
 				return nil, err
 			}
 			out = append(out, Process{
+				Pid:       pid,
+				Subsystem: subsystem,
+				Path:      path,
+			})
+		}
+	}
+	return out, nil
+}
+
+// readTasksPids will read all the pids of tasks in a cgroup by the provided path
+func readTasksPids(path string, subsystem Name) ([]Task, error) {
+	f, err := os.Open(filepath.Join(path, cgroupTasks))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var (
+		out []Task
+		s   = bufio.NewScanner(f)
+	)
+	for s.Scan() {
+		if t := s.Text(); t != "" {
+			pid, err := strconv.Atoi(t)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, Task{
 				Pid:       pid,
 				Subsystem: subsystem,
 				Path:      path,
