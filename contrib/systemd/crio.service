@@ -7,6 +7,7 @@ After=network-online.target
 Type=notify
 EnvironmentFile=-/etc/sysconfig/crio-storage
 EnvironmentFile=-/etc/sysconfig/crio-network
+EnvironmentFile=-/etc/sysconfig/crio-metrics
 Environment=GOTRACEBACK=crash
 ExecStart=/usr/local/bin/crio \
           $CRIO_STORAGE_OPTIONS \
