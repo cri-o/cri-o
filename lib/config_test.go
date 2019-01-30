@@ -34,7 +34,7 @@ func TestConfigToFile(t *testing.T) {
 }
 
 // TestConfigUpdateFromFile ensures Config.UpdateFromFile(..) properly
-// updates an already create Config instancec with new data.
+// updates an already create Config instance with new data.
 func TestConfigUpdateFromFile(t *testing.T) {
 	// Test with a default configuration
 	c := DefaultConfig()

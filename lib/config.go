@@ -234,12 +234,12 @@ type RuntimeConfig struct {
 
 	// UIDMappings specifies the UID mappings to have in the user namespace.
 	// A range is specified in the form containerUID:HostUID:Size.  Multiple
-	// ranges are separed by comma.
+	// ranges are separated by comma.
 	UIDMappings string `toml:"uid_mappings"`
 
 	// GIDMappings specifies the GID mappings to have in the user namespace.
 	// A range is specified in the form containerUID:HostUID:Size.  Multiple
-	// ranges are separed by comma.
+	// ranges are separated by comma.
 	GIDMappings string `toml:"gid_mappings"`
 
 	// Capabilities to add to all containers.

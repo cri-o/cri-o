@@ -47,7 +47,7 @@ At first, you need to stop kubelet service working on the node:
 ```
 # systemctl stop kubelet
 ```
-and stop all kubelet docker containers that are still runing.
+and stop all kubelet docker containers that are still running.
 
 ```
 # docker stop $(docker ps | grep k8s_ | awk '{print $1}')

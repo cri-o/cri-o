@@ -120,7 +120,7 @@ const (
 )
 
 var (
-	// ErrIDEmpty is the erro returned when the id of the sandbox is empty
+	// ErrIDEmpty is the error returned when the id of the sandbox is empty
 	ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 	// ErrClosedNetNS is the error returned when the network namespace of the
 	// sandbox is closed
