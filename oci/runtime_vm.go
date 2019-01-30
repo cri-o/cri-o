@@ -2,9 +2,7 @@ package oci
 
 import (
 	"bytes"
-	"encoding/hex"
 	"io"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,15 +12,16 @@ import (
 
 	"github.com/containerd/cgroups"
 	tasktypes "github.com/containerd/containerd/api/types/task"
-	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/containerd/runtime/v2/task"
-	cioutil "github.com/containerd/cri/pkg/ioutil"
-	cio "github.com/containerd/cri/pkg/server/io"
-	"github.com/containerd/fifo"
 	"github.com/containerd/ttrpc"
-	"github.com/containerd/typeurl"
+	"github.com/kubernetes-sigs/cri-o/utils"
+	"github.com/kubernetes-sigs/cri-o/utils/errdefs"
+	"github.com/kubernetes-sigs/cri-o/utils/fifo"
+	cio "github.com/kubernetes-sigs/cri-o/utils/io"
+	cioutil "github.com/kubernetes-sigs/cri-o/utils/ioutil"
+	"github.com/kubernetes-sigs/cri-o/utils/typeurl"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -305,7 +304,7 @@ func (r *RuntimeVM) execContainer(c *Container, cmd []string, timeout int64, std
 	defer cancel()
 
 	// Generate a unique execID
-	execID := generateID()
+	execID := utils.GenerateID()
 
 	// Create IO fifos
 	execIO, err := cio.NewExecIO(c.ID(), fifoGlobalDir, tty, stdin != nil)
@@ -409,13 +408,6 @@ func (r *RuntimeVM) execContainer(c *Container, cmd []string, timeout int64, std
 	}
 
 	return
-}
-
-// generateID generates a random unique id.
-func generateID() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return hex.EncodeToString(b)
 }
 
 // UpdateContainer updates container resources
