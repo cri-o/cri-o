@@ -30,14 +30,14 @@ const (
 	// SystemdCgroupsManager represents systemd native cgroup manager
 	SystemdCgroupsManager = "systemd"
 
-	// BufSize is the size of buffers passed in to socekts
+	// BufSize is the size of buffers passed in to sockets
 	BufSize = 8192
 
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.
 	killContainerTimeout = 2 * time.Minute
 
-	// minCtrStopTimeout is the minimal amout of time in seconds to wait
+	// minCtrStopTimeout is the minimal amount of time in seconds to wait
 	// before issuing a timeout regarding the proper termination of the
 	// container.
 	minCtrStopTimeout = 30
@@ -55,7 +55,7 @@ type Runtime struct {
 	RuntimeImpl
 }
 
-// RuntimeBase gathers informations that can be shared across Runtime
+// RuntimeBase gathers information that can be shared across Runtime
 // implementations.
 type RuntimeBase struct {
 	name                     string
