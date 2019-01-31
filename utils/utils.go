@@ -51,7 +51,7 @@ func StatusToExitCode(status int) int {
 }
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope
-func RunUnderSystemdScope(pid int, slice string, unitName string) error {
+func RunUnderSystemdScope(pid int, slice string, unitName string, description string) error {
 	var properties []systemdDbus.Property
 	conn, err := systemdDbus.New()
 	if err != nil {
@@ -61,6 +61,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
 	properties = append(properties, newProp("Delegate", true))
 	properties = append(properties, newProp("DefaultDependencies", false))
+	properties = append(properties, newProp("Description", description))
 	ch := make(chan string)
 	_, err = conn.StartTransientUnit(unitName, "replace", properties, ch)
 	if err != nil {
