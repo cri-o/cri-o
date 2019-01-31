@@ -53,27 +53,6 @@ type exitCodeInfo struct {
 	Message  string `json:"message,omitempty"`
 }
 
-// Version returns the version of the OCI Runtime
-// Version returns the version of the OCI Runtime
-func (r *RuntimeOCI) Version() (string, error) {
-	runtimeVersion, err := getOCIVersion(r.trustedPath, "-v")
-	if err != nil {
-		return "", err
-	}
-	return runtimeVersion, nil
-}
-
-func getOCIVersion(name string, args ...string) (string, error) {
-	out, err := utils.ExecCmd(name, args...)
-	if err != nil {
-		return "", err
-	}
-
-	firstLine := out[:strings.Index(out, "\n")]
-	v := firstLine[strings.LastIndex(firstLine, " ")+1:]
-	return v, nil
-}
-
 // CreateContainer creates a container.
 func (r *RuntimeOCI) CreateContainer(c *Container, cgroupParent string) (err error) {
 	var stderrBuf bytes.Buffer

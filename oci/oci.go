@@ -81,7 +81,6 @@ type RuntimeBase struct {
 // runtimes. Assumptions based on the fact that a container process runs
 // on the host will be limited to the RuntimeOCI implementation.
 type RuntimeImpl interface {
-	Version() (string, error)
 	CreateContainer(*Container, string) error
 	StartContainer(*Container) error
 	ExecContainer(*Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
