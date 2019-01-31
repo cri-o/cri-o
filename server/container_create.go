@@ -13,8 +13,8 @@ import (
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
-	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	"github.com/kubernetes-sigs/cri-o/pkg/config"
 	"github.com/kubernetes-sigs/cri-o/pkg/seccomp"
 	"github.com/kubernetes-sigs/cri-o/pkg/storage"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -164,11 +164,11 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 			return nil, err
 		}
 		switch s.config.ImageVolumes {
-		case lib.ImageVolumesMkdir:
+		case config.ImageVolumesMkdir:
 			if err1 := os.MkdirAll(fp, 0755); err1 != nil {
 				return nil, err1
 			}
-		case lib.ImageVolumesBind:
+		case config.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
 			if err1 := os.MkdirAll(src, 0755); err1 != nil {
@@ -189,7 +189,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 				Options:     []string{"private", "bind", "rw"},
 			})
 
-		case lib.ImageVolumesIgnore:
+		case config.ImageVolumesIgnore:
 			logrus.Debugf("Ignoring volume %v", dest)
 		default:
 			logrus.Fatalf("Unrecognized image volumes setting")

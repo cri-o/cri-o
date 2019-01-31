@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubernetes-sigs/cri-o/pkg/config"
+
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 
 	"github.com/kubernetes-sigs/cri-o/lib"
@@ -17,7 +19,7 @@ func TestGetInfo(t *testing.T) {
 	c.RootConfig.Storage = "afoobarstorage"
 	c.RootConfig.Root = "afoobarroot"
 	c.RuntimeConfig.CgroupManager = "systemd"
-	apiConfig := APIConfig{}
+	apiConfig := config.APIConfig{}
 	s := &Server{
 		config: Config{*c, apiConfig},
 	}
