@@ -381,6 +381,7 @@ func DefaultConfig() *Config {
 			Runtimes: map[string]oci.RuntimeHandler{
 				"runc": {
 					RuntimePath: "/usr/bin/runc",
+					RuntimeType: "oci",
 				},
 			},
 			Conmon: conmonPath,
