@@ -204,6 +204,10 @@ mockgen: ${BUILD_BIN_PATH}/mockgen
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
 		github.com/kubernetes-sigs/cri-o/pkg/storage ImageServer
 
+codecov: SHELL := $(shell which bash)
+codecov:
+	bash <(curl -s https://codecov.io/bash) -f ${COVERAGE_PATH}/coverprofile
+
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
