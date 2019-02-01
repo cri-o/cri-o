@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
+	"github.com/kubernetes-sigs/cri-o/pkg/config"
 )
 
 const fixturePath = "fixtures/crio.conf"
@@ -38,7 +38,7 @@ func assertAllFieldsEquality(t *testing.T, c Config) {
 		{c.ImageConfig.PauseImage, "kubernetes/pause"},
 		{c.ImageConfig.PauseCommand, "/pause"},
 		{c.ImageConfig.SignaturePolicyPath, "/tmp"},
-		{c.ImageConfig.ImageVolumes, lib.ImageVolumesType("mkdir")},
+		{c.ImageConfig.ImageVolumes, config.ImageVolumesType("mkdir")},
 		{c.ImageConfig.InsecureRegistries[0], "insecure-registry:1234"},
 		{c.ImageConfig.Registries[0], "registry:4321"},
 

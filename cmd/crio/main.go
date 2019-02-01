@@ -21,6 +21,7 @@ import (
 	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/kubernetes-sigs/cri-o/oci"
+	crioconfig "github.com/kubernetes-sigs/cri-o/pkg/config"
 	"github.com/kubernetes-sigs/cri-o/pkg/signals"
 	"github.com/kubernetes-sigs/cri-o/server"
 	"github.com/kubernetes-sigs/cri-o/utils"
@@ -75,9 +76,9 @@ func validateRuntimeConfig(config *server.Config) error {
 
 func validateConfig(config *server.Config) error {
 	switch config.ImageVolumes {
-	case lib.ImageVolumesMkdir:
-	case lib.ImageVolumesIgnore:
-	case lib.ImageVolumesBind:
+	case crioconfig.ImageVolumesMkdir:
+	case crioconfig.ImageVolumesIgnore:
+	case crioconfig.ImageVolumesBind:
 	default:
 		return fmt.Errorf("Unrecognized image volume type specified")
 	}
@@ -241,7 +242,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		config.PluginDir = ctx.GlobalString("cni-plugin-dir")
 	}
 	if ctx.GlobalIsSet("image-volumes") {
-		config.ImageVolumes = lib.ImageVolumesType(ctx.GlobalString("image-volumes"))
+		config.ImageVolumes = crioconfig.ImageVolumesType(ctx.GlobalString("image-volumes"))
 	}
 	if ctx.GlobalIsSet("read-only") {
 		config.ReadOnly = ctx.GlobalBool("read-only")
@@ -455,7 +456,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "image-volumes",
-			Value: string(lib.ImageVolumesMkdir),
+			Value: string(crioconfig.ImageVolumesMkdir),
 			Usage: "image volume handling ('mkdir', 'bind', or 'ignore')",
 		},
 		cli.StringFlag{
