@@ -73,7 +73,7 @@ func setupSeccomp(config Seccomp, specgen *generate.Generator) error {
 		return fmt.Errorf("specification generator is nil")
 	}
 	customspec := specgen.Config
-	if customspec.Linux == nil {
+	if customspec == nil || customspec.Linux == nil {
 		return fmt.Errorf("specification generator is invalid")
 	}
 	customspec.Linux.Seccomp = &specs.LinuxSeccomp{}

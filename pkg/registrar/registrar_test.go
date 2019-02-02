@@ -27,7 +27,7 @@ var _ = AfterSuite(func() {
 	t.Teardown()
 })
 
-// The acutal test suite
+// The actual test suite
 var _ = t.Describe("Registrar", func() {
 	// Constant test data needed by some tests
 	const (

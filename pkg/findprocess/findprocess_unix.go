@@ -1,4 +1,4 @@
-// +build darwin dragonfly freebsd linux nacl netbsd openbsd solaris
+// +build !windows
 
 package findprocess
 
@@ -8,10 +8,9 @@ import (
 )
 
 func findProcess(pid int) (process *os.Process, err error) {
-	process, err = os.FindProcess(pid)
-	if err != nil {
-		return process, err
-	}
+	// On Unix systems, FindProcess always succeeds and returns a Process
+	// for the given pid, regardless of whether the process exists.
+	process, _ = os.FindProcess(pid)
 	err = process.Signal(syscall.Signal(0))
 	if err == nil {
 		return process, nil

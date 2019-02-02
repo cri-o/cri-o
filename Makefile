@@ -20,6 +20,9 @@ CONTAINER_RUNTIME ?= podman
 BUILD_PATH := ${PWD}/build
 BUILD_BIN_PATH := ${BUILD_PATH}/bin
 COVERAGE_PATH := ${BUILD_PATH}/coverage
+TESTBIN_PATH := ${BUILD_PATH}/test
+MOCK_PATH := ${PWD}/test/mocks
+MOCKGEN_FLAGS := --build_flags='--tags=containers_image_ostree_stub $(BUILDTAGS)'
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
@@ -158,9 +161,14 @@ ${BUILD_BIN_PATH}/ginkgo:
 	$(GO) build -o ${BUILD_BIN_PATH}/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo
 
 vendor:
-	vndr -whitelist "github.com/onsi/ginkgo/ginkgo/.*" ${PKG}
+	vndr -whitelist "github.com/onsi/ginkgo/ginkgo/.*" \
+		-whitelist "github.com/golang/mock/.*" ${PKG}
 
-testunit: ${BUILD_BIN_PATH}/ginkgo
+${BUILD_BIN_PATH}/mockgen:
+	mkdir -p ${BUILD_BIN_PATH}
+	$(GO) build -o ${BUILD_BIN_PATH}/mockgen ./vendor/github.com/golang/mock/mockgen
+
+testunit: mockgen ${BUILD_BIN_PATH}/ginkgo
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	${BUILD_BIN_PATH}/ginkgo \
 		${TESTFLAGS} \
@@ -174,6 +182,27 @@ testunit: ${BUILD_BIN_PATH}/ginkgo
 	# fixes https://github.com/onsi/ginkgo/issues/518
 	sed -i '2,$${/^mode: atomic/d;}' ${COVERAGE_PATH}/coverprofile
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
+	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
+
+testunit-bin:
+	mkdir -p ${TESTBIN_PATH}
+	for PACKAGE in ${PACKAGES}; do \
+		go test $$PACKAGE \
+			--tags "containers_image_ostree_stub $(BUILDTAGS)" \
+			--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename $$PACKAGE) ;\
+	done
+
+mockgen: ${BUILD_BIN_PATH}/mockgen
+	${BUILD_BIN_PATH}/mockgen \
+		${MOCKGEN_FLAGS} \
+		-package containerstoragemock \
+		-destination ${MOCK_PATH}/containerstorage/containerstorage.go \
+		github.com/containers/storage Store
+	${BUILD_BIN_PATH}/mockgen \
+		${MOCKGEN_FLAGS} \
+		-package criostoragemock \
+		-destination ${MOCK_PATH}/criostorage/criostorage.go \
+		github.com/kubernetes-sigs/cri-o/pkg/storage ImageServer
 
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
