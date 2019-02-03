@@ -3,6 +3,7 @@
 package storage
 
 import (
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -24,35 +25,63 @@ func getLockFile(path string, ro bool) (Locker, error) {
 		return nil, errors.Wrapf(err, "error opening %q", path)
 	}
 	unix.CloseOnExec(fd)
+
+	locktype := unix.F_WRLCK
 	if ro {
-		return &lockfile{file: path, fd: uintptr(fd), lw: stringid.GenerateRandomID(), locktype: unix.F_RDLCK, locked: false}, nil
+		locktype = unix.F_RDLCK
 	}
-	return &lockfile{file: path, fd: uintptr(fd), lw: stringid.GenerateRandomID(), locktype: unix.F_WRLCK, locked: false}, nil
+	return &lockfile{
+		mu:       &sync.Mutex{},
+		file:     path,
+		fd:       uintptr(fd),
+		lw:       stringid.GenerateRandomID(),
+		locktype: int16(locktype),
+		locked:   false,
+		ro:       ro}, nil
 }
 
 type lockfile struct {
-	mu       sync.Mutex
+	mu       *sync.Mutex
+	counter  int64
 	file     string
 	fd       uintptr
 	lw       string
 	locktype int16
 	locked   bool
+	ro       bool
 }
 
-// Lock locks the lock file
-func (l *lockfile) Lock() {
+func (l *lockfile) lock(l_type int16, l_cmd int) {
 	lk := unix.Flock_t{
-		Type:   l.locktype,
+		Type:   l_type,
 		Whence: int16(os.SEEK_SET),
 		Start:  0,
 		Len:    0,
 		Pid:    int32(os.Getpid()),
 	}
-	l.mu.Lock()
-	l.locked = true
 	for unix.FcntlFlock(l.fd, unix.F_SETLKW, &lk) != nil {
 		time.Sleep(10 * time.Millisecond)
 	}
+
+	l.mu.Lock()
+	l.locked = true
+	l.counter++
+	l.mu.Unlock()
+}
+
+// Lock locks the lock file as a writer.  Note that RLock() will be called if
+// the lock is a read-only one.
+func (l *lockfile) Lock() {
+	if l.ro {
+		l.RLock()
+	} else {
+		l.lock(unix.F_WRLCK, unix.F_SETLKW)
+	}
+}
+
+// LockRead locks the lock file as a reader
+func (l *lockfile) RLock() {
+	l.lock(unix.F_RDLCK, unix.F_SETLK)
 }
 
 // Unlock unlocks the lock file
@@ -64,8 +93,21 @@ func (l *lockfile) Unlock() {
 		Len:    0,
 		Pid:    int32(os.Getpid()),
 	}
-	for unix.FcntlFlock(l.fd, unix.F_SETLKW, &lk) != nil {
-		time.Sleep(10 * time.Millisecond)
+	l.mu.Lock()
+	l.counter--
+	if l.counter < 0 {
+		// Panic when the counter is negative.  There is no way we can
+		// recover from a corrupted lock and we need to protect the
+		// storage from corruption.
+		panic(fmt.Sprintf("lock %q has been unlocked too often", l.file))
+	}
+	if l.counter == 0 {
+		// We should only release the lock when the counter is 0 to
+		// avoid releasing read-locks too early; a given process may
+		// acquire a read lock multiple times.
+		for unix.FcntlFlock(l.fd, unix.F_SETLKW, &lk) != nil {
+			time.Sleep(10 * time.Millisecond)
+		}
 	}
 	l.locked = false
 	l.mu.Unlock()
@@ -119,5 +161,5 @@ func (l *lockfile) Modified() (bool, error) {
 
 // IsRWLock indicates if the lock file is a read-write lock
 func (l *lockfile) IsReadWrite() bool {
-	return (l.locktype == unix.F_WRLCK)
+	return !l.ro
 }
