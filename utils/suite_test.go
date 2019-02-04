@@ -1,0 +1,27 @@
+package utils_test
+
+import (
+	"testing"
+
+	. "github.com/kubernetes-sigs/cri-o/test/framework"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+// TestUtils runs the created specs
+func TestUtils(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Utils")
+}
+
+// nolint: gochecknoglobals
+var t *TestFramework
+
+var _ = BeforeSuite(func() {
+	t = NewTestFramework(NilFunc, NilFunc)
+	t.Setup()
+})
+
+var _ = AfterSuite(func() {
+	t.Teardown()
+})
