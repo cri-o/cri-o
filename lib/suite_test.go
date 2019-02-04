@@ -121,7 +121,6 @@ func beforeEach() {
 	// Set the config
 	config := lib.DefaultConfig()
 	config.FileLocking = false
-	config.ManageNetworkNSLifecycle = true
 	config.LogDir = "."
 
 	gomock.InOrder(
