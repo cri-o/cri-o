@@ -70,7 +70,7 @@ func (c *ContainerServer) GetContainerRootFsSize(containerID string) (int64, err
 	for layer.Parent != "" {
 		layerSize, err := c.store.DiffSize(layer.Parent, layer.ID)
 		if err != nil {
-			return size, errors.Wrapf(err, "getting diffsize of layer %q and its parent %q", layer.ID, layer.Parent)
+			return 0, errors.Wrapf(err, "getting diffsize of layer %q and its parent %q", layer.ID, layer.Parent)
 		}
 		size += layerSize
 		layer, err = c.store.Layer(layer.Parent)

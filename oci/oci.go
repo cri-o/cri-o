@@ -64,35 +64,36 @@ type Runtime struct {
 	noPivot                  bool
 	ctrStopTimeout           int64
 
-	runtimeImplList map[string]runtimeImpl
+	runtimeImplList map[string]RuntimeImpl
 	runtimeType     string
 }
 
-// runtimeImpl is an interface used by the caller to interact with the
+// RuntimeImpl is an interface used by the caller to interact with the
 // container runtime. The purpose of this interface being to abstract
 // implementations and their associated assumptions regarding the way to
 // interact with containers. This will allow for new implementations of
 // this interface, especially useful for the case of VM based container
 // runtimes. Assumptions based on the fact that a container process runs
 // on the host will be limited to the RuntimeOCI implementation.
-type runtimeImpl interface {
-	createContainer(*Container, string) error
-	startContainer(*Container) error
-	execContainer(*Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
+type RuntimeImpl interface {
+	CreateContainer(*Container, string) error
+	StartContainer(*Container) error
+	ExecContainer(*Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
-	execSyncContainer(*Container, []string, int64) (*ExecSyncResponse, error)
-	updateContainer(*Container, *rspec.LinuxResources) error
-	stopContainer(context.Context, *Container, int64) error
-	deleteContainer(*Container) error
-	updateContainerStatus(*Container) error
-	pauseContainer(*Container) error
-	unpauseContainer(*Container) error
-	containerStats(*Container) (*ContainerStats, error)
-	signalContainer(*Container, syscall.Signal) error
-	attachContainer(*Container, io.Reader, io.WriteCloser, io.WriteCloser,
+	ExecSyncContainer(*Container, []string, int64) (*ExecSyncResponse, error)
+	UpdateContainer(*Container, *rspec.LinuxResources) error
+	StopContainer(context.Context, *Container, int64) error
+	DeleteContainer(*Container) error
+	UpdateContainerStatus(*Container) error
+	PauseContainer(*Container) error
+	UnpauseContainer(*Container) error
+	ContainerStats(*Container) (*ContainerStats, error)
+	SignalContainer(*Container, syscall.Signal) error
+	AttachContainer(*Container, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
-	portForwardContainer(*Container, int32, io.ReadWriter) error
-	reopenContainerLog(*Container) error
+	PortForwardContainer(*Container, int32, io.ReadWriter) error
+	ReopenContainerLog(*Container) error
+	WaitContainerStateStopped(context.Context, *Container) error
 }
 
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
@@ -144,7 +145,7 @@ func New(runtimeTrustedPath string,
 		logSizeMax:               logSizeMax,
 		noPivot:                  noPivot,
 		ctrStopTimeout:           ctrStopTimeout,
-		runtimeImplList:          make(map[string]runtimeImpl),
+		runtimeImplList:          make(map[string]RuntimeImpl),
 		runtimeType:              runtimeType,
 	}, nil
 }
@@ -223,7 +224,7 @@ func (r *Runtime) path(c *Container) (string, error) {
 // the container status to be updated to 'stopped'. Either it gets the expected
 // status and returns nil, or it reaches the timeout and returns an error.
 func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (err error) {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
@@ -251,7 +252,7 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 				return
 			default:
 				// Check if the container is stopped
-				if err := impl.updateContainerStatus(c); err != nil {
+				if err := impl.UpdateContainerStatus(c); err != nil {
 					done <- err
 					close(done)
 					return
@@ -282,7 +283,7 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 	return nil
 }
 
-func (r *Runtime) newRuntimeImpl(c *Container) (runtimeImpl, error) {
+func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	rPath, err := r.path(c)
 	if err != nil {
 		return nil, err
@@ -302,7 +303,8 @@ func (r *Runtime) newRuntimeImpl(c *Container) (runtimeImpl, error) {
 	return newRuntimeOCI(r, rPath), nil
 }
 
-func (r *Runtime) runtimeImpl(c *Container) (runtimeImpl, error) {
+// RuntimeImpl returns the runtime implementation for a given container
+func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	impl, ok := r.runtimeImplList[c.ID()]
 	if !ok {
 		return r.newRuntimeImpl(c)
@@ -322,149 +324,149 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	// Assign this runtime implementation to the current container
 	r.runtimeImplList[c.ID()] = impl
 
-	return impl.createContainer(c, cgroupParent)
+	return impl.CreateContainer(c, cgroupParent)
 }
 
 // StartContainer starts a container.
 func (r *Runtime) StartContainer(c *Container) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.startContainer(c)
+	return impl.StartContainer(c)
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
 func (r *Runtime) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.execContainer(c, cmd, stdin, stdout, stderr, tty, resize)
+	return impl.ExecContainer(c, cmd, stdin, stdout, stderr, tty, resize)
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *Runtime) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return impl.execSyncContainer(c, command, timeout)
+	return impl.ExecSyncContainer(c, command, timeout)
 }
 
 // UpdateContainer updates container resources
 func (r *Runtime) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.updateContainer(c, res)
+	return impl.UpdateContainer(c, res)
 }
 
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.stopContainer(ctx, c, timeout)
+	return impl.StopContainer(ctx, c, timeout)
 }
 
 // DeleteContainer deletes a container.
 func (r *Runtime) DeleteContainer(c *Container) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
 	defer delete(r.runtimeImplList, c.ID())
 
-	return impl.deleteContainer(c)
+	return impl.DeleteContainer(c)
 }
 
 // UpdateContainerStatus refreshes the status of the container.
 func (r *Runtime) UpdateContainerStatus(c *Container) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.updateContainerStatus(c)
+	return impl.UpdateContainerStatus(c)
 }
 
 // PauseContainer pauses a container.
 func (r *Runtime) PauseContainer(c *Container) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.pauseContainer(c)
+	return impl.PauseContainer(c)
 }
 
 // UnpauseContainer unpauses a container.
 func (r *Runtime) UnpauseContainer(c *Container) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.unpauseContainer(c)
+	return impl.UnpauseContainer(c)
 }
 
 // ContainerStats provides statistics of a container.
 func (r *Runtime) ContainerStats(c *Container) (*ContainerStats, error) {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return impl.containerStats(c)
+	return impl.ContainerStats(c)
 }
 
 // SignalContainer sends a signal to a container process.
 func (r *Runtime) SignalContainer(c *Container, sig syscall.Signal) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.signalContainer(c, sig)
+	return impl.SignalContainer(c, sig)
 }
 
 // AttachContainer attaches IO to a running container.
 func (r *Runtime) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.attachContainer(c, inputStream, outputStream, errorStream, tty, resize)
+	return impl.AttachContainer(c, inputStream, outputStream, errorStream, tty, resize)
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
 func (r *Runtime) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.portForwardContainer(c, port, stream)
+	return impl.PortForwardContainer(c, port, stream)
 }
 
 // ReopenContainerLog reopens the log file of a container.
 func (r *Runtime) ReopenContainerLog(c *Container) error {
-	impl, err := r.runtimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.reopenContainerLog(c)
+	return impl.ReopenContainerLog(c)
 }
 
 // ExecSyncResponse is returned from ExecSync.

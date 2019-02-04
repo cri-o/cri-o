@@ -203,6 +203,17 @@ mockgen: ${BUILD_BIN_PATH}/mockgen
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
 		github.com/kubernetes-sigs/cri-o/pkg/storage ImageServer
+	${BUILD_BIN_PATH}/mockgen \
+		${MOCKGEN_FLAGS} \
+		-package libmock \
+		-destination ${MOCK_PATH}/lib/lib.go \
+		github.com/kubernetes-sigs/cri-o/lib ConfigIface
+	${BUILD_BIN_PATH}/mockgen \
+		${MOCKGEN_FLAGS} \
+		-package ocimock \
+		-destination ${MOCK_PATH}/oci/oci.go \
+		github.com/kubernetes-sigs/cri-o/oci RuntimeImpl
+
 
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}

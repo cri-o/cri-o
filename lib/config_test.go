@@ -1,187 +1,260 @@
-package lib
+package lib_test
 
 import (
 	"io/ioutil"
 	"os"
-	"testing"
 
+	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/kubernetes-sigs/cri-o/oci"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestConfigToFile ensures Config.ToFile(..) encodes and writes out
-// a Config instance toa a file on disk.
-func TestConfigToFile(t *testing.T) {
-	// Test with a default configuration
-	c := DefaultConfig()
-	tmpfile, err := ioutil.TempFile("", "config")
-	if err != nil {
-		t.Fatalf("Unable to create temporary file: %+v", err)
-	}
-	// Clean up temporary file
-	defer os.Remove(tmpfile.Name())
+// The actual test suite
+var _ = t.Describe("Config", func() {
+	// The system under test
+	var sut *lib.Config
 
-	// Make the ToFile calls
-	err = c.ToFile(tmpfile.Name())
-	// Make sure no errors occurred while populating the file
-	if err != nil {
-		t.Fatalf("Unable to write to temporary file: %+v", err)
-	}
+	BeforeEach(func() {
+		sut = lib.DefaultConfig()
+		Expect(sut).NotTo(BeNil())
+	})
 
-	// Make sure the file is on disk
-	if _, err := os.Stat(tmpfile.Name()); os.IsNotExist(err) {
-		t.Fatalf("The config file was not written to disk: %+v", err)
-	}
-}
+	t.Describe("Validate", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.Validate(false)
 
-// TestConfigUpdateFromFile ensures Config.UpdateFromFile(..) properly
-// updates an already create Config instance with new data.
-func TestConfigUpdateFromFile(t *testing.T) {
-	// Test with a default configuration
-	c := DefaultConfig()
-	// Make the ToFile calls
-	err := c.UpdateFromFile("testdata/config.toml")
-	// Make sure no errors occurred while populating from the file
-	if err != nil {
-		t.Fatalf("Unable update config from file: %+v", err)
-	}
+			// Then
+			Expect(err).To(BeNil())
+		})
 
-	// Check fields that should have changed after UpdateFromFile
-	if c.Storage != "overlay2" {
-		t.Fatalf("Update failed. Storage did not change to overlay2")
-	}
+		It("should succeed during runtime", func() {
+			// Given
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/sh"}
 
-	if c.RuntimeConfig.PidsLimit != 2048 {
-		t.Fatalf("Update failed. RuntimeConfig.PidsLimit did not change to 2048")
-	}
-}
+			// When
+			err := sut.Validate(true)
 
-func TestConfigValidateDefaultSuccess(t *testing.T) {
-	c := DefaultConfig()
+			// Then
+			Expect(err).To(BeNil())
+		})
 
-	if err := c.Validate(false); err != nil {
-		t.Error(err)
-	}
-}
+		It("should succeed with additional devices", func() {
+			// Given
+			sut.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
+			sut.DefaultWorkloadTrust = "DefaultWorkloadTrust"
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/sh"}
 
-func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(true)
 
-	// since some test systems do not have runc installed, assume a more
-	// generally available executable
-	c.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/sh"}
+			// Then
+			Expect(err).To(BeNil())
+		})
 
-	if err := c.Validate(true); err != nil {
-		t.Error(err)
-	}
-}
+		It("should fail on wrong DefaultUlimits", func() {
+			// Given
+			sut.DefaultUlimits = []string{"wrong"}
 
-func TestConfigValidateSuccessAdditionalDevices(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(false)
 
-	c.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err != nil {
-		t.Error(err)
-	}
-}
+		It("should fail on wrong invalid device specification", func() {
+			// Given
+			sut.AdditionalDevices = []string{"::::"}
 
-func TestConfigValidateFailOnParseUlimit(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(false)
 
-	c.DefaultUlimits = []string{"wrong"}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err == nil {
-		t.Error("should fail on wrong ParseUlimit")
-	}
-}
+		It("should fail on invalid device", func() {
+			// Given
+			sut.AdditionalDevices = []string{"wrong"}
 
-func TestConfigValidateFailOnInvalidDeviceSpecification(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(false)
 
-	c.AdditionalDevices = []string{"::::"}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err == nil {
-		t.Error("should fail on wrong invalid device specification")
-	}
-}
+		It("should fail on invalid device mode", func() {
+			// Given
+			sut.AdditionalDevices = []string{"/dev/null:/dev/null:abc"}
 
-func TestConfigValidateFailOnInvalidDevice(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(false)
 
-	c.AdditionalDevices = []string{"wrong"}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err == nil {
-		t.Error("should fail on invalid device")
-	}
-}
+		It("should fail on invalid first device", func() {
+			// Given
+			sut.AdditionalDevices = []string{"wrong:/dev/null:rw"}
 
-func TestConfigValidateFailOnInvalidDeviceMode(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(false)
 
-	c.AdditionalDevices = []string{"/dev/null:/dev/null:abc"}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err == nil {
-		t.Error("should fail on invalid device mode")
-	}
-}
+		It("should fail on invalid second device", func() {
+			// Given
+			sut.AdditionalDevices = []string{"/dev/null:wrong:rw"}
 
-func TestConfigValidateFailOnInvalidDeviceFirst(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(false)
 
-	c.AdditionalDevices = []string{"wrong:/dev/null:rw"}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err == nil {
-		t.Error("should fail on invalid first device")
-	}
-}
+		It("should fail on no default runtime", func() {
+			// Given
+			sut.Runtimes = make(map[string]oci.RuntimeHandler)
 
-func TestConfigValidateFailOnInvalidDeviceSecond(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(false)
 
-	c.AdditionalDevices = []string{"/dev/null:wrong:rw"}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err == nil {
-		t.Error("should fail on invalid second device")
-	}
-}
+		It("should fail on conflicting definitions", func() {
+			// Given
+			sut.Runtimes[oci.UntrustedRuntime] = oci.RuntimeHandler{}
+			sut.RuntimeUntrustedWorkload = "value"
 
-func TestConfigValidateFailOnNoDefaultRuntime(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(false)
 
-	c.Runtimes = make(map[string]oci.RuntimeHandler)
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err == nil {
-		t.Error("should fail on no default runtime")
-	}
-}
+		It("should fail on non existing runtime", func() {
+			// Given
+			sut.Runtime = "not-existing"
 
-func TestConfigValidateFailOnConflictingDefinition(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(true)
 
-	c.Runtimes[oci.UntrustedRuntime] = oci.RuntimeHandler{}
-	c.RuntimeUntrustedWorkload = "value"
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-	if err := c.Validate(false); err == nil {
-		t.Error("should fail on conflicting definitions")
-	}
-}
+		It("should fail on non existing runtime binary", func() {
+			// Given
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "not-existing"}
 
-func TestConfigValidateFailOnExecutionWithoutExistingRuntime(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err := sut.Validate(true)
 
-	c.Runtime = "not-existing"
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
 
-	if err := c.Validate(true); err == nil {
-		t.Error("should fail on non existing runtime")
-	}
-}
+	t.Describe("ToFile", func() {
+		It("should succeed with default config", func() {
+			// Given
+			tmpfile, err := ioutil.TempFile("", "config")
+			Expect(err).To(BeNil())
+			defer os.Remove(tmpfile.Name())
 
-func TestConfigValidateFailOnExecutionWithoutExistingRuntimeHandler(t *testing.T) {
-	c := DefaultConfig()
+			// When
+			err = sut.ToFile(tmpfile.Name())
 
-	c.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "not-existing"}
+			// Then
+			Expect(err).To(BeNil())
+			_, err = os.Stat(tmpfile.Name())
+			Expect(err).To(BeNil())
+		})
 
-	if err := c.Validate(true); err == nil {
-		t.Error("should fail on non existing runtime")
-	}
-}
+		It("should fail with invalid path", func() {
+			// Given
+			// When
+			err := sut.ToFile("/proc/invalid")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("UpdateFromFile", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.UpdateFromFile("testdata/config.toml")
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.Storage).To(Equal("overlay2"))
+			Expect(sut.PidsLimit).To(BeEquivalentTo(2048))
+		})
+
+		It("should fail when file does not exist", func() {
+			// Given
+			// When
+			err := sut.UpdateFromFile("/invalid/file")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail when toml decode fails", func() {
+			// Given
+			// When
+			err := sut.UpdateFromFile("config.go")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("GetData", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			config := sut.GetData()
+
+			// Then
+			Expect(config).NotTo(BeNil())
+			Expect(config).To(Equal(sut))
+		})
+
+		It("should succeed with empty config", func() {
+			// Given
+			sut := &lib.Config{}
+
+			// When
+			config := sut.GetData()
+
+			// Then
+			Expect(config).NotTo(BeNil())
+			Expect(config).To(Equal(sut))
+		})
+
+		It("should succeed with nil config", func() {
+			// Given
+			var sut *lib.Config
+
+			// When
+			config := sut.GetData()
+
+			// Then
+			Expect(config).To(BeNil())
+		})
+	})
+})

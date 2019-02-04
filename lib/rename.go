@@ -68,8 +68,10 @@ func updateConfigName(configPath, name string) error {
 }
 
 func (c *ContainerServer) updateStateName(ctr *oci.Container, name string) error {
-	ctr.State().Annotations[annotations.Name] = name
-	ctr.State().Annotations[annotations.Metadata] = updateMetadata(ctr.State().Annotations, name)
+	if ctr != nil && ctr.State() != nil && ctr.State().Annotations != nil {
+		ctr.State().Annotations[annotations.Name] = name
+		ctr.State().Annotations[annotations.Metadata] = updateMetadata(ctr.State().Annotations, name)
+	}
 	// This is taken directly from c.ContainerStateToDisk(), which can't be used because of the call to UpdateStatus() in the first line
 	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0644)
 	if err != nil {

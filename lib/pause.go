@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"fmt"
+
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/pkg/errors"
 )
@@ -19,7 +21,7 @@ func (c *ContainerServer) ContainerPause(container string) (string, error) {
 		}
 		c.ContainerStateToDisk(ctr)
 	} else {
-		return "", errors.Wrapf(err, "container %s is already paused", ctr.ID())
+		return "", fmt.Errorf("container %s is already paused", ctr.ID())
 	}
 
 	return ctr.ID(), nil
@@ -39,7 +41,7 @@ func (c *ContainerServer) ContainerUnpause(container string) (string, error) {
 		}
 		c.ContainerStateToDisk(ctr)
 	} else {
-		return "", errors.Wrapf(err, "the container %s is not paused", ctr.ID())
+		return "", fmt.Errorf("the container %s is not paused", ctr.ID())
 	}
 
 	return ctr.ID(), nil

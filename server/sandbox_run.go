@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -78,7 +79,12 @@ func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
 		return handler, nil
 	}
 
-	if _, err := s.Runtime().ValidateRuntimeHandler(handler); err != nil {
+	runtime, ok := s.Runtime().(*oci.Runtime)
+	if !ok {
+		return "", fmt.Errorf("Runtime interface conversion error")
+	}
+
+	if _, err := runtime.ValidateRuntimeHandler(handler); err != nil {
 		return "", err
 	}
 
