@@ -2,6 +2,8 @@ package storage_test
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
@@ -231,8 +233,15 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: "id"}, nil),
 			)
+
+			// Create an empty file for the registries config path
+			file, err := ioutil.TempFile(".", "registries")
+			Expect(err).To(BeNil())
+			defer os.Remove(file.Name())
+
 			sut, err := storage.GetImageService(context.Background(),
-				nil, storeMock, "", []string{}, []string{})
+				&types.SystemContext{SystemRegistriesConfPath: file.Name()},
+				storeMock, "", []string{}, []string{})
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 
