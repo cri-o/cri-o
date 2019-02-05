@@ -30,7 +30,6 @@ func assertAllFieldsEquality(t *testing.T, c Config) {
 		{c.RootConfig.Root, "/var/lib/containers/storage"},
 		{c.RootConfig.RunRoot, "/var/run/containers/storage"},
 		{c.RootConfig.Storage, "overlay"},
-		{c.RootConfig.StorageOptions[0], "overlay.override_kernel_check=1"},
 
 		{c.APIConfig.Listen, "/var/run/crio.sock"},
 		{c.APIConfig.StreamPort, "10010"},
