@@ -139,6 +139,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
 
+	logrus.Infof("Stopped pod sandbox: %s", podInfraContainer.Description())
 	sb.SetStopped()
 	resp = &pb.StopPodSandboxResponse{}
 	logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)

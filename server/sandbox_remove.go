@@ -103,6 +103,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		return nil, fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.ID(), err)
 	}
 
+	logrus.Infof("Removed pod sandbox with infra container: %s", podInfraContainer.Description())
 	resp = &pb.RemovePodSandboxResponse{}
 	logrus.Debugf("RemovePodSandboxResponse %+v", resp)
 	return resp, nil

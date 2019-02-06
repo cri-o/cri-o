@@ -47,6 +47,7 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		ExitCode: execResp.ExitCode,
 	}
 
+	logrus.Infof("Exec'd %s in %s", cmd, c.Description())
 	logrus.Debugf("ExecSyncResponse: %+v", resp)
 	return resp, nil
 }
