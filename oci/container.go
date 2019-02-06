@@ -14,6 +14,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -303,4 +304,9 @@ func (c *Container) SetCreated() {
 // Created returns whether the container was created successfully
 func (c *Container) Created() bool {
 	return c.created
+}
+
+// Description returns a description for the container
+func (c *Container) Description() string {
+	return fmt.Sprintf("%s/%s/%s", c.Labels()[types.KubernetesPodNamespaceLabel], c.Labels()[types.KubernetesPodNameLabel], c.Labels()[types.KubernetesContainerNameLabel])
 }
