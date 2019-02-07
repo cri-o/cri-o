@@ -19,6 +19,7 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <syslog.h>
+#include <systemd/sd-journal.h>
 #include <unistd.h>
 #include <inttypes.h>
 
@@ -127,7 +128,8 @@ static GOptionEntry opt_entries[] = {
 	 "Path to the program to execute when the container terminates its execution", NULL},
 	{"exit-command-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_exit_args,
 	 "Additional arg to pass to the exit command.  Can be specified multiple times", NULL},
-	{"log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL},
+    {"log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path. " 
+     "Can also be formatted <DRIVER>:<PATH> to use a different log driver (default is kubernetes log file format", NULL},
 	{"timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL},
 	{"log-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_size_max, "Maximum size of log file", NULL},
 	{"socket-dir-path", 0, 0, G_OPTION_ARG_STRING, &opt_socket_path, "Location of container attach sockets", NULL},
@@ -260,6 +262,49 @@ static log_level_t parse_level(char *level_name)
 	}
 	nexitf("No such log level %s", level_name);
 }
+/* Different log drivers */
+typedef enum {
+  KUBERNETES_LOG_FILE,
+  JOURNALD,
+  INVALID,
+} log_driver_t;
+
+// global saving the log driver the user inputted
+static log_driver_t g_log_driver = INVALID;
+
+// global saving the log path to use if the log driver is kubernetes-log-file
+static char* g_log_path = NULL;
+
+// Value the user must input for each log driver
+static const char * const KUBERNETES_LOG_FILE_STRING = "kubernetes-log-file";
+static const char * const JOURNALD_FILE_STRING = "journald";
+
+/* parse_log_path branches on log driver type the user inputted.
+ * log_config will either be a ':' delimited string containing:
+ * <DRIVER_NAME>:<PATH_NAME> or <PATH_NAME>
+ * in the case of no colon, the driver will be kubernetes-log-file,
+ * in the case the log driver is 'journald', the <PATH_NAME> is ignored.
+ * exits with error if <DRIVER_NAME> isn't 'journald' or 'kubernetes-log-file'
+ */
+void parse_log_path(char *log_config) {
+    char * driver = strtok(log_config, ":");
+    char * path = strtok(NULL, ":");
+    // If no : was found, driver is the log path, and the driver is
+    // kubernetes-log-file, set variables appropriately
+    if (path == NULL) {
+        g_log_path = driver;
+        g_log_driver = KUBERNETES_LOG_FILE;
+    } else if (!strcmp(driver, KUBERNETES_LOG_FILE_STRING)) {
+        g_log_path = path;
+        g_log_driver = KUBERNETES_LOG_FILE;
+    } else if (!strcmp(driver, JOURNALD_FILE_STRING)) {
+        // If we are logging to journald, we can ignore the path
+        g_log_driver = JOURNALD;
+    } else {
+        nexitf("No such log driver %s", driver);
+    }
+}
+
 
 static ssize_t write_all(int fd, const void *buf, size_t count)
 {
@@ -406,25 +451,29 @@ const char *stdpipe_name(stdpipe_t pipe)
  */
 static void reopen_log_file(void)
 {
-	_cleanup_free_ char *opt_log_path_tmp = g_strdup_printf("%s.tmp", opt_log_path);
+    // Our log path could be null if our driver is journald,
+    // skip if this is the case.
+    if (g_log_path != NULL) {
+        _cleanup_free_ char *g_log_path_tmp = g_strdup_printf("%s.tmp", g_log_path);
 
-	/* Sync the logs to disk */
-	if (fsync(log_fd) < 0) {
-		pwarn("Failed to sync log file on reopen");
-	}
+        /* Sync the logs to disk */
+        if (fsync(log_fd) < 0) {
+            pwarn("Failed to sync log file on reopen");
+        }
 
-	/* Close the current log_fd */
-	close(log_fd);
+        /* Close the current log_fd */
+        close(log_fd);
 
-	/* Open the log path file again */
-	log_fd = open(opt_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
-	if (log_fd < 0)
-		pexitf("Failed to open log file %s", opt_log_path);
+        /* Open the log path file again */
+        log_fd = open(g_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
+        if (log_fd < 0)
+            pexitf("Failed to open log file %s", g_log_path);
 
-	/* Replace the previous file */
-	if (rename(opt_log_path_tmp, opt_log_path) < 0) {
-		pexit("Failed to rename log file");
-	}
+        /* Replace the previous file */
+        if (rename(g_log_path_tmp, g_log_path) < 0) {
+            pexit("Failed to rename log file");
+        }
+    }
 }
 
 /*
@@ -721,9 +770,10 @@ static gboolean tty_hup_timeout_cb(G_GNUC_UNUSED gpointer user_data)
 
 static bool read_stdio(int fd, stdpipe_t pipe, gboolean *eof)
 {
-	/* We use one extra byte at the start, which we don't read into, instead
-	   we use that for marking the pipe when we write to the attached socket */
-	char real_buf[STDIO_BUF_SIZE + 1];
+  /* We use two extra bytes. One at the start, which we don't read into, instead
+     we use that for marking the pipe when we write to the attached socket.
+     One at the end to guarentee a null-terminated buffer for journald logging*/
+	char real_buf[STDIO_BUF_SIZE + 2];
 	char *buf = real_buf + 1;
 	ssize_t num_read = 0;
 	size_t i;
@@ -740,10 +790,25 @@ static bool read_stdio(int fd, stdpipe_t pipe, gboolean *eof)
 		nwarnf("stdio_input read failed %s", strerror(errno));
 		return false;
 	} else {
-		if (write_k8s_log(log_fd, pipe, buf, num_read) < 0) {
-			nwarn("write_k8s_log failed");
-			return G_SOURCE_CONTINUE;
-		}
+        switch (g_log_driver) {
+            case JOURNALD:
+                // Always null terminate the buffer, just in case.
+                buf[num_read] = '\0';
+                if (sd_journal_print(LOG_NOTICE, "%s", buf) < 0) {
+                    nwarn("sd_journal_print failed");
+                    return G_SOURCE_CONTINUE;
+                }
+                break;
+            case KUBERNETES_LOG_FILE:
+                if (write_k8s_log(log_fd, pipe, buf, num_read) < 0) {
+                    nwarn("write_k8s_log failed");
+                    return G_SOURCE_CONTINUE;
+                }
+                break;
+            default:
+                pexit("Invalid log driver");
+                return false;
+        }
 
 		if (conn_socks == NULL) {
 			return true;
@@ -1416,8 +1481,15 @@ int main(int argc, char *argv[])
 		opt_container_pid_file = default_pid_file;
 	}
 
-	if (opt_log_path == NULL)
-		nexit("Log file path not provided. Use --log-path");
+    if (opt_log_path == NULL)
+      nexit("Log file path not provided. Use --log-path");
+
+
+    // parse_log_path will call exit if the log driver isn't
+    // kubernetes-log-file, journald or NULL, so we set up g_log_driver to always
+    // have a logical value
+    parse_log_path(opt_log_path);
+
 
 	start_pipe_fd = get_pipe_fd_from_env("_OCI_STARTPIPE");
 	if (start_pipe_fd >= 0) {
@@ -1465,10 +1537,12 @@ int main(int argc, char *argv[])
 	/* Environment variables */
 	sync_pipe_fd = get_pipe_fd_from_env("_OCI_SYNCPIPE");
 
-	/* Open the log path file. */
-	log_fd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
-	if (log_fd < 0)
-		pexit("Failed to open log file");
+	if (g_log_driver == KUBERNETES_LOG_FILE) {
+		/* Open the log path file. */
+		log_fd = open(g_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
+		if (log_fd < 0)
+			pexit("Failed to open log file");
+	}
 
 	/*
 	 * Set self as subreaper so we can wait for container process
