@@ -73,7 +73,7 @@ export REGISTRIES_CONFIG_PATH="$INTEGRATION_ROOT/registries.conf"
 # Setup default hooks dir
 HOOKSDIR=$TESTDIR/hooks
 mkdir ${HOOKSDIR}
-HOOKS_OPTS="--hooks-dir-path=$HOOKSDIR"
+HOOKS_OPTS="--hooks-dir=$HOOKSDIR"
 
 # Setup default mounts using deprecated --default-mounts flag
 # should be removed, once the flag is removed

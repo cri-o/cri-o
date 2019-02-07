@@ -178,8 +178,9 @@ default_capabilities = [
 default_sysctls = [
 {{ range $sysctl := .DefaultSysctls}}{{ printf "\t%q, \n" $sysctl}}{{ end }}]
 
-# Path to the OCI hooks directory for automatically executed hooks.
-hooks_dir_path = "{{ .HooksDirPath }}"
+# Path to OCI hooks directory for automatically executed hooks.
+hooks_dir = [
+{{ range $hooksDir := .HooksDir }}{{ printf "\t%q,\n" $hooksDir}}{{ end }}]
 
 # List of default mounts for each container. **Deprecated:** this option will
 # be removed in future versions in favor of default_mounts_file.
