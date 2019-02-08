@@ -70,14 +70,3 @@
     insertafter: 'registries = \['
     regexp: 'quay\.io, docker\.io'
     state: present
-
-- name: add overlay storage opts on RHEL/CentOS
-  lineinfile:
-    dest: /etc/crio/crio.conf
-    line: |
-          # Added by Ansible from build/cri-o.yml
-          storage_option = [ "overlay.override_kernel_check=1", ]
-    insertafter: 'storage_option = \['
-    regexp: 'overlay\.override_kernel_check=1'
-    state: present
-  when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
