@@ -92,6 +92,7 @@ static char *opt_exec_process_spec = NULL;
 static gboolean opt_exec = FALSE;
 static char *opt_restore_path = NULL;
 static gchar **opt_restore_args = NULL;
+static gchar **opt_runtime_args = NULL;
 static char *opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
@@ -112,6 +113,8 @@ static GOptionEntry opt_entries[] = {
 	{"restore", 0, 0, G_OPTION_ARG_STRING, &opt_restore_path, "Restore a container from a checkpoint", NULL},
 	{"restore-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_restore_args,
 	 "Additional arg to pass to the restore command. Can be specified multiple times", NULL},
+	{"runtime-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_args,
+	 "Additional arg to pass to the runtime. Can be specified multiple times", NULL},
 	{"no-new-keyring", 0, 0, G_OPTION_ARG_NONE, &opt_no_new_keyring, "Do not create a new session keyring for the container", NULL},
 	{"no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "Do not use pivot_root", NULL},
 	{"replace-listen-pid", 0, 0, G_OPTION_ARG_NONE, &opt_replace_listen_pid, "Replace listen pid if set for oci-runtime pid", NULL},
@@ -1522,6 +1525,12 @@ int main(int argc, char *argv[])
 	/* Generate the cmdline. */
 	if (!opt_exec && opt_systemd_cgroup)
 		add_argv(runtime_argv, "--systemd-cgroup", NULL);
+
+	if (opt_runtime_args) {
+		size_t n_runtime_args = 0;
+		while (opt_runtime_args[n_runtime_args])
+			add_argv(runtime_argv, opt_runtime_args[n_runtime_args++], NULL);
+	}
 
 	if (opt_exec) {
 		add_argv(runtime_argv, "exec", "-d", "--pid-file", opt_container_pid_file, NULL);
