@@ -18,9 +18,6 @@ int_test_env:
     CGROUP_MANAGER: "cgroupfs"
     STORAGE_OPTIONS: >
         --storage-driver=overlay
-        {% if ansible_distribution in ['RedHat', 'CentOS'] %}
-            --storage-opt overlay.override_kernel_check=1
-        {% endif %}
 
 # Additional environment variables for integration tests w/ userNS enabled
 userns_int_test_env:
