@@ -54,6 +54,13 @@
     name: /etc/crio/crio.conf
     backup: yes
 
+- name: run with LVM
+  replace:
+    regexp: 'storage_driver = ""'
+    replace: 'storage_driver = "lvm"'
+    name: /etc/crio/crio.conf
+    backup: yes
+
 - name: run with systemd cgroup manager
   replace:
     regexp: 'cgroup_manager = "cgroupfs"'
