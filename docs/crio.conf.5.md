@@ -135,8 +135,16 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **default_sysctls**=[]
  List of default sysctls. If it is empty or commented out, only the sysctls defined in the container json file by the user/kube will be added.
 
-**hooks_dir_path**="/usr/share/containers/oci/hooks.d"
-  Path to the OCI hooks directory for automatically executed hooks.
+**hooks_dir**=["*path*", ...]
+  Each `*.json` file in the path configures a hook for CRI-O containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  CRI-O currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
+
+  Paths listed later in the array higher precedence (`oci-hooks(5)` discusses directory precedence).
+
+  For the annotation conditions, CRI-O uses the Kubernetes annotations, which are a subset of the annotations passed to the OCI runtime.  For example, `io.kubernetes.cri-o.Volumes` is part of the OCI runtime configuration annotations, but it is not part of the Kubernetes annotations being matched for hooks.
+
+  For the bind-mount conditions, only mounts explicitly requested by Kubernetes configuration are considered.  Bind mounts that CRI-O inserts by default (e.g. `/dev/shm`) are not considered.
+
+  If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/oci/hooks.d` and `/etc/containers/oci/hooks.d` in order of increasing precedence.  Using these defaults is deprecated, and callers should migrate to explicitly setting `hooks_dir`.
 
 **default_mounts**=[]
   List of default mounts for each container. **Deprecated:** this option will be removed in future versions in favor of `default_mounts_file`.

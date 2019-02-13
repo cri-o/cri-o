@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/pkg/hooks"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	units "github.com/docker/go-units"
@@ -211,8 +210,8 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("cgroup-manager") {
 		config.CgroupManager = ctx.GlobalString("cgroup-manager")
 	}
-	if ctx.GlobalIsSet("hooks-dir-path") {
-		config.HooksDirPath = ctx.GlobalString("hooks-dir-path")
+	if ctx.GlobalIsSet("hooks-dir") {
+		config.HooksDir = ctx.GlobalStringSlice("hooks-dir")
 	}
 	if ctx.GlobalIsSet("default-mounts") {
 		config.DefaultMounts = ctx.GlobalStringSlice("default-mounts")
@@ -459,11 +458,9 @@ func main() {
 			Value: string(crioconfig.ImageVolumesMkdir),
 			Usage: "image volume handling ('mkdir', 'bind', or 'ignore')",
 		},
-		cli.StringFlag{
-			Name:   "hooks-dir-path",
-			Usage:  "set the OCI hooks directory path",
-			Value:  hooks.DefaultDir,
-			Hidden: true,
+		cli.StringSliceFlag{
+			Name:  "hooks-dir",
+			Usage: "set the OCI hooks directory path (may be set multiple times)",
 		},
 		cli.StringSliceFlag{
 			Name:  "default-mounts",

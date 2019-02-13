@@ -130,8 +130,11 @@ type RuntimeConfig struct {
 	// handle cgroups for containers.
 	CgroupManager string `toml:"cgroup_manager"`
 
-	// HooksDirPath location of oci hooks config files
-	HooksDirPath string `toml:"hooks_dir_path"`
+	// HooksDir holds paths to the directories containing hooks
+	// configuration files.  When the same filename is present in in
+	// multiple directories, the file in the directory listed last in
+	// this slice takes precedence.
+	HooksDir []string `toml:"hooks_dir"`
 
 	// DefaultMounts is the list of mounts to be mounted for each container
 	// The format of each mount is "host-path:container-path"

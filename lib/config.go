@@ -7,7 +7,6 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/storage"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/kubernetes-sigs/cri-o/pkg/config"
@@ -152,7 +151,6 @@ func DefaultConfig() *Config {
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: oci.ContainerAttachSocketDir,
-			HooksDirPath:             hooks.DefaultDir,
 			LogSizeMax:               DefaultLogSizeMax,
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "error",
