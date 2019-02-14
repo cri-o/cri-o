@@ -17,11 +17,19 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	}()
 	logrus.Debugf("StopContainerRequest %+v", req)
 
+	// save container description to print
+	c, err := s.GetContainerFromShortID(req.ContainerId)
+	if err != nil {
+		return nil, err
+	}
+	description := c.Description()
+
 	_, err = s.ContainerServer.ContainerStop(ctx, req.ContainerId, req.Timeout)
 	if err != nil {
 		return nil, err
 	}
 
+	logrus.Infof("Stopped container %s", description)
 	resp = &pb.StopContainerResponse{}
 	logrus.Debugf("StopContainerResponse %s: %+v", req.ContainerId, resp)
 	return resp, nil

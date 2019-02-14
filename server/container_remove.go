@@ -18,11 +18,18 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 	}()
 	logrus.Debugf("RemoveContainerRequest: %+v", req)
 
+	// save container description to print
+	c, err := s.GetContainerFromShortID(req.ContainerId)
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = s.ContainerServer.Remove(ctx, req.ContainerId, true)
 	if err != nil {
 		return nil, err
 	}
 
+	logrus.Infof("Removed container %s", c.Description())
 	resp = &pb.RemoveContainerResponse{}
 	logrus.Debugf("RemoveContainerResponse: %+v", resp)
 	return resp, nil
