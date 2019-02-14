@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"path"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/signature"
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
@@ -553,6 +555,13 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 	domain, remainder := splitDockerDomain(imageName)
 	if domain != "" {
 		// this means the image is already fully qualified
+		registry, err := sysregistriesv2.FindRegistry(nil, imageName)
+		if err != nil {
+			return nil, err
+		}
+		if registry != nil && registry.Blocked {
+			return nil, fmt.Errorf("cannot use %q because it's blocked", imageName)
+		}
 		return []string{imageName}, nil
 	}
 	// we got an unqualified image here, we can't go ahead w/o registries configured
@@ -569,7 +578,18 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
 			rem = "library/" + rem
 		}
+		image := path.Join(r, rem)
+		registry, err := sysregistriesv2.FindRegistry(nil, image)
+		if err != nil {
+			return nil, err
+		}
+		if registry != nil && registry.Blocked {
+			continue
+		}
 		images = append(images, path.Join(r, rem))
+	}
+	if len(images) == 0 {
+		return nil, fmt.Errorf("all search registries for %q are blocked", remainder)
 	}
 	return images, nil
 }
