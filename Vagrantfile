@@ -88,6 +88,7 @@ Vagrant.configure("2") do |config|
       ostree-devel \
       pkgconfig \
       runc \
+      systemd-devel \
       skopeo-containers
     chown vagrant:vagrant -R /home/vagrant
     modprobe overlay

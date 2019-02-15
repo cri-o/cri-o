@@ -55,6 +55,7 @@
     - sed
     - skopeo-containers
     - socat
+    - systemd-devel
     - tar
     - wget
   async: '{{ 20 * 60 }}'

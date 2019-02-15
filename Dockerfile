@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y \
     libdevmapper-dev \
     libgpgme11-dev \
     liblzma-dev \
+    libsystemd-dev \
     netcat \
     socat \
     --no-install-recommends \
