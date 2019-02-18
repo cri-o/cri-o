@@ -43,6 +43,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 
+	logrus.Infof("Started container: %s", c.Description())
 	resp = &pb.StartContainerResponse{}
 	logrus.Debugf("StartContainerResponse %+v", resp)
 	return resp, nil

@@ -481,6 +481,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		recordError(operation, err)
 	}()
 	logrus.Debugf("CreateContainerRequest %+v", req)
+	logrus.Infof("Attempting to create container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
@@ -571,6 +572,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	container.SetCreated()
 
+	logrus.Infof("Created container: %s", container.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
 	}

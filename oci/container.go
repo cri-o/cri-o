@@ -14,6 +14,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -317,4 +318,9 @@ func (c *Container) SetStartFailed(err error) {
 	// adjust finished and started times
 	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
 	c.state.Error = err.Error()
+}
+
+// Description returns a description for the container
+func (c *Container) Description() string {
+	return fmt.Sprintf("%s/%s/%s", c.Labels()[types.KubernetesPodNamespaceLabel], c.Labels()[types.KubernetesPodNameLabel], c.Labels()[types.KubernetesContainerNameLabel])
 }

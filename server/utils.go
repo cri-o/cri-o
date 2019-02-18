@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -271,4 +272,9 @@ func getUlimitsFromConfig(config Config) ([]ulimit, error) {
 		ulimits = append(ulimits, ulimit{name: "RLIMIT_" + strings.ToUpper(ul.Name), hard: rl.Hard, soft: rl.Soft})
 	}
 	return ulimits, nil
+}
+
+// Translate container labels to a description of the container
+func translateLabelsToDescription(labels map[string]string) string {
+	return fmt.Sprintf("%s/%s/%s", labels[types.KubernetesPodNamespaceLabel], labels[types.KubernetesPodNameLabel], labels[types.KubernetesContainerNameLabel])
 }

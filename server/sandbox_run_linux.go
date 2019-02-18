@@ -46,6 +46,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
+	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
+	logrus.Infof("Attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(req.GetConfig().GetLabels()), leaky.PodInfraContainerName)
 	var processLabel, mountLabel, resolvPath string
 	// process req.Name
 	kubeName := req.GetConfig().GetMetadata().GetName()
@@ -675,6 +677,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb.SetCreated()
 
+	logrus.Infof("Ran pod sandbox with infra container: %s", container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
 	return resp, nil
