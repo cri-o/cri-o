@@ -51,7 +51,7 @@ function teardown() {
 }
 
 @test "container status return image@digest if created by image ID and digest available" {
-	skip "depends on https://github.com/kubernetes-incubator/cri-o/issues/531"
+	skip "depends on https://github.com/kubernetes-sigs/cri-o/issues/531"
 
 	start_crio
 

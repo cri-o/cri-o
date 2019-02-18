@@ -7,9 +7,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/libkpod"
+	"github.com/kubernetes-sigs/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-sigs/cri-o/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 

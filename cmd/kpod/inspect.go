@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libpod/images"
+	"github.com/kubernetes-sigs/cri-o/cmd/kpod/formats"
+	"github.com/kubernetes-sigs/cri-o/libkpod"
+	"github.com/kubernetes-sigs/cri-o/libpod/images"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

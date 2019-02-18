@@ -28,7 +28,7 @@ type ImageResult struct {
 	ID    string
 	Names []string
 	Size  *uint64
-	// TODO(runcom): this is an hack for https://github.com/kubernetes-incubator/cri-o/pull/1136
+	// TODO(runcom): this is an hack for https://github.com/kubernetes-sigs/cri-o/pull/1136
 	// drop this when we have proper image IDs (as in, image IDs should be just
 	// the config blog digest which is stable across same images).
 	ConfigDigest digest.Digest

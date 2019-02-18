@@ -9,9 +9,9 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libpod"
-	"github.com/kubernetes-incubator/cri-o/server"
+	"github.com/kubernetes-sigs/cri-o/libkpod"
+	"github.com/kubernetes-sigs/cri-o/libpod"
+	"github.com/kubernetes-sigs/cri-o/server"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

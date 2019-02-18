@@ -7,8 +7,8 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/kubernetes-incubator/cri-o/libpod"
-	"github.com/kubernetes-incubator/cri-o/libpod/common"
+	"github.com/kubernetes-sigs/cri-o/libpod"
+	"github.com/kubernetes-sigs/cri-o/libpod/common"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"

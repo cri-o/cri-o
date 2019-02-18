@@ -116,7 +116,7 @@ if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
 fi
 
 # TODO: remove the code below for redis digested image id when
-#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+#       https://github.com/kubernetes-sigs/cri-o/issues/531 is complete
 #       as the digested reference will be auto-stored when pulling the tag
 #       above
 if ! [ -d "$ARTIFACTS_PATH"/redis-image-digest ]; then
@@ -236,7 +236,7 @@ function start_crio() {
 	fi
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --add-name=docker.io/library/redis:alpine --signature-policy="$INTEGRATION_ROOT"/policy.json
 # TODO: remove the code below for redis:alpine digested image id when
-#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+#       https://github.com/kubernetes-sigs/cri-o/issues/531 is complete
 #       as the digested reference will be auto-stored when pulling the tag
 #       above
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTS --runroot "$TESTDIR/crio-run" --image-name=redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --import-from=dir:"$ARTIFACTS_PATH"/redis-image-digest --add-name=docker.io/library/redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --signature-policy="$INTEGRATION_ROOT"/policy.json
@@ -270,7 +270,7 @@ function start_crio() {
 	#
 	#
 	# TODO: remove the code below for redis digested image id when
-	#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete
+	#       https://github.com/kubernetes-sigs/cri-o/issues/531 is complete
 	#       as the digested reference will be auto-stored when pulling the tag
 	#       above
 	#

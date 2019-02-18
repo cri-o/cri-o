@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/docker/docker/pkg/signal"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-sigs/cri-o/libkpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

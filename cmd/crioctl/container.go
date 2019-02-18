@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubernetes-incubator/cri-o/client"
+	"github.com/kubernetes-sigs/cri-o/client"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
 	remocommandconsts "k8s.io/apimachinery/pkg/util/remotecommand"
@@ -473,7 +473,7 @@ func ContainerStatus(client pb.RuntimeServiceClient, ID string) error {
 		fmt.Printf("Image: %v\n", r.Status.Image.Image)
 	}
 	//
-	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
+	// TODO: https://github.com/kubernetes-sigs/cri-o/issues/531
 	//
 	//fmt.Printf("ImageRef: %v\n", r.Status.ImageRef)
 

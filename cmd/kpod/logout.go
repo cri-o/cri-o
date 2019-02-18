@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/image/pkg/docker/config"
-	"github.com/kubernetes-incubator/cri-o/libpod/common"
+	"github.com/kubernetes-sigs/cri-o/libpod/common"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

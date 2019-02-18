@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"github.com/go-zoo/bone"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/types"
+	"github.com/kubernetes-sigs/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/types"
 	"github.com/sirupsen/logrus"
 )
 

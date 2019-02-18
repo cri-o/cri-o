@@ -16,13 +16,13 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libkpod/sandbox"
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
-	"github.com/kubernetes-incubator/cri-o/pkg/storage"
-	"github.com/kubernetes-incubator/cri-o/server/apparmor"
-	"github.com/kubernetes-incubator/cri-o/server/seccomp"
+	"github.com/kubernetes-sigs/cri-o/libkpod"
+	"github.com/kubernetes-sigs/cri-o/libkpod/sandbox"
+	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/pkg/annotations"
+	"github.com/kubernetes-sigs/cri-o/pkg/storage"
+	"github.com/kubernetes-sigs/cri-o/server/apparmor"
+	"github.com/kubernetes-sigs/cri-o/server/seccomp"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/devices"
@@ -865,7 +865,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	imageRef := status.ID
 	//
-	// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
+	// TODO: https://github.com/kubernetes-sigs/cri-o/issues/531
 	//
 	//for _, n := range status.Names {
 	//r, err := reference.ParseNormalizedNamed(n)

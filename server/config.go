@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/kubernetes-sigs/cri-o/libkpod"
 )
 
 //CrioConfigPath is the default location for the conf file

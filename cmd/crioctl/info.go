@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/kubernetes-incubator/cri-o/client"
+	"github.com/kubernetes-sigs/cri-o/client"
 	"github.com/urfave/cli"
 )
 

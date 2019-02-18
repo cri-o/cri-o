@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	pkgstorage "github.com/kubernetes-incubator/cri-o/pkg/storage"
+	pkgstorage "github.com/kubernetes-sigs/cri-o/pkg/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -51,7 +51,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 			Id:       status.ID,
 			RepoTags: status.Names,
 			Size_:    *status.Size,
-			// TODO: https://github.com/kubernetes-incubator/cri-o/issues/531
+			// TODO: https://github.com/kubernetes-sigs/cri-o/issues/531
 		},
 	}
 	logrus.Debugf("ImageStatusResponse: %+v", resp)

@@ -4,7 +4,7 @@
 %global project         kubernetes-incubator
 %global repo            cri-o
 %global Name            crio
-# https://github.com/kubernetes-incubator/cri-o
+# https://github.com/kubernetes-sigs/cri-o
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path     %{provider_prefix}
 %global commit          8ba639952a95f2e24cc98987689138b67545576c

@@ -17,7 +17,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/kubernetes-incubator/cri-o/cmd/kpod/docker"
+	"github.com/kubernetes-sigs/cri-o/cmd/kpod/docker"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
 	"github.com/opencontainers/image-spec/specs-go/v1"

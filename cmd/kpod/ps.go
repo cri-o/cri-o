@@ -15,9 +15,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/fields"
 
-	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/kubernetes-sigs/cri-o/cmd/kpod/formats"
+	"github.com/kubernetes-sigs/cri-o/libkpod"
+	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

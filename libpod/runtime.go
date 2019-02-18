@@ -5,8 +5,8 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/kubernetes-incubator/cri-o/server/apparmor"
-	"github.com/kubernetes-incubator/cri-o/server/seccomp"
+	"github.com/kubernetes-sigs/cri-o/server/apparmor"
+	"github.com/kubernetes-sigs/cri-o/server/seccomp"
 	"github.com/pkg/errors"
 	"github.com/ulule/deepcopier"
 )
