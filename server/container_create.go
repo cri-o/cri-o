@@ -325,7 +325,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 
 // addOCIHook look for hooks programs installed in hooksDirPath and add them to spec
 func addOCIHook(specgen *generate.Generator, hook libkpod.HookParams) error {
-	logrus.Debugf("AddOCIHook", hook)
+	logrus.Debugf("AddOCIHook %+v", hook)
 	for _, stage := range hook.Stage {
 		switch stage {
 		case "prestart":
@@ -527,7 +527,7 @@ func (s *Server) setupOCIHooks(specgen *generate.Generator, sb *sandbox.Sandbox,
 		return nil
 	}
 	for _, hook := range s.Hooks() {
-		logrus.Debugf("SetupOCIHooks", hook)
+		logrus.Debugf("SetupOCIHooks %+v", hook)
 		if hook.HasBindMounts && len(mounts) > 0 {
 			if err := addHook(hook); err != nil {
 				return err
