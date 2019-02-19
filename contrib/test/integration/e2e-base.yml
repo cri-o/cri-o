@@ -39,14 +39,6 @@
     path: "{{ artifacts }}"
     state: directory
 
-- name: Add repo for new version of git
-  yum_repository:
-    name: Wandisco
-    description: Wandisco git repo (Added by Ansible from e2e.yml)
-    baseurl: http://opensource.wandisco.com/rhel/7Server/git/$basearch
-    gpgcheck: no
-  when: ansible_distribution in ['RedHat']
-
 - name: upgrade git package
   yum:
     name: 'git'
