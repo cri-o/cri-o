@@ -154,6 +154,10 @@ type RuntimeConfig struct {
 	// Negative values indicate that the log file won't be truncated.
 	LogSizeMax int64 `toml:"log_size_max"`
 
+	// Whether container output should be logged to journald in addition
+	// to the kuberentes log file
+	LogToJournald bool `toml:"log_to_journald"`
+
 	// ContainerExitsDir is the directory in which container exit files are
 	// written to by conmon.
 	ContainerExitsDir string `toml:"container_exits_dir"`

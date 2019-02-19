@@ -213,8 +213,7 @@ function wait_until_reachable() {
 	retry 15 1 crictl info
 }
 
-# Start crio.
-function start_crio() {
+function setup_crio() {
 	if [[ -n "$1" ]]; then
 		seccomp="$1"
 	else
@@ -253,9 +252,9 @@ function start_crio() {
 	fi
 	${netfunc} $POD_CIDR
 
-	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
-	wait_until_reachable
+}
 
+function pull_test_containers() {
 	run crictl inspecti quay.io/crio/redis:alpine
 	if [ "$status" -ne 0 ] ; then
 		crictl pull quay.io/crio/redis:alpine
@@ -282,6 +281,37 @@ function start_crio() {
 		  crictl pull quay.io/crio/image-volume-test:latest
 	fi
 	VOLUME_IMAGEID=$(crictl inspecti quay.io/crio/image-volume-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
+}
+
+# Start crio.
+function start_crio() {
+	setup_crio "$@"
+	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
+	wait_until_reachable
+	pull_test_containers
+}
+
+# Start crio with journald logging
+function start_crio_journald() {
+	setup_crio "$@"
+	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --log-journald --config "$CRIO_CONFIG" & CRIO_PID=$!
+	wait_until_reachable
+	pull_test_containers
+}
+
+function check_journald() {
+	if ! pkg-config --exists libsystemd-journal ; then
+		if ! pkg-config --exists libsystemd ; then
+			echo "1"
+			return
+		fi
+	fi
+
+	if ! journalctl --version ; then
+		echo "1"
+		return
+	fi
+	echo "0"
 }
 
 function cleanup_ctrs() {

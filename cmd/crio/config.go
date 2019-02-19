@@ -211,6 +211,9 @@ pids_limit = {{ .PidsLimit }}
 # limit is never exceeded.
 log_size_max = {{ .LogSizeMax }}
 
+# Whether container output should be logged to journald in addition to the kuberentes log file
+log_to_journald = {{ .LogToJournald }}
+
 # Path to directory in which container exit files are written to by conmon.
 container_exits_dir = "{{ .ContainerExitsDir }}"
 

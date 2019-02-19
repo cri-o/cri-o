@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     libseccomp-dev \
     libtool \
     libudev-dev \
+    libsystemd-dev \
     protobuf-c-compiler \
     protobuf-compiler \
     python-minimal \

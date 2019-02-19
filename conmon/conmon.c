@@ -1,4 +1,6 @@
 #define _GNU_SOURCE
+#include "utils.h"
+#include "ctr_logging.h"
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -18,7 +20,6 @@
 #include <sys/uio.h>
 #include <sys/ioctl.h>
 #include <termios.h>
-#include <syslog.h>
 #include <unistd.h>
 #include <inttypes.h>
 
@@ -33,45 +34,6 @@
 
 #include "cmsg.h"
 #include "config.h"
-
-#define _cleanup_(x) __attribute__((cleanup(x)))
-
-static inline void freep(void *p)
-{
-	free(*(void **)p);
-}
-
-static inline void closep(int *fd)
-{
-	if (*fd >= 0)
-		close(*fd);
-	*fd = -1;
-}
-
-static inline void fclosep(FILE **fp)
-{
-	if (*fp)
-		fclose(*fp);
-	*fp = NULL;
-}
-
-static inline void gstring_free_cleanup(GString **string)
-{
-	if (*string)
-		g_string_free(*string, TRUE);
-}
-
-static inline void strv_cleanup(char ***strv)
-{
-	if (strv)
-		g_strfreev(*strv);
-}
-
-#define _cleanup_free_ _cleanup_(freep)
-#define _cleanup_close_ _cleanup_(closep)
-#define _cleanup_fclose_ _cleanup_(fclosep)
-#define _cleanup_gstring_ _cleanup_(gstring_free_cleanup)
-#define _cleanup_strv_ _cleanup_(strv_cleanup)
 
 static volatile pid_t container_pid = -1;
 static volatile pid_t create_pid = -1;
@@ -91,7 +53,7 @@ static gboolean opt_no_pivot = FALSE;
 static char *opt_exec_process_spec = NULL;
 static gboolean opt_exec = FALSE;
 static char *opt_restore_path = NULL;
-static char *opt_log_path = NULL;
+static gchar **opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
 static int64_t opt_log_size_max = -1;
@@ -124,7 +86,7 @@ static GOptionEntry opt_entries[] = {
 	 "Path to the program to execute when the container terminates its execution", NULL},
 	{"exit-command-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_exit_args,
 	 "Additional arg to pass to the exit command.  Can be specified multiple times", NULL},
-	{"log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL},
+	{"log-path", 'l', 0, G_OPTION_ARG_STRING_ARRAY, &opt_log_path, "Log file path", NULL},
 	{"timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL},
 	{"log-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_size_max, "Maximum size of log file", NULL},
 	{"socket-dir-path", 0, 0, G_OPTION_ARG_STRING, &opt_socket_path, "Location of container attach sockets", NULL},
@@ -133,131 +95,8 @@ static GOptionEntry opt_entries[] = {
 	{"log-level", 0, 0, G_OPTION_ARG_STRING, &opt_log_level, "Print debug logs based on log level", NULL},
 	{NULL}};
 
-/* strlen("1997-03-25T13:20:42.999999999+01:00 stdout ") + 1 */
-#define TSBUFLEN 44
-
 #define CGROUP_ROOT "/sys/fs/cgroup"
 #define OOM_SCORE "-999"
-
-static int log_fd = -1;
-
-#define pexit(s) \
-	do { \
-		fprintf(stderr, "[conmon:e]: %s %s\n", s, strerror(errno)); \
-		if (opt_syslog) \
-			syslog(LOG_ERR, "conmon %.20s <error>: %s %s\n", opt_cid, s, strerror(errno)); \
-		exit(EXIT_FAILURE); \
-	} while (0)
-
-#define pexitf(fmt, ...) \
-	do { \
-		fprintf(stderr, "[conmon:e]: " fmt " %s\n", ##__VA_ARGS__, strerror(errno)); \
-		if (opt_syslog) \
-			syslog(LOG_ERR, "conmon %.20s <error>: " fmt ": %s\n", opt_cid, ##__VA_ARGS__, strerror(errno)); \
-		exit(EXIT_FAILURE); \
-	} while (0)
-
-#define pwarn(s) \
-	do { \
-		fprintf(stderr, "[conmon:w]: %s %s\n", s, strerror(errno)); \
-		if (opt_syslog) \
-			syslog(LOG_INFO, "conmon %.20s <pwarn>: %s %s\n", opt_cid, s, strerror(errno)); \
-	} while (0)
-
-#define nexit(s) \
-	do { \
-		fprintf(stderr, "[conmon:e] %s\n", s); \
-		if (opt_syslog) \
-			syslog(LOG_ERR, "conmon %.20s <error>: %s\n", opt_cid, s); \
-		exit(EXIT_FAILURE); \
-	} while (0)
-
-#define nexitf(fmt, ...) \
-	do { \
-		fprintf(stderr, "[conmon:e]: " fmt "\n", ##__VA_ARGS__); \
-		if (opt_syslog) \
-			syslog(LOG_ERR, "conmon %.20s <error>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
-		exit(EXIT_FAILURE); \
-	} while (0)
-
-#define nwarn(s) \
-	if (parse_level(opt_log_level) >= WARN_LEVEL) { \
-		do { \
-			fprintf(stderr, "[conmon:w]: %s\n", s); \
-			if (opt_syslog) \
-				syslog(LOG_INFO, "conmon %.20s <nwarn>: %s\n", opt_cid, s); \
-		} while (0); \
-	}
-
-#define nwarnf(fmt, ...) \
-	if (parse_level(opt_log_level) >= WARN_LEVEL) { \
-		do { \
-			fprintf(stderr, "[conmon:w]: " fmt "\n", ##__VA_ARGS__); \
-			if (opt_syslog) \
-				syslog(LOG_INFO, "conmon %.20s <nwarn>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
-		} while (0); \
-	}
-
-#define ninfo(s) \
-	if (parse_level(opt_log_level) >= INFO_LEVEL) { \
-		do { \
-			fprintf(stderr, "[conmon:i]: %s\n", s); \
-			if (opt_syslog) \
-				syslog(LOG_INFO, "conmon %.20s <ninfo>: %s\n", opt_cid, s); \
-		} while (0); \
-	}
-
-#define ninfof(fmt, ...) \
-	if (parse_level(opt_log_level) >= INFO_LEVEL) { \
-		do { \
-			fprintf(stderr, "[conmon:i]: " fmt "\n", ##__VA_ARGS__); \
-			if (opt_syslog) \
-				syslog(LOG_INFO, "conmon %.20s <ninfo>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
-		} while (0); \
-	}
-
-#define ndebug(s) \
-	if (parse_level(opt_log_level) >= DEBUG_LEVEL) { \
-		do { \
-			fprintf(stderr, "[conmon:d]: %s\n", s); \
-			if (opt_syslog) \
-				syslog(LOG_INFO, "conmon %.20s <ndebug>: %s\n", opt_cid, s); \
-		} while (0); \
-	}
-
-#define ndebugf(fmt, ...) \
-	if (parse_level(opt_log_level) >= DEBUG_LEVEL) { \
-		do { \
-			fprintf(stderr, "[conmon:d]: " fmt "\n", ##__VA_ARGS__); \
-			if (opt_syslog) \
-				syslog(LOG_INFO, "conmon %.20s <ndebug>: " fmt " \n", opt_cid, ##__VA_ARGS__); \
-		} while (0); \
-	}
-
-/* Different levels of logging */
-typedef enum {
-	EXIT_LEVEL,
-	WARN_LEVEL,
-	INFO_LEVEL,
-	DEBUG_LEVEL,
-} log_level_t;
-
-/* Parse_level parses the string value of the --log_level flag to its matching enum */
-static log_level_t parse_level(char *level_name)
-{
-	if (level_name == NULL)
-		return WARN_LEVEL;
-	if (!strcmp(level_name, "error") || !strcmp(level_name, "fatal") || !strcmp(level_name, "panic")) {
-		return EXIT_LEVEL;
-	} else if (!strcmp(level_name, "warn") || !strcmp(level_name, "warning")) {
-		return WARN_LEVEL;
-	} else if (!strcmp(level_name, "info")) {
-		return INFO_LEVEL;
-	} else if (!strcmp(level_name, "debug")) {
-		return DEBUG_LEVEL;
-	}
-	nexitf("No such log level %s", level_name);
-}
 
 static ssize_t write_all(int fd, const void *buf, size_t count)
 {
@@ -280,262 +119,6 @@ static ssize_t write_all(int fd, const void *buf, size_t count)
 	return count;
 }
 
-#define WRITEV_BUFFER_N_IOV 128
-
-typedef struct {
-	int iovcnt;
-	struct iovec iov[WRITEV_BUFFER_N_IOV];
-} writev_buffer_t;
-
-static ssize_t writev_buffer_flush(int fd, writev_buffer_t *buf)
-{
-	size_t count = 0;
-	ssize_t res;
-	struct iovec *iov;
-	int iovcnt;
-
-	iovcnt = buf->iovcnt;
-	iov = buf->iov;
-
-	while (iovcnt > 0) {
-		do {
-			res = writev(fd, iov, iovcnt);
-		} while (res == -1 && errno == EINTR);
-
-		if (res <= 0)
-			return -1;
-
-		count += res;
-
-		while (res > 0) {
-			size_t from_this = MIN((size_t)res, iov->iov_len);
-			iov->iov_len -= from_this;
-			iov->iov_base += from_this;
-			res -= from_this;
-
-			if (iov->iov_len == 0) {
-				iov++;
-				iovcnt--;
-			}
-		}
-	}
-
-	buf->iovcnt = 0;
-
-	return count;
-}
-
-ssize_t writev_buffer_append_segment(int fd, writev_buffer_t *buf, const void *data, ssize_t len)
-{
-	if (data == NULL)
-		return 1;
-
-	if (buf->iovcnt == WRITEV_BUFFER_N_IOV && writev_buffer_flush(fd, buf) < 0)
-		return -1;
-
-	if (len > 0) {
-		buf->iov[buf->iovcnt].iov_base = (void *)data;
-		buf->iov[buf->iovcnt].iov_len = (size_t)len;
-		buf->iovcnt++;
-	}
-
-	return 1;
-}
-
-int set_k8s_timestamp(char *buf, ssize_t buflen, const char *pipename)
-{
-	struct tm *tm;
-	struct timespec ts;
-	char off_sign = '+';
-	int off, len, err = -1;
-
-	if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
-		/* If CLOCK_REALTIME is not supported, we set nano seconds to 0 */
-		if (errno == EINVAL) {
-			ts.tv_nsec = 0;
-		} else {
-			return err;
-		}
-	}
-
-	if ((tm = localtime(&ts.tv_sec)) == NULL)
-		return err;
-
-
-	off = (int)tm->tm_gmtoff;
-	if (tm->tm_gmtoff < 0) {
-		off_sign = '-';
-		off = -off;
-	}
-
-	len = snprintf(buf, buflen, "%d-%02d-%02dT%02d:%02d:%02d.%09ld%c%02d:%02d %s ", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-		       tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec, off_sign, off / 3600, (off % 3600) / 60, pipename);
-
-	if (len < buflen)
-		err = 0;
-	return err;
-}
-
-/* stdpipe_t represents one of the std pipes (or NONE).
- * Sync with const in container_attach.go */
-typedef enum {
-	NO_PIPE,
-	STDIN_PIPE, /* unused */
-	STDOUT_PIPE,
-	STDERR_PIPE,
-} stdpipe_t;
-
-const char *stdpipe_name(stdpipe_t pipe)
-{
-	switch (pipe) {
-	case STDIN_PIPE:
-		return "stdin";
-	case STDOUT_PIPE:
-		return "stdout";
-	case STDERR_PIPE:
-		return "stderr";
-	default:
-		return "NONE";
-	}
-}
-
-/*
- * reopen_log_file reopens the log file fd.
- */
-static void reopen_log_file(void)
-{
-	_cleanup_free_ char *opt_log_path_tmp = g_strdup_printf("%s.tmp", opt_log_path);
-
-	/* Sync the logs to disk */
-	if (fsync(log_fd) < 0) {
-		pwarn("Failed to sync log file on reopen");
-	}
-
-	/* Close the current log_fd */
-	close(log_fd);
-
-	/* Open the log path file again */
-	log_fd = open(opt_log_path_tmp, O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC, 0600);
-	if (log_fd < 0)
-		pexitf("Failed to open log file %s", opt_log_path);
-
-	/* Replace the previous file */
-	if (rename(opt_log_path_tmp, opt_log_path) < 0) {
-		pexit("Failed to rename log file");
-	}
-}
-
-/*
- * The CRI requires us to write logs with a (timestamp, stream, line) format
- * for every newline-separated line. write_k8s_log writes said format for every
- * line in buf, and will partially write the final line of the log if buf is
- * not terminated by a newline.
- */
-static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
-{
-	char tsbuf[TSBUFLEN];
-	writev_buffer_t bufv = {0};
-	static int64_t bytes_written = 0;
-	int64_t bytes_to_be_written = 0;
-
-	/*
-	 * Use the same timestamp for every line of the log in this buffer.
-	 * There is no practical difference in the output since write(2) is
-	 * fast.
-	 */
-	if (set_k8s_timestamp(tsbuf, sizeof tsbuf, stdpipe_name(pipe)))
-		/* TODO: We should handle failures much more cleanly than this. */
-		return -1;
-
-	while (buflen > 0) {
-		const char *line_end = NULL;
-		ptrdiff_t line_len = 0;
-		bool partial = FALSE;
-
-		/* Find the end of the line, or alternatively the end of the buffer. */
-		line_end = memchr(buf, '\n', buflen);
-		if (line_end == NULL) {
-			line_end = &buf[buflen - 1];
-			partial = TRUE;
-		}
-		line_len = line_end - buf + 1;
-
-		/* This is line_len bytes + TSBUFLEN - 1 + 2 (- 1 is for ignoring \0). */
-		bytes_to_be_written = line_len + TSBUFLEN + 1;
-
-		/* If partial, then we add a \n */
-		if (partial) {
-			bytes_to_be_written += 1;
-		}
-
-		/*
-		 * We re-open the log file if writing out the bytes will exceed the max
-		 * log size. We also reset the state so that the new file is started with
-		 * a timestamp.
-		 */
-		if ((opt_log_size_max > 0) && (bytes_written + bytes_to_be_written) > opt_log_size_max) {
-			bytes_written = 0;
-
-			if (writev_buffer_flush(fd, &bufv) < 0) {
-				nwarn("failed to flush buffer to log");
-				/*
-				 * We are going to reopen the file anyway, in case of
-				 * errors discard all we have in the buffer.
-				 */
-				bufv.iovcnt = 0;
-			}
-			reopen_log_file();
-
-			/* Reassign to the new log file fd */
-			fd = log_fd;
-		}
-
-		/* Output the timestamp */
-		if (writev_buffer_append_segment(fd, &bufv, tsbuf, TSBUFLEN - 1) < 0) {
-			nwarn("failed to write (timestamp, stream) to log");
-			goto next;
-		}
-
-		/* Output log tag for partial or newline */
-		if (partial) {
-			if (writev_buffer_append_segment(fd, &bufv, "P ", 2) < 0) {
-				nwarn("failed to write partial log tag");
-				goto next;
-			}
-		} else {
-			if (writev_buffer_append_segment(fd, &bufv, "F ", 2) < 0) {
-				nwarn("failed to write end log tag");
-				goto next;
-			}
-		}
-
-		/* Output the actual contents. */
-		if (writev_buffer_append_segment(fd, &bufv, buf, line_len) < 0) {
-			nwarn("failed to write buffer to log");
-			goto next;
-		}
-
-		/* Output a newline for partial */
-		if (partial) {
-			if (writev_buffer_append_segment(fd, &bufv, "\n", 1) < 0) {
-				nwarn("failed to write newline to log");
-				goto next;
-			}
-		}
-
-		bytes_written += bytes_to_be_written;
-	next:
-		/* Update the head of the buffer remaining to output. */
-		buf += line_len;
-		buflen -= line_len;
-	}
-
-	if (writev_buffer_flush(fd, &bufv) < 0) {
-		nwarn("failed to flush buffer to log");
-	}
-
-	return 0;
-}
 
 /*
  * Returns the path for specified controller name for a pid.
@@ -711,9 +294,11 @@ static gboolean tty_hup_timeout_cb(G_GNUC_UNUSED gpointer user_data)
 
 static bool read_stdio(int fd, stdpipe_t pipe, gboolean *eof)
 {
-	/* We use one extra byte at the start, which we don't read into, instead
-	   we use that for marking the pipe when we write to the attached socket */
-	char real_buf[STDIO_BUF_SIZE + 1];
+	/* We use two extra bytes. One at the start, which we don't read into, instead
+	   we use that for marking the pipe when we write to the attached socket.
+	   One at the end to guarentee a null-terminated buffer for journald logging*/
+
+	char real_buf[STDIO_BUF_SIZE + 2];
 	char *buf = real_buf + 1;
 	ssize_t num_read = 0;
 	size_t i;
@@ -730,10 +315,9 @@ static bool read_stdio(int fd, stdpipe_t pipe, gboolean *eof)
 		nwarnf("stdio_input read failed %s", strerror(errno));
 		return false;
 	} else {
-		if (write_k8s_log(log_fd, pipe, buf, num_read) < 0) {
-			nwarn("write_k8s_log failed");
-			return G_SOURCE_CONTINUE;
-		}
+		bool written = write_to_logs(pipe, buf, num_read);
+		if (!written)
+			return written;
 
 		if (conn_socks == NULL) {
 			return true;
@@ -1011,7 +595,7 @@ static gboolean ctrl_cb(int fd, G_GNUC_UNUSED GIOCondition condition, G_GNUC_UNU
 			resize_winsz(height, width);
 			break;
 		case 2:
-			reopen_log_file();
+			reopen_log_files();
 			break;
 		default:
 			ninfof("Unknown message type: %d", ctl_msg_type);
@@ -1364,10 +948,13 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
+	// why not nexit?
 	if (opt_cid == NULL) {
 		fprintf(stderr, "Container ID not provided. Use --cid\n");
 		exit(EXIT_FAILURE);
 	}
+
+	set_conmon_logs(opt_log_level, opt_cid, opt_syslog);
 
 	if (opt_restore_path && opt_exec)
 		nexit("Cannot use 'exec' and 'restore' at the same time.");
@@ -1405,8 +992,7 @@ int main(int argc, char *argv[])
 		opt_container_pid_file = default_pid_file;
 	}
 
-	if (opt_log_path == NULL)
-		nexit("Log file path not provided. Use --log-path");
+	configure_log_drivers(opt_log_path, opt_log_size_max, opt_cuuid);
 
 	start_pipe_fd = get_pipe_fd_from_env("_OCI_STARTPIPE");
 	if (start_pipe_fd >= 0) {
@@ -1453,11 +1039,6 @@ int main(int argc, char *argv[])
 
 	/* Environment variables */
 	sync_pipe_fd = get_pipe_fd_from_env("_OCI_SYNCPIPE");
-
-	/* Open the log path file. */
-	log_fd = open(opt_log_path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
-	if (log_fd < 0)
-		pexit("Failed to open log file");
 
 	/*
 	 * Set self as subreaper so we can wait for container process
@@ -1748,12 +1329,7 @@ int main(int argc, char *argv[])
 			;
 	}
 
-	/* Sync the logs to disk */
-	if (log_fd > 0) {
-		if (fsync(log_fd) < 0) {
-			pwarn("Failed to sync log file before exit");
-		}
-	}
+	sync_logs();
 
 	int exit_status = -1;
 	const char *exit_message = NULL;

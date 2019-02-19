@@ -38,6 +38,10 @@ const (
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
 	DefaultLogSizeMax = -1
+
+	// DefaultLogToJournald is the default value for whether conmon should
+	// log to journald in addition to kubernetes log file.
+	DefaultLogToJournald = false
 )
 
 // DefaultCapabilities for the default_capabilities option in the crio.conf file
@@ -152,6 +156,7 @@ func DefaultConfig() *Config {
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: oci.ContainerAttachSocketDir,
 			LogSizeMax:               DefaultLogSizeMax,
+			LogToJournald:            DefaultLogToJournald,
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "error",
 			DefaultSysctls:           []string{},
