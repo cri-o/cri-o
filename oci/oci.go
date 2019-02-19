@@ -66,6 +66,7 @@ func New(runtimeTrustedPath string,
 	containerExitsDir string,
 	containerAttachSocketDir string,
 	logSizeMax int64,
+	logToJournald bool,
 	noPivot bool,
 	ctrStopTimeout int64) (*Runtime, error) {
 	if runtimeTrustedPath == "" {
@@ -89,6 +90,7 @@ func New(runtimeTrustedPath string,
 		containerExitsDir:        containerExitsDir,
 		containerAttachSocketDir: containerAttachSocketDir,
 		logSizeMax:               logSizeMax,
+		logToJournald:            logToJournald,
 		noPivot:                  noPivot,
 		ctrStopTimeout:           ctrStopTimeout,
 	}
@@ -108,6 +110,7 @@ type Runtime struct {
 	containerExitsDir        string
 	containerAttachSocketDir string
 	logSizeMax               int64
+	logToJournald            bool
 	noPivot                  bool
 	ctrStopTimeout           int64
 }
@@ -253,6 +256,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	args = append(args, "--exit-dir", r.containerExitsDir)
 	args = append(args, "--socket-dir-path", r.containerAttachSocketDir)
 	args = append(args, "--log-level", logrus.GetLevel().String())
+	if r.logToJournald {
+		args = append(args, "-l", "journald:")
+	}
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}

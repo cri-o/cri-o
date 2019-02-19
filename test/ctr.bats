@@ -279,6 +279,7 @@ function teardown() {
 	stop_crio
 }
 
+
 @test "ctr logging" {
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
@@ -309,6 +310,57 @@ function teardown() {
 	echo "$logpath :: $(cat "$logpath")"
 	grep -E "^[^\n]+ stdout F here is some output$" "$logpath"
 	grep -E "^[^\n]+ stderr F and some from stderr$" "$logpath"
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr journald logging" {
+	# ensure we have journald logging capability
+	enabled=$(check_journald)
+	if [[ "$enabled" -ne 0 ]]; then
+		skip "journald not enabled"
+	fi
+
+	start_crio_journald
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	stdout="here is some output"
+	stderr="here is some error"
+
+	# Create a new container.
+	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
+	cp "$TESTDATA"/container_config_logging.json "$newconfig"
+	sed -i 's|"%shellcommand%"|"echo '"$stdout"' \&\& echo '"$stderr"' >\&2"|' "$newconfig"
+	cat "$newconfig"
+	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run wait_until_exit "$ctr_id"
+	[ "$status" -eq 0 ]
+	run crictl rm "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	# priority of 5 is LOG_NOTICE
+	journalctl -t conmon -p notice MESSAGE_ID="$ctr_id" | grep -E "$stdout"
+	# priority of 3 is LOG_ERR
+	journalctl -t conmon -p err MESSAGE_ID="$ctr_id" | grep -E "$stderr"
 
 	run crictl stopp "$pod_id"
 	echo "$output"
