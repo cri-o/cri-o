@@ -147,12 +147,14 @@ func (s *Server) restore() {
 	}
 	pods := map[string]*storage.RuntimeContainerMetadata{}
 	podContainers := map[string]*storage.RuntimeContainerMetadata{}
+	names := map[string][]string{}
 	for _, container := range containers {
 		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(container.ID)
 		if err2 != nil {
 			logrus.Warnf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
 			continue
 		}
+		names[container.ID] = container.Names
 		if metadata.Pod {
 			pods[container.ID] = &metadata
 		} else {
@@ -162,11 +164,17 @@ func (s *Server) restore() {
 	for containerID, metadata := range pods {
 		if err = s.LoadSandbox(containerID); err != nil {
 			logrus.Warnf("could not restore sandbox %s container %s: %v", metadata.PodID, containerID, err)
+			for _, n := range names[containerID] {
+				s.Store().DeleteContainer(n)
+			}
 		}
 	}
 	for containerID := range podContainers {
 		if err := s.LoadContainer(containerID); err != nil {
 			logrus.Warnf("could not restore container %s: %v", containerID, err)
+			for _, n := range names[containerID] {
+				s.Store().DeleteContainer(n)
+			}
 		}
 	}
 	// Restore sandbox IPs
