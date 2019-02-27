@@ -531,12 +531,13 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	logrus.Debugf("CONTAINER USER: %+v", containerUser)
 
 	// Add uid, gid and groups from user
-	uid, _, addGroups, err := getUserInfo(rootfs, containerUser)
+	uid, gid, addGroups, err := getUserInfo(rootfs, containerUser)
 	if err != nil {
 		return err
 	}
 
 	specgen.SetProcessUID(uid)
+	specgen.SetProcessGID(gid)
 	if sc.GetRunAsGroup() != nil {
 		specgen.SetProcessGID(uint32(sc.GetRunAsGroup().GetValue()))
 	}
