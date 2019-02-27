@@ -312,6 +312,7 @@ func setupContainerUser(specgen *generate.Generator, rootfs, mountLabel, ctrRunD
 	}
 
 	specgen.SetProcessUID(uid)
+	specgen.SetProcessGID(gid)
 	if sc.GetRunAsGroup() != nil {
 		specgen.SetProcessGID(uint32(sc.GetRunAsGroup().GetValue()))
 	}
