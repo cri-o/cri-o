@@ -454,7 +454,12 @@ func main() {
 			logrus.Fatalf("failed to listen: %v", err)
 		}
 
-		s := grpc.NewServer()
+		// The default grpc msg size is 4MB.
+		// We bump it up to 16MB for allowing more containers.
+		maxMsgSize := 16 * 1024 * 1024
+		s := grpc.NewServer(
+			grpc.MaxMsgSize(maxMsgSize),
+		)
 
 		service, err := server.New(ctx, config)
 		if err != nil {
