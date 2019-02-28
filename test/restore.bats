@@ -271,3 +271,50 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "crio restore with missing config.json" {
+	start_crio
+
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	stop_crio
+
+	# simulate reboot with runtime state and config.json going away
+	for i in $("$RUNTIME" list -q | xargs); do "$RUNTIME" delete -f $i; done
+	find $TESTDIR/ -name config.json -exec rm \{\} \;
+	find $TESTDIR/ -name shm -exec umount -l \{\} \;
+
+	start_crio
+
+	run crictl inspect "$ctr_id"
+	echo "$output"
+	[ "$status" -ne 0 ]
+
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
