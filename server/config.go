@@ -53,6 +53,9 @@ type APIConfig struct {
 	// StreamTLSCA is the x509 CA(s) file used to verify and authenticate client
 	// communication with the tls encrypted stream
 	StreamTLSCA string `toml:"stream_tls_ca"`
+
+	// HostIP is the IP address that the server uses where it needs to use the primary host IP.
+	HostIP string `toml:"host_ip"`
 }
 
 // tomlConfig is another way of looking at a Config, which is

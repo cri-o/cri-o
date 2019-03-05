@@ -92,6 +92,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("stream-address") {
 		config.StreamAddress = ctx.GlobalString("stream-address")
 	}
+	if ctx.GlobalIsSet("host-ip") {
+		config.HostIP = ctx.GlobalString("host-ip")
+	}
 	if ctx.GlobalIsSet("stream-port") {
 		config.StreamPort = ctx.GlobalString("stream-port")
 	}
