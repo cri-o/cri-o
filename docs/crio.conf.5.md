@@ -47,6 +47,9 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
 ## CRIO.API TABLE
 The `crio.api` table contains settings for the kubelet/gRPC interface.
 
+**host_ip**=""
+  Host IP considered as the primary IP to use by CRI-O for things such as host network IP.
+
 **listen**="/var/run/crio/crio.sock"
   Path to AF_LOCAL socket on which CRI-O will listen.
 
