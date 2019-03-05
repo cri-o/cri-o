@@ -351,9 +351,12 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	hostIP, err := knet.ChooseBindAddress(nil)
-	if err != nil {
-		return nil, err
+	hostIP := net.ParseIP(config.HostIP)
+	if hostIP == nil {
+		hostIP, err = knet.ChooseBindAddress(nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
