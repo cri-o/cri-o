@@ -30,8 +30,8 @@ import (
 )
 
 var (
-	// localeToLanguage maps from locale values to language tags.
-	localeToLanguage = map[string]string{
+	// localeToLanguageMap maps from locale values to language tags.
+	localeToLanguageMap = map[string]string{
 		"":      "und-u-va-posix",
 		"c":     "und-u-va-posix",
 		"posix": "und-u-va-posix",
@@ -107,6 +107,16 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 	return c.storageRuntimeServer
 }
 
+// localeToLanguage translates POSIX locale strings to BCP 47 language tags.
+func localeToLanguage(locale string) string {
+	locale = strings.Replace(strings.SplitN(locale, ".", 2)[0], "_", "-", 1)
+	langString, ok := localeToLanguageMap[strings.ToLower(locale)]
+	if !ok {
+		langString = locale
+	}
+	return langString
+}
+
 // New creates a new ContainerServer with options provided
 func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 	store, err := cstorage.GetStore(cstorage.StoreOptions{
@@ -155,11 +165,7 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		}
 	}
 
-	langString, ok := localeToLanguage[strings.ToLower(locale)]
-	if !ok {
-		langString = locale
-	}
-
+	langString := localeToLanguage(locale)
 	lang, err := language.Parse(langString)
 	if err != nil {
 		logrus.Warnf("failed to parse language %q: %s", langString, err)
