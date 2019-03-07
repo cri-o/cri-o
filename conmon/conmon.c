@@ -935,7 +935,7 @@ static gboolean conn_sock_cb(int fd, GIOCondition condition, gpointer user_data)
 	/* End of input */
 	conn_sock_shutdown(sock, SHUT_RD);
 	if (masterfd_stdin >= 0 && opt_stdin) {
-		if (!opt_leave_stdin_open) {
+		if (!opt_leave_stdin_open || !opt_terminal) {
 			close(masterfd_stdin);
 			masterfd_stdin = -1;
 		} else {
