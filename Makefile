@@ -159,9 +159,11 @@ ${BUILD_BIN_PATH}/ginkgo:
 	mkdir -p ${BUILD_BIN_PATH}
 	$(GO) build -o ${BUILD_BIN_PATH}/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo
 
-vendor:
-	vndr -whitelist "github.com/onsi/ginkgo/ginkgo/.*" \
-		-whitelist "github.com/golang/mock/.*" ${PKG}
+vendor: .install.vndr
+	$(GOPATH)/bin/vndr \
+		-whitelist "github.com/onsi/ginkgo" \
+		-whitelist "github.com/golang/mock" \
+		${PKG}
 
 ${BUILD_BIN_PATH}/mockgen:
 	mkdir -p ${BUILD_BIN_PATH}
@@ -308,6 +310,9 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 	if [ ! -x "$(GOPATH)/bin/go-md2man" ]; then \
 		go get -u github.com/cpuguy83/go-md2man; \
 	fi
+
+.install.vndr: .gopathok
+	$(GO) get -u github.com/LK4D4/vndr
 
 .install.ostree: .gopathok
 	if ! pkg-config ostree-1 2> /dev/null ; then \
