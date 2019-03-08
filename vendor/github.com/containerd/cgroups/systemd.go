@@ -1,3 +1,19 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package cgroups
 
 import (
@@ -43,19 +59,13 @@ func Slice(slice, name string) Path {
 }
 
 func NewSystemd(root string) (*SystemdController, error) {
-	conn, err := systemdDbus.New()
-	if err != nil {
-		return nil, err
-	}
 	return &SystemdController{
 		root: root,
-		conn: conn,
 	}, nil
 }
 
 type SystemdController struct {
 	mu   sync.Mutex
-	conn *systemdDbus.Conn
 	root string
 }
 
@@ -64,6 +74,11 @@ func (s *SystemdController) Name() Name {
 }
 
 func (s *SystemdController) Create(path string, resources *specs.LinuxResources) error {
+	conn, err := systemdDbus.New()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 	slice, name := splitName(path)
 	properties := []systemdDbus.Property{
 		systemdDbus.PropDescription(fmt.Sprintf("cgroup %s", name)),
@@ -74,14 +89,29 @@ func (s *SystemdController) Create(path string, resources *specs.LinuxResources)
 		newProperty("CPUAccounting", true),
 		newProperty("BlockIOAccounting", true),
 	}
-	_, err := s.conn.StartTransientUnit(name, "replace", properties, nil)
-	return err
+	ch := make(chan string)
+	_, err = conn.StartTransientUnit(name, "replace", properties, ch)
+	if err != nil {
+		return err
+	}
+	<-ch
+	return nil
 }
 
 func (s *SystemdController) Delete(path string) error {
+	conn, err := systemdDbus.New()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 	_, name := splitName(path)
-	_, err := s.conn.StopUnit(name, "replace", nil)
-	return err
+	ch := make(chan string)
+	_, err = conn.StopUnit(name, "replace", ch)
+	if err != nil {
+		return err
+	}
+	<-ch
+	return nil
 }
 
 func newProperty(name string, units interface{}) systemdDbus.Property {
