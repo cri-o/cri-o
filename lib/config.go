@@ -12,7 +12,7 @@ import (
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/spec"
+	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/oci"
@@ -271,6 +271,9 @@ type ImageConfig struct {
 	// PauseImage is the name of an image which we use to instantiate infra
 	// containers.
 	PauseImage string `toml:"pause_image"`
+	// PauseImageAuthFile, if not empty, is a path to a docker/config.json-like
+	// file containing credentials necessary for pulling PauseImage
+	PauseImageAuthFile string `toml:"pause_image_auth_file"`
 	// PauseCommand is the path of the binary we run in an infra
 	// container that's been instantiated using PauseImage.
 	PauseCommand string `toml:"pause_command"`
@@ -404,6 +407,7 @@ func DefaultConfig() *Config {
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
 			PauseImage:          pauseImage,
+			PauseImageAuthFile:  "",
 			PauseCommand:        pauseCommand,
 			SignaturePolicyPath: "",
 			ImageVolumes:        ImageVolumesMkdir,

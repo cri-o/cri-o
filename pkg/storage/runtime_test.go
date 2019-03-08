@@ -20,7 +20,7 @@ var _ = t.Describe("Runtime", func() {
 	// Prepare the system under test and register a test name and key before
 	// each test
 	BeforeEach(func() {
-		sut = storage.GetRuntimeService(context.Background(), imageServerMock, "")
+		sut = storage.GetRuntimeService(context.Background(), imageServerMock, "", "")
 		Expect(sut).NotTo(BeNil())
 	})
 
