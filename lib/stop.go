@@ -17,20 +17,18 @@ func (c *ContainerServer) ContainerStop(ctx context.Context, container string, t
 
 	cStatus := ctr.State()
 	switch cStatus.Status {
-
+	case oci.ContainerStateStopped: // no-op
 	case oci.ContainerStatePaused:
 		return "", errors.Errorf("cannot stop paused container %s", ctrID)
 	default:
-		if cStatus.Status != oci.ContainerStateStopped {
-			if err := c.runtime.StopContainer(ctx, ctr, timeout); err != nil {
-				return "", errors.Wrapf(err, "failed to stop container %s", ctrID)
-			}
-			if err := c.runtime.WaitContainerStateStopped(ctx, ctr); err != nil {
-				return "", errors.Wrapf(err, "failed to get container 'stopped' status %s", ctrID)
-			}
-			if err := c.storageRuntimeServer.StopContainer(ctrID); err != nil {
-				return "", errors.Wrapf(err, "failed to unmount container %s", ctrID)
-			}
+		if err := c.runtime.StopContainer(ctx, ctr, timeout); err != nil {
+			return "", errors.Wrapf(err, "failed to stop container %s", ctrID)
+		}
+		if err := c.runtime.WaitContainerStateStopped(ctx, ctr); err != nil {
+			return "", errors.Wrapf(err, "failed to get container 'stopped' status %s", ctrID)
+		}
+		if err := c.storageRuntimeServer.StopContainer(ctrID); err != nil {
+			return "", errors.Wrapf(err, "failed to unmount container %s", ctrID)
 		}
 	}
 
