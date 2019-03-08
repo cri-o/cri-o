@@ -28,6 +28,7 @@ crio
 [--metrics-port value]
 [--pause-command=[value]]
 [--pause-image=[value]]
+[--pause-image-auth-file=[value]]
 [--read-only]
 [--registry=[value]]
 [--root=[value]]
@@ -122,6 +123,8 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 **--pause-command**="": Path to the pause executable in the pause image (default: "/pause")
 
 **--pause-image**="": Image which contains the pause executable (default: "kubernetes/pause")
+
+**--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
 
