@@ -36,6 +36,7 @@ func assertAllFieldsEquality(t *testing.T, c Config) {
 
 		{c.ImageConfig.DefaultTransport, "docker://"},
 		{c.ImageConfig.PauseImage, "kubernetes/pause"},
+		{c.ImageConfig.PauseImageAuthFile, "/var/lib/kubelet/config.json"},
 		{c.ImageConfig.PauseCommand, "/pause"},
 		{c.ImageConfig.SignaturePolicyPath, "/tmp"},
 		{c.ImageConfig.ImageVolumes, config.ImageVolumesType("mkdir")},

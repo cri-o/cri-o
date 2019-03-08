@@ -160,6 +160,7 @@ func DefaultConfig() *Config {
 		ImageConfig: config.ImageConfig{
 			DefaultTransport:    defaultTransport,
 			PauseImage:          pauseImage,
+			PauseImageAuthFile:  "",
 			PauseCommand:        pauseCommand,
 			SignaturePolicyPath: "",
 			ImageVolumes:        config.ImageVolumesMkdir,
