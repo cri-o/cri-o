@@ -3,8 +3,11 @@ package storage_test
 import (
 	"context"
 
+	"github.com/containers/image/copy"
+	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	cs "github.com/containers/storage"
+	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/cri-o/pkg/storage"
@@ -837,6 +840,119 @@ var _ = t.Describe("Runtime", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("pauseImage", func() {
+		var info storage.ContainerInfo
+		var err error
+
+		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *copy.Options) {
+			gomock.InOrder(
+				// istorage.Transport.ParseStoreReference
+				storeMock.EXPECT().Image(gomock.Any()).Return(nil, cstorage.ErrImageUnknown),
+				storeMock.EXPECT().GraphOptions().Return([]string{}),
+				storeMock.EXPECT().GraphDriverName().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().RunRoot().Return(""),
+			)
+			pulledRef, err := istorage.Transport.ParseStoreReference(storeMock, "pauseimagename")
+			Expect(err).To(BeNil())
+			gomock.InOrder(
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				// istorage.Transport.ParseStoreReference
+				storeMock.EXPECT().Image(gomock.Any()).Return(nil, cstorage.ErrImageUnknown),
+				storeMock.EXPECT().GraphOptions().Return([]string{}),
+				storeMock.EXPECT().GraphDriverName().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().RunRoot().Return(""),
+
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				// istorage.Transport.GetStoreImage
+				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(nil, cstorage.ErrImageUnknown),
+				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(nil, cstorage.ErrImageUnknown),
+				storeMock.EXPECT().GraphOptions().Return([]string{}),
+				storeMock.EXPECT().GraphDriverName().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().RunRoot().Return(""),
+				storeMock.EXPECT().GraphOptions().Return([]string{}),
+				storeMock.EXPECT().GraphDriverName().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().RunRoot().Return(""),
+
+				imageServerMock.EXPECT().PullImage(gomock.Any(), "pauseimagename", expectedCopyOptions).Return(pulledRef, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				// istorage.Transport.GetStoreImage
+				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(&cs.Image{}, nil),
+
+				// ref.NewImage (resolveImage requires storeMock.Image() to return an object matching the input somewhat)
+				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(&cs.Image{
+					ID:    "nonempty",
+					Names: []string{"docker.io/library/pauseimagename:latest"},
+				}, nil),
+				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
+					Return(testManifest, nil),
+				storeMock.EXPECT().ListImageBigData(gomock.Any()).
+					Return([]string{""}, nil),
+				storeMock.EXPECT().ImageBigDataSize(gomock.Any(), gomock.Any()).
+					Return(int64(0), nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+
+				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&cs.Container{ID: "id"}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Names(gomock.Any()).Return([]string{}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().SetNames(gomock.Any(), gomock.Any()).Return(nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
+					Return("dir", nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
+					Return("runDir", nil),
+			)
+		}
+
+		It("should pull pauseImage if not available locally, using default credentials", func() {
+			// The system under test
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock, "pauseimagename", "")
+			Expect(sut).NotTo(BeNil())
+
+			// Given
+			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{})
+
+			// When
+			info, err = sut.CreatePodSandbox(&types.SystemContext{},
+				"podName", "podID", "pauseimagename",
+				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"containerName", "metadataName",
+				"uid", "namespace", 0, &idtools.IDMappings{})
+		})
+
+		It("should pull pauseImage if not available locally, using provided credential file", func() {
+			// The system under test
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock, "pauseimagename", "/var/non-default/credentials.json")
+			Expect(sut).NotTo(BeNil())
+
+			// Given
+			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{SourceCtx: &types.SystemContext{AuthFilePath: "/var/non-default/credentials.json"}})
+
+			// When
+			info, err = sut.CreatePodSandbox(&types.SystemContext{},
+				"podName", "podID", "pauseimagename",
+				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"containerName", "metadataName",
+				"uid", "namespace", 0, &idtools.IDMappings{})
+		})
+
+		AfterEach(func() {
+			// Then
+			Expect(err).To(BeNil())
+			Expect(info).NotTo(BeNil())
+			Expect(info.ID).To(Equal("id"))
+			Expect(info.Dir).To(Equal("dir"))
+			Expect(info.RunDir).To(Equal("runDir"))
 		})
 	})
 })
