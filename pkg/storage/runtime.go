@@ -13,7 +13,7 @@ import (
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -44,6 +44,7 @@ var (
 type runtimeService struct {
 	storageImageServer ImageServer
 	pauseImage         string
+	pauseImageAuthFile string
 	ctx                context.Context
 }
 
@@ -72,7 +73,7 @@ type RuntimeServer interface {
 	// both its pod's ID and its container ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, copyOptions *copy.Options) (ContainerInfo, error)
+	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings) (ContainerInfo, error)
 	// RemovePodSandbox deletes a pod sandbox's infrastructure container.
 	// The CRI expects that a sandbox can't be removed unless its only
 	// container is its infrastructure container, but we don't enforce that
@@ -87,7 +88,7 @@ type RuntimeServer interface {
 	// CreateContainer creates a container with the specified ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings, copyOptions *copy.Options) (ContainerInfo, error)
+	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
 	DeleteContainer(idOrName string) error
 
@@ -147,7 +148,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 	metadata.MountLabel = mountLabel
 }
 
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings, options *copy.Options) (ContainerInfo, error) {
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings) (ContainerInfo, error) {
 	var ref types.ImageReference
 	if podName == "" || podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
@@ -188,6 +189,12 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 			return ContainerInfo{}, ErrInvalidImageName
 		}
 		logrus.Debugf("couldn't find image %q, retrieving it", image)
+		options := &copy.Options{}
+		if r.pauseImageAuthFile != "" {
+			options.SourceCtx = &types.SystemContext{
+				AuthFilePath: r.pauseImageAuthFile,
+			}
+		}
 		ref, err = r.storageImageServer.PullImage(systemContext, image, options)
 		if err != nil {
 			return ContainerInfo{}, err
@@ -330,12 +337,12 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	}, nil
 }
 
-func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, copyOptions *copy.Options) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, podID, metadataName, uid, namespace, attempt, "", idMappings, copyOptions)
+func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, podID, metadataName, uid, namespace, attempt, "", idMappings)
 }
 
-func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings, copyOptions *copy.Options) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, "", "", attempt, mountLabel, idMappings, copyOptions)
+func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, mountLabel string, idMappings *idtools.IDMappings) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, "", "", attempt, mountLabel, idMappings)
 }
 
 func (r *runtimeService) RemovePodSandbox(idOrName string) error {
@@ -454,10 +461,11 @@ func (r *runtimeService) GetRunDir(id string) (string, error) {
 // GetRuntimeService returns a RuntimeServer that uses the passed-in image
 // service to pull and manage images, and its store to manage containers based
 // on those images.
-func GetRuntimeService(ctx context.Context, storageImageServer ImageServer, pauseImage string) RuntimeServer {
+func GetRuntimeService(ctx context.Context, storageImageServer ImageServer, pauseImage, pauseImageAuthFile string) RuntimeServer {
 	return &runtimeService{
 		storageImageServer: storageImageServer,
 		pauseImage:         pauseImage,
+		pauseImageAuthFile: pauseImageAuthFile,
 		ctx:                ctx,
 	}
 }

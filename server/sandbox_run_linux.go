@@ -106,8 +106,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		req.GetConfig().GetMetadata().GetUid(),
 		namespace,
 		attempt,
-		s.defaultIDMappings,
-		nil)
+		s.defaultIDMappings)
 	if errors.Cause(err) == storage.ErrDuplicateName {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
 	}

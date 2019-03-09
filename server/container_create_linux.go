@@ -14,7 +14,7 @@ import (
 
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/secrets"
-	"github.com/containers/libpod/pkg/spec"
+	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/idtools"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
@@ -753,8 +753,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		metaname,
 		attempt,
 		mountLabel,
-		containerIDMappings,
-		nil)
+		containerIDMappings)
 	if err != nil {
 		return nil, err
 	}
