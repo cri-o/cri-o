@@ -79,9 +79,13 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
   Path to the OCI compatible runtime used for trusted container workloads. This is a mandatory setting as this runtime will be the default and will also be used for untrusted container workloads if `runtime_untrusted_workload` is not set.
 
 **runtime_untrusted_workload**=""
-  Path to OCI compatible runtime used for untrusted container workloads. This is an optional setting, except if `default_container_trust` is set to "untrusted".
+   **Deprecated:** use "crio.runtime.runtimes" instead. If provided, this runtime is mapped to the runtime handler named 'untrusted'. It is a configuration error to provide both the (now deprecated) runtime_untrusted_workload and a handler in the Runtimes handler map (below) for 'untrusted' workloads at the same time. Please provide one or the other.  The support of this option will continue through versions 1.12 and 1.13.  By version 1.14, this option will no longer exist.
+
+   Path to OCI compatible runtime used for untrusted container workloads. This is an optional setting, except if `default_container_trust` is set to "untrusted".
 
 **default_workload_trust**="trusted"
+  **Deprecated:** The runtime handler should provide a key to the map of runtimes, avoiding the need to rely on the level of trust of the workload to choose an appropriate runtime.  The support of this option will continue through versions 1.12 and 1.13.  By version 1.14, this option will no longer exist.
+
   Default level of trust CRI-O puts in container workloads. It can either be "trusted" or "untrusted", and the default is "trusted". Containers can be run through different container runtimes, depending on the trust hints we receive from kubelet:
 
     - If kubelet tags a container workload as untrusted, CRI-O will try first to run it through the untrusted container workload runtime. If it is not set, CRI-O will use the trusted runtime.
@@ -183,6 +187,11 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **ctr_stop_timeout**=10
   The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container.
 
+### CRIO.RUNTIME.RUNTIMES TABLE
+The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime_handler provided by the CRI.  If no runtime_handler is provided, the runtime will be picked based on the level of trust of the workload.
+
+**runtime_path**=""
+  Path to the OCI compatible runtime used for this runtime handler.
 
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.
