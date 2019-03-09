@@ -28,17 +28,25 @@ import (
 	utilexec "k8s.io/utils/exec"
 )
 
-// RuntimeV1 is the Runtime interface implementation relying on conmon to
+const (
+	// RuntimeTypeOCI is the type representing the RuntimeOCI implementation.
+	RuntimeTypeOCI = "oci"
+)
+
+// runtimeOCI is the Runtime interface implementation relying on conmon to
 // interact with the container runtime.
-type RuntimeV1 struct {
-	RuntimeBase
+type runtimeOCI struct {
+	*Runtime
+
+	path string
 }
 
-// NewRuntimeV1 creates a new RuntimeV1 instance
-func NewRuntimeV1(rb RuntimeBase) (RuntimeImpl, error) {
-	return &RuntimeV1{
-		RuntimeBase: rb,
-	}, nil
+// newRuntimeOCI creates a new runtimeOCI instance
+func newRuntimeOCI(r *Runtime, path string) runtimeImpl {
+	return &runtimeOCI{
+		Runtime: r,
+		path:    path,
+	}
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -53,29 +61,8 @@ type exitCodeInfo struct {
 	Message  string `json:"message,omitempty"`
 }
 
-// Version returns the version of the OCI Runtime
-// Version returns the version of the OCI Runtime
-func (r *RuntimeV1) Version() (string, error) {
-	runtimeVersion, err := getOCIVersion(r.trustedPath, "-v")
-	if err != nil {
-		return "", err
-	}
-	return runtimeVersion, nil
-}
-
-func getOCIVersion(name string, args ...string) (string, error) {
-	out, err := utils.ExecCmd(name, args...)
-	if err != nil {
-		return "", err
-	}
-
-	firstLine := out[:strings.Index(out, "\n")]
-	v := firstLine[strings.LastIndex(firstLine, " ")+1:]
-	return v, nil
-}
-
-// CreateContainer creates a container.
-func (r *RuntimeV1) CreateContainer(c *Container, cgroupParent string) (err error) {
+// createContainer creates a container.
+func (r *runtimeOCI) createContainer(c *Container, cgroupParent string) (err error) {
 	var stderrBuf bytes.Buffer
 	parentPipe, childPipe, err := newPipe()
 	childStartPipe, parentStartPipe, err := newPipe()
@@ -93,14 +80,9 @@ func (r *RuntimeV1) CreateContainer(c *Container, cgroupParent string) (err erro
 		args = append(args, "--syslog")
 	}
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
 	args = append(args, "-c", c.id)
 	args = append(args, "-u", c.id)
-	args = append(args, "-r", rPath)
+	args = append(args, "-r", r.path)
 	args = append(args, "-b", c.bundlePath)
 	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
 	args = append(args, "-l", c.logPath)
@@ -212,17 +194,12 @@ func (r *RuntimeV1) CreateContainer(c *Container, cgroupParent string) (err erro
 	return nil
 }
 
-// StartContainer starts a container.
-func (r *RuntimeV1) StartContainer(c *Container) error {
+// startContainer starts a container.
+func (r *runtimeOCI) startContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "start", c.id); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", c.id); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -289,23 +266,18 @@ func parseLog(log []byte) (stdout, stderr []byte) {
 	return stdout, stderr
 }
 
-// ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *RuntimeV1) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+// execContainer prepares a streaming endpoint to execute a command in the container.
+func (r *runtimeOCI) execContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	processFile, err := prepareProcessExec(c, cmd, tty)
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(processFile.Name())
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
 	args := []string{"exec"}
 	args = append(args, "--process", processFile.Name())
 	args = append(args, c.ID())
-	execCmd := exec.Command(rPath, args...)
+	execCmd := exec.Command(r.path, args...)
 	var cmdErr error
 	if tty {
 		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
@@ -339,8 +311,8 @@ func (r *RuntimeV1) ExecContainer(c *Container, cmd []string, stdin io.Reader, s
 	return cmdErr
 }
 
-// ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *RuntimeV1) ExecSyncContainer(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
+// execSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
+func (r *runtimeOCI) execSyncContainer(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	pidFile, parentPipe, childPipe, err := prepareExec()
 	if err != nil {
 		return nil, ExecSyncError{
@@ -368,17 +340,9 @@ func (r *RuntimeV1) ExecSyncContainer(c *Container, command []string, timeout in
 		os.RemoveAll(logPath)
 	}()
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return nil, ExecSyncError{
-			ExitCode: -1,
-			Err:      err,
-		}
-	}
-
 	var args []string
 	args = append(args, "-c", c.id)
-	args = append(args, "-r", rPath)
+	args = append(args, "-r", r.path)
 	args = append(args, "-p", pidFile.Name())
 	args = append(args, "-e")
 	if c.terminal {
@@ -482,14 +446,9 @@ func (r *RuntimeV1) ExecSyncContainer(c *Container, command []string, timeout in
 	}, nil
 }
 
-// UpdateContainer updates container resources
-func (r *RuntimeV1) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.Command(rPath, "update", "--resources", "-", c.id)
+// updateContainer updates container resources
+func (r *runtimeOCI) updateContainer(c *Container, res *rspec.LinuxResources) error {
+	cmd := exec.Command(r.path, "update", "--resources", "-", c.id)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -559,66 +518,8 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 	return nil
 }
 
-// WaitContainerStateStopped runs a loop polling UpdateStatus(), seeking for
-// the container status to be updated to 'stopped'. Either it gets the expected
-// status and returns nil, or it reaches the timeout and returns an error.
-func (r *RuntimeV1) WaitContainerStateStopped(ctx context.Context, c *Container) (err error) {
-	// No need to go further and spawn the go routine if the container
-	// is already in the expected status.
-	if c.State().Status == ContainerStateStopped {
-		return nil
-	}
-
-	// We need to ensure the container termination will be properly waited
-	// for by defining a minimal timeout value. This will prevent timeout
-	// value defined in the configuration file to be too low.
-	timeout := r.ctrStopTimeout
-	if timeout < minCtrStopTimeout {
-		timeout = minCtrStopTimeout
-	}
-
-	done := make(chan error)
-	chControl := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-chControl:
-				return
-			default:
-				// Check if the container is stopped
-				if err := r.UpdateContainerStatus(c); err != nil {
-					done <- err
-					close(done)
-					return
-				}
-				if c.State().Status == ContainerStateStopped {
-					close(done)
-					return
-				}
-				time.Sleep(100 * time.Millisecond)
-			}
-		}
-	}()
-	select {
-	case err = <-done:
-		break
-	case <-ctx.Done():
-		close(chControl)
-		return ctx.Err()
-	case <-time.After(time.Duration(timeout) * time.Second):
-		close(chControl)
-		return fmt.Errorf("failed to get container stopped status: %ds timeout reached", timeout)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to get container stopped status: %v", err)
-	}
-
-	return nil
-}
-
-// StopContainer stops a container. Timeout is given in seconds.
-func (r *RuntimeV1) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+// stopContainer stops a container. Timeout is given in seconds.
+func (r *runtimeOCI) stopContainer(ctx context.Context, c *Container, timeout int64) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -637,13 +538,8 @@ func (r *RuntimeV1) StopContainer(ctx context.Context, c *Container, timeout int
 		}
 	}
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
 	if timeout > 0 {
-		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", c.id, c.GetStopSignal()); err != nil {
+		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.id, c.GetStopSignal()); err != nil {
 			if err := checkProcessGone(c); err != nil {
 				return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 			}
@@ -655,7 +551,7 @@ func (r *RuntimeV1) StopContainer(ctx context.Context, c *Container, timeout int
 		logrus.Warnf("Stop container %q timed out: %v", c.id, err)
 	}
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", c.id, "KILL"); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.id, "KILL"); err != nil {
 		if err := checkProcessGone(c); err != nil {
 			return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 		}
@@ -679,31 +575,21 @@ func checkProcessGone(c *Container) error {
 	return fmt.Errorf("failed to find process: %v", perr)
 }
 
-// DeleteContainer deletes a container.
-func (r *RuntimeV1) DeleteContainer(c *Container) error {
+// deleteContainer deletes a container.
+func (r *runtimeOCI) deleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
-	_, err = utils.ExecCmd(rPath, "delete", "--force", c.id)
+	_, err := utils.ExecCmd(r.path, "delete", "--force", c.id)
 	return err
 }
 
-// UpdateContainerStatus refreshes the status of the container.
-func (r *RuntimeV1) UpdateContainerStatus(c *Container) error {
+// updateContainerStatus refreshes the status of the container.
+func (r *runtimeOCI) updateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
-	out, err := exec.Command(rPath, "state", c.id).Output()
+	out, err := exec.Command(r.path, "state", c.id).Output()
 	if err != nil {
 		// there are many code paths that could lead to have a bad state in the
 		// underlying runtime.
@@ -763,44 +649,34 @@ func (r *RuntimeV1) UpdateContainerStatus(c *Container) error {
 	return nil
 }
 
-// PauseContainer pauses a container.
-func (r *RuntimeV1) PauseContainer(c *Container) error {
+// pauseContainer pauses a container.
+func (r *runtimeOCI) pauseContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
-	_, err = utils.ExecCmd(rPath, "pause", c.id)
+	_, err := utils.ExecCmd(r.path, "pause", c.id)
 	return err
 }
 
-// UnpauseContainer unpauses a container.
-func (r *RuntimeV1) UnpauseContainer(c *Container) error {
+// unpauseContainer unpauses a container.
+func (r *runtimeOCI) unpauseContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
-	_, err = utils.ExecCmd(rPath, "resume", c.id)
+	_, err := utils.ExecCmd(r.path, "resume", c.id)
 	return err
 }
 
-// ContainerStats provides statistics of a container.
-func (r *RuntimeV1) ContainerStats(c *Container) (*ContainerStats, error) {
+// containerStats provides statistics of a container.
+func (r *runtimeOCI) containerStats(c *Container) (*ContainerStats, error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
 	return containerStats(c)
 }
 
-// SignalContainer sends a signal to a container process.
-func (r *RuntimeV1) SignalContainer(c *Container, sig syscall.Signal) error {
+// signalContainer sends a signal to a container process.
+func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -809,16 +685,11 @@ func (r *RuntimeV1) SignalContainer(c *Container, sig syscall.Signal) error {
 		return err
 	}
 
-	rPath, err := r.path(c)
-	if err != nil {
-		return err
-	}
-
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, rPath, "kill", c.ID(), signalString)
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.ID(), signalString)
 }
 
-// AttachContainer attaches IO to a running container.
-func (r *RuntimeV1) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.Writer, tty bool, resize <-chan remotecommand.TerminalSize) error {
+// attachContainer attaches IO to a running container.
+func (r *runtimeOCI) attachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {
@@ -873,8 +744,8 @@ func (r *RuntimeV1) AttachContainer(c *Container, inputStream io.Reader, outputS
 	return nil
 }
 
-// PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *RuntimeV1) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
+// portForwardContainer forwards the specified port provides statistics of a container.
+func (r *runtimeOCI) portForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
 	containerPid := c.State().Pid
 	socatPath, lookupErr := exec.LookPath("socat")
 	if lookupErr != nil {
@@ -922,8 +793,8 @@ func (r *RuntimeV1) PortForwardContainer(c *Container, port int32, stream io.Rea
 	return nil
 }
 
-// ReopenContainerLog reopens the log file of a container.
-func (r *RuntimeV1) ReopenContainerLog(c *Container) error {
+// reopenContainerLog reopens the log file of a container.
+func (r *runtimeOCI) reopenContainerLog(c *Container) error {
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {

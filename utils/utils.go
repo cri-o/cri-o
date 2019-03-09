@@ -2,8 +2,10 @@ package utils
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
@@ -173,4 +175,11 @@ func WriteGoroutineStacksToFile(path string) error {
 	defer f.Sync()
 
 	return WriteGoroutineStacks(f)
+}
+
+// GenerateID generates a random unique id.
+func GenerateID() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }

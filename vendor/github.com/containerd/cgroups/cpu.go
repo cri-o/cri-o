@@ -1,3 +1,19 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package cgroups
 
 import (
@@ -84,20 +100,13 @@ func (c *cpuController) Update(path string, resources *specs.LinuxResources) err
 	return c.Create(path, resources)
 }
 
-func (c *cpuController) Stat(path string, stats *Stats) error {
+func (c *cpuController) Stat(path string, stats *Metrics) error {
 	f, err := os.Open(filepath.Join(c.Path(path), "cpu.stat"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	// get or create the cpu field because cpuacct can also set values on this struct
-	stats.cpuMu.Lock()
-	cpu := stats.Cpu
-	if cpu == nil {
-		cpu = &CpuStat{}
-		stats.Cpu = cpu
-	}
-	stats.cpuMu.Unlock()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		if err := sc.Err(); err != nil {
@@ -109,11 +118,11 @@ func (c *cpuController) Stat(path string, stats *Stats) error {
 		}
 		switch key {
 		case "nr_periods":
-			cpu.Throttling.Periods = v
+			stats.CPU.Throttling.Periods = v
 		case "nr_throttled":
-			cpu.Throttling.ThrottledPeriods = v
+			stats.CPU.Throttling.ThrottledPeriods = v
 		case "throttled_time":
-			cpu.Throttling.ThrottledTime = v
+			stats.CPU.Throttling.ThrottledTime = v
 		}
 	}
 	return nil

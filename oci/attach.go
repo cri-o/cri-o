@@ -13,7 +13,7 @@ const (
 	AttachPipeStderr = 3
 )
 
-func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, conn io.Reader) error {
+func redirectResponseToOutputStreams(outputStream, errorStream io.WriteCloser, conn io.Reader) error {
 	var err error
 	buf := make([]byte, BufSize+1)
 

@@ -252,6 +252,7 @@ ctr_stop_timeout = {{ .CtrStopTimeout }}
   {{ range $runtime_name, $runtime_handler := .Runtimes  }}
   [crio.runtime.runtimes.{{ $runtime_name }}]
   runtime_path = "{{ $runtime_handler.RuntimePath }}"
+  runtime_type = "{{ $runtime_handler.RuntimeType }}"
   {{ end  }}
 
 
