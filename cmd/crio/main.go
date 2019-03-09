@@ -145,6 +145,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("pause-image") {
 		config.PauseImage = ctx.GlobalString("pause-image")
 	}
+	if ctx.GlobalIsSet("pause-image-auth-file") {
+		config.PauseImageAuthFile = ctx.GlobalString("pause-image-auth-file")
+	}
 	if ctx.GlobalIsSet("signature-policy") {
 		config.SignaturePolicyPath = ctx.GlobalString("signature-policy")
 	}
@@ -369,6 +372,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "pause-image",
 			Usage: "name of the pause image",
+		},
+		cli.StringFlag{
+			Name:  "pause-image-auth-file",
+			Usage: "path to a config file containing credentials for --pause-image",
 		},
 		cli.StringFlag{
 			Name:  "signature-policy",

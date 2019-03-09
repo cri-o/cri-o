@@ -210,6 +210,9 @@ type ImageConfig struct {
 	// PauseImage is the name of an image which we use to instantiate infra
 	// containers.
 	PauseImage string `toml:"pause_image"`
+	// PauseImageAuthFile, if not empty, is a path to a docker/config.json-like
+	// file containing credentials necessary for pulling PauseImage
+	PauseImageAuthFile string `toml:"pause_image_auth_file"`
 	// PauseCommand is the path of the binary we run in an infra
 	// container that's been instantiated using PauseImage.
 	PauseCommand string `toml:"pause_command"`

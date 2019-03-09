@@ -124,7 +124,7 @@ func New(ctx context.Context, config *Config) (*ContainerServer, error) {
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, config.PauseImage)
+	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, config.PauseImage, config.PauseImageAuthFile)
 	if err != nil {
 		return nil, err
 	}
