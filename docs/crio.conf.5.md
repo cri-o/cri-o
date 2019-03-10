@@ -204,6 +204,9 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **pause_image**="k8s.gcr.io/pause:3.1"
   The image used to instantiate infra containers.
 
+**pause_image_auth_file**=""
+ If not empty, the path to a docker/config.json-like file containing credentials necessary for pulling the image specified by pause_image above.
+
 **pause_command**="/pause"
   The command to run to have a container stay in the paused state.
 

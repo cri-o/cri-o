@@ -271,6 +271,10 @@ default_transport = "{{ .DefaultTransport }}"
 # The image used to instantiate infra containers.
 pause_image = "{{ .PauseImage }}"
 
+# If not empty, the path to a docker/config.json-like file containing credentials
+# necessary for pulling the image specified by pause_image above.
+pause_image_auth_file = "{{ .PauseImageAuthFile }}"
+
 # The command to run to have a container stay in the paused state.
 pause_command = "{{ .PauseCommand }}"
 
