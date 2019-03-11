@@ -333,7 +333,9 @@ func (c *Container) SetStartFailed(err error) {
 	defer c.opLock.Unlock()
 	// adjust finished and started times
 	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
-	c.state.Error = err.Error()
+	if err != nil {
+		c.state.Error = err.Error()
+	}
 }
 
 // Description returns a description for the container
