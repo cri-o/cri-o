@@ -6,7 +6,7 @@
 crio.conf - configuration file of the CRI-O OCI Kubernetes Container Runtime daemon
 
 # DESCRIPTION
-The CRI-O configuration file specifies all of the available configuration options and command-line flags for the crio(8) OCI Kubernetes Container Runtime daemon, but in a TOML format that can be more easily modified and versioned.
+The CRI-O configuration file specifies all of the available configuration options and command-line flags for the [crio(8) OCI Kubernetes Container Runtime daemon][crio], but in a TOML format that can be more easily modified and versioned.
 
 The default crio.conf is located at /etc/crio/crio.conf.
 
@@ -164,7 +164,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
   Maximum number of processes allowed in a container.
 
 **log_size_max**=-1
-  Maximum sized allowed for the container log file. Negative numbers indicate that no size limit is imposed. If it is positive, it must be >= 8192 to match/exceed conmon's read buffer. The file is truncated and re-opened so the limit is never exceeded.
+  Maximum size allowed for the container log file. Negative numbers indicate that no size limit is imposed. If it is positive, it must be >= 8192 to match/exceed conmon's read buffer. The file is truncated and re-opened so the limit is never exceeded.
 
 **container_exits_dir**="/var/run/crio/exits"
   Path to directory in which container exit files are written to by conmon.
@@ -239,3 +239,6 @@ containers-storage.conf(5), containers-policy.json(5), containers-registries.con
 Aug 2018, Update to the latest state by Valentin Rothberg <vrothberg@suse.com>
 
 Oct 2016, Originally compiled by Aleksa Sarai <asarai@suse.de>
+
+[toml]: https://github.com/toml-lang/toml
+[crio]: ./crio.8.md
