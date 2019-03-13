@@ -67,6 +67,45 @@ function teardown() {
 	stop_crio
 }
 
+@test "ctr stats output" {
+    start_crio
+    run crictl runp "$TESTDATA"/sandbox_config.json
+    echo "$output"
+    [ "$status" -eq 0 ]
+    pod_id="$output"
+    run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+    echo "$output"
+    [ "$status" -eq 0 ]
+    ctr_id="$output"
+    run crictl start "$ctr_id"
+    echo "$output"
+    [ "$status" -eq 0 ]
+
+    run crictl stats
+    [ $(wc -l <<< "$output") -eq 2 ]
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "${lines[0]}" == "CONTAINER           CPU %               MEM                 DISK                INODES" ]
+	exp='^[a-z0-9]+[ ]+[0-9]*\.*[0-9]+[ ]+[0-9]*\.*[0-9]+(B|kB|MB|GB|TB|PB)[ ]+[0-9]*\.*[0-9]+(B|kB|MB|GB|TB|PB)[ ]+[0-9]+'
+	echo ${lines[1]}
+    [[ "${lines[1]}" =~ $exp ]]
+
+	run crictl stats --id "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[ $(wc -l <<< "$output") -eq 2 ]
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "${lines[0]}" == "CONTAINER           CPU %               MEM                 DISK                INODES" ]
+	exp='^[a-z0-9]+[ ]+[0-9]*\.*[0-9]+[ ]+[0-9]*\.*[0-9]+(B|kB|MB|GB|TB|PB)[ ]+[0-9]*\.*[0-9]+(B|kB|MB|GB|TB|PB)[ ]+[0-9]+'
+	echo ${lines[1]}
+    [[ "${lines[1]}" =~ $exp ]]
+
+    cleanup_ctrs
+    cleanup_pods
+    stop_crio
+}
+
 @test "ulimits" {
 	ULIMITS="--default-ulimits nofile=42:42 --default-ulimits nproc=1024:2048" start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
