@@ -615,9 +615,7 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		// TODO(sgrunert): uncomment when the following issue is resolved:
-		// https://github.com/cri-o/cri-o/issues/1987
-		/* FIt("should fail with invalid network selinux labels", func() {
+		It("should fail with invalid network selinux labels", func() {
 			// Given
 			manifest := bytes.Replace(testManifest,
 				[]byte(`"selinuxLabel": "system_u:system_r:container_runtime_t:s0"`),
@@ -634,7 +632,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
-		}) */
+		})
 
 		It("should fail with container directory", func() {
 			// Given
