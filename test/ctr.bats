@@ -708,7 +708,14 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis_device.json "$TESTDATA"/sandbox_config.json
+
+	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
+	cp "$TESTDATA"/container_redis_device.json "$newconfig"
+	sed -i 's|"%containerdevicepath%"|"/dev/mynull"|' "$newconfig"
+
+	sed -i 's|"%privilegedboolean%"|false|' "$newconfig"
+
+	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -725,6 +732,70 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "privileged ctr device add" {
+	# In an user namespace we can only bind mount devices from the host, not mknod
+	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
+	if test -n "$UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config_privileged.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
+	cp "$TESTDATA"/container_redis_device.json "$newconfig"
+	sed -i 's|"%containerdevicepath%"|"/dev/mynull"|' "$newconfig"
+	sed -i 's|"%privilegedboolean%"|true|' "$newconfig"
+
+	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl exec --sync "$ctr_id" ls /dev/mynull
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "/dev/mynull" ]]
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "privileged ctr add duplicate device as host" {
+	# In an user namespace we can only bind mount devices from the host, not mknod
+	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
+	if test -n "$UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config_privileged.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
+	cp "$TESTDATA"/container_redis_device.json "$newconfig"
+	sed -i 's|"%containerdevicepath%"|"/dev/random"|' "$newconfig"
+	sed -i 's|"%privilegedboolean%"|true|' "$newconfig"
+
+	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json
+	echo "$output"
+	[ "$status" -ne 0 ]
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
