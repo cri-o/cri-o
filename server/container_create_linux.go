@@ -70,9 +70,24 @@ func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig
 				Access: "rwm",
 			},
 		}
-		return nil
 	}
+
 	for _, device := range containerConfig.GetDevices() {
+		// If we are privileged, we have access to devices on the host.
+		// If the requested container path already exists on the host, the container won't see the expected host path.
+		// Therefore, we must error out if the container path already exists
+		privileged := containerConfig.GetLinux().GetSecurityContext() != nil && containerConfig.GetLinux().GetSecurityContext().GetPrivileged()
+		if privileged && device.ContainerPath != device.HostPath {
+			// we expect this to not exist
+			_, err := os.Stat(device.ContainerPath)
+			if err == nil {
+				return errors.Errorf("privileged container was configured with a device container path that already exists on the host.")
+			}
+			if !os.IsNotExist(err) {
+				return errors.Wrapf(err, "error checking if container path exists on host")
+			}
+		}
+
 		path, err := resolveSymbolicLink(device.HostPath, "/")
 		if err != nil {
 			return err
