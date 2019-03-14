@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,8 +16,8 @@ import (
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/pkg/seccomp"
 	"github.com/kubernetes-sigs/cri-o/pkg/storage"
+	"github.com/kubernetes-sigs/cri-o/utils"
 	"github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opencontainers/runc/libcontainer/user"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
@@ -266,7 +265,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 }
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
-func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
+func setupContainerUser(specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
 	if sc == nil {
 		return nil
 	}
@@ -285,16 +284,35 @@ func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.Linux
 	if err != nil {
 		return err
 	}
-
 	logrus.Debugf("CONTAINER USER: %+v", containerUser)
 
 	// Add uid, gid and groups from user
-	uid, _, addGroups, err := getUserInfo(rootfs, containerUser)
+	uid, gid, addGroups, err := utils.GetUserInfo(rootfs, containerUser)
 	if err != nil {
 		return err
 	}
 
+	// verify uid exists in containers /etc/passwd, else generate a passwd with the user entry
+	passwdPath, err := utils.GeneratePasswd(uid, gid, rootfs, ctrRunDir)
+	if err != nil {
+		return err
+	}
+	if passwdPath != "" {
+		if err := securityLabel(passwdPath, mountLabel, false); err != nil {
+			return err
+		}
+
+		mnt := rspec.Mount{
+			Type:        "bind",
+			Source:      passwdPath,
+			Destination: "/etc/passwd",
+			Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
+		}
+		specgen.AddMount(mnt)
+	}
+
 	specgen.SetProcessUID(uid)
+	specgen.SetProcessGID(gid)
 	if sc.GetRunAsGroup() != nil {
 		specgen.SetProcessGID(uint32(sc.GetRunAsGroup().GetValue()))
 	}
@@ -633,47 +651,4 @@ func (s *Server) getAppArmorProfileName(profile string) string {
 	}
 
 	return strings.TrimPrefix(profile, apparmorLocalHostPrefix)
-}
-
-// openContainerFile opens a file inside a container rootfs safely
-func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
-	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, path), rootfs)
-	if err != nil {
-		return nil, err
-	}
-	return os.Open(fp)
-}
-
-// getUserInfo returns UID, GID and additional groups for specified user
-// by looking them up in /etc/passwd and /etc/group
-func getUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, error) {
-	// We don't care if we can't open the file because
-	// not all images will have these files
-	passwdFile, err := openContainerFile(rootfs, "/etc/passwd")
-	if err != nil {
-		logrus.Warnf("Failed to open /etc/passwd: %v", err)
-	} else {
-		defer passwdFile.Close()
-	}
-
-	groupFile, err := openContainerFile(rootfs, "/etc/group")
-	if err != nil {
-		logrus.Warnf("Failed to open /etc/group: %v", err)
-	} else {
-		defer groupFile.Close()
-	}
-
-	execUser, err := user.GetExecUser(userName, nil, passwdFile, groupFile)
-	if err != nil {
-		return 0, 0, nil, err
-	}
-
-	uid := uint32(execUser.Uid)
-	gid := uint32(execUser.Gid)
-	var additionalGids []uint32
-	for _, g := range execUser.Sgids {
-		additionalGids = append(additionalGids, uint32(g))
-	}
-
-	return uid, gid, additionalGids, nil
 }
