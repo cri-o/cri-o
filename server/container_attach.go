@@ -100,6 +100,9 @@ func (ss streamService) Attach(containerID string, inputStream io.Reader, output
 	case err := <-receiveStdout:
 		return err
 	case err := <-stdinDone:
+		if !c.StdinOnce() && !tty {
+			return nil
+		}
 		if _, ok := err.(utils.DetachError); ok {
 			return nil
 		}
