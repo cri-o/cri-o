@@ -40,7 +40,7 @@ var (
 
 // ContainerServer implements the ImageServer
 type ContainerServer struct {
-	runtime              *oci.Runtime
+	runtime              oci.RuntimeImpl
 	store                cstorage.Store
 	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
@@ -58,8 +58,16 @@ type ContainerServer struct {
 }
 
 // Runtime returns the oci runtime for the ContainerServer
-func (c *ContainerServer) Runtime() *oci.Runtime {
+func (c *ContainerServer) Runtime() oci.RuntimeImpl {
 	return c.runtime
+}
+
+// SetRuntime can be used to explicitly specify a runtime.
+//
+// In production cases calling this function has no need because the runtime
+// will already be set by `New()`.
+func (c *ContainerServer) SetRuntime(runtime oci.RuntimeImpl) {
+	c.runtime = runtime
 }
 
 // Store returns the Store for the ContainerServer
@@ -118,16 +126,12 @@ func localeToLanguage(locale string) string {
 }
 
 // New creates a new ContainerServer with options provided
-func New(ctx context.Context, config *Config) (*ContainerServer, error) {
-	store, err := cstorage.GetStore(cstorage.StoreOptions{
-		RunRoot:            config.RunRoot,
-		GraphRoot:          config.Root,
-		GraphDriverName:    config.Storage,
-		GraphDriverOptions: config.StorageOptions,
-	})
+func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error) {
+	store, err := configIface.GetStore()
 	if err != nil {
 		return nil, err
 	}
+	config := configIface.GetData()
 
 	imageService, err := storage.GetImageService(ctx, nil, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {

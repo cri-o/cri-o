@@ -14,6 +14,7 @@ import (
 	"github.com/containers/image/types"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
+	cstorage "github.com/containers/storage"
 	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/sirupsen/logrus"
@@ -35,6 +36,27 @@ type Config struct {
 	RuntimeConfig
 	ImageConfig
 	NetworkConfig
+}
+
+// ConfigIface provides a config interface for data encapsulation
+type ConfigIface interface {
+	GetStore() (cstorage.Store, error)
+	GetData() *Config
+}
+
+// GetStore returns the container storage for a given configuration
+func (c *Config) GetStore() (cstorage.Store, error) {
+	return cstorage.GetStore(cstorage.StoreOptions{
+		RunRoot:            c.RunRoot,
+		GraphRoot:          c.Root,
+		GraphDriverName:    c.Storage,
+		GraphDriverOptions: c.StorageOptions,
+	})
+}
+
+// GetData returns the Config of a ConfigIface
+func (c *Config) GetData() *Config {
+	return c
 }
 
 // ImageVolumesType describes image volume handling strategies
