@@ -7,6 +7,7 @@ crio - OCI Kubernetes Container Runtime daemon
 # SYNOPSIS
 crio
 ```
+[--additional-devices=[value]]
 [--apparmor-profile=[value]]
 [--bind-mount-prefix=[value]]
 [--cgroup-manager=[value]]
@@ -15,8 +16,15 @@ crio
 [--config=[value]]
 [--conmon=[value]]
 [--cpu-profile=[value]]
+[--default-capabilities=[value]]
+[--default-mounts=[value]]
+[--default-transport=[value]]
+[--default-runtime=[value]]
+[--default-sysctls=[value]]
+[--default-ulimits=[value]]
 [--default-transport=[value]]
 [--enable-metrics]
+[--file-locking]
 [--gid-mappings=[value]]
 [--help|-h]
 [--hooks-dir=[value]]
@@ -29,6 +37,9 @@ crio
 [--pause-command=[value]]
 [--pause-image=[value]]
 [--pause-image-auth-file=[value]]
+[--pids-limit=[value]]
+[--profile=[value]]
+[--profile-port=[value]]
 [--read-only]
 [--registry=[value]]
 [--root=[value]]
@@ -39,6 +50,8 @@ crio
 [--signature-policy=[value]]
 [--storage-driver=[value]]
 [--storage-opt=[value]]
+[--stream-address=[value]]
+[--stream-port=[value]]
 [--uid-mappings=[value]]
 [--version|-v]
 ```
@@ -60,7 +73,9 @@ crio [GLOBAL OPTIONS]
 crio [GLOBAL OPTIONS] config [OPTIONS]
 ```
 # GLOBAL OPTIONS
-**--apparmor_profile**="": Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
+**--additional-devices**="": devices to add to the containers
+
+**--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default (default: "crio-default")
 
 **--bind-mount-prefix**="": A prefix to use for the source of the bind mounts.  This option would be useful if you were running CRI-O in a container.  And had `/` mounted on `/host` in your container.  Then if you ran CRI-O with the `--bind-mount-prefix=/host` option, CRI-O would add /host to any bind mounts it is handed over CRI.  If Kubernetes asked to have `/var/lib/foobar` bind mounted into the container, then CRI-O would bind mount `/host/var/lib/foobar`.  Since CRI-O itself is running in a container with `/` or the host mounted on `/host`, the container would end up with `/var/lib/foobar` from the host mounted in the container rather then `/var/lib/foobar` from the CRI-O container.
 
@@ -76,11 +91,23 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--cpu-profile**="": set the CPU profile file path
 
-**--default-transport**: A prefix to prepend to image names that can't be pulled as-is.
+**--default-capabilities**="": capabilities to add to the containers (default: "CHOWN, DAC_OVERRIDE, FSETID, FOWNER, NET_RAW, SETGID, SETUID, SETPCAP, NET_BIND_SERVICE, SYS_CHROOT, KILL)
+
+**--default-mounts**="": add one or more default mount paths in the form host:container (deprecated - add the default mounts to /etc/containers/mounts.conf instead)
+
+**--default-runtime**="": default OCI runtime from the runtimes config (default: "runc")
+
+**--default-sysctls**="": sysctls to add to the containers
+
+**--default-ulimits**="": ulimits to apply to containers by default (name=soft:hard)
+
+**--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is
 
 **--enable-metrics**: Enable metrics endpoint. Default is localhost:9090
 
-**--gid-mappings**: Specify the GID mappings to use for user namespace.
+**--file-locking**: enable or disable file-based locking
+
+**--gid-mappings**: Specify the GID mappings to use for user namespace
 
 **--help, -h**: Print usage statement
 
@@ -128,6 +155,10 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
 
+**--profile**="": enable pprof remote profiler on localhost:6060
+
+**--profile-port**="": port for the pprof profiler (default: 6060)
+
 **--read-only**=**true**|**false**: Run all containers in read-only mode (default: false). Automatically mount tmpfs on `/run`, `/tmp` and `/var/tmp`.
 
 **--root**="": The crio root dir (default: "/var/lib/containers/storage")
@@ -148,7 +179,11 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--storage-opt**: OCI storage driver option (no default)
 
-**--uid-mappings**: Specify the UID mappings to use for user namespace.
+**--stream-address**="": bind address for streaming socket
+
+**--stream-port**="":  bind port for streaming socket (default: "0")
+
+**--uid-mappings**="": Specify the UID mappings to use for user namespace
 
 **--version, -v**: Print the version
 
