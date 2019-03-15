@@ -57,7 +57,7 @@ func (c *memoryStore) Size() int {
 // First returns the first container found in the store by a given filter.
 func (c *memoryStore) First(filter StoreFilter) *Container {
 	for _, cont := range c.all() {
-		if filter(cont) {
+		if filter == nil || filter(cont) {
 			return cont
 		}
 	}
@@ -68,6 +68,9 @@ func (c *memoryStore) First(filter StoreFilter) *Container {
 // This operation is asynchronous in the memory store.
 // NOTE: Modifications to the store MUST NOT be done by the StoreReducer.
 func (c *memoryStore) ApplyAll(apply StoreReducer) {
+	if apply == nil {
+		return
+	}
 	wg := new(sync.WaitGroup)
 	for _, cont := range c.all() {
 		wg.Add(1)
