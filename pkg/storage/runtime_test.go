@@ -32,14 +32,16 @@ var _ = t.Describe("Runtime", func() {
 		gomock.InOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
-			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			storeMock.EXPECT().GraphOptions().Return([]string{}),
 			storeMock.EXPECT().GraphDriverName().Return(""),
 			storeMock.EXPECT().GraphRoot().Return(""),
 			storeMock.EXPECT().RunRoot().Return(""),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
-			storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
+			storeMock.EXPECT().Image(gomock.Any()).
+				Return(&cs.Image{
+					ID:    "123",
+					Names: []string{"imagename"},
+				}, nil).Times(2),
 			storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 				Return(testManifest, nil),
 			storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -577,6 +579,77 @@ var _ = t.Describe("Runtime", func() {
 			It("should succeed to create a container", func() {
 				// When
 				info, err = sut.CreateContainer(&types.SystemContext{},
+					"podName", "podID", "imagename",
+					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+					"containerName", "containerID", "",
+					0, "mountLabel", &idtools.IDMappings{})
+			})
+
+			It("should succeed to create a pod sandbox", func() {
+				// When
+				info, err = sut.CreatePodSandbox(&types.SystemContext{},
+					"podName", "podID", "imagename",
+					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+					"containerName", "metadataName",
+					"uid", "namespace", 0, &idtools.IDMappings{})
+
+			})
+
+			AfterEach(func() {
+				// Then
+				Expect(err).To(BeNil())
+				Expect(info).NotTo(BeNil())
+				Expect(info.ID).To(Equal("id"))
+				Expect(info.Dir).To(Equal("dir"))
+				Expect(info.RunDir).To(Equal("runDir"))
+			})
+		})
+
+		t.Describe("success invalid (camel-case) image name", func() {
+			var (
+				info storage.ContainerInfo
+				err  error
+			)
+
+			BeforeEach(func() {
+				// Given
+				gomock.InOrder(
+					imageServerMock.EXPECT().GetStore().Return(storeMock),
+					storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
+					imageServerMock.EXPECT().GetStore().Return(storeMock),
+					storeMock.EXPECT().GraphOptions().Return([]string{}),
+					storeMock.EXPECT().GraphDriverName().Return(""),
+					storeMock.EXPECT().GraphRoot().Return(""),
+					storeMock.EXPECT().RunRoot().Return(""),
+					imageServerMock.EXPECT().GetStore().Return(storeMock),
+					storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
+					storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
+					storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
+						Return(testManifest, nil),
+					storeMock.EXPECT().ListImageBigData(gomock.Any()).
+						Return([]string{""}, nil),
+					storeMock.EXPECT().ImageBigDataSize(gomock.Any(), gomock.Any()).
+						Return(int64(0), nil),
+					imageServerMock.EXPECT().GetStore().Return(storeMock),
+					storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
+						gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(&cs.Container{ID: "id"}, nil),
+					imageServerMock.EXPECT().GetStore().Return(storeMock),
+					storeMock.EXPECT().Names(gomock.Any()).Return([]string{}, nil),
+					imageServerMock.EXPECT().GetStore().Return(storeMock),
+					storeMock.EXPECT().SetNames(gomock.Any(), gomock.Any()).Return(nil),
+					imageServerMock.EXPECT().GetStore().Return(storeMock),
+					storeMock.EXPECT().ContainerDirectory(gomock.Any()).
+						Return("dir", nil),
+					imageServerMock.EXPECT().GetStore().Return(storeMock),
+					storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
+						Return("runDir", nil),
+				)
+			})
+
+			It("should succeed to create a container", func() {
+				// When
+				info, err = sut.CreateContainer(&types.SystemContext{},
 					"podName", "podID", "imageName",
 					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "containerID", "",
@@ -607,7 +680,7 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "", "imageName",
+				"podName", "", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
 				0, "mountLabel", &idtools.IDMappings{})
@@ -621,7 +694,7 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"", "podID", "imageName",
+				"", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
 				0, "mountLabel", &idtools.IDMappings{})
@@ -648,7 +721,7 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imageName", "imageID",
+				"podName", "podID", "imagename", "imageID",
 				"", "containerID", "metadataName",
 				0, "mountLabel", &idtools.IDMappings{})
 
@@ -680,7 +753,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imageName",
+				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
 				0, "mountLabel", &idtools.IDMappings{})
@@ -709,7 +782,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imageName",
+				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
 				0, "mountLabel", &idtools.IDMappings{})
@@ -736,7 +809,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "imageName",
+				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, &idtools.IDMappings{})
@@ -761,7 +834,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "imageName",
+				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, &idtools.IDMappings{})
@@ -781,7 +854,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "imageName",
+				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, &idtools.IDMappings{})
@@ -801,7 +874,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imageName",
+				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
 				0, "mountLabel", &idtools.IDMappings{})
@@ -815,14 +888,16 @@ var _ = t.Describe("Runtime", func() {
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().GraphOptions().Return([]string{}),
 				storeMock.EXPECT().GraphDriverName().Return(""),
 				storeMock.EXPECT().GraphRoot().Return(""),
 				storeMock.EXPECT().RunRoot().Return(""),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
-				storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
+				storeMock.EXPECT().Image(gomock.Any()).
+					Return(&cs.Image{
+						ID:    "123",
+						Names: []string{"imagename"},
+					}, nil).Times(2),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
 				storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -833,7 +908,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imageName",
+				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
 				0, "mountLabel", &idtools.IDMappings{})
