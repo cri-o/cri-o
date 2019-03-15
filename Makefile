@@ -215,6 +215,10 @@ mockgen: ${BUILD_BIN_PATH}/mockgen
 		github.com/kubernetes-sigs/cri-o/oci RuntimeImpl
 
 
+codecov: SHELL := $(shell which bash)
+codecov:
+	bash <(curl -s https://codecov.io/bash) -f ${COVERAGE_PATH}/coverprofile
+
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 

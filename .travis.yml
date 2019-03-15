@@ -47,6 +47,7 @@ jobs:
     - script:
         - make testunit
         - make
+        - make codecov
       go: "1.11.x"
     - script:
         - make local-cross
