@@ -320,7 +320,7 @@ type NetworkConfig struct {
 	NetworkDir string `toml:"network_dir"`
 
 	// PluginDir is where CNI plugin binaries are stored.
-	PluginDir string `toml:"plugin_dir"`
+	PluginDir []string `toml:"plugin_dir"`
 }
 
 // tomlConfig is another way of looking at a Config, which is
@@ -439,7 +439,7 @@ func DefaultConfig() *Config {
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
-			PluginDir:  cniBinDir,
+			PluginDir:  []string{cniBinDir},
 		},
 	}
 }

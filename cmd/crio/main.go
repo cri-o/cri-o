@@ -171,7 +171,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		config.NetworkDir = ctx.GlobalString("cni-config-dir")
 	}
 	if ctx.GlobalIsSet("cni-plugin-dir") {
-		config.PluginDir = ctx.GlobalString("cni-plugin-dir")
+		config.PluginDir = ctx.GlobalStringSlice("cni-plugin-dir")
 	}
 	if ctx.GlobalIsSet("image-volumes") {
 		config.ImageVolumes = lib.ImageVolumesType(ctx.GlobalString("image-volumes"))
@@ -389,7 +389,7 @@ func main() {
 			Name:  "cni-config-dir",
 			Usage: "CNI configuration files directory",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "cni-plugin-dir",
 			Usage: "CNI plugin binaries directory",
 		},

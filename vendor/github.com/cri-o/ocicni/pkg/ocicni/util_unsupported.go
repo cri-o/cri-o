@@ -14,6 +14,6 @@ func (nsm *nsManager) init() error {
 	return nil
 }
 
-func getContainerIP(nsm *nsManager, netnsPath, interfaceName, addrType string) (net.IP, error) {
-	return nil, fmt.Errorf("not supported yet")
+func getContainerDetails(nsm *nsManager, netnsPath, interfaceName, addrType string) (*net.IPNet, *net.HardwareAddr, error) {
+	return nil, nil, fmt.Errorf("not supported yet")
 }
