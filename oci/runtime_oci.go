@@ -92,6 +92,9 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
+	if r.logToJournald {
+		args = append(args, "--log-path", "journald:")
+	}
 	if r.noPivot {
 		args = append(args, "--no-pivot")
 	}

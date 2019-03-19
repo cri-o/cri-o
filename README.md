@@ -137,6 +137,7 @@ apt-get install -y \
   libgpgme11-dev \
   libgpg-error-dev \
   libseccomp-dev \
+  libsystemd-dev \
   libselinux1-dev \
   pkg-config \
   go-md2man \

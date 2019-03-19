@@ -61,6 +61,7 @@ type Runtime struct {
 	containerExitsDir        string
 	containerAttachSocketDir string
 	logSizeMax               int64
+	logToJournald            bool
 	noPivot                  bool
 	ctrStopTimeout           int64
 
@@ -115,6 +116,7 @@ func New(runtimeTrustedPath string,
 	containerExitsDir string,
 	containerAttachSocketDir string,
 	logSizeMax int64,
+	logToJournald bool,
 	noPivot bool,
 	ctrStopTimeout int64,
 	runtimeVersion string) (*Runtime, error) {
@@ -143,6 +145,7 @@ func New(runtimeTrustedPath string,
 		containerExitsDir:        containerExitsDir,
 		containerAttachSocketDir: containerAttachSocketDir,
 		logSizeMax:               logSizeMax,
+		logToJournald:            logToJournald,
 		noPivot:                  noPivot,
 		ctrStopTimeout:           ctrStopTimeout,
 		runtimeImplList:          make(map[string]RuntimeImpl),

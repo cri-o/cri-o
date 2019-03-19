@@ -33,6 +33,7 @@ crio
 [--log=[value]]
 [--log-format value]
 [--log-level value]
+[--log-journald]
 [--metrics-port value]
 [--pause-command=[value]]
 [--pause-image=[value]]
@@ -144,6 +145,8 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 **--log-level**="": log crio messages above specified level: debug, info, warn, error (default), fatal or panic
 
 **--log-size-max**="": Maximum log size in bytes for a container (default: -1 (no limit)). If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
+
+**--log-journald**: log to systemd journal in addition to the kubernetes log specified with **--log**
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 

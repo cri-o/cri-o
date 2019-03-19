@@ -167,6 +167,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("log-size-max") {
 		config.LogSizeMax = ctx.GlobalInt64("log-size-max")
 	}
+	if ctx.GlobalIsSet("log-journald") {
+		config.LogToJournald = ctx.GlobalBool("log-journald")
+	}
 	if ctx.GlobalIsSet("cni-config-dir") {
 		config.NetworkDir = ctx.GlobalString("cni-config-dir")
 	}
@@ -384,6 +387,10 @@ func main() {
 			Name:  "log-size-max",
 			Value: lib.DefaultLogSizeMax,
 			Usage: "maximum log size in bytes for a container",
+		},
+		cli.BoolFlag{
+			Name:  "log-journald",
+			Usage: "Log to journald in addition to kubernetes log file",
 		},
 		cli.StringFlag{
 			Name:  "cni-config-dir",
