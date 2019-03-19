@@ -76,8 +76,7 @@ endif
 	touch "$(GOPATH)/.gopathok"
 
 lint: .gopathok
-	@echo "checking lint"
-	@./.tool/lint
+	golangci-lint run --build-tags="$(BUILDTAGS)"
 
 fmt: gofmt cfmt
 
@@ -288,7 +287,7 @@ else
 	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.release
+install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .install.release
 
 .install.release:
 	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
@@ -300,13 +299,9 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 		go get -u github.com/vbatts/git-validation; \
 	fi
 
-.install.gometalinter: .gopathok
-	if [ ! -x "$(GOPATH)/bin/gometalinter" ]; then \
-		go get -u github.com/alecthomas/gometalinter; \
-		cd $(GOPATH)/src/github.com/alecthomas/gometalinter; \
-		git checkout 23261fa046586808612c61da7a81d75a658e0814; \
-		go install github.com/alecthomas/gometalinter; \
-		$(GOPATH)/bin/gometalinter --install; \
+.install.golangci-lint: .gopathok
+	if [ ! -x "$(GOPATH)/bin/golangci-lint" ]; then \
+		go get -u github.com/golangci/golangci-lint/cmd/golangci-lint; \
 	fi
 
 .install.md2man: .gopathok
