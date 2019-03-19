@@ -460,7 +460,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	} else {
 		if s.config.Config.ManageNetworkNSLifecycle {
 			// Create the sandbox network namespace
-			if err = sb.NetNsCreate(); err != nil {
+			if err = sb.NetNsCreate(nil); err != nil {
 				return nil, err
 			}
 

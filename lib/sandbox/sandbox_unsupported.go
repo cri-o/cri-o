@@ -7,12 +7,12 @@ import (
 	"os"
 )
 
-func isNSorErr(nspath string) error {
-	return fmt.Errorf("netns is not implemented for this platform")
+func (n *NetNs) Initialize() (*NetNs, error) {
+	return &NetNs{}, fmt.Errorf("netns is not implemented for this platform")
 }
 
-func newNetNs() (*NetNs, error) {
-	return &NetNs{}, fmt.Errorf("netns is not implemented for this platform")
+func (n *NetNs) Initialized() bool {
+	return false
 }
 
 func getNetNs(path string) (*NetNs, error) {
@@ -25,23 +25,27 @@ type NetNs struct {
 	symlink *os.File
 }
 
-func (netns *NetNs) Path() string {
+func (n *NetNs) Get() *NetNs {
+	return n
+}
+
+func (n *NetNs) Path() string {
 	return ""
 }
 
-func (netns *NetNs) symlinkCreate(name string) error {
+func (n *NetNs) SymlinkCreate(name string) error {
 	return nil
 }
 
-func (netns *NetNs) symlinkRemove() error {
+func (n *NetNs) symlinkRemove() error {
 	return nil
 }
 
-func (netns *NetNs) Close() error {
+func (n *NetNs) Close() error {
 	return nil
 }
 
-func (netns *NetNs) Remove() error {
+func (n *NetNs) Remove() error {
 	return nil
 }
 

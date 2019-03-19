@@ -15,17 +15,24 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func isNSorErr(nspath string) error {
-	return ns.IsNSorErr(nspath)
+// Get returns the NetNs for a given NetNsIface
+func (n *NetNs) Get() *NetNs {
+	return n
 }
 
-func newNetNs() (*NetNs, error) {
+// Initialized returns true if the NetNs is already initialized
+func (n *NetNs) Initialized() bool {
+	return n.initialized
+}
+
+// Initialize does the necessary setup for a NetNs
+func (n *NetNs) Initialize() (*NetNs, error) {
 	netNS, err := ns.NewNS()
 	if err != nil {
 		return nil, err
 	}
 
-	return &NetNs{netNS: netNS, closed: false}, nil
+	return &NetNs{netNS: netNS, closed: false, initialized: true}, nil
 }
 
 func getNetNs(path string) (*NetNs, error) {
@@ -40,13 +47,15 @@ func getNetNs(path string) (*NetNs, error) {
 // NetNs handles data pertaining a network namespace
 type NetNs struct {
 	sync.Mutex
-	netNS    ns.NetNS
-	symlink  *os.File
-	closed   bool
-	restored bool
+	netNS       ns.NetNS
+	symlink     *os.File
+	closed      bool
+	restored    bool
+	initialized bool
 }
 
-func (netns *NetNs) symlinkCreate(name string) error {
+// SymlinkCreate creates the necessary symlinks for the NetNs
+func (n *NetNs) SymlinkCreate(name string) error {
 	b := make([]byte, 4)
 	_, randErr := rand.Reader.Read(b)
 	if randErr != nil {
@@ -56,7 +65,7 @@ func (netns *NetNs) symlinkCreate(name string) error {
 	nsName := fmt.Sprintf("%s-%x", name, b)
 	symlinkPath := filepath.Join(NsRunDir, nsName)
 
-	if err := os.Symlink(netns.netNS.Path(), symlinkPath); err != nil {
+	if err := os.Symlink(n.netNS.Path(), symlinkPath); err != nil {
 		return err
 	}
 
@@ -69,54 +78,54 @@ func (netns *NetNs) symlinkCreate(name string) error {
 		return err
 	}
 
-	netns.symlink = fd
+	n.symlink = fd
 
 	return nil
 }
 
 // Path returns the path of the network namespace handle
-func (netns *NetNs) Path() string {
-	if netns == nil || netns.netNS == nil {
+func (n *NetNs) Path() string {
+	if n == nil || n.netNS == nil {
 		return ""
 	}
-	return netns.netNS.Path()
+	return n.netNS.Path()
 }
 
 // Close closes this network namespace
-func (netns *NetNs) Close() error {
-	if netns == nil || netns.netNS == nil {
+func (n *NetNs) Close() error {
+	if n == nil || n.netNS == nil {
 		return nil
 	}
-	return netns.netNS.Close()
+	return n.netNS.Close()
 }
 
 // Remove ensures this network namespace handle is closed and removed
-func (netns *NetNs) Remove() error {
-	netns.Lock()
-	defer netns.Unlock()
+func (n *NetNs) Remove() error {
+	n.Lock()
+	defer n.Unlock()
 
-	if netns.closed {
+	if n.closed {
 		// netNsRemove() can be called multiple
 		// times without returning an error.
 		return nil
 	}
 
-	if err := netns.symlinkRemove(); err != nil {
+	if err := n.symlinkRemove(); err != nil {
 		return err
 	}
 
-	if err := netns.Close(); err != nil {
+	if err := n.Close(); err != nil {
 		return err
 	}
 
-	netns.closed = true
+	n.closed = true
 
-	if netns.restored {
+	if n.restored {
 		// we got namespaces in the form of
 		// /var/run/netns/cni-0d08effa-06eb-a963-f51a-e2b0eceffc5d
 		// but /var/run on most system is symlinked to /run so we first resolve
 		// the symlink and then try and see if it's mounted
-		fp, err := symlink.FollowSymlinkInScope(netns.Path(), "/")
+		fp, err := symlink.FollowSymlinkInScope(n.Path(), "/")
 		if err != nil {
 			return err
 		}
@@ -126,8 +135,8 @@ func (netns *NetNs) Remove() error {
 			}
 		}
 
-		if netns.Path() != "" {
-			if err := os.RemoveAll(netns.Path()); err != nil {
+		if n.Path() != "" {
+			if err := os.RemoveAll(n.Path()); err != nil {
 				return err
 			}
 		}
@@ -136,12 +145,12 @@ func (netns *NetNs) Remove() error {
 	return nil
 }
 
-func (netns *NetNs) symlinkRemove() error {
-	if err := netns.symlink.Close(); err != nil {
+func (n *NetNs) symlinkRemove() error {
+	if err := n.symlink.Close(); err != nil {
 		return fmt.Errorf("failed to close net ns symlink: %v", err)
 	}
 
-	if err := os.RemoveAll(netns.symlink.Name()); err != nil {
+	if err := os.RemoveAll(n.symlink.Name()); err != nil {
 		return fmt.Errorf("failed to remove net ns symlink: %v", err)
 	}
 

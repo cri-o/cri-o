@@ -1,0 +1,56 @@
+package sandbox_test
+
+import (
+	"testing"
+
+	"github.com/golang/mock/gomock"
+	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	. "github.com/kubernetes-sigs/cri-o/test/framework"
+	"github.com/kubernetes-sigs/cri-o/test/mocks/sandbox"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
+)
+
+// TestSandbox runs the created specs
+func TestSandbox(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Sandbox")
+}
+
+// nolint: gochecknoglobals
+var (
+	t              *TestFramework
+	testSandbox    *sandbox.Sandbox
+	mockCtrl       *gomock.Controller
+	netNsIfaceMock *sandboxmock.MockNetNsIface
+)
+
+var _ = BeforeSuite(func() {
+	t = NewTestFramework(NilFunc, NilFunc)
+	t.Setup()
+
+	logrus.SetLevel(logrus.PanicLevel)
+
+	// Setup the mocks
+	mockCtrl = gomock.NewController(GinkgoT())
+	netNsIfaceMock = sandboxmock.NewMockNetNsIface(mockCtrl)
+})
+
+var _ = AfterSuite(func() {
+	t.Teardown()
+	mockCtrl.Finish()
+})
+
+func beforeEach() {
+	// Setup test vars
+	var err error
+	testSandbox, err = sandbox.New("sandboxID", "", "", "", "",
+		make(map[string]string), make(map[string]string), "", "",
+		&pb.PodSandboxMetadata{}, "", "", false, false, "", "", "",
+		[]*hostport.PortMapping{}, false)
+	Expect(err).To(BeNil())
+	Expect(testSandbox).NotTo(BeNil())
+}

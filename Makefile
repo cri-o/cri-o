@@ -213,6 +213,11 @@ mockgen: ${BUILD_BIN_PATH}/mockgen
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
 		github.com/kubernetes-sigs/cri-o/oci RuntimeImpl
+	${BUILD_BIN_PATH}/mockgen \
+		${MOCKGEN_FLAGS} \
+		-package sandboxmock \
+		-destination ${MOCK_PATH}/sandbox/sandbox.go \
+		github.com/kubernetes-sigs/cri-o/lib/sandbox NetNsIface
 
 
 codecov: SHELL := $(shell which bash)
