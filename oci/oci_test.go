@@ -14,7 +14,7 @@ var _ = t.Describe("Oci", func() {
 			// When
 			runtime, err := oci.New("", "", "", "runc",
 				map[string]oci.RuntimeHandler{"runc": {"/bin/sh", ""}},
-				"", []string{}, "", "", "", 0, false, 0, "")
+				"", []string{}, "", "", "", 0, false, false, 0, "")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -26,7 +26,7 @@ var _ = t.Describe("Oci", func() {
 			// When
 			runtime, err := oci.New("", "", "", "",
 				map[string]oci.RuntimeHandler{}, "", []string{},
-				"", "", "", 0, false, 0, "")
+				"", "", "", 0, false, false, 0, "")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -52,7 +52,7 @@ var _ = t.Describe("Oci", func() {
 			var err error
 			sut, err = oci.New(runtimeTrustedPath, "", "", defaultRuntime,
 				runtimes,
-				"", []string{}, "", "", "", 0, false, 0, "")
+				"", []string{}, "", "", "", 0, false, false, 0, "")
 
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
@@ -90,7 +90,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			const untrustedPath = "untrustedPath"
 			sut, err := oci.New("", untrustedPath, "", defaultRuntime,
-				runtimes, "", []string{}, "", "", "", 0, false, 0, "")
+				runtimes, "", []string{}, "", "", "", 0, false, false, 0, "")
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 
