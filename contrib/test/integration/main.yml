@@ -70,7 +70,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-          version: "1.9.2"
+          version: "1.11.6"
     - name: setup critest
       include: "build/cri-tools.yml"
       vars:
