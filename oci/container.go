@@ -38,7 +38,6 @@ type Container struct {
 	stdin           bool
 	stdinOnce       bool
 	privileged      bool
-	trusted         bool
 	runtimeHandler  string
 	created         bool
 	state           *ContainerState
@@ -79,7 +78,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id string, name string, bundlePath string, logPath string, netns string, labels map[string]string, crioAnnotations map[string]string, annotations map[string]string, image string, imageName string, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, trusted bool, runtimeHandler string, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id string, name string, bundlePath string, logPath string, netns string, labels map[string]string, crioAnnotations map[string]string, annotations map[string]string, image string, imageName string, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal bool, stdin bool, stdinOnce bool, privileged bool, runtimeHandler string, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -94,7 +93,6 @@ func NewContainer(id string, name string, bundlePath string, logPath string, net
 		stdin:           stdin,
 		stdinOnce:       stdinOnce,
 		privileged:      privileged,
-		trusted:         trusted,
 		runtimeHandler:  runtimeHandler,
 		metadata:        metadata,
 		annotations:     annotations,

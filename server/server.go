@@ -50,10 +50,6 @@ const (
 	apparmorLocalHostPrefix = "localhost/"
 )
 
-func isTrue(annotaton string) bool {
-	return annotaton == "true"
-}
-
 // streamService implements streaming.Runtime.
 type streamService struct {
 	runtimeServer       *Server // needed by Exec() endpoint

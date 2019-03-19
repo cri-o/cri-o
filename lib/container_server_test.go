@@ -79,7 +79,6 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with invalid default runtime", func() {
 			// Given
 			config := lib.DefaultConfig()
-			config.Runtime = ""
 			config.DefaultRuntime = "invalid-runtime"
 			gomock.InOrder(
 				libMock.EXPECT().GetStore().Return(storeMock, nil),
@@ -836,7 +835,7 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := oci.NewContainer(containerID, "", "", "", "",
 				make(map[string]string), make(map[string]string),
 				make(map[string]string), "", "", "",
-				&pb.ContainerMetadata{}, sandboxID, false, false, false,
+				&pb.ContainerMetadata{}, sandboxID, false, false,
 				false, false, "", "/invalid", time.Now(), "")
 			Expect(err).To(BeNil())
 

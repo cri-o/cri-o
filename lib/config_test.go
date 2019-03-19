@@ -44,7 +44,6 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with additional devices", func() {
 			// Given
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
-			sut.DefaultWorkloadTrust = "DefaultWorkloadTrust"
 			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/sh"}
 
 			// When
@@ -126,29 +125,6 @@ var _ = t.Describe("Config", func() {
 
 			// When
 			err := sut.Validate(false)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("should fail on conflicting definitions", func() {
-			// Given
-			sut.Runtimes[oci.UntrustedRuntime] = oci.RuntimeHandler{}
-			sut.RuntimeUntrustedWorkload = "value"
-
-			// When
-			err := sut.Validate(false)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("should fail on non existing runtime", func() {
-			// Given
-			sut.Runtime = "not-existing"
-
-			// When
-			err := sut.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())

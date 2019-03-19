@@ -114,10 +114,6 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("stream-port") {
 		config.StreamPort = ctx.GlobalString("stream-port")
 	}
-	if ctx.GlobalIsSet("runtime") {
-		logrus.Warn("--runtime is deprecated, use the runtimes key in the config directly")
-		config.Runtime = ctx.GlobalString("runtime")
-	}
 	if ctx.GlobalIsSet("default-runtime") {
 		config.DefaultRuntime = ctx.GlobalString("default-runtime")
 	}

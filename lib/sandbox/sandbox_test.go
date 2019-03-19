@@ -34,7 +34,6 @@ var _ = t.Describe("Sandbox", func() {
 			shmPath := "shmPath"
 			cgroupParent := "cgroupParent"
 			privileged := true
-			trusted := false
 			runtimeHandler := "runtimeHandler"
 			resolvPath := "resolvPath"
 			hostname := "hostname"
@@ -44,7 +43,7 @@ var _ = t.Describe("Sandbox", func() {
 			// When
 			sandbox, err := sandbox.New(id, namespace, name, kubeName, logDir,
 				labels, annotations, processLabel, mountLabel, &metadata,
-				shmPath, cgroupParent, privileged, trusted, runtimeHandler,
+				shmPath, cgroupParent, privileged, runtimeHandler,
 				resolvPath, hostname, portMappings, hostNetwork)
 
 			// Then
@@ -63,7 +62,6 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(sandbox.ShmPath()).To(Equal(shmPath))
 			Expect(sandbox.CgroupParent()).To(Equal(cgroupParent))
 			Expect(sandbox.Privileged()).To(Equal(privileged))
-			Expect(sandbox.Trusted()).To(Equal(trusted))
 			Expect(sandbox.RuntimeHandler()).To(Equal(runtimeHandler))
 			Expect(sandbox.ResolvPath()).To(Equal(resolvPath))
 			Expect(sandbox.Hostname()).To(Equal(hostname))
@@ -176,7 +174,7 @@ var _ = t.Describe("Sandbox", func() {
 				"/container/logs", "", map[string]string{},
 				map[string]string{}, map[string]string{}, "image",
 				"imageName", "imageRef", &pb.ContainerMetadata{},
-				"testsandboxid", false, false, false, false, false, "",
+				"testsandboxid", false, false, false, false, "",
 				"/root/for/container", time.Now(), "SIGKILL")
 			testContainer.SetIntermediateMountPoint("/tmp/file")
 			Expect(err).To(BeNil())

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -41,19 +40,12 @@ const (
 	// before issuing a timeout regarding the proper termination of the
 	// container.
 	minCtrStopTimeout = 30
-
-	// UntrustedRuntime is the implicit runtime handler name used to
-	// fallback to the untrusted runtime.
-	UntrustedRuntime = "untrusted"
 )
 
 // Runtime is the generic structure holding both global and specific
 // information about the runtime.
 type Runtime struct {
-	name                     string
-	trustedPath              string
-	untrustedPath            string
-	trustLevel               string
+	defaultRuntime           RuntimeHandler
 	runtimes                 map[string]RuntimeHandler
 	conmonPath               string
 	conmonEnv                []string
@@ -66,7 +58,6 @@ type Runtime struct {
 	ctrStopTimeout           int64
 
 	runtimeImplList map[string]RuntimeImpl
-	runtimeType     string
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -105,10 +96,7 @@ type RuntimeHandler struct {
 }
 
 // New creates a new Runtime with options provided
-func New(runtimeTrustedPath string,
-	runtimeUntrustedPath string,
-	trustLevel string,
-	defaultRuntime string,
+func New(defaultRuntime string,
 	runtimes map[string]RuntimeHandler,
 	conmonPath string,
 	conmonEnv []string,
@@ -118,26 +106,18 @@ func New(runtimeTrustedPath string,
 	logSizeMax int64,
 	logToJournald bool,
 	noPivot bool,
-	ctrStopTimeout int64,
-	runtimeVersion string) (*Runtime, error) {
-	var runtimeType string
+	ctrStopTimeout int64) (*Runtime, error) {
 
-	if runtimeTrustedPath == "" {
-		// this means no "runtime" key in config as it's deprecated, fallback to
-		// the runtime handler configured as default.
-		r, ok := runtimes[defaultRuntime]
-		if !ok {
-			return nil, fmt.Errorf("no runtime configured for default_runtime=%q", defaultRuntime)
-		}
-		runtimeTrustedPath = r.RuntimePath
-		runtimeType = r.RuntimeType
+	defRuntime, ok := runtimes[defaultRuntime]
+	if !ok {
+		return nil, fmt.Errorf("no runtime configured for default_runtime=%q", defaultRuntime)
+	}
+	if defRuntime.RuntimePath == "" {
+		return nil, fmt.Errorf("empty runtime path for default_runtime=%q", defaultRuntime)
 	}
 
 	return &Runtime{
-		name:                     filepath.Base(runtimeTrustedPath),
-		trustedPath:              runtimeTrustedPath,
-		untrustedPath:            runtimeUntrustedPath,
-		trustLevel:               trustLevel,
+		defaultRuntime:           defRuntime,
 		runtimes:                 runtimes,
 		conmonPath:               conmonPath,
 		conmonEnv:                conmonEnv,
@@ -149,13 +129,7 @@ func New(runtimeTrustedPath string,
 		noPivot:                  noPivot,
 		ctrStopTimeout:           ctrStopTimeout,
 		runtimeImplList:          make(map[string]RuntimeImpl),
-		runtimeType:              runtimeType,
 	}, nil
-}
-
-// Name returns the name of the OCI Runtime
-func (r *Runtime) Name() string {
-	return r.name
 }
 
 // Runtimes returns the map of OCI runtimes.
@@ -172,11 +146,6 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (RuntimeHandler, error)
 
 	runtimeHandler, ok := r.runtimes[handler]
 	if !ok {
-		if handler == UntrustedRuntime && r.untrustedPath != "" {
-			return RuntimeHandler{
-				RuntimePath: r.untrustedPath,
-			}, nil
-		}
 		return RuntimeHandler{}, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
 			handler, r.runtimes)
 	}
@@ -185,42 +154,6 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (RuntimeHandler, error)
 	}
 
 	return runtimeHandler, nil
-}
-
-// path returns the full path the OCI Runtime executable.
-// Depending if the container is privileged and/or trusted,
-// this will return either the trusted or untrusted runtime path.
-func (r *Runtime) path(c *Container) (string, error) {
-	if c.runtimeHandler != "" {
-		runtimeHandler, err := r.ValidateRuntimeHandler(c.runtimeHandler)
-		if err != nil {
-			return "", err
-		}
-
-		return runtimeHandler.RuntimePath, nil
-	}
-
-	if !c.trusted {
-		if r.untrustedPath != "" {
-			return r.untrustedPath, nil
-		}
-
-		return r.trustedPath, nil
-	}
-
-	// Our container is trusted. Let's look at the configured trust level.
-	if r.trustLevel == "trusted" {
-		return r.trustedPath, nil
-	}
-
-	// Our container is trusted, but we are running untrusted.
-	// We will use the untrusted container runtime if it's set
-	// and if it's not a privileged container.
-	if c.privileged || r.untrustedPath == "" {
-		return r.trustedPath, nil
-	}
-
-	return r.untrustedPath, nil
 }
 
 // WaitContainerStateStopped runs a loop polling UpdateStatus(), seeking for
@@ -287,23 +220,28 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 }
 
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
-	rPath, err := r.path(c)
-	if err != nil {
-		return nil, err
-	}
+	// Define the current runtime handler as the default runtime handler.
+	rh := r.defaultRuntime
 
+	// Override the current runtime handler with the runtime handler
+	// corresponding to the runtime handler key provided with this
+	// specific container.
 	if c.runtimeHandler != "" {
 		runtimeHandler, err := r.ValidateRuntimeHandler(c.runtimeHandler)
-		if err == nil && runtimeHandler.RuntimeType == RuntimeTypeVM {
-			return newRuntimeVM(rPath), nil
+		if err != nil {
+			return nil, err
 		}
+
+		rh = runtimeHandler
 	}
 
-	if r.runtimeType == RuntimeTypeVM {
-		return newRuntimeVM(rPath), nil
+	if rh.RuntimeType == RuntimeTypeVM {
+		return newRuntimeVM(rh.RuntimePath), nil
 	}
 
-	return newRuntimeOCI(r, rPath), nil
+	// If the runtime type is different from "vm", then let's fallback
+	// onto the OCI implementation by default.
+	return newRuntimeOCI(r, rh.RuntimePath), nil
 }
 
 // RuntimeImpl returns the runtime implementation for a given container

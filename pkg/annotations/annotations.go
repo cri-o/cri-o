@@ -82,9 +82,6 @@ const (
 	// MountPoint is the mount point of the container rootfs
 	MountPoint = "io.kubernetes.cri-o.MountPoint"
 
-	// TrustedSandbox is the annotation for trusted sandboxes
-	TrustedSandbox = "io.kubernetes.cri-o.TrustedSandbox"
-
 	// RuntimeHandler is the annotation for runtime handler
 	RuntimeHandler = "io.kubernetes.cri-o.RuntimeHandler"
 

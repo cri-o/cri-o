@@ -49,7 +49,7 @@ func beforeEach() {
 	var err error
 	testSandbox, err = sandbox.New("sandboxID", "", "", "", "",
 		make(map[string]string), make(map[string]string), "", "",
-		&pb.PodSandboxMetadata{}, "", "", false, false, "", "", "",
+		&pb.PodSandboxMetadata{}, "", "", false, "", "", "",
 		[]*hostport.PortMapping{}, false)
 	Expect(err).To(BeNil())
 	Expect(testSandbox).NotTo(BeNil())
