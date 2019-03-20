@@ -219,12 +219,12 @@ func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specge
 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
 func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
-	//# Start the nginx container using the default command, but use custom
-	//arguments (arg1 .. argN) for that command.
-	//kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
+	// # Start the nginx container using the default command, but use custom
+	// arguments (arg1 .. argN) for that command.
+	// kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
 
-	//# Start the nginx container using a different command and custom arguments.
-	//kubectl run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>
+	// # Start the nginx container using a different command and custom arguments.
+	// kubectl run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>
 
 	kubeCommands := containerKubeConfig.Command
 	kubeArgs := containerKubeConfig.Args
@@ -405,7 +405,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	}
 
 	for _, cap := range capabilities.GetAddCapabilities() {
-		if strings.ToUpper(cap) == "ALL" {
+		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
 		capPrefixed := toCAPPrefixed(cap)
@@ -428,7 +428,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	}
 
 	for _, cap := range capabilities.GetDropCapabilities() {
-		if strings.ToUpper(cap) == "ALL" {
+		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
 		capPrefixed := toCAPPrefixed(cap)

@@ -58,10 +58,8 @@ func (s *Sandbox) NetNsGet(nspath, name string) (*NetNs, error) {
 		}
 
 		netNs.symlink = fd
-	} else {
-		if err := netNs.SymlinkCreate(name); err != nil {
-			return nil, err
-		}
+	} else if err := netNs.SymlinkCreate(name); err != nil {
+		return nil, err
 	}
 
 	return netNs, nil

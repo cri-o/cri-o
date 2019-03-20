@@ -86,7 +86,8 @@ func (c *ContainerServer) updateStateName(ctr *oci.Container, name string) error
 func updateMetadata(specAnnotations map[string]string, name string) string {
 	oldMetadata := specAnnotations[annotations.Metadata]
 	containerType := specAnnotations[annotations.ContainerType]
-	if containerType == "container" {
+	switch containerType {
+	case "container":
 		metadata := runtime.ContainerMetadata{}
 		err := json.Unmarshal([]byte(oldMetadata), &metadata)
 		if err != nil {
@@ -98,7 +99,8 @@ func updateMetadata(specAnnotations map[string]string, name string) string {
 			return oldMetadata
 		}
 		return string(m)
-	} else if containerType == "sandbox" {
+
+	case "sandbox":
 		metadata := runtime.PodSandboxMetadata{}
 		err := json.Unmarshal([]byte(oldMetadata), &metadata)
 		if err != nil {
@@ -110,7 +112,8 @@ func updateMetadata(specAnnotations map[string]string, name string) string {
 			return oldMetadata
 		}
 		return string(m)
-	} else {
+
+	default:
 		return specAnnotations[annotations.Metadata]
 	}
 }

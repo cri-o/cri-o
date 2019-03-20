@@ -457,28 +457,26 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		if s.config.Config.ManageNetworkNSLifecycle {
-			// Create the sandbox network namespace
-			if err = sb.NetNsCreate(nil); err != nil {
-				return nil, err
+	} else if s.config.Config.ManageNetworkNSLifecycle {
+		// Create the sandbox network namespace
+		if err = sb.NetNsCreate(nil); err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			if err == nil {
+				return
 			}
 
-			defer func() {
-				if err == nil {
-					return
-				}
-
-				if netnsErr := sb.NetNsRemove(); netnsErr != nil {
-					logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
-				}
-			}()
-
-			// Pass the created namespace path to the runtime
-			err = g.AddOrReplaceLinuxNamespace(string(runtimespec.NetworkNamespace), sb.NetNsPath())
-			if err != nil {
-				return nil, err
+			if netnsErr := sb.NetNsRemove(); netnsErr != nil {
+				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
 			}
+		}()
+
+		// Pass the created namespace path to the runtime
+		err = g.AddOrReplaceLinuxNamespace(string(runtimespec.NetworkNamespace), sb.NetNsPath())
+		if err != nil {
+			return nil, err
 		}
 	}
 

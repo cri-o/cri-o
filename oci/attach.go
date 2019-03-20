@@ -21,14 +21,14 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.WriteCloser, c
 		nr, er := conn.Read(buf)
 		if nr > 0 {
 			var dst io.Writer
-			if buf[0] == AttachPipeStdout {
+			switch buf[0] {
+			case AttachPipeStdout:
 				dst = outputStream
-			} else if buf[0] == AttachPipeStderr {
+			case AttachPipeStderr:
 				dst = errorStream
-			} else {
+			default:
 				logrus.Debugf("Got unexpected attach type %+d", buf[0])
 			}
-
 			if dst != nil {
 				nw, ew := dst.Write(buf[1:nr])
 				if ew != nil {

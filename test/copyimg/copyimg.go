@@ -187,13 +187,11 @@ func main() {
 					os.Exit(1)
 				}
 			}
-		} else {
-			if importFrom != "" && exportTo != "" {
-				_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
-				if err != nil {
-					logrus.Errorf("error copying %s to %s: %v", importFrom, exportTo, err)
-					os.Exit(1)
-				}
+		} else if importFrom != "" && exportTo != "" {
+			_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
+			if err != nil {
+				logrus.Errorf("error copying %s to %s: %v", importFrom, exportTo, err)
+				os.Exit(1)
 			}
 		}
 		return nil

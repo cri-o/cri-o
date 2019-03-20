@@ -531,7 +531,8 @@ func main() {
 
 		args := c.Args()
 		if len(args) > 0 {
-			for _, command := range app.Commands {
+			for i := range app.Commands {
+				command := &app.Commands[i]
 				if args[0] == command.Name {
 					break
 				}

@@ -30,7 +30,8 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 		return nil, err
 	}
 	resp = &pb.ListImagesResponse{}
-	for _, result := range results {
+	for i := range results {
+		result := &results[i]
 		resImg := &pb.Image{
 			Id:          result.ID,
 			RepoTags:    result.RepoTags,

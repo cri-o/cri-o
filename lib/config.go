@@ -141,7 +141,7 @@ type RuntimeConfig struct {
 	// will also be used for untrusted container workloads if
 	// RuntimeUntrustedWorkload is not set.
 	//
-	// DEPRECATED: use Runtimes instead.
+	// Deprecated: use Runtimes instead.
 	//
 	Runtime string `toml:"runtime"`
 
@@ -152,7 +152,7 @@ type RuntimeConfig struct {
 	// RuntimeUntrustedWorkload is the OCI compatible runtime used for
 	// untrusted container workloads. This is an optional setting, except
 	// if DefaultWorkloadTrust is set to "untrusted".
-	// DEPRECATED: use Runtimes instead. If provided, this runtime is
+	// Deprecated: use Runtimes instead. If provided, this runtime is
 	//     mapped to the runtime handler named 'untrusted'. It is a
 	//     configuration error to provide both the (now deprecated)
 	//     RuntimeUntrustedWorkload and a handler in the Runtimes handler
@@ -177,7 +177,7 @@ type RuntimeConfig struct {
 	// containers are by definition trusted and will always use the trusted container
 	// runtime. If DefaultWorkloadTrust is set to "trusted", crio will use the trusted
 	// container runtime for all containers.
-	// DEPRECATED: The runtime handler should provide a key to the map of runtimes,
+	// Deprecated: The runtime handler should provide a key to the map of runtimes,
 	//     avoiding the need to rely on the level of trust of the workload to choose
 	//     an appropriate runtime.
 	//     The support of this option will continue through versions 1.12 and 1.13.
