@@ -154,7 +154,8 @@ func (s *Server) restore() {
 	pods := map[string]*storage.RuntimeContainerMetadata{}
 	podContainers := map[string]*storage.RuntimeContainerMetadata{}
 	names := map[string][]string{}
-	for _, container := range containers {
+	for i := range containers {
+		container := &containers[i]
 		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(container.ID)
 		if err2 != nil {
 			logrus.Warnf("error parsing metadata for %s: %v, ignoring", container.ID, err2)

@@ -112,7 +112,7 @@ func newPodNetwork(sb *sandbox.Sandbox) ocicni.PodNetwork {
 // Comparison is case insensitive.
 func inStringSlice(ss []string, str string) bool {
 	for _, s := range ss {
-		if strings.ToLower(s) == strings.ToLower(str) {
+		if strings.EqualFold(s, str) {
 			return true
 		}
 	}

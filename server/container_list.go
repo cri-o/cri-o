@@ -51,14 +51,12 @@ func (s *Server) filterContainerList(filter *pb.ContainerFilter, origCtrList []*
 				return []*oci.Container{}
 			}
 		}
-	} else {
-		if filter.PodSandboxId != "" {
-			pod := s.ContainerServer.GetSandbox(filter.PodSandboxId)
-			if pod == nil {
-				return []*oci.Container{}
-			}
-			return pod.Containers().List()
+	} else if filter.PodSandboxId != "" {
+		pod := s.ContainerServer.GetSandbox(filter.PodSandboxId)
+		if pod == nil {
+			return []*oci.Container{}
 		}
+		return pod.Containers().List()
 	}
 	logrus.Debug("no filters were applied, returning full container list")
 	return origCtrList

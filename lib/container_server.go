@@ -235,7 +235,8 @@ func (c *ContainerServer) Update() error {
 	newPodContainers := map[string]*storage.RuntimeContainerMetadata{}
 	oldPodContainers := map[string]string{}
 	removedPodContainers := map[string]string{}
-	for _, container := range containers {
+	for i := range containers {
+		container := &containers[i]
 		if c.HasSandbox(container.ID) {
 			// FIXME: do we need to reload/update any info about the sandbox?
 			oldPods[container.ID] = container.ID
