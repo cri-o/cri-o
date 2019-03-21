@@ -1131,7 +1131,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 }
 
 func getDevicesFromConfig(config Config) ([]rspec.LinuxDevice, error) {
-	var linuxdevs []rspec.LinuxDevice
+	linuxdevs := make([]rspec.LinuxDevice, 0, len(config.RuntimeConfig.AdditionalDevices))
 	for _, d := range config.RuntimeConfig.AdditionalDevices {
 		src, dst, permissions, err := createconfig.ParseDevice(d)
 		if err != nil {

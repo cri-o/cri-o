@@ -16,6 +16,7 @@ linters:
     - ineffassign
     - interfacer
     - misspell
+    - prealloc
     - staticcheck
     - structcheck
     - typecheck
@@ -29,7 +30,6 @@ linters:
     # - lll
     # - maligned
     # - nakedret
-    # - prealloc
     # - scopelint
     # - unconvert
     # - unparam

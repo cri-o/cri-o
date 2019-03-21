@@ -123,7 +123,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 }
 
 func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
-	var out []*hostport.PortMapping
+	out := make([]*hostport.PortMapping, 0, len(in))
 	for _, v := range in {
 		if v.HostPort <= 0 {
 			continue

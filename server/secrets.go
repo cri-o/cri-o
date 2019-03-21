@@ -101,7 +101,7 @@ func getHostSecretData(hostDir string) ([]SecretData, error) {
 // secretMount copies the contents of host directory to container directory
 // and returns a list of mounts
 func secretMounts(defaultMountsPaths []string, mountLabel, containerWorkingDir string, runtimeMounts []rspec.Mount) ([]rspec.Mount, error) {
-	var mounts []rspec.Mount
+	mounts := make([]rspec.Mount, 0, len(defaultMountsPaths))
 	for _, path := range defaultMountsPaths {
 		hostDir, ctrDir, err := getMountsMap(path)
 		if err != nil {

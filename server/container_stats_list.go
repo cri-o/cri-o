@@ -30,8 +30,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 		ctrList = s.filterContainerList(cFilter, ctrList)
 	}
 
-	var allStats []*pb.ContainerStats
-
+	allStats := make([]*pb.ContainerStats, 0, len(ctrList))
 	for _, container := range ctrList {
 		stats, err := s.Runtime().ContainerStats(container)
 		if err != nil {

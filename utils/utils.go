@@ -228,7 +228,7 @@ func GetUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, erro
 
 	uid := uint32(execUser.Uid)
 	gid := uint32(execUser.Gid)
-	var additionalGids []uint32
+	additionalGids := make([]uint32, 0, len(execUser.Sgids))
 	for _, g := range execUser.Sgids {
 		additionalGids = append(additionalGids, uint32(g))
 	}
