@@ -62,7 +62,7 @@ func updateConfigName(configPath, name string) error {
 		return err
 	}
 	specgen.AddAnnotation(annotations.Name, name)
-	specgen.AddAnnotation(annotations.Metadata, updateMetadata(specgen.Spec().Annotations, name))
+	specgen.AddAnnotation(annotations.Metadata, updateMetadata(specgen.Config.Annotations, name))
 
 	return specgen.SaveToFile(configPath, generate.ExportOptions{})
 }

@@ -29,7 +29,7 @@ import (
 	"github.com/kubernetes-sigs/cri-o/server/metrics"
 	"github.com/kubernetes-sigs/cri-o/version"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -426,11 +426,6 @@ func (s *Server) addInfraContainer(c *oci.Container) {
 	s.ContainerServer.AddInfraContainer(c)
 }
 
-// getContainer returns a container by its ID
-func (s *Server) getContainer(id string) *oci.Container {
-	return s.ContainerServer.GetContainer(id)
-}
-
 func (s *Server) getInfraContainer(id string) *oci.Container {
 	return s.ContainerServer.GetInfraContainer(id)
 }
@@ -465,7 +460,7 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
 	metrics.Register()
 	mux := &http.ServeMux{}
-	mux.Handle("/metrics", prometheus.Handler())
+	mux.Handle("/metrics", promhttp.Handler())
 	return mux, nil
 }
 
