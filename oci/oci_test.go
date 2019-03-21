@@ -12,9 +12,9 @@ var _ = t.Describe("Oci", func() {
 		It("should succeed with default runtime", func() {
 			// Given
 			// When
-			runtime, err := oci.New("", "", "", "runc",
+			runtime, err := oci.New("runc",
 				map[string]oci.RuntimeHandler{"runc": {"/bin/sh", ""}},
-				"", []string{}, "", "", "", 0, false, false, 0, "")
+				"", []string{}, "", "", "", 0, false, false, 0)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -24,9 +24,9 @@ var _ = t.Describe("Oci", func() {
 		It("should fail if no runtime configured for default runtime", func() {
 			// Given
 			// When
-			runtime, err := oci.New("", "", "", "",
+			runtime, err := oci.New("",
 				map[string]oci.RuntimeHandler{}, "", []string{},
-				"", "", "", 0, false, false, 0, "")
+				"", "", "", 0, false, false, 0)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -40,9 +40,8 @@ var _ = t.Describe("Oci", func() {
 
 		// Test constants
 		const (
-			invalidRuntime     = "invalid"
-			defaultRuntime     = "runc"
-			runtimeTrustedPath = "runtimeTrustedPath"
+			invalidRuntime = "invalid"
+			defaultRuntime = "runc"
 		)
 		runtimes := map[string]oci.RuntimeHandler{
 			defaultRuntime: {"/bin/sh", ""}, invalidRuntime: {},
@@ -50,21 +49,12 @@ var _ = t.Describe("Oci", func() {
 
 		BeforeEach(func() {
 			var err error
-			sut, err = oci.New(runtimeTrustedPath, "", "", defaultRuntime,
+			sut, err = oci.New(defaultRuntime,
 				runtimes,
-				"", []string{}, "", "", "", 0, false, false, 0, "")
+				"", []string{}, "", "", "", 0, false, false, 0)
 
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
-		})
-
-		It("should succeed to retrieve the runtime base name", func() {
-			// Given
-			// When
-			result := sut.Name()
-
-			// Then
-			Expect(result).To(Equal(runtimeTrustedPath))
 		})
 
 		It("should succeed to retrieve the runtimes", func() {
@@ -84,22 +74,6 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(handler).To(Equal(runtimes[defaultRuntime]))
-		})
-
-		It("should succeed to validate the untrusted runtime", func() {
-			// Given
-			const untrustedPath = "untrustedPath"
-			sut, err := oci.New("", untrustedPath, "", defaultRuntime,
-				runtimes, "", []string{}, "", "", "", 0, false, false, 0, "")
-			Expect(err).To(BeNil())
-			Expect(sut).NotTo(BeNil())
-
-			// When
-			handler, err := sut.ValidateRuntimeHandler(oci.UntrustedRuntime)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(handler.RuntimePath).To(Equal(untrustedPath))
 		})
 
 		It("should fail to validate an inexisting runtime handler", func() {

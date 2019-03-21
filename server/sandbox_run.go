@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/kubernetes-sigs/cri-o/pkg/annotations"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -54,19 +53,6 @@ func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
 	}
 
 	return false
-}
-
-// trustedSandbox returns true if the sandbox will run trusted workloads.
-func (s *Server) trustedSandbox(req *pb.RunPodSandboxRequest) bool {
-	kubeAnnotations := req.GetConfig().GetAnnotations()
-
-	trustedAnnotation, ok := kubeAnnotations[annotations.TrustedSandbox]
-	if !ok {
-		// A sandbox is trusted by default.
-		return true
-	}
-
-	return isTrue(trustedAnnotation)
 }
 
 // runtimeHandler returns the runtime handler key provided by CRI if the key

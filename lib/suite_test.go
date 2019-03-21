@@ -79,7 +79,6 @@ var _ = BeforeSuite(func() {
 			"io.kubernetes.cri-o.SandboxName": "{}",
 			"io.kubernetes.cri-o.ShmPath": "{}",
 			"io.kubernetes.cri-o.MountPoint": "{}",
-			"io.kubernetes.cri-o.TrustedSandbox": "{}",
 			"io.kubernetes.cri-o.Stdin": "{}",
 			"io.kubernetes.cri-o.StdinOnce": "{}",
 			"io.kubernetes.cri-o.Volumes": "[{}]",
@@ -137,14 +136,14 @@ func beforeEach() {
 	// Setup test vars
 	mySandbox, err = sandbox.New(sandboxID, "", "", "", "",
 		make(map[string]string), make(map[string]string), "", "",
-		&pb.PodSandboxMetadata{}, "", "", false, false, "", "", "",
+		&pb.PodSandboxMetadata{}, "", "", false, "", "", "",
 		[]*hostport.PortMapping{}, false)
 	Expect(err).To(BeNil())
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", "", "",
-		&pb.ContainerMetadata{}, sandboxID, false, false, false,
+		&pb.ContainerMetadata{}, sandboxID, false, false,
 		false, false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 }

@@ -75,23 +75,6 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
 
-**runtime**="/usr/bin/runc"
-  Path to the OCI compatible runtime used for trusted container workloads. This is a mandatory setting as this runtime will be the default and will also be used for untrusted container workloads if `runtime_untrusted_workload` is not set.
-
-**runtime_untrusted_workload**=""
-   **Deprecated:** use "crio.runtime.runtimes" instead. If provided, this runtime is mapped to the runtime handler named 'untrusted'. It is a configuration error to provide both the (now deprecated) runtime_untrusted_workload and a handler in the Runtimes handler map (below) for 'untrusted' workloads at the same time. Please provide one or the other.  The support of this option will continue through versions 1.12 and 1.13.  By version 1.14, this option will no longer exist.
-
-   Path to OCI compatible runtime used for untrusted container workloads. This is an optional setting, except if `default_container_trust` is set to "untrusted".
-
-**default_workload_trust**="trusted"
-  **Deprecated:** The runtime handler should provide a key to the map of runtimes, avoiding the need to rely on the level of trust of the workload to choose an appropriate runtime.  The support of this option will continue through versions 1.12 and 1.13.  By version 1.14, this option will no longer exist.
-
-  Default level of trust CRI-O puts in container workloads. It can either be "trusted" or "untrusted", and the default is "trusted". Containers can be run through different container runtimes, depending on the trust hints we receive from kubelet:
-
-    - If kubelet tags a container workload as untrusted, CRI-O will try first to run it through the untrusted container workload runtime. If it is not set, CRI-O will use the trusted runtime.
-
-    - If kubelet does not provide any information about the container workload trust level, the selected runtime will depend on the default_container_trust setting. If it is set to untrusted, then all containers except for the host privileged ones, will be run by the runtime_untrusted_workload runtime. Host privileged containers are by definition trusted and will always use the trusted container runtime. If default_container_trust is set to "trusted", CRI-O will use the trusted container runtime for all containers.
-
 **no_pivot**=*false*
   If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 

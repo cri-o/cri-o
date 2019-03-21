@@ -36,9 +36,6 @@ func assertAllFieldsEquality(t *testing.T, c Config) {
 		{c.APIConfig.StreamPort, "10010"},
 		{c.APIConfig.StreamAddress, "localhost"},
 
-		{c.RuntimeConfig.Runtime, "/usr/local/bin/runc"},
-		{c.RuntimeConfig.RuntimeUntrustedWorkload, ""},
-		{c.RuntimeConfig.DefaultWorkloadTrust, ""},
 		{c.RuntimeConfig.Conmon, "/usr/local/libexec/crio/conmon"},
 		{c.RuntimeConfig.ConmonEnv[0], "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 		{c.RuntimeConfig.SELinux, true},

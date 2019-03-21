@@ -136,53 +136,9 @@ type RootConfig struct {
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
-	// Runtime is the OCI compatible runtime used for trusted container workloads.
-	// This is a mandatory setting as this runtime will be the default one and
-	// will also be used for untrusted container workloads if
-	// RuntimeUntrustedWorkload is not set.
-	//
-	// Deprecated: use Runtimes instead.
-	//
-	Runtime string `toml:"runtime"`
-
 	// DefaultRuntime is the _name_ of the OCI runtime to be used as the default.
 	// The name is matched against the Runtimes map below.
 	DefaultRuntime string `toml:"default_runtime"`
-
-	// RuntimeUntrustedWorkload is the OCI compatible runtime used for
-	// untrusted container workloads. This is an optional setting, except
-	// if DefaultWorkloadTrust is set to "untrusted".
-	// Deprecated: use Runtimes instead. If provided, this runtime is
-	//     mapped to the runtime handler named 'untrusted'. It is a
-	//     configuration error to provide both the (now deprecated)
-	//     RuntimeUntrustedWorkload and a handler in the Runtimes handler
-	//     map (below) for 'untrusted' workloads at the same time. Please
-	//     provide one or the other.
-	//     The support of this option will continue through versions 1.12 and 1.13.
-	//     By version 1.14, this option will no longer exist.
-	RuntimeUntrustedWorkload string `toml:"runtime_untrusted_workload"`
-
-	// DefaultWorkloadTrust is the default level of trust crio puts in container
-	// workloads. This can either be "trusted" or "untrusted" and the default
-	// is "trusted"
-	// Containers can be run through different container runtimes, depending on
-	// the trust hints we receive from kubelet:
-	// - If kubelet tags a container workload as untrusted, crio will try first
-	// to run it through the untrusted container workload runtime. If it is not
-	// set, crio will use the trusted runtime.
-	// - If kubelet does not provide any information about the container workload trust
-	// level, the selected runtime will depend on the DefaultWorkloadTrust setting.
-	// If it is set to "untrusted", then all containers except for the host privileged
-	// ones, will be run by the RuntimeUntrustedWorkload runtime. Host privileged
-	// containers are by definition trusted and will always use the trusted container
-	// runtime. If DefaultWorkloadTrust is set to "trusted", crio will use the trusted
-	// container runtime for all containers.
-	// Deprecated: The runtime handler should provide a key to the map of runtimes,
-	//     avoiding the need to rely on the level of trust of the workload to choose
-	//     an appropriate runtime.
-	//     The support of this option will continue through versions 1.12 and 1.13.
-	//     By version 1.14, this option will no longer exist.
-	DefaultWorkloadTrust string `toml:"default_workload_trust"`
 
 	// Runtimes defines a list of OCI compatible runtimes. The runtime to
 	// use is picked based on the runtime_handler provided by the CRI. If
@@ -499,49 +455,12 @@ func (c *RuntimeConfig) Validate(onExecution bool) error {
 	}
 
 	// check we do have at least a runtime
-	_, ok := c.Runtimes[c.DefaultRuntime]
-	if !ok && c.Runtime == "" && c.RuntimeUntrustedWorkload == "" {
+	if _, ok := c.Runtimes[c.DefaultRuntime]; !ok {
 		return errors.New("no default runtime configured")
-	}
-
-	const deprecatedRuntimeMsg = `
-/*\ Warning /*\
-DEPRECATED: Use Runtimes instead.
-
-The support of this option will continue through versions 1.12 and 1.13. By
-version 1.14, this option will no longer exist.
-/*\ Warning /*\
-`
-
-	// check for deprecated options
-	if c.RuntimeUntrustedWorkload != "" {
-		logrus.Warnf("RuntimeUntrustedWorkload deprecated\n%s", deprecatedRuntimeMsg)
-	}
-	if c.DefaultWorkloadTrust != "" {
-		logrus.Warnf("DefaultWorkloadTrust deprecated\n%s", deprecatedRuntimeMsg)
-	}
-	if c.Runtime != "" {
-		logrus.Warn("runtime is deprecated in favor of runtimes, please switch to that")
-	}
-
-	// check for conflicting options
-	_, ok = c.Runtimes[oci.UntrustedRuntime]
-	if ok && c.RuntimeUntrustedWorkload != "" {
-		return fmt.Errorf(
-			"conflicting definitions: configuration includes runtime_untrusted_workload and runtimes[%q]",
-			oci.UntrustedRuntime,
-		)
 	}
 
 	// check for validation on execution
 	if onExecution {
-		if c.Runtime != "" {
-			if _, err := os.Stat(c.Runtime); os.IsNotExist(err) {
-				// path to runtime does not exist
-				return fmt.Errorf("invalid --runtime value %q", err)
-			}
-		}
-
 		// Validate if runtime_path does exist for each runtime
 		for runtime, handler := range c.Runtimes {
 			if _, err := os.Stat(handler.RuntimePath); os.IsNotExist(err) {
