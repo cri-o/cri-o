@@ -73,7 +73,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-          version: "1.9.2"
+          version: "1.11.6"
     - name: setup critest
       include: "build/cri-tools.yml"
       vars:
@@ -92,7 +92,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-          version: "1.9.2"
+          version: "1.11.6"
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
@@ -113,7 +113,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-          version: "1.9.2"
+          version: "1.11.6"
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
