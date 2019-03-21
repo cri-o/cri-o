@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	. "github.com/kubernetes-sigs/cri-o/test/framework"
-	"github.com/kubernetes-sigs/cri-o/test/mocks/containerstorage"
-	"github.com/kubernetes-sigs/cri-o/test/mocks/criostorage"
+	containerstoragemock "github.com/kubernetes-sigs/cri-o/test/mocks/containerstorage"
+	criostoragemock "github.com/kubernetes-sigs/cri-o/test/mocks/criostorage"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

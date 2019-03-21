@@ -17,7 +17,7 @@ import (
 	"github.com/kubernetes-sigs/cri-o/pkg/seccomp"
 	"github.com/kubernetes-sigs/cri-o/pkg/storage"
 	"github.com/kubernetes-sigs/cri-o/utils"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"

@@ -1,9 +1,10 @@
 package lib
 
 import (
+	"syscall"
+
 	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/pkg/errors"
-	"syscall"
 )
 
 // ContainerKill sends the user provided signal to the containers primary process.

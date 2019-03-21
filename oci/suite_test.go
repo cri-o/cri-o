@@ -7,7 +7,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/cri-o/oci"
 	. "github.com/kubernetes-sigs/cri-o/test/framework"
-	"github.com/kubernetes-sigs/cri-o/test/mocks/containerstorage"
+	containerstoragemock "github.com/kubernetes-sigs/cri-o/test/mocks/containerstorage"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"

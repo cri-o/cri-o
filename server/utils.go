@@ -11,7 +11,7 @@ import (
 	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/server/metrics"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"

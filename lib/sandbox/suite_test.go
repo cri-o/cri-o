@@ -6,7 +6,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	. "github.com/kubernetes-sigs/cri-o/test/framework"
-	"github.com/kubernetes-sigs/cri-o/test/mocks/sandbox"
+	sandboxmock "github.com/kubernetes-sigs/cri-o/test/mocks/sandbox"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"

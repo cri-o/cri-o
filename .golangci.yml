@@ -12,6 +12,7 @@ linters:
     - goconst
     - gocritic
     - gofmt
+    - goimports
     - ineffassign
     - interfacer
     - misspell
@@ -21,7 +22,6 @@ linters:
     # - errcheck
     # - gochecknoglobals
     # - gocyclo
-    # - goimports
     # - golint
     # - gosec
     # - govet
