@@ -38,7 +38,7 @@ func getHandle(fn string) (*handle, error) {
 	h := &handle{
 		f:    f,
 		name: fn,
-		dev:  uint64(stat.Dev),
+		dev:  stat.Dev,
 		ino:  stat.Ino,
 		fd:   fd,
 	}
@@ -65,7 +65,7 @@ func (h *handle) Path() (string, error) {
 	if err := syscall.Stat(h.procPath(), &stat); err != nil {
 		return "", errors.Wrapf(err, "path %v could not be statted", h.procPath())
 	}
-	if uint64(stat.Dev) != h.dev || stat.Ino != h.ino {
+	if stat.Dev != h.dev || stat.Ino != h.ino {
 		return "", errors.Errorf("failed to verify handle %v/%v %v/%v", stat.Dev, h.dev, stat.Ino, h.ino)
 	}
 	return h.procPath(), nil
