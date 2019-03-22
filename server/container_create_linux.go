@@ -841,11 +841,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// Set working directory
 	// Pick it up from image config first and override if specified in CRI
 	containerCwd := "/"
-	if containerImageConfig != nil {
-		imageCwd := containerImageConfig.Config.WorkingDir
-		if imageCwd != "" {
-			containerCwd = imageCwd
-		}
+	imageCwd := containerImageConfig.Config.WorkingDir
+	if imageCwd != "" {
+		containerCwd = imageCwd
 	}
 	runtimeCwd := containerConfig.WorkingDir
 	if runtimeCwd != "" {

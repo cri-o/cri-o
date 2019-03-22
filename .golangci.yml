@@ -15,6 +15,7 @@ linters:
     - goimports
     - golint
     - gosec
+    - govet
     - ineffassign
     - interfacer
     - misspell
@@ -28,7 +29,6 @@ linters:
     # - errcheck
     # - gochecknoglobals
     # - gocyclo
-    # - govet
     # - lll
     # - maligned
     # - nakedret

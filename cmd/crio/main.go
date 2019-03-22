@@ -533,6 +533,7 @@ func main() {
 					break
 				}
 			}
+			cancel()
 			return fmt.Errorf("command %q not supported", args[0])
 		}
 
@@ -540,6 +541,7 @@ func main() {
 
 		// Validate the configuration during runtime
 		if err := config.Validate(true); err != nil {
+			cancel()
 			return err
 		}
 
@@ -555,6 +557,7 @@ func main() {
 		}
 
 		if err := os.MkdirAll(filepath.Dir(config.Listen), 0755); err != nil {
+			cancel()
 			return err
 		}
 
