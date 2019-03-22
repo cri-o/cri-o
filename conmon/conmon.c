@@ -22,6 +22,8 @@
 #include <termios.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <sched.h>
+#include <sys/ioctl.h>
 
 #if __STDC_VERSION__ >= 199901L
 /* C99 or later */
@@ -34,6 +36,12 @@
 
 #include "cmsg.h"
 #include "config.h"
+
+
+#ifndef NS_GET_USERNS
+#define NSIO 0xb7
+#define NS_GET_NSTYPE _IO(NSIO, 0x3)
+#endif
 
 static volatile pid_t container_pid = -1;
 static volatile pid_t create_pid = -1;
@@ -55,6 +63,7 @@ static gboolean opt_exec = FALSE;
 static char *opt_restore_path = NULL;
 static gchar **opt_restore_args = NULL;
 static gchar **opt_runtime_args = NULL;
+static gchar **opt_exit_namespace_args = NULL;
 static gchar **opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
@@ -90,6 +99,8 @@ static GOptionEntry opt_entries[] = {
 	{"exit-dir", 0, 0, G_OPTION_ARG_STRING, &opt_exit_dir, "Path to the directory where exit files are written", NULL},
 	{"exit-command", 0, 0, G_OPTION_ARG_STRING, &opt_exit_command,
 	 "Path to the program to execute when the container terminates its execution", NULL},
+	{"exit-command-namespace", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_exit_namespace_args,
+	 "Specifies an FD that holds a descriptor to a namespace to join before calling the exit command", NULL},
 	{"exit-command-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_exit_args,
 	 "Additional arg to pass to the exit command.  Can be specified multiple times", NULL},
 	{"log-path", 'l', 0, G_OPTION_ARG_STRING_ARRAY, &opt_log_path, "Log file path", NULL},
@@ -1395,6 +1406,25 @@ int main(int argc, char *argv[])
 		_cleanup_free_ char *exit_file_path = g_build_filename(opt_exit_dir, opt_cid, NULL);
 		if (!g_file_set_contents(exit_file_path, status_str, -1, &err))
 			nexitf("Failed to write %s to exit file: %s", status_str, err->message);
+	}
+
+	if (opt_exit_namespace_args) {
+		for (fd = 0; opt_exit_namespace_args[fd]; fd++) {
+			int type, ns;
+			char *endptr = NULL;
+
+			errno = 0;
+			ns = strtol(opt_exit_namespace_args[fd], &endptr, 10);
+			if (errno != 0 || *endptr != '\0')
+				nexitf("unable to parse %s", opt_exit_namespace_args[fd]);
+
+			type = ioctl(ns, NS_GET_NSTYPE);
+			if (unshare(type) < 0)
+				pexit("unable to unshare ns");
+
+			if (setns(ns, 0) < 0)
+				pexit("unable to join ns");
+		}
 	}
 
 	/*
