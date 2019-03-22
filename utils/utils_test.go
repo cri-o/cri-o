@@ -436,6 +436,7 @@ func createEtcFiles() string {
 	// Create an /etc/passwd and /etc/group file that match
 	// those of the alpine image
 	// This will be created in a temp directory like /tmp/uid-test*
+	// nolint: gosec
 	alpinePasswdFile := `root:x:0:0:root:/root:/bin/ash
 bin:x:1:1:bin:/bin:/sbin/nologin
 daemon:x:2:2:daemon:/sbin:/sbin/nologin
