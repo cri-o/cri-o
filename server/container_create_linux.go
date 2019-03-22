@@ -817,7 +817,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// Add image volumes
-	volumeMounts, err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, mountLabel)
+	volumeMounts, err := addImageVolumes(mountPoint, s, &containerInfo, mountLabel)
 	if err != nil {
 		return nil, err
 	}
@@ -954,9 +954,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	if os.Getenv("_CRIO_ROOTLESS") != "" {
-		if err := makeOCIConfigurationRootless(&specgen); err != nil {
-			return nil, err
-		}
+		makeOCIConfigurationRootless(&specgen)
 	}
 
 	saveOptions := generate.ExportOptions{}

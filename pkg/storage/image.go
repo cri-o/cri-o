@@ -181,7 +181,7 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, imageI
 	return imageDigest, repoDigests
 }
 
-func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (imageCacheItem, error) {
+func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference) (imageCacheItem, error) {
 	img, err := ref.NewImageSource(svc.ctx, systemContext)
 	if err != nil {
 		return imageCacheItem{}, err
@@ -214,7 +214,7 @@ func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, 
 	cacheItem, ok := svc.imageCache[image.ID]
 	svc.imageCacheLock.Unlock()
 	if !ok {
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref, image)
+		cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
 		if err != nil {
 			return results, err
 		}

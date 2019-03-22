@@ -20,6 +20,7 @@ linters:
     - staticcheck
     - structcheck
     - typecheck
+    - unparam
     - varcheck
     # - errcheck
     # - gochecknoglobals
@@ -32,7 +33,6 @@ linters:
     # - nakedret
     # - scopelint
     # - unconvert
-    # - unparam
 issues:
   exclude:
     - .*_Ctype_security_context_t.*
