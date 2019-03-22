@@ -1,8 +1,5 @@
 FROM golang:1.12
 
-# libseccomp in jessie is not _quite_ new enough -- need backports version
-RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
-
 RUN apt-get update && apt-get install -y \
     apparmor \
     autoconf \
@@ -24,8 +21,8 @@ RUN apt-get update && apt-get install -y \
     libostree-dev \
     libprotobuf-dev \
     libprotobuf-c0-dev \
-    libseccomp2/jessie-backports \
-    libseccomp-dev/jessie-backports \
+    libseccomp2 \
+    libseccomp-dev \
     libtool \
     libudev-dev \
     libsystemd-dev \
