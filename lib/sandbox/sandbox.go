@@ -72,37 +72,37 @@ func HostNetNsPath() (string, error) {
 
 // Sandbox contains data surrounding kubernetes sandboxes on the server
 type Sandbox struct {
-	id        string
-	namespace string
+	portMappings []*hostport.PortMapping
+	createdAt    time.Time
+	id           string
+	namespace    string
 	// OCI pod name (eg "<namespace>-<name>-<attempt>")
 	name string
 	// Kubernetes pod name (eg, "<name>")
 	kubeName       string
 	logDir         string
-	labels         fields.Set
-	annotations    map[string]string
-	infraContainer *oci.Container
 	containers     oci.ContainerStorer
 	processLabel   string
 	mountLabel     string
 	netns          NetNsIface
-	metadata       *pb.PodSandboxMetadata
-	nsOpts         *pb.NamespaceOption
 	shmPath        string
 	cgroupParent   string
-	privileged     bool
 	runtimeHandler string
 	resolvPath     string
 	hostnamePath   string
 	hostname       string
-	portMappings   []*hostport.PortMapping
-	created        bool
-	stopped        bool
-	stopMutex      sync.RWMutex
 	// ipv4 or ipv6 cache
 	ip                 string
 	seccompProfilePath string
-	createdAt          time.Time
+	labels             fields.Set
+	annotations        map[string]string
+	infraContainer     *oci.Container
+	metadata           *pb.PodSandboxMetadata
+	nsOpts             *pb.NamespaceOption
+	stopMutex          sync.RWMutex
+	created            bool
+	stopped            bool
+	privileged         bool
 	hostNetwork        bool
 }
 

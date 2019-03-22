@@ -18,6 +18,7 @@ linters:
     - govet
     - ineffassign
     - interfacer
+    - maligned
     - misspell
     - prealloc
     - scopelint
@@ -31,11 +32,7 @@ linters:
     # - gochecknoglobals
     # - gocyclo
     # - lll
-    # - maligned
     # - nakedret
-issues:
-  exclude:
-    - .*_Ctype_security_context_t.*
 linters-settings:
   gocritic:
     enabled-checks:
