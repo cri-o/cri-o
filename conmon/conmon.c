@@ -102,6 +102,7 @@ static GOptionEntry opt_entries[] = {
 	{NULL}};
 
 #define CGROUP_ROOT "/sys/fs/cgroup"
+#define OOM_SCORE "-999"
 
 static ssize_t write_all(int fd, const void *buf, size_t count)
 {
@@ -947,6 +948,18 @@ int main(int argc, char *argv[])
 	_cleanup_close_ int dev_null_r = -1;
 	_cleanup_close_ int dev_null_w = -1;
 	int fds[2];
+	int oom_score_fd = -1;
+
+	oom_score_fd = open("/proc/self/oom_score_adj", O_WRONLY);
+	if (oom_score_fd < 0) {
+		g_print("failed to open /proc/self/oom_score_adj: %s\n", strerror(errno));
+	} else {
+		if (write(oom_score_fd, OOM_SCORE, strlen(OOM_SCORE)) < 0) {
+			g_print("failed to write to /proc/self/oom_score_adj: %s\n", strerror(errno));
+		}
+		close(oom_score_fd);
+	}
+
 
 	main_loop = g_main_loop_new(NULL, FALSE);
 
