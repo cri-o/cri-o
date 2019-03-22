@@ -74,6 +74,10 @@ func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig
 	}
 
 	for _, device := range containerConfig.GetDevices() {
+		// pin the device to avoid using `device` within the range scope as
+		// wrong function literal
+		device := device
+
 		// If we are privileged, we have access to devices on the host.
 		// If the requested container path already exists on the host, the container won't see the expected host path.
 		// Therefore, we must error out if the container path already exists

@@ -19,6 +19,7 @@ linters:
     - interfacer
     - misspell
     - prealloc
+    - scopelint
     - staticcheck
     - structcheck
     - typecheck
@@ -31,7 +32,6 @@ linters:
     # - lll
     # - maligned
     # - nakedret
-    # - scopelint
     # - unconvert
 issues:
   exclude:
