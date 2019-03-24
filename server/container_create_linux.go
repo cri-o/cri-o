@@ -44,7 +44,7 @@ func findCgroupMountpoint(name string) error {
 }
 
 func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
-	sp := specgen.Spec()
+	sp := specgen.Config
 	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 		hostDevices, err := devices.HostDevices()
 		if err != nil {
@@ -526,9 +526,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 			}
 			// Clear default capabilities from spec
 			specgen.ClearProcessCapabilities()
-			for _, defaultCap := range s.config.DefaultCapabilities {
-				capabilities.AddCapabilities = append(capabilities.AddCapabilities, defaultCap)
-			}
+			capabilities.AddCapabilities = append(capabilities.AddCapabilities, s.config.DefaultCapabilities...)
 			err = setupCapabilities(&specgen, capabilities)
 			if err != nil {
 				return nil, err
@@ -556,7 +554,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 				specgen.AddLinuxMaskedPaths(mp)
 			}
 			if securityContext.GetMaskedPaths() != nil {
-				specgen.Spec().Linux.MaskedPaths = nil
+				specgen.Config.Linux.MaskedPaths = nil
 				for _, path := range securityContext.GetMaskedPaths() {
 					specgen.AddLinuxMaskedPaths(path)
 				}
@@ -573,7 +571,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 				specgen.AddLinuxReadonlyPaths(rp)
 			}
 			if securityContext.GetReadonlyPaths() != nil {
-				specgen.Spec().Linux.ReadonlyPaths = nil
+				specgen.Config.Linux.ReadonlyPaths = nil
 				for _, path := range securityContext.GetReadonlyPaths() {
 					specgen.AddLinuxReadonlyPaths(path)
 				}
@@ -915,7 +913,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// by default, the root path is an empty string. set it now.
 	specgen.SetRootPath(mountPoint)
 
-	crioAnnotations := specgen.Spec().Annotations
+	crioAnnotations := specgen.Config.Annotations
 
 	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs().Path(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
@@ -969,7 +967,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	container.SetSpec(specgen.Spec())
+	container.SetSpec(specgen.Config)
 	container.SetMountPoint(mountPoint)
 	container.SetSeccompProfilePath(spp)
 
@@ -997,7 +995,7 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 }
 
 func setOCIBindMountsPrivileged(g *generate.Generator) {
-	spec := g.Spec()
+	spec := g.Config
 	// clear readonly for /sys and cgroup
 	for i, m := range spec.Mounts {
 		if spec.Mounts[i].Destination == "/sys" {
@@ -1101,8 +1099,8 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 				return nil, nil, err
 			}
 			options = append(options, "rslave")
-			if specgen.Spec().Linux.RootfsPropagation != "rshared" &&
-				specgen.Spec().Linux.RootfsPropagation != "rslave" {
+			if specgen.Config.Linux.RootfsPropagation != "rshared" &&
+				specgen.Config.Linux.RootfsPropagation != "rslave" {
 				specgen.SetLinuxRootPropagation("rslave")
 			}
 		default:
@@ -1133,7 +1131,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 }
 
 func getDevicesFromConfig(config Config) ([]rspec.LinuxDevice, error) {
-	var linuxdevs []rspec.LinuxDevice
+	linuxdevs := make([]rspec.LinuxDevice, 0, len(config.RuntimeConfig.AdditionalDevices))
 	for _, d := range config.RuntimeConfig.AdditionalDevices {
 		src, dst, permissions, err := createconfig.ParseDevice(d)
 		if err != nil {

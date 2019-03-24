@@ -14,7 +14,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
@@ -123,7 +123,7 @@ func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 }
 
 func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
-	var out []*hostport.PortMapping
+	out := make([]*hostport.PortMapping, 0, len(in))
 	for _, v := range in {
 		if v.HostPort <= 0 {
 			continue

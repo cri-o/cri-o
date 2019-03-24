@@ -11,7 +11,7 @@ import (
 	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
 	"github.com/kubernetes-sigs/cri-o/server/metrics"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
@@ -121,7 +121,7 @@ func inStringSlice(ss []string, str string) bool {
 
 // getOCICapabilitiesList returns a list of all available capabilities.
 func getOCICapabilitiesList() []string {
-	var caps []string
+	caps := make([]string, 0, len(capability.List()))
 	for _, cap := range capability.List() {
 		if cap > validate.LastCap() {
 			continue
@@ -259,7 +259,7 @@ type ulimit struct {
 }
 
 func getUlimitsFromConfig(config Config) ([]ulimit, error) {
-	var ulimits []ulimit
+	ulimits := make([]ulimit, 0, len(config.RuntimeConfig.DefaultUlimits))
 	for _, u := range config.RuntimeConfig.DefaultUlimits {
 		ul, err := units.ParseUlimit(u)
 		if err != nil {

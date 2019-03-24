@@ -12,24 +12,24 @@ linters:
     - goconst
     - gocritic
     - gofmt
+    - goimports
     - ineffassign
     - interfacer
     - misspell
+    - prealloc
+    - staticcheck
     - structcheck
     - typecheck
     - varcheck
     # - errcheck
     # - gochecknoglobals
     # - gocyclo
-    # - goimports
     # - golint
     # - gosec
     # - govet
     # - lll
     # - maligned
-    # - megacheck
     # - nakedret
-    # - prealloc
     # - scopelint
     # - unconvert
     # - unparam

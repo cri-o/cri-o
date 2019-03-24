@@ -17,7 +17,7 @@ import (
 	"github.com/kubernetes-sigs/cri-o/pkg/seccomp"
 	"github.com/kubernetes-sigs/cri-o/pkg/storage"
 	"github.com/kubernetes-sigs/cri-o/utils"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
@@ -353,7 +353,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
 	// and pods expect that switching to a non-root user results in the capabilities being
 	// dropped. This should be revisited in the future.
-	specgen.Spec().Process.Capabilities.Ambient = []string{}
+	specgen.Config.Process.Capabilities.Ambient = []string{}
 
 	if capabilities == nil {
 		return nil
@@ -483,7 +483,7 @@ func ensureSaneLogPath(logPath string) error {
 
 // addSecretsBindMounts mounts user defined secrets to the container
 func addSecretsBindMounts(mountLabel, ctrRunDir string, defaultMounts []string, specgen generate.Generator) ([]rspec.Mount, error) {
-	containerMounts := specgen.Spec().Mounts
+	containerMounts := specgen.Config.Mounts
 	mounts, err := secretMounts(defaultMounts, mountLabel, ctrRunDir, containerMounts)
 	if err != nil {
 		return nil, err
@@ -611,7 +611,7 @@ func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
 func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error {
 	if profile == "" {
 		// running w/o seccomp, aka unconfined
-		specgen.Spec().Linux.Seccomp = nil
+		specgen.Config.Linux.Seccomp = nil
 		return nil
 	}
 	if !s.seccompEnabled {
@@ -622,7 +622,7 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error
 	}
 	if profile == seccompUnconfined {
 		// running w/o seccomp, aka unconfined
-		specgen.Spec().Linux.Seccomp = nil
+		specgen.Config.Linux.Seccomp = nil
 		return nil
 	}
 	if profile == seccompRuntimeDefault || profile == seccompDockerDefault {
