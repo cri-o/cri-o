@@ -136,9 +136,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	childStartPipe.Close()
 
 	// Platform specific container setup
-	if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
-		logrus.Warnf("%s", err)
-	}
+	r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid)
 
 	/* We set the cgroup, now the child can start creating children */
 	someData := []byte{0}

@@ -22,20 +22,18 @@ func createUnitName(prefix string, name string) string {
 	return fmt.Sprintf("%s-%s.scope", prefix, name)
 }
 
-func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
+func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) {
 	// Move conmon to specified cgroup
 	if r.cgroupManager == SystemdCgroupsManager {
 		logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
 		if err := utils.RunUnderSystemdScope(pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
 			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 		}
-		return nil
 	}
 
 	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
 	if err != nil {
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-		return nil
 	}
 
 	// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
@@ -47,7 +45,6 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 	if err := control.Add(cgroups.Process{Pid: pid}); err != nil {
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 	}
-	return nil
 }
 
 func sysProcAttrPlatform() *syscall.SysProcAttr {

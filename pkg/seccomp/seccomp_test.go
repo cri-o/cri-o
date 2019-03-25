@@ -100,7 +100,7 @@ var _ = t.Describe("Seccomp", func() {
 			err := seccomp.LoadProfileFromStruct(seccomp.Seccomp{
 				DefaultAction: "action",
 				ArchMap: []seccomp.Architecture{
-					{seccomp.Arch(arch), []seccomp.Arch{seccomp.Arch("arch")}},
+					{arch, []seccomp.Arch{seccomp.Arch("arch")}},
 				}}, &generate.Generator{
 				Config: &specs.Spec{
 					Linux: &specs.Linux{Seccomp: &specs.LinuxSeccomp{}},

@@ -102,7 +102,7 @@ var _ = t.Describe("MemoryStore", func() {
 			// When
 			called := 0
 			sut.ApplyAll(func(*sandbox.Sandbox) {
-				called += 1
+				called++
 			})
 
 			// Then

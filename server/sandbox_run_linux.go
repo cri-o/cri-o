@@ -367,10 +367,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			if len(cgroupParent) <= 6 || !strings.HasSuffix(path.Base(cgroupParent), ".slice") {
 				return nil, fmt.Errorf("cri-o configured with systemd cgroup manager, but did not receive slice as parent: %s", cgroupParent)
 			}
-			cgPath, err := convertCgroupFsNameToSystemd(cgroupParent)
-			if err != nil {
-				return nil, err
-			}
+			cgPath := convertCgroupFsNameToSystemd(cgroupParent)
 			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
 			cgroupParent = cgPath
 		} else {
@@ -575,9 +572,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	if os.Getenv("_CRIO_ROOTLESS") != "" {
-		if err := makeOCIConfigurationRootless(&g); err != nil {
-			return nil, err
-		}
+		makeOCIConfigurationRootless(&g)
 	}
 
 	container.SetSpec(g.Config)

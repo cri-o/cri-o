@@ -76,7 +76,7 @@ endif
 	touch "$(GOPATH)/.gopathok"
 
 lint: .gopathok
-	golangci-lint run --build-tags="$(BUILDTAGS)"
+	golangci-lint run --build-tags="$(BUILDTAGS) containers_image_ostree_stub"
 
 fmt: gofmt cfmt
 

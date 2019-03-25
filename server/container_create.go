@@ -155,7 +155,7 @@ func getSourceMount(source string, mountInfos []*dockermounts.Info) (string, str
 	return "", "", fmt.Errorf("Could not find source mount of %s", source)
 }
 
-func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, specgen *generate.Generator, mountLabel string) ([]rspec.Mount, error) {
+func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string) ([]rspec.Mount, error) {
 	mounts := []rspec.Mount{}
 	for dest := range containerInfo.Config.Config.Volumes {
 		fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, dest), rootfs)
@@ -276,14 +276,11 @@ func setupContainerUser(specgen *generate.Generator, rootfs, mountLabel, ctrRunD
 	if imageConfig != nil {
 		imageUser = imageConfig.Config.User
 	}
-	containerUser, err := generateUserString(
+	containerUser := generateUserString(
 		sc.GetRunAsUsername(),
 		imageUser,
 		sc.GetRunAsUser(),
 	)
-	if err != nil {
-		return err
-	}
 	logrus.Debugf("CONTAINER USER: %+v", containerUser)
 
 	// Add uid, gid and groups from user
@@ -330,7 +327,7 @@ func setupContainerUser(specgen *generate.Generator, rootfs, mountLabel, ctrRunD
 }
 
 // generateUserString generates valid user string based on OCI Image Spec v1.0.0.
-func generateUserString(username, imageUser string, uid *pb.Int64Value) (string, error) {
+func generateUserString(username, imageUser string, uid *pb.Int64Value) string {
 	var userstr string
 	if uid != nil {
 		userstr = strconv.FormatInt(uid.GetValue(), 10)
@@ -343,9 +340,9 @@ func generateUserString(username, imageUser string, uid *pb.Int64Value) (string,
 		userstr = imageUser
 	}
 	if userstr == "" {
-		return "", nil
+		return ""
 	}
-	return userstr, nil
+	return userstr
 }
 
 // setupCapabilities sets process.capabilities in the OCI runtime config.

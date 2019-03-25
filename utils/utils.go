@@ -2,11 +2,11 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"

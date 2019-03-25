@@ -60,25 +60,24 @@ type streamService struct {
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	*lib.ContainerServer
-	config Config
-
-	updateLock      sync.RWMutex
+	config          Config
+	seccompProfile  seccomp.Seccomp
+	stream          streamService
 	netPlugin       ocicni.CNIPlugin
 	hostportManager hostport.HostPortManager
 
-	seccompEnabled bool
-	seccompProfile seccomp.Seccomp
-
-	appArmorEnabled bool
 	appArmorProfile string
+	hostIP          string
+	bindAddress     string
 
-	hostIP       string
-	bindAddress  string
-	stream       streamService
-	monitorsChan chan struct{}
-
+	*lib.ContainerServer
+	monitorsChan      chan struct{}
 	defaultIDMappings *idtools.IDMappings
+
+	updateLock sync.RWMutex
+
+	seccompEnabled  bool
+	appArmorEnabled bool
 }
 
 type certConfigCache struct {

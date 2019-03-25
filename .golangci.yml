@@ -13,29 +13,26 @@ linters:
     - gocritic
     - gofmt
     - goimports
+    - golint
+    - gosec
+    - govet
     - ineffassign
     - interfacer
+    - maligned
     - misspell
     - prealloc
+    - scopelint
     - staticcheck
     - structcheck
     - typecheck
+    - unconvert
+    - unparam
     - varcheck
     # - errcheck
     # - gochecknoglobals
     # - gocyclo
-    # - golint
-    # - gosec
-    # - govet
     # - lll
-    # - maligned
     # - nakedret
-    # - scopelint
-    # - unconvert
-    # - unparam
-issues:
-  exclude:
-    - .*_Ctype_security_context_t.*
 linters-settings:
   gocritic:
     enabled-checks:

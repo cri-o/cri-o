@@ -74,6 +74,10 @@ func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig
 	}
 
 	for _, device := range containerConfig.GetDevices() {
+		// pin the device to avoid using `device` within the range scope as
+		// wrong function literal
+		device := device
+
 		// If we are privileged, we have access to devices on the host.
 		// If the requested container path already exists on the host, the container won't see the expected host path.
 		// Therefore, we must error out if the container path already exists
@@ -817,7 +821,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	// Add image volumes
-	volumeMounts, err := addImageVolumes(mountPoint, s, &containerInfo, &specgen, mountLabel)
+	volumeMounts, err := addImageVolumes(mountPoint, s, &containerInfo, mountLabel)
 	if err != nil {
 		return nil, err
 	}
@@ -837,11 +841,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// Set working directory
 	// Pick it up from image config first and override if specified in CRI
 	containerCwd := "/"
-	if containerImageConfig != nil {
-		imageCwd := containerImageConfig.Config.WorkingDir
-		if imageCwd != "" {
-			containerCwd = imageCwd
-		}
+	imageCwd := containerImageConfig.Config.WorkingDir
+	if imageCwd != "" {
+		containerCwd = imageCwd
 	}
 	runtimeCwd := containerConfig.WorkingDir
 	if runtimeCwd != "" {
@@ -954,9 +956,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	if os.Getenv("_CRIO_ROOTLESS") != "" {
-		if err := makeOCIConfigurationRootless(&specgen); err != nil {
-			return nil, err
-		}
+		makeOCIConfigurationRootless(&specgen)
 	}
 
 	saveOptions := generate.ExportOptions{}

@@ -136,27 +136,37 @@ type RootConfig struct {
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
+	// ConmonEnv is the environment variable list for conmon process.
+	ConmonEnv []string `toml:"conmon_env"`
+
+	// HooksDir holds paths to the directories containing hooks
+	// configuration files.  When the same filename is present in in
+	// multiple directories, the file in the directory listed last in
+	// this slice takes precedence.
+	HooksDir []string `toml:"hooks_dir"`
+
+	// DefaultMounts is the list of mounts to be mounted for each container
+	// The format of each mount is "host-path:container-path"
+	DefaultMounts []string `toml:"default_mounts"`
+
+	// Capabilities to add to all containers.
+	DefaultCapabilities []string `toml:"default_capabilities"`
+
+	// Sysctls to add to all containers.
+	DefaultSysctls []string `toml:"default_sysctls"`
+
+	// DefaultUlimits specifies the default ulimits to apply to containers
+	DefaultUlimits []string `toml:"default_ulimits"`
+
+	// Devices to add to containers
+	AdditionalDevices []string `toml:"additional_devices"`
+
 	// DefaultRuntime is the _name_ of the OCI runtime to be used as the default.
 	// The name is matched against the Runtimes map below.
 	DefaultRuntime string `toml:"default_runtime"`
 
-	// Runtimes defines a list of OCI compatible runtimes. The runtime to
-	// use is picked based on the runtime_handler provided by the CRI. If
-	// no runtime_handler is provided, the runtime will be picked based on
-	// the level of trust of the workload.
-	Runtimes map[string]oci.RuntimeHandler `toml:"runtimes"`
-
-	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
-	NoPivot bool `toml:"no_pivot"`
-
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	Conmon string `toml:"conmon"`
-
-	// ConmonEnv is the environment variable list for conmon process.
-	ConmonEnv []string `toml:"conmon_env"`
-
-	// SELinux determines whether or not SELinux is used for pod separation.
-	SELinux bool `toml:"selinux"`
 
 	// SeccompProfile is the seccomp json profile path which is used as the
 	// default for the runtime.
@@ -170,33 +180,9 @@ type RuntimeConfig struct {
 	// handle cgroups for containers.
 	CgroupManager string `toml:"cgroup_manager"`
 
-	// HooksDir holds paths to the directories containing hooks
-	// configuration files.  When the same filename is present in in
-	// multiple directories, the file in the directory listed last in
-	// this slice takes precedence.
-	HooksDir []string `toml:"hooks_dir"`
-
-	// DefaultMounts is the list of mounts to be mounted for each container
-	// The format of each mount is "host-path:container-path"
-	DefaultMounts []string `toml:"default_mounts"`
-
 	// DefaultMountsFile is the file path for the default mounts to be mounted for the container
 	// Note, for testing purposes mainly
 	DefaultMountsFile string `toml:"default_mounts_file"`
-
-	// PidsLimit is the number of processes each container is restricted to
-	// by the cgroup process number controller.
-	PidsLimit int64 `toml:"pids_limit"`
-
-	// LogSizeMax is the maximum number of bytes after which the log file
-	// will be truncated. It can be expressed as a human-friendly string
-	// that is parsed to bytes.
-	// Negative values indicate that the log file won't be truncated.
-	LogSizeMax int64 `toml:"log_size_max"`
-
-	// Whether container output should be logged to journald in addition
-	// to the kuberentes log file
-	LogToJournald bool `toml:"log_to_journald"`
 
 	// ContainerExitsDir is the directory in which container exit files are
 	// written to by conmon.
@@ -204,16 +190,6 @@ type RuntimeConfig struct {
 
 	// ContainerAttachSocketDir is the location for container attach sockets.
 	ContainerAttachSocketDir string `toml:"container_attach_socket_dir"`
-
-	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
-	// and manage its lifecycle
-	ManageNetworkNSLifecycle bool `toml:"manage_network_ns_lifecycle"`
-
-	// ReadOnly run all pods/containers in read-only mode.
-	// This mode will mount tmpfs on /run, /tmp and /var/tmp, if those are not mountpoints
-	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
-	// will only be able to write to volumes mounted into them
-	ReadOnly bool `toml:"read_only"`
 
 	// BindMountPrefix is the prefix to use for the source of the bind mounts.
 	BindMountPrefix string `toml:"bind_mount_prefix"`
@@ -228,25 +204,49 @@ type RuntimeConfig struct {
 	// ranges are separated by comma.
 	GIDMappings string `toml:"gid_mappings"`
 
-	// Capabilities to add to all containers.
-	DefaultCapabilities []string `toml:"default_capabilities"`
-
 	// LogLevel determines the verbosity of the logs based on the level it is set to.
 	// Options are fatal, panic, error (default), warn, info, and debug.
 	LogLevel string `toml:"log_level"`
+
+	// Runtimes defines a list of OCI compatible runtimes. The runtime to
+	// use is picked based on the runtime_handler provided by the CRI. If
+	// no runtime_handler is provided, the runtime will be picked based on
+	// the level of trust of the workload.
+	Runtimes map[string]oci.RuntimeHandler `toml:"runtimes"`
+
+	// PidsLimit is the number of processes each container is restricted to
+	// by the cgroup process number controller.
+	PidsLimit int64 `toml:"pids_limit"`
+
+	// LogSizeMax is the maximum number of bytes after which the log file
+	// will be truncated. It can be expressed as a human-friendly string
+	// that is parsed to bytes.
+	// Negative values indicate that the log file won't be truncated.
+	LogSizeMax int64 `toml:"log_size_max"`
 
 	// CtrStopTimeout specifies the time to wait before to generate an
 	// error because the container state is still tagged as "running".
 	CtrStopTimeout int64 `toml:"ctr_stop_timeout"`
 
-	// Sysctls to add to all containers.
-	DefaultSysctls []string `toml:"default_sysctls"`
+	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
+	NoPivot bool `toml:"no_pivot"`
 
-	// DefeultUlimits specifies the default ulimits to apply to containers
-	DefaultUlimits []string `toml:"default_ulimits"`
+	// SELinux determines whether or not SELinux is used for pod separation.
+	SELinux bool `toml:"selinux"`
 
-	// Devices to add to containers
-	AdditionalDevices []string `toml:"additional_devices"`
+	// Whether container output should be logged to journald in addition
+	// to the kuberentes log file
+	LogToJournald bool `toml:"log_to_journald"`
+
+	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
+	// and manage its lifecycle
+	ManageNetworkNSLifecycle bool `toml:"manage_network_ns_lifecycle"`
+
+	// ReadOnly run all pods/containers in read-only mode.
+	// This mode will mount tmpfs on /run, /tmp and /var/tmp, if those are not mountpoints
+	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
+	// will only be able to write to volumes mounted into them
+	ReadOnly bool `toml:"read_only"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.

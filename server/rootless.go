@@ -15,7 +15,7 @@ func hasNamespace(config *rspec.Spec, ns string) bool {
 	}
 	return false
 }
-func makeOCIConfigurationRootless(g *generate.Generator) error {
+func makeOCIConfigurationRootless(g *generate.Generator) {
 	g.Config.Linux.Resources = nil
 	g.Config.Process.OOMScoreAdj = nil
 	g.Config.Process.ApparmorProfile = ""
@@ -43,6 +43,4 @@ func makeOCIConfigurationRootless(g *generate.Generator) error {
 	}
 
 	g.SetLinuxCgroupsPath("")
-
-	return nil
 }
