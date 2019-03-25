@@ -1,12 +1,10 @@
 package lookup
 
 import (
-	"os"
-	"strconv"
-
 	"github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/sirupsen/logrus"
+	"strconv"
 )
 
 const (
@@ -118,7 +116,7 @@ func GetUser(containerMount, userIDorName string) (*user.User, error) {
 		}
 		return u.Uid == uid
 	})
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil {
 		return nil, err
 	}
 	if len(users) > 0 {
@@ -148,7 +146,7 @@ func GetGroup(containerMount, groupIDorName string) (*user.Group, error) {
 		}
 		return g.Gid == gid
 	})
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil {
 		return nil, err
 	}
 	if len(groups) > 0 {

@@ -3,6 +3,7 @@ package netlink
 import (
 	"fmt"
 	"net"
+	"os"
 )
 
 // Link represents a link device from netlink. Shared link attributes
@@ -37,6 +38,23 @@ type LinkAttrs struct {
 	EncapType    string
 	Protinfo     *Protinfo
 	OperState    LinkOperState
+	NetNsID      int
+	NumTxQueues  int
+	NumRxQueues  int
+	GSOMaxSize   uint32
+	GSOMaxSegs   uint32
+	Vfs          []VfInfo // virtual functions available on link
+}
+
+// VfInfo represents configuration of virtual function
+type VfInfo struct {
+	ID        int
+	Mac       net.HardwareAddr
+	Vlan      int
+	Qos       int
+	TxRate    int
+	Spoofchk  bool
+	LinkState uint32
 }
 
 // LinkOperState represents the values of the IFLA_OPERSTATE link
@@ -219,6 +237,7 @@ type Bridge struct {
 	LinkAttrs
 	MulticastSnooping *bool
 	HelloTime         *uint32
+	VlanFiltering     *bool
 }
 
 func (bridge *Bridge) Attrs() *LinkAttrs {
@@ -258,6 +277,9 @@ const (
 type Macvlan struct {
 	LinkAttrs
 	Mode MacvlanMode
+
+	// MACAddrs is only populated for Macvlan SOURCE links
+	MACAddrs []net.HardwareAddr
 }
 
 func (macvlan *Macvlan) Attrs() *LinkAttrs {
@@ -283,8 +305,11 @@ type TuntapFlag uint16
 // Tuntap links created via /dev/tun/tap, but can be destroyed via netlink
 type Tuntap struct {
 	LinkAttrs
-	Mode  TuntapMode
-	Flags TuntapFlag
+	Mode       TuntapMode
+	Flags      TuntapFlag
+	NonPersist bool
+	Queues     int
+	Fds        []*os.File
 }
 
 func (tuntap *Tuntap) Attrs() *LinkAttrs {
@@ -326,26 +351,28 @@ func (generic *GenericLink) Type() string {
 
 type Vxlan struct {
 	LinkAttrs
-	VxlanId      int
-	VtepDevIndex int
-	SrcAddr      net.IP
-	Group        net.IP
-	TTL          int
-	TOS          int
-	Learning     bool
-	Proxy        bool
-	RSC          bool
-	L2miss       bool
-	L3miss       bool
-	UDPCSum      bool
-	NoAge        bool
-	GBP          bool
-	FlowBased    bool
-	Age          int
-	Limit        int
-	Port         int
-	PortLow      int
-	PortHigh     int
+	VxlanId        int
+	VtepDevIndex   int
+	SrcAddr        net.IP
+	Group          net.IP
+	TTL            int
+	TOS            int
+	Learning       bool
+	Proxy          bool
+	RSC            bool
+	L2miss         bool
+	L3miss         bool
+	UDPCSum        bool
+	UDP6ZeroCSumTx bool
+	UDP6ZeroCSumRx bool
+	NoAge          bool
+	GBP            bool
+	FlowBased      bool
+	Age            int
+	Limit          int
+	Port           int
+	PortLow        int
+	PortHigh       int
 }
 
 func (vxlan *Vxlan) Attrs() *LinkAttrs {
@@ -694,17 +721,25 @@ func (gretap *Gretap) Attrs() *LinkAttrs {
 }
 
 func (gretap *Gretap) Type() string {
+	if gretap.Local.To4() == nil {
+		return "ip6gretap"
+	}
 	return "gretap"
 }
 
 type Iptun struct {
 	LinkAttrs
-	Ttl      uint8
-	Tos      uint8
-	PMtuDisc uint8
-	Link     uint32
-	Local    net.IP
-	Remote   net.IP
+	Ttl        uint8
+	Tos        uint8
+	PMtuDisc   uint8
+	Link       uint32
+	Local      net.IP
+	Remote     net.IP
+	EncapSport uint16
+	EncapDport uint16
+	EncapType  uint16
+	EncapFlags uint16
+	FlowBased  bool
 }
 
 func (iptun *Iptun) Attrs() *LinkAttrs {
@@ -713,6 +748,28 @@ func (iptun *Iptun) Attrs() *LinkAttrs {
 
 func (iptun *Iptun) Type() string {
 	return "ipip"
+}
+
+type Sittun struct {
+	LinkAttrs
+	Link       uint32
+	Local      net.IP
+	Remote     net.IP
+	Ttl        uint8
+	Tos        uint8
+	PMtuDisc   uint8
+	EncapType  uint16
+	EncapFlags uint16
+	EncapSport uint16
+	EncapDport uint16
+}
+
+func (sittun *Sittun) Attrs() *LinkAttrs {
+	return &sittun.LinkAttrs
+}
+
+func (sittun *Sittun) Type() string {
+	return "sit"
 }
 
 type Vti struct {
@@ -728,8 +785,40 @@ func (vti *Vti) Attrs() *LinkAttrs {
 	return &vti.LinkAttrs
 }
 
-func (iptun *Vti) Type() string {
+func (vti *Vti) Type() string {
+	if vti.Local.To4() == nil {
+		return "vti6"
+	}
 	return "vti"
+}
+
+type Gretun struct {
+	LinkAttrs
+	Link       uint32
+	IFlags     uint16
+	OFlags     uint16
+	IKey       uint32
+	OKey       uint32
+	Local      net.IP
+	Remote     net.IP
+	Ttl        uint8
+	Tos        uint8
+	PMtuDisc   uint8
+	EncapType  uint16
+	EncapFlags uint16
+	EncapSport uint16
+	EncapDport uint16
+}
+
+func (gretun *Gretun) Attrs() *LinkAttrs {
+	return &gretun.LinkAttrs
+}
+
+func (gretun *Gretun) Type() string {
+	if gretun.Local.To4() == nil {
+		return "ip6gre"
+	}
+	return "gre"
 }
 
 type Vrf struct {
@@ -761,11 +850,26 @@ func (gtp *GTP) Type() string {
 	return "gtp"
 }
 
+// Virtual XFRM Interfaces
+//	Named "xfrmi" to prevent confusion with XFRM objects
+type Xfrmi struct {
+	LinkAttrs
+	Ifid uint32
+}
+
+func (xfrm *Xfrmi) Attrs() *LinkAttrs {
+	return &xfrm.LinkAttrs
+}
+
+func (xfrm *Xfrmi) Type() string {
+	return "xfrm"
+}
+
 // iproute2 supported devices;
 // vlan | veth | vcan | dummy | ifb | macvlan | macvtap |
 // bridge | bond | ipoib | ip6tnl | ipip | sit | vxlan |
-// gre | gretap | ip6gre | ip6gretap | vti | nlmon |
-// bond_slave | ipvlan
+// gre | gretap | ip6gre | ip6gretap | vti | vti6 | nlmon |
+// bond_slave | ipvlan | xfrm
 
 // LinkNotFoundError wraps the various not found errors when
 // getting/reading links. This is intended for better error
