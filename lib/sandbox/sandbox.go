@@ -115,7 +115,7 @@ type NetNsIface interface {
 	Get() *NetNs
 
 	// Initialize does the necessary setup
-	Initialize() (*NetNs, error)
+	Initialize() (NetNsIface, error)
 
 	// Initialized returns true if already initialized
 	Initialized() bool
@@ -406,7 +406,7 @@ func (s *Sandbox) NetNsCreate(netNs NetNsIface) error {
 		return fmt.Errorf("net NS already initialized")
 	}
 
-	netNS, err := netNs.Initialize()
+	netNs, err := netNs.Initialize()
 	if err != nil {
 		return err
 	}
@@ -421,7 +421,7 @@ func (s *Sandbox) NetNsCreate(netNs NetNsIface) error {
 		return err
 	}
 
-	s.netns = netNS
+	s.netns = netNs
 	return nil
 }
 

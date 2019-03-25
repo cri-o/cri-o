@@ -62,10 +62,10 @@ func (mr *MockNetNsIfaceMockRecorder) Get() *gomock.Call {
 }
 
 // Initialize mocks base method
-func (m *MockNetNsIface) Initialize() (*sandbox.NetNs, error) {
+func (m *MockNetNsIface) Initialize() (sandbox.NetNsIface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize")
-	ret0, _ := ret[0].(*sandbox.NetNs)
+	ret0, _ := ret[0].(sandbox.NetNsIface)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

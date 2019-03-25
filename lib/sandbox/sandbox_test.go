@@ -271,10 +271,9 @@ var _ = t.Describe("Sandbox", func() {
 			// Given
 			gomock.InOrder(
 				netNsIfaceMock.EXPECT().Initialized().Return(false),
-				netNsIfaceMock.EXPECT().Initialize().
-					Return(&sandbox.NetNs{}, nil),
-				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
-					Return(nil),
+				netNsIfaceMock.EXPECT().Initialize().Return(netNsIfaceMock, nil),
+				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).Return(nil),
+				netNsIfaceMock.EXPECT().Remove().Return(nil),
 			)
 
 			// When
@@ -282,7 +281,7 @@ var _ = t.Describe("Sandbox", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(testSandbox.NetNsRemove()).NotTo(BeNil())
+			Expect(testSandbox.NetNsRemove()).To(BeNil())
 		})
 
 		It("should not crash when parameter is nil", func() {
@@ -298,7 +297,7 @@ var _ = t.Describe("Sandbox", func() {
 			gomock.InOrder(
 				netNsIfaceMock.EXPECT().Initialized().Return(false),
 				netNsIfaceMock.EXPECT().Initialize().
-					Return(&sandbox.NetNs{}, nil),
+					Return(netNsIfaceMock, nil),
 				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
 					Return(t.TestError),
 				netNsIfaceMock.EXPECT().Close().Return(nil),
@@ -316,7 +315,7 @@ var _ = t.Describe("Sandbox", func() {
 			gomock.InOrder(
 				netNsIfaceMock.EXPECT().Initialized().Return(false),
 				netNsIfaceMock.EXPECT().Initialize().
-					Return(&sandbox.NetNs{}, nil),
+					Return(netNsIfaceMock, nil),
 				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
 					Return(t.TestError),
 				netNsIfaceMock.EXPECT().Close().Return(t.TestError),
@@ -375,7 +374,7 @@ var _ = t.Describe("Sandbox", func() {
 			gomock.InOrder(
 				netNsIfaceMock.EXPECT().Initialized().Return(false),
 				netNsIfaceMock.EXPECT().Initialize().
-					Return(&sandbox.NetNs{}, nil),
+					Return(netNsIfaceMock, nil),
 				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
 					Return(nil),
 			)
@@ -384,6 +383,9 @@ var _ = t.Describe("Sandbox", func() {
 
 		It("should succeed", func() {
 			// Given
+			gomock.InOrder(
+				netNsIfaceMock.EXPECT().Get().Return(&sandbox.NetNs{}),
+			)
 			// When
 			ns, err := testSandbox.NetNsGet("/proc/self/ns",
 				"../../../tmp/test")
@@ -401,6 +403,9 @@ var _ = t.Describe("Sandbox", func() {
 
 		It("should succeed with symlink", func() {
 			// Given
+			gomock.InOrder(
+				netNsIfaceMock.EXPECT().Get().Return(&sandbox.NetNs{}),
+			)
 			const link = "ns-link"
 			Expect(os.Symlink("/proc/self/ns", link)).To(BeNil())
 			defer os.RemoveAll(link)
