@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/pools"
+	"github.com/docker/docker/pkg/term"
 	"github.com/kr/pty"
 	"github.com/opencontainers/runc/libcontainer"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"github.com/docker/docker/pkg/term"
 )
 
 const (
