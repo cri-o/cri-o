@@ -1,10 +1,12 @@
 package lookup
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/sirupsen/logrus"
-	"strconv"
 )
 
 const (
@@ -97,9 +99,11 @@ func GetContainerGroups(groups []string, containerMount string, override *Overri
 	return uintgids, nil
 }
 
-// GetUser takes a containermount path and user name or id and returns
+// GetUser takes a containermount path and user name or ID and returns
 // a matching User structure from /etc/passwd.  If it cannot locate a user
 // with the provided information, an ErrNoPasswdEntries is returned.
+// When the provided user name was an ID, a User structure with Uid
+// set is returned along with ErrNoPasswdEntries.
 func GetUser(containerMount, userIDorName string) (*user.User, error) {
 	var inputIsName bool
 	uid, err := strconv.Atoi(userIDorName)
@@ -116,18 +120,23 @@ func GetUser(containerMount, userIDorName string) (*user.User, error) {
 		}
 		return u.Uid == uid
 	})
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 	if len(users) > 0 {
 		return &users[0], nil
 	}
+	if !inputIsName {
+		return &user.User{Uid: uid}, user.ErrNoPasswdEntries
+	}
 	return nil, user.ErrNoPasswdEntries
 }
 
-// GetGroup takes ac ontainermount path and a group name or id and returns
-// a match Group struct from /etc/group.  if it cannot locate a group,
-// an ErrNoGroupEntries error is returned.
+// GetGroup takes a containermount path and a group name or ID and returns
+// a match Group struct from /etc/group.  If it cannot locate a group,
+// an ErrNoGroupEntries error is returned.  When the provided group name
+// was an ID, a Group structure with Gid set is returned along with
+// ErrNoGroupEntries.
 func GetGroup(containerMount, groupIDorName string) (*user.Group, error) {
 	var inputIsName bool
 	gid, err := strconv.Atoi(groupIDorName)
@@ -146,11 +155,14 @@ func GetGroup(containerMount, groupIDorName string) (*user.Group, error) {
 		}
 		return g.Gid == gid
 	})
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 	if len(groups) > 0 {
 		return &groups[0], nil
+	}
+	if !inputIsName {
+		return &user.Group{Gid: gid}, user.ErrNoGroupEntries
 	}
 	return nil, user.ErrNoGroupEntries
 }

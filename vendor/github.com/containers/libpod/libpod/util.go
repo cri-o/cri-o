@@ -9,10 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -90,31 +89,64 @@ func MountExists(specMounts []spec.Mount, dest string) bool {
 }
 
 // WaitForFile waits until a file has been created or the given timeout has occurred
-func WaitForFile(path string, timeout time.Duration) error {
+func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, error) {
 	done := make(chan struct{})
 	chControl := make(chan struct{})
+
+	var inotifyEvents chan fsnotify.Event
+	var timer chan struct{}
+	watcher, err := fsnotify.NewWatcher()
+	if err == nil {
+		if err := watcher.Add(filepath.Dir(path)); err == nil {
+			inotifyEvents = watcher.Events
+		}
+		defer watcher.Close()
+	}
+	if inotifyEvents == nil {
+		// If for any reason we fail to create the inotify
+		// watcher, fallback to polling the file
+		timer = make(chan struct{})
+		go func() {
+			select {
+			case <-chControl:
+				close(timer)
+				return
+			default:
+				time.Sleep(25 * time.Millisecond)
+				timer <- struct{}{}
+			}
+		}()
+	}
+
 	go func() {
 		for {
 			select {
 			case <-chControl:
 				return
-			default:
+			case <-timer:
 				_, err := os.Stat(path)
 				if err == nil {
 					close(done)
 					return
 				}
-				time.Sleep(25 * time.Millisecond)
+			case <-inotifyEvents:
+				_, err := os.Stat(path)
+				if err == nil {
+					close(done)
+					return
+				}
 			}
 		}
 	}()
 
 	select {
+	case e := <-chWait:
+		return true, e
 	case <-done:
-		return nil
+		return false, nil
 	case <-time.After(timeout):
 		close(chControl)
-		return errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
+		return false, errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
 	}
 }
 
@@ -154,27 +186,4 @@ func validPodNSOption(p *Pod, ctrPod string) error {
 		return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
 	}
 	return nil
-}
-
-// GetV1CGroups gets the V1 cgroup subsystems and then "filters"
-// out any subsystems that are provided by the caller.  Passing nil
-// for excludes will return the subsystems unfiltered.
-//func GetV1CGroups(excludes []string) ([]cgroups.Subsystem, error) {
-func GetV1CGroups(excludes []string) cgroups.Hierarchy {
-	return func() ([]cgroups.Subsystem, error) {
-		var filtered []cgroups.Subsystem
-
-		subSystem, err := cgroups.V1()
-		if err != nil {
-			return nil, err
-		}
-		for _, s := range subSystem {
-			// If the name of the subsystem is not in the list of excludes, then
-			// add it as a keeper.
-			if !util.StringInSlice(string(s.Name()), excludes) {
-				filtered = append(filtered, s)
-			}
-		}
-		return filtered, nil
-	}
 }

@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <stdbool.h>
 
 static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
@@ -70,9 +71,12 @@ get_cmd_line_args (pid_t pid)
       if (allocated == used)
         {
           allocated += 512;
-          buffer = realloc (buffer, allocated);
-          if (buffer == NULL)
-            return NULL;
+          char *tmp = realloc (buffer, allocated);
+          if (buffer == NULL) {
+		  free(buffer);
+		  return NULL;
+	  }
+	  buffer=tmp;
         }
     }
   close (fd);
@@ -99,12 +103,19 @@ get_cmd_line_args (pid_t pid)
 }
 
 int
-reexec_userns_join (int userns)
+reexec_userns_join (int userns, int mountns)
 {
   pid_t ppid = getpid ();
   char uid[16];
   char **argv;
   int pid;
+  char *cwd = getcwd (NULL, 0);
+
+  if (cwd == NULL)
+    {
+      fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   sprintf (uid, "%d", geteuid ());
 
@@ -131,6 +142,13 @@ reexec_userns_join (int userns)
     }
   close (userns);
 
+  if (mountns >= 0 && setns (mountns, 0) < 0)
+    {
+      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  close (userns);
+
   if (syscall_setresgid (0, 0, 0) < 0)
     {
       fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
@@ -142,6 +160,13 @@ reexec_userns_join (int userns)
       fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
+
+  if (chdir (cwd) < 0)
+    {
+      fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  free (cwd);
 
   execvp (argv[0], argv);
 
@@ -176,6 +201,25 @@ reexec_in_user_namespace (int ready)
   pid_t ppid = getpid ();
   char **argv;
   char uid[16];
+  char *listen_fds = NULL;
+  char *listen_pid = NULL;
+  bool do_socket_activation = false;
+  char *cwd = getcwd (NULL, 0);
+
+  if (cwd == NULL)
+    {
+      fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  listen_pid = getenv("LISTEN_PID");
+  listen_fds = getenv("LISTEN_FDS");
+
+  if (listen_pid != NULL && listen_fds != NULL) {
+    if (strtol(listen_pid, NULL, 10) == getpid()) {
+      do_socket_activation = true;
+    }
+  }
 
   sprintf (uid, "%d", geteuid ());
 
@@ -187,8 +231,22 @@ reexec_in_user_namespace (int ready)
       check_proc_sys_userns_file (_max_user_namespaces);
       check_proc_sys_userns_file (_unprivileged_user_namespaces);
     }
-  if (pid)
+  if (pid) {
+    if (do_socket_activation) {
+      long num_fds;
+      num_fds = strtol(listen_fds, NULL, 10);
+      if (num_fds != LONG_MIN && num_fds != LONG_MAX) {
+        long i;
+        for (i = 0; i < num_fds; i++) {
+          close(3+i);
+        }
+      }
+      unsetenv("LISTEN_PID");
+      unsetenv("LISTEN_FDS");
+      unsetenv("LISTEN_FDNAMES");
+    }
     return pid;
+  }
 
   argv = get_cmd_line_args (ppid);
   if (argv == NULL)
@@ -196,6 +254,12 @@ reexec_in_user_namespace (int ready)
       fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
+
+  if (do_socket_activation) {
+    char s[32];
+    sprintf(s, "%d", getpid());
+    setenv("LISTEN_PID", s, true);
+  }
 
   setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
   setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
@@ -221,6 +285,13 @@ reexec_in_user_namespace (int ready)
       fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
+
+  if (chdir (cwd) < 0)
+    {
+      fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  free (cwd);
 
   execvp (argv[0], argv);
 

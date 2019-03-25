@@ -23,7 +23,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		return nil, ErrRuntimeStopped
 	}
 
-	pod, err := newPod(r.lockDir, r)
+	pod, err := newPod(r)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating pod")
 	}
@@ -47,6 +47,14 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		}
 		pod.config.Name = name
 	}
+
+	// Allocate a lock for the pod
+	lock, err := r.lockManager.AllocateLock()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error allocating lock for new pod")
+	}
+	pod.lock = lock
+	pod.config.LockID = pod.lock.ID()
 
 	pod.valid = true
 
@@ -108,15 +116,6 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		pod.state.InfraContainerID = ctr.ID()
 		if err := pod.save(); err != nil {
 			return nil, err
-		}
-
-		// Once the pod infra container has been created, we start it
-		if err := ctr.Start(ctx); err != nil {
-			// If the infra container does not start, we need to tear the pod down.
-			if err2 := r.removePod(ctx, pod, true, true); err2 != nil {
-				logrus.Errorf("Error removing pod after infra container failed to start: %v", err2)
-			}
-			return nil, errors.Wrapf(err, "error starting Infra Container")
 		}
 	}
 
@@ -239,6 +238,11 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 				return err
 			}
 		}
+
+		// Free the container's lock
+		if err := ctr.lock.Free(); err != nil {
+			return err
+		}
 	}
 
 	// Remove containers from the state
@@ -265,15 +269,26 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			}
 		case CgroupfsCgroupsManager:
 			// Delete the cgroupfs cgroup
+			// Make sure the conmon cgroup is deleted first
+			// Since the pod is almost gone, don't bother failing
+			// hard - instead, just log errors.
 			v1CGroups := GetV1CGroups(getExcludedCGroups())
+			conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
+			conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+			if err != nil && err != cgroups.ErrCgroupDeleted {
+				return err
+			}
+			if err == nil {
+				if err := conmonCgroup.Delete(); err != nil {
+					logrus.Errorf("Error deleting pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
+				}
+			}
 			cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(p.state.CgroupPath))
 			if err != nil && err != cgroups.ErrCgroupDeleted {
 				return err
-			} else if err == nil {
+			}
+			if err == nil {
 				if err := cgroup.Delete(); err != nil {
-					// The pod is already almost gone.
-					// No point in hard-failing if we fail
-					// this bit of cleanup.
 					logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
 			}

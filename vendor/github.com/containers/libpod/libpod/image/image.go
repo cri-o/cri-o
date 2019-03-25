@@ -5,14 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"syscall"
 	"time"
 
 	types2 "github.com/containernetworking/cni/pkg/types"
 	cp "github.com/containers/image/copy"
+	"github.com/containers/image/directory"
+	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
+	ociarchive "github.com/containers/image/oci/archive"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
 	"github.com/containers/image/transports"
@@ -25,8 +29,10 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -125,7 +131,11 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull, forceSecure bool) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool, label *string) (*Image, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
+	span.SetTag("type", "runtime")
+	defer span.Finish()
+
 	// We don't know if the image is local or not ... check local first
 	newImage := Image{
 		InputName:    name,
@@ -145,7 +155,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
+	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
@@ -167,7 +177,7 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
+	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}
@@ -226,7 +236,6 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		i.InputName = dest.DockerReference().String()
 	}
 
-	var taggedName string
 	img, err := i.imageruntime.getImage(stripSha256(i.InputName))
 	if err == nil {
 		return img.image, err
@@ -240,25 +249,18 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		return nil, err
 	}
 
-	// the inputname isn't tagged, so we assume latest and try again
-	if !decomposedImage.isTagged {
-		taggedName = fmt.Sprintf("%s:latest", i.InputName)
-		img, err = i.imageruntime.getImage(taggedName)
-		if err == nil {
-			return img.image, nil
-		}
-	}
-
 	// The image has a registry name in it and we made sure we looked for it locally
 	// with a tag.  It cannot be local.
 	if decomposedImage.hasRegistry {
-		return nil, errors.Errorf("%s", imageError)
-
+		return nil, errors.Wrapf(ErrNoSuchImage, imageError)
 	}
-
 	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
 	// We don't need to strip the sha because we have already determined it is not an ID
-	img, err = i.imageruntime.getImage(fmt.Sprintf("%s/%s", DefaultLocalRegistry, i.InputName))
+	ref, err := decomposedImage.referenceWithRegistry(DefaultLocalRegistry)
+	if err != nil {
+		return nil, err
+	}
+	img, err = i.imageruntime.getImage(ref.String())
 	if err == nil {
 		return img.image, err
 	}
@@ -275,7 +277,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		return repoImage, nil
 	}
 
-	return nil, errors.Wrapf(err, imageError)
+	return nil, errors.Wrapf(ErrNoSuchImage, err.Error())
 }
 
 // ID returns the image ID as a string
@@ -305,12 +307,24 @@ func (i *Image) Names() []string {
 }
 
 // RepoDigests returns a string array of repodigests associated with the image
-func (i *Image) RepoDigests() []string {
+func (i *Image) RepoDigests() ([]string, error) {
 	var repoDigests []string
+	digest := i.Digest()
+
 	for _, name := range i.Names() {
-		repoDigests = append(repoDigests, strings.SplitN(name, ":", 2)[0]+"@"+i.Digest().String())
+		named, err := reference.ParseNormalizedNamed(name)
+		if err != nil {
+			return nil, err
+		}
+
+		canonical, err := reference.WithDigest(reference.TrimNamed(named), digest)
+		if err != nil {
+			return nil, err
+		}
+
+		repoDigests = append(repoDigests, canonical.String())
 	}
-	return repoDigests
+	return repoDigests, nil
 }
 
 // Created returns the time the image was created
@@ -440,35 +454,42 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 	return "@" + digest.Hex(), nil
 }
 
-// normalizeTag returns the canonical version of tag for use in Image.Names()
-func normalizeTag(tag string) (string, error) {
+// normalizedTag returns the canonical version of tag for use in Image.Names()
+func normalizedTag(tag string) (reference.Named, error) {
 	decomposedTag, err := decompose(tag)
 	if err != nil {
-		return "", err
-	}
-	// If the input does not have a tag, we need to add one (latest)
-	if !decomposedTag.isTagged {
-		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.tag)
+		return nil, err
 	}
 	// If the input doesn't specify a registry, set the registry to localhost
+	var ref reference.Named
 	if !decomposedTag.hasRegistry {
-		tag = fmt.Sprintf("%s/%s", DefaultLocalRegistry, tag)
+		ref, err = decomposedTag.referenceWithRegistry(DefaultLocalRegistry)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		ref, err = decomposedTag.normalizedReference()
+		if err != nil {
+			return nil, err
+		}
 	}
-	return tag, nil
+	// If the input does not have a tag, we need to add one (latest)
+	ref = reference.TagNameOnly(ref)
+	return ref, nil
 }
 
 // TagImage adds a tag to the given image
 func (i *Image) TagImage(tag string) error {
 	i.reloadImage()
-	tag, err := normalizeTag(tag)
+	ref, err := normalizedTag(tag)
 	if err != nil {
 		return err
 	}
 	tags := i.Names()
-	if util.StringInSlice(tag, tags) {
+	if util.StringInSlice(ref.String(), tags) {
 		return nil
 	}
-	tags = append(tags, tag)
+	tags = append(tags, ref.String())
 	if err := i.imageruntime.store.SetNames(i.ID(), tags); err != nil {
 		return err
 	}
@@ -498,7 +519,7 @@ func (i *Image) UntagImage(tag string) error {
 
 // PushImageToHeuristicDestination pushes the given image to "destination", which is heuristically parsed.
 // Use PushImageToReference if the destination is known precisely.
-func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -516,11 +537,11 @@ func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination
 			return err
 		}
 	}
-	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, forceSecure, additionalDockerArchiveTags)
+	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, additionalDockerArchiveTags)
 }
 
 // PushImageToReference pushes the given image to a location described by the given path
-func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
 
 	policyContext, err := getPolicyContext(sc)
@@ -534,23 +555,8 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return errors.Wrapf(err, "error getting source imageReference for %q", i.InputName)
 	}
-	insecureRegistries, err := registries.GetInsecureRegistries()
-	if err != nil {
-		return err
-	}
 	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, manifestMIMEType, additionalDockerArchiveTags)
-	if dest.Transport().Name() == DockerTransport {
-		imgRef := dest.DockerReference()
-		if imgRef == nil { // This should never happen; such references can’t be created.
-			return fmt.Errorf("internal error: DockerTransport reference %s does not have a DockerReference", transports.ImageName(dest))
-		}
-		registry := reference.Domain(imgRef)
-
-		if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
-			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = true
-			logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registry))
-		}
-	}
+	copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath() // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 	// Copy the image to the remote destination
 	_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {
@@ -809,6 +815,10 @@ func (i *Image) imageInspectInfo(ctx context.Context) (*types.ImageInspectInfo, 
 
 // Inspect returns an image's inspect data
 func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspect")
+	span.SetTag("type", "image")
+	defer span.Finish()
+
 	ociv1Img, err := i.ociv1Image(ctx)
 	if err != nil {
 		return nil, err
@@ -827,9 +837,9 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		return nil, err
 	}
 
-	var repoDigests []string
-	for _, name := range i.Names() {
-		repoDigests = append(repoDigests, strings.SplitN(name, ":", 2)[0]+"@"+i.Digest().String())
+	repoDigests, err := i.RepoDigests()
+	if err != nil {
+		return nil, err
 	}
 
 	driver, err := i.DriverData()
@@ -847,21 +857,21 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 	}
 
 	data := &inspect.ImageData{
-		ID:              i.ID(),
-		RepoTags:        i.Names(),
-		RepoDigests:     repoDigests,
-		Comment:         comment,
-		Created:         ociv1Img.Created,
-		Author:          ociv1Img.Author,
-		Architecture:    ociv1Img.Architecture,
-		Os:              ociv1Img.OS,
-		ContainerConfig: &ociv1Img.Config,
-		Version:         info.DockerVersion,
-		Size:            int64(*size),
-		VirtualSize:     int64(*size),
-		Annotations:     annotations,
-		Digest:          i.Digest(),
-		Labels:          info.Labels,
+		ID:           i.ID(),
+		RepoTags:     i.Names(),
+		RepoDigests:  repoDigests,
+		Comment:      comment,
+		Created:      ociv1Img.Created,
+		Author:       ociv1Img.Author,
+		Architecture: ociv1Img.Architecture,
+		Os:           ociv1Img.OS,
+		Config:       &ociv1Img.Config,
+		Version:      info.DockerVersion,
+		Size:         int64(*size),
+		VirtualSize:  int64(*size),
+		Annotations:  annotations,
+		Digest:       i.Digest(),
+		Labels:       info.Labels,
 		RootFS: &inspect.RootFS{
 			Type:   ociv1Img.RootFS.Type,
 			Layers: ociv1Img.RootFS.DiffIDs,
@@ -869,6 +879,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		GraphDriver:  driver,
 		ManifestType: manifestType,
 		User:         ociv1Img.Config.User,
+		History:      ociv1Img.History,
 	}
 	return data, nil
 }
@@ -933,21 +944,23 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	imageRegistry, imageName, imageSuspiciousTagValueForSearch := dcImage.suspiciousRefNameTagValuesForSearch()
 	for _, repoName := range i.Names() {
 		count := 0
 		dcRepoName, err := decompose(repoName)
 		if err != nil {
 			return "", err
 		}
-		if dcRepoName.registry == dcImage.registry && dcImage.registry != "" {
+		repoNameRegistry, repoNameName, repoNameSuspiciousTagValueForSearch := dcRepoName.suspiciousRefNameTagValuesForSearch()
+		if repoNameRegistry == imageRegistry && imageRegistry != "" {
 			count++
 		}
-		if dcRepoName.name == dcImage.name && dcImage.name != "" {
+		if repoNameName == imageName && imageName != "" {
 			count++
-		} else if splitString(dcRepoName.name) == splitString(dcImage.name) {
+		} else if splitString(repoNameName) == splitString(imageName) {
 			count++
 		}
-		if dcRepoName.tag == dcImage.tag {
+		if repoNameSuspiciousTagValueForSearch == imageSuspiciousTagValueForSearch {
 			count++
 		}
 		results[count] = append(results[count], repoName)
@@ -1075,4 +1088,66 @@ func (i *Image) Comment(ctx context.Context, manifestType string) (string, error
 		return "", err
 	}
 	return ociv1Img.History[0].Comment, nil
+}
+
+// Save writes a container image to the filesystem
+func (i *Image) Save(ctx context.Context, source, format, output string, moreTags []string, quiet, compress bool) error {
+	var (
+		writer       io.Writer
+		destRef      types.ImageReference
+		manifestType string
+		err          error
+	)
+
+	if quiet {
+		writer = os.Stderr
+	}
+	switch format {
+	case "oci-archive":
+		destImageName := imageNameForSaveDestination(i, source)
+		destRef, err = ociarchive.NewReference(output, destImageName) // destImageName may be ""
+		if err != nil {
+			return errors.Wrapf(err, "error getting OCI archive ImageReference for (%q, %q)", output, destImageName)
+		}
+	case "oci-dir":
+		destRef, err = directory.NewReference(output)
+		if err != nil {
+			return errors.Wrapf(err, "error getting directory ImageReference for %q", output)
+		}
+		manifestType = imgspecv1.MediaTypeImageManifest
+	case "docker-dir":
+		destRef, err = directory.NewReference(output)
+		if err != nil {
+			return errors.Wrapf(err, "error getting directory ImageReference for %q", output)
+		}
+		manifestType = manifest.DockerV2Schema2MediaType
+	case "docker-archive", "":
+		dst := output
+		destImageName := imageNameForSaveDestination(i, source)
+		if destImageName != "" {
+			dst = fmt.Sprintf("%s:%s", dst, destImageName)
+		}
+		destRef, err = dockerarchive.ParseReference(dst) // FIXME? Add dockerarchive.NewReference
+		if err != nil {
+			return errors.Wrapf(err, "error getting Docker archive ImageReference for %q", dst)
+		}
+	default:
+		return errors.Errorf("unknown format option %q", format)
+	}
+	// supports saving multiple tags to the same tar archive
+	var additionaltags []reference.NamedTagged
+	if len(moreTags) > 0 {
+		additionaltags, err = GetAdditionalTags(moreTags)
+		if err != nil {
+			return err
+		}
+	}
+	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
+		if err2 := os.Remove(output); err2 != nil {
+			logrus.Errorf("error deleting %q: %v", output, err)
+		}
+		return errors.Wrapf(err, "unable to save %q", source)
+	}
+
+	return nil
 }

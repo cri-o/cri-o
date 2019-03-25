@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -9,6 +10,8 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -113,7 +116,7 @@ func (ns LinuxNS) String() string {
 type Container struct {
 	config *ContainerConfig
 
-	state *containerState
+	state *ContainerState
 
 	// Batched indicates that a container has been locked as part of a
 	// Batch() operation
@@ -121,17 +124,22 @@ type Container struct {
 	batched bool
 
 	valid   bool
-	lock    storage.Locker
+	lock    lock.Locker
 	runtime *Runtime
 
 	rootlessSlirpSyncR *os.File
 	rootlessSlirpSyncW *os.File
+
+	// A restored container should have the same IP address as before
+	// being checkpointed. If requestedIP is set it will be used instead
+	// of config.StaticIP.
+	requestedIP net.IP
 }
 
-// containerState contains the current state of the container
+// ContainerState contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
 // easyjson:json
-type containerState struct {
+type ContainerState struct {
 	// The current state of the running container
 	State ContainerStatus `json:"state"`
 	// The path to the JSON OCI runtime spec for this container
@@ -210,6 +218,8 @@ type ContainerConfig struct {
 	Pod string `json:"pod,omitempty"`
 	// Namespace the container is in
 	Namespace string `json:"namespace,omitempty"`
+	// ID of this container's lock
+	LockID uint32 `json:"lockID"`
 
 	// TODO consider breaking these subsections up into smaller structs
 
@@ -296,6 +306,8 @@ type ContainerConfig struct {
 	HostAdd []string `json:"hostsAdd,omitempty"`
 	// Network names (CNI) to add container to. Empty to use default network.
 	Networks []string `json:"networks,omitempty"`
+	// Network mode specified for the default network.
+	NetMode namespaces.NetworkMode `json:"networkMode,omitempty"`
 
 	// Image Config
 
@@ -338,13 +350,15 @@ type ContainerConfig struct {
 
 	PostConfigureNetNS bool `json:"postConfigureNetNS"`
 
+	// OCIRuntime used to create the container
+	OCIRuntime string `json:"runtime,omitempty"`
+
 	// ExitCommand is the container's exit command.
 	// This Command will be executed when the container exits
 	ExitCommand []string `json:"exitCommand,omitempty"`
 	// LocalVolumes are the built-in volumes we get from the --volumes-from flag
 	// It picks up the built-in volumes of the container used by --volumes-from
-	LocalVolumes []string
-
+	LocalVolumes []spec.Mount
 	// IsInfra is a bool indicating whether this container is an infra container used for
 	// sharing kernel namespaces in a pod
 	IsInfra bool `json:"pause"`
@@ -394,6 +408,31 @@ func (c *Container) Spec() *spec.Spec {
 	deepcopier.Copy(c.config.Spec).To(returnSpec)
 
 	return returnSpec
+}
+
+// specFromState returns the unmarshalled json config of the container.  If the
+// config does not exist (e.g., because the container was never started) return
+// the spec from the config.
+func (c *Container) specFromState() (*spec.Spec, error) {
+	returnSpec := c.config.Spec
+
+	if f, err := os.Open(c.state.ConfigPath); err == nil {
+		returnSpec = new(spec.Spec)
+		content, err := ioutil.ReadAll(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading container config")
+		}
+		if err := json.Unmarshal([]byte(content), &returnSpec); err != nil {
+			return nil, errors.Wrapf(err, "error unmarshalling container config")
+		}
+	} else {
+		// ignore when the file does not exist
+		if !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "error opening container config")
+		}
+	}
+
+	return returnSpec, nil
 }
 
 // ID returns the container's ID
@@ -517,8 +556,16 @@ func (c *Container) NewNetNS() bool {
 // PortMappings returns the ports that will be mapped into a container if
 // a new network namespace is created
 // If NewNetNS() is false, this value is unused
-func (c *Container) PortMappings() []ocicni.PortMapping {
-	return c.config.PortMappings
+func (c *Container) PortMappings() ([]ocicni.PortMapping, error) {
+	// First check if the container belongs to a network namespace (like a pod)
+	if len(c.config.NetNsCtr) > 0 {
+		netNsCtr, err := c.runtime.LookupContainer(c.config.NetNsCtr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to lookup network namespace for container %s", c.ID())
+		}
+		return netNsCtr.PortMappings()
+	}
+	return c.config.PortMappings, nil
 }
 
 // DNSServers returns DNS servers that will be used in the container's
@@ -826,7 +873,7 @@ func (c *Container) IPs() ([]net.IPNet, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	ips := make([]net.IPNet, 0)
@@ -854,7 +901,7 @@ func (c *Container) Routes() ([]types.Route, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	routes := make([]types.Route, 0)
@@ -995,4 +1042,46 @@ func (c *Container) IsInfra() bool {
 // IsReadOnly returns whether the container is running in read only mode
 func (c *Container) IsReadOnly() bool {
 	return c.config.Spec.Root.Readonly
+}
+
+// NetworkDisabled returns whether the container is running with a disabled network
+func (c *Container) NetworkDisabled() (bool, error) {
+	if c.config.NetNsCtr != "" {
+		container, err := c.runtime.state.Container(c.config.NetNsCtr)
+		if err != nil {
+			return false, err
+		}
+		return networkDisabled(container)
+	}
+	return networkDisabled(c)
+
+}
+
+func networkDisabled(c *Container) (bool, error) {
+	if c.config.CreateNetNS {
+		return false, nil
+	}
+	if !c.config.PostConfigureNetNS {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.NetworkNamespace {
+				return ns.Path == "", nil
+			}
+		}
+	}
+	return false, nil
+}
+
+// ContainerState returns containerstate struct
+func (c *Container) ContainerState() (*ContainerState, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+	returnConfig := new(ContainerState)
+	deepcopier.Copy(c.state).To(returnConfig)
+	return c.state, nil
 }

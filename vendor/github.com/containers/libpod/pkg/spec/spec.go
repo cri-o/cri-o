@@ -3,12 +3,15 @@ package createconfig
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/storage/pkg/mount"
+	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/docker/docker/daemon/caps"
-	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/go-units"
+	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -45,6 +48,18 @@ func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 	return configMount
 }
 
+func getAvailableGids() (int64, error) {
+	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
+	if err != nil {
+		return 0, err
+	}
+	count := int64(0)
+	for _, r := range idMap {
+		count += r.Count
+	}
+	return count, nil
+}
+
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
 func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	cgroupPerm := "ro"
@@ -52,6 +67,8 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
+	// Remove the default /dev/shm mount to ensure we overwrite it
+	g.RemoveMount("/dev/shm")
 	g.HostSpecific = true
 	addCgroup := true
 	canMountSys := true
@@ -89,14 +106,21 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.AddMount(sysMnt)
 	}
 	if isRootless {
-		g.RemoveMount("/dev/pts")
-		devPts := spec.Mount{
-			Destination: "/dev/pts",
-			Type:        "devpts",
-			Source:      "devpts",
-			Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+		nGids, err := getAvailableGids()
+		if err != nil {
+			return nil, err
 		}
-		g.AddMount(devPts)
+		if nGids < 5 {
+			// If we have no GID mappings, the gid=5 default option would fail, so drop it.
+			g.RemoveMount("/dev/pts")
+			devPts := spec.Mount{
+				Destination: "/dev/pts",
+				Type:        "devpts",
+				Source:      "devpts",
+				Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+			}
+			g.AddMount(devPts)
+		}
 	}
 	if inUserNS && config.IpcMode.IsHost() {
 		g.RemoveMount("/dev/mqueue")
@@ -235,8 +259,8 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			}
 		}
 	} else {
-		for _, device := range config.Devices {
-			if err := addDevice(&g, device); err != nil {
+		for _, devicePath := range config.Devices {
+			if err := devicesFromPath(&g, devicePath); err != nil {
 				return nil, err
 			}
 		}
@@ -250,6 +274,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	// SECURITY OPTS
 	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
+
 	g.SetProcessApparmorProfile(config.ApparmorProfile)
 
 	blockAccessToKernelFilesystems(config, &g)
@@ -369,10 +394,70 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		configSpec.Linux.Resources = &spec.LinuxResources{}
 	}
 
+	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
+	mounts, err := pmount.GetMounts()
+	if err != nil {
+		return nil, err
+	}
+	for i := range configSpec.Mounts {
+		m := &configSpec.Mounts[i]
+		isBind := false
+		for _, o := range m.Options {
+			if o == "bind" || o == "rbind" {
+				isBind = true
+				break
+			}
+		}
+		if !isBind {
+			continue
+		}
+		mount, err := findMount(m.Source, mounts)
+		if err != nil {
+			return nil, err
+		}
+		if mount == nil {
+			continue
+		}
+	next_option:
+		for _, o := range strings.Split(mount.Opts, ",") {
+			if o == "nosuid" || o == "noexec" || o == "nodev" {
+				for _, e := range m.Options {
+					if e == o {
+						continue next_option
+					}
+				}
+				m.Options = append(m.Options, o)
+			}
+		}
+	}
+
 	return configSpec, nil
 }
 
+func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
+	var err error
+	target, err = filepath.Abs(target)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot resolve %s", target)
+	}
+	var bestSoFar *pmount.Info
+	for _, i := range mounts {
+		if bestSoFar != nil && len(bestSoFar.Mountpoint) > len(i.Mountpoint) {
+			// Won't be better than what we have already found
+			continue
+		}
+		if strings.HasPrefix(target, i.Mountpoint) {
+			bestSoFar = i
+		}
+	}
+	return bestSoFar, nil
+}
+
 func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {
+	if config.PidMode.IsHost() && rootless.IsRootless() {
+		return
+	}
+
 	if !config.Privileged {
 		for _, mp := range []string{
 			"/proc/acpi",
@@ -452,6 +537,9 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 		return g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, NS(string(netMode)))
 	} else if IsPod(string(netMode)) {
 		logrus.Debug("Using pod netmode, unless pod is not sharing")
+		return nil
+	} else if netMode.IsSlirp4netns() {
+		logrus.Debug("Using slirp4netns netmode")
 		return nil
 	} else if netMode.IsUserDefined() {
 		logrus.Debug("Using user defined netmode")

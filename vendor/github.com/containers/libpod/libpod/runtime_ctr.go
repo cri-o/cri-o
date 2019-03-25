@@ -2,15 +2,20 @@ package libpod
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
@@ -42,13 +47,17 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 }
 
 func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "newContainer")
+	span.SetTag("type", "runtime")
+	defer span.Finish()
+
 	if rSpec == nil {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a valid runtime spec to create container")
 	}
 
 	ctr := new(Container)
 	ctr.config = new(ContainerConfig)
-	ctr.state = new(containerState)
+	ctr.state = new(ContainerState)
 
 	ctr.config.ID = stringid.GenerateNonCryptoID()
 
@@ -60,16 +69,9 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 
 	ctr.state.BindMounts = make(map[string]string)
 
-	// Path our lock file will reside at
-	lockPath := filepath.Join(r.lockDir, ctr.config.ID)
-	// Grab a lockfile at the given path
-	lock, err := storage.GetLockfile(lockPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating lockfile for new container")
-	}
-	ctr.lock = lock
-
 	ctr.config.StopTimeout = CtrRemoveTimeout
+
+	ctr.config.OCIRuntime = r.config.OCIRuntime
 
 	// Set namespace based on current runtime namespace
 	// Do so before options run so they can override it
@@ -83,6 +85,19 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, errors.Wrapf(err, "error running container create option")
 		}
 	}
+
+	// Allocate a lock for the container
+	lock, err := r.lockManager.AllocateLock()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error allocating lock for new container")
+	}
+	ctr.lock = lock
+	ctr.config.LockID = ctr.lock.ID()
+	logrus.Debugf("Allocated lock %d for container %s", ctr.lock.ID(), ctr.ID())
+
+	ctr.valid = true
+	ctr.state.State = ContainerStateConfigured
+	ctr.runtime = r
 
 	ctr.valid = true
 	ctr.state.State = ContainerStateConfigured
@@ -154,10 +169,36 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		}
 	}()
 
+	if rootless.IsRootless() && ctr.config.ConmonPidFile == "" {
+		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
+	}
+
+	// Go through the volume mounts and check for named volumes
+	// If the named volme already exists continue, otherwise create
+	// the storage for the named volume.
+	for i, vol := range ctr.config.Spec.Mounts {
+		if vol.Source[0] != '/' && isNamedVolume(vol.Source) {
+			volInfo, err := r.state.Volume(vol.Source)
+			if err != nil {
+				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source), withSetCtrSpecific())
+				if err != nil {
+					return nil, errors.Wrapf(err, "error creating named volume %q", vol.Source)
+				}
+				ctr.config.Spec.Mounts[i].Source = newVol.MountPoint()
+				if err := ctr.copyWithTarFromImage(ctr.config.Spec.Mounts[i].Destination, ctr.config.Spec.Mounts[i].Source); err != nil && !os.IsNotExist(err) {
+					return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Source)
+				}
+				continue
+			}
+			ctr.config.Spec.Mounts[i].Source = volInfo.MountPoint()
+		}
+	}
+
 	if ctr.config.LogPath == "" {
 		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
 	}
-	if ctr.config.ShmDir == "" {
+
+	if !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" {
 		if ctr.state.UserNSRoot == "" {
 			ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
 		} else {
@@ -170,6 +211,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		}
 		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
 	}
+
 	// Add the container to the state
 	// TODO: May be worth looking into recovering from name/ID collisions here
 	if ctr.config.Pod != "" {
@@ -191,17 +233,23 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 
 // RemoveContainer removes the given container
 // If force is specified, the container will be stopped first
+// If removeVolume is specified, named volumes used by the container will
+// be removed also if and only if the container is the sole user
 // Otherwise, RemoveContainer will return an error if the container is running
-func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool) error {
+func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	return r.removeContainer(ctx, c, force)
+	return r.removeContainer(ctx, c, force, removeVolume)
 }
 
 // Internal function to remove a container
 // Locks the container, but does not lock the runtime
-func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool) error {
+func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
+	span, _ := opentracing.StartSpanFromContext(ctx, "removeContainer")
+	span.SetTag("type", "runtime")
+	defer span.Finish()
+
 	if !c.valid {
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// Container probably already removed
@@ -214,6 +262,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 	// To avoid races around removing a container and the pod it is in
 	var pod *Pod
 	var err error
+	runtime := c.runtime
 	if c.config.Pod != "" {
 		pod, err = r.state.Pod(c.config.Pod)
 		if err != nil {
@@ -246,7 +295,19 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 	}
 
 	if c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s is paused, cannot remove until unpaused", c.ID())
+		if !force {
+			return errors.Wrapf(ErrCtrStateInvalid, "container %s is paused, cannot remove until unpaused", c.ID())
+		}
+		if err := c.runtime.ociRuntime.killContainer(c, 9); err != nil {
+			return err
+		}
+		if err := c.unpause(); err != nil {
+			return err
+		}
+		// Need to update container state to make sure we know it's stopped
+		if err := c.waitForExitFileAndSync(); err != nil {
+			return err
+		}
 	}
 
 	// Check that the container's in a good state to be removed
@@ -256,7 +317,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		}
 
 		// Need to update container state to make sure we know it's stopped
-		if err := c.syncContainer(); err != nil {
+		if err := c.waitForExitFileAndSync(); err != nil {
 			return err
 		}
 	} else if !(c.state.State == ContainerStateConfigured ||
@@ -287,6 +348,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
 	}
 
+	var volumes []string
+	if removeVolume {
+		volumes, err = c.namedVolumes()
+		if err != nil {
+			logrus.Errorf("unable to retrieve builtin volumes for container %v: %v", c.ID(), err)
+		}
+	}
 	var cleanupErr error
 	// Remove the container from the state
 	if c.config.Pod != "" {
@@ -338,6 +406,26 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 				cleanupErr = err
 			} else {
 				logrus.Errorf("delete container: %v", err)
+			}
+		}
+	}
+
+	// Deallocate the container's lock
+	if err := c.lock.Free(); err != nil {
+		if cleanupErr == nil {
+			cleanupErr = err
+		} else {
+			logrus.Errorf("free container lock: %v", err)
+		}
+	}
+
+	for _, v := range volumes {
+		if volume, err := runtime.state.Volume(v); err == nil {
+			if !volume.IsCtrSpecific() {
+				continue
+			}
+			if err := runtime.removeVolume(ctx, volume, false); err != nil && err != ErrNoSuchVolume && err != ErrVolumeBeingUsed {
+				logrus.Errorf("cleanup volume (%s): %v", v, err)
 			}
 		}
 	}
@@ -461,4 +549,66 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 		}
 	}
 	return ctrs[lastCreatedIndex], nil
+}
+
+// Check if volName is a named volume and not one of the default mounts we add to containers
+func isNamedVolume(volName string) bool {
+	if volName != "proc" && volName != "tmpfs" && volName != "devpts" && volName != "shm" && volName != "mqueue" && volName != "sysfs" && volName != "cgroup" {
+		return true
+	}
+	return false
+}
+
+// Export is the libpod portion of exporting a container to a tar file
+func (r *Runtime) Export(name string, path string) error {
+	ctr, err := r.LookupContainer(name)
+	if err != nil {
+		return err
+	}
+	if os.Geteuid() != 0 {
+		state, err := ctr.State()
+		if err != nil {
+			return errors.Wrapf(err, "cannot read container state %q", ctr.ID())
+		}
+		if state == ContainerStateRunning || state == ContainerStatePaused {
+			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
+			if err != nil {
+				return errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
+			}
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			became, ret, err := rootless.JoinDirectUserAndMountNS(uint(conmonPid))
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+		} else {
+			became, ret, err := rootless.BecomeRootInUserNS()
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+		}
+	}
+	return ctr.Export(path)
+
+}
+
+// RemoveContainersFromStorage attempt to remove containers from storage that do not exist in libpod database
+func (r *Runtime) RemoveContainersFromStorage(ctrs []string) {
+	for _, i := range ctrs {
+		// if the container does not exist in database, attempt to remove it from storage
+		if _, err := r.LookupContainer(i); err != nil && errors.Cause(err) == image.ErrNoSuchCtr {
+			r.storageService.UnmountContainerImage(i, true)
+			if err := r.storageService.DeleteContainer(i); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
+				logrus.Errorf("Failed to remove container %q from storage: %s", i, err)
+			}
+		}
+	}
 }

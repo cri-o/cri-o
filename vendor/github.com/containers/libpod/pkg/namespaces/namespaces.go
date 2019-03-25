@@ -84,7 +84,7 @@ func (n UTSMode) Valid() bool {
 // IpcMode represents the container ipc stack.
 type IpcMode string
 
-// IsPrivate indicates whether the container uses its own private ipc namespace which can not be shared.
+// IsPrivate indicates whether the container uses its own private ipc namespace which cannot be shared.
 func (n IpcMode) IsPrivate() bool {
 	return n == "private"
 }
@@ -223,7 +223,12 @@ func (n NetworkMode) IsBridge() bool {
 	return n == "bridge"
 }
 
+// IsSlirp4netns indicates if we are running a rootless network stack
+func (n NetworkMode) IsSlirp4netns() bool {
+	return n == "slirp4netns"
+}
+
 // IsUserDefined indicates user-created network
 func (n NetworkMode) IsUserDefined() bool {
-	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer()
+	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns()
 }

@@ -1,15 +1,21 @@
 package libpod
 
 import (
+	"strings"
+
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
 
 func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data) (*inspect.ContainerInspectData, error) {
 	config := c.config
 	runtimeInfo := c.state
-	spec := c.config.Spec
+	spec, err := c.specFromState()
+	if err != nil {
+		return nil, err
+	}
 
 	// Process is allowed to be nil in the spec
 	args := []string{}
@@ -46,6 +52,17 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 	hostnamePath := ""
 	if getPath, ok := c.state.BindMounts["/etc/hostname"]; ok {
 		hostnamePath = getPath
+	}
+
+	var mounts []specs.Mount
+	for i, mnt := range spec.Mounts {
+		mounts = append(mounts, mnt)
+		// We only want to show the name of the named volume in the inspect
+		// output, so split the path and get the name out of it.
+		if strings.Contains(mnt.Source, c.runtime.config.VolumePath) {
+			split := strings.Split(mnt.Source[len(c.runtime.config.VolumePath)+1:], "/")
+			mounts[i].Source = split[0]
+		}
 	}
 
 	data := &inspect.ContainerInspectData{
@@ -85,7 +102,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		AppArmorProfile: spec.Process.ApparmorProfile,
 		ExecIDs:         execIDs,
 		GraphDriver:     driverData,
-		Mounts:          spec.Mounts,
+		Mounts:          mounts,
 		Dependencies:    c.Dependencies(),
 		NetworkSettings: &inspect.NetworkSettings{
 			Bridge:                 "",    // TODO

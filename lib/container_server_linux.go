@@ -9,12 +9,16 @@ import (
 )
 
 func (c *ContainerServer) addSandboxPlatform(sb *sandbox.Sandbox) {
-	c.state.processLevels[selinux.NewContext(sb.ProcessLabel())["level"]]++
+	// NewContext() always returns nil, so we can safely ignore the error
+	ctx, _ := selinux.NewContext(sb.ProcessLabel())
+	c.state.processLevels[ctx["level"]]++
 }
 
 func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) {
 	processLabel := sb.ProcessLabel()
-	level := selinux.NewContext(processLabel)["level"]
+	// NewContext() always returns nil, so we can safely ignore the error
+	ctx, _ := selinux.NewContext(processLabel)
+	level := ctx["level"]
 	pl, ok := c.state.processLevels[level]
 	if ok {
 		c.state.processLevels[level] = pl - 1

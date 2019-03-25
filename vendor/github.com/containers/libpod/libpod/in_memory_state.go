@@ -18,8 +18,10 @@ type InMemoryState struct {
 	pods map[string]*Pod
 	// Maps container ID to container struct.
 	containers map[string]*Container
+	volumes    map[string]*Volume
 	// Maps container ID to a list of IDs of dependencies.
-	ctrDepends map[string][]string
+	ctrDepends    map[string][]string
+	volumeDepends map[string][]string
 	// Maps pod ID to a map of container ID to container struct.
 	podContainers map[string]map[string]*Container
 	// Global name registry - ensures name uniqueness and performs lookups.
@@ -46,8 +48,10 @@ func NewInMemoryState() (State, error) {
 
 	state.pods = make(map[string]*Pod)
 	state.containers = make(map[string]*Container)
+	state.volumes = make(map[string]*Volume)
 
 	state.ctrDepends = make(map[string][]string)
+	state.volumeDepends = make(map[string][]string)
 
 	state.podContainers = make(map[string]map[string]*Container)
 
@@ -70,6 +74,18 @@ func (s *InMemoryState) Close() error {
 // Refresh clears container and pod stats after a reboot
 // In-memory state won't survive a reboot so this is a no-op
 func (s *InMemoryState) Refresh() error {
+	return nil
+}
+
+// GetDBConfig is not implemented for in-memory state.
+// As we do not store a config, return an empty one.
+func (s *InMemoryState) GetDBConfig() (*DBConfig, error) {
+	return &DBConfig{}, nil
+}
+
+// ValidateDBConfig is not implemented for the in-memory state.
+// Since we do nothing just return no error.
+func (s *InMemoryState) ValidateDBConfig(runtime *Runtime) error {
 	return nil
 }
 
@@ -232,6 +248,14 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		s.addCtrToDependsMap(ctr.ID(), depCtr)
 	}
 
+	// Add container to volume dependencies
+	for _, vol := range ctr.config.Spec.Mounts {
+		if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
+			volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
+			s.addCtrToVolDependsMap(ctr.ID(), volName)
+		}
+	}
+
 	return nil
 }
 
@@ -280,6 +304,14 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	depCtrs := ctr.Dependencies()
 	for _, depCtr := range depCtrs {
 		s.removeCtrFromDependsMap(ctr.ID(), depCtr)
+	}
+
+	// Remove container from volume dependencies
+	for _, vol := range ctr.config.Spec.Mounts {
+		if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
+			volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
+			s.removeCtrFromVolDependsMap(ctr.ID(), volName)
+		}
 	}
 
 	return nil
@@ -356,6 +388,154 @@ func (s *InMemoryState) AllContainers() ([]*Container, error) {
 	}
 
 	return ctrs, nil
+}
+
+// RewriteContainerConfig rewrites a container's configuration.
+// This function is DANGEROUS, even with an in-memory state.
+// Please read the full comment on it in state.go before using it.
+func (s *InMemoryState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error {
+	if !ctr.valid {
+		return ErrCtrRemoved
+	}
+
+	// If the container does not exist, return error
+	stateCtr, ok := s.containers[ctr.ID()]
+	if !ok {
+		ctr.valid = false
+		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+	}
+
+	stateCtr.config = newCfg
+
+	return nil
+}
+
+// RewritePodConfig rewrites a pod's configuration.
+// This function is DANGEROUS, even with in-memory state.
+// Please read the full comment on it in state.go before using it.
+func (s *InMemoryState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	// If the pod does not exist, return error
+	statePod, ok := s.pods[pod.ID()]
+	if !ok {
+		pod.valid = false
+		return errors.Wrapf(ErrNoSuchPod, "pod with ID %s not found in state", pod.ID())
+	}
+
+	statePod.config = newCfg
+
+	return nil
+}
+
+// Volume retrieves a volume from its full name
+func (s *InMemoryState) Volume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, ErrEmptyID
+	}
+
+	vol, ok := s.volumes[name]
+	if !ok {
+		return nil, errors.Wrapf(ErrNoSuchCtr, "no volume with name %s found", name)
+	}
+
+	return vol, nil
+}
+
+// HasVolume checks if a volume with the given name is present in the state
+func (s *InMemoryState) HasVolume(name string) (bool, error) {
+	if name == "" {
+		return false, ErrEmptyID
+	}
+
+	_, ok := s.volumes[name]
+	if !ok {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// AddVolume adds a volume to the state
+func (s *InMemoryState) AddVolume(volume *Volume) error {
+	if !volume.valid {
+		return errors.Wrapf(ErrVolumeRemoved, "volume with name %s is not valid", volume.Name())
+	}
+
+	if _, ok := s.volumes[volume.Name()]; ok {
+		return errors.Wrapf(ErrVolumeExists, "volume with name %s already exists in state", volume.Name())
+	}
+
+	s.volumes[volume.Name()] = volume
+
+	return nil
+}
+
+// RemoveVolume removes a volume from the state
+func (s *InMemoryState) RemoveVolume(volume *Volume) error {
+	// Ensure we don't remove a volume which containers depend on
+	deps, ok := s.volumeDepends[volume.Name()]
+	if ok && len(deps) != 0 {
+		depsStr := strings.Join(deps, ", ")
+		return errors.Wrapf(ErrVolumeExists, "the following containers depend on volume %s: %s", volume.Name(), depsStr)
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(ErrVolumeRemoved, "no volume exists in state with name %s", volume.Name())
+	}
+
+	delete(s.volumes, volume.Name())
+
+	return nil
+}
+
+// RemoveVolCtrDep updates the container dependencies of the volume
+func (s *InMemoryState) RemoveVolCtrDep(volume *Volume, ctrID string) error {
+	if !volume.valid {
+		return errors.Wrapf(ErrVolumeRemoved, "volume with name %s is not valid", volume.Name())
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		return errors.Wrapf(ErrNoSuchVolume, "volume with name %s doesn't exists in state", volume.Name())
+	}
+
+	// Remove container that is using this volume
+	s.removeCtrFromVolDependsMap(ctrID, volume.Name())
+
+	return nil
+}
+
+// VolumeInUse checks if the given volume is being used by at least one container
+func (s *InMemoryState) VolumeInUse(volume *Volume) ([]string, error) {
+	if !volume.valid {
+		return nil, ErrVolumeRemoved
+	}
+
+	// If the volume does not exist, return error
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return nil, errors.Wrapf(ErrNoSuchVolume, "volume with name %s not found in state", volume.Name())
+	}
+
+	arr, ok := s.volumeDepends[volume.Name()]
+	if !ok {
+		return []string{}, nil
+	}
+
+	return arr, nil
+}
+
+// AllVolumes returns all volumes that exist in the state
+func (s *InMemoryState) AllVolumes() ([]*Volume, error) {
+	allVols := make([]*Volume, 0, len(s.volumes))
+	for _, v := range s.volumes {
+		allVols = append(allVols, v)
+	}
+
+	return allVols, nil
 }
 
 // Pod retrieves a pod from the state from its full ID
@@ -930,6 +1110,44 @@ func (s *InMemoryState) removeCtrFromDependsMap(ctrID, dependsID string) {
 		}
 
 		s.ctrDepends[dependsID] = newArr
+	}
+}
+
+// Add a container to the dependency mappings for the volume
+func (s *InMemoryState) addCtrToVolDependsMap(depCtrID, volName string) {
+	if volName != "" {
+		arr, ok := s.volumeDepends[volName]
+		if !ok {
+			// Do not have a mapping for that volume yet
+			s.volumeDepends[volName] = []string{depCtrID}
+		} else {
+			// Have a mapping for the volume
+			arr = append(arr, depCtrID)
+			s.volumeDepends[volName] = arr
+		}
+	}
+}
+
+// Remove a container from the dependency mappings for the volume
+func (s *InMemoryState) removeCtrFromVolDependsMap(depCtrID, volName string) {
+	if volName != "" {
+		arr, ok := s.volumeDepends[volName]
+		if !ok {
+			// Internal state seems inconsistent
+			// But the dependency is definitely gone
+			// So just return
+			return
+		}
+
+		newArr := make([]string, 0, len(arr))
+
+		for _, id := range arr {
+			if id != depCtrID {
+				newArr = append(newArr, id)
+			}
+		}
+
+		s.volumeDepends[volName] = newArr
 	}
 }
 

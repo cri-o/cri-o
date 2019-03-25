@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/containers/buildah"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -12,6 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
@@ -30,6 +32,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["os"] = runtime.GOOS
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
+	info["rootless"] = rootless.IsRootless()
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading memory info")
@@ -113,10 +116,12 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 	// lets say storage driver in use, number of images, number of containers
 	info := map[string]interface{}{}
+	info["ConfigFile"] = util.StorageConfigFile()
 	info["GraphRoot"] = r.store.GraphRoot()
 	info["RunRoot"] = r.store.RunRoot()
 	info["GraphDriverName"] = r.store.GraphDriverName()
 	info["GraphOptions"] = r.store.GraphOptions()
+	info["VolumePath"] = r.config.VolumePath
 	statusPairs, err := r.store.Status()
 	if err != nil {
 		return nil, err
@@ -178,9 +183,14 @@ func (r *Runtime) GetConmonVersion() (string, error) {
 	return strings.TrimSuffix(strings.Replace(output, "\n", ", ", 1), "\n"), nil
 }
 
+// GetOCIRuntimePath returns the path to the OCI Runtime Path the runtime is using
+func (r *Runtime) GetOCIRuntimePath() string {
+	return r.ociRuntimePath.Paths[0]
+}
+
 // GetOCIRuntimeVersion returns a string representation of the oci runtimes version
 func (r *Runtime) GetOCIRuntimeVersion() (string, error) {
-	output, err := utils.ExecCmd(r.ociRuntimePath, "--version")
+	output, err := utils.ExecCmd(r.ociRuntimePath.Paths[0], "--version")
 	if err != nil {
 		return "", err
 	}

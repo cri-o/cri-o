@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/containers/storage/pkg/archive"
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/godbus/dbus"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
@@ -82,12 +86,9 @@ func newProp(name string, units interface{}) systemdDbus.Property {
 	}
 }
 
-// DetachError is special error which returned in case of container detach.
-type DetachError struct{}
-
-func (DetachError) Error() string {
-	return "detached from container"
-}
+// ErrDetach is an error indicating that the user manually detached from the
+// container.
+var ErrDetach = errors.New("detached from container")
 
 // CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
 func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
@@ -108,7 +109,7 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 				}
 				if i == len(keys)-1 {
 					// src.Close()
-					return 0, DetachError{}
+					return 0, ErrDetach
 				}
 				nr, er = src.Read(buf)
 			}
@@ -140,4 +141,31 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 		}
 	}
 	return written, err
+}
+
+// UntarToFileSystem untars an os.file of a tarball to a destination in the filesystem
+func UntarToFileSystem(dest string, tarball *os.File, options *archive.TarOptions) error {
+	logrus.Debugf("untarring %s", tarball.Name())
+	return archive.Untar(tarball, dest, options)
+}
+
+// TarToFilesystem creates a tarball from source and writes to an os.file
+// provided
+func TarToFilesystem(source string, tarball *os.File) error {
+	tb, err := Tar(source)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(tarball, tb)
+	if err != nil {
+		return err
+	}
+	logrus.Debugf("wrote tarball file %s", tarball.Name())
+	return nil
+}
+
+// Tar creates a tarball from source and returns a readcloser of it
+func Tar(source string) (io.ReadCloser, error) {
+	logrus.Debugf("creating tarball of %s", source)
+	return archive.Tar(source, archive.Uncompressed)
 }

@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -101,7 +102,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	}
 	// Expose ports
 	for _, p := range c.config.PortMappings {
-		importBuilder.SetPort(string(p.ContainerPort))
+		importBuilder.SetPort(fmt.Sprintf("%d", p.ContainerPort))
 	}
 	// Labels
 	for k, v := range c.Labels() {
@@ -161,7 +162,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 			importBuilder.SetWorkDir(splitChange[1])
 		}
 	}
-	candidates, _, err := util.ResolveName(destImage, "", sc, c.runtime.store)
+	candidates, _, _, err := util.ResolveName(destImage, "", sc, c.runtime.store)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error resolving name %q", destImage)
 	}
