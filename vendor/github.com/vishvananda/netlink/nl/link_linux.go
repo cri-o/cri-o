@@ -217,11 +217,9 @@ const (
 	IFLA_VF_RSS_QUERY_EN /* RSS Redirection Table and Hash Key query
 	 * on/off switch
 	 */
-	IFLA_VF_STATS        /* network device statistics */
-	IFLA_VF_TRUST        /* Trust state of VF */
-	IFLA_VF_IB_NODE_GUID /* VF Infiniband node GUID */
-	IFLA_VF_IB_PORT_GUID /* VF Infiniband port GUID */
-	IFLA_VF_MAX          = IFLA_VF_IB_PORT_GUID
+	IFLA_VF_STATS /* network device statistics */
+	IFLA_VF_TRUST /* Trust state of VF */
+	IFLA_VF_MAX   = IFLA_VF_TRUST
 )
 
 const (
@@ -250,7 +248,6 @@ const (
 	SizeofVfLinkState  = 0x08
 	SizeofVfRssQueryEn = 0x08
 	SizeofVfTrust      = 0x08
-	SizeofVfGUID       = 0x10
 )
 
 // struct ifla_vf_mac {
@@ -433,30 +430,6 @@ func (msg *VfTrust) Serialize() []byte {
 	return (*(*[SizeofVfTrust]byte)(unsafe.Pointer(msg)))[:]
 }
 
-// struct ifla_vf_guid {
-//   __u32 vf;
-//   __u32 rsvd;
-//   __u64 guid;
-// };
-
-type VfGUID struct {
-	Vf   uint32
-	Rsvd uint32
-	GUID uint64
-}
-
-func (msg *VfGUID) Len() int {
-	return SizeofVfGUID
-}
-
-func DeserializeVfGUID(b []byte) *VfGUID {
-	return (*VfGUID)(unsafe.Pointer(&b[0:SizeofVfGUID][0]))
-}
-
-func (msg *VfGUID) Serialize() []byte {
-	return (*(*[SizeofVfGUID]byte)(unsafe.Pointer(msg)))[:]
-}
-
 const (
 	XDP_FLAGS_UPDATE_IF_NOEXIST = 1 << iota
 	XDP_FLAGS_SKB_MODE
@@ -572,12 +545,4 @@ const (
 const (
 	GTP_ROLE_GGSN = iota
 	GTP_ROLE_SGSN
-)
-
-const (
-	IFLA_XFRM_UNSPEC = iota
-	IFLA_XFRM_LINK
-	IFLA_XFRM_IF_ID
-
-	IFLA_XFRM_MAX = iota - 1
 )

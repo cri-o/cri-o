@@ -22,10 +22,6 @@ const (
 	FAMILY_V4   = unix.AF_INET
 	FAMILY_V6   = unix.AF_INET6
 	FAMILY_MPLS = AF_MPLS
-	// Arbitrary set value (greater than default 4k) to allow receiving
-	// from kernel more verbose messages e.g. for statistics,
-	// tc rules or filters, or other more memory requiring data.
-	RECEIVE_BUFFER_SIZE = 65536
 )
 
 // SupportedNlFamilies contains the list of netlink families this netlink package supports
@@ -46,7 +42,7 @@ func GetIPFamily(ip net.IP) int {
 
 var nativeEndian binary.ByteOrder
 
-// NativeEndian gets native endianness for the system
+// Get native endianness for the system
 func NativeEndian() binary.ByteOrder {
 	if nativeEndian == nil {
 		var x uint32 = 0x01020304
@@ -275,22 +271,15 @@ func NewRtAttr(attrType int, data []byte) *RtAttr {
 	}
 }
 
-// NewRtAttrChild adds an RtAttr as a child to the parent and returns the new attribute
-//
-// Deprecated: Use AddRtAttr() on the parent object
+// Create a new RtAttr obj anc add it as a child of an existing object
 func NewRtAttrChild(parent *RtAttr, attrType int, data []byte) *RtAttr {
-	return parent.AddRtAttr(attrType, data)
-}
-
-// AddRtAttr adds an RtAttr as a child and returns the new attribute
-func (a *RtAttr) AddRtAttr(attrType int, data []byte) *RtAttr {
 	attr := NewRtAttr(attrType, data)
-	a.children = append(a.children, attr)
+	parent.children = append(parent.children, attr)
 	return attr
 }
 
-// AddChild adds an existing NetlinkRequestData as a child.
-func (a *RtAttr) AddChild(attr NetlinkRequestData) {
+// AddChild adds an existing RtAttr as a child.
+func (a *RtAttr) AddChild(attr *RtAttr) {
 	a.children = append(a.children, attr)
 }
 
@@ -371,12 +360,16 @@ func (req *NetlinkRequest) Serialize() []byte {
 }
 
 func (req *NetlinkRequest) AddData(data NetlinkRequestData) {
-	req.Data = append(req.Data, data)
+	if data != nil {
+		req.Data = append(req.Data, data)
+	}
 }
 
 // AddRawData adds raw bytes to the end of the NetlinkRequest object during serialization
 func (req *NetlinkRequest) AddRawData(data []byte) {
-	req.RawData = append(req.RawData, data...)
+	if data != nil {
+		req.RawData = append(req.RawData, data...)
+	}
 }
 
 // Execute the request against a the given sockType.
@@ -622,17 +615,16 @@ func (s *NetlinkSocket) Receive() ([]syscall.NetlinkMessage, error) {
 	if fd < 0 {
 		return nil, fmt.Errorf("Receive called on a closed socket")
 	}
-	var rb [RECEIVE_BUFFER_SIZE]byte
-	nr, _, err := unix.Recvfrom(fd, rb[:], 0)
+	rb := make([]byte, unix.Getpagesize())
+	nr, _, err := unix.Recvfrom(fd, rb, 0)
 	if err != nil {
 		return nil, err
 	}
 	if nr < unix.NLMSG_HDRLEN {
 		return nil, fmt.Errorf("Got short response from netlink")
 	}
-	rb2 := make([]byte, nr)
-	copy(rb2, rb[:nr])
-	return syscall.ParseNetlinkMessage(rb2)
+	rb = rb[:nr]
+	return syscall.ParseNetlinkMessage(rb)
 }
 
 // SetSendTimeout allows to set a send timeout on the socket
