@@ -15,7 +15,7 @@ install:
   - make install.tools
   - >
     if [ "${TRAVIS_OS_NAME}" = linux ]; then
-      OSTREE_VERSION=v2017.9;
+      OSTREE_VERSION=v2019.1;
       git clone https://github.com/ostreedev/ostree ${TRAVIS_BUILD_DIR}/ostree &&
       (
         cd ${TRAVIS_BUILD_DIR}/ostree &&
