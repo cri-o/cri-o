@@ -1053,11 +1053,11 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	for _, mount := range mounts {
 		dest := mount.GetContainerPath()
 		if dest == "" {
-			return nil, nil, fmt.Errorf("Mount.ContainerPath is empty")
+			return nil, nil, fmt.Errorf("mount.ContainerPath is empty")
 		}
 
 		if mount.HostPath == "" {
-			return nil, nil, fmt.Errorf("Mount.HostPath is empty")
+			return nil, nil, fmt.Errorf("mount.HostPath is empty")
 		}
 		src := filepath.Join(bindMountPrefix, mount.GetHostPath())
 
@@ -1068,7 +1068,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 			if !os.IsNotExist(err) {
 				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
 			} else if err = os.MkdirAll(src, 0755); err != nil {
-				return nil, nil, fmt.Errorf("Failed to mkdir %s: %s", src, err)
+				return nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
 			}
 		}
 

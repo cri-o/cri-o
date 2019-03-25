@@ -67,7 +67,7 @@ func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
 
 	runtime, ok := s.Runtime().(*oci.Runtime)
 	if !ok {
-		return "", fmt.Errorf("Runtime interface conversion error")
+		return "", fmt.Errorf("runtime interface conversion error")
 	}
 
 	if _, err := runtime.ValidateRuntimeHandler(handler); err != nil {

@@ -149,7 +149,7 @@ func (c *Config) Validate(onExecution bool) error {
 	case lib.ImageVolumesIgnore:
 	case lib.ImageVolumesBind:
 	default:
-		return fmt.Errorf("Unrecognized image volume type specified")
+		return fmt.Errorf("unrecognized image volume type specified")
 	}
 
 	if err := c.RuntimeConfig.Validate(onExecution); err != nil {
@@ -157,10 +157,10 @@ func (c *Config) Validate(onExecution bool) error {
 	}
 
 	if c.UIDMappings != "" && c.ManageNetworkNSLifecycle {
-		return fmt.Errorf("Cannot use UIDMappings with ManageNetworkNSLifecycle")
+		return fmt.Errorf("cannot use UIDMappings with ManageNetworkNSLifecycle")
 	}
 	if c.GIDMappings != "" && c.ManageNetworkNSLifecycle {
-		return fmt.Errorf("Cannot use GIDMappings with ManageNetworkNSLifecycle")
+		return fmt.Errorf("cannot use GIDMappings with ManageNetworkNSLifecycle")
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < oci.BufSize {
