@@ -62,14 +62,6 @@ func (c *ContainerServer) Runtime() oci.RuntimeImpl {
 	return c.runtime
 }
 
-// SetRuntime can be used to explicitly specify a runtime.
-//
-// In production cases calling this function has no need because the runtime
-// will already be set by `New()`.
-func (c *ContainerServer) SetRuntime(runtime oci.RuntimeImpl) {
-	c.runtime = runtime
-}
-
 // Store returns the Store for the ContainerServer
 func (c *ContainerServer) Store() cstorage.Store {
 	return c.store

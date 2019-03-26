@@ -32,7 +32,7 @@ BUILD_BIN_PATH := ${BUILD_PATH}/bin
 COVERAGE_PATH := ${BUILD_PATH}/coverage
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
-MOCKGEN_FLAGS := --build_flags='--tags=$(BUILDTAGS)'
+MOCKGEN_FLAGS := --build_flags='--tags=test $(BUILDTAGS)'
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
@@ -92,7 +92,7 @@ endif
 	touch "$(GOPATH)/.gopathok"
 
 lint: .gopathok ${GOLANGCI_LINT}
-	${GOLANGCI_LINT} run --build-tags="$(BUILDTAGS)"
+	${GOLANGCI_LINT} run --build-tags="test $(BUILDTAGS)"
 
 fmt: cfmt
 
@@ -208,7 +208,7 @@ testunit: mockgen ${GINKGO}
 		--covermode atomic \
 		--outputdir ${COVERAGE_PATH} \
 		--coverprofile coverprofile \
-		--tags "$(BUILDTAGS)" \
+		--tags "test $(BUILDTAGS)" \
 		--succinct
 	# fixes https://github.com/onsi/ginkgo/issues/518
 	sed -i '2,$${/^mode: atomic/d;}' ${COVERAGE_PATH}/coverprofile
@@ -219,7 +219,7 @@ testunit-bin:
 	mkdir -p ${TESTBIN_PATH}
 	for PACKAGE in `$(GO) list ./...`; do \
 		go test $$PACKAGE \
-			--tags "$(BUILDTAGS)" \
+			--tags "test $(BUILDTAGS)" \
 			--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename $$PACKAGE) ;\
 	done
 
