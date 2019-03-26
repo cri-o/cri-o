@@ -37,7 +37,10 @@ static int k8s_log_fd = -1;
 static char *k8s_log_path = NULL;
 
 /* journald log file parameters */
+#define TRUNCIDLEN 12
+static char short_cuuid[TRUNCIDLEN + 1];
 static char *cuuid = NULL;
+static char *name = NULL;
 
 static void parse_log_path(char *log_config);
 static const char *stdpipe_name(stdpipe_t pipe);
@@ -54,7 +57,7 @@ static void reopen_k8s_file(void);
  * (currently just k8s log file), it will also open the log_fd for that specific
  * log file.
  */
-void configure_log_drivers(gchar **log_drivers, int64_t log_size_max_, char *cuuid_)
+void configure_log_drivers(gchar **log_drivers, int64_t log_size_max_, char *cuuid_, char *name_)
 {
 	log_size_max = log_size_max_;
 	if (log_drivers == NULL)
@@ -73,10 +76,14 @@ void configure_log_drivers(gchar **log_drivers, int64_t log_size_max_, char *cuu
 #ifndef USE_JOURNALD
 		nexit("Include journald in compilation path to log to systemd journal");
 #endif
+		if (cuuid_ == NULL || strlen(cuuid_) <= TRUNCIDLEN)
+			nexit("Container ID must be provided and of the correct length");
 		cuuid = cuuid_;
+		strncpy(short_cuuid, cuuid, TRUNCIDLEN);
+		short_cuuid[TRUNCIDLEN] = '\0';
+		name = name_;
 	}
 }
-
 
 /* parse_log_path branches on log driver type the user inputted.
  * log_config will either be a ':' delimited string containing:
@@ -121,16 +128,14 @@ bool write_to_logs(stdpipe_t pipe, char *buf, ssize_t num_read)
 
 /* write to systemd journal. If the pipe is stdout, write with notice priority,
  * otherwise, write with error priority
- * note: SIZEOF(buf) MUST be greater than num_read
  */
-int write_journald(int pipe, char *buf, ssize_t num_read)
+int write_journald(int pipe, char *buf, G_GNUC_UNUSED ssize_t num_read)
 {
-	// Always null terminate the buffer, just in case.
-	buf[num_read] = '\0';
-	int message_priority = LOG_NOTICE;
+	int message_priority = LOG_INFO;
 	if (pipe == STDERR_PIPE)
 		message_priority = LOG_ERR;
-	sd_journal_send("MESSAGE=%s", buf, "PRIORITY=%i", message_priority, "MESSAGE_ID=%s", cuuid, NULL);
+	sd_journal_send("MESSAGE=%s", buf, "PRIORITY=%i", message_priority, "CONTAINER_ID_FULL=%s", cuuid, "CONTAINER_ID=%s", short_cuuid,
+			"CONTAINER_NAME=%s", name, NULL);
 	return 0;
 }
 

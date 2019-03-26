@@ -81,6 +81,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	}
 
 	args = append(args, "-c", c.id)
+	args = append(args, "-n", c.name)
 	args = append(args, "-u", c.id)
 	args = append(args, "-r", r.path)
 	args = append(args, "-b", c.bundlePath)
@@ -343,6 +344,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 	var args []string
 	args = append(args, "-c", c.id)
+	args = append(args, "-n", c.name)
 	args = append(args, "-r", r.path)
 	args = append(args, "-p", pidFile.Name())
 	args = append(args, "-e")
