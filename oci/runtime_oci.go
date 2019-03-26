@@ -809,7 +809,7 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return fmt.Errorf("Failed to create new watch: %v", err)
+		return fmt.Errorf("failed to create new watch: %v", err)
 	}
 	defer watcher.Close()
 

@@ -152,7 +152,7 @@ func getSourceMount(source string, mountInfos []*dockermounts.Info) (string, str
 	}
 
 	// If we are here, we did not find parent mount. Something is wrong.
-	return "", "", fmt.Errorf("Could not find source mount of %s", source)
+	return "", "", fmt.Errorf("could not find source mount of %s", source)
 }
 
 func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string) ([]rspec.Mount, error) {
