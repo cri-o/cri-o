@@ -101,7 +101,7 @@ func (c *Config) UpdateFromFile(path string) error {
 
 	_, err = toml.Decode(string(data), t)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to decode configuration %v: %v", path, err)
 	}
 
 	t.toConfig(c)
