@@ -248,6 +248,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) (err error)
 	}
 
 	args = append(args, "-c", c.id)
+	args = append(args, "-n", c.name)
 	args = append(args, "-u", c.id)
 	args = append(args, "-r", rPath)
 	args = append(args, "-b", c.bundlePath)
@@ -503,6 +504,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 
 	var args []string
 	args = append(args, "-c", c.id)
+	args = append(args, "-n", c.name)
 	args = append(args, "-r", rPath)
 	args = append(args, "-p", pidFile.Name())
 	args = append(args, "-e")
