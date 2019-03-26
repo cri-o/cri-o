@@ -249,7 +249,11 @@ mockgen: ${MOCKGEN}
 		-package sandboxmock \
 		-destination ${MOCK_PATH}/sandbox/sandbox.go \
 		github.com/cri-o/cri-o/lib/sandbox NetNsIface
-
+	${BUILD_BIN_PATH}/mockgen \
+		${MOCKGEN_FLAGS} \
+		-package servermock \
+		-destination ${MOCK_PATH}/server/server.go \
+		github.com/cri-o/cri-o/server ConfigIface
 
 codecov: SHELL := $(shell which bash)
 codecov:

@@ -248,7 +248,12 @@ func getIDMappings(config *Config) (*idtools.IDMappings, error) {
 }
 
 // New creates a new Server with options provided
-func New(ctx context.Context, config *Config) (*Server, error) {
+func New(ctx context.Context, configIface ConfigIface) (*Server, error) {
+	if configIface == nil || configIface.GetData() == nil {
+		return nil, fmt.Errorf("provided configuration interface or its data is nil")
+	}
+	config := configIface.GetData()
+
 	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0755); err != nil {
 		return nil, err
 	}
@@ -257,7 +262,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := lib.New(ctx, &config.Config)
+	containerServer, err := lib.New(ctx, configIface.GetLibConfigIface())
 	if err != nil {
 		return nil, err
 	}
