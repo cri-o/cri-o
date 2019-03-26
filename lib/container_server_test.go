@@ -79,6 +79,16 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(server).To(BeNil())
 		})
 
+		It("should fail when config is nil", func() {
+			// Given
+			// When
+			server, err := lib.New(context.Background(), nil)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(server).To(BeNil())
+		})
+
 		It("should fail with invalid default runtime", func() {
 			// Given
 			config, err := lib.DefaultConfig()

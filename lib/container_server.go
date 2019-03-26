@@ -127,6 +127,9 @@ func localeToLanguage(locale string) string {
 
 // New creates a new ContainerServer with options provided
 func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error) {
+	if configIface == nil {
+		return nil, fmt.Errorf("provided config is nil")
+	}
 	store, err := configIface.GetStore()
 	if err != nil {
 		return nil, err
