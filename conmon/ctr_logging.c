@@ -6,9 +6,10 @@
 #ifdef USE_JOURNALD
 #include <systemd/sd-journal.h>
 #else
-// this function should never be used, as journald logging is disabled and
-// parsing code errors if USE_JOURNALD isn't flagged.
-// This is just to make the compiler happy and the other code prettier
+/* this function should never be used, as journald logging is disabled and
+ * parsing code errors if USE_JOURNALD isn't flagged.
+ * This is just to make the compiler happy and the other code prettier
+ */
 static inline int sd_journal_send(char *fmt, ...)
 {
 	perror(fmt);
@@ -19,7 +20,6 @@ static inline int sd_journal_send(char *fmt, ...)
 
 /* strlen("1997-03-25T13:20:42.999999999+01:00 stdout ") + 1 */
 #define TSBUFLEN 44
-
 
 /* Different types of container logging */
 static gboolean use_journald_logging = FALSE;
@@ -46,6 +46,7 @@ static void parse_log_path(char *log_config);
 static const char *stdpipe_name(stdpipe_t pipe);
 static int write_journald(int pipe, char *buf, ssize_t num_read);
 static int write_k8s_log(stdpipe_t pipe, const char *buf, ssize_t buflen);
+static bool get_line_len(ptrdiff_t *line_len, const char *buf, ssize_t buflen);
 static ssize_t writev_buffer_append_segment(int fd, writev_buffer_t *buf, const void *data, ssize_t len);
 static ssize_t writev_buffer_flush(int fd, writev_buffer_t *buf);
 static int set_k8s_timestamp(char *buf, ssize_t buflen, const char *pipename);
@@ -129,13 +130,38 @@ bool write_to_logs(stdpipe_t pipe, char *buf, ssize_t num_read)
 /* write to systemd journal. If the pipe is stdout, write with notice priority,
  * otherwise, write with error priority
  */
-int write_journald(int pipe, char *buf, G_GNUC_UNUSED ssize_t num_read)
+int write_journald(int pipe, char *buf, ssize_t buflen)
 {
 	int message_priority = LOG_INFO;
 	if (pipe == STDERR_PIPE)
 		message_priority = LOG_ERR;
-	sd_journal_send("MESSAGE=%s", buf, "PRIORITY=%i", message_priority, "CONTAINER_ID_FULL=%s", cuuid, "CONTAINER_ID=%s", short_cuuid,
-			"CONTAINER_NAME=%s", name, NULL);
+
+	ptrdiff_t line_len = 0;
+	while (buflen > 0) {
+		bool partial = get_line_len(&line_len, buf, buflen);
+		/* sd_journal_* doesn't have an option to specify the number of bytes to write, and instead writes the
+		 * entire string. Copying every line doesn't make very much sense, so instead we do this tmp_line_end
+		 * hack to emulate separate strings.
+		 */
+		char tmp_line_end = buf[line_len];
+		buf[line_len] = '\0';
+
+		/* per docker journald logging format, CONTAINER_PARTIAL_MESSAGE is set to true if it's partial, but otherwise not set.
+		 * hence the two cases
+		 */
+		if (partial) {
+			sd_journal_send("MESSAGE=%s", buf, "PRIORITY=%i", message_priority, "CONTAINER_ID_FULL=%s", cuuid,
+					"CONTAINER_ID=%s", short_cuuid, "CONTAINER_NAME=%s", name, "CONTAINER_PARTIAL_MESSAGE=%s", "true",
+					NULL);
+		} else {
+			sd_journal_send("MESSAGE=%s", buf, "PRIORITY=%i", message_priority, "CONTAINER_ID_FULL=%s", cuuid,
+					"CONTAINER_ID=%s", short_cuuid, "CONTAINER_NAME=%s", name, NULL);
+		}
+		buf[line_len] = tmp_line_end;
+
+		buf += line_len;
+		buflen -= line_len;
+	}
 	return 0;
 }
 
@@ -161,18 +187,9 @@ static int write_k8s_log(stdpipe_t pipe, const char *buf, ssize_t buflen)
 		/* TODO: We should handle failures much more cleanly than this. */
 		return -1;
 
+	ptrdiff_t line_len = 0;
 	while (buflen > 0) {
-		const char *line_end = NULL;
-		ptrdiff_t line_len = 0;
-		bool partial = FALSE;
-
-		/* Find the end of the line, or alternatively the end of the buffer. */
-		line_end = memchr(buf, '\n', buflen);
-		if (line_end == NULL) {
-			line_end = &buf[buflen - 1];
-			partial = TRUE;
-		}
-		line_len = line_end - buf + 1;
+		bool partial = get_line_len(&line_len, buf, buflen);
 
 		/* This is line_len bytes + TSBUFLEN - 1 + 2 (- 1 is for ignoring \0). */
 		bytes_to_be_written = line_len + TSBUFLEN + 1;
@@ -247,6 +264,22 @@ static int write_k8s_log(stdpipe_t pipe, const char *buf, ssize_t buflen)
 
 	return 0;
 }
+
+/* Find the end of the line, or alternatively the end of the buffer.
+ * Returns false in the former case (it's a whole line) or true in the latter (it's a partial)
+ */
+static bool get_line_len(ptrdiff_t *line_len, const char *buf, ssize_t buflen)
+{
+	bool partial = FALSE;
+	const char *line_end = memchr(buf, '\n', buflen);
+	if (line_end == NULL) {
+		line_end = &buf[buflen - 1];
+		partial = TRUE;
+	}
+	*line_len = line_end - buf + 1;
+	return partial;
+}
+
 
 static ssize_t writev_buffer_flush(int fd, writev_buffer_t *buf)
 {
