@@ -358,9 +358,9 @@ function teardown() {
 	[ "$status" -eq 0 ]
 
 	# priority of 5 is LOG_NOTICE
-	journalctl -t conmon -p notice MESSAGE_ID="$ctr_id" | grep -E "$stdout"
+	journalctl -t conmon -p info CONTAINER_ID_FULL="$ctr_id" | grep -E "$stdout"
 	# priority of 3 is LOG_ERR
-	journalctl -t conmon -p err MESSAGE_ID="$ctr_id" | grep -E "$stderr"
+	journalctl -t conmon -p err CONTAINER_ID_FULL="$ctr_id" | grep -E "$stderr"
 
 	run crictl stopp "$pod_id"
 	echo "$output"

@@ -44,6 +44,7 @@ static gboolean opt_leave_stdin_open = FALSE;
 static gboolean opt_syslog = FALSE;
 static char *opt_cid = NULL;
 static char *opt_cuuid = NULL;
+static char *opt_name = NULL;
 static char *opt_runtime_path = NULL;
 static char *opt_bundle_path = NULL;
 static char *opt_container_pid_file = NULL;
@@ -70,6 +71,7 @@ static GOptionEntry opt_entries[] = {
 	{"leave-stdin-open", 0, 0, G_OPTION_ARG_NONE, &opt_leave_stdin_open, "Leave stdin open when attached client disconnects", NULL},
 	{"cid", 'c', 0, G_OPTION_ARG_STRING, &opt_cid, "Container ID", NULL},
 	{"cuuid", 'u', 0, G_OPTION_ARG_STRING, &opt_cuuid, "Container UUID", NULL},
+	{"name", 'n', 0, G_OPTION_ARG_STRING, &opt_name, "Container name", NULL},
 	{"runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL},
 	{"restore", 0, 0, G_OPTION_ARG_STRING, &opt_restore_path, "Restore a container from a checkpoint", NULL},
 	{"restore-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_restore_args,
@@ -318,6 +320,9 @@ static bool read_stdio(int fd, stdpipe_t pipe, gboolean *eof)
 		nwarnf("stdio_input read failed %s", strerror(errno));
 		return false;
 	} else {
+		// Always null terminate the buffer, just in case.
+		buf[num_read] = '\0';
+
 		bool written = write_to_logs(pipe, buf, num_read);
 		if (!written)
 			return written;
@@ -964,7 +969,6 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
-	// why not nexit?
 	if (opt_cid == NULL) {
 		fprintf(stderr, "Container ID not provided. Use --cid\n");
 		exit(EXIT_FAILURE);
@@ -978,6 +982,9 @@ int main(int argc, char *argv[])
 
 	if (!opt_exec && opt_cuuid == NULL)
 		nexit("Container UUID not provided. Use --cuuid");
+
+	if (opt_name == NULL)
+		nexit("Container name not provided. Use --name");
 
 	if (opt_runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
@@ -1008,7 +1015,7 @@ int main(int argc, char *argv[])
 		opt_container_pid_file = default_pid_file;
 	}
 
-	configure_log_drivers(opt_log_path, opt_log_size_max, opt_cuuid);
+	configure_log_drivers(opt_log_path, opt_log_size_max, opt_cuuid, opt_name);
 
 	start_pipe_fd = get_pipe_fd_from_env("_OCI_STARTPIPE");
 	if (start_pipe_fd >= 0) {
