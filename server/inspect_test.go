@@ -1,220 +1,129 @@
-package server
+package server_test
 
 import (
-	"testing"
-	"time"
+	"net/http"
+	"net/http/httptest"
 
-	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-
-	"github.com/cri-o/cri-o/lib"
-	"github.com/cri-o/cri-o/lib/sandbox"
-	"github.com/cri-o/cri-o/oci"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/go-zoo/bone"
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func TestGetInfo(t *testing.T) {
-	c, err := lib.DefaultConfig(nil)
-	if err != nil {
-		t.Fatal("error loading default config")
-	}
-	c.RootConfig.Storage = "afoobarstorage"
-	c.RootConfig.Root = "afoobarroot"
-	c.RuntimeConfig.CgroupManager = "systemd"
-	apiConfig := APIConfig{}
-	s := &Server{
-		config: Config{*c, apiConfig},
-	}
-	ci := s.getInfo()
-	if ci.CgroupDriver != "systemd" {
-		t.Fatalf("expected 'systemd', got %q", ci.CgroupDriver)
-	}
-	if ci.StorageDriver != "afoobarstorage" {
-		t.Fatalf("expected 'afoobarstorage', got %q", ci.StorageDriver)
-	}
-	if ci.StorageRoot != "afoobarroot" {
-		t.Fatalf("expected 'afoobarroot', got %q", ci.StorageRoot)
-	}
-}
+var _ = t.Describe("Inspect", func() {
+	var (
+		recorder *httptest.ResponseRecorder
+		mux      *bone.Mux
+	)
 
-func TestGetContainerInfo(t *testing.T) {
-	s := &Server{}
-	created := time.Now()
-	labels := map[string]string{
-		"io.kubernetes.container.name": "POD",
-		"io.kubernetes.test2":          "value2",
-		"io.kubernetes.test3":          "value3",
-	}
-	annotations := map[string]string{
-		"io.kubernetes.test":  "value",
-		"io.kubernetes.test1": "value1",
-	}
-	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", "", labels, annotations, annotations, "image", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, "", "/root/for/container", created, "SIGKILL")
-		if err != nil {
-			t.Fatal(err)
-		}
-		container.SetMountPoint("/var/foo/container")
-		cstate := &oci.ContainerState{}
-		cstate.State = specs.State{
-			Pid: 42,
-		}
-		cstate.Created = created
-		container.SetState(cstate)
-		return container
-	}
-	getInfraContainerFunc := func(id string) *oci.Container {
-		return nil
-	}
-	getSandboxFunc := func(id string) *sandbox.Sandbox {
-		s := &sandbox.Sandbox{}
-		s.AddIP("1.1.1.42")
-		return s
-	}
-	ci, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ci.CreatedTime != created.UnixNano() {
-		t.Fatalf("expected same created time %d, got %d", created.UnixNano(), ci.CreatedTime)
-	}
-	if ci.Pid != 42 {
-		t.Fatalf("expected pid 42, got %v", ci.Pid)
-	}
-	if ci.Name != "testname" {
-		t.Fatalf("expected name testname, got %s", ci.Name)
-	}
-	if ci.Image != "image" {
-		t.Fatalf("expected image name image, got %s", ci.Image)
-	}
-	if ci.ImageRef != "imageRef" {
-		t.Fatalf("expected image ref imageRef, got %s", ci.ImageRef)
-	}
-	if ci.Root != "/var/foo/container" {
-		t.Fatalf("expected root to be /var/foo/container, got %s", ci.Root)
-	}
-	if ci.LogPath != "/container/logs" {
-		t.Fatalf("expected log path to be /containers/logs, got %s", ci.LogPath)
-	}
-	if ci.Sandbox != "testsandboxid" {
-		t.Fatalf("expected sandbox to be testsandboxid, got %s", ci.Sandbox)
-	}
-	if ci.IP != "1.1.1.42" {
-		t.Fatalf("expected ip 1.1.1.42, got %s", ci.IP)
-	}
-	if len(ci.Annotations) == 0 {
-		t.Fatal("annotations are empty")
-	}
-	if len(ci.Labels) == 0 {
-		t.Fatal("labels are empty")
-	}
-	if len(ci.Annotations) != len(annotations) {
-		t.Fatalf("container info annotations len (%d) isn't the same as original annotations len (%d)", len(ci.Annotations), len(annotations))
-	}
-	if len(ci.Labels) != len(labels) {
-		t.Fatalf("container info labels len (%d) isn't the same as original labels len (%d)", len(ci.Labels), len(labels))
-	}
-	var found bool
-	for k, v := range annotations {
-		found = false
-		for key, value := range ci.Annotations {
-			if k == key && v == value {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("key %s with value %v wasn't in container info annotations", k, v)
-		}
-	}
-	for k, v := range labels {
-		found = false
-		for key, value := range ci.Labels {
-			if k == key && v == value {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("key %s with value %v wasn't in container info labels", k, v)
-		}
-	}
-}
+	// Prepare the sut
+	BeforeEach(func() {
+		beforeEach()
+		setupSUT()
 
-func TestGetContainerInfoCtrNotFound(t *testing.T) {
-	s := &Server{}
-	getContainerFunc := func(id string) *oci.Container {
-		return nil
-	}
-	getInfraContainerFunc := func(id string) *oci.Container {
-		return nil
-	}
-	getSandboxFunc := func(id string) *sandbox.Sandbox {
-		return nil
-	}
-	_, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
-	if err == nil {
-		t.Fatal("expected an error but got nothing")
-	}
-	if err != errCtrNotFound {
-		t.Fatalf("expected errCtrNotFound error, got %v", err)
-	}
-}
+		recorder = httptest.NewRecorder()
+		mux = sut.GetInfoMux()
+		Expect(mux).NotTo(BeNil())
+		Expect(recorder).NotTo(BeNil())
 
-func TestGetContainerInfoCtrStateNil(t *testing.T) {
-	s := &Server{}
-	created := time.Now()
-	labels := map[string]string{}
-	annotations := map[string]string{}
-	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", "", labels, annotations, annotations, "imageName", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, "", "/root/for/container", created, "SIGKILL")
-		if err != nil {
-			t.Fatal(err)
-		}
-		container.SetMountPoint("/var/foo/container")
-		container.SetState(nil)
-		return container
-	}
-	getInfraContainerFunc := func(id string) *oci.Container {
-		return nil
-	}
-	getSandboxFunc := func(id string) *sandbox.Sandbox {
-		s := &sandbox.Sandbox{}
-		s.AddIP("1.1.1.42")
-		return s
-	}
-	_, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
-	if err == nil {
-		t.Fatal("expected an error but got nothing")
-	}
-	if err != errCtrStateNil {
-		t.Fatalf("expected errCtrStateNil error, got %v", err)
-	}
-}
+	})
+	AfterEach(afterEach)
 
-func TestGetContainerInfoSandboxNotFound(t *testing.T) {
-	s := &Server{}
-	created := time.Now()
-	labels := map[string]string{}
-	annotations := map[string]string{}
-	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", "", labels, annotations, annotations, "imageName", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, false, "", "/root/for/container", created, "SIGKILL")
-		if err != nil {
-			t.Fatal(err)
-		}
-		container.SetMountPoint("/var/foo/container")
-		return container
-	}
-	getInfraContainerFunc := func(id string) *oci.Container {
-		return nil
-	}
-	getSandboxFunc := func(id string) *sandbox.Sandbox {
-		return nil
-	}
-	_, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
-	if err == nil {
-		t.Fatal("expected an error but got nothing")
-	}
-	if err != errSandboxNotFound {
-		t.Fatalf("expected errSandboxNotFound error, got %v", err)
-	}
-}
+	t.Describe("GetInfoMux", func() {
+		It("should succeed with /info route", func() {
+			// Given
+			// When
+			request, err := http.NewRequest("GET", "/info", nil)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusOK))
+		})
+
+		It("should succeed with valid /containers route", func() {
+			// Given
+			sut.AddSandbox(testSandbox)
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+			sut.AddContainer(testContainer)
+			gomock.InOrder(
+				imageServerMock.EXPECT().ImageStatus(gomock.Any(),
+					gomock.Any()).Return(&storage.ImageResult{}, nil),
+			)
+
+			// When
+			request, err := http.NewRequest("GET",
+				"/containers/"+testContainer.ID(), nil)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusOK))
+		})
+
+		It("should fail if sandbox not found on /containers route", func() {
+			// Given
+			sut.AddSandbox(testSandbox)
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+			sut.AddContainer(testContainer)
+			sut.RemoveSandbox(testSandbox.ID())
+
+			// When
+			request, err := http.NewRequest("GET",
+				"/containers/"+testContainer.ID(), nil)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
+		})
+
+		It("should fail if container state is nil on /containers route", func() {
+			// Given
+			sut.AddSandbox(testSandbox)
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+			testContainer.SetState(nil)
+			sut.AddContainer(testContainer)
+
+			// When
+			request, err := http.NewRequest("GET",
+				"/containers/"+testContainer.ID(), nil)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).
+				To(BeEquivalentTo(http.StatusInternalServerError))
+		})
+
+		It("should fail with empty with /containers route", func() {
+			// Given
+			// When
+			request, err := http.NewRequest("GET", "/containers", nil)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
+		})
+
+		It("should fail with invalid container ID on /containers route", func() {
+			// Given
+			// When
+			request, err := http.NewRequest("GET", "/containers/123", nil)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
+		})
+
+	})
+})
