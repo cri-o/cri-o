@@ -1176,6 +1176,69 @@ function teardown() {
 	stop_crio
 }
 
+@test "ctr with run_as_username set to redis should get 101 as the gid for redis:alpine" {
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	newconfig=$(cat "$TESTDATA"/container_redis.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["run_as_username"] = "redis"; json.dump(obj, sys.stdout)')
+	echo "$newconfig" > "$TESTDIR"/container_user.json
+
+	run crictl create "$pod_id" "$TESTDIR"/container_user.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	[ "$status" -eq 0 ]
+
+	run crictl exec --sync "$ctr_id" id
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "uid=100(redis) gid=101(redis) groups=101(redis)" ]]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr with run_as_user set to 100 should get 101 as the gid for redis:alpine" {
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run crictl create "$pod_id" "$TESTDATA"/container_redis_user.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	[ "$status" -eq 0 ]
+
+	run crictl exec --sync "$ctr_id" id
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "uid=100(redis) gid=101(redis) groups=101(redis)" ]]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "ctr with low memory configured should not be created" {
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
