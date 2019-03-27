@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/pools"
+	"github.com/docker/docker/pkg/term"
 	"github.com/kr/pty"
 	"github.com/opencontainers/runc/libcontainer"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/util/term"
 )
 
 const (
@@ -60,6 +60,10 @@ func genericCalculateCPUPercent(cpuTotal uint64, perCPU []uint64) float64 {
 	return cpuPercent
 }
 
+func setSize(fd uintptr, size remotecommand.TerminalSize) error {
+	return term.SetWinsize(fd, &term.Winsize{Height: size.Height, Width: size.Width})
+}
+
 func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-chan remotecommand.TerminalSize) error {
 	p, err := pty.Start(execCmd)
 	if err != nil {
@@ -71,7 +75,7 @@ func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-
 	defer stdout.Close()
 
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-		term.SetSize(p.Fd(), size)
+		setSize(p.Fd(), size)
 	})
 
 	if stdin != nil {

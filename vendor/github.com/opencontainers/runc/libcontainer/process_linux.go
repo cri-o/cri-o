@@ -158,10 +158,8 @@ func (p *setnsProcess) execSetns() error {
 	}
 
 	// Clean up the zombie parent process
-	firstChildProcess, err := os.FindProcess(pid.PidFirstChild)
-	if err != nil {
-		return err
-	}
+	// On Unix systems FindProcess always succeeds.
+	firstChildProcess, _ := os.FindProcess(pid.PidFirstChild)
 
 	// Ignore the error in case the child has already been reaped for any reason
 	_, _ = firstChildProcess.Wait()
@@ -236,6 +234,14 @@ func (p *initProcess) getChildPid() (int, error) {
 		p.cmd.Wait()
 		return -1, err
 	}
+
+	// Clean up the zombie parent process
+	// On Unix systems FindProcess always succeeds.
+	firstChildProcess, _ := os.FindProcess(pid.PidFirstChild)
+
+	// Ignore the error in case the child has already been reaped for any reason
+	_, _ = firstChildProcess.Wait()
+
 	return pid.Pid, nil
 }
 
@@ -365,14 +371,13 @@ func (p *initProcess) start() error {
 				}
 
 				if p.config.Config.Hooks != nil {
-					bundle, annotations := utils.Annotations(p.container.config.Labels)
-					s := configs.HookState{
-						Version:     p.container.config.Version,
-						ID:          p.container.id,
-						Pid:         p.pid(),
-						Bundle:      bundle,
-						Annotations: annotations,
+					s, err := p.container.currentOCIState()
+					if err != nil {
+						return err
 					}
+					// initProcessStartTime hasn't been set yet.
+					s.Pid = p.cmd.Process.Pid
+					s.Status = "creating"
 					for i, hook := range p.config.Config.Hooks.Prestart {
 						if err := hook.Run(s); err != nil {
 							return newSystemErrorWithCausef(err, "running prestart hook %d", i)
@@ -396,14 +401,13 @@ func (p *initProcess) start() error {
 				}
 			}
 			if p.config.Config.Hooks != nil {
-				bundle, annotations := utils.Annotations(p.container.config.Labels)
-				s := configs.HookState{
-					Version:     p.container.config.Version,
-					ID:          p.container.id,
-					Pid:         p.pid(),
-					Bundle:      bundle,
-					Annotations: annotations,
+				s, err := p.container.currentOCIState()
+				if err != nil {
+					return err
 				}
+				// initProcessStartTime hasn't been set yet.
+				s.Pid = p.cmd.Process.Pid
+				s.Status = "creating"
 				for i, hook := range p.config.Config.Hooks.Prestart {
 					if err := hook.Run(s); err != nil {
 						return newSystemErrorWithCausef(err, "running prestart hook %d", i)

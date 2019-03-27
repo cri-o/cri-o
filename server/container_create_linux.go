@@ -39,7 +39,7 @@ const minMemoryLimit = 4194304
 
 func findCgroupMountpoint(name string) error {
 	// Set up pids limit if pids cgroup is mounted
-	_, err := cgroups.FindCgroupMountpoint(name)
+	_, err := cgroups.FindCgroupMountpoint("", name)
 	return err
 }
 
