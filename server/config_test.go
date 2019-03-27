@@ -103,7 +103,11 @@ func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
 
 	// since some test systems do not have runc installed, assume a more
 	// generally available executable
-	defaultConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/sh"}
+	const validPath = "/bin/sh"
+	defaultConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+	defaultConfig.Conmon = validPath
+	defaultConfig.NetworkConfig.NetworkDir = validPath
+	defaultConfig.NetworkConfig.PluginDir = []string{validPath}
 
 	must(t, defaultConfig.Validate(true))
 }

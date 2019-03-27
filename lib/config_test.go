@@ -20,11 +20,16 @@ var _ = t.Describe("Config", func() {
 		Expect(sut).NotTo(BeNil())
 	})
 
-	t.Describe("Validate", func() {
+	const (
+		validPath = "/bin/sh"
+		wrongPath = "/wrong"
+	)
+
+	t.Describe("ValidateRuntimeConfig", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// When
-			err := sut.Validate(false)
+			err := sut.RuntimeConfig.Validate(false)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -32,10 +37,11 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed during runtime", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/sh"}
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Conmon = validPath
 
 			// When
-			err := sut.Validate(true)
+			err := sut.RuntimeConfig.Validate(true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -44,21 +50,61 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with additional devices", func() {
 			// Given
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/sh"}
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Conmon = validPath
 
 			// When
-			err := sut.Validate(true)
+			err := sut.RuntimeConfig.Validate(true)
 
 			// Then
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail on wrong DefaultUlimits", func() {
+		It("should succeed with hooks directories", func() {
 			// Given
-			sut.DefaultUlimits = []string{"wrong"}
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Conmon = validPath
+			sut.HooksDir = []string{validPath}
 
 			// When
-			err := sut.Validate(false)
+			err := sut.RuntimeConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail on invalid hooks directory", func() {
+			// Given
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Conmon = validPath
+			sut.HooksDir = []string{wrongPath}
+
+			// When
+			err := sut.RuntimeConfig.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on invalid conmon path", func() {
+			// Given
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Conmon = wrongPath
+			sut.HooksDir = []string{validPath}
+
+			// When
+			err := sut.RuntimeConfig.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on wrong DefaultUlimits", func() {
+			// Given
+			sut.DefaultUlimits = []string{wrongPath}
+
+			// When
+			err := sut.RuntimeConfig.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -69,7 +115,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"::::"}
 
 			// When
-			err := sut.Validate(false)
+			err := sut.RuntimeConfig.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -77,10 +123,10 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid device", func() {
 			// Given
-			sut.AdditionalDevices = []string{"wrong"}
+			sut.AdditionalDevices = []string{wrongPath}
 
 			// When
-			err := sut.Validate(false)
+			err := sut.RuntimeConfig.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -91,7 +137,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:abc"}
 
 			// When
-			err := sut.Validate(false)
+			err := sut.RuntimeConfig.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -102,7 +148,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"wrong:/dev/null:rw"}
 
 			// When
-			err := sut.Validate(false)
+			err := sut.RuntimeConfig.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -113,7 +159,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"/dev/null:wrong:rw"}
 
 			// When
-			err := sut.Validate(false)
+			err := sut.RuntimeConfig.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -124,7 +170,7 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes = make(map[string]oci.RuntimeHandler)
 
 			// When
-			err := sut.Validate(false)
+			err := sut.RuntimeConfig.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -135,7 +181,54 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "not-existing"}
 
 			// When
-			err := sut.Validate(true)
+			err := sut.RuntimeConfig.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ValidateNetworkConfig", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.NetworkConfig.Validate(false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed during runtime", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validPath
+			sut.NetworkConfig.PluginDir = []string{validPath}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail on invalid NetworkDir", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = wrongPath
+			sut.NetworkConfig.PluginDir = []string{validPath}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on invalid PluginDir", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validPath
+			sut.NetworkConfig.PluginDir = []string{wrongPath}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())

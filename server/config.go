@@ -8,6 +8,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/kubernetes-sigs/cri-o/lib"
 	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -153,7 +154,11 @@ func (c *Config) Validate(onExecution bool) error {
 	}
 
 	if err := c.RuntimeConfig.Validate(onExecution); err != nil {
-		return err
+		return errors.Wrapf(err, "config validation")
+	}
+
+	if err := c.NetworkConfig.Validate(onExecution); err != nil {
+		return errors.Wrapf(err, "config validation")
 	}
 
 	if c.UIDMappings != "" && c.ManageNetworkNSLifecycle {
