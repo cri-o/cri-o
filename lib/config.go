@@ -2,7 +2,6 @@ package lib
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -17,6 +16,7 @@ import (
 	cstorage "github.com/containers/storage"
 	units "github.com/docker/go-units"
 	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -474,6 +474,36 @@ func (c *RuntimeConfig) Validate(onExecution bool) error {
 		// Validate the system registries configuration
 		if _, err := sysregistriesv2.GetRegistries(nil); err != nil {
 			return fmt.Errorf("invalid /etc/containers/registries.conf: %q", err)
+		}
+
+		for _, hooksDir := range c.HooksDir {
+			if _, err := os.Stat(hooksDir); err != nil {
+				return errors.Wrapf(err, "invalid hooks_dir entry")
+			}
+		}
+
+		if _, err := os.Stat(c.Conmon); err != nil {
+			return errors.Wrapf(err, "invalid conmon path")
+		}
+	}
+
+	return nil
+}
+
+// Validate is the main entry point for network configuration validation.
+// The parameter `onExecution` specifies if the validation should include
+// execution checks. It returns an `error` on validation failure, otherwise
+// `nil`.
+func (c *NetworkConfig) Validate(onExecution bool) error {
+	if onExecution {
+		if _, err := os.Stat(c.NetworkDir); err != nil {
+			return errors.Wrapf(err, "invalid network_dir")
+		}
+
+		for _, pluginDir := range c.PluginDir {
+			if _, err := os.Stat(pluginDir); err != nil {
+				return errors.Wrapf(err, "invalid plugin_dir entry")
+			}
 		}
 	}
 
