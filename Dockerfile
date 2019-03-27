@@ -1,7 +1,4 @@
-FROM golang:1.8
-
-# libseccomp in jessie is not _quite_ new enough -- need backports version
-RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
+FROM golang:1.11
 
 RUN apt-get update && apt-get install -y \
     apparmor \
@@ -18,11 +15,13 @@ RUN apt-get update && apt-get install -y \
     libaio-dev \
     libcap-dev \
     libfuse-dev \
+    libnet-dev \
+    libnl-3-dev \
     libostree-dev \
     libprotobuf-dev \
     libprotobuf-c0-dev \
-    libseccomp2/jessie-backports \
-    libseccomp-dev/jessie-backports \
+    libseccomp2 \
+    libseccomp-dev \
     libtool \
     libudev-dev \
     protobuf-c-compiler \
@@ -49,7 +48,7 @@ RUN cd /tmp \
     && ./install.sh /usr/local
 
 # install criu
-ENV CRIU_VERSION 1.7
+ENV CRIU_VERSION 3.9
 RUN mkdir -p /usr/src/criu \
     && curl -sSL https://github.com/xemul/criu/archive/v${CRIU_VERSION}.tar.gz | tar -v -C /usr/src/criu/ -xz --strip-components=1 \
     && cd /usr/src/criu \
