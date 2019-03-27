@@ -214,6 +214,7 @@ manage_network_ns_lifecycle = {{ .ManageNetworkNSLifecycle }}
 [crio.runtime.runtimes.{{ $runtime_name }}]
 runtime_path = "{{ $runtime_handler.RuntimePath }}"
 runtime_type = "{{ $runtime_handler.RuntimeType }}"
+runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 {{ end }}
 
 # The crio.image table contains settings pertaining to the management of OCI images.
