@@ -438,7 +438,7 @@ func parseLog(log []byte) (stdout, stderr []byte) {
 		linetype := string(parts[2])
 		if linetype == "P" {
 			contentLen := len(content)
-			if content[contentLen-1] == '\n' {
+			if contentLen > 0 && content[contentLen-1] == '\n' {
 				content = content[:contentLen-1]
 			}
 		}
