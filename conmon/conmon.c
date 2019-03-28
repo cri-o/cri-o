@@ -137,6 +137,7 @@ static GOptionEntry opt_entries[] = {
 #define TSBUFLEN 44
 
 #define CGROUP_ROOT "/sys/fs/cgroup"
+#define OOM_SCORE "-999"
 
 static int log_fd = -1;
 
@@ -1335,7 +1336,7 @@ int main(int argc, char *argv[])
 	_cleanup_close_ int dev_null_w = -1;
 	int fds[2];
 
-	main_loop = g_main_loop_new(NULL, FALSE);
+	int oom_score_fd = -1;
 
 	/* Command line parameters */
 	context = g_option_context_new("- conmon utility");
@@ -1353,6 +1354,19 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Container ID not provided. Use --cid\n");
 		exit(EXIT_FAILURE);
 	}
+
+	oom_score_fd = open("/proc/self/oom_score_adj", O_WRONLY);
+	if (oom_score_fd < 0) {
+		ndebugf("failed to open /proc/self/oom_score_adj: %s\n", strerror(errno));
+	} else {
+		if (write(oom_score_fd, OOM_SCORE, strlen(OOM_SCORE)) < 0) {
+			ndebugf("failed to write to /proc/self/oom_score_adj: %s\n", strerror(errno));
+		}
+		close(oom_score_fd);
+	}
+
+
+	main_loop = g_main_loop_new(NULL, FALSE);
 
 	if (opt_restore_path && opt_exec)
 		nexit("Cannot use 'exec' and 'restore' at the same time.");
