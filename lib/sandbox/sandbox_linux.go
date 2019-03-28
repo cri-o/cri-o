@@ -26,13 +26,15 @@ func (n *NetNs) Initialized() bool {
 }
 
 // Initialize does the necessary setup for a NetNs
-func (n *NetNs) Initialize() (*NetNs, error) {
+func (n *NetNs) Initialize() (NetNsIface, error) {
 	netNS, err := ns.NewNS()
 	if err != nil {
 		return nil, err
 	}
-
-	return &NetNs{netNS: netNS, closed: false, initialized: true}, nil
+	n.netNS = netNS
+	n.closed = false
+	n.initialized = true
+	return n, nil
 }
 
 func getNetNs(path string) (*NetNs, error) {
