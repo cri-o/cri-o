@@ -83,7 +83,7 @@ type RuntimeServer interface {
 	// GetContainerMetadata returns the metadata we've stored for a container.
 	GetContainerMetadata(idOrName string) (RuntimeContainerMetadata, error)
 	// SetContainerMetadata updates the metadata we've stored for a container.
-	SetContainerMetadata(idOrName string, metadata RuntimeContainerMetadata) error
+	SetContainerMetadata(idOrName string, metadata *RuntimeContainerMetadata) error
 
 	// CreateContainer creates a container with the specified ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
@@ -377,7 +377,7 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 	return nil
 }
 
-func (r *runtimeService) SetContainerMetadata(idOrName string, metadata RuntimeContainerMetadata) error {
+func (r *runtimeService) SetContainerMetadata(idOrName string, metadata *RuntimeContainerMetadata) error {
 	mdata, err := json.Marshal(&metadata)
 	if err != nil {
 		logrus.Debugf("failed to encode metadata for %q: %v", idOrName, err)

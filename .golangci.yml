@@ -59,11 +59,11 @@ linters-settings:
 
       # Performance
       - equalFold
+      - hugeParam
       - indexAlloc
       - rangeExprCopy
       - rangeValCopy
       # - appendCombine
-      # - hugeParam
 
       # Style
       - assignOp

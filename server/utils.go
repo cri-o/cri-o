@@ -258,7 +258,7 @@ type ulimit struct {
 	soft uint64
 }
 
-func getUlimitsFromConfig(config Config) ([]ulimit, error) {
+func getUlimitsFromConfig(config *Config) ([]ulimit, error) {
 	ulimits := make([]ulimit, 0, len(config.RuntimeConfig.DefaultUlimits))
 	for _, u := range config.RuntimeConfig.DefaultUlimits {
 		ul, err := units.ParseUlimit(u)

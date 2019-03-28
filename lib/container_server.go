@@ -401,7 +401,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	// We add a netNS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
 	if c.config.ManageNetworkNSLifecycle {
-		netNsPath, err := configNetNsPath(m)
+		netNsPath, err := configNetNsPath(&m)
 		if err == nil {
 			nsErr := sb.NetNsJoin(netNsPath, sb.Name())
 			// If we can't load the networking namespace
@@ -479,7 +479,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	return nil
 }
 
-func configNetNsPath(spec rspec.Spec) (string, error) {
+func configNetNsPath(spec *rspec.Spec) (string, error) {
 	for _, ns := range spec.Linux.Namespaces {
 		if ns.Type != rspec.NetworkNamespace {
 			continue

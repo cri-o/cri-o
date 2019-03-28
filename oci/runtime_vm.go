@@ -282,7 +282,7 @@ func (r *runtimeVM) ExecSyncContainer(c *Container, command []string, timeout in
 
 	exitCode, err := r.execContainerCommon(c, command, timeout, nil, stdout, stderr, c.terminal, nil)
 	if err != nil {
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			ExitCode: -1,
 			Err:      errors.Wrapf(err, "ExecSyncContainer failed"),
 		}

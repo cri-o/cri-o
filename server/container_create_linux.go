@@ -308,7 +308,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
-	ulimits, err := getUlimitsFromConfig(s.config)
+	ulimits, err := getUlimitsFromConfig(&s.config)
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// Add cgroup mount so container process can introspect its own limits
 	specgen.AddMount(mnt)
 
-	devices, err := getDevicesFromConfig(s.config)
+	devices, err := getDevicesFromConfig(&s.config)
 	if err != nil {
 		return nil, err
 	}
@@ -1130,7 +1130,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	return volumes, ociMounts, nil
 }
 
-func getDevicesFromConfig(config Config) ([]rspec.LinuxDevice, error) {
+func getDevicesFromConfig(config *Config) ([]rspec.LinuxDevice, error) {
 	linuxdevs := make([]rspec.LinuxDevice, 0, len(config.RuntimeConfig.AdditionalDevices))
 	for _, d := range config.RuntimeConfig.AdditionalDevices {
 		src, dst, permissions, err := createconfig.ParseDevice(d)

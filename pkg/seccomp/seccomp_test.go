@@ -49,7 +49,7 @@ var _ = t.Describe("Seccomp", func() {
 		It("should succeed to load", func() {
 			// Given
 			// When
-			err := seccomp.LoadProfileFromStruct(seccomp.Seccomp{},
+			err := seccomp.LoadProfileFromStruct(&seccomp.Seccomp{},
 				&generate.Generator{})
 
 			// Then
@@ -62,7 +62,7 @@ var _ = t.Describe("Seccomp", func() {
 			Expect(err).To(BeNil())
 
 			// When
-			err = seccomp.LoadProfileFromStruct(seccomp.Seccomp{
+			err = seccomp.LoadProfileFromStruct(&seccomp.Seccomp{
 				DefaultAction: "action",
 				Syscalls: []*seccomp.Syscall{
 					{Excludes: seccomp.Filter{
@@ -97,7 +97,7 @@ var _ = t.Describe("Seccomp", func() {
 			arch := seccomp.ArchX86_64
 
 			// When
-			err := seccomp.LoadProfileFromStruct(seccomp.Seccomp{
+			err := seccomp.LoadProfileFromStruct(&seccomp.Seccomp{
 				DefaultAction: "action",
 				ArchMap: []seccomp.Architecture{
 					{arch, []seccomp.Arch{seccomp.Arch("arch")}},
@@ -114,7 +114,7 @@ var _ = t.Describe("Seccomp", func() {
 		It("should fail to load on invalid data", func() {
 			// Given
 			// When
-			err := seccomp.LoadProfileFromStruct(seccomp.Seccomp{
+			err := seccomp.LoadProfileFromStruct(&seccomp.Seccomp{
 				DefaultAction: "action",
 				Architectures: []seccomp.Arch{seccomp.Arch("arch")},
 				ArchMap: []seccomp.Architecture{{
@@ -129,7 +129,7 @@ var _ = t.Describe("Seccomp", func() {
 		It("should fail to load on given `name` and `names`", func() {
 			// Given
 			// When
-			err := seccomp.LoadProfileFromStruct(seccomp.Seccomp{
+			err := seccomp.LoadProfileFromStruct(&seccomp.Seccomp{
 				DefaultAction: "action",
 				Syscalls: []*seccomp.Syscall{
 					{Name: "name", Names: []string{"name"}},
@@ -150,7 +150,7 @@ var _ = t.Describe("Seccomp", func() {
 		It("should fail on nil generator", func() {
 			// Given
 			// When
-			err := seccomp.LoadProfileFromStruct(seccomp.Seccomp{
+			err := seccomp.LoadProfileFromStruct(&seccomp.Seccomp{
 				DefaultAction: "action",
 				Syscalls:      []*seccomp.Syscall{{Name: "name"}}},
 				nil)
@@ -162,7 +162,7 @@ var _ = t.Describe("Seccomp", func() {
 		It("should fail on empty generator", func() {
 			// Given
 			// When
-			err := seccomp.LoadProfileFromStruct(seccomp.Seccomp{
+			err := seccomp.LoadProfileFromStruct(&seccomp.Seccomp{
 				DefaultAction: "action",
 				Syscalls:      []*seccomp.Syscall{{Name: "name"}}},
 				&generate.Generator{})
@@ -174,7 +174,7 @@ var _ = t.Describe("Seccomp", func() {
 		It("should fail on empty generator config", func() {
 			// Given
 			// When
-			err := seccomp.LoadProfileFromStruct(seccomp.Seccomp{
+			err := seccomp.LoadProfileFromStruct(&seccomp.Seccomp{
 				DefaultAction: "action",
 				Syscalls:      []*seccomp.Syscall{{Name: "name"}}},
 				&generate.Generator{Config: &specs.Spec{}})

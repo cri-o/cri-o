@@ -30,14 +30,14 @@ func IsEnabled() bool {
 }
 
 // LoadProfileFromStruct takes a Seccomp struct and setup seccomp in the spec.
-func LoadProfileFromStruct(config Seccomp, specgen *generate.Generator) error {
+func LoadProfileFromStruct(config *Seccomp, specgen *generate.Generator) error {
 	return setupSeccomp(config, specgen)
 }
 
 // LoadProfileFromBytes takes a byte slice and decodes the seccomp profile.
 func LoadProfileFromBytes(body []byte, specgen *generate.Generator) error {
-	var config Seccomp
-	if err := json.Unmarshal(body, &config); err != nil {
+	config := &Seccomp{}
+	if err := json.Unmarshal(body, config); err != nil {
 		return fmt.Errorf("decoding seccomp profile failed: %v", err)
 	}
 	return setupSeccomp(config, specgen)
@@ -53,7 +53,7 @@ var nativeToSeccomp = map[string]Arch{
 	"s390x":       ArchS390X,
 }
 
-func setupSeccomp(config Seccomp, specgen *generate.Generator) error {
+func setupSeccomp(config *Seccomp, specgen *generate.Generator) error {
 	// No default action specified, no syscalls listed, assume seccomp disabled
 	if config.DefaultAction == "" && len(config.Syscalls) == 0 {
 		return nil

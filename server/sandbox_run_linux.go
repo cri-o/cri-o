@@ -131,7 +131,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.HostSpecific = true
 	g.ClearProcessRlimits()
 
-	ulimits, err := getUlimitsFromConfig(s.config)
+	ulimits, err := getUlimitsFromConfig(&s.config)
 	if err != nil {
 		return nil, err
 	}

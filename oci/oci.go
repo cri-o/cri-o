@@ -425,6 +425,6 @@ type ExecSyncError struct {
 	Err      error
 }
 
-func (e ExecSyncError) Error() string {
+func (e *ExecSyncError) Error() string {
 	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
 }

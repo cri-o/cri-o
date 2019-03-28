@@ -23,7 +23,7 @@ func fails(t *testing.T, err error) {
 	}
 }
 
-func assertAllFieldsEquality(t *testing.T, c Config) {
+func assertAllFieldsEquality(t *testing.T, c *Config) {
 	testCases := []struct {
 		fieldValue, expected interface{}
 	}{
@@ -64,7 +64,7 @@ func assertAllFieldsEquality(t *testing.T, c Config) {
 }
 
 func TestUpdateFromFile(t *testing.T) {
-	c := Config{}
+	c := &Config{}
 
 	must(t, c.UpdateFromFile(fixturePath))
 
@@ -84,7 +84,7 @@ func TestToFile(t *testing.T) {
 
 	must(t, configFromFixture.ToFile(f.Name()))
 
-	writtenConfig := Config{}
+	writtenConfig := &Config{}
 	err = writtenConfig.UpdateFromFile(f.Name())
 	if err != nil {
 		t.Fatal(err)

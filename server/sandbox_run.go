@@ -164,7 +164,7 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 		return err
 	}
 	storageMetadata.SetMountLabel(mountLabel)
-	return s.StorageRuntimeServer().SetContainerMetadata(id, storageMetadata)
+	return s.StorageRuntimeServer().SetContainerMetadata(id, &storageMetadata)
 }
 
 func getSELinuxLabels(selinuxOptions *pb.SELinuxOption, privileged bool) (string, string, error) {

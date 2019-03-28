@@ -10,7 +10,7 @@ func IsEnabled() bool {
 }
 
 // LoadProfileFromStruct takes a Seccomp struct and setup seccomp in the spec.
-func LoadProfileFromStruct(config Seccomp, specgen *generate.Generator) error {
+func LoadProfileFromStruct(config *Seccomp, specgen *generate.Generator) error {
 	return nil
 }
 
