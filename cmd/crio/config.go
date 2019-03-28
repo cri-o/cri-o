@@ -202,16 +202,19 @@ gid_mappings = "{{ .GIDMappings }}"
 # regarding the proper termination of the container.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
-  # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
-  # The runtime to use is picked based on the runtime_handler provided by the CRI.
-  # If no runtime_handler is provided, the runtime will be picked based on the level
-  # of trust of the workload.
-  {{ range $runtime_name, $runtime_handler := .Runtimes  }}
-  [crio.runtime.runtimes.{{ $runtime_name }}]
-  runtime_path = "{{ $runtime_handler.RuntimePath }}"
-  runtime_type = "{{ $runtime_handler.RuntimeType }}"
-  {{ end  }}
+# ManageNetworkNSLifecycle determines whether we pin and remove network namespace
+# and manage its lifecycle.
+manage_network_ns_lifecycle = {{ .ManageNetworkNSLifecycle }}
 
+# The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
+# The runtime to use is picked based on the runtime_handler provided by the CRI.
+# If no runtime_handler is provided, the runtime will be picked based on the level
+# of trust of the workload.
+{{ range $runtime_name, $runtime_handler := .Runtimes  }}
+[crio.runtime.runtimes.{{ $runtime_name }}]
+runtime_path = "{{ $runtime_handler.RuntimePath }}"
+runtime_type = "{{ $runtime_handler.RuntimeType }}"
+{{ end }}
 
 # The crio.image table contains settings pertaining to the management of OCI images.
 #
