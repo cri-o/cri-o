@@ -10,13 +10,13 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/ulule/deepcopier"
 )
 
 // ContainerStatus represents the current state of a container
@@ -146,18 +146,12 @@ type ContainerState struct {
 	ConfigPath string `json:"configPath,omitempty"`
 	// RunDir is a per-boot directory for container content
 	RunDir string `json:"runDir,omitempty"`
-	// DestinationRunDir is where the files in RunDir will be accessible for the container.
-	// It is different than RunDir when using userNS
-	DestinationRunDir string `json:"destinationRunDir,omitempty"`
 	// Mounted indicates whether the container's storage has been mounted
 	// for use
 	Mounted bool `json:"mounted,omitempty"`
 	// Mountpoint contains the path to the container's mounted storage as given
-	// by containers/storage.  It can be different than RealMountpoint when
-	// usernamespaces are used
+	// by containers/storage.
 	Mountpoint string `json:"mountPoint,omitempty"`
-	// RealMountpoint contains the path to the container's mounted storage
-	RealMountpoint string `json:"realMountPoint,omitempty"`
 	// StartedTime is the time the container was started
 	StartedTime time.Time `json:"startedTime,omitempty"`
 	// FinishedTime is the time the container finished executing
@@ -185,10 +179,6 @@ type ContainerState struct {
 	// This maps the path the file will be mounted to in the container to
 	// the path of the file on disk outside the container
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
-
-	// UserNSRoot is the directory used as root for the container when using
-	// user namespaces.
-	UserNSRoot string `json:"userNSRoot,omitempty"`
 
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.
@@ -292,6 +282,10 @@ type ContainerConfig struct {
 	// namespace
 	// These are not used unless CreateNetNS is true
 	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+	// UseImageResolvConf indicates that resolv.conf should not be
+	// bind-mounted inside the container.
+	// Conflicts with DNSServer, DNSSearch, DNSOption.
+	UseImageResolvConf bool
 	// DNS servers to use in container resolv.conf
 	// Will override servers in host resolv if set
 	DNSServer []net.IP `json:"dnsServer,omitempty"`
@@ -301,6 +295,10 @@ type ContainerConfig struct {
 	// DNS options to be set in container resolv.conf
 	// With override options in host resolv if set
 	DNSOption []string `json:"dnsOption,omitempty"`
+	// UseImageHosts indicates that /etc/hosts should not be
+	// bind-mounted inside the container.
+	// Conflicts with HostAdd.
+	UseImageHosts bool
 	// Hosts to add in container
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`
@@ -365,6 +363,9 @@ type ContainerConfig struct {
 
 	// Systemd tells libpod to setup the container in systemd mode
 	Systemd bool `json:"systemd"`
+
+	// HealtchCheckConfig has the health check command and related timings
+	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
 }
 
 // ContainerStatus returns a string representation for users
@@ -395,7 +396,9 @@ func (t ContainerStatus) String() string {
 // Config returns the configuration used to create the container
 func (c *Container) Config() *ContainerConfig {
 	returnConfig := new(ContainerConfig)
-	deepcopier.Copy(c.config).To(returnConfig)
+	if err := JSONDeepCopy(c.config, returnConfig); err != nil {
+		return nil
+	}
 
 	return returnConfig
 }
@@ -405,7 +408,9 @@ func (c *Container) Config() *ContainerConfig {
 // spec may differ slightly as mounts are added based on the image
 func (c *Container) Spec() *spec.Spec {
 	returnSpec := new(spec.Spec)
-	deepcopier.Copy(c.config.Spec).To(returnSpec)
+	if err := JSONDeepCopy(c.config.Spec, returnSpec); err != nil {
+		return nil
+	}
 
 	return returnSpec
 }
@@ -1082,6 +1087,19 @@ func (c *Container) ContainerState() (*ContainerState, error) {
 		}
 	}
 	returnConfig := new(ContainerState)
-	deepcopier.Copy(c.state).To(returnConfig)
+	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
+		return nil, errors.Wrapf(err, "error copying container %s state", c.ID())
+	}
 	return c.state, nil
+}
+
+// HasHealthCheck returns bool as to whether there is a health check
+// defined for the container
+func (c *Container) HasHealthCheck() bool {
+	return c.config.HealthCheckConfig != nil
+}
+
+// HealthCheckConfig returns the command and timing attributes of the health check
+func (c *Container) HealthCheckConfig() *manifest.Schema2HealthConfig {
+	return c.config.HealthCheckConfig
 }

@@ -32,7 +32,11 @@ syscall_setresgid (gid_t rgid, gid_t egid, gid_t sgid)
 static int
 syscall_clone (unsigned long flags, void *child_stack)
 {
+#if defined(__s390__) || defined(__CRIS__)
+  return (int) syscall (__NR_clone, child_stack, flags);
+#else
   return (int) syscall (__NR_clone, flags, child_stack);
+#endif
 }
 
 static char **
@@ -132,8 +136,8 @@ reexec_userns_join (int userns, int mountns)
   if (pid)
     return pid;
 
-  setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
-  setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
+  setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
+  setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
 
   if (setns (userns, 0) < 0)
     {
@@ -261,8 +265,8 @@ reexec_in_user_namespace (int ready)
     setenv("LISTEN_PID", s, true);
   }
 
-  setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
-  setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
+  setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
+  setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
 
   do
     ret = read (ready, &b, 1) < 0;
@@ -273,6 +277,8 @@ reexec_in_user_namespace (int ready)
       _exit (EXIT_FAILURE);
     }
   close (ready);
+  if (b != '1')
+    _exit (EXIT_FAILURE);
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {

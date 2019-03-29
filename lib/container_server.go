@@ -133,6 +133,10 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 	}
 	config := configIface.GetData()
 
+	if config == nil {
+		return nil, fmt.Errorf("cannot create container server: ConfigIface is nil")
+	}
+
 	imageService, err := storage.GetImageService(ctx, nil, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err

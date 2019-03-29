@@ -18,14 +18,14 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/buildah/pkg/secrets"
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/criu"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/secrets"
-	"github.com/containers/storage/pkg/idtools"
+	"github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -98,11 +98,6 @@ func (c *Container) prepare() (err error) {
 		// Finish up mountStorage
 		c.state.Mounted = true
 		c.state.Mountpoint = mountPoint
-		if c.state.UserNSRoot == "" {
-			c.state.RealMountpoint = c.state.Mountpoint
-		} else {
-			c.state.RealMountpoint = filepath.Join(c.state.UserNSRoot, "mountpoint")
-		}
 
 		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
 	}()
@@ -202,7 +197,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 	// Check if the spec file mounts contain the label Relabel flags z or Z.
 	// If they do, relabel the source directory and then remove the option.
-	for _, m := range g.Mounts() {
+	for i := range g.Config.Mounts {
+		m := &g.Config.Mounts[i]
 		var options []string
 		for _, o := range m.Options {
 			switch o {
@@ -304,13 +300,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if c.config.Rootfs == "" {
-		if err := idtools.MkdirAllAs(c.state.RealMountpoint, 0700, c.RootUID(), c.RootGID()); err != nil {
-			return nil, err
-		}
-	}
-
-	g.SetRootPath(c.state.RealMountpoint)
+	g.SetRootPath(c.state.Mountpoint)
 	g.AddAnnotation(crioAnnotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
 
@@ -366,6 +356,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// For private volumes any root propagation value should work.
 	rootPropagation := ""
 	for _, m := range mounts {
+		// We need to remove all symlinks from tmpfs mounts.
+		// Runc and other runtimes may choke on them.
+		// Easy solution: use securejoin to do a scoped evaluation of
+		// the links, then trim off the mount prefix.
+		if m.Type == "tmpfs" {
+			finalPath, err := securejoin.SecureJoin(c.state.Mountpoint, m.Destination)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error resolving symlinks for mount destination %s", m.Destination)
+			}
+			trimmedPath := strings.TrimPrefix(finalPath, strings.TrimSuffix(c.state.Mountpoint, "/"))
+			m.Destination = trimmedPath
+		}
 		g.AddMount(m)
 		for _, opt := range m.Options {
 			switch opt {
@@ -665,24 +667,28 @@ func (c *Container) makeBindMounts() error {
 
 	if !netDisabled {
 		// If /etc/resolv.conf and /etc/hosts exist, delete them so we
-		// will recreate
-		if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error removing container %s resolv.conf", c.ID())
+		// will recreate. Only do this if we aren't sharing them with
+		// another container.
+		if c.config.NetNsCtr == "" {
+			if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+					return errors.Wrapf(err, "error removing container %s resolv.conf", c.ID())
+				}
+				delete(c.state.BindMounts, "/etc/resolv.conf")
 			}
-			delete(c.state.BindMounts, "/etc/resolv.conf")
-		}
-		if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error removing container %s hosts", c.ID())
+			if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
+				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+					return errors.Wrapf(err, "error removing container %s hosts", c.ID())
+				}
+				delete(c.state.BindMounts, "/etc/hosts")
 			}
-			delete(c.state.BindMounts, "/etc/hosts")
 		}
 
-		if c.config.NetNsCtr != "" {
-			// We share a net namespace
+		if c.config.NetNsCtr != "" && (!c.config.UseImageResolvConf || !c.config.UseImageHosts) {
+			// We share a net namespace.
 			// We want /etc/resolv.conf and /etc/hosts from the
-			// other container
+			// other container. Unless we're not creating both of
+			// them.
 			depCtr, err := c.runtime.state.Container(c.config.NetNsCtr)
 			if err != nil {
 				return errors.Wrapf(err, "error fetching dependency %s of container %s", c.config.NetNsCtr, c.ID())
@@ -694,37 +700,65 @@ func (c *Container) makeBindMounts() error {
 				return errors.Wrapf(err, "error fetching bind mounts from dependency %s of container %s", depCtr.ID(), c.ID())
 			}
 
-			// The other container may not have a resolv.conf or /etc/hosts
-			// If it doesn't, don't copy them
-			resolvPath, exists := bindMounts["/etc/resolv.conf"]
-			if exists {
-
-				c.state.BindMounts["/etc/resolv.conf"] = resolvPath
+			if !c.config.UseImageResolvConf {
+				// The other container may not have a resolv.conf or /etc/hosts
+				// If it doesn't, don't copy them
+				resolvPath, exists := bindMounts["/etc/resolv.conf"]
+				if exists {
+					c.state.BindMounts["/etc/resolv.conf"] = resolvPath
+				}
 			}
-			hostsPath, exists := bindMounts["/etc/hosts"]
-			if exists {
+
+			if !c.config.UseImageHosts {
+				// check if dependency container has an /etc/hosts file
+				hostsPath, exists := bindMounts["/etc/hosts"]
+				if !exists {
+					return errors.Errorf("error finding hosts file of dependency container %s for container %s", depCtr.ID(), c.ID())
+				}
+
+				depCtr.lock.Lock()
+				// generate a hosts file for the dependency container,
+				// based on either its old hosts file, or the default,
+				// and add the relevant information from the new container (hosts and IP)
+				hostsPath, err = depCtr.appendHosts(hostsPath, c)
+
+				if err != nil {
+					depCtr.lock.Unlock()
+					return errors.Wrapf(err, "error creating hosts file for container %s which depends on container %s", c.ID(), depCtr.ID())
+				}
+				depCtr.lock.Unlock()
+
+				// finally, save it in the new container
 				c.state.BindMounts["/etc/hosts"] = hostsPath
 			}
 		} else {
-			newResolv, err := c.generateResolvConf()
-			if err != nil {
-				return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+			if !c.config.UseImageResolvConf {
+				newResolv, err := c.generateResolvConf()
+				if err != nil {
+					return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+				}
+				c.state.BindMounts["/etc/resolv.conf"] = newResolv
 			}
-			c.state.BindMounts["/etc/resolv.conf"] = newResolv
 
-			newHosts, err := c.generateHosts()
-			if err != nil {
-				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+			if !c.config.UseImageHosts {
+				newHosts, err := c.generateHosts("/etc/hosts")
+				if err != nil {
+					return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+				}
+				c.state.BindMounts["/etc/hosts"] = newHosts
 			}
-			c.state.BindMounts["/etc/hosts"] = newHosts
 		}
 
-		if err := label.Relabel(c.state.BindMounts["/etc/hosts"], c.config.MountLabel, true); err != nil {
-			return err
+		if c.state.BindMounts["/etc/hosts"] != "" {
+			if err := label.Relabel(c.state.BindMounts["/etc/hosts"], c.config.MountLabel, true); err != nil {
+				return err
+			}
 		}
 
-		if err := label.Relabel(c.state.BindMounts["/etc/resolv.conf"], c.config.MountLabel, true); err != nil {
-			return err
+		if c.state.BindMounts["/etc/resolv.conf"] != "" {
+			if err := label.Relabel(c.state.BindMounts["/etc/resolv.conf"], c.config.MountLabel, true); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -767,7 +801,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.DestinationRunDir, c.RootUID(), c.RootGID())
+	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.RunDir, c.RootUID(), c.RootGID(), rootless.IsRootless())
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -816,6 +850,10 @@ func (c *Container) generateResolvConf() (string, error) {
 
 	// Make a new resolv.conf
 	nameservers := resolvconf.GetNameservers(resolv.Content)
+	// slirp4netns has a built in DNS server.
+	if c.config.NetMode.IsSlirp4netns() {
+		nameservers = append(nameservers, "10.0.2.3")
+	}
 	if len(c.config.DNSServer) > 0 {
 		// We store DNS servers as net.IP, so need to convert to string
 		nameservers = []string{}
@@ -850,16 +888,32 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(c.state.DestinationRunDir, "resolv.conf"), nil
+	return filepath.Join(c.state.RunDir, "resolv.conf"), nil
 }
 
 // generateHosts creates a containers hosts file
-func (c *Container) generateHosts() (string, error) {
-	orig, err := ioutil.ReadFile("/etc/hosts")
+func (c *Container) generateHosts(path string) (string, error) {
+	orig, err := ioutil.ReadFile(path)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to read /etc/hosts")
+		return "", errors.Wrapf(err, "unable to read %s", path)
 	}
 	hosts := string(orig)
+	hosts += c.getHosts()
+	return c.writeStringToRundir("hosts", hosts)
+}
+
+// appendHosts appends a container's config and state pertaining to hosts to a container's
+// local hosts file. netCtr is the container from which the netNS information is
+// taken.
+// path is the basis of the hosts file, into which netCtr's netNS information will be appended.
+func (c *Container) appendHosts(path string, netCtr *Container) (string, error) {
+	return c.appendStringToRundir("hosts", netCtr.getHosts())
+}
+
+// getHosts finds the pertinent information for a container's host file in its config and state
+// and returns a string in a format that can be written to the host file
+func (c *Container) getHosts() string {
+	var hosts string
 	if len(c.config.HostAdd) > 0 {
 		for _, host := range c.config.HostAdd {
 			// the host format has already been verified at this point
@@ -871,7 +925,7 @@ func (c *Container) generateHosts() (string, error) {
 		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
 		hosts += fmt.Sprintf("%s\t%s\n", ipAddress, c.Hostname())
 	}
-	return c.writeStringToRundir("hosts", hosts)
+	return hosts
 }
 
 // generatePasswd generates a container specific passwd file,
@@ -929,4 +983,21 @@ func (c *Container) generatePasswd() (string, error) {
 		return "", err
 	}
 	return passwdFile, nil
+}
+
+func (c *Container) copyOwnerAndPerms(source, dest string) error {
+	info, err := os.Stat(source)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "cannot stat `%s`", dest)
+	}
+	if err := os.Chmod(dest, info.Mode()); err != nil {
+		return errors.Wrapf(err, "cannot chmod `%s`", dest)
+	}
+	if err := os.Chown(dest, int(info.Sys().(*syscall.Stat_t).Uid), int(info.Sys().(*syscall.Stat_t).Gid)); err != nil {
+		return errors.Wrapf(err, "cannot chown `%s`", dest)
+	}
+	return nil
 }
