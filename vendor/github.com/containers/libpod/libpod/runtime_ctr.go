@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
@@ -18,7 +19,6 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 // CtrRemoveTimeout is the default number of seconds to wait after stopping a container
@@ -62,7 +62,9 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	ctr.config.ID = stringid.GenerateNonCryptoID()
 
 	ctr.config.Spec = new(spec.Spec)
-	deepcopier.Copy(rSpec).To(ctr.config.Spec)
+	if err := JSONDeepCopy(rSpec, ctr.config.Spec); err != nil {
+		return nil, errors.Wrapf(err, "error copying runtime spec while creating container")
+	}
 	ctr.config.CreatedTime = time.Now()
 
 	ctr.config.ShmSize = DefaultShmSize
@@ -170,7 +172,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}()
 
 	if rootless.IsRootless() && ctr.config.ConmonPidFile == "" {
-		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
+		ctr.config.ConmonPidFile = filepath.Join(ctr.config.StaticDir, "conmon.pid")
 	}
 
 	// Go through the volume mounts and check for named volumes
@@ -180,13 +182,13 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		if vol.Source[0] != '/' && isNamedVolume(vol.Source) {
 			volInfo, err := r.state.Volume(vol.Source)
 			if err != nil {
-				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source), withSetCtrSpecific())
+				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source), withSetCtrSpecific(), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
 				if err != nil {
 					return nil, errors.Wrapf(err, "error creating named volume %q", vol.Source)
 				}
 				ctr.config.Spec.Mounts[i].Source = newVol.MountPoint()
 				if err := ctr.copyWithTarFromImage(ctr.config.Spec.Mounts[i].Destination, ctr.config.Spec.Mounts[i].Source); err != nil && !os.IsNotExist(err) {
-					return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Source)
+					return nil, errors.Wrapf(err, "failed to copy content into new volume mount %q", vol.Source)
 				}
 				continue
 			}
@@ -199,11 +201,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}
 
 	if !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" {
-		if ctr.state.UserNSRoot == "" {
-			ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
-		} else {
-			ctr.config.ShmDir = filepath.Join(ctr.state.UserNSRoot, "shm")
-		}
+		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
 		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
 			if !os.IsExist(err) {
 				return nil, errors.Wrapf(err, "unable to create shm %q dir", ctr.config.ShmDir)
@@ -228,6 +226,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, err
 		}
 	}
+	ctr.newContainerEvent(events.Create)
 	return ctr, nil
 }
 
@@ -239,7 +238,6 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-
 	return r.removeContainer(ctx, c, force, removeVolume)
 }
 
@@ -430,6 +428,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
+	c.newContainerEvent(events.Remove)
 	return cleanupErr
 }
 

@@ -3,10 +3,11 @@ package util
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
@@ -181,38 +182,54 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 	return &options, nil
 }
 
+var (
+	rootlessRuntimeDirOnce sync.Once
+	rootlessRuntimeDir     string
+)
+
 // GetRootlessRuntimeDir returns the runtime directory when running as non root
 func GetRootlessRuntimeDir() (string, error) {
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
-	if runtimeDir == "" {
-		tmpDir := filepath.Join("/run", "user", uid)
-		os.MkdirAll(tmpDir, 0700)
-		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
-			runtimeDir = tmpDir
+	var rootlessRuntimeDirError error
+
+	rootlessRuntimeDirOnce.Do(func() {
+		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+		uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
+		if runtimeDir == "" {
+			tmpDir := filepath.Join("/run", "user", uid)
+			os.MkdirAll(tmpDir, 0700)
+			st, err := os.Stat(tmpDir)
+			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
+				runtimeDir = tmpDir
+			}
 		}
+		if runtimeDir == "" {
+			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("run-%s", uid))
+			os.MkdirAll(tmpDir, 0700)
+			st, err := os.Stat(tmpDir)
+			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
+				runtimeDir = tmpDir
+			}
+		}
+		if runtimeDir == "" {
+			home := os.Getenv("HOME")
+			if home == "" {
+				rootlessRuntimeDirError = fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
+				return
+			}
+			resolvedHome, err := filepath.EvalSymlinks(home)
+			if err != nil {
+				rootlessRuntimeDirError = errors.Wrapf(err, "cannot resolve %s", home)
+				return
+			}
+			runtimeDir = filepath.Join(resolvedHome, "rundir")
+		}
+		rootlessRuntimeDir = runtimeDir
+	})
+
+	if rootlessRuntimeDirError != nil {
+		return "", rootlessRuntimeDirError
 	}
-	if runtimeDir == "" {
-		tmpDir := filepath.Join(os.TempDir(), "user", uid)
-		os.MkdirAll(tmpDir, 0700)
-		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
-			runtimeDir = tmpDir
-		}
-	}
-	if runtimeDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return "", fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
-		}
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		runtimeDir = filepath.Join(resolvedHome, "rundir")
-	}
-	return runtimeDir, nil
+	return rootlessRuntimeDir, nil
 }
 
 // GetRootlessDirInfo returns the parent path of where the storage for containers and
@@ -238,25 +255,6 @@ func GetRootlessDirInfo() (string, string, error) {
 		dataDir = filepath.Join(resolvedHome, ".local", "share")
 	}
 	return dataDir, rootlessRuntime, nil
-}
-
-// GetRootlessStorageOpts returns the storage opts for containers running as non root
-func GetRootlessStorageOpts() (storage.StoreOptions, error) {
-	var opts storage.StoreOptions
-
-	dataDir, rootlessRuntime, err := GetRootlessDirInfo()
-	if err != nil {
-		return opts, err
-	}
-	opts.RunRoot = rootlessRuntime
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
-		opts.GraphDriverName = "overlay"
-		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
-	} else {
-		opts.GraphDriverName = "vfs"
-	}
-	return opts, nil
 }
 
 type tomlOptionsConfig struct {
@@ -288,62 +286,41 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 	return config
 }
 
-// GetDefaultStoreOptions returns the default storage ops for containers
-func GetDefaultStoreOptions() (storage.StoreOptions, error) {
-	var (
-		defaultRootlessRunRoot   string
-		defaultRootlessGraphRoot string
-		err                      error
-	)
-	storageOpts := storage.DefaultStoreOptions
-	if rootless.IsRootless() {
-		storageOpts, err = GetRootlessStorageOpts()
-		if err != nil {
-			return storageOpts, err
-		}
+// WriteStorageConfigFile writes the configuration to a file
+func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf string) error {
+	os.MkdirAll(filepath.Dir(storageConf), 0755)
+	file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open %s", storageConf)
 	}
-
-	storageConf := StorageConfigFile()
-	if _, err = os.Stat(storageConf); err == nil {
-		defaultRootlessRunRoot = storageOpts.RunRoot
-		defaultRootlessGraphRoot = storageOpts.GraphRoot
-		storageOpts = storage.StoreOptions{}
-		storage.ReloadConfigurationFile(storageConf, &storageOpts)
+	tomlConfiguration := getTomlStorage(storageOpts)
+	defer file.Close()
+	enc := toml.NewEncoder(file)
+	if err := enc.Encode(tomlConfiguration); err != nil {
+		os.Remove(storageConf)
+		return err
 	}
-
-	if rootless.IsRootless() {
-		if os.IsNotExist(err) {
-			os.MkdirAll(filepath.Dir(storageConf), 0755)
-			file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-			if err != nil {
-				return storageOpts, errors.Wrapf(err, "cannot open %s", storageConf)
-			}
-
-			tomlConfiguration := getTomlStorage(&storageOpts)
-			defer file.Close()
-			enc := toml.NewEncoder(file)
-			if err := enc.Encode(tomlConfiguration); err != nil {
-				os.Remove(storageConf)
-			}
-		} else if err == nil {
-			// If the file did not specify a graphroot or runroot,
-			// set sane defaults so we don't try and use root-owned
-			// directories
-			if storageOpts.RunRoot == "" {
-				storageOpts.RunRoot = defaultRootlessRunRoot
-			}
-			if storageOpts.GraphRoot == "" {
-				storageOpts.GraphRoot = defaultRootlessGraphRoot
-			}
-		}
-	}
-	return storageOpts, nil
+	return nil
 }
 
-// StorageConfigFile returns the path to the storage config file used
-func StorageConfigFile() string {
-	if rootless.IsRootless() {
-		return filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
+// ParseInputTime takes the users input and to determine if it is valid and
+// returns a time format and error.  The input is compared to known time formats
+// or a duration which implies no-duration
+func ParseInputTime(inputTime string) (time.Time, error) {
+	timeFormats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
+		"2006-01-02Z07:00", "2006-01-02"}
+	// iterate the supported time formats
+	for _, tf := range timeFormats {
+		t, err := time.Parse(tf, inputTime)
+		if err == nil {
+			return t, nil
+		}
 	}
-	return storage.DefaultConfigFile
+
+	// input might be a duration
+	duration, err := time.ParseDuration(inputTime)
+	if err != nil {
+		return time.Time{}, errors.Errorf("unable to interpret time value")
+	}
+	return time.Now().Add(-duration), nil
 }

@@ -94,12 +94,18 @@ func TestToFile(t *testing.T) {
 }
 
 func TestConfigValidateDefaultSuccess(t *testing.T) {
-	defaultConfig := DefaultConfig()
+	defaultConfig, err := DefaultConfig()
+	if err != nil {
+		t.Fatal("error should not be nil")
+	}
 	must(t, defaultConfig.Validate(false))
 }
 
 func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
-	defaultConfig := DefaultConfig()
+	defaultConfig, err := DefaultConfig()
+	if err != nil {
+		t.Fatal("error should not be nil")
+	}
 
 	// since some test systems do not have runc installed, assume a more
 	// generally available executable
@@ -113,33 +119,48 @@ func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
 }
 
 func TestConfigValidateFailsOnUnrecognizedImageVolumeType(t *testing.T) {
-	defaultConfig := DefaultConfig()
+	defaultConfig, err := DefaultConfig()
+	if err != nil {
+		t.Fatal("error should not be nil")
+	}
 	defaultConfig.ImageVolumes = "wrong"
 	fails(t, defaultConfig.Validate(false))
 }
 
 func TestConfigValidateFailsOnInvalidRuntimeConfig(t *testing.T) {
-	defaultConfig := DefaultConfig()
+	defaultConfig, err := DefaultConfig()
+	if err != nil {
+		t.Fatal("error should not be nil")
+	}
 	defaultConfig.DefaultUlimits = []string{"wrong"}
 	fails(t, defaultConfig.Validate(false))
 }
 
 func TestConfigValidateFailsOnUIDMappings(t *testing.T) {
-	defaultConfig := DefaultConfig()
+	defaultConfig, err := DefaultConfig()
+	if err != nil {
+		t.Fatal("error should not be nil")
+	}
 	defaultConfig.UIDMappings = "value"
 	defaultConfig.ManageNetworkNSLifecycle = true
 	fails(t, defaultConfig.Validate(false))
 }
 
 func TestConfigValidateFailsOnGIDMappings(t *testing.T) {
-	defaultConfig := DefaultConfig()
+	defaultConfig, err := DefaultConfig()
+	if err != nil {
+		t.Fatal("error should not be nil")
+	}
 	defaultConfig.GIDMappings = "value"
 	defaultConfig.ManageNetworkNSLifecycle = true
 	fails(t, defaultConfig.Validate(false))
 }
 
 func TestConfigValidateFailsOnInvalidLogSizeMax(t *testing.T) {
-	defaultConfig := DefaultConfig()
+	defaultConfig, err := DefaultConfig()
+	if err != nil {
+		t.Fatal("error should not be nil")
+	}
 	defaultConfig.LogSizeMax = 1
 	fails(t, defaultConfig.Validate(false))
 }

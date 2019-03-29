@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -51,19 +51,22 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 
 	// Create the mountpoint of this volume
-	fullVolPath := filepath.Join(r.config.VolumePath, volume.config.Name, "_data")
-	if err := os.MkdirAll(fullVolPath, 0755); err != nil {
+	volPathRoot := filepath.Join(r.config.VolumePath, volume.config.Name)
+	if err := os.MkdirAll(volPathRoot, 0700); err != nil {
+		return nil, errors.Wrapf(err, "error creating volume directory %q", volPathRoot)
+	}
+	if err := os.Chown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
+		return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", volPathRoot, volume.config.UID, volume.config.GID)
+	}
+	fullVolPath := filepath.Join(volPathRoot, "_data")
+	if err := os.Mkdir(fullVolPath, 0755); err != nil {
 		return nil, errors.Wrapf(err, "error creating volume directory %q", fullVolPath)
 	}
-	_, mountLabel, err := label.InitLabels([]string{})
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting default mountlabels")
+	if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
+		return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
 	}
-	if err := label.ReleaseLabel(mountLabel); err != nil {
-		return nil, errors.Wrapf(err, "error releasing label %q", mountLabel)
-	}
-	if err := label.Relabel(fullVolPath, mountLabel, true); err != nil {
-		return nil, errors.Wrapf(err, "error setting selinux label to %q", fullVolPath)
+	if err := LabelVolumePath(fullVolPath, true); err != nil {
+		return nil, err
 	}
 	volume.config.MountPoint = fullVolPath
 
@@ -73,7 +76,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	if err := r.state.AddVolume(volume); err != nil {
 		return nil, errors.Wrapf(err, "error adding volume to state")
 	}
-
+	defer volume.newVolumeEvent(events.Create)
 	return volume, nil
 }
 
@@ -118,7 +121,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		return errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
 	}
 
+	defer v.newVolumeEvent(events.Remove)
 	logrus.Debugf("Removed volume %s", v.Name())
-
 	return nil
 }

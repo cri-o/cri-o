@@ -26,7 +26,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.7.1"
+	Version = "1.7.2"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -336,10 +336,10 @@ type BuilderOptions struct {
 	// needs to be pulled and the image name alone can not be resolved to a
 	// reference to a source image.  No separator is implicitly added.
 	Registry string
-	// PullBlobDirectory is the name of a directory in which we'll attempt
+	// BlobDirectory is the name of a directory in which we'll attempt
 	// to store copies of layer blobs that we pull down, if any.  It should
 	// already exist.
-	PullBlobDirectory string
+	BlobDirectory string
 	// Mount signals to NewBuilder() that the container should be mounted
 	// immediately.
 	Mount bool
