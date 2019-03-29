@@ -317,7 +317,7 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
 	pidFile, parentPipe, childPipe, err := prepareExec()
 	if err != nil {
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			ExitCode: -1,
 			Err:      err,
 		}
@@ -331,7 +331,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 	logFile, err := ioutil.TempFile("", "crio-log-"+c.id)
 	if err != nil {
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			ExitCode: -1,
 			Err:      err,
 		}
@@ -361,7 +361,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
 	if err != nil {
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			ExitCode: -1,
 			Err:      err,
 		}
@@ -382,7 +382,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	err = cmd.Start()
 	if err != nil {
 		childPipe.Close()
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
 			ExitCode: -1,
@@ -395,7 +395,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 	err = cmd.Wait()
 	if err != nil {
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
 			ExitCode: getExitCode(err),
@@ -405,7 +405,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 	var ec *exitCodeInfo
 	if err := json.NewDecoder(parentPipe).Decode(&ec); err != nil {
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
 			ExitCode: -1,
@@ -416,7 +416,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
 
 	if ec.ExitCode == -1 {
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
 			ExitCode: -1,
@@ -432,7 +432,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 	logBytes, err := ioutil.ReadFile(logPath)
 	if err != nil {
-		return nil, ExecSyncError{
+		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
 			ExitCode: -1,

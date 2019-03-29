@@ -623,7 +623,7 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error
 		return nil
 	}
 	if profile == seccompRuntimeDefault || profile == seccompDockerDefault {
-		return seccomp.LoadProfileFromStruct(s.seccompProfile, specgen)
+		return seccomp.LoadProfileFromStruct(&s.seccompProfile, specgen)
 	}
 	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
 		return fmt.Errorf("unknown seccomp profile option: %q", profile)

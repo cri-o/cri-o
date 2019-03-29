@@ -383,7 +383,7 @@ var _ = t.Describe("Runtime", func() {
 	t.Describe("SetContainerMetadata", func() {
 		It("should succeed to set the container metadata", func() {
 			// Given
-			metadata := storage.RuntimeContainerMetadata{Pod: true}
+			metadata := &storage.RuntimeContainerMetadata{Pod: true}
 			metadata.SetMountLabel("label")
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
@@ -400,7 +400,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to set the container on store error", func() {
 			// Given
-			metadata := storage.RuntimeContainerMetadata{Pod: true}
+			metadata := &storage.RuntimeContainerMetadata{Pod: true}
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().SetMetadata(gomock.Any(), gomock.Any()).
