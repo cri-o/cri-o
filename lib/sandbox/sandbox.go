@@ -161,6 +161,7 @@ type Sandbox struct {
 	hostname       string
 	portMappings   []*hostport.PortMapping
 	stopped        bool
+	stopMutex      sync.RWMutex
 	// ipv4 or ipv6 cache
 	ip                 string
 	seccompProfilePath string
@@ -239,6 +240,11 @@ func (s *Sandbox) SetNamespaceOptions(nsOpts *pb.NamespaceOption) {
 // NamespaceOptions returns the namespace options for the sandbox
 func (s *Sandbox) NamespaceOptions() *pb.NamespaceOption {
 	return s.nsOpts
+}
+
+// StopMutex returns the mutex to use when stopping the sandbox
+func (s *Sandbox) StopMutex() *sync.RWMutex {
+	return &s.stopMutex
 }
 
 // IP returns the ip of the sandbox
