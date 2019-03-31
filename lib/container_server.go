@@ -139,7 +139,7 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, config.PauseImage, config.PauseImageAuthFile)
 
-	runtime, err := oci.New(config.DefaultRuntime, config.Runtimes, config.Conmon, config.ConmonEnv, config.CgroupManager, config.ContainerExitsDir, config.ContainerAttachSocketDir, config.LogSizeMax, config.LogToJournald, config.NoPivot, config.CtrStopTimeout)
+	runtime, err := oci.New(config.DefaultRuntime, config.Runtimes, config.Conmon, config.ConmonEnv, config.CgroupManager, config.ContainerExitsDir, config.ContainerAttachSocketDir, config.LogSizeMax, config.LogToJournald, config.NoPivot, config.CtrStopTimeout, config.Init)
 	if err != nil {
 		return nil, err
 	}
@@ -451,6 +451,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
+	// TODO FIXME We currently don't set anything up for the init binary here.
 	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
@@ -574,6 +575,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 		return err
 	}
 
+	// TODO FIXME We currently don't set anything up for the init binary here.
 	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, img, imgName, imgRef, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err

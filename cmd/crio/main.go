@@ -163,6 +163,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("pids-limit") {
 		config.PidsLimit = ctx.GlobalInt64("pids-limit")
 	}
+	if ctx.GlobalIsSet("init") {
+		config.Init = ctx.GlobalString("init")
+	}
 	if ctx.GlobalIsSet("log-size-max") {
 		config.LogSizeMax = ctx.GlobalInt64("log-size-max")
 	}
@@ -395,6 +398,10 @@ func main() {
 			Name:  "pids-limit",
 			Value: lib.DefaultPidsLimit,
 			Usage: "maximum number of processes allowed in a container",
+		},
+		cli.StringFlag{
+			Name:  "init",
+			Usage: fmt.Sprintf("Path to an init binary that forwards signals and reaps processes inside containers if the container has a private pid namespace (default: %s)", defConf.Init),
 		},
 		cli.Int64Flag{
 			Name:  "log-size-max",

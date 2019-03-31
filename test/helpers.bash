@@ -59,6 +59,8 @@ ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/cri-o/.artifacts}
 CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/cri-o/test/checkseccomp/checkseccomp}
 # The default log directory where all logs will go unless directly specified by the kubelet
 DEFAULT_LOG_PATH=${DEFAULT_LOG_PATH:-/var/log/crio/pods}
+# Path of the init binary binary.
+INIT_BINARY=${INIT_BINARY:-${CRIO_ROOT}/cri-o/test/catatonit/catatonit}
 # Cgroup manager to be used
 CGROUP_MANAGER=${CGROUP_MANAGER:-cgroupfs}
 # Image volumes handling
@@ -313,6 +315,14 @@ function start_crio() {
 function start_crio_journald() {
 	setup_crio "$@"
 	"$CRIO_BINARY_PATH" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --log-journald --config "$CRIO_CONFIG" & CRIO_PID=$!
+	wait_until_reachable
+	pull_test_containers
+}
+
+# Start crio with an init binary
+function start_crio_init() {
+	setup_crio "$@"
+	"$CRIO_BINARY_PATH" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --init "$INIT_BINARY" --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }

@@ -33,9 +33,14 @@ import (
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
-// minMemoryLimit is the minimum memory that must be set for a container.
-// A lower value would result in the container failing to start.
-const minMemoryLimit = 4194304
+const (
+	// minMemoryLimit is the minimum memory that must be set for a container.
+	// A lower value would result in the container failing to start.
+	minMemoryLimit = 4194304
+	// defaultInitLocation describes where an init binary should be
+	// mounted into the container
+	defaultInitLocation = "/sbin/crioinit"
+)
 
 func findCgroupMountpoint(name string) error {
 	// Set up pids limit if pids cgroup is mounted
@@ -583,15 +588,28 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
+	// initArgs will optionally include "/sbin/crioinit", "--"
+	initArgs := make([]string, 0, 2)
+	switch containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() {
+	case pb.NamespaceMode_NODE:
 		// kubernetes PodSpec specify to use Host PID namespace
 		specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace))
-	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
+	case pb.NamespaceMode_POD:
 		// share Pod PID namespace
 		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", podInfraState.Pid)
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
 			return nil, err
 		}
+	case pb.NamespaceMode_CONTAINER:
+		if s.config.RuntimeConfig.Init != "" {
+			var initMnt *rspec.Mount
+			initArgs, initMnt, err = s.setupInitProcess()
+			if err != nil {
+				return nil, err
+			}
+			specgen.AddMount(*initMnt)
+		}
+		logrus.Debugf("Container is in a private pid namespace. Using init binary: %s", s.config.RuntimeConfig.Init)
 	}
 
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
@@ -746,7 +764,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		return nil, err
 	}
 
-	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
+	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig, initArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1055,4 +1073,23 @@ func getDevicesFromConfig(config *Config) ([]rspec.LinuxDevice, error) {
 		linuxdevs = append(linuxdevs, linuxdev)
 	}
 	return linuxdevs, nil
+}
+
+// setupInitProcess uses information in the runtime config
+// to configure the bind mount for the init binary
+// This should only be called if the container in question has a private PID namespace
+func (s *Server) setupInitProcess() ([]string, *rspec.Mount, error) {
+	if s.config.RuntimeConfig.Init == "" {
+		return nil, nil, errors.Errorf("No init path specified despite init being flagged")
+	}
+	// A user defined an init for containers to use in the event the container
+	// is running in a private pid namespace. Since this is the case, let's
+	// bind mount the binary read only in a specified location.
+	initMnt := rspec.Mount{
+		Destination: defaultInitLocation,
+		Type:        "bind",
+		Source:      s.config.RuntimeConfig.Init,
+		Options:     []string{"bind", "ro"},
+	}
+	return []string{defaultInitLocation, "--"}, &initMnt, nil
 }

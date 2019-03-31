@@ -157,16 +157,34 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// setup defaults for the pod sandbox
+	var infraCmd []string
 	g.SetRootReadonly(true)
 	if s.config.PauseCommand == "" {
 		if podContainer.Config != nil {
-			g.SetProcessArgs(podContainer.Config.Config.Cmd)
+			infraCmd = podContainer.Config.Config.Cmd
 		} else {
-			g.SetProcessArgs([]string{sandbox.PodInfraCommand})
+			infraCmd = []string{sandbox.PodInfraCommand}
 		}
 	} else {
-		g.SetProcessArgs([]string{s.config.PauseCommand})
+		infraCmd = []string{s.config.PauseCommand}
 	}
+
+	// If the pod has a private pid namespace, then it may need to be configured to
+	// run with an init process. We need to set privatePID and send it to oci.NewContainer
+	// to pass along the fact that we will need an init process if the runtime is configured
+	// to use one.
+	if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_CONTAINER {
+		if s.config.RuntimeConfig.Init != "" {
+			initArgs, initMnt, err := s.setupInitProcess()
+			if err != nil {
+				return nil, err
+			}
+			g.AddMount(*initMnt)
+			infraCmd = append(initArgs, infraCmd...)
+			logrus.Debugf("Pod is in a private pid namespace. Using init binary: %s", s.config.RuntimeConfig.Init)
+		}
+	}
+	g.SetProcessArgs(infraCmd)
 
 	// set DNS options
 	if req.GetConfig().GetDnsConfig() != nil {

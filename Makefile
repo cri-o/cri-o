@@ -117,6 +117,9 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
+test/catatonit/catatonit:
+	./test/catatonit/install_catatonit.sh test
+
 bin/crio: .gopathok
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
@@ -157,8 +160,8 @@ endif
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
+	rm -f test/catatonit/catatonit
 	rm -rf ${BUILD_BIN_PATH}
-
 # the approach here, rather than this target depending on the build targets
 # directly, is such that each target should try to build regardless if it
 # fails. And return a non-zero exit if _any_ target fails.
@@ -276,7 +279,7 @@ localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
 binaries: bin/crio bin/conmon bin/pause
-test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
+test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp test/catatonit/catatonit
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)

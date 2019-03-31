@@ -84,6 +84,10 @@ const (
 	// DefaultLogToJournald is the default value for whether conmon should
 	// log to journald in addition to kubernetes log file.
 	DefaultLogToJournald = false
+
+	// DefaultInitPath is the default value for the path to the init binary
+	// It defaults to empty, signaling to not use an init if not specified
+	DefaultInitPath = ""
 )
 
 // DefaultCapabilities for the default_capabilities option in the crio.conf file
@@ -218,6 +222,12 @@ type RuntimeConfig struct {
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
 	PidsLimit int64 `toml:"pids_limit"`
+
+	// Path to init binary to run inside containers that forwards signals and reaps processes
+	// if the container has a private pid namespace
+	// If the path is empty, init will not be used.
+	// Note this binary will be bind mounted in /sbin/crioinit and run followed by '--', the standard for container init processes
+	Init string `toml:"init"`
 
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
@@ -388,6 +398,7 @@ func DefaultConfig() (*Config, error) {
 			ApparmorProfile:          apparmorProfileName,
 			CgroupManager:            cgroupManager,
 			PidsLimit:                DefaultPidsLimit,
+			Init:                     DefaultInitPath,
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: ContainerAttachSocketDir,
 			LogSizeMax:               DefaultLogSizeMax,

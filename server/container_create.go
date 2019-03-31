@@ -218,7 +218,7 @@ func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specge
 }
 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
-func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
+func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image, initArgs []string) ([]string, error) {
 	// # Start the nginx container using the default command, but use custom
 	// arguments (arg1 .. argN) for that command.
 	// kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
@@ -258,6 +258,7 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 	}
 
 	processArgs := append([]string{entrypoint}, args...)
+	processArgs = append(initArgs, processArgs...)
 
 	logrus.Debugf("OCI process args %v", processArgs)
 

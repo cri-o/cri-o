@@ -40,7 +40,7 @@
 				"host_network": false,
 				"host_pid": false,
                 "host_ipc": false,
-                "pid": 0
+                "pid": "%pidmode%"
 			},
 			"selinux_options": {
 				"user": "system_u",

@@ -166,6 +166,12 @@ default_mounts = [
 # Maximum number of processes allowed in a container.
 pids_limit = {{ .PidsLimit }}
 
+# Path to init binary to run inside containers that forwards signals and reaps processes
+# if the container has a private pid namespace
+# If the path is empty, init will not be used.
+# Note this binary will be bind mounted in /sbin/crioinit and run followed by '--', the standard for container init processes
+init = "{{ .Init }}"
+
 # Maximum sized allowed for the container log file. Negative numbers indicate
 # that no size limit is imposed. If it is positive, it must be >= 8192 to
 # match/exceed conmon's read buffer. The file is truncated and re-opened so the

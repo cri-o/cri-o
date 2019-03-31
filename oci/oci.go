@@ -56,6 +56,7 @@ type Runtime struct {
 	logToJournald            bool
 	noPivot                  bool
 	ctrStopTimeout           int64
+	init                     string
 
 	runtimeImplList map[string]RuntimeImpl
 }
@@ -107,7 +108,8 @@ func New(defaultRuntime string,
 	logSizeMax int64,
 	logToJournald bool,
 	noPivot bool,
-	ctrStopTimeout int64) (*Runtime, error) {
+	ctrStopTimeout int64,
+	init string) (*Runtime, error) {
 
 	defRuntime, ok := runtimes[defaultRuntime]
 	if !ok {
@@ -130,6 +132,7 @@ func New(defaultRuntime string,
 		noPivot:                  noPivot,
 		ctrStopTimeout:           ctrStopTimeout,
 		runtimeImplList:          make(map[string]RuntimeImpl),
+		init:                     init,
 	}, nil
 }
 
