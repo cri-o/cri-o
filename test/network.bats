@@ -129,6 +129,7 @@ function teardown() {
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
 	start_crio "" "" "" "" "prepare_plugin_test_args_network_conf"
+	cat $CRIO_CNI_CONFIG/10-plugin-test-args.conf
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	[ "$status" -eq 0 ]
 
@@ -196,4 +197,31 @@ function teardown() {
 	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/last_reserved_ip*
 	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING | grep -v lock | wc -l)
 	[[ "${num_allocated}" == "0" ]]
+}
+
+@test "Use different network default" {
+	start_crio "" "" "" "" "prepare_notdefault_network_conf" "notcrio"
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod1_id="$output"
+	run crictl create "$pod1_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0  ]
+	ctr1_id="$output"
+
+	temp_sandbox_conf cni_test
+
+	run crictl runp "$TESTDIR"/sandbox_config_cni_test.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod2_id="$output"
+	run crictl create "$pod2_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_config_cni_test.json
+	echo "$output"
+	[ "$status" -eq 0  ]
+	ctr2_id="$output"
+
+	ping_pod_from_pod $ctr1_id $ctr2_id
+
+	ping_pod_from_pod $ctr2_id $ctr1_id
 }

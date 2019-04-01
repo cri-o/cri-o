@@ -267,7 +267,7 @@ func New(ctx context.Context, configIface ConfigIface) (*Server, error) {
 		return nil, err
 	}
 
-	netPlugin, err := ocicni.InitCNI("", config.NetworkDir, config.PluginDir...)
+	netPlugin, err := ocicni.InitCNI(config.DefaultNetwork, config.NetworkDir, config.PluginDir...)
 	if err != nil {
 		return nil, err
 	}

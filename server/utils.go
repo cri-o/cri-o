@@ -100,11 +100,12 @@ func parseDNSOptions(servers, searches, options []string, path string) error {
 
 func newPodNetwork(sb *sandbox.Sandbox) ocicni.PodNetwork {
 	return ocicni.PodNetwork{
-		Name:      sb.KubeName(),
-		Namespace: sb.Namespace(),
-		Networks:  make([]string, 0),
-		ID:        sb.ID(),
-		NetNS:     sb.NetNsPath(),
+		Name:          sb.KubeName(),
+		Namespace:     sb.Namespace(),
+		ID:            sb.ID(),
+		NetNS:         sb.NetNsPath(),
+		Networks:      sb.Networks(),
+		NetworkConfig: sb.NetworkConfig(),
 	}
 }
 

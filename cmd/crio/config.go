@@ -272,6 +272,9 @@ network_dir = "{{ .NetworkDir }}"
 # Paths to directories where CNI plugin binaries are located.
 plugin_dir = [
 {{ range $opt := .PluginDir }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+
+# Default network name to use
+default_network = "{{ .DefaultNetwork }}"
 `))
 
 // TODO: Currently ImageDir isn't really used, so we haven't added it to this

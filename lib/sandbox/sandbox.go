@@ -9,6 +9,7 @@ import (
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -104,6 +105,8 @@ type Sandbox struct {
 	stopped            bool
 	privileged         bool
 	hostNetwork        bool
+	networks           []string
+	networkConfig      map[string]ocicni.NetworkConfig
 }
 
 // NetNsIface provides a generic network namespace interface
@@ -297,6 +300,16 @@ func (s *Sandbox) RuntimeHandler() string {
 // HostNetwork returns whether the sandbox runs in the host network namespace
 func (s *Sandbox) HostNetwork() bool {
 	return s.hostNetwork
+}
+
+// Networks returns the networks the pod is using
+func (s *Sandbox) Networks() []string {
+	return s.networks
+}
+
+// NetworkConfig returns the network config the pod uses
+func (s *Sandbox) NetworkConfig() map[string]ocicni.NetworkConfig {
+	return s.networkConfig
 }
 
 // ResolvPath returns the resolv path for the sandbox

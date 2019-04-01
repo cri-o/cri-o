@@ -25,3 +25,4 @@
   [crio.network]
     network_dir = "/etc/cni/net.d/"
     plugin_dir = ["/opt/cni/bin/"]
+    default_network = "crio"

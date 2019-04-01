@@ -172,6 +172,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("cni-config-dir") {
 		config.NetworkDir = ctx.GlobalString("cni-config-dir")
 	}
+	if ctx.GlobalIsSet("cni-default-network") {
+		config.DefaultNetwork = ctx.GlobalString("cni-default-network")
+	}
 	if ctx.GlobalIsSet("cni-plugin-dir") {
 		config.PluginDir = ctx.GlobalStringSlice("cni-plugin-dir")
 	}
@@ -418,6 +421,10 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "cni-plugin-dir",
 			Usage: fmt.Sprintf("CNI plugin binaries directory (default: %q)", defConf.PluginDir),
+		},
+		cli.StringFlag{
+			Name:  "cni-default-network",
+			Usage: "Network name of default network to attach to",
 		},
 		cli.StringFlag{
 			Name:  "image-volumes",

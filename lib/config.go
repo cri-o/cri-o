@@ -28,6 +28,7 @@ const (
 	defaultTransport    = "docker://"
 	apparmorProfileName = "crio-default"
 	cgroupManager       = oci.CgroupfsCgroupsManager
+	defaultCRIONetwork  = "crio"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -286,6 +287,9 @@ type NetworkConfig struct {
 
 	// PluginDir is where CNI plugin binaries are stored.
 	PluginDir []string `toml:"plugin_dir"`
+
+	// DefaultNetwork is the network name crio will default to use
+	DefaultNetwork string `toml:"default_network"`
 }
 
 // tomlConfig is another way of looking at a Config, which is
@@ -409,8 +413,9 @@ func DefaultConfig() (*Config, error) {
 			InsecureRegistries:  insecureRegistries,
 		},
 		NetworkConfig: NetworkConfig{
-			NetworkDir: cniConfigDir,
-			PluginDir:  []string{cniBinDir},
+			NetworkDir:     cniConfigDir,
+			PluginDir:      []string{cniBinDir},
+			DefaultNetwork: defaultCRIONetwork,
 		},
 	}, nil
 }

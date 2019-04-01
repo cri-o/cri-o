@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"net"
-	"strings"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
@@ -34,23 +33,17 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 		return
 	}
 
-	tmp, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
+	results, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
 	}
 
-	// only one cnitypes.Result is returned since newPodNetwork sets Networks list empty
-	result = tmp[0]
-	logrus.Debugf("CNI setup result: %v", result)
-
-	network, err := cnicurrent.GetResult(result)
+	podIP, result, err = s.getSandboxIPAndResult(results)
 	if err != nil {
-		err = fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		err = fmt.Errorf("failed to get ip for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
 	}
-
-	podIP = strings.Split(network.IPs[0].Address.String(), "/")[0]
 
 	if len(sb.PortMappings()) > 0 {
 		ip := net.ParseIP(podIP)
@@ -81,17 +74,36 @@ func (s *Server) getSandboxIP(sb *sandbox.Sandbox) (string, error) {
 	}
 
 	podNetwork := newPodNetwork(sb)
-	result, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
+	results, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
 	if err != nil {
 		return "", fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}
 
-	res, err := cnicurrent.GetResult(result[0])
+	ip, _, err := s.getSandboxIPAndResult(results)
 	if err != nil {
-		return "", fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		return "", fmt.Errorf("failed to get ip for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+	}
+	return ip, nil
+}
+
+// getSandboxIPAndResult gets the sandbox ip from a list of results
+// It chooses the first result in the list (lexicographic order)
+func (s *Server) getSandboxIPAndResult(results []cnitypes.Result) (string, cnitypes.Result, error) {
+	if len(results) == 0 {
+		return "", nil, fmt.Errorf("no CNI config results network status")
+	}
+	result := results[0]
+	// Choose the first result, as it should be the first in lexiconographic order
+	network, err := cnicurrent.GetResult(result)
+	if err != nil {
+		return "", nil, err
 	}
 
-	return strings.Split(res.IPs[0].Address.String(), "/")[0], nil
+	if len(network.IPs) == 0 {
+		return "", nil, fmt.Errorf("no IPs returned from CNI result")
+	}
+
+	return network.IPs[0].Address.IP.String(), result, nil
 }
 
 // networkStop cleans up and removes a pod's network.  It is best-effort and
