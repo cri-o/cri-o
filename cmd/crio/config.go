@@ -188,6 +188,9 @@ read_only = {{ .ReadOnly }}
 # are fatal, panic, error, warn, info, and debug.
 log_level = "{{ .LogLevel }}"
 
+# The default log directory where all logs will go unless directly specified by the kubelet
+log_dir = "{{ .LogDir }}"
+
 # The UID mappings for the user namespace of each container. A range is
 # specified in the form containerUID:HostUID:Size. Multiple ranges must be
 # separated by comma.

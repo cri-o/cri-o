@@ -28,6 +28,54 @@ var _ = t.Describe("Config", func() {
 		wrongPath = "/wrong"
 	)
 
+	t.Describe("ValidateConfig", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.Validate(false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail with invalid root config", func() {
+			// Given
+			sut.RootConfig.LogDir = "/dev/null"
+
+			// When
+			err := sut.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with invalid runtime config", func() {
+			// Given
+			sut.RootConfig.LogDir = "."
+			sut.AdditionalDevices = []string{wrongPath}
+
+			// When
+			err := sut.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with invalid network config", func() {
+			// Given
+			sut.RootConfig.LogDir = "."
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Conmon = validPath
+			sut.NetworkConfig.NetworkDir = wrongPath
+
+			// When
+			err := sut.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
 	t.Describe("ValidateRuntimeConfig", func() {
 		It("should succeed with default config", func() {
 			// Given
@@ -245,6 +293,39 @@ var _ = t.Describe("Config", func() {
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ValidateRootConfig", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.RootConfig.Validate(false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed during runtime", func() {
+			// Given
+			sut.RootConfig.LogDir = "."
+
+			// When
+			err := sut.RootConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail on invalid LogDir", func() {
+			// Given
+			sut.RootConfig.LogDir = "/dev/null"
+
+			// When
+			err := sut.RootConfig.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())

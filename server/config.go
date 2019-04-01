@@ -173,12 +173,8 @@ func (c *Config) Validate(onExecution bool) error {
 		return fmt.Errorf("unrecognized image volume type specified")
 	}
 
-	if err := c.RuntimeConfig.Validate(onExecution); err != nil {
-		return errors.Wrapf(err, "config validation")
-	}
-
-	if err := c.NetworkConfig.Validate(onExecution); err != nil {
-		return errors.Wrapf(err, "config validation")
+	if err := c.Config.Validate(onExecution); err != nil {
+		return errors.Wrapf(err, "library config validation")
 	}
 
 	if c.UIDMappings != "" && c.ManageNetworkNSLifecycle {
