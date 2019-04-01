@@ -176,7 +176,6 @@ var _ = t.Describe("Sandbox", func() {
 				"imageName", "imageRef", &pb.ContainerMetadata{},
 				"testsandboxid", false, false, false, false, "",
 				"/root/for/container", time.Now(), "SIGKILL")
-			testContainer.SetIntermediateMountPoint("/tmp/file")
 			Expect(err).To(BeNil())
 			Expect(testContainer).NotTo(BeNil())
 

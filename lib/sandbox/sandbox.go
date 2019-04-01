@@ -337,10 +337,6 @@ func (s *Sandbox) GetContainer(name string) *oci.Container {
 // RemoveContainer deletes a container from the sandbox
 func (s *Sandbox) RemoveContainer(c *oci.Container) {
 	s.containers.Delete(c.Name())
-	intermediateMountPoint := c.IntermediateMountPoint()
-	if intermediateMountPoint != "" {
-		os.RemoveAll(intermediateMountPoint)
-	}
 }
 
 // SetInfraContainer sets the infrastructure container of a sandbox
