@@ -4,6 +4,7 @@ package sandbox
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -58,6 +59,9 @@ type NetNs struct {
 
 // SymlinkCreate creates the necessary symlinks for the NetNs
 func (n *NetNs) SymlinkCreate(name string) error {
+	if n.netNS == nil {
+		return errors.New("no netns set up")
+	}
 	b := make([]byte, 4)
 	_, randErr := rand.Reader.Read(b)
 	if randErr != nil {
