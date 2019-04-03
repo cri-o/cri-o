@@ -8,7 +8,7 @@ cri-o - OCI-based implementation of Kubernetes Container Runtime Interface
 # DESCRIPTION
 CRI-O is an implementation of the Kubernetes CRI. It is a lightweight, OCI-compliant runtime that is native to kubernetes. CRI-O supports OCI container images and can pull from any container registry.
 
-You can find more information on the CRI-O project at <https://github.com/kubernetes-sigs/cri-o/>
+You can find more information on the CRI-O project at <https://github.com/cri-o/cri-o/>
 
 # USAGE
 Pull from local docker and install system container:

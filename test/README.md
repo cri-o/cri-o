@@ -79,7 +79,7 @@ make localintegration RUNTIME=cc-runtime
 
 ## Writing integration tests
 
-[Helper functions](https://github.com/kubernetes-sigs/cri-o/blob/master/test/helpers.bash)
+[Helper functions](https://github.com/cri-o/cri-o/blob/master/test/helpers.bash)
 are provided in order to facilitate writing tests.
 
 ```sh

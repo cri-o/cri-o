@@ -14,16 +14,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/apparmor"
+	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/server/seccomp"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
-	"github.com/kubernetes-sigs/cri-o/lib"
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
-	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/kubernetes-sigs/cri-o/pkg/annotations"
-	"github.com/kubernetes-sigs/cri-o/pkg/apparmor"
-	"github.com/kubernetes-sigs/cri-o/pkg/storage"
-	"github.com/kubernetes-sigs/cri-o/server/seccomp"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/devices"
@@ -919,7 +919,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	if s.config.ReadOnly {
 		// tmpcopyup is a runc extension and is not part of the OCI spec.
 		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
-		// Look at https://github.com/kubernetes-sigs/cri-o/pull/1434#discussion_r177200245 for more info on this
+		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
 		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
 		if !isInCRIMounts("/run", containerConfig.GetMounts()) {
 			mnt := rspec.Mount{

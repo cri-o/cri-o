@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
+	"github.com/cri-o/cri-o/lib"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"

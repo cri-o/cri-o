@@ -26,7 +26,7 @@
     - name: run integration tests
       shell: "CGROUP_MANAGER=cgroupfs STORAGE_OPTIONS='--storage-driver=overlay{{ extra_storage_opts | default('') }}' make localintegration >& {{ artifacts }}/testout.txt"
       args:
-        chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+        chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
       async: '{{ 60 * 30 }}'  # seconds
       poll: 30
 
