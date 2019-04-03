@@ -926,6 +926,21 @@ func (mr *MockStoreMockRecorder) Status() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockStore)(nil).Status))
 }
 
+// GetDigestLock mocks base method
+func (m *MockStore) GetDigestLock(arg0 go_digest.Digest) (storage.Locker, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDigestLock")
+	ret0, _ := ret[0].(storage.Locker)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDigestLock indicates an expected call of GetDigestLock
+func (mr *MockStoreMockRecorder) GetDigestLock(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDigestLock", reflect.TypeOf((*MockStore)(nil).GetDigestLock))
+}
+
 // UIDMap mocks base method
 func (m *MockStore) UIDMap() []idtools.IDMap {
 	m.ctrl.T.Helper()
