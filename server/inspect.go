@@ -9,10 +9,10 @@ import (
 
 	cimage "github.com/containers/image/types"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/types"
 	"github.com/go-zoo/bone"
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
-	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/kubernetes-sigs/cri-o/types"
 	"github.com/sirupsen/logrus"
 )
 

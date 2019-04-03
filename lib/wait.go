@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )

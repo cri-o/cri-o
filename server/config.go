@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kubernetes-sigs/cri-o/lib"
-	"github.com/kubernetes-sigs/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 const (
