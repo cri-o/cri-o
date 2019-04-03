@@ -32,6 +32,9 @@ func ExecCmd(name string, args ...string) (string, error) {
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
 
 	err := cmd.Run()
 	if err != nil {
@@ -47,6 +50,9 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, name strin
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
 
 	err := cmd.Run()
 	if err != nil {

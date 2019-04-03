@@ -124,7 +124,9 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	// 0, 1 and 2 are stdin, stdout and stderr
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", os.Getenv("XDG_RUNTIME_DIR")))
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
 
 	err = cmd.Start()
 	if err != nil {
@@ -280,6 +282,9 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 	args = append(args, "--process", processFile.Name())
 	args = append(args, c.ID())
 	execCmd := exec.Command(r.path, args...)
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
 	var cmdErr error
 	if tty {
 		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
@@ -378,6 +383,9 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
 
 	err = cmd.Start()
 	if err != nil {
@@ -456,6 +464,9 @@ func (r *runtimeOCI) UpdateContainer(c *Container, res *rspec.LinuxResources) er
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
 	jsonResources, err := json.Marshal(res)
 	if err != nil {
 		return err
@@ -592,7 +603,11 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	out, err := exec.Command(r.path, "state", c.id).Output()
+	cmd := exec.Command(r.path, "state", c.id)
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
+	out, err := cmd.Output()
 	if err != nil {
 		// there are many code paths that could lead to have a bad state in the
 		// underlying runtime.
@@ -770,6 +785,9 @@ func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.Re
 	logrus.Debugf("executing port forwarding command: %s", commandString)
 
 	command := exec.Command(nsenterPath, args...)
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		command.Env = append(command.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
 	command.Stdout = stream
 
 	stderr := new(bytes.Buffer)
