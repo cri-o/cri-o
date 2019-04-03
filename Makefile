@@ -155,21 +155,35 @@ dbuild: crioimage
 integration: crioimage
 	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
-${BUILD_BIN_PATH}/ginkgo:
+GO_MD2MAN := ${BUILD_BIN_PATH}/go-md2man
+GINKGO := ${BUILD_BIN_PATH}/ginkgo
+MOCKGEN := ${BUILD_BIN_PATH}/mockgen
+
+define go-build
+	$(GO) build -o ${BUILD_BIN_PATH}/${1} ${2}
+endef
+
+${BUILD_BIN_PATH}:
 	mkdir -p ${BUILD_BIN_PATH}
-	$(GO) build -o ${BUILD_BIN_PATH}/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo
+
+${GO_MD2MAN}: ${BUILD_BIN_PATH}
+	$(call go-build,go-md2man,./vendor/github.com/cpuguy83/go-md2man)
+
+${GINKGO}: ${BUILD_BIN_PATH}
+	$(call go-build,ginkgo,./vendor/github.com/onsi/ginkgo/ginkgo)
+
+${MOCKGEN}:
+	$(call go-build,mockgen,./vendor/github.com/golang/mock/mockgen)
 
 vendor: .install.vndr
 	$(GOPATH)/bin/vndr \
-		-whitelist "github.com/onsi/ginkgo" \
-		-whitelist "github.com/golang/mock" \
+		-whitelist github.com/onsi/ginkgo \
+		-whitelist github.com/golang/mock \
+		-whitelist github.com/cpuguy83/go-md2man \
+		-whitelist github.com/russross/blackfriday \
 		${PKG}
 
-${BUILD_BIN_PATH}/mockgen:
-	mkdir -p ${BUILD_BIN_PATH}
-	$(GO) build -o ${BUILD_BIN_PATH}/mockgen ./vendor/github.com/golang/mock/mockgen
-
-testunit: mockgen ${BUILD_BIN_PATH}/ginkgo
+testunit: mockgen ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	${BUILD_BIN_PATH}/ginkgo \
 		${TESTFLAGS} \
@@ -193,28 +207,28 @@ testunit-bin:
 			--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename $$PACKAGE) ;\
 	done
 
-mockgen: ${BUILD_BIN_PATH}/mockgen
-	${BUILD_BIN_PATH}/mockgen \
+mockgen: ${MOCKGEN}
+	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package containerstoragemock \
 		-destination ${MOCK_PATH}/containerstorage/containerstorage.go \
 		github.com/containers/storage Store
-	${BUILD_BIN_PATH}/mockgen \
+	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
 		github.com/cri-o/cri-o/pkg/storage ImageServer
-	${BUILD_BIN_PATH}/mockgen \
+	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package libmock \
 		-destination ${MOCK_PATH}/lib/lib.go \
 		github.com/cri-o/cri-o/lib ConfigIface
-	${BUILD_BIN_PATH}/mockgen \
+	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
 		github.com/cri-o/cri-o/oci RuntimeImpl
-	${BUILD_BIN_PATH}/mockgen \
+	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package sandboxmock \
 		-destination ${MOCK_PATH}/sandbox/sandbox.go \
@@ -234,11 +248,13 @@ test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/check
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
-docs/%.5: docs/%.5.md .gopathok
-	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
+docs/%.5: docs/%.5.md .gopathok ${GO_MD2MAN}
+	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
+		(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
-docs/%.8: docs/%.8.md .gopathok
-	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
+docs/%.8: docs/%.8.md .gopathok ${GO_MD2MAN}
+	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
+		(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
 docs: $(MANPAGES)
 
@@ -289,7 +305,7 @@ else
 	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
 
-install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .install.release
+install.tools: .install.gitvalidation .install.golangci-lint .install.release
 
 .install.release:
 	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
@@ -304,11 +320,6 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 .install.golangci-lint: .gopathok
 	if [ ! -x "$(GOPATH)/bin/golangci-lint" ]; then \
 		go get -u github.com/golangci/golangci-lint/cmd/golangci-lint; \
-	fi
-
-.install.md2man: .gopathok
-	if [ ! -x "$(GOPATH)/bin/go-md2man" ]; then \
-		go get -u github.com/cpuguy83/go-md2man; \
 	fi
 
 .install.vndr: .gopathok

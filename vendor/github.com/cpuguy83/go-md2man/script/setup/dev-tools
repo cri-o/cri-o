@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -eu -o pipefail
+
+go get -u github.com/golang/dep/cmd/dep

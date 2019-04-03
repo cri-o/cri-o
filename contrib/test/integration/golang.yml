@@ -56,4 +56,3 @@
     - onsi/gomega
     - cloudflare/cfssl/cmd/...
     - jteeuwen/go-bindata/go-bindata
-    - cpuguy83/go-md2man
