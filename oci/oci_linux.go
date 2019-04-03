@@ -36,14 +36,16 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 	}
 
-	// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
-	// always fail as conmon's pid is still there.
-	// Fortunately, kubelet takes care of deleting this for us, so the leak will
-	// only happens in corner case where one does a manual deletion of the container
-	// through e.g. runc. This should be handled by implementing a conmon monitoring
-	// routine that does the cgroup cleanup once conmon is terminated.
-	if err := control.Add(cgroups.Process{Pid: pid}); err != nil {
-		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+	if control != nil {
+		// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
+		// always fail as conmon's pid is still there.
+		// Fortunately, kubelet takes care of deleting this for us, so the leak will
+		// only happens in corner case where one does a manual deletion of the container
+		// through e.g. runc. This should be handled by implementing a conmon monitoring
+		// routine that does the cgroup cleanup once conmon is terminated.
+		if err := control.Add(cgroups.Process{Pid: pid}); err != nil {
+			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+		}
 	}
 }
 
