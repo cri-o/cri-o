@@ -5,8 +5,8 @@ package server
 import (
 	"fmt"
 
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
-	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/cri-o/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/oci"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"

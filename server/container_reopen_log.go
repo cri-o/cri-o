@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cri-o/cri-o/oci"
 	"github.com/fsnotify/fsnotify"
-	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"

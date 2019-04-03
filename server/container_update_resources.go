@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cri-o/cri-o/oci"
 	"github.com/gogo/protobuf/proto"
-	"github.com/kubernetes-sigs/cri-o/oci"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
