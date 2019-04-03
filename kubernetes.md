@@ -31,7 +31,7 @@ Here's the example of unit file:
 # cat /etc/systemd/system/crio.service
 [Unit]
 Description=CRI-O daemon
-Documentation=https://github.com/kubernetes-sigs/cri-o
+Documentation=https://github.com/cri-o/cri-o
 
 [Service]
 ExecStart=/bin/crio --runtime /bin/runc --log /root/crio.log --log-level debug

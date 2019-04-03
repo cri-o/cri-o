@@ -7,7 +7,7 @@ import (
 	"github.com/containerd/containerd/cio"
 	"github.com/sirupsen/logrus"
 
-	cioutil "github.com/kubernetes-sigs/cri-o/utils/ioutil"
+	cioutil "github.com/cri-o/cri-o/utils/ioutil"
 )
 
 // ExecIO holds the exec io.

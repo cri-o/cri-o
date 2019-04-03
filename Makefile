@@ -2,7 +2,7 @@ include Makefile.inc
 
 GO ?= go
 EPOCH_TEST_COMMIT ?= 1cc5a27
-PROJECT := github.com/kubernetes-sigs/cri-o
+PROJECT := github.com/cri-o/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 CRIO_IMAGE := crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
@@ -203,22 +203,22 @@ mockgen: ${BUILD_BIN_PATH}/mockgen
 		${MOCKGEN_FLAGS} \
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
-		github.com/kubernetes-sigs/cri-o/pkg/storage ImageServer
+		github.com/cri-o/cri-o/pkg/storage ImageServer
 	${BUILD_BIN_PATH}/mockgen \
 		${MOCKGEN_FLAGS} \
 		-package libmock \
 		-destination ${MOCK_PATH}/lib/lib.go \
-		github.com/kubernetes-sigs/cri-o/lib ConfigIface
+		github.com/cri-o/cri-o/lib ConfigIface
 	${BUILD_BIN_PATH}/mockgen \
 		${MOCKGEN_FLAGS} \
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
-		github.com/kubernetes-sigs/cri-o/oci RuntimeImpl
+		github.com/cri-o/cri-o/oci RuntimeImpl
 	${BUILD_BIN_PATH}/mockgen \
 		${MOCKGEN_FLAGS} \
 		-package sandboxmock \
 		-destination ${MOCK_PATH}/sandbox/sandbox.go \
-		github.com/kubernetes-sigs/cri-o/lib/sandbox NetNsIface
+		github.com/cri-o/cri-o/lib/sandbox NetNsIface
 
 
 codecov: SHELL := $(shell which bash)

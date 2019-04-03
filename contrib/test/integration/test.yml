@@ -21,7 +21,7 @@
     - name: run integration tests
       shell: "make localintegration >& {{ crio_integration_filepath }}"
       args:
-        chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+        chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
       environment: '{{ int_test_env }}'  # from vars.yml and main.yml
       async: '{{ 60 * 30 }}'  # seconds
       poll: 30
@@ -29,7 +29,7 @@
     - name: run integration tests with userNS enabled + alternate results file
       shell: "make localintegration >& {{ crio_integration_userns_filepath }}"
       args:
-        chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+        chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
       environment: '{{ int_test_env | combine(userns_int_test_env) }} '
       async: '{{ 60 * 30 }}'  # seconds
       poll: 30

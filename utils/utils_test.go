@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kubernetes-sigs/cri-o/utils"
+	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

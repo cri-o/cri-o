@@ -4,9 +4,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/cri-o/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/oci"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
-	"github.com/kubernetes-sigs/cri-o/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"

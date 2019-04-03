@@ -8,9 +8,9 @@ import (
 	"time"
 
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/oci"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/cri-o/lib"
-	"github.com/kubernetes-sigs/cri-o/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -610,7 +610,7 @@ var _ = t.Describe("ContainerServer", func() {
 		})
 
 		// TODO(sgrunert): uncomment when the following issue is resolved:
-		// https://github.com/kubernetes-sigs/cri-o/issues/1987
+		// https://github.com/cri-o/cri-o/issues/1987
 		/* FIt("should fail with invalid network selinux labels", func() {
 			// Given
 			manifest := bytes.Replace(testManifest,

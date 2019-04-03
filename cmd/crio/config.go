@@ -4,7 +4,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/kubernetes-sigs/cri-o/server"
+	"github.com/cri-o/cri-o/server"
 	"github.com/urfave/cli"
 )
 

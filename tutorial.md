@@ -1,6 +1,6 @@
 # CRI-O Tutorial
 
-This tutorial will walk you through the installation of [CRI-O](https://github.com/kubernetes-sigs/cri-o), an Open Container Initiative-based implementation of [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md), and the creation of [Redis](https://redis.io/) server running in a [Pod](http://kubernetes.io/docs/user-guide/pods/).
+This tutorial will walk you through the installation of [CRI-O](https://github.com/cri-o/cri-o), an Open Container Initiative-based implementation of [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md), and the creation of [Redis](https://redis.io/) server running in a [Pod](http://kubernetes.io/docs/user-guide/pods/).
 
 ## Prerequisites
 
@@ -121,11 +121,11 @@ sudo apt-get update && apt-get install -y libglib2.0-dev \
 ```
 
 ```
-go get -d github.com/kubernetes-sigs/cri-o
+go get -d github.com/cri-o/cri-o
 ```
 
 ```
-cd $GOPATH/src/github.com/kubernetes-sigs/cri-o
+cd $GOPATH/src/github.com/cri-o/cri-o
 ```
 
 ```
@@ -169,7 +169,7 @@ log_level = "info"
 ```
 sudo sh -c 'echo "[Unit]
 Description=OCI-based implementation of Kubernetes Container Runtime Interface
-Documentation=https://github.com/kubernetes-sigs/cri-o
+Documentation=https://github.com/cri-o/cri-o
 
 [Service]
 ExecStart=/usr/local/bin/crio
@@ -314,7 +314,7 @@ Now that the `CRI-O` components have been installed and configured we are ready 
 First we need to setup a Pod sandbox using a Pod configuration, which can be found in the `cri-o` source tree:
 
 ```
-cd $GOPATH/src/github.com/kubernetes-sigs/cri-o
+cd $GOPATH/src/github.com/cri-o/cri-o
 ```
 
 In case the file /etc/containers/policy.json does not exist on your filesystem, make sure that skopeo has been installed correctly. You can use a policy template provided in the cri-o source tree, but it is insecure and it is not to be used on production machines:

@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/containerd/containerd/cio"
-	"github.com/kubernetes-sigs/cri-o/utils/fifo"
+	"github.com/cri-o/cri-o/utils/fifo"
 	"golang.org/x/net/context"
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )

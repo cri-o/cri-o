@@ -5,8 +5,8 @@ package seccomp_test
 import (
 	"testing"
 
-	"github.com/kubernetes-sigs/cri-o/pkg/seccomp"
-	. "github.com/kubernetes-sigs/cri-o/test/framework"
+	"github.com/cri-o/cri-o/pkg/seccomp"
+	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
