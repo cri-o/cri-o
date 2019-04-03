@@ -67,11 +67,16 @@ LOG_SIZE_MAX_LIMIT=${LOG_SIZE_MAX_LIMIT:--1}
 STREAM_PORT=${STREAM_PORT:-10010}
 
 TESTDIR=$(mktemp -d)
+RANDOM_STRING=${TESTDIR: -10}
 
 # Setup default hooks dir
 HOOKSDIR=$TESTDIR/hooks
 mkdir ${HOOKSDIR}
 HOOKS_OPTS="--hooks-dir=$HOOKSDIR"
+
+HOOKSCHECK=$TESTDIR/hookscheck
+CONTAINER_EXITS_DIR=$TESTDIR/containers/exits
+CONTAINER_ATTACH_SOCKET_DIR=$TESTDIR/containers
 
 # Setup default mounts using deprecated --default-mounts flag
 # should be removed, once the flag is removed
@@ -112,7 +117,14 @@ fi
 CRIO_SOCKET="$TESTDIR/crio.sock"
 CRIO_CONFIG="$TESTDIR/crio.conf"
 CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
-CRIO_CNI_PLUGIN=${CRIO_CNI_PLUGIN:-/opt/cni/bin/}
+
+# Copy all the CNI dependencies around to ensure encapsulated tests
+CRIO_CNI_PLUGIN="$TESTDIR/cni-bin"
+mkdir "$CRIO_CNI_PLUGIN"
+cp /opt/cni/bin/* "$CRIO_CNI_PLUGIN"
+cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
+sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
+
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
@@ -244,10 +256,14 @@ function setup_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --default-capabilities "$capabilities" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --stream-port "$STREAM_PORT" --cgroup-manager "$CGROUP_MANAGER" --default-mounts-file "$TESTDIR/containers/mounts.conf" --registry "quay.io" --default-runtime $DEFAULT_RUNTIME --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" $DEVICES $ULIMITS --uid-mappings "$UID_MAPPINGS" --gid-mappings "$GID_MAPPINGS" --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --default-capabilities "$capabilities" --conmon "$TESTDIR/conmon" --listen "$CRIO_SOCKET" --stream-port "$((STREAM_PORT + BATS_TEST_NUMBER))" --cgroup-manager "$CGROUP_MANAGER" --default-mounts-file "$TESTDIR/containers/mounts.conf" --registry "quay.io" --default-runtime $DEFAULT_RUNTIME --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" $DEVICES $ULIMITS --uid-mappings "$UID_MAPPINGS" --gid-mappings "$GID_MAPPINGS" --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
+	sed -ie 's;\(container_exits_dir =\) \(.*\);\1 "'$CONTAINER_EXITS_DIR'";g' $CRIO_CONFIG
+	sed -ie 's;\(container_attach_socket_dir =\) \(.*\);\1 "'$CONTAINER_ATTACH_SOCKET_DIR'";g' $CRIO_CONFIG
+
 	# make sure we don't run with nodev, or else mounting a readonly rootfs will fail: https://github.com/cri-o/cri-o/issues/1929#issuecomment-474240498
 	sed -r -e 's/nodev(,)?//g' -i $CRIO_CONFIG
+
 	# Prepare the CNI configuration files, we're running with non host networking by default
 	if [[ -n "$5" ]]; then
 		netfunc="$5"
@@ -333,7 +349,7 @@ function cleanup_ctrs() {
 			done
 		fi
 	fi
-	rm -f /run/hookscheck
+	rm -f $HOOKSCHECK
 }
 
 function cleanup_images() {
@@ -459,7 +475,7 @@ function write_plugin_test_args_network_conf() {
 	cat >$CRIO_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
     "cniVersion": "0.2.0",
-    "name": "crionet_test_args",
+    "name": "crionet_test_args_$RANDOM_STRING",
     "type": "cni_plugin_helper.bash",
     "bridge": "cni0",
     "isGateway": true,
@@ -475,7 +491,7 @@ function write_plugin_test_args_network_conf() {
 EOF
 
 	if [[ -n "$2" ]]; then
-		echo "DEBUG_ARGS=$2" > /tmp/cni_plugin_helper_input.env
+		echo "DEBUG_ARGS=$2" > "$TESTDIR"/cni_plugin_helper_input.env
 	fi
 
 	echo 0

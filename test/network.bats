@@ -6,7 +6,7 @@ function teardown() {
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
-	rm -f /var/lib/cni/networks/crionet_test_args/*
+	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/*
 	chmod 0755 $CONMON_BINARY
 	cleanup_test
 }
@@ -132,14 +132,12 @@ function teardown() {
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	[ "$status" -eq 0 ]
 
-	. /tmp/plugin_test_args.out
+	. $TESTDIR/plugin_test_args.out
 
 	[ "$FOUND_CNI_CONTAINERID" != "redhat.test.crio" ]
 	[ "$FOUND_CNI_CONTAINERID" != "podsandbox1" ]
 	[ "$FOUND_K8S_POD_NAMESPACE" = "redhat.test.crio" ]
 	[ "$FOUND_K8S_POD_NAME" = "podsandbox1" ]
-
-	rm -rf /tmp/plugin_test_args.out
 }
 
 @test "Connect to pod hostport from the host" {
@@ -173,16 +171,16 @@ function teardown() {
 
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured
-	chmod 0644 $CONMON_BINARY
+	chmod 0644 $TESTDIR/conmon
 	run crictl runp "$TESTDATA"/sandbox_config.json
-	chmod 0755 $CONMON_BINARY
+	chmod 0755 $TESTDIR/conmon
 	echo "$output"
 	[ "$status" -ne 0 ]
 
 	# ensure that the server cleaned up sandbox networking if the sandbox
 	# failed after network setup
-	rm -f /var/lib/cni/networks/crionet_test_args/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | grep -v lock | wc -l)
+	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/last_reserved_ip*
+	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING | grep -v lock | wc -l)
 	[[ "${num_allocated}" == "0" ]]
 }
 
@@ -195,7 +193,7 @@ function teardown() {
 
 	# ensure that the server cleaned up sandbox networking if the sandbox
 	# failed during network setup after the CNI plugin itself succeeded
-	rm -f /var/lib/cni/networks/crionet_test_args/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | grep -v lock | wc -l)
+	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/last_reserved_ip*
+	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING | grep -v lock | wc -l)
 	[[ "${num_allocated}" == "0" ]]
 }

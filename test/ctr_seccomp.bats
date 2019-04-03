@@ -62,7 +62,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crictl create "$TESTDIR"/seccomp2.json "$TESTDATA"/sandbox_config.json
+	run crictl create "$pod_id" "$TESTDIR"/seccomp2.json "$TESTDIR"/seccomp_profile1.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -183,7 +183,7 @@ function teardown() {
 
 # 6. test running with ctr docker/default
 # test that we cannot run with a syscall blocked by the default seccomp profile
-@test "ctr seccomp profiles runtime/default" {
+@test "ctr seccomp profiles docker/default" {
 	# this test requires seccomp, so skip this test if seccomp is not enabled.
 	enabled=$(is_seccomp_enabled)
 	if [[ "$enabled" -eq 0 ]]; then

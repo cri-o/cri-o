@@ -78,6 +78,8 @@
   tags:
     - integration
   tasks:
+    - name: install parallel
+      include: build/parallel.yml
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
       vars:

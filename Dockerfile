@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     libtool \
     libudev-dev \
     libsystemd-dev \
+    parallel \
     protobuf-c-compiler \
     protobuf-compiler \
     python-minimal \
@@ -43,12 +44,13 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # install bats
-ENV BATS_COMMIT v1.1.0
+ENV BATS_COMMIT 8789f910812afbf6b87dd371ee5ae30592f1423f
 RUN cd /tmp \
     && git clone https://github.com/bats-core/bats-core.git \
     && cd bats-core \
     && git checkout -q "$BATS_COMMIT" \
     && ./install.sh /usr/local
+RUN mkdir -p ~/.parallel && touch ~/.parallel/will-cite
 
 # install criu
 ENV CRIU_VERSION 3.9
@@ -81,9 +83,6 @@ RUN set -x \
        && mkdir -p /opt/cni/bin \
        && cp bin/* /opt/cni/bin/ \
        && rm -rf "$GOPATH"
-
-# Install CNI bridge plugin test wrapper
-COPY test/cni_plugin_helper.bash /opt/cni/bin/cni_plugin_helper.bash
 
 # Install crictl
 ENV CRICTL_COMMIT v1.14.0

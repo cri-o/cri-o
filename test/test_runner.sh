@@ -30,8 +30,8 @@ function execute() {
 # Tests to run. Defaults to all.
 TESTS=${@:-.}
 
-# Copy the cni helper
-cp cni_plugin_helper.bash /opt/cni/bin
+# The number of parallel jobs to execute
+JOBS=${JOBS:-$(($(nproc --all)*4))}
 
 # Run the tests.
-execute time bats --tap $TESTS
+execute time bats --jobs "$JOBS" --tap $TESTS
