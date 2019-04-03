@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/storage/pkg/idtools"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -132,12 +132,12 @@ func getMountsMap(path string) (string, string, error) {
 }
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-func SecretMounts(mountLabel, containerWorkingDir, mountFile string) []rspec.Mount {
-	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0)
+func SecretMounts(mountLabel, containerWorkingDir, mountFile string, rootless bool) []rspec.Mount {
+	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0, rootless)
 }
 
 // SecretMountsWithUIDGID specifies the uid/gid of the owner
-func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int) []rspec.Mount {
+func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int, rootless bool) []rspec.Mount {
 	var (
 		secretMounts []rspec.Mount
 		mountFiles   []string
@@ -147,17 +147,8 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	// Note for testing purposes only
 	if mountFile == "" {
 		mountFiles = append(mountFiles, []string{OverrideMountsFile, DefaultMountsFile}...)
-		if rootless.IsRootless() {
+		if rootless {
 			mountFiles = append([]string{UserOverrideMountsFile}, mountFiles...)
-			_, err := os.Stat(UserOverrideMountsFile)
-			if err != nil && os.IsNotExist(err) {
-				os.MkdirAll(filepath.Dir(UserOverrideMountsFile), 0755)
-				if f, err := os.Create(UserOverrideMountsFile); err != nil {
-					logrus.Warnf("could not create file %s: %v", UserOverrideMountsFile, err)
-				} else {
-					f.Close()
-				}
-			}
 		}
 	} else {
 		mountFiles = append(mountFiles, mountFile)
@@ -176,7 +167,7 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	// Add FIPS mode secret if /etc/system-fips exists on the host
 	_, err := os.Stat("/etc/system-fips")
 	if err == nil {
-		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir); err != nil {
+		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir, mountPrefix, mountLabel, uid, gid); err != nil {
 			logrus.Errorf("error adding FIPS mode secret to container: %v", err)
 		}
 	} else if os.IsNotExist(err) {
@@ -264,12 +255,15 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 // root filesystem if /etc/system-fips exists on hosts.
 // This enables the container to be FIPS compliant and run openssl in
 // FIPS mode as the host is also in FIPS mode.
-func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error {
+func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPrefix, mountLabel string, uid, gid int) error {
 	secretsDir := "/run/secrets"
 	ctrDirOnHost := filepath.Join(containerWorkingDir, secretsDir)
 	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
-		if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
+		if err = idtools.MkdirAllAs(ctrDirOnHost, 0755, uid, gid); err != nil {
 			return errors.Wrapf(err, "making container directory on host failed")
+		}
+		if err = label.Relabel(ctrDirOnHost, mountLabel, false); err != nil {
+			return errors.Wrap(err, "error applying correct labels")
 		}
 	}
 	fipsFile := filepath.Join(ctrDirOnHost, "system-fips")
@@ -284,7 +278,7 @@ func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error 
 
 	if !mountExists(*mounts, secretsDir) {
 		m := rspec.Mount{
-			Source:      ctrDirOnHost,
+			Source:      filepath.Join(mountPrefix, secretsDir),
 			Destination: secretsDir,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},
