@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
-	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/oci"
 )
 
 const fixturePath = "fixtures/crio.conf"

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
-	"github.com/kubernetes-sigs/cri-o/utils"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"

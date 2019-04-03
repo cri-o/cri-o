@@ -6,7 +6,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
+	"github.com/cri-o/cri-o/lib"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -3,7 +3,7 @@ package lib
 import (
 	"syscall"
 
-	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"
 )
 

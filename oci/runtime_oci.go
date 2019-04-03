@@ -15,10 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/pkg/findprocess"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/fsnotify/fsnotify"
-	"github.com/kubernetes-sigs/cri-o/pkg/findprocess"
-	"github.com/kubernetes-sigs/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

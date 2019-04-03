@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cri-o/cri-o/oci"
+	. "github.com/cri-o/cri-o/test/framework"
+	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/cri-o/oci"
-	. "github.com/kubernetes-sigs/cri-o/test/framework"
-	containerstoragemock "github.com/kubernetes-sigs/cri-o/test/mocks/containerstorage"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
