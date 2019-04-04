@@ -67,7 +67,7 @@ func (n *NetNs) SymlinkCreate(name string) error {
 	nsName := fmt.Sprintf("%s-%x", name, b)
 	symlinkPath := filepath.Join(NsRunDir, nsName)
 
-	if err := os.Symlink(n.netNS.Path(), symlinkPath); err != nil {
+	if err := os.Symlink(n.Path(), symlinkPath); err != nil {
 		return err
 	}
 
