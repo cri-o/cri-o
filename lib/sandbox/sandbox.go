@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/cri-o/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"

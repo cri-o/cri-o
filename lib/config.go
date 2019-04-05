@@ -8,8 +8,8 @@ import (
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/kubernetes-sigs/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 // Defaults if none are specified

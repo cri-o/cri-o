@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/cri-o/cri-o/oci"
 )
 
 // ImageVolumesType describes image volume handling strategies
