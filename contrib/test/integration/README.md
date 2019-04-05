@@ -20,4 +20,4 @@ The playbooks assume the following things about your system:
  - The system has been rebooted after installing/updating low-level packages, to ensure they're active.
  - Ansible is installed, and functional with access to the 'root' user.
  - The `$GOPATH` is set and present for all shells (*e.g.* written in `/etc/environment`).
- - The CRI-O repository is present in the desired state at `${GOPATH}/src/github.com/kubernetes-sigs/cri-o`.
+ - The CRI-O repository is present in the desired state at `${GOPATH}/src/github.com/cri-o/cri-o`.

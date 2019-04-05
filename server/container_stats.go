@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
-	"github.com/kubernetes-sigs/cri-o/oci"
-	crioStorage "github.com/kubernetes-sigs/cri-o/utils"
+	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/oci"
+	crioStorage "github.com/cri-o/cri-o/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"

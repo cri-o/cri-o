@@ -2,7 +2,7 @@ include Makefile.inc
 
 GO ?= go
 EPOCH_TEST_COMMIT ?= 1cc5a27
-PROJECT := github.com/kubernetes-sigs/cri-o
+PROJECT := github.com/cri-o/cri-o
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 CRIO_IMAGE := crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
@@ -22,7 +22,7 @@ BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell selinuxenabled 2>/dev/null && echo -Z)
-PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/kubernetes-sigs/cri-o/vendor)
+PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/cri-o/cri-o/vendor)
 
 BUILD_INFO := $(shell date +%s)
 

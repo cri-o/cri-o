@@ -5,7 +5,7 @@ import (
 	"net"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
