@@ -4,8 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
-	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

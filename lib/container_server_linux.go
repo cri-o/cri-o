@@ -3,7 +3,7 @@
 package lib
 
 import (
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/lib/sandbox"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 )

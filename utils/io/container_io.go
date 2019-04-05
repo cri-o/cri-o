@@ -9,8 +9,8 @@ import (
 	"github.com/containerd/containerd/cio"
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubernetes-sigs/cri-o/utils"
-	cioutil "github.com/kubernetes-sigs/cri-o/utils/ioutil"
+	"github.com/cri-o/cri-o/utils"
+	cioutil "github.com/cri-o/cri-o/utils/ioutil"
 )
 
 // streamKey generates a key for the stream.

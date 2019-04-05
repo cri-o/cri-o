@@ -6,9 +6,9 @@ import (
 
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 
+	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/kubernetes-sigs/cri-o/pkg/annotations"
 	"github.com/opencontainers/runtime-tools/generate"
 )
 

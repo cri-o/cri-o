@@ -4,8 +4,8 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/kubernetes-sigs/cri-o/pkg/findprocess"
-	. "github.com/kubernetes-sigs/cri-o/test/framework"
+	"github.com/cri-o/cri-o/pkg/findprocess"
+	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

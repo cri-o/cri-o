@@ -2,37 +2,37 @@
 
 - name: stat the expected cri-o directory
   stat:
-    path: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+    path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
   register: dir_stat
 
 - name: expect cri-o to be cloned already
   fail:
-    msg: "Expected cri-o to be cloned at {{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o but it wasn't!"
+    msg: "Expected cri-o to be cloned at {{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o but it wasn't!"
   when: not dir_stat.stat.exists
 
 - name: install cri-o tools
   make:
     target: install.tools
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
 - name: build cri-o
   make:
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
 - name: install cri-o
   make:
     target: install
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
 - name: install cri-o systemd files
   make:
     target: install.systemd
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
 - name: install cri-o config
   make:
     target: install.config
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
 - name: set manage network ns lifecycle
   replace:
@@ -44,7 +44,7 @@
 
 - name: install configs
   copy:
-    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-o/{{ item.src }}"
+    src: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/{{ item.src }}"
     dest: "{{ item.dest }}"
     remote_src: yes
   with_items:

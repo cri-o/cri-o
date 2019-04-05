@@ -1,9 +1,9 @@
 ![CRI-O logo](https://cdn.rawgit.com/kubernetes-sigs/cri-o/master/logo/crio-logo.svg)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
-[![GoDoc](https://godoc.org/github.com/kubernetes-sigs/cri-o?status.svg)](https://godoc.org/github.com/kubernetes-sigs/cri-o)
+[![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
 [![Build Status](https://img.shields.io/travis/kubernetes-sigs/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-sigs/cri-o)
-[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/kubernetes-sigs/cri-o)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/cri-o/cri-o)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2298/badge)](https://bestpractices.coreinfrastructure.org/projects/2298)
 
 ### Status: Stable
@@ -156,7 +156,7 @@ Be careful to double-check that the version of golang is new enough, version 1.8
 Clone the source code using:
 
 ```bash
-git clone https://github.com/kubernetes-sigs/cri-o # or your fork
+git clone https://github.com/cri-o/cri-o # or your fork
 cd cri-o
 ```
 
@@ -225,7 +225,7 @@ To run a full cluster, see [the instructions](kubernetes.md).
 1. Basic integration with kubelet once client side changes are ready (done)
 1. Support for log management, networking integration using CNI, pluggable image/storage management (done)
 1. Support for exec/attach (done)
-1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/kubernetes-sigs/cri-o/issues/533)
+1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/cri-o/cri-o/issues/533)
 1. Track upstream k8s releases
 
 [libpod-hooks]: https://github.com/containers/libpod/blob/v0.6.2/pkg/hooks/README.md
@@ -234,4 +234,4 @@ To run a full cluster, see [the instructions](kubernetes.md).
 
 ### Weekly Meeting
 A weekly meeting is held to discuss CRI-O development. It is open to everyone.
-The details to join the meeting are on the [wiki](https://github.com/kubernetes-sigs/cri-o/wiki/CRI-O-Weekly-Meeting).
+The details to join the meeting are on the [wiki](https://github.com/cri-o/cri-o/wiki/CRI-O-Weekly-Meeting).

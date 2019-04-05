@@ -15,8 +15,8 @@ import (
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/oci"
 	units "github.com/docker/go-units"
-	"github.com/kubernetes-sigs/cri-o/oci"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

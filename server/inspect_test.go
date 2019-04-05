@@ -6,9 +6,9 @@ import (
 
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 
-	"github.com/kubernetes-sigs/cri-o/lib"
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
-	"github.com/kubernetes-sigs/cri-o/oci"
+	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 

@@ -3,7 +3,7 @@ package utils_test
 import (
 	"testing"
 
-	. "github.com/kubernetes-sigs/cri-o/test/framework"
+	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
