@@ -3,8 +3,8 @@ package lib_test
 import (
 	"syscall"
 
+	"github.com/cri-o/cri-o/oci"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/cri-o/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"

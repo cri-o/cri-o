@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
-	"github.com/kubernetes-sigs/cri-o/oci"
-	pkgstorage "github.com/kubernetes-sigs/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/oci"
+	pkgstorage "github.com/cri-o/cri-o/pkg/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

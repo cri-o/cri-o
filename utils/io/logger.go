@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 
-	cioutil "github.com/kubernetes-sigs/cri-o/utils/ioutil"
+	cioutil "github.com/cri-o/cri-o/utils/ioutil"
 )
 
 const (

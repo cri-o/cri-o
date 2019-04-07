@@ -9,8 +9,8 @@ import (
 	cs "github.com/containers/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/cri-o/pkg/storage"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

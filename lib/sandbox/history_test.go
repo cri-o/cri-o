@@ -1,7 +1,7 @@
 package sandbox_test
 
 import (
-	"github.com/kubernetes-sigs/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/lib/sandbox"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"

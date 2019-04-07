@@ -3,10 +3,10 @@ package storage_test
 import (
 	"testing"
 
+	. "github.com/cri-o/cri-o/test/framework"
+	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
+	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	"github.com/golang/mock/gomock"
-	. "github.com/kubernetes-sigs/cri-o/test/framework"
-	containerstoragemock "github.com/kubernetes-sigs/cri-o/test/mocks/containerstorage"
-	criostoragemock "github.com/kubernetes-sigs/cri-o/test/mocks/criostorage"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
