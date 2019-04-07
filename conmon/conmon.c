@@ -486,10 +486,12 @@ static gboolean oom_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer us
 		}
 
 		if (num_read > 0) {
+			_cleanup_close_ int oom_fd = -1;
 			if (num_read != sizeof(uint64_t))
 				nwarn("Failed to read full oom event from eventfd");
 			ninfo("OOM received");
-			if (open("oom", O_CREAT, 0666) < 0) {
+			oom_fd = open("oom", O_CREAT, 0666);
+			if (oom_fd < 0) {
 				nwarn("Failed to write oom file");
 			}
 			return G_SOURCE_CONTINUE;
