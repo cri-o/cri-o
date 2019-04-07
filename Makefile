@@ -113,7 +113,7 @@ release-note:
 	@$(GOPATH)/bin/release-tool -n $(release)
 
 conmon/config.h: cmd/crio-config/config.go oci/oci.go
-	$(GO) build -i $(LDFLAGS) -o bin/crio-config $(PROJECT)/cmd/crio-config
+	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
 	( cd conmon && $(CURDIR)/bin/crio-config )
 
 clean:
