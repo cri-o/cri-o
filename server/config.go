@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kubernetes-sigs/cri-o/lib"
+	"github.com/cri-o/cri-o/lib"
 )
 
 //CrioConfigPath is the default location for the conf file

@@ -1,9 +1,9 @@
 package lib
 
 import (
+	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/docker/pkg/signal"
-	"github.com/kubernetes-sigs/cri-o/oci"
-	"github.com/kubernetes-sigs/cri-o/utils"
 	"github.com/pkg/errors"
 	"os"
 	"syscall"
