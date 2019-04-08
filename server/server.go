@@ -235,46 +235,11 @@ func getIDMappings(config *Config) (*idtools.IDMappings, error) {
 		return nil, nil
 	}
 
-	parseTriple := func(spec []string) (container, host, size int, err error) {
-		cid, err := strconv.ParseUint(spec[0], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[0], err)
-		}
-		hid, err := strconv.ParseUint(spec[1], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[1], err)
-		}
-		sz, err := strconv.ParseUint(spec[2], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[2], err)
-		}
-		return int(cid), int(hid), int(sz), nil
-	}
-	parseIDMap := func(spec []string) (idmap []idtools.IDMap, err error) {
-		for _, uid := range spec {
-			splitmap := strings.SplitN(uid, ":", 3)
-			if len(splitmap) < 3 {
-				return nil, fmt.Errorf("invalid mapping requires 3 fields: %q", uid)
-			}
-			cid, hid, size, err := parseTriple(splitmap)
-			if err != nil {
-				return nil, err
-			}
-			pmap := idtools.IDMap{
-				ContainerID: cid,
-				HostID:      hid,
-				Size:        size,
-			}
-			idmap = append(idmap, pmap)
-		}
-		return idmap, nil
-	}
-
-	parsedUIDsMappings, err := parseIDMap(strings.Split(config.UIDMappings, ","))
+	parsedUIDsMappings, err := idtools.ParseIDMap(strings.Split(config.UIDMappings, ","), "UID")
 	if err != nil {
 		return nil, err
 	}
-	parsedGIDsMappings, err := parseIDMap(strings.Split(config.GIDMappings, ","))
+	parsedGIDsMappings, err := idtools.ParseIDMap(strings.Split(config.GIDMappings, ","), "GID")
 	if err != nil {
 		return nil, err
 	}
