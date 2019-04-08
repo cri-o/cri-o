@@ -117,17 +117,6 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.MountPoint()).To(Equal(mp))
 	})
 
-	It("should succeed to set the intermediate mount point", func() {
-		// Given
-		mp := "intermediateMountPoint"
-
-		// When
-		sut.SetIntermediateMountPoint(mp)
-
-		// Then
-		Expect(sut.IntermediateMountPoint()).To(Equal(mp))
-	})
-
 	It("should succeed to set start failed", func() {
 		// Given
 		err := fmt.Errorf("error")

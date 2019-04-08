@@ -45,6 +45,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Metadata is nil")
 	}
 
+	pathsToChown := []string{}
+
 	logrus.Debugf("RunPodSandboxRequest %+v", req)
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
 	logrus.Infof("Attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(req.GetConfig().GetLabels()), leaky.PodInfraContainerName)
@@ -175,6 +177,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			Destination: "/etc/resolv.conf",
 			Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 		}
+		pathsToChown = append(pathsToChown, resolvPath)
 		g.AddMount(mnt)
 	}
 
@@ -270,6 +273,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
+		pathsToChown = append(pathsToChown, shmPath)
 		defer func() {
 			if err != nil {
 				if err2 := unix.Unmount(shmPath, unix.MNT_DETACH); err2 != nil {
@@ -513,6 +517,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		Destination: "/etc/hostname",
 		Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 	}
+	pathsToChown = append(pathsToChown, hostnamePath)
 	g.AddMount(mnt)
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
@@ -557,19 +562,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			g.AddMount(proc)
 		}
-
-		err = s.configureIntermediateNamespace(&g, container, nil)
-		if err != nil {
-			return nil, err
-		}
-		defer func() {
-			if err != nil {
-				os.RemoveAll(container.IntermediateMountPoint())
-			}
-		}()
-	} else {
-		g.SetRootPath(mountPoint)
 	}
+	g.SetRootPath(mountPoint)
 
 	if os.Getenv("_CRIO_ROOTLESS") != "" {
 		makeOCIConfigurationRootless(&g)
@@ -624,6 +618,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			s.removeInfraContainer(container)
 		}
 	}()
+
+	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
+		rootPair := s.defaultIDMappings.RootPair()
+		for _, path := range pathsToChown {
+			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
+				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
+			}
+		}
+
+	}
 
 	if err = s.createContainerPlatform(container, nil, sb.CgroupParent()); err != nil {
 		return nil, err

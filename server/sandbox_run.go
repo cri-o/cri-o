@@ -2,17 +2,12 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/cri-o/cri-o/oci"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -80,41 +75,6 @@ func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
 var (
 	conflictRE = regexp.MustCompile(`already reserved for pod "([0-9a-z]+)"`)
 )
-
-func (s *Server) configureIntermediateNamespace(g *generate.Generator, container *oci.Container, infraContainer *oci.Container) error {
-	intermediateMountPoint, err := ioutil.TempDir("/var/run/crio", "intermediate-mount")
-	if err != nil {
-		return errors.Wrapf(err, "failed to create intermediate directory")
-	}
-	defer func() {
-		if err != nil {
-			os.RemoveAll(intermediateMountPoint)
-		}
-	}()
-
-	resolvedIntermediateMountPoint, err := filepath.EvalSymlinks(intermediateMountPoint)
-	if err != nil {
-		return errors.Wrapf(err, "failed to eval symlinks for %s", intermediateMountPoint)
-	}
-
-	container.SetIntermediateMountPoint(resolvedIntermediateMountPoint)
-
-	g.SetRootPath(filepath.Join(resolvedIntermediateMountPoint, "root"))
-
-	newRunDir := filepath.Join(resolvedIntermediateMountPoint, "rundir")
-	mounts := g.Mounts()
-	g.ClearMounts()
-	for _, mount := range mounts {
-		if strings.HasPrefix(mount.Source, container.BundlePath()) {
-			mount.Source = filepath.Join(newRunDir, mount.Source[len(container.BundlePath()):])
-		} else if infraContainer != nil && strings.HasPrefix(mount.Source, infraContainer.BundlePath()) {
-			newInfraRunDir := filepath.Join(resolvedIntermediateMountPoint, "infra-rundir")
-			mount.Source = filepath.Join(newInfraRunDir, mount.Source[len(infraContainer.BundlePath()):])
-		}
-		g.AddMount(mount)
-	}
-	return nil
-}
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
