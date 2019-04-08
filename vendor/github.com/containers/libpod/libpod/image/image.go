@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -22,14 +23,14 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/libpod/common"
 	"github.com/containers/libpod/libpod/driver"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opentracing/opentracing-go"
@@ -64,6 +65,7 @@ type Image struct {
 type Runtime struct {
 	store               storage.Store
 	SignaturePolicyPath string
+	EventsLogFilePath   string
 }
 
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
@@ -195,7 +197,7 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 		newImage.image = img
 		newImages = append(newImages, &newImage)
 	}
-
+	ir.newImageEvent(events.LoadFromArchive, "")
 	return newImages, nil
 }
 
@@ -371,6 +373,7 @@ func (i *Image) Remove(force bool) error {
 		}
 		parent = nextParent
 	}
+	defer i.newImageEvent(events.Remove)
 	return nil
 }
 
@@ -494,6 +497,7 @@ func (i *Image) TagImage(tag string) error {
 		return err
 	}
 	i.reloadImage()
+	defer i.newImageEvent(events.Tag)
 	return nil
 }
 
@@ -514,6 +518,7 @@ func (i *Image) UntagImage(tag string) error {
 		return err
 	}
 	i.reloadImage()
+	defer i.newImageEvent(events.Untag)
 	return nil
 }
 
@@ -543,6 +548,7 @@ func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination
 // PushImageToReference pushes the given image to a location described by the given path
 func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
+	sc.BlobInfoCacheDir = filepath.Join(i.imageruntime.store.GraphRoot(), "cache")
 
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
@@ -562,6 +568,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return errors.Wrapf(err, "Error copying image to the remote destination")
 	}
+	defer i.newImageEvent(events.Push)
 	return nil
 }
 
@@ -711,7 +718,6 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 			Comment:   oci.History[i].Comment,
 		})
 	}
-
 	return allHistory, nil
 }
 
@@ -904,7 +910,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 		return nil, errors.Wrapf(err, "error updating image config")
 	}
 
-	sc := common.GetSystemContext("", "", false)
+	sc := GetSystemContext("", "", false)
 
 	// if reference not given, get the image digest
 	if reference == "" {
@@ -927,7 +933,11 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 	if err != nil {
 		return nil, err
 	}
-	return ir.NewFromLocal(reference)
+	newImage, err := ir.NewFromLocal(reference)
+	if err == nil {
+		defer newImage.newImageEvent(events.Import)
+	}
+	return newImage, err
 }
 
 // MatchRepoTag takes a string and tries to match it against an
@@ -1143,11 +1153,127 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 		}
 	}
 	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
-		if err2 := os.Remove(output); err2 != nil {
-			logrus.Errorf("error deleting %q: %v", output, err)
-		}
 		return errors.Wrapf(err, "unable to save %q", source)
 	}
-
+	defer i.newImageEvent(events.Save)
 	return nil
+}
+
+// GetConfigBlob returns a schema2image.  If the image is not a schema2, then
+// it will return an error
+func (i *Image) GetConfigBlob(ctx context.Context) (*manifest.Schema2Image, error) {
+	imageRef, err := i.toImageRef(ctx)
+	if err != nil {
+		return nil, err
+	}
+	b, err := imageRef.ConfigBlob(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to get config blob for %s", i.ID())
+	}
+	blob := manifest.Schema2Image{}
+	if err := json.Unmarshal(b, &blob); err != nil {
+		return nil, errors.Wrapf(err, "unable to parse image blob for %s", i.ID())
+	}
+	return &blob, nil
+
+}
+
+// GetHealthCheck returns a HealthConfig for an image.  This function only works with
+// schema2 images.
+func (i *Image) GetHealthCheck(ctx context.Context) (*manifest.Schema2HealthConfig, error) {
+	configBlob, err := i.GetConfigBlob(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return configBlob.ContainerConfig.Healthcheck, nil
+}
+
+// newImageEvent creates a new event based on an image
+func (ir *Runtime) newImageEvent(status events.Status, name string) {
+	e := events.NewEvent(status)
+	e.Type = events.Image
+	e.Name = name
+	if err := e.Write(ir.EventsLogFilePath); err != nil {
+		logrus.Infof("unable to write event to %s", ir.EventsLogFilePath)
+	}
+}
+
+// newImageEvent creates a new event based on an image
+func (i *Image) newImageEvent(status events.Status) {
+	e := events.NewEvent(status)
+	e.ID = i.ID()
+	e.Type = events.Image
+	if len(i.Names()) > 0 {
+		e.Name = i.Names()[0]
+	}
+	if err := e.Write(i.imageruntime.EventsLogFilePath); err != nil {
+		logrus.Infof("unable to write event to %s", i.imageruntime.EventsLogFilePath)
+	}
+}
+
+// LayerInfo keeps information of single layer
+type LayerInfo struct {
+	// Layer ID
+	ID string
+	// Parent ID of current layer.
+	ParentID string
+	// ChildID of current layer.
+	// there can be multiple children in case of fork
+	ChildID []string
+	// RepoTag will have image repo names, if layer is top layer of image
+	RepoTags []string
+	// Size stores Uncompressed size of layer.
+	Size int64
+}
+
+// GetLayersMapWithImageInfo returns map of image-layers, with associated information like RepoTags, parent and list of child layers.
+func GetLayersMapWithImageInfo(imageruntime *Runtime) (map[string]*LayerInfo, error) {
+
+	// Memory allocated to store map of layers with key LayerID.
+	// Map will build dependency chain with ParentID and ChildID(s)
+	layerInfoMap := make(map[string]*LayerInfo)
+
+	// scan all layers & fill size and parent id for each layer in layerInfoMap
+	layers, err := imageruntime.store.Layers()
+	if err != nil {
+		return nil, err
+	}
+	for _, layer := range layers {
+		_, ok := layerInfoMap[layer.ID]
+		if !ok {
+			layerInfoMap[layer.ID] = &LayerInfo{
+				ID:       layer.ID,
+				Size:     layer.UncompressedSize,
+				ParentID: layer.Parent,
+			}
+		} else {
+			return nil, fmt.Errorf("detected multiple layers with the same ID %q", layer.ID)
+		}
+	}
+
+	// scan all layers & add all childs for each layers to layerInfo
+	for _, layer := range layers {
+		_, ok := layerInfoMap[layer.ID]
+		if ok {
+			if layer.Parent != "" {
+				layerInfoMap[layer.Parent].ChildID = append(layerInfoMap[layer.Parent].ChildID, layer.ID)
+			}
+		} else {
+			return nil, fmt.Errorf("lookup error: layer-id  %s, not found", layer.ID)
+		}
+	}
+
+	// Add the Repo Tags to Top layer of each image.
+	imgs, err := imageruntime.store.Images()
+	if err != nil {
+		return nil, err
+	}
+	for _, img := range imgs {
+		e, ok := layerInfoMap[img.TopLayer]
+		if !ok {
+			return nil, fmt.Errorf("top-layer for image %s not found local store", img.ID)
+		}
+		e.RepoTags = append(e.RepoTags, img.Names...)
+	}
+	return layerInfoMap, nil
 }

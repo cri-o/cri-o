@@ -60,10 +60,13 @@ type Task struct {
 
 // TaskSpec represents the spec of a task.
 type TaskSpec struct {
-	// ContainerSpec and PluginSpec are mutually exclusive.
-	// PluginSpec will only be used when the `Runtime` field is set to `plugin`
-	ContainerSpec *ContainerSpec      `json:",omitempty"`
-	PluginSpec    *runtime.PluginSpec `json:",omitempty"`
+	// ContainerSpec, NetworkAttachmentSpec, and PluginSpec are mutually exclusive.
+	// PluginSpec is only used when the `Runtime` field is set to `plugin`
+	// NetworkAttachmentSpec is used if the `Runtime` field is set to
+	// `attachment`.
+	ContainerSpec         *ContainerSpec         `json:",omitempty"`
+	PluginSpec            *runtime.PluginSpec    `json:",omitempty"`
+	NetworkAttachmentSpec *NetworkAttachmentSpec `json:",omitempty"`
 
 	Resources     *ResourceRequirements     `json:",omitempty"`
 	RestartPolicy *RestartPolicy            `json:",omitempty"`
@@ -124,6 +127,7 @@ type ResourceRequirements struct {
 type Placement struct {
 	Constraints []string              `json:",omitempty"`
 	Preferences []PlacementPreference `json:",omitempty"`
+	MaxReplicas uint64                `json:",omitempty"`
 
 	// Platforms stores all the platforms that the image can run on.
 	// This field is used in the platform filter for scheduling. If empty,
