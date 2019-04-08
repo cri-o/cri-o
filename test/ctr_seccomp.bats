@@ -71,8 +71,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Exit code: 1" ]]
+	[ "$status" -ne 0 ]
 	[[ "$output" =~ "Operation not permitted" ]]
 
 	cleanup_ctrs
@@ -173,8 +172,8 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run crictl exec --sync "$ctr_id" chmod 777 .
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Exit code: 1" ]]
+	echo "$output"
+	[ "$status" -ne 0 ]
 	[[ "$output" =~ "Operation not permitted" ]]
 
 	cleanup_ctrs
@@ -211,8 +210,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Exit code: 1" ]]
+	[ "$status" -ne 0 ]
 	[[ "$output" =~ "Operation not permitted" ]]
 
 	cleanup_ctrs

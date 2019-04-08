@@ -23,8 +23,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run crictl exec --sync "$ctr_id" ls /imagevolume
 	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Exit code: 1" ]]
+	[ "$status" -ne 0 ]
 	[[ "$output" =~ "ls: /imagevolume: No such file or directory" ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
