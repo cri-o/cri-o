@@ -3,10 +3,10 @@ package lib
 import (
 	"fmt"
 
+	"github.com/containers/libpod/pkg/registrar"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
-	"github.com/cri-o/cri-o/pkg/registrar"
 	"github.com/pkg/errors"
 )
 
