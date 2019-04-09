@@ -21,3 +21,4 @@
     src: /usr/local/sbin/runc
     dest: /usr/bin/runc
     state: link
+    force: yes
