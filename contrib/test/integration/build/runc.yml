@@ -11,13 +11,14 @@
     params: BUILDTAGS="seccomp selinux"
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
 
-- name: install runc
-  make:
-    target: "install"
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
+#- name: install runc
+#  make:
+#    target: "install"
+#    chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
 
-- name: link runc
-  file:
-    src: /usr/local/sbin/runc
-    dest: /usr/bin/runc
-    state: link
+#- name: link runc
+#  file:
+#    src: /usr/local/sbin/runc
+#    dest: /usr/bin/runc
+#    state: link
+#    force: yes
