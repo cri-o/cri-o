@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
+	"k8s.io/apimachinery/pkg/api/resource"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
@@ -98,14 +100,49 @@ func parseDNSOptions(servers, searches, options []string, path string) error {
 	return nil
 }
 
-func newPodNetwork(sb *sandbox.Sandbox) ocicni.PodNetwork {
+func newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
+	var egress, ingress int64 = 0, 0
+
+	if val, ok := sb.Annotations()["kubernetes.io/egress-bandwidth"]; ok {
+		egressQ, err := resource.ParseQuantity(val)
+		if err != nil {
+			return ocicni.PodNetwork{}, fmt.Errorf("failed to parse egress bandwidth: %v", err)
+		} else if iegress, isok := egressQ.AsInt64(); isok {
+			egress = iegress
+		}
+
+	}
+	if val, ok := sb.Annotations()["kubernetes.io/ingress-bandwidth"]; ok {
+		ingressQ, err := resource.ParseQuantity(val)
+		if err != nil {
+			return ocicni.PodNetwork{}, fmt.Errorf("failed to parse ingress bandwdith: %v", err)
+		} else if iingress, isok := ingressQ.AsInt64(); isok {
+			ingress = iingress
+		}
+	}
+
+	var bwConfig *ocicni.BandwidthConfig
+
+	if ingress > 0 || egress > 0 {
+		bwConfig = &ocicni.BandwidthConfig{}
+		if ingress > 0 {
+			bwConfig.IngressRate = uint64(ingress)
+			bwConfig.IngressBurst = math.MaxUint64
+		}
+		if egress > 0 {
+			bwConfig.EgressRate = uint64(egress)
+			bwConfig.EgressBurst = math.MaxUint64
+		}
+	}
+
 	return ocicni.PodNetwork{
 		Name:      sb.KubeName(),
 		Namespace: sb.Namespace(),
 		Networks:  make([]string, 0),
 		ID:        sb.ID(),
 		NetNS:     sb.NetNsPath(),
-	}
+		Bandwidth: bwConfig,
+	}, nil
 }
 
 // inStringSlice checks whether a string is inside a string slice.

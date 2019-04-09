@@ -24,7 +24,9 @@ require (
 	github.com/coreos/go-iptables v0.4.1 // indirect
 	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/cpuguy83/go-md2man v1.0.10
-	github.com/cri-o/ocicni v0.0.0-20190328132530-0c180f981b27
+	github.com/cri-o/ocicni v0.1.1-0.20190423014352-8a4ca077a093
+	github.com/cyphar/filepath-securejoin v0.2.1 // indirect
+	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295
 	github.com/docker/docker-credential-helpers v0.6.2 // indirect
 	github.com/docker/go-units v0.4.0

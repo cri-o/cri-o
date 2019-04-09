@@ -32,6 +32,16 @@ type NetworkConfig struct {
 	IP string
 }
 
+type BandwidthConfig struct {
+	// IngressRate is a limit for incoming traffic in bps
+	IngressRate  uint64
+	IngressBurst uint64
+
+	// EgressRate is a limit for outgoing traffic in bps
+	EgressRate  uint64
+	EgressBurst uint64
+}
+
 // PodNetwork configures the network of a pod sandbox.
 type PodNetwork struct {
 	// Name is the name of the sandbox.
@@ -44,6 +54,8 @@ type PodNetwork struct {
 	NetNS string
 	// PortMappings is the port mapping of the sandbox.
 	PortMappings []PortMapping
+	// Bandwidth is the bandwidth limiting of the pod
+	Bandwidth *BandwidthConfig
 
 	// Networks is a list of CNI network names to attach to the sandbox
 	// Leave this list empty to attach the default network to the sandbox
