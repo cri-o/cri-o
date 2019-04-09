@@ -37,6 +37,10 @@
       include: "build/runc.yml"
       when: "{{ build_runc | default(True) | bool}}"
 
+    - name: clone build and install crun
+      include: "build/crun.yml"
+      when: "{{ build_crun | default(False) | bool}}"
+
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
 
@@ -58,6 +62,11 @@
           version: "1.12.1"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
+
+    - name: clone build and install crun
+      include: "build/crun.yml"
+      when: "{{ build_crun | default(False) | bool}}"
+
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
       include: "disable_swap.yml"
