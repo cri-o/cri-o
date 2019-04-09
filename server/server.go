@@ -249,7 +249,7 @@ func getIDMappings(config *Config) (*idtools.IDMappings, error) {
 
 // New creates a new Server with options provided
 func New(ctx context.Context, config *Config) (*Server, error) {
-	if err := os.MkdirAll(oci.ContainerAttachSocketDir, 0755); err != nil {
+	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0755); err != nil {
 		return nil, err
 	}
 
