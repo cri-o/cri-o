@@ -995,9 +995,6 @@ int main(int argc, char *argv[])
 	if (!opt_exec && opt_cuuid == NULL)
 		nexit("Container UUID not provided. Use --cuuid");
 
-	if (opt_name == NULL)
-		nexit("Container name not provided. Use --name");
-
 	if (opt_runtime_path == NULL)
 		nexit("Runtime path not provided. Use --runtime");
 	if (access(opt_runtime_path, X_OK) < 0)
