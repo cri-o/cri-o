@@ -78,5 +78,16 @@ jobs:
     - go: tip
     - env: CROSS_PLATFORM=true
 
+deploy:
+  provider: releases
+  api_key:
+    secure: 41c0d85355f3bcd0b2371fbda2a2646dc36f2d61
+  file: "bin/crio"
+  skip_cleanup: true
+  on:
+    repo: amimof/cri-o
+    tags: true
+    all_branches: true
+
 notifications:
   irc: "chat.freenode.net#cri-o"
