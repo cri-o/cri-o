@@ -43,19 +43,15 @@ jobs:
         - make .gitvalidation
         - make fmt
         - make lint
-      go: "1.11.x"
-    - script:
-        - make testunit
-        - make
-      go: "1.10.x"
+      go: "1.12.x"
     - script:
         - make testunit
         - make
         - make codecov
-      go: "1.11.x"
+      go: "1.12.x"
     - script:
         - make local-cross
-      go: "1.11.x"
+      go: "1.12.x"
       env: CROSS_PLATFORM=true
     - script:
         - make testunit
@@ -68,11 +64,11 @@ jobs:
     - stage: Integration Test
       script:
         - make CONTAINER_RUNTIME=docker integration
-      go: "1.11.x"
+      go: "1.12.x"
     - script:
         - make CONTAINER_RUNTIME=docker integration
       env: TEST_USERNS=1
-      go: "1.11.x"
+      go: "1.12.x"
   allow_failures:
     - os: osx
     - go: tip
