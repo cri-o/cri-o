@@ -1,3 +1,4 @@
+dist: xenial
 language: go
 
 sudo: required
@@ -9,6 +10,7 @@ before_install:
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq update; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libseccomp-dev; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison clang-format-3.9 e2fslibs-dev libfuse-dev libtool liblzma-dev gettext; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install libc-dev linux-libc-dev; fi
   - if [ "${TRAVIS_OS_NAME}" = osx ]; then brew update && brew install gpgme; fi
 
 install:
@@ -39,18 +41,14 @@ jobs:
         - make .gitvalidation
         - make fmt
         - make lint
-      go: "1.11.x"
+      go: "1.12.x"
     - script:
         - make testunit
         - make
-      go: "1.10.x"
-    - script:
-        - make testunit
-        - make
-      go: "1.11.x"
+      go: "1.12.x"
     - script:
         - make local-cross
-      go: "1.11.x"
+      go: "1.12.x"
       env: CROSS_PLATFORM=true
     - script:
         - make testunit
@@ -63,11 +61,11 @@ jobs:
     - stage: Integration Test
       script:
         - make CONTAINER_RUNTIME=docker integration
-      go: "1.11.x"
+      go: "1.12.x"
     - script:
         - make CONTAINER_RUNTIME=docker integration
       env: TEST_USERNS=1
-      go: "1.11.x"
+      go: "1.12.x"
   allow_failures:
     - os: osx
     - go: tip
