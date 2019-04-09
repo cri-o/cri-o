@@ -10,7 +10,7 @@
  * parsing code errors if USE_JOURNALD isn't flagged.
  * This is just to make the compiler happy and the other code prettier
  */
-static inline int sd_journal_send(char *fmt, ...)
+static inline int sd_journal_sendv(char *fmt, ...)
 {
 	perror(fmt);
 	return -1;
@@ -37,10 +37,21 @@ static int k8s_log_fd = -1;
 static char *k8s_log_path = NULL;
 
 /* journald log file parameters */
-#define TRUNCIDLEN 12
-static char short_cuuid[TRUNCIDLEN + 1];
+#define TRUNC_ID_LEN 12
+#define MESSAGE_EQ_LEN 8
+#define PRIORITY_EQ_LEN 10
+#define CID_FULL_EQ_LEN 18
+#define CID_EQ_LEN 13
+#define NAME_EQ_LEN 15
+#define PARTIAL_MESSAGE_EQ_LEN 30
+static char short_cuuid[TRUNC_ID_LEN + 1];
 static char *cuuid = NULL;
 static char *name = NULL;
+static size_t cuuid_len = 0;
+static size_t name_len = 0;
+static char *container_id_full = NULL;
+static char *container_id = NULL;
+static char *container_name = NULL;
 
 static void parse_log_path(char *log_config);
 static const char *stdpipe_name(stdpipe_t pipe);
@@ -77,12 +88,30 @@ void configure_log_drivers(gchar **log_drivers, int64_t log_size_max_, char *cuu
 #ifndef USE_JOURNALD
 		nexit("Include journald in compilation path to log to systemd journal");
 #endif
-		if (cuuid_ == NULL || strlen(cuuid_) <= TRUNCIDLEN)
+		/* save the length so we don't have to compute every sd_journal_* call */
+		if (cuuid_ == NULL)
 			nexit("Container ID must be provided and of the correct length");
+		cuuid_len = strlen(cuuid_);
+		if (cuuid_len <= TRUNC_ID_LEN)
+			nexit("Container ID must be longer than 12 characters");
+
 		cuuid = cuuid_;
-		strncpy(short_cuuid, cuuid, TRUNCIDLEN);
-		short_cuuid[TRUNCIDLEN] = '\0';
+		strncpy(short_cuuid, cuuid, TRUNC_ID_LEN);
+		short_cuuid[TRUNC_ID_LEN] = '\0';
 		name = name_;
+
+		/* Setup some sd_journal_sendv arguments that won't change */
+		container_id_full = g_strdup_printf("CONTAINER_ID_FULL=%s", cuuid);
+		container_id = g_strdup_printf("CONTAINER_ID=%s", short_cuuid);
+
+		/* To maintain backwards compatibility with older versions of conmon, we need to skip setting
+		 * the name value if it isn't present
+		 */
+		if (name) {
+			/* save the length so we don't have to compute every sd_journal_* call */
+			name_len = strlen(name);
+			container_name = g_strdup_printf("CONTAINER_NAME=%s", name);
+		}
 	}
 }
 
@@ -127,37 +156,66 @@ bool write_to_logs(stdpipe_t pipe, char *buf, ssize_t num_read)
 	return true;
 }
 
+
 /* write to systemd journal. If the pipe is stdout, write with notice priority,
  * otherwise, write with error priority
  */
 int write_journald(int pipe, char *buf, ssize_t buflen)
 {
-	int message_priority = LOG_INFO;
+	/* Since we know the priority values for the journal (6 being log info and 3 being log err
+	 * we can set it statically here. This will also save on runtime, at the expense of needing
+	 * to be changed if this convention is changed.
+	 */
+	const char *message_priority = "PRIORITY=6";
 	if (pipe == STDERR_PIPE)
-		message_priority = LOG_ERR;
+		message_priority = "PRIORITY=3";
 
 	ptrdiff_t line_len = 0;
+
 	while (buflen > 0) {
+		writev_buffer_t bufv = {0};
+
 		bool partial = get_line_len(&line_len, buf, buflen);
-		/* sd_journal_* doesn't have an option to specify the number of bytes to write, and instead writes the
+		/* sd_journal_* doesn't have an option to specify the number of bytes to write in the message, and instead writes the
 		 * entire string. Copying every line doesn't make very much sense, so instead we do this tmp_line_end
 		 * hack to emulate separate strings.
 		 */
 		char tmp_line_end = buf[line_len];
 		buf[line_len] = '\0';
 
-		/* per docker journald logging format, CONTAINER_PARTIAL_MESSAGE is set to true if it's partial, but otherwise not set.
-		 * hence the two cases
+		/* When using writev_buffer_append_segment here, we should never approach the number of
+		 * entries necessary to flush the buffer. Therefore, the fd passed in is -1.
 		 */
-		if (partial) {
-			sd_journal_send("MESSAGE=%s", buf, "PRIORITY=%i", message_priority, "CONTAINER_ID_FULL=%s", cuuid,
-					"CONTAINER_ID=%s", short_cuuid, "CONTAINER_NAME=%s", name, "CONTAINER_PARTIAL_MESSAGE=%s", "true",
-					NULL);
-		} else {
-			sd_journal_send("MESSAGE=%s", buf, "PRIORITY=%i", message_priority, "CONTAINER_ID_FULL=%s", cuuid,
-					"CONTAINER_ID=%s", short_cuuid, "CONTAINER_NAME=%s", name, NULL);
-		}
+		_cleanup_free_ char *message = g_strdup_printf("MESSAGE=%s", buf);
+		if (writev_buffer_append_segment(-1, &bufv, message, line_len + MESSAGE_EQ_LEN) < 0)
+			return -1;
+
+		/* Restore state of the buffer */
 		buf[line_len] = tmp_line_end;
+
+
+		if (writev_buffer_append_segment(-1, &bufv, container_id_full, cuuid_len + CID_FULL_EQ_LEN) < 0)
+			return -1;
+
+		if (writev_buffer_append_segment(-1, &bufv, message_priority, PRIORITY_EQ_LEN) < 0)
+			return -1;
+
+		if (writev_buffer_append_segment(-1, &bufv, container_id, TRUNC_ID_LEN + CID_EQ_LEN) < 0)
+			return -1;
+
+		/* only print the name if we have a name to print */
+		if (name && writev_buffer_append_segment(-1, &bufv, container_name, name_len + CID_FULL_EQ_LEN) < 0)
+			return -1;
+
+		/* per docker journald logging format, CONTAINER_PARTIAL_MESSAGE is set to true if it's partial, but otherwise not set. */
+		if (partial && writev_buffer_append_segment(-1, &bufv, "CONTAINER_PARTIAL_MESSAGE=true", PARTIAL_MESSAGE_EQ_LEN) < 0)
+			return -1;
+
+		int err = sd_journal_sendv(bufv.iov, bufv.iovcnt);
+		if (err < 0) {
+			pwarn(strerror(err));
+			return err;
+		}
 
 		buf += line_len;
 		buflen -= line_len;
