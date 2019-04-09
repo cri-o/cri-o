@@ -272,7 +272,7 @@ func (r *imageStore) Load() error {
 			}
 		}
 	}
-	if shouldSave && (!r.IsReadWrite() || !r.Locked()) {
+	if shouldSave && !r.IsReadWrite() {
 		return ErrDuplicateImageNames
 	}
 	r.images = images
@@ -291,7 +291,7 @@ func (r *imageStore) Save() error {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to modify the image store at %q", r.imagespath())
 	}
 	if !r.Locked() {
-		return errors.New("image store is not locked for writing")
+		return errors.New("image store is not locked")
 	}
 	rpath := r.imagespath()
 	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
@@ -754,10 +754,6 @@ func (r *imageStore) Wipe() error {
 
 func (r *imageStore) Lock() {
 	r.lockfile.Lock()
-}
-
-func (r *imageStore) RLock() {
-	r.lockfile.RLock()
 }
 
 func (r *imageStore) Unlock() {
