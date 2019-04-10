@@ -38,6 +38,11 @@ import (
 // A lower value would result in the container failing to start.
 const minMemoryLimit = 4194304
 
+type configDevice struct {
+	Device   rspec.LinuxDevice
+	Resource rspec.LinuxDeviceCgroup
+}
+
 func findCgroupMountpoint(name string) error {
 	// Set up pids limit if pids cgroup is mounted
 	_, err := cgroups.FindCgroupMountpoint("", name)
@@ -396,8 +401,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if err != nil {
 		return nil, err
 	}
-	for _, d := range configuredDevices {
-		specgen.AddDevice(d)
+
+	for i := range configuredDevices {
+		d := &configuredDevices[i]
+
+		specgen.AddDevice(d.Device)
+		specgen.AddLinuxResourcesDevice(d.Resource.Allow, d.Resource.Type, d.Resource.Major, d.Resource.Minor, d.Resource.Access)
 	}
 
 	if err := addDevices(sb, containerConfig, &specgen); err != nil {
@@ -1033,28 +1042,44 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	return volumes, ociMounts, nil
 }
 
-func getDevicesFromConfig(config *Config) ([]rspec.LinuxDevice, error) {
-	linuxdevs := make([]rspec.LinuxDevice, 0, len(config.RuntimeConfig.AdditionalDevices))
+func getDevicesFromConfig(config *Config) ([]configDevice, error) {
+	linuxdevs := make([]configDevice, 0, len(config.RuntimeConfig.AdditionalDevices))
+
 	for _, d := range config.RuntimeConfig.AdditionalDevices {
 		src, dst, permissions, err := createconfig.ParseDevice(d)
 		if err != nil {
 			return nil, err
 		}
+
+		logrus.Debugf("adding device src=%s dst=%s mode=%s", src, dst, permissions)
+
 		dev, err := devices.DeviceFromPath(src, permissions)
 		if err != nil {
 			return nil, errors.Wrapf(err, "%s is not a valid device", src)
 		}
+
 		dev.Path = dst
-		linuxdev := rspec.LinuxDevice{
-			Path:     dev.Path,
-			Type:     string(dev.Type),
-			Major:    dev.Major,
-			Minor:    dev.Minor,
-			FileMode: &dev.FileMode,
-			UID:      &dev.Uid,
-			GID:      &dev.Gid,
-		}
-		linuxdevs = append(linuxdevs, linuxdev)
+
+		linuxdevs = append(linuxdevs,
+			configDevice{
+				Device: rspec.LinuxDevice{
+					Path:     dev.Path,
+					Type:     string(dev.Type),
+					Major:    dev.Major,
+					Minor:    dev.Minor,
+					FileMode: &dev.FileMode,
+					UID:      &dev.Uid,
+					GID:      &dev.Gid,
+				},
+				Resource: rspec.LinuxDeviceCgroup{
+					Allow:  true,
+					Type:   string(dev.Type),
+					Major:  &dev.Major,
+					Minor:  &dev.Minor,
+					Access: permissions,
+				},
+			})
 	}
+
 	return linuxdevs, nil
 }
