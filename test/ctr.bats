@@ -182,6 +182,73 @@ function teardown() {
 	stop_crio
 }
 
+@test "additional devices permissions" {
+	# We need a ubiquitously configured device that isn't in the
+	# OCI spec default set.
+	local readonly device="/dev/loop-control"
+	local readonly timeout=30
+
+	if test -n "$UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+
+	if ! test -r $device ; then
+		skip "$device not readable"
+	fi
+
+	if ! test -w $device ; then
+		skip "$device not writeable"
+	fi
+
+	DEVICES="--additional-devices ${device}:${device}:w" start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+        # Ensure the device is there.
+	run crictl exec --timeout=$timeout --sync "$ctr_id" ls $device
+	echo $output
+	[ "$status" -eq 0 ]
+	[[ "$output" == "$device" ]]
+
+	# Dump the deviced cgroup configuration for debugging.
+	run crictl exec --timeout=$timeout --sync "$ctr_id" cat /sys/fs/cgroup/devices/devices.list
+	echo $output
+	[[ "$output" =~ "c 10:237 w" ]]
+
+        # Opening the device in read mode should fail because the device
+        # cgroup access only allows writes.
+	run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=$device of=/dev/null count=1
+	echo $output
+	[[ "$output" =~ "Operation not permitted" ]]
+
+        # The write should be allowed by the devices cgroup policy, so we
+        # should see an EINVAL from the device when the device fails it.
+	run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=/dev/zero of=$device count=1
+	echo $output
+	[[ "$output" =~ "Invalid argument" ]]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+
 @test "ctr remove" {
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
