@@ -15,6 +15,7 @@ linters:
     - goimports
     - golint
     - gosec
+    - gosimple
     - govet
     - ineffassign
     - interfacer
@@ -24,9 +25,11 @@ linters:
     - scopelint
     - staticcheck
     - structcheck
+    - stylecheck
     - typecheck
     - unconvert
     - unparam
+    - unused
     - varcheck
     # - errcheck
     # - gochecknoglobals
