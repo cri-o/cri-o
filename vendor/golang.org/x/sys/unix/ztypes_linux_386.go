@@ -443,6 +443,34 @@ const (
 )
 
 const (
+	NDA_UNSPEC           = 0x0
+	NDA_DST              = 0x1
+	NDA_LLADDR           = 0x2
+	NDA_CACHEINFO        = 0x3
+	NDA_PROBES           = 0x4
+	NDA_VLAN             = 0x5
+	NDA_PORT             = 0x6
+	NDA_VNI              = 0x7
+	NDA_IFINDEX          = 0x8
+	NDA_MASTER           = 0x9
+	NDA_LINK_NETNSID     = 0xa
+	NDA_SRC_VNI          = 0xb
+	NTF_USE              = 0x1
+	NTF_SELF             = 0x2
+	NTF_MASTER           = 0x4
+	NTF_PROXY            = 0x8
+	NTF_EXT_LEARNED      = 0x10
+	NTF_OFFLOADED        = 0x20
+	NTF_ROUTER           = 0x80
+	NUD_INCOMPLETE       = 0x1
+	NUD_REACHABLE        = 0x2
+	NUD_STALE            = 0x4
+	NUD_DELAY            = 0x8
+	NUD_PROBE            = 0x10
+	NUD_FAILED           = 0x20
+	NUD_NOARP            = 0x40
+	NUD_PERMANENT        = 0x80
+	NUD_NONE             = 0x0
 	IFA_UNSPEC           = 0x0
 	IFA_ADDRESS          = 0x1
 	IFA_LOCAL            = 0x2
@@ -451,6 +479,9 @@ const (
 	IFA_ANYCAST          = 0x5
 	IFA_CACHEINFO        = 0x6
 	IFA_MULTICAST        = 0x7
+	IFA_FLAGS            = 0x8
+	IFA_RT_PRIORITY      = 0x9
+	IFA_TARGET_NETNSID   = 0xa
 	IFLA_UNSPEC          = 0x0
 	IFLA_ADDRESS         = 0x1
 	IFLA_BROADCAST       = 0x2
@@ -576,6 +607,7 @@ const (
 	SizeofRtMsg          = 0xc
 	SizeofRtNexthop      = 0x8
 	SizeofNdUseroptmsg   = 0x10
+	SizeofNdMsg          = 0xc
 )
 
 type NlMsghdr struct {
@@ -650,6 +682,16 @@ type NdUseroptmsg struct {
 	Icmp_code uint8
 	Pad2      uint16
 	Pad3      uint32
+}
+
+type NdMsg struct {
+	Family  uint8
+	Pad1    uint8
+	Pad2    uint16
+	Ifindex int32
+	State   uint16
+	Flags   uint8
+	Type    uint8
 }
 
 const (
