@@ -12,11 +12,11 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/hooks"
+	"github.com/containers/libpod/pkg/registrar"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/pkg/registrar"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/truncindex"
