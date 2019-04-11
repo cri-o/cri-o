@@ -327,7 +327,11 @@ var configCommand = cli.Command{
 		// config file. So no need to handle that here.
 		config := c.App.Metadata["config"].(*server.Config)
 		if c.Bool("default") {
-			config = server.DefaultConfig()
+			c, err := server.DefaultConfig()
+			if err != nil {
+				return err
+			}
+			config = c
 		}
 
 		// Output the commented config.

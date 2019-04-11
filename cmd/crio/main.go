@@ -16,7 +16,7 @@ import (
 	"time"
 
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
-	"github.com/containers/libpod/pkg/spec"
+	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/oci"
@@ -352,8 +352,13 @@ func main() {
 	app.Name = "crio"
 	app.Usage = "crio server"
 	app.Version = strings.Join(v, "\n")
+	defConf, err := server.DefaultConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error loading server config: %v", err)
+		os.Exit(1)
+	}
 	app.Metadata = map[string]interface{}{
-		"config": server.DefaultConfig(),
+		"config": defConf,
 	}
 
 	app.Flags = []cli.Flag{
