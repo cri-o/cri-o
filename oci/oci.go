@@ -49,6 +49,7 @@ type Runtime struct {
 	runtimes                 map[string]RuntimeHandler
 	conmonPath               string
 	conmonEnv                []string
+	conmonCgroup             string
 	cgroupManager            string
 	containerExitsDir        string
 	containerAttachSocketDir string
@@ -101,6 +102,7 @@ func New(defaultRuntime string,
 	runtimes map[string]RuntimeHandler,
 	conmonPath string,
 	conmonEnv []string,
+	conmonCgroup,
 	cgroupManager,
 	containerExitsDir,
 	containerAttachSocketDir string,
@@ -122,6 +124,7 @@ func New(defaultRuntime string,
 		runtimes:                 runtimes,
 		conmonPath:               conmonPath,
 		conmonEnv:                conmonEnv,
+		conmonCgroup:             conmonCgroup,
 		cgroupManager:            cgroupManager,
 		containerExitsDir:        containerExitsDir,
 		containerAttachSocketDir: containerAttachSocketDir,

@@ -169,6 +169,9 @@ type RuntimeConfig struct {
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	Conmon string `toml:"conmon"`
 
+	// ConmonCgroup is the cgroup setting used for conmon.
+	ConmonCgroup string `toml:"conmon_cgroup"`
+
 	// SeccompProfile is the seccomp json profile path which is used as the
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile"`
@@ -383,6 +386,7 @@ func DefaultConfig() (*Config, error) {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
+			ConmonCgroup:             "pod",
 			SELinux:                  selinuxEnabled(),
 			SeccompProfile:           seccompProfilePath,
 			ApparmorProfile:          apparmorProfileName,
