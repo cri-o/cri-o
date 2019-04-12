@@ -10,11 +10,6 @@
     msg: "Expected cri-o to be cloned at {{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o but it wasn't!"
   when: not dir_stat.stat.exists
 
-- name: install cri-o tools
-  make:
-    target: install.tools
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
-
 - name: build cri-o
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"

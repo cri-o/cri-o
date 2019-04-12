@@ -1,5 +1,7 @@
 include Makefile.inc
 
+export GO111MODULE=off
+
 GO ?= go
 EPOCH_TEST_COMMIT ?= 1cc5a27
 PROJECT := github.com/cri-o/cri-o
@@ -30,6 +32,13 @@ OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 SELINUXOPT ?= $(shell selinuxenabled 2>/dev/null && echo -Z)
 
 BUILD_INFO := $(shell date +%s)
+
+GO_MD2MAN := ${BUILD_BIN_PATH}/go-md2man
+GINKGO := ${BUILD_BIN_PATH}/ginkgo
+MOCKGEN := ${BUILD_BIN_PATH}/mockgen
+GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
+RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
+GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
 CROSS_BUILD_TARGETS := \
 	bin/crio.cross.windows.amd64 \
@@ -75,8 +84,8 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch "$(GOPATH)/.gopathok"
 
-lint: .gopathok
-	golangci-lint run --build-tags="$(BUILDTAGS) containers_image_ostree_stub"
+lint: .gopathok ${GOLANGCI_LINT}
+	${GOLANGCI_LINT} run --build-tags="$(BUILDTAGS) containers_image_ostree_stub"
 
 fmt: gofmt cfmt
 
@@ -109,8 +118,8 @@ bin/crio: .gopathok
 crio.conf: bin/crio
 	./bin/crio --config="" config --default > crio.conf
 
-release-note:
-	@$(GOPATH)/bin/release-tool -n $(release)
+release-note: ${RELEASE_TOOL}
+	${RELEASE_TOOL} -n $(release)
 
 conmon/config.h: cmd/crio-config/config.go oci/oci.go
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
@@ -132,6 +141,7 @@ endif
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
+	rm -rf ${BUILD_BIN_PATH}
 
 # the approach here, rather than this target depending on the build targets
 # directly, is such that each target should try to build regardless if it
@@ -155,10 +165,6 @@ dbuild: crioimage
 integration: crioimage
 	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
-GO_MD2MAN := ${BUILD_BIN_PATH}/go-md2man
-GINKGO := ${BUILD_BIN_PATH}/ginkgo
-MOCKGEN := ${BUILD_BIN_PATH}/mockgen
-
 define go-build
 	$(GO) build -o ${BUILD_BIN_PATH}/${1} ${2}
 endef
@@ -175,13 +181,20 @@ ${GINKGO}: ${BUILD_BIN_PATH}
 ${MOCKGEN}:
 	$(call go-build,mockgen,./vendor/github.com/golang/mock/mockgen)
 
-vendor: .install.vndr
-	$(GOPATH)/bin/vndr \
-		-whitelist github.com/onsi/ginkgo \
-		-whitelist github.com/golang/mock \
-		-whitelist github.com/cpuguy83/go-md2man \
-		-whitelist github.com/russross/blackfriday \
-		${PKG}
+${GIT_VALIDATION}:
+	$(call go-build,git-validation,./vendor/github.com/vbatts/git-validation)
+
+${RELEASE_TOOL}:
+	$(call go-build,release-tool,./vendor/github.com/containerd/project/cmd/release-tool)
+
+${GOLANGCI_LINT}:
+	$(call go-build,golangci-lint,./vendor/github.com/golangci/golangci-lint/cmd/golangci-lint)
+
+vendor:
+	export GO111MODULE=on \
+		$(GO) mod tidy && \
+		$(GO) mod vendor && \
+		$(GO) mod verify
 
 testunit: mockgen ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
@@ -298,32 +311,12 @@ uninstall:
 	done
 
 # When this is running in travis, it will only check the travis commit range
-.gitvalidation: .gopathok
+.gitvalidation: .gopathok ${GIT_VALIDATION}
 ifeq ($(TRAVIS),true)
-	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -q -run DCO,short-subject,dangling-whitespace
+	GIT_CHECK_EXCLUDE="./vendor" ${GIT_VALIDATION} -q -run DCO,short-subject,dangling-whitespace
 else
-	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
+	GIT_CHECK_EXCLUDE="./vendor" ${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
-
-install.tools: .install.gitvalidation .install.golangci-lint .install.release
-
-.install.release:
-	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
-		go get -u github.com/containerd/project/cmd/release-tool; \
-	fi
-
-.install.gitvalidation: .gopathok
-	if [ ! -x "$(GOPATH)/bin/git-validation" ]; then \
-		go get -u github.com/vbatts/git-validation; \
-	fi
-
-.install.golangci-lint: .gopathok
-	if [ ! -x "$(GOPATH)/bin/golangci-lint" ]; then \
-		go get -u github.com/golangci/golangci-lint/cmd/golangci-lint; \
-	fi
-
-.install.vndr: .gopathok
-	$(GO) get -u github.com/LK4D4/vndr
 
 .install.ostree: .gopathok
 	if ! pkg-config ostree-1 2> /dev/null ; then \
@@ -346,7 +339,6 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.release
 	gofmt \
 	help \
 	install \
-	install.tools \
 	lint \
 	local-cross \
 	uninstall \

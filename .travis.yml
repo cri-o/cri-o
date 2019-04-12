@@ -16,7 +16,6 @@ before_install:
   - if [ "${TRAVIS_OS_NAME}" = osx ]; then brew update && brew install gpgme; fi
 
 install:
-  - make install.tools
   - >
     if [ "${TRAVIS_OS_NAME}" = linux ]; then
       OSTREE_VERSION=v2017.9;
