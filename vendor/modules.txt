@@ -111,6 +111,7 @@ github.com/containers/image/oci/internal
 # github.com/containers/libpod v1.2.0
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/hooks
+github.com/containers/libpod/pkg/registrar
 github.com/containers/libpod/pkg/rootless
 github.com/containers/libpod/pkg/spec
 github.com/containers/libpod/pkg/apparmor
@@ -132,7 +133,6 @@ github.com/containers/libpod/pkg/hooks/exec
 github.com/containers/libpod/pkg/inspect
 github.com/containers/libpod/pkg/kubeutils
 github.com/containers/libpod/pkg/netns
-github.com/containers/libpod/pkg/registrar
 github.com/containers/libpod/pkg/registries
 github.com/containers/libpod/pkg/resolvconf
 github.com/containers/libpod/pkg/util
@@ -204,7 +204,7 @@ github.com/cri-o/ocicni/pkg/ocicni
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/docker/distribution v0.0.0-20170817175659-5f6282db7d65
+# github.com/docker/distribution v2.7.1+incompatible
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
 github.com/docker/distribution/registry/client
@@ -215,6 +215,7 @@ github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
 github.com/docker/distribution/digestset
+github.com/docker/distribution/metrics
 # github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295
 github.com/docker/docker/pkg/ioutils
 github.com/docker/docker/pkg/truncindex
@@ -261,6 +262,8 @@ github.com/docker/docker-credential-helpers/credentials
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/tlsconfig
 github.com/docker/go-connections/sockets
+# github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82
+github.com/docker/go-metrics
 # github.com/docker/go-units v0.3.3
 github.com/docker/go-units
 # github.com/docker/libnetwork v0.8.0-dev.2.0.20180608203834-19279f049241
