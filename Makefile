@@ -19,7 +19,7 @@ DATAROOTDIR ?= ${PREFIX}/share/containers
 BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
-BUILD_PATH := ${PWD}/build
+BUILD_PATH := $(shell pwd)/build
 BUILD_BIN_PATH := ${BUILD_PATH}/bin
 COVERAGE_PATH := ${BUILD_PATH}/coverage
 TESTBIN_PATH := ${BUILD_PATH}/test
@@ -166,7 +166,7 @@ integration: crioimage
 	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
 define go-build
-	$(GO) build -o ${BUILD_BIN_PATH}/${1} ${2}
+	$(shell cd `pwd` && $(GO) build -o ${BUILD_BIN_PATH}/${1} ${2})
 endef
 
 ${BUILD_BIN_PATH}:
