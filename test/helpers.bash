@@ -65,6 +65,8 @@ PIDS_LIMIT=${PIDS_LIMIT:-1024}
 LOG_SIZE_MAX_LIMIT=${LOG_SIZE_MAX_LIMIT:--1}
 # Stream Port
 STREAM_PORT=${STREAM_PORT:-10010}
+# Metrics Port
+METRICS_PORT=${METRICS_PORT:-9090}
 
 TESTDIR=$(mktemp -d)
 
@@ -306,6 +308,24 @@ function check_journald() {
 	fi
 
 	if ! journalctl --version ; then
+		echo "1"
+		return
+	fi
+	echo "0"
+}
+
+# Start crio with metrics enable
+function start_crio_metrics() {
+	setup_crio "$@"
+	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --metrics-port "$METRICS_PORT" --enable-metrics --config "$CRIO_CONFIG" & CRIO_PID=$!
+	wait_until_reachable
+	pull_test_containers
+}
+
+# Check whether metrics port is listening
+function check_metrics_port () {
+	metrics_port=$1
+	if ! netstat -lanp | grep $metrics_port > /dev/null ; then
 		echo "1"
 		return
 	fi
