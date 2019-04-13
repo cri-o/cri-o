@@ -29,9 +29,10 @@ require (
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.0.0-20190328132530-0c180f981b27
 	github.com/cyphar/filepath-securejoin v0.2.1 // indirect
-	github.com/docker/distribution v0.0.0-20170817175659-5f6282db7d65 // indirect
+	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295
 	github.com/docker/docker-credential-helpers v0.6.1 // indirect
+	github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82 // indirect
 	github.com/docker/go-units v0.3.3
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -106,5 +107,7 @@ require (
 	k8s.io/kubernetes v1.14.0
 	k8s.io/utils v0.0.0-20190308190857-21c4ce38f2a7
 )
+
+replace cloud.google.com/go => cloud.google.com/go v0.34.0
 
 module github.com/cri-o/cri-o
