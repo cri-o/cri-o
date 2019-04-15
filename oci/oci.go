@@ -93,6 +93,7 @@ type RuntimeImpl interface {
 type RuntimeHandler struct {
 	RuntimePath string `toml:"runtime_path"`
 	RuntimeType string `toml:"runtime_type"`
+	RuntimeRoot string `toml:"runtime_root"`
 }
 
 // New creates a new Runtime with options provided
@@ -241,7 +242,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 
 	// If the runtime type is different from "vm", then let's fallback
 	// onto the OCI implementation by default.
-	return newRuntimeOCI(r, rh.RuntimePath), nil
+	return newRuntimeOCI(r, &rh), nil
 }
 
 // RuntimeImpl returns the runtime implementation for a given container

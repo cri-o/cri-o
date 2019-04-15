@@ -376,6 +376,7 @@ func DefaultConfig() (*Config, error) {
 				"runc": {
 					RuntimePath: "/usr/bin/runc",
 					RuntimeType: "oci",
+					RuntimeRoot: "/run/runc",
 				},
 			},
 			Conmon: conmonPath,
