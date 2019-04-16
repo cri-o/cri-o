@@ -2,7 +2,7 @@
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
-[![Build Status](https://img.shields.io/travis/kubernetes-sigs/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/kubernetes-sigs/cri-o)
+[![Build Status](https://img.shields.io/travis/cri-o/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/cri-o/cri-o)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/cri-o/cri-o)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2298/badge)](https://bestpractices.coreinfrastructure.org/projects/2298)
 
