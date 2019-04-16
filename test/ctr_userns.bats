@@ -34,7 +34,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	state=$($RUNTIME state "$ctr_id")
+	state=$(crictl inspect "$ctr_id")
 	pid=$(echo $state | python -c 'import json; import sys; d=json.load(sys.stdin); print d["pid"]')
 	grep 100000 /proc/$pid/uid_map
 	[ "$status" -eq 0 ]
