@@ -38,3 +38,14 @@ load helpers
 	[ "$status" -ne 0 ]
 	[[ "$output" =~ "invalid device mode:" ]]
 }
+
+@test "invalid metrics port" {
+	run ${CRIO_BINARY} --metrics-port foo --enable-metrics
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "invalid value \"foo\" for flag" ]]
+	run ${CRIO_BINARY} --metrics-port 18446744073709551616 --enable-metrics
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "value out of range" ]]
+}

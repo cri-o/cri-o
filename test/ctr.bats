@@ -1397,3 +1397,75 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+@test "ctr expose metrics with default port" {
+	# start crio with default port 9090
+	port="9090"
+	start_crio_metrics
+	# ensure metrics port is listening
+	listened=$(check_metrics_port $port)
+	if [[ "$listened" -ne 0 ]]; then
+		skip "$METRICS_PORT is not listening"
+	fi
+
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	[ "$status" -eq 0 ]
+
+	# get metrics
+	run curl http://localhost:$port/metrics -k
+	[ "$status" -eq 0 ]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr expose metrics with custom port" {
+	# start crio with custom port
+	port="4321"
+	METRICS_PORT=$port start_crio_metrics
+	# ensure metrics port is listening
+	listened=$(check_metrics_port $port)
+	if [[ "$listened" -ne 0 ]]; then
+		skip "$METRICS_PORT is not listening"
+	fi
+
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	[ "$status" -eq 0 ]
+
+	# get metrics
+	run curl http://localhost:$port/metrics -k
+	[ "$status" -eq 0 ]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
