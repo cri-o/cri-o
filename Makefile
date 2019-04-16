@@ -47,6 +47,8 @@ GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
+NIX_IMAGE := crionix
+
 CROSS_BUILD_TARGETS := \
 	bin/crio.cross.windows.amd64 \
 	bin/crio.cross.darwin.amd64 \
@@ -117,6 +119,17 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 bin/crio: .gopathok
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
+build-static:
+	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(NIX_IMAGE) sh -c \
+		"nix-build cri-o/nix --argstr revision $(COMMIT_NO) && \
+		mkdir -p cri-o/bin && \
+		cp result-*bin/bin/crio-* cri-o/bin && \
+		chown -R $(shell id -u):$(shell id -g) cri-o/bin"
+
+nix-image:
+	time $(CONTAINER_RUNTIME) build -t $(NIX_IMAGE) \
+		--build-arg COMMIT=$(COMMIT_NO) -f Dockerfile-nix .
+
 crio.conf: bin/crio
 	./bin/crio --config="" config --default > crio.conf
 
@@ -165,7 +178,7 @@ dbuild: crioimage
 	$(CONTAINER_RUNTIME) run --name=${CRIO_INSTANCE} -e BUILDTAGS --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${CRIO_IMAGE} make binaries
 
 integration: crioimage
-	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
+	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -e CRIO_BINARY -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
 define go-build
 	$(shell cd `pwd` && $(GO) build -o ${BUILD_BIN_PATH}/${1} ${2})
@@ -327,6 +340,7 @@ endif
 	bin/crio \
 	bin/pause \
 	binaries \
+	build-static \
 	clean \
 	default \
 	docs \
@@ -334,5 +348,6 @@ endif
 	install \
 	lint \
 	local-cross \
+	nix-image \
 	uninstall \
 	vendor

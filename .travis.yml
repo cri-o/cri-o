@@ -7,8 +7,6 @@ services:
   - docker
 
 before_install:
-  - if [ "${TRAVIS_OS_NAME}" = linux ]; then make vendor; fi
-  - if [ "${TRAVIS_OS_NAME}" = linux ]; then ./hack/tree_status.sh; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq update; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libseccomp-dev; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison clang-format-3.9 e2fslibs-dev libfuse-dev libtool liblzma-dev gettext libsystemd-dev; fi
@@ -20,40 +18,70 @@ before_script:
   - export LD_LIBRARY_PATH=/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 env:
+  global:
+    - NIX_IMAGE=saschagrunert/crionix
+    - CONTAINER_RUNTIME=docker
 
 jobs:
   include:
-    - stage: Build and Verify
+    - stage: Lint
+      name: git validation, clang-format, golangci-lint
       script:
         - make .gitvalidation
         - make fmt
         - make lint
       go: "1.12.x"
-    - script:
+    - name: vendor
+      script:
+        - make vendor
+        - hack/tree_status.sh
+      go: "1.12.x"
+    - stage: Test
+      name: build, unit test and code coverage report
+      script:
         - make testunit
         - make
         - make codecov
       go: "1.12.x"
-    - script:
+    - name: static binary build
+      script:
+        - make build-static CONTAINER_RUNTIME=$CONTAINER_RUNTIME NIX_IMAGE=$NIX_IMAGE
+      go: "1.12.x"
+    - name: cross compilation build
+      script:
         - make local-cross
       go: "1.12.x"
       env: CROSS_PLATFORM=true
-    - script:
+    - name: latest go version (tip)
+      script:
         - make testunit
         - make
       go: tip
-    - script:
+    - name: macOS build and unit tests
+      script:
         - make testunit
         - make
       os: osx
-    - stage: Integration Test
+    - stage: Integration
+      name: default build
       script:
-        - make CONTAINER_RUNTIME=docker integration
+        - make integration CONTAINER_RUNTIME=$CONTAINER_RUNTIME
       go: "1.12.x"
-    - script:
-        - make CONTAINER_RUNTIME=docker integration
+    - name: default build with user namespace
+      script:
+        - make integration CONTAINER_RUNTIME=$CONTAINER_RUNTIME
       env: TEST_USERNS=1
       go: "1.12.x"
+    - name: static x86_64 glibc
+      script:
+        - make build-static integration CONTAINER_RUNTIME=$CONTAINER_RUNTIME NIX_IMAGE=$NIX_IMAGE
+      go: "1.12.x"
+      env: CRIO_BINARY=crio-x86_64-static-glibc
+    - name: static x86_64 musl libc
+      script:
+        - make build-static integration CONTAINER_RUNTIME=$CONTAINER_RUNTIME NIX_IMAGE=$NIX_IMAGE
+      go: "1.12.x"
+      env: CRIO_BINARY=crio-x86_64-static-musl
   allow_failures:
     - os: osx
     - go: tip
