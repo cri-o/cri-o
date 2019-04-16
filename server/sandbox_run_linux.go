@@ -18,6 +18,7 @@ import (
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -30,6 +31,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/leaky"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
+
+const cgroupMemorySubsystemMountPath = "/sys/fs/cgroup/memory"
 
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	const operation = "run_pod_sandbox"
@@ -370,6 +373,30 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			cgPath := convertCgroupFsNameToSystemd(cgroupParent)
 			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
 			cgroupParent = cgPath
+
+			// check memory limit is greater than the minimum memory limit of 4Mb
+			// expand the cgroup slice path
+			slicePath, err := systemd.ExpandSlice(cgroupParent)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error expanding systemd slice path for %q", cgroupParent)
+			}
+			// read in the memory limit from the memory.limit_in_bytes file
+			fileData, err := ioutil.ReadFile(filepath.Join(cgroupMemorySubsystemMountPath, slicePath, "memory.limit_in_bytes"))
+			if err != nil {
+				return nil, errors.Wrapf(err, "error reading memory.limit_in_bytes file for slice %q", cgroupParent)
+			}
+			// strip off the newline character and convert it to an int
+			strMemory := strings.TrimRight(string(fileData), "\n")
+			if strMemory != "" {
+				memoryLimit, err := strconv.Atoi(strMemory)
+				if err != nil {
+					return nil, errors.Wrapf(err, "error converting cgroup memory value from string to int %q", strMemory)
+				}
+				// Compare with the minimum allowed memory limit
+				if memoryLimit != 0 && memoryLimit < minMemoryLimit {
+					return nil, fmt.Errorf("pod set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+				}
+			}
 		} else {
 			if strings.HasSuffix(path.Base(cgroupParent), ".slice") {
 				return nil, fmt.Errorf("cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s", cgroupParent)
