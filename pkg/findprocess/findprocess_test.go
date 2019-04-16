@@ -16,7 +16,6 @@ func TestFindprocess(t *testing.T) {
 	RunSpecs(t, "Findprocess")
 }
 
-// nolint: gochecknoglobals
 var t *TestFramework
 
 var _ = BeforeSuite(func() {

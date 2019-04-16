@@ -21,12 +21,7 @@ func (c *ContainerServer) ContainerWait(container string) (int32, error) {
 
 	err = wait.PollImmediateInfinite(1,
 		func() (bool, error) {
-			if !isStopped(c, ctr) {
-				return false, nil
-			} else { // nolint
-				return true, nil // nolint
-			} // nolint
-
+			return isStopped(c, ctr), nil
 		},
 	)
 
