@@ -382,6 +382,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	defer os.RemoveAll(processFile.Name())
 
 	args = append(args, "--exec-process-spec", processFile.Name())
+	args = append(args, "--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
 	cmd := exec.Command(r.conmonPath, args...)
 
