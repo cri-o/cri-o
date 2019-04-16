@@ -31,9 +31,6 @@ import (
 const (
 	// RuntimeTypeOCI is the type representing the RuntimeOCI implementation.
 	RuntimeTypeOCI = "oci"
-
-	// Command line flag used to specify the run root directory
-	rootFlag = "--root"
 )
 
 // runtimeOCI is the Runtime interface implementation relying on conmon to
@@ -42,15 +39,13 @@ type runtimeOCI struct {
 	*Runtime
 
 	path string
-	root string
 }
 
 // newRuntimeOCI creates a new runtimeOCI instance
-func newRuntimeOCI(r *Runtime, handler *RuntimeHandler) RuntimeImpl {
+func newRuntimeOCI(r *Runtime, path string) RuntimeImpl {
 	return &runtimeOCI{
 		Runtime: r,
-		path:    handler.RuntimePath,
-		root:    handler.RuntimeRoot,
+		path:    path,
 	}
 }
 
@@ -95,7 +90,6 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	args = append(args, "--exit-dir", r.containerExitsDir)
 	args = append(args, "--socket-dir-path", r.containerAttachSocketDir)
 	args = append(args, "--log-level", logrus.GetLevel().String())
-	args = append(args, "--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
@@ -209,9 +203,7 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
-		r.path, rootFlag, r.root, "start", c.id); err != nil {
-
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", c.id); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -286,7 +278,7 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 	}
 	defer os.RemoveAll(processFile.Name())
 
-	args := []string{rootFlag, r.root, "exec"}
+	args := []string{"exec"}
 	args = append(args, "--process", processFile.Name())
 	args = append(args, c.ID())
 	execCmd := exec.Command(r.path, args...)
@@ -467,7 +459,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 // UpdateContainer updates container resources
 func (r *runtimeOCI) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
-	cmd := exec.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.id)
+	cmd := exec.Command(r.path, "update", "--resources", "-", c.id)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -561,9 +553,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	}
 
 	if timeout > 0 {
-		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
-			r.path, rootFlag, r.root, "kill", c.id, c.GetStopSignal()); err != nil {
-
+		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.id, c.GetStopSignal()); err != nil {
 			if err := checkProcessGone(c); err != nil {
 				return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 			}
@@ -575,9 +565,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		logrus.Warnf("Stop container %q timed out: %v", c.id, err)
 	}
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
-		r.path, rootFlag, r.root, "kill", c.id, "KILL"); err != nil {
-
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.id, "KILL"); err != nil {
 		if err := checkProcessGone(c); err != nil {
 			return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 		}
@@ -606,7 +594,7 @@ func (r *runtimeOCI) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "delete", "--force", c.id)
+	_, err := utils.ExecCmd(r.path, "delete", "--force", c.id)
 	return err
 }
 
@@ -615,7 +603,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id)
+	cmd := exec.Command(r.path, "state", c.id)
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
@@ -684,7 +672,7 @@ func (r *runtimeOCI) PauseContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "pause", c.id)
+	_, err := utils.ExecCmd(r.path, "pause", c.id)
 	return err
 }
 
@@ -693,7 +681,7 @@ func (r *runtimeOCI) UnpauseContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "resume", c.id)
+	_, err := utils.ExecCmd(r.path, "resume", c.id)
 	return err
 }
 
@@ -706,7 +694,7 @@ func (r *runtimeOCI) ContainerStats(c *Container) (*ContainerStats, error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	return r.containerStats(c)
+	return containerStats(c)
 }
 
 // SignalContainer sends a signal to a container process.
@@ -719,8 +707,7 @@ func (r *runtimeOCI) SignalContainer(c *Container, sig syscall.Signal) error {
 		return err
 	}
 
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path,
-		rootFlag, r.root, "kill", c.ID(), signalString)
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.ID(), signalString)
 }
 
 // AttachContainer attaches IO to a running container.

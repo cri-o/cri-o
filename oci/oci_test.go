@@ -13,7 +13,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			// When
 			runtime, err := oci.New("runc",
-				map[string]oci.RuntimeHandler{"runc": {"/bin/sh", "", "/run/runc"}},
+				map[string]oci.RuntimeHandler{"runc": {"/bin/sh", ""}},
 				"", []string{}, "", "", "", 0, false, false, 0)
 
 			// Then
@@ -44,7 +44,7 @@ var _ = t.Describe("Oci", func() {
 			defaultRuntime = "runc"
 		)
 		runtimes := map[string]oci.RuntimeHandler{
-			defaultRuntime: {"/bin/sh", "", "/run/runc"}, invalidRuntime: {},
+			defaultRuntime: {"/bin/sh", ""}, invalidRuntime: {},
 		}
 
 		BeforeEach(func() {

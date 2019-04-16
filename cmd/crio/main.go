@@ -121,13 +121,10 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		runtimes := ctx.GlobalStringSlice("runtimes")
 		for _, r := range runtimes {
 			fields := strings.Split(r, ":")
-			if len(fields) != 3 {
+			if fields[0] == "" {
 				return fmt.Errorf("wrong format for --runtimes: %q", r)
 			}
-			config.Runtimes[fields[0]] = oci.RuntimeHandler{
-				RuntimePath: fields[1],
-				RuntimeRoot: fields[2],
-			}
+			config.Runtimes[fields[0]] = oci.RuntimeHandler{RuntimePath: fields[1]}
 		}
 	}
 	if ctx.GlobalIsSet("selinux") {
@@ -365,7 +362,7 @@ func main() {
 		},
 		cli.StringSliceFlag{
 			Name:  "runtimes",
-			Usage: "OCI runtimes, format is runtime_name:runtime_path:runtime_root",
+			Usage: "OCI runtimes, format is runtime_name:runtime_path",
 		},
 		cli.StringFlag{
 			Name:  "seccomp-profile",

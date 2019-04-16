@@ -74,8 +74,12 @@ func loadFactory(root string) (libcontainer.Factory, error) {
 }
 
 // libcontainerStats gets the stats for the container with the given id from runc/libcontainer
-func (r *runtimeOCI) libcontainerStats(ctr *Container) (*libcontainer.Stats, error) {
-	factory, err := loadFactory(r.root)
+func libcontainerStats(ctr *Container) (*libcontainer.Stats, error) {
+	// TODO: make this not hardcoded
+	// was: c.runtime.Path(ociContainer) but that returns /usr/bin/runc - how do we get /run/runc?
+	// runroot is /var/run/runc
+	// Hardcoding probably breaks Kata Containers compatibility
+	factory, err := loadFactory("/run/runc")
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +90,8 @@ func (r *runtimeOCI) libcontainerStats(ctr *Container) (*libcontainer.Stats, err
 	return container.Stats()
 }
 
-func (r *runtimeOCI) containerStats(ctr *Container) (*ContainerStats, error) {
-	libcontainerStats, err := r.libcontainerStats(ctr)
+func containerStats(ctr *Container) (*ContainerStats, error) {
+	libcontainerStats, err := libcontainerStats(ctr)
 	if err != nil {
 		return nil, err
 	}
