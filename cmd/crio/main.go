@@ -242,14 +242,6 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 	}()
 }
 
-func toStringSlice(s []string) *cli.StringSlice {
-	r := cli.StringSlice{}
-	for _, v := range s {
-		r = append(r, v)
-	}
-	return &r
-}
-
 func main() {
 	// https://github.com/kubernetes/kubernetes/issues/17162
 	goflag.CommandLine.Parse([]string{})
@@ -285,23 +277,19 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "conmon",
-			Value: defConf.Conmon,
-			Usage: "path to the conmon executable",
+			Usage: fmt.Sprintf("path to the conmon executable (default: %q)", defConf.Conmon),
 		},
 		cli.StringFlag{
 			Name:  "listen",
-			Value: defConf.Listen,
-			Usage: "path to crio socket",
+			Usage: fmt.Sprintf("path to crio socket (default: %q)", defConf.Listen),
 		},
 		cli.StringFlag{
 			Name:  "stream-address",
-			Value: defConf.StreamAddress,
-			Usage: "bind address for streaming socket",
+			Usage: fmt.Sprintf("bind address for streaming socket (default: %q)", defConf.StreamAddress),
 		},
 		cli.StringFlag{
 			Name:  "stream-port",
-			Value: defConf.StreamPort,
-			Usage: "bind port for streaming socket",
+			Usage: fmt.Sprintf("bind port for streaming socket (default: %q)", defConf.StreamPort),
 		},
 		cli.StringFlag{
 			Name:  "log",
@@ -320,43 +308,35 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "pause-command",
-			Value: defConf.PauseCommand,
-			Usage: "name of the pause command in the pause image",
+			Usage: fmt.Sprintf("name of the pause command in the pause image (default: %q)", defConf.PauseCommand),
 		},
 		cli.StringFlag{
 			Name:  "pause-image",
-			Value: defConf.PauseImage,
-			Usage: "name of the pause image",
+			Usage: fmt.Sprintf("name of the pause image (default: %q)", defConf.PauseImage),
 		},
 		cli.StringFlag{
 			Name:  "pause-image-auth-file",
-			Value: defConf.PauseImageAuthFile,
-			Usage: "path to a config file containing credentials for --pause-image",
+			Usage: fmt.Sprintf("path to a config file containing credentials for --pause-image (default: %s)", defConf.PauseImageAuthFile),
 		},
 		cli.StringFlag{
 			Name:  "signature-policy",
-			Value: defConf.SignaturePolicyPath,
-			Usage: "path to signature policy file",
+			Usage: fmt.Sprintf("path to signature policy file (default: %q)", defConf.SignaturePolicyPath),
 		},
 		cli.StringFlag{
 			Name:  "root",
-			Value: defConf.Root,
-			Usage: "crio root dir",
+			Usage: fmt.Sprintf("crio root dir (default: %q)", defConf.Root),
 		},
 		cli.StringFlag{
 			Name:  "runroot",
-			Value: defConf.RunRoot,
-			Usage: "crio state dir",
+			Usage: fmt.Sprintf("crio state dir (default: %q)", defConf.RunRoot),
 		},
 		cli.StringFlag{
 			Name:  "storage-driver",
-			Value: defConf.Storage,
-			Usage: "storage driver",
+			Usage: fmt.Sprintf("storage driver (default: %q)", defConf.Storage),
 		},
 		cli.StringSliceFlag{
 			Name:  "storage-opt",
-			Value: toStringSlice(defConf.StorageOptions),
-			Usage: "storage driver option",
+			Usage: fmt.Sprintf("storage driver option (default: %q)", defConf.StorageOptions),
 		},
 		cli.BoolFlag{
 			Name:  "file-locking",
@@ -368,13 +348,11 @@ func main() {
 		},
 		cli.StringSliceFlag{
 			Name:  "registry",
-			Value: toStringSlice(defConf.Registries),
-			Usage: "registry to be prepended when pulling unqualified images, can be specified multiple times",
+			Usage: fmt.Sprintf("registry to be prepended when pulling unqualified images, can be specified multiple times (default: %q)", defConf.Registries),
 		},
 		cli.StringFlag{
 			Name:  "default-transport",
-			Value: defConf.DefaultTransport,
-			Usage: "default transport",
+			Usage: fmt.Sprintf("default transport (default: %q)", defConf.DefaultTransport),
 		},
 		// XXX: DEPRECATED
 		cli.StringFlag{
@@ -383,8 +361,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "default-runtime",
-			Value: defConf.DefaultRuntime,
-			Usage: "default OCI runtime from the runtimes config",
+			Usage: fmt.Sprintf("default OCI runtime from the runtimes config (default: %q)", defConf.DefaultRuntime),
 		},
 		cli.StringSliceFlag{
 			Name:  "runtimes",
@@ -392,13 +369,11 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "seccomp-profile",
-			Value: defConf.SeccompProfile,
-			Usage: "default seccomp profile path",
+			Usage: fmt.Sprintf("default seccomp profile path (default: %q)", defConf.SeccompProfile),
 		},
 		cli.StringFlag{
 			Name:  "apparmor-profile",
-			Value: defConf.ApparmorProfile,
-			Usage: "default apparmor profile name",
+			Usage: fmt.Sprintf("default apparmor profile name (default: %q)", defConf.ApparmorProfile),
 		},
 		cli.BoolFlag{
 			Name:  "selinux",
@@ -406,8 +381,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "cgroup-manager",
-			Value: defConf.CgroupManager,
-			Usage: "cgroup manager (cgroupfs or systemd)",
+			Usage: fmt.Sprintf("cgroup manager (cgroupfs or systemd) (default: %q)", defConf.CgroupManager),
 		},
 		cli.Int64Flag{
 			Name:  "pids-limit",
@@ -425,13 +399,11 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "cni-config-dir",
-			Value: defConf.NetworkDir,
-			Usage: "CNI configuration files directory",
+			Usage: fmt.Sprintf("CNI configuration files directory (default: %q)", defConf.NetworkDir),
 		},
 		cli.StringSliceFlag{
 			Name:  "cni-plugin-dir",
-			Value: toStringSlice(defConf.PluginDir),
-			Usage: "CNI plugin binaries directory",
+			Usage: fmt.Sprintf("CNI plugin binaries directory (default: %q)", defConf.PluginDir),
 		},
 		cli.StringFlag{
 			Name:  "image-volumes",
@@ -440,34 +412,28 @@ func main() {
 		},
 		cli.StringSliceFlag{
 			Name:  "hooks-dir",
-			Value: toStringSlice(defConf.HooksDir),
-			Usage: "set the OCI hooks directory path (may be set multiple times)",
+			Usage: fmt.Sprintf("set the OCI hooks directory path (may be set multiple times) (default: %q)", defConf.HooksDir),
 		},
 		cli.StringSliceFlag{
 			Name:  "default-mounts",
-			Value: toStringSlice(defConf.DefaultMounts),
-			Usage: "add one or more default mount paths in the form host:container (deprecated)",
+			Usage: fmt.Sprintf("add one or more default mount paths in the form host:container (deprecated) (default: %q)", defConf.DefaultMounts),
 		},
 		cli.StringFlag{
 			Name:   "default-mounts-file",
-			Value:  defConf.DefaultMountsFile,
-			Usage:  "path to default mounts file",
+			Usage:  fmt.Sprintf("path to default mounts file (default: %q)", defConf.DefaultMountsFile),
 			Hidden: true,
 		},
 		cli.StringSliceFlag{
 			Name:  "default-capabilities",
-			Value: toStringSlice(defConf.DefaultCapabilities),
-			Usage: "capabilities to add to the containers",
+			Usage: fmt.Sprintf("capabilities to add to the containers (default: %q)", defConf.DefaultCapabilities),
 		},
 		cli.StringSliceFlag{
 			Name:  "default-sysctls",
-			Value: toStringSlice(defConf.DefaultSysctls),
-			Usage: "sysctls to add to the containers",
+			Usage: fmt.Sprintf("sysctls to add to the containers (default: %q)", defConf.DefaultSysctls),
 		},
 		cli.StringSliceFlag{
 			Name:  "default-ulimits",
-			Value: toStringSlice(defConf.DefaultUlimits),
-			Usage: "ulimits to apply to conatainers by default (name=soft:hard)",
+			Usage: fmt.Sprintf("ulimits to apply to conatainers by default (name=soft:hard) (default: %q)", defConf.DefaultUlimits),
 		},
 		cli.BoolFlag{
 			Name:  "profile",
@@ -493,23 +459,19 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "bind-mount-prefix",
-			Value: defConf.BindMountPrefix,
-			Usage: "specify a prefix to prepend to the source of a bind mount",
+			Usage: fmt.Sprintf("specify a prefix to prepend to the source of a bind mount (default: %q)", defConf.BindMountPrefix),
 		},
 		cli.StringFlag{
 			Name:  "uid-mappings",
-			Value: defConf.UIDMappings,
-			Usage: "specify the UID mappings to use for the user namespace",
+			Usage: fmt.Sprintf("specify the UID mappings to use for the user namespace (default: %q)", defConf.UIDMappings),
 		},
 		cli.StringFlag{
 			Name:  "gid-mappings",
-			Value: defConf.GIDMappings,
-			Usage: "specify the GID mappings to use for the user namespace",
+			Usage: fmt.Sprintf("specify the GID mappings to use for the user namespace (default: %q)", defConf.GIDMappings),
 		},
 		cli.StringSliceFlag{
 			Name:  "additional-devices",
-			Value: toStringSlice(defConf.AdditionalDevices),
-			Usage: "devices to add to the containers",
+			Usage: fmt.Sprintf("devices to add to the containers (default: %q)", defConf.AdditionalDevices),
 		},
 	}
 
