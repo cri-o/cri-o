@@ -485,7 +485,7 @@ func main() {
 		cli.IntFlag{
 			Name:  "metrics-port",
 			Value: 9090,
-			Usage: "port for the metrics endpoint (default: 9090)",
+			Usage: "port for the metrics endpoint",
 		},
 		cli.BoolFlag{
 			Name:  "read-only",
