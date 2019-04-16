@@ -242,6 +242,14 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 	}()
 }
 
+func toStringSlice(s []string) *cli.StringSlice {
+	r := cli.StringSlice{}
+	for _, v := range s {
+		r = append(r, v)
+	}
+	return &r
+}
+
 func main() {
 	// https://github.com/kubernetes/kubernetes/issues/17162
 	goflag.CommandLine.Parse([]string{})
@@ -277,19 +285,23 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "conmon",
+			Value: defConf.Conmon,
 			Usage: "path to the conmon executable",
 		},
 		cli.StringFlag{
 			Name:  "listen",
+			Value: defConf.Listen,
 			Usage: "path to crio socket",
 		},
 		cli.StringFlag{
 			Name:  "stream-address",
+			Value: defConf.StreamAddress,
 			Usage: "bind address for streaming socket",
 		},
 		cli.StringFlag{
 			Name:  "stream-port",
-			Usage: "bind port for streaming socket (default: \"0\")",
+			Value: defConf.StreamPort,
+			Usage: "bind port for streaming socket",
 		},
 		cli.StringFlag{
 			Name:  "log",
@@ -308,39 +320,47 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "pause-command",
+			Value: defConf.PauseCommand,
 			Usage: "name of the pause command in the pause image",
 		},
 		cli.StringFlag{
 			Name:  "pause-image",
+			Value: defConf.PauseImage,
 			Usage: "name of the pause image",
 		},
 		cli.StringFlag{
 			Name:  "pause-image-auth-file",
+			Value: defConf.PauseImageAuthFile,
 			Usage: "path to a config file containing credentials for --pause-image",
 		},
 		cli.StringFlag{
 			Name:  "signature-policy",
+			Value: defConf.SignaturePolicyPath,
 			Usage: "path to signature policy file",
 		},
 		cli.StringFlag{
 			Name:  "root",
+			Value: defConf.Root,
 			Usage: "crio root dir",
 		},
 		cli.StringFlag{
 			Name:  "runroot",
+			Value: defConf.RunRoot,
 			Usage: "crio state dir",
 		},
 		cli.StringFlag{
 			Name:  "storage-driver",
+			Value: defConf.Storage,
 			Usage: "storage driver",
 		},
 		cli.StringSliceFlag{
 			Name:  "storage-opt",
+			Value: toStringSlice(defConf.StorageOptions),
 			Usage: "storage driver option",
 		},
 		cli.BoolFlag{
 			Name:  "file-locking",
-			Usage: "enable or disable file-based locking",
+			Usage: fmt.Sprintf("enable or disable file-based locking (default: %t)", defConf.FileLocking),
 		},
 		cli.StringSliceFlag{
 			Name:  "insecure-registry",
@@ -348,10 +368,12 @@ func main() {
 		},
 		cli.StringSliceFlag{
 			Name:  "registry",
+			Value: toStringSlice(defConf.Registries),
 			Usage: "registry to be prepended when pulling unqualified images, can be specified multiple times",
 		},
 		cli.StringFlag{
 			Name:  "default-transport",
+			Value: defConf.DefaultTransport,
 			Usage: "default transport",
 		},
 		// XXX: DEPRECATED
@@ -361,6 +383,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "default-runtime",
+			Value: defConf.DefaultRuntime,
 			Usage: "default OCI runtime from the runtimes config",
 		},
 		cli.StringSliceFlag{
@@ -369,18 +392,21 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "seccomp-profile",
+			Value: defConf.SeccompProfile,
 			Usage: "default seccomp profile path",
 		},
 		cli.StringFlag{
 			Name:  "apparmor-profile",
-			Usage: "default apparmor profile name (default: \"crio-default\")",
+			Value: defConf.ApparmorProfile,
+			Usage: "default apparmor profile name",
 		},
 		cli.BoolFlag{
 			Name:  "selinux",
-			Usage: "enable selinux support",
+			Usage: fmt.Sprintf("enable selinux support (default: %t)", defConf.SELinux),
 		},
 		cli.StringFlag{
 			Name:  "cgroup-manager",
+			Value: defConf.CgroupManager,
 			Usage: "cgroup manager (cgroupfs or systemd)",
 		},
 		cli.Int64Flag{
@@ -395,14 +421,16 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "log-journald",
-			Usage: "Log to journald in addition to kubernetes log file",
+			Usage: fmt.Sprintf("Log to journald in addition to kubernetes log file (default: %t)", defConf.LogToJournald),
 		},
 		cli.StringFlag{
 			Name:  "cni-config-dir",
+			Value: defConf.NetworkDir,
 			Usage: "CNI configuration files directory",
 		},
 		cli.StringSliceFlag{
 			Name:  "cni-plugin-dir",
+			Value: toStringSlice(defConf.PluginDir),
 			Usage: "CNI plugin binaries directory",
 		},
 		cli.StringFlag{
@@ -412,27 +440,33 @@ func main() {
 		},
 		cli.StringSliceFlag{
 			Name:  "hooks-dir",
+			Value: toStringSlice(defConf.HooksDir),
 			Usage: "set the OCI hooks directory path (may be set multiple times)",
 		},
 		cli.StringSliceFlag{
 			Name:  "default-mounts",
+			Value: toStringSlice(defConf.DefaultMounts),
 			Usage: "add one or more default mount paths in the form host:container (deprecated)",
 		},
 		cli.StringFlag{
 			Name:   "default-mounts-file",
+			Value:  defConf.DefaultMountsFile,
 			Usage:  "path to default mounts file",
 			Hidden: true,
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "default-capabilities",
+			Value: toStringSlice(defConf.DefaultCapabilities),
 			Usage: "capabilities to add to the containers",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "default-sysctls",
+			Value: toStringSlice(defConf.DefaultSysctls),
 			Usage: "sysctls to add to the containers",
 		},
 		cli.StringSliceFlag{
 			Name:  "default-ulimits",
+			Value: toStringSlice(defConf.DefaultUlimits),
 			Usage: "ulimits to apply to conatainers by default (name=soft:hard)",
 		},
 		cli.BoolFlag{
@@ -451,28 +485,30 @@ func main() {
 		cli.IntFlag{
 			Name:  "metrics-port",
 			Value: 9090,
-			Usage: "port for the metrics endpoint",
+			Usage: "port for the metrics endpoint (default: 9090)",
 		},
 		cli.BoolFlag{
 			Name:  "read-only",
-			Usage: "setup all unprivileged containers to run as read-only",
+			Usage: fmt.Sprintf("setup all unprivileged containers to run as read-only (default: %t)", defConf.ReadOnly),
 		},
 		cli.StringFlag{
 			Name:  "bind-mount-prefix",
+			Value: defConf.BindMountPrefix,
 			Usage: "specify a prefix to prepend to the source of a bind mount",
 		},
 		cli.StringFlag{
 			Name:  "uid-mappings",
+			Value: defConf.UIDMappings,
 			Usage: "specify the UID mappings to use for the user namespace",
-			Value: "",
 		},
 		cli.StringFlag{
 			Name:  "gid-mappings",
+			Value: defConf.GIDMappings,
 			Usage: "specify the GID mappings to use for the user namespace",
-			Value: "",
 		},
 		cli.StringSliceFlag{
 			Name:  "additional-devices",
+			Value: toStringSlice(defConf.AdditionalDevices),
 			Usage: "devices to add to the containers",
 		},
 	}
