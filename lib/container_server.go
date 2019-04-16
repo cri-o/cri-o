@@ -24,7 +24,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/language"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
@@ -163,29 +162,6 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		lock = new(sync.Mutex)
 	}
 
-	var locale string
-	var ok bool
-	for _, envVar := range []string{
-		"LC_ALL",
-		"LC_COLLATE",
-		"LANG",
-	} {
-		locale, ok = os.LookupEnv(envVar)
-		if ok {
-			break
-		}
-	}
-
-	langString := localeToLanguage(locale)
-	lang, err := language.Parse(langString)
-	if err != nil {
-		logrus.Warnf("failed to parse language %q: %s", langString, err)
-		lang, err = language.Parse("und-u-va-posix")
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	hookDirectories := config.HooksDir
 	if config.HooksDir == nil {
 		for _, hooksDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
@@ -197,7 +173,7 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		}
 	}
 
-	hooks, err := hooks.New(ctx, hookDirectories, []string{}, lang)
+	hooks, err := hooks.New(ctx, hookDirectories, []string{})
 	if err != nil {
 		return nil, err
 	}

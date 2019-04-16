@@ -61,7 +61,7 @@ github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.7.5
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.7.2
+# github.com/containers/buildah v1.7.2 => github.com/vrothberg/buildah v0.0.0-20190415173241-a422df285969
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
@@ -71,8 +71,8 @@ github.com/containers/buildah/chroot
 github.com/containers/buildah/docker
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
-github.com/containers/buildah/unshare
-# github.com/containers/image v1.5.1
+github.com/containers/buildah/pkg/unshare
+# github.com/containers/image v1.5.1 => github.com/vrothberg/image v0.0.0-20190415172647-cdbac2d25f38
 github.com/containers/image/pkg/sysregistries
 github.com/containers/image/pkg/sysregistriesv2
 github.com/containers/image/types
@@ -108,7 +108,7 @@ github.com/containers/image/pkg/docker/config
 github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
-# github.com/containers/libpod v1.2.0
+# github.com/containers/libpod v1.2.0 => github.com/vrothberg/libpod v0.0.0-20190416093128-d9d46a83a9dd
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/hooks
 github.com/containers/libpod/pkg/registrar
@@ -267,6 +267,9 @@ github.com/docker/go-metrics
 # github.com/docker/go-units v0.3.3
 github.com/docker/go-units
 # github.com/docker/libnetwork v0.8.0-dev.2.0.20180608203834-19279f049241
+github.com/docker/libnetwork/resolvconf
+github.com/docker/libnetwork/types
+github.com/docker/libnetwork/resolvconf/dns
 github.com/docker/libnetwork/ipamutils
 # github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7
 github.com/docker/libtrust
@@ -276,8 +279,6 @@ github.com/docker/spdystream/spdy
 # github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633
 github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
-# github.com/fatih/camelcase v0.0.0-20160318181535-f6a740d52f96
-github.com/fatih/camelcase
 # github.com/fatih/color v1.6.0
 github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.4.7
@@ -462,6 +463,8 @@ github.com/hpcloud/tail/winfile
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
+# github.com/ishidawataru/sctp v0.0.0-20180213033435-07191f837fed
+github.com/ishidawataru/sctp
 # github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be
 github.com/json-iterator/go
 # github.com/kisielk/gotool v1.0.0
@@ -718,20 +721,14 @@ golang.org/x/sync/semaphore
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.3.1-0.20190410012825-f4905fbd45b6
-golang.org/x/text/language
-golang.org/x/text/collate
-golang.org/x/text/internal/language
-golang.org/x/text/internal/language/compact
-golang.org/x/text/internal/colltab
-golang.org/x/text/unicode/norm
-golang.org/x/text/internal/tag
+# golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
-golang.org/x/text/transform
+golang.org/x/text/unicode/norm
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
+golang.org/x/text/transform
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/japanese
@@ -739,9 +736,13 @@ golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
+golang.org/x/text/language
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
 golang.org/x/text/width
+golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20161028155119-f51c12702a4d
 golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20190328211700-ab21143f2384

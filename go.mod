@@ -52,6 +52,7 @@ require (
 	github.com/hashicorp/go-multierror v0.0.0-20170622060955-83588e72410a // indirect
 	github.com/hashicorp/go-version v1.1.0 // indirect
 	github.com/hpcloud/tail v1.0.0
+	github.com/ishidawataru/sctp v0.0.0-20180213033435-07191f837fed // indirect
 	github.com/klauspost/compress v1.4.1 // indirect
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/klauspost/pgzip v1.2.1 // indirect
@@ -96,7 +97,6 @@ require (
 	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
 	golang.org/x/sys v0.0.0-20190410235845-0ad05ae3009d
-	golang.org/x/text v0.3.1-0.20190410012825-f4905fbd45b6
 	google.golang.org/grpc v1.20.0
 	k8s.io/api v0.0.0-20190409092523-d687e77c8ae9
 	k8s.io/apiextensions-apiserver v0.0.0-20190409093611-d42ba5c63e88 // indirect
@@ -109,5 +109,11 @@ require (
 )
 
 replace cloud.google.com/go => cloud.google.com/go v0.34.0
+
+replace github.com/containers/image => github.com/vrothberg/image v0.0.0-20190415172647-cdbac2d25f38
+
+replace github.com/containers/buildah => github.com/vrothberg/buildah v0.0.0-20190415173241-a422df285969
+
+replace github.com/containers/libpod => github.com/vrothberg/libpod v0.0.0-20190416093128-d9d46a83a9dd
 
 module github.com/cri-o/cri-o

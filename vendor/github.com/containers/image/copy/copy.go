@@ -454,10 +454,6 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 		err      error
 	}
 
-	// copyGroup is used to determine if all layers are copied
-	copyGroup := sync.WaitGroup{}
-	copyGroup.Add(numLayers)
-
 	// copySemaphore is used to limit the number of parallel downloads to
 	// avoid malicious images causing troubles and to be nice to servers.
 	var copySemaphore *semaphore.Weighted
@@ -467,43 +463,60 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 		copySemaphore = semaphore.NewWeighted(int64(1))
 	}
 
-	data := make([]copyLayerData, numLayers)
-	copyLayerHelper := func(index int, srcLayer types.BlobInfo, pool *mpb.Progress) {
-		defer copySemaphore.Release(1)
-		defer copyGroup.Done()
+	// copyGroup is used to determine if all layers are copied
+	copyGroup := sync.WaitGroup{}
+
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	progressPool, progressCleanup := ic.c.newProgressPool(cancelCtx)
+	defer progressCleanup()
+
+	layerIndex := 0
+	digestToCopyData := make(map[digest.Digest]*copyLayerData)
+	for _, srcLayer := range srcInfos {
+		// Do not copy a layer twice
+		if _, ok := digestToCopyData[srcLayer.Digest]; ok {
+			continue
+		}
+
 		cld := copyLayerData{}
+		digestToCopyData[srcLayer.Digest] = &cld
 		if ic.c.dest.AcceptsForeignLayerURLs() && len(srcLayer.URLs) != 0 {
 			// DiffIDs are, currently, needed only when converting from schema1.
 			// In which case src.LayerInfos will not have URLs because schema1
 			// does not support them.
 			if ic.diffIDsAreNeeded {
-				cld.err = errors.New("getting DiffID for foreign layers is unimplemented")
+				cancelFunc()
+				return errors.New("getting DiffID for foreign layers is unimplemented")
 			} else {
+				logrus.Debugf("Skipping foreign layer %q copy to %s", srcLayer.Digest, ic.c.dest.Reference().Transport().Name())
 				cld.destInfo = srcLayer
-				logrus.Debugf("Skipping foreign layer %q copy to %s", cld.destInfo.Digest, ic.c.dest.Reference().Transport().Name())
 			}
-		} else {
-			cld.destInfo, cld.diffID, cld.err = ic.copyLayer(ctx, srcLayer, pool)
 		}
-		data[index] = cld
+
+		copySemaphore.Acquire(cancelCtx, 1)
+		copyGroup.Add(1)
+		go func(index int, srcLayer types.BlobInfo, cld *copyLayerData) {
+			defer copySemaphore.Release(1)
+			defer copyGroup.Done()
+			cld.destInfo, cld.diffID, cld.err = ic.copyLayer(cancelCtx, srcLayer, index, progressPool)
+			if cld.err != nil {
+				logrus.Errorf("copying layer %d failed: %v", index, cld.err)
+				cancelFunc()
+			}
+		}(layerIndex, srcLayer, &cld)
+		layerIndex++
 	}
 
-	func() { // A scope for defer
-		progressPool, progressCleanup := ic.c.newProgressPool(ctx)
-		defer progressCleanup()
-
-		for i, srcLayer := range srcInfos {
-			copySemaphore.Acquire(ctx, 1)
-			go copyLayerHelper(i, srcLayer, progressPool)
-		}
-
-		// Wait for all layers to be copied
-		copyGroup.Wait()
-	}()
+	// Wait for all layers to be copied
+	copyGroup.Wait()
 
 	destInfos := make([]types.BlobInfo, numLayers)
 	diffIDs := make([]digest.Digest, numLayers)
-	for i, cld := range data {
+	for i, srcLayer := range srcInfos {
+		cld, ok := digestToCopyData[srcLayer.Digest]
+		if !ok {
+			return errors.Errorf("no copy data for layer %q", srcLayer.Digest)
+		}
 		if cld.err != nil {
 			return cld.err
 		}
@@ -516,6 +529,16 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 		ic.manifestUpdates.InformationOnly.LayerDiffIDs = diffIDs
 	}
 	if srcInfosUpdated || layerDigestsDiffer(srcInfos, destInfos) {
+		logrus.Errorf("DIGESTS DIFFER!")
+		for _, b := range srcInfos {
+			logrus.Errorf("%q", b.Digest)
+		}
+		logrus.Errorf("----------------------------")
+		for _, b := range destInfos {
+			logrus.Errorf("%q", b.Digest)
+		}
+		logrus.Errorf("----------------------------")
+
 		ic.manifestUpdates.LayerInfos = destInfos
 	}
 	return nil
@@ -625,7 +648,7 @@ func (c *copier) copyConfig(ctx context.Context, src types.Image) error {
 			progressPool, progressCleanup := c.newProgressPool(ctx)
 			defer progressCleanup()
 			bar := c.createProgressBar(progressPool, srcInfo, "config", "done")
-			destInfo, err := c.copyBlobFromStream(ctx, bytes.NewReader(configBlob), srcInfo, nil, false, true, bar)
+			destInfo, err := c.copyBlobFromStream(ctx, bytes.NewReader(configBlob), srcInfo, -1, nil, false, true, bar)
 			if err != nil {
 				return types.BlobInfo{}, err
 			}
@@ -651,13 +674,13 @@ type diffIDResult struct {
 
 // copyLayer copies a layer with srcInfo (with known Digest and possibly known Size) in src to dest, perhaps compressing it if canCompress,
 // and returns a complete blobInfo of the copied layer, and a value for LayerDiffIDs if diffIDIsNeeded
-func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, pool *mpb.Progress) (types.BlobInfo, digest.Digest, error) {
+func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, layerIndexInImage int, pool *mpb.Progress) (types.BlobInfo, digest.Digest, error) {
 	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
 	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == ""
 
 	// If we already have the blob, and we don't need to compute the diffID, then we don't need to read it from the source.
 	if !diffIDIsNeeded {
-		reused, blobInfo, err := ic.c.dest.TryReusingBlob(ctx, srcInfo, ic.c.blobInfoCache, ic.canSubstituteBlobs)
+		reused, blobInfo, err := ic.c.dest.TryReusingBlob(ctx, srcInfo, layerIndexInImage, ic.c.blobInfoCache, ic.canSubstituteBlobs)
 		if err != nil {
 			return types.BlobInfo{}, "", errors.Wrapf(err, "Error trying to reuse blob %s at destination", srcInfo.Digest)
 		}
@@ -678,7 +701,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, po
 
 	bar := ic.c.createProgressBar(pool, srcInfo, "blob", "done")
 
-	blobInfo, diffIDChan, err := ic.copyLayerFromStream(ctx, srcStream, types.BlobInfo{Digest: srcInfo.Digest, Size: srcBlobSize}, diffIDIsNeeded, bar)
+	blobInfo, diffIDChan, err := ic.copyLayerFromStream(ctx, srcStream, types.BlobInfo{Digest: srcInfo.Digest, Size: srcBlobSize}, layerIndexInImage, diffIDIsNeeded, bar)
 	if err != nil {
 		return types.BlobInfo{}, "", err
 	}
@@ -709,7 +732,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, po
 // perhaps compressing the stream if canCompress,
 // and returns a complete blobInfo of the copied blob and perhaps a <-chan diffIDResult if diffIDIsNeeded, to be read by the caller.
 func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo,
-	diffIDIsNeeded bool, bar *mpb.Bar) (types.BlobInfo, <-chan diffIDResult, error) {
+	layerIndexInImage int, diffIDIsNeeded bool, bar *mpb.Bar) (types.BlobInfo, <-chan diffIDResult, error) {
 	var getDiffIDRecorder func(compression.DecompressorFunc) io.Writer // = nil
 	var diffIDChan chan diffIDResult
 
@@ -733,7 +756,7 @@ func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Rea
 			return pipeWriter
 		}
 	}
-	blobInfo, err := ic.c.copyBlobFromStream(ctx, srcStream, srcInfo, getDiffIDRecorder, ic.canModifyManifest, false, bar) // Sets err to nil on success
+	blobInfo, err := ic.c.copyBlobFromStream(ctx, srcStream, srcInfo, layerIndexInImage, getDiffIDRecorder, ic.canModifyManifest, false, bar) // Sets err to nil on success
 	return blobInfo, diffIDChan, err
 	// We need the defer … pipeWriter.CloseWithError() to happen HERE so that the caller can block on reading from diffIDChan
 }
@@ -768,7 +791,7 @@ func computeDiffID(stream io.Reader, decompressor compression.DecompressorFunc) 
 // perhaps sending a copy to an io.Writer if getOriginalLayerCopyWriter != nil,
 // perhaps compressing it if canCompress,
 // and returns a complete blobInfo of the copied blob.
-func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo,
+func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo, layerIndexInImage int,
 	getOriginalLayerCopyWriter func(decompressor compression.DecompressorFunc) io.Writer,
 	canModifyBlob bool, isConfig bool, bar *mpb.Bar) (types.BlobInfo, error) {
 	// The copying happens through a pipeline of connected io.Readers.
@@ -847,7 +870,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 	}
 
 	// === Finally, send the layer stream to dest.
-	uploadedInfo, err := c.dest.PutBlob(ctx, destStream, inputInfo, c.blobInfoCache, isConfig)
+	uploadedInfo, err := c.dest.PutBlob(ctx, destStream, inputInfo, layerIndexInImage, c.blobInfoCache, isConfig)
 	if err != nil {
 		return types.BlobInfo{}, errors.Wrap(err, "Error writing blob")
 	}

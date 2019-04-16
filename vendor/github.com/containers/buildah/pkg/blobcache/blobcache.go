@@ -18,7 +18,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/ioutils"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -416,7 +416,7 @@ func (s *blobCacheDestination) HasThreadSafePutBlob() bool {
 	return s.destination.HasThreadSafePutBlob()
 }
 
-func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
+func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, layerIndexInImage int, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
 	var tempfile *os.File
 	var err error
 	var n int
@@ -479,7 +479,7 @@ func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, in
 			}
 		}
 	}
-	newBlobInfo, err := d.destination.PutBlob(ctx, stream, inputInfo, cache, isConfig)
+	newBlobInfo, err := d.destination.PutBlob(ctx, stream, inputInfo, layerIndexInImage, cache, isConfig)
 	if err != nil {
 		return newBlobInfo, errors.Wrapf(err, "error storing blob to image destination for cache %q", transports.ImageName(d.reference))
 	}
@@ -491,8 +491,8 @@ func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, in
 	return newBlobInfo, nil
 }
 
-func (d *blobCacheDestination) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
-	present, reusedInfo, err := d.destination.TryReusingBlob(ctx, info, cache, canSubstitute)
+func (d *blobCacheDestination) TryReusingBlob(ctx context.Context, info types.BlobInfo, layerIndexInImage int, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
+	present, reusedInfo, err := d.destination.TryReusingBlob(ctx, info, layerIndexInImage, cache, canSubstitute)
 	if err != nil || present {
 		return present, reusedInfo, err
 	}
@@ -502,7 +502,7 @@ func (d *blobCacheDestination) TryReusingBlob(ctx context.Context, info types.Bl
 		f, err := os.Open(filename)
 		if err == nil {
 			defer f.Close()
-			uploadedInfo, err := d.destination.PutBlob(ctx, f, info, cache, isConfig)
+			uploadedInfo, err := d.destination.PutBlob(ctx, f, info, layerIndexInImage, cache, isConfig)
 			if err != nil {
 				return false, types.BlobInfo{}, err
 			}
