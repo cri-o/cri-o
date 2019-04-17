@@ -19,7 +19,6 @@ func TestOci(t *testing.T) {
 	RunSpecs(t, "Oci")
 }
 
-// nolint: gochecknoglobals
 var (
 	t         *TestFramework
 	mockCtrl  *gomock.Controller

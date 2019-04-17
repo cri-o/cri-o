@@ -27,7 +27,6 @@ func TestLib(t *testing.T) {
 	RunSpecs(t, "Lib")
 }
 
-// nolint: gochecknoglobals
 var (
 	t              *TestFramework
 	mockCtrl       *gomock.Controller

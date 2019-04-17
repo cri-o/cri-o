@@ -20,7 +20,6 @@ func TestSeccomp(t *testing.T) {
 	RunSpecs(t, "Seccomp")
 }
 
-// nolint: gochecknoglobals
 var t *TestFramework
 
 var _ = BeforeSuite(func() {

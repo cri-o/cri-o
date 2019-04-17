@@ -14,7 +14,6 @@ func TestUtils(t *testing.T) {
 	RunSpecs(t, "Utils")
 }
 
-// nolint: gochecknoglobals
 var t *TestFramework
 
 var _ = BeforeSuite(func() {

@@ -20,7 +20,6 @@ func TestSandbox(t *testing.T) {
 	RunSpecs(t, "Sandbox")
 }
 
-// nolint: gochecknoglobals
 var (
 	t              *TestFramework
 	testSandbox    *sandbox.Sandbox

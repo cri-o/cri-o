@@ -17,7 +17,6 @@ func TestStorage(t *testing.T) {
 	RunSpecs(t, "Storage")
 }
 
-// nolint: gochecknoglobals
 var (
 	t               *TestFramework
 	mockCtrl        *gomock.Controller
