@@ -10,7 +10,10 @@ import (
 // a Config instance toa a file on disk.
 func TestConfigToFile(t *testing.T) {
 	// Test with a default configuration
-	c := DefaultConfig()
+	c, err := DefaultConfig()
+	if err != nil {
+		t.Fatalf("Error getting default config: %+v", err)
+	}
 	tmpfile, err := ioutil.TempFile("", "config")
 	if err != nil {
 		t.Fatalf("Unable to create temporary file: %+v", err)
@@ -35,9 +38,12 @@ func TestConfigToFile(t *testing.T) {
 // updates an already create Config instancec with new data.
 func TestConfigUpdateFromFile(t *testing.T) {
 	// Test with a default configuration
-	c := DefaultConfig()
+	c, err := DefaultConfig()
+	if err != nil {
+		t.Fatalf("Error getting default config: %+v", err)
+	}
 	// Make the ToFile calls
-	err := c.UpdateFromFile("testdata/config.toml")
+	err = c.UpdateFromFile("testdata/config.toml")
 	// Make sure no errors occurred while populating from the file
 	if err != nil {
 		t.Fatalf("Unable update config from file: %+v", err)

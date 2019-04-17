@@ -124,9 +124,13 @@ func (c *Config) ToFile(path string) error {
 }
 
 // DefaultConfig returns the default configuration for crio.
-func DefaultConfig() *Config {
+func DefaultConfig() (*Config, error) {
+	conf, err := lib.DefaultConfig()
+	if err != nil {
+		return nil, err
+	}
 	return &Config{
-		Config: *lib.DefaultConfig(),
+		Config: *conf,
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,
 			StreamAddress:      "127.0.0.1",
@@ -134,5 +138,5 @@ func DefaultConfig() *Config {
 			GRPCMaxSendMsgSize: DefaultGRPCMaxMsgSize,
 			GRPCMaxRecvMsgSize: DefaultGRPCMaxMsgSize,
 		},
-	}
+	}, nil
 }
