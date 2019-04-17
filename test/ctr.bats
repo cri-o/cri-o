@@ -915,8 +915,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run crictl exec --sync "$ctr_id" false
 	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Exit code: 1" ]]
+	[ "$status" -ne 0 ]
 	cleanup_ctrs
 	cleanup_pods
 	stop_crio
