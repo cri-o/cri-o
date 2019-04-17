@@ -369,7 +369,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 		args = append(args, fmt.Sprintf("%d", timeout))
 	}
 	args = append(args, "-l", logPath)
-	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
+	args = append(args, "--socket-dir-path", r.containerAttachSocketDir)
 	args = append(args, "--log-level", logrus.GetLevel().String())
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)

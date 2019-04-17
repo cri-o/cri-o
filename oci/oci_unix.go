@@ -17,13 +17,6 @@ import (
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
-const (
-	// ContainerExitsDir is the location of container exit dirs
-	ContainerExitsDir = "/var/run/crio/exits"
-	// ContainerAttachSocketDir is the location for container attach sockets
-	ContainerAttachSocketDir = "/var/run/crio"
-)
-
 func kill(pid int) error {
 	err := unix.Kill(pid, unix.SIGKILL)
 	if err != nil && err != unix.ESRCH {

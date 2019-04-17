@@ -389,7 +389,7 @@ func DefaultConfig() (*Config, error) {
 			CgroupManager:            cgroupManager,
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
-			ContainerAttachSocketDir: oci.ContainerAttachSocketDir,
+			ContainerAttachSocketDir: ContainerAttachSocketDir,
 			LogSizeMax:               DefaultLogSizeMax,
 			LogToJournald:            DefaultLogToJournald,
 			DefaultCapabilities:      DefaultCapabilities,
