@@ -55,12 +55,21 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 			lastErr = err
 			continue
 		}
+
+		// Ensure that size is already defined
+		var size uint64
+		if status.Size == nil {
+			size = 0
+		} else {
+			size = *status.Size
+		}
+
 		resp = &pb.ImageStatusResponse{
 			Image: &pb.Image{
 				Id:          status.ID,
 				RepoTags:    status.RepoTags,
 				RepoDigests: status.RepoDigests,
-				Size_:       *status.Size,
+				Size_:       size,
 			},
 		}
 		uid, username := getUserFromImage(status.User)
