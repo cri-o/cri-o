@@ -11,37 +11,6 @@ so we can keep kubelet running inside container (as well as directly on the host
 
 Below, you can find an instruction how to switch one or more nodes on running kubernetes cluster from docker to CRI-O.
 
-### Preparing crio
-
-You must prepare and install `crio` on each node you would like to switch.
-Besides the files installed by `make install install.config`, here's the list of files that must be provided:
-
-| File path                                  | Description                 | Location                                                |
-|--------------------------------------------|-----------------------------|---------------------------------------------------------|
-| `/etc/containers/policy.json`              | containers policy           | [Example](test/policy.json) stored in cri-o repository  |
-| `/bin/runc`                                | `runc` or other OCI runtime | Can be build from sources `opencontainers/runc`         |
-| `/opt/cni/bin/{flannel, bridge,...}`       | CNI plugins binaries        | Can be built from sources `containernetworking/plugins` |
-| `/etc/cni/net.d/...`                       | CNI network config          | Example [here](contrib/cni)                             |
-
-`crio` binary can be executed directly on host, inside the container or in any way.
-However, recommended way is to set it as a systemd service.
-Here's the example of unit file:
-
-```
-# cat /etc/systemd/system/crio.service
-[Unit]
-Description=CRI-O daemon
-Documentation=https://github.com/cri-o/cri-o
-
-[Service]
-ExecStart=/bin/crio --runtime /bin/runc --log /root/crio.log --log-level debug
-Restart=always
-RestartSec=10s
-
-[Install]
-WantedBy=multi-user.target
-```
-
 ### Preparing kubelet
 At first, you need to stop kubelet service working on the node:
 ```
@@ -75,7 +44,6 @@ KUBELET_ARGS="--pod-manifest-path=/etc/kubernetes/manifests
 ```
 
 You need to add following parameters to `KUBELET_ARGS`:
-* `--experimental-cri=true` - Use Container Runtime Interface. Will be true by default from kubernetes 1.6 release.
 * `--container-runtime=remote` - Use remote runtime with provided socket.
 * `--container-runtime-endpoint=unix:///var/run/crio/crio.sock` - Socket for remote runtime (default `crio` socket localization).
 * `--runtime-request-timeout=10m` - Optional but useful. Some requests, especially pulling huge images, may take longer than default (2 minutes) and will cause an error. 

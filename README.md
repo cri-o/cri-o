@@ -81,133 +81,32 @@ Note that kpod and its container management and debugging commands have moved to
 
 For async communication and long running discussions please use issues and pull requests on the github repo. This will be the best place to discuss design and implementation.
 
-For sync communication we have an IRC channel #CRI-O, on chat.freenode.net, that everyone is welcome to join and chat about development.
+For chat communication we have an IRC channel #CRI-O on chat.freenode.net, and a [channel on the kubernetes slack](https://kubernetes.slack.com/archives/crio) that everyone is welcome to join and chat about development.
 
 ## Getting started
 
-### Runtime dependencies
-
-- runc, Clear Containers runtime, or any other OCI compatible runtime
-- socat
-- iproute
-- iptables
-
-Latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by CRI-O.
-
-### Build and Run Dependencies
-
-**Required**
+### Installing CRI-O
+To install CRI-O, you can use your distrobutions package manager:
 
 Fedora, CentOS, RHEL, and related distributions:
-
-```bash
-yum install -y \
-  btrfs-progs-devel \
-  containers-common \
-  device-mapper-devel \
-  git \
-  glib2-devel \
-  glibc-devel \
-  glibc-static \
-  go \
-  golang-github-cpuguy83-go-md2man \
-  gpgme-devel \
-  libassuan-devel \
-  libgpg-error-devel \
-  libseccomp-devel \
-  libselinux-devel \
-  ostree-devel \
-  pkgconfig \
-  runc
-```
+```sudo yum install crio```
+openSUSE:
+```sudo zypper install cri-o```
 
 Debian, Ubuntu, and related distributions:
 
 ```bash
-apt-get install -y \
-  btrfs-tools \
-  containers-common \
-  git \
-  golang-go \
-  libassuan-dev \
-  libdevmapper-dev \
-  libglib2.0-dev \
-  libc6-dev \
-  libgpgme11-dev \
-  libgpg-error-dev \
-  libseccomp-dev \
-  libsystemd-dev \
-  libselinux1-dev \
-  pkg-config \
-  go-md2man \
-  runc
+sudo apt-add-repository ppa:projectatomic/ppa
+sudo apt-get install crio
 ```
 
-Debian, Ubuntu, and related distributions will also need a copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
+Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup guide](tutorials/setup.md)
 
-If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough (running `runc --version` should produce `spec: 1.0.0`), or else build your own.
+### Running CRI-O
 
-**NOTE**
-
-Be careful to double-check that the version of golang is new enough, version 1.8.x or higher is required.  If needed, golang kits are available at https://golang.org/dl/
-
-### Get Source Code
-
-Clone the source code using:
-
-```bash
-git clone https://github.com/cri-o/cri-o # or your fork
-cd cri-o
-```
-
-### Build
-
-```bash
-make install.tools
-make
-sudo make install
-```
-
-Otherwise, if you do not want to build `CRI-O` with seccomp support you can add `BUILDTAGS=""` when running make.
-
-```bash
-make install.tools
-make BUILDTAGS=""
-sudo make install
-```
-
-#### Build Tags
-
-`CRI-O` supports optional build tags for compiling support of various features.
-To add build tags to the make option the `BUILDTAGS` variable must be set.
-
-```bash
-make BUILDTAGS='seccomp apparmor'
-```
-
-| Build Tag | Feature                            | Dependency  |
-|-----------|------------------------------------|-------------|
-| seccomp   | syscall filtering                  | libseccomp  |
-| selinux   | selinux process and mount labeling | libselinux  |
-| apparmor  | apparmor profile support           | <none>      |
-
-### Running pods and containers
-
-Follow this [tutorial](tutorial.md) to get started with CRI-O.
-
-### Setup CNI networking
-
-A proper description of setting up CNI networking is given in the
-[`contrib/cni` README](contrib/cni/README.md). But the gist is that you need to
-have some basic network configurations enabled and CNI plugins installed on
-your system.
-
-### Running with kubernetes
-
-You can run a local version of kubernetes with CRI-O using `local-up-cluster.sh`:
+You can run a local version of kubernetes with `CRI-O` using `local-up-cluster.sh`:
 
 1. Clone the [kubernetes repository](https://github.com/kubernetes/kubernetes)
-1. Start the CRI-O daemon (`crio`)
 1. From the kubernetes project directory, run:
 ```shell
 CGROUP_DRIVER=systemd \
@@ -216,22 +115,22 @@ CONTAINER_RUNTIME_ENDPOINT='unix:///var/run/crio/crio.sock  --runtime-request-ti
 ./hack/local-up-cluster.sh
 ```
 
-To run a full cluster, see [the instructions](kubernetes.md).
+For more guidance in running `CRI-O`, visit our [tutorial page](tutorial.md)
 
-### Current Roadmap
+## Current Roadmap
 
 1. Basic pod/container lifecycle, basic image pull (done)
 1. Support for tty handling and state management (done)
 1. Basic integration with kubelet once client side changes are ready (done)
 1. Support for log management, networking integration using CNI, pluggable image/storage management (done)
 1. Support for exec/attach (done)
-1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/cri-o/cri-o/issues/533)
-1. Track upstream k8s releases
+1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/cri-o/cri-o/issues/533) (done)
+1. Track upstream k8s releases (active)
 
 [libpod-hooks]: https://github.com/containers/libpod/blob/v0.6.2/pkg/hooks/README.md
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks
 
 
-### Weekly Meeting
+## Weekly Meeting
 A weekly meeting is held to discuss CRI-O development. It is open to everyone.
 The details to join the meeting are on the [wiki](https://github.com/cri-o/cri-o/wiki/CRI-O-Weekly-Meeting).
