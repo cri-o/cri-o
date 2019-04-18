@@ -848,7 +848,7 @@ static char *setup_attach_socket(void)
 	return attach_symlink_dir_path;
 }
 
-static void setup_terminal_control_fifo()
+static int setup_terminal_control_fifo()
 {
 	_cleanup_free_ char *ctl_fifo_path = g_build_filename(opt_bundle_path, "ctl", NULL);
 	ninfof("ctl fifo path: %s", ctl_fifo_path);
@@ -869,10 +869,10 @@ static void setup_terminal_control_fifo()
 	int dummyfd = open(ctl_fifo_path, O_WRONLY | O_CLOEXEC);
 	if (dummyfd == -1)
 		pexit("Failed to open dummy writer for fifo");
-
 	g_unix_fd_add(terminal_ctrl_fd, G_IO_IN, ctrl_cb, NULL);
 
 	ninfof("terminal_ctrl_fd: %d", terminal_ctrl_fd);
+	return dummyfd;
 }
 
 static void setup_oom_handling(int container_pid)
@@ -954,6 +954,7 @@ int main(int argc, char *argv[])
 	GPtrArray *runtime_argv = NULL;
 	_cleanup_close_ int dev_null_r = -1;
 	_cleanup_close_ int dev_null_w = -1;
+	_cleanup_close_ int dummyfd = -1;
 	int fds[2];
 	int oom_score_fd = -1;
 
@@ -1347,7 +1348,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (!opt_exec) {
-		setup_terminal_control_fifo();
+		dummyfd = setup_terminal_control_fifo();
 	}
 
 	/* Send the container pid back to parent */
