@@ -469,6 +469,10 @@ func (s *Server) StartExitMonitor() {
 						sb := s.GetSandbox(containerID)
 						if sb != nil {
 							c := sb.InfraContainer()
+							if c == nil {
+								logrus.Warnf("no infra container set for sandbox: %v", containerID)
+								continue
+							}
 							logrus.Debugf("sandbox exited and found: %v", containerID)
 							err := s.Runtime().UpdateContainerStatus(c)
 							if err != nil {
