@@ -423,7 +423,7 @@ func main() {
 			Usage:  fmt.Sprintf("path to default mounts file (default: %q)", defConf.DefaultMountsFile),
 			Hidden: true,
 		},
-		cli.StringSliceFlag{
+		cli.StringFlag{
 			Name:  "default-capabilities",
 			Usage: fmt.Sprintf("capabilities to add to the containers (default: %q)", defConf.DefaultCapabilities),
 		},
@@ -464,10 +464,12 @@ func main() {
 		cli.StringFlag{
 			Name:  "uid-mappings",
 			Usage: fmt.Sprintf("specify the UID mappings to use for the user namespace (default: %q)", defConf.UIDMappings),
+			Value: "",
 		},
 		cli.StringFlag{
 			Name:  "gid-mappings",
 			Usage: fmt.Sprintf("specify the GID mappings to use for the user namespace (default: %q)", defConf.GIDMappings),
+			Value: "",
 		},
 		cli.StringSliceFlag{
 			Name:  "additional-devices",
