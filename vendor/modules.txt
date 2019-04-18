@@ -191,8 +191,8 @@ github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/dbus
-github.com/coreos/go-systemd/activation
 github.com/coreos/go-systemd/util
+github.com/coreos/go-systemd/activation
 # github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
 github.com/coreos/pkg/dlopen
 # github.com/cpuguy83/go-md2man v1.0.10
@@ -560,12 +560,12 @@ github.com/opencontainers/image-spec/specs-go
 # github.com/opencontainers/runc v1.0.0-rc7
 github.com/opencontainers/runc/libcontainer
 github.com/opencontainers/runc/libcontainer/cgroups
+github.com/opencontainers/runc/libcontainer/cgroups/systemd
 github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/user
 github.com/opencontainers/runc/libcontainer/configs
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups/fs
-github.com/opencontainers/runc/libcontainer/cgroups/systemd
 github.com/opencontainers/runc/libcontainer/configs/validate
 github.com/opencontainers/runc/libcontainer/intelrdt
 github.com/opencontainers/runc/libcontainer/keys
