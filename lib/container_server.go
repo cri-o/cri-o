@@ -314,7 +314,9 @@ func (c *ContainerServer) Update() error {
 		}
 		sb.RemoveInfraContainer()
 		c.ReleasePodName(sb.Name())
-		c.RemoveSandbox(sb.ID())
+		if err := c.RemoveSandbox(sb.ID()); err != nil {
+			logrus.Warnf("failed to remove sandbox ID %s: %v", sb.ID(), err)
+		}
 		if err = c.podIDIndex.Delete(sb.ID()); err != nil {
 			return err
 		}
@@ -420,11 +422,15 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		}
 	}
 
-	c.AddSandbox(sb)
+	if err := c.AddSandbox(sb); err != nil {
+		return err
+	}
 
 	defer func() {
 		if err != nil {
-			c.RemoveSandbox(sb.ID())
+			if err := c.RemoveSandbox(sb.ID()); err != nil {
+				logrus.Warnf("could not remove sandbox ID %s: %v", sb.ID(), err)
+			}
 		}
 	}()
 
@@ -744,12 +750,12 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 }
 
 // AddSandbox adds a sandbox to the sandbox state store
-func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) {
+func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) error {
 	c.state.sandboxes.Add(sb.ID(), sb)
 
 	c.stateLock.Lock()
-	c.addSandboxPlatform(sb)
-	c.stateLock.Unlock()
+	defer c.stateLock.Unlock()
+	return c.addSandboxPlatform(sb)
 }
 
 // GetSandbox returns a sandbox by its ID
@@ -772,17 +778,20 @@ func (c *ContainerServer) HasSandbox(id string) bool {
 }
 
 // RemoveSandbox removes a sandbox from the state store
-func (c *ContainerServer) RemoveSandbox(id string) {
+func (c *ContainerServer) RemoveSandbox(id string) error {
 	sb := c.state.sandboxes.Get(id)
 	if sb == nil {
-		return
+		return nil
 	}
 
 	c.stateLock.Lock()
-	c.removeSandboxPlatform(sb)
-	c.stateLock.Unlock()
+	defer c.stateLock.Unlock()
+	if err := c.removeSandboxPlatform(sb); err != nil {
+		return err
+	}
 
 	c.state.sandboxes.Delete(id)
+	return nil
 }
 
 // ListSandboxes lists all sandboxes in the state store

@@ -138,9 +138,13 @@ func secretMounts(defaultMountsPaths []string, mountLabel, containerWorkingDir s
 			return nil, errors.Wrapf(err, "getting host secret data failed")
 		}
 		for _, s := range data {
-			s.SaveTo(ctrDirOnHost)
+			if err := s.SaveTo(ctrDirOnHost); err != nil {
+				return nil, err
+			}
 		}
-		label.Relabel(ctrDirOnHost, mountLabel, false)
+		if err := label.Relabel(ctrDirOnHost, mountLabel, false); err != nil {
+			return nil, err
+		}
 
 		m := rspec.Mount{
 			Source:      ctrDirOnHost,

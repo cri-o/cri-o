@@ -8,23 +8,31 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
-func (c *ContainerServer) addSandboxPlatform(sb *sandbox.Sandbox) {
-	// NewContext() always returns nil, so we can safely ignore the error
-	ctx, _ := selinux.NewContext(sb.ProcessLabel())
-	c.state.processLevels[ctx["level"]]++
+func (c *ContainerServer) addSandboxPlatform(sb *sandbox.Sandbox) error {
+	context, err := selinux.NewContext(sb.ProcessLabel())
+	if err != nil {
+		return err
+	}
+	c.state.processLevels[context["level"]]++
+	return nil
 }
 
-func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) {
+func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) error {
 	processLabel := sb.ProcessLabel()
-	// NewContext() always returns nil, so we can safely ignore the error
-	ctx, _ := selinux.NewContext(processLabel)
-	level := ctx["level"]
+	context, err := selinux.NewContext(processLabel)
+	if err != nil {
+		return err
+	}
+	level := context["level"]
 	pl, ok := c.state.processLevels[level]
 	if ok {
 		c.state.processLevels[level] = pl - 1
 		if c.state.processLevels[level] == 0 {
-			label.ReleaseLabel(processLabel)
-			delete(c.state.processLevels, level)
+			defer delete(c.state.processLevels, level)
+			if err := label.ReleaseLabel(processLabel); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

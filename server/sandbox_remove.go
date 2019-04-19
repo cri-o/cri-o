@@ -98,7 +98,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	s.ReleasePodName(sb.Name())
-	s.removeSandbox(sb.ID())
+	if err := s.removeSandbox(sb.ID()); err != nil {
+		logrus.Warnf("failed to remove sandbox: %v", err)
+	}
 	if err := s.PodIDIndex().Delete(sb.ID()); err != nil {
 		return nil, fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.ID(), err)
 	}

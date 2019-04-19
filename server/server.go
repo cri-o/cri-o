@@ -370,16 +370,16 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) addSandbox(sb *sandbox.Sandbox) {
-	s.ContainerServer.AddSandbox(sb)
+func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
+	return s.ContainerServer.AddSandbox(sb)
 }
 
 func (s *Server) getSandbox(id string) *sandbox.Sandbox {
 	return s.ContainerServer.GetSandbox(id)
 }
 
-func (s *Server) removeSandbox(id string) {
-	s.ContainerServer.RemoveSandbox(id)
+func (s *Server) removeSandbox(id string) error {
+	return s.ContainerServer.RemoveSandbox(id)
 }
 
 func (s *Server) addContainer(c *oci.Container) {
