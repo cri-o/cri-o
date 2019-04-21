@@ -5,6 +5,7 @@
     repo: "https://github.com/giuseppe/crun.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/giuseppe/crun"
     force: "{{ force_clone | default(False) | bool}}"
+    version: fix-crio-e2e
 
 - name: Install crun dependencies
   dnf:
