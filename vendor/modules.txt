@@ -574,9 +574,9 @@ github.com/opencontainers/runc/libcontainer/seccomp
 github.com/opencontainers/runc/libcontainer/stacktrace
 github.com/opencontainers/runc/libcontainer/system
 github.com/opencontainers/runc/libcontainer/utils
-# github.com/opencontainers/runtime-spec v0.0.0-20180909173843-eba862dc2470
+# github.com/opencontainers/runtime-spec v0.1.2-0.20190408193819-a1b50f621a48
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.6.0
+# github.com/opencontainers/runtime-tools v0.3.1-0.20190418135848-095789df6c2b
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/validate
 github.com/opencontainers/runtime-tools/generate/seccomp
