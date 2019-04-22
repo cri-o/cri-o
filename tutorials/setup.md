@@ -35,7 +35,6 @@ yum install -y \
   libgpg-error-devel \
   libseccomp-devel \
   libselinux-devel \
-  ostree-devel \
   pkgconfig \
   runc
 ```
@@ -66,8 +65,6 @@ apt-get install -y \
 ```
 
 **Caveats and Notes:**
-
-Debian, Ubuntu, and related distributions will also need a copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
 
 If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough (running `runc --version` should produce `spec: 1.0.0`), or else build your own.
 
