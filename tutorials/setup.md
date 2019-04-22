@@ -106,11 +106,30 @@ To add build tags to the make option the `BUILDTAGS` variable must be set.
 make BUILDTAGS='seccomp apparmor'
 ```
 
-| Build Tag | Feature                            | Dependency  |
-|-----------|------------------------------------|-------------|
-| seccomp   | syscall filtering                  | libseccomp  |
-| selinux   | selinux process and mount labeling | libselinux  |
-| apparmor  | apparmor profile support           | <none>      |
+| Build Tag                        | Feature                                         | Dependency   |
+|----------------------------------|-------------------------------------------------|--------------|
+| seccomp                          | syscall filtering                               | libseccomp   |
+| selinux                          | selinux process and mount labeling              | libselinux   |
+| apparmor                         | apparmor profile support                        | <none>       |
+
+`CRI-O` manages images with (containers/image)[https://github.com/containers/image], which uses the following buildtags.
+
+| Build Tag                        | Feature                                         | Dependency   |
+|----------------------------------|-------------------------------------------------|--------------|
+| containers_image_openpgp         | use native golang pgp instead of cgo            | <none>       |
+| containers_image_ostree_stub     | disable use of ostree as an image transport     | <none>       |
+
+`CRI-O` also uses (containers/storage)[https://github.com/containers/storage/] for managing container storage.
+
+| Build Tag                        | Feature                                         | Dependency   |
+|----------------------------------|-------------------------------------------------|--------------|
+| exclude_graphdriver_btrfs        | exclude btrfs as a storage option               | <none>       |
+| btrfs_noversion                  | for building btrfs version < 3.16.1             | btrfs        |
+| exclude_graphdriver_devicemapper | exclude devicemapper as a storage option        | <none>       |
+| libdm_no_deferred_remove         | don't compile deferred remove with devicemapper | devicemapper |
+| exclude_graphdriver_overlay      | exclude overlay as a storage option             | <none>       |
+| ostree                           | build storage using ostree                      | ostree       |
+
 
 ## Setup CNI networking
 
