@@ -1,0 +1,23 @@
+---
+- name: install parallel package for Fedora
+  package:
+    name: parallel
+    state: present
+  when: ansible_distribution in ['Fedora', 'CentOS']
+
+- name: download parallel sources
+  unarchive:
+    src: https://ftp.gnu.org/gnu/parallel/parallel-20190322.tar.bz2
+    dest: "{{ ansible_env.HOME }}"
+    remote_src: yes
+  when: ansible_distribution in ['RedHat']
+
+- name: install parallel from sources
+  shell: |
+    ./configure
+    make
+    cp ./src/{env_parallel*,niceload,parallel,parcat,parset,sql} /usr/bin
+    ln -s /usr/bin/parallel /usr/bin/sem
+  args:
+    chdir: "{{ ansible_env.HOME }}/parallel-20190322"
+  when: ansible_distribution in ['RedHat']

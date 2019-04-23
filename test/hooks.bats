@@ -6,11 +6,12 @@ function teardown() {
 	cleanup_test
 }
 
-cp hooks/checkhook.sh ${HOOKSDIR}
+sed "s|HOOKSCHECK|${HOOKSCHECK}|" hooks/checkhook.sh > ${HOOKSDIR}/checkhook.sh
+chmod +x ${HOOKSDIR}/checkhook.sh
 sed "s|HOOKSDIR|${HOOKSDIR}|" hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
 
 @test "pod test hooks" {
-	rm -f /run/hookscheck
+	rm -f ${HOOKSCHECK}
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -29,7 +30,7 @@ sed "s|HOOKSDIR|${HOOKSDIR}|" hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run cat /run/hookscheck
+	run cat ${HOOKSCHECK}
 	echo "$output"
 	[ "$status" -eq 0 ]
 	cleanup_ctrs
