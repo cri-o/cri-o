@@ -214,7 +214,7 @@ testunit: mockgen ${GINKGO}
 
 testunit-bin:
 	mkdir -p ${TESTBIN_PATH}
-	for PACKAGE in ${PACKAGES}; do \
+	for PACKAGE in `$(GO) list ./...`; do \
 		go test $$PACKAGE \
 			--tags "containers_image_ostree_stub $(BUILDTAGS)" \
 			--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename $$PACKAGE) ;\
