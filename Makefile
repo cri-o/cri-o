@@ -22,6 +22,7 @@ BUILDTAGS ?= containers_image_ostree_stub \
 			 $(shell hack/btrfs_tag.sh) \
 			 $(shell hack/libdm_installed.sh) \
 			 $(shell hack/libdm_no_deferred_remove_tag.sh) \
+			 $(shell hack/openpgp_tag.sh) \
 			 $(shell hack/seccomp_tag.sh) \
 			 $(shell hack/selinux_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
