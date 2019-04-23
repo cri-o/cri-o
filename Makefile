@@ -79,7 +79,6 @@ help:
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
-	@echo " * 'gofmt' - Verify the source code gofmt"
 
 # Dummy target for marking pattern rules phony
 .explicit_phony:
@@ -94,14 +93,10 @@ endif
 lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} run --build-tags="$(BUILDTAGS)"
 
-fmt: gofmt cfmt
+fmt: cfmt
 
 cfmt:
 	find . '(' -name '*.h' -o -name '*.c' ')' ! -path './vendor/*'  -exec clang-format -i {} \+
-	git diff --exit-code
-
-gofmt:
-	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
 
 bin/conmon: conmon/config.h
@@ -335,7 +330,6 @@ endif
 	clean \
 	default \
 	docs \
-	gofmt \
 	help \
 	install \
 	lint \
