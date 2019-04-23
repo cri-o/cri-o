@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y \
     libfuse-dev \
     libnet-dev \
     libnl-3-dev \
-    libostree-dev \
     libprotobuf-dev \
     libprotobuf-c0-dev \
     libseccomp2 \

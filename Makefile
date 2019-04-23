@@ -16,7 +16,14 @@ MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_CRIO ?= ${ETCDIR}/crio
 DATAROOTDIR ?= ${PREFIX}/share/containers
-BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh)
+BUILDTAGS ?= containers_image_ostree_stub \
+			 $(shell hack/apparmor_tag.sh) \
+			 $(shell hack/btrfs_installed_tag.sh) \
+			 $(shell hack/btrfs_tag.sh) \
+			 $(shell hack/libdm_installed.sh) \
+			 $(shell hack/libdm_no_deferred_remove_tag.sh) \
+			 $(shell hack/seccomp_tag.sh) \
+			 $(shell hack/selinux_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
 BUILD_PATH := $(shell pwd)/build
@@ -24,7 +31,7 @@ BUILD_BIN_PATH := ${BUILD_PATH}/bin
 COVERAGE_PATH := ${BUILD_PATH}/coverage
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
-MOCKGEN_FLAGS := --build_flags='--tags=containers_image_ostree_stub $(BUILDTAGS)'
+MOCKGEN_FLAGS := --build_flags='--tags=$(BUILDTAGS)'
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
@@ -85,7 +92,7 @@ endif
 	touch "$(GOPATH)/.gopathok"
 
 lint: .gopathok ${GOLANGCI_LINT}
-	${GOLANGCI_LINT} run --build-tags="$(BUILDTAGS) containers_image_ostree_stub"
+	${GOLANGCI_LINT} run --build-tags="$(BUILDTAGS)"
 
 fmt: gofmt cfmt
 
@@ -104,16 +111,16 @@ bin/pause:
 	$(MAKE) -C pause
 
 test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
+	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/bin2img
 
 test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/copyimg
+	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
 
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
 bin/crio: .gopathok
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/cmd/crio
+	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
 crio.conf: bin/crio
 	./bin/crio --config="" config --default > crio.conf
@@ -205,7 +212,7 @@ testunit: mockgen ${GINKGO}
 		--covermode atomic \
 		--outputdir ${COVERAGE_PATH} \
 		--coverprofile coverprofile \
-		--tags "containers_image_ostree_stub $(BUILDTAGS)" \
+		--tags "$(BUILDTAGS)" \
 		--succinct
 	# fixes https://github.com/onsi/ginkgo/issues/518
 	sed -i '2,$${/^mode: atomic/d;}' ${COVERAGE_PATH}/coverprofile
@@ -216,7 +223,7 @@ testunit-bin:
 	mkdir -p ${TESTBIN_PATH}
 	for PACKAGE in ${PACKAGES}; do \
 		go test $$PACKAGE \
-			--tags "containers_image_ostree_stub $(BUILDTAGS)" \
+			--tags "$(BUILDTAGS)" \
 			--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename $$PACKAGE) ;\
 	done
 
@@ -317,14 +324,6 @@ ifeq ($(TRAVIS),true)
 else
 	GIT_CHECK_EXCLUDE="./vendor" ${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
 endif
-
-.install.ostree: .gopathok
-	if ! pkg-config ostree-1 2> /dev/null ; then \
-		git clone https://github.com/ostreedev/ostree $(GOPATH)/src/github.com/ostreedev/ostree ; \
-		cd $(GOPATH)/src/github.com/ostreedev/ostree ; \
-		./autogen.sh --prefix=/usr/local; \
-		$(MAKE) all install; \
-	fi
 
 .PHONY: \
 	.explicit_phony \
