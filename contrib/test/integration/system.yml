@@ -41,7 +41,6 @@
     - oci-umount
     - openssl
     - openssl-devel
-    - ostree-devel
     - pkgconfig
     - python
     - python2-crypto

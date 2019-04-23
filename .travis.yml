@@ -15,20 +15,6 @@ before_install:
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install libc-dev linux-libc-dev; fi
   - if [ "${TRAVIS_OS_NAME}" = osx ]; then brew update && brew install gpgme; fi
 
-install:
-  - >
-    if [ "${TRAVIS_OS_NAME}" = linux ]; then
-      OSTREE_VERSION=v2017.9;
-      git clone https://github.com/ostreedev/ostree ${TRAVIS_BUILD_DIR}/ostree &&
-      (
-        cd ${TRAVIS_BUILD_DIR}/ostree &&
-        git checkout $OSTREE_VERSION &&
-        ./autogen.sh --prefix=/usr/local &&
-        make all &&
-        sudo make install
-      )
-    fi
-
 before_script:
   - export PATH=$HOME/gopath/bin:$PATH
   - export LD_LIBRARY_PATH=/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
