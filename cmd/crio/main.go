@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
@@ -206,7 +207,7 @@ func writeCrioGoroutineStacks() {
 	}
 }
 
-func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
+func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool, retCode *int) {
 
 	sig := make(chan os.Signal, 2048)
 	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGPIPE)
@@ -227,6 +228,9 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 				logrus.Debugf("Caught SIGTERM")
 			default:
 				continue
+			}
+			if code, ok := s.(syscall.Signal); ok {
+				*retCode = 128 + int(code)
 			}
 			*signalled = true
 			gserver.GracefulStop()
@@ -639,8 +643,9 @@ func main() {
 			ReadTimeout: 5 * time.Second,
 		}
 
+		retCode := 0
 		graceful := false
-		catchShutdown(ctx, cancel, s, service, srv, &graceful)
+		catchShutdown(ctx, cancel, s, service, srv, &graceful, &retCode)
 
 		go s.Serve(grpcL)
 		go srv.Serve(httpL)
@@ -681,6 +686,9 @@ func main() {
 		<-serverCloseCh
 		logrus.Debug("closed main server")
 
+		if retCode != 0 {
+			os.Exit(retCode)
+		}
 		return nil
 	}
 
