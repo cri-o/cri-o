@@ -18,7 +18,6 @@
     state: link
   with_items:
     - go
-    - gofmt
     - godoc
 
 - name: ensure user profile exists
