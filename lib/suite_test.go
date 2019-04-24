@@ -121,6 +121,7 @@ func beforeEach() {
 	Expect(err).To(BeNil())
 	config.FileLocking = false
 	config.LogDir = "."
+	config.HooksDir = []string{}
 
 	gomock.InOrder(
 		libMock.EXPECT().GetStore().Return(storeMock, nil),

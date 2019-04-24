@@ -33,6 +33,7 @@ var _ = t.Describe("ContainerServer", func() {
 			config, err := lib.DefaultConfig()
 			Expect(err).To(BeNil())
 			config.FileLockingPath = tmpfile.Name()
+			config.HooksDir = []string{}
 
 			// Specify mocks
 			gomock.InOrder(
