@@ -149,38 +149,72 @@ func (s *Server) restore() {
 	pods := map[string]*storage.RuntimeContainerMetadata{}
 	podContainers := map[string]*storage.RuntimeContainerMetadata{}
 	names := map[string][]string{}
+	deletedPods := map[string]bool{}
 	for i := range containers {
-		container := &containers[i]
-		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(container.ID)
+		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(containers[i].ID)
 		if err2 != nil {
-			logrus.Warnf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
+			logrus.Warnf("error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
 			continue
 		}
-		names[container.ID] = container.Names
+		names[containers[i].ID] = containers[i].Names
 		if metadata.Pod {
-			pods[container.ID] = &metadata
+			pods[containers[i].ID] = &metadata
 		} else {
-			podContainers[container.ID] = &metadata
+			podContainers[containers[i].ID] = &metadata
 		}
 	}
-	for containerID, metadata := range pods {
-		if err = s.LoadSandbox(containerID); err != nil {
-			logrus.Warnf("could not restore sandbox %s container %s: %v", metadata.PodID, containerID, err)
-			for _, n := range names[containerID] {
-				s.Store().DeleteContainer(n)
+
+	// Go through all the pods and check if it can be restored. If an error occurs, delete the pod and any containers
+	// associated with it. Release the pod and container names as well.
+	for sbID, metadata := range pods {
+		if err = s.LoadSandbox(sbID); err == nil {
+			continue
+		}
+		logrus.Warnf("could not restore sandbox %s container %s: %v", metadata.PodID, sbID, err)
+		for _, n := range names[sbID] {
+			s.Store().DeleteContainer(n)
+			// Release the infra container name and the pod name for future use
+			if strings.Contains(n, infraName) {
+				s.ReleaseContainerName(n)
+			} else {
+				s.ReleasePodName(n)
+			}
+
+		}
+		// Go through the containers and delete any containers that were under the deleted pod
+		logrus.Warnf("deleting all containers under sandbox %s since it could not be restored", sbID)
+		for k, v := range podContainers {
+			if v.PodID == sbID {
+				for _, n := range names[k] {
+					s.Store().DeleteContainer(n)
+					// Release the container name for future use
+					s.ReleaseContainerName(n)
+				}
 			}
 		}
+		// Add the pod id to the list of deletedPods so we don't try to restore IPs for it later on
+		deletedPods[sbID] = true
 	}
+
+	// Go through all the containers and check if it can be restored. If an error occurs, delete the container and
+	// release the name associated with it.
 	for containerID := range podContainers {
 		if err := s.LoadContainer(containerID); err != nil {
 			logrus.Warnf("could not restore container %s: %v", containerID, err)
 			for _, n := range names[containerID] {
 				s.Store().DeleteContainer(n)
+				// Release the container name
+				s.ReleaseContainerName(n)
 			}
 		}
 	}
+
 	// Restore sandbox IPs
 	for _, sb := range s.ListSandboxes() {
+		// Move on if pod was deleted
+		if ok, _ := deletedPods[sb.ID()]; ok {
+			continue
+		}
 		ip, err := s.getSandboxIP(sb)
 		if err != nil {
 			logrus.Warnf("could not restore sandbox IP for %v: %v", sb.ID(), err)

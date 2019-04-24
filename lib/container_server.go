@@ -467,7 +467,9 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		}
 	}
 
-	c.ContainerStateFromDisk(scontainer)
+	if err := c.ContainerStateFromDisk(scontainer); err != nil {
+		return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
+	}
 	sb.SetCreated()
 
 	if err = label.ReserveLabel(processLabel); err != nil {
@@ -582,7 +584,9 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	spp := m.Annotations[annotations.SeccompProfilePath]
 	ctr.SetSeccompProfilePath(spp)
 
-	c.ContainerStateFromDisk(ctr)
+	if err := c.ContainerStateFromDisk(ctr); err != nil {
+		return fmt.Errorf("error reading container state from disk %q: %v", ctr.ID(), err)
+	}
 	ctr.SetCreated()
 
 	c.AddContainer(ctr)
@@ -599,9 +603,9 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 	if err := ctr.FromDisk(); err != nil {
 		return err
 	}
-	// ignore errors, this is a best effort to have up-to-date info about
-	// a given container before its state gets stored
-	c.runtime.UpdateContainerStatus(ctr)
+	if err := c.runtime.UpdateContainerStatus(ctr); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -609,9 +613,9 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
 func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
-	// ignore errors, this is a best effort to have up-to-date info about
-	// a given container before its state gets stored
-	c.Runtime().UpdateContainerStatus(ctr)
+	if err := c.Runtime().UpdateContainerStatus(ctr); err != nil {
+		logrus.Warnf("error updating the container status %q: %v", ctr.ID(), err)
+	}
 
 	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0644)
 	if err != nil {
