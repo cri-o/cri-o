@@ -3,6 +3,7 @@ package lib_test
 import (
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/oci"
@@ -203,7 +204,9 @@ var _ = t.Describe("Config", func() {
 		It("should succeed during runtime", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDir = []string{validPath}
+			tmpDir := path.Join(os.TempDir(), "cni-test")
+			sut.NetworkConfig.PluginDir = []string{tmpDir}
+			defer os.RemoveAll(tmpDir)
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -215,7 +218,18 @@ var _ = t.Describe("Config", func() {
 		It("should fail on invalid NetworkDir", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = wrongPath
-			sut.NetworkConfig.PluginDir = []string{validPath}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on PluginDir without permissions", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validPath
+			sut.NetworkConfig.PluginDir = []string{wrongPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -227,7 +241,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail on invalid PluginDir", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDir = []string{wrongPath}
+			sut.NetworkConfig.PluginDir = []string{validPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)

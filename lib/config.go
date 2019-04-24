@@ -507,7 +507,7 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		}
 
 		for _, pluginDir := range c.PluginDir {
-			if _, err := os.Stat(pluginDir); err != nil {
+			if err := os.MkdirAll(pluginDir, 0755); err != nil {
 				return errors.Wrapf(err, "invalid plugin_dir entry")
 			}
 		}
