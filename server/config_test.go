@@ -3,6 +3,7 @@ package server
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/cri-o/cri-o/lib"
@@ -113,7 +114,9 @@ func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
 	defaultConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
 	defaultConfig.Conmon = validPath
 	defaultConfig.NetworkConfig.NetworkDir = validPath
-	defaultConfig.NetworkConfig.PluginDir = []string{validPath}
+	tmpDir := path.Join(os.TempDir(), "cni-test")
+	defaultConfig.NetworkConfig.PluginDir = []string{tmpDir}
+	defer os.RemoveAll(tmpDir)
 
 	must(t, defaultConfig.Validate(true))
 }
