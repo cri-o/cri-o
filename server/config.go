@@ -23,6 +23,22 @@ type Config struct {
 	APIConfig
 }
 
+// ConfigIface provides a server config interface for data encapsulation
+type ConfigIface interface {
+	GetData() *Config
+	GetLibConfigIface() lib.ConfigIface
+}
+
+// GetData returns the Config of a ConfigIface
+func (c *Config) GetData() *Config {
+	return c
+}
+
+// GetLibConfigIface returns the library config interface of a ConfigIface
+func (c *Config) GetLibConfigIface() lib.ConfigIface {
+	return c.Config.GetData()
+}
+
 // APIConfig represents the "crio.api" TOML config table.
 type APIConfig struct {
 	// GRPCMaxSendMsgSize is the maximum grpc send message size in bytes.
