@@ -409,6 +409,21 @@ func (mr *MockStoreMockRecorder) GIDMap() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GIDMap", reflect.TypeOf((*MockStore)(nil).GIDMap))
 }
 
+// GetDigestLock mocks base method
+func (m *MockStore) GetDigestLock(arg0 go_digest.Digest) (storage.Locker, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDigestLock", arg0)
+	ret0, _ := ret[0].(storage.Locker)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDigestLock indicates an expected call of GetDigestLock
+func (mr *MockStoreMockRecorder) GetDigestLock(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDigestLock", reflect.TypeOf((*MockStore)(nil).GetDigestLock), arg0)
+}
+
 // GraphDriver mocks base method
 func (m *MockStore) GraphDriver() (drivers.Driver, error) {
 	m.ctrl.T.Helper()
