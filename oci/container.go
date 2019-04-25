@@ -296,13 +296,6 @@ func (c *Container) IDMappings() *idtools.IDMappings {
 	return c.idMappings
 }
 
-// SetState sets the container state
-//
-// XXX: DO NOT EVER USE THIS, THIS IS JUST USEFUL FOR MOCKING!!!
-func (c *Container) SetState(state *ContainerState) {
-	c.state = state
-}
-
 // SetCreated sets the created flag to true once container is created
 func (c *Container) SetCreated() {
 	c.created = true
