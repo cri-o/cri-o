@@ -30,5 +30,8 @@ function execute() {
 # Tests to run. Defaults to all.
 TESTS=${@:-.}
 
+# Copy the cni helper
+cp cni_plugin_helper.bash /opt/cni/bin
+
 # Run the tests.
 execute time bats --tap $TESTS
