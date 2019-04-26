@@ -18,6 +18,7 @@ coverprofile
 .gdb_history
 *gomock_reflect*
 lib/state.json
+result-*bin
 
 Vagrantfile
 .vagrant/

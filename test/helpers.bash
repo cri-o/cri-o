@@ -9,8 +9,11 @@ TESTDATA="${INTEGRATION_ROOT}/testdata"
 # Root directory of the repository.
 CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
-# Path of the crio binary.
-CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/bin/crio}
+# Path to the crio binary.
+CRIO_BINARY=${CRIO_BINARY:-crio}
+CRIO_BINARY_PATH=${CRIO_BINARY_PATH:-${CRIO_ROOT}/cri-o/bin/$CRIO_BINARY}
+echo "Using cri-o binary '$CRIO_BINARY_PATH'"
+
 # Path of the crictl binary.
 CRICTL_PATH=$(command -v crictl || true)
 CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
@@ -184,10 +187,10 @@ if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
         exit 1
     fi
 fi
-# Run crio using the binary specified by $CRIO_BINARY.
+# Run crio using the binary specified by $CRIO_BINARY_PATH.
 # This must ONLY be run on engines created with `start_crio`.
 function crio() {
-	"$CRIO_BINARY" --listen "$CRIO_SOCKET" "$@"
+	"$CRIO_BINARY_PATH" --listen "$CRIO_SOCKET" "$@"
 }
 
 # Run crictl using the binary specified by $CRICTL_BINARY.
@@ -255,7 +258,7 @@ function setup_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --default-capabilities "$capabilities" --conmon "$TESTDIR/conmon" --listen "$CRIO_SOCKET" --stream-port "$((STREAM_PORT + BATS_TEST_NUMBER))" --cgroup-manager "$CGROUP_MANAGER" --default-mounts-file "$TESTDIR/containers/mounts.conf" --registry "quay.io" --default-runtime $DEFAULT_RUNTIME --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" $DEVICES $ULIMITS --uid-mappings "$UID_MAPPINGS" --gid-mappings "$GID_MAPPINGS" --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --default-capabilities "$capabilities" --conmon "$TESTDIR/conmon" --listen "$CRIO_SOCKET" --stream-port "$((STREAM_PORT + BATS_TEST_NUMBER))" --cgroup-manager "$CGROUP_MANAGER" --default-mounts-file "$TESTDIR/containers/mounts.conf" --registry "quay.io" --default-runtime $DEFAULT_RUNTIME --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" $DEVICES $ULIMITS --uid-mappings "$UID_MAPPINGS" --gid-mappings "$GID_MAPPINGS" --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	sed -ie 's;\(container_exits_dir =\) \(.*\);\1 "'$CONTAINER_EXITS_DIR'";g' $CRIO_CONFIG
 	sed -ie 's;\(container_attach_socket_dir =\) \(.*\);\1 "'$CONTAINER_ATTACH_SOCKET_DIR'";g' $CRIO_CONFIG
@@ -301,7 +304,7 @@ function pull_test_containers() {
 # Start crio.
 function start_crio() {
 	setup_crio "$@"
-	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY_PATH" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }
@@ -309,7 +312,7 @@ function start_crio() {
 # Start crio with journald logging
 function start_crio_journald() {
 	setup_crio "$@"
-	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --log-journald --config "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY_PATH" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --log-journald --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }
@@ -332,7 +335,7 @@ function check_journald() {
 # Start crio with metrics enable
 function start_crio_metrics() {
 	setup_crio "$@"
-	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --metrics-port "$METRICS_PORT" --enable-metrics --config "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY_PATH" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --metrics-port "$METRICS_PORT" --enable-metrics --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }
