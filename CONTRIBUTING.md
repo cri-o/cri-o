@@ -71,22 +71,24 @@ when the PR is merged.
 Most PRs will be reviewed by two [approvers][prow-approvers] (listed [here](OWNERS)).
 Some maintainers add themselves to [`CODEOWNERS`](.github/CODEOWNERS) to manage their [review notifications][code-owners], but those entries have no governance significance.
 
-### Dependencies management
+### Dependency management
 
-Make sure [`vndr`](https://github.com/LK4D4/vndr) is installed.
+In order to add or update a dependency to this project run:
 
-In order to add a new dependency to this project:
+```
+> export GO111MODULE=on
+> go get -u [DEPENDENCY]
+```
 
-- add a new line to `vendor.conf` according to `vndr` rules (e.g. `github.com/pkg/errors master`)
-- run `make PKG=github.com/pkg/errors vendor`
+Since CRI-O uses go modules we highly recommend reading the [go modules
+wiki](https://github.com/golang/go/wiki/Modules), especially the [daily workflow
+section](https://github.com/golang/go/wiki/Modules#daily-workflow).
 
-In order to update an existing dependency:
+To ensure the working directory contains all necessary files afterwards, run:
 
-- update the relevant dependency line in `vendor.conf`
-- run `make PKG=github.com/your/package vendor`
-
-We have a `Makefile` target for vendoring to prevent `vndr` to clean packages that
-we need for testing.
+```
+> make vendor
+```
 
 ### Sign your PRs
 
