@@ -100,7 +100,9 @@ sudo apt-add-repository ppa:projectatomic/ppa
 sudo apt-get install crio
 ```
 
-Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup guide](tutorials/setup.md)
+Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
+guide](tutorials/setup.md). We also provide a way in building [static binaries
+of `CRI-O`](tutorials/setup.md#static-builds) via nix.
 
 ### Running CRI-O
 

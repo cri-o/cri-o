@@ -130,6 +130,63 @@ make BUILDTAGS='seccomp apparmor'
 | exclude_graphdriver_overlay      | exclude overlay as a storage option             | <none>       |
 | ostree                           | build storage using ostree                      | ostree       |
 
+## Static builds
+
+It is possible to build a statically linked binary of CRI-O by using the
+provided [nix](https://nixos.org/nix) package [within this repository](../nix).
+The builds are completely reproducible and will create a `x86_64`/`amd64`
+stripped ELF binary for [glibc](https://www.gnu.org/software/libc) and [musl
+libc](https://www.musl-libc.org). These binaries are integration tested as well
+and support the following features:
+
+- apparmor
+- btrfs
+- device mapper
+- gpgme
+- seccomp
+- selinux
+
+To build the binaries locally either [install the nix package
+manager](https://nixos.org/nix/download.html) or setup a new container image
+named `crionix` from the root directory of this repository by executing:
+
+```
+make nix-image
+```
+
+Please note that you can specify the container runtime and image name by
+specifying:
+
+```
+make nix-image \
+    CONTAINER_RUNTIME=podman \
+    NIX_IMAGE=crionix
+```
+
+The overall build process can take a tremendous amount of CPU time depending on
+the hardware. After the image has been successfully built, it should be possible
+to build the binaries:
+
+```
+make build-static
+```
+
+Note that the container runtime and nix image can be specified here, too. The
+resulting binaries should now be available within:
+
+- `bin/crio-x86_64-static-glibc`
+- `bin/crio-x86_64-static-musl`
+
+To build the binaries without any prepared container and via the already
+installed nix package manager, simply run the following command from the root
+directory of this repository:
+
+```
+nix-build nix
+```
+
+The resulting binary should be now available in `result-bin/bin` and
+`result-2-bin/bin`.
 
 ## Setup CNI networking
 
