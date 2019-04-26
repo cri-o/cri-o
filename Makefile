@@ -30,6 +30,7 @@ CONTAINER_RUNTIME ?= podman
 BUILD_PATH := $(shell pwd)/build
 BUILD_BIN_PATH := ${BUILD_PATH}/bin
 COVERAGE_PATH := ${BUILD_PATH}/coverage
+JUNIT_PATH := ${BUILD_PATH}/junit
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
 MOCKGEN_FLAGS := --build_flags='--tags=test $(BUILDTAGS)'
@@ -214,6 +215,7 @@ vendor:
 
 testunit: mockgen ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
+	rm -rf ${JUNIT_PATH} && mkdir -p ${JUNIT_PATH}
 	${BUILD_BIN_PATH}/ginkgo \
 		${TESTFLAGS} \
 		-r \
@@ -227,6 +229,7 @@ testunit: mockgen ${GINKGO}
 	sed -i '2,$${/^mode: atomic/d;}' ${COVERAGE_PATH}/coverprofile
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
+	find . -name '*_junit.xml' -exec mv -t ${JUNIT_PATH} {} +
 
 testunit-bin:
 	mkdir -p ${TESTBIN_PATH}

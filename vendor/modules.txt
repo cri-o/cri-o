@@ -515,6 +515,7 @@ github.com/nbutton23/zxcvbn-go/frequency
 github.com/nbutton23/zxcvbn-go/data
 # github.com/onsi/ginkgo v1.8.0
 github.com/onsi/ginkgo
+github.com/onsi/ginkgo/reporters
 github.com/onsi/ginkgo/ginkgo
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/internal/codelocation
@@ -523,7 +524,6 @@ github.com/onsi/ginkgo/internal/remote
 github.com/onsi/ginkgo/internal/suite
 github.com/onsi/ginkgo/internal/testingtproxy
 github.com/onsi/ginkgo/internal/writer
-github.com/onsi/ginkgo/reporters
 github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/types

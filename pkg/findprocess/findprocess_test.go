@@ -13,7 +13,7 @@ import (
 // TestFindprocess runs the created specs
 func TestFindprocess(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Findprocess")
+	RunFrameworkSpecs(t, "Findprocess")
 }
 
 var t *TestFramework

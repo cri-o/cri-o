@@ -14,7 +14,7 @@ import (
 // TestStorage runs the created specs
 func TestStorage(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Storage")
+	RunFrameworkSpecs(t, "Storage")
 }
 
 var (

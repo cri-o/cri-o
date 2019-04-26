@@ -6,6 +6,7 @@ TEST_USERNS=${TEST_USERNS:-}
 cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
 
 if [[ -n "$TEST_USERNS" ]]; then
+    echo "Enabled user namespace testing"
     export UID_MAPPINGS="0:100000:100000"
     export GID_MAPPINGS="0:200000:100000"
 

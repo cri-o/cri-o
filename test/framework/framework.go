@@ -2,8 +2,11 @@ package framework
 
 import (
 	"fmt"
+	"strings"
+	"testing"
 
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
@@ -53,4 +56,11 @@ func (t *TestFramework) Teardown() {
 // Describe is a convenience wrapper around the `ginkgo.Describe` function
 func (t *TestFramework) Describe(text string, body func()) bool {
 	return ginkgo.Describe("cri-o: "+text, body)
+}
+
+// RunFrameworkSpecs is a convenience wrapper for running tests
+func RunFrameworkSpecs(t *testing.T, suiteName string) {
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suiteName,
+		[]ginkgo.Reporter{reporters.NewJUnitReporter(
+			fmt.Sprintf("%v_junit.xml", strings.ToLower(suiteName)))})
 }

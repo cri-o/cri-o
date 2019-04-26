@@ -17,7 +17,7 @@ import (
 // TestSeccomp runs the created specs
 func TestSeccomp(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Seccomp")
+	RunFrameworkSpecs(t, "Seccomp")
 }
 
 var t *TestFramework

@@ -17,7 +17,7 @@ import (
 // TestSandbox runs the created specs
 func TestSandbox(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Sandbox")
+	RunFrameworkSpecs(t, "Sandbox")
 }
 
 var (
