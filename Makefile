@@ -246,7 +246,7 @@ mockgen: ${MOCKGEN}
 		${MOCKGEN_FLAGS} \
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
-		github.com/cri-o/cri-o/pkg/storage ImageServer
+		github.com/cri-o/cri-o/pkg/storage ImageServer,RuntimeServer
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package libmock \
@@ -267,6 +267,16 @@ mockgen: ${MOCKGEN}
 		-package servermock \
 		-destination ${MOCK_PATH}/server/server.go \
 		github.com/cri-o/cri-o/server ConfigIface
+	${BUILD_BIN_PATH}/mockgen \
+		${MOCKGEN_FLAGS} \
+		-package imagetypesmock \
+		-destination ${MOCK_PATH}/containers/image/types.go \
+		github.com/containers/image/types Image
+	${BUILD_BIN_PATH}/mockgen \
+		${MOCKGEN_FLAGS} \
+		-package ocicnitypesmock \
+		-destination ${MOCK_PATH}/ocicni/types.go \
+		github.com/cri-o/ocicni/pkg/ocicni CNIPlugin
 
 codecov: SHELL := $(shell which bash)
 codecov:

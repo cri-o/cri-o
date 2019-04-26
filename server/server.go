@@ -50,8 +50,8 @@ const (
 	apparmorLocalHostPrefix = "localhost/"
 )
 
-// streamService implements streaming.Runtime.
-type streamService struct {
+// StreamService implements streaming.Runtime.
+type StreamService struct {
 	runtimeServer       *Server // needed by Exec() endpoint
 	streamServer        streaming.Server
 	streamServerCloseCh chan struct{}
@@ -62,7 +62,7 @@ type streamService struct {
 type Server struct {
 	config          Config
 	seccompProfile  seccomp.Seccomp
-	stream          streamService
+	stream          StreamService
 	netPlugin       ocicni.CNIPlugin
 	hostportManager hostport.HostPortManager
 
