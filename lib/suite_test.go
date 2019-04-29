@@ -24,7 +24,7 @@ import (
 // TestLib runs the created specs
 func TestLib(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Lib")
+	RunFrameworkSpecs(t, "Lib")
 }
 
 var (

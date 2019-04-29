@@ -16,7 +16,7 @@ import (
 // TestOci runs the created specs
 func TestOci(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Oci")
+	RunFrameworkSpecs(t, "Oci")
 }
 
 var (

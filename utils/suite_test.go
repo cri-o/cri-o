@@ -11,7 +11,7 @@ import (
 // TestUtils runs the created specs
 func TestUtils(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Utils")
+	RunFrameworkSpecs(t, "Utils")
 }
 
 var t *TestFramework

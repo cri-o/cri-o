@@ -1,0 +1,257 @@
+---
+version: 2.1
+
+executors:
+  docker:
+    docker:
+      - image: &image saschagrunert/criocircle
+        user: circleci
+    environment:
+      GOCACHE: &gocache /tmp/go-build
+    working_directory: &workdir /go/src/github.com/cri-o/cri-o
+  docker-base:
+    docker:
+      - image: circleci/golang
+    environment:
+      GOCACHE: *gocache
+    working_directory: *workdir
+  nix:
+    docker:
+      - image: saschagrunert/crionix
+  machine:
+    machine:
+      docker_layer_caching: true
+      image: ubuntu-1604:201903-01
+    environment:
+      GOCACHE: *gocache
+      IMAGE: *image
+      WORKDIR: *workdir
+
+workflows:
+  version: 2
+  pipeline:
+    jobs:
+      - build
+      - build-static
+      - build-test-binaries
+      - clang-format
+      - git-validation
+      - integration:
+          requires:
+            - build
+            - build-test-binaries
+      - integration:
+          name: integration-userns
+          test_userns: '1'
+          requires:
+            - build
+            - build-test-binaries
+      - integration:
+          name: integration-static-glibc
+          crio_binary: crio-x86_64-static-glibc
+          requires:
+            - build
+            - build-static
+            - build-test-binaries
+      - integration:
+          name: integration-static-musl
+          crio_binary: crio-x86_64-static-musl
+          requires:
+            - build
+            - build-static
+            - build-test-binaries
+      - lint
+      - results:
+          requires:
+            - integration
+            - integration-static-glibc
+            - integration-static-musl
+            - integration-userns
+            - unit-tests
+      - unit-tests
+      - vendor
+
+jobs:
+  build:
+    executor: docker
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-build-{{ checksum "go.sum" }}
+      - run:
+          name: build
+          command: make
+      - save_cache:
+          key: v1-build-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/go-md2man
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bin
+
+  build-static:
+    executor: nix
+    steps:
+      - checkout
+      - run:
+          name: build
+          command: |
+            nix-build nix
+            mkdir -p bin
+            cp result-*bin/bin/crio-* bin
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bin
+
+  build-test-binaries:
+    executor: docker-base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-build-test-binaries-{{ checksum "go.sum" }}
+      - run:
+          name: build
+          command: make test-binaries
+      - save_cache:
+          key: v1-build-test-binaries-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+      - persist_to_workspace:
+          root: .
+          paths:
+            - test/bin2img/bin2img
+            - test/copyimg/checkseccomp/checkseccomp
+            - test/copyimg/copyimg
+
+  clang-format:
+    executor: docker
+    steps:
+      - checkout
+      - run: make fmt
+
+  git-validation:
+    executor: docker-base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-git-validation-{{ checksum "go.sum" }}
+      - run:
+          name: git validation to merge base
+          command: |
+            export MERGE_BASE=$(git merge-base origin/master \
+                                $(git rev-parse --abbrev-ref HEAD))
+            make .gitvalidation EPOCH_TEST_COMMIT=$MERGE_BASE
+      - save_cache:
+          key: v1-git-validation-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/git-validation
+
+  integration:
+    executor: machine
+    parameters:
+      crio_binary:
+        type: string
+        default: crio
+      test_userns:
+        type: string
+        default: ''
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: integration test
+          command: |
+            docker pull $IMAGE
+            docker run -e APPARMOR_PARAMETERS_FILE_PATH=skip \
+              -e STORAGE_OPTIONS="--storage-driver=vfs" -e TRAVIS=true \
+              -e CRIO_BINARY -e TEST_USERNS -t --privileged --rm \
+              -v $(pwd):$WORKDIR \
+              -w $WORKDIR \
+              $IMAGE test/test_runner.sh
+          environment:
+            CRIO_BINARY: "<< parameters.crio_binary >>"
+            TEST_USERNS: "<< parameters.test_userns >>"
+
+  lint:
+    executor: machine
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-golangci-lint-{{ checksum "go.sum" }}
+      - run:
+          name: lint
+          command: |
+            docker pull $IMAGE
+            docker run -t --privileged --rm -e GOCACHE \
+              -v $GOCACHE:$GOCACHE -v $(pwd):$WORKDIR \
+              -w $WORKDIR $IMAGE make lint
+            sudo chown -R $(id -u):$(id -g) $GOCACHE
+      - save_cache:
+          key: v1-golangci-lint-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/golangci-lint
+
+  results:
+    executor: docker-base
+    steps:
+      - attach_workspace:
+          at: .
+      - store_test_results:
+          path: build/junit
+      - store_artifacts:
+          path: bin
+          destination: bin
+      - store_artifacts:
+          path: build
+          destination: test
+
+  unit-tests:
+    executor: docker
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-unit-tests-{{ checksum "go.sum" }}
+      - run:
+          name: unit tests
+          command: make testunit
+      - store_test_results:
+          path: build/junit
+      - save_cache:
+          key: v1-unit-tests-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/ginkgo
+            - build/bin/mockgen
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/coverage
+            - build/junit
+
+  vendor:
+    executor: docker-base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-vendor-{{ checksum "go.sum" }}
+      - run:
+          name: check vendoring
+          command: |
+            make vendor
+            hack/tree_status.sh
+      - save_cache:
+          key: v1-vendor-{{ checksum "go.sum" }}
+          paths:
+            - /go/pkg
