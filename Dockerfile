@@ -60,16 +60,9 @@ RUN mkdir -p /usr/src/criu \
     && rm -rf /usr/src/criu
 
 # Install runc
-ENV RUNC_COMMIT 10d38b660a77168360df3522881e2dc2be5056bd
-RUN set -x \
-	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
-	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
-	&& git fetch origin --tags \
-	&& git checkout -q "$RUNC_COMMIT" \
-	&& make static BUILDTAGS="seccomp selinux apparmor" \
-	&& cp runc /usr/bin/runc \
-	&& rm -rf "$GOPATH"
+RUN VERSION=v1.0.0-rc8 &&\
+    wget -q -O /usr/bin/runc https://github.com/opencontainers/runc/releases/download/$VERSION/runc.amd64 &&\
+    chmod +x /usr/bin/runc
 
 # Install CNI plugins
 ENV CNI_COMMIT dcf7368eeab15e2affc6256f0bb1e84dd46a34de
