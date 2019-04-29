@@ -117,6 +117,7 @@ func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
 	tmpDir := path.Join(os.TempDir(), "cni-test")
 	defaultConfig.NetworkConfig.PluginDir = []string{tmpDir}
 	defer os.RemoveAll(tmpDir)
+	defaultConfig.LogDir = "."
 
 	must(t, defaultConfig.Validate(true))
 }

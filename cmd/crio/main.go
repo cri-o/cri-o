@@ -193,6 +193,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("log-level") {
 		config.LogLevel = ctx.GlobalString("log-level")
 	}
+	if ctx.GlobalIsSet("log-dir") {
+		config.LogDir = ctx.GlobalString("log-dir")
+	}
 	if ctx.GlobalIsSet("additional-devices") {
 		config.AdditionalDevices = ctx.GlobalStringSlice("additional-devices")
 	}
@@ -305,6 +308,11 @@ func main() {
 			Name:  "log-level",
 			Value: "error",
 			Usage: "log messages above specified level: debug, info, warn, error (default), fatal or panic",
+		},
+		cli.StringFlag{
+			Name:  "log-dir",
+			Value: "",
+			Usage: "default log directory where all logs will go unless directly specified by the kubelet",
 		},
 		cli.StringFlag{
 			Name:  "pause-command",

@@ -33,6 +33,7 @@ crio
 [--log=[value]]
 [--log-format value]
 [--log-level value]
+[--log-dir value]
 [--log-journald]
 [--metrics-port value]
 [--pause-command=[value]]
@@ -143,6 +144,8 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 **--log-format**="": Set the format used by logs ('text' (default), or 'json') (default: "text")
 
 **--log-level**="": log crio messages above specified level: debug, info, warn, error (default), fatal or panic
+
+**--log-dir**="": default log directory where all logs will go unless directly specified by the kubelet
 
 **--log-size-max**="": Maximum log size in bytes for a container (default: -1 (no limit)). If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
 

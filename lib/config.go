@@ -122,7 +122,7 @@ type RootConfig struct {
 	// StorageOption is a list of storage driver specific options.
 	StorageOptions []string `toml:"storage_option"`
 
-	// LogDir is the default log directory were all logs will go unless kubelet
+	// LogDir is the default log directory where all logs will go unless kubelet
 	// tells us to put them somewhere else.
 	LogDir string `toml:"log_dir"`
 
@@ -413,6 +413,40 @@ func DefaultConfig() (*Config, error) {
 			PluginDir:  []string{cniBinDir},
 		},
 	}, nil
+}
+
+// Validate is the main entry point for library configuration validation.
+// The parameter `onExecution` specifies if the validation should include
+// execution checks. It returns an `error` on validation failure, otherwise
+// `nil`.
+func (c *Config) Validate(onExecution bool) error {
+	if err := c.RootConfig.Validate(onExecution); err != nil {
+		return errors.Wrapf(err, "root config")
+	}
+
+	if err := c.RuntimeConfig.Validate(onExecution); err != nil {
+		return errors.Wrapf(err, "runtime config")
+	}
+
+	if err := c.NetworkConfig.Validate(onExecution); err != nil {
+		return errors.Wrapf(err, "network config")
+	}
+
+	return nil
+}
+
+// Validate is the main entry point for root configuration validation.
+// The parameter `onExecution` specifies if the validation should include
+// execution checks. It returns an `error` on validation failure, otherwise
+// `nil`.
+func (c *RootConfig) Validate(onExecution bool) error {
+	if onExecution {
+		if err := os.MkdirAll(c.LogDir, 0700); err != nil {
+			return errors.Wrapf(err, "invalid log_dir")
+		}
+	}
+
+	return nil
 }
 
 // Validate is the main entry point for runtime configuration validation

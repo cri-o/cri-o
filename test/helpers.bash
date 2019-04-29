@@ -57,8 +57,8 @@ COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/cri-o/test/copyimg/copyimg}
 ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/cri-o/.artifacts}
 # Path of the checkseccomp binary.
 CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/cri-o/test/checkseccomp/checkseccomp}
-# XXX: This is hardcoded inside cri-o at the moment.
-DEFAULT_LOG_PATH=/var/log/crio/pods
+# The default log directory where all logs will go unless directly specified by the kubelet
+DEFAULT_LOG_PATH=${DEFAULT_LOG_PATH:-/var/log/crio/pods}
 # Cgroup manager to be used
 CGROUP_MANAGER=${CGROUP_MANAGER:-cgroupfs}
 # Image volumes handling
