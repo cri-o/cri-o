@@ -6,12 +6,10 @@ RUN apt-get update && apt-get install -y \
     automake \
     bison \
     build-essential \
-    curl \
     e2fslibs-dev \
     gawk \
     gettext \
     iptables \
-    pkg-config \
     libaio-dev \
     libapparmor-dev \
     libcap-dev \
@@ -28,7 +26,6 @@ RUN apt-get update && apt-get install -y \
     parallel \
     protobuf-c-compiler \
     protobuf-compiler \
-    python-minimal \
     python-protobuf \
     libglib2.0-dev \
     btrfs-tools \
@@ -38,61 +35,32 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     netcat \
     socat \
-    --no-install-recommends \
     bsdmainutils \
     && apt-get clean
 
-# install bats
-ENV BATS_COMMIT 8789f910812afbf6b87dd371ee5ae30592f1423f
-RUN cd /tmp \
-    && git clone https://github.com/bats-core/bats-core.git \
-    && cd bats-core \
-    && git checkout -q "$BATS_COMMIT" \
-    && ./install.sh /usr/local
-RUN mkdir -p ~/.parallel && touch ~/.parallel/will-cite
-
-# install criu
-ENV CRIU_VERSION 3.9
-RUN mkdir -p /usr/src/criu \
-    && curl -sSL https://github.com/xemul/criu/archive/v${CRIU_VERSION}.tar.gz | tar -v -C /usr/src/criu/ -xz --strip-components=1 \
-    && cd /usr/src/criu \
-    && make install-criu \
-    && rm -rf /usr/src/criu
-
-# Install runc
-ENV RUNC_COMMIT 10d38b660a77168360df3522881e2dc2be5056bd
-RUN set -x \
-	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
-	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
-	&& git fetch origin --tags \
-	&& git checkout -q "$RUNC_COMMIT" \
-	&& make static BUILDTAGS="seccomp selinux apparmor" \
-	&& cp runc /usr/bin/runc \
-	&& rm -rf "$GOPATH"
-
-# Install CNI plugins
-ENV CNI_COMMIT dcf7368eeab15e2affc6256f0bb1e84dd46a34de
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
-       && cd "$GOPATH/src/github.com/containernetworking/plugins" \
-       && git checkout -q "$CNI_COMMIT" \
-       && ./build.sh \
-       && mkdir -p /opt/cni/bin \
-       && cp bin/* /opt/cni/bin/ \
-       && rm -rf "$GOPATH"
+# Install bats
+RUN cd /tmp &&\
+    git clone https://github.com/bats-core/bats-core.git --depth=1 &&\
+    cd bats-core &&\
+    ./install.sh /usr &&\
+    rm -rf /tmp/bats-core &&\
+    mkdir -p ~/.parallel && touch ~/.parallel/will-cite
 
 # Install crictl
-ENV CRICTL_COMMIT ff8d2e81baf8ff720fb916e42da57c2b772bd19e
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/kubernetes-sigs/cri-tools.git "$GOPATH/src/github.com/kubernetes-sigs/cri-tools" \
-       && cd "$GOPATH/src/github.com/kubernetes-sigs/cri-tools" \
-       && git checkout -q "$CRICTL_COMMIT" \
-       && go install github.com/kubernetes-sigs/cri-tools/cmd/crictl \
-       && cp "$GOPATH"/bin/crictl /usr/bin/ \
-       && rm -rf "$GOPATH"
+RUN VERSION=v1.14.0 &&\
+    wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-$VERSION-linux-amd64.tar.gz \
+        | tar xfz - -C /usr/bin
+
+# Install runc
+RUN VERSION=v1.0.0-rc8 &&\
+    wget -q -O /usr/bin/runc https://github.com/opencontainers/runc/releases/download/$VERSION/runc.amd64 &&\
+    chmod +x /usr/bin/runc
+
+# Install CNI plugins
+RUN VERSION=v0.7.5 &&\
+    mkdir -p /opt/cni/bin &&\
+    wget -qO- https://github.com/containernetworking/plugins/releases/download/$VERSION/cni-plugins-amd64-$VERSION.tgz \
+        | tar xfz - -C /opt/cni/bin
 
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers

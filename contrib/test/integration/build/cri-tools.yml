@@ -1,26 +1,13 @@
 ---
 
-- name: clone cri-tools source repo
-  git:
-    repo: "https://github.com/kubernetes-sigs/cri-tools.git"
-    dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
-    version: "{{ cri_tools_git_version }}"
-    force: "{{ force_clone | default(False) | bool}}"
+- name: download crictl
+  unarchive:
+    src: https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.14.0/crictl-v1.14.0-linux-amd64.tar.gz
+    dest: /usr/bin
+    remote_src: yes
 
-- name: install crictl
-  command: "/usr/bin/go install github.com/kubernetes-sigs/cri-tools/cmd/crictl"
-
-- name: install critest
-  command: "/usr/bin/go test -c github.com/kubernetes-sigs/cri-tools/cmd/critest -o {{ ansible_env.GOPATH }}/bin/critest"
-
-- name: link crictl
-  file:
-    src: "{{ ansible_env.GOPATH }}/bin/crictl"
-    dest: /usr/bin/crictl
-    state: link
-
-- name: link critest
-  file:
-    src: "{{ ansible_env.GOPATH }}/bin/critest"
-    dest: /usr/bin/critest
-    state: link
+- name: download critest
+  unarchive:
+    src: https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.14.0/critest-v1.14.0-linux-amd64.tar.gz
+    dest: /usr/bin
+    remote_src: yes

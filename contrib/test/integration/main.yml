@@ -1,3 +1,4 @@
+---
 - hosts: all
   remote_user: root
   vars_files:
@@ -16,24 +17,21 @@
     - name: clone build and install bats
       include: "build/bats.yml"
 
-    - name: clone build and install cri-tools
+    - name: install cri-tools
       include: "build/cri-tools.yml"
-      vars:
-        cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
 
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
-      vars:
       vars:
         k8s_git_version: "release-1.12"
         k8s_github_fork: "kubernetes"
         crio_socket: "/var/run/crio/crio.sock"
 
-    - name: clone build and install runc
+    - name: install runc
       include: "build/runc.yml"
       when: "{{ build_runc | default(True) | bool}}"
 
-    - name: clone build and install networking plugins
+    - name: install networking plugins
       include: "build/plugins.yml"
 
 - hosts: all
@@ -51,7 +49,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-          version: "1.12.2"
+        version: "1.12.2"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
   post_tasks:
@@ -67,11 +65,8 @@
   tasks:
     - name: install parallel
       include: build/parallel.yml
-    - name: clone build and install cri-tools
+    - name: install cri-tools
       include: "build/cri-tools.yml"
-      vars:
-        force_clone: True
-        cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
     - name: run cri-o integration tests
       include: test.yml
 
@@ -84,9 +79,6 @@
   tasks:
     - name: setup critest
       include: "build/cri-tools.yml"
-      vars:
-          force_clone: True
-          cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
     - name: run critest validation and benchmarks
       include: critest.yml
 
