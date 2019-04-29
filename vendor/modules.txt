@@ -517,6 +517,7 @@ github.com/nbutton23/zxcvbn-go/data
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/reporters
 github.com/onsi/ginkgo/ginkgo
+github.com/onsi/ginkgo/extensions/table
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/internal/codelocation
 github.com/onsi/ginkgo/internal/failer
