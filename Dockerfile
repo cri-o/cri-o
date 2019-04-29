@@ -72,16 +72,10 @@ RUN set -x \
 	&& rm -rf "$GOPATH"
 
 # Install CNI plugins
-ENV CNI_COMMIT dcf7368eeab15e2affc6256f0bb1e84dd46a34de
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
-       && cd "$GOPATH/src/github.com/containernetworking/plugins" \
-       && git checkout -q "$CNI_COMMIT" \
-       && ./build.sh \
-       && mkdir -p /opt/cni/bin \
-       && cp bin/* /opt/cni/bin/ \
-       && rm -rf "$GOPATH"
+RUN VERSION=v0.7.5 &&\
+    mkdir -p /opt/cni/bin &&\
+    wget -qO- https://github.com/containernetworking/plugins/releases/download/$VERSION/cni-plugins-amd64-$VERSION.tgz \
+        | tar xfz - -C /opt/cni/bin
 
 # Install crictl
 ENV CRICTL_COMMIT ff8d2e81baf8ff720fb916e42da57c2b772bd19e
