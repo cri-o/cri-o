@@ -383,18 +383,23 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			// read in the memory limit from the memory.limit_in_bytes file
 			fileData, err := ioutil.ReadFile(filepath.Join(cgroupMemorySubsystemMountPath, slicePath, "memory.limit_in_bytes"))
 			if err != nil {
-				return nil, errors.Wrapf(err, "error reading memory.limit_in_bytes file for slice %q", cgroupParent)
-			}
-			// strip off the newline character and convert it to an int
-			strMemory := strings.TrimRight(string(fileData), "\n")
-			if strMemory != "" {
-				memoryLimit, err := strconv.Atoi(strMemory)
-				if err != nil {
-					return nil, errors.Wrapf(err, "error converting cgroup memory value from string to int %q", strMemory)
+				if os.IsNotExist(err) {
+					logrus.Warnf("Failed to find memory.limit_in_bytes for slice: %q", cgroupParent)
+				} else {
+					return nil, errors.Wrapf(err, "error reading memory.limit_in_bytes file for slice %q", cgroupParent)
 				}
-				// Compare with the minimum allowed memory limit
-				if memoryLimit != 0 && memoryLimit < minMemoryLimit {
-					return nil, fmt.Errorf("pod set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+			} else {
+				// strip off the newline character and convert it to an int
+				strMemory := strings.TrimRight(string(fileData), "\n")
+				if strMemory != "" {
+					memoryLimit, err := strconv.Atoi(strMemory)
+					if err != nil {
+						return nil, errors.Wrapf(err, "error converting cgroup memory value from string to int %q", strMemory)
+					}
+					// Compare with the minimum allowed memory limit
+					if memoryLimit != 0 && memoryLimit < minMemoryLimit {
+						return nil, fmt.Errorf("pod set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+					}
 				}
 			}
 		} else {
