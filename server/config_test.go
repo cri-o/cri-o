@@ -1,170 +1,246 @@
-package server
+package server_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
-	"testing"
 
-	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/server"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-const fixturePath = "fixtures/crio.conf"
+var _ = t.Describe("Config", func() {
+	// The system under test
+	var sut *server.Config
 
-func must(t *testing.T, err error) {
-	if err != nil {
-		t.Error(err)
-	}
-}
+	const (
+		validPath = "/bin/sh"
+		wrongPath = "/wrong"
+	)
 
-func fails(t *testing.T, err error) {
-	if err == nil {
-		t.Error(err)
-	}
-}
+	BeforeEach(func() {
+		sut = &server.Config{}
+	})
 
-func assertAllFieldsEquality(t *testing.T, c *Config) {
-	testCases := []struct {
-		fieldValue, expected interface{}
-	}{
-		{c.RootConfig.Root, "/var/lib/containers/storage"},
-		{c.RootConfig.RunRoot, "/var/run/containers/storage"},
-		{c.RootConfig.Storage, "overlay"},
-		{len(c.RootConfig.StorageOptions), 0},
+	t.Describe("UpdateFromFile", func() {
+		It("should succeed", func() {
+			// Given
+			sut, err := server.DefaultConfig()
+			Expect(err).To(BeNil())
+			const filePath = "crio-test.conf"
+			Expect(sut.ToFile(filePath)).To(BeNil())
+			defer os.RemoveAll(filePath)
 
-		{c.APIConfig.Listen, "/var/run/crio.sock"},
-		{c.APIConfig.StreamPort, "10010"},
-		{c.APIConfig.StreamAddress, "localhost"},
+			// When
+			err = sut.UpdateFromFile(filePath)
 
-		{c.RuntimeConfig.Conmon, "/usr/local/libexec/crio/conmon"},
-		{c.RuntimeConfig.ConmonEnv[0], "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
-		{c.RuntimeConfig.SELinux, true},
-		{c.RuntimeConfig.SeccompProfile, "/etc/crio/seccomp.json"},
-		{c.RuntimeConfig.ApparmorProfile, "crio-default"},
-		{c.RuntimeConfig.CgroupManager, "cgroupfs"},
-		{c.RuntimeConfig.PidsLimit, int64(1024)},
+			// Then
+			Expect(err).To(BeNil())
+			expected, err := server.DefaultConfig()
+			Expect(err).To(BeNil())
+			Expect(sut).To(Equal(expected))
+		})
 
-		{c.ImageConfig.DefaultTransport, "docker://"},
-		{c.ImageConfig.PauseImage, "kubernetes/pause"},
-		{c.ImageConfig.PauseImageAuthFile, "/var/lib/kubelet/config.json"},
-		{c.ImageConfig.PauseCommand, "/pause"},
-		{c.ImageConfig.SignaturePolicyPath, "/tmp"},
-		{c.ImageConfig.ImageVolumes, lib.ImageVolumesType("mkdir")},
-		{c.ImageConfig.InsecureRegistries[0], "insecure-registry:1234"},
-		{c.ImageConfig.Registries[0], "registry:4321"},
+		It("should fail when file not readable", func() {
+			// Given
+			// When
+			err := sut.UpdateFromFile("/proc/invalid")
 
-		{c.NetworkConfig.NetworkDir, "/etc/cni/net.d/"},
-		{c.NetworkConfig.PluginDir[0], "/opt/cni/bin/"},
-	}
-	for _, tc := range testCases {
-		if tc.fieldValue != tc.expected {
-			t.Errorf(`Expecting: "%s", got: "%s"`, tc.expected, tc.fieldValue)
-		}
-	}
-}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 
-func TestUpdateFromFile(t *testing.T) {
-	c := &Config{}
+		It("should fail when toml decode errors", func() {
+			// Given
+			// When
+			err := sut.UpdateFromFile("config.go")
 
-	must(t, c.UpdateFromFile(fixturePath))
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
 
-	assertAllFieldsEquality(t, c)
-}
+	t.Describe("ToFile", func() {
+		It("should succeed", func() {
+			// Given
+			const filePath = "crio-tofile.conf"
+			sut, err := server.DefaultConfig()
+			Expect(err).To(BeNil())
+			defer os.RemoveAll(filePath)
 
-func TestToFile(t *testing.T) {
-	configFromFixture := Config{}
+			// When
+			err = sut.ToFile(filePath)
 
-	must(t, configFromFixture.UpdateFromFile(fixturePath))
+			// Then
+			Expect(err).To(BeNil())
+			testConfig := &server.Config{}
+			Expect(testConfig.UpdateFromFile(filePath))
+			Expect(testConfig).To(Equal(sut))
+		})
 
-	f, err := ioutil.TempFile("", "crio.conf")
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.Remove(f.Name())
+		It("should fail when file not writeable", func() {
+			// Given
+			sut, err := server.DefaultConfig()
+			Expect(err).To(BeNil())
 
-	must(t, configFromFixture.ToFile(f.Name()))
+			// When
+			err = sut.ToFile("/proc/invalid")
 
-	writtenConfig := &Config{}
-	err = writtenConfig.UpdateFromFile(f.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
 
-	assertAllFieldsEquality(t, writtenConfig)
-}
+	t.Describe("GetData", func() {
+		It("should succeed with default config", func() {
+			// Given
+			sut, err := server.DefaultConfig()
+			Expect(err).To(BeNil())
 
-func TestConfigValidateDefaultSuccess(t *testing.T) {
-	defaultConfig, err := DefaultConfig()
-	if err != nil {
-		t.Fatal("error should not be nil")
-	}
-	must(t, defaultConfig.Validate(false))
-}
+			// When
+			serverConfig := sut.GetData()
 
-func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
-	defaultConfig, err := DefaultConfig()
-	if err != nil {
-		t.Fatal("error should not be nil")
-	}
+			// Then
+			Expect(serverConfig).NotTo(BeNil())
+		})
 
-	// since some test systems do not have runc installed, assume a more
-	// generally available executable
-	const validPath = "/bin/sh"
-	defaultConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
-	defaultConfig.Conmon = validPath
-	defaultConfig.NetworkConfig.NetworkDir = validPath
-	tmpDir := path.Join(os.TempDir(), "cni-test")
-	defaultConfig.NetworkConfig.PluginDir = []string{tmpDir}
-	defer os.RemoveAll(tmpDir)
-	defaultConfig.LogDir = "."
+		It("should succeed with empty config", func() {
+			// Given
+			// When
+			serverConfig := sut.GetData()
 
-	must(t, defaultConfig.Validate(true))
-}
+			// Then
+			Expect(serverConfig).NotTo(BeNil())
+		})
+	})
 
-func TestConfigValidateFailsOnUnrecognizedImageVolumeType(t *testing.T) {
-	defaultConfig, err := DefaultConfig()
-	if err != nil {
-		t.Fatal("error should not be nil")
-	}
-	defaultConfig.ImageVolumes = "wrong"
-	fails(t, defaultConfig.Validate(false))
-}
+	t.Describe("GetLibConfigIface", func() {
+		It("should succeed with default config", func() {
+			// Given
+			sut, err := server.DefaultConfig()
+			Expect(err).To(BeNil())
 
-func TestConfigValidateFailsOnInvalidRuntimeConfig(t *testing.T) {
-	defaultConfig, err := DefaultConfig()
-	if err != nil {
-		t.Fatal("error should not be nil")
-	}
-	defaultConfig.DefaultUlimits = []string{"wrong"}
-	fails(t, defaultConfig.Validate(false))
-}
+			// When
+			libConfig := sut.GetLibConfigIface()
 
-func TestConfigValidateFailsOnUIDMappings(t *testing.T) {
-	defaultConfig, err := DefaultConfig()
-	if err != nil {
-		t.Fatal("error should not be nil")
-	}
-	defaultConfig.UIDMappings = "value"
-	defaultConfig.ManageNetworkNSLifecycle = true
-	fails(t, defaultConfig.Validate(false))
-}
+			// Then
+			Expect(libConfig).NotTo(BeNil())
+		})
 
-func TestConfigValidateFailsOnGIDMappings(t *testing.T) {
-	defaultConfig, err := DefaultConfig()
-	if err != nil {
-		t.Fatal("error should not be nil")
-	}
-	defaultConfig.GIDMappings = "value"
-	defaultConfig.ManageNetworkNSLifecycle = true
-	fails(t, defaultConfig.Validate(false))
-}
+		It("should succeed with empty config", func() {
+			// Given
+			// When
+			libConfig := sut.GetLibConfigIface()
 
-func TestConfigValidateFailsOnInvalidLogSizeMax(t *testing.T) {
-	defaultConfig, err := DefaultConfig()
-	if err != nil {
-		t.Fatal("error should not be nil")
-	}
-	defaultConfig.LogSizeMax = 1
-	fails(t, defaultConfig.Validate(false))
-}
+			// Then
+			Expect(libConfig).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("Validate", func() {
+		// Setup the system under test
+		BeforeEach(func() {
+			var err error
+			sut, err = server.DefaultConfig()
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.Validate(false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with runtime cheks", func() {
+			// Given
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Conmon = validPath
+			tmpDir := path.Join(os.TempDir(), "cni-test")
+			sut.NetworkConfig.PluginDir = []string{tmpDir}
+			sut.NetworkDir = os.TempDir()
+			sut.LogDir = "."
+			defer os.RemoveAll(tmpDir)
+
+			// When
+			err := sut.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail with invalid network configuration", func() {
+			// Given
+			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Conmon = validPath
+			sut.PluginDir = []string{validPath}
+			sut.NetworkConfig.NetworkDir = wrongPath
+
+			// When
+			err := sut.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on unrecognized image volume type", func() {
+			// Given
+			sut.ImageVolumes = wrongPath
+
+			// When
+			err := sut.Validate(false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on wrong default ulimits", func() {
+			// Given
+			sut.DefaultUlimits = []string{wrongPath}
+
+			// When
+			err := sut.Validate(false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail wrong UID mappings", func() {
+			// Given
+			sut.UIDMappings = "value"
+			sut.ManageNetworkNSLifecycle = true
+
+			// When
+			err := sut.Validate(false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail wrong GID mappings", func() {
+			// Given
+			sut.GIDMappings = "value"
+			sut.ManageNetworkNSLifecycle = true
+
+			// When
+			err := sut.Validate(false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail wrong max log size", func() {
+			// Given
+			sut.LogSizeMax = 1
+
+			// When
+			err := sut.Validate(false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+})
