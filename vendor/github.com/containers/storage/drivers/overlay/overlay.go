@@ -474,6 +474,10 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) (retErr
 	if err != nil {
 		return err
 	}
+	// Make the link directory if it does not exist
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
+		return err
+	}
 	if err := idtools.MkdirAllAs(path.Dir(dir), 0700, rootUID, rootGID); err != nil {
 		return err
 	}
@@ -686,9 +690,17 @@ func (d *Driver) recreateSymlinks() error {
 	if err != nil {
 		return fmt.Errorf("error reading driver home directory %q: %v", d.home, err)
 	}
+	// This makes the link directory if it doesn't exist
+	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
+	if err != nil {
+		return err
+	}
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
+		return err
+	}
 	for _, dir := range dirs {
-		// Skip over the linkDir
-		if dir.Name() == linkDir || dir.Mode().IsRegular() {
+		// Skip over the linkDir and anything that is not a directory
+		if dir.Name() == linkDir || !dir.Mode().IsDir() {
 			continue
 		}
 		// Read the "link" file under each layer to get the name of the symlink
