@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/opencontainers/runtime-tools/generate"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 func TestAddOCIBindsForDev(t *testing.T) {

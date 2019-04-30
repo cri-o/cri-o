@@ -9,7 +9,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // UpdateContainerResources updates ContainerConfig of the container.

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/lib/sandbox"

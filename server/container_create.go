@@ -22,7 +22,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
