@@ -56,7 +56,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "image-name",
 			Usage: "set image name",
-			Value: "kubernetes/pause",
+			Value: "k8s.io/gcr/pause:3.1",
 		},
 		cli.StringFlag{
 			Name:  "source-binary",
