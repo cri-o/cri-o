@@ -155,7 +155,7 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--pause-command**="": Path to the pause executable in the pause image (default: "/pause")
 
-**--pause-image**="": Image which contains the pause executable (default: "kubernetes/pause")
+**--pause-image**="": Image which contains the pause executable (default: "k8s.gcr.io/pause:3.1")
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 

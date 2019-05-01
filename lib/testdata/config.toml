@@ -18,7 +18,7 @@
     ctr_stop_timeout = 10
   [crio.image]
     default_transport = "docker://"
-    pause_image = "kubernetes/pause"
+    pause_image = "k8s.gcr.io/pause:3.1"
     pause_command = "/pause"
     signature_policy = ""
     image_volumes = "mkdir"
