@@ -189,16 +189,21 @@ func WriteGoroutineStacksToFile(path string) error {
 		return err
 	}
 	defer f.Close()
-	defer f.Sync()
 
-	return WriteGoroutineStacks(f)
+	err = WriteGoroutineStacks(f)
+	if err != nil {
+		return err
+	}
+	return f.Sync()
 }
 
 // GenerateID generates a random unique id.
-func GenerateID() string {
+func GenerateID() (string, error) {
 	b := make([]byte, 32)
-	rand.Read(b)
-	return hex.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", errors.Wrapf(err, "generate ID")
+	}
+	return hex.EncodeToString(b), nil
 }
 
 // openContainerFile opens a file inside a container rootfs safely

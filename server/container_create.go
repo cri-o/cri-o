@@ -606,7 +606,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	s.ContainerStateToDisk(container)
+	if err := s.ContainerStateToDisk(container); err != nil {
+		logrus.Warnf("unable to write containers %s state to disk: %v", container.ID(), err)
+	}
 
 	container.SetCreated()
 

@@ -176,7 +176,9 @@ func (s *Server) restore() {
 		}
 		logrus.Warnf("could not restore sandbox %s container %s: %v", metadata.PodID, sbID, err)
 		for _, n := range names[sbID] {
-			s.Store().DeleteContainer(n)
+			if err := s.Store().DeleteContainer(n); err != nil {
+				logrus.Warnf("unable to delete container %s: %v", n, err)
+			}
 			// Release the infra container name and the pod name for future use
 			if strings.Contains(n, infraName) {
 				s.ReleaseContainerName(n)
@@ -190,7 +192,9 @@ func (s *Server) restore() {
 		for k, v := range podContainers {
 			if v.PodID == sbID {
 				for _, n := range names[k] {
-					s.Store().DeleteContainer(n)
+					if err := s.Store().DeleteContainer(n); err != nil {
+						logrus.Warnf("unable to delete container %s: %v", n, err)
+					}
 					// Release the container name for future use
 					s.ReleaseContainerName(n)
 				}
@@ -206,7 +210,9 @@ func (s *Server) restore() {
 		if err := s.LoadContainer(containerID); err != nil {
 			logrus.Warnf("could not restore container %s: %v", containerID, err)
 			for _, n := range names[containerID] {
-				s.Store().DeleteContainer(n)
+				if err := s.Store().DeleteContainer(n); err != nil {
+					logrus.Warnf("unable to delete container %s: %v", n, err)
+				}
 				// Release the container name
 				s.ReleaseContainerName(n)
 			}
@@ -323,7 +329,9 @@ func New(
 		return nil, err
 	}
 	iptInterface := utiliptables.New(utilexec.New(), utildbus.New(), utiliptables.ProtocolIpv4)
-	iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain)
+	if _, err := iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain); err != nil {
+		logrus.Warnf("unable to ensure iptables chain: %v", err)
+	}
 	hostportManager := hostport.NewHostportManager(iptInterface)
 
 	idMappings, err := getIDMappings(config)
@@ -526,8 +534,8 @@ func (s *Server) StartExitMonitor() {
 						err := s.Runtime().UpdateContainerStatus(c)
 						if err != nil {
 							logrus.Warnf("Failed to update container status %s: %v", containerID, err)
-						} else {
-							s.ContainerStateToDisk(c)
+						} else if err := s.ContainerStateToDisk(c); err != nil {
+							logrus.Warnf("unable to write containers %s state to disk: %v", c.ID(), err)
 						}
 					} else {
 						sb := s.GetSandbox(containerID)
@@ -541,8 +549,8 @@ func (s *Server) StartExitMonitor() {
 							err := s.Runtime().UpdateContainerStatus(c)
 							if err != nil {
 								logrus.Warnf("Failed to update sandbox infra container status %s: %v", c.ID(), err)
-							} else {
-								s.ContainerStateToDisk(c)
+							} else if err := s.ContainerStateToDisk(c); err != nil {
+								logrus.Warnf("unable to write containers %s state to disk: %v", c.ID(), err)
 							}
 						}
 					}

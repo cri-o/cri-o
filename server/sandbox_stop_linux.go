@@ -87,7 +87,9 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 						// assume container already umounted
 						logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 					}
-					s.ContainerStateToDisk(c)
+					if err := s.ContainerStateToDisk(c); err != nil {
+						return errors.Wrapf(err, "write container %q state do disk", c.Name())
+					}
 					return nil
 				})
 			}

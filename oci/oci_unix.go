@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/pkg/term"
 	"github.com/kr/pty"
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -68,16 +69,28 @@ func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-
 	defer stdout.Close()
 
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-		setSize(p.Fd(), size)
+		if err := setSize(p.Fd(), size); err != nil {
+			logrus.Warnf("unable to set terminal size: %v", err)
+		}
 	})
 
+	var stdinErr, stdoutErr error
 	if stdin != nil {
-		go pools.Copy(p, stdin)
+		go func() { _, stdinErr = pools.Copy(p, stdin) }()
 	}
 
 	if stdout != nil {
-		go pools.Copy(stdout, p)
+		go func() { _, stdoutErr = pools.Copy(stdout, p) }()
 	}
 
-	return execCmd.Wait()
+	err = execCmd.Wait()
+
+	if stdinErr != nil {
+		logrus.Warnf("stdin copy error: %v", stdinErr)
+	}
+	if stdoutErr != nil {
+		logrus.Warnf("stdout copy error: %v", stdoutErr)
+	}
+
+	return err
 }

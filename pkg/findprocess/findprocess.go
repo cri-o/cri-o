@@ -3,8 +3,9 @@
 package findprocess
 
 import (
-	"errors"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 // ErrNotFound represents a target process that does not exist or is
@@ -19,8 +20,11 @@ var ErrNotFound = errors.New("process not found")
 func FindProcess(pid int) (process *os.Process, err error) {
 	process, err = findProcess(pid)
 	if err != nil {
-		_ = process.Release()
+		releaseErr := process.Release()
 		process = nil
+		if releaseErr != nil {
+			return process, errors.Wrap(err, releaseErr.Error())
+		}
 	}
 	return process, err
 }

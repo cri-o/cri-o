@@ -358,8 +358,8 @@ func (c *Config) ToFile(path string) error {
 
 // DefaultConfig returns the default configuration for crio.
 func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
-	registries, _ := sysregistries.GetRegistries(systemContext)
-	insecureRegistries, _ := sysregistries.GetInsecureRegistries(systemContext)
+	registries, _ := sysregistries.GetRegistries(systemContext)                 // nolint: errcheck
+	insecureRegistries, _ := sysregistries.GetInsecureRegistries(systemContext) // nolint: errcheck
 	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err

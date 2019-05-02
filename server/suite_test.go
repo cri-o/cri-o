@@ -219,7 +219,7 @@ func mockNewServer() {
 }
 
 func addContainerAndSandbox() {
-	sut.AddSandbox(testSandbox)
+	Expect(sut.AddSandbox(testSandbox)).To(BeNil())
 	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
 	sut.AddContainer(testContainer)
 	Expect(sut.CtrIDIndex().Add(testContainer.ID())).To(BeNil())
@@ -247,7 +247,7 @@ var mockDirs = func(manifest []byte) {
 }
 
 func createDummyState() {
-	ioutil.WriteFile("state.json", []byte(`{}`), 0644)
+	Expect(ioutil.WriteFile("state.json", []byte(`{}`), 0644)).To(BeNil())
 }
 
 func mockRuncInLibConfig() {

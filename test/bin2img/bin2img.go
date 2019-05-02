@@ -109,7 +109,10 @@ func main() {
 			os.Exit(1)
 		}
 		defer func() {
-			_, _ = store.Shutdown(false)
+			_, err = store.Shutdown(false)
+			if err != nil {
+				logrus.Warnf("unable to shutdown store: %v", err)
+			}
 		}()
 
 		layerBuffer := &bytes.Buffer{}

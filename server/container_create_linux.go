@@ -132,6 +132,7 @@ func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig
 			if e := utils.IsDirectory(path); e == nil {
 
 				// mount the internal devices recursively
+				// nolint: errcheck
 				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {
 					if e != nil {
 						logrus.Debugf("addDevice walk: %v", e)
@@ -595,7 +596,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 		// kubernetes PodSpec specify to use Host PID namespace
-		specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace))
+		if err := specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace)); err != nil {
+			return nil, err
+		}
 	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
 		// share Pod PID namespace
 		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", podInfraState.Pid)
@@ -1005,7 +1008,9 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 				return nil, nil, err
 			}
 			options = append(options, "rshared")
-			specgen.SetLinuxRootPropagation("rshared")
+			if err := specgen.SetLinuxRootPropagation("rshared"); err != nil {
+				return nil, nil, err
+			}
 		case pb.MountPropagation_PROPAGATION_HOST_TO_CONTAINER:
 			if err := ensureSharedOrSlave(src, mountInfos); err != nil {
 				return nil, nil, err
@@ -1013,7 +1018,9 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 			options = append(options, "rslave")
 			if specgen.Config.Linux.RootfsPropagation != "rshared" &&
 				specgen.Config.Linux.RootfsPropagation != "rslave" {
-				specgen.SetLinuxRootPropagation("rslave")
+				if err := specgen.SetLinuxRootPropagation("rslave"); err != nil {
+					return nil, nil, err
+				}
 			}
 		default:
 			logrus.Warnf("Unknown propagation mode for hostPath %q", mount.HostPath)

@@ -17,12 +17,12 @@
 package io
 
 import (
-	"errors"
 	"io"
 	"strings"
 	"sync"
 
 	"github.com/containerd/containerd/cio"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cri-o/cri-o/utils"
@@ -132,9 +132,12 @@ func (c *ContainerIO) Pipe() {
 
 // Attach attaches container stdio.
 // TODO(random-liu): Use pools.Copy in docker to reduce memory usage?
-func (c *ContainerIO) Attach(opts AttachOptions) {
+func (c *ContainerIO) Attach(opts AttachOptions) error {
 	var wg sync.WaitGroup
-	key := utils.GenerateID()
+	key, err := utils.GenerateID()
+	if err != nil {
+		return errors.Wrapf(err, "container attach")
+	}
 	stdinKey := streamKey(c.id, "attach-"+key, Stdin)
 	stdoutKey := streamKey(c.id, "attach-"+key, Stdout)
 	stderrKey := streamKey(c.id, "attach-"+key, Stderr)
@@ -195,6 +198,8 @@ func (c *ContainerIO) Attach(opts AttachOptions) {
 		go attachStream(stderrKey, channel)
 	}
 	wg.Wait()
+
+	return nil
 }
 
 // AddOutput adds new write closers to the container stream, and returns existing

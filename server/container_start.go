@@ -35,7 +35,9 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		if err != nil {
 			c.SetStartFailed(err)
 		}
-		s.ContainerStateToDisk(c)
+		if err := s.ContainerStateToDisk(c); err != nil {
+			logrus.Warnf("unable to write containers %s state to disk: %v", c.ID(), err)
+		}
 	}()
 
 	err = s.Runtime().StartContainer(c)

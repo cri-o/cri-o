@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func getFinishedTime(fi os.FileInfo) time.Time {
+func getFinishedTime(fi os.FileInfo) (time.Time, error) {
 	// Windows would be like
 	//st := fi.Sys().(*syscall.Win32FileAttributeDatao)
 	//st.CreationTime.Nanoseconds()
@@ -19,5 +19,5 @@ func getFinishedTime(fi os.FileInfo) time.Time {
 	// openbsd would be like
 	//st := fi.Sys().(*syscall.Stat_t)
 	//st.Ctim.Nsec
-	return fi.ModTime()
+	return fi.ModTime(), nil
 }

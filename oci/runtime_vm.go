@@ -150,7 +150,9 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err erro
 			return errors.Errorf("CreateContainer failed: %v", err)
 		}
 	case <-time.After(ContainerCreateTimeout):
-		r.remove(r.ctx, c.ID(), "")
+		if err := r.remove(r.ctx, c.ID(), ""); err != nil {
+			return err
+		}
 		<-createdCh
 		return errors.Errorf("CreateContainer timeout (%v)", ContainerCreateTimeout)
 	}
@@ -244,12 +246,15 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 
 	// Spawn a goroutine waiting for the container to terminate. Once it
 	// happens, the container status is retrieved to be updated.
+	var err error
 	go func() {
-		r.wait(r.ctx, c.ID(), "")
-		r.UpdateContainerStatus(c)
+		_, _, err = r.wait(r.ctx, c.ID(), "")
+		if err == nil {
+			err = r.UpdateContainerStatus(c)
+		}
 	}()
 
-	return nil
+	return errors.Wrapf(err, "start container")
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
@@ -305,7 +310,10 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	defer cancel()
 
 	// Generate a unique execID
-	execID := utils.GenerateID()
+	execID, err := utils.GenerateID()
+	if err != nil {
+		return -1, errors.Wrapf(err, "exec container")
+	}
 
 	// Create IO fifos
 	execIO, err := cio.NewExecIO(c.ID(), fifoGlobalDir, tty, stdin != nil)
@@ -350,7 +358,9 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 
 	defer func() {
 		if err != nil {
-			r.remove(ctx, c.ID(), execID)
+			if err := r.remove(ctx, c.ID(), execID); err != nil {
+				logrus.Debugf("unable to remove container %s: %v", c.ID(), err)
+			}
 		}
 	}()
 
@@ -394,11 +404,15 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	select {
 	case err = <-execCh:
 		if err != nil {
-			r.kill(ctx, c.ID(), execID, syscall.SIGKILL, false)
+			if killErr := r.kill(ctx, c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
+				return -1, killErr
+			}
 			return -1, err
 		}
 	case <-timeoutCh:
-		r.kill(ctx, c.ID(), execID, syscall.SIGKILL, false)
+		if killErr := r.kill(ctx, c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
+			return -1, killErr
+		}
 		<-execCh
 		return -1, errors.Errorf("ExecSyncContainer timeout (%v)", timeoutDuration)
 	}
@@ -521,9 +535,9 @@ func (r *runtimeVM) DeleteContainer(c *Container) error {
 		return err
 	}
 
-	r.task.Shutdown(r.ctx, &task.ShutdownRequest{
-		ID: c.ID(),
-	})
+	if _, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()}); err != nil {
+		return err
+	}
 
 	delete(r.ctrs, c.ID())
 
@@ -678,9 +692,7 @@ func (r *runtimeVM) AttachContainer(c *Container, inputStream io.Reader, outputS
 		},
 	}
 
-	cInfo.cio.Attach(opts)
-
-	return nil
+	return cInfo.cio.Attach(opts)
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.

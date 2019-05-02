@@ -3,11 +3,14 @@ package lib
 import (
 	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 func isStopped(c *ContainerServer, ctr *oci.Container) bool {
-	c.runtime.UpdateContainerStatus(ctr)
+	if err := c.runtime.UpdateContainerStatus(ctr); err != nil {
+		logrus.Warnf("unable to update containers %s status: %v", ctr.ID(), err)
+	}
 	cStatus := ctr.State()
 	return cStatus.Status == oci.ContainerStateStopped
 }
@@ -29,6 +32,8 @@ func (c *ContainerServer) ContainerWait(container string) (int32, error) {
 		return 0, err
 	}
 	exitCode := ctr.State().ExitCode
-	c.ContainerStateToDisk(ctr)
+	if err := c.ContainerStateToDisk(ctr); err != nil {
+		logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
+	}
 	return exitCode, nil
 }

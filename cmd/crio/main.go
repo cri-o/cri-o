@@ -511,7 +511,10 @@ func main() {
 	var configPath string
 	app.Before = func(c *cli.Context) (err error) {
 		// Load the configuration file.
-		config := c.App.Metadata["config"].(*server.Config)
+		config, ok := c.App.Metadata["config"].(*server.Config)
+		if !ok {
+			return fmt.Errorf("type assertion error when accessing server config")
+		}
 		configPath, err = mergeConfig(config, c)
 		if err != nil {
 			return err
@@ -575,7 +578,11 @@ func main() {
 			return fmt.Errorf("command %q not supported", args[0])
 		}
 
-		config := c.App.Metadata["config"].(*server.Config)
+		config, ok := c.App.Metadata["config"].(*server.Config)
+		if !ok {
+			cancel()
+			return fmt.Errorf("type assertion error when accessing server config")
+		}
 
 		// Validate the configuration during runtime
 		if err := config.Validate(systemContext, true); err != nil {

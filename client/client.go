@@ -42,7 +42,9 @@ func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 // New returns a crio client
 func New(crioSocketPath string) (CrioClient, error) {
 	tr := new(http.Transport)
-	configureUnixTransport(tr, "unix", crioSocketPath)
+	if err := configureUnixTransport(tr, "unix", crioSocketPath); err != nil {
+		return nil, err
+	}
 	c := &http.Client{
 		Transport: tr,
 	}

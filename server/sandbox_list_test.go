@@ -23,7 +23,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 	t.Describe("ListPodSandbox", func() {
 		It("should succeed", func() {
 			// Given
-			sut.AddSandbox(testSandbox)
+			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
 			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
@@ -42,7 +42,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 		It("should succeed without infra container", func() {
 			// Given
-			sut.AddSandbox(testSandbox)
+			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
 			testSandbox.SetCreated()
 
 			// When
@@ -57,7 +57,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 		It("should skip not created sandboxes", func() {
 			// Given
-			sut.AddSandbox(testSandbox)
+			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
 
 			// When
@@ -129,7 +129,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 		It("should succeed with filter but when not finding id", func() {
 			// Given
-			sut.AddSandbox(testSandbox)
+			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),

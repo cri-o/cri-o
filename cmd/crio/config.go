@@ -302,7 +302,7 @@ var configCommand = cli.Command{
 		var err error
 		// At this point, app.Before has already parsed the user's chosen
 		// config file. So no need to handle that here.
-		config := c.App.Metadata["config"].(*server.Config)
+		config := c.App.Metadata["config"].(*server.Config) // nolint: errcheck
 		systemContext := &types.SystemContext{}
 		if c.Bool("default") {
 			config, err = server.DefaultConfig(systemContext)

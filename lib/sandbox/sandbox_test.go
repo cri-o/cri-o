@@ -286,7 +286,7 @@ var _ = t.Describe("Sandbox", func() {
 		It("should not crash when parameter is nil", func() {
 			// Given
 			// When
-			_ = testSandbox.NetNsCreate(nil)
+			_ = testSandbox.NetNsCreate(nil) // nolint: errcheck
 
 			// Then
 		})
