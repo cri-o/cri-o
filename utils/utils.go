@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/docker/docker/pkg/symlink"
@@ -238,7 +239,7 @@ func GetUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, erro
 
 // GeneratePasswd generates a container specific passwd file,
 // iff uid is not defined in the containers /etc/passwd
-func GeneratePasswd(uid, gid uint32, rootfs, rundir string) (string, error) {
+func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir string) (string, error) {
 	// if UID exists inside of container rootfs /etc/passwd then
 	// don't generate passwd
 	if _, err := lookup.GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
@@ -249,6 +250,24 @@ func GeneratePasswd(uid, gid uint32, rootfs, rundir string) (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to follow symlinks to passwd file")
 	}
+	info, err := os.Stat(originPasswdFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", errors.Wrapf(err, "unable to stat passwd file %s", originPasswdFile)
+	}
+	// Check if passwd file is world writable
+	if info.Mode().Perm()&(0022) != 0 {
+		return "", nil
+	}
+	passwdUID := info.Sys().(*syscall.Stat_t).Uid
+	passwdGID := info.Sys().(*syscall.Stat_t).Gid
+
+	if uid == passwdUID && info.Mode().Perm()&(0200) != 0 {
+		return "", nil
+	}
+
 	orig, err := ioutil.ReadFile(originPasswdFile)
 	if err != nil {
 		// If no /etc/passwd in container ignore and return
@@ -257,10 +276,19 @@ func GeneratePasswd(uid, gid uint32, rootfs, rundir string) (string, error) {
 		}
 		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
 	}
-
-	pwd := fmt.Sprintf("%s%d:x:%d:%d:container user:%s:/bin/sh\n", orig, uid, uid, gid, "/")
-	if err := ioutil.WriteFile(passwdFile, []byte(pwd), 0644); err != nil {
+	if username == "" {
+		username = "default"
+	}
+	if homedir == "" {
+		homedir = "/tmp"
+	}
+	pwd := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", orig, username, uid, gid, username, homedir)
+	if err := ioutil.WriteFile(passwdFile, []byte(pwd), info.Mode()); err != nil {
 		return "", errors.Wrapf(err, "failed to create temporary passwd file")
 	}
+	if err := os.Chown(passwdFile, int(passwdUID), int(passwdGID)); err != nil {
+		return "", errors.Wrapf(err, "failed to chown temporary passwd file")
+	}
+
 	return passwdFile, nil
 }
