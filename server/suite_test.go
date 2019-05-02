@@ -32,7 +32,7 @@ import (
 // TestServer runs the created specs
 func TestServer(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Server")
+	RunFrameworkSpecs(t, "Server")
 }
 
 var (
