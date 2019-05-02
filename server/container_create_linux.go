@@ -882,7 +882,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// Setup user and groups
 	if linux != nil {
-		if err = setupContainerUser(&specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
+		if err = setupContainerUser(&specgen, mountPoint, linux.GetSecurityContext(), containerImageConfig); err != nil {
 			return nil, err
 		}
 	}

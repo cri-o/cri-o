@@ -2,23 +2,12 @@ package utils
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
-
-	"github.com/containers/libpod/pkg/lookup"
-	"github.com/docker/docker/pkg/symlink"
-	"github.com/opencontainers/runc/libcontainer/user"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/godbus/dbus"
@@ -183,83 +172,4 @@ func WriteGoroutineStacksToFile(path string) error {
 	defer f.Sync()
 
 	return WriteGoroutineStacks(f)
-}
-
-// GenerateID generates a random unique id.
-func GenerateID() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-// openContainerFile opens a file inside a container rootfs safely
-func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
-	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, path), rootfs)
-	if err != nil {
-		return nil, err
-	}
-	return os.Open(fp)
-}
-
-// GetUserInfo returns UID, GID and additional groups for specified user
-// by looking them up in /etc/passwd and /etc/group
-func GetUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, error) {
-	// We don't care if we can't open the file because
-	// not all images will have these files
-	passwdFile, err := openContainerFile(rootfs, "/etc/passwd")
-	if err != nil {
-		logrus.Warnf("Failed to open /etc/passwd: %v", err)
-	} else {
-		defer passwdFile.Close()
-	}
-
-	groupFile, err := openContainerFile(rootfs, "/etc/group")
-	if err != nil {
-		logrus.Warnf("Failed to open /etc/group: %v", err)
-	} else {
-		defer groupFile.Close()
-	}
-
-	execUser, err := user.GetExecUser(userName, nil, passwdFile, groupFile)
-	if err != nil {
-		return 0, 0, nil, err
-	}
-
-	uid := uint32(execUser.Uid)
-	gid := uint32(execUser.Gid)
-	var additionalGids []uint32
-	for _, g := range execUser.Sgids {
-		additionalGids = append(additionalGids, uint32(g))
-	}
-
-	return uid, gid, additionalGids, nil
-}
-
-// GeneratePasswd generates a container specific passwd file,
-// iff uid is not defined in the containers /etc/passwd
-func GeneratePasswd(uid, gid uint32, rootfs, rundir string) (string, error) {
-	// if UID exists inside of container rootfs /etc/passwd then
-	// don't generate passwd
-	if _, err := lookup.GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
-		return "", nil
-	}
-	passwdFile := filepath.Join(rundir, "passwd")
-	originPasswdFile, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, "/etc/passwd"), rootfs)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to follow symlinks to passwd file")
-	}
-	orig, err := ioutil.ReadFile(originPasswdFile)
-	if err != nil {
-		// If no /etc/passwd in container ignore and return
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
-	}
-
-	pwd := fmt.Sprintf("%s%d:x:%d:%d:container user:%s:/bin/sh\n", orig, uid, uid, gid, "/")
-	if err := ioutil.WriteFile(passwdFile, []byte(pwd), 0644); err != nil {
-		return "", errors.Wrapf(err, "failed to create temporary passwd file")
-	}
-	return passwdFile, nil
 }
