@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 
-	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"

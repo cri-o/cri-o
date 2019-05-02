@@ -15,7 +15,7 @@ import (
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 

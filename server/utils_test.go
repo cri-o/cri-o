@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (

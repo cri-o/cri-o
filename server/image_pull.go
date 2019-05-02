@@ -11,7 +11,7 @@ import (
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // PullImage pulls a image with authentication config.
