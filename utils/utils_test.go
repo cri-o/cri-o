@@ -259,7 +259,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
 
@@ -278,7 +278,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
 
@@ -297,7 +297,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
 
@@ -316,7 +316,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(Not(BeEmpty()))
 
@@ -342,7 +342,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
 
@@ -361,7 +361,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
 
@@ -380,7 +380,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
 
@@ -399,7 +399,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(Not(BeEmpty()))
 
@@ -418,7 +418,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
-			passwdFile, err := utils.GeneratePasswd(uid, gid, dir, dir)
+			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(Not(BeEmpty()))
 
