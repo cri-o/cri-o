@@ -10,9 +10,8 @@
  * parsing code errors if USE_JOURNALD isn't flagged.
  * This is just to make the compiler happy and the other code prettier
  */
-static inline int sd_journal_sendv(char *fmt, ...)
+static inline int sd_journal_sendv(G_GNUC_UNUSED const struct iovec *iov, G_GNUC_UNUSED int n)
 {
-	perror(fmt);
 	return -1;
 }
 
