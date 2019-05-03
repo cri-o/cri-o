@@ -260,10 +260,10 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	if info.Mode().Perm()&(0022) != 0 {
 		return "", nil
 	}
-	passwdUid := info.Sys().(*syscall.Stat_t).Uid
-	passwdGid := info.Sys().(*syscall.Stat_t).Gid
+	passwdUID := info.Sys().(*syscall.Stat_t).Uid
+	passwdGID := info.Sys().(*syscall.Stat_t).Gid
 
-	if uid == passwdUid && info.Mode().Perm()&(0200) != 0 {
+	if uid == passwdUID && info.Mode().Perm()&(0200) != 0 {
 		return "", nil
 	}
 
@@ -285,7 +285,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	if err := ioutil.WriteFile(passwdFile, []byte(pwd), info.Mode()); err != nil {
 		return "", errors.Wrapf(err, "failed to create temporary passwd file")
 	}
-	if err := os.Chown(passwdFile, int(passwdUid), int(passwdGid)); err != nil {
+	if err := os.Chown(passwdFile, int(passwdUID), int(passwdGID)); err != nil {
 		return "", errors.Wrapf(err, "failed to chown temporary passwd file")
 	}
 	return passwdFile, nil

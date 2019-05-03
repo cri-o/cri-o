@@ -7,7 +7,6 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/oci"
 )
@@ -359,19 +358,15 @@ func (c *Config) ToFile(path string) error {
 }
 
 // DefaultConfig returns the default configuration for crio.
-func DefaultConfig() (*Config, error) {
+func DefaultConfig() *Config {
 	registries, _ := sysregistries.GetRegistries(&types.SystemContext{})
 	insecureRegistries, _ := sysregistries.GetInsecureRegistries(&types.SystemContext{})
-	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-	if err != nil {
-		return nil, err
-	}
 	return &Config{
 		RootConfig: RootConfig{
-			Root:            storeOpts.GraphRoot,
-			RunRoot:         storeOpts.RunRoot,
-			Storage:         storeOpts.GraphDriverName,
-			StorageOptions:  storeOpts.GraphDriverOptions,
+			Root:            storage.DefaultStoreOptions.GraphRoot,
+			RunRoot:         storage.DefaultStoreOptions.RunRoot,
+			Storage:         storage.DefaultStoreOptions.GraphDriverName,
+			StorageOptions:  storage.DefaultStoreOptions.GraphDriverOptions,
 			LogDir:          "/var/log/crio/pods",
 			FileLocking:     true,
 			FileLockingPath: lockPath,
@@ -415,5 +410,5 @@ func DefaultConfig() (*Config, error) {
 			NetworkDir: cniConfigDir,
 			PluginDir:  cniBinDir,
 		},
-	}, nil
+	}
 }

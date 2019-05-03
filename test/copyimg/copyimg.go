@@ -9,7 +9,6 @@ import (
 	"github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/rootless"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
@@ -102,10 +101,7 @@ func main() {
 				logrus.Errorf("must set --root and --runroot, or neither")
 				os.Exit(1)
 			}
-			storeOptions, err := sstorage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-			if err != nil {
-				return err
-			}
+			storeOptions := sstorage.DefaultStoreOptions
 			if rootDir != "" && runrootDir != "" {
 				storeOptions.GraphDriverName = storageDriver
 				storeOptions.GraphDriverOptions = storageOptions
@@ -191,11 +187,13 @@ func main() {
 					os.Exit(1)
 				}
 			}
-		} else if importFrom != "" && exportTo != "" {
-			_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
-			if err != nil {
-				logrus.Errorf("error copying %s to %s: %v", importFrom, exportTo, err)
-				os.Exit(1)
+		} else {
+			if importFrom != "" && exportTo != "" {
+				_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
+				if err != nil {
+					logrus.Errorf("error copying %s to %s: %v", importFrom, exportTo, err)
+					os.Exit(1)
+				}
 			}
 		}
 		return nil
