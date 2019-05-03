@@ -21,7 +21,7 @@ require (
 	github.com/containers/image v1.5.1
 	github.com/containers/libpod v1.2.0
 	github.com/containers/psgo v0.0.0-20180822121435-5dde6da0bc88 // indirect
-	github.com/containers/storage v1.12.4
+	github.com/containers/storage v1.12.6
 	github.com/coreos/go-iptables v0.0.0-20180704133345-25d087f3cffd // indirect
 	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/cpuguy83/go-md2man v1.0.10

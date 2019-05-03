@@ -14,7 +14,7 @@ RUNINVM := vagrant/runinvm.sh
 default all: local-binary docs local-validate local-cross local-gccgo test-unit test-integration ## validate all checks, build and cross-build\nbinaries and docs, run tests in a VM
 
 clean: ## remove all built files
-	$(RM) -f containers-storage containers-storage.* docs/*.1
+	$(RM) -f containers-storage containers-storage.* docs/*.1 docs/*.5
 
 sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.go pkg/*/*.go pkg/*/*/*.go) layers_ffjson.go images_ffjson.go containers_ffjson.go pkg/archive/archive_ffjson.go
 

@@ -320,6 +320,8 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		mergedDir := filepath.Join(layerDir, "merged")
 		lower1Dir := filepath.Join(layerDir, "lower1")
 		lower2Dir := filepath.Join(layerDir, "lower2")
+		upperDir := filepath.Join(layerDir, "upper")
+		workDir := filepath.Join(layerDir, "work")
 		defer func() {
 			// Permitted to fail, since the various subdirectories
 			// can be empty or not even there, and the home might
@@ -331,7 +333,9 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		_ = idtools.MkdirAs(mergedDir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(lower1Dir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(lower2Dir, 0700, rootUID, rootGID)
-		flags := fmt.Sprintf("lowerdir=%s:%s", lower1Dir, lower2Dir)
+		_ = idtools.MkdirAs(upperDir, 0700, rootUID, rootGID)
+		_ = idtools.MkdirAs(workDir, 0700, rootUID, rootGID)
+		flags := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s", lower1Dir, lower2Dir, upperDir, workDir)
 		if len(flags) < unix.Getpagesize() {
 			err := mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -341,7 +345,7 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 				logrus.Debugf("overlay test mount with multiple lowers failed %v", err)
 			}
 		}
-		flags = fmt.Sprintf("lowerdir=%s", lower1Dir)
+		flags = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lower1Dir, upperDir, workDir)
 		if len(flags) < unix.Getpagesize() {
 			err := mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -470,8 +474,20 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) (retErr
 func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) (retErr error) {
 	dir := d.dir(id)
 
-	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
+	uidMaps := d.uidMaps
+	gidMaps := d.gidMaps
+
+	if opts != nil && opts.IDMappings != nil {
+		uidMaps = opts.IDMappings.UIDs()
+		gidMaps = opts.IDMappings.GIDs()
+	}
+
+	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
 	if err != nil {
+		return err
+	}
+	// Make the link directory if it does not exist
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
 		return err
 	}
 	if err := idtools.MkdirAllAs(path.Dir(dir), 0700, rootUID, rootGID); err != nil {
@@ -686,9 +702,17 @@ func (d *Driver) recreateSymlinks() error {
 	if err != nil {
 		return fmt.Errorf("error reading driver home directory %q: %v", d.home, err)
 	}
+	// This makes the link directory if it doesn't exist
+	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
+	if err != nil {
+		return err
+	}
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
+		return err
+	}
 	for _, dir := range dirs {
-		// Skip over the linkDir
-		if dir.Name() == linkDir || dir.Mode().IsRegular() {
+		// Skip over the linkDir and anything that is not a directory
+		if dir.Name() == linkDir || !dir.Mode().IsDir() {
 			continue
 		}
 		// Read the "link" file under each layer to get the name of the symlink
