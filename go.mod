@@ -52,7 +52,7 @@ require (
 	github.com/klauspost/compress v1.4.1 // indirect
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/klauspost/pgzip v1.2.1 // indirect
-	github.com/kr/pty v1.1.1
+	github.com/kr/pty v1.1.4
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-shellwords v1.0.5 // indirect
 	github.com/mistifyio/go-zfs v2.1.1+incompatible // indirect

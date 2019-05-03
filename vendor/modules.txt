@@ -473,7 +473,7 @@ github.com/klauspost/cpuid
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.1
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/kr/pty v1.1.1
+# github.com/kr/pty v1.1.4
 github.com/kr/pty
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
