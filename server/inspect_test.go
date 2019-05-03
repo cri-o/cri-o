@@ -13,10 +13,7 @@ import (
 )
 
 func TestGetInfo(t *testing.T) {
-	c, err := lib.DefaultConfig()
-	if err != nil {
-		t.Fatalf("Error getting default config: %+v", err)
-	}
+	c := lib.DefaultConfig()
 	c.RootConfig.Storage = "afoobarstorage"
 	c.RootConfig.Root = "afoobarroot"
 	c.RuntimeConfig.CgroupManager = "systemd"
