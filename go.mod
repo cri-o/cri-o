@@ -42,7 +42,7 @@ require (
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/groupcache v0.0.0-20170421005642-b710c8433bd1 // indirect
-	github.com/golang/mock v1.2.0
+	github.com/golang/mock v1.3.0
 	github.com/golangci/golangci-lint v1.16.1-0.20190402065613-de1d1ad903cd
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce // indirect
@@ -87,10 +87,10 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0 // indirect
-	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
-	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
-	golang.org/x/sys v0.0.0-20190410235845-0ad05ae3009d
-	golang.org/x/text v0.3.1-0.20190410012825-f4905fbd45b6
+	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	golang.org/x/sys v0.0.0-20190425145619-16072639606e
+	golang.org/x/text v0.3.1
 	google.golang.org/grpc v1.20.0
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

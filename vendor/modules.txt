@@ -330,11 +330,11 @@ github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/groupcache v0.0.0-20170421005642-b710c8433bd1
 github.com/golang/groupcache/lru
-# github.com/golang/mock v1.2.0
+# github.com/golang/mock v1.3.0
 github.com/golang/mock/gomock
 github.com/golang/mock/mockgen
 github.com/golang/mock/mockgen/model
-# github.com/golang/protobuf v1.2.0
+# github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -683,7 +683,7 @@ github.com/xeipuuv/gojsonpointer
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.1.0
 github.com/xeipuuv/gojsonschema
-# golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
+# golang.org/x/crypto v0.0.0-20190424203555-c05e17bb3b2d
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/openpgp/armor
@@ -694,7 +694,7 @@ golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
-# golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+# golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
 golang.org/x/net/context
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
@@ -712,14 +712,14 @@ golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
+# golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190410235845-0ad05ae3009d
+# golang.org/x/sys v0.0.0-20190425145619-16072639606e
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.3.1-0.20190410012825-f4905fbd45b6
+# golang.org/x/text v0.3.1
 golang.org/x/text/language
 golang.org/x/text/collate
 golang.org/x/text/internal/language
@@ -745,18 +745,20 @@ golang.org/x/text/runes
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20161028155119-f51c12702a4d
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190328211700-ab21143f2384
-golang.org/x/tools/go/loader
+# golang.org/x/tools v0.0.0-20190425150028-36563e24a262
 golang.org/x/tools/go/packages
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/packagesdriver
+golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/semver
+golang.org/x/tools/go/internal/gcimporter
+golang.org/x/tools/internal/fastwalk
+golang.org/x/tools/go/loader
 golang.org/x/tools/go/ssa
 golang.org/x/tools/go/ssa/ssautil
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/buildutil
 golang.org/x/tools/go/internal/cgo
-golang.org/x/tools/go/gcexportdata
-golang.org/x/tools/go/internal/packagesdriver
-golang.org/x/tools/internal/gopathwalk
-golang.org/x/tools/internal/semver
 golang.org/x/tools/go/types/typeutil
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/passes/asmdecl
@@ -783,8 +785,6 @@ golang.org/x/tools/go/analysis/passes/unreachable
 golang.org/x/tools/go/analysis/passes/unsafeptr
 golang.org/x/tools/go/analysis/passes/unusedresult
 golang.org/x/tools/imports
-golang.org/x/tools/go/internal/gcimporter
-golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/go/analysis/passes/buildssa
 golang.org/x/tools/go/analysis/passes/internal/analysisutil
 golang.org/x/tools/go/analysis/passes/inspect
