@@ -3,7 +3,7 @@ github.com/Azure/go-ansiterm/winterm
 github.com/Azure/go-ansiterm
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
-# github.com/Microsoft/go-winio v0.4.11
+# github.com/Microsoft/go-winio v0.4.12
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/archive/tar
 github.com/Microsoft/go-winio/backuptar
