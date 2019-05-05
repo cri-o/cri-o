@@ -31,7 +31,7 @@ require (
 	github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295
 	github.com/docker/docker-credential-helpers v0.6.1 // indirect
 	github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82 // indirect
-	github.com/docker/go-units v0.3.3
+	github.com/docker/go-units v0.4.0
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/elazarl/goproxy v0.0.0-20190410145444-c548f45dcf1d // indirect
