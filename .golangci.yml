@@ -21,6 +21,7 @@ linters:
     - interfacer
     - maligned
     - misspell
+    - nakedret
     - prealloc
     - scopelint
     - staticcheck
@@ -35,7 +36,6 @@ linters:
     # - gochecknoglobals
     # - gocyclo
     # - lll
-    # - nakedret
 linters-settings:
   gocritic:
     enabled-checks:
@@ -107,3 +107,5 @@ linters-settings:
       # - importShadow
       # - paramTypeCombine
       # - unnamedResult
+  nakedret:
+    max-func-lines: 15
