@@ -233,8 +233,10 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			}
 			*signalled = true
 			gserver.GracefulStop()
-			hserver.Shutdown(ctx)
-			sserver.StopStreamServer()
+			hserver.Shutdown(ctx) // nolint: errcheck
+			if err := sserver.StopStreamServer(); err != nil {
+				logrus.Warnf("error shutting down streaming server: %v", err)
+			}
 			sserver.StopMonitors()
 			cancel()
 			if err := sserver.Shutdown(ctx); err != nil {
@@ -247,10 +249,14 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 
 func main() {
 	// https://github.com/kubernetes/kubernetes/issues/17162
-	goflag.CommandLine.Parse([]string{})
+	if err := goflag.CommandLine.Parse([]string{}); err != nil {
+		fmt.Fprintf(os.Stderr, "unable to parse command line flags\n")
+		os.Exit(-1)
+	}
 
 	if reexec.Init() {
-		return
+		fmt.Fprintf(os.Stderr, "unable to initialize container storage\n")
+		os.Exit(-1)
 	}
 	app := cli.NewApp()
 
@@ -538,7 +544,10 @@ func main() {
 			profilePort := c.GlobalInt("profile-port")
 			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
 			go func() {
-				http.ListenAndServe(profileEndpoint, nil)
+				logrus.Debugf("starting profiling server on %v", profileEndpoint)
+				if err := http.ListenAndServe(profileEndpoint, nil); err != nil {
+					logrus.Fatalf("unable to run profiling server: %v", err)
+				}
 			}()
 		}
 
@@ -589,7 +598,7 @@ func main() {
 			logrus.Fatalf("failed to listen: %v", err)
 		}
 
-		s := grpc.NewServer(
+		grpcServer := grpc.NewServer(
 			grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
@@ -616,8 +625,8 @@ func main() {
 			}()
 		}
 
-		runtime.RegisterRuntimeServiceServer(s, service)
-		runtime.RegisterImageServiceServer(s, service)
+		runtime.RegisterRuntimeServiceServer(grpcServer, service)
+		runtime.RegisterImageServiceServer(grpcServer, service)
 
 		// after the daemon is done setting up we can notify systemd api
 		notifySystem()
@@ -642,16 +651,24 @@ func main() {
 		httpL := m.Match(cmux.HTTP1Fast())
 
 		infoMux := service.GetInfoMux()
-		srv := &http.Server{
+		httpServer := &http.Server{
 			Handler:     infoMux,
 			ReadTimeout: 5 * time.Second,
 		}
 
 		graceful := false
-		catchShutdown(ctx, cancel, s, service, srv, &graceful)
+		catchShutdown(ctx, cancel, grpcServer, service, httpServer, &graceful)
 
-		go s.Serve(grpcL)
-		go srv.Serve(httpL)
+		go func() {
+			if err := grpcServer.Serve(grpcL); err != nil {
+				logrus.Errorf("unable to run GRPC server: %v", err)
+			}
+		}()
+		go func() {
+			if err := httpServer.Serve(httpL); err != nil {
+				logrus.Debugf("closed http server")
+			}
+		}()
 
 		serverCloseCh := make(chan struct{})
 		go func() {
@@ -673,7 +690,9 @@ func main() {
 		case <-serverCloseCh:
 		}
 
-		service.Shutdown(ctx)
+		if err := service.Shutdown(ctx); err != nil {
+			logrus.Warnf("error shutting down service: %v", err)
+		}
 		cancel()
 
 		<-streamServerCloseCh
