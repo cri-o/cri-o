@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// ListenAndServe wrapper
 func (m *Mux) ListenAndServe(port string) error {
 	return http.ListenAndServe(port, m)
 }

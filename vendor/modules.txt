@@ -309,7 +309,7 @@ github.com/go-toolsmith/astp
 github.com/go-toolsmith/strparse
 # github.com/go-toolsmith/typep v0.0.0-20181030061450-d63dc7650676
 github.com/go-toolsmith/typep
-# github.com/go-zoo/bone v0.0.0-20170711140942-031b4005dfe2
+# github.com/go-zoo/bone v1.3.0
 github.com/go-zoo/bone
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob

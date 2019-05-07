@@ -244,6 +244,8 @@ github.com/go-toolsmith/typep v0.0.0-20181030061450-d63dc7650676 h1:6Qrsp0+25KEk
 github.com/go-toolsmith/typep v0.0.0-20181030061450-d63dc7650676/go.mod h1:JSQCQMUPdRlMZFswiq3TGpNp1GMktqkR2Ns5AIQkATU=
 github.com/go-zoo/bone v0.0.0-20170711140942-031b4005dfe2 h1:rfir+4sojyMgW9Dr97N8SOyywtcfWMqEVWrcb1iROHs=
 github.com/go-zoo/bone v0.0.0-20170711140942-031b4005dfe2/go.mod h1:oqsroXM1ZcoSPNsxaSy2JNMJMSC/A463LSB0Vnoa2SI=
+github.com/go-zoo/bone v1.3.0 h1:PY6sHq37FnQhj+4ZyqFIzJQHvrrGx0GEc3vTZZC/OsI=
+github.com/go-zoo/bone v1.3.0/go.mod h1:HI3Lhb7G3UQcAwEhOJ2WyNcsFtQX1WYHa0Hl4OBbhW8=
 github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
 github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJAkT8=
 github.com/godbus/dbus v0.0.0-20151105175453-c7fdd8b5cd55/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=

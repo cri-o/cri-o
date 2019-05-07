@@ -38,7 +38,7 @@ require (
 	github.com/elazarl/goproxy/ext v0.0.0-20190410145444-c548f45dcf1d // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/fsouza/go-dockerclient v1.3.0 // indirect
-	github.com/go-zoo/bone v0.0.0-20170711140942-031b4005dfe2
+	github.com/go-zoo/bone v1.3.0
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/groupcache v0.0.0-20170421005642-b710c8433bd1 // indirect
