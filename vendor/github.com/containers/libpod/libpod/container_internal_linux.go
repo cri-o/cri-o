@@ -30,7 +30,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -48,6 +48,8 @@ func (c *Container) unmountSHM(mount string) error {
 	if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
 		if err != syscall.EINVAL {
 			logrus.Warnf("container %s failed to unmount %s : %v", c.ID(), mount, err)
+		} else {
+			logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
 		}
 	}
 	return nil
@@ -195,6 +197,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if err := c.makeBindMounts(); err != nil {
 		return nil, err
 	}
+
 	// Check if the spec file mounts contain the label Relabel flags z or Z.
 	// If they do, relabel the source directory and then remove the option.
 	for i := range g.Config.Mounts {
@@ -218,6 +221,23 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	g.SetProcessSelinuxLabel(c.ProcessLabel())
 	g.SetLinuxMountLabel(c.MountLabel())
+
+	// Add named volumes
+	for _, namedVol := range c.config.NamedVolumes {
+		volume, err := c.runtime.GetVolume(namedVol.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving volume %s to add to container %s", namedVol.Name, c.ID())
+		}
+		mountPoint := volume.MountPoint()
+		volMount := spec.Mount{
+			Type:        "bind",
+			Source:      mountPoint,
+			Destination: namedVol.Dest,
+			Options:     namedVol.Options,
+		}
+		g.AddMount(volMount)
+	}
+
 	// Add bind mounts to container
 	for dstPath, srcPath := range c.state.BindMounts {
 		newMount := spec.Mount{
@@ -400,7 +420,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) error {
 	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
-	for _, dest := range []string{"/run", "/run/lock"} {
+	for _, dest := range []string{"/run"} {
 		if MountExists(mounts, dest) {
 			continue
 		}
@@ -484,6 +504,21 @@ func (c *Container) checkpointRestoreSupported() (err error) {
 	return nil
 }
 
+func (c *Container) checkpointRestoreLabelLog(fileName string) (err error) {
+	// Create the CRIU log file and label it
+	dumpLog := filepath.Join(c.bundlePath(), fileName)
+
+	logFile, err := os.OpenFile(dumpLog, os.O_CREATE, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create CRIU log file %q", dumpLog)
+	}
+	logFile.Close()
+	if err = label.SetFileLabel(dumpLog, c.MountLabel()); err != nil {
+		return errors.Wrapf(err, "failed to label CRIU log file %q", dumpLog)
+	}
+	return nil
+}
+
 func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (err error) {
 	if err := c.checkpointRestoreSupported(); err != nil {
 		return err
@@ -493,16 +528,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
 
-	// Create the CRIU log file and label it
-	dumpLog := filepath.Join(c.bundlePath(), "dump.log")
-
-	logFile, err := os.OpenFile(dumpLog, os.O_CREATE, 0600)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create CRIU log file %q", dumpLog)
-	}
-	logFile.Close()
-	if err = label.SetFileLabel(dumpLog, c.MountLabel()); err != nil {
-		return errors.Wrapf(err, "failed to label CRIU log file %q", dumpLog)
+	if err := c.checkpointRestoreLabelLog("dump.log"); err != nil {
+		return err
 	}
 
 	if err := c.runtime.ociRuntime.checkpointContainer(c, options); err != nil {
@@ -555,6 +582,10 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// no sense to try a restore. This is a minimal check if a checkpoint exist.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
 		return errors.Wrapf(err, "A complete checkpoint for this container cannot be found, cannot restore")
+	}
+
+	if err := c.checkpointRestoreLabelLog("restore.log"); err != nil {
+		return err
 	}
 
 	// Read network configuration from checkpoint

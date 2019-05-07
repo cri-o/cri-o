@@ -6,16 +6,16 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -187,76 +187,6 @@ var (
 	rootlessRuntimeDir     string
 )
 
-// GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir() (string, error) {
-	var rootlessRuntimeDirError error
-
-	rootlessRuntimeDirOnce.Do(func() {
-		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-		uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
-		if runtimeDir == "" {
-			tmpDir := filepath.Join("/run", "user", uid)
-			os.MkdirAll(tmpDir, 0700)
-			st, err := os.Stat(tmpDir)
-			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
-				runtimeDir = tmpDir
-			}
-		}
-		if runtimeDir == "" {
-			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("run-%s", uid))
-			os.MkdirAll(tmpDir, 0700)
-			st, err := os.Stat(tmpDir)
-			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
-				runtimeDir = tmpDir
-			}
-		}
-		if runtimeDir == "" {
-			home := os.Getenv("HOME")
-			if home == "" {
-				rootlessRuntimeDirError = fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
-				return
-			}
-			resolvedHome, err := filepath.EvalSymlinks(home)
-			if err != nil {
-				rootlessRuntimeDirError = errors.Wrapf(err, "cannot resolve %s", home)
-				return
-			}
-			runtimeDir = filepath.Join(resolvedHome, "rundir")
-		}
-		rootlessRuntimeDir = runtimeDir
-	})
-
-	if rootlessRuntimeDirError != nil {
-		return "", rootlessRuntimeDirError
-	}
-	return rootlessRuntimeDir, nil
-}
-
-// GetRootlessDirInfo returns the parent path of where the storage for containers and
-// volumes will be in rootless mode
-func GetRootlessDirInfo() (string, string, error) {
-	rootlessRuntime, err := GetRootlessRuntimeDir()
-	if err != nil {
-		return "", "", err
-	}
-
-	dataDir := os.Getenv("XDG_DATA_HOME")
-	if dataDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return "", "", fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
-		}
-		// runc doesn't like symlinks in the rootfs path, and at least
-		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		dataDir = filepath.Join(resolvedHome, ".local", "share")
-	}
-	return dataDir, rootlessRuntime, nil
-}
-
 type tomlOptionsConfig struct {
 	MountProgram string `toml:"mount_program"`
 }
@@ -323,4 +253,33 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 		return time.Time{}, errors.Errorf("unable to interpret time value")
 	}
 	return time.Now().Add(-duration), nil
+}
+
+// GetGlobalOpts checks all global flags and generates the command string
+func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
+	globalFlags := map[string]bool{
+		"cgroup-manager": true, "cni-config-dir": true, "conmon": true, "default-mounts-file": true,
+		"hooks-dir": true, "namespace": true, "root": true, "runroot": true,
+		"runtime": true, "storage-driver": true, "storage-opt": true, "syslog": true,
+		"trace": true, "network-cmd-path": true, "config": true, "cpu-profile": true,
+		"log-level": true, "tmpdir": true}
+	const stringSliceType string = "stringSlice"
+
+	var optsCommand []string
+	c.PodmanCommand.Command.Flags().VisitAll(func(f *pflag.Flag) {
+		if !f.Changed {
+			return
+		}
+		if _, exist := globalFlags[f.Name]; exist {
+			if f.Value.Type() == stringSliceType {
+				flagValue := strings.TrimSuffix(strings.TrimPrefix(f.Value.String(), "["), "]")
+				for _, value := range strings.Split(flagValue, ",") {
+					optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, value))
+				}
+			} else {
+				optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, f.Value.String()))
+			}
+		}
+	})
+	return strings.Join(optsCommand, " ")
 }

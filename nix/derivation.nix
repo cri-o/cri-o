@@ -1,6 +1,6 @@
 { flavor, ldflags ? "", revision,
   btrfs-progs, buildGoPackage, glibc, gpgme, libapparmor, libassuan,
-  libgpgerror, libseccomp, libselinux, lvm2, pkgconfig, stdenv }:
+  libgpgerror, libseccomp, libselinux, lvm2, pkgconfig, stdenv, systemd }:
 
 buildGoPackage rec {
   project = "cri-o";
@@ -12,7 +12,7 @@ buildGoPackage rec {
   outputs = [ "bin" "out" ];
   nativeBuildInputs = [ pkgconfig ];
   buildInputs = [ btrfs-progs gpgme libapparmor libassuan
-                  libgpgerror libseccomp libselinux lvm2 ] ++
+                  libgpgerror libseccomp libselinux lvm2 systemd ] ++
                 stdenv.lib.optionals (glibc != null) [ glibc glibc.static ];
 
   makeFlags = ''BUILDTAGS="apparmor seccomp selinux
