@@ -71,7 +71,7 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 		}
 
 	}
-	return
+	return podIP, result, err
 }
 
 // getSandboxIP retrieves the IP address for the sandbox

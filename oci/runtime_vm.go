@@ -408,7 +408,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 		return -1, err
 	}
 
-	return
+	return exitCode, err
 }
 
 // UpdateContainer updates container resources
