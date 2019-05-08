@@ -1,4 +1,4 @@
-bone [![GoDoc](https://godoc.org/github.com/squiidz/bone?status.png)](http://godoc.org/github.com/go-zoo/bone) [![Build Status](https://travis-ci.org/go-zoo/bone.svg)](https://travis-ci.org/go-zoo/bone) [![Go Report Card](https://goreportcard.com/badge/go-zoo/bone)](https://goreportcard.com/report/go-zoo/bone) [![Sourcegraph](https://sourcegraph.com/github.com/go-zoo/bone/-/badge.svg)](https://sourcegraph.com/github.com/go-zoo/bone?badge)
+bone [![GoDoc](https://godoc.org/github.com/squiidz/bone?status.png)](http://godoc.org/github.com/go-zoo/bone) [![Build Status](https://travis-ci.org/go-zoo/bone.svg)](https://travis-ci.org/go-zoo/bone) [![Go Report Card](https://goreportcard.com/badge/go-zoo/bone)](https://goreportcard.com/report/go-zoo/bone)
 =======
 
 ## What is bone ?
@@ -9,6 +9,7 @@ Bone is a lightweight and lightning fast HTTP Multiplexer for Golang. It support
 - REGEX Parameters
 - Wildcard routes
 - Router Prefix
+- Route params validators
 - Sub Router, `mux.SubRoute()`, support most standard router (bone, gorilla/mux, httpRouter etc...)
 - Http method declaration
 - Support for `http.Handler` and `http.HandlerFunc`
@@ -28,8 +29,8 @@ Bone is a lightweight and lightning fast HTTP Multiplexer for Golang. It support
 - BenchmarkGorillaPatMux   1000000              1889 ns/op
 ```
 
- These test are just for fun, all these router are great and really efficient.
- Bone do not pretend to be the fastest router for every job.
+ These tests are just for fun, all these routers are great and efficient.
+ Bone isn't the fastest router for every job.
 
 ## Example
 
@@ -46,8 +47,17 @@ import(
 func main () {
   mux := bone.New()
 
+  mux.RegisterValidatorFunc("isNum", func(s string) bool {
+    if _, err := strconv.Atoi(s); err == nil {
+      return true
+    }
+    return false
+  })
+
   // mux.Get, Post, etc ... takes http.Handler
-  mux.Get("/home/:id", http.HandlerFunc(HomeHandler))
+  // validator for route parameter
+  mux.Get("/home/:id|isNum", http.HandlerFunc(HomeHandler))
+  // multiple parameter
   mux.Get("/profil/:id/:var", http.HandlerFunc(ProfilHandler))
   mux.Post("/data", http.HandlerFunc(DataHandler))
 

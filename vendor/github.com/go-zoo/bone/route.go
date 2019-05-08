@@ -9,6 +9,7 @@ package bone
 
 import (
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 )
@@ -32,16 +33,18 @@ const (
 // handler: is the handler who handle this route
 // Method: define HTTP method on the route
 type Route struct {
-	Path    string
-	Method  string
-	Size    int
-	Atts    int
-	wildPos int
-	Token   Token
-	Pattern map[int]string
-	Compile map[int]*regexp.Regexp
-	Tag     map[int]string
-	Handler http.Handler
+	Path       string
+	Method     string
+	Size       int
+	Atts       int
+	wildPos    int
+	Token      Token
+	Pattern    map[int]string
+	Compile    map[int]*regexp.Regexp
+	Tag        map[int]string
+	Handler    http.Handler
+	mux        *Mux
+	validators map[string][]string
 }
 
 // Token content all value of a spliting route path
@@ -54,13 +57,13 @@ type Token struct {
 }
 
 // NewRoute return a pointer to a Route instance and call save() on it
-func NewRoute(url string, h http.Handler) *Route {
-	r := &Route{Path: url, Handler: h}
+func NewRoute(mux *Mux, url string, h http.Handler) *Route {
+	r := &Route{Path: url, Handler: h, mux: mux}
 	r.save()
 	return r
 }
 
-// Save, set automatically the the Route.Size and Route.Pattern value
+// Save, set automatically  the Route.Size and Route.Pattern value
 func (r *Route) save() {
 	r.Size = len(r.Path)
 	r.Token.Tokens = strings.Split(r.Path, "/")
@@ -68,10 +71,20 @@ func (r *Route) save() {
 		if len(s) >= 1 {
 			switch s[:1] {
 			case ":":
+				s = s[1:]
 				if r.Pattern == nil {
 					r.Pattern = make(map[int]string)
 				}
-				r.Pattern[i] = s[1:]
+				if validators := containsValidators(s); validators != nil {
+					if r.validators == nil {
+						r.validators = make(map[string][]string)
+					}
+					for _, vali := range validators {
+						s = s[:validators[0].start]
+						r.validators[s] = append(r.validators[s], vali.name[1:])
+					}
+				}
+				r.Pattern[i] = s
 				r.Atts |= PARAM
 			case "#":
 				if r.Compile == nil {
@@ -112,7 +125,14 @@ func (r *Route) matchAndParse(req *http.Request) (bool, map[string]string) {
 
 			vars := make(map[string]string, totalSize)
 			for k, v := range r.Pattern {
-				vars[v] = ss[k]
+				if validators := r.validators[v]; validators != nil {
+					for _, vname := range validators {
+						if !(*r.mux).Validators[vname].Validate(ss[k]) {
+							return false, nil
+						}
+					}
+				}
+				vars[v], _ = url.QueryUnescape(ss[k])
 			}
 
 			if r.Atts&REGEX != 0 {
@@ -120,14 +140,13 @@ func (r *Route) matchAndParse(req *http.Request) (bool, map[string]string) {
 					if !v.MatchString(ss[k]) {
 						return false, nil
 					}
-					vars[r.Tag[k]] = ss[k]
+					vars[r.Tag[k]], _ = url.QueryUnescape(ss[k])
 				}
 			}
 
 			return true, vars
 		}
 	}
-
 	return false, nil
 }
 

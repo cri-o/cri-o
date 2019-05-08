@@ -5,7 +5,7 @@ module github.com/cri-o/cri-o
 require (
 	github.com/14rcole/gopopulate v0.0.0-20180821133914-b175b219e774 // indirect
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.11
+	github.com/Microsoft/go-winio v0.4.12
 	github.com/Microsoft/hcsshim v0.6.2 // indirect
 	github.com/VividCortex/ewma v1.1.1 // indirect
 	github.com/checkpoint-restore/go-criu v0.0.0-20181120144056-17b0214f6c48 // indirect
@@ -15,13 +15,13 @@ require (
 	github.com/containerd/go-runc v0.0.0-20180907222934-5a6d9f37cfa3 // indirect
 	github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
 	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
-	github.com/containernetworking/cni v0.7.0-rc2
+	github.com/containernetworking/cni v0.7.0
 	github.com/containernetworking/plugins v0.7.5
 	github.com/containers/buildah v1.7.2
 	github.com/containers/image v1.5.1
 	github.com/containers/libpod v1.2.0
 	github.com/containers/psgo v0.0.0-20180822121435-5dde6da0bc88 // indirect
-	github.com/containers/storage v1.12.4
+	github.com/containers/storage v1.12.6
 	github.com/coreos/go-iptables v0.0.0-20180704133345-25d087f3cffd // indirect
 	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -38,11 +38,11 @@ require (
 	github.com/elazarl/goproxy/ext v0.0.0-20190410145444-c548f45dcf1d // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/fsouza/go-dockerclient v1.3.0 // indirect
-	github.com/go-zoo/bone v0.0.0-20170711140942-031b4005dfe2
+	github.com/go-zoo/bone v1.3.0
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/groupcache v0.0.0-20170421005642-b710c8433bd1 // indirect
-	github.com/golang/mock v1.2.0
+	github.com/golang/mock v1.3.0
 	github.com/golangci/golangci-lint v1.16.1-0.20190402065613-de1d1ad903cd
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce // indirect
@@ -52,7 +52,7 @@ require (
 	github.com/klauspost/compress v1.4.1 // indirect
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/klauspost/pgzip v1.2.1 // indirect
-	github.com/kr/pty v1.1.1
+	github.com/kr/pty v1.1.4
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-shellwords v1.0.5 // indirect
 	github.com/mistifyio/go-zfs v2.1.1+incompatible // indirect
@@ -62,10 +62,10 @@ require (
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1
-	github.com/opencontainers/runc v1.0.0-rc7
-	github.com/opencontainers/runtime-spec v1.0.0
+	github.com/opencontainers/runc v1.0.0-rc8
+	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.3.1-0.20190418135848-095789df6c2b
-	github.com/opencontainers/selinux v1.2.1
+	github.com/opencontainers/selinux v1.2.2
 	github.com/openshift/imagebuilder v0.0.0-20190308124740-705fe9255c57 // indirect
 	github.com/opentracing/opentracing-go v0.0.0-20190218023034-25a84ff92183 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20181213164143-d0388bd827cf // indirect
@@ -87,11 +87,11 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0 // indirect
-	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
-	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
-	golang.org/x/sys v0.0.0-20190410235845-0ad05ae3009d
-	golang.org/x/text v0.3.1-0.20190410012825-f4905fbd45b6
-	google.golang.org/grpc v1.20.0
+	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	golang.org/x/sys v0.0.0-20190425145619-16072639606e
+	golang.org/x/text v0.3.2
+	google.golang.org/grpc v1.20.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
