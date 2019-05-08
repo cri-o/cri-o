@@ -177,6 +177,7 @@ var beforeEach = func() {
 var afterEach = func() {
 	os.RemoveAll(testPath)
 	os.RemoveAll("state.json")
+	os.RemoveAll("config.json")
 }
 
 var setupSUT = func() {
@@ -200,5 +201,25 @@ func mockNewServer() {
 		libMock.EXPECT().GetData().Return(libConfig),
 		storeMock.EXPECT().Containers().
 			Return([]cstorage.Container{}, nil),
+	)
+}
+
+func addContainerAndSandbox() {
+	sut.AddSandbox(testSandbox)
+	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+	sut.AddContainer(testContainer)
+	Expect(sut.CtrIDIndex().Add(testContainer.ID())).To(BeNil())
+	Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
+}
+
+var mockDirs = func(manifest []byte) {
+	gomock.InOrder(
+		storeMock.EXPECT().
+			FromContainerDirectory(gomock.Any(), gomock.Any()).
+			Return(manifest, nil),
+		storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
+			Return("", nil),
+		storeMock.EXPECT().ContainerDirectory(gomock.Any()).
+			Return("", nil),
 	)
 }
