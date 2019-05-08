@@ -21,7 +21,7 @@ func (c *ContainerServer) ContainerKill(container string, killSignal syscall.Sig
 		return "", errors.Errorf("cannot kill container %s: it is not running", container)
 	}
 
-	if err = c.runtime.SignalContainer(ctr, killSignal); err != nil {
+	if err := c.runtime.SignalContainer(ctr, killSignal); err != nil {
 		return "", err
 	}
 

@@ -232,7 +232,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if logDir == "" {
 		logDir = filepath.Join(s.config.LogDir, id)
 	}
-	if err = os.MkdirAll(logDir, 0700); err != nil {
+	if err := os.MkdirAll(logDir, 0700); err != nil {
 		return nil, err
 	}
 	// This should always be absolute from k8s.
@@ -303,7 +303,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if err = s.CtrIDIndex().Add(id); err != nil {
+	if err := s.CtrIDIndex().Add(id); err != nil {
 		return nil, err
 	}
 
@@ -440,7 +440,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	if err = s.PodIDIndex().Add(id); err != nil {
+	if err := s.PodIDIndex().Add(id); err != nil {
 		return nil, err
 	}
 
@@ -492,7 +492,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	} else if s.config.Config.ManageNetworkNSLifecycle {
 		// Create the sandbox network namespace
-		if err = sb.NetNsCreate(nil); err != nil {
+		if err := sb.NetNsCreate(nil); err != nil {
 			return nil, err
 		}
 
@@ -633,7 +633,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)
 	sb.SetSeccompProfilePath(spp)
 	if !privileged {
-		if err = s.setupSeccomp(&g, spp); err != nil {
+		if err := s.setupSeccomp(&g, spp); err != nil {
 			return nil, err
 		}
 	}
@@ -663,11 +663,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	}
 
-	if err = s.createContainerPlatform(container, nil, sb.CgroupParent()); err != nil {
+	if err := s.createContainerPlatform(container, nil, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
-	if err = s.Runtime().StartContainer(container); err != nil {
+	if err := s.Runtime().StartContainer(container); err != nil {
 		return nil, err
 	}
 
@@ -713,7 +713,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 	shmPath = filepath.Join(podSandboxRunDir, "shm")
-	if err = os.Mkdir(shmPath, 0700); err != nil {
+	if err := os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
 	}
 	shmOptions := "mode=1777,size=" + strconv.Itoa(sandbox.DefaultShmSize)

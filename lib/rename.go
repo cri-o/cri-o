@@ -35,22 +35,22 @@ func (c *ContainerServer) ContainerRename(container, name string) error {
 	}()
 
 	// Update state.json
-	if err = c.updateStateName(ctr, name); err != nil {
+	if err := c.updateStateName(ctr, name); err != nil {
 		return err
 	}
 
 	// Update config.json
 	configRuntimePath := filepath.Join(ctr.BundlePath(), configFile)
-	if err = updateConfigName(configRuntimePath, name); err != nil {
+	if err := updateConfigName(configRuntimePath, name); err != nil {
 		return err
 	}
 	configStoragePath := filepath.Join(ctr.Dir(), configFile)
-	if err = updateConfigName(configStoragePath, name); err != nil {
+	if err := updateConfigName(configStoragePath, name); err != nil {
 		return err
 	}
 
 	// Update containers.json
-	if err = c.store.SetNames(ctr.ID(), []string{name}); err != nil {
+	if err := c.store.SetNames(ctr.ID(), []string{name}); err != nil {
 		return err
 	}
 	return nil

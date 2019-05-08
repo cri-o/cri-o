@@ -55,10 +55,10 @@ linters-settings:
       - flagName
       - nilValReturn
       - offBy1
+      - sloppyReassign
       - weakCond
       # - appendAssign
       # - octalLiteral
-      # - sloppyReassign
 
       # Performance
       - equalFold
