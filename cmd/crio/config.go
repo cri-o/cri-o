@@ -46,7 +46,7 @@ file_locking = {{ .FileLocking }}
 file_locking_path = "{{ .FileLockingPath }}"
 
 # Whether CRI-O should wipe storage after a CRI-O upgrade happens
-auto_upgrade = {{ .AutoUpgrade }}
+clear_storage_on_upgrade = {{ .ClearStorageOnUpgrade }}
 
 
 # The crio.api table contains settings for the kubelet/gRPC interface.

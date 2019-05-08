@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-    "github.com/google/renameio"
+	"github.com/google/renameio"
 )
 
 // Version is the version of the build.

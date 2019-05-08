@@ -135,7 +135,7 @@ type RootConfig struct {
 	FileLocking bool `toml:"file_locking"`
 
 	// Whether CRI-O should wipe storage after a CRI-O upgrade happens
-	AutoUpgrade bool `toml:"auto_upgrade"`
+	ClearStorageOnUpgrade bool `toml:"clear_storage_on_upgrade"`
 }
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -365,14 +365,14 @@ func DefaultConfig() (*Config, error) {
 	}
 	return &Config{
 		RootConfig: RootConfig{
-			Root:            storeOpts.GraphRoot,
-			RunRoot:         storeOpts.RunRoot,
-			Storage:         storeOpts.GraphDriverName,
-			StorageOptions:  storeOpts.GraphDriverOptions,
-			LogDir:          "/var/log/crio/pods",
-			FileLocking:     true,
-			FileLockingPath: lockPath,
-			AutoUpgrade:     false,
+			Root:                  storeOpts.GraphRoot,
+			RunRoot:               storeOpts.RunRoot,
+			Storage:               storeOpts.GraphDriverName,
+			StorageOptions:        storeOpts.GraphDriverOptions,
+			LogDir:                "/var/log/crio/pods",
+			FileLocking:           true,
+			FileLockingPath:       lockPath,
+			ClearStorageOnUpgrade: false,
 		},
 		RuntimeConfig: RuntimeConfig{
 			DefaultRuntime: "runc",

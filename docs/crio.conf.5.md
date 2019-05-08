@@ -43,7 +43,7 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
 **file_locking_path**="/runc/crio.lock"
   Path to the lock file.
 
-**auto_upgrade**=false
+**clear_storage_on_upgrade**=false
   If set to true, CRI-O will wipe storage after detecting a new version, to allow for an automatic upgrade.
 
 

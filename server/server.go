@@ -344,7 +344,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	if config.AutoUpgrade {
+	if config.ClearStorageOnUpgrade {
 		upgrade, err := version.ShouldCrioUpgrade(CrioVersionPath)
 		if err != nil {
 			logrus.Errorf(err.Error())
