@@ -126,13 +126,16 @@ type RootConfig struct {
 	// tells us to put them somewhere else.
 	LogDir string `toml:"log_dir"`
 
+	// FileLockingPath specifies the path to use for the locking.
+	FileLockingPath string `toml:"file_locking_path"`
+
 	// FileLocking specifies whether to use file-based or in-memory locking
 	// File-based locking is required when multiple users of lib are
 	// present on the same system
 	FileLocking bool `toml:"file_locking"`
 
-	// FileLockingPath specifies the path to use for the locking.
-	FileLockingPath string `toml:"file_locking_path"`
+	// Whether CRI-O should wipe storage after a CRI-O upgrade happens
+	AutoUpgrade bool `toml:"auto_upgrade"`
 }
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -369,6 +372,7 @@ func DefaultConfig() (*Config, error) {
 			LogDir:          "/var/log/crio/pods",
 			FileLocking:     true,
 			FileLockingPath: lockPath,
+			AutoUpgrade:     false,
 		},
 		RuntimeConfig: RuntimeConfig{
 			DefaultRuntime: "runc",

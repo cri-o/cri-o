@@ -344,6 +344,18 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	if config.AutoUpgrade {
+		upgrade, err := version.ShouldCrioUpgrade(CrioVersionPath)
+		if err != nil {
+			logrus.Errorf(err.Error())
+		}
+		if upgrade {
+			logrus.Debugf("New version detected, upgrading")
+			if err = s.Store().Wipe(); err != nil {
+				logrus.Errorf(err.Error())
+			}
+		}
+	}
 	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
