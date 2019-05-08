@@ -80,8 +80,8 @@ func readFile(root, name string) ([]SecretData, error) {
 	return []SecretData{{Name: name, Data: bytes}}, nil
 }
 
-// getHostAndCtrDir separates the host:container paths
-func getMountsMap(path string) (string, string, error) {
+// getMountsMap separates the host:container paths
+func getMountsMap(path string) (host string, container string, err error) {
 	arr := strings.SplitN(path, ":", 2)
 	if len(arr) == 2 {
 		return arr[0], arr[1], nil

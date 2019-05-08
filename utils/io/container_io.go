@@ -199,8 +199,7 @@ func (c *ContainerIO) Attach(opts AttachOptions) {
 
 // AddOutput adds new write closers to the container stream, and returns existing
 // write closers if there are any.
-func (c *ContainerIO) AddOutput(name string, stdout, stderr io.WriteCloser) (io.WriteCloser, io.WriteCloser) {
-	var oldStdout, oldStderr io.WriteCloser
+func (c *ContainerIO) AddOutput(name string, stdout, stderr io.WriteCloser) (oldStdout io.WriteCloser, oldStderr io.WriteCloser) {
 	if stdout != nil {
 		key := streamKey(c.id, name, Stdout)
 		oldStdout = c.stdoutGroup.Get(key)

@@ -91,7 +91,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 
 // getUserFromImage gets uid or user name of the image user.
 // If user is numeric, it will be treated as uid; or else, it is treated as user name.
-func getUserFromImage(user string) (*int64, string) {
+func getUserFromImage(user string) (id *int64, username string) {
 	// return both empty if user is not specified in the image.
 	if user == "" {
 		return nil, ""

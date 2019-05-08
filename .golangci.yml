@@ -102,10 +102,10 @@ linters-settings:
       - nestingReduce
       - ptrToRefParam
       - typeUnparen
+      - unnamedResult
       - unnecessaryBlock
       # - builtinShadow
       # - importShadow
       # - paramTypeCombine
-      # - unnamedResult
   nakedret:
     max-func-lines: 15

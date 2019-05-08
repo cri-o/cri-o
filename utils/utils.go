@@ -211,7 +211,7 @@ func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
 
 // GetUserInfo returns UID, GID and additional groups for specified user
 // by looking them up in /etc/passwd and /etc/group
-func GetUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, error) {
+func GetUserInfo(rootfs string, userName string) (uid uint32, gid uint32, additionalGids []uint32, err error) {
 	// We don't care if we can't open the file because
 	// not all images will have these files
 	passwdFile, err := openContainerFile(rootfs, "/etc/passwd")
@@ -233,9 +233,9 @@ func GetUserInfo(rootfs string, userName string) (uint32, uint32, []uint32, erro
 		return 0, 0, nil, err
 	}
 
-	uid := uint32(execUser.Uid)
-	gid := uint32(execUser.Gid)
-	additionalGids := make([]uint32, 0, len(execUser.Sgids))
+	uid = uint32(execUser.Uid)
+	gid = uint32(execUser.Gid)
+	additionalGids = make([]uint32, 0, len(execUser.Sgids))
 	for _, g := range execUser.Sgids {
 		additionalGids = append(additionalGids, uint32(g))
 	}

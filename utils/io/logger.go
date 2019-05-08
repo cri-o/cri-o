@@ -50,7 +50,7 @@ func NewDiscardLogger() io.WriteCloser {
 // returns a channel which indicates whether the logger is stopped.
 // maxLen is the max length limit of a line. A line longer than the
 // limit will be cut into multiple lines.
-func NewCRILogger(path string, w io.Writer, stream StreamType, maxLen int) (io.WriteCloser, <-chan struct{}) {
+func NewCRILogger(path string, w io.Writer, stream StreamType, maxLen int) (pipeWriter io.WriteCloser, stopChan <-chan struct{}) {
 	logrus.Debugf("Start writing stream %q to log file %q", stream, path)
 	prc, pwc := io.Pipe()
 	stop := make(chan struct{})
