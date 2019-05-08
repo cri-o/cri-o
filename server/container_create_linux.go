@@ -162,7 +162,7 @@ func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig
 }
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
-func (s *Server) createContainerPlatform(container *oci.Container, infraContainer *oci.Container, cgroupParent string) error {
+func (s *Server) createContainerPlatform(container, infraContainer *oci.Container, cgroupParent string) error {
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		rootPair := s.defaultIDMappings.RootPair()
 
@@ -200,7 +200,7 @@ func makeAccessible(path string, uid, gid int) error {
 	return nil
 }
 
-func (s *Server) createSandboxContainer(ctx context.Context, containerID string, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (s *Server) createSandboxContainer(ctx context.Context, containerID, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}

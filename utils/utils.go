@@ -69,7 +69,7 @@ func StatusToExitCode(status int) int {
 }
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope
-func RunUnderSystemdScope(pid int, slice string, unitName string) error {
+func RunUnderSystemdScope(pid int, slice, unitName string) error {
 	var properties []systemdDbus.Property
 	conn, err := systemdDbus.New()
 	if err != nil {
@@ -202,7 +202,7 @@ func GenerateID() string {
 }
 
 // openContainerFile opens a file inside a container rootfs safely
-func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
+func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
 	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, path), rootfs)
 	if err != nil {
 		return nil, err
@@ -212,7 +212,7 @@ func openContainerFile(rootfs string, path string) (io.ReadCloser, error) {
 
 // GetUserInfo returns UID, GID and additional groups for specified user
 // by looking them up in /etc/passwd and /etc/group
-func GetUserInfo(rootfs string, userName string) (uid uint32, gid uint32, additionalGids []uint32, err error) {
+func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uint32, err error) {
 	// We don't care if we can't open the file because
 	// not all images will have these files
 	passwdFile, err := openContainerFile(rootfs, "/etc/passwd")

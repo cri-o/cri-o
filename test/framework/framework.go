@@ -19,10 +19,7 @@ type TestFramework struct {
 
 // NewTestFramework creates a new test framework instance for a given `setup`
 // and `teardown` function
-func NewTestFramework(
-	setup func(*TestFramework) error,
-	teardown func(*TestFramework) error,
-) *TestFramework {
+func NewTestFramework(setup, teardown func(*TestFramework) error) *TestFramework {
 	return &TestFramework{
 		setup,
 		teardown,

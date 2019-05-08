@@ -18,7 +18,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func createUnitName(prefix string, name string) string {
+func createUnitName(prefix, name string) string {
 	return fmt.Sprintf("%s-%s.scope", prefix, name)
 }
 
@@ -56,7 +56,7 @@ func sysProcAttrPlatform() *syscall.SysProcAttr {
 }
 
 // newPipe creates a unix socket pair for communication
-func newPipe() (parent *os.File, child *os.File, err error) {
+func newPipe() (parent, child *os.File, err error) {
 	fds, err := unix.Socketpair(unix.AF_LOCAL, unix.SOCK_STREAM|unix.SOCK_CLOEXEC, 0)
 	if err != nil {
 		return nil, nil, err

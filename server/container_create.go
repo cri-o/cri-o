@@ -132,7 +132,7 @@ func getMountInfo(mountInfos []*dockermounts.Info, dir string) *dockermounts.Inf
 	return nil
 }
 
-func getSourceMount(source string, mountInfos []*dockermounts.Info) (path string, optionalMountInfo string, err error) {
+func getSourceMount(source string, mountInfos []*dockermounts.Info) (path, optionalMountInfo string, err error) {
 	mountinfo := getMountInfo(mountInfos, source)
 	if mountinfo != nil {
 		return source, mountinfo.Optional, nil

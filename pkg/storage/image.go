@@ -603,7 +603,7 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 // which will prepend the passed-in defaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries []string, registries []string) (ImageServer, error) {
+func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries, registries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
 		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())

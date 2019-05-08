@@ -108,7 +108,7 @@ func FromGRPC(err error) error {
 //
 // Effectively, we just remove the string of cls from the end of err if it
 // appears there.
-func rebaseMessage(cls error, err error) string {
+func rebaseMessage(cls, err error) string {
 	desc := errDesc(err)
 	clss := cls.Error()
 	if desc == clss {
