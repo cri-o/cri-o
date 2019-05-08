@@ -85,17 +85,18 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 		args = append(args, "--syslog")
 	}
 
-	args = append(args, "-c", c.id)
-	args = append(args, "-n", c.name)
-	args = append(args, "-u", c.id)
-	args = append(args, "-r", r.path)
-	args = append(args, "-b", c.bundlePath)
-	args = append(args, "-p", filepath.Join(c.bundlePath, "pidfile"))
-	args = append(args, "-l", c.logPath)
-	args = append(args, "--exit-dir", r.containerExitsDir)
-	args = append(args, "--socket-dir-path", r.containerAttachSocketDir)
-	args = append(args, "--log-level", logrus.GetLevel().String())
-	args = append(args, "--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
+	args = append(args,
+		"-c", c.id,
+		"-n", c.name,
+		"-u", c.id,
+		"-r", r.path,
+		"-b", c.bundlePath,
+		"-p", filepath.Join(c.bundlePath, "pidfile"),
+		"-l", c.logPath,
+		"--exit-dir", r.containerExitsDir,
+		"--socket-dir-path", r.containerAttachSocketDir,
+		"--log-level", logrus.GetLevel().String(),
+		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
@@ -287,8 +288,7 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 	defer os.RemoveAll(processFile.Name())
 
 	args := []string{rootFlag, r.root, "exec"}
-	args = append(args, "--process", processFile.Name())
-	args = append(args, c.ID())
+	args = append(args, "--process", processFile.Name(), c.ID())
 	execCmd := exec.Command(r.path, args...)
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
@@ -356,21 +356,22 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	}()
 
 	var args []string
-	args = append(args, "-c", c.id)
-	args = append(args, "-n", c.name)
-	args = append(args, "-r", r.path)
-	args = append(args, "-p", pidFile.Name())
-	args = append(args, "-e")
+	args = append(args,
+		"-c", c.id,
+		"-n", c.name,
+		"-r", r.path,
+		"-p", pidFile.Name(),
+		"-e")
 	if c.terminal {
 		args = append(args, "-t")
 	}
 	if timeout > 0 {
-		args = append(args, "-T")
-		args = append(args, fmt.Sprintf("%d", timeout))
+		args = append(args, "-T", fmt.Sprintf("%d", timeout))
 	}
-	args = append(args, "-l", logPath)
-	args = append(args, "--socket-dir-path", r.containerAttachSocketDir)
-	args = append(args, "--log-level", logrus.GetLevel().String())
+	args = append(args,
+		"-l", logPath,
+		"--socket-dir-path", r.containerAttachSocketDir,
+		"--log-level", logrus.GetLevel().String())
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
 	if err != nil {
@@ -381,8 +382,9 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	}
 	defer os.RemoveAll(processFile.Name())
 
-	args = append(args, "--exec-process-spec", processFile.Name())
-	args = append(args, "--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
+	args = append(args,
+		"--exec-process-spec", processFile.Name(),
+		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
 	cmd := exec.Command(r.conmonPath, args...)
 
