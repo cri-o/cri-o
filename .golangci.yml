@@ -98,13 +98,13 @@ linters-settings:
       # - wrapperFunc
 
       # Opinionated
+      - importShadow
       - initClause
       - nestingReduce
       - ptrToRefParam
       - typeUnparen
       - unnecessaryBlock
       # - builtinShadow
-      # - importShadow
       # - paramTypeCombine
       # - unnamedResult
   nakedret:
