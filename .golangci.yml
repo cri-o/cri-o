@@ -98,6 +98,7 @@ linters-settings:
       - yodaStyleExpr
 
       # Opinionated
+      - builtinShadow
       - importShadow
       - initClause
       - nestingReduce
@@ -105,7 +106,6 @@ linters-settings:
       - typeUnparen
       - unnamedResult
       - unnecessaryBlock
-      # - builtinShadow
       # - paramTypeCombine
   nakedret:
     max-func-lines: 15

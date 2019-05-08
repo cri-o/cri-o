@@ -184,15 +184,15 @@ func (c *ContainerIO) Attach(opts AttachOptions) {
 
 	if opts.Stdout != nil {
 		wg.Add(1)
-		wc, close := cioutil.NewWriteCloseInformer(opts.Stdout)
+		wc, channel := cioutil.NewWriteCloseInformer(opts.Stdout)
 		c.stdoutGroup.Add(stdoutKey, wc)
-		go attachStream(stdoutKey, close)
+		go attachStream(stdoutKey, channel)
 	}
 	if !opts.Tty && opts.Stderr != nil {
 		wg.Add(1)
-		wc, close := cioutil.NewWriteCloseInformer(opts.Stderr)
+		wc, channel := cioutil.NewWriteCloseInformer(opts.Stderr)
 		c.stderrGroup.Add(stderrKey, wc)
-		go attachStream(stderrKey, close)
+		go attachStream(stderrKey, channel)
 	}
 	wg.Wait()
 }
