@@ -251,7 +251,8 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 	var args []string
 	if len(kubeCommands) != 0 {
 		entrypoint = kubeCommands[0]
-		args = append(kubeCommands[1:], kubeArgs...)
+		args = kubeCommands[1:]
+		args = append(args, kubeArgs...)
 	} else {
 		entrypoint = kubeArgs[0]
 		args = kubeArgs[1:]

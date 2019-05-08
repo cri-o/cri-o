@@ -40,6 +40,7 @@ linters-settings:
   gocritic:
     enabled-checks:
       # Diagnostic
+      - appendAssign
       - argOrder
       - badCond
       - caseOrder
@@ -56,7 +57,6 @@ linters-settings:
       - nilValReturn
       - offBy1
       - weakCond
-      # - appendAssign
       # - octalLiteral
       # - sloppyReassign
 
