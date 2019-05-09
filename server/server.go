@@ -141,6 +141,23 @@ func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResp
 	return s.stream.streamServer.GetPortForward(req)
 }
 
+func (s *Server) wipeStorage() {
+	containers, err := s.Store().Containers()
+	if err != nil && !os.IsNotExist(errors.Cause(err)) {
+		logrus.Warnf("could not read containers and sandboxes: %v", err)
+	}
+	for i := range containers {
+		ctr := &containers[i]
+		_, err := s.StorageRuntimeServer().GetContainerMetadata(ctr.ID)
+		if err != nil {
+			continue
+		}
+		for _, name := range ctr.Names {
+			s.Store().DeleteContainer(name)
+		}
+	}
+}
+
 func (s *Server) restore() {
 	containers, err := s.Store().Containers()
 	if err != nil && !os.IsNotExist(errors.Cause(err)) {
@@ -351,9 +368,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 		}
 		if upgrade {
 			logrus.Debugf("New version detected, upgrading")
-			if err = s.Store().Wipe(); err != nil {
-				logrus.Errorf(err.Error())
-			}
+			s.wipeStorage()
 		}
 	}
 	s.restore()
