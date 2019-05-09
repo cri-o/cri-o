@@ -8,6 +8,8 @@ crio.conf - configuration file of the CRI-O OCI Kubernetes Container Runtime dae
 # DESCRIPTION
 The CRI-O configuration file specifies all of the available configuration options and command-line flags for the [crio(8) OCI Kubernetes Container Runtime daemon][crio], but in a TOML format that can be more easily modified and versioned.
 
+CRI-O supports partial configuration reload during runtime, which can be done by sending SIGHUP to the running process. Currently supported options are explicitly marked with 'This option supports live configuration reload'.
+
 The default crio.conf is located at /etc/crio/crio.conf.
 
 # FORMAT
@@ -159,7 +161,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
   If set to true, all containers will run in read-only mode.
 
 **log_level**="error"
-  Changes the verbosity of the logs based on the level it is set to. Options are fatal, panic, error, warn, info, and debug.
+  Changes the verbosity of the logs based on the level it is set to. Options are fatal, panic, error, warn, info, and debug. This option supports live configuration reload.
 
 **log_dir**="/var/log/crio/pods"
   The default log directory where all logs will go unless directly specified by the kubelet

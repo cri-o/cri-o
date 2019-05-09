@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime/debug"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/seccomp"
+	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/version"
@@ -281,8 +283,9 @@ func getIDMappings(config *Config) (*idtools.IDMappings, error) {
 	return idtools.NewIDMappingsFromMaps(parsedUIDsMappings, parsedGIDsMappings), nil
 }
 
-// New creates a new Server with options provided
-func New(ctx context.Context, configIface ConfigIface) (*Server, error) {
+// New creates a new Server with the provided context, configPath and
+// configuration
+func New(ctx context.Context, configPath string, configIface ConfigIface) (*Server, error) {
 	if configIface == nil || configIface.GetData() == nil {
 		return nil, fmt.Errorf("provided configuration interface or its data is nil")
 	}
@@ -406,6 +409,13 @@ func New(ctx context.Context, configIface ConfigIface) (*Server, error) {
 	}()
 
 	logrus.Debugf("sandboxes: %v", s.ContainerServer.ListSandboxes())
+
+	// Start a configuration watcher for the default config
+	if _, err := s.StartConfigWatcher(configPath, s.config.Reload); err != nil {
+		logrus.Warnf("unable to start config watcher for file %q: %v",
+			configPath, err)
+	}
+
 	return s, nil
 }
 
@@ -467,7 +477,7 @@ func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
 	return mux, nil
 }
 
-// StopMonitors stops al the monitors
+// StopMonitors stops all the monitors
 func (s *Server) StopMonitors() {
 	close(s.monitorsChan)
 }
@@ -537,4 +547,39 @@ func (s *Server) StartExitMonitor() {
 		close(done)
 	}
 	<-done
+}
+
+// StartConfigWatcher starts a new watching go routine for the provided
+// `fileName` and `reloadFunc`. The method errors if the given fileName does
+// not exist or is not accessible.
+func (s *Server) StartConfigWatcher(
+	fileName string,
+	reloadFunc func(string) error,
+) (chan os.Signal, error) {
+	// Validate the arguments
+	if _, err := os.Stat(fileName); err != nil {
+		return nil, err
+	}
+	if reloadFunc == nil {
+		return nil, fmt.Errorf("provided reload closure is nil")
+	}
+
+	// Setup the signal notifier
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, signals.Hup)
+
+	go func() {
+		for {
+			// Block until the signal is received
+			<-c
+			logrus.Infof("reloading configuration %q", fileName)
+			if err := reloadFunc(fileName); err != nil {
+				logrus.Errorf("unable to reload configuration: %v", err)
+				continue
+			}
+		}
+	}()
+
+	logrus.Debugf("registered SIGHUP watcher for file %q", fileName)
+	return c, nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -188,5 +189,43 @@ func (c *Config) Validate(onExecution bool) error {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
 	}
 
+	return nil
+}
+
+// Reload reloads the configuration with the config at the provided `fileName`
+// path. The method errors in case of any read or update failure.
+func (c *Config) Reload(fileName string) error {
+	// Reload the config
+	newConfig, err := DefaultConfig()
+	if err != nil {
+		return fmt.Errorf("unable to create default config")
+	}
+	if err := newConfig.UpdateFromFile(fileName); err != nil {
+		return err
+	}
+
+	// Reload all available options
+	if err := c.ReloadLogLevel(newConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ReloadLogLevel updates the LogLevel with the provided `newConfig`. It errors
+// if the level is not parsable.
+func (c *Config) ReloadLogLevel(newConfig *Config) error {
+	if c.LogLevel != newConfig.LogLevel {
+		level, err := logrus.ParseLevel(newConfig.LogLevel)
+		if err != nil {
+			return err
+		}
+		// Always log this message without considering the current
+		logrus.SetLevel(logrus.InfoLevel)
+		logrus.Infof("set config log level to %q", newConfig.LogLevel)
+
+		logrus.SetLevel(level)
+		c.LogLevel = newConfig.LogLevel
+	}
 	return nil
 }

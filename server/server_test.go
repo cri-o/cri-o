@@ -2,8 +2,11 @@ package server_test
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/server"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -24,13 +27,36 @@ var _ = t.Describe("Server", func() {
 		invalid    = "invalid"
 	)
 
+	getTmpFile := func() string {
+		tmpfile, err := ioutil.TempFile(os.TempDir(), "config")
+		Expect(err).To(BeNil())
+		return tmpfile.Name()
+	}
+
 	t.Describe("New", func() {
 		It("should succeed", func() {
 			// Given
 			mockNewServer()
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(server).NotTo(BeNil())
+			Expect(server.StreamingServerCloseChan()).NotTo(BeNil())
+		})
+
+		It("should succeed with valid config path", func() {
+			// Given
+			mockNewServer()
+			tmpFile := getTmpFile()
+			defer os.RemoveAll(tmpFile)
+
+			// When
+			server, err := server.New(
+				context.Background(), tmpFile, serverMock,
+			)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -45,7 +71,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.GIDMappings = "1:1:1"
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -60,7 +86,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamTLSCert = "../test/testdata/cert.pem"
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -96,7 +122,7 @@ var _ = t.Describe("Server", func() {
 			)
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -106,7 +132,7 @@ var _ = t.Describe("Server", func() {
 		It("should fail when provided config is nil", func() {
 			// Given
 			// When
-			server, err := server.New(context.Background(), nil)
+			server, err := server.New(context.Background(), "", nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -121,7 +147,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.ContainerAttachSocketDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -136,7 +162,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.ContainerExitsDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -151,7 +177,7 @@ var _ = t.Describe("Server", func() {
 			)
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -169,7 +195,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.NetworkDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -189,7 +215,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.GIDMappings = g
 
 			// When
-			sut, err := server.New(context.Background(), serverMock)
+			sut, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -211,7 +237,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.SeccompProfile = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -229,7 +255,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.SeccompProfile = "/dev/null"
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -243,7 +269,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamPort = invalid
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -258,7 +284,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamTLSKey = invalid
 
 			// When
-			server, err := server.New(context.Background(), serverMock)
+			server, err := server.New(context.Background(), "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -330,6 +356,62 @@ var _ = t.Describe("Server", func() {
 
 			// Then
 			Expect(err).To(BeNil())
+		})
+	})
+
+	t.Describe("StartConfigWatcher", func() {
+		// Prepare the sut
+		BeforeEach(setupSUT)
+
+		It("should succeed", func() {
+			// Given
+			tmpFile := getTmpFile()
+			defer os.RemoveAll(tmpFile)
+
+			// When
+			ch, err := sut.StartConfigWatcher(
+				tmpFile, func(fileName string) error { return nil },
+			)
+			ch <- signals.Hup
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with failing reload closure", func() {
+			// Given
+			tmpFile := getTmpFile()
+			defer os.RemoveAll(tmpFile)
+
+			// When
+			ch, err := sut.StartConfigWatcher(
+				tmpFile, func(fileName string) error { return t.TestError },
+			)
+			ch <- signals.Hup
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail when fileName does not exist", func() {
+			// Given
+			// When
+			_, err := sut.StartConfigWatcher("", nil)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail when reload closure is nil", func() {
+			// Given
+			tmpFile := getTmpFile()
+			defer os.RemoveAll(tmpFile)
+
+			// When
+			_, err := sut.StartConfigWatcher(tmpFile, nil)
+
+			// Then
+			Expect(err).NotTo(BeNil())
 		})
 	})
 })
