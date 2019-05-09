@@ -349,6 +349,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed with removed container", func() {
 			// Given
 			mockDirs(testManifest)
+			createDummyState()
 			gomock.InOrder(
 				storeMock.EXPECT().Containers().
 					Return([]cstorage.Container{{}}, nil),
@@ -368,6 +369,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed with already added sandbox", func() {
 			// Given
 			sut.AddSandbox(mySandbox)
+			createDummyState()
 			mockDirs(testManifest)
 			gomock.InOrder(
 				storeMock.EXPECT().Containers().
@@ -385,6 +387,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail when storage fails", func() {
 			// Given
+			createDummyState()
 			gomock.InOrder(
 				storeMock.EXPECT().Containers().Return(nil, t.TestError),
 			)
@@ -400,6 +403,7 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("LoadSandbox", func() {
 		It("should succeed", func() {
 			// Given
+			createDummyState()
 			mockDirs(testManifest)
 
 			// When
@@ -411,6 +415,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should succeed with invalid network namespace", func() {
 			// Given
+			createDummyState()
 			manifest := bytes.Replace(testManifest,
 				[]byte(`{"type": "network", "path": "default"}`),
 				[]byte(`{"type": "", "path": ""},{"type": "network", "path": ""}`), 1,
@@ -426,6 +431,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should succeed with missing network namespace", func() {
 			// Given
+			createDummyState()
 			manifest := bytes.Replace(testManifest,
 				[]byte(`{"type": "network", "path": "default"}`),
 				[]byte(`{}`), 1,
@@ -664,6 +670,7 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("LoadContainer", func() {
 		It("should succeed", func() {
 			// Given
+			createDummyState()
 			sut.AddSandbox(mySandbox)
 			mockDirs(testManifest)
 
