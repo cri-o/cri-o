@@ -917,7 +917,8 @@ func clearReadOnly(m *rspec.Mount) {
 			opt = append(opt, o)
 		}
 	}
-	m.Options = append(opt, "rw")
+	m.Options = opt
+	m.Options = append(m.Options, "rw")
 }
 
 func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]oci.ContainerVolume, []rspec.Mount, error) {

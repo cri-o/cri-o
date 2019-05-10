@@ -129,8 +129,10 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	}
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
+	cmd.Env = r.conmonEnv
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("_OCI_SYNCPIPE=%d", 3),
+		fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
@@ -393,7 +395,8 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	cmd.Stderr = &stderrBuf
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
+	cmd.Env = r.conmonEnv
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
