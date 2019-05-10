@@ -22,6 +22,8 @@
 #include <termios.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <sys/statfs.h>
+#include <linux/magic.h>
 
 #if __STDC_VERSION__ >= 199901L
 /* C99 or later */
@@ -34,6 +36,10 @@
 
 #include "cmsg.h"
 #include "config.h"
+
+#ifndef CGROUP2_SUPER_MAGIC
+#define CGROUP2_SUPER_MAGIC 0x63677270
+#endif
 
 static volatile pid_t container_pid = -1;
 static volatile pid_t create_pid = -1;
@@ -878,9 +884,17 @@ static int setup_terminal_control_fifo()
 static void setup_oom_handling(int container_pid)
 {
 	/* Setup OOM notification for container process */
-	_cleanup_free_ char *memory_cgroup_path = process_cgroup_subsystem_path(container_pid, "memory");
+	_cleanup_free_ char *memory_cgroup_path = NULL;
 	_cleanup_close_ int cfd = -1;
+	struct statfs sfs;
 	int ofd = -1; /* Not closed */
+
+	if (statfs("/sys/fs/cgroup", &sfs) == 0 && sfs.f_type == CGROUP2_SUPER_MAGIC) {
+		nwarnf("cgroup v2 unified mode detected.  Skipping OOM handling");
+		return;
+	}
+
+	memory_cgroup_path = process_cgroup_subsystem_path(container_pid, "memory");
 	if (!memory_cgroup_path) {
 		nexit("Failed to get memory cgroup path");
 	}
