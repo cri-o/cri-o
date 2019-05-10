@@ -94,8 +94,8 @@ linters-settings:
       - unlambda
       - unslice
       - valSwap
+      - wrapperFunc
       - yodaStyleExpr
-      # - wrapperFunc
 
       # Opinionated
       - initClause
