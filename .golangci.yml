@@ -98,13 +98,13 @@ linters-settings:
       - yodaStyleExpr
 
       # Opinionated
+      - importShadow
       - initClause
       - nestingReduce
       - ptrToRefParam
       - typeUnparen
       - unnecessaryBlock
       # - builtinShadow
-      # - importShadow
       # - paramTypeCombine
       # - unnamedResult
   nakedret:

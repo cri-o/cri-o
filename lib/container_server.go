@@ -189,7 +189,7 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		}
 	}
 
-	hooks, err := hooks.New(ctx, hookDirectories, []string{}, lang)
+	newHooks, err := hooks.New(ctx, hookDirectories, []string{}, lang)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		podNameIndex:         registrar.NewRegistrar(),
 		podIDIndex:           truncindex.NewTruncIndex([]string{}),
 		imageContext:         &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
-		Hooks:                hooks,
+		Hooks:                newHooks,
 		stateLock:            lock,
 		state: &containerServerState{
 			containers:      oci.NewMemoryStore(),
@@ -678,11 +678,11 @@ type containerServerState struct {
 
 // AddContainer adds a container to the container state store
 func (c *ContainerServer) AddContainer(ctr *oci.Container) {
-	sandbox := c.state.sandboxes.Get(ctr.Sandbox())
-	if sandbox == nil {
+	newSandbox := c.state.sandboxes.Get(ctr.Sandbox())
+	if newSandbox == nil {
 		return
 	}
-	sandbox.AddContainer(ctr)
+	newSandbox.AddContainer(ctr)
 	c.state.containers.Add(ctr.ID(), ctr)
 }
 

@@ -391,11 +391,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	// Add cgroup mount so container process can introspect its own limits
 	specgen.AddMount(mnt)
 
-	devices, err := getDevicesFromConfig(&s.config)
+	configuredDevices, err := getDevicesFromConfig(&s.config)
 	if err != nil {
 		return nil, err
 	}
-	for _, d := range devices {
+	for _, d := range configuredDevices {
 		specgen.AddDevice(d)
 	}
 
@@ -807,15 +807,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		specgen.AddMount(mnt)
 	}
 
-	annotations := map[string]string{}
+	newAnnotations := map[string]string{}
 	for key, value := range containerConfig.GetAnnotations() {
-		annotations[key] = value
+		newAnnotations[key] = value
 	}
 	for key, value := range sb.Annotations() {
-		annotations[key] = value
+		newAnnotations[key] = value
 	}
 	if s.ContainerServer.Hooks != nil {
-		if _, err := s.ContainerServer.Hooks.Hooks(specgen.Config, annotations, len(containerConfig.GetMounts()) > 0); err != nil {
+		if _, err := s.ContainerServer.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.GetMounts()) > 0); err != nil {
 			return nil, err
 		}
 	}
