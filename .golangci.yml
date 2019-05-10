@@ -61,12 +61,12 @@ linters-settings:
       # - sloppyReassign
 
       # Performance
+      - appendCombine
       - equalFold
       - hugeParam
       - indexAlloc
       - rangeExprCopy
       - rangeValCopy
-      # - appendCombine
 
       # Style
       - assignOp
