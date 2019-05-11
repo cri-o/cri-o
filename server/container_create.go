@@ -591,7 +591,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err = s.CtrIDIndex().Add(containerID); err != nil {
+	if err := s.CtrIDIndex().Add(containerID); err != nil {
 		return nil, err
 	}
 	defer func() {
@@ -602,7 +602,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err = s.createContainerPlatform(container, sb.InfraContainer(), sb.CgroupParent()); err != nil {
+	if err := s.createContainerPlatform(container, sb.InfraContainer(), sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 

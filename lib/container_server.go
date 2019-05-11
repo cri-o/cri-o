@@ -280,7 +280,7 @@ func (c *ContainerServer) Update() error {
 		}
 		c.ReleaseContainerName(ctr.Name())
 		c.RemoveContainer(ctr)
-		if err = c.ctrIDIndex.Delete(ctr.ID()); err != nil {
+		if err := c.ctrIDIndex.Delete(ctr.ID()); err != nil {
 			return err
 		}
 		logrus.Debugf("forgetting removed pod container %s", ctr.ID())
@@ -301,7 +301,7 @@ func (c *ContainerServer) Update() error {
 		podInfraContainer := sb.InfraContainer()
 		c.ReleaseContainerName(podInfraContainer.Name())
 		c.RemoveContainer(podInfraContainer)
-		if err = c.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
+		if err := c.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
 			return err
 		}
 		sb.RemoveInfraContainer()
@@ -309,7 +309,7 @@ func (c *ContainerServer) Update() error {
 		if err := c.RemoveSandbox(sb.ID()); err != nil {
 			logrus.Warnf("failed to remove sandbox ID %s: %v", sb.ID(), err)
 		}
-		if err = c.podIDIndex.Delete(sb.ID()); err != nil {
+		if err := c.podIDIndex.Delete(sb.ID()); err != nil {
 			return err
 		}
 		logrus.Debugf("forgetting removed pod %s", sb.ID())
@@ -340,11 +340,11 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 	var m rspec.Spec
-	if err = json.Unmarshal(config, &m); err != nil {
+	if err := json.Unmarshal(config, &m); err != nil {
 		return err
 	}
 	labels := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
+	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return err
 	}
 	name := m.Annotations[annotations.Name]
@@ -358,7 +358,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		}
 	}()
 	var metadata pb.PodSandboxMetadata
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
+	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}
 
@@ -375,7 +375,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	spp := m.Annotations[annotations.SeccompProfilePath]
 
 	kubeAnnotations := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
+	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
 		return err
 	}
 
@@ -473,14 +473,14 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	}
 	sb.SetCreated()
 
-	if err = label.ReserveLabel(processLabel); err != nil {
+	if err := label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
 	sb.SetInfraContainer(scontainer)
-	if err = c.ctrIDIndex.Add(scontainer.ID()); err != nil {
+	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return err
 	}
-	if err = c.podIDIndex.Add(id); err != nil {
+	if err := c.podIDIndex.Add(id); err != nil {
 		return err
 	}
 	return nil
@@ -509,11 +509,11 @@ func (c *ContainerServer) LoadContainer(id string) error {
 		return err
 	}
 	var m rspec.Spec
-	if err = json.Unmarshal(config, &m); err != nil {
+	if err := json.Unmarshal(config, &m); err != nil {
 		return err
 	}
 	labels := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
+	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return err
 	}
 	name := m.Annotations[annotations.Name]
@@ -529,7 +529,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	}()
 
 	var metadata pb.ContainerMetadata
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
+	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}
 	sb := c.GetSandbox(m.Annotations[annotations.SandboxID])
@@ -567,7 +567,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	}
 
 	kubeAnnotations := make(map[string]string)
-	if err = json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
+	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
 		return err
 	}
 

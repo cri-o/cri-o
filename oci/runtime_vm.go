@@ -89,7 +89,7 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err erro
 	defer c.opLock.Unlock()
 
 	// First thing, we need to start the runtime daemon
-	if err = r.startRuntimeDaemon(c); err != nil {
+	if err := r.startRuntimeDaemon(c); err != nil {
 		return err
 	}
 
@@ -355,7 +355,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	}()
 
 	// Start the process
-	if err = r.start(ctx, c.ID(), execID); err != nil {
+	if err := r.start(ctx, c.ID(), execID); err != nil {
 		return -1, err
 	}
 

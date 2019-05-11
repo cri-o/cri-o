@@ -717,7 +717,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	if !privileged {
-		if err = s.setupSeccomp(&specgen, spp); err != nil {
+		if err := s.setupSeccomp(&specgen, spp); err != nil {
 			return nil, err
 		}
 	}
@@ -822,7 +822,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 	// Setup user and groups
 	if linux != nil {
-		if err = setupContainerUser(&specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
+		if err := setupContainerUser(&specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -861,10 +861,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 	}
 
 	saveOptions := generate.ExportOptions{}
-	if err = specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
+	if err := specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
 		return nil, err
 	}
-	if err = specgen.SaveToFile(filepath.Join(containerInfo.RunDir, "config.json"), saveOptions); err != nil {
+	if err := specgen.SaveToFile(filepath.Join(containerInfo.RunDir, "config.json"), saveOptions); err != nil {
 		return nil, err
 	}
 

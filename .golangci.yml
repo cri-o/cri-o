@@ -56,9 +56,9 @@ linters-settings:
       - flagName
       - nilValReturn
       - offBy1
+      - sloppyReassign
       - weakCond
       # - octalLiteral
-      # - sloppyReassign
 
       # Performance
       - appendCombine

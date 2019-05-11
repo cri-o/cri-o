@@ -23,7 +23,7 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		return nil, err
 	}
 
-	if err = s.Runtime().UpdateContainerStatus(c); err != nil {
+	if err := s.Runtime().UpdateContainerStatus(c); err != nil {
 		return nil, err
 	}
 

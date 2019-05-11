@@ -397,7 +397,7 @@ func (r *runtimeService) GetContainerMetadata(idOrName string) (RuntimeContainer
 	if err != nil {
 		return metadata, err
 	}
-	if err = json.Unmarshal([]byte(mdata), &metadata); err != nil {
+	if err := json.Unmarshal([]byte(mdata), &metadata); err != nil {
 		return metadata, err
 	}
 	return metadata, nil
@@ -412,7 +412,7 @@ func (r *runtimeService) StartContainer(idOrName string) (string, error) {
 		return "", err
 	}
 	metadata := RuntimeContainerMetadata{}
-	if err = json.Unmarshal([]byte(container.Metadata), &metadata); err != nil {
+	if err := json.Unmarshal([]byte(container.Metadata), &metadata); err != nil {
 		return "", err
 	}
 	mountPoint, err := r.storageImageServer.GetStore().Mount(container.ID, metadata.MountLabel)
