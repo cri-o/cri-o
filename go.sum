@@ -107,6 +107,8 @@ github.com/containernetworking/cni v0.7.0 h1:1Qy7EwdC08mx5wUB0DpjCuBrk6e/uXg9yI9
 github.com/containernetworking/cni v0.7.0/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ61X79hmU3w8FmsY=
 github.com/containernetworking/plugins v0.7.5 h1:WOdY2n1SjtyJtFqDn/W/FDoWL+L8ICWasuPFH37HGiA=
 github.com/containernetworking/plugins v0.7.5/go.mod h1:dagHaAhNjXjT9QYOklkKJDGaQPTg4pf//FrUcJeb7FU=
+github.com/containernetworking/plugins v0.8.0 h1:y9cEGDecrd4H5iLbX4wjW72hT8W5EzLMVbGoJ/Ym0ZQ=
+github.com/containernetworking/plugins v0.8.0/go.mod h1:dagHaAhNjXjT9QYOklkKJDGaQPTg4pf//FrUcJeb7FU=
 github.com/containers/buildah v1.7.2 h1:N9Kp1TuDjhoSWlNVJOOza71udunDS23/eY0jzZGWVO8=
 github.com/containers/buildah v1.7.2/go.mod h1:1CsiLJvyU+h+wOjnqJJOWuJCVcMxZOr5HN/gHGdzJxY=
 github.com/containers/image v1.5.1 h1:ssEuj1c24uJvdMkUa2IrawuEFZBP12p6WzrjNBTQxE0=
