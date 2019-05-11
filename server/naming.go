@@ -46,39 +46,30 @@ func makeContainerName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *
 	}, nameDelimiter)
 }
 
-func (s *Server) generatePodIDandName(sandboxConfig *pb.PodSandboxConfig) (string, string, error) {
-	var (
-		err error
-		id  = stringid.GenerateNonCryptoID()
-	)
+func (s *Server) generatePodIDandName(sandboxConfig *pb.PodSandboxConfig) (id string, name string, err error) {
+	id = stringid.GenerateNonCryptoID()
 	if sandboxConfig.Metadata.Namespace == "" {
 		return "", "", fmt.Errorf("cannot generate pod ID without namespace")
 	}
-	name, err := s.ReservePodName(id, makeSandboxName(sandboxConfig))
+	name, err = s.ReservePodName(id, makeSandboxName(sandboxConfig))
 	if err != nil {
 		return "", "", err
 	}
 	return id, name, err
 }
 
-func (s *Server) generateContainerIDandNameForSandbox(sandboxConfig *pb.PodSandboxConfig) (string, string, error) {
-	var (
-		err error
-		id  = stringid.GenerateNonCryptoID()
-	)
-	name, err := s.ReserveContainerName(id, makeSandboxContainerName(sandboxConfig))
+func (s *Server) generateContainerIDandNameForSandbox(sandboxConfig *pb.PodSandboxConfig) (id string, name string, err error) {
+	id = stringid.GenerateNonCryptoID()
+	name, err = s.ReserveContainerName(id, makeSandboxContainerName(sandboxConfig))
 	if err != nil {
 		return "", "", err
 	}
 	return id, name, err
 }
 
-func (s *Server) generateContainerIDandName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *pb.ContainerConfig) (string, string, error) {
-	var (
-		err error
-		id  = stringid.GenerateNonCryptoID()
-	)
-	name, err := s.ReserveContainerName(id, makeContainerName(sandboxMetadata, containerConfig))
+func (s *Server) generateContainerIDandName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *pb.ContainerConfig) (id string, name string, err error) {
+	id = stringid.GenerateNonCryptoID()
+	name, err = s.ReserveContainerName(id, makeContainerName(sandboxMetadata, containerConfig))
 	if err != nil {
 		return "", "", err
 	}

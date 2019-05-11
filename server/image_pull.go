@@ -120,7 +120,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	return resp, nil
 }
 
-func decodeDockerAuth(s string) (string, string, error) {
+func decodeDockerAuth(s string) (user string, password string, err error) {
 	decoded, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return "", "", err
@@ -130,7 +130,7 @@ func decodeDockerAuth(s string) (string, string, error) {
 		// if it's invalid just skip, as docker does
 		return "", "", nil
 	}
-	user := parts[0]
-	password := strings.Trim(parts[1], "\x00")
+	user = parts[0]
+	password = strings.Trim(parts[1], "\x00")
 	return user, password, nil
 }

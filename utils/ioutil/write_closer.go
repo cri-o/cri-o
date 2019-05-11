@@ -30,7 +30,7 @@ type writeCloseInformer struct {
 }
 
 // NewWriteCloseInformer creates the writeCloseInformer from a write closer.
-func NewWriteCloseInformer(wc io.WriteCloser) (io.WriteCloser, <-chan struct{}) {
+func NewWriteCloseInformer(wc io.WriteCloser) (informer io.WriteCloser, closeChan <-chan struct{}) {
 	close := make(chan struct{})
 	return &writeCloseInformer{
 		close: close,
