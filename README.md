@@ -127,16 +127,6 @@ CONTAINER_RUNTIME_ENDPOINT='unix:///var/run/crio/crio.sock  --runtime-request-ti
 
 For more guidance in running `CRI-O`, visit our [tutorial page](tutorial.md)
 
-## Current Roadmap
-
-1. Basic pod/container lifecycle, basic image pull (done)
-1. Support for tty handling and state management (done)
-1. Basic integration with kubelet once client side changes are ready (done)
-1. Support for log management, networking integration using CNI, pluggable image/storage management (done)
-1. Support for exec/attach (done)
-1. Target fully automated kubernetes testing without failures [e2e status](https://github.com/cri-o/cri-o/issues/533) (done)
-1. Track upstream k8s releases (active)
-
 [libpod-hooks]: https://github.com/containers/libpod/blob/v0.6.2/pkg/hooks/README.md
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks
 
