@@ -18,7 +18,7 @@ var _ = t.Describe("Config", func() {
 
 	BeforeEach(func() {
 		var err error
-		sut, err = lib.DefaultConfig()
+		sut, err = lib.DefaultConfig(nil)
 		Expect(err).To(BeNil())
 		Expect(sut).NotTo(BeNil())
 	})
@@ -32,7 +32,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// When
-			err := sut.Validate(false)
+			err := sut.Validate(nil, false)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -43,7 +43,7 @@ var _ = t.Describe("Config", func() {
 			sut.RootConfig.LogDir = "/dev/null"
 
 			// When
-			err := sut.Validate(true)
+			err := sut.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -55,7 +55,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{wrongPath}
 
 			// When
-			err := sut.Validate(true)
+			err := sut.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -69,7 +69,7 @@ var _ = t.Describe("Config", func() {
 			sut.NetworkConfig.NetworkDir = wrongPath
 
 			// When
-			err := sut.Validate(true)
+			err := sut.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -80,7 +80,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// When
-			err := sut.RuntimeConfig.Validate(false)
+			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -92,7 +92,7 @@ var _ = t.Describe("Config", func() {
 			sut.Conmon = validPath
 
 			// When
-			err := sut.RuntimeConfig.Validate(true)
+			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -105,7 +105,7 @@ var _ = t.Describe("Config", func() {
 			sut.Conmon = validPath
 
 			// When
-			err := sut.RuntimeConfig.Validate(true)
+			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -118,7 +118,7 @@ var _ = t.Describe("Config", func() {
 			sut.HooksDir = []string{validPath}
 
 			// When
-			err := sut.RuntimeConfig.Validate(true)
+			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -131,7 +131,7 @@ var _ = t.Describe("Config", func() {
 			sut.HooksDir = []string{wrongPath}
 
 			// When
-			err := sut.RuntimeConfig.Validate(true)
+			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -144,7 +144,7 @@ var _ = t.Describe("Config", func() {
 			sut.HooksDir = []string{validPath}
 
 			// When
-			err := sut.RuntimeConfig.Validate(true)
+			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -155,7 +155,7 @@ var _ = t.Describe("Config", func() {
 			sut.DefaultUlimits = []string{wrongPath}
 
 			// When
-			err := sut.RuntimeConfig.Validate(false)
+			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -166,7 +166,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"::::"}
 
 			// When
-			err := sut.RuntimeConfig.Validate(false)
+			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -177,7 +177,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{wrongPath}
 
 			// When
-			err := sut.RuntimeConfig.Validate(false)
+			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -188,7 +188,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:abc"}
 
 			// When
-			err := sut.RuntimeConfig.Validate(false)
+			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -199,7 +199,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"wrong:/dev/null:rw"}
 
 			// When
-			err := sut.RuntimeConfig.Validate(false)
+			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -210,7 +210,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"/dev/null:wrong:rw"}
 
 			// When
-			err := sut.RuntimeConfig.Validate(false)
+			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -221,7 +221,7 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes = make(map[string]oci.RuntimeHandler)
 
 			// When
-			err := sut.RuntimeConfig.Validate(false)
+			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -232,7 +232,7 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "not-existing"}
 
 			// When
-			err := sut.RuntimeConfig.Validate(true)
+			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())

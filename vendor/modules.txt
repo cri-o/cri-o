@@ -73,9 +73,9 @@ github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/unshare
 # github.com/containers/image v1.5.1
+github.com/containers/image/types
 github.com/containers/image/pkg/sysregistries
 github.com/containers/image/pkg/sysregistriesv2
-github.com/containers/image/types
 github.com/containers/image/copy
 github.com/containers/image/docker/reference
 github.com/containers/image/manifest

@@ -34,7 +34,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		images []string
 		pulled string
 	)
-	images, err = s.StorageImageServer().ResolveNames(image)
+	images, err = s.StorageImageServer().ResolveNames(s.systemContext, image)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		options := &copy.Options{
 			SourceCtx: &types.SystemContext{
 				DockerRegistryUserAgent: useragent.Get(ctx),
-				SignaturePolicyPath:     s.ImageContext().SignaturePolicyPath,
+				SignaturePolicyPath:     s.systemContext.SignaturePolicyPath,
 			},
 		}
 
@@ -79,7 +79,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		}
 
 		var storedImage *storage.ImageResult
-		storedImage, err = s.StorageImageServer().ImageStatus(s.ImageContext(), img)
+		storedImage, err = s.StorageImageServer().ImageStatus(s.systemContext, img)
 		if err == nil {
 			tmpImgConfigDigest := tmpImg.ConfigInfo().Digest
 			if tmpImgConfigDigest.String() == "" {
@@ -94,7 +94,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			logrus.Debugf("image in store has different ID, re-pulling %s", img)
 		}
 
-		_, err = s.StorageImageServer().PullImage(s.ImageContext(), img, options)
+		_, err = s.StorageImageServer().PullImage(s.systemContext, img, options)
 		if err != nil {
 			logrus.Debugf("error pulling image %s: %v", img, err)
 			continue
@@ -105,7 +105,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	if pulled == "" && err != nil {
 		return nil, err
 	}
-	status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), pulled)
+	status, err := s.StorageImageServer().ImageStatus(s.systemContext, pulled)
 	if err != nil {
 		return nil, err
 	}

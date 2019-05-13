@@ -30,7 +30,7 @@ var _ = t.Describe("ContainerServer", func() {
 			defer os.Remove(tmpfile.Name())
 
 			// Setup config
-			config, err := lib.DefaultConfig()
+			config, err := lib.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			config.FileLockingPath = tmpfile.Name()
 			config.HooksDir = []string{}
@@ -42,7 +42,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), libMock)
+			server, err := lib.New(context.Background(), nil, libMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -56,7 +56,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), libMock)
+			server, err := lib.New(context.Background(), nil, libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -64,7 +64,7 @@ var _ = t.Describe("ContainerServer", func() {
 		})
 
 		It("should fail when Store is nil", func() {
-			config, err := lib.DefaultConfig()
+			config, err := lib.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			// Given
 			gomock.InOrder(
@@ -73,7 +73,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), libMock)
+			server, err := lib.New(context.Background(), nil, libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -83,7 +83,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail when config is nil", func() {
 			// Given
 			// When
-			server, err := lib.New(context.Background(), nil)
+			server, err := lib.New(context.Background(), nil, nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -92,7 +92,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid default runtime", func() {
 			// Given
-			config, err := lib.DefaultConfig()
+			config, err := lib.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			config.DefaultRuntime = "invalid-runtime"
 			gomock.InOrder(
@@ -101,7 +101,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), libMock)
+			server, err := lib.New(context.Background(), nil, libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -110,7 +110,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid lockfile", func() {
 			// Given
-			config, err := lib.DefaultConfig()
+			config, err := lib.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			config.FileLocking = true
 			config.FileLockingPath = "/invalid/file"
@@ -120,7 +120,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), libMock)
+			server, err := lib.New(context.Background(), nil, libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -129,7 +129,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid hooks dir", func() {
 			// Given
-			config, err := lib.DefaultConfig()
+			config, err := lib.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			config.FileLocking = false
 			config.HooksDir = []string{"/invalid-dir"}
@@ -139,7 +139,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), libMock)
+			server, err := lib.New(context.Background(), nil, libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -207,15 +207,6 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 			// When
 			res := sut.PodIDIndex()
-
-			// Then
-			Expect(res).NotTo(BeNil())
-		})
-
-		It("should succeed to get the ImageContext", func() {
-			// Given
-			// When
-			res := sut.ImageContext()
 
 			// Then
 			Expect(res).NotTo(BeNil())

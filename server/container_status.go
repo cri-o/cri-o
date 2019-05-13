@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/image/types"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -41,7 +40,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		},
 	}
 	resp.Status.Image = &pb.ImageSpec{Image: c.Image()}
-	if status, err := s.StorageImageServer().ImageStatus(&types.SystemContext{}, c.ImageRef()); err == nil {
+	if status, err := s.StorageImageServer().ImageStatus(s.systemContext, c.ImageRef()); err == nil {
 		resp.Status.Image.Image = status.Name
 	}
 

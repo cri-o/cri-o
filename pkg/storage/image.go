@@ -103,7 +103,7 @@ type ImageServer interface {
 	GetStore() storage.Store
 	// ResolveNames takes an image reference and if it's unqualified (w/o hostname),
 	// it uses crio's default registries to qualify it.
-	ResolveNames(imageName string) ([]string, error)
+	ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error)
 }
 
 func (svc *imageService) getRef(name string) (types.ImageReference, error) {
@@ -539,7 +539,7 @@ func splitDockerDomain(name string) (domain, remainder string) {
 
 // ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
 // Will only return an empty slice if err != nil.
-func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
+func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
 	// _Maybe_ it's a truncated image ID.  Don't prepend a registry name, then.
 	if len(imageName) >= minimumTruncatedIDLength && svc.store != nil {
 		if img, err := svc.store.Image(imageName); err == nil && img != nil && strings.HasPrefix(img.ID, imageName) {
@@ -560,7 +560,7 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 	domain, remainder := splitDockerDomain(imageName)
 	if domain != "" {
 		// this means the image is already fully qualified
-		registry, err := sysregistriesv2.FindRegistry(nil, imageName)
+		registry, err := sysregistriesv2.FindRegistry(systemContext, imageName)
 		if err != nil {
 			return nil, err
 		}
@@ -584,7 +584,7 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 			rem = "library/" + rem
 		}
 		image := path.Join(r, rem)
-		registry, err := sysregistriesv2.FindRegistry(nil, image)
+		registry, err := sysregistriesv2.FindRegistry(systemContext, image)
 		if err != nil {
 			return nil, err
 		}

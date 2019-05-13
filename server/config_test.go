@@ -26,7 +26,7 @@ var _ = t.Describe("Config", func() {
 	t.Describe("UpdateFromFile", func() {
 		It("should succeed", func() {
 			// Given
-			sut, err := server.DefaultConfig()
+			sut, err := server.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			const filePath = "crio-test.conf"
 			Expect(sut.ToFile(filePath)).To(BeNil())
@@ -37,7 +37,7 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			expected, err := server.DefaultConfig()
+			expected, err := server.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			Expect(sut).To(Equal(expected))
 		})
@@ -65,7 +65,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed", func() {
 			// Given
 			const filePath = "crio-tofile.conf"
-			sut, err := server.DefaultConfig()
+			sut, err := server.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			defer os.RemoveAll(filePath)
 
@@ -81,7 +81,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail when file not writeable", func() {
 			// Given
-			sut, err := server.DefaultConfig()
+			sut, err := server.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 
 			// When
@@ -95,7 +95,7 @@ var _ = t.Describe("Config", func() {
 	t.Describe("GetData", func() {
 		It("should succeed with default config", func() {
 			// Given
-			sut, err := server.DefaultConfig()
+			sut, err := server.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 
 			// When
@@ -118,7 +118,7 @@ var _ = t.Describe("Config", func() {
 	t.Describe("GetLibConfigIface", func() {
 		It("should succeed with default config", func() {
 			// Given
-			sut, err := server.DefaultConfig()
+			sut, err := server.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 
 			// When
@@ -142,14 +142,14 @@ var _ = t.Describe("Config", func() {
 		// Setup the system under test
 		BeforeEach(func() {
 			var err error
-			sut, err = server.DefaultConfig()
+			sut, err = server.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 		})
 
 		It("should succeed with default config", func() {
 			// Given
 			// When
-			err := sut.Validate(false)
+			err := sut.Validate(nil, false)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -166,7 +166,7 @@ var _ = t.Describe("Config", func() {
 			defer os.RemoveAll(tmpDir)
 
 			// When
-			err := sut.Validate(true)
+			err := sut.Validate(nil, true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -180,7 +180,7 @@ var _ = t.Describe("Config", func() {
 			sut.NetworkConfig.NetworkDir = wrongPath
 
 			// When
-			err := sut.Validate(true)
+			err := sut.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -191,7 +191,7 @@ var _ = t.Describe("Config", func() {
 			sut.ImageVolumes = wrongPath
 
 			// When
-			err := sut.Validate(false)
+			err := sut.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -202,7 +202,7 @@ var _ = t.Describe("Config", func() {
 			sut.DefaultUlimits = []string{wrongPath}
 
 			// When
-			err := sut.Validate(false)
+			err := sut.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -214,7 +214,7 @@ var _ = t.Describe("Config", func() {
 			sut.ManageNetworkNSLifecycle = true
 
 			// When
-			err := sut.Validate(false)
+			err := sut.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -226,7 +226,7 @@ var _ = t.Describe("Config", func() {
 			sut.ManageNetworkNSLifecycle = true
 
 			// When
-			err := sut.Validate(false)
+			err := sut.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -237,7 +237,7 @@ var _ = t.Describe("Config", func() {
 			sut.LogSizeMax = 1
 
 			// When
-			err := sut.Validate(false)
+			err := sut.Validate(nil, false)
 
 			// Then
 			Expect(err).NotTo(BeNil())

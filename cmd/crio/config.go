@@ -4,6 +4,7 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/containers/image/types"
 	"github.com/cri-o/cri-o/server"
 	"github.com/urfave/cli"
 )
@@ -299,15 +300,16 @@ var configCommand = cli.Command{
 		// At this point, app.Before has already parsed the user's chosen
 		// config file. So no need to handle that here.
 		config := c.App.Metadata["config"].(*server.Config)
+		systemContext := &types.SystemContext{}
 		if c.Bool("default") {
-			config, err = server.DefaultConfig()
+			config, err = server.DefaultConfig(systemContext)
 			if err != nil {
 				return err
 			}
 		}
 
 		// Validate the configuration during generation
-		if err = config.Validate(false); err != nil {
+		if err = config.Validate(systemContext, false); err != nil {
 			return err
 		}
 

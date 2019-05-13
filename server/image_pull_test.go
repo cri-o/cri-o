@@ -25,7 +25,8 @@ var _ = t.Describe("ImagePull", func() {
 		It("should succeed with pull", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
 					gomock.Any()).Return(imageMock, nil),
@@ -56,7 +57,8 @@ var _ = t.Describe("ImagePull", func() {
 		It("should succeed when already pulled", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
 					gomock.Any()).Return(imageMock, nil),
@@ -91,7 +93,8 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when second image status retrieval errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
 					gomock.Any()).Return(imageMock, nil),
@@ -127,7 +130,8 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail credential decode erros", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 			)
 
@@ -148,7 +152,8 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when image pull erros", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
 					gomock.Any()).Return(imageMock, nil),
@@ -175,7 +180,8 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when prepare image errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
 					gomock.Any()).Return(nil, t.TestError),
@@ -194,7 +200,8 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when resolve names errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
 			)
 			// When

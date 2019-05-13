@@ -27,7 +27,8 @@ var _ = t.Describe("ImageStatus", func() {
 			// Given
 			size := uint64(100)
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
@@ -47,7 +48,8 @@ var _ = t.Describe("ImageStatus", func() {
 		It("should succeed with wrong image id", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return(nil, storage.ErrCannotParseImageID),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
@@ -66,7 +68,8 @@ var _ = t.Describe("ImageStatus", func() {
 		It("should succeed with unknown image", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
@@ -85,7 +88,8 @@ var _ = t.Describe("ImageStatus", func() {
 		It("should fail with wrong image status retrieval", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
@@ -104,7 +108,8 @@ var _ = t.Describe("ImageStatus", func() {
 		It("should fail if resolve names failed", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
 			)
 
