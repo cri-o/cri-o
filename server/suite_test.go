@@ -183,7 +183,7 @@ var afterEach = func() {
 var setupSUT = func() {
 	var err error
 	mockNewServer()
-	sut, err = server.New(context.Background(), serverMock)
+	sut, err = server.New(context.Background(), "", serverMock)
 	Expect(err).To(BeNil())
 	Expect(sut).NotTo(BeNil())
 

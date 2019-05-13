@@ -37,12 +37,13 @@ var gitCommit = ""
 // DefaultsPath is the path to default configuration files set at build time
 var DefaultsPath string
 
-func mergeConfig(config *server.Config, ctx *cli.Context) error {
+func mergeConfig(config *server.Config, ctx *cli.Context) (string, error) {
 	// Don't parse the config if the user explicitly set it to "".
-	if path := ctx.GlobalString("config"); path != "" {
+	path := ctx.GlobalString("config")
+	if path != "" {
 		if err := config.UpdateFromFile(path); err != nil {
 			if ctx.GlobalIsSet("config") || !os.IsNotExist(err) {
-				return err
+				return path, err
 			}
 
 			// Use the build-time-defined defaults path
@@ -50,7 +51,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 				path = filepath.Join(DefaultsPath, "/crio.conf")
 				if err := config.UpdateFromFile(path); err != nil {
 					if ctx.GlobalIsSet("config") || !os.IsNotExist(err) {
-						return err
+						return path, err
 					}
 				}
 			}
@@ -122,7 +123,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 		for _, r := range runtimes {
 			fields := strings.Split(r, ":")
 			if len(fields) != 3 {
-				return fmt.Errorf("wrong format for --runtimes: %q", r)
+				return path, fmt.Errorf("wrong format for --runtimes: %q", r)
 			}
 			config.Runtimes[fields[0]] = oci.RuntimeHandler{
 				RuntimePath: fields[1],
@@ -199,7 +200,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("additional-devices") {
 		config.AdditionalDevices = ctx.GlobalStringSlice("additional-devices")
 	}
-	return nil
+	return path, nil
 }
 
 func writeCrioGoroutineStacks() {
@@ -212,7 +213,7 @@ func writeCrioGoroutineStacks() {
 func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
 
 	sig := make(chan os.Signal, 2048)
-	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGPIPE)
+	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGPIPE, signals.Hup)
 	go func() {
 		for s := range sig {
 			logrus.WithFields(logrus.Fields{
@@ -498,10 +499,12 @@ func main() {
 		configCommand,
 	}
 
-	app.Before = func(c *cli.Context) error {
+	var configPath string
+	app.Before = func(c *cli.Context) (err error) {
 		// Load the configuration file.
 		config := c.App.Metadata["config"].(*server.Config)
-		if err := mergeConfig(config, c); err != nil {
+		configPath, err = mergeConfig(config, c)
+		if err != nil {
 			return err
 		}
 
@@ -603,7 +606,7 @@ func main() {
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
 
-		service, err := server.New(ctx, config)
+		service, err := server.New(ctx, configPath, config)
 		if err != nil {
 			logrus.Fatal(err)
 		}

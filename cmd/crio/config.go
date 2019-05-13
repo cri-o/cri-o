@@ -17,6 +17,11 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 #
 # Please refer to crio.conf(5) for details of all configuration options.
 
+# CRI-O supports partial configuration reload during runtime, which can be
+# done by sending SIGHUP to the running process. Currently supported options
+# are explicitly mentioned with: 'This option supports live configuration
+# reload'.
+
 # CRI-O reads its storage defaults from the containers-storage.conf(5) file
 # located at /etc/containers/storage.conf. Modify this storage configuration if
 # you want to change the system's defaults. If you want to modify storage just
@@ -185,7 +190,8 @@ container_attach_socket_dir = "{{ .ContainerAttachSocketDir }}"
 read_only = {{ .ReadOnly }}
 
 # Changes the verbosity of the logs based on the level it is set to. Options
-# are fatal, panic, error, warn, info, and debug.
+# are fatal, panic, error, warn, info, and debug. This option supports live
+# configuration reload.
 log_level = "{{ .LogLevel }}"
 
 # The default log directory where all logs will go unless directly specified by the kubelet
