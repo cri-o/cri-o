@@ -503,6 +503,10 @@ func (c *RuntimeConfig) Validate(onExecution bool) error {
 		return errors.New("no default runtime configured")
 	}
 
+	if !(c.ConmonCgroup == "pod" || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
+		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
+	}
+
 	// check for validation on execution
 	if onExecution {
 		// Validate if runtime_path does exist for each runtime
