@@ -73,6 +73,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 		It("should succeed with filter", func() {
 			// Given
 			mockDirs(testManifest)
+			createDummyState()
 			Expect(sut.LoadSandbox(sandboxID)).To(BeNil())
 
 			// When
@@ -90,6 +91,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 		It("should succeed with filter for state", func() {
 			// Given
 			mockDirs(testManifest)
+			createDummyState()
 			Expect(sut.LoadSandbox(sandboxID)).To(BeNil())
 
 			// When
@@ -109,6 +111,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 		It("should succeed with filter for label", func() {
 			// Given
 			mockDirs(testManifest)
+			createDummyState()
 			Expect(sut.LoadSandbox(sandboxID)).To(BeNil())
 
 			// When

@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -141,7 +142,6 @@ var beforeEach = func() {
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
 	serverConfig.LogDir = path.Join(testPath, "log")
 	serverConfig.SeccompProfile = "../test/testdata/sandbox_config_seccomp.json"
-	serverConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "/bin/echo"}
 	serverConfig.NetworkDir = os.TempDir()
 
 	// Prepare the library config
@@ -222,4 +222,8 @@ var mockDirs = func(manifest []byte) {
 		storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 			Return("", nil),
 	)
+}
+
+func createDummyState() {
+	ioutil.WriteFile("state.json", []byte(`{}`), 0644)
 }
