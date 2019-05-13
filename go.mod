@@ -42,7 +42,7 @@ require (
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/groupcache v0.0.0-20170421005642-b710c8433bd1 // indirect
-	github.com/golang/mock v1.3.0
+	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.16.1-0.20190402065613-de1d1ad903cd
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce // indirect
