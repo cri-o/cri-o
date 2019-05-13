@@ -213,7 +213,7 @@ vendor:
 		$(GO) mod vendor && \
 		$(GO) mod verify
 
-testunit: mockgen ${GINKGO}
+testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	rm -rf ${JUNIT_PATH} && mkdir -p ${JUNIT_PATH}
 	${BUILD_BIN_PATH}/ginkgo \

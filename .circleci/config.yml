@@ -223,6 +223,11 @@ jobs:
           keys:
             - v1-unit-tests-{{ checksum "go.sum" }}
       - run:
+          name: check mocks
+          command: |
+            make mockgen
+            hack/tree_status.sh
+      - run:
           name: unit tests
           command: make testunit
       - store_test_results:
