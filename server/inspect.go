@@ -54,7 +54,7 @@ var (
 	errSandboxNotFound = errors.New("sandbox for container not found")
 )
 
-func (s *Server) getContainerInfo(id string, getContainerFunc func(id string) *oci.Container, getInfraContainerFunc func(id string) *oci.Container, getSandboxFunc func(id string) *sandbox.Sandbox) (types.ContainerInfo, error) {
+func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainerFunc func(id string) *oci.Container, getSandboxFunc func(id string) *sandbox.Sandbox) (types.ContainerInfo, error) {
 	ctr := getContainerFunc(id)
 	if ctr == nil {
 		ctr = getInfraContainerFunc(id)

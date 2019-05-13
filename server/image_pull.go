@@ -120,7 +120,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	return resp, nil
 }
 
-func decodeDockerAuth(s string) (user string, password string, err error) {
+func decodeDockerAuth(s string) (user, password string, err error) {
 	decoded, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return "", "", err

@@ -24,7 +24,7 @@ type ContainerStats struct {
 }
 
 // Returns the total number of bytes transmitted and received for the given container stats
-func getContainerNetIO(stats *libcontainer.Stats) (received uint64, transmitted uint64) {
+func getContainerNetIO(stats *libcontainer.Stats) (received, transmitted uint64) {
 	for _, iface := range stats.Interfaces {
 		received += iface.RxBytes
 		transmitted += iface.TxBytes
@@ -32,7 +32,7 @@ func getContainerNetIO(stats *libcontainer.Stats) (received uint64, transmitted 
 	return
 }
 
-func calculateBlockIO(stats *libcontainer.Stats) (read uint64, write uint64) {
+func calculateBlockIO(stats *libcontainer.Stats) (read, write uint64) {
 	for _, blkIOEntry := range stats.CgroupStats.BlkioStats.IoServiceBytesRecursive {
 		switch strings.ToLower(blkIOEntry.Op) {
 		case "read":
