@@ -29,9 +29,9 @@ typedef enum {
 
 // Default log level is Warning, This will be configured before any logging
 // should happen
-static log_level_t log_level = WARN_LEVEL;
-static char *cid = NULL;
-static bool use_syslog = false;
+extern log_level_t log_level;
+extern char *cid;
+extern bool use_syslog;
 
 #define pexit(s) \
 	do { \
