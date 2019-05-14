@@ -12,7 +12,6 @@ CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 # Path to the crio binary.
 CRIO_BINARY=${CRIO_BINARY:-crio}
 CRIO_BINARY_PATH=${CRIO_BINARY_PATH:-${CRIO_ROOT}/cri-o/bin/$CRIO_BINARY}
-echo "Using cri-o binary '$CRIO_BINARY_PATH'"
 
 # Path of the crictl binary.
 CRICTL_PATH=$(command -v crictl || true)
