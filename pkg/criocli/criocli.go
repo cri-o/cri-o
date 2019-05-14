@@ -131,6 +131,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("cgroup-manager") {
 		config.CgroupManager = ctx.GlobalString("cgroup-manager")
 	}
+	if ctx.GlobalIsSet("conmon-cgroup") {
+		config.ConmonCgroup = ctx.GlobalString("conmon-cgroup")
+	}
 	if ctx.GlobalIsSet("hooks-dir") {
 		config.HooksDir = ctx.GlobalStringSlice("hooks-dir")
 	}
@@ -217,6 +220,10 @@ func getCrioFlags(defConf *server.Config) []cli.Flag {
 		cli.StringFlag{
 			Name:  "conmon",
 			Usage: "path to the conmon executable",
+		},
+		cli.StringFlag{
+			Name:  "conmon-cgroup",
+			Usage: fmt.Sprintf("cgroup used for conmon process (default: %q)", defConf.ConmonCgroup),
 		},
 		cli.StringFlag{
 			Name:  "listen",
