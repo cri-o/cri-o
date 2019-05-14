@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/lib"
@@ -75,6 +76,7 @@ type Server struct {
 	*lib.ContainerServer
 	monitorsChan      chan struct{}
 	defaultIDMappings *idtools.IDMappings
+	systemContext     *types.SystemContext
 
 	updateLock sync.RWMutex
 
@@ -283,13 +285,25 @@ func getIDMappings(config *Config) (*idtools.IDMappings, error) {
 	return idtools.NewIDMappingsFromMaps(parsedUIDsMappings, parsedGIDsMappings), nil
 }
 
-// New creates a new Server with the provided context, configPath and
-// configuration
-func New(ctx context.Context, configPath string, configIface ConfigIface) (*Server, error) {
+// New creates a new Server with the provided context, systemContext,
+// configPath and configuration
+func New(
+	ctx context.Context,
+	systemContext *types.SystemContext,
+	configPath string,
+	configIface ConfigIface,
+) (*Server, error) {
+
 	if configIface == nil || configIface.GetData() == nil {
 		return nil, fmt.Errorf("provided configuration interface or its data is nil")
 	}
 	config := configIface.GetData()
+
+	// Setup the system context if not provided
+	if systemContext == nil {
+		systemContext = &types.SystemContext{}
+	}
+	systemContext.SignaturePolicyPath = config.SignaturePolicyPath
 
 	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0755); err != nil {
 		return nil, err
@@ -299,7 +313,7 @@ func New(ctx context.Context, configPath string, configIface ConfigIface) (*Serv
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := lib.New(ctx, configIface.GetLibConfigIface())
+	containerServer, err := lib.New(ctx, systemContext, configIface.GetLibConfigIface())
 	if err != nil {
 		return nil, err
 	}
@@ -327,6 +341,7 @@ func New(ctx context.Context, configPath string, configIface ConfigIface) (*Serv
 		appArmorProfile:   config.ApparmorProfile,
 		monitorsChan:      make(chan struct{}),
 		defaultIDMappings: idMappings,
+		systemContext:     systemContext,
 	}
 
 	if s.seccompEnabled {
@@ -554,7 +569,7 @@ func (s *Server) StartExitMonitor() {
 // not exist or is not accessible.
 func (s *Server) StartConfigWatcher(
 	fileName string,
-	reloadFunc func(string) error,
+	reloadFunc func(*types.SystemContext, string) error,
 ) (chan os.Signal, error) {
 	// Validate the arguments
 	if _, err := os.Stat(fileName); err != nil {
@@ -573,7 +588,7 @@ func (s *Server) StartConfigWatcher(
 			// Block until the signal is received
 			<-c
 			logrus.Infof("reloading configuration %q", fileName)
-			if err := reloadFunc(fileName); err != nil {
+			if err := reloadFunc(s.systemContext, fileName); err != nil {
 				logrus.Errorf("unable to reload configuration: %v", err)
 				continue
 			}

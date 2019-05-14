@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/image/types"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/lib"
@@ -270,7 +271,8 @@ func main() {
 	app.Usage = "crio server"
 	app.Version = strings.Join(v, "\n")
 
-	defConf, err := server.DefaultConfig()
+	systemContext := &types.SystemContext{}
+	defConf, err := server.DefaultConfig(systemContext)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error loading server config: %v", err)
 		os.Exit(1)
@@ -569,7 +571,7 @@ func main() {
 		config := c.App.Metadata["config"].(*server.Config)
 
 		// Validate the configuration during runtime
-		if err := config.Validate(true); err != nil {
+		if err := config.Validate(systemContext, true); err != nil {
 			cancel()
 			return err
 		}
@@ -606,7 +608,7 @@ func main() {
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
 
-		service, err := server.New(ctx, configPath, config)
+		service, err := server.New(ctx, systemContext, configPath, config)
 		if err != nil {
 			logrus.Fatal(err)
 		}

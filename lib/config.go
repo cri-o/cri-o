@@ -353,9 +353,9 @@ func (c *Config) ToFile(path string) error {
 }
 
 // DefaultConfig returns the default configuration for crio.
-func DefaultConfig() (*Config, error) {
-	registries, _ := sysregistries.GetRegistries(&types.SystemContext{})
-	insecureRegistries, _ := sysregistries.GetInsecureRegistries(&types.SystemContext{})
+func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
+	registries, _ := sysregistries.GetRegistries(systemContext)
+	insecureRegistries, _ := sysregistries.GetInsecureRegistries(systemContext)
 	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err
@@ -419,12 +419,12 @@ func DefaultConfig() (*Config, error) {
 // The parameter `onExecution` specifies if the validation should include
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
-func (c *Config) Validate(onExecution bool) error {
+func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) error {
 	if err := c.RootConfig.Validate(onExecution); err != nil {
 		return errors.Wrapf(err, "root config")
 	}
 
-	if err := c.RuntimeConfig.Validate(onExecution); err != nil {
+	if err := c.RuntimeConfig.Validate(systemContext, onExecution); err != nil {
 		return errors.Wrapf(err, "runtime config")
 	}
 
@@ -453,7 +453,7 @@ func (c *RootConfig) Validate(onExecution bool) error {
 // The parameter `onExecution` specifies if the validation should include
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
-func (c *RuntimeConfig) Validate(onExecution bool) error {
+func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution bool) error {
 	// This is somehow duplicated with server.getUlimitsFromConfig under server/utils.go
 	// but I don't want to export that function for the sake of validation here
 	// so, keep it in mind if things start to blow up.
@@ -512,8 +512,8 @@ func (c *RuntimeConfig) Validate(onExecution bool) error {
 		}
 
 		// Validate the system registries configuration
-		if _, err := sysregistriesv2.GetRegistries(nil); err != nil {
-			return fmt.Errorf("invalid /etc/containers/registries.conf: %q", err)
+		if _, err := sysregistriesv2.GetRegistries(systemContext); err != nil {
+			return errors.Wrapf(err, "invalid registries")
 		}
 
 		for _, hooksDir := range c.HooksDir {

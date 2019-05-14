@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/image/types"
 	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"
@@ -144,8 +145,8 @@ func (c *Config) ToFile(path string) error {
 }
 
 // DefaultConfig returns the default configuration for crio.
-func DefaultConfig() (*Config, error) {
-	conf, err := lib.DefaultConfig()
+func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
+	conf, err := lib.DefaultConfig(systemContext)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +166,7 @@ func DefaultConfig() (*Config, error) {
 // The parameter `onExecution` specifies if the validation should include
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
-func (c *Config) Validate(onExecution bool) error {
+func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) error {
 	switch c.ImageVolumes {
 	case lib.ImageVolumesMkdir:
 	case lib.ImageVolumesIgnore:
@@ -174,7 +175,7 @@ func (c *Config) Validate(onExecution bool) error {
 		return fmt.Errorf("unrecognized image volume type specified")
 	}
 
-	if err := c.Config.Validate(onExecution); err != nil {
+	if err := c.Config.Validate(systemContext, onExecution); err != nil {
 		return errors.Wrapf(err, "library config validation")
 	}
 
@@ -194,9 +195,9 @@ func (c *Config) Validate(onExecution bool) error {
 
 // Reload reloads the configuration with the config at the provided `fileName`
 // path. The method errors in case of any read or update failure.
-func (c *Config) Reload(fileName string) error {
+func (c *Config) Reload(systemContext *types.SystemContext, fileName string) error {
 	// Reload the config
-	newConfig, err := DefaultConfig()
+	newConfig, err := DefaultConfig(systemContext)
 	if err != nil {
 		return fmt.Errorf("unable to create default config")
 	}

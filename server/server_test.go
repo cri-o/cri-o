@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/server"
@@ -39,7 +40,7 @@ var _ = t.Describe("Server", func() {
 			mockNewServer()
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -55,7 +56,7 @@ var _ = t.Describe("Server", func() {
 
 			// When
 			server, err := server.New(
-				context.Background(), tmpFile, serverMock,
+				context.Background(), nil, tmpFile, serverMock,
 			)
 
 			// Then
@@ -71,7 +72,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.GIDMappings = "1:1:1"
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -86,7 +87,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamTLSCert = "../test/testdata/cert.pem"
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -122,7 +123,7 @@ var _ = t.Describe("Server", func() {
 			)
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -132,7 +133,7 @@ var _ = t.Describe("Server", func() {
 		It("should fail when provided config is nil", func() {
 			// Given
 			// When
-			server, err := server.New(context.Background(), "", nil)
+			server, err := server.New(context.Background(), nil, "", nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -147,7 +148,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.ContainerAttachSocketDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -162,7 +163,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.ContainerExitsDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -177,7 +178,7 @@ var _ = t.Describe("Server", func() {
 			)
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -195,7 +196,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.NetworkDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -215,7 +216,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.GIDMappings = g
 
 			// When
-			sut, err := server.New(context.Background(), "", serverMock)
+			sut, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -237,7 +238,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.SeccompProfile = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -255,7 +256,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.SeccompProfile = "/dev/null"
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -269,7 +270,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamPort = invalid
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -284,7 +285,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamTLSKey = invalid
 
 			// When
-			server, err := server.New(context.Background(), "", serverMock)
+			server, err := server.New(context.Background(), nil, "", serverMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -370,7 +371,12 @@ var _ = t.Describe("Server", func() {
 
 			// When
 			ch, err := sut.StartConfigWatcher(
-				tmpFile, func(fileName string) error { return nil },
+				tmpFile, func(
+					systemContext *types.SystemContext,
+					fileName string,
+				) error {
+					return nil
+				},
 			)
 			ch <- signals.Hup
 
@@ -385,7 +391,12 @@ var _ = t.Describe("Server", func() {
 
 			// When
 			ch, err := sut.StartConfigWatcher(
-				tmpFile, func(fileName string) error { return t.TestError },
+				tmpFile, func(
+					systemContext *types.SystemContext,
+					fileName string,
+				) error {
+					return t.TestError
+				},
 			)
 			ch <- signals.Hup
 

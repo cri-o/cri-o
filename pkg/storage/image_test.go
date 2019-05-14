@@ -155,7 +155,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(testImageName)
+			names, err := sut.ResolveNames(nil, testImageName)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -172,7 +172,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(imageName)
+			names, err := sut.ResolveNames(nil, imageName)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -188,7 +188,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(testImageName)
+			names, err := sut.ResolveNames(nil, testImageName)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -204,7 +204,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(testSHA256)
+			names, err := sut.ResolveNames(nil, testSHA256)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -220,7 +220,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames("camelCaseName")
+			names, err := sut.ResolveNames(nil, "camelCaseName")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -246,7 +246,7 @@ var _ = t.Describe("Image", func() {
 			Expect(sut).NotTo(BeNil())
 
 			// When
-			names, err := sut.ResolveNames(testImageName)
+			names, err := sut.ResolveNames(nil, testImageName)
 
 			// Then
 			Expect(err).NotTo(BeNil())

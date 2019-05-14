@@ -31,7 +31,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
-	images, err := s.StorageImageServer().ResolveNames(image)
+	images, err := s.StorageImageServer().ResolveNames(s.systemContext, image)
 	if err != nil {
 		if err == pkgstorage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -44,7 +44,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 		lastErr  error
 	)
 	for _, image := range images {
-		status, err := s.StorageImageServer().ImageStatus(s.ImageContext(), image)
+		status, err := s.StorageImageServer().ImageStatus(s.systemContext, image)
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUnknown {
 				logrus.Warnf("imageStatus: can't find %s", image)

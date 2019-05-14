@@ -51,10 +51,9 @@ type ContainerServer struct {
 	podIDIndex           *truncindex.TruncIndex
 	Hooks                *hooks.Manager
 
-	imageContext *types.SystemContext
-	stateLock    sync.Locker
-	state        *containerServerState
-	config       *Config
+	stateLock sync.Locker
+	state     *containerServerState
+	config    *Config
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -92,11 +91,6 @@ func (c *ContainerServer) PodIDIndex() *truncindex.TruncIndex {
 	return c.podIDIndex
 }
 
-// ImageContext returns the SystemContext for the ContainerServer
-func (c *ContainerServer) ImageContext() *types.SystemContext {
-	return c.imageContext
-}
-
 // Config gets the configuration for the ContainerServer
 func (c *ContainerServer) Config() *Config {
 	return c.config
@@ -118,7 +112,7 @@ func localeToLanguage(locale string) string {
 }
 
 // New creates a new ContainerServer with options provided
-func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error) {
+func New(ctx context.Context, systemContext *types.SystemContext, configIface ConfigIface) (*ContainerServer, error) {
 	if configIface == nil {
 		return nil, fmt.Errorf("provided config is nil")
 	}
@@ -132,7 +126,7 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		return nil, fmt.Errorf("cannot create container server: ConfigIface is nil")
 	}
 
-	imageService, err := storage.GetImageService(ctx, nil, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
+	imageService, err := storage.GetImageService(ctx, systemContext, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +197,6 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		ctrIDIndex:           truncindex.NewTruncIndex([]string{}),
 		podNameIndex:         registrar.NewRegistrar(),
 		podIDIndex:           truncindex.NewTruncIndex([]string{}),
-		imageContext:         &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
 		Hooks:                newHooks,
 		stateLock:            lock,
 		state: &containerServerState{

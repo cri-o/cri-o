@@ -25,7 +25,7 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 			filter = filterImage.Image
 		}
 	}
-	results, err := s.StorageImageServer().ListImages(s.ImageContext(), filter)
+	results, err := s.StorageImageServer().ListImages(s.systemContext, filter)
 	if err != nil {
 		return nil, err
 	}

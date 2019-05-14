@@ -31,7 +31,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 		images  []string
 		deleted bool
 	)
-	images, err = s.StorageImageServer().ResolveNames(image)
+	images, err = s.StorageImageServer().ResolveNames(s.systemContext, image)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -40,7 +40,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 		}
 	}
 	for _, img := range images {
-		err = s.StorageImageServer().UntagImage(s.ImageContext(), img)
+		err = s.StorageImageServer().UntagImage(s.systemContext, img)
 		if err != nil {
 			logrus.Debugf("error deleting image %s: %v", img, err)
 			continue

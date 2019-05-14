@@ -118,7 +118,7 @@ func beforeEach() {
 	logrus.SetLevel(logrus.PanicLevel)
 
 	// Set the config
-	config, err := lib.DefaultConfig()
+	config, err := lib.DefaultConfig(nil)
 	Expect(err).To(BeNil())
 	config.FileLocking = false
 	config.LogDir = "."
@@ -130,7 +130,7 @@ func beforeEach() {
 	)
 
 	// Setup the sut
-	sut, err = lib.New(context.Background(), libMock)
+	sut, err = lib.New(context.Background(), nil, libMock)
 	Expect(err).To(BeNil())
 	Expect(sut).NotTo(BeNil())
 

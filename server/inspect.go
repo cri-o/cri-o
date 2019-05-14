@@ -7,7 +7,6 @@ import (
 	"math"
 	"net/http"
 
-	cimage "github.com/containers/image/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
@@ -74,7 +73,7 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 	}
 	image := ctr.Image()
 	if s.ContainerServer != nil && s.ContainerServer.StorageImageServer() != nil {
-		if status, err := s.ContainerServer.StorageImageServer().ImageStatus(&cimage.SystemContext{}, ctr.ImageRef()); err == nil {
+		if status, err := s.ContainerServer.StorageImageServer().ImageStatus(s.systemContext, ctr.ImageRef()); err == nil {
 			image = status.Name
 		}
 	}

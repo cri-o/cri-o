@@ -25,7 +25,8 @@ var _ = t.Describe("ImageRemove", func() {
 		It("should succeed", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					gomock.Any()).Return(nil),
@@ -42,7 +43,8 @@ var _ = t.Describe("ImageRemove", func() {
 		It("should succeed when image id cannot be parsed", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return(nil, storage.ErrCannotParseImageID),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					gomock.Any()).Return(nil),
@@ -59,7 +61,8 @@ var _ = t.Describe("ImageRemove", func() {
 		It("should fail when image untag errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					gomock.Any()).Return(t.TestError),
@@ -76,7 +79,8 @@ var _ = t.Describe("ImageRemove", func() {
 		It("should fail when name resolving errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any()).
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
 			)
 			// When
