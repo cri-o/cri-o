@@ -108,6 +108,9 @@ no_pivot = {{ .NoPivot }}
 # Path to the conmon binary, used for monitoring the OCI runtime.
 conmon = "{{ .Conmon }}"
 
+# Cgroup setting for conmon
+conmon_cgroup = "{{ .ConmonCgroup }}"
+
 # Environment variable list for the conmon process, used for passing necessary
 # environment variables to conmon or the runtime.
 conmon_env = [

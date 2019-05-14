@@ -22,29 +22,40 @@ func createUnitName(prefix, name string) string {
 	return fmt.Sprintf("%s-%s.scope", prefix, name)
 }
 
+func createConmonUnitName(name string) string {
+	return createUnitName("crio-conmon", name)
+}
+
 func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) {
 	// Move conmon to specified cgroup
-	if r.cgroupManager == SystemdCgroupsManager {
-		logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("crio-conmon", c.id))
-		if err := utils.RunUnderSystemdScope(pid, cgroupParent, createUnitName("crio-conmon", c.id)); err != nil {
-			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
+	if r.conmonCgroup == "pod" || r.conmonCgroup == "" {
+		if r.cgroupManager == SystemdCgroupsManager {
+			logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createConmonUnitName(c.id))
+			if err := utils.RunUnderSystemdScope(pid, cgroupParent, createConmonUnitName(c.id)); err != nil {
+				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
+			}
 		}
-	}
 
-	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
-	if err != nil {
-		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-	}
-
-	if control != nil {
-		// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
-		// always fail as conmon's pid is still there.
-		// Fortunately, kubelet takes care of deleting this for us, so the leak will
-		// only happens in corner case where one does a manual deletion of the container
-		// through e.g. runc. This should be handled by implementing a conmon monitoring
-		// routine that does the cgroup cleanup once conmon is terminated.
-		if err := control.Add(cgroups.Process{Pid: pid}); err != nil {
+		control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
+		if err != nil {
 			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+		}
+
+		if control != nil {
+			// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
+			// always fail as conmon's pid is still there.
+			// Fortunately, kubelet takes care of deleting this for us, so the leak will
+			// only happens in corner case where one does a manual deletion of the container
+			// through e.g. runc. This should be handled by implementing a conmon monitoring
+			// routine that does the cgroup cleanup once conmon is terminated.
+			if err := control.Add(cgroups.Process{Pid: pid}); err != nil {
+				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+			}
+		}
+	} else if strings.HasSuffix(r.conmonCgroup, ".slice") {
+		logrus.Debugf("Running conmon under custom slice %s and unitName %s", r.conmonCgroup, createConmonUnitName(c.id))
+		if err := utils.RunUnderSystemdScope(pid, r.conmonCgroup, createConmonUnitName(c.id)); err != nil {
+			logrus.Warnf("Failed to add conmon to custom systemd sandbox cgroup: %v", err)
 		}
 	}
 }

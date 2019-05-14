@@ -144,6 +144,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) (string, error) {
 	if ctx.GlobalIsSet("cgroup-manager") {
 		config.CgroupManager = ctx.GlobalString("cgroup-manager")
 	}
+	if ctx.GlobalIsSet("conmon-cgroup") {
+		config.ConmonCgroup = ctx.GlobalString("conmon-cgroup")
+	}
 	if ctx.GlobalIsSet("hooks-dir") {
 		config.HooksDir = ctx.GlobalStringSlice("hooks-dir")
 	}
@@ -290,6 +293,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "conmon",
 			Usage: fmt.Sprintf("path to the conmon executable (default: %q)", defConf.Conmon),
+		},
+		cli.StringFlag{
+			Name:  "conmon-cgroup",
+			Usage: fmt.Sprintf("cgroup used for conmon process (default: %q)", defConf.ConmonCgroup),
 		},
 		cli.StringFlag{
 			Name:  "listen",
