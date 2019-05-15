@@ -218,6 +218,15 @@ message CSIPersistentVolumeSource {
   // secret object contains more than one secret, all secrets are passed.
   // +optional
   optional SecretReference nodePublishSecretRef = 8;
+
+  // ControllerExpandSecretRef is a reference to the secret object containing
+  // sensitive information to pass to the CSI driver to complete the CSI
+  // ControllerExpandVolume call.
+  // This is an alpha field and requires enabling ExpandCSIVolumes feature gate.
+  // This field is optional, and may be empty if no secret is required. If the
+  // secret object contains more than one secret, all secrets are passed.
+  // +optional
+  optional SecretReference controllerExpandSecretRef = 9;
 }
 
 // Represents a source location of a volume to mount, managed by an external CSI driver
@@ -487,7 +496,7 @@ message ConfigMapKeySelector {
   // The key to select.
   optional string key = 2;
 
-  // Specify whether the ConfigMap or it's key must be defined
+  // Specify whether the ConfigMap or its key must be defined
   // +optional
   optional bool optional = 3;
 }
@@ -547,7 +556,7 @@ message ConfigMapProjection {
   // +optional
   repeated KeyToPath items = 2;
 
-  // Specify whether the ConfigMap or it's keys must be defined
+  // Specify whether the ConfigMap or its keys must be defined
   // +optional
   optional bool optional = 4;
 }
@@ -579,7 +588,7 @@ message ConfigMapVolumeSource {
   // +optional
   optional int32 defaultMode = 3;
 
-  // Specify whether the ConfigMap or it's keys must be defined
+  // Specify whether the ConfigMap or its keys must be defined
   // +optional
   optional bool optional = 4;
 }
@@ -1218,6 +1227,7 @@ message EventSeries {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.MicroTime lastObservedTime = 2;
 
   // State of this Series: Ongoing or Finished
+  // Deprecated. Planned removal for 1.18
   optional string state = 3;
 }
 
@@ -2927,6 +2937,10 @@ message PodSecurityContext {
   // +optional
   optional SELinuxOptions seLinuxOptions = 1;
 
+  // Windows security options.
+  // +optional
+  optional WindowsSecurityContextOptions windowsOptions = 8;
+
   // The UID to run the entrypoint of the container process.
   // Defaults to user specified in image metadata if unspecified.
   // May also be set in SecurityContext.  If set in both SecurityContext and
@@ -3972,7 +3986,7 @@ message SecretKeySelector {
   // The key of the secret to select from.  Must be a valid secret key.
   optional string key = 2;
 
-  // Specify whether the Secret or it's key must be defined
+  // Specify whether the Secret or its key must be defined
   // +optional
   optional bool optional = 3;
 }
@@ -4054,7 +4068,7 @@ message SecretVolumeSource {
   // +optional
   optional int32 defaultMode = 3;
 
-  // Specify whether the Secret or it's keys must be defined
+  // Specify whether the Secret or its keys must be defined
   // +optional
   optional bool optional = 4;
 }
@@ -4080,6 +4094,10 @@ message SecurityContext {
   // PodSecurityContext, the value specified in SecurityContext takes precedence.
   // +optional
   optional SELinuxOptions seLinuxOptions = 3;
+
+  // Windows security options.
+  // +optional
+  optional WindowsSecurityContextOptions windowsOptions = 10;
 
   // The UID to run the entrypoint of the container process.
   // Defaults to user specified in image metadata if unspecified.
@@ -4841,5 +4859,9 @@ message WeightedPodAffinityTerm {
 
   // Required. A pod affinity term, associated with the corresponding weight.
   optional PodAffinityTerm podAffinityTerm = 2;
+}
+
+// WindowsSecurityContextOptions contain Windows-specific options and credentials.
+message WindowsSecurityContextOptions {
 }
 
