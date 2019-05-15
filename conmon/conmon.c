@@ -703,7 +703,9 @@ exit:
 	/* Clean up everything */
 	close(connfd);
 
-	return G_SOURCE_CONTINUE;
+	/* Since we've gotten our console from the runtime, we no longer need to
+	   be listening on this callback. */
+	return G_SOURCE_REMOVE;
 }
 
 static int get_exit_status(int status)
