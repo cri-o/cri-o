@@ -121,7 +121,7 @@ You can run a local version of kubernetes with `CRI-O` using `local-up-cluster.s
 ```shell
 CGROUP_DRIVER=systemd \
 CONTAINER_RUNTIME=remote \
-CONTAINER_RUNTIME_ENDPOINT='unix:///var/run/crio/crio.sock  --runtime-request-timeout=15m' \
+CONTAINER_RUNTIME_ENDPOINT='unix:///var/run/crio/crio.sock' \
 ./hack/local-up-cluster.sh
 ```
 
