@@ -16,9 +16,7 @@ var _ = t.Describe("Config", func() {
 	var sut *lib.Config
 
 	BeforeEach(func() {
-		var err error
-		sut, err = lib.DefaultConfig()
-		Expect(err).To(BeNil())
+		sut = lib.DefaultConfig()
 		Expect(sut).NotTo(BeNil())
 	})
 

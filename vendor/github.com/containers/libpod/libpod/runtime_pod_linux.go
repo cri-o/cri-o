@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/containerd/cgroups"
-	"github.com/containers/libpod/libpod/events"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -96,11 +95,8 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 	if pod.config.UsePodCgroup {
 		logrus.Debugf("Got pod cgroup as %s", pod.state.CgroupPath)
 	}
-	if !pod.HasInfraContainer() && pod.SharesNamespaces() {
+	if pod.HasInfraContainer() != pod.SharesNamespaces() {
 		return nil, errors.Errorf("Pods must have an infra container to share namespaces")
-	}
-	if pod.HasInfraContainer() && !pod.SharesNamespaces() {
-		logrus.Warnf("Pod has an infra container, but shares no namespaces")
 	}
 
 	if err := r.state.AddPod(pod); err != nil {
@@ -122,7 +118,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 			return nil, err
 		}
 	}
-	pod.newPodEvent(events.Create)
+
 	return pod, nil
 }
 
@@ -308,6 +304,6 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 
 	// Mark pod invalid
 	p.valid = false
-	p.newPodEvent(events.Remove)
+
 	return nil
 }

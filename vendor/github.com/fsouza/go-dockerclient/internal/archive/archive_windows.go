@@ -47,9 +47,9 @@ func getInodeFromStat(stat interface{}) (inode uint64, err error) {
 	return
 }
 
-func getFileIdentity(stat interface{}) (idtools.Identity, error) {
+func getFileUIDGID(stat interface{}) (idtools.IDPair, error) {
 	// no notion of file ownership mapping yet on Windows
-	return idtools.Identity{}, nil
+	return idtools.IDPair{0, 0}, nil
 }
 
 // chmodTarEntry is used to adjust the file permissions used in tar header based

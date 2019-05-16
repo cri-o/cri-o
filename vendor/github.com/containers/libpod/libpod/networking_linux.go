@@ -134,29 +134,15 @@ type slirp4netnsCmd struct {
 	Args    slirp4netnsCmdArg `json:"arguments"`
 }
 
-func checkSlirpFlags(path string) (bool, bool, error) {
-	cmd := exec.Command(path, "--help")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return false, false, err
-	}
-	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), nil
-}
-
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer ctr.rootlessSlirpSyncR.Close()
 	defer ctr.rootlessSlirpSyncW.Close()
 
-	path := r.config.NetworkCmdPath
-
-	if path == "" {
-		var err error
-		path, err = exec.LookPath("slirp4netns")
-		if err != nil {
-			logrus.Errorf("could not find slirp4netns, the network namespace won't be configured: %v", err)
-			return nil
-		}
+	path, err := exec.LookPath("slirp4netns")
+	if err != nil {
+		logrus.Errorf("could not find slirp4netns, the network namespace won't be configured: %v", err)
+		return nil
 	}
 
 	syncR, syncW, err := os.Pipe()
@@ -168,24 +154,13 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	apiSocket := filepath.Join(r.ociRuntime.tmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
-
-	cmdArgs := []string{}
+	var cmd *exec.Cmd
 	if havePortMapping {
-		cmdArgs = append(cmdArgs, "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID))
+		// if we need ports to be mapped from the host, create a API socket to use for communicating with slirp4netns.
+		cmd = exec.Command(path, "-c", "-e", "3", "-r", "4", "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID), "tap0")
+	} else {
+		cmd = exec.Command(path, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
 	}
-	dhp, mtu, err := checkSlirpFlags(path)
-	if err != nil {
-		return errors.Wrapf(err, "error checking slirp4netns binary %s", path)
-	}
-	if dhp {
-		cmdArgs = append(cmdArgs, "--disable-host-loopback")
-	}
-	if mtu {
-		cmdArgs = append(cmdArgs, "--mtu", "65520")
-	}
-	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
-
-	cmd := exec.Command(path, cmdArgs...)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
@@ -215,11 +190,8 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 				if pid != cmd.Process.Pid {
 					continue
 				}
-				if status.Exited() {
+				if status.Exited() || status.Signaled() {
 					return errors.New("slirp4netns failed")
-				}
-				if status.Signaled() {
-					return errors.New("slirp4netns killed by signal")
 				}
 				continue
 			}

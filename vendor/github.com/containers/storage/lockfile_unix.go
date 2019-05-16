@@ -194,7 +194,7 @@ func (l *lockfile) Modified() (bool, error) {
 		return true, err
 	}
 	if n != len(id) {
-		return true, nil
+		return true, unix.ENOSPC
 	}
 	lw := l.lw
 	l.lw = string(id)

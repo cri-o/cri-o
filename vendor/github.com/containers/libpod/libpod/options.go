@@ -7,9 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
-	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/pkg/namespaces"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -18,7 +16,7 @@ import (
 )
 
 var (
-	nameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	nameRegex = regexp.MustCompile("[a-zA-Z0-9_-]+")
 )
 
 // Runtime Creation Options
@@ -83,15 +81,11 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		// or graphdriveroptions are set, then GraphRoot and RunRoot
 		// must be set
 		if setField {
-			storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-			if err != nil {
-				return err
-			}
 			if rt.config.StorageConfig.GraphRoot == "" {
-				rt.config.StorageConfig.GraphRoot = storeOpts.GraphRoot
+				rt.config.StorageConfig.GraphRoot = storage.DefaultStoreOptions.GraphRoot
 			}
 			if rt.config.StorageConfig.RunRoot == "" {
-				rt.config.StorageConfig.RunRoot = storeOpts.RunRoot
+				rt.config.StorageConfig.RunRoot = storage.DefaultStoreOptions.RunRoot
 			}
 		}
 
@@ -198,20 +192,6 @@ func WithConmonEnv(environment []string) RuntimeOption {
 	}
 }
 
-// WithNetworkCmdPath specifies the path to the slirp4netns binary which manages the
-// runtime.
-func WithNetworkCmdPath(path string) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return ErrRuntimeFinalized
-		}
-
-		rt.config.NetworkCmdPath = path
-
-		return nil
-	}
-}
-
 // WithCgroupManager specifies the manager implementation name which is used to
 // handle cgroups for containers.
 // Current valid values are "cgroupfs" and "systemd".
@@ -291,6 +271,7 @@ func WithTmpDir(dir string) RuntimeOption {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
+
 		rt.config.TmpDir = dir
 		rt.configuredFrom.libpodTmpDirSet = true
 
@@ -930,7 +911,7 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 
 		ctr.config.PostConfigureNetNS = postConfigureNetNS
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
-		ctr.config.CreateNetNS = true
+		ctr.config.CreateNetNS = !ctr.config.NetMode.IsUserDefined()
 		ctr.config.PortMappings = portMappings
 		ctr.config.Networks = networks
 
@@ -1002,9 +983,6 @@ func WithDNSSearch(searchDomains []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(ErrInvalidArg, "cannot add DNS search domains if container will not create /etc/resolv.conf")
-		}
 		ctr.config.DNSSearch = searchDomains
 		return nil
 	}
@@ -1015,9 +993,6 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
-		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(ErrInvalidArg, "cannot add DNS servers if container will not create /etc/resolv.conf")
 		}
 		var dns []net.IP
 		for _, i := range dnsServers {
@@ -1038,9 +1013,6 @@ func WithDNSOption(dnsOptions []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(ErrInvalidArg, "cannot add DNS options if container will not create /etc/resolv.conf")
-		}
 		ctr.config.DNSOption = dnsOptions
 		return nil
 	}
@@ -1052,11 +1024,6 @@ func WithHosts(hosts []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
-
-		if ctr.config.UseImageHosts {
-			return errors.Wrapf(ErrInvalidArg, "cannot add hosts if container will not create /etc/hosts")
-		}
-
 		ctr.config.HostAdd = hosts
 		return nil
 	}
@@ -1203,44 +1170,6 @@ func WithCtrNamespace(ns string) CtrCreateOption {
 	}
 }
 
-// WithUseImageResolvConf tells the container not to bind-mount resolv.conf in.
-// This conflicts with other DNS-related options.
-func WithUseImageResolvConf() CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return ErrCtrFinalized
-		}
-
-		if len(ctr.config.DNSServer) != 0 ||
-			len(ctr.config.DNSSearch) != 0 ||
-			len(ctr.config.DNSOption) != 0 {
-			return errors.Wrapf(ErrInvalidArg, "not creating resolv.conf conflicts with DNS options")
-		}
-
-		ctr.config.UseImageResolvConf = true
-
-		return nil
-	}
-}
-
-// WithUseImageHosts tells the container not to bind-mount /etc/hosts in.
-// This conflicts with WithHosts().
-func WithUseImageHosts() CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return ErrCtrFinalized
-		}
-
-		if len(ctr.config.HostAdd) != 0 {
-			return errors.Wrapf(ErrInvalidArg, "not creating /etc/hosts conflicts with adding to the hosts file")
-		}
-
-		ctr.config.UseImageHosts = true
-
-		return nil
-	}
-}
-
 // withIsInfra sets the container to be an infra container. This means the container will be sometimes hidden
 // and expected to be the first container in the pod.
 func withIsInfra() CtrCreateOption {
@@ -1270,28 +1199,6 @@ func WithVolumeName(name string) VolumeCreateOption {
 		}
 		volume.config.Name = name
 
-		return nil
-	}
-}
-
-// WithVolumeUID sets the uid of the owner.
-func WithVolumeUID(uid int) VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return ErrVolumeFinalized
-		}
-		volume.config.UID = uid
-		return nil
-	}
-}
-
-// WithVolumeGID sets the gid of the owner.
-func WithVolumeGID(gid int) VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return ErrVolumeFinalized
-		}
-		volume.config.GID = gid
 		return nil
 	}
 }
@@ -1559,17 +1466,6 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 			return ErrPodFinalized
 		}
 		pod.config.InfraContainer.PortBindings = bindings
-		return nil
-	}
-}
-
-// WithHealthCheck adds the healthcheck to the container config
-func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return ErrCtrFinalized
-		}
-		ctr.config.HealthCheckConfig = healthCheck
 		return nil
 	}
 }

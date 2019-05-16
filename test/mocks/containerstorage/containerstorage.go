@@ -855,17 +855,17 @@ func (mr *MockStoreMockRecorder) SetContainerRunDirectoryFile(arg0, arg1, arg2 i
 }
 
 // SetImageBigData mocks base method
-func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte, arg3 func([]byte) (go_digest.Digest, error)) error {
+func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetImageBigData", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SetImageBigData", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetImageBigData indicates an expected call of SetImageBigData
-func (mr *MockStoreMockRecorder) SetImageBigData(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetImageBigData(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetImageBigData", reflect.TypeOf((*MockStore)(nil).SetImageBigData), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetImageBigData", reflect.TypeOf((*MockStore)(nil).SetImageBigData), arg0, arg1, arg2)
 }
 
 // SetMetadata mocks base method

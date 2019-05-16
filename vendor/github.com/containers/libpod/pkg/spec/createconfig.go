@@ -9,7 +9,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
@@ -87,8 +86,6 @@ type CreateConfig struct {
 	Env                map[string]string //env
 	ExposedPorts       map[nat.Port]struct{}
 	GroupAdd           []string // group-add
-	HealthCheck        *manifest.Schema2HealthConfig
-	NoHosts            bool
 	HostAdd            []string //add-host
 	Hostname           string   //hostname
 	Image              string
@@ -346,11 +343,8 @@ func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
 	return m
 }
 
-func (c *CreateConfig) createExitCommand() ([]string, error) {
-	config, err := c.Runtime.GetConfig()
-	if err != nil {
-		return nil, err
-	}
+func (c *CreateConfig) createExitCommand() []string {
+	config := c.Runtime.GetConfig()
 
 	cmd, _ := os.Executable()
 	command := []string{cmd,
@@ -367,7 +361,7 @@ func (c *CreateConfig) createExitCommand() ([]string, error) {
 		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
 	}
 	if c.Syslog {
-		command = append(command, "--syslog", "true")
+		command = append(command, "--syslog")
 	}
 	command = append(command, []string{"container", "cleanup"}...)
 
@@ -375,7 +369,7 @@ func (c *CreateConfig) createExitCommand() ([]string, error) {
 		command = append(command, "--rm")
 	}
 
-	return command, nil
+	return command
 }
 
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
@@ -451,15 +445,16 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		}
 	}
 
-	if c.NetMode.IsNS() {
-		ns := c.NetMode.NS()
-		if ns == "" {
-			return nil, errors.Errorf("invalid empty user-defined network namespace")
+	if IsNS(string(c.NetMode)) {
+		split := strings.SplitN(string(c.NetMode), ":", 2)
+		if len(split[0]) != 2 {
+			return nil, errors.Errorf("invalid user defined network namespace %q", c.NetMode.UserDefined())
 		}
-		_, err := os.Stat(ns)
+		_, err := os.Stat(split[1])
 		if err != nil {
 			return nil, err
 		}
+		options = append(options, libpod.WithNetNS(portBindings, false, string(c.NetMode), networks))
 	} else if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.Container())
 		if err != nil {
@@ -508,19 +503,12 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithDNSSearch(c.DNSSearch))
 	}
 	if len(c.DNSServers) > 0 {
-		if len(c.DNSServers) == 1 && strings.ToLower(c.DNSServers[0]) == "none" {
-			options = append(options, libpod.WithUseImageResolvConf())
-		} else {
-			options = append(options, libpod.WithDNS(c.DNSServers))
-		}
+		options = append(options, libpod.WithDNS(c.DNSServers))
 	}
 	if len(c.DNSOpt) > 0 {
 		options = append(options, libpod.WithDNSOption(c.DNSOpt))
 	}
-	if c.NoHosts {
-		options = append(options, libpod.WithUseImageHosts())
-	}
-	if len(c.HostAdd) > 0 && !c.NoHosts {
+	if len(c.HostAdd) > 0 {
 		options = append(options, libpod.WithHosts(c.HostAdd))
 	}
 	logPath := getLoggingPath(c.LogDriverOpt)
@@ -569,16 +557,8 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	// Always use a cleanup process to clean up Podman after termination
-	exitCmd, err := c.createExitCommand()
-	if err != nil {
-		return nil, err
-	}
-	options = append(options, libpod.WithExitCommand(exitCmd))
+	options = append(options, libpod.WithExitCommand(c.createExitCommand()))
 
-	if c.HealthCheck != nil {
-		options = append(options, libpod.WithHealthCheck(c.HealthCheck))
-		logrus.Debugf("New container has a health check")
-	}
 	return options, nil
 }
 

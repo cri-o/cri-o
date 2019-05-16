@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 
 	cp "github.com/containers/image/copy"
@@ -18,7 +17,6 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/registries"
 	multierror "github.com/hashicorp/go-multierror"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -205,7 +203,6 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
-	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
 		// could be trying to pull from registry with short name
@@ -270,13 +267,12 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		_, err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions)
 		if err != nil {
 			pullErrors = multierror.Append(pullErrors, err)
-			logrus.Errorf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
+			logrus.Debugf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
 			if writer != nil {
 				io.WriteString(writer, "Failed\n")
 			}
 		} else {
 			if !goal.pullAllPairs {
-				ir.newImageEvent(events.Pull, "")
 				return []string{imageInfo.image}, nil
 			}
 			images = append(images, imageInfo.image)
@@ -296,9 +292,6 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			return nil, errors.Errorf("unable to pull image, or you do not have pull access")
 		}
 		return nil, pullErrors
-	}
-	if len(images) > 0 {
-		defer ir.newImageEvent(events.Pull, images[0])
 	}
 	return images, nil
 }

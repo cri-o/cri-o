@@ -20,7 +20,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/distribution/registry/api/errcode"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -47,12 +47,6 @@ var (
 // correspond to in the set of configured registries, the transport used to
 // pull the image, and a boolean which is true iff
 // 1) the list of search registries was used, and 2) it was empty.
-//
-// The returned image names never include a transport: prefix, and if transport != "",
-// (transport, image) should be a valid input to alltransports.ParseImageName.
-// transport == "" indicates that image that already exists in a local storage,
-// and the name is valid for store.Image() / storage.Transport.ParseStoreReference().
-//
 // NOTE: The "list of search registries is empty" check does not count blocked registries,
 // and neither the implied "localhost" nor a possible firstRegistry are counted
 func ResolveName(name string, firstRegistry string, sc *types.SystemContext, store storage.Store) ([]string, string, bool, error) {
@@ -168,7 +162,15 @@ func ExpandNames(names []string, firstRegistry string, systemContext *types.Syst
 			name = named
 		}
 		name = reference.TagNameOnly(name)
-		expanded = append(expanded, name.String())
+		tag := ""
+		digest := ""
+		if tagged, ok := name.(reference.NamedTagged); ok {
+			tag = ":" + tagged.Tag()
+		}
+		if digested, ok := name.(reference.Digested); ok {
+			digest = "@" + digested.Digest().String()
+		}
+		expanded = append(expanded, name.Name()+tag+digest)
 	}
 	return expanded, nil
 }

@@ -183,7 +183,6 @@ func waitPidsStop(pids []int, timeout time.Duration) error {
 
 func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 	var files []*os.File
-	notifySCTP := false
 	for _, i := range ports {
 		switch i.Protocol {
 		case "udp":
@@ -218,12 +217,6 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				return nil, errors.Wrapf(err, "cannot get file for TCP socket")
 			}
 			files = append(files, f)
-			break
-		case "sctp":
-			if !notifySCTP {
-				notifySCTP = true
-				logrus.Warnf("port reservation for SCTP is not supported")
-			}
 			break
 		default:
 			return nil, fmt.Errorf("unknown protocol %s", i.Protocol)
@@ -325,8 +318,8 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_LIBPOD_USERNS_CONFIGURED=%s", os.Getenv("_LIBPOD_USERNS_CONFIGURED")))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_LIBPOD_ROOTLESS_UID=%s", os.Getenv("_LIBPOD_ROOTLESS_UID")))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
 
 	if r.reservePorts && !ctr.config.NetMode.IsSlirp4netns() {
@@ -473,7 +466,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 // If useRunc is false, we will not directly hit runc to see the container's
 // status, but will instead only check for the existence of the conmon exit file
 // and update state to stopped if it exists.
-func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) error {
+func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRunc bool) error {
 	exitFile := ctr.exitFilePath()
 
 	runtimeDir, err := util.GetRootlessRuntimeDir()
@@ -481,10 +474,10 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 		return err
 	}
 
-	// If not using the OCI runtime, we don't need to do most of this.
-	if !useRuntime {
+	// If not using runc, we don't need to do most of this.
+	if !useRunc {
 		// If the container's not running, nothing to do.
-		if ctr.state.State != ContainerStateRunning && ctr.state.State != ContainerStatePaused {
+		if ctr.state.State != ContainerStateRunning {
 			return nil
 		}
 
@@ -740,7 +733,7 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 // TODO: Add --detach support
 // TODO: Convert to use conmon
 // TODO: add --pid-file and use that to generate exec session tracking
-func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string, streams *AttachStreams, preserveFDs int) (*exec.Cmd, error) {
+func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string, streams *AttachStreams) (*exec.Cmd, error) {
 	if len(cmd) == 0 {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
 	}
@@ -777,9 +770,6 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		args = append(args, "--user", user)
 	}
 
-	if preserveFDs > 0 {
-		args = append(args, fmt.Sprintf("--preserve-fds=%d", preserveFDs))
-	}
 	if c.config.Spec.Process.NoNewPrivileges {
 		args = append(args, "--no-new-privs")
 	}
@@ -812,22 +802,8 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 
 	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 
-	if preserveFDs > 0 {
-		for fd := 3; fd < 3+preserveFDs; fd++ {
-			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
-		}
-	}
-
 	if err := execCmd.Start(); err != nil {
 		return nil, errors.Wrapf(err, "cannot start container %s", c.ID())
-	}
-
-	if preserveFDs > 0 {
-		for fd := 3; fd < 3+preserveFDs; fd++ {
-			// These fds were passed down to the runtime.  Close them
-			// and not interfere
-			os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close()
-		}
 	}
 
 	return execCmd, nil

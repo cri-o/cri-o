@@ -9,10 +9,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/containers/image/pkg/blobinfocache/memory"
+	"github.com/containers/image/pkg/blobinfocache"
 	"github.com/containers/image/storage"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/rootless"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	digest "github.com/opencontainers/go-digest"
@@ -93,10 +92,7 @@ func main() {
 			logrus.Errorf("must set --root and --runroot, or neither")
 			os.Exit(1)
 		}
-		storeOptions, err := sstorage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-		if err != nil {
-			return err
-		}
+		storeOptions := sstorage.DefaultStoreOptions
 		if rootDir != "" && runrootDir != "" {
 			storeOptions.GraphDriverName = storageDriver
 			storeOptions.GraphDriverOptions = storageOptions
@@ -163,7 +159,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer img.Close()
-		cache := memory.New()
+		cache := blobinfocache.NewMemoryCache()
 		layer, err := img.PutBlob(ctx, layerBuffer, layerInfo, cache, true)
 		if err != nil {
 			logrus.Errorf("error preparing to write image: %v", err)

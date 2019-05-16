@@ -14,7 +14,7 @@ import (
 
 var (
 	ErrInvalidStreamId   = errors.New("Invalid stream id")
-	ErrTimeout           = errors.New("Timeout occurred")
+	ErrTimeout           = errors.New("Timeout occured")
 	ErrReset             = errors.New("Stream reset")
 	ErrWriteClosedStream = errors.New("Write on closed stream")
 )

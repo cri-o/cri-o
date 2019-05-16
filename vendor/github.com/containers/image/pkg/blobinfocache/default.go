@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/image/pkg/blobinfocache/boltdb"
-	"github.com/containers/image/pkg/blobinfocache/memory"
 	"github.com/containers/image/types"
 	"github.com/sirupsen/logrus"
 )
@@ -52,14 +50,14 @@ func DefaultCache(sys *types.SystemContext) types.BlobInfoCache {
 	dir, err := blobInfoCacheDir(sys, os.Geteuid())
 	if err != nil {
 		logrus.Debugf("Error determining a location for %s, using a memory-only cache", blobInfoCacheFilename)
-		return memory.New()
+		return NewMemoryCache()
 	}
 	path := filepath.Join(dir, blobInfoCacheFilename)
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		logrus.Debugf("Error creating parent directories for %s, using a memory-only cache: %v", blobInfoCacheFilename, err)
-		return memory.New()
+		return NewMemoryCache()
 	}
 
 	logrus.Debugf("Using blob info cache at %s", path)
-	return boltdb.New(path)
+	return NewBoltDBCache(path)
 }

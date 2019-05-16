@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"unsafe"
@@ -29,7 +30,7 @@ extern int reexec_userns_join(int userns, int mountns);
 import "C"
 
 func runInUser() error {
-	os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
+	os.Setenv("_LIBPOD_USERNS_CONFIGURED", "done")
 	return nil
 }
 
@@ -41,7 +42,7 @@ var (
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
-		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
+		isRootless = os.Geteuid() != 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != ""
 	})
 	return isRootless
 }
@@ -60,19 +61,14 @@ func SkipStorageSetup() bool {
 	return skipStorageSetup
 }
 
-// Argument returns the argument that was set for the rootless session.
-func Argument() string {
-	return os.Getenv("_CONTAINERS_ROOTLESS_ARG")
-}
-
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
-	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
+	uidEnv := os.Getenv("_LIBPOD_ROOTLESS_UID")
 	if uidEnv != "" {
 		u, _ := strconv.Atoi(uidEnv)
 		return u
 	}
-	return os.Geteuid()
+	return os.Getuid()
 }
 
 func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) error {
@@ -106,8 +102,8 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 
 // JoinNS re-exec podman in a new userNS and join the user namespace of the specified
 // PID.
-func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+func JoinNS(pid uint) (bool, int, error) {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
 
@@ -121,13 +117,6 @@ func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
-	if preserveFDs > 0 {
-		for fd := 3; fd < 3+preserveFDs; fd++ {
-			// These fds were passed down to the runtime.  Close them
-			// and not interfere
-			os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close()
-		}
-	}
 
 	ret := C.reexec_in_user_namespace_wait(pidC)
 	if ret < 0 {
@@ -139,17 +128,9 @@ func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
 
 // JoinDirectUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
-// the conmon process.  It is a convenience function for JoinDirectUserAndMountNSWithOpts
-// with a default configuration.
+// the conmon process.
 func JoinDirectUserAndMountNS(pid uint) (bool, int, error) {
-	return JoinDirectUserAndMountNSWithOpts(pid, nil)
-}
-
-// JoinDirectUserAndMountNSWithOpts re-exec podman in a new userNS and join the user and
-// mount namespace of the specified PID without looking up its parent.  Useful to join
-// directly the conmon process.
-func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
 
@@ -164,12 +145,6 @@ func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
 		return false, -1, err
 	}
 	defer userNS.Close()
-
-	if opts != nil && opts.Argument != "" {
-		if err := os.Setenv("_CONTAINERS_ROOTLESS_ARG", opts.Argument); err != nil {
-			return false, -1, err
-		}
-	}
 
 	pidC := C.reexec_userns_join(C.int(userNS.Fd()), C.int(mountNS.Fd()))
 	if int(pidC) < 0 {
@@ -187,7 +162,7 @@ func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
 // JoinNSPath re-exec podman in a new userNS and join the owner user namespace of the
 // specified path.
 func JoinNSPath(path string) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
 
@@ -210,21 +185,29 @@ func JoinNSPath(path string) (bool, int, error) {
 	return true, int(ret), nil
 }
 
+const defaultMinimumMappings = 65536
+
+func getMinimumIDs(p string) int {
+	content, err := ioutil.ReadFile(p)
+	if err != nil {
+		logrus.Debugf("error reading data from %q, use a default value of %d", p, defaultMinimumMappings)
+		return defaultMinimumMappings
+	}
+	ret, err := strconv.Atoi(strings.TrimSuffix(string(content), "\n"))
+	if err != nil {
+		logrus.Debugf("error reading data from %q, use a default value of %d", p, defaultMinimumMappings)
+		return defaultMinimumMappings
+	}
+	return ret + 1
+}
+
 // BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
 // into a new user namespace and the return code from the re-executed podman process.
 // If podman was re-executed the caller needs to propagate the error code returned by the child
-// process.  It is a convenience function for BecomeRootInUserNSWithOpts with a default configuration.
-func BecomeRootInUserNS() (bool, int, error) {
-	return BecomeRootInUserNSWithOpts(nil)
-}
-
-// BecomeRootInUserNSWithOpts re-exec podman in a new userNS.  It returns whether podman was
-// re-execute into a new user namespace and the return code from the re-executed podman process.
-// If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
-func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
-		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
+func BecomeRootInUserNS() (bool, int, error) {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+		if os.Getenv("_LIBPOD_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
 		}
 		return false, 0, nil
@@ -239,13 +222,6 @@ func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
 	}
 	defer r.Close()
 	defer w.Close()
-	defer w.Write([]byte("0"))
-
-	if opts != nil && opts.Argument != "" {
-		if err := os.Setenv("_CONTAINERS_ROOTLESS_ARG", opts.Argument); err != nil {
-			return false, -1, err
-		}
-	}
 
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()))
 	pid := int(pidC)
@@ -253,18 +229,47 @@ func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
 
+	allowSingleIDMapping := os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") != ""
+
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	if username == "" {
 		user, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
+		if err != nil && !allowSingleIDMapping {
+			if os.IsNotExist(err) {
+				return false, 0, errors.Wrapf(err, "/etc/subuid or /etc/subgid does not exist, see subuid/subgid man pages for information on these files")
+			}
+			return false, 0, errors.Wrapf(err, "could not find user by UID nor USER env was set")
+		}
 		if err == nil {
 			username = user.Username
 		}
 	}
 	mappings, err := idtools.NewIDMappings(username, username)
-	if err != nil {
-		logrus.Warnf("cannot find mappings for user %s: %v", username, err)
-	} else {
+	if !allowSingleIDMapping {
+		if err != nil {
+			return false, -1, err
+		}
+
+		availableGIDs, availableUIDs := 0, 0
+		for _, i := range mappings.UIDs() {
+			availableUIDs += i.Size
+		}
+
+		minUIDs := getMinimumIDs("/proc/sys/kernel/overflowuid")
+		if availableUIDs < minUIDs {
+			return false, 0, fmt.Errorf("not enough UIDs available for the user, at least %d are needed", minUIDs)
+		}
+
+		for _, i := range mappings.GIDs() {
+			availableGIDs += i.Size
+		}
+		minGIDs := getMinimumIDs("/proc/sys/kernel/overflowgid")
+		if availableGIDs < minGIDs {
+			return false, 0, fmt.Errorf("not enough GIDs available for the user, at least %d are needed", minGIDs)
+		}
+	}
+	if err == nil {
 		uids = mappings.UIDs()
 		gids = mappings.GIDs()
 	}
@@ -272,10 +277,12 @@ func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
 	uidsMapped := false
 	if mappings != nil && uids != nil {
 		err := tryMappingTool("newuidmap", pid, os.Getuid(), uids)
+		if !allowSingleIDMapping && err != nil {
+			return false, 0, err
+		}
 		uidsMapped = err == nil
 	}
 	if !uidsMapped {
-		logrus.Warnf("using rootless single mapping into the namespace. This might break some images. Check /etc/subuid and /etc/subgid for adding subids")
 		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
 		err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
 		if err != nil {
@@ -292,6 +299,9 @@ func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
 	gidsMapped := false
 	if mappings != nil && gids != nil {
 		err := tryMappingTool("newgidmap", pid, os.Getgid(), gids)
+		if !allowSingleIDMapping && err != nil {
+			return false, 0, err
+		}
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {

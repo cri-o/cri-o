@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/buildah/unshare"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/sirupsen/logrus"
@@ -47,7 +47,7 @@ func hostInfo() (map[string]interface{}, error) {
 	info["os"] = runtime.GOOS
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
-	info["rootless"] = unshare.IsRootless()
+	info["rootless"] = rootless.IsRootless()
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		logrus.Error(err, "err reading memory info")

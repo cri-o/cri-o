@@ -15,7 +15,6 @@
 package invoke
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -27,7 +26,7 @@ import (
 // and executing a CNI plugin. Tests may provide a fake implementation
 // to avoid writing fake plugins to temporary directories during the test.
 type Exec interface {
-	ExecPlugin(ctx context.Context, pluginPath string, stdinData []byte, environ []string) ([]byte, error)
+	ExecPlugin(pluginPath string, stdinData []byte, environ []string) ([]byte, error)
 	FindInPath(plugin string, paths []string) (string, error)
 	Decode(jsonBytes []byte) (version.PluginInfo, error)
 }
@@ -73,12 +72,12 @@ type Exec interface {
 //	return "", fmt.Errorf("failed to find plugin %s in paths %v", plugin, paths)
 //}
 
-func ExecPluginWithResult(ctx context.Context, pluginPath string, netconf []byte, args CNIArgs, exec Exec) (types.Result, error) {
+func ExecPluginWithResult(pluginPath string, netconf []byte, args CNIArgs, exec Exec) (types.Result, error) {
 	if exec == nil {
 		exec = defaultExec
 	}
 
-	stdoutBytes, err := exec.ExecPlugin(ctx, pluginPath, netconf, args.AsEnv())
+	stdoutBytes, err := exec.ExecPlugin(pluginPath, netconf, args.AsEnv())
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +92,11 @@ func ExecPluginWithResult(ctx context.Context, pluginPath string, netconf []byte
 	return version.NewResult(confVersion, stdoutBytes)
 }
 
-func ExecPluginWithoutResult(ctx context.Context, pluginPath string, netconf []byte, args CNIArgs, exec Exec) error {
+func ExecPluginWithoutResult(pluginPath string, netconf []byte, args CNIArgs, exec Exec) error {
 	if exec == nil {
 		exec = defaultExec
 	}
-	_, err := exec.ExecPlugin(ctx, pluginPath, netconf, args.AsEnv())
+	_, err := exec.ExecPlugin(pluginPath, netconf, args.AsEnv())
 	return err
 }
 
@@ -105,7 +104,7 @@ func ExecPluginWithoutResult(ctx context.Context, pluginPath string, netconf []b
 // For recent-enough plugins, it uses the information returned by the VERSION
 // command.  For older plugins which do not recognize that command, it reports
 // version 0.1.0
-func GetVersionInfo(ctx context.Context, pluginPath string, exec Exec) (version.PluginInfo, error) {
+func GetVersionInfo(pluginPath string, exec Exec) (version.PluginInfo, error) {
 	if exec == nil {
 		exec = defaultExec
 	}
@@ -118,7 +117,7 @@ func GetVersionInfo(ctx context.Context, pluginPath string, exec Exec) (version.
 		Path:   "dummy",
 	}
 	stdin := []byte(fmt.Sprintf(`{"cniVersion":%q}`, version.Current()))
-	stdoutBytes, err := exec.ExecPlugin(ctx, pluginPath, stdin, args.AsEnv())
+	stdoutBytes, err := exec.ExecPlugin(pluginPath, stdin, args.AsEnv())
 	if err != nil {
 		if err.Error() == "unknown CNI_COMMAND: VERSION" {
 			return version.PluginSupports("0.1.0"), nil

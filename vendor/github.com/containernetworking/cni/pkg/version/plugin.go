@@ -86,13 +86,9 @@ func (*PluginDecoder) Decode(jsonBytes []byte) (PluginInfo, error) {
 // minor, and micro numbers or returns an error
 func ParseVersion(version string) (int, int, int, error) {
 	var major, minor, micro int
-	if version == "" {
-		return -1, -1, -1, fmt.Errorf("invalid version %q: the version is empty", version)
-	}
-
 	parts := strings.Split(version, ".")
-	if len(parts) >= 4 {
-		return -1, -1, -1, fmt.Errorf("invalid version %q: too many parts", version)
+	if len(parts) == 0 || len(parts) >= 4 {
+		return -1, -1, -1, fmt.Errorf("invalid version %q: too many or too few parts", version)
 	}
 
 	major, err := strconv.Atoi(parts[0])
@@ -118,7 +114,7 @@ func ParseVersion(version string) (int, int, int, error) {
 }
 
 // GreaterThanOrEqualTo takes two string versions, parses them into major/minor/micro
-// numbers, and compares them to determine whether the first version is greater
+// nubmers, and compares them to determine whether the first version is greater
 // than or equal to the second
 func GreaterThanOrEqualTo(version, otherVersion string) (bool, error) {
 	firstMajor, firstMinor, firstMicro, err := ParseVersion(version)

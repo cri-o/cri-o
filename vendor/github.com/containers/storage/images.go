@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/image/manifest"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/truncindex"
@@ -116,7 +117,7 @@ type ImageStore interface {
 	ROImageStore
 	RWFileBasedStore
 	RWMetadataStore
-	RWImageBigDataStore
+	RWBigDataStore
 	FlaggableStore
 
 	// Create creates an image that has a specified ID (or a random one) and
@@ -594,7 +595,15 @@ func (r *imageStore) BigDataSize(id, key string) (int64, error) {
 		return size, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
-		return int64(len(data)), nil
+		if r.SetBigData(id, key, data) == nil {
+			image, ok := r.lookup(id)
+			if !ok {
+				return -1, ErrImageUnknown
+			}
+			if size, ok := image.BigDataSizes[key]; ok {
+				return size, nil
+			}
+		}
 	}
 	return -1, ErrSizeUnknown
 }
@@ -612,6 +621,17 @@ func (r *imageStore) BigDataDigest(id, key string) (digest.Digest, error) {
 	}
 	if d, ok := image.BigDataDigests[key]; ok {
 		return d, nil
+	}
+	if data, err := r.BigData(id, key); err == nil && data != nil {
+		if r.SetBigData(id, key, data) == nil {
+			image, ok := r.lookup(id)
+			if !ok {
+				return "", ErrImageUnknown
+			}
+			if d, ok := image.BigDataDigests[key]; ok {
+				return d, nil
+			}
+		}
 	}
 	return "", ErrDigestUnknown
 }
@@ -635,7 +655,7 @@ func imageSliceWithoutValue(slice []*Image, value *Image) []*Image {
 	return modified
 }
 
-func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error {
+func (r *imageStore) SetBigData(id, key string, data []byte) error {
 	if key == "" {
 		return errors.Wrapf(ErrInvalidBigDataName, "can't set empty name for image big data item")
 	}
@@ -652,10 +672,7 @@ func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func
 	}
 	var newDigest digest.Digest
 	if bigDataNameIsManifest(key) {
-		if digestManifest == nil {
-			return errors.Wrapf(ErrDigestUnknown, "error digesting manifest: no manifest digest callback provided")
-		}
-		if newDigest, err = digestManifest(data); err != nil {
+		if newDigest, err = manifest.Digest(data); err != nil {
 			return errors.Wrapf(err, "error digesting manifest")
 		}
 	} else {
