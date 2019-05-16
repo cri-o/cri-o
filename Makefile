@@ -239,42 +239,66 @@ testunit-bin:
 			--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename $$PACKAGE) ;\
 	done
 
-mockgen: ${MOCKGEN}
+mockgen: \
+	mock-containerstorage \
+	mock-criostorage \
+	mock-lib \
+	mock-oci \
+	mock-sandbox \
+	mock-server \
+	mock-image-types \
+	mock-ocicni-types
+
+mock-containerstorage: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package containerstoragemock \
 		-destination ${MOCK_PATH}/containerstorage/containerstorage.go \
 		github.com/containers/storage Store
+
+mock-criostorage: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
 		github.com/cri-o/cri-o/pkg/storage ImageServer,RuntimeServer
+
+mock-lib: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package libmock \
 		-destination ${MOCK_PATH}/lib/lib.go \
 		github.com/cri-o/cri-o/lib ConfigIface
+
+mock-oci: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
 		github.com/cri-o/cri-o/oci RuntimeImpl
+
+mock-sandbox: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package sandboxmock \
 		-destination ${MOCK_PATH}/sandbox/sandbox.go \
 		github.com/cri-o/cri-o/lib/sandbox NetNsIface
+
+mock-server: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
 		${MOCKGEN_FLAGS} \
 		-package servermock \
 		-destination ${MOCK_PATH}/server/server.go \
 		github.com/cri-o/cri-o/server ConfigIface
+
+mock-image-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
 		${MOCKGEN_FLAGS} \
 		-package imagetypesmock \
 		-destination ${MOCK_PATH}/containers/image/types.go \
 		github.com/containers/image/types Image
+
+mock-ocicni-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
 		${MOCKGEN_FLAGS} \
 		-package ocicnitypesmock \

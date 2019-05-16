@@ -8,12 +8,14 @@ executors:
         user: circleci
     environment:
       GOCACHE: &gocache /tmp/go-build
+      JOBS: &jobs 8
     working_directory: &workdir /go/src/github.com/cri-o/cri-o
   docker-base:
     docker:
       - image: circleci/golang
     environment:
       GOCACHE: *gocache
+      JOBS: *jobs
     working_directory: *workdir
   nix:
     docker:
@@ -25,6 +27,7 @@ executors:
     environment:
       GOCACHE: *gocache
       IMAGE: *image
+      JOBS: *jobs
       WORKDIR: *workdir
 
 workflows:
@@ -81,7 +84,7 @@ jobs:
             - v1-build-{{ checksum "go.sum" }}
       - run:
           name: build
-          command: make
+          command: make -j $JOBS
       - save_cache:
           key: v1-build-{{ checksum "go.sum" }}
           paths:
@@ -116,7 +119,7 @@ jobs:
             - v1-build-test-binaries-{{ checksum "go.sum" }}
       - run:
           name: build
-          command: make test-binaries
+          command: make test-binaries -j $JOBS
       - save_cache:
           key: v1-build-test-binaries-{{ checksum "go.sum" }}
           paths:
@@ -225,7 +228,7 @@ jobs:
       - run:
           name: check mocks
           command: |
-            make mockgen
+            make mockgen -j $JOBS
             hack/tree_status.sh
       - run:
           name: unit tests
