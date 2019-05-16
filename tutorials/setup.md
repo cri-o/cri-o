@@ -45,7 +45,7 @@ Debian, Ubuntu, and related distributions:
 # Add containers-common and cri-o-runc
 apt-add-repository ppa:projectatomic/ppa
 
-apt-get install -y \
+apt-get update -qq && apt-get install -y \
   btrfs-tools \
   containers-common \
   git \
@@ -288,6 +288,5 @@ sudo systemctl start crio
 ## Using CRI-O
 
 - Follow this [tutorial](crictl.md) to quickly get started running simple pods and containers.
-- To run quickly with kubernetes, see [our quick kuberentes guide](quick-kubernetes.md).
 - To run a full cluster, see [the instructions](kubernetes.md).
 - To run with kubeadm, see [kubeadm instructions](kubeadm.md).
