@@ -1307,11 +1307,10 @@ int main(int argc, char *argv[])
 		pexit("Failed to set handler for SIGCHLD");
 
 	if (csname != NULL) {
-		guint terminal_watch = g_unix_fd_add(console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
+		g_unix_fd_add(console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
 		/* Process any SIGCHLD we may have missed before the signal handler was in place.  */
 		check_child_processes(pid_to_handler);
 		g_main_loop_run(main_loop);
-		g_source_remove(terminal_watch);
 	} else {
 		int ret;
 		/* Wait for our create child to exit with the return code. */
