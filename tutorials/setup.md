@@ -112,14 +112,14 @@ make BUILDTAGS='seccomp apparmor'
 | selinux                          | selinux process and mount labeling              | libselinux   |
 | apparmor                         | apparmor profile support                        | <none>       |
 
-`CRI-O` manages images with (containers/image)[https://github.com/containers/image], which uses the following buildtags.
+`CRI-O` manages images with [containers/image](https://github.com/containers/image), which uses the following buildtags.
 
 | Build Tag                        | Feature                                         | Dependency   |
 |----------------------------------|-------------------------------------------------|--------------|
 | containers_image_openpgp         | use native golang pgp instead of cgo            | <none>       |
 | containers_image_ostree_stub     | disable use of ostree as an image transport     | <none>       |
 
-`CRI-O` also uses (containers/storage)[https://github.com/containers/storage/] for managing container storage.
+`CRI-O` also uses [containers/storage](https://github.com/containers/storage) for managing container storage.
 
 | Build Tag                        | Feature                                         | Dependency   |
 |----------------------------------|-------------------------------------------------|--------------|
