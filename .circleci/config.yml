@@ -38,11 +38,20 @@ workflows:
       - build-static
       - build-test-binaries
       - clang-format
+      - ginkgo
       - git-validation
       - integration:
           requires:
             - build
             - build-test-binaries
+      - integration:
+          name: integration-critest
+          run_critest: '1'
+          test_args: critest.bats
+          requires:
+            - build
+            - build-test-binaries
+            - ginkgo
       - integration:
           name: integration-userns
           test_userns: '1'
@@ -67,11 +76,14 @@ workflows:
       - results:
           requires:
             - integration
+            - integration-critest
             - integration-static-glibc
             - integration-static-musl
             - integration-userns
             - unit-tests
-      - unit-tests
+      - unit-tests:
+          requires:
+            - ginkgo
       - vendor
 
 jobs:
@@ -137,6 +149,26 @@ jobs:
       - checkout
       - run: make fmt
 
+  ginkgo:
+    executor: docker
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-ginkgo-{{ checksum "go.sum" }}
+      - run:
+          name: build ginkgo
+          command: make $(pwd)/build/bin/ginkgo
+      - save_cache:
+          key: v1-ginkgo-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/ginkgo
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/bin/ginkgo
+
   git-validation:
     executor: docker-base
     steps:
@@ -162,6 +194,12 @@ jobs:
       crio_binary:
         type: string
         default: crio
+      run_critest:
+        type: string
+        default: ''
+      test_args:
+        type: string
+        default: ''
       test_userns:
         type: string
         default: ''
@@ -175,12 +213,14 @@ jobs:
             docker pull $IMAGE
             docker run -e APPARMOR_PARAMETERS_FILE_PATH=skip \
               -e STORAGE_OPTIONS="--storage-driver=vfs" -e TRAVIS=true \
-              -e CRIO_BINARY -e TEST_USERNS -t --privileged --rm \
-              -v $(pwd):$WORKDIR \
-              -w $WORKDIR \
-              $IMAGE test/test_runner.sh
+              -e CRIO_BINARY -e TEST_USERNS -e RUN_CRITEST \
+              -v $(pwd):$WORKDIR -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
+              -t --privileged --rm -w $WORKDIR \
+              $IMAGE test/test_runner.sh $TEST_ARGS
           environment:
             CRIO_BINARY: "<< parameters.crio_binary >>"
+            RUN_CRITEST: "<< parameters.run_critest >>"
+            TEST_ARGS: "<< parameters.test_args >>"
             TEST_USERNS: "<< parameters.test_userns >>"
 
   lint:
@@ -222,6 +262,8 @@ jobs:
     executor: docker
     steps:
       - checkout
+      - attach_workspace:
+          at: .
       - restore_cache:
           keys:
             - v1-unit-tests-{{ checksum "go.sum" }}
@@ -239,7 +281,6 @@ jobs:
           key: v1-unit-tests-{{ checksum "go.sum" }}
           paths:
             - *gocache
-            - build/bin/ginkgo
             - build/bin/mockgen
       - persist_to_workspace:
           root: .
