@@ -40,7 +40,8 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 
 	tmp, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
 	if err != nil {
-		err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		//         err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		err = nil
 		return
 	}
 
