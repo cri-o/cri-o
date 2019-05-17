@@ -45,7 +45,7 @@ Debian, Ubuntu, and related distributions:
 # Add containers-common and cri-o-runc
 apt-add-repository ppa:projectatomic/ppa
 
-apt-get install -y \
+apt-get update -qq && apt-get install -y \
   btrfs-tools \
   containers-common \
   git \
