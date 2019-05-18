@@ -38,7 +38,8 @@ type HostConfig struct {
 	PidMode              string                      `json:"PidMode"`
 	Privileged           bool                        `json:"Privileged"`
 	PublishAllPorts      bool                        `json:"PublishAllPorts"` //TODO
-	ReadonlyRootfs       bool                        `json:"ReadonlyRootfs"`
+	ReadOnlyRootfs       bool                        `json:"ReadonlyRootfs"`
+	ReadOnlyTmpfs        bool                        `json:"ReadonlyTmpfs"`
 	SecurityOpt          []string                    `json:"SecurityOpt"`
 	UTSMode              string                      `json:"UTSMode"`
 	UsernsMode           string                      `json:"UsernsMode"`
@@ -160,7 +161,7 @@ type ContainerInspectData struct {
 	LogPath         string                 `json:"LogPath"`
 	ConmonPidFile   string                 `json:"ConmonPidFile"`
 	Name            string                 `json:"Name"`
-	RestartCount    int32                  `json:"RestartCount"` //TODO
+	RestartCount    int32                  `json:"RestartCount"`
 	Driver          string                 `json:"Driver"`
 	MountLabel      string                 `json:"MountLabel"`
 	ProcessLabel    string                 `json:"ProcessLabel"`
