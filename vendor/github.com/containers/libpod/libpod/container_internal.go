@@ -25,22 +25,12 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/language"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
 	// name of the directory holding the artifacts
 	artifactsDir = "artifacts"
-)
-
-var (
-	// localeToLanguageMap maps from locale values to language tags.
-	localeToLanguageMap = map[string]string{
-		"":      "und-u-va-posix",
-		"c":     "und-u-va-posix",
-		"posix": "und-u-va-posix",
-	}
 )
 
 // rootFsSize gets the size of the container's root filesystem
@@ -220,6 +210,90 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	return nil
 }
 
+// Handle container restart policy.
+// This is called when a container has exited, and was not explicitly stopped by
+// an API call to stop the container or pod it is in.
+func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, err error) {
+	// If we did not get a restart policy match, exit immediately.
+	// Do the same if we're not a policy that restarts.
+	if !c.state.RestartPolicyMatch ||
+		c.config.RestartPolicy == RestartPolicyNo ||
+		c.config.RestartPolicy == RestartPolicyNone {
+		return false, nil
+	}
+
+	// If we're RestartPolicyOnFailure, we need to check retries and exit
+	// code.
+	if c.config.RestartPolicy == RestartPolicyOnFailure {
+		if c.state.ExitCode == 0 {
+			return false, nil
+		}
+
+		// If we don't have a max retries set, continue
+		if c.config.RestartRetries > 0 {
+			if c.state.RestartCount < c.config.RestartRetries {
+				logrus.Debugf("Container %s restart policy trigger: on retry %d (of %d)",
+					c.ID(), c.state.RestartCount, c.config.RestartRetries)
+			} else {
+				logrus.Debugf("Container %s restart policy trigger: retries exhausted", c.ID())
+				return false, nil
+			}
+		}
+	}
+
+	logrus.Debugf("Restarting container %s due to restart policy %s", c.ID(), c.config.RestartPolicy)
+
+	// Need to check if dependencies are alive.
+	if err = c.checkDependenciesAndHandleError(ctx); err != nil {
+		return false, err
+	}
+
+	// Is the container running again?
+	// If so, we don't have to do anything
+	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+		return false, nil
+	} else if c.state.State == ContainerStateUnknown {
+		return false, errors.Wrapf(ErrInternal, "invalid container state encountered in restart attempt!")
+	}
+
+	c.newContainerEvent(events.Restart)
+
+	// Increment restart count
+	c.state.RestartCount = c.state.RestartCount + 1
+	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
+	if err := c.save(); err != nil {
+		return false, err
+	}
+
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+	if err := c.prepare(); err != nil {
+		return false, err
+	}
+
+	if c.state.State == ContainerStateStopped {
+		// Reinitialize the container if we need to
+		if err := c.reinit(ctx, true); err != nil {
+			return false, err
+		}
+	} else if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateExited {
+		// Initialize the container
+		if err := c.init(ctx, true); err != nil {
+			return false, err
+		}
+	}
+	if err := c.start(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // Sync this container with on-disk state and runtime status
 // Should only be called with container lock held
 // This function should suffice to ensure a container's state is accurate and
@@ -240,6 +314,14 @@ func (c *Container) syncContainer() error {
 		}
 		// Only save back to DB if state changed
 		if c.state.State != oldState {
+			// Check for a restart policy match
+			if c.config.RestartPolicy != RestartPolicyNone && c.config.RestartPolicy != RestartPolicyNo &&
+				(oldState == ContainerStateRunning || oldState == ContainerStatePaused) &&
+				(c.state.State == ContainerStateStopped || c.state.State == ContainerStateExited) &&
+				!c.state.StoppedByUser {
+				c.state.RestartPolicyMatch = true
+			}
+
 			if err := c.save(); err != nil {
 				return err
 			}
@@ -309,7 +391,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(err, "error creating container storage")
 	}
 
-	if !rootless.IsRootless() && (len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0) {
+	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
 		if err := os.Chown(containerInfo.RunDir, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
@@ -350,7 +432,7 @@ func (c *Container) teardownStorage() error {
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
 	if err := os.RemoveAll(artifacts); err != nil {
-		return errors.Wrapf(err, "error removing artifacts %q", artifacts)
+		return errors.Wrapf(err, "error removing container %s artifacts %q", c.ID(), artifacts)
 	}
 
 	if err := c.cleanupStorage(); err != nil {
@@ -386,6 +468,9 @@ func resetState(state *ContainerState) error {
 	state.ExecSessions = make(map[string]*ExecSession)
 	state.NetworkStatus = nil
 	state.BindMounts = make(map[string]string)
+	state.StoppedByUser = false
+	state.RestartPolicyMatch = false
+	state.RestartCount = 0
 
 	return nil
 }
@@ -431,7 +516,7 @@ func (c *Container) refresh() error {
 	}
 
 	// We need to pick up a new lock
-	lock, err := c.runtime.lockManager.RetrieveLock(c.config.LockID)
+	lock, err := c.runtime.lockManager.AllocateAndRetrieveLock(c.config.LockID)
 	if err != nil {
 		return errors.Wrapf(err, "error acquiring lock for container %s", c.ID())
 	}
@@ -579,13 +664,13 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err err
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
-		if err := c.reinit(ctx); err != nil {
+		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
 	} else if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateExited {
 		// Or initialize it if necessary
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}
@@ -676,7 +761,7 @@ func (c *Container) getAllDependencies(visited map[string]*Container) error {
 	}
 	for _, depID := range depIDs {
 		if _, ok := visited[depID]; !ok {
-			dep, err := c.runtime.state.LookupContainer(depID)
+			dep, err := c.runtime.state.Container(depID)
 			if err != nil {
 				return err
 			}
@@ -773,7 +858,7 @@ func (c *Container) completeNetworkSetup() error {
 }
 
 // Initialize a container, creating it in the runtime
-func (c *Container) init(ctx context.Context) error {
+func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "init")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -799,6 +884,12 @@ func (c *Container) init(ctx context.Context) error {
 	c.state.ExitCode = 0
 	c.state.Exited = false
 	c.state.State = ContainerStateCreated
+	c.state.StoppedByUser = false
+	c.state.RestartPolicyMatch = false
+
+	if !retainRetries {
+		c.state.RestartCount = 0
+	}
 
 	if err := c.save(); err != nil {
 		return err
@@ -821,8 +912,9 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 	span.SetTag("struct", "container")
 	defer span.Finish()
 
-	// If the container is not ContainerStateStopped, do nothing
-	if c.state.State != ContainerStateStopped {
+	// If the container is not ContainerStateStopped or
+	// ContainerStateCreated, do nothing.
+	if c.state.State != ContainerStateStopped && c.state.State != ContainerStateCreated {
 		return nil
 	}
 
@@ -835,9 +927,14 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 		return err
 	}
 
-	// Our state is now Exited, as we've removed ourself from
-	// the runtime.
-	c.state.State = ContainerStateExited
+	// If we were Stopped, we are now Exited, as we've removed ourself
+	// from the runtime.
+	// If we were Created, we are now Configured.
+	if c.state.State == ContainerStateStopped {
+		c.state.State = ContainerStateExited
+	} else if c.state.State == ContainerStateCreated {
+		c.state.State = ContainerStateConfigured
+	}
 
 	if c.valid {
 		if err := c.save(); err != nil {
@@ -855,7 +952,7 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 // Should only be done on ContainerStateStopped containers.
 // Not necessary for ContainerStateExited - the container has already been
 // removed from the runtime, so init() can proceed freely.
-func (c *Container) reinit(ctx context.Context) error {
+func (c *Container) reinit(ctx context.Context, retainRetries bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "reinit")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -867,7 +964,7 @@ func (c *Container) reinit(ctx context.Context) error {
 	}
 
 	// Initialize the container again
-	return c.init(ctx)
+	return c.init(ctx, retainRetries)
 }
 
 // Initialize (if necessary) and start a container
@@ -905,12 +1002,12 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	if c.state.State == ContainerStateStopped {
 		logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
 
-		if err := c.reinit(ctx); err != nil {
+		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
 	} else if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateExited {
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}
@@ -948,10 +1045,15 @@ func (c *Container) start() error {
 
 // Internal, non-locking function to stop container
 func (c *Container) stop(timeout uint) error {
-	logrus.Debugf("Stopping ctr %s with timeout %d", c.ID(), timeout)
+	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
 	if err := c.runtime.ociRuntime.stopContainer(c, timeout); err != nil {
 		return err
+	}
+
+	c.state.StoppedByUser = true
+	if err := c.save(); err != nil {
+		return errors.Wrapf(err, "error saving container %s state after stopping", c.ID())
 	}
 
 	// Wait until we have an exit file, and sync once we do
@@ -990,6 +1092,8 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 		return errors.Wrapf(ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
 	}
 
+	c.newContainerEvent(events.Restart)
+
 	if c.state.State == ContainerStateRunning {
 		if err := c.stop(timeout); err != nil {
 			return err
@@ -1008,13 +1112,13 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
-		if err := c.reinit(ctx); err != nil {
+		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
 	} else if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateExited {
 		// Initialize the container
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}
@@ -1064,14 +1168,16 @@ func (c *Container) mountStorage() (string, error) {
 func (c *Container) cleanupStorage() error {
 	if !c.state.Mounted {
 		// Already unmounted, do nothing
-		logrus.Debugf("Storage is already unmounted, skipping...")
+		logrus.Debugf("Container %s storage is already unmounted, skipping...", c.ID())
 		return nil
 	}
+
 	for _, mount := range c.config.Mounts {
 		if err := c.unmountSHM(mount); err != nil {
 			return err
 		}
 	}
+
 	if c.config.Rootfs != "" {
 		return nil
 	}
@@ -1111,13 +1217,13 @@ func (c *Container) cleanup(ctx context.Context) error {
 	// Remove healthcheck unit/timer file if it execs
 	if c.config.HealthCheckConfig != nil {
 		if err := c.removeTimer(); err != nil {
-			logrus.Error(err)
+			logrus.Errorf("Error removing timer for container %s healthcheck: %v", c.ID(), err)
 		}
 	}
 
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
-		lastError = err
+		lastError = errors.Wrapf(err, "error removing container %s network", c.ID())
 	}
 
 	// Unmount storage
@@ -1125,7 +1231,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 		if lastError != nil {
 			logrus.Errorf("Error unmounting container %s storage: %v", c.ID(), err)
 		} else {
-			lastError = err
+			lastError = errors.Wrapf(err, "error unmounting container %s storage", c.ID())
 		}
 	}
 
@@ -1283,48 +1389,15 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
-// localeToLanguage translates POSIX locale strings to BCP 47 language tags.
-func localeToLanguage(locale string) string {
-	locale = strings.Replace(strings.SplitN(locale, ".", 2)[0], "_", "-", 1)
-	langString, ok := localeToLanguageMap[strings.ToLower(locale)]
-	if !ok {
-		langString = locale
-	}
-	return langString
-}
-
 // Warning: precreate hooks may alter 'config' in place.
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
-	var locale string
-	var ok bool
-	for _, envVar := range []string{
-		"LC_ALL",
-		"LC_COLLATE",
-		"LANG",
-	} {
-		locale, ok = os.LookupEnv(envVar)
-		if ok {
-			break
-		}
-	}
-
-	langString := localeToLanguage(locale)
-	lang, err := language.Parse(langString)
-	if err != nil {
-		logrus.Warnf("failed to parse language %q: %s", langString, err)
-		lang, err = language.Parse("und-u-va-posix")
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	allHooks := make(map[string][]spec.Hook)
 	if c.runtime.config.HooksDir == nil {
 		if rootless.IsRootless() {
 			return nil, nil
 		}
 		for _, hDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
-			manager, err := hooks.New(ctx, []string{hDir}, []string{"precreate", "poststop"}, lang)
+			manager, err := hooks.New(ctx, []string{hDir}, []string{"precreate", "poststop"})
 			if err != nil {
 				if os.IsNotExist(err) {
 					continue
@@ -1343,7 +1416,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 			}
 		}
 	} else {
-		manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"precreate", "poststop"}, lang)
+		manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"precreate", "poststop"})
 		if err != nil {
 			if os.IsNotExist(err) {
 				logrus.Warnf("Requested OCI hooks directory %q does not exist", c.runtime.config.HooksDir)
@@ -1403,22 +1476,6 @@ func getExcludedCGroups() (excludes []string) {
 	return
 }
 
-// namedVolumes returns named volumes for the container
-func (c *Container) namedVolumes() ([]string, error) {
-	var volumes []string
-	for _, vol := range c.config.Spec.Mounts {
-		if strings.HasPrefix(vol.Source, c.runtime.config.VolumePath) {
-			volume := strings.TrimPrefix(vol.Source, c.runtime.config.VolumePath+"/")
-			split := strings.Split(volume, "/")
-			volume = split[0]
-			if _, err := c.runtime.state.Volume(volume); err == nil {
-				volumes = append(volumes, volume)
-			}
-		}
-	}
-	return volumes, nil
-}
-
 // this should be from chrootarchive.
 func (c *Container) copyWithTarFromImage(src, dest string) error {
 	mountpoint, err := c.mount()
@@ -1432,4 +1489,26 @@ func (c *Container) copyWithTarFromImage(src, dest string) error {
 		return err
 	}
 	return a.CopyWithTar(source, dest)
+}
+
+// checkReadyForRemoval checks whether the given container is ready to be
+// removed.
+// These checks are only used if force-remove is not specified.
+// If it is, we'll remove the container anyways.
+// Returns nil if safe to remove, or an error describing why it's unsafe if not.
+func (c *Container) checkReadyForRemoval() error {
+	if c.state.State == ContainerStateUnknown {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
+	}
+
+	if c.state.State == ContainerStateRunning ||
+		c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
+	}
+
+	if len(c.state.ExecSessions) != 0 {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
+	}
+
+	return nil
 }

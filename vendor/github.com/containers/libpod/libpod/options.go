@@ -10,15 +10,16 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
 
 var (
-	nameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	nameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	regexError = errors.Wrapf(ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
 )
 
 // Runtime Creation Options
@@ -436,6 +437,21 @@ func WithRenumber() RuntimeOption {
 	}
 }
 
+// WithMigrate instructs libpod to migrate container configurations to account
+// for changes between Libpod versions. All running containers will be stopped
+// during a migration, then restarted after the migration is complete.
+func WithMigrate() RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.doMigrate = true
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.
@@ -594,7 +610,7 @@ func WithName(name string) CtrCreateOption {
 
 		// Check the name against a regex
 		if !nameRegex.MatchString(name) {
-			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+			return regexError
 		}
 
 		ctr.config.Name = name
@@ -1111,24 +1127,6 @@ func WithUserVolumes(volumes []string) CtrCreateOption {
 	}
 }
 
-// WithLocalVolumes sets the built-in volumes of the container retrieved
-// from a container passed in to the --volumes-from flag.
-// This stores the built-in volume information in the Config so we can
-// add them when creating the container.
-func WithLocalVolumes(volumes []spec.Mount) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return ErrCtrFinalized
-		}
-
-		if volumes != nil {
-			ctr.config.LocalVolumes = append(ctr.config.LocalVolumes, volumes...)
-		}
-
-		return nil
-	}
-}
-
 // WithEntrypoint sets the entrypoint of the container.
 // This is not used to change the container's spec, but will instead be used
 // during commit to populate the entrypoint of the new image.
@@ -1241,6 +1239,41 @@ func WithUseImageHosts() CtrCreateOption {
 	}
 }
 
+// WithRestartPolicy sets the container's restart policy. Valid values are
+// "no", "on-failure", and "always". The empty string is allowed, and will be
+// equivalent to "no".
+func WithRestartPolicy(policy string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		switch policy {
+		case RestartPolicyNone, RestartPolicyNo, RestartPolicyOnFailure, RestartPolicyAlways:
+			ctr.config.RestartPolicy = policy
+		default:
+			return errors.Wrapf(ErrInvalidArg, "%q is not a valid restart policy", policy)
+		}
+
+		return nil
+	}
+}
+
+// WithRestartRetries sets the number of retries to use when restarting a
+// container with the "on-failure" restart policy.
+// 0 is an allowed value, and indicates infinite retries.
+func WithRestartRetries(tries uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.RestartRetries = tries
+
+		return nil
+	}
+}
+
 // withIsInfra sets the container to be an infra container. This means the container will be sometimes hidden
 // and expected to be the first container in the pod.
 func withIsInfra() CtrCreateOption {
@@ -1250,6 +1283,35 @@ func withIsInfra() CtrCreateOption {
 		}
 
 		ctr.config.IsInfra = true
+
+		return nil
+	}
+}
+
+// WithNamedVolumes adds the given named volumes to the container.
+func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		destinations := make(map[string]bool)
+
+		for _, vol := range volumes {
+			// Don't check if they already exist.
+			// If they don't we will automatically create them.
+
+			if _, ok := destinations[vol.Dest]; ok {
+				return errors.Wrapf(ErrInvalidArg, "two volumes found with destination %s", vol.Dest)
+			}
+			destinations[vol.Dest] = true
+
+			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
+				Name:    vol.Name,
+				Dest:    vol.Dest,
+				Options: util.ProcessOptions(vol.Options),
+			})
+		}
 
 		return nil
 	}
@@ -1266,32 +1328,10 @@ func WithVolumeName(name string) VolumeCreateOption {
 
 		// Check the name against a regex
 		if !nameRegex.MatchString(name) {
-			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+			return regexError
 		}
 		volume.config.Name = name
 
-		return nil
-	}
-}
-
-// WithVolumeUID sets the uid of the owner.
-func WithVolumeUID(uid int) VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return ErrVolumeFinalized
-		}
-		volume.config.UID = uid
-		return nil
-	}
-}
-
-// WithVolumeGID sets the gid of the owner.
-func WithVolumeGID(gid int) VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return ErrVolumeFinalized
-		}
-		volume.config.GID = gid
 		return nil
 	}
 }
@@ -1341,6 +1381,32 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 	}
 }
 
+// WithVolumeUID sets the UID that the volume will be created as.
+func WithVolumeUID(uid int) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.UID = uid
+
+		return nil
+	}
+}
+
+// WithVolumeGID sets the GID that the volume will be created as.
+func WithVolumeGID(gid int) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.GID = gid
+
+		return nil
+	}
+}
+
 // withSetCtrSpecific sets a bool notifying libpod that a volume was created
 // specifically for a container.
 // These volumes will be removed when the container is removed and volumes are
@@ -1368,7 +1434,7 @@ func WithPodName(name string) PodCreateOption {
 
 		// Check the name against a regex
 		if !nameRegex.MatchString(name) {
-			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+			return regexError
 		}
 
 		pod.config.Name = name

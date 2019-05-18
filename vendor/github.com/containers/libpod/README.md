@@ -5,12 +5,12 @@
 Libpod provides a library for applications looking to use the Container Pod concept,
 popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`. Podman manages pods, containers, container images, and container volumes.
 
-* [Latest Version: 1.0.0](https://github.com/containers/libpod/releases/latest)
+* [Latest Version: 1.2.0](https://github.com/containers/libpod/releases/latest)
 * [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 
 ## Overview and scope
 
-At a high level, the scope of libpod and podman is the following:
+At a high level, the scope of libpod and Podman is the following:
 
 * Support multiple image formats including the OCI and Docker image formats.
 * Support for multiple means to download images including trust & image verification.
@@ -29,6 +29,16 @@ This project tests all builds against each supported version of Fedora, the late
 1. Further work on the podman pod command
 1. Further improvements on rootless containers
 
+## Rootless
+Podman can be easily run as a normal user, without requiring a setuid binary.
+When run without root, Podman containers use user namespaces to set root in the container to the user running Podman.
+Rootless Podman runs locked-down containers with no privileges that the user running the container does not have.
+Some of these restrictions can be lifted (via `--privileged`, for example), but rootless containers will never have more privileges than the user that launched them.
+If you run Podman as your user and mount in `/etc/passwd` from the host, you still won't be able to change it, since your user doesn't have permission to do so.
+
+Almost all normal Podman functionality is available, though there are some [shortcomings](https://github.com/containers/libpod/blob/master/rootless.md).
+Any recent Podman release should be able to run rootless without any additional configuration, though your operating system may require some additional configuration detailed in the [install guide](https://github.com/containers/libpod/blob/master/install.md).
+
 ## Out of scope
 
 * Specializing in signing and pushing images to various storage backends.
@@ -43,7 +53,11 @@ This project tests all builds against each supported version of Fedora, the late
   Podman can also generate Kubernetes YAML based on a container or Pod (see
   [podman-generate-kube](https://github.com/containers/libpod/blob/master/docs/podman-generate-kube.1.md)),
   which allows for an easy transition from a local development environment
-  to a production Kubernetes cluster.
+  to a production Kubernetes cluster. If Kubernetes does not fit your requirements,
+  there are other third-party tools that support the docker-compose format such as
+  [kompose](https://github.com/kubernetes/kompose/) and
+  [podman-compose](https://github.com/muayyad-alsadi/podman-compose)
+  that might be appropriate for your environment.
 
 ## OCI Projects Plans
 
