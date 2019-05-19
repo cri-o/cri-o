@@ -127,7 +127,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **hooks_dir**=["*path*", ...]
   Each `*.json` file in the path configures a hook for CRI-O containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  CRI-O currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
 
-  Paths listed later in the array higher precedence (`oci-hooks(5)` discusses directory precedence).
+  Paths listed later in the array have higher precedence (`oci-hooks(5)` discusses directory precedence).
 
   For the annotation conditions, CRI-O uses the Kubernetes annotations, which are a subset of the annotations passed to the OCI runtime.  For example, `io.kubernetes.cri-o.Volumes` is part of the OCI runtime configuration annotations, but it is not part of the Kubernetes annotations being matched for hooks.
 
