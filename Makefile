@@ -95,7 +95,7 @@ endif
 	touch "$(GOPATH)/.gopathok"
 
 lint: .gopathok ${GOLANGCI_LINT}
-	${GOLANGCI_LINT} run --build-tags="test $(BUILDTAGS)"
+	${GOLANGCI_LINT} run
 
 fmt: cfmt
 
