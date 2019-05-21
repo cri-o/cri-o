@@ -72,6 +72,7 @@ github.com/containers/buildah/docker
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/unshare
+github.com/containers/buildah/pkg/cli
 # github.com/containers/image v1.5.1
 github.com/containers/image/types
 github.com/containers/image/pkg/sysregistries
@@ -108,7 +109,7 @@ github.com/containers/image/pkg/docker/config
 github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
-# github.com/containers/libpod v1.2.0
+# github.com/containers/libpod v1.3.1
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/hooks
 github.com/containers/libpod/pkg/registrar
@@ -119,6 +120,7 @@ github.com/containers/libpod/pkg/lookup
 github.com/containers/libpod/pkg/hooks/1.0.0
 github.com/containers/libpod/libpod
 github.com/containers/libpod/pkg/namespaces
+github.com/containers/libpod/pkg/util
 github.com/containers/libpod/version
 github.com/containers/libpod/libpod/driver
 github.com/containers/libpod/libpod/events
@@ -135,8 +137,8 @@ github.com/containers/libpod/pkg/kubeutils
 github.com/containers/libpod/pkg/netns
 github.com/containers/libpod/pkg/registries
 github.com/containers/libpod/pkg/resolvconf
-github.com/containers/libpod/pkg/util
 github.com/containers/libpod/utils
+github.com/containers/libpod/cmd/podman/cliconfig
 github.com/containers/libpod/libpod/lock/shm
 github.com/containers/libpod/pkg/resolvconf/dns
 # github.com/containers/psgo v0.0.0-20180822121435-5dde6da0bc88
@@ -193,6 +195,8 @@ github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/dbus
 github.com/coreos/go-systemd/util
 github.com/coreos/go-systemd/activation
+github.com/coreos/go-systemd/journal
+github.com/coreos/go-systemd/sdjournal
 # github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
 github.com/coreos/pkg/dlopen
 # github.com/cpuguy83/go-md2man v1.0.10
@@ -276,8 +280,6 @@ github.com/docker/spdystream/spdy
 # github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633
 github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
-# github.com/fatih/camelcase v0.0.0-20160318181535-f6a740d52f96
-github.com/fatih/camelcase
 # github.com/fatih/color v1.6.0
 github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.4.7
@@ -720,19 +722,13 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 # golang.org/x/text v0.3.2
-golang.org/x/text/language
-golang.org/x/text/collate
-golang.org/x/text/internal/language
-golang.org/x/text/internal/language/compact
-golang.org/x/text/internal/colltab
-golang.org/x/text/unicode/norm
-golang.org/x/text/internal/tag
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
-golang.org/x/text/transform
+golang.org/x/text/unicode/norm
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
+golang.org/x/text/transform
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/japanese
@@ -740,9 +736,13 @@ golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
+golang.org/x/text/language
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
 golang.org/x/text/width
+golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20161028155119-f51c12702a4d
 golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20190425150028-36563e24a262

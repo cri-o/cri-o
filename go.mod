@@ -19,7 +19,7 @@ require (
 	github.com/containernetworking/plugins v0.7.5
 	github.com/containers/buildah v1.7.2
 	github.com/containers/image v1.5.1
-	github.com/containers/libpod v1.2.0
+	github.com/containers/libpod v1.3.1
 	github.com/containers/psgo v0.0.0-20180822121435-5dde6da0bc88 // indirect
 	github.com/containers/storage v1.12.7
 	github.com/coreos/go-iptables v0.0.0-20180704133345-25d087f3cffd // indirect
@@ -89,7 +89,7 @@ require (
 	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190425145619-16072639606e
-	golang.org/x/text v0.3.2
+	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/grpc v1.20.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

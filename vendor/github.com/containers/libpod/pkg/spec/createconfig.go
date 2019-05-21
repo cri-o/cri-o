@@ -1,8 +1,6 @@
 package createconfig
 
 import (
-	"encoding/json"
-	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -12,30 +10,19 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/namespaces"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
-
-type mountType string
 
 // Type constants
 const (
 	bps = iota
 	iops
-	// TypeBind is the type for mounting host dir
-	TypeBind mountType = "bind"
-	// TypeVolume is the type for remote storage volumes
-	// TypeVolume mountType = "volume"  // re-enable upon use
-	// TypeTmpfs is the type for mounting tmpfs
-	TypeTmpfs mountType = "tmpfs"
 )
 
 // CreateResourceConfig represents resource elements in CreateConfig
@@ -69,7 +56,6 @@ type CreateResourceConfig struct {
 
 // CreateConfig is a pre OCI spec structure.  It represents user input from varlink or the CLI
 type CreateConfig struct {
-	Runtime            *libpod.Runtime
 	Annotations        map[string]string
 	Args               []string
 	CapAdd             []string // cap-add
@@ -91,6 +77,9 @@ type CreateConfig struct {
 	NoHosts            bool
 	HostAdd            []string //add-host
 	Hostname           string   //hostname
+	HTTPProxy          bool
+	Init               bool   // init
+	InitPath           string //init-path
 	Image              string
 	ImageID            string
 	BuiltinImgVolumes  map[string]struct{} // volumes defined in the image config
@@ -117,7 +106,9 @@ type CreateConfig struct {
 	PublishAll         bool     //publish-all
 	Quiet              bool     //quiet
 	ReadOnlyRootfs     bool     //read-only
+	ReadOnlyTmpfs      bool     //read-only-tmpfs
 	Resources          CreateResourceConfig
+	RestartPolicy      string
 	Rm                 bool              //rm
 	StopSignal         syscall.Signal    // stop-signal
 	StopTimeout        uint              // stop-timeout
@@ -128,8 +119,10 @@ type CreateConfig struct {
 	UsernsMode         namespaces.UsernsMode //userns
 	User               string                //user
 	UtsMode            namespaces.UTSMode    //uts
-	Mounts             []spec.Mount          //mounts
-	Volumes            []string              //volume
+	Mounts             []spec.Mount
+	MountsFlag         []string // mounts
+	NamedVolumes       []*libpod.ContainerNamedVolume
+	Volumes            []string //volume
 	VolumesFrom        []string
 	WorkDir            string   //workdir
 	LabelOpts          []string //SecurityOpts
@@ -138,8 +131,7 @@ type CreateConfig struct {
 	SeccompProfilePath string   //SecurityOpts
 	SecurityOpts       []string
 	Rootfs             string
-	LocalVolumes       []spec.Mount //Keeps track of the built-in volumes of container used in the --volumes-from flag
-	Syslog             bool         // Whether to enable syslog on exit commands
+	Syslog             bool // Whether to enable syslog on exit commands
 }
 
 func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
@@ -150,204 +142,8 @@ func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
 	return c.createBlockIO()
 }
 
-// AddContainerInitBinary adds the init binary specified by path iff the
-// container will run in a private PID namespace that is not shared with the
-// host or another pre-existing container, where an init-like process is
-// already running.
-//
-// Note that AddContainerInitBinary prepends "/dev/init" "--" to the command
-// to execute the bind-mounted binary as PID 1.
-func (c *CreateConfig) AddContainerInitBinary(path string) error {
-	if path == "" {
-		return fmt.Errorf("please specify a path to the container-init binary")
-	}
-	if !c.PidMode.IsPrivate() {
-		return fmt.Errorf("cannot add init binary as PID 1 (PID namespace isn't private)")
-	}
-	if c.Systemd {
-		return fmt.Errorf("cannot use container-init binary with systemd")
-	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return errors.Wrap(err, "container-init binary not found on the host")
-	}
-	c.Command = append([]string{"/dev/init", "--"}, c.Command...)
-	c.Mounts = append(c.Mounts, spec.Mount{
-		Destination: "/dev/init",
-		Type:        "bind",
-		Source:      path,
-		Options:     []string{"bind", "ro"},
-	})
-	return nil
-}
-
-func processOptions(options []string) []string {
-	var (
-		foundrw, foundro bool
-		rootProp         string
-	)
-	options = append(options, "rbind")
-	for _, opt := range options {
-		switch opt {
-		case "rw":
-			foundrw = true
-		case "ro":
-			foundro = true
-		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-			rootProp = opt
-		}
-	}
-	if !foundrw && !foundro {
-		options = append(options, "rw")
-	}
-	if rootProp == "" {
-		options = append(options, "rprivate")
-	}
-	return options
-}
-
-func (c *CreateConfig) initFSMounts() []spec.Mount {
-	var mounts []spec.Mount
-	for _, m := range c.Mounts {
-		m.Options = processOptions(m.Options)
-		if m.Type == "tmpfs" {
-			m.Options = append(m.Options, "tmpcopyup")
-		} else {
-			mounts = append(mounts, m)
-		}
-	}
-	return mounts
-}
-
-//GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
-func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
-	m := c.LocalVolumes
-	for _, i := range c.Volumes {
-		var options []string
-		spliti := strings.Split(i, ":")
-		if len(spliti) > 2 {
-			options = strings.Split(spliti[2], ",")
-		}
-
-		m = append(m, spec.Mount{
-			Destination: spliti[1],
-			Type:        string(TypeBind),
-			Source:      spliti[0],
-			Options:     processOptions(options),
-		})
-
-		logrus.Debugf("User mount %s:%s options %v", spliti[0], spliti[1], options)
-	}
-
-	if c.ImageVolumeType == "ignore" {
-		return m, nil
-	}
-
-	for vol := range c.BuiltinImgVolumes {
-		if libpod.MountExists(specMounts, vol) || libpod.MountExists(m, vol) {
-			continue
-		}
-
-		mount := spec.Mount{
-			Destination: vol,
-			Type:        c.ImageVolumeType,
-			Options:     []string{"rprivate", "rw", "nodev"},
-		}
-		if c.ImageVolumeType == "tmpfs" {
-			mount.Source = "tmpfs"
-			mount.Options = append(mount.Options, "tmpcopyup")
-		} else {
-			// This will cause a new local Volume to be created on your system
-			mount.Source = stringid.GenerateNonCryptoID()
-			mount.Options = append(mount.Options, "bind")
-		}
-		m = append(m, mount)
-	}
-
-	return m, nil
-}
-
-// GetVolumesFrom reads the create-config artifact of the container to get volumes from
-// and adds it to c.Volumes of the current container.
-func (c *CreateConfig) GetVolumesFrom() error {
-	var options string
-
-	if rootless.SkipStorageSetup() {
-		return nil
-	}
-
-	for _, vol := range c.VolumesFrom {
-		splitVol := strings.SplitN(vol, ":", 2)
-		if len(splitVol) == 2 {
-			options = splitVol[1]
-		}
-		ctr, err := c.Runtime.LookupContainer(splitVol[0])
-		if err != nil {
-			return errors.Wrapf(err, "error looking up container %q", splitVol[0])
-		}
-		inspect, err := ctr.Inspect(false)
-		if err != nil {
-			return errors.Wrapf(err, "error inspecting %q", splitVol[0])
-		}
-		var createArtifact CreateConfig
-		artifact, err := ctr.GetArtifact("create-config")
-		if err != nil {
-			return errors.Wrapf(err, "error getting create-config artifact for %q", splitVol[0])
-		}
-		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
-			return err
-		}
-		for key := range createArtifact.BuiltinImgVolumes {
-			for _, m := range inspect.Mounts {
-				if m.Destination == key {
-					c.LocalVolumes = append(c.LocalVolumes, m)
-					break
-				}
-			}
-		}
-
-		for _, i := range createArtifact.Volumes {
-			// Volumes format is host-dir:ctr-dir[:options], so get the host and ctr dir
-			// and add on the options given by the user to the flag.
-			spliti := strings.SplitN(i, ":", 3)
-			// Throw error if mounting volume from container with Z option (private label)
-			// Override this by adding 'z' to options.
-			if len(spliti) > 2 && strings.Contains(spliti[2], "Z") && !strings.Contains(options, "z") {
-				return errors.Errorf("volume mounted with private option 'Z' in %q. Use option 'z' to mount in current container", ctr.ID())
-			}
-			if options == "" {
-				// Mount the volumes with the default options
-				c.Volumes = append(c.Volumes, createArtifact.Volumes...)
-			} else {
-				c.Volumes = append(c.Volumes, spliti[0]+":"+spliti[1]+":"+options)
-			}
-		}
-	}
-	return nil
-}
-
-//GetTmpfsMounts takes user provided input for Tmpfs mounts and creates Mount structs
-func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
-	var m []spec.Mount
-	for _, i := range c.Tmpfs {
-		// Default options if nothing passed
-		options := []string{"rprivate", "rw", "noexec", "nosuid", "nodev", "size=65536k"}
-		spliti := strings.Split(i, ":")
-		destPath := spliti[0]
-		if len(spliti) > 1 {
-			options = strings.Split(spliti[1], ",")
-		}
-		m = append(m, spec.Mount{
-			Destination: destPath,
-			Type:        string(TypeTmpfs),
-			Options:     options,
-			Source:      string(TypeTmpfs),
-		})
-	}
-	return m
-}
-
-func (c *CreateConfig) createExitCommand() ([]string, error) {
-	config, err := c.Runtime.GetConfig()
+func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, error) {
+	config, err := runtime.GetConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +175,7 @@ func (c *CreateConfig) createExitCommand() ([]string, error) {
 }
 
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
-func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
+func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod, mounts []spec.Mount, namedVolumes []*libpod.ContainerNamedVolume) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var portBindings []ocicni.PortMapping
 	var err error
@@ -392,16 +188,10 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithSystemd())
 	}
 	if c.Name != "" {
-		logrus.Debugf("appending name %s", c.Name)
+		logrus.Debugf("setting container name %s", c.Name)
 		options = append(options, libpod.WithName(c.Name))
 	}
-	if c.Pod != "" || pod != nil {
-		if pod == nil {
-			pod, err = runtime.LookupPod(c.Pod)
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to add container to pod %s", c.Pod)
-			}
-		}
+	if c.Pod != "" {
 		logrus.Debugf("adding container to pod %s", c.Pod)
 		options = append(options, runtime.WithPod(pod))
 	}
@@ -412,20 +202,22 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		}
 	}
 
-	if len(c.Volumes) != 0 {
-		// Volumes consist of multiple, comma-delineated fields
-		// The image spec only includes one part of that, so drop the
-		// others, if they are included
-		volumes := make([]string, 0, len(c.Volumes))
-		for _, vol := range c.Volumes {
-			volumes = append(volumes, strings.SplitN(vol, ":", 2)[0])
+	if len(mounts) != 0 || len(namedVolumes) != 0 {
+		destinations := []string{}
+
+		// Take all mount and named volume destinations.
+		for _, mount := range mounts {
+			destinations = append(destinations, mount.Destination)
+		}
+		for _, volume := range namedVolumes {
+			destinations = append(destinations, volume.Dest)
 		}
 
-		options = append(options, libpod.WithUserVolumes(volumes))
+		options = append(options, libpod.WithUserVolumes(destinations))
 	}
 
-	if len(c.LocalVolumes) != 0 {
-		options = append(options, libpod.WithLocalVolumes(c.LocalVolumes))
+	if len(namedVolumes) != 0 {
+		options = append(options, libpod.WithNamedVolumes(namedVolumes))
 	}
 
 	if len(c.Command) != 0 {
@@ -461,7 +253,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 			return nil, err
 		}
 	} else if c.NetMode.IsContainer() {
-		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.Container())
+		connectedCtr, err := runtime.LookupContainer(c.NetMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.Container())
 		}
@@ -472,7 +264,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	if c.PidMode.IsContainer() {
-		connectedCtr, err := c.Runtime.LookupContainer(c.PidMode.Container())
+		connectedCtr, err := runtime.LookupContainer(c.PidMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.PidMode.Container())
 		}
@@ -481,7 +273,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	if c.IpcMode.IsContainer() {
-		connectedCtr, err := c.Runtime.LookupContainer(c.IpcMode.Container())
+		connectedCtr, err := runtime.LookupContainer(c.IpcMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.IpcMode.Container())
 		}
@@ -493,7 +285,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithUTSNSFromPod(pod))
 	}
 	if c.UtsMode.IsContainer() {
-		connectedCtr, err := c.Runtime.LookupContainer(c.UtsMode.Container())
+		connectedCtr, err := runtime.LookupContainer(c.UtsMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.UtsMode.Container())
 		}
@@ -539,7 +331,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 
 	options = append(options, libpod.WithPrivileged(c.Privileged))
 
-	useImageVolumes := c.ImageVolumeType == "bind"
+	useImageVolumes := c.ImageVolumeType == TypeBind
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, useImageVolumes))
 	options = append(options, libpod.WithSecLabels(c.LabelOpts))
@@ -568,8 +360,27 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
 	}
 
+	if c.RestartPolicy != "" {
+		if c.RestartPolicy == "unless-stopped" {
+			return nil, errors.Wrapf(libpod.ErrInvalidArg, "the unless-stopped restart policy is not supported")
+		}
+
+		split := strings.Split(c.RestartPolicy, ":")
+		if len(split) > 1 {
+			numTries, err := strconv.Atoi(split[1])
+			if err != nil {
+				return nil, errors.Wrapf(err, "%s is not a valid number of retries for restart policy", split[1])
+			}
+			if numTries < 0 {
+				return nil, errors.Wrapf(libpod.ErrInvalidArg, "restart policy requires a positive number of retries")
+			}
+			options = append(options, libpod.WithRestartRetries(uint(numTries)))
+		}
+		options = append(options, libpod.WithRestartPolicy(split[0]))
+	}
+
 	// Always use a cleanup process to clean up Podman after termination
-	exitCmd, err := c.createExitCommand()
+	exitCmd, err := c.createExitCommand(runtime)
 	if err != nil {
 		return nil, err
 	}
@@ -618,10 +429,4 @@ func NatToOCIPortBindings(ports nat.PortMap) ([]ocicni.PortMapping, error) {
 // host devices to the spec
 func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
 	return c.addPrivilegedDevices(g)
-}
-
-func getStatFromPath(path string) (unix.Stat_t, error) {
-	s := unix.Stat_t{}
-	err := unix.Stat(path, &s)
-	return s, err
 }

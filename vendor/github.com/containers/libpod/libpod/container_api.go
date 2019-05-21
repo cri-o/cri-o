@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/containers/libpod/libpod/driver"
@@ -15,7 +16,7 @@ import (
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/oci/caps"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -40,7 +41,7 @@ func (c *Container) Init(ctx context.Context) (err error) {
 	if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateStopped ||
 		c.state.State == ContainerStateExited) {
-		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s has already been created in runtime", c.ID())
 	}
 
 	// don't recursively start
@@ -57,11 +58,11 @@ func (c *Container) Init(ctx context.Context) (err error) {
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container
-		return c.reinit(ctx)
+		return c.reinit(ctx, false)
 	}
 
 	// Initialize the container for the first time
-	return c.init(ctx)
+	return c.init(ctx, false)
 }
 
 // Start starts a container.
@@ -119,13 +120,20 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 
 	attachChan := make(chan error)
 
+	// We need to ensure that we don't return until start() fired in attach.
+	// Use a WaitGroup to sync this.
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+
 	// Attach to the container before starting it
 	go func() {
-		if err := c.attach(streams, keys, resize, true); err != nil {
+		if err := c.attach(streams, keys, resize, true, wg); err != nil {
 			attachChan <- err
 		}
 		close(attachChan)
 	}()
+
+	wg.Wait()
 	c.newContainerEvent(events.Attach)
 	return attachChan, nil
 }
@@ -174,7 +182,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 	if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateUnknown ||
 		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
+		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers. %s in state %s", c.ID(), c.state.State.String())
 	}
 
 	if c.state.State == ContainerStateStopped ||
@@ -199,8 +207,15 @@ func (c *Container) Kill(signal uint) error {
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers")
 	}
+
 	defer c.newContainerEvent(events.Kill)
-	return c.runtime.ociRuntime.killContainer(c, signal)
+	if err := c.runtime.ociRuntime.killContainer(c, signal); err != nil {
+		return err
+	}
+
+	c.state.StoppedByUser = true
+
+	return c.save()
 }
 
 // Exec starts a new process inside the container
@@ -391,7 +406,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 	defer c.newContainerEvent(events.Attach)
-	return c.attach(streams, keys, resize, false)
+	return c.attach(streams, keys, resize, false, nil)
 }
 
 // Mount mounts a container's filesystem on the host
@@ -583,6 +598,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
 		if err := c.syncContainer(); err != nil {
 			return err
 		}
@@ -592,6 +608,19 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
 	}
+
+	// Handle restart policy.
+	// Returns a bool indicating whether we actually restarted.
+	// If we did, don't proceed to cleanup - just exit.
+	didRestart, err := c.handleRestartPolicy(ctx)
+	if err != nil {
+		return err
+	}
+	if didRestart {
+		return nil
+	}
+
+	// If we didn't restart, we perform a normal cleanup
 
 	// Check if we have active exec sessions
 	if len(c.state.ExecSessions) != 0 {
@@ -754,7 +783,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 		if err := c.prepare(); err != nil {
 			return err
 		}
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}
