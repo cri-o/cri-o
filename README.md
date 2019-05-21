@@ -105,6 +105,7 @@ Debian, Ubuntu, and related distributions:
 
 ```bash
 sudo apt-add-repository ppa:projectatomic/ppa
+sudo apt-get update -qq
 sudo apt-get install crio
 ```
 
