@@ -31,7 +31,7 @@ typedef enum {
 // should happen
 extern log_level_t log_level;
 extern char *cid;
-extern bool use_syslog;
+extern gboolean use_syslog;
 
 #define pexit(s) \
 	do { \
