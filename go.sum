@@ -115,6 +115,8 @@ github.com/containers/libpod v1.2.0 h1:rOQd/m0RaJkdjDdOZeHIj4ztSvr/U0uX37TLdp3OF
 github.com/containers/libpod v1.2.0/go.mod h1:KkaKUNtjfQIm83bee5nnVvfcWUImCPUHjoUrQMvIlII=
 github.com/containers/libpod v1.3.1 h1:xjeLsD5lDMTJsBOJmsE6JeK3WlvNSf4pFxj1Wp1YCdQ=
 github.com/containers/libpod v1.3.1/go.mod h1:KkaKUNtjfQIm83bee5nnVvfcWUImCPUHjoUrQMvIlII=
+github.com/containers/libpod v1.3.2 h1:ccSEoyEmnDSfvq2A3FgvI8LS0SjGZbS9oMa26zizzLY=
+github.com/containers/libpod v1.3.2/go.mod h1:KkaKUNtjfQIm83bee5nnVvfcWUImCPUHjoUrQMvIlII=
 github.com/containers/psgo v0.0.0-20180822121435-5dde6da0bc88 h1:2UQmQdDu+Ujs+puaMkiOIUr/IGzrASvd+nY3etJq03E=
 github.com/containers/psgo v0.0.0-20180822121435-5dde6da0bc88/go.mod h1:ELMarmNM9gDUsJz1ktAUd5tlSm6iWkfB8tx5gxwGFgM=
 github.com/containers/psgo v1.2.1 h1:nKpO4UMCtbiwbWQgPmCF8RuXH+tfL+B0szW3Gt12j1U=
@@ -633,6 +635,8 @@ github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f/go.mod h
 github.com/seccomp/libseccomp-golang v0.0.0-20150813023252-1b506fc7c24e/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
 github.com/seccomp/libseccomp-golang v0.9.0 h1:S1pmhdFh5spQtVojA+4GUdWBqvI8ydYHxrx8iR6xN8o=
 github.com/seccomp/libseccomp-golang v0.9.0/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
+github.com/seccomp/libseccomp-golang v0.9.1 h1:NJjM5DNFOs0s3kYE1WUOr6G8V97sdt46rlXTMfXGWBo=
+github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
 github.com/shirou/gopsutil v0.0.0-20180427012116-c95755e4bcd7/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
 github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4/go.mod h1:qsXQc7+bwAM3Q1u/4XEfrquwF8Lw7D7y5cD8CuHnfIc=
 github.com/shurcooL/go v0.0.0-20180423040247-9e1955d9fb6e h1:MZM7FHLqUHYI0Y/mQAt3d2aYa0SiNms/hFqC9qJYolM=
@@ -700,6 +704,8 @@ github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijb
 github.com/urfave/negroni v1.0.0/go.mod h1:Meg73S6kFm/4PpbYdq35yYWoCZ9mS/YSx+lKnmiohz4=
 github.com/vbatts/git-validation v0.0.0-20181108135710-7b29366a0dd3 h1:4KCZqBgnVVEnjKWmdkKUZKfZoBJk7LUKGaSo4QM0mp4=
 github.com/vbatts/git-validation v0.0.0-20181108135710-7b29366a0dd3/go.mod h1:WwXoWJRJIn+iAlwAdZFona6qcR/WW6fecCR3B9zybPE=
+github.com/vbatts/git-validation v1.0.0 h1:Eb7bD3ThOk/2P01M+KaUng0gka9+MVvpn6d0a6AKxq0=
+github.com/vbatts/git-validation v1.0.0/go.mod h1:QyK3uQnRYWGt/5ezd8kcpwPrm6zn9tNM/KtozbpfU6k=
 github.com/vbatts/tar-split v0.11.1 h1:0Odu65rhcZ3JZaPHxl7tCI3V/C/Q9Zf82UFravl02dE=
 github.com/vbatts/tar-split v0.11.1/go.mod h1:LEuURwDEiWjRjwu46yU3KVGuUdVv/dcnpcEPSzR8z6g=
 github.com/vbauerster/mpb v3.4.0+incompatible h1:mfiiYw87ARaeRW6x5gWwYRUawxaW1tLAD8IceomUCNw=

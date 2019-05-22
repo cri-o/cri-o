@@ -121,7 +121,7 @@ github.com/containers/image/pkg/docker/config
 github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
-# github.com/containers/libpod v1.3.1
+# github.com/containers/libpod v1.3.2
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/hooks
 github.com/containers/libpod/pkg/registrar
@@ -638,7 +638,7 @@ github.com/prometheus/procfs/internal/fs
 github.com/russross/blackfriday
 # github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f
 github.com/seccomp/containers-golang
-# github.com/seccomp/libseccomp-golang v0.9.0
+# github.com/seccomp/libseccomp-golang v0.9.1
 github.com/seccomp/libseccomp-golang
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
@@ -668,7 +668,7 @@ github.com/ulikunitz/xz/lzma
 github.com/ulikunitz/xz/internal/hash
 # github.com/urfave/cli v1.20.0
 github.com/urfave/cli
-# github.com/vbatts/git-validation v0.0.0-20181108135710-7b29366a0dd3
+# github.com/vbatts/git-validation v1.0.0
 github.com/vbatts/git-validation
 github.com/vbatts/git-validation/rules/danglingwhitespace
 github.com/vbatts/git-validation/rules/dco
