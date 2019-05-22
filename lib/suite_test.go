@@ -38,11 +38,16 @@ var (
 	sut            *lib.ContainerServer
 	mySandbox      *sandbox.Sandbox
 	myContainer    *oci.Container
+
+	validDirPath string
 )
 
 const (
 	sandboxID   = "sandboxID"
 	containerID = "containerID"
+
+	validFilePath = "/bin/sh"
+	invalidPath   = "/wrong"
 )
 
 var _ = BeforeSuite(func() {
@@ -99,6 +104,8 @@ var _ = BeforeSuite(func() {
 	libMock = libmock.NewMockConfigIface(mockCtrl)
 	storeMock = containerstoragemock.NewMockStore(mockCtrl)
 	ociRuntimeMock = ocimock.NewMockRuntimeImpl(mockCtrl)
+
+	validDirPath = t.MustTempDir("crio-empty")
 })
 
 var _ = AfterSuite(func() {

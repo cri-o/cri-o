@@ -2,6 +2,8 @@ package framework
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -15,6 +17,8 @@ type TestFramework struct {
 	setup     func(*TestFramework) error
 	teardown  func(*TestFramework) error
 	TestError error
+
+	tempDirs []string
 }
 
 // NewTestFramework creates a new test framework instance for a given `setup`
@@ -24,10 +28,11 @@ func NewTestFramework(setup, teardown func(*TestFramework) error) *TestFramework
 		setup,
 		teardown,
 		fmt.Errorf("error"),
+		nil,
 	}
 }
 
-// NilFn is a convenience function which simply does nothing
+// NilFunc is a convenience function which simply does nothing
 func NilFunc(f *TestFramework) error {
 	return nil
 }
@@ -48,11 +53,28 @@ func (t *TestFramework) Teardown() {
 
 	// Teardown the actual test suite
 	gomega.Expect(t.teardown(t)).To(gomega.Succeed())
+
+	// Clean up any temporary directories the test suite created.
+	for _, d := range t.tempDirs {
+		os.RemoveAll(d)
+	}
 }
 
 // Describe is a convenience wrapper around the `ginkgo.Describe` function
 func (t *TestFramework) Describe(text string, body func()) bool {
 	return ginkgo.Describe("cri-o: "+text, body)
+}
+
+// MustTempDir uses ioutil.TempDir to create a temporary directory
+// with the given prefix.  It panics on any error.
+func (t *TestFramework) MustTempDir(prefix string) string {
+	path, err := ioutil.TempDir("", prefix)
+	if err != nil {
+		panic(err)
+	}
+
+	t.tempDirs = append(t.tempDirs, path)
+	return path
 }
 
 // RunFrameworkSpecs is a convenience wrapper for running tests

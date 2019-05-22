@@ -16,6 +16,7 @@ import (
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -525,8 +526,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 
 		for _, hooksDir := range c.HooksDir {
-			if _, err := os.Stat(hooksDir); err != nil {
-				return errors.Wrapf(err, "invalid hooks_dir entry")
+			if err := utils.IsDirectory(hooksDir); err != nil {
+				return errors.Wrapf(err, "invalid hooks_dir: %s", err)
 			}
 		}
 
@@ -544,8 +545,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 // `nil`.
 func (c *NetworkConfig) Validate(onExecution bool) error {
 	if onExecution {
-		if _, err := os.Stat(c.NetworkDir); err != nil {
-			return errors.Wrapf(err, "invalid network_dir")
+		if err := utils.IsDirectory(c.NetworkDir); err != nil {
+			return errors.Wrapf(err, "invalid network_dir: %s", err)
 		}
 
 		for _, pluginDir := range c.PluginDir {

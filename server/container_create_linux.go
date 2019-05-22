@@ -20,6 +20,7 @@ import (
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/utils"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
@@ -123,7 +124,7 @@ func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig
 		if err == devices.ErrNotADevice {
 
 			// check if it is a directory
-			if src, e := os.Stat(path); e == nil && src.IsDir() {
+			if e := utils.IsDirectory(path); e == nil {
 
 				// mount the internal devices recursively
 				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {

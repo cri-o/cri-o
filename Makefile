@@ -219,6 +219,7 @@ testunit: ${GINKGO}
 	${BUILD_BIN_PATH}/ginkgo \
 		${TESTFLAGS} \
 		-r \
+		--trace \
 		--cover \
 		--covermode atomic \
 		--outputdir ${COVERAGE_PATH} \

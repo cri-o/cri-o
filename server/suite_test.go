@@ -55,6 +55,8 @@ var (
 	testPath          string
 	testSandbox       *sandbox.Sandbox
 	testStreamService server.StreamService
+
+	emptyDir string
 )
 
 const (
@@ -76,6 +78,8 @@ var _ = BeforeSuite(func() {
 	imageMock = imagetypesmock.NewMockImage(mockCtrl)
 	cniPluginMock = ocicnitypesmock.NewMockCNIPlugin(mockCtrl)
 	ociRuntimeMock = ocimock.NewMockRuntimeImpl(mockCtrl)
+
+	emptyDir = t.MustTempDir("crio-empty")
 })
 
 var _ = AfterSuite(func() {
@@ -142,7 +146,13 @@ var beforeEach = func() {
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
 	serverConfig.LogDir = path.Join(testPath, "log")
 	serverConfig.SeccompProfile = "../test/testdata/sandbox_config_seccomp.json"
-	serverConfig.NetworkDir = os.TempDir()
+
+	// We want a directory that is guaranteed to exist, but it must
+	// be empty so we don't erroneously load anything and make tests
+	// unreproducible.
+	serverConfig.NetworkDir = emptyDir
+	serverConfig.PluginDir = []string{emptyDir}
+	serverConfig.HooksDir = []string{emptyDir}
 
 	// Prepare the library config
 	libConfig, err = lib.DefaultConfig(nil)
@@ -150,6 +160,10 @@ var beforeEach = func() {
 	libConfig.FileLocking = false
 	libConfig.Runtimes["runc"] = serverConfig.Runtimes["runc"]
 	libConfig.LogDir = serverConfig.LogDir
+
+	libConfig.NetworkDir = serverConfig.NetworkDir
+	libConfig.PluginDir = serverConfig.PluginDir
+	libConfig.HooksDir = serverConfig.HooksDir
 
 	// Initialize test container and sandbox
 	testSandbox, err = sandbox.New(sandboxID, "", "", "", "",
