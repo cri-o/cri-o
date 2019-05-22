@@ -1,5 +1,11 @@
 ---
 run:
+  build-tags:
+    - apparmor
+    - containers_image_ostree_stub
+    - seccomp
+    - selinux
+    - test
   concurrency: 6
   deadline: 5m
 linters:
