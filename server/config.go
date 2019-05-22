@@ -131,17 +131,28 @@ func (c *Config) UpdateFromFile(path string) error {
 // Returns errors encountered when generating or writing the file, or nil
 // otherwise.
 func (c *Config) ToFile(path string) error {
-	var w bytes.Buffer
-	e := toml.NewEncoder(&w)
-
-	t := new(tomlConfig)
-	t.fromConfig(c)
-
-	if err := e.Encode(*t); err != nil {
+	b, err := c.ToBytes()
+	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(path, w.Bytes(), 0644)
+	return ioutil.WriteFile(path, b, 0644)
+}
+
+// ToBytes encodes the config into a byte slice. It errors if the encoding
+// fails, which should never happen at all because of generael type safeness.
+func (c *Config) ToBytes() ([]byte, error) {
+	var buffer bytes.Buffer
+	e := toml.NewEncoder(&buffer)
+
+	tc := tomlConfig{}
+	tc.fromConfig(c)
+
+	if err := e.Encode(tc); err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }
 
 // DefaultConfig returns the default configuration for crio.
@@ -223,7 +234,7 @@ func (c *Config) ReloadLogLevel(newConfig *Config) error {
 		}
 		// Always log this message without considering the current
 		logrus.SetLevel(logrus.InfoLevel)
-		logrus.Infof("set config log level to %q", newConfig.LogLevel)
+		logrus.Infof("set config log_level to %q", newConfig.LogLevel)
 
 		logrus.SetLevel(level)
 		c.LogLevel = newConfig.LogLevel

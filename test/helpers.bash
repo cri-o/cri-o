@@ -122,6 +122,7 @@ fi
 CRIO_SOCKET="$TESTDIR/crio.sock"
 CRIO_CONFIG="$TESTDIR/crio.conf"
 CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
+CRIO_LOG="$TESTDIR/crio.log"
 
 # Copy all the CNI dependencies around to ensure encapsulated tests
 CRIO_CNI_PLUGIN="$TESTDIR/cni-bin"
@@ -305,7 +306,11 @@ function pull_test_containers() {
 # Start crio.
 function start_crio() {
 	setup_crio "$@"
-	"$CRIO_BINARY_PATH" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY_PATH" \
+		--default-mounts-file "$TESTDIR/containers/mounts.conf" \
+		--log-level debug \
+		--config "$CRIO_CONFIG" \
+		&> >(tee "$CRIO_LOG") & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }
