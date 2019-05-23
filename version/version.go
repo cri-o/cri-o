@@ -16,8 +16,8 @@ const Version = "1.14.3-dev"
 // file is the location of the old version file
 // gitCommit is the current git commit version. It will be added to the file
 // to aid in debugging, but will not be used to compare versions
-func WriteVersionFile(file string, gitCommit string) error {
-	current, err := parseVersionConstant(gitCommit)
+func WriteVersionFile(file, gitCommit string) error {
+	current, err := parseVersionConstant(Version, gitCommit)
 	// Sanity check-this should never happen
 	if err != nil {
 		return err
@@ -42,8 +42,8 @@ func WriteVersionFile(file string, gitCommit string) error {
 // Because the version string doesn't keep track of the git commit,
 // but it could be useful for debugging, we pass it in here
 // If our version constant is properly formatted, this should never error
-func parseVersionConstant(gitCommit string) (*semver.Version, error) {
-	v, err := semver.Make(Version)
+func parseVersionConstant(versionString, gitCommit string) (*semver.Version, error) {
+	v, err := semver.Make(versionString)
 	if err != nil {
 		return nil, err
 	}
