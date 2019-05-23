@@ -17,6 +17,7 @@ import (
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/truncindex"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -131,8 +132,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface Co
 	hookDirectories := config.HooksDir
 	if config.HooksDir == nil {
 		for _, hooksDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
-			_, err = os.Stat(hooksDir)
-			if err == nil {
+			if err := utils.IsDirectory(hooksDir); err == nil {
 				hookDirectories = append(hookDirectories, hooksDir)
 				logrus.Warnf("implicit hook directories are deprecated; set --hooks-dir=%q explicitly to continue to load hooks from this directory", hooksDir)
 			}
