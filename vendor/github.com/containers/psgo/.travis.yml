@@ -6,16 +6,12 @@ servics:
         - docker
 
 go:
-        - 1.10.x
-        - 1.9.x
+        - tip
 
 before_install:
         - sudo add-apt-repository ppa:duggan/bats --yes
         - sudo apt-get update -qq
         - sudo apt-get install -qq bats
-
-before_script:
-        - go get github.com/golang/lint/golint
 
 script:
         - make validate

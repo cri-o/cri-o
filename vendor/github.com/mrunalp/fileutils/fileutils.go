@@ -139,16 +139,19 @@ func CopyDirectory(source string, dest string) error {
 			return nil
 		}
 
-		return CopyFile(path, filepath.Join(dest, relPath))
+		// Copy the file.
+		if err := CopyFile(path, filepath.Join(dest, relPath)); err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
 
-// Gives a number indicating the device driver to be used to access the passed device
 func major(device uint64) uint64 {
 	return (device >> 8) & 0xfff
 }
 
-// Gives a number that serves as a flag to the device driver for the passed device
 func minor(device uint64) uint64 {
 	return (device & 0xff) | ((device >> 12) & 0xfff00)
 }

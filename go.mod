@@ -3,16 +3,15 @@ go 1.12
 module github.com/cri-o/cri-o
 
 require (
-	github.com/14rcole/gopopulate v0.0.0-20180821133914-b175b219e774 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.12
-	github.com/Microsoft/hcsshim v0.6.2 // indirect
 	github.com/VividCortex/ewma v1.1.1 // indirect
-	github.com/checkpoint-restore/go-criu v0.0.0-20181120144056-17b0214f6c48 // indirect
+	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b // indirect
 	github.com/containerd/cgroups v0.0.0-20180515175038-5e610833b720
 	github.com/containerd/containerd v1.2.6
-	github.com/containerd/fifo v0.0.0-20180307165137-3d5202aec260 // indirect
-	github.com/containerd/go-runc v0.0.0-20180907222934-5a6d9f37cfa3 // indirect
+	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
+	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
+	github.com/containerd/go-runc v0.0.0-20190226155025-7d11b49dc076 // indirect
 	github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
 	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
 	github.com/containernetworking/cni v0.7.0
@@ -20,43 +19,30 @@ require (
 	github.com/containers/buildah v1.7.2
 	github.com/containers/image v1.5.1
 	github.com/containers/libpod v1.3.1
-	github.com/containers/psgo v0.0.0-20180822121435-5dde6da0bc88 // indirect
+	github.com/containers/psgo v1.2.1 // indirect
 	github.com/containers/storage v1.12.7
-	github.com/coreos/go-iptables v0.0.0-20180704133345-25d087f3cffd // indirect
+	github.com/coreos/go-iptables v0.4.1 // indirect
 	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.0.0-20190328132530-0c180f981b27
-	github.com/cyphar/filepath-securejoin v0.2.1 // indirect
-	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295
-	github.com/docker/docker-credential-helpers v0.6.1 // indirect
-	github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82 // indirect
+	github.com/docker/docker-credential-helpers v0.6.2 // indirect
 	github.com/docker/go-units v0.4.0
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
-	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
-	github.com/elazarl/goproxy v0.0.0-20190410145444-c548f45dcf1d // indirect
-	github.com/elazarl/goproxy/ext v0.0.0-20190410145444-c548f45dcf1d // indirect
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/fsouza/go-dockerclient v1.3.0 // indirect
+	github.com/fsouza/go-dockerclient v1.4.0 // indirect
 	github.com/go-zoo/bone v1.3.0
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/gogo/protobuf v1.2.1
-	github.com/golang/groupcache v0.0.0-20170421005642-b710c8433bd1 // indirect
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.16.1-0.20190402065613-de1d1ad903cd
-	github.com/google/uuid v1.1.1 // indirect
-	github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce // indirect
-	github.com/hashicorp/go-multierror v0.0.0-20170622060955-83588e72410a // indirect
-	github.com/hashicorp/go-version v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.0.0 // indirect
+	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hpcloud/tail v1.0.0
-	github.com/klauspost/compress v1.4.1 // indirect
-	github.com/klauspost/cpuid v1.2.0 // indirect
+	github.com/klauspost/compress v1.5.0 // indirect
+	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/pgzip v1.2.1 // indirect
 	github.com/kr/pty v1.1.4
-	github.com/mattn/go-isatty v0.0.4 // indirect
-	github.com/mattn/go-shellwords v1.0.5 // indirect
-	github.com/mistifyio/go-zfs v2.1.1+incompatible // indirect
-	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618 // indirect
 	github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
@@ -66,19 +52,18 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.3.1-0.20190418135848-095789df6c2b
 	github.com/opencontainers/selinux v1.2.2
-	github.com/openshift/imagebuilder v0.0.0-20190308124740-705fe9255c57 // indirect
-	github.com/opentracing/opentracing-go v0.0.0-20190218023034-25a84ff92183 // indirect
+	github.com/openshift/imagebuilder v1.1.0 // indirect
+	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20181213164143-d0388bd827cf // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_golang v0.9.2
-	github.com/prometheus/common v0.3.0 // indirect
-	github.com/seccomp/containers-golang v0.0.0-20180629143253-cdfdaa7543f4 // indirect
+	github.com/prometheus/client_golang v0.9.3
+	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f // indirect
 	github.com/seccomp/libseccomp-golang v0.9.0
-	github.com/sirupsen/logrus v1.4.1
+	github.com/sirupsen/logrus v1.4.2
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20160928074757-e7cb7fa329f4
-	github.com/tchap/go-patricia v2.2.6+incompatible // indirect
-	github.com/ulikunitz/xz v0.5.4 // indirect
+	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
+	github.com/ulikunitz/xz v0.5.6 // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/vbatts/git-validation v0.0.0-20181108135710-7b29366a0dd3
 	github.com/vbatts/tar-split v0.11.1 // indirect
@@ -90,6 +75,7 @@ require (
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190425145619-16072639606e
 	golang.org/x/text v0.3.2 // indirect
+	google.golang.org/genproto v0.0.0-20190516172635-bb713bdc0e52 // indirect
 	google.golang.org/grpc v1.20.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

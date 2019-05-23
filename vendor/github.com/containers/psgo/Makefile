@@ -18,17 +18,17 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 .PHONY: vendor
-vendor: vendor.conf
-	@echo "*** Sorting vendor.conf ***"
-	sort vendor.conf -o vendor.conf
-	vndr
+vendor:
+	GO111MODULE=on go mod tidy
+	GO111MODULE=on go mod vendor
+	GO111MODULE=on go mod verify
 
 .PHONY: validate
-validate: $(GO_SRC)
+validate: .install.lint
 	@which gofmt >/dev/null 2>/dev/null || (echo "ERROR: gofmt not found." && false)
 	test -z "$$(gofmt -s -l . | grep -vE 'vendor/' | tee /dev/stderr)"
-	@which golint >/dev/null 2>/dev/null|| (echo "ERROR: golint not found." && false)
-	test -z "$$(golint $(PROJECT)/...  | grep -vE 'vendor/' | tee /dev/stderr)"
+	@which golangci-lint >/dev/null 2>/dev/null|| (echo "ERROR: golangci-lint not found." && false)
+	test -z "$$(golangci-lint run)"
 	@go doc cmd/vet >/dev/null 2>/dev/null|| (echo "ERROR: go vet not found." && false)
 	test -z "$$($(GO) vet $$($(GO) list $(PROJECT)/...) 2>&1 | tee /dev/stderr)"
 
@@ -47,6 +47,10 @@ test-unit:
 .PHONY: install
 install:
 	sudo install -D -m755 $(BUILD_DIR)/$(NAME) $(BIN_DIR)
+
+.PHONY: .install.lint
+.install.lint:
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 .PHONY: uninstall
 uninstall:
