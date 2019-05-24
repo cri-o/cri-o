@@ -24,6 +24,7 @@
 #include <inttypes.h>
 #include <sys/statfs.h>
 #include <linux/magic.h>
+#include <sys/inotify.h>
 
 #if __STDC_VERSION__ >= 199901L
 /* C99 or later */
@@ -48,6 +49,8 @@ static gboolean opt_terminal = FALSE;
 static gboolean opt_stdin = FALSE;
 static gboolean opt_leave_stdin_open = FALSE;
 static gboolean opt_syslog = FALSE;
+static gboolean is_cgroup_v2 = FALSE;
+static char *cgroup2_path = NULL;
 static char *opt_cid = NULL;
 static char *opt_cuuid = NULL;
 static char *opt_name = NULL;
@@ -138,7 +141,7 @@ static ssize_t write_all(int fd, const void *buf, size_t count)
  * Returns the path for specified controller name for a pid.
  * Returns NULL on error.
  */
-static char *process_cgroup_subsystem_path(int pid, const char *subsystem)
+static char *process_cgroup_subsystem_path(int pid, bool cgroup2, const char *subsystem)
 {
 	_cleanup_free_ char *cgroups_file_path = g_strdup_printf("/proc/%d/cgroup", pid);
 	_cleanup_fclose_ FILE *fp = NULL;
@@ -169,6 +172,11 @@ static char *process_cgroup_subsystem_path(int pid, const char *subsystem)
 		}
 		*path = 0;
 		path++;
+		if (cgroup2) {
+			subsystem_path = g_strdup_printf("%s%s", CGROUP_ROOT, path);
+			subsystem_path[strlen(subsystem_path) - 1] = '\0';
+			return subsystem_path;
+		}
 		subsystems = g_strsplit(ptr, ",", -1);
 		for (i = 0; subsystems[i] != NULL; i++) {
 			if (strcmp(subsystems[i], subsystem) == 0) {
@@ -274,6 +282,7 @@ static int oom_event_fd = -1;
 static int attach_socket_fd = -1;
 static int console_socket_fd = -1;
 static int terminal_ctrl_fd = -1;
+static int inotify_fd = -1;
 
 static gboolean timed_out = FALSE;
 
@@ -479,7 +488,7 @@ static gboolean timeout_cb(G_GNUC_UNUSED gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean oom_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
+static gboolean oom_cb_cgroup_v1(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
 {
 	uint64_t oom_event;
 	ssize_t num_read = 0;
@@ -508,6 +517,74 @@ static gboolean oom_cb(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer us
 	close(fd);
 	oom_event_fd = -1;
 	return G_SOURCE_REMOVE;
+}
+
+
+static gboolean check_cgroup2_oom()
+{
+	_cleanup_free_ char *memory_events_file_path = NULL;
+	_cleanup_free_ char *line = NULL;
+	_cleanup_fclose_ FILE *fp = NULL;
+	static long int last_counter = 0;
+	size_t len = 0;
+	ssize_t read;
+
+	if (!is_cgroup_v2)
+		return G_SOURCE_REMOVE;
+
+	memory_events_file_path = g_build_filename(cgroup2_path, "memory.events", NULL);
+
+	fp = fopen(memory_events_file_path, "re");
+	if (fp == NULL) {
+		nwarnf("Failed to open cgroups file: %s", memory_events_file_path);
+		return G_SOURCE_CONTINUE;
+	}
+	while ((read = getline(&line, &len, fp)) != -1) {
+		long int counter;
+
+		if (read < 6 || memcmp(line, "oom ", 4))
+			continue;
+
+		counter = strtol(&line[4], NULL, 10);
+		if (counter == LONG_MAX) {
+			nwarnf("Failed to parse %s", &line[4]);
+		}
+
+		if (counter != last_counter) {
+			_cleanup_close_ int oom_fd = -1;
+
+			ninfo("OOM received");
+			oom_fd = open("oom", O_CREAT, 0666);
+			if (oom_fd < 0) {
+				nwarn("Failed to write oom file");
+			} else {
+				last_counter = counter;
+			}
+		}
+		return G_SOURCE_CONTINUE;
+	}
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean oom_cb_cgroup_v2(int fd, GIOCondition condition, G_GNUC_UNUSED gpointer user_data)
+{
+	struct inotify_event events[10];
+	gboolean ret = G_SOURCE_REMOVE;
+
+	/* Drop the inotify events.  */
+	read(fd, &events, sizeof(events));
+
+	if ((condition & G_IO_IN) != 0) {
+		ret = check_cgroup2_oom();
+	}
+
+	if (ret == G_SOURCE_REMOVE) {
+		/* End of input */
+		close(fd);
+		inotify_fd = -1;
+	}
+
+	return ret;
 }
 
 #define CONN_SOCK_BUF_SIZE 32 * 1024 /* Match the write size in CopyDetachable */
@@ -883,20 +960,44 @@ static int setup_terminal_control_fifo()
 	return dummyfd;
 }
 
-static void setup_oom_handling(int container_pid)
+static void setup_oom_handling_cgroup_v2(int container_pid)
+{
+	_cleanup_close_ int ifd = -1;
+	int wd;
+
+	cgroup2_path = process_cgroup_subsystem_path(container_pid, true, "");
+	if (!cgroup2_path) {
+		nwarn("Failed to get cgroup path. Container may have exited");
+		return;
+	}
+
+	_cleanup_free_ char *memory_events_file_path = g_build_filename(cgroup2_path, "memory.events", NULL);
+
+	if ((ifd = inotify_init()) < 0) {
+		nwarnf("Failed to create inotify fd");
+		return;
+	}
+
+	if ((wd = inotify_add_watch(ifd, memory_events_file_path, IN_MODIFY)) < 0) {
+		nwarnf("Failed to add inotify watch for %s", memory_events_file_path);
+		return;
+	}
+
+	/* Move ownership to inotify_fd.  */
+	inotify_fd = ifd;
+	ifd = -1;
+
+	g_unix_fd_add(inotify_fd, G_IO_IN, oom_cb_cgroup_v2, NULL);
+}
+
+static void setup_oom_handling_cgroup_v1(int container_pid)
 {
 	/* Setup OOM notification for container process */
 	_cleanup_free_ char *memory_cgroup_path = NULL;
 	_cleanup_close_ int cfd = -1;
-	struct statfs sfs;
 	int ofd = -1; /* Not closed */
 
-	if (statfs("/sys/fs/cgroup", &sfs) == 0 && sfs.f_type == CGROUP2_SUPER_MAGIC) {
-		nwarnf("cgroup v2 unified mode detected.  Skipping OOM handling");
-		return;
-	}
-
-	memory_cgroup_path = process_cgroup_subsystem_path(container_pid, "memory");
+	memory_cgroup_path = process_cgroup_subsystem_path(container_pid, false, "memory");
 	if (!memory_cgroup_path) {
 		nexit("Failed to get memory cgroup path");
 	}
@@ -919,7 +1020,19 @@ static void setup_oom_handling(int container_pid)
 	if (write_all(cfd, data, strlen(data)) < 0)
 		pexit("Failed to write to cgroup.event_control");
 
-	g_unix_fd_add(oom_event_fd, G_IO_IN, oom_cb, NULL);
+	g_unix_fd_add(oom_event_fd, G_IO_IN, oom_cb_cgroup_v1, NULL);
+}
+
+static void setup_oom_handling(int container_pid)
+{
+	struct statfs sfs;
+
+	if (statfs("/sys/fs/cgroup", &sfs) == 0 && sfs.f_type == CGROUP2_SUPER_MAGIC) {
+		is_cgroup_v2 = TRUE;
+		setup_oom_handling_cgroup_v2(container_pid);
+		return;
+	}
+	setup_oom_handling_cgroup_v1(container_pid);
 }
 
 static void do_exit_command()
@@ -1387,6 +1500,8 @@ int main(int argc, char *argv[])
 	check_child_processes(pid_to_handler);
 
 	g_main_loop_run(main_loop);
+
+	check_cgroup2_oom();
 
 	/* Drain stdout and stderr only if a timeout doesn't occur */
 	if (masterfd_stdout != -1 && !timed_out) {
