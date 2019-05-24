@@ -608,8 +608,17 @@ func (c *ContainerServer) ReleasePodName(name string) {
 	c.podNameIndex.Release(name)
 }
 
+// recoverLogError recovers a runtime panic and logs the returned error if
+// existing
+func recoverLogError() {
+	if err := recover(); err != nil {
+		logrus.Error(err)
+	}
+}
+
 // Shutdown attempts to shut down the server's storage cleanly
 func (c *ContainerServer) Shutdown() error {
+	defer recoverLogError()
 	_, err := c.store.Shutdown(false)
 	if err != nil && errors.Cause(err) != cstorage.ErrLayerUsedByContainer {
 		return err
