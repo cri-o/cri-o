@@ -15,6 +15,7 @@ import (
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -526,13 +527,26 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		c.PluginDirs = []string{c.PluginDir}
 	}
 	if onExecution {
-		if _, err := os.Stat(c.NetworkDir); err != nil {
-			return errors.Wrapf(err, "invalid network_dir")
+		const defaultDirectoryPermission = 0775
+		if err := utils.IsDirectory(c.NetworkDir); err != nil {
+			if os.IsNotExist(err) {
+				if err = os.MkdirAll(c.NetworkDir, defaultDirectoryPermission); err != nil {
+					return errors.Wrapf(err, "Cannot create network_dir: %s", c.NetworkDir)
+				}
+			} else {
+				return errors.Wrapf(err, "invalid network_dir: %s", c.NetworkDir)
+			}
 		}
 
 		for _, pluginDir := range c.PluginDirs {
-			if _, err := os.Stat(pluginDir); err != nil {
-				return errors.Wrapf(err, "invalid plugin_dirs entry")
+			if err := utils.IsDirectory(pluginDir); err != nil {
+				if os.IsNotExist(err) {
+					if err = os.MkdirAll(pluginDir, defaultDirectoryPermission); err != nil {
+						return errors.Wrapf(err, "Cannot create plugin_dirs: %s", pluginDir)
+					}
+				} else {
+					return errors.Wrapf(err, "invalid plugin_dirs: %s", pluginDir)
+				}
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package lib_test
 import (
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/oci"
@@ -200,8 +201,8 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed during runtime", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDirs = []string{validPath}
+			sut.NetworkConfig.NetworkDir = validDirPath
+			sut.NetworkConfig.PluginDirs = []string{validDirPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -210,25 +211,63 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail on invalid NetworkDir", func() {
+		It("should create the NetworkDir", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = wrongPath
-			sut.NetworkConfig.PluginDirs = []string{validPath}
+			tmpDir := path.Join(os.TempDir(), wrongPath)
+			sut.NetworkConfig.NetworkDir = tmpDir
+			sut.NetworkConfig.PluginDirs = []string{validDirPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
+			Expect(err).To(BeNil())
+			os.RemoveAll(tmpDir)
+		})
+
+		It("should fail on invalid NetworkDir", func() {
+			// Given
+			tmpfile := path.Join(os.TempDir(), "wrong-file")
+			file, err := os.Create(tmpfile)
+			Expect(err).To(BeNil())
+			file.Close()
+			defer os.Remove(tmpfile)
+			sut.NetworkConfig.NetworkDir = tmpfile
+			sut.NetworkConfig.PluginDirs = []string{}
+
+			// When
+			err = sut.NetworkConfig.Validate(true)
+
+			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should create the PluginDirs", func() {
+			// Given
+			tmpDir := path.Join(os.TempDir(), wrongPath)
+			sut.NetworkConfig.NetworkDir = validDirPath
+			sut.NetworkConfig.PluginDirs = []string{tmpDir}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+			os.RemoveAll(tmpDir)
 		})
 
 		It("should fail on invalid PluginDirs", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDirs = []string{wrongPath}
+			tmpfile := path.Join(os.TempDir(), "wrong-file")
+			file, err := os.Create(tmpfile)
+			Expect(err).To(BeNil())
+			file.Close()
+			defer os.Remove(tmpfile)
+			sut.NetworkConfig.NetworkDir = validDirPath
+			sut.NetworkConfig.PluginDirs = []string{tmpfile}
 
 			// When
-			err := sut.NetworkConfig.Validate(true)
+			err = sut.NetworkConfig.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -236,8 +275,8 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed on having PluginDir", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDir = validPath
+			sut.NetworkConfig.NetworkDir = validDirPath
+			sut.NetworkConfig.PluginDir = validDirPath
 			sut.NetworkConfig.PluginDirs = []string{}
 
 			// When
@@ -249,8 +288,8 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed in appending PluginDir to PluginDirs", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDir = validPath
+			sut.NetworkConfig.NetworkDir = validDirPath
+			sut.NetworkConfig.PluginDir = validDirPath
 			sut.NetworkConfig.PluginDirs = []string{}
 
 			// When
@@ -258,13 +297,13 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validPath))
+			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validDirPath))
 		})
 
 		It("should only carry PluginDir if both PluginDir and PluginDirs are specified", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDir = validPath
+			sut.NetworkConfig.NetworkDir = validDirPath
+			sut.NetworkConfig.PluginDir = validDirPath
 			sut.NetworkConfig.PluginDirs = []string{wrongPath}
 
 			// When
@@ -272,13 +311,13 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validPath))
+			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validDirPath))
 			Expect(len(sut.NetworkConfig.PluginDirs)).To(Equal(1))
 		})
 
 		It("should fail in validating invalid PluginDir", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validPath
+			sut.NetworkConfig.NetworkDir = validDirPath
 			sut.NetworkConfig.PluginDir = wrongPath
 			sut.NetworkConfig.PluginDirs = []string{}
 
