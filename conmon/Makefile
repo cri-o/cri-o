@@ -1,6 +1,6 @@
-include ../Makefile.inc
+all: git-vars ../bin/conmon
 
-all: ../bin/conmon
+include ../Makefile.inc
 
 src = $(wildcard *.c)
 obj = $(src:.c=.o)
