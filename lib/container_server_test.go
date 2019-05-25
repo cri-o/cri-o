@@ -936,6 +936,20 @@ var _ = t.Describe("ContainerServer", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+
+		It("should not panic when storage shutdown panics", func() {
+			// Given
+			gomock.InOrder(
+				storeMock.EXPECT().Shutdown(gomock.Any()).
+					Do(func() { panic("something bad happened") }),
+			)
+
+			// When
+			err := sut.Shutdown()
+
+			// Then
+			Expect(err).To(BeNil())
+		})
 	})
 
 	t.Describe("AddContainer/AddSandbox", func() {
