@@ -16,9 +16,7 @@ var _ = t.Describe("RemovePodSandbox", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
-		libConfig.Runtimes["runc"] = oci.RuntimeHandler{
-			RuntimePath: "/bin/echo",
-		}
+		mockRuncInLibConfig()
 		setupSUT()
 	})
 
