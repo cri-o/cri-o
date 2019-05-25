@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script wraps the CNI 'bridge' plugin to provide additional testing
 # capabilities
