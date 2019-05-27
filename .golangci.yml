@@ -18,6 +18,7 @@ linters:
     - gochecknoinits
     - goconst
     - gocritic
+    - gocyclo
     - gofmt
     - goimports
     - golint
@@ -40,7 +41,6 @@ linters:
     - unused
     - varcheck
     # - gochecknoglobals
-    # - gocyclo
     # - lll
 linters-settings:
   errcheck:
@@ -116,5 +116,7 @@ linters-settings:
       - typeUnparen
       - unnamedResult
       - unnecessaryBlock
+  gocyclo:
+    min-complexity: 121
   nakedret:
     max-func-lines: 15
