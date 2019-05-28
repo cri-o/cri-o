@@ -1,0 +1,11 @@
+[Unit]
+Description=CRI-O Auto Update Script
+Before=crio.service
+RequiresMountsFor=/var/lib/containers
+
+[Service]
+ExecStart=/bin/bash /var/lib/crio/crio-wipe/crio-wipe.bash
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target
