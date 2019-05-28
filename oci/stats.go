@@ -54,7 +54,10 @@ func getMemLimit(cgroupLimit uint64) uint64 {
 		return cgroupLimit
 	}
 
-	physicalLimit := si.Totalram
+	// conversion to uint64 needed to build on 32-bit
+	// but lint complains about unnecessary conversion
+	// see: pr#2409
+	physicalLimit := uint64(si.Totalram) //nolint:unconvert
 	if cgroupLimit > physicalLimit {
 		return physicalLimit
 	}
