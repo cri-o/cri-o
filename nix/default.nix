@@ -5,8 +5,6 @@ let
   glibcPkgs = import (builtins.head nixpkgs) {
     config = { packageOverrides = pkg: { go_1_11 = glibcPkgs.go_1_12; }; };
   };
-  glibcCallPackage = glibcPkgs.lib.callPackageWith
-                     (glibcPkgs // glibcPkgs.xlibs // self);
 
   muslPkgs = (import (builtins.head nixpkgs) {
     config = {
@@ -33,8 +31,6 @@ let
       };
     };
   }).pkgsMusl;
-  muslCallPackage = muslPkgs.lib.callPackageWith
-                    (muslPkgs // muslPkgs.xlibs // self);
 
   static = pkg: pkg.overrideAttrs(old: {
     configureFlags = (old.configureFlags or []) ++
@@ -61,10 +57,13 @@ let
   });
 
   self = {
-    cri-o-static-musl = muslCallPackage ./derivation.nix {
-      flavor = "x86_64-static-musl";
+    cri-o-static-musl = (muslPkgs.cri-o.overrideAttrs(old: {
+      name = "cri-o-x86_64-static-musl-${revision}";
+      buildInputs = old.buildInputs ++ [ muslPkgs.systemd ];
+      src = ./..;
+    })).override {
+      flavor = "-x86_64-static-musl";
       ldflags = ''-linkmode external -extldflags "-static"'';
-      revision = revision;
 
       glibc = null;
       gpgme = (static muslPkgs.gpgme);
@@ -73,10 +72,13 @@ let
       libseccomp = (static muslPkgs.libseccomp);
       lvm2 = (patchLvm2 (static muslPkgs.lvm2));
     };
-    cri-o-static-glibc = glibcCallPackage ./derivation.nix {
-      flavor = "x86_64-static-glibc";
+    cri-o-static-glibc = (glibcPkgs.cri-o.overrideAttrs(old: {
+      name = "cri-o-x86_64-static-glibc-${revision}";
+      buildInputs = old.buildInputs ++ [ glibcPkgs.systemd ];
+      src = ./..;
+    })).override {
+      flavor = "-x86_64-static-glibc";
       ldflags = ''-linkmode external -extldflags "-static -lm"'';
-      revision = revision;
 
       gpgme = (static glibcPkgs.gpgme);
       libassuan = (static glibcPkgs.libassuan);
