@@ -34,11 +34,18 @@ func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.St
 		networkCondition.Message = fmt.Sprintf("Network plugin returns error: %v", err)
 	}
 
+	cgroupManager := &pb.RuntimeCondition{
+		Type:    "CgroupManager",
+		Status:  true,
+		Message: s.config.CgroupManager,
+	}
+
 	resp = &pb.StatusResponse{
 		Status: &pb.RuntimeStatus{
 			Conditions: []*pb.RuntimeCondition{
 				runtimeCondition,
 				networkCondition,
+				cgroupManager,
 			},
 		},
 	}
