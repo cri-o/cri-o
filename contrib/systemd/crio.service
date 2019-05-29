@@ -1,5 +1,5 @@
 [Unit]
-Description=Open Container Initiative Daemon
+Description=cri-o
 Documentation=https://github.com/cri-o/cri-o
 Wants=network-online.target
 After=network-online.target
