@@ -10,8 +10,8 @@ function teardown() {
 	if test \! -e /proc/self/uid_map; then
 		skip "userNS not available"
 	fi
-	export UID_MAPPINGS="0:100000:100000"
-	export GID_MAPPINGS="0:200000:100000"
+	export CONTAINER_UID_MAPPINGS="0:100000:100000"
+	export CONTAINER_GID_MAPPINGS="0:200000:100000"
 
 	# Workaround for https://github.com/opencontainers/runc/pull/1562
 	# Remove once the fix hits the CI

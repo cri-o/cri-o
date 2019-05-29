@@ -7,7 +7,7 @@ function teardown() {
 }
 
 @test "bind secrets mounts to container" {
-    if test -n "$UID_MAPPINGS"; then
+    if test -n "$CONTAINER_UID_MAPPINGS"; then
         skip "userNS enabled"
     fi
     start_crio
@@ -40,7 +40,7 @@ function teardown() {
 }
 
 @test "default mounts correctly sorted with other mounts" {
-    if test -n "$UID_MAPPINGS"; then
+    if test -n "$CONTAINER_UID_MAPPINGS"; then
         skip "userNS enabled"
     fi
     start_crio

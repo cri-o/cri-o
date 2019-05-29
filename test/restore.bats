@@ -97,7 +97,7 @@ function teardown() {
 	stop_crio
 
 	# simulate reboot with runc state going away
-	"$RUNTIME" delete -f "$pod_id"
+	"$CONTAINER_RUNTIME" delete -f "$pod_id"
 
 	start_crio
 
@@ -128,8 +128,8 @@ function teardown() {
 	stop_crio
 
 	# simulate reboot with runc state going away
-	"$RUNTIME" delete -f "$pod_id"
-	"$RUNTIME" delete -f "$ctr_id"
+	"$CONTAINER_RUNTIME" delete -f "$pod_id"
+	"$CONTAINER_RUNTIME" delete -f "$ctr_id"
 
 	start_crio
 
@@ -165,8 +165,8 @@ function teardown() {
 	stop_crio
 
 	# simulate reboot with runc state going away
-	"$RUNTIME" delete -f "$pod_id"
-	"$RUNTIME" delete -f "$ctr_id"
+	"$CONTAINER_RUNTIME" delete -f "$pod_id"
+	"$CONTAINER_RUNTIME" delete -f "$ctr_id"
 
 	start_crio
 
@@ -198,7 +198,7 @@ function teardown() {
 	stop_crio
 
 	# simulate reboot with runc state going away
-	"$RUNTIME" delete -f "$pod_id"
+	"$CONTAINER_RUNTIME" delete -f "$pod_id"
 
 	start_crio
 
@@ -235,8 +235,8 @@ function teardown() {
 	stop_crio
 
 	# simulate reboot with runc state going away
-	"$RUNTIME" delete -f "$pod_id"
-	"$RUNTIME" delete -f "$ctr_id"
+	"$CONTAINER_RUNTIME" delete -f "$pod_id"
+	"$CONTAINER_RUNTIME" delete -f "$ctr_id"
 
 	start_crio
 	run crictl pods --quiet
@@ -290,8 +290,8 @@ function teardown() {
 	stop_crio
 
 	# simulate reboot with runtime state and config.json going away
-	"$RUNTIME" delete -f "$pod_id"
-	"$RUNTIME" delete -f "$ctr_id"
+	"$CONTAINER_RUNTIME" delete -f "$pod_id"
+	"$CONTAINER_RUNTIME" delete -f "$ctr_id"
 	find $TESTDIR/ -name config.json -exec rm \{\} \;
 	find $TESTDIR/ -name shm -exec umount -l \{\} \;
 

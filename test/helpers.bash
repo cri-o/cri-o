@@ -19,23 +19,23 @@ CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/bin/conmon}
 # Cgroup for the conmon process
-CONMON_CGROUP=${CONMON_CGROUP:-pod}
+CONTAINER_CONMON_CGROUP=${CONTAINER_CONMON_CGROUP:-pod}
 # Path of the pause binary.
 PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/bin/pause}
 # Path of the default seccomp profile.
-SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/github.com/seccomp/containers-golang/seccomp.json}
+CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/github.com/seccomp/containers-golang/seccomp.json}
 # Name of the default apparmor profile.
-APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
+CONTAINER_APPARMOR_PROFILE=${CONTAINER_APPARMOR_PROFILE:-crio-default}
 # Runtime
-DEFAULT_RUNTIME=${DEFAULT_RUNTIME:-runc}
+CONTAINER_DEFAULT_RUNTIME=${CONTAINER_DEFAULT_RUNTIME:-runc}
 RUNTIME_NAME=${RUNTIME_NAME:-runc}
-RUNTIME=${RUNTIME:-runc}
-UID_MAPPINGS=${UID_MAPPINGS:-}
-GID_MAPPINGS=${GID_MAPPINGS:-}
+CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-runc}
+CONTAINER_UID_MAPPINGS=${CONTAINER_UID_MAPPINGS:-}
+CONTAINER_GID_MAPPINGS=${CONTAINER_GID_MAPPINGS:-}
 ULIMITS=${ULIMITS:-}
 DEVICES=${DEVICES:-}
 OVERRIDE_OPTIONS=${OVERRIDE_OPTIONS:-}
-RUNTIME_PATH=$(command -v $RUNTIME || true)
+RUNTIME_PATH=$(command -v $CONTAINER_RUNTIME || true)
 RUNTIME_BINARY=${RUNTIME_PATH:-/usr/local/sbin/runc}
 RUNTIME_ROOT=${RUNTIME_ROOT:-/run/runc}
 # Path of the apparmor_parser binary.
@@ -61,17 +61,17 @@ CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/test/checkseccomp/checks
 # The default log directory where all logs will go unless directly specified by the kubelet
 DEFAULT_LOG_PATH=${DEFAULT_LOG_PATH:-/var/log/crio/pods}
 # Cgroup manager to be used
-CGROUP_MANAGER=${CGROUP_MANAGER:-cgroupfs}
+CONTAINER_CGROUP_MANAGER=${CONTAINER_CGROUP_MANAGER:-cgroupfs}
 # Image volumes handling
-IMAGE_VOLUMES=${IMAGE_VOLUMES:-mkdir}
+CONTAINER_IMAGE_VOLUMES=${CONTAINER_IMAGE_VOLUMES:-mkdir}
 # Container pids limit
-PIDS_LIMIT=${PIDS_LIMIT:-1024}
+CONTAINER_PIDS_LIMIT=${CONTAINER_PIDS_LIMIT:-1024}
 # Log size max limit
-LOG_SIZE_MAX_LIMIT=${LOG_SIZE_MAX_LIMIT:--1}
+CONTAINER_LOG_SIZE_MAX=${CONTAINER_LOG_SIZE_MAX:--1}
 # Stream Port
 STREAM_PORT=${STREAM_PORT:-10010}
 # Metrics Port
-METRICS_PORT=${METRICS_PORT:-9090}
+CONTAINER_METRICS_PORT=${CONTAINER_METRICS_PORT:-9090}
 
 TESTDIR=$(mktemp -d)
 RANDOM_STRING=${TESTDIR: -10}
@@ -84,6 +84,20 @@ HOOKS_OPTS="--hooks-dir=$HOOKSDIR"
 HOOKSCHECK=$TESTDIR/hookscheck
 CONTAINER_EXITS_DIR=$TESTDIR/containers/exits
 CONTAINER_ATTACH_SOCKET_DIR=$TESTDIR/containers
+# capabilities to add to the containers
+CONTAINER_DEFAULT_CAPABILITIES=${CONTAINER_DEFAULT_CAPABILITIES:-"$capabilities"}
+# bind port for streaming socket
+CONTAINER_STREAM_PORT=${CONTAINER_STREAM_PORT:-"$((STREAM_PORT + BATS_TEST_NUMBER))"}
+# path to default mounts file
+CONTAINER_DEFAULT_MOUNTS_FILE=${CONTAINER_DEFAULT_MOUNTS_FILE:-"$TESTDIR/containers/mounts.conf"}
+# default seccomp profile path
+CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-"$seccomp"}
+# default apparmor profile name
+CONTAINER_APPARMOR_PROFILE=${CONTAINER_APPARMOR_PROFILE:-"$apparmor"}
+# path to signature policy file
+CONTAINER_SIGNATURE_POLICY=${CONTAINER_SIGNATURE_POLICY:-"$INTEGRATION_ROOT"/policy.json}
+# level of log messages
+CONTAINER_LOG_LEVEL=${CONTAINER_LOG_LEVEL:-"debug"}
 
 # Setup default mounts using deprecated --default-mounts flag
 # should be removed, once the flag is removed
@@ -138,7 +152,7 @@ cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
 PATH=$PATH:$TESTDIR
 
-DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID,SETPCAP,NET_BIND_SERVICE,SYS_CHROOT,KILL"
+CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID,SETPCAP,NET_BIND_SERVICE,SYS_CHROOT,KILL"
 
 # Make sure we have a copy of the redis:alpine image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
@@ -241,7 +255,7 @@ function setup_crio() {
 	if [[ -n "$2" ]]; then
 		apparmor="$2"
 	else
-		apparmor="$APPARMOR_PROFILE"
+		apparmor="$CONTAINER_APPARMOR_PROFILE"
 	fi
 
 	# Don't forget: bin2img, copyimg, and crio have their own default drivers, so if you override any, you probably need to override them all
@@ -252,7 +266,7 @@ function setup_crio() {
 	if [[ -n "$4" ]]; then
 		capabilities="$4"
 	else
-		capabilities="$DEFAULT_CAPABILITIES"
+		capabilities="$CONTAINER_DEFAULT_CAPABILITIES"
 	fi
 
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
@@ -260,7 +274,7 @@ function setup_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --default-capabilities "$capabilities" --conmon "$TESTDIR/conmon" --listen "$CRIO_SOCKET" --stream-port "$((STREAM_PORT + BATS_TEST_NUMBER))" --conmon-cgroup "$CONMON_CGROUP" --cgroup-manager "$CGROUP_MANAGER" --default-mounts-file "$TESTDIR/containers/mounts.conf" --registry "quay.io" --registry "docker.io" --default-runtime $DEFAULT_RUNTIME --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" $DEVICES $ULIMITS --uid-mappings "$UID_MAPPINGS" --gid-mappings "$GID_MAPPINGS" --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$TESTDIR/conmon" --listen "$CRIO_SOCKET" --registry "quay.io" --registry "docker.io" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	sed -ie 's;\(container_exits_dir =\) \(.*\);\1 "'$CONTAINER_EXITS_DIR'";g' $CRIO_CONFIG
 	sed -ie 's;\(container_attach_socket_dir =\) \(.*\);\1 "'$CONTAINER_ATTACH_SOCKET_DIR'";g' $CRIO_CONFIG
@@ -318,7 +332,7 @@ function start_crio() {
 # Start crio with journald logging
 function start_crio_journald() {
 	setup_crio "$@"
-	"$CRIO_BINARY_PATH" --default-mounts-file "$TESTDIR/containers/mounts.conf" -l debug --log-journald -c "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY_PATH" --log-journald -c "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }
@@ -341,7 +355,7 @@ function check_journald() {
 # Start crio with metrics enable
 function start_crio_metrics() {
 	setup_crio "$@"
-	"$CRIO_BINARY_PATH" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --metrics-port "$METRICS_PORT" --enable-metrics --config "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY_PATH" --enable-metrics --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }

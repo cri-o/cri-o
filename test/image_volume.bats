@@ -7,7 +7,7 @@ function teardown() {
 }
 
 @test "image volume ignore" {
-	IMAGE_VOLUMES=ignore start_crio
+	CONTAINER_IMAGE_VOLUMES=ignore start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -37,10 +37,10 @@ function teardown() {
 }
 
 @test "image volume bind" {
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
-	IMAGE_VOLUMES=bind start_crio
+	CONTAINER_IMAGE_VOLUMES=bind start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]

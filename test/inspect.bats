@@ -10,7 +10,7 @@ function teardown() {
 	start_crio
 	out=`echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
 	echo "$out"
-	[[ "$out" =~ "\"cgroup_driver\":\"$CGROUP_MANAGER\"" ]]
+	[[ "$out" =~ "\"cgroup_driver\":\"$CONTAINER_CGROUP_MANAGER\"" ]]
 	[[ "$out" =~ "\"storage_root\":\"$TESTDIR/crio\"" ]]
 
 	stop_crio
