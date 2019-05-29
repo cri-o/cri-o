@@ -582,6 +582,11 @@ func main() {
 			logrus.Fatal(err)
 		}
 
+		// Immediately upon start up, write our new version file
+		if err := version.WriteVersionFile(server.CrioVersionPath, gitCommit); err != nil {
+			logrus.Fatal(err)
+		}
+
 		if c.GlobalBool("enable-metrics") {
 			metricsPort := c.GlobalInt("metrics-port")
 			me, err := service.CreateMetricsEndpoint()
