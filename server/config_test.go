@@ -54,7 +54,7 @@ func assertAllFieldsEquality(t *testing.T, c Config) {
 		{c.ImageConfig.Registries[0], "registry:4321"},
 
 		{c.NetworkConfig.NetworkDir, "/etc/cni/net.d/"},
-		{c.NetworkConfig.PluginDir[0], "/opt/cni/bin/"},
+		{c.NetworkConfig.PluginDirs[0], "/opt/cni/bin/"},
 	}
 	for _, tc := range testCases {
 		if tc.fieldValue != tc.expected {
@@ -107,7 +107,7 @@ func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
 	defaultConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
 	defaultConfig.Conmon = validPath
 	defaultConfig.NetworkConfig.NetworkDir = validPath
-	defaultConfig.NetworkConfig.PluginDir = []string{validPath}
+	defaultConfig.NetworkConfig.PluginDirs = []string{validPath}
 
 	must(t, defaultConfig.Validate(true))
 }

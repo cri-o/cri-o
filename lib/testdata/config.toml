@@ -24,4 +24,4 @@
     image_volumes = "mkdir"
   [crio.network]
     network_dir = "/etc/cni/net.d/"
-    plugin_dir = ["/opt/cni/bin/"]
+    plugin_dirs = ["/opt/cni/bin/"]

@@ -331,7 +331,7 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 		return nil, err
 	}
 
-	netPlugin, err := ocicni.InitCNI("", config.NetworkDir, config.PluginDir...)
+	netPlugin, err := ocicni.InitCNI("", config.NetworkDir, config.PluginDirs...)
 	if err != nil {
 		return nil, err
 	}
