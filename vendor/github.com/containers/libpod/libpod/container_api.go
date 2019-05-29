@@ -10,11 +10,10 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/driver"
-	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/docker/docker/oci/caps"
+	"github.com/docker/docker/daemon/caps"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -126,7 +125,7 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 		}
 		close(attachChan)
 	}()
-	c.newContainerEvent(events.Attach)
+
 	return attachChan, nil
 }
 
@@ -181,7 +180,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		c.state.State == ContainerStateExited {
 		return ErrCtrStopped
 	}
-	defer c.newContainerEvent(events.Stop)
+
 	return c.stop(timeout)
 }
 
@@ -199,13 +198,13 @@ func (c *Container) Kill(signal uint) error {
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers")
 	}
-	defer c.newContainerEvent(events.Kill)
+
 	return c.runtime.ociRuntime.killContainer(c, signal)
 }
 
 // Exec starts a new process inside the container
 // TODO investigate allowing exec without attaching
-func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir string, streams *AttachStreams, preserveFDs int) error {
+func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir string, streams *AttachStreams) error {
 	var capList []string
 
 	locked := false
@@ -267,7 +266,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	logrus.Debugf("Creating new exec session in container %s with session id %s", c.ID(), sessionID)
 
-	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, hostUser, sessionID, streams, preserveFDs)
+	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, hostUser, sessionID, streams)
 	if err != nil {
 		return errors.Wrapf(err, "error exec %s", c.ID())
 	}
@@ -322,7 +321,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 		// TODO handle this better
 		return errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
 	}
-	c.newContainerEvent(events.Exec)
+
 	logrus.Debugf("Successfully started exec session %s in container %s", sessionID, c.ID())
 
 	// Unlock so other processes can use the container
@@ -352,6 +351,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	if err := c.save(); err != nil {
 		logrus.Errorf("Error removing exec session %s from container %s state: %v", sessionID, c.ID(), err)
 	}
+
 	return waitErr
 }
 
@@ -390,7 +390,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		c.state.State != ContainerStateExited {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
-	defer c.newContainerEvent(events.Attach)
+
 	return c.attach(streams, keys, resize, false)
 }
 
@@ -405,7 +405,7 @@ func (c *Container) Mount() (string, error) {
 			return "", err
 		}
 	}
-	defer c.newContainerEvent(events.Mount)
+
 	return c.mount()
 }
 
@@ -435,7 +435,6 @@ func (c *Container) Unmount(force bool) error {
 			return errors.Wrapf(ErrInternal, "can't unmount %s last mount, it is still in use", c.ID())
 		}
 	}
-	defer c.newContainerEvent(events.Unmount)
 	return c.unmount(force)
 }
 
@@ -456,7 +455,7 @@ func (c *Container) Pause() error {
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, can't pause", c.state.State)
 	}
-	defer c.newContainerEvent(events.Pause)
+
 	return c.pause()
 }
 
@@ -474,7 +473,7 @@ func (c *Container) Unpause() error {
 	if c.state.State != ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not paused, can't unpause", c.ID())
 	}
-	defer c.newContainerEvent(events.Unpause)
+
 	return c.unpause()
 }
 
@@ -489,7 +488,7 @@ func (c *Container) Export(path string) error {
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Export)
+
 	return c.export(path)
 }
 
@@ -543,6 +542,7 @@ func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting graph driver info %q", c.ID())
 	}
+
 	return c.getContainerInspectData(size, driverData)
 }
 
@@ -597,7 +597,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
 	}
-	defer c.newContainerEvent(events.Cleanup)
+
 	return c.cleanup(ctx)
 }
 
@@ -667,7 +667,7 @@ func (c *Container) Sync() error {
 			}
 		}
 	}
-	defer c.newContainerEvent(events.Sync)
+
 	return nil
 }
 
@@ -772,6 +772,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -799,7 +800,7 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Checkpoint)
+
 	return c.checkpoint(ctx, options)
 }
 
@@ -814,6 +815,6 @@ func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOpti
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Restore)
+
 	return c.restore(ctx, options)
 }

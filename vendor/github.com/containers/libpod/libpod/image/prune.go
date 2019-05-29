@@ -1,9 +1,6 @@
 package image
 
-import (
-	"github.com/containers/libpod/libpod/events"
-	"github.com/pkg/errors"
-)
+import "github.com/pkg/errors"
 
 // GetPruneImages returns a slice of images that have no names/unused
 func (ir *Runtime) GetPruneImages(all bool) ([]*Image, error) {
@@ -44,7 +41,6 @@ func (ir *Runtime) PruneImages(all bool) ([]string, error) {
 		if err := p.Remove(true); err != nil {
 			return nil, errors.Wrap(err, "failed to prune image")
 		}
-		defer p.newImageEvent(events.Prune)
 		prunedCids = append(prunedCids, p.ID())
 	}
 	return prunedCids, nil

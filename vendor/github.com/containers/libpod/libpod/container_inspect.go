@@ -93,7 +93,6 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		HostsPath:       hostsPath,
 		StaticDir:       config.StaticDir,
 		LogPath:         config.LogPath,
-		ConmonPidFile:   config.ConmonPidFile,
 		Name:            config.Name,
 		Driver:          driverData.Name,
 		MountLabel:      config.MountLabel,
@@ -126,17 +125,6 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 			MacAddress:             "", // TODO
 		},
 		IsInfra: c.IsInfra(),
-	}
-
-	if c.config.HealthCheckConfig != nil {
-		//	This container has a healthcheck defined in it; we need to add it's state
-		healthCheckState, err := c.GetHealthCheckLog()
-		if err != nil {
-			// An error here is not considered fatal; no health state will be displayed
-			logrus.Error(err)
-		} else {
-			data.State.Healthcheck = healthCheckState
-		}
 	}
 
 	// Copy port mappings into network settings

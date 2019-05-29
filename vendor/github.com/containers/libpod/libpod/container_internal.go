@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
@@ -35,8 +34,8 @@ const (
 )
 
 var (
-	// localeToLanguageMap maps from locale values to language tags.
-	localeToLanguageMap = map[string]string{
+	// localeToLanguage maps from locale values to language tags.
+	localeToLanguage = map[string]string{
 		"":      "und-u-va-posix",
 		"c":     "und-u-va-posix",
 		"posix": "und-u-va-posix",
@@ -49,9 +48,6 @@ var (
 // that make up the image on which the container is based.
 func (c *Container) rootFsSize() (int64, error) {
 	if c.config.Rootfs != "" {
-		return 0, nil
-	}
-	if c.runtime.store == nil {
 		return 0, nil
 	}
 
@@ -214,9 +210,6 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 
 	c.state.Exited = true
 
-	// Write an event for the container's death
-	c.newContainerExitedEvent(c.state.ExitCode)
-
 	return nil
 }
 
@@ -310,12 +303,23 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 
 	if !rootless.IsRootless() && (len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0) {
-		if err := os.Chown(containerInfo.RunDir, c.RootUID(), c.RootGID()); err != nil {
+		info, err := os.Stat(c.runtime.config.TmpDir)
+		if err != nil {
+			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
+		}
+		if err := os.Chmod(c.runtime.config.TmpDir, info.Mode()|0111); err != nil {
+			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.TmpDir)
+		}
+		root := filepath.Join(c.runtime.config.TmpDir, "containers-root", c.ID())
+		if err := os.MkdirAll(root, 0755); err != nil {
+			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
+		}
+		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
-
-		if err := os.Chown(containerInfo.Dir, c.RootUID(), c.RootGID()); err != nil {
-			return err
+		c.state.UserNSRoot, err = filepath.EvalSymlinks(root)
+		if err != nil {
+			return errors.Wrapf(err, "failed to eval symlinks for %s", root)
 		}
 	}
 
@@ -323,15 +327,17 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	c.config.MountLabel = containerInfo.MountLabel
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir
+	c.state.DestinationRunDir = c.state.RunDir
+	if c.state.UserNSRoot != "" {
+		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
+	}
 
 	// Set the default Entrypoint and Command
-	if containerInfo.Config != nil {
-		if c.config.Entrypoint == nil {
-			c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
-		}
-		if c.config.Command == nil {
-			c.config.Command = containerInfo.Config.Config.Cmd
-		}
+	if c.config.Entrypoint == nil {
+		c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
+	}
+	if c.config.Command == nil {
+		c.config.Command = containerInfo.Config.Config.Cmd
 	}
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
@@ -355,6 +361,12 @@ func (c *Container) teardownStorage() error {
 
 	if err := c.cleanupStorage(); err != nil {
 		return errors.Wrapf(err, "failed to cleanup container %s storage", c.ID())
+	}
+
+	if c.state.UserNSRoot != "" {
+		if err := os.RemoveAll(c.state.UserNSRoot); err != nil {
+			return errors.Wrapf(err, "error removing userns root %q", c.state.UserNSRoot)
+		}
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
@@ -411,7 +423,6 @@ func (c *Container) refresh() error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving temporary directory for container %s", c.ID())
 	}
-	c.state.RunDir = dir
 
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
 		info, err := os.Stat(c.runtime.config.TmpDir)
@@ -428,6 +439,16 @@ func (c *Container) refresh() error {
 		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
+		c.state.UserNSRoot, err = filepath.EvalSymlinks(root)
+		if err != nil {
+			return errors.Wrapf(err, "failed to eval symlinks for %s", root)
+		}
+	}
+
+	c.state.RunDir = dir
+	c.state.DestinationRunDir = c.state.RunDir
+	if c.state.UserNSRoot != "" {
+		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
 	}
 
 	// We need to pick up a new lock
@@ -803,13 +824,7 @@ func (c *Container) init(ctx context.Context) error {
 	if err := c.save(); err != nil {
 		return err
 	}
-	if c.config.HealthCheckConfig != nil {
-		if err := c.createTimer(); err != nil {
-			logrus.Error(err)
-		}
-	}
 
-	defer c.newContainerEvent(events.Init)
 	return c.completeNetworkSetup()
 }
 
@@ -932,17 +947,6 @@ func (c *Container) start() error {
 
 	c.state.State = ContainerStateRunning
 
-	if c.config.HealthCheckConfig != nil {
-		if err := c.updateHealthStatus(HealthCheckStarting); err != nil {
-			logrus.Error(err)
-		}
-		if err := c.startTimer(); err != nil {
-			logrus.Error(err)
-		}
-	}
-
-	defer c.newContainerEvent(events.Start)
-
 	return c.save()
 }
 
@@ -1018,6 +1022,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 			return err
 		}
 	}
+
 	return c.start()
 }
 
@@ -1081,7 +1086,7 @@ func (c *Container) cleanupStorage() error {
 		// error
 		// We still want to be able to kick the container out of the
 		// state
-		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
+		if err == storage.ErrNotAContainer || err == storage.ErrContainerUnknown {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
 			return nil
 		}
@@ -1107,13 +1112,6 @@ func (c *Container) cleanup(ctx context.Context) error {
 	defer span.Finish()
 
 	logrus.Debugf("Cleaning up container %s", c.ID())
-
-	// Remove healthcheck unit/timer file if it execs
-	if c.config.HealthCheckConfig != nil {
-		if err := c.removeTimer(); err != nil {
-			logrus.Error(err)
-		}
-	}
 
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
@@ -1230,24 +1228,7 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 		return "", err
 	}
 
-	return filepath.Join(c.state.RunDir, destFile), nil
-}
-
-// appendStringToRundir appends the provided string to the runtimedir file
-func (c *Container) appendStringToRundir(destFile, output string) (string, error) {
-	destFileName := filepath.Join(c.state.RunDir, destFile)
-
-	f, err := os.OpenFile(destFileName, os.O_APPEND|os.O_WRONLY, 0600)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to open %s", destFileName)
-	}
-	defer f.Close()
-
-	if _, err := f.WriteString(output); err != nil {
-		return "", errors.Wrapf(err, "unable to write %s", destFileName)
-	}
-
-	return filepath.Join(c.state.RunDir, destFile), nil
+	return filepath.Join(c.state.DestinationRunDir, destFile), nil
 }
 
 // Save OCI spec to disk, replacing any existing specs for the container
@@ -1283,16 +1264,6 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
-// localeToLanguage translates POSIX locale strings to BCP 47 language tags.
-func localeToLanguage(locale string) string {
-	locale = strings.Replace(strings.SplitN(locale, ".", 2)[0], "_", "-", 1)
-	langString, ok := localeToLanguageMap[strings.ToLower(locale)]
-	if !ok {
-		langString = locale
-	}
-	return langString
-}
-
 // Warning: precreate hooks may alter 'config' in place.
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
 	var locale string
@@ -1308,7 +1279,11 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 		}
 	}
 
-	langString := localeToLanguage(locale)
+	langString, ok := localeToLanguage[strings.ToLower(locale)]
+	if !ok {
+		langString = locale
+	}
+
 	lang, err := language.Parse(langString)
 	if err != nil {
 		logrus.Warnf("failed to parse language %q: %s", langString, err)
@@ -1380,9 +1355,6 @@ func (c *Container) mount() (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "error resolving storage path for container %s", c.ID())
 	}
-	if err := os.Chown(mountPoint, c.RootUID(), c.RootGID()); err != nil {
-		return "", errors.Wrapf(err, "cannot chown %s to %d:%d", mountPoint, c.RootUID(), c.RootGID())
-	}
 	return mountPoint, nil
 }
 
@@ -1427,9 +1399,5 @@ func (c *Container) copyWithTarFromImage(src, dest string) error {
 	}
 	a := archive.NewDefaultArchiver()
 	source := filepath.Join(mountpoint, src)
-
-	if err = c.copyOwnerAndPerms(source, dest); err != nil {
-		return err
-	}
 	return a.CopyWithTar(source, dest)
 }

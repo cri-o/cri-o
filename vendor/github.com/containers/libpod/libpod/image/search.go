@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/common"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
@@ -156,7 +157,7 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 		limit = options.Limit
 	}
 
-	sc := GetSystemContext("", options.Authfile, false)
+	sc := common.GetSystemContext("", options.Authfile, false)
 	sc.DockerInsecureSkipTLSVerify = options.InsecureSkipTLSVerify
 	// FIXME: Set this more globally.  Probably no reason not to have it in
 	// every types.SystemContext, and to compute the value just once in one

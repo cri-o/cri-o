@@ -23,6 +23,7 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/ulule/deepcopier"
 )
 
 // RuntimeStateStore is a constant indicating which state store implementation
@@ -216,15 +217,10 @@ type RuntimeConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation"`
 	// EnableLabeling indicates wether libpod will support container labeling
 	EnableLabeling bool `toml:"label"`
-	// NetworkCmdPath is the path to the slirp4netns binary
-	NetworkCmdPath string `toml:"network_cmd_path"`
 
 	// NumLocks is the number of locks to make available for containers and
 	// pods.
 	NumLocks uint32 `toml:"num_locks,omitempty"`
-
-	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:-"events_logfile_path"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -240,24 +236,13 @@ type runtimeConfiguredFrom struct {
 	libpodStaticDirSet    bool
 	libpodTmpDirSet       bool
 	volPathSet            bool
-	conmonPath            bool
-	conmonEnvVars         bool
-	ociRuntimes           bool
-	runtimePath           bool
-	cniPluginDir          bool
-	noPivotRoot           bool
 }
 
-func defaultRuntimeConfig() (RuntimeConfig, error) {
-	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-	if err != nil {
-		return RuntimeConfig{}, err
-	}
-
-	return RuntimeConfig{
+var (
+	defaultRuntimeConfig = RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
-		VolumePath:            filepath.Join(storeOpts.GraphRoot, "volumes"),
+		VolumePath:            filepath.Join(storage.DefaultStoreOptions.GraphRoot, "volumes"),
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
 		OCIRuntime:            "runc",
@@ -286,7 +271,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		},
 		InitPath:              DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
-		StaticDir:             filepath.Join(storeOpts.GraphRoot, "libpod"),
+		StaticDir:             filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:                "",
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
@@ -297,8 +282,8 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		EnablePortReservation: true,
 		EnableLabeling:        true,
 		NumLocks:              2048,
-	}, nil
-}
+	}
+)
 
 func getDefaultTmpDir() (string, error) {
 	if !rootless.IsRootless() {
@@ -309,17 +294,7 @@ func getDefaultTmpDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	libpodRuntimeDir := filepath.Join(rootlessRuntimeDir, "libpod")
-
-	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
-		if !os.IsExist(err) {
-			return "", errors.Wrapf(err, "cannot mkdir %s", libpodRuntimeDir)
-		} else if err := os.Chmod(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
-			// The directory already exist, just set the sticky bit
-			return "", errors.Wrapf(err, "could not set sticky bit on %s", libpodRuntimeDir)
-		}
-	}
-	return filepath.Join(libpodRuntimeDir, "tmp"), nil
+	return filepath.Join(rootlessRuntimeDir, "libpod", "tmp"), nil
 }
 
 // SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
@@ -344,22 +319,6 @@ func SetXdgRuntimeDir(val string) error {
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
 func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
-	return newRuntimeFromConfig("", options...)
-}
-
-// NewRuntimeFromConfig creates a new container runtime using the given
-// configuration file for its default configuration. Passed RuntimeOption
-// functions can be used to mutate this configuration further.
-// An error will be returned if the configuration file at the given path does
-// not exist or cannot be loaded
-func NewRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
-	if userConfigPath == "" {
-		return nil, errors.New("invalid configuration file specified")
-	}
-	return newRuntimeFromConfig(userConfigPath, options...)
-}
-
-func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
 	runtime.configuredFrom = new(runtimeConfiguredFrom)
@@ -369,19 +328,12 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 	if err != nil {
 		return nil, err
 	}
-
-	defRunConf, err := defaultRuntimeConfig()
-	if err != nil {
-		return nil, err
-	}
-	if err := JSONDeepCopy(defRunConf, runtime.config); err != nil {
-		return nil, errors.Wrapf(err, "error copying runtime default config")
-	}
+	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
 	runtime.config.TmpDir = tmpDir
 
-	storageConf, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	storageConf, err := util.GetDefaultStoreOptions()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving storage config")
+		return nil, errors.Wrapf(err, "error retrieving rootless storage config")
 	}
 	runtime.config.StorageConfig = storageConf
 	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
@@ -401,6 +353,11 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 
 		rootlessConfigPath = filepath.Join(home, ".config/containers/libpod.conf")
 
+		configPath = rootlessConfigPath
+		if _, err := os.Stat(configPath); err != nil {
+			foundConfig = false
+		}
+
 		runtimeDir, err := util.GetRootlessRuntimeDir()
 		if err != nil {
 			return nil, err
@@ -408,24 +365,11 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 
 		// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
 		// So make sure the env variable is set.
-		if err := SetXdgRuntimeDir(runtimeDir); err != nil {
+		err = SetXdgRuntimeDir(runtimeDir)
+		if err != nil {
 			return nil, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 		}
 
-	}
-
-	if userConfigPath != "" {
-		configPath = userConfigPath
-		if _, err := os.Stat(configPath); err != nil {
-			// If the user specified a config file, we must fail immediately
-			// when it doesn't exist
-			return nil, errors.Wrapf(err, "cannot stat %s", configPath)
-		}
-	} else if rootless.IsRootless() {
-		configPath = rootlessConfigPath
-		if _, err := os.Stat(configPath); err != nil {
-			foundConfig = false
-		}
 	} else if _, err := os.Stat(OverrideConfigPath); err == nil {
 		// Use the override configuration path
 		configPath = OverrideConfigPath
@@ -461,24 +405,6 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 		if tmpConfig.VolumePath != "" {
 			runtime.configuredFrom.volPathSet = true
 		}
-		if tmpConfig.ConmonPath != nil {
-			runtime.configuredFrom.conmonPath = true
-		}
-		if tmpConfig.ConmonEnvVars != nil {
-			runtime.configuredFrom.conmonEnvVars = true
-		}
-		if tmpConfig.OCIRuntimes != nil {
-			runtime.configuredFrom.ociRuntimes = true
-		}
-		if tmpConfig.RuntimePath != nil {
-			runtime.configuredFrom.runtimePath = true
-		}
-		if tmpConfig.CNIPluginDir != nil {
-			runtime.configuredFrom.cniPluginDir = true
-		}
-		if tmpConfig.NoPivotRoot {
-			runtime.configuredFrom.noPivotRoot = true
-		}
 
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
@@ -498,24 +424,12 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 			}
 
 			// Cherry pick the settings we want from the global configuration
-			if !runtime.configuredFrom.conmonPath {
-				runtime.config.ConmonPath = tmpConfig.ConmonPath
-			}
-			if !runtime.configuredFrom.conmonEnvVars {
-				runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
-			}
-			if !runtime.configuredFrom.ociRuntimes {
-				runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
-			}
-			if !runtime.configuredFrom.runtimePath {
-				runtime.config.RuntimePath = tmpConfig.RuntimePath
-			}
-			if !runtime.configuredFrom.cniPluginDir {
-				runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
-			}
-			if !runtime.configuredFrom.noPivotRoot {
-				runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
-			}
+			runtime.config.ConmonPath = tmpConfig.ConmonPath
+			runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
+			runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
+			runtime.config.RuntimePath = tmpConfig.RuntimePath
+			runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
+			runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
 			break
 		}
 	}
@@ -526,42 +440,83 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 			return nil, errors.Wrapf(err, "error configuring runtime")
 		}
 	}
-	if rootlessConfigPath != "" {
-		// storage.conf
-		storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
-		if err != nil {
-			return nil, err
-		}
-		if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
-			if err := util.WriteStorageConfigFile(&runtime.config.StorageConfig, storageConfFile); err != nil {
-				return nil, errors.Wrapf(err, "cannot write config file %s", storageConfFile)
-			}
-		}
-
-		if !foundConfig {
-			os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
-			file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-			if err != nil && !os.IsExist(err) {
-				return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
-			}
-			if err == nil {
-				defer file.Close()
-				enc := toml.NewEncoder(file)
-				if err := enc.Encode(runtime.config); err != nil {
-					os.Remove(rootlessConfigPath)
-				}
-			}
-		}
-	}
 	if err := makeRuntime(runtime); err != nil {
 		return nil, err
 	}
+
+	if !foundConfig && rootlessConfigPath != "" {
+		os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
+		file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+		if err != nil && !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
+		}
+		if err == nil {
+			defer file.Close()
+			enc := toml.NewEncoder(file)
+			if err := enc.Encode(runtime.config); err != nil {
+				os.Remove(rootlessConfigPath)
+			}
+		}
+	}
+
+	return runtime, nil
+}
+
+// NewRuntimeFromConfig creates a new container runtime using the given
+// configuration file for its default configuration. Passed RuntimeOption
+// functions can be used to mutate this configuration further.
+// An error will be returned if the configuration file at the given path does
+// not exist or cannot be loaded
+func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
+	runtime = new(Runtime)
+	runtime.config = new(RuntimeConfig)
+	runtime.configuredFrom = new(runtimeConfiguredFrom)
+
+	// Set three fields not in the TOML config
+	runtime.config.StateType = defaultRuntimeConfig.StateType
+	runtime.config.OCIRuntime = defaultRuntimeConfig.OCIRuntime
+	runtime.config.StorageConfig = storage.StoreOptions{}
+
+	tmpDir, err := getDefaultTmpDir()
+	if err != nil {
+		return nil, err
+	}
+	runtime.config.TmpDir = tmpDir
+
+	// Check to see if the given configuration file exists
+	if _, err := os.Stat(configPath); err != nil {
+		return nil, errors.Wrapf(err, "error checking existence of configuration file %s", configPath)
+	}
+
+	// Read contents of the config file
+	contents, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
+	}
+
+	// Decode configuration file
+	if _, err := toml.Decode(string(contents), runtime.config); err != nil {
+		return nil, errors.Wrapf(err, "error decoding configuration from file %s", configPath)
+	}
+
+	// Overwrite the config with user-given configuration options
+	for _, opt := range options {
+		if err := opt(runtime); err != nil {
+			return nil, errors.Wrapf(err, "error configuring runtime")
+		}
+	}
+
+	if err := makeRuntime(runtime); err != nil {
+		return nil, err
+	}
+
 	return runtime, nil
 }
 
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(runtime *Runtime) (err error) {
+
 	// Backward compatibility for `runtime_path`
 	if runtime.config.RuntimePath != nil {
 		// Don't print twice in rootless mode.
@@ -720,8 +675,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 		runtime.config.VolumePath = dbConfig.VolumePath
 	}
 
-	runtime.config.EventsLogFilePath = filepath.Join(runtime.config.TmpDir, "events", "events.log")
-
 	logrus.Debugf("Using graph driver %s", runtime.config.StorageConfig.GraphDriverName)
 	logrus.Debugf("Using graph root %s", runtime.config.StorageConfig.GraphRoot)
 	logrus.Debugf("Using run root %s", runtime.config.StorageConfig.RunRoot)
@@ -764,9 +717,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	// Setting signaturepolicypath
 	ir.SignaturePolicyPath = runtime.config.SignaturePolicyPath
-	// Set logfile path for events
-	ir.EventsLogFilePath = runtime.config.EventsLogFilePath
-
 	defer func() {
 		if err != nil && store != nil {
 			// Don't forcibly shut down
@@ -796,14 +746,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
 			return errors.Wrapf(err, "error creating tmpdir %s", runtime.config.TmpDir)
-		}
-	}
-
-	// Create events log dir
-	if err := os.MkdirAll(filepath.Dir(runtime.config.EventsLogFilePath), 0700); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating events dirs %s", filepath.Dir(runtime.config.EventsLogFilePath))
 		}
 	}
 
@@ -947,22 +889,20 @@ func makeRuntime(runtime *Runtime) (err error) {
 }
 
 // GetConfig returns a copy of the configuration used by the runtime
-func (r *Runtime) GetConfig() (*RuntimeConfig, error) {
+func (r *Runtime) GetConfig() *RuntimeConfig {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil
 	}
 
 	config := new(RuntimeConfig)
 
 	// Copy so the caller won't be able to modify the actual config
-	if err := JSONDeepCopy(r.config, config); err != nil {
-		return nil, errors.Wrapf(err, "error copying config")
-	}
+	deepcopier.Copy(r.config).To(config)
 
-	return config, nil
+	return config
 }
 
 // Shutdown shuts down the runtime and associated containers and storage
@@ -1014,12 +954,9 @@ func (r *Runtime) refreshRootless() error {
 	// Take advantage of a command that requires a new userns
 	// so that we are running as the root user and able to use refresh()
 	cmd := exec.Command(os.Args[0], "info")
-
-	if output, err := cmd.CombinedOutput(); err != nil {
-		if _, ok := err.(*exec.ExitError); !ok {
-			return errors.Wrapf(err, "Error waiting for info while refreshing state: %s", os.Args[0])
-		}
-		return errors.Wrapf(err, "Error running %s info while refreshing state: %s", os.Args[0], output)
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "Error running %s info while refreshing state", os.Args[0])
 	}
 	return nil
 }

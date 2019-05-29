@@ -9,7 +9,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/mount"
 	pmount "github.com/containers/storage/pkg/mount"
-	"github.com/docker/docker/oci/caps"
+	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -454,6 +454,10 @@ func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
 }
 
 func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {
+	if config.PidMode.IsHost() && rootless.IsRootless() {
+		return
+	}
+
 	if !config.Privileged {
 		for _, mp := range []string{
 			"/proc/acpi",
@@ -465,13 +469,8 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 			"/proc/sched_debug",
 			"/proc/scsi",
 			"/sys/firmware",
-			"/sys/fs/selinux",
 		} {
 			g.AddLinuxMaskedPaths(mp)
-		}
-
-		if config.PidMode.IsHost() && rootless.IsRootless() {
-			return
 		}
 
 		for _, rp := range []string{
@@ -625,7 +624,7 @@ func setupCapabilities(config *CreateConfig, configSpec *spec.Spec) error {
 	if useNotRoot(config.User) {
 		configSpec.Process.Capabilities.Bounding = caplist
 	}
-	caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.CapAdd, config.CapDrop, nil, false)
+	caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.CapAdd, config.CapDrop)
 	if err != nil {
 		return err
 	}
@@ -636,7 +635,7 @@ func setupCapabilities(config *CreateConfig, configSpec *spec.Spec) error {
 	configSpec.Process.Capabilities.Effective = caplist
 	configSpec.Process.Capabilities.Ambient = caplist
 	if useNotRoot(config.User) {
-		caplist, err = caps.TweakCapabilities(bounding, config.CapAdd, config.CapDrop, nil, false)
+		caplist, err = caps.TweakCapabilities(bounding, config.CapAdd, config.CapDrop)
 		if err != nil {
 			return err
 		}

@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/client/transport"

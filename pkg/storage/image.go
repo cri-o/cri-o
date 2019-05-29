@@ -17,7 +17,6 @@ import (
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
 )
@@ -606,11 +605,7 @@ func (svc *imageService) ResolveNames(imageName string) ([]string, error) {
 func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries []string, registries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
-		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-		if err != nil {
-			return nil, err
-		}
-		store, err = storage.GetStore(storeOpts)
+		store, err = storage.GetStore(storage.DefaultStoreOptions)
 		if err != nil {
 			return nil, err
 		}

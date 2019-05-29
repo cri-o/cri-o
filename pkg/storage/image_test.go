@@ -7,7 +7,6 @@ import (
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/rootless"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/golang/mock/gomock"
@@ -104,15 +103,16 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to retrieve an image service without storage", func() {
 			// Given
-			storeOptions, err := cs.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-			Expect(err).To(BeNil())
-			storeOptions.GraphRoot = ""
+			cs.DefaultStoreOptions.GraphRoot = ""
 
 			// When
-			_, err = cs.GetStore(storeOptions)
+			imageService, err := storage.GetImageService(
+				context.Background(), nil, nil, "", []string{}, []string{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
+			Expect(imageService).To(BeNil())
 		})
 
 		It("should fail if unqualified search registries errors", func() {

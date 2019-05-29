@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
+	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -32,10 +32,6 @@ type AddAndCopyOptions struct {
 	// If the sources include directory trees, Hasher will be passed
 	// tar-format archives of the directory trees.
 	Hasher io.Writer
-	// Exludes contents in the .dockerignore file
-	Excludes []string
-	// current directory on host
-	ContextDir string
 }
 
 // addURL copies the contents of the source URL to the destination.  This is
@@ -88,7 +84,6 @@ func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) 
 // filesystem, optionally extracting contents of local files that look like
 // non-empty archives.
 func (b *Builder) Add(destination string, extract bool, options AddAndCopyOptions, source ...string) error {
-	excludes := DockerIgnoreHelper(options.Excludes, options.ContextDir)
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
 		return err
@@ -144,71 +139,6 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	copyFileWithTar := b.copyFileWithTar(&containerOwner, options.Hasher)
 	copyWithTar := b.copyWithTar(&containerOwner, options.Hasher)
 	untarPath := b.untarPath(nil, options.Hasher)
-	err = addHelper(excludes, extract, dest, destfi, hostOwner, options, copyFileWithTar, copyWithTar, untarPath, source...)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// user returns the user (and group) information which the destination should belong to.
-func (b *Builder) user(mountPoint string, userspec string) (specs.User, error) {
-	if userspec == "" {
-		userspec = b.User()
-	}
-
-	uid, gid, err := chrootuser.GetUser(mountPoint, userspec)
-	u := specs.User{
-		UID:      uid,
-		GID:      gid,
-		Username: userspec,
-	}
-	if !strings.Contains(userspec, ":") {
-		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
-		if err2 != nil {
-			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
-				err = err2
-			}
-		} else {
-			u.AdditionalGids = groups
-		}
-
-	}
-	return u, err
-}
-
-// DockerIgnore struct keep info from .dockerignore
-type DockerIgnore struct {
-	ExcludePath string
-	IsExcluded  bool
-}
-
-// DockerIgnoreHelper returns the lines from .dockerignore file without the comments
-// and reverses the order
-func DockerIgnoreHelper(lines []string, contextDir string) []DockerIgnore {
-	var excludes []DockerIgnore
-	// the last match of a file in the .dockerignmatches determines whether it is included or excluded
-	// reverse the order
-	for i := len(lines) - 1; i >= 0; i-- {
-		exclude := lines[i]
-		// ignore the comment in .dockerignore
-		if strings.HasPrefix(exclude, "#") || len(exclude) == 0 {
-			continue
-		}
-		excludeFlag := true
-		if strings.HasPrefix(exclude, "!") {
-			exclude = strings.TrimPrefix(exclude, "!")
-			excludeFlag = false
-		}
-		excludes = append(excludes, DockerIgnore{ExcludePath: filepath.Join(contextDir, exclude), IsExcluded: excludeFlag})
-	}
-	if len(excludes) != 0 {
-		excludes = append(excludes, DockerIgnore{ExcludePath: filepath.Join(contextDir, ".dockerignore"), IsExcluded: true})
-	}
-	return excludes
-}
-
-func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
 	for _, src := range source {
 		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 			// We assume that source is a file, and we're copying
@@ -237,7 +167,6 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 		if len(glob) == 0 {
 			return errors.Wrapf(syscall.ENOENT, "no files found matching %q", src)
 		}
-	outer:
 		for _, gsrc := range glob {
 			esrc, err := filepath.EvalSymlinks(gsrc)
 			if err != nil {
@@ -256,59 +185,11 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 					return errors.Wrapf(err, "error creating directory %q", dest)
 				}
 				logrus.Debugf("copying %q to %q", esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-				if len(excludes) == 0 {
-					if err = copyWithTar(esrc, dest); err != nil {
-						return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
-					}
-					continue
-				}
-				err := filepath.Walk(esrc, func(path string, info os.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
-					if info.IsDir() {
-						return nil
-					}
-					for _, exclude := range excludes {
-						match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), filepath.Clean(path))
-						if err != nil {
-							return err
-						}
-						if !match {
-							continue
-						}
-						if exclude.IsExcluded {
-							return nil
-						}
-						break
-					}
-					// combine the filename with the dest directory
-					fpath := strings.TrimPrefix(path, options.ContextDir)
-					if err = copyFileWithTar(path, filepath.Join(dest, fpath)); err != nil {
-						return errors.Wrapf(err, "error copying %q to %q", path, dest)
-					}
-					return nil
-				})
-				if err != nil {
-					return err
+				if err = copyWithTar(esrc, dest); err != nil {
+					return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
 				}
 				continue
 			}
-
-			for _, exclude := range excludes {
-				match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), esrc)
-				if err != nil {
-					return err
-				}
-				if !match {
-					continue
-				}
-				if exclude.IsExcluded {
-					continue outer
-				}
-				break
-			}
-
 			if !extract || !archive.IsArchivePath(esrc) {
 				// This source is a file, and either it's not an
 				// archive, or we don't care whether or not it's an
@@ -332,4 +213,30 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 		}
 	}
 	return nil
+}
+
+// user returns the user (and group) information which the destination should belong to.
+func (b *Builder) user(mountPoint string, userspec string) (specs.User, error) {
+	if userspec == "" {
+		userspec = b.User()
+	}
+
+	uid, gid, err := chrootuser.GetUser(mountPoint, userspec)
+	u := specs.User{
+		UID:      uid,
+		GID:      gid,
+		Username: userspec,
+	}
+	if !strings.Contains(userspec, ":") {
+		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
+		if err2 != nil {
+			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
+				err = err2
+			}
+		} else {
+			u.AdditionalGids = groups
+		}
+
+	}
+	return u, err
 }
