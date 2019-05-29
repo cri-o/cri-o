@@ -160,7 +160,7 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
 			sut.Conmon = validPath
 			tmpDir := path.Join(os.TempDir(), "cni-test")
-			sut.NetworkConfig.PluginDir = []string{tmpDir}
+			sut.NetworkConfig.PluginDirs = []string{tmpDir}
 			sut.NetworkDir = os.TempDir()
 			sut.LogDir = "."
 			defer os.RemoveAll(tmpDir)
@@ -176,7 +176,7 @@ var _ = t.Describe("Config", func() {
 			// Given
 			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
 			sut.Conmon = validPath
-			sut.PluginDir = []string{validPath}
+			sut.PluginDirs = []string{validPath}
 			sut.NetworkConfig.NetworkDir = wrongPath
 
 			// When

@@ -261,7 +261,7 @@ var _ = t.Describe("Config", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = validDirPath
 			tmpDir := path.Join(os.TempDir(), "cni-test")
-			sut.NetworkConfig.PluginDir = []string{tmpDir}
+			sut.NetworkConfig.PluginDirs = []string{tmpDir}
 			defer os.RemoveAll(tmpDir)
 
 			// When
@@ -274,6 +274,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail on invalid NetworkDir", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = invalidPath
+			sut.NetworkConfig.PluginDirs = []string{validDirPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -282,10 +283,10 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		It("should fail on PluginDir without permissions", func() {
+		It("should fail on invalid PluginDirs", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = validDirPath
-			sut.NetworkConfig.PluginDir = []string{invalidPath}
+			sut.NetworkConfig.PluginDirs = []string{invalidPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -294,16 +295,44 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		It("should fail on invalid PluginDir", func() {
+		It("should succeed on having PluginDir", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = validDirPath
-			sut.NetworkConfig.PluginDir = []string{invalidPath}
+			sut.NetworkConfig.PluginDir = validDirPath
+			sut.NetworkConfig.PluginDirs = []string{}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed in appending PluginDir to PluginDirs", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validDirPath
+			sut.NetworkConfig.PluginDir = validDirPath
+			sut.NetworkConfig.PluginDirs = []string{}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validDirPath))
+		})
+
+		It("should fail in validating invalid PluginDir", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validDirPath
+			sut.NetworkConfig.PluginDir = invalidPath
+			sut.NetworkConfig.PluginDirs = []string{}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).ToNot(BeNil())
 		})
 	})
 
