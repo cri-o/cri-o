@@ -263,8 +263,8 @@ image_volumes = "{{ .ImageVolumes }}"
 network_dir = "{{ .NetworkDir }}"
 
 # Paths to directories where CNI plugin binaries are located.
-plugin_dir = [
-{{ range $opt := .PluginDir }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+plugin_dirs = [
+{{ range $opt := .PluginDirs }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 `))
 
 // TODO: Currently ImageDir isn't really used, so we haven't added it to this

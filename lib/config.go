@@ -284,7 +284,10 @@ type NetworkConfig struct {
 	NetworkDir string `toml:"network_dir"`
 
 	// PluginDir is where CNI plugin binaries are stored.
-	PluginDir []string `toml:"plugin_dir"`
+	PluginDir string `toml:"plugin_dir,omitempty"`
+
+	// PluginDirs is where CNI plugin binaries are stored.
+	PluginDirs []string `toml:"plugin_dirs"`
 }
 
 // tomlConfig is another way of looking at a Config, which is
@@ -404,7 +407,7 @@ func DefaultConfig() *Config {
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
-			PluginDir:  []string{cniBinDir},
+			PluginDirs: []string{cniBinDir},
 		},
 	}
 }
@@ -500,10 +503,20 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 			return errors.Wrapf(err, "invalid network_dir")
 		}
 
-		for _, pluginDir := range c.PluginDir {
+		for _, pluginDir := range c.PluginDirs {
 			if _, err := os.Stat(pluginDir); err != nil {
+				return errors.Wrapf(err, "invalid plugin_dirs entry")
+			}
+		}
+		// While the plugin_dir option is being deprecated, we need this check
+		if c.PluginDir != "" {
+			logrus.Warnf("The config field plugin_dir is being deprecated. Please use plugin_dirs instead")
+			if _, err := os.Stat(c.PluginDir); err != nil {
 				return errors.Wrapf(err, "invalid plugin_dir entry")
 			}
+			// Append PluginDir to PluginDirs, so from now on we can operate in terms of PluginDirs and not worry
+			// about missing cases.
+			c.PluginDirs = append(c.PluginDirs, c.PluginDir)
 		}
 	}
 

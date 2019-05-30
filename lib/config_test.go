@@ -201,7 +201,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed during runtime", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDir = []string{validPath}
+			sut.NetworkConfig.PluginDirs = []string{validPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -213,7 +213,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail on invalid NetworkDir", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = wrongPath
-			sut.NetworkConfig.PluginDir = []string{validPath}
+			sut.NetworkConfig.PluginDirs = []string{validPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -222,16 +222,56 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		It("should fail on invalid PluginDir", func() {
+		It("should fail on invalid PluginDirs", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = validPath
-			sut.NetworkConfig.PluginDir = []string{wrongPath}
+			sut.NetworkConfig.PluginDirs = []string{wrongPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should succeed on having PluginDir", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validPath
+			sut.NetworkConfig.PluginDir = validPath
+			sut.NetworkConfig.PluginDirs = []string{}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed in appending PluginDir to PluginDirs", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validPath
+			sut.NetworkConfig.PluginDir = validPath
+			sut.NetworkConfig.PluginDirs = []string{}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validPath))
+		})
+
+		It("should fail in validating invalid PluginDir", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validPath
+			sut.NetworkConfig.PluginDir = wrongPath
+			sut.NetworkConfig.PluginDirs = []string{}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).ToNot(BeNil())
 		})
 	})
 
