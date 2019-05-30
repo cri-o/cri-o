@@ -1,4 +1,15 @@
 ---
+# only fixup paths for e2e tests which expect to be able to pass 'test-handler' as the runtime handler
+- name: add test-handler runtime handler for Runtimes test
+  blockinfile:
+    path: /etc/crio/crio.conf
+    insertbefore: .*crio.runtime.runtimes.runc.*
+    backup: yes
+    block: |
+        [crio.runtime.runtimes.test-handler]
+        runtime_path = "/usr/bin/runc"
+        runtime_type = "oci"
+        runtime_root = "/run/runc"
 
 - name: enable and start CRI-O
   systemd:
