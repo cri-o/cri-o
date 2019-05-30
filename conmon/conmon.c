@@ -60,10 +60,11 @@ static char *opt_container_pid_file = NULL;
 static char *opt_conmon_pid_file = NULL;
 static gboolean opt_systemd_cgroup = FALSE;
 static gboolean opt_no_pivot = FALSE;
+static gboolean opt_attach = FALSE;
 static char *opt_exec_process_spec = NULL;
 static gboolean opt_exec = FALSE;
 static char *opt_restore_path = NULL;
-static gchar **opt_restore_args = NULL;
+static gchar **opt_runtime_opts = NULL;
 static gchar **opt_runtime_args = NULL;
 static gchar **opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
@@ -84,10 +85,11 @@ static GOptionEntry opt_entries[] = {
 	{"name", 'n', 0, G_OPTION_ARG_STRING, &opt_name, "Container name", NULL},
 	{"runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL},
 	{"restore", 0, 0, G_OPTION_ARG_STRING, &opt_restore_path, "Restore a container from a checkpoint", NULL},
-	{"restore-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_restore_args,
-	 "Additional arg to pass to the restore command. Can be specified multiple times", NULL},
+	{"runtime-opt", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_opts,
+	 "Additional opts to pass to the restore or exec command. Can be specified multiple times", NULL},
 	{"runtime-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_args,
 	 "Additional arg to pass to the runtime. Can be specified multiple times", NULL},
+	{"attach", 0, 0, G_OPTION_ARG_NONE, &opt_attach, "Attach to an exec session", NULL},
 	{"no-new-keyring", 0, 0, G_OPTION_ARG_NONE, &opt_no_new_keyring, "Do not create a new session keyring for the container", NULL},
 	{"no-pivot", 0, 0, G_OPTION_ARG_NONE, &opt_no_pivot, "Do not use pivot_root", NULL},
 	{"replace-listen-pid", 0, 0, G_OPTION_ARG_NONE, &opt_replace_listen_pid, "Replace listen pid if set for oci-runtime pid", NULL},
@@ -393,6 +395,8 @@ static void on_sig_exit(int signal)
 	raise(SIGUSR1);
 }
 
+static void container_exit_cb(G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED gpointer user_data);
+
 static void check_child_processes(GHashTable *pid_to_handler)
 {
 	void (*cb)(GPid, int, gpointer);
@@ -403,6 +407,7 @@ static void check_child_processes(GHashTable *pid_to_handler)
 
 		if (pid < 0 && errno == EINTR)
 			continue;
+
 		if (pid < 0 && errno == ECHILD) {
 			g_main_loop_quit(main_loop);
 			return;
@@ -415,8 +420,15 @@ static void check_child_processes(GHashTable *pid_to_handler)
 
 		/* If we got here, pid > 0, so we have a valid pid to check.  */
 		cb = g_hash_table_lookup(pid_to_handler, &pid);
-		if (cb)
+		if (cb) {
 			cb(pid, status, 0);
+		} else {
+			ndebugf("couldn't  find cb for pid %d", pid);
+			if (container_status < 0 && container_pid < 0 && opt_exec && opt_terminal) {
+				ndebugf("container status and pid were found prior to callback being registered. calling manually");
+				container_exit_cb(pid, status, 0);
+			}
+		}
 	}
 }
 
@@ -808,6 +820,16 @@ static void container_exit_cb(G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED 
 	}
 	container_status = status;
 	container_pid = -1;
+	/* In the case of a quickly exiting exec command, the container exit callback
+	   sometimes gets called earlier than the pid exit callback. If we quit the loop at that point
+	   we risk falsely telling the caller of conmon the runtime call failed (because runtime status
+	   wouldn't be set). Instead, don't quit the loop until runtime exit is also called, which should
+	   shortly after. */
+	if (create_pid > 0 && opt_exec && opt_terminal) {
+		ndebugf("container pid return handled before runtime pid return. Not quitting yet.");
+		return;
+	}
+
 	g_main_loop_quit(main_loop);
 }
 
@@ -815,16 +837,11 @@ static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
 {
 	_cleanup_free_ char *escaped_message = NULL;
 	_cleanup_free_ char *json = NULL;
-	const char *res_key;
+	const char *res_key = "data";
 	ssize_t len;
 
 	if (sync_pipe_fd == -1)
 		return;
-
-	if (opt_exec)
-		res_key = "exit_code";
-	else
-		res_key = "pid";
 
 	if (message) {
 		escaped_message = escape_json_string(message);
@@ -906,6 +923,7 @@ static char *setup_attach_socket(void)
 
 	attach_sock_path = g_build_filename(opt_socket_path, opt_cuuid, "attach", NULL);
 	ninfof("attach sock path: %s", attach_sock_path);
+	ninfof("symlink path: %s", attach_symlink_dir_path);
 
 	strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
 	ninfof("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
@@ -1002,7 +1020,8 @@ static void setup_oom_handling_cgroup_v1(int container_pid)
 
 	memory_cgroup_path = process_cgroup_subsystem_path(container_pid, false, "memory");
 	if (!memory_cgroup_path) {
-		nexit("Failed to get memory cgroup path");
+		nwarn("Failed to get memory cgroup path. Container may have exited");
+		return;
 	}
 
 	_cleanup_free_ char *memory_cgroup_file_path = g_build_filename(memory_cgroup_path, "cgroup.event_control", NULL);
@@ -1080,6 +1099,7 @@ int main(int argc, char *argv[])
 	char buf[BUF_SIZE];
 	int num_read;
 	int sync_pipe_fd = -1;
+	int attach_pipe_fd = -1;
 	int start_pipe_fd = -1;
 	GError *error = NULL;
 	GOptionContext *context;
@@ -1123,10 +1143,13 @@ int main(int argc, char *argv[])
 	main_loop = g_main_loop_new(NULL, FALSE);
 
 	if (opt_restore_path && opt_exec)
-		nexit("Cannot use 'exec' and 'restore' at the same time.");
+		nexit("Cannot use 'exec' and 'restore' at the same time");
+
+	if (!opt_exec && opt_attach)
+		nexit("Attach can only be specified with exec");
 
 
-	if (!opt_exec && opt_cuuid == NULL)
+	if (opt_cuuid == NULL)
 		nexit("Container UUID not provided. Use --cuuid");
 
 	if (opt_runtime_path == NULL)
@@ -1134,6 +1157,7 @@ int main(int argc, char *argv[])
 	if (access(opt_runtime_path, X_OK) < 0)
 		pexitf("Runtime path %s is not valid", opt_runtime_path);
 
+	// a user must opt into attaching on an exec
 	if (opt_bundle_path == NULL && !opt_exec) {
 		if (getcwd(cwd, sizeof(cwd)) == NULL) {
 			nexit("Failed to get working directory");
@@ -1158,10 +1182,10 @@ int main(int argc, char *argv[])
 		opt_container_pid_file = default_pid_file;
 	}
 
-	configure_log_drivers(opt_log_path, opt_log_size_max, opt_cuuid, opt_name);
+	configure_log_drivers(opt_log_path, opt_log_size_max, opt_cid, opt_name);
 
 	start_pipe_fd = get_pipe_fd_from_env("_OCI_STARTPIPE");
-	if (start_pipe_fd >= 0) {
+	if (start_pipe_fd > 0) {
 		/* Block for an initial write to the start pipe before
 		   spawning any childred or exiting, to ensure the
 		   parent can put us in the right cgroup. */
@@ -1169,7 +1193,10 @@ int main(int argc, char *argv[])
 		if (num_read < 0) {
 			pexit("start-pipe read failed");
 		}
-		close(start_pipe_fd);
+		/* If we aren't attaching in an exec session,
+		   we don't need this anymore. */
+		if (!opt_attach)
+			close(start_pipe_fd);
 	}
 
 	/* In the create-container case we double-fork in
@@ -1206,6 +1233,12 @@ int main(int argc, char *argv[])
 	/* Environment variables */
 	sync_pipe_fd = get_pipe_fd_from_env("_OCI_SYNCPIPE");
 
+	if (opt_attach) {
+		attach_pipe_fd = get_pipe_fd_from_env("_OCI_ATTACHPIPE");
+		if (attach_pipe_fd < 0) {
+			pexit("--attach specified but _OCI_ATTACHPIPE was not");
+		}
+	}
 	/*
 	 * Set self as subreaper so we can wait for container process
 	 * and return its exit code.
@@ -1265,8 +1298,11 @@ int main(int argc, char *argv[])
 			add_argv(runtime_argv, opt_runtime_args[n_runtime_args++], NULL);
 	}
 
+	/* Set the exec arguments. */
 	if (opt_exec) {
-		add_argv(runtime_argv, "exec", "-d", "--pid-file", opt_container_pid_file, NULL);
+		add_argv(runtime_argv, "exec", "--pid-file", opt_container_pid_file, "--process", opt_exec_process_spec, "-d", NULL);
+		if (opt_terminal)
+			add_argv(runtime_argv, "--tty", NULL);
 	} else {
 		char *command;
 		if (opt_restore_path)
@@ -1275,6 +1311,10 @@ int main(int argc, char *argv[])
 			command = "create";
 
 		add_argv(runtime_argv, command, "--bundle", opt_bundle_path, "--pid-file", opt_container_pid_file, NULL);
+		if (opt_no_pivot)
+			add_argv(runtime_argv, "--no-pivot", NULL);
+		if (opt_no_new_keyring)
+			add_argv(runtime_argv, "--no-new-keyring", NULL);
 
 		if (opt_restore_path) {
 			/*
@@ -1292,37 +1332,24 @@ int main(int argc, char *argv[])
 			 * also place its log files.
 			 */
 			add_argv(runtime_argv, "--detach", "--image-path", opt_restore_path, "--work-path", opt_bundle_path, NULL);
-
-			/*
-			 *  opt_restore_args can contain 'runc restore' options like
-			 *  '--tcp-established'. Instead of listing each option as
-			 *  a special conmon option, this (--restore-arg) provides
-			 *  a generic interface to pass all those options to conmon
-			 *  without requiring a code change for each new option.
-			 */
-			if (opt_restore_args) {
-				size_t n_restore_args = 0;
-				while (opt_restore_args[n_restore_args])
-					add_argv(runtime_argv, opt_restore_args[n_restore_args++], NULL);
-			}
 		}
 	}
-
-	if (!opt_exec && opt_no_pivot) {
-		add_argv(runtime_argv, "--no-pivot", NULL);
+	/*
+	 *  opt_runtime_opts can contain 'runc restore' or 'runc exec' options like
+	 *  '--tcp-established' or '--preserve-fds'. Instead of listing each option as
+	 *  a special conmon option, this (--runtime-opt) provides
+	 *  a generic interface to pass all those options to conmon
+	 *  without requiring a code change for each new option.
+	 */
+	if (opt_runtime_opts) {
+		size_t n_runtime_opts = 0;
+		while (opt_runtime_opts[n_runtime_opts])
+			add_argv(runtime_argv, opt_runtime_opts[n_runtime_opts++], NULL);
 	}
 
-	if (!opt_exec && opt_no_new_keyring) {
-		add_argv(runtime_argv, "--no-new-keyring", NULL);
-	}
 
 	if (csname != NULL) {
 		add_argv(runtime_argv, "--console-socket", csname, NULL);
-	}
-
-	/* Set the exec arguments. */
-	if (opt_exec) {
-		add_argv(runtime_argv, "--process", opt_exec_process_spec, NULL);
 	}
 
 	/* Container name comes last. */
@@ -1385,6 +1412,21 @@ int main(int argc, char *argv[])
 			}
 		}
 
+		// If we are execing, and the user is trying to attach to this exec session,
+		// we need to wait until they attach to the console before actually execing,
+		// or else we may lose output
+		if (opt_attach) {
+			if (start_pipe_fd > 0) {
+				ndebug("exec with attach is waiting for start message from parent");
+				num_read = read(start_pipe_fd, buf, BUF_SIZE);
+				ndebug("exec with attach got start message from parent");
+				if (num_read < 0) {
+					pexit("start-pipe read failed");
+				}
+				close(start_pipe_fd);
+			}
+		}
+
 		execv(g_ptr_array_index(runtime_argv, 0), (char **)runtime_argv->pdata);
 		exit(127);
 	}
@@ -1393,21 +1435,9 @@ int main(int argc, char *argv[])
 	    || (signal(SIGINT, on_sig_exit) == SIG_ERR))
 		pexit("Failed to register the signal handler");
 
+
 	if (sigprocmask(SIG_SETMASK, &oldmask, NULL) < 0)
 		pexit("Failed to unblock signals");
-
-	if (opt_exit_command)
-		atexit(do_exit_command);
-
-	g_ptr_array_free(runtime_argv, TRUE);
-
-	/* The runtime has that fd now. We don't need to touch it anymore. */
-	if (slavefd_stdin > -1)
-		close(slavefd_stdin);
-	if (slavefd_stdout > -1)
-		close(slavefd_stdout);
-	if (slavefd_stderr > -1)
-		close(slavefd_stderr);
 
 	/* Map pid to its handler.  */
 	GHashTable *pid_to_handler = g_hash_table_new(g_int_hash, g_int_equal);
@@ -1422,11 +1452,38 @@ int main(int argc, char *argv[])
 	if (signal(SIGCHLD, on_sigchld) == SIG_ERR)
 		pexit("Failed to set handler for SIGCHLD");
 
+	if (opt_exit_command)
+		atexit(do_exit_command);
+
+	g_ptr_array_free(runtime_argv, TRUE);
+
+	/* The runtime has that fd now. We don't need to touch it anymore. */
+	if (slavefd_stdin > -1)
+		close(slavefd_stdin);
+	if (slavefd_stdout > -1)
+		close(slavefd_stdout);
+	if (slavefd_stderr > -1)
+		close(slavefd_stderr);
+
+	/* Setup endpoint for attach */
+	_cleanup_free_ char *attach_symlink_dir_path = NULL;
+	if (opt_bundle_path != NULL) {
+		attach_symlink_dir_path = setup_attach_socket();
+		dummyfd = setup_terminal_control_fifo();
+
+		if (opt_attach) {
+			ndebug("sending attach message to parent");
+			write_sync_fd(attach_pipe_fd, 0, NULL);
+			ndebug("sent attach message to parent");
+		}
+	}
+
 	if (csname != NULL) {
 		g_unix_fd_add(console_socket_fd, G_IO_IN, terminal_accept_cb, csname);
 		/* Process any SIGCHLD we may have missed before the signal handler was in place.  */
 		check_child_processes(pid_to_handler);
-		g_main_loop_run(main_loop);
+		if (!opt_exec || !opt_terminal || container_status < 0)
+			g_main_loop_run(main_loop);
 	} else {
 		int ret;
 		/* Wait for our create child to exit with the return code. */
@@ -1450,7 +1507,12 @@ int main(int argc, char *argv[])
 			num_read = read(masterfd_stderr, buf, BUF_SIZE - 1);
 			if (num_read > 0) {
 				buf[num_read] = '\0';
-				write_sync_fd(sync_pipe_fd, -1, buf);
+				int to_report = -1;
+				if (opt_exec && container_status > 0) {
+					to_report = -1 * container_status;
+				}
+
+				write_sync_fd(sync_pipe_fd, to_report, buf);
 			}
 		}
 		nexitf("Failed to create container: exit status %d", get_exit_status(runtime_status));
@@ -1472,20 +1534,8 @@ int main(int argc, char *argv[])
 
 	g_hash_table_insert(pid_to_handler, (pid_t *)&container_pid, container_exit_cb);
 
-	/* Setup endpoint for attach */
-	_cleanup_free_ char *attach_symlink_dir_path = NULL;
-	if (!opt_exec) {
-		attach_symlink_dir_path = setup_attach_socket();
-	}
-
-	if (!opt_exec) {
-		dummyfd = setup_terminal_control_fifo();
-	}
-
 	/* Send the container pid back to parent */
-	if (!opt_exec) {
-		write_sync_fd(sync_pipe_fd, container_pid, NULL);
-	}
+	write_sync_fd(sync_pipe_fd, container_pid, NULL);
 
 	setup_oom_handling(container_pid);
 
@@ -1501,8 +1551,20 @@ int main(int argc, char *argv[])
 	}
 
 	check_child_processes(pid_to_handler);
-
-	g_main_loop_run(main_loop);
+	/* There are three cases we want to run this main loop:
+	   1. if we are running create or restore
+	   2. if we are running exec without a terminal
+	       no matter the speed of the command being executed, having outstanding
+	       output to process from the child process keeps it alive, so we can read the io,
+	       and let the callback handler take care of the container_status as normal.
+	   3. if we are exec with a tty open, and our container_status hasn't been changed
+	      by any callbacks yet
+	       specifically, the check child processes call above could set the container
+	       status if it is a quickly exiting command. We only want to run the loop if
+	       this hasn't happened yet.
+	*/
+	if (!opt_exec || !opt_terminal || container_status < 0)
+		g_main_loop_run(main_loop);
 
 	check_cgroup2_oom();
 
@@ -1543,7 +1605,7 @@ int main(int argc, char *argv[])
 	 * reused immediately.
 	 */
 	for (fd = 3;; fd++) {
-		if (fd == sync_pipe_fd || fd == dev_null_r || fd == dev_null_w)
+		if (fd == sync_pipe_fd || fd == attach_pipe_fd || fd == dev_null_r || fd == dev_null_w)
 			continue;
 		if (close(fd) < 0 && errno == EBADF)
 			break;
@@ -1553,7 +1615,6 @@ int main(int argc, char *argv[])
 		/* Send the command exec exit code back to the parent */
 		write_sync_fd(sync_pipe_fd, exit_status, exit_message);
 	}
-
 	if (attach_symlink_dir_path != NULL && unlink(attach_symlink_dir_path) == -1 && errno != ENOENT) {
 		pexit("Failed to remove symlink for attach socket directory");
 	}
