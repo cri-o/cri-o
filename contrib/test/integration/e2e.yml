@@ -14,7 +14,7 @@
         GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y /usr/bin/go run hack/e2e.go
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
-                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.support.inline.execution.and.attach|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config|Pods.should.support.pod.readiness.gates|\[sig-storage\].In-tree.Volumes.\[Driver:.local\]|\[sig-storage\].CSI.Volumes.CSI.Topology.test.using.GCE.PD.driver
+                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.support.inline.execution.and.attach|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config|Pods.should.support.pod.readiness.gates|\[sig-storage\].In-tree.Volumes.\[Driver:.local\]|\[sig-storage\].CSI.Volumes.CSI.Topology.test.using.GCE.PD.driver|\[sig\-node\].RuntimeClass.should.run.a.Pod.requesting.a.RuntimeClass.with.a.configured.handler
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax hilighting: "
