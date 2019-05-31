@@ -388,15 +388,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
-	mnt := rspec.Mount{
-		Destination: "/sys/fs/cgroup",
-		Type:        "cgroup",
-		Source:      "cgroup",
-		Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
-	}
-	// Add cgroup mount so container process can introspect its own limits
-	specgen.AddMount(mnt)
-
 	configuredDevices, err := getDevicesFromConfig(&s.config)
 	if err != nil {
 		return nil, err
@@ -609,15 +600,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		if err := specgen.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); err != nil {
 			return nil, err
 		}
-		specgen.RemoveMount("/sys")
-		specgen.RemoveMount("/sys/cgroup")
-		sysMnt := rspec.Mount{
-			Destination: "/sys",
-			Type:        "bind",
-			Source:      "/sys",
-			Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+
+		if !isInCRIMounts("/sys", containerConfig.GetMounts()) {
+			specgen.RemoveMount("/sys")
+			specgen.RemoveMount("/sys/cgroup")
+			sysMnt := rspec.Mount{
+				Destination: "/sys",
+				Type:        "bind",
+				Source:      "/sys",
+				Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+			}
+			specgen.AddMount(sysMnt)
 		}
-		specgen.AddMount(sysMnt)
 	} else {
 		netNsPath := sb.NetNsPath()
 		if netNsPath == "" {
@@ -636,7 +630,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	// Remove the default /dev/shm mount to ensure we overwrite it
 	specgen.RemoveMount("/dev/shm")
 
-	mnt = rspec.Mount{
+	mnt := rspec.Mount{
 		Type:        "bind",
 		Source:      sb.ShmPath(),
 		Destination: "/dev/shm",
@@ -959,6 +953,10 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 			// filter out everything under /dev if /dev is a supplied mount
 			continue
 		}
+		if _, mountSys := mountSet["/sys"]; mountSys && strings.HasPrefix(dst, "/sys/") {
+			// filter out everything under /sys if /sys is a supplied mount
+			continue
+		}
 		specgen.AddMount(m)
 	}
 
@@ -1037,6 +1035,17 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 			Destination: dest,
 			Options:     options,
 		})
+	}
+
+	if _, mountSys := mountSet["/sys"]; !mountSys {
+		m := rspec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+		}
+		specgen.AddMount(m)
+
 	}
 
 	return volumes, ociMounts, nil
