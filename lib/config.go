@@ -566,6 +566,10 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 			// Append PluginDir to PluginDirs, so from now on we can operate in terms of PluginDirs and not worry
 			// about missing cases.
 			c.PluginDirs = append(c.PluginDirs, c.PluginDir)
+
+			// Empty the pluginDir so on future config calls we don't print it out
+			// thus seemlessly transitioning and depreciating the option
+			c.PluginDir = ""
 		}
 	}
 
