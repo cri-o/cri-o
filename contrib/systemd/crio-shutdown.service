@@ -1,5 +1,5 @@
 [Unit]
-Description=Shutdown CRIO containers before shutting down the system
+Description=Shutdown CRI-O containers before shutting down the system
 Wants=crio.service
 After=crio.service
 Documentation=man:crio(8)
