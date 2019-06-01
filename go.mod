@@ -18,7 +18,7 @@ require (
 	github.com/containernetworking/plugins v0.7.5
 	github.com/containers/buildah v1.7.2
 	github.com/containers/image v1.5.1
-	github.com/containers/libpod v1.3.1
+	github.com/containers/libpod v1.3.2
 	github.com/containers/psgo v1.2.1 // indirect
 	github.com/containers/storage v1.12.7
 	github.com/coreos/go-iptables v0.4.1 // indirect
@@ -37,7 +37,6 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.16.1-0.20190402065613-de1d1ad903cd
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
-	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/klauspost/compress v1.5.0 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
@@ -58,14 +57,14 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f // indirect
-	github.com/seccomp/libseccomp-golang v0.9.0
+	github.com/seccomp/libseccomp-golang v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20160928074757-e7cb7fa329f4
 	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
 	github.com/ulikunitz/xz v0.5.6 // indirect
 	github.com/urfave/cli v1.20.0
-	github.com/vbatts/git-validation v0.0.0-20181108135710-7b29366a0dd3
+	github.com/vbatts/git-validation v1.0.0
 	github.com/vbatts/tar-split v0.11.1 // indirect
 	github.com/vbauerster/mpb v3.4.0+incompatible // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
