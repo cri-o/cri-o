@@ -169,12 +169,12 @@ func mockDirs(manifest []byte) {
 }
 
 func addContainerAndSandbox() {
-	sut.AddSandbox(mySandbox)
+	Expect(sut.AddSandbox(mySandbox)).To(BeNil())
 	sut.AddContainer(myContainer)
 	Expect(sut.CtrIDIndex().Add(containerID)).To(BeNil())
 	Expect(sut.PodIDIndex().Add(sandboxID)).To(BeNil())
 }
 
 func createDummyState() {
-	ioutil.WriteFile("state.json", []byte("{}"), 0644)
+	Expect(ioutil.WriteFile("state.json", []byte("{}"), 0644)).To(BeNil())
 }

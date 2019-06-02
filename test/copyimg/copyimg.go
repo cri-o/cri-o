@@ -118,7 +118,10 @@ func main() {
 				os.Exit(1)
 			}
 			defer func() {
-				_, _ = store.Shutdown(false)
+				_, err = store.Shutdown(false)
+				if err != nil {
+					logrus.Warnf("unable to shutdown store: %v", err)
+				}
 			}()
 
 			storage.Transport.SetStore(store)
@@ -143,7 +146,10 @@ func main() {
 			os.Exit(1)
 		}
 		defer func() {
-			_ = policyContext.Destroy()
+			err = policyContext.Destroy()
+			if err != nil {
+				logrus.Fatalf("unable to destroy policy context: %v", err)
+			}
 		}()
 		options := &copy.Options{}
 

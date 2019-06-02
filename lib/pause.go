@@ -5,6 +5,7 @@ import (
 
 	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ContainerPause pauses a running container.
@@ -19,7 +20,9 @@ func (c *ContainerServer) ContainerPause(container string) (string, error) {
 		if err := c.runtime.PauseContainer(ctr); err != nil {
 			return "", errors.Wrapf(err, "failed to pause container %s", ctr.ID())
 		}
-		c.ContainerStateToDisk(ctr)
+		if err := c.ContainerStateToDisk(ctr); err != nil {
+			logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
+		}
 	} else {
 		return "", fmt.Errorf("container %s is already paused", ctr.ID())
 	}
@@ -39,7 +42,9 @@ func (c *ContainerServer) ContainerUnpause(container string) (string, error) {
 		if err := c.runtime.UnpauseContainer(ctr); err != nil {
 			return "", errors.Wrapf(err, "failed to unpause container %s", ctr.ID())
 		}
-		c.ContainerStateToDisk(ctr)
+		if err := c.ContainerStateToDisk(ctr); err != nil {
+			logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
+		}
 	} else {
 		return "", fmt.Errorf("the container %s is not paused", ctr.ID())
 	}

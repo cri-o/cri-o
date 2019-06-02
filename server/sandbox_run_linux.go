@@ -420,7 +420,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, "")
+		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, ""); err != nil {
+			return nil, errors.Wrapf(err, "add or replace linux namespace")
+		}
 		for _, uidmap := range s.defaultIDMappings.UIDs() {
 			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
 		}
@@ -610,7 +612,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	container.SetSpec(g.Config)
 
-	sb.SetInfraContainer(container)
+	if err := sb.SetInfraContainer(container); err != nil {
+		return nil, err
+	}
 
 	var ip string
 	var result cnitypes.Result
@@ -689,11 +693,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			if err2 := s.Runtime().DeleteContainer(container); err2 != nil {
 				logrus.Warnf("failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
-			s.ContainerStateToDisk(container)
+			if err2 := s.ContainerStateToDisk(container); err2 != nil {
+				logrus.Warnf("failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+			}
 		}
 	}()
 
-	s.ContainerStateToDisk(container)
+	if err := s.ContainerStateToDisk(container); err != nil {
+		logrus.Warnf("unable to write containers %s state to disk: %v", container.ID(), err)
+	}
 
 	if !s.config.Config.ManageNetworkNSLifecycle {
 		ip, _, err = s.networkStart(sb)

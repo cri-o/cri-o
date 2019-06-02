@@ -41,8 +41,8 @@ func TestParseDNSOptions(t *testing.T) {
 			t.Error(err)
 		}
 
-		expect, _ := ioutil.ReadFile(c.Want)
-		result, _ := ioutil.ReadFile(c.Path)
+		expect, _ := ioutil.ReadFile(c.Want) // nolint: errcheck
+		result, _ := ioutil.ReadFile(c.Path) // nolint: errcheck
 		if string(expect) != string(result) {
 			t.Errorf("expect %v: \n but got : %v", string(expect), string(result))
 		}

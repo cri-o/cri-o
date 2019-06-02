@@ -5,6 +5,7 @@ import (
 
 	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ContainerKill sends the user provided signal to the containers primary process.
@@ -13,7 +14,9 @@ func (c *ContainerServer) ContainerKill(container string, killSignal syscall.Sig
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)
 	}
-	c.runtime.UpdateContainerStatus(ctr)
+	if err := c.runtime.UpdateContainerStatus(ctr); err != nil {
+		logrus.Warnf("unable to update containers %s status: %v", ctr.ID(), err)
+	}
 	cStatus := ctr.State()
 
 	// If the container is not running, error and move on.
@@ -25,6 +28,8 @@ func (c *ContainerServer) ContainerKill(container string, killSignal syscall.Sig
 		return "", err
 	}
 
-	c.ContainerStateToDisk(ctr)
+	if err := c.ContainerStateToDisk(ctr); err != nil {
+		logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
+	}
 	return ctr.ID(), nil
 }

@@ -106,7 +106,9 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
+		if _, err := w.Write(js); err != nil {
+			http.Error(w, fmt.Sprintf("unable to write JSON: %v", err), http.StatusInternalServerError)
+		}
 	}))
 
 	mux.Get("/containers/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -131,7 +133,9 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
+		if _, err := w.Write(js); err != nil {
+			http.Error(w, fmt.Sprintf("unable to write JSON: %v", err), http.StatusInternalServerError)
+		}
 	}))
 
 	return mux

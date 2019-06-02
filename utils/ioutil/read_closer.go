@@ -30,7 +30,7 @@ type wrapReadCloser struct {
 func NewWrapReadCloser(r io.Reader) io.ReadCloser {
 	pr, pw := io.Pipe()
 	go func() {
-		_, _ = io.Copy(pw, r)
+		_, _ = io.Copy(pw, r) // nolint: errcheck
 		pr.Close()
 		pw.Close()
 	}()

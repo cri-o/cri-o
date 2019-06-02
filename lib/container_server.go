@@ -216,7 +216,9 @@ func (c *ContainerServer) Update() error {
 			ctr := c.GetContainer(id)
 			if ctr != nil {
 				// if the container exists, update its state
-				c.ContainerStateFromDisk(c.GetContainer(id))
+				if err := c.ContainerStateFromDisk(c.GetContainer(id)); err != nil {
+					logrus.Warnf("unable to retrieve containers %s state from disk: %v", id, err)
+				}
 			}
 		}
 	})
@@ -425,7 +427,9 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	if err := label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
-	sb.SetInfraContainer(scontainer)
+	if err := sb.SetInfraContainer(scontainer); err != nil {
+		return err
+	}
 	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return err
 	}

@@ -20,6 +20,7 @@ import (
 	"github.com/docker/docker/pkg/pools"
 	"github.com/fsnotify/fsnotify"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
@@ -154,7 +155,9 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	someData := []byte{0}
 	_, err = parentStartPipe.Write(someData)
 	if err != nil {
-		cmd.Wait()
+		if waitErr := cmd.Wait(); waitErr != nil {
+			return errors.Wrap(err, waitErr.Error())
+		}
 		return err
 	}
 
@@ -167,7 +170,9 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	// We will delete all container resources if creation fails
 	defer func() {
 		if err != nil {
-			r.DeleteContainer(c)
+			if err := r.DeleteContainer(c); err != nil {
+				logrus.Warnf("unable to delete container %s: %v", c.ID(), err)
+			}
 		}
 	}()
 
@@ -295,7 +300,7 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
-	var cmdErr error
+	var cmdErr, copyError error
 	if tty {
 		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
 	} else {
@@ -308,7 +313,7 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 			if err != nil {
 				return err
 			}
-			go pools.Copy(w, stdin)
+			go func() { _, copyError = pools.Copy(w, stdin) }()
 
 			execCmd.Stdin = r
 		}
@@ -322,6 +327,9 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 		cmdErr = execCmd.Run()
 	}
 
+	if copyError != nil {
+		return copyError
+	}
 	if exitErr, ok := cmdErr.(*exec.ExitError); ok {
 		return &utilexec.ExitErrorWrapper{ExitError: exitErr}
 	}
@@ -664,7 +672,10 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 			logrus.Warnf("failed to find container exit file for %v: %v", c.id, err)
 			c.state.ExitCode = -1
 		} else {
-			c.state.Finished = getFinishedTime(fi)
+			c.state.Finished, err = getFinishedTime(fi)
+			if err != nil {
+				return fmt.Errorf("failed to get finished time: %v", err)
+			}
 			statusCodeStr, err := ioutil.ReadFile(exitFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to read exit file: %v", err)
@@ -765,7 +776,9 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 		var err error
 		if inputStream != nil {
 			_, err = utils.CopyDetachable(conn, inputStream, nil)
-			conn.CloseWrite()
+			if closeErr := conn.CloseWrite(); closeErr != nil {
+				stdinDone <- closeErr
+			}
 		}
 		stdinDone <- err
 	}()
@@ -825,13 +838,20 @@ func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.Re
 	if err != nil {
 		return fmt.Errorf("unable to do port forwarding: error creating stdin pipe: %v", err)
 	}
+	var copyError error
 	go func() {
-		pools.Copy(inPipe, stream)
+		_, copyError = pools.Copy(inPipe, stream)
 		inPipe.Close()
 	}()
 
-	if err := command.Run(); err != nil {
-		return fmt.Errorf("%v: %s", err, stderr.String())
+	runErr := command.Run()
+
+	if copyError != nil {
+		return copyError
+	}
+
+	if runErr != nil {
+		return fmt.Errorf("%v: %s", runErr, stderr.String())
 	}
 
 	return nil
