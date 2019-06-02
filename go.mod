@@ -15,7 +15,7 @@ require (
 	github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
 	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
 	github.com/containernetworking/cni v0.7.0
-	github.com/containernetworking/plugins v0.7.5
+	github.com/containernetworking/plugins v0.8.0
 	github.com/containers/buildah v1.7.2
 	github.com/containers/image v1.5.1
 	github.com/containers/libpod v1.3.2
