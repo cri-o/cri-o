@@ -51,9 +51,11 @@ RUN cd /tmp &&\
     rm -rf /tmp/bats-core &&\
     mkdir -p ~/.parallel && touch ~/.parallel/will-cite
 
-# Install crictl
+# Install crictl and critest
 RUN VERSION=v1.14.0 &&\
     wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-$VERSION-linux-amd64.tar.gz \
+        | tar xfz - -C /usr/bin &&\
+    wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/critest-$VERSION-linux-amd64.tar.gz \
         | tar xfz - -C /usr/bin
 
 # Install runc

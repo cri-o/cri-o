@@ -32,7 +32,7 @@ function execute() {
 TESTS=${@:-.}
 
 # The number of parallel jobs to execute
-JOBS=${JOBS:-$(($(nproc --all)*4))}
+export JOBS=${JOBS:-$(($(nproc --all)*4))}
 
 # Run the tests.
 execute time bats --jobs "$JOBS" --tap $TESTS
