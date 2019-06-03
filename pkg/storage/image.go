@@ -638,13 +638,11 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 
 		is.unqualifiedSearchRegistries = cleanRegistries
 	} else {
-		systemRegistries, err := sysregistriesv2.FindUnqualifiedSearchRegistries(sc)
+		systemRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(sc)
 		if err != nil {
 			return nil, err
 		}
-		for _, r := range systemRegistries {
-			is.unqualifiedSearchRegistries = append(is.unqualifiedSearchRegistries, r.URL)
-		}
+		is.unqualifiedSearchRegistries = systemRegistries
 	}
 
 	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")

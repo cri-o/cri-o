@@ -2,6 +2,240 @@
 
 # Changelog
 
+## v1.8.4 (2019-06-13)
+    Update containers/image to v2.0.0
+    run: fix hang with run and --isolation=chroot
+    run: fix hang when using run
+    chroot: drop unused function call
+    remove --> before imgageID on build
+    Always close stdin pipe
+    Write deny to setgroups when doing single user mapping
+    Avoid including linux/memfd.h
+    Add a test for the symlink pointing to a directory
+    Add missing continue
+    Fix the handling of symlinks to absolute paths
+    Only set default network sysctls if not rootless
+    Support --dns=none like podman
+    fix bug --cpu-shares parsing typo
+    Fix validate complaint
+    Update vendor on containers/storage to v1.12.10
+    Create directory paths for COPY thereby ensuring correct perms
+    imagebuildah: use a stable sort for comparing build args
+    imagebuildah: tighten up cache checking
+    bud.bats: add a test verying the order of --build-args
+    add -t to podman run
+    imagebuildah: simplify screening by top layers
+    imagebuildah: handle ID mappings for COPY --from
+    imagebuildah: apply additionalTags ourselves
+    bud.bats: test additional tags with cached images
+    bud.bats: add a test for WORKDIR and COPY with absolute destinations
+    Cleanup Overlay Mounts content
+
+## v1.8.3 (2019-06-04)
+  * Add support for file secret mounts
+  * Add ability to skip secrets in mounts file
+  * allow 32bit builds
+  * fix tutorial instructions
+  * imagebuilder: pass the right contextDir to Add()
+  * add: use fileutils.PatternMatcher for .dockerignore
+  * bud.bats: add another .dockerignore test
+  * unshare: fallback to single usermapping
+  * addHelperSymlink: clear the destination on os.IsExist errors
+  * bud.bats: test replacing symbolic links
+  * imagebuildah: fix handling of destinations that end with '/'
+  * bud.bats: test COPY with a final "/" in the destination
+  * linux: add check for sysctl before using it
+  * unshare: set _CONTAINERS_ROOTLESS_GID
+  * Rework buildahimamges
+  * build context: support https git repos
+  * Add a test for ENV special chars behaviour
+  * Check in new Dockerfiles
+  * Apply custom SHELL during build time
+  * config: expand variables only at the command line
+  * SetEnv: we only need to expand v once
+  * Add default /root if empty on chroot iso
+  * Add support for Overlay volumes into the container.
+  * Export buildah validate volume functions so it can share code with libpod
+  * Bump baseline test to F30
+  * Fix rootless handling of /dev/shm size
+  * Avoid fmt.Printf() in the library
+  * imagebuildah: tighten cache checking back up
+  * Handle WORKDIR with dangling target
+  * Default Authfile to proper path
+  * Make buildah run --isolation follow BUILDAH_ISOLATION environment
+  * Vendor in latest containers/storage and containers/image
+  * getParent/getChildren: handle layerless images
+  * imagebuildah: recognize cache images for layerless images
+  * bud.bats: test scratch images with --layers caching
+  * Get CHANGELOG.md updates
+  * Add some symlinks to test our .dockerignore logic
+  * imagebuildah: addHelper: handle symbolic links
+  * commit/push: use an everything-allowed policy
+  * Correct manpage formatting in files section
+  * Remove must be root statement from buildah doc
+  * Change image names to stable, testing and upstream
+  * Bump back to v1.9.0-dev
+
+## v1.8.2 (2019-05-02)
+    Vendor Storage 1.12.6
+    Create scratch file in TESTDIR
+    Test bud-copy-dot with --layers picks up changed file
+    Bump back to 1.9.0-dev
+
+## v1.8.1 (2019-05-01)
+    Don't create directory on container
+    Replace kubernetes/pause in tests with k8s.gcr.io/pause
+    imagebuildah: don't remove intermediate images if we need them
+    Rework buildahimagegit to buildahimageupstream
+    Fix Transient Mounts
+    Handle WORKDIRs that are symlinks
+    allow podman to build a client for windows
+    Touch up 1.9-dev to 1.9.0-dev
+    Bump to 1.9-dev
+
+## v1.8.0 (2019-04-26)
+    Resolve symlink when checking container path
+    commit: commit on every instruction, but not always with layers
+    CommitOptions: drop the unused OnBuild field
+    makeImageRef: pass in the whole CommitOptions structure
+    cmd: API cleanup: stores before images
+    run: check if SELinux is enabled
+    Fix buildahimages Dockerfiles to include support for additionalimages mounted from host.
+    Detect changes in rootdir
+    Fix typo in buildah-pull(1)
+    Vendor in latest containers/storage
+    Keep track of any build-args used during buildah bud --layers
+    commit: always set a parent ID
+    imagebuildah: rework unused-argument detection
+    fix bug dest path when COPY .dockerignore
+    Move Host IDMAppings code from util to unshare
+    Add BUILDAH_ISOLATION rootless back
+    Travis CI: fail fast, upon error in any step
+    imagebuildah: only commit images for intermediate stages if we have to
+    Use errors.Cause() when checking for IsNotExist errors
+    auto pass http_proxy to container
+    Bump back to 1.8-dev
+
+## v1.7.3 (2019-04-16)
+* Tue Apr 16, 2019 Tom Sweeney <tsweeney@redhat.com> 1.7.3
+    imagebuildah: don't leak image structs
+    Add Dockerfiles for buildahimages
+    Bump to Replace golang 1.10 with 1.12
+    add --dns* flags to buildah bud
+    Add hack/build_speed.sh test speeds on building container images
+    Create buildahimage Dockerfile for Quay
+    rename 'is' to 'expect_output'
+    squash.bats: test squashing in multi-layered builds
+    bud.bats: test COPY --from in a Dockerfile while using the cache
+    commit: make target image names optional
+    Fix bud-args to allow comma separation
+    oops, missed some tests in commit.bats
+    new helper: expect_line_count
+    New tests for #1467 (string slices in cmdline opts)
+    Workarounds for dealing with travis; review feedback
+    BATS tests - extensive but minor cleanup
+    imagebuildah: defer pulling images for COPY --from
+    imagebuildah: centralize COMMIT and image ID output
+    Travis: do not use traviswait
+    imagebuildah: only initialize imagebuilder configuration once per stage
+    Make cleaner error on Dockerfile build errors
+    unshare: move to pkg/
+    unshare: move some code from cmd/buildah/unshare
+    Fix handling of Slices versus Arrays
+    imagebuildah: reorganize stage and per-stage logic
+    imagebuildah: add empty layers for instructions
+    Add missing step in installing into Ubuntu
+    fix bug in .dockerignore support
+    imagebuildah: deduplicate prepended "FROM" instructions
+    Touch up intro
+    commit: set created-by to the shell if it isn't set
+    commit: check that we always set a "created-by"
+    docs/buildah.md: add "containers-" prefixes under "SEE ALSO"
+    Bump back to 1.8-dev
+
+## v1.7.2 (2019-03-28)
+    mount: do not create automatically a namespace
+    buildah: correctly create the userns if euid!=0
+    imagebuildah.Build: consolidate cleanup logic
+    CommitOptions: drop the redundant Store field
+    Move pkg/chrootuser from libpod to buildah.
+    imagebuildah: record image IDs and references more often
+    vendor imagebuilder v1.1.0
+    imagebuildah: fix requiresStart/noRunsRemaining confusion
+    imagebuildah: check for unused args across stages
+    bump github.com/containernetworking/cni to v0.7.0-rc2
+    imagebuildah: use "useCache" instead of "noCache"
+    imagebuildah.resolveNameToImageRef(): take name as a parameter
+    Export fields of the DokcerIgnore struct
+    imagebuildah: drop the duplicate containerIDs list
+    rootless: by default use the host network namespace
+    imagebuildah: split Executor and per-stage execution
+    imagebuildah: move some fields around
+    golint: make golint happy
+    docs: 01-intro.md: add missing . in Dockerfile examples
+    fix bug using .dockerignore
+    Do not create empty mounts.conf file
+    images: suppress a spurious blank line with no images
+    from: distinguish between ADD and COPY
+    fix bug to not separate each --label value with comma
+    buildah-bud.md: correct a typo, note a default
+    Remove mistaken code that got merged in other PR
+    add sample registries.conf to docs
+    escape shell variables in README example
+    slirp4netns: set mtu to 65520
+    images: imageReposToMap() already adds <none>:<none>
+    imagebuildah.ReposToMap: move to cmd
+    Build: resolve copyFrom references earlier
+    Allow rootless users to use the cache directory in homedir
+    bud.bats: use the per-test temp directory
+    bud.bats: log output before counting length
+    Simplify checks for leftover args
+    Print commitID with --layers
+    fix bug images use the template to print results
+    rootless: honor --net host
+    onsi/gomeage add missing files
+    vendor latest openshift/imagebuilder
+    Remove noop from squash help
+    Prepend a comment to files setup in container
+    imagebuildah resolveSymlink: fix handling of relative links
+    Errors should be printed to stderr
+    Add recommends for slirp4netns and fuse-overlay
+    Update pull and pull-always flags
+    Hide from users command options that we don't want them to use.
+    Update secrets fipsmode patch to work on rootless containers
+    fix unshare option handling and documentation
+    Vendor in latest containers/storage
+    Hard-code docker.Transport use in pull --all-tags
+    Use a types.ImageReference instead of (transport, name) strings in pullImage etc.
+    Move the computation of srcRef before first pullAndFindImage
+    Don't throw away user-specified tag for pull --all-tags
+    CHANGES BEHAVIOR: Remove the string format input to localImageNameForReference
+    Don't try to parse imageName as transport:image in pullImage
+    Use reference.WithTag instead of manual string manipulation in Pull
+    Don't pass image = transport:repo:tag, transport=transport to pullImage
+    Fix confusing variable naming in Pull
+    Don't try to parse image name as a transport:image
+    Fix error reporting when parsing trans+image
+    Remove 'transport == ""' handling from the pull path
+    Clean up "pulls" of local image IDs / ID prefixes
+    Simplify ExpandNames
+    Document the semantics of transport+name returned by ResolveName
+    UPdate gitvalidation epoch
+    Bump back to 1.8-dev
+
+## v1.7.1 (2019-02-26)
+    vendor containers/image v1.5
+    Move secrets code from libpod into buildah
+    Update CHANGELOG.md with the past changes
+    README.md: fix typo
+    Fix a few issues found by tests/validate/gometalinter.sh
+    Neutralize buildah/unshare on non-Linux platforms
+    Explicitly specify a directory to find(1)
+    README.md: rephrase Buildah description
+    Stop printing default twice in cli --help
+    install.md: add section about vendoring
+    Bump to 1.8-dev
+
 ## v1.7 (2019-02-21)
     vendor containers/image v1.4
     Make "images --all" faster

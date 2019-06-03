@@ -47,7 +47,7 @@ local-cross: ## cross build the binaries for arm, darwin, and\nfreebsd
 		os=`echo $${target} | cut -f1 -d/` ; \
 		arch=`echo $${target} | cut -f2 -d/` ; \
 		suffix=$${os}.$${arch} ; \
-		$(MAKE) GOOS=$${os} GOARCH=$${arch} FLAGS="-o containers-storage.$${suffix}" AUTOTAGS="$(NATIVETAGS)" local-binary; \
+		$(MAKE) GOOS=$${os} GOARCH=$${arch} FLAGS="-o containers-storage.$${suffix}" AUTOTAGS="$(NATIVETAGS)" local-binary || exit 1; \
 	done
 
 cross: ## cross build the binaries for arm, darwin, and\nfreebsd using VMs

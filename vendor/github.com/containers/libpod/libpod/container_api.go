@@ -10,9 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/oci/caps"
@@ -243,7 +241,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	// TODO can probably relax this once we track exec sessions
 	if conState != ContainerStateRunning {
-		return errors.Errorf("cannot exec into container that is not running")
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot exec into container that is not running")
 	}
 	if privileged || c.config.Privileged {
 		capList = caps.GetAllCapabilities()
@@ -289,8 +287,8 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	chWait := make(chan error)
 	go func() {
 		chWait <- execCmd.Wait()
+		close(chWait)
 	}()
-	defer close(chWait)
 
 	pidFile := c.execPidPath(sessionID)
 	// 60 second seems a reasonable time to wait
@@ -533,32 +531,6 @@ func (c *Container) RemoveArtifact(name string) error {
 	}
 
 	return os.Remove(c.getArtifactPath(name))
-}
-
-// Inspect a container for low-level information
-func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-
-	storeCtr, err := c.runtime.store.Container(c.ID())
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting container from store %q", c.ID())
-	}
-	layer, err := c.runtime.store.Layer(storeCtr.LayerID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading information about layer %q", storeCtr.LayerID)
-	}
-	driverData, err := driver.GetDriverData(c.runtime.store, layer.ID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting graph driver info %q", c.ID())
-	}
-	return c.getContainerInspectData(size, driverData)
 }
 
 // Wait blocks until the container exits and returns its exit code.
@@ -815,11 +787,27 @@ type ContainerCheckpointOptions struct {
 	// TCPEstablished tells the API to checkpoint a container
 	// even if it contains established TCP connections
 	TCPEstablished bool
+	// Export tells the API to write the checkpoint image to
+	// the filename set in TargetFile
+	// Import tells the API to read the checkpoint image from
+	// the filename set in TargetFile
+	TargetFile string
+	// Name tells the API that during restore from an exported
+	// checkpoint archive a new name should be used for the
+	// restored container
+	Name string
 }
 
 // Checkpoint checkpoints a container
 func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
 	logrus.Debugf("Trying to checkpoint container %s", c.ID())
+
+	if options.TargetFile != "" {
+		if err := c.prepareCheckpointExport(); err != nil {
+			return err
+		}
+	}
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

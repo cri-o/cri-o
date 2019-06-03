@@ -151,6 +151,8 @@ type RuntimeConfig struct {
 	OCIRuntime string `toml:"runtime"`
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
 	OCIRuntimes map[string][]string `toml:"runtimes"`
+	// RuntimeSupportsJSON is the list of the OCI runtimes that support --format=json
+	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
 	// RuntimePath is the path to OCI runtime binary for launching
 	// containers.
 	// The first path pointing to a valid file will be used
@@ -250,6 +252,7 @@ type runtimeConfiguredFrom struct {
 	volPathSet            bool
 	conmonPath            bool
 	conmonEnvVars         bool
+	initPath              bool
 	ociRuntimes           bool
 	runtimePath           bool
 	cniPluginDir          bool
@@ -475,6 +478,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		if tmpConfig.ConmonEnvVars != nil {
 			runtime.configuredFrom.conmonEnvVars = true
 		}
+		if tmpConfig.InitPath != "" {
+			runtime.configuredFrom.initPath = true
+		}
 		if tmpConfig.OCIRuntimes != nil {
 			runtime.configuredFrom.ociRuntimes = true
 		}
@@ -511,6 +517,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			}
 			if !runtime.configuredFrom.conmonEnvVars {
 				runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
+			}
+			if !runtime.configuredFrom.initPath {
+				runtime.config.InitPath = tmpConfig.InitPath
 			}
 			if !runtime.configuredFrom.ociRuntimes {
 				runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
@@ -823,12 +832,21 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
+	supportsJSON := false
+	for _, r := range runtime.config.RuntimeSupportsJSON {
+		if r == runtime.config.OCIRuntime {
+			supportsJSON = true
+			break
+		}
+	}
+
 	// Make an OCI runtime to perform container operations
 	ociRuntime, err := newOCIRuntime(runtime.ociRuntimePath,
 		runtime.conmonPath, runtime.config.ConmonEnvVars,
 		runtime.config.CgroupManager, runtime.config.TmpDir,
 		runtime.config.MaxLogSize, runtime.config.NoPivotRoot,
-		runtime.config.EnablePortReservation)
+		runtime.config.EnablePortReservation,
+		supportsJSON)
 	if err != nil {
 		return err
 	}
@@ -877,10 +895,9 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// TODO: we can't close the FD in this lock, so we should keep it around
 	// and use it to lock important operations
 	aliveLock.Lock()
-	locked := true
 	doRefresh := false
 	defer func() {
-		if locked {
+		if aliveLock.Locked() {
 			aliveLock.Unlock()
 		}
 	}()
@@ -891,8 +908,12 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		// no containers running.  Create immediately a namespace, as
 		// we will need to access the storage.
 		if os.Geteuid() != 0 {
-			aliveLock.Unlock()
-			became, ret, err := rootless.BecomeRootInUserNS()
+			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
+			pausePid, err := util.GetRootlessPauseProcessPidPath()
+			if err != nil {
+				return errors.Wrapf(err, "could not get pause process pid file path")
+			}
+			became, ret, err := rootless.BecomeRootInUserNS(pausePid)
 			if err != nil {
 				return err
 			}
@@ -966,18 +987,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	runtime.valid = true
 
 	if runtime.doMigrate {
-		if os.Geteuid() != 0 {
-			aliveLock.Unlock()
-			locked = false
-
-			became, ret, err := rootless.BecomeRootInUserNS()
-			if err != nil {
-				return err
-			}
-			if became {
-				os.Exit(ret)
-			}
-		}
 		if err := runtime.migrate(ctx); err != nil {
 			return err
 		}

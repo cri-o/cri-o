@@ -17,7 +17,7 @@ import (
 )
 
 func cloneToDirectory(url, dir string) error {
-	if !strings.HasPrefix(url, "git://") {
+	if !strings.HasPrefix(url, "git://") && !strings.HasSuffix(url, ".git") {
 		url = "git://" + url
 	}
 	logrus.Debugf("cloning %q to %q", url, dir)
@@ -72,7 +72,7 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	if err != nil {
 		return "", "", errors.Wrapf(err, "error creating temporary directory for %q", url)
 	}
-	if strings.HasPrefix(url, "git://") {
+	if strings.HasPrefix(url, "git://") || strings.HasSuffix(url, ".git") {
 		err = cloneToDirectory(url, name)
 		if err != nil {
 			if err2 := os.Remove(name); err2 != nil {
@@ -103,6 +103,18 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 		logrus.Debugf("error removing temporary directory %q: %v", name, err2)
 	}
 	return "", "", errors.Errorf("unreachable code reached")
+}
+
+func dedupeStringSlice(slice []string) []string {
+	done := make([]string, 0, len(slice))
+	m := make(map[string]struct{})
+	for _, s := range slice {
+		if _, present := m[s]; !present {
+			m[s] = struct{}{}
+			done = append(done, s)
+		}
+	}
+	return done
 }
 
 // InitReexec is a wrapper for buildah.InitReexec().  It should be called at

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -250,4 +251,15 @@ func (l *lockfile) Modified() (bool, error) {
 // IsReadWriteLock indicates if the lock file is a read-write lock.
 func (l *lockfile) IsReadWrite() bool {
 	return !l.ro
+}
+
+// TouchedSince indicates if the lock file has been touched since the specified time
+func (l *lockfile) TouchedSince(when time.Time) bool {
+	st, err := system.Fstat(int(l.fd))
+	if err != nil {
+		return true
+	}
+	mtim := st.Mtim()
+	touched := time.Unix(mtim.Unix())
+	return when.Before(touched)
 }
