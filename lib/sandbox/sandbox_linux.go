@@ -4,7 +4,6 @@ package sandbox
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -15,6 +14,8 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -227,7 +228,11 @@ func NewNS() (ns.NetNS, error) {
 		if err != nil {
 			return
 		}
-		defer origNS.Set()
+		defer func() {
+			if err := origNS.Set(); err != nil {
+				logrus.Warnf("unable to set network namespace: %v", err)
+			}
+		}()
 
 		// bind mount the new netns from the current thread onto the mount point
 		err = unix.Mount(getCurrentThreadNetNSPath(), nsPath, "none", unix.MS_BIND, "")
@@ -243,7 +248,10 @@ func NewNS() (ns.NetNS, error) {
 	wg.Wait()
 
 	if err != nil {
-		unix.Unmount(nsPath, unix.MNT_DETACH)
+		if unmountErr := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
+			return nil, errors.Wrapf(err, "unable to unmount %v: %v",
+				nsPath, unmountErr)
+		}
 		return nil, fmt.Errorf("failed to create namespace: %v", err)
 	}
 
