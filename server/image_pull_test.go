@@ -29,11 +29,11 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(imageMock, nil),
+					gomock.Any()).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
 					Return(&storage.ImageResult{ID: "image"}, nil),
-				imageMock.EXPECT().ConfigInfo().
+				imageCloserMock.EXPECT().ConfigInfo().
 					Return(types.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(
 					gomock.Any(), gomock.Any(), gomock.Any()).
@@ -42,6 +42,7 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), gomock.Any()).
 					Return(&storage.ImageResult{ID: "image",
 						RepoDigests: []string{"digest"}}, nil),
+				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
@@ -61,17 +62,18 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(imageMock, nil),
+					gomock.Any()).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
 					Return(&storage.ImageResult{ID: "image",
 						ConfigDigest: digest.Digest("digest")}, nil),
-				imageMock.EXPECT().ConfigInfo().
+				imageCloserMock.EXPECT().ConfigInfo().
 					Return(types.BlobInfo{Digest: digest.Digest("digest")}),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
 					Return(&storage.ImageResult{ID: "image",
 						RepoDigests: []string{"digest"}}, nil),
+				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
@@ -97,11 +99,11 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(imageMock, nil),
+					gomock.Any()).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
 					Return(&storage.ImageResult{ID: "image"}, nil),
-				imageMock.EXPECT().ConfigInfo().
+				imageCloserMock.EXPECT().ConfigInfo().
 					Return(types.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(
 					gomock.Any(), gomock.Any(), gomock.Any()).
@@ -109,6 +111,7 @@ var _ = t.Describe("ImagePull", func() {
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
+				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
@@ -156,15 +159,16 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(imageMock, nil),
+					gomock.Any()).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
 					Return(&storage.ImageResult{ID: "image"}, nil),
-				imageMock.EXPECT().ConfigInfo().
+				imageCloserMock.EXPECT().ConfigInfo().
 					Return(types.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(
 					gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
+				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When

@@ -45,7 +45,7 @@ var (
 	storeMock         *containerstoragemock.MockStore
 	imageServerMock   *criostoragemock.MockImageServer
 	runtimeServerMock *criostoragemock.MockRuntimeServer
-	imageMock         *imagetypesmock.MockImage
+	imageCloserMock   *imagetypesmock.MockImageCloser
 	cniPluginMock     *ocicnitypesmock.MockCNIPlugin
 	ociRuntimeMock    *ocimock.MockRuntimeImpl
 	sut               *server.Server
@@ -75,7 +75,7 @@ var _ = BeforeSuite(func() {
 	serverMock = servermock.NewMockConfigIface(mockCtrl)
 	imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
 	runtimeServerMock = criostoragemock.NewMockRuntimeServer(mockCtrl)
-	imageMock = imagetypesmock.NewMockImage(mockCtrl)
+	imageCloserMock = imagetypesmock.NewMockImageCloser(mockCtrl)
 	cniPluginMock = ocicnitypesmock.NewMockCNIPlugin(mockCtrl)
 	ociRuntimeMock = ocimock.NewMockRuntimeImpl(mockCtrl)
 

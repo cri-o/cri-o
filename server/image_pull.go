@@ -71,12 +71,13 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			}
 		}
 
-		var tmpImg types.Image
+		var tmpImg types.ImageCloser
 		tmpImg, err = s.StorageImageServer().PrepareImage(img, options)
 		if err != nil {
 			logrus.Debugf("error preparing image %s: %v", img, err)
 			continue
 		}
+		defer tmpImg.Close()
 
 		var storedImage *storage.ImageResult
 		storedImage, err = s.StorageImageServer().ImageStatus(s.systemContext, img)
