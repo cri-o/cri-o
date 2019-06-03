@@ -65,9 +65,9 @@ RUN VERSION=v1.0.0-rc8 &&\
     chmod +x /usr/bin/runc
 
 # Install CNI plugins
-RUN VERSION=v0.7.5 &&\
+RUN VERSION=v0.8.0 &&\
     mkdir -p /opt/cni/bin &&\
-    wget -qO- https://github.com/containernetworking/plugins/releases/download/$VERSION/cni-plugins-amd64-$VERSION.tgz \
+    wget -qO- https://github.com/containernetworking/plugins/releases/download/$VERSION/cni-plugins-linux-amd64-$VERSION.tgz \
         | tar xfz - -C /opt/cni/bin
 
 # Install crictl

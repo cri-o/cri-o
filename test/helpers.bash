@@ -529,6 +529,7 @@ function parse_pod_ip() {
 		if [ "$cidr" == "$arg" ]
 		then
 			echo `echo "$arg" | sed "s/\/[0-9][0-9]//"`
+			break
 		fi
 	done
 }
