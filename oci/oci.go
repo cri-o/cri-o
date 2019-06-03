@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sync"
 	"syscall"
 	"time"
 
@@ -57,7 +58,8 @@ type Runtime struct {
 	noPivot                  bool
 	ctrStopTimeout           int64
 
-	runtimeImplList map[string]RuntimeImpl
+	runtimeImplMap      map[string]RuntimeImpl
+	runtimeImplMapMutex sync.RWMutex
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -128,7 +130,7 @@ func New(defaultRuntime string,
 		logToJournald:            logToJournald,
 		noPivot:                  noPivot,
 		ctrStopTimeout:           ctrStopTimeout,
-		runtimeImplList:          make(map[string]RuntimeImpl),
+		runtimeImplMap:           make(map[string]RuntimeImpl),
 	}, nil
 }
 
@@ -246,7 +248,9 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 
 // RuntimeImpl returns the runtime implementation for a given container
 func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
-	impl, ok := r.runtimeImplList[c.ID()]
+	r.runtimeImplMapMutex.RLock()
+	impl, ok := r.runtimeImplMap[c.ID()]
+	r.runtimeImplMapMutex.RUnlock()
 	if !ok {
 		return r.newRuntimeImpl(c)
 	}
@@ -263,7 +267,9 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 	}
 
 	// Assign this runtime implementation to the current container
-	r.runtimeImplList[c.ID()] = impl
+	r.runtimeImplMapMutex.Lock()
+	r.runtimeImplMap[c.ID()] = impl
+	r.runtimeImplMapMutex.Unlock()
 
 	return impl.CreateContainer(c, cgroupParent)
 }
@@ -325,7 +331,11 @@ func (r *Runtime) DeleteContainer(c *Container) error {
 		return err
 	}
 
-	defer delete(r.runtimeImplList, c.ID())
+	defer func() {
+		r.runtimeImplMapMutex.Lock()
+		delete(r.runtimeImplMap, c.ID())
+		r.runtimeImplMapMutex.Unlock()
+	}()
 
 	return impl.DeleteContainer(c)
 }
