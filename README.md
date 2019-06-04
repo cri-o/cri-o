@@ -10,7 +10,7 @@
 
 ### Status: Stable
 
-## Compatibility matrix: CRI-O <-> Kubernetes clusters
+## Compatibility matrix: CRI-O ⬄ Kubernetes
 
 CRI-O and Kubernetes follow the same release cycle and deprecation policy. For more information visit the [Kubernetes versioning documentation](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md).
 
@@ -57,9 +57,9 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788).  Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
 ## Commands
-| Command                                              | Description                                                               | Demo|
-| ---------------------------------------------------- | --------------------------------------------------------------------------|-----|
-| [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   ||
+| Command                                              | Description                                                               |
+| ---------------------------------------------------- | --------------------------------------------------------------------------|
+| [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   |
 
 Note that kpod and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/containers/libpod).
 
@@ -83,7 +83,7 @@ Note that kpod and its container management and debugging commands have moved to
 
 For async communication and long running discussions please use issues and pull requests on the github repo. This will be the best place to discuss design and implementation.
 
-For chat communication we have an IRC channel #CRI-O on chat.freenode.net, and a [channel on the kubernetes slack](https://kubernetes.slack.com/archives/crio) that everyone is welcome to join and chat about development.
+For chat communication we have an IRC channel #CRI-O on chat.freenode.net, and a [channel on the Kubernetes slack](https://kubernetes.slack.com/archives/crio) that everyone is welcome to join and chat about development.
 
 ## Awesome CRI-O
 
@@ -115,10 +115,10 @@ of `CRI-O`](tutorials/setup.md#static-builds) via nix.
 
 ### Running CRI-O
 
-You can run a local version of kubernetes with `CRI-O` using `local-up-cluster.sh`:
+You can run a local version of Kubernetes with `CRI-O` using `local-up-cluster.sh`:
 
-1. Clone the [kubernetes repository](https://github.com/kubernetes/kubernetes)
-1. From the kubernetes project directory, run:
+1. Clone the [Kubernetes repository](https://github.com/kubernetes/kubernetes)
+1. From the Kubernetes project directory, run:
 ```shell
 CGROUP_DRIVER=systemd \
 CONTAINER_RUNTIME=remote \
