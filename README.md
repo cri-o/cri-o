@@ -1,14 +1,13 @@
 ![CRI-O logo](https://cdn.rawgit.com/kubernetes-sigs/cri-o/master/logo/crio-logo.svg)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
-[![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
+[![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg?style=flat-square)](#)
 [![Build Status](https://img.shields.io/travis/cri-o/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/cri-o/cri-o)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/cri-o/cri-o)
+[![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2298/badge)](https://bestpractices.coreinfrastructure.org/projects/2298)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/cri-o/cri-o)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o?ref=badge_shield)
 [![Mentioned in Awesome CRI-O](https://awesome.re/mentioned-badge.svg)](awesome.md)
-
-### Status: Stable
 
 ## Compatibility matrix: CRI-O ⬄ Kubernetes
 
