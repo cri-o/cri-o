@@ -318,7 +318,7 @@ var _ = t.Describe("Utils", func() {
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
-			Expect(passwdFile).To(Not(BeEmpty()))
+			Expect(passwdFile).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300")
@@ -332,7 +332,7 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			_, _, _, err := utils.GetUserInfo(dir, "blah")
-			Expect(err).To(Not(BeNil()))
+			Expect(err).ToNot(BeNil())
 		})
 
 		It("should succeed with existing user and group", func() {
@@ -401,7 +401,7 @@ var _ = t.Describe("Utils", func() {
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
-			Expect(passwdFile).To(Not(BeEmpty()))
+			Expect(passwdFile).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300:250")
@@ -420,7 +420,7 @@ var _ = t.Describe("Utils", func() {
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
-			Expect(passwdFile).To(Not(BeEmpty()))
+			Expect(passwdFile).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300:mail")
