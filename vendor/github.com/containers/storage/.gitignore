@@ -25,8 +25,5 @@ man/man5
 man/man8
 vendor/pkg/
 .vagrant
-containers-storage
-containers-storage.darwin.amd64
-containers-storage.linux.amd64
-containers-storage.linux.386
-containers-storage.linux.arm
+/containers-storage
+/containers-storage.*
