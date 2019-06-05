@@ -39,7 +39,8 @@ yum install -y \
   runc
 ```
 
-Debian, Ubuntu, and related distributions:
+On Ubuntu distributions, there is a dedicated PPA provided by
+[Project Atomic](https://www.projectatomic.io/):
 
 ```bash
 # Add containers-common and cri-o-runc
