@@ -82,10 +82,10 @@ func (mr *MockImageServerMockRecorder) ListImages(arg0, arg1 interface{}) *gomoc
 }
 
 // PrepareImage mocks base method
-func (m *MockImageServer) PrepareImage(arg0 string, arg1 *copy.Options) (types.Image, error) {
+func (m *MockImageServer) PrepareImage(arg0 string, arg1 *copy.Options) (types.ImageCloser, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PrepareImage", arg0, arg1)
-	ret0, _ := ret[0].(types.Image)
+	ret0, _ := ret[0].(types.ImageCloser)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
