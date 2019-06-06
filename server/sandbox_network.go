@@ -19,6 +19,11 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 		return s.hostIP, nil, nil
 	}
 
+	podNetwork, err := newPodNetwork(sb)
+	if err != nil {
+		return
+	}
+
 	// Ensure network resources are cleaned up if the plugin succeeded
 	// but an error happened between plugin success and the end of networkStart()
 	defer func() {
@@ -27,7 +32,6 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 		}
 	}()
 
-	podNetwork := newPodNetwork(sb)
 	_, err = s.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
@@ -80,7 +84,10 @@ func (s *Server) getSandboxIP(sb *sandbox.Sandbox) (string, error) {
 		return s.hostIP, nil
 	}
 
-	podNetwork := newPodNetwork(sb)
+	podNetwork, err := newPodNetwork(sb)
+	if err != nil {
+		return "", err
+	}
 	result, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
 	if err != nil {
 		return "", fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
@@ -110,7 +117,11 @@ func (s *Server) networkStop(sb *sandbox.Sandbox) {
 			sb.Name(), sb.ID(), err)
 	}
 
-	podNetwork := newPodNetwork(sb)
+	podNetwork, err := newPodNetwork(sb)
+	if err != nil {
+		logrus.Warnf(err.Error())
+		return
+	}
 	if err := s.netPlugin.TearDownPod(podNetwork); err != nil {
 		logrus.Warnf("failed to destroy network for pod sandbox %s(%s): %v",
 			sb.Name(), sb.ID(), err)

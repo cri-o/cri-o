@@ -552,6 +552,7 @@ func buildCNIRuntimeConf(cacheDir string, podNetwork *PodNetwork, ifName, ip str
 			{"K8S_POD_NAME", podNetwork.Name},
 			{"K8S_POD_INFRA_CONTAINER_ID", podNetwork.ID},
 		},
+		CapabilityArgs: map[string]interface{}{},
 	}
 
 	// Add requested static IP to CNI_ARGS
@@ -562,13 +563,19 @@ func buildCNIRuntimeConf(cacheDir string, podNetwork *PodNetwork, ifName, ip str
 		rt.Args = append(rt.Args, [2]string{"IP", ip})
 	}
 
-	if len(podNetwork.PortMappings) == 0 {
-		return rt, nil
+	if len(podNetwork.PortMappings) != 0 {
+		rt.CapabilityArgs["portMappings"] = podNetwork.PortMappings
 	}
 
-	rt.CapabilityArgs = map[string]interface{}{
-		"portMappings": podNetwork.PortMappings,
+	if podNetwork.Bandwidth != nil {
+		rt.CapabilityArgs["bandwidth"] = map[string]uint64{
+			"ingressRate":  podNetwork.Bandwidth.IngressRate,
+			"ingressBurst": podNetwork.Bandwidth.IngressBurst,
+			"egressRate":   podNetwork.Bandwidth.EgressRate,
+			"egressBurst":  podNetwork.Bandwidth.EgressBurst,
+		}
 	}
+
 	return rt, nil
 }
 
