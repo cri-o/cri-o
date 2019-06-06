@@ -16,12 +16,12 @@ require (
 	github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
 	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
 	github.com/containernetworking/cni v0.7.0
-	github.com/containernetworking/plugins v0.8.0
+	github.com/containernetworking/plugins v0.8.1
 	github.com/containers/buildah v1.7.2
 	github.com/containers/image v1.5.1
 	github.com/containers/libpod v1.3.2
 	github.com/containers/psgo v1.2.1 // indirect
-	github.com/containers/storage v1.12.7
+	github.com/containers/storage v1.12.9
 	github.com/coreos/go-iptables v0.4.1 // indirect
 	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -79,7 +79,7 @@ require (
 	golang.org/x/sys v0.0.0-20190425145619-16072639606e
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/genproto v0.0.0-20190516172635-bb713bdc0e52 // indirect
-	google.golang.org/grpc v1.20.1
+	google.golang.org/grpc v1.21.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0

@@ -71,7 +71,7 @@ github.com/containernetworking/cni/pkg/types/020
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v0.8.0
+# github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/buildah v1.7.2
 github.com/containers/buildah/pkg/secrets
@@ -160,7 +160,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.12.7
+# github.com/containers/storage v1.12.9
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage
 github.com/containers/storage/pkg/idtools
@@ -820,7 +820,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 # google.golang.org/genproto v0.0.0-20190516172635-bb713bdc0e52
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.20.1
+# google.golang.org/grpc v1.21.1
 google.golang.org/grpc
 google.golang.org/grpc/codes
 google.golang.org/grpc/status
