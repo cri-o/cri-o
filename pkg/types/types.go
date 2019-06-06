@@ -17,7 +17,7 @@ type ContainerInfo struct {
 	LogPath         string            `json:"log_path"`
 	Root            string            `json:"root"`
 	Sandbox         string            `json:"sandbox"`
-	IP              string            `json:"ip_address"`
+	IPs             []string          `json:"ip_addresses"`
 }
 
 // IDMappings specifies the ID mappings used for containers.

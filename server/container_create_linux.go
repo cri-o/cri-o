@@ -626,7 +626,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		}
 	}
 
-	specgen.AddAnnotation(annotations.IP, sb.IP())
+	for idx, ip := range sb.IPs() {
+		specgen.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
+	}
 
 	// Remove the default /dev/shm mount to ensure we overwrite it
 	specgen.RemoveMount("/dev/shm")

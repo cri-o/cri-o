@@ -87,17 +87,17 @@ var _ = t.Describe("Sandbox", func() {
 		})
 	})
 
-	t.Describe("AddIP", func() {
+	t.Describe("AddIPs", func() {
 		It("should succeed", func() {
 			// Given
-			newIP := "10.0.0.1"
-			Expect(testSandbox.IP()).NotTo(Equal(newIP))
+			newIPs := []string{"10.0.0.1"}
+			Expect(testSandbox.IPs()).NotTo(Equal(newIPs))
 
 			// When
-			testSandbox.AddIP(newIP)
+			testSandbox.AddIPs(newIPs)
 
 			// Then
-			Expect(testSandbox.IP()).To(Equal(newIP))
+			Expect(testSandbox.IPs()).To(Equal(newIPs))
 		})
 	})
 
@@ -144,15 +144,15 @@ var _ = t.Describe("Sandbox", func() {
 	t.Describe("SetNamespaceOptions", func() {
 		It("should succeed", func() {
 			// Given
-			newNamespaceOption := pb.NamespaceOption{
+			newNamespaceOption := &pb.NamespaceOption{
 				Network: 1,
 				Pid:     2,
 				Ipc:     3,
 			}
-			Expect(testSandbox.IP()).NotTo(Equal(newNamespaceOption))
+			Expect(testSandbox.NamespaceOptions()).NotTo(Equal(newNamespaceOption))
 
 			// When
-			testSandbox.SetNamespaceOptions(&newNamespaceOption)
+			testSandbox.SetNamespaceOptions(newNamespaceOption)
 
 			// Then
 			Expect(testSandbox.NamespaceOptions().Network).

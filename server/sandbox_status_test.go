@@ -37,6 +37,30 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			Expect(response).NotTo(BeNil())
 		})
 
+		It("should succeed with multiple IPs", func() {
+			// Given
+			addContainerAndSandbox()
+			testContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			const (
+				ipv4 = "10.0.0.2"
+				ipv6 = "ff02::1"
+			)
+			testSandbox.AddIPs([]string{ipv4, ipv6})
+
+			// When
+			response, err := sut.PodSandboxStatus(context.Background(),
+				&pb.PodSandboxStatusRequest{PodSandboxId: testSandbox.ID()})
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(response).NotTo(BeNil())
+			Expect(response.Status.Network.Ip).To(Equal(ipv4))
+			Expect(response.Status.Network.AdditionalIps).To(HaveLen(1))
+			Expect(response.Status.Network.AdditionalIps[0].Ip).To(Equal(ipv6))
+		})
+
 		It("should fail with empty sandbox ID", func() {
 			// Given
 			// When

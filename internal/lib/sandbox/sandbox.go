@@ -92,7 +92,7 @@ type Sandbox struct {
 	hostnamePath   string
 	hostname       string
 	// ipv4 or ipv6 cache
-	ip                 string
+	ips                []string
 	seccompProfilePath string
 	labels             fields.Set
 	annotations        map[string]string
@@ -186,8 +186,8 @@ func (s *Sandbox) SeccompProfilePath() string {
 }
 
 // AddIP stores the ip in the sandbox
-func (s *Sandbox) AddIP(ip string) {
-	s.ip = ip
+func (s *Sandbox) AddIPs(ips []string) {
+	s.ips = ips
 }
 
 // SetNamespaceOptions sets whether the pod is running using host network
@@ -206,8 +206,8 @@ func (s *Sandbox) StopMutex() *sync.RWMutex {
 }
 
 // IP returns the ip of the sandbox
-func (s *Sandbox) IP() string {
-	return s.ip
+func (s *Sandbox) IPs() []string {
+	return s.ips
 }
 
 // ID returns the id of the sandbox
