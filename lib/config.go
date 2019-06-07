@@ -28,6 +28,10 @@ const (
 	defaultTransport    = "docker://"
 	apparmorProfileName = "crio-default"
 	cgroupManager       = oci.CgroupfsCgroupsManager
+	defaultRuntime      = "runc"
+	defaultRuntimePath  = "/usr/bin/runc"
+	defaultRuntimeType  = "oci"
+	defaultRuntimeRoot  = "/run/runc"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -388,12 +392,12 @@ func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
 			FileLockingPath: lockPath,
 		},
 		RuntimeConfig: RuntimeConfig{
-			DefaultRuntime: "runc",
+			DefaultRuntime: defaultRuntime,
 			Runtimes: map[string]oci.RuntimeHandler{
-				"runc": {
-					RuntimePath: "/usr/bin/runc",
-					RuntimeType: "oci",
-					RuntimeRoot: "/run/runc",
+				defaultRuntime: {
+					RuntimePath: defaultRuntimePath,
+					RuntimeType: defaultRuntimeType,
+					RuntimeRoot: defaultRuntimeRoot,
 				},
 			},
 			Conmon: conmonPath,
@@ -514,7 +518,19 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	// check we do have at least a runtime
 	if _, ok := c.Runtimes[c.DefaultRuntime]; !ok {
-		return errors.New("no default runtime configured")
+		// Set the default runtime to "runc" if default_runtime is not set
+		if c.DefaultRuntime == "" {
+			logrus.Debugf("Defaulting to %q as the runtime since default_runtime is not set", defaultRuntime)
+			// The default config sets runc and its path in the runtimes map, so check for that
+			// first. If it does not exist then we add runc + its path to the runtimes map.
+			if _, ok := c.Runtimes[defaultRuntime]; !ok {
+				c.Runtimes[defaultRuntime] = oci.RuntimeHandler{RuntimePath: defaultRuntimePath, RuntimeType: defaultRuntimeType, RuntimeRoot: defaultRuntimeRoot}
+			}
+			// Set the DefaultRuntime to runc so we don't fail further along in the code
+			c.DefaultRuntime = defaultRuntime
+		} else {
+			return fmt.Errorf("default_runtime set to %q, but no runtime path is set for it", c.DefaultRuntime)
+		}
 	}
 
 	if !(c.ConmonCgroup == "pod" || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
