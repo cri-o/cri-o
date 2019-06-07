@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/server"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -76,6 +77,55 @@ var _ = t.Describe("ImageList", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(response).To(BeNil())
+		})
+	})
+
+	t.Describe("ConvertImage", func() {
+		It("should succeed with empty repo tags and digests", func() {
+			// Given
+			image := &storage.ImageResult{}
+
+			// When
+			result := server.ConvertImage(image)
+
+			// Then
+			Expect(result).NotTo(BeNil())
+			Expect(result.RepoTags).To(HaveLen(1))
+			Expect(result.RepoTags).To(ContainElement("<none>:<none>"))
+			Expect(result.RepoDigests).To(HaveLen(1))
+			Expect(result.RepoDigests).To(ContainElement("<none>@<none>"))
+		})
+
+		It("should succeed with repo tags and digests", func() {
+			// Given
+			size := uint64(100)
+			image := &storage.ImageResult{
+				RepoTags:    []string{"1", "2"},
+				RepoDigests: []string{"3", "4"},
+				Size:        &size,
+				User:        "10",
+			}
+
+			// When
+			result := server.ConvertImage(image)
+
+			// Then
+			Expect(result).NotTo(BeNil())
+			Expect(result.RepoTags).To(HaveLen(2))
+			Expect(result.RepoTags).To(ConsistOf("1", "2"))
+			Expect(result.RepoDigests).To(HaveLen(2))
+			Expect(result.RepoDigests).To(ConsistOf("3", "4"))
+			Expect(result.Size_).To(Equal(size))
+			Expect(result.Uid.Value).To(BeEquivalentTo(10))
+		})
+
+		It("should return nil if input image is nil", func() {
+			// Given
+			// When
+			result := server.ConvertImage(nil)
+
+			// Then
+			Expect(result).To(BeNil())
 		})
 	})
 })
