@@ -93,7 +93,7 @@ up a PR and add it to the list.
 ## Getting started
 
 ### Installing CRI-O
-To install CRI-O, you can use your distrobutions package manager:
+To install CRI-O, you can use your distributions package manager:
 
 Fedora, CentOS, RHEL, and related distributions:
 ```sudo yum install crio```
