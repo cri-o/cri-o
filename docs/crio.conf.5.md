@@ -39,7 +39,7 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
 **storage_option**=[]
   List to pass options to the storage driver. Please refer to containers-storage.conf(5) to see all available storage options.
 
-**file_locking**=true
+**file_locking**=false
   If set to false, in-memory locking will be used instead of file-based locking.
 
 **file_locking_path**="/runc/crio.lock"
