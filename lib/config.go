@@ -368,7 +368,7 @@ func DefaultConfig() *Config {
 			Storage:         storage.DefaultStoreOptions.GraphDriverName,
 			StorageOptions:  storage.DefaultStoreOptions.GraphDriverOptions,
 			LogDir:          "/var/log/crio/pods",
-			FileLocking:     true,
+			FileLocking:     false,
 			FileLockingPath: lockPath,
 		},
 		RuntimeConfig: RuntimeConfig{
