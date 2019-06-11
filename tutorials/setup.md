@@ -67,7 +67,7 @@ Use wget to download and run the following dependency:
 (Here is a link on how to install a source rpm on RHEL:
 https://www.itechlounge.net/2012/12/linux-how-to-install-source-rpm-on-rhelcentos/)
 
-  Dependency: gpgme-devel
+  Dependency: gpgme-devel \
   Link: http://download.eng.bos.redhat.com/brewroot/packages/gpgme/1.10.0/6.el8/x86_64/
 
   Dependency: libassuan
