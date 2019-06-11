@@ -39,7 +39,7 @@ require (
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/mock v1.3.1
-	github.com/golangci/golangci-lint v1.16.1-0.20190402065613-de1d1ad903cd
+	github.com/golangci/golangci-lint v1.17.1
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/klauspost/compress v1.5.0 // indirect

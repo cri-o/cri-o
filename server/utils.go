@@ -115,7 +115,7 @@ func newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 	if val, ok := sb.Annotations()["kubernetes.io/ingress-bandwidth"]; ok {
 		ingressQ, err := resource.ParseQuantity(val)
 		if err != nil {
-			return ocicni.PodNetwork{}, fmt.Errorf("failed to parse ingress bandwdith: %v", err)
+			return ocicni.PodNetwork{}, fmt.Errorf("failed to parse ingress bandwidth: %v", err)
 		} else if iingress, isok := ingressQ.AsInt64(); isok {
 			ingress = iingress
 		}
