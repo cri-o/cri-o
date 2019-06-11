@@ -85,6 +85,8 @@ static GOptionEntry opt_entries[] = {
 	{"name", 'n', 0, G_OPTION_ARG_STRING, &opt_name, "Container name", NULL},
 	{"runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL},
 	{"restore", 0, 0, G_OPTION_ARG_STRING, &opt_restore_path, "Restore a container from a checkpoint", NULL},
+	{"restore-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_opts,
+	 "Additional arg to pass to the restore command. Can be specified multiple times. (DEPRECIATED)", NULL},
 	{"runtime-opt", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_opts,
 	 "Additional opts to pass to the restore or exec command. Can be specified multiple times", NULL},
 	{"runtime-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_args,
