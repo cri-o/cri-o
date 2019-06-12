@@ -3,6 +3,7 @@ package server
 import (
 	"time"
 
+	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -31,22 +32,43 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 	}
 	resp = &pb.ListImagesResponse{}
 	for i := range results {
-		result := &results[i]
-		resImg := &pb.Image{
-			Id:          result.ID,
-			RepoTags:    result.RepoTags,
-			RepoDigests: result.RepoDigests,
-		}
-		uid, username := getUserFromImage(result.User)
-		if uid != nil {
-			resImg.Uid = &pb.Int64Value{Value: *uid}
-		}
-		resImg.Username = username
-		if result.Size != nil {
-			resImg.Size_ = *result.Size
-		}
-		resp.Images = append(resp.Images, resImg)
+		image := ConvertImage(&results[i])
+		resp.Images = append(resp.Images, image)
 	}
 	logrus.Debugf("ListImagesResponse: %+v", resp)
 	return resp, nil
+}
+
+func ConvertImage(from *storage.ImageResult) *pb.Image {
+	if from == nil {
+		return nil
+	}
+
+	repoTags := []string{"<none>:<none>"}
+	if len(from.RepoTags) > 0 {
+		repoTags = from.RepoTags
+	}
+
+	repoDigests := []string{"<none>@<none>"}
+	if len(from.RepoDigests) > 0 {
+		repoDigests = from.RepoDigests
+	}
+
+	to := &pb.Image{
+		Id:          from.ID,
+		RepoTags:    repoTags,
+		RepoDigests: repoDigests,
+	}
+
+	uid, username := getUserFromImage(from.User)
+	to.Username = username
+
+	if uid != nil {
+		to.Uid = &pb.Int64Value{Value: *uid}
+	}
+	if from.Size != nil {
+		to.Size_ = *from.Size
+	}
+
+	return to
 }
