@@ -151,7 +151,7 @@ var beforeEach = func() {
 	// be empty so we don't erroneously load anything and make tests
 	// unreproducible.
 	serverConfig.NetworkDir = emptyDir
-	serverConfig.PluginDir = []string{emptyDir}
+	serverConfig.PluginDirs = []string{emptyDir}
 	serverConfig.HooksDir = []string{emptyDir}
 
 	// Prepare the library config
@@ -162,7 +162,7 @@ var beforeEach = func() {
 	libConfig.LogDir = serverConfig.LogDir
 
 	libConfig.NetworkDir = serverConfig.NetworkDir
-	libConfig.PluginDir = serverConfig.PluginDir
+	libConfig.PluginDirs = serverConfig.PluginDirs
 	libConfig.HooksDir = serverConfig.HooksDir
 
 	// Initialize test container and sandbox
