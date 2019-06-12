@@ -7,7 +7,7 @@ github.com/BurntSushi/toml
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/archive/tar
 github.com/Microsoft/go-winio/backuptar
-# github.com/Microsoft/hcsshim v0.0.0-20190110205307-69ac8d3f7fc1
+# github.com/Microsoft/hcsshim v0.8.6
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/internal/guid
 github.com/Microsoft/hcsshim/internal/hcs
@@ -873,7 +873,7 @@ gopkg.in/square/go-jose.v2/json
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2
-# k8s.io/api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20190528132416-e0677859bbca
+# k8s.io/api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20190611211300-02dc3d713dd7
 k8s.io/api/core/v1
 k8s.io/api/authentication/v1
 k8s.io/api/admissionregistration/v1beta1
@@ -910,9 +910,9 @@ k8s.io/api/storage/v1beta1
 k8s.io/api/authentication/v1beta1
 k8s.io/api/authorization/v1
 k8s.io/api/authorization/v1beta1
-# k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20190528132416-e0677859bbca
+# k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20190611211300-02dc3d713dd7
 k8s.io/apiextensions-apiserver/pkg/features
-# k8s.io/apimachinery v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20190528132416-e0677859bbca
+# k8s.io/apimachinery v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20190611211300-02dc3d713dd7
 k8s.io/apimachinery/pkg/util/wait
 k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/api/resource
@@ -960,11 +960,12 @@ k8s.io/apimachinery/pkg/util/diff
 k8s.io/apimachinery/pkg/apis/meta/v1beta1
 k8s.io/apimachinery/pkg/util/framer
 k8s.io/apimachinery/pkg/util/yaml
+k8s.io/apimachinery/pkg/util/uuid
 k8s.io/apimachinery/pkg/util/rand
 k8s.io/apimachinery/pkg/api/validation
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/apis/meta/v1/validation
-# k8s.io/apiserver v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20190528132416-e0677859bbca
+# k8s.io/apiserver v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20190611211300-02dc3d713dd7
 k8s.io/apiserver/pkg/util/feature
 k8s.io/apiserver/pkg/features
 k8s.io/apiserver/pkg/server/httplog
@@ -972,7 +973,7 @@ k8s.io/apiserver/pkg/util/wsstream
 k8s.io/apiserver/pkg/authentication/serviceaccount
 k8s.io/apiserver/pkg/authentication/authenticator
 k8s.io/apiserver/pkg/authentication/user
-# k8s.io/client-go v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20190528132416-e0677859bbca
+# k8s.io/client-go v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20190611211300-02dc3d713dd7
 k8s.io/client-go/tools/remotecommand
 k8s.io/client-go/rest
 k8s.io/client-go/transport/spdy
@@ -1056,7 +1057,6 @@ k8s.io/client-go/kubernetes/typed/storage/v1beta1
 k8s.io/client-go/tools/pager
 k8s.io/client-go/util/retry
 k8s.io/client-go/informers/core/v1
-k8s.io/client-go/listers/core/v1
 k8s.io/client-go/informers/admissionregistration/v1beta1
 k8s.io/client-go/informers/apps/v1
 k8s.io/client-go/informers/apps/v1beta1
@@ -1089,6 +1089,7 @@ k8s.io/client-go/informers/storage/v1
 k8s.io/client-go/informers/storage/v1alpha1
 k8s.io/client-go/informers/storage/v1beta1
 k8s.io/client-go/kubernetes/scheme
+k8s.io/client-go/listers/core/v1
 k8s.io/client-go/dynamic/dynamicinformer
 k8s.io/client-go/tools/watch
 k8s.io/client-go/listers/admissionregistration/v1beta1
@@ -1123,17 +1124,17 @@ k8s.io/client-go/listers/storage/v1
 k8s.io/client-go/listers/storage/v1alpha1
 k8s.io/client-go/dynamic
 k8s.io/client-go/dynamic/dynamiclister
-# k8s.io/cloud-provider v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20190528132416-e0677859bbca
+# k8s.io/cloud-provider v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20190611211300-02dc3d713dd7
 k8s.io/cloud-provider
-# k8s.io/component-base v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20190528132416-e0677859bbca
+# k8s.io/component-base v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20190611211300-02dc3d713dd7
 k8s.io/component-base/featuregate
-# k8s.io/cri-api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20190528132416-e0677859bbca
+# k8s.io/cri-api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20190611211300-02dc3d713dd7
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
-# k8s.io/klog v0.3.1
+# k8s.io/klog v0.3.2
 k8s.io/klog
 # k8s.io/kube-openapi v0.0.0-20190228160746-b3a7cee44a30
 k8s.io/kube-openapi/pkg/util/proto
-# k8s.io/kubernetes v0.0.0 => k8s.io/kubernetes v1.15.0-beta.1
+# k8s.io/kubernetes v0.0.0 => k8s.io/kubernetes v1.15.0-rc.1
 k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport
 k8s.io/kubernetes/pkg/kubelet/container
 k8s.io/kubernetes/pkg/kubelet/types
@@ -1166,8 +1167,10 @@ k8s.io/kubernetes/pkg/volume/util/subpath
 k8s.io/kubernetes/pkg/api/v1/service
 k8s.io/kubernetes/pkg/proxy/config
 k8s.io/kubernetes/pkg/apis/core/v1/helper
+k8s.io/kubernetes/pkg/volume/util/quota
 k8s.io/kubernetes/pkg/controller
 k8s.io/kubernetes/pkg/apis/core/helper
+k8s.io/kubernetes/pkg/volume/util/quota/common
 k8s.io/kubernetes/pkg/api/v1/pod
 k8s.io/kubernetes/pkg/apis/core/install
 k8s.io/kubernetes/pkg/apis/core/validation
