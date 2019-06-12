@@ -7,6 +7,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.12
 	github.com/VividCortex/ewma v1.1.1 // indirect
+	github.com/blang/semver v3.5.0+incompatible
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b // indirect
 	github.com/containerd/cgroups v0.0.0-20180515175038-5e610833b720
 	github.com/containerd/containerd v1.2.6
@@ -40,6 +41,7 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.17.1
+	github.com/google/renameio v0.1.0
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/klauspost/compress v1.5.0 // indirect
