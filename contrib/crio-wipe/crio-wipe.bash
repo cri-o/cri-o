@@ -31,8 +31,8 @@ while getopts 'f:d:w:h' OPTION; do
 			exit 1
 		fi
 			;;
-	h) print_usage; exit 0;;
-		?) print_usage &> 2; exit 1;;
+		h) print_usage; exit 0;;
+		?) >&2 print_usage; exit 1;;
 	esac
 done
 shift "$(($OPTIND -1))"
