@@ -100,7 +100,8 @@ Fedora, CentOS, RHEL, and related distributions:
 openSUSE:
 ```sudo zypper install cri-o```
 
-Debian, Ubuntu, and related distributions:
+On Ubuntu distributions, there is a dedicated PPA provided by
+[Project Atomic](https://www.projectatomic.io/):
 
 ```bash
 sudo apt-add-repository ppa:projectatomic/ppa
