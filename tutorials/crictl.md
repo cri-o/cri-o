@@ -43,7 +43,7 @@ Now that the `CRI-O` components have been installed and configured we are ready 
 First we need to setup a Pod sandbox using a Pod configuration, which can be found in the `CRI-O` source tree:
 
 ```
-cd $GOPATH/src/github.com/CRI-O/CRI-O
+cd $GOPATH/src/github.com/cri-o/cri-o
 ```
 
 In case the file `/etc/containers/policy.json` does not exist on your filesystem, make sure that skopeo has been installed correctly. You can use a policy template provided in the CRI-O source tree, but it is insecure and it is not to be used on production machines:
