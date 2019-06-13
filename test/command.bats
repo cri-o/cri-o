@@ -40,11 +40,42 @@ load helpers
 }
 
 @test "invalid metrics port" {
-	run ${CRIO_BINARY_PATH} --metrics-port foo --enable-metrics
+	mkdir -p "$TESTDIR/cni/net.d"
+	opt="--conmon $TESTDIR/conmon --cni-config-dir $TESTDIR/cni/net.d"
+	run ${CRIO_BINARY_PATH} ${opt} --metrics-port foo --enable-metrics
 	echo $output
 	[ "$status" -ne 0 ]
 	[[ "$output" =~ "invalid value \"foo\" for flag" ]]
-	run ${CRIO_BINARY_PATH} --metrics-port 18446744073709551616 --enable-metrics
+	run ${CRIO_BINARY_PATH} ${opt} --metrics-port 18446744073709551616 --enable-metrics
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "value out of range" ]]
+}
+
+@test "invalid log max" {
+	mkdir -p "$TESTDIR/cni/net.d"
+	opt="--conmon $TESTDIR/conmon --cni-config-dir $TESTDIR/cni/net.d"
+	run ${CRIO_BINARY_PATH} ${opt} --log-size-max foo
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "invalid value \"foo\" for flag" ]]
+}
+
+@test "log max boundary testing" {
+	mkdir -p "$TESTDIR/cni/net.d"
+	opt="--conmon $TESTDIR/conmon --cni-config-dir $TESTDIR/cni/net.d"
+	# log size max is special zero value
+	run ${CRIO_BINARY_PATH} ${opt} --log-size-max 0
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "log size max should be negative or >= 8192" ]]
+	# log size max is less than 8192 and more than 0
+	run ${CRIO_BINARY_PATH} ${opt} --log-size-max 8191
+	echo $output
+	[ "$status" -ne 0 ]
+	[[ "$output" =~ "log size max should be negative or >= 8192" ]]
+	# log size max is out of the range of 64-bit signed integers
+	run ${CRIO_BINARY_PATH} ${opt} --log-size-max 18446744073709551616
 	echo $output
 	[ "$status" -ne 0 ]
 	[[ "$output" =~ "value out of range" ]]

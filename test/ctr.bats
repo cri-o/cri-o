@@ -491,6 +491,94 @@ function teardown() {
 	stop_crio
 }
 
+@test "ctr log max with default value" {
+	# Start crio with default log size max value -1
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	# Create a new container.
+	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
+	cp "$TESTDATA"/container_config_logging.json "$newconfig"
+	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
+	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run wait_until_exit "$ctr_id"
+	[ "$status" -eq 0 ]
+	run crictl rm "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	# Check that the output is what we expect.
+	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
+	[ -f "$logpath" ]
+	echo "$logpath :: $(cat "$logpath")"
+	len=$(wc -l "$logpath" | awk '{print $1}')
+	[ $len -eq 250 ]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
+@test "ctr log max with minimum value" {
+	# Start crio with minimum log size max value 8192
+	LOG_SIZE_MAX_LIMIT=8192 start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	# Create a new container.
+	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
+	cp "$TESTDATA"/container_config_logging.json "$newconfig"
+	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
+	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run wait_until_exit "$ctr_id"
+	[ "$status" -eq 0 ]
+	run crictl rm "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	# Check that the output is what we expect.
+	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
+	[ -f "$logpath" ]
+	echo "$logpath :: $(cat "$logpath")"
+	len=$(wc -l "$logpath" | awk '{print $1}')
+	[ $len -lt 250 ]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
+
 @test "ctr partial line logging" {
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
