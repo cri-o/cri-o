@@ -1,6 +1,9 @@
 dist: xenial
 language: go
 
+go:
+- "1.12.x"
+
 sudo: required
 
 services:
@@ -22,6 +25,10 @@ env:
     - NIX_IMAGE=saschagrunert/crionix
     - CONTAINER_RUNTIME=docker
     - JOBS=4
+
+os:
+- linux
+- linux-ppc64le
 
 jobs:
   include:
