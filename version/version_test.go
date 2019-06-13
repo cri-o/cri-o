@@ -48,6 +48,17 @@ func TestParseVersionAddsGitCommit(t *testing.T) {
 	}
 }
 
+func TestParseVersionIgnoresEmptyGitCommit(t *testing.T) {
+	gitCommit := ""
+	v, err := parseVersionConstant("1.1.1", gitCommit)
+	must(t, err)
+
+	// git commit should be included in semver as Build
+	if len(v.Build) != 0 {
+		t.Error(errors.Errorf("Git commit added despite being empty"))
+	}
+}
+
 func TestParseVersionBadVersion(t *testing.T) {
 	_, err := parseVersionConstant("badversion", "")
 	fails(t, err)
