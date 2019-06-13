@@ -271,13 +271,32 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail on invalid NetworkDir", func() {
+		It("should create the  NetworkDir", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = invalidPath
+			tmpDir := path.Join(os.TempDir(), invalidPath)
+			sut.NetworkConfig.NetworkDir = tmpDir
 			sut.NetworkConfig.PluginDirs = []string{validDirPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+			os.RemoveAll(tmpDir)
+		})
+
+		It("should fail on invalid NetworkDir", func() {
+			// Given
+			tmpfile := path.Join(os.TempDir(), "wrong-file")
+			file, err := os.Create(tmpfile)
+			Expect(err).To(BeNil())
+			file.Close()
+			defer os.Remove(tmpfile)
+			sut.NetworkConfig.NetworkDir = tmpfile
+			sut.NetworkConfig.PluginDirs = []string{}
+
+			// When
+			err = sut.NetworkConfig.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())

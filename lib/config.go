@@ -548,8 +548,15 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 // `nil`.
 func (c *NetworkConfig) Validate(onExecution bool) error {
 	if onExecution {
-		if err := utils.IsDirectory(c.NetworkDir); err != nil {
-			return errors.Wrapf(err, "invalid network_dir: %s", err)
+		err := utils.IsDirectory(c.NetworkDir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				if err = os.MkdirAll(c.NetworkDir, 0755); err != nil {
+					return errors.Wrapf(err, "Cannot create network_dir: %s", c.NetworkDir)
+				}
+			} else {
+				return errors.Wrapf(err, "invalid network_dir: %s", c.NetworkDir)
+			}
 		}
 
 		for _, pluginDir := range c.PluginDirs {
