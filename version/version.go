@@ -49,10 +49,10 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 	}
 	if gitCommit != "" {
 		gitBuild, err := semver.NewBuildVersion(strings.Trim(gitCommit, "\""))
-		if err != nil {
-			return nil, err
+		// If gitCommit is empty, silently error, as it's helpful, but not needed.
+		if err == nil {
+			v.Build = append(v.Build, gitBuild)
 		}
-		v.Build = append(v.Build, gitBuild)
 	}
 	return &v, nil
 }
