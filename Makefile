@@ -1,11 +1,7 @@
-include Makefile.inc
-
 GO ?= go
 EPOCH_TEST_COMMIT ?= 1cc5a27
 PROJECT := github.com/cri-o/cri-o
-GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
-GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
-CRIO_IMAGE := crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
+CRIO_IMAGE = crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
 CRIO_INSTANCE := crio_dev
 PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
@@ -47,10 +43,12 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
-BASE_LDFLAGS := ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
-LDFLAGS := -ldflags '${BASE_LDFLAGS}'
+BASE_LDFLAGS = ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
+LDFLAGS = -ldflags '${BASE_LDFLAGS}'
 
 all: binaries crio.conf docs
+
+include Makefile.inc
 
 default: help
 
@@ -94,16 +92,16 @@ bin/conmon: conmon/config.h
 bin/pause:
 	$(MAKE) -C pause
 
-test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
+test/bin2img/bin2img: git-vars .gopathok $(wildcard test/bin2img/*.go)
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
 
-test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
+test/copyimg/copyimg: git-vars .gopathok $(wildcard test/copyimg/*.go)
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/copyimg
 
-test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
+test/checkseccomp/checkseccomp: git-vars .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
-bin/crio: .gopathok
+bin/crio: git-vars .gopathok
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/cmd/crio
 
 crio.conf: bin/crio
@@ -112,7 +110,7 @@ crio.conf: bin/crio
 release-note:
 	@$(GOPATH)/bin/release-tool -n $(release)
 
-conmon/config.h: cmd/crio-config/config.go oci/oci.go
+conmon/config.h: git-vars cmd/crio-config/config.go oci/oci.go
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
 	( cd conmon && $(CURDIR)/bin/crio-config )
 
@@ -139,14 +137,14 @@ endif
 local-cross:
 	@$(MAKE) --keep-going $(CROSS_BUILD_TARGETS)
 
-bin/crio.cross.%: .gopathok .explicit_phony
+bin/crio.cross.%: git-vars .gopathok .explicit_phony
 	@echo "==> make $@"; \
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
 	$(GO) build -i $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
-crioimage:
+crioimage: git-vars
 	$(CONTAINER_RUNTIME) build -t ${CRIO_IMAGE} .
 
 dbuild: crioimage
