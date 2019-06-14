@@ -22,7 +22,6 @@ before_script:
 
 env:
   global:
-    - NIX_IMAGE=saschagrunert/crionix
     - CONTAINER_RUNTIME=docker
     - JOBS=4
 
@@ -55,7 +54,7 @@ jobs:
       go: "1.12.x"
     - name: static binary build
       script:
-        - make build-static CONTAINER_RUNTIME=$CONTAINER_RUNTIME NIX_IMAGE=$NIX_IMAGE
+        - make build-static CONTAINER_RUNTIME=$CONTAINER_RUNTIME
       go: "1.12.x"
     - name: cross compilation build
       script:
@@ -84,12 +83,12 @@ jobs:
       go: "1.12.x"
     - name: static x86_64 glibc
       script:
-        - make build-static integration CONTAINER_RUNTIME=$CONTAINER_RUNTIME NIX_IMAGE=$NIX_IMAGE
+        - make build-static integration CONTAINER_RUNTIME=$CONTAINER_RUNTIME
       go: "1.12.x"
       env: CRIO_BINARY=crio-x86_64-static-glibc
     - name: static x86_64 musl libc
       script:
-        - make build-static integration CONTAINER_RUNTIME=$CONTAINER_RUNTIME NIX_IMAGE=$NIX_IMAGE
+        - make build-static integration CONTAINER_RUNTIME=$CONTAINER_RUNTIME
       go: "1.12.x"
       env: CRIO_BINARY=crio-x86_64-static-musl
   allow_failures:

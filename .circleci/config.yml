@@ -19,7 +19,7 @@ executors:
     working_directory: *workdir
   nix:
     docker:
-      - image: saschagrunert/crionix
+      - image: saschagrunert/crionix:1.0.0
   machine:
     machine:
       docker_layer_caching: true
@@ -114,9 +114,10 @@ jobs:
       - run:
           name: build
           command: |
-            nix-build nix
+            nix-build nix --argstr revision $CIRCLE_SHA1
             mkdir -p bin
             cp result-*bin/bin/crio-* bin
+            cp result-*bin/libexec/crio/* bin
       - persist_to_workspace:
           root: .
           paths:

@@ -45,7 +45,7 @@ GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
-NIX_IMAGE := crionix
+NIX_IMAGE := saschagrunert/crionix:1.0.0
 
 CROSS_BUILD_TARGETS := \
 	bin/crio.cross.windows.amd64 \
@@ -124,6 +124,7 @@ build-static: git-vars
 		"nix-build cri-o/nix --argstr revision $(COMMIT_NO) && \
 		mkdir -p cri-o/bin && \
 		cp result-*bin/bin/crio-* cri-o/bin && \
+		cp result-*bin/libexec/crio/* cri-o/bin && \
 		chown -R $(shell id -u):$(shell id -g) cri-o/bin"
 
 nix-image: git-vars

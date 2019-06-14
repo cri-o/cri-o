@@ -134,10 +134,11 @@ make BUILDTAGS='seccomp apparmor'
 ## Static builds
 
 It is possible to build a statically linked binary of CRI-O by using the
-provided [nix](https://nixos.org/nix) package [within this repository](../nix).
-The builds are completely reproducible and will create a `x86_64`/`amd64`
-stripped ELF binary for [glibc](https://www.gnu.org/software/libc) and [musl
-libc](https://www.musl-libc.org). These binaries are integration tested as well
+officially provided [nix](https://nixos.org/nix) package and the derivation of
+it [within this repository](../nix). The builds are completely reproducible and
+will create a `x86_64`/`amd64` stripped ELF binary for
+[glibc](https://www.gnu.org/software/libc) and [musl
+libc](https://www.musl-libc.org).  These binaries are integration tested as well
 and support the following features:
 
 - apparmor
@@ -149,7 +150,7 @@ and support the following features:
 
 To build the binaries locally either [install the nix package
 manager](https://nixos.org/nix/download.html) or setup a new container image
-named `crionix` from the root directory of this repository by executing:
+from the root directory of this repository by executing:
 
 ```
 make nix-image
@@ -172,11 +173,18 @@ to build the binaries:
 make build-static
 ```
 
+There exist an already pre-built container image used for the internal CI. This
+means that invoking `make build-static` should work even without building the
+image before.
+
 Note that the container runtime and nix image can be specified here, too. The
 resulting binaries should now be available within:
 
 - `bin/crio-x86_64-static-glibc`
 - `bin/crio-x86_64-static-musl`
+
+- `bin/pause-x86_64-static-glibc`
+- `bin/pause-x86_64-static-musl`
 
 To build the binaries without any prepared container and via the already
 installed nix package manager, simply run the following command from the root
