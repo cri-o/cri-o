@@ -20,7 +20,7 @@ coverprofile
 lib/state.json
 result-*bin
 
-Vagrantfile
+./Vagrantfile
 .vagrant/
 
 .vscode/
