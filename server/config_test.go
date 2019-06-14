@@ -243,4 +243,19 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 	})
+
+	t.Describe("ToByte", func() {
+		It("should succeed", func() {
+			// Given
+			sut, err := server.DefaultConfig(nil)
+			Expect(err).To(BeNil())
+
+			// When
+			res, err := sut.ToBytes()
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+		})
+	})
 })

@@ -216,7 +216,7 @@ jobs:
               -e STORAGE_OPTIONS="--storage-driver=vfs" -e TRAVIS=true \
               -e CRIO_BINARY -e TEST_USERNS -e RUN_CRITEST \
               -v $(pwd):$WORKDIR -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
-              -t --privileged --rm -w $WORKDIR \
+              --privileged --rm -w $WORKDIR \
               $IMAGE test/test_runner.sh $TEST_ARGS
           environment:
             CRIO_BINARY: "<< parameters.crio_binary >>"
@@ -235,7 +235,7 @@ jobs:
           name: lint
           command: |
             docker pull $IMAGE
-            docker run -t --privileged --rm -e GOCACHE \
+            docker run --privileged --rm -e GOCACHE \
               -v $GOCACHE:$GOCACHE -v $(pwd):$WORKDIR \
               -w $WORKDIR $IMAGE make lint
             sudo chown -R $(id -u):$(id -g) $GOCACHE

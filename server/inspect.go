@@ -98,6 +98,20 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 func (s *Server) GetInfoMux() *bone.Mux {
 	mux := bone.New()
 
+	mux.Get("/config", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		b, err := s.config.ToBytes()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/toml")
+		if _, err := w.Write(b); err != nil {
+			http.Error(w, fmt.Sprintf("unable to write TOML: %v", err),
+				http.StatusInternalServerError)
+		}
+	}))
+
 	mux.Get("/info", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ci := s.getInfo()
 		js, err := json.Marshal(ci)
