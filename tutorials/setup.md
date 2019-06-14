@@ -48,8 +48,8 @@ Appstream/x86_64
 Follow the guide below to subscribe to the repositories if not already subscribed: \
 https://access.redhat.com/solutions/265523
 
-This required go version 12.1 or greater. Use the link below to install the appropriate go version for the system:\
-(Replace apt-get with yum for Linux based machines) \
+This requires go version 1.12 or greater. Use the link below to install the appropriate go version for the system:\
+(Replace apt-get with yum for RHEL based machines) \
 https://tecadmin.net/install-go-on-ubuntu/ 
 
 ```bash
@@ -62,7 +62,7 @@ yum install -y \
   glibc-static \
   runc \
 ```
-Use wget to download and run the following dependency: 
+Use wget to download and run the following dependencies: 
 
 (Here is a link on how to install a source rpm on RHEL: \
 https://www.itechlounge.net/2012/12/linux-how-to-install-source-rpm-on-rhelcentos/) 
