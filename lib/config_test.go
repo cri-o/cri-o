@@ -261,6 +261,21 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validPath))
 		})
 
+		It("should only carry PluginDir if both PluginDir and PluginDirs are specified", func() {
+			// Given
+			sut.NetworkConfig.NetworkDir = validPath
+			sut.NetworkConfig.PluginDir = validPath
+			sut.NetworkConfig.PluginDirs = []string{wrongPath}
+
+			// When
+			err := sut.NetworkConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validPath))
+			Expect(len(sut.NetworkConfig.PluginDirs)).To(Equal(1))
+		})
+
 		It("should fail in validating invalid PluginDir", func() {
 			// Given
 			sut.NetworkConfig.NetworkDir = validPath
