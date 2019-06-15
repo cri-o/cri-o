@@ -33,9 +33,11 @@ type MainFlags struct {
 	LogLevel   string
 	TmpDir     string
 
-	RemoteUserName string
-	RemoteHost     string
-	VarlinkAddress string
+	RemoteUserName       string
+	RemoteHost           string
+	VarlinkAddress       string
+	ConnectionName       string
+	RemoteConfigFilePath string
 }
 
 type AttachValues struct {
@@ -89,6 +91,7 @@ type CheckpointValues struct {
 	TcpEstablished bool
 	All            bool
 	Latest         bool
+	Export         string
 }
 
 type CommitValues struct {
@@ -142,7 +145,8 @@ type ExportValues struct {
 }
 type GenerateKubeValues struct {
 	PodmanCommand
-	Service bool
+	Service  bool
+	Filename string
 }
 
 type GenerateSystemdValues struct {
@@ -426,6 +430,8 @@ type RestoreValues struct {
 	Keep           bool
 	Latest         bool
 	TcpEstablished bool
+	Import         string
+	Name           string
 }
 
 type RmValues struct {
@@ -433,6 +439,7 @@ type RmValues struct {
 	All     bool
 	Force   bool
 	Latest  bool
+	Storage bool
 	Volumes bool
 }
 

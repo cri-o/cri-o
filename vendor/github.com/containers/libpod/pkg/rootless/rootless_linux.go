@@ -22,9 +22,14 @@ import (
 )
 
 /*
-extern int reexec_in_user_namespace(int ready);
-extern int reexec_in_user_namespace_wait(int pid);
-extern int reexec_userns_join(int userns, int mountns);
+#cgo remoteclient CFLAGS: -DDISABLE_JOIN_SHORTCUT
+#include <stdlib.h>
+#include <sys/types.h>
+extern uid_t rootless_uid();
+extern uid_t rootless_gid();
+extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path, char *file_to_read, int fd);
+extern int reexec_in_user_namespace_wait(int pid, int options);
+extern int reexec_userns_join(int userns, int mountns, char *pause_pid_file_path);
 */
 import "C"
 
@@ -45,6 +50,14 @@ var (
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
+		rootlessUIDInit := int(C.rootless_uid())
+		rootlessGIDInit := int(C.rootless_gid())
+		if rootlessUIDInit != 0 {
+			// This happens if we joined the user+mount namespace as part of
+			os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
+			os.Setenv("_CONTAINERS_ROOTLESS_UID", fmt.Sprintf("%d", rootlessUIDInit))
+			os.Setenv("_CONTAINERS_ROOTLESS_GID", fmt.Sprintf("%d", rootlessGIDInit))
+		}
 		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
 	})
 	return isRootless
@@ -58,6 +71,23 @@ func GetRootlessUID() int {
 		return u
 	}
 	return os.Geteuid()
+}
+
+// GetRootlessGID returns the GID of the user in the parent userNS
+func GetRootlessGID() int {
+	gidEnv := os.Getenv("_CONTAINERS_ROOTLESS_GID")
+	if gidEnv != "" {
+		u, _ := strconv.Atoi(gidEnv)
+		return u
+	}
+
+	/* If the _CONTAINERS_ROOTLESS_UID is set, assume the gid==uid.  */
+	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
+	if uidEnv != "" {
+		u, _ := strconv.Atoi(uidEnv)
+		return u
+	}
+	return os.Getegid()
 }
 
 func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) error {
@@ -140,6 +170,9 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 	for {
 		nextFd, err := getParentUserNs(fd)
 		if err != nil {
+			if err == syscall.ENOTTY {
+				return os.NewFile(fd, "userns child"), nil
+			}
 			return nil, errors.Wrapf(err, "cannot get parent user namespace")
 		}
 
@@ -165,13 +198,30 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 	}
 }
 
-// JoinUserAndMountNS re-exec podman in a new userNS and join the user and mount
+func enableLinger(pausePid string) {
+	if pausePid == "" {
+		return
+	}
+	// If we are trying to write a pause pid file, make sure we can leave processes
+	// running longer than the user session.
+	err := exec.Command("loginctl", "enable-linger", fmt.Sprintf("%d", GetRootlessUID())).Run()
+	if err != nil {
+		logrus.Warnf("cannot run `loginctl enable-linger` for the current user: %v", err)
+	}
+}
+
+// joinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.
-func JoinUserAndMountNS(pid uint) (bool, int, error) {
+func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
+	enableLinger(pausePid)
+
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
+
+	cPausePid := C.CString(pausePid)
+	defer C.free(unsafe.Pointer(cPausePid))
 
 	userNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/user", pid))
 	if err != nil {
@@ -189,12 +239,12 @@ func JoinUserAndMountNS(pid uint) (bool, int, error) {
 	if err != nil {
 		return false, -1, err
 	}
-	pidC := C.reexec_userns_join(C.int(fd.Fd()), C.int(mountNS.Fd()))
+	pidC := C.reexec_userns_join(C.int(fd.Fd()), C.int(mountNS.Fd()), cPausePid)
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
 
-	ret := C.reexec_in_user_namespace_wait(pidC)
+	ret := C.reexec_in_user_namespace_wait(pidC, 0)
 	if ret < 0 {
 		return false, -1, errors.New("error waiting for the re-exec process")
 	}
@@ -202,11 +252,7 @@ func JoinUserAndMountNS(pid uint) (bool, int, error) {
 	return true, int(ret), nil
 }
 
-// BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
-// into a new user namespace and the return code from the re-executed podman process.
-// If podman was re-executed the caller needs to propagate the error code returned by the child
-// process.
-func BecomeRootInUserNS() (bool, int, error) {
+func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
@@ -214,18 +260,30 @@ func BecomeRootInUserNS() (bool, int, error) {
 		return false, 0, nil
 	}
 
+	cPausePid := C.CString(pausePid)
+	defer C.free(unsafe.Pointer(cPausePid))
+
+	cFileToRead := C.CString(fileToRead)
+	defer C.free(unsafe.Pointer(cFileToRead))
+	var fileOutputFD C.int
+	if fileOutput != nil {
+		fileOutputFD = C.int(fileOutput.Fd())
+	}
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	r, w, err := os.Pipe()
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_DGRAM, 0)
 	if err != nil {
 		return false, -1, err
 	}
+	r, w := os.NewFile(uintptr(fds[0]), "sync host"), os.NewFile(uintptr(fds[1]), "sync child")
+
 	defer r.Close()
 	defer w.Close()
 	defer w.Write([]byte("0"))
 
-	pidC := C.reexec_in_user_namespace(C.int(r.Fd()))
+	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid, cFileToRead, fileOutputFD)
 	pid := int(pidC)
 	if pid < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
@@ -280,9 +338,37 @@ func BecomeRootInUserNS() (bool, int, error) {
 		}
 	}
 
-	_, err = w.Write([]byte("1"))
+	_, err = w.Write([]byte("0"))
 	if err != nil {
 		return false, -1, errors.Wrapf(err, "write to sync pipe")
+	}
+
+	b := make([]byte, 1, 1)
+	_, err = w.Read(b)
+	if err != nil {
+		return false, -1, errors.Wrapf(err, "read from sync pipe")
+	}
+
+	if fileOutput != nil {
+		return true, 0, nil
+	}
+
+	if b[0] == '2' {
+		// We have lost the race for writing the PID file, as probably another
+		// process created a namespace and wrote the PID.
+		// Try to join it.
+		data, err := ioutil.ReadFile(pausePid)
+		if err == nil {
+			pid, err := strconv.ParseUint(string(data), 10, 0)
+			if err == nil {
+				return joinUserAndMountNS(uint(pid), "")
+			}
+		}
+		return false, -1, errors.Wrapf(err, "error setting up the process")
+	}
+
+	if b[0] != '0' {
+		return false, -1, errors.Wrapf(err, "error setting up the process")
 	}
 
 	c := make(chan os.Signal, 1)
@@ -307,10 +393,96 @@ func BecomeRootInUserNS() (bool, int, error) {
 		}
 	}()
 
-	ret := C.reexec_in_user_namespace_wait(pidC)
+	ret := C.reexec_in_user_namespace_wait(pidC, 0)
 	if ret < 0 {
 		return false, -1, errors.New("error waiting for the re-exec process")
 	}
 
 	return true, int(ret), nil
+}
+
+// BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
+// into a new user namespace and the return code from the re-executed podman process.
+// If podman was re-executed the caller needs to propagate the error code returned by the child
+// process.
+func BecomeRootInUserNS(pausePid string) (bool, int, error) {
+	enableLinger(pausePid)
+	return becomeRootInUserNS(pausePid, "", nil)
+}
+
+// TryJoinFromFilePaths attempts to join the namespaces of the pid files in paths.
+// This is useful when there are already running containers and we
+// don't have a pause process yet.  We can use the paths to the conmon
+// processes to attempt joining their namespaces.
+// If needNewNamespace is set, the file is read from a temporary user
+// namespace, this is useful for containers that are running with a
+// different uidmap and the unprivileged user has no way to read the
+// file owned by the root in the container.
+func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []string) (bool, int, error) {
+	if len(paths) == 0 {
+		return BecomeRootInUserNS(pausePidPath)
+	}
+
+	var lastErr error
+	var pausePid int
+
+	for _, path := range paths {
+		if !needNewNamespace {
+			data, err := ioutil.ReadFile(path)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+
+			pausePid, err = strconv.Atoi(string(data))
+			if err != nil {
+				lastErr = errors.Wrapf(err, "cannot parse file %s", path)
+				continue
+			}
+
+			lastErr = nil
+			break
+		} else {
+			fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_DGRAM, 0)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+
+			r, w := os.NewFile(uintptr(fds[0]), "read file"), os.NewFile(uintptr(fds[1]), "write file")
+
+			defer w.Close()
+			defer r.Close()
+
+			if _, _, err := becomeRootInUserNS("", path, w); err != nil {
+				lastErr = err
+				continue
+			}
+
+			w.Close()
+			defer func() {
+				r.Close()
+				C.reexec_in_user_namespace_wait(-1, 0)
+			}()
+
+			b := make([]byte, 32)
+
+			n, err := r.Read(b)
+			if err != nil {
+				lastErr = errors.Wrapf(err, "cannot read %s\n", path)
+				continue
+			}
+
+			pausePid, err = strconv.Atoi(string(b[:n]))
+			if err == nil {
+				lastErr = nil
+				break
+			}
+		}
+	}
+	if lastErr != nil {
+		return false, 0, lastErr
+	}
+
+	return joinUserAndMountNS(uint(pausePid), pausePidPath)
 }

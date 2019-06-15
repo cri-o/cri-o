@@ -21,11 +21,11 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -146,20 +146,10 @@ func (c *Container) exitFilePath() string {
 func (c *Container) waitForExitFileAndSync() error {
 	exitFile := c.exitFilePath()
 
-	err := kwait.ExponentialBackoff(
-		kwait.Backoff{
-			Duration: 500 * time.Millisecond,
-			Factor:   1.2,
-			Steps:    6,
-		},
-		func() (bool, error) {
-			_, err := os.Stat(exitFile)
-			if err != nil {
-				// wait longer
-				return false, nil
-			}
-			return true, nil
-		})
+	chWait := make(chan error)
+	defer close(chWait)
+
+	_, err := WaitForFile(exitFile, chWait, time.Second*5)
 	if err != nil {
 		// Exit file did not appear
 		// Reset our state
@@ -370,7 +360,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 			}
 			return false
 		}
-		defOptions, err := storage.GetDefaultMountOptions()
+
+		defOptions, err := storage.GetMountOptions(c.runtime.store.GraphDriverName(), c.runtime.store.GraphOptions())
 		if err != nil {
 			return errors.Wrapf(err, "error getting default mount options")
 		}
@@ -1356,7 +1347,7 @@ func (c *Container) appendStringToRundir(destFile, output string) (string, error
 	return filepath.Join(c.state.RunDir, destFile), nil
 }
 
-// Save OCI spec to disk, replacing any existing specs for the container
+// saveSpec saves the OCI spec to disk, replacing any existing specs for the container
 func (c *Container) saveSpec(spec *spec.Spec) error {
 	// If the OCI spec already exists, we need to replace it
 	// Cannot guarantee some things, e.g. network namespaces, have the same
@@ -1508,6 +1499,43 @@ func (c *Container) checkReadyForRemoval() error {
 
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
+	}
+
+	return nil
+}
+
+// writeJSONFile marshalls and writes the given data to a JSON file
+// in the bundle path
+func (c *Container) writeJSONFile(v interface{}, file string) (err error) {
+	fileJSON, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return errors.Wrapf(err, "error writing JSON to %s for container %s", file, c.ID())
+	}
+	file = filepath.Join(c.bundlePath(), file)
+	if err := ioutil.WriteFile(file, fileJSON, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// prepareCheckpointExport writes the config and spec to
+// JSON files for later export
+func (c *Container) prepareCheckpointExport() (err error) {
+	// save live config
+	if err := c.writeJSONFile(c.Config(), "config.dump"); err != nil {
+		return err
+	}
+
+	// save spec
+	jsonPath := filepath.Join(c.bundlePath(), "config.json")
+	g, err := generate.NewFromFile(jsonPath)
+	if err != nil {
+		logrus.Debugf("generating spec for container %q failed with %v", c.ID(), err)
+		return err
+	}
+	if err := c.writeJSONFile(g.Spec(), "spec.dump"); err != nil {
+		return err
 	}
 
 	return nil

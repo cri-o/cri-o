@@ -50,7 +50,8 @@ install:
 
 .PHONY: .install.lint
 .install.lint:
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	# Workaround for https://github.com/golangci/golangci-lint/issues/523
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint@master
 
 .PHONY: uninstall
 uninstall:

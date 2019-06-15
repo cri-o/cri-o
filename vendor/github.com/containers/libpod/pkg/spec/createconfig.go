@@ -162,6 +162,10 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 	if config.StorageConfig.GraphDriverName != "" {
 		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
 	}
+	for _, opt := range config.StorageConfig.GraphDriverOptions {
+		command = append(command, []string{"--storage-opt", opt}...)
+	}
+
 	if c.Syslog {
 		command = append(command, "--syslog", "true")
 	}
@@ -319,6 +323,11 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if logPath != "" {
 		options = append(options, libpod.WithLogPath(logPath))
 	}
+
+	if c.LogDriver != "" {
+		options = append(options, libpod.WithLogDriver(c.LogDriver))
+	}
+
 	if c.IPAddress != "" {
 		ip := net.ParseIP(c.IPAddress)
 		if ip == nil {

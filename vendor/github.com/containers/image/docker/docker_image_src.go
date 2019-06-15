@@ -13,9 +13,10 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
 	"github.com/docker/distribution/registry/client"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -30,15 +31,65 @@ type dockerImageSource struct {
 
 // newImageSource creates a new ImageSource for the specified image reference.
 // The caller must call .Close() on the returned ImageSource.
-func newImageSource(sys *types.SystemContext, ref dockerReference) (*dockerImageSource, error) {
-	c, err := newDockerClientFromRef(sys, ref, false, "pull")
+func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerReference) (*dockerImageSource, error) {
+	registry, err := sysregistriesv2.FindRegistry(sys, ref.ref.Name())
+	if err != nil {
+		return nil, errors.Wrapf(err, "error loading registries configuration")
+	}
+	if registry == nil {
+		// No configuration was found for the provided reference, so use the
+		// equivalent of a default configuration.
+		registry = &sysregistriesv2.Registry{
+			Endpoint: sysregistriesv2.Endpoint{
+				Location: ref.ref.String(),
+			},
+			Prefix: ref.ref.String(),
+		}
+	}
+
+	primaryDomain := reference.Domain(ref.ref)
+	// Check all endpoints for the manifest availability. If we find one that does
+	// contain the image, it will be used for all future pull actions.  Always try the
+	// non-mirror original location last; this both transparently handles the case
+	// of no mirrors configured, and ensures we return the error encountered when
+	// acessing the upstream location if all endpoints fail.
+	manifestLoadErr := errors.New("Internal error: newImageSource returned without trying any endpoint")
+	pullSources, err := registry.PullSourcesFromReference(ref.ref)
 	if err != nil {
 		return nil, err
 	}
-	return &dockerImageSource{
-		ref: ref,
-		c:   c,
-	}, nil
+	for _, pullSource := range pullSources {
+		logrus.Debugf("Trying to pull %q", pullSource.Reference)
+		dockerRef, err := newReference(pullSource.Reference)
+		if err != nil {
+			return nil, err
+		}
+
+		endpointSys := sys
+		// sys.DockerAuthConfig does not explicitly specify a registry; we must not blindly send the credentials intended for the primary endpoint to mirrors.
+		if endpointSys != nil && endpointSys.DockerAuthConfig != nil && reference.Domain(dockerRef.ref) != primaryDomain {
+			copy := *endpointSys
+			copy.DockerAuthConfig = nil
+			endpointSys = &copy
+		}
+
+		client, err := newDockerClientFromRef(endpointSys, dockerRef, false, "pull")
+		if err != nil {
+			return nil, err
+		}
+		client.tlsClientConfig.InsecureSkipVerify = pullSource.Endpoint.Insecure
+
+		testImageSource := &dockerImageSource{
+			ref: dockerRef,
+			c:   client,
+		}
+
+		manifestLoadErr = testImageSource.ensureManifestIsLoaded(ctx)
+		if manifestLoadErr == nil {
+			return testImageSource, nil
+		}
+	}
+	return nil, manifestLoadErr
 }
 
 // Reference returns the reference used to set up this source, _as specified by the user_

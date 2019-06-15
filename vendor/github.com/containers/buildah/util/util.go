@@ -1,13 +1,11 @@
 package util
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -18,7 +16,6 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/distribution/registry/api/errcode"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -109,13 +106,19 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 
 	// Figure out the list of registries.
 	var registries []string
-	searchRegistries, err := sysregistriesv2.FindUnqualifiedSearchRegistries(sc)
+	searchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(sc)
 	if err != nil {
 		logrus.Debugf("unable to read configured registries to complete %q: %v", name, err)
+		searchRegistries = nil
 	}
 	for _, registry := range searchRegistries {
-		if !registry.Blocked {
-			registries = append(registries, registry.URL)
+		reg, err := sysregistriesv2.FindRegistry(sc, registry)
+		if err != nil {
+			logrus.Debugf("unable to read registry configuraitno for %#v: %v", registry, err)
+			continue
+		}
+		if reg == nil || !reg.Blocked {
+			registries = append(registries, registry)
 		}
 	}
 	searchRegistriesAreEmpty := len(registries) == 0
@@ -200,7 +203,7 @@ func FindImage(store storage.Store, firstRegistry string, systemContext *types.S
 		break
 	}
 	if ref == nil || img == nil {
-		return nil, nil, errors.Wrapf(err, "error locating image with name %q", image)
+		return nil, nil, errors.Wrapf(err, "error locating image with name %q (%v)", image, names)
 	}
 	return ref, img, nil
 }
@@ -260,6 +263,36 @@ func StringInSlice(s string, slice []string) bool {
 	return false
 }
 
+// GetContainerIDs uses ID mappings to compute the container-level IDs that will
+// correspond to a UID/GID pair on the host.
+func GetContainerIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32, uint32, error) {
+	uidMapped := true
+	for _, m := range uidmap {
+		uidMapped = false
+		if uid >= m.HostID && uid < m.HostID+m.Size {
+			uid = (uid - m.HostID) + m.ContainerID
+			uidMapped = true
+			break
+		}
+	}
+	if !uidMapped {
+		return 0, 0, errors.Errorf("container uses ID mappings (%#v), but doesn't map UID %d", uidmap, uid)
+	}
+	gidMapped := true
+	for _, m := range gidmap {
+		gidMapped = false
+		if gid >= m.HostID && gid < m.HostID+m.Size {
+			gid = (gid - m.HostID) + m.ContainerID
+			gidMapped = true
+			break
+		}
+	}
+	if !gidMapped {
+		return 0, 0, errors.Errorf("container uses ID mappings (%#v), but doesn't map GID %d", gidmap, gid)
+	}
+	return uid, gid, nil
+}
+
 // GetHostIDs uses ID mappings to compute the host-level IDs that will
 // correspond to a UID/GID pair in the container.
 func GetHostIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32, uint32, error) {
@@ -273,7 +306,7 @@ func GetHostIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32,
 		}
 	}
 	if !uidMapped {
-		return 0, 0, errors.Errorf("container uses ID mappings, but doesn't map UID %d", uid)
+		return 0, 0, errors.Errorf("container uses ID mappings (%#v), but doesn't map UID %d", uidmap, uid)
 	}
 	gidMapped := true
 	for _, m := range gidmap {
@@ -285,7 +318,7 @@ func GetHostIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32,
 		}
 	}
 	if !gidMapped {
-		return 0, 0, errors.Errorf("container uses ID mappings, but doesn't map GID %d", gid)
+		return 0, 0, errors.Errorf("container uses ID mappings (%#v), but doesn't map GID %d", gidmap, gid)
 	}
 	return uid, gid, nil
 }
@@ -297,92 +330,6 @@ func GetHostRootIDs(spec *specs.Spec) (uint32, uint32, error) {
 		return 0, 0, nil
 	}
 	return GetHostIDs(spec.Linux.UIDMappings, spec.Linux.GIDMappings, 0, 0)
-}
-
-// getHostIDMappings reads mappings from the named node under /proc.
-func getHostIDMappings(path string) ([]specs.LinuxIDMapping, error) {
-	var mappings []specs.LinuxIDMapping
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading ID mappings from %q", path)
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		fields := strings.Fields(line)
-		if len(fields) != 3 {
-			return nil, errors.Errorf("line %q from %q has %d fields, not 3", line, path, len(fields))
-		}
-		cid, err := strconv.ParseUint(fields[0], 10, 32)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing container ID value %q from line %q in %q", fields[0], line, path)
-		}
-		hid, err := strconv.ParseUint(fields[1], 10, 32)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing host ID value %q from line %q in %q", fields[1], line, path)
-		}
-		size, err := strconv.ParseUint(fields[2], 10, 32)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing size value %q from line %q in %q", fields[2], line, path)
-		}
-		mappings = append(mappings, specs.LinuxIDMapping{ContainerID: uint32(cid), HostID: uint32(hid), Size: uint32(size)})
-	}
-	return mappings, nil
-}
-
-// GetHostIDMappings reads mappings for the specified process (or the current
-// process if pid is "self" or an empty string) from the kernel.
-func GetHostIDMappings(pid string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
-	if pid == "" {
-		pid = "self"
-	}
-	uidmap, err := getHostIDMappings(fmt.Sprintf("/proc/%s/uid_map", pid))
-	if err != nil {
-		return nil, nil, err
-	}
-	gidmap, err := getHostIDMappings(fmt.Sprintf("/proc/%s/gid_map", pid))
-	if err != nil {
-		return nil, nil, err
-	}
-	return uidmap, gidmap, nil
-}
-
-// GetSubIDMappings reads mappings from /etc/subuid and /etc/subgid.
-func GetSubIDMappings(user, group string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
-	mappings, err := idtools.NewIDMappings(user, group)
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error reading subuid mappings for user %q and subgid mappings for group %q", user, group)
-	}
-	var uidmap, gidmap []specs.LinuxIDMapping
-	for _, m := range mappings.UIDs() {
-		uidmap = append(uidmap, specs.LinuxIDMapping{
-			ContainerID: uint32(m.ContainerID),
-			HostID:      uint32(m.HostID),
-			Size:        uint32(m.Size),
-		})
-	}
-	for _, m := range mappings.GIDs() {
-		gidmap = append(gidmap, specs.LinuxIDMapping{
-			ContainerID: uint32(m.ContainerID),
-			HostID:      uint32(m.HostID),
-			Size:        uint32(m.Size),
-		})
-	}
-	return uidmap, gidmap, nil
-}
-
-// ParseIDMappings parses mapping triples.
-func ParseIDMappings(uidmap, gidmap []string) ([]idtools.IDMap, []idtools.IDMap, error) {
-	uid, err := idtools.ParseIDMap(uidmap, "userns-uid-map")
-	if err != nil {
-		return nil, nil, err
-	}
-	gid, err := idtools.ParseIDMap(gidmap, "userns-gid-map")
-	if err != nil {
-		return nil, nil, err
-	}
-	return uid, gid, nil
 }
 
 // GetPolicyContext sets up, initializes and returns a new context for the specified policy

@@ -17,7 +17,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	kwait "k8s.io/apimachinery/pkg/util/wait"
 
 	// TODO import these functions into libpod and remove the import
 	// Trying to keep libpod from depending on CRI-O code
@@ -59,6 +58,7 @@ type OCIRuntime struct {
 	logSizeMax    int64
 	noPivot       bool
 	reservePorts  bool
+	supportsJSON  bool
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -67,8 +67,16 @@ type syncInfo struct {
 	Message string `json:"message,omitempty"`
 }
 
+// ociError is used to parse the OCI runtime JSON log.  It is not part of the
+// OCI runtime specifications, it follows what runc does
+type ociError struct {
+	Level string `json:"level,omitempty"`
+	Time  string `json:"time,omitempty"`
+	Msg   string `json:"msg,omitempty"`
+}
+
 // Make a new OCI runtime with provided options
-func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool) (*OCIRuntime, error) {
+func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool, supportsJSON bool) (*OCIRuntime, error) {
 	runtime := new(OCIRuntime)
 	runtime.name = oruntime.Name
 	runtime.path = oruntime.Paths[0]
@@ -79,6 +87,7 @@ func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []strin
 	runtime.logSizeMax = logSizeMax
 	runtime.noPivot = noPivotRoot
 	runtime.reservePorts = reservePorts
+	runtime.supportsJSON = supportsJSON
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
@@ -261,21 +270,13 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 	// If we were, it should already be in the database
 	if ctr.state.State == ContainerStateStopped && oldState != ContainerStateStopped {
 		var fi os.FileInfo
-		err = kwait.ExponentialBackoff(
-			kwait.Backoff{
-				Duration: 500 * time.Millisecond,
-				Factor:   1.2,
-				Steps:    6,
-			},
-			func() (bool, error) {
-				var err error
-				fi, err = os.Stat(exitFile)
-				if err != nil {
-					// wait longer
-					return false, nil
-				}
-				return true, nil
-			})
+		chWait := make(chan error)
+		defer close(chWait)
+
+		_, err := WaitForFile(exitFile, chWait, time.Second*5)
+		if err == nil {
+			fi, err = os.Stat(exitFile)
+		}
 		if err != nil {
 			ctr.state.ExitCode = -1
 			ctr.state.FinishedTime = time.Now()
@@ -376,8 +377,6 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	args := []string{}
 
 	// TODO - should we maintain separate logpaths for exec sessions?
-	args = append(args, "--log", c.LogPath())
-
 	args = append(args, "exec")
 
 	if cwd != "" {
@@ -411,7 +410,7 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		args = append(args, "--env", envVar)
 	}
 
-	// Append container ID and command
+	// Append container ID, name and command
 	args = append(args, c.ID())
 	args = append(args, cmd...)
 

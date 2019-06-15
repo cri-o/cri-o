@@ -18,11 +18,11 @@ require (
 	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
 	github.com/containernetworking/cni v0.7.0
 	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.7.2
-	github.com/containers/image v1.5.1
-	github.com/containers/libpod v1.3.2
-	github.com/containers/psgo v1.2.1 // indirect
-	github.com/containers/storage v1.12.9
+	github.com/containers/buildah v1.8.4
+	github.com/containers/image v2.0.0+incompatible
+	github.com/containers/libpod v1.4.1
+	github.com/containers/psgo v1.3.0 // indirect
+	github.com/containers/storage v1.12.10
 	github.com/coreos/go-iptables v0.4.1 // indirect
 	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -34,6 +34,7 @@ require (
 	github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82 // indirect
 	github.com/docker/go-units v0.4.0
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
+	github.com/etcd-io/bbolt v1.3.3 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/fsouza/go-dockerclient v1.4.0 // indirect
 	github.com/go-zoo/bone v1.3.0
@@ -44,6 +45,7 @@ require (
 	github.com/google/renameio v0.1.0
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hpcloud/tail v1.0.0
+	github.com/ishidawataru/sctp v0.0.0-20180213033435-07191f837fed // indirect
 	github.com/klauspost/compress v1.5.0 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/pgzip v1.2.1 // indirect

@@ -979,6 +979,27 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 	}
 }
 
+// WithLogDriver sets the log driver for the container
+func WithLogDriver(driver string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		switch driver {
+		case "":
+			return errors.Wrapf(ErrInvalidArg, "log driver must be set")
+		case JournaldLogging, KubernetesLogging, JSONLogging:
+			break
+		default:
+			return errors.Wrapf(ErrInvalidArg, "invalid log driver")
+		}
+
+		ctr.config.LogDriver = driver
+
+		return nil
+	}
+}
+
 // WithLogPath sets the path to the log file.
 func WithLogPath(path string) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1106,6 +1127,8 @@ func WithGroups(groups []string) CtrCreateOption {
 // These are not added to the container's spec, but will instead be used during
 // commit to populate the volumes of the new image, and to trigger some OCI
 // hooks that are only added if volume mounts are present.
+// Furthermore, they are used in the output of inspect, to filter volumes -
+// only volumes included in this list will be included in the output.
 // Unless explicitly set, committed images will have no volumes.
 // The given volumes slice must not be nil.
 func WithUserVolumes(volumes []string) CtrCreateOption {
