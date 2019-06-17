@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/lib/config"
-
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
@@ -48,19 +47,7 @@ const (
 // Runtime is the generic structure holding both global and specific
 // information about the runtime.
 type Runtime struct {
-	defaultRuntime           config.RuntimeHandler
-	runtimes                 map[string]config.RuntimeHandler
-	conmonPath               string
-	conmonEnv                []string
-	conmonCgroup             string
-	cgroupManager            string
-	containerExitsDir        string
-	containerAttachSocketDir string
-	logSizeMax               int64
-	logToJournald            bool
-	noPivot                  bool
-	ctrStopTimeout           int64
-
+	config              *config.Config
 	runtimeImplMap      map[string]RuntimeImpl
 	runtimeImplMapMutex sync.RWMutex
 }
@@ -94,47 +81,24 @@ type RuntimeImpl interface {
 }
 
 // New creates a new Runtime with options provided
-func New(defaultRuntime string,
-	runtimes map[string]config.RuntimeHandler,
-	conmonPath string,
-	conmonEnv []string,
-	conmonCgroup,
-	cgroupManager,
-	containerExitsDir,
-	containerAttachSocketDir string,
-	logSizeMax int64,
-	logToJournald,
-	noPivot bool,
-	ctrStopTimeout int64) (*Runtime, error) {
-
-	defRuntime, ok := runtimes[defaultRuntime]
+func New(c *config.Config) (*Runtime, error) {
+	defRuntime, ok := c.Runtimes[c.DefaultRuntime]
 	if !ok {
-		return nil, fmt.Errorf("no runtime configured for default_runtime=%q", defaultRuntime)
+		return nil, fmt.Errorf("no runtime configured for default_runtime=%q", c.DefaultRuntime)
 	}
 	if defRuntime.RuntimePath == "" {
-		return nil, fmt.Errorf("empty runtime path for default_runtime=%q", defaultRuntime)
+		return nil, fmt.Errorf("empty runtime path for default_runtime=%q", c.DefaultRuntime)
 	}
 
 	return &Runtime{
-		defaultRuntime:           defRuntime,
-		runtimes:                 runtimes,
-		conmonPath:               conmonPath,
-		conmonEnv:                conmonEnv,
-		conmonCgroup:             conmonCgroup,
-		cgroupManager:            cgroupManager,
-		containerExitsDir:        containerExitsDir,
-		containerAttachSocketDir: containerAttachSocketDir,
-		logSizeMax:               logSizeMax,
-		logToJournald:            logToJournald,
-		noPivot:                  noPivot,
-		ctrStopTimeout:           ctrStopTimeout,
-		runtimeImplMap:           make(map[string]RuntimeImpl),
+		config:         c,
+		runtimeImplMap: make(map[string]RuntimeImpl),
 	}, nil
 }
 
 // Runtimes returns the map of OCI runtimes.
 func (r *Runtime) Runtimes() map[string]config.RuntimeHandler {
-	return r.runtimes
+	return r.config.Runtimes
 }
 
 // ValidateRuntimeHandler returns an error if the runtime handler string
@@ -144,10 +108,10 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (config.RuntimeHandler,
 		return config.RuntimeHandler{}, fmt.Errorf("empty runtime handler")
 	}
 
-	runtimeHandler, ok := r.runtimes[handler]
+	runtimeHandler, ok := r.config.Runtimes[handler]
 	if !ok {
 		return config.RuntimeHandler{}, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
-			handler, r.runtimes)
+			handler, r.config.Runtimes)
 	}
 	if runtimeHandler.RuntimePath == "" {
 		return config.RuntimeHandler{}, fmt.Errorf("empty runtime path for runtime handler %s", handler)
@@ -174,7 +138,7 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 	// We need to ensure the container termination will be properly waited
 	// for by defining a minimal timeout value. This will prevent timeout
 	// value defined in the configuration file to be too low.
-	timeout := r.ctrStopTimeout
+	timeout := r.config.CtrStopTimeout
 	if timeout < minCtrStopTimeout {
 		timeout = minCtrStopTimeout
 	}
@@ -221,7 +185,7 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	// Define the current runtime handler as the default runtime handler.
-	rh := r.defaultRuntime
+	rh := r.config.Runtimes[r.config.DefaultRuntime]
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this

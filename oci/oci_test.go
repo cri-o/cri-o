@@ -12,14 +12,17 @@ var _ = t.Describe("Oci", func() {
 	t.Describe("New", func() {
 		It("should succeed with default runtime", func() {
 			// Given
+			c, err := config.DefaultConfig(nil)
+			Expect(err).To(BeNil())
+			c.Runtimes = map[string]config.RuntimeHandler{"runc": {
+				RuntimePath: "/bin/sh",
+				RuntimeType: "",
+				RuntimeRoot: "/run/runc",
+			}}
+			c.DefaultRuntime = "runc"
+
 			// When
-			runtime, err := oci.New("runc",
-				map[string]config.RuntimeHandler{"runc": {
-					RuntimePath: "/bin/sh",
-					RuntimeType: "",
-					RuntimeRoot: "/run/runc",
-				}},
-				"", []string{}, "", "", "", "", 0, false, false, 0)
+			runtime, err := oci.New(c)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -28,10 +31,12 @@ var _ = t.Describe("Oci", func() {
 
 		It("should fail if no runtime configured for default runtime", func() {
 			// Given
+			c, err := config.DefaultConfig(nil)
+			Expect(err).To(BeNil())
+			c.DefaultRuntime = ""
+
 			// When
-			runtime, err := oci.New("",
-				map[string]config.RuntimeHandler{}, "", []string{},
-				"", "", "", "", 0, false, false, 0)
+			runtime, err := oci.New(c)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -57,11 +62,12 @@ var _ = t.Describe("Oci", func() {
 		}
 
 		BeforeEach(func() {
-			var err error
-			sut, err = oci.New(defaultRuntime,
-				runtimes,
-				"", []string{}, "", "", "", "", 0, false, false, 0)
+			c, err := config.DefaultConfig(nil)
+			Expect(err).To(BeNil())
+			c.DefaultRuntime = defaultRuntime
+			c.Runtimes = runtimes
 
+			sut, err = oci.New(c)
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 		})

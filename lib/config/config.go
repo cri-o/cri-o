@@ -28,8 +28,8 @@ const (
 	apparmorProfileName = "crio-default"
 	defaultRuntime      = "runc"
 	defaultRuntimePath  = "/usr/bin/runc"
-	defaultRuntimeType  = "oci"
-	defaultRuntimeRoot  = "/run/runc"
+	DefaultRuntimeType  = "oci"
+	DefaultRuntimeRoot  = "/run/runc"
 	cgroupManager       = "cgroupfs"
 )
 
@@ -403,8 +403,8 @@ func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
 			Runtimes: map[string]RuntimeHandler{
 				defaultRuntime: {
 					RuntimePath: defaultRuntimePath,
-					RuntimeType: defaultRuntimeType,
-					RuntimeRoot: defaultRuntimeRoot,
+					RuntimeType: DefaultRuntimeType,
+					RuntimeRoot: DefaultRuntimeRoot,
 				},
 			},
 			Conmon: conmonPath,
@@ -531,7 +531,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			// The default config sets runc and its path in the runtimes map, so check for that
 			// first. If it does not exist then we add runc + its path to the runtimes map.
 			if _, ok := c.Runtimes[defaultRuntime]; !ok {
-				c.Runtimes[defaultRuntime] = oci.RuntimeHandler{RuntimePath: defaultRuntimePath, RuntimeType: defaultRuntimeType, RuntimeRoot: defaultRuntimeRoot}
+				c.Runtimes[defaultRuntime] = RuntimeHandler{RuntimePath: defaultRuntimePath, RuntimeType: DefaultRuntimeType, RuntimeRoot: DefaultRuntimeRoot}
 			}
 			// Set the DefaultRuntime to runc so we don't fail further along in the code
 			c.DefaultRuntime = defaultRuntime
