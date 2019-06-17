@@ -20,7 +20,8 @@ function teardown() {
                 --runtime-endpoint "${CRIO_SOCKET}" \
                 --image-endpoint "${CRIO_SOCKET}" \
                 --ginkgo.focus="${CRI_FOCUS}" \
-                --ginkgo.skip="${CRI_SKIP}"
+                --ginkgo.skip="${CRI_SKIP}" \
+                --ginkgo.flakeAttempts=3
 
 
     echo "$output"
