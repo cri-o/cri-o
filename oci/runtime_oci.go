@@ -15,8 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/pkg/findprocess"
 	"github.com/cri-o/cri-o/utils"
+
 	"github.com/docker/docker/pkg/pools"
 	"github.com/fsnotify/fsnotify"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -50,7 +52,7 @@ type runtimeOCI struct {
 }
 
 // newRuntimeOCI creates a new runtimeOCI instance
-func newRuntimeOCI(r *Runtime, handler *RuntimeHandler) RuntimeImpl {
+func newRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeImpl {
 	runRoot := defaultRunRoot
 	if handler.RuntimeRoot != "" {
 		runRoot = handler.RuntimeRoot

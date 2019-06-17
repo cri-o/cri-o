@@ -1,27 +1,19 @@
-package lib_test
+package config_test
 
 import (
 	"io/ioutil"
 	"os"
 	"path"
 
-	"github.com/cri-o/cri-o/lib"
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/lib/config"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 // The actual test suite
 var _ = t.Describe("Config", func() {
-	// The system under test
-	var sut *lib.Config
-
-	BeforeEach(func() {
-		var err error
-		sut, err = lib.DefaultConfig(nil)
-		Expect(err).To(BeNil())
-		Expect(sut).NotTo(BeNil())
-	})
+	BeforeEach(beforeEach)
 
 	t.Describe("ValidateConfig", func() {
 		It("should succeed with default config", func() {
@@ -59,7 +51,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid network config", func() {
 			// Given
 			sut.RootConfig.LogDir = "."
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validDirPath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validDirPath}
 			sut.Conmon = validFilePath
 			sut.NetworkConfig.NetworkDir = invalidPath
 
@@ -83,7 +75,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed during runtime", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 
 			// When
@@ -96,7 +88,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with additional devices", func() {
 			// Given
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 
 			// When
@@ -108,7 +100,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with hooks directories", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 			sut.HooksDir = []string{validDirPath}
 
@@ -121,7 +113,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid hooks directory", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 			sut.HooksDir = []string{invalidPath}
 
@@ -134,7 +126,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail if the hooks directory is not a directory", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 			sut.HooksDir = []string{validFilePath}
 
@@ -147,7 +139,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid conmon path", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = invalidPath
 			sut.HooksDir = []string{validDirPath}
 
@@ -226,7 +218,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on no default runtime", func() {
 			// Given
-			sut.Runtimes = make(map[string]oci.RuntimeHandler)
+			sut.Runtimes = make(map[string]config.RuntimeHandler)
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, false)
@@ -237,7 +229,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on non existing runtime binary", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: "not-existing"}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: "not-existing"}
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, true)
@@ -458,7 +450,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with empty config", func() {
 			// Given
-			sut := &lib.Config{}
+			sut := &config.Config{}
 
 			// When
 			config := sut.GetData()
@@ -470,7 +462,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with nil config", func() {
 			// Given
-			var sut *lib.Config
+			var sut *config.Config
 
 			// When
 			config := sut.GetData()

@@ -17,8 +17,7 @@ import (
 	"github.com/containers/image/types"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/cri-o/lib"
-	"github.com/cri-o/cri-o/oci"
+	libconfig "github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/server"
 	"github.com/cri-o/cri-o/utils"
@@ -126,7 +125,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) (string, error) {
 			if len(fields) != 3 {
 				return path, fmt.Errorf("wrong format for --runtimes: %q", r)
 			}
-			config.Runtimes[fields[0]] = oci.RuntimeHandler{
+			config.Runtimes[fields[0]] = libconfig.RuntimeHandler{
 				RuntimePath: fields[1],
 				RuntimeRoot: fields[2],
 			}
@@ -181,7 +180,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) (string, error) {
 		config.PluginDirs = ctx.GlobalStringSlice("cni-plugin-dir")
 	}
 	if ctx.GlobalIsSet("image-volumes") {
-		config.ImageVolumes = lib.ImageVolumesType(ctx.GlobalString("image-volumes"))
+		config.ImageVolumes = libconfig.ImageVolumesType(ctx.GlobalString("image-volumes"))
 	}
 	if ctx.GlobalIsSet("read-only") {
 		config.ReadOnly = ctx.GlobalBool("read-only")
@@ -409,12 +408,12 @@ func main() {
 		},
 		cli.Int64Flag{
 			Name:  "pids-limit",
-			Value: lib.DefaultPidsLimit,
+			Value: libconfig.DefaultPidsLimit,
 			Usage: "maximum number of processes allowed in a container",
 		},
 		cli.Int64Flag{
 			Name:  "log-size-max",
-			Value: lib.DefaultLogSizeMax,
+			Value: libconfig.DefaultLogSizeMax,
 			Usage: "maximum log size in bytes for a container",
 		},
 		cli.BoolFlag{
@@ -431,7 +430,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "image-volumes",
-			Value: string(lib.ImageVolumesMkdir),
+			Value: string(libconfig.ImageVolumesMkdir),
 			Usage: "image volume handling ('mkdir', 'bind', or 'ignore')",
 		},
 		cli.StringSliceFlag{

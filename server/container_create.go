@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/pkg/seccomp"
 	"github.com/cri-o/cri-o/pkg/storage"
@@ -163,11 +163,11 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 			return nil, err
 		}
 		switch s.config.ImageVolumes {
-		case lib.ImageVolumesMkdir:
+		case config.ImageVolumesMkdir:
 			if err1 := os.MkdirAll(fp, 0755); err1 != nil {
 				return nil, err1
 			}
-		case lib.ImageVolumesBind:
+		case config.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
 			if err1 := os.MkdirAll(src, 0755); err1 != nil {
@@ -188,7 +188,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 				Options:     []string{"private", "bind", "rw"},
 			})
 
-		case lib.ImageVolumesIgnore:
+		case config.ImageVolumesIgnore:
 			logrus.Debugf("Ignoring volume %v", dest)
 		default:
 			logrus.Fatalf("Unrecognized image volumes setting")

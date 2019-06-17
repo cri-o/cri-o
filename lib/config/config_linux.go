@@ -1,6 +1,6 @@
 // +build linux
 
-package lib
+package config
 
 import selinux "github.com/opencontainers/selinux/go-selinux"
 

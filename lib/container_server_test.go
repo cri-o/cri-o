@@ -9,6 +9,7 @@ import (
 
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/lib"
+	libconfig "github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -30,7 +31,7 @@ var _ = t.Describe("ContainerServer", func() {
 			defer os.Remove(tmpfile.Name())
 
 			// Setup config
-			config, err := lib.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			config.FileLockingPath = tmpfile.Name()
 			config.HooksDir = []string{}
@@ -64,7 +65,7 @@ var _ = t.Describe("ContainerServer", func() {
 		})
 
 		It("should fail when Store is nil", func() {
-			config, err := lib.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			// Given
 			gomock.InOrder(
@@ -92,7 +93,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid default runtime", func() {
 			// Given
-			config, err := lib.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			config.DefaultRuntime = "invalid-runtime"
 			gomock.InOrder(
@@ -110,7 +111,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid lockfile", func() {
 			// Given
-			config, err := lib.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			config.FileLocking = true
 			config.FileLockingPath = "/invalid/file"
@@ -129,7 +130,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid hooks dir", func() {
 			// Given
-			config, err := lib.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig(nil)
 			Expect(err).To(BeNil())
 			config.FileLocking = false
 			config.HooksDir = []string{"/invalid-dir"}

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -141,7 +141,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with runtime cheks", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validPath}
 			sut.Conmon = validPath
 			tmpDir := t.MustTempDir("cni-test")
 			sut.NetworkConfig.PluginDirs = []string{tmpDir}
@@ -157,7 +157,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with invalid network configuration", func() {
 			// Given
-			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validPath}
 			sut.Conmon = validPath
 			sut.PluginDirs = []string{validPath}
 			sut.NetworkConfig.NetworkDir = wrongPath

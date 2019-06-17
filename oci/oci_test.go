@@ -1,6 +1,7 @@
 package oci_test
 
 import (
+	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,7 +14,11 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			// When
 			runtime, err := oci.New("runc",
-				map[string]oci.RuntimeHandler{"runc": {"/bin/sh", "", "/run/runc"}},
+				map[string]config.RuntimeHandler{"runc": {
+					RuntimePath: "/bin/sh",
+					RuntimeType: "",
+					RuntimeRoot: "/run/runc",
+				}},
 				"", []string{}, "", "", "", "", 0, false, false, 0)
 
 			// Then
@@ -25,7 +30,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			// When
 			runtime, err := oci.New("",
-				map[string]oci.RuntimeHandler{}, "", []string{},
+				map[string]config.RuntimeHandler{}, "", []string{},
 				"", "", "", "", 0, false, false, 0)
 
 			// Then
@@ -43,8 +48,12 @@ var _ = t.Describe("Oci", func() {
 			invalidRuntime = "invalid"
 			defaultRuntime = "runc"
 		)
-		runtimes := map[string]oci.RuntimeHandler{
-			defaultRuntime: {"/bin/sh", "", "/run/runc"}, invalidRuntime: {},
+		runtimes := map[string]config.RuntimeHandler{
+			defaultRuntime: {
+				RuntimePath: "/bin/sh",
+				RuntimeType: "",
+				RuntimeRoot: "/run/runc",
+			}, invalidRuntime: {},
 		}
 
 		BeforeEach(func() {
@@ -83,7 +92,7 @@ var _ = t.Describe("Oci", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(handler).To(Equal(oci.RuntimeHandler{}))
+			Expect(handler).To(Equal(config.RuntimeHandler{}))
 		})
 
 		It("should fail to validate an invalid runtime path", func() {
@@ -93,7 +102,7 @@ var _ = t.Describe("Oci", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(handler).To(Equal(oci.RuntimeHandler{}))
+			Expect(handler).To(Equal(config.RuntimeHandler{}))
 		})
 
 		It("should fail to validate an empty runtime handler", func() {
@@ -103,7 +112,7 @@ var _ = t.Describe("Oci", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(handler).To(Equal(oci.RuntimeHandler{}))
+			Expect(handler).To(Equal(config.RuntimeHandler{}))
 		})
 	})
 

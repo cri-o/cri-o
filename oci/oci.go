@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/lib/config"
+
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
@@ -46,8 +48,8 @@ const (
 // Runtime is the generic structure holding both global and specific
 // information about the runtime.
 type Runtime struct {
-	defaultRuntime           RuntimeHandler
-	runtimes                 map[string]RuntimeHandler
+	defaultRuntime           config.RuntimeHandler
+	runtimes                 map[string]config.RuntimeHandler
 	conmonPath               string
 	conmonEnv                []string
 	conmonCgroup             string
@@ -91,17 +93,9 @@ type RuntimeImpl interface {
 	WaitContainerStateStopped(context.Context, *Container) error
 }
 
-// RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
-// config table.
-type RuntimeHandler struct {
-	RuntimePath string `toml:"runtime_path"`
-	RuntimeType string `toml:"runtime_type"`
-	RuntimeRoot string `toml:"runtime_root"`
-}
-
 // New creates a new Runtime with options provided
 func New(defaultRuntime string,
-	runtimes map[string]RuntimeHandler,
+	runtimes map[string]config.RuntimeHandler,
 	conmonPath string,
 	conmonEnv []string,
 	conmonCgroup,
@@ -139,24 +133,24 @@ func New(defaultRuntime string,
 }
 
 // Runtimes returns the map of OCI runtimes.
-func (r *Runtime) Runtimes() map[string]RuntimeHandler {
+func (r *Runtime) Runtimes() map[string]config.RuntimeHandler {
 	return r.runtimes
 }
 
 // ValidateRuntimeHandler returns an error if the runtime handler string
 // provided does not match any valid use case.
-func (r *Runtime) ValidateRuntimeHandler(handler string) (RuntimeHandler, error) {
+func (r *Runtime) ValidateRuntimeHandler(handler string) (config.RuntimeHandler, error) {
 	if handler == "" {
-		return RuntimeHandler{}, fmt.Errorf("empty runtime handler")
+		return config.RuntimeHandler{}, fmt.Errorf("empty runtime handler")
 	}
 
 	runtimeHandler, ok := r.runtimes[handler]
 	if !ok {
-		return RuntimeHandler{}, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
+		return config.RuntimeHandler{}, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
 			handler, r.runtimes)
 	}
 	if runtimeHandler.RuntimePath == "" {
-		return RuntimeHandler{}, fmt.Errorf("empty runtime path for runtime handler %s", handler)
+		return config.RuntimeHandler{}, fmt.Errorf("empty runtime path for runtime handler %s", handler)
 	}
 
 	return runtimeHandler, nil

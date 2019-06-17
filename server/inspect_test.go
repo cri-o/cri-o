@@ -6,14 +6,14 @@ import (
 
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
-	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 func TestGetInfo(t *testing.T) {
-	c, err := lib.DefaultConfig(nil)
+	c, err := config.DefaultConfig(nil)
 	if err != nil {
 		t.Fatal("error loading default config")
 	}

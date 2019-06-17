@@ -1,4 +1,4 @@
-package lib
+package config
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -27,11 +26,11 @@ const (
 	pauseCommand        = "/pause"
 	defaultTransport    = "docker://"
 	apparmorProfileName = "crio-default"
-	cgroupManager       = oci.CgroupfsCgroupsManager
 	defaultRuntime      = "runc"
 	defaultRuntimePath  = "/usr/bin/runc"
 	defaultRuntimeType  = "oci"
 	defaultRuntimeRoot  = "/run/runc"
+	cgroupManager       = "cgroupfs"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -43,8 +42,8 @@ type Config struct {
 	NetworkConfig
 }
 
-// ConfigIface provides a config interface for data encapsulation
-type ConfigIface interface {
+// Iface provides a config interface for data encapsulation
+type Iface interface {
 	GetStore() (cstorage.Store, error)
 	GetData() *Config
 }
@@ -59,7 +58,7 @@ func (c *Config) GetStore() (cstorage.Store, error) {
 	})
 }
 
-// GetData returns the Config of a ConfigIface
+// GetData returns the Config of a Iface
 func (c *Config) GetData() *Config {
 	return c
 }
@@ -137,6 +136,14 @@ type RootConfig struct {
 
 	// FileLockingPath specifies the path to use for the locking.
 	FileLockingPath string `toml:"file_locking_path"`
+}
+
+// RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
+// config table.
+type RuntimeHandler struct {
+	RuntimePath string `toml:"runtime_path"`
+	RuntimeType string `toml:"runtime_type"`
+	RuntimeRoot string `toml:"runtime_root"`
 }
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -220,7 +227,7 @@ type RuntimeConfig struct {
 	// use is picked based on the runtime_handler provided by the CRI. If
 	// no runtime_handler is provided, the runtime will be picked based on
 	// the level of trust of the workload.
-	Runtimes map[string]oci.RuntimeHandler `toml:"runtimes"`
+	Runtimes map[string]RuntimeHandler `toml:"runtimes"`
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
@@ -393,7 +400,7 @@ func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
 		},
 		RuntimeConfig: RuntimeConfig{
 			DefaultRuntime: defaultRuntime,
-			Runtimes: map[string]oci.RuntimeHandler{
+			Runtimes: map[string]RuntimeHandler{
 				defaultRuntime: {
 					RuntimePath: defaultRuntimePath,
 					RuntimeType: defaultRuntimeType,

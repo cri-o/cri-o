@@ -8,7 +8,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
-	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -22,14 +22,14 @@ const (
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
-	lib.Config
+	config.Config
 	APIConfig
 }
 
 // ConfigIface provides a server config interface for data encapsulation
 type ConfigIface interface {
 	GetData() *Config
-	GetLibConfigIface() lib.ConfigIface
+	GetLibConfigIface() config.Iface
 }
 
 // GetData returns the Config of a ConfigIface
@@ -38,7 +38,7 @@ func (c *Config) GetData() *Config {
 }
 
 // GetLibConfigIface returns the library config interface of a ConfigIface
-func (c *Config) GetLibConfigIface() lib.ConfigIface {
+func (c *Config) GetLibConfigIface() config.Iface {
 	return c.Config.GetData()
 }
 
@@ -83,11 +83,11 @@ type APIConfig struct {
 // conversions.
 type tomlConfig struct {
 	Crio struct {
-		lib.RootConfig
-		API     struct{ APIConfig }         `toml:"api"`
-		Runtime struct{ lib.RuntimeConfig } `toml:"runtime"`
-		Image   struct{ lib.ImageConfig }   `toml:"image"`
-		Network struct{ lib.NetworkConfig } `toml:"network"`
+		config.RootConfig
+		API     struct{ APIConfig }            `toml:"api"`
+		Runtime struct{ config.RuntimeConfig } `toml:"runtime"`
+		Image   struct{ config.ImageConfig }   `toml:"image"`
+		Network struct{ config.NetworkConfig } `toml:"network"`
 	} `toml:"crio"`
 }
 
@@ -158,7 +158,7 @@ func (c *Config) ToBytes() ([]byte, error) {
 
 // DefaultConfig returns the default configuration for crio.
 func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
-	conf, err := lib.DefaultConfig(systemContext)
+	conf, err := config.DefaultConfig(systemContext)
 	if err != nil {
 		return nil, err
 	}
@@ -180,9 +180,9 @@ func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
 // `nil`.
 func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) error {
 	switch c.ImageVolumes {
-	case lib.ImageVolumesMkdir:
-	case lib.ImageVolumesIgnore:
-	case lib.ImageVolumesBind:
+	case config.ImageVolumesMkdir:
+	case config.ImageVolumesIgnore:
+	case config.ImageVolumesBind:
 	default:
 		return fmt.Errorf("unrecognized image volume type specified")
 	}
