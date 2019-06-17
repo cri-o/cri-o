@@ -111,7 +111,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface Co
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, config.PauseImage, config.PauseImageAuthFile)
+	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
 
 	runtime, err := oci.New(config.DefaultRuntime, config.Runtimes, config.Conmon, config.ConmonEnv, config.ConmonCgroup, config.CgroupManager, config.ContainerExitsDir, config.ContainerAttachSocketDir, config.LogSizeMax, config.LogToJournald, config.NoPivot, config.CtrStopTimeout)
 	if err != nil {

@@ -4,6 +4,10 @@ load helpers
 
 function setup() {
     start_crio
+
+    # the default log_level is `error` so we have to adapt it before running
+    # any tests to be able to see the `info` messages
+    replace_config "log_level" "debug"
 }
 
 function teardown() {
@@ -11,7 +15,7 @@ function teardown() {
 }
 
 function replace_config() {
-    sed -ie 's/\('$1' = "\).*\("\)/\1'$2'\2/' "$CRIO_CONFIG"
+    sed -ie 's;\('$1' = "\).*\("\);\1'$2'\2;' "$CRIO_CONFIG"
 }
 
 function reload_crio() {
@@ -82,4 +86,57 @@ function expect_log_failure() {
 
     # then
     expect_log_failure "unable to decode configuration"
+}
+
+@test "should succeed to reload 'pause_image'" {
+    # given
+    NEW_OPTION="new-image"
+    OPTION="pause_image"
+
+    # when
+    replace_config $OPTION $NEW_OPTION
+    reload_crio
+
+    # then
+    expect_log_success $OPTION $NEW_OPTION
+}
+
+@test "should succeed to reload 'pause_command'" {
+    # given
+    NEW_OPTION="new-command"
+    OPTION="pause_command"
+
+    # when
+    replace_config $OPTION $NEW_OPTION
+    reload_crio
+
+    # then
+    expect_log_success $OPTION $NEW_OPTION
+}
+
+@test "should succeed to reload 'pause_image_auth_file'" {
+    # given
+    NEW_OPTION="$TESTDIR/auth_file"
+    OPTION="pause_image_auth_file"
+    touch $NEW_OPTION
+
+    # when
+    replace_config $OPTION $NEW_OPTION
+    reload_crio
+
+    # then
+    expect_log_success $OPTION $NEW_OPTION
+}
+
+@test "should fail to reload non existing 'pause_image_auth_file'" {
+    # given
+    NEW_OPTION="$TESTDIR/auth_file"
+    OPTION="pause_image_auth_file"
+
+    # when
+    replace_config $OPTION $NEW_OPTION
+    reload_crio
+
+    # then
+    expect_log_failure "stat $NEW_OPTION"
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
@@ -220,8 +221,18 @@ func (c *Config) Reload(systemContext *types.SystemContext, fileName string) err
 	if err := c.ReloadLogLevel(newConfig); err != nil {
 		return err
 	}
+	if err := c.ReloadPauseImage(newConfig); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+// logConfig logs a config set operation as with info verbosity. Please use
+// always this function for setting configuration options to ensure consistent
+// log outputs
+func logConfig(option, value string) {
+	logrus.Infof("set config %s to %q", option, value)
 }
 
 // ReloadLogLevel updates the LogLevel with the provided `newConfig`. It errors
@@ -234,10 +245,31 @@ func (c *Config) ReloadLogLevel(newConfig *Config) error {
 		}
 		// Always log this message without considering the current
 		logrus.SetLevel(logrus.InfoLevel)
-		logrus.Infof("set config log_level to %q", newConfig.LogLevel)
+		logConfig("log_level", newConfig.LogLevel)
 
 		logrus.SetLevel(level)
 		c.LogLevel = newConfig.LogLevel
+	}
+	return nil
+}
+
+func (c *Config) ReloadPauseImage(newConfig *Config) error {
+	if c.PauseImage != newConfig.PauseImage {
+		c.PauseImage = newConfig.PauseImage
+		logConfig("pause_image", c.PauseImage)
+	}
+	if c.PauseImageAuthFile != newConfig.PauseImageAuthFile {
+		if newConfig.PauseImageAuthFile != "" {
+			if _, err := os.Stat(newConfig.PauseImageAuthFile); err != nil {
+				return err
+			}
+		}
+		c.PauseImageAuthFile = newConfig.PauseImageAuthFile
+		logConfig("pause_image_auth_file", c.PauseImageAuthFile)
+	}
+	if c.PauseCommand != newConfig.PauseCommand {
+		c.PauseCommand = newConfig.PauseCommand
+		logConfig("pause_command", c.PauseCommand)
 	}
 	return nil
 }

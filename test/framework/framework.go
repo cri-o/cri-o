@@ -18,7 +18,8 @@ type TestFramework struct {
 	teardown  func(*TestFramework) error
 	TestError error
 
-	tempDirs []string
+	tempDirs  []string
+	tempFiles []string
 }
 
 // NewTestFramework creates a new test framework instance for a given `setup`
@@ -28,6 +29,7 @@ func NewTestFramework(setup, teardown func(*TestFramework) error) *TestFramework
 		setup,
 		teardown,
 		fmt.Errorf("error"),
+		nil,
 		nil,
 	}
 }
@@ -54,8 +56,11 @@ func (t *TestFramework) Teardown() {
 	// Teardown the actual test suite
 	gomega.Expect(t.teardown(t)).To(gomega.Succeed())
 
-	// Clean up any temporary directories the test suite created.
+	// Clean up any temporary directories and files the test suite created.
 	for _, d := range t.tempDirs {
+		os.RemoveAll(d)
+	}
+	for _, d := range t.tempFiles {
 		os.RemoveAll(d)
 	}
 }
@@ -75,6 +80,18 @@ func (t *TestFramework) MustTempDir(prefix string) string {
 
 	t.tempDirs = append(t.tempDirs, path)
 	return path
+}
+
+// MustTempFile uses ioutil.TempFile to create a temporary file
+// with the given pattern.  It panics on any error.
+func (t *TestFramework) MustTempFile(pattern string) string {
+	path, err := ioutil.TempFile("", pattern)
+	if err != nil {
+		panic(err)
+	}
+
+	t.tempFiles = append(t.tempFiles, path.Name())
+	return path.Name()
 }
 
 // RunFrameworkSpecs is a convenience wrapper for running tests

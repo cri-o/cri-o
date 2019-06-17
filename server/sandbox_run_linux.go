@@ -111,7 +111,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.systemContext,
 		name, id,
-		s.config.PauseImage, "",
+		s.config.PauseImage,
+		s.config.PauseImageAuthFile,
+		"",
 		containerName,
 		req.GetConfig().GetMetadata().GetName(),
 		req.GetConfig().GetMetadata().GetUid(),
