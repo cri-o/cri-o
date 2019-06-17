@@ -50,10 +50,7 @@ func (c *ContainerServer) ContainerRename(container, name string) error {
 	}
 
 	// Update containers.json
-	if err := c.store.SetNames(ctr.ID(), []string{name}); err != nil {
-		return err
-	}
-	return nil
+	return c.store.SetNames(ctr.ID(), []string{name})
 }
 
 func updateConfigName(configPath, name string) error {
