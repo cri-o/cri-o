@@ -1,8 +1,9 @@
 package server_test
 
 import (
+	"io/ioutil"
 	"os"
-	"path"
+	"strings"
 
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/server"
@@ -19,26 +20,28 @@ var _ = t.Describe("Config", func() {
 		wrongPath = "/wrong"
 	)
 
+	var defaultConfig = func() *server.Config {
+		config, err := server.DefaultConfig(nil)
+		Expect(err).To(BeNil())
+		return config
+	}
+
 	BeforeEach(func() {
-		sut = &server.Config{}
+		sut = defaultConfig()
 	})
 
 	t.Describe("UpdateFromFile", func() {
 		It("should succeed", func() {
 			// Given
-			sut, err := server.DefaultConfig(nil)
-			Expect(err).To(BeNil())
-			const filePath = "crio-test.conf"
+			filePath := t.MustTempFile("config")
 			Expect(sut.ToFile(filePath)).To(BeNil())
-			defer os.RemoveAll(filePath)
 
 			// When
-			err = sut.UpdateFromFile(filePath)
+			err := sut.UpdateFromFile(filePath)
 
 			// Then
 			Expect(err).To(BeNil())
-			expected, err := server.DefaultConfig(nil)
-			Expect(err).To(BeNil())
+			expected := defaultConfig()
 			Expect(sut).To(Equal(expected))
 		})
 
@@ -64,13 +67,10 @@ var _ = t.Describe("Config", func() {
 	t.Describe("ToFile", func() {
 		It("should succeed", func() {
 			// Given
-			const filePath = "crio-tofile.conf"
-			sut, err := server.DefaultConfig(nil)
-			Expect(err).To(BeNil())
-			defer os.RemoveAll(filePath)
+			filePath := t.MustTempFile("config")
 
 			// When
-			err = sut.ToFile(filePath)
+			err := sut.ToFile(filePath)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -81,11 +81,8 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail when file not writeable", func() {
 			// Given
-			sut, err := server.DefaultConfig(nil)
-			Expect(err).To(BeNil())
-
 			// When
-			err = sut.ToFile("/proc/invalid")
+			err := sut.ToFile("/proc/invalid")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -95,9 +92,6 @@ var _ = t.Describe("Config", func() {
 	t.Describe("GetData", func() {
 		It("should succeed with default config", func() {
 			// Given
-			sut, err := server.DefaultConfig(nil)
-			Expect(err).To(BeNil())
-
 			// When
 			serverConfig := sut.GetData()
 
@@ -118,9 +112,6 @@ var _ = t.Describe("Config", func() {
 	t.Describe("GetLibConfigIface", func() {
 		It("should succeed with default config", func() {
 			// Given
-			sut, err := server.DefaultConfig(nil)
-			Expect(err).To(BeNil())
-
 			// When
 			libConfig := sut.GetLibConfigIface()
 
@@ -139,13 +130,6 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("Validate", func() {
-		// Setup the system under test
-		BeforeEach(func() {
-			var err error
-			sut, err = server.DefaultConfig(nil)
-			Expect(err).To(BeNil())
-		})
-
 		It("should succeed with default config", func() {
 			// Given
 			// When
@@ -159,11 +143,10 @@ var _ = t.Describe("Config", func() {
 			// Given
 			sut.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
 			sut.Conmon = validPath
-			tmpDir := path.Join(os.TempDir(), "cni-test")
+			tmpDir := t.MustTempDir("cni-test")
 			sut.NetworkConfig.PluginDirs = []string{tmpDir}
 			sut.NetworkDir = os.TempDir()
 			sut.LogDir = "."
-			defer os.RemoveAll(tmpDir)
 
 			// When
 			err := sut.Validate(nil, true)
@@ -247,15 +230,178 @@ var _ = t.Describe("Config", func() {
 	t.Describe("ToByte", func() {
 		It("should succeed", func() {
 			// Given
-			sut, err := server.DefaultConfig(nil)
-			Expect(err).To(BeNil())
-
 			// When
 			res, err := sut.ToBytes()
 
 			// Then
 			Expect(err).To(BeNil())
 			Expect(res).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("Reload", func() {
+		var modifyDefaultConfig = func(old, new string) string {
+			filePath := t.MustTempFile("config")
+			Expect(sut.ToFile(filePath)).To(BeNil())
+
+			read, err := ioutil.ReadFile(filePath)
+			Expect(err).To(BeNil())
+
+			newContents := strings.ReplaceAll(string(read), old, new)
+			err = ioutil.WriteFile(filePath, []byte(newContents), 0)
+			Expect(err).To(BeNil())
+
+			return filePath
+		}
+
+		It("should succeed without any config change", func() {
+			// Given
+			filePath := t.MustTempFile("config")
+			Expect(sut.ToFile(filePath)).To(BeNil())
+
+			// When
+			err := sut.Reload(nil, filePath)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail with invalid config path", func() {
+			// Given
+			// When
+			err := sut.Reload(nil, "")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with invalid log_level", func() {
+			// Given
+			filePath := modifyDefaultConfig(
+				`log_level = "error"`,
+				`log_level = "invalid"`,
+			)
+
+			// When
+			err := sut.Reload(nil, filePath)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with invalid pause_image_auth_file", func() {
+			// Given
+			filePath := modifyDefaultConfig(
+				`pause_image_auth_file = ""`,
+				`pause_image_auth_file = "`+wrongPath+`"`,
+			)
+
+			// When
+			err := sut.Reload(nil, filePath)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ReloadLogLevel", func() {
+		It("should succeed without any config change", func() {
+			// Given
+			// When
+			err := sut.ReloadLogLevel(sut)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with config change", func() {
+			// Given
+			const newLogLevel = "fatal"
+			newConfig := defaultConfig()
+			newConfig.LogLevel = newLogLevel
+
+			// When
+			err := sut.ReloadLogLevel(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.LogLevel).To(Equal(newLogLevel))
+		})
+
+		It("should fail with invalid log_level", func() {
+			// Given
+			newConfig := defaultConfig()
+			newConfig.LogLevel = "invalid"
+
+			// When
+			err := sut.ReloadLogLevel(newConfig)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ReloadPauseImage", func() {
+		It("should succeed without any config change", func() {
+			// Given
+			// When
+			err := sut.ReloadPauseImage(sut)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with pause_image change", func() {
+			// Given
+			const newPauseImage = "my-pause"
+			newConfig := defaultConfig()
+			newConfig.PauseImage = newPauseImage
+
+			// When
+			err := sut.ReloadPauseImage(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.PauseImage).To(Equal(newPauseImage))
+		})
+
+		It("should succeed with pause_command change", func() {
+			// Given
+			const newPauseCommand = "/new-pause"
+			newConfig := defaultConfig()
+			newConfig.PauseCommand = newPauseCommand
+
+			// When
+			err := sut.ReloadPauseImage(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.PauseCommand).To(Equal(newPauseCommand))
+		})
+
+		It("should succeed with pause_image_auth_file change", func() {
+			// Given
+			newConfig := defaultConfig()
+			newConfig.PauseImageAuthFile = validPath
+
+			// When
+			err := sut.ReloadPauseImage(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.PauseImageAuthFile).To(Equal(validPath))
+		})
+
+		It("should fail with invalid pause_image_auth_file", func() {
+			// Given
+			newConfig := defaultConfig()
+			newConfig.PauseImageAuthFile = wrongPath
+
+			// When
+			err := sut.ReloadPauseImage(newConfig)
+
+			// Then
+			Expect(err).NotTo(BeNil())
 		})
 	})
 })

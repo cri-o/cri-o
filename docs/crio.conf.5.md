@@ -190,13 +190,13 @@ CRI-O reads its configured registries defaults from the system wide containers-r
   Default transport for pulling images from a remote container storage.
 
 **pause_image**="k8s.gcr.io/pause:3.1"
-  The image used to instantiate infra containers.
+  The image used to instantiate infra containers. This option supports live configuration reload.
 
 **pause_image_auth_file**=""
- If not empty, the path to a docker/config.json-like file containing credentials necessary for pulling the image specified by pause_image above.
+ If not empty, the path to a docker/config.json-like file containing credentials necessary for pulling the image specified by pause_image above. This option supports live configuration reload.
 
 **pause_command**="/pause"
-  The command to run to have a container stay in the paused state.
+  The command to run to have a container stay in the paused state. This option supports live configuration reload.
 
 **signature_policy**="/etc/containers/policy.json"
   Path to the file which decides what sort of policy we use when deciding whether or not to trust an image that we've pulled. It is not recommended that this option be used, as the default behavior of using the system-wide default policy (i.e., /etc/containers/policy.json) is most often preferred. Please refer to containers-policy.json(5) for more details.

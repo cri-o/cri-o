@@ -23,7 +23,7 @@ var _ = t.Describe("Runtime", func() {
 	// Prepare the system under test and register a test name and key before
 	// each test
 	BeforeEach(func() {
-		sut = storage.GetRuntimeService(context.Background(), imageServerMock, "", "")
+		sut = storage.GetRuntimeService(context.Background(), imageServerMock)
 		Expect(sut).NotTo(BeNil())
 	})
 
@@ -589,7 +589,7 @@ var _ = t.Describe("Runtime", func() {
 			It("should succeed to create a pod sandbox", func() {
 				// When
 				info, err = sut.CreatePodSandbox(&types.SystemContext{},
-					"podName", "podID", "imagename",
+					"podName", "podID", "imagename", "",
 					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "metadataName",
 					"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
@@ -739,7 +739,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "imagename",
+				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
@@ -764,7 +764,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "imagename",
+				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
@@ -784,7 +784,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "imagename",
+				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
@@ -921,7 +921,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using default credentials", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock, "pauseimagename", "")
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock)
 			Expect(sut).NotTo(BeNil())
 
 			// Given
@@ -929,7 +929,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "pauseimagename",
+				"podName", "podID", "pauseimagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
@@ -937,7 +937,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using provided credential file", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock, "pauseimagename", "/var/non-default/credentials.json")
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock)
 			Expect(sut).NotTo(BeNil())
 
 			// Given
@@ -945,7 +945,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "pauseimagename",
+				"podName", "podID", "pauseimagename", "/var/non-default/credentials.json",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
