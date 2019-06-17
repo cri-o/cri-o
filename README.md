@@ -131,6 +131,34 @@ For more guidance in running `CRI-O`, visit our [tutorial page](tutorial.md)
 [libpod-hooks]: https://github.com/containers/libpod/blob/v0.6.2/pkg/hooks/README.md
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks
 
+#### The HTTP API
+
+CRI-O exposes per default the [gRPC](https://grpc.io/) API to fulfill the
+Container Runtime Interface (CRI) of Kubernetes. Besides this, there exists an
+additional HTTP API to retrieve further runtime status information about CRI-O.
+Please be aware that this API is not considered to be stable and production
+use-cases should not rely on it.
+
+On a running CRI-O instance, we can access the API via an HTTP transfer tool like
+[curl](https://curl.haxx.se):
+
+```bash
+$ sudo curl -v --unix-socket /var/run/crio/crio.sock http://localhost/info | jq
+{
+  "storage_driver": "btrfs",
+  "storage_root": "/var/lib/containers/storage",
+  "cgroup_driver": "cgroupfs",
+  "default_id_mappings": { ... }
+}
+```
+
+The following API entry points are currently supported:
+
+| Path              | Content-Type       | Description                                                                        |
+| ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
+| `/info`           | `application/json` | General information about the runtime, like `storage_driver` and `storage_root`.   |
+| `/containers/:id` | `application/json` | Dedicated container information, like `name`, `pid` and `image`.                   |
+| `/config`         | `application/toml` | The complete TOML configuration (defaults to `/etc/crio/crio.conf`) used by CRI-O. |
 
 ## Weekly Meeting
 A weekly meeting is held to discuss CRI-O development. It is open to everyone.
