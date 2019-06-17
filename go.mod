@@ -16,7 +16,7 @@ require (
 	github.com/containerd/go-runc v0.0.0-20190226155025-7d11b49dc076 // indirect
 	github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
 	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
-	github.com/containernetworking/cni v0.7.0
+	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
 	github.com/containers/buildah v1.8.4
 	github.com/containers/image v2.0.0+incompatible
@@ -49,7 +49,7 @@ require (
 	github.com/klauspost/compress v1.5.0 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/pgzip v1.2.1 // indirect
-	github.com/kr/pty v1.1.4
+	github.com/kr/pty v1.1.5
 	github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
@@ -63,7 +63,7 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20181213164143-d0388bd827cf // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_golang v0.9.3
+	github.com/prometheus/client_golang v0.9.4
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f // indirect
 	github.com/seccomp/libseccomp-golang v0.9.1
 	github.com/sirupsen/logrus v1.4.2
