@@ -35,6 +35,9 @@ const (
 
 	// Command line flag used to specify the run root directory
 	rootFlag = "--root"
+
+	// default run root to be used for OCI runtime if it is not set by handler
+	defaultRunRoot = "/run/runc"
 )
 
 // runtimeOCI is the Runtime interface implementation relying on conmon to
@@ -48,10 +51,14 @@ type runtimeOCI struct {
 
 // newRuntimeOCI creates a new runtimeOCI instance
 func newRuntimeOCI(r *Runtime, handler *RuntimeHandler) RuntimeImpl {
+	runRoot := defaultRunRoot
+	if handler.RuntimeRoot != "" {
+		runRoot = handler.RuntimeRoot
+	}
 	return &runtimeOCI{
 		Runtime: r,
 		path:    handler.RuntimePath,
-		root:    handler.RuntimeRoot,
+		root:    runRoot,
 	}
 }
 
