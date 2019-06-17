@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
@@ -267,7 +268,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// SECURITY OPTS
 	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
 
-	g.SetProcessApparmorProfile(config.ApparmorProfile)
+	if !config.Privileged {
+		g.SetProcessApparmorProfile(config.ApparmorProfile)
+	}
 
 	blockAccessToKernelFilesystems(config, &g)
 
@@ -347,10 +350,17 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	if rootless.IsRootless() {
-		if addedResources {
-			return nil, errors.New("invalid configuration, cannot set resources with rootless containers")
+		cgroup2, err := util.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, err
 		}
-		configSpec.Linux.Resources = &spec.LinuxResources{}
+		if addedResources && !cgroup2 {
+			return nil, errors.New("invalid configuration, cannot set resources with rootless containers not using cgroups v2 unified mode")
+		}
+		if !cgroup2 {
+			// Force the resources block to be empty instead of having default values.
+			configSpec.Linux.Resources = &spec.LinuxResources{}
+		}
 	}
 
 	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.

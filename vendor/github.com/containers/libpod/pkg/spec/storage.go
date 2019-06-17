@@ -135,6 +135,29 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 		unifiedMounts[initMount.Destination] = initMount
 	}
 
+	// Before superceding, we need to find volume mounts which conflict with
+	// named volumes, and vice versa.
+	// We'll delete the conflicts here as we supercede.
+	for dest := range unifiedMounts {
+		if _, ok := baseVolumes[dest]; ok {
+			delete(baseVolumes, dest)
+		}
+	}
+	for dest := range unifiedVolumes {
+		if _, ok := baseMounts[dest]; ok {
+			delete(baseMounts, dest)
+		}
+	}
+
+	// Supercede volumes-from/image volumes with unified volumes from above.
+	// This is an unconditional replacement.
+	for dest, mount := range unifiedMounts {
+		baseMounts[dest] = mount
+	}
+	for dest, volume := range unifiedVolumes {
+		baseVolumes[dest] = volume
+	}
+
 	// If requested, add tmpfs filesystems for read-only containers.
 	// Need to keep track of which we created, so we don't modify options
 	// for them later...
@@ -146,14 +169,14 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	if config.ReadOnlyRootfs && config.ReadOnlyTmpfs {
 		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup", "size=65536k"}
 		for dest := range readonlyTmpfs {
-			if _, ok := unifiedMounts[dest]; ok {
+			if _, ok := baseMounts[dest]; ok {
 				continue
 			}
 			localOpts := options
 			if dest == "/run" {
 				localOpts = append(localOpts, "noexec")
 			}
-			unifiedMounts[dest] = spec.Mount{
+			baseMounts[dest] = spec.Mount{
 				Destination: dest,
 				Type:        "tmpfs",
 				Source:      "tmpfs",
@@ -161,15 +184,6 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 			}
 			readonlyTmpfs[dest] = true
 		}
-	}
-
-	// Supercede volumes-from/image volumes with unified volumes from above.
-	// This is an unconditional replacement.
-	for dest, mount := range unifiedMounts {
-		baseMounts[dest] = mount
-	}
-	for dest, volume := range unifiedVolumes {
-		baseVolumes[dest] = volume
 	}
 
 	// Check for conflicts between named volumes and mounts
@@ -370,7 +384,7 @@ func (config *CreateConfig) getMounts() (map[string]spec.Mount, map[string]*libp
 			}
 			finalNamedVolumes[volume.Dest] = volume
 		default:
-			return nil, nil, errors.Errorf("invalid fylesystem type %q", kv[1])
+			return nil, nil, errors.Errorf("invalid filesystem type %q", kv[1])
 		}
 	}
 
@@ -389,6 +403,8 @@ func getBindMount(args []string) (spec.Mount, error) {
 	for _, val := range args {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
+		case "bind-nonrecursive":
+			newMount.Options = append(newMount.Options, "bind")
 		case "ro", "nosuid", "nodev", "noexec":
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
@@ -560,7 +576,7 @@ func ValidateVolumeCtrDir(ctrDir string) error {
 
 // ValidateVolumeOpts validates a volume's options
 func ValidateVolumeOpts(options []string) error {
-	var foundRootPropagation, foundRWRO, foundLabelChange int
+	var foundRootPropagation, foundRWRO, foundLabelChange, bindType int
 	for _, opt := range options {
 		switch opt {
 		case "rw", "ro":
@@ -577,6 +593,11 @@ func ValidateVolumeOpts(options []string) error {
 			foundRootPropagation++
 			if foundRootPropagation > 1 {
 				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", strings.Join(options, ", "))
+			}
+		case "bind", "rbind":
+			bindType++
+			if bindType > 1 {
+				return errors.Errorf("invalid options %q, can only specify 1 '[r]bind' option", strings.Join(options, ", "))
 			}
 		default:
 			return errors.Errorf("invalid option type %q", opt)
@@ -783,7 +804,7 @@ func initFSMounts(inputMounts []spec.Mount) []spec.Mount {
 		if m.Type == TypeBind {
 			m.Options = util.ProcessOptions(m.Options)
 		}
-		if m.Type == TypeTmpfs {
+		if m.Type == TypeTmpfs && filepath.Clean(m.Destination) != "/dev" {
 			m.Options = append(m.Options, "tmpcopyup")
 		}
 		mounts = append(mounts, m)

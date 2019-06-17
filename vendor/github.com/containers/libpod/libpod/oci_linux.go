@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -208,17 +209,23 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	defer parentPipe.Close()
 	defer parentStartPipe.Close()
 
+	ociLog := filepath.Join(ctr.state.RunDir, "oci-log")
+	logLevel := logrus.GetLevel()
+
 	args := []string{}
 	if r.cgroupManager == SystemdCgroupsManager {
 		args = append(args, "-s")
 	}
 	args = append(args, "-c", ctr.ID())
 	args = append(args, "-u", ctr.ID())
+	args = append(args, "-n", ctr.Name())
 	args = append(args, "-r", r.path)
 	args = append(args, "-b", ctr.bundlePath())
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
-	args = append(args, "-l", ctr.LogPath())
 	args = append(args, "--exit-dir", r.exitsDir)
+	if logLevel != logrus.DebugLevel && r.supportsJSON {
+		args = append(args, "--runtime-arg", "--log-format=json", "--runtime-arg", "--log", fmt.Sprintf("--runtime-arg=%s", ociLog))
+	}
 	if ctr.config.ConmonPidFile != "" {
 		args = append(args, "--conmon-pidfile", ctr.config.ConmonPidFile)
 	}
@@ -237,11 +244,17 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
+
+	logDriver := KubernetesLogging
+	if ctr.LogDriver() != "" {
+		logDriver = ctr.LogDriver()
+	}
+	args = append(args, "-l", fmt.Sprintf("%s:%s", logDriver, ctr.LogPath()))
+
 	if r.noPivot {
 		args = append(args, "--no-pivot")
 	}
 
-	logLevel := logrus.GetLevel()
 	args = append(args, "--log-level", logLevel.String())
 
 	if logLevel == logrus.DebugLevel {
@@ -410,8 +423,18 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		}
 		logrus.Debugf("Received container pid: %d", ss.si.Pid)
 		if ss.si.Pid == -1 {
+			if r.supportsJSON {
+				data, err := ioutil.ReadFile(ociLog)
+				if err == nil {
+					var ociErr ociError
+					if err := json.Unmarshal(data, &ociErr); err == nil {
+						return errors.Wrapf(ErrOCIRuntime, "%s", strings.Trim(ociErr.Msg, "\n"))
+					}
+				}
+			}
+			// If we failed to parse the JSON errors, then print the output as it is
 			if ss.si.Message != "" {
-				return errors.Wrapf(ErrInternal, "container create failed: %s", ss.si.Message)
+				return errors.Wrapf(ErrOCIRuntime, "%s", ss.si.Message)
 			}
 			return errors.Wrapf(ErrInternal, "container create failed")
 		}
