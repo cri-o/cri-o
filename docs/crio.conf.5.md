@@ -184,11 +184,14 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **default_transport**="docker://"
   Default transport for pulling images from a remote container storage.
 
+**global_auth_file**=""
+  The path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
+
 **pause_image**="k8s.gcr.io/pause:3.1"
   The image used to instantiate infra containers.
 
 **pause_image_auth_file**=""
- If not empty, the path to a docker/config.json-like file containing credentials necessary for pulling the image specified by pause_image above.
+ The path to a file like /var/lib/kubelet/config.json holding credentials specific to pulling the pause_image from above.
 
 **pause_command**="/pause"
   The command to run to have a container stay in the paused state.

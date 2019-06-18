@@ -257,11 +257,16 @@ type ImageConfig struct {
 	// DefaultTransport is a value we prefix to image names that fail to
 	// validate source references.
 	DefaultTransport string `toml:"default_transport"`
+	// GlobalAuthFile is a path to a file like /var/lib/kubelet/config.json
+	// containing credentials necessary for pulling images from secure
+	// registries.
+	GlobalAuthFile string `toml:"global_auth_file"`
 	// PauseImage is the name of an image which we use to instantiate infra
 	// containers.
 	PauseImage string `toml:"pause_image"`
-	// PauseImageAuthFile, if not empty, is a path to a docker/config.json-like
-	// file containing credentials necessary for pulling PauseImage
+	// PauseImageAuthFile, if not empty, is a path to a file like
+	// /var/lib/kubelet/config.json containing credentials necessary
+	// for pulling PauseImage
 	PauseImageAuthFile string `toml:"pause_image_auth_file"`
 	// PauseCommand is the path of the binary we run in an infra
 	// container that's been instantiated using PauseImage.
@@ -400,6 +405,7 @@ func DefaultConfig() *Config {
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
+			GlobalAuthFile:      "",
 			PauseImage:          pauseImage,
 			PauseImageAuthFile:  "",
 			PauseCommand:        pauseCommand,
