@@ -276,6 +276,9 @@ jobs:
       - run:
           name: unit tests
           command: make testunit
+      - run:
+          name: code coverage
+          command: make codecov
       - store_test_results:
           path: build/junit
       - save_cache:
