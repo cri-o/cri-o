@@ -58,6 +58,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			SourceCtx: &types.SystemContext{
 				DockerRegistryUserAgent: useragent.Get(ctx),
 				SignaturePolicyPath:     s.systemContext.SignaturePolicyPath,
+				AuthFilePath:            s.config.GlobalAuthFile,
 			},
 		}
 

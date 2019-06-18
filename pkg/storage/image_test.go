@@ -33,7 +33,7 @@ var _ = t.Describe("Image", func() {
 		var err error
 		sut, err = storage.GetImageService(
 			context.Background(), nil, storeMock, "",
-			[]string{}, []string{testRegistry},
+			"", []string{}, []string{testRegistry},
 		)
 		Expect(err).To(BeNil())
 		Expect(sut).NotTo(BeNil())
@@ -78,7 +78,7 @@ var _ = t.Describe("Image", func() {
 			// When
 			imageService, err := storage.GetImageService(
 				context.Background(), nil, storeMock, "",
-				[]string{"reg1", "reg1", "reg2"},
+				"", []string{"reg1", "reg1", "reg2"},
 				[]string{"reg3", "reg3", "reg4"},
 			)
 
@@ -94,7 +94,7 @@ var _ = t.Describe("Image", func() {
 				context.Background(),
 				&types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf"},
-				storeMock, "", []string{}, []string{},
+				storeMock, "", "", []string{}, []string{},
 			)
 
 			// Then
@@ -121,7 +121,7 @@ var _ = t.Describe("Image", func() {
 			imageService, err := storage.GetImageService(
 				context.Background(),
 				&types.SystemContext{SystemRegistriesConfPath: "/invalid"},
-				storeMock, "", []string{}, []string{},
+				storeMock, "", "", []string{}, []string{},
 			)
 
 			// Then
@@ -241,7 +241,7 @@ var _ = t.Describe("Image", func() {
 
 			sut, err := storage.GetImageService(context.Background(),
 				&types.SystemContext{SystemRegistriesConfPath: file.Name()},
-				storeMock, "", []string{}, []string{})
+				storeMock, "", "", []string{}, []string{})
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 
