@@ -513,6 +513,18 @@ func (c *RuntimeConfig) Validate(onExecution bool) error {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *NetworkConfig) Validate(onExecution bool) error {
+	// Regardless of onExecution, we want to make sure plugin_dir is being handled
+	// We only want to use one, either plugin_dir or plugin_dirs. Thus, either a user expects the legacy configuration
+	// or is using the new one. If the user expects the legacy, we should act as though they correctly specified with
+	// the new config, rather than allowing a mixture of new and old
+	// not doing this results in the default plugin_dirs value always being appended to plugin_dirs, which could result in
+	// an error at no fault of the user.
+	if c.PluginDir != "" {
+		logrus.Warnf("The config field plugin_dir is being deprecated. Please use plugin_dirs instead")
+		// Set PluginDir as PluginDirs, so from now on we can operate in terms of PluginDirs and not worry
+		// about missing cases.
+		c.PluginDirs = []string{c.PluginDir}
+	}
 	if onExecution {
 		if _, err := os.Stat(c.NetworkDir); err != nil {
 			return errors.Wrapf(err, "invalid network_dir")
@@ -522,16 +534,6 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 			if _, err := os.Stat(pluginDir); err != nil {
 				return errors.Wrapf(err, "invalid plugin_dirs entry")
 			}
-		}
-		// While the plugin_dir option is being deprecated, we need this check
-		if c.PluginDir != "" {
-			logrus.Warnf("The config field plugin_dir is being deprecated. Please use plugin_dirs instead")
-			if _, err := os.Stat(c.PluginDir); err != nil {
-				return errors.Wrapf(err, "invalid plugin_dir entry")
-			}
-			// Append PluginDir to PluginDirs, so from now on we can operate in terms of PluginDirs and not worry
-			// about missing cases.
-			c.PluginDirs = append(c.PluginDirs, c.PluginDir)
 		}
 	}
 
