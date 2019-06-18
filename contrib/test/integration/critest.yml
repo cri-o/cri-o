@@ -22,7 +22,7 @@
     state: directory
 
 - name: run critest validation
-  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock"
+  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --ginkgo.flakeAttempts=3"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
   async: 5400
@@ -35,7 +35,7 @@
   # https://bugzilla.redhat.com/show_bug.cgi?id=1414236
   # https://access.redhat.com/solutions/2897781
 - name: run critest validation
-  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --ginkgo.skip='should not allow privilege escalation when true'"
+  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint /var/run/crio/crio.sock --image-endpoint /var/run/crio/crio.sock --ginkgo.skip='should not allow privilege escalation when true' --ginkgo.flakeAttempts=3"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
   async: 5400
