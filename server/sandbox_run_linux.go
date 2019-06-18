@@ -63,40 +63,20 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	namespace := req.GetConfig().GetMetadata().GetNamespace()
 	attempt := req.GetConfig().GetMetadata().GetAttempt()
 
-	id, name, err := s.generatePodIDandName(req.GetConfig())
+	id, name, err := s.ReservePodIDAndName(req.GetConfig())
 	if err != nil {
-		if strings.Contains(err.Error(), "already reserved for pod") {
-			matches := conflictRE.FindStringSubmatch(err.Error())
-			if len(matches) != 2 {
-				return nil, err
-			}
-			dupID := matches[1]
-			if _, err := s.StopPodSandbox(ctx, &pb.StopPodSandboxRequest{PodSandboxId: dupID}); err != nil {
-				return nil, err
-			}
-			if _, err := s.RemovePodSandbox(ctx, &pb.RemovePodSandboxRequest{PodSandboxId: dupID}); err != nil {
-				return nil, err
-			}
-			id, name, err = s.generatePodIDandName(req.GetConfig())
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
-
 	defer func() {
 		if err != nil {
 			s.ReleasePodName(name)
 		}
 	}()
 
-	_, containerName, err := s.generateContainerIDandNameForSandbox(req.GetConfig())
+	containerName, err := s.ReserveSandboxContainerIDAndName(req.GetConfig())
 	if err != nil {
 		return nil, err
 	}
-
 	defer func() {
 		if err != nil {
 			s.ReleaseContainerName(containerName)
