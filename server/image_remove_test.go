@@ -11,7 +11,7 @@ import (
 )
 
 // The actual test suite
-var _ = t.Describe("ImageRemove", func() {
+var _ = t.Describe("RemoveImage", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
@@ -21,7 +21,7 @@ var _ = t.Describe("ImageRemove", func() {
 
 	const imageID = "imageID"
 
-	t.Describe("ImageRemove", func() {
+	t.Describe("RemoveImage", func() {
 		It("should succeed", func() {
 			// Given
 			gomock.InOrder(
@@ -58,7 +58,7 @@ var _ = t.Describe("ImageRemove", func() {
 			Expect(response).NotTo(BeNil())
 		})
 
-		It("should fail when image untag errors", func() {
+		It("should succeed when image untag errors", func() {
 			// Given
 			gomock.InOrder(
 				imageServerMock.EXPECT().ResolveNames(
@@ -72,8 +72,8 @@ var _ = t.Describe("ImageRemove", func() {
 				&pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: "image"}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(response).To(BeNil())
+			Expect(err).To(BeNil())
+			Expect(response).NotTo(BeNil())
 		})
 
 		It("should fail when name resolving errors", func() {
