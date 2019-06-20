@@ -64,11 +64,9 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 
 		// Specifying a username indicates the user intends to send authentication to the registry.
 		if username != "" {
-			options.SourceCtx = &types.SystemContext{
-				DockerAuthConfig: &types.DockerAuthConfig{
-					Username: username,
-					Password: password,
-				},
+			options.SourceCtx.DockerAuthConfig = &types.DockerAuthConfig{
+				Username: username,
+				Password: password,
 			}
 		}
 
