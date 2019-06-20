@@ -133,7 +133,7 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 	}
 	config := configIface.GetData()
 
-	imageService, err := storage.GetImageService(ctx, nil, store, config.DefaultTransport, config.GlobalAuthFile, config.InsecureRegistries, config.Registries)
+	imageService, err := storage.GetImageService(ctx, nil, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err
 	}
