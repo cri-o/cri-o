@@ -83,6 +83,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
+	var imageAuthFile string
+	if s.config.PauseImageAuthFile != "" {
+		imageAuthFile = s.config.PauseImageAuthFile
+	} else {
+		imageAuthFile = s.config.GlobalAuthFile
+	}
 	var labelOptions []string
 	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
 	selinuxConfig := securityContext.GetSelinuxOptions()
@@ -92,7 +98,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.systemContext,
 		name, id,
 		s.config.PauseImage,
-		s.config.PauseImageAuthFile,
+		imageAuthFile,
 		"",
 		containerName,
 		req.GetConfig().GetMetadata().GetName(),
