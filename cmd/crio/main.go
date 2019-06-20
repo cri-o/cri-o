@@ -361,9 +361,11 @@ func main() {
 			Name:  "storage-opt",
 			Usage: fmt.Sprintf("storage driver option (default: %q)", defConf.StorageOptions),
 		},
+		// XXX: DEPRECATED
 		cli.BoolFlag{
-			Name:  "file-locking",
-			Usage: fmt.Sprintf("enable or disable file-based locking (default: %t)", defConf.FileLocking),
+			Name:   "file-locking",
+			Usage:  fmt.Sprintf("enable or disable file-based locking (depreciated) (default: %t)", defConf.FileLocking),
+			Hidden: true,
 		},
 		cli.StringSliceFlag{
 			Name:  "insecure-registry",
@@ -379,8 +381,9 @@ func main() {
 		},
 		// XXX: DEPRECATED
 		cli.StringFlag{
-			Name:  "runtime",
-			Usage: "OCI runtime path",
+			Name:   "runtime",
+			Usage:  "OCI runtime path",
+			Hidden: true,
 		},
 		cli.StringFlag{
 			Name:  "default-runtime",

@@ -46,9 +46,11 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
 # If set to false, in-memory locking will be used instead of file-based locking.
+# **Deprecated** this option will be removed in the future.
 file_locking = {{ .FileLocking }}
 
 # Path to the lock file.
+# **Deprecated** this option will be removed in the future.
 file_locking_path = "{{ .FileLockingPath }}"
 
 
