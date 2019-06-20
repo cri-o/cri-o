@@ -14,10 +14,6 @@
 
 - block:
 
-    - name: Disable selinux during integration tests
-      command: 'setenforce 0'
-      when: not integration_selinux_enabled
-
     - name: run integration tests
       shell: "make localintegration >& {{ crio_integration_filepath }}"
       args:
@@ -33,8 +29,3 @@
       environment: '{{ int_test_env | combine(userns_int_test_env) }} '
       async: '{{ 60 * 30 }}'  # seconds
       poll: 30
-
-  always:
-
-    - name: Re-enable SELinux after integration tests
-      command: 'setenforce 1'
