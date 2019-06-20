@@ -1,3 +1,4 @@
+# vim: set syntax=dockerfile:
 FROM nixos/nix
 RUN apk add git
 COPY . /cri-o

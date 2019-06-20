@@ -1242,7 +1242,7 @@ function teardown() {
 }
 
 @test "ctr oom" {
-	if [[ "$TRAVIS" == "true" ]]; then
+	if [[ "$CI" == "true" ]]; then
 		skip "travis container tests don't support testing OOM"
 	fi
 	start_crio

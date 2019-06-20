@@ -1,7 +1,6 @@
 export GO111MODULE=off
 
 GO ?= go
-EPOCH_TEST_COMMIT ?= 1cc5a27
 PROJECT := github.com/cri-o/cri-o
 CRIO_IMAGE = crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
 CRIO_INSTANCE := crio_dev
@@ -179,7 +178,7 @@ dbuild: crioimage
 	$(CONTAINER_RUNTIME) run --name=${CRIO_INSTANCE} -e BUILDTAGS --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${CRIO_IMAGE} make binaries
 
 integration: crioimage
-	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e TRAVIS -e CRIO_BINARY -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
+	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e CI -e CRIO_BINARY -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
 
 define go-build
 	$(shell cd `pwd` && $(GO) build -o ${BUILD_BIN_PATH}/${1} ${2})
@@ -367,17 +366,13 @@ uninstall:
 		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done
 
-# When this is running in travis, it will only check the travis commit range
-.gitvalidation: .gopathok ${GIT_VALIDATION}
-ifeq ($(TRAVIS),true)
-	GIT_CHECK_EXCLUDE="./vendor" ${GIT_VALIDATION} -q -run DCO,short-subject,dangling-whitespace
-else
-	GIT_CHECK_EXCLUDE="./vendor" ${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
-endif
+git-validation: .gopathok git-vars ${GIT_VALIDATION}
+	${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace \
+		-range ${GIT_MERGE_BASE}..HEAD
 
 .PHONY: \
 	.explicit_phony \
-	.gitvalidation \
+	git-validation \
 	bin/conmon \
 	bin/crio \
 	bin/pause \

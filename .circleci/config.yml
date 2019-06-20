@@ -178,11 +178,8 @@ jobs:
           keys:
             - v1-git-validation-{{ checksum "go.sum" }}
       - run:
-          name: git validation to merge base
-          command: |
-            export MERGE_BASE=$(git merge-base origin/master \
-                                $(git rev-parse --abbrev-ref HEAD))
-            make .gitvalidation EPOCH_TEST_COMMIT=$MERGE_BASE
+          name: git validation
+          command: make git-validation
       - save_cache:
           key: v1-git-validation-{{ checksum "go.sum" }}
           paths:
@@ -213,7 +210,7 @@ jobs:
           command: |
             docker pull $IMAGE
             docker run -e APPARMOR_PARAMETERS_FILE_PATH=skip \
-              -e STORAGE_OPTIONS="--storage-driver=vfs" -e TRAVIS=true \
+              -e STORAGE_OPTIONS="--storage-driver=vfs" -e CI \
               -e CRIO_BINARY -e TEST_USERNS -e RUN_CRITEST \
               -v $(pwd):$WORKDIR -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
               --privileged --rm -w $WORKDIR \
