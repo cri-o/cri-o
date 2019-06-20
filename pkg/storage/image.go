@@ -67,7 +67,6 @@ type imageCache map[string]imageCacheItem
 type imageService struct {
 	store                       storage.Store
 	defaultTransport            string
-	globalAuthFile              string
 	insecureRegistryCIDRs       []*net.IPNet
 	indexConfigs                map[string]*indexInfo
 	unqualifiedSearchRegistries []string
@@ -409,11 +408,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 		return nil, err
 	}
 	if options == nil {
-		options = &copy.Options{
-			SourceCtx: &types.SystemContext{
-				AuthFilePath: svc.globalAuthFile,
-			},
-		}
+		options = &copy.Options{}
 	}
 
 	srcRef, err := svc.prepareReference(imageName, options)
@@ -608,7 +603,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 // which will prepend the passed-in defaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport, globalAuthFile string, insecureRegistries, registries []string) (ImageServer, error) {
+func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries, registries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
 		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
@@ -624,7 +619,6 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 	is := &imageService{
 		store:                 store,
 		defaultTransport:      defaultTransport,
-		globalAuthFile:        globalAuthFile,
 		indexConfigs:          make(map[string]*indexInfo),
 		insecureRegistryCIDRs: make([]*net.IPNet, 0),
 		imageCache:            make(map[string]imageCacheItem),

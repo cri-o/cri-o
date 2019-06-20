@@ -107,7 +107,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 		return nil, fmt.Errorf("cannot create container server: interface is nil")
 	}
 
-	imageService, err := storage.GetImageService(ctx, systemContext, store, config.DefaultTransport, config.GlobalAuthFile, config.InsecureRegistries, config.Registries)
+	imageService, err := storage.GetImageService(ctx, systemContext, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err
 	}
