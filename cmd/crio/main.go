@@ -371,7 +371,7 @@ func main() {
 		},
 		cli.StringSliceFlag{
 			Name:  "registry",
-			Usage: fmt.Sprintf("registry to be prepended when pulling unqualified images, can be specified multiple times (default: %q)", defConf.Registries),
+			Usage: fmt.Sprintf("registry to be prepended when pulling unqualified images, can be specified multiple times (default: configured in /etc/containers/registries.conf)"),
 		},
 		cli.StringFlag{
 			Name:  "default-transport",
