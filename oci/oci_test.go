@@ -12,7 +12,7 @@ var _ = t.Describe("Oci", func() {
 	t.Describe("New", func() {
 		It("should succeed with default runtime", func() {
 			// Given
-			c, err := config.DefaultConfig(nil)
+			c, err := config.DefaultConfig()
 			Expect(err).To(BeNil())
 			c.Runtimes = map[string]config.RuntimeHandler{"runc": {
 				RuntimePath: "/bin/sh",
@@ -31,7 +31,7 @@ var _ = t.Describe("Oci", func() {
 
 		It("should fail if no runtime configured for default runtime", func() {
 			// Given
-			c, err := config.DefaultConfig(nil)
+			c, err := config.DefaultConfig()
 			Expect(err).To(BeNil())
 			c.DefaultRuntime = ""
 
@@ -62,7 +62,7 @@ var _ = t.Describe("Oci", func() {
 		}
 
 		BeforeEach(func() {
-			c, err := config.DefaultConfig(nil)
+			c, err := config.DefaultConfig()
 			Expect(err).To(BeNil())
 			c.DefaultRuntime = defaultRuntime
 			c.Runtimes = runtimes

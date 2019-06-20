@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/server"
@@ -371,10 +370,7 @@ var _ = t.Describe("Server", func() {
 
 			// When
 			ch, err := sut.StartConfigWatcher(
-				tmpFile, func(
-					systemContext *types.SystemContext,
-					fileName string,
-				) error {
+				tmpFile, func(fileName string) error {
 					return nil
 				},
 			)
@@ -391,10 +387,7 @@ var _ = t.Describe("Server", func() {
 
 			// When
 			ch, err := sut.StartConfigWatcher(
-				tmpFile, func(
-					systemContext *types.SystemContext,
-					fileName string,
-				) error {
+				tmpFile, func(fileName string) error {
 					return t.TestError
 				},
 			)

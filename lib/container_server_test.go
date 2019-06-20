@@ -31,7 +31,7 @@ var _ = t.Describe("ContainerServer", func() {
 			defer os.Remove(tmpfile.Name())
 
 			// Setup config
-			config, err := libconfig.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig()
 			Expect(err).To(BeNil())
 			config.FileLockingPath = tmpfile.Name()
 			config.HooksDir = []string{}
@@ -65,7 +65,7 @@ var _ = t.Describe("ContainerServer", func() {
 		})
 
 		It("should fail when Store is nil", func() {
-			config, err := libconfig.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig()
 			Expect(err).To(BeNil())
 			// Given
 			gomock.InOrder(
@@ -93,7 +93,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid default runtime", func() {
 			// Given
-			config, err := libconfig.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig()
 			Expect(err).To(BeNil())
 			config.DefaultRuntime = "invalid-runtime"
 			gomock.InOrder(
@@ -111,7 +111,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid lockfile", func() {
 			// Given
-			config, err := libconfig.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig()
 			Expect(err).To(BeNil())
 			config.FileLocking = true
 			config.FileLockingPath = "/invalid/file"
@@ -130,7 +130,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid hooks dir", func() {
 			// Given
-			config, err := libconfig.DefaultConfig(nil)
+			config, err := libconfig.DefaultConfig()
 			Expect(err).To(BeNil())
 			config.FileLocking = false
 			config.HooksDir = []string{"/invalid-dir"}

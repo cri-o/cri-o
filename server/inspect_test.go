@@ -13,7 +13,7 @@ import (
 )
 
 func TestGetInfo(t *testing.T) {
-	c, err := config.DefaultConfig(nil)
+	c, err := config.DefaultConfig()
 	if err != nil {
 		t.Fatal("error loading default config")
 	}

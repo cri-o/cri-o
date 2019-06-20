@@ -370,7 +370,7 @@ func (c *Config) ToFile(path string) error {
 }
 
 // DefaultConfig returns the default configuration for crio.
-func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
+func DefaultConfig() (*Config, error) {
 	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err

@@ -21,7 +21,7 @@ var _ = t.Describe("Config", func() {
 	)
 
 	var defaultConfig = func() *server.Config {
-		config, err := server.DefaultConfig(nil)
+		config, err := server.DefaultConfig()
 		Expect(err).To(BeNil())
 		return config
 	}
@@ -260,7 +260,7 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.ToFile(filePath)).To(BeNil())
 
 			// When
-			err := sut.Reload(nil, filePath)
+			err := sut.Reload(filePath)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -269,7 +269,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid config path", func() {
 			// Given
 			// When
-			err := sut.Reload(nil, "")
+			err := sut.Reload("")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -283,7 +283,7 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// When
-			err := sut.Reload(nil, filePath)
+			err := sut.Reload(filePath)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -297,7 +297,7 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// When
-			err := sut.Reload(nil, filePath)
+			err := sut.Reload(filePath)
 
 			// Then
 			Expect(err).NotTo(BeNil())

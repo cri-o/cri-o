@@ -140,7 +140,7 @@ var beforeEach = func() {
 	// Prepare the server config
 	testPath = "test"
 	var err error
-	serverConfig, err = server.DefaultConfig(nil)
+	serverConfig, err = server.DefaultConfig()
 	Expect(err).To(BeNil())
 	serverConfig.ContainerAttachSocketDir = testPath
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
@@ -155,7 +155,7 @@ var beforeEach = func() {
 	serverConfig.HooksDir = []string{emptyDir}
 
 	// Prepare the library config
-	libConfig, err = config.DefaultConfig(nil)
+	libConfig, err = config.DefaultConfig()
 	Expect(err).To(BeNil())
 	libConfig.FileLocking = false
 	libConfig.Runtimes["runc"] = serverConfig.Runtimes["runc"]

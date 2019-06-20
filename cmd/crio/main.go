@@ -274,7 +274,7 @@ func main() {
 	app.Version = strings.Join(v, "\n")
 
 	systemContext := &types.SystemContext{}
-	defConf, err := server.DefaultConfig(systemContext)
+	defConf, err := server.DefaultConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error loading server config: %v", err)
 		os.Exit(1)
