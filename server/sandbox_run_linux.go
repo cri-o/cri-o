@@ -100,8 +100,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		namespace,
 		attempt,
 		s.defaultIDMappings,
-		labelOptions,
-		nil)
+		labelOptions)
 	mountLabel = podContainer.MountLabel
 	if !s.privilegedSandbox(req) {
 		processLabel = podContainer.ProcessLabel

@@ -350,8 +350,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		metadata.Name,
 		metadata.Attempt,
 		containerIDMappings,
-		labelOptions,
-		nil)
+		labelOptions)
 	if err != nil {
 		return nil, err
 	}

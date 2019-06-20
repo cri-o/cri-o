@@ -37,8 +37,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 				runtimeServerMock.EXPECT().CreatePodSandbox(gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any()).
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(storage.ContainerInfo{
 						RunDir: "/tmp",
 						Config: &v1.Image{Config: v1.ImageConfig{}},
@@ -117,8 +116,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 				runtimeServerMock.EXPECT().CreatePodSandbox(gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any()).
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(storage.ContainerInfo{}, nil),
 				runtimeServerMock.EXPECT().RemovePodSandbox(gomock.Any()).
 					Return(nil),

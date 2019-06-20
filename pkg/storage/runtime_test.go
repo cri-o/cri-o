@@ -583,7 +583,7 @@ var _ = t.Describe("Runtime", func() {
 					"podName", "podID", "imagename",
 					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "containerID", "",
-					0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+					0, &idtools.IDMappings{}, []string{"mountLabel"})
 			})
 
 			It("should succeed to create a pod sandbox", func() {
@@ -592,7 +592,7 @@ var _ = t.Describe("Runtime", func() {
 					"podName", "podID", "imagename", "",
 					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "metadataName",
-					"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+					"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			})
 
@@ -613,7 +613,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -627,7 +627,7 @@ var _ = t.Describe("Runtime", func() {
 				"", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -640,7 +640,7 @@ var _ = t.Describe("Runtime", func() {
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"podName", "podID", "", "",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -653,7 +653,7 @@ var _ = t.Describe("Runtime", func() {
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"podName", "podID", "imagename", "imageID",
 				"", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -686,7 +686,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -715,7 +715,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -742,7 +742,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -767,7 +767,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -787,7 +787,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -807,7 +807,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -841,7 +841,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				0, &idtools.IDMappings{}, []string{"mountLabel"})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -925,14 +925,14 @@ var _ = t.Describe("Runtime", func() {
 			Expect(sut).NotTo(BeNil())
 
 			// Given
-			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{})
+			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{SourceCtx: &types.SystemContext{}})
 
 			// When
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", "pauseimagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
 		})
 
 		It("should pull pauseImage if not available locally, using provided credential file", func() {
@@ -948,7 +948,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "pauseimagename", "/var/non-default/credentials.json",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, &copy.Options{})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
 		})
 
 		AfterEach(func() {
