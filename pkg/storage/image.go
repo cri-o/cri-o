@@ -414,13 +414,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 
 	dest := imageName
 	if srcRef.DockerReference() != nil {
-		dest = srcRef.DockerReference().Name()
-		if tagged, ok := srcRef.DockerReference().(reference.NamedTagged); ok {
-			dest = dest + ":" + tagged.Tag()
-		}
-		if canonical, ok := srcRef.DockerReference().(reference.Canonical); ok {
-			dest = dest + "@" + canonical.Digest().String()
-		}
+		dest = srcRef.DockerReference().String()
 	}
 	destRef, err := istorage.Transport.ParseStoreReference(svc.store, dest)
 	if err != nil {
@@ -451,13 +445,7 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 
 		name := nameOrID
 		if namedRef.DockerReference() != nil {
-			name = namedRef.DockerReference().Name()
-			if tagged, ok := namedRef.DockerReference().(reference.NamedTagged); ok {
-				name = name + ":" + tagged.Tag()
-			}
-			if canonical, ok := namedRef.DockerReference().(reference.Canonical); ok {
-				name = name + "@" + canonical.Digest().String()
-			}
+			name = namedRef.DockerReference().String()
 		}
 
 		prunedNames := make([]string, 0, len(img.Names))
