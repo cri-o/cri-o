@@ -7,10 +7,10 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.12
 	github.com/VividCortex/ewma v1.1.1 // indirect
-	github.com/blang/semver v3.5.0+incompatible
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b // indirect
 	github.com/containerd/cgroups v0.0.0-20180515175038-5e610833b720
-	github.com/containerd/containerd v1.2.6
+	github.com/containerd/containerd v1.2.7
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
 	github.com/containerd/go-runc v0.0.0-20190226155025-7d11b49dc076 // indirect
@@ -18,9 +18,9 @@ require (
 	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.8.4
+	github.com/containers/buildah v1.9.0
 	github.com/containers/image v2.0.0+incompatible
-	github.com/containers/libpod v1.4.1
+	github.com/containers/libpod v1.4.2
 	github.com/containers/psgo v1.3.0 // indirect
 	github.com/containers/storage v1.12.10
 	github.com/coreos/go-iptables v0.4.1 // indirect

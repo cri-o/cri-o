@@ -29,7 +29,7 @@ github.com/OpenPeeDeeP/depguard
 github.com/VividCortex/ewma
 # github.com/beorn7/perks v1.0.0
 github.com/beorn7/perks/quantile
-# github.com/blang/semver v3.5.0+incompatible
+# github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
 # github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 github.com/checkpoint-restore/go-criu/rpc
@@ -38,7 +38,7 @@ github.com/checkpoint-restore/go-criu
 github.com/containerd/cgroups
 # github.com/containerd/console v0.0.0-20170925154832-84eeaae905fa
 github.com/containerd/console
-# github.com/containerd/containerd v1.2.6
+# github.com/containerd/containerd v1.2.7
 github.com/containerd/containerd/api/types/task
 github.com/containerd/containerd/namespaces
 github.com/containerd/containerd/runtime/v2/shim
@@ -71,7 +71,7 @@ github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.8.4
+# github.com/containers/buildah v1.9.0
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
@@ -120,7 +120,7 @@ github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
 github.com/containers/image/pkg/sysregistries
-# github.com/containers/libpod v1.4.1
+# github.com/containers/libpod v1.4.2
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/hooks
 github.com/containers/libpod/pkg/registrar
