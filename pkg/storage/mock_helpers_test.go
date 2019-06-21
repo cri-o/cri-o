@@ -53,7 +53,6 @@ func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.M
 }
 
 // containers/image/storage.Transport.ParseStoreReference
-// expectedImageName can be "" to bypass the “is this a valid digest prefix” check  FIXME: the caller should actually demonstrate knowledge of the right value
 func mockParseStoreReference(storeMock *containerstoragemock.MockStore, expectedImageName string) mockSequence {
 	// ParseStoreReference calls store.Image() to check whether short strings are possible prefixes of IDs of existing images
 	// (either using the unambiguous "@idPrefix" syntax, or the ambiguous "idPrefix" syntax).
@@ -89,20 +88,20 @@ func mockGetStoreImage(storeMock *containerstoragemock.MockStore, expectedImageN
 }
 
 // containers/image/storage.storageReference.resolveImage
-// expectedImageName must be in the fully normalized format (reference.Named.String())!
+// expectedImageNameOrID, if a name, must be in the fully normalized format (reference.Named.String())!
 // resolvedImageID may be "" to simulate a missing image
-func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockSequence {
+func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageNameOrID, resolvedImageID string) mockSequence {
 	if resolvedImageID == "" {
 		return inOrder(
-			storeMock.EXPECT().Image(expectedImageName).Return(nil, cstorage.ErrImageUnknown),
-			// Assuming expectedImageName does not have a digest, so resolveName does not call ImagesByDigest
+			storeMock.EXPECT().Image(expectedImageNameOrID).Return(nil, cstorage.ErrImageUnknown),
+			// Assuming expectedImageNameOrID does not have a digest, so resolveName does not call ImagesByDigest
 			mockStorageReferenceStringWithinTransport(storeMock),
 			mockStorageReferenceStringWithinTransport(storeMock),
 		)
 	}
 	return inOrder(
-		storeMock.EXPECT().Image(expectedImageName).
-			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}}, nil),
+		storeMock.EXPECT().Image(expectedImageNameOrID).
+			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageNameOrID}}, nil),
 	)
 }
 
