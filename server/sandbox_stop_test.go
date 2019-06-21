@@ -38,6 +38,8 @@ var _ = t.Describe("PodSandboxStatus", func() {
 					gomock.Any()).Return(nil),
 				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).
 					Return(nil),
+				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
+					Return(nil),
 			)
 
 			// When
@@ -65,6 +67,8 @@ var _ = t.Describe("PodSandboxStatus", func() {
 					gomock.Any()).Return(nil),
 				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).
 					Return(t.TestError),
+				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
+					Return(nil),
 			)
 
 			// When
