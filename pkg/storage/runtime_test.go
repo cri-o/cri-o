@@ -23,7 +23,7 @@ var _ = t.Describe("Runtime", func() {
 	// Prepare the system under test and register a test name and key before
 	// each test
 	BeforeEach(func() {
-		sut = storage.GetRuntimeService(context.Background(), imageServerMock, "", "")
+		sut = storage.GetRuntimeService(context.Background(), imageServerMock, "", "", "")
 		Expect(sut).NotTo(BeNil())
 	})
 
@@ -921,11 +921,11 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using default credentials", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock, "pauseimagename", "")
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock, "", "pauseimagename", "")
 			Expect(sut).NotTo(BeNil())
 
 			// Given
-			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{})
+			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{SourceCtx: &types.SystemContext{}})
 
 			// When
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
@@ -937,7 +937,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using provided credential file", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock, "pauseimagename", "/var/non-default/credentials.json")
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock, "", "pauseimagename", "/var/non-default/credentials.json")
 			Expect(sut).NotTo(BeNil())
 
 			// Given

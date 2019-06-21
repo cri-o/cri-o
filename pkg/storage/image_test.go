@@ -12,7 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 )
 
 // The actual test suite

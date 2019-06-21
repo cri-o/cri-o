@@ -43,6 +43,7 @@ var (
 
 type runtimeService struct {
 	storageImageServer ImageServer
+	globalAuthFile     string
 	pauseImage         string
 	pauseImageAuthFile string
 	ctx                context.Context
@@ -189,11 +190,11 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 			return ContainerInfo{}, ErrInvalidImageName
 		}
 		logrus.Debugf("couldn't find image %q, retrieving it", image)
-		options := &copy.Options{}
+		options := &copy.Options{SourceCtx: &types.SystemContext{}}
 		if r.pauseImageAuthFile != "" {
-			options.SourceCtx = &types.SystemContext{
-				AuthFilePath: r.pauseImageAuthFile,
-			}
+			options.SourceCtx.AuthFilePath = r.pauseImageAuthFile
+		} else {
+			options.SourceCtx.AuthFilePath = r.globalAuthFile
 		}
 		ref, err = r.storageImageServer.PullImage(systemContext, image, options)
 		if err != nil {
@@ -461,9 +462,10 @@ func (r *runtimeService) GetRunDir(id string) (string, error) {
 // GetRuntimeService returns a RuntimeServer that uses the passed-in image
 // service to pull and manage images, and its store to manage containers based
 // on those images.
-func GetRuntimeService(ctx context.Context, storageImageServer ImageServer, pauseImage, pauseImageAuthFile string) RuntimeServer {
+func GetRuntimeService(ctx context.Context, storageImageServer ImageServer, globalAuthFile, pauseImage, pauseImageAuthFile string) RuntimeServer {
 	return &runtimeService{
 		storageImageServer: storageImageServer,
+		globalAuthFile:     globalAuthFile,
 		pauseImage:         pauseImage,
 		pauseImageAuthFile: pauseImageAuthFile,
 		ctx:                ctx,
