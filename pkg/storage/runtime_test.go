@@ -47,9 +47,7 @@ var _ = t.Describe("Runtime", func() {
 	mockToCreate := func() {
 		inOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			storeMock.EXPECT().Image(gomock.Any()).
-				Return(nil, cstorage.ErrImageUnknown),
-			mockStorageReferenceStringWithinTransport(storeMock),
+			mockParseStoreReference(storeMock, "imagename"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			storeMock.EXPECT().Image(gomock.Any()).
 				Return(&cs.Image{
@@ -830,8 +828,7 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
-				mockStorageReferenceStringWithinTransport(storeMock),
+				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{
@@ -863,19 +860,12 @@ var _ = t.Describe("Runtime", func() {
 		var err error
 
 		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *copy.Options) {
-			inOrder(
-				// istorage.Transport.ParseStoreReference
-				storeMock.EXPECT().Image(gomock.Any()).Return(nil, cstorage.ErrImageUnknown),
-				mockStorageReferenceStringWithinTransport(storeMock),
-			)
+			mockParseStoreReference(storeMock, "pauseimagename")
 			pulledRef, err := istorage.Transport.ParseStoreReference(storeMock, "pauseimagename")
 			Expect(err).To(BeNil())
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				// istorage.Transport.ParseStoreReference
-				storeMock.EXPECT().Image(gomock.Any()).Return(nil, cstorage.ErrImageUnknown),
-				mockStorageReferenceStringWithinTransport(storeMock),
-
+				mockParseStoreReference(storeMock, "pauseimagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				// istorage.Transport.GetStoreImage
 				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(nil, cstorage.ErrImageUnknown),

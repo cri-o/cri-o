@@ -52,18 +52,12 @@ var _ = t.Describe("Image", func() {
 		mockCtrl.Finish()
 	})
 
-	mockParseStoreReference := func() {
-		inOrder(
-			mockStorageReferenceStringWithinTransport(storeMock),
-		)
-	}
-
-	mockGetRef := func() {
-		gomock.InOrder(
+	mockGetRef := func() mockSequence {
+		return inOrder(
 			storeMock.EXPECT().Image(gomock.Any()).
 				Return(&cs.Image{ID: testImageName}, nil),
+			mockParseStoreReference(storeMock, ""), // FIXME: What image name is expected?
 		)
-		mockParseStoreReference()
 	}
 
 	mockListImage := func() {
@@ -564,17 +558,17 @@ var _ = t.Describe("Image", func() {
 						Return(digest.Digest(""), nil),
 				)
 			}
-			gomock.InOrder(
+			inOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{
 						{ID: testSHA256, Names: []string{"a", "b", "c@sha256:" + testSHA256}},
 						{ID: testSHA256}},
 					nil),
+				mockParseStoreReference(storeMock, "@"+testSHA256),
 			)
-			mockParseStoreReference()
 			mockListImage()
 			mockLoop()
-			mockParseStoreReference()
+			mockParseStoreReference(storeMock, "@"+testSHA256)
 			mockListImage()
 			mockLoop()
 
@@ -696,12 +690,10 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to list multiple images without filter on append", func() {
 			// Given
-			gomock.InOrder(
+			inOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{{ID: testSHA256}}, nil),
-			)
-			mockParseStoreReference()
-			gomock.InOrder(
+				mockParseStoreReference(storeMock, "@"+testSHA256),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(nil, t.TestError),
 			)
@@ -767,7 +759,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on copy image", func() {
 			// Given
 			const imageName = "docker://localhost/busybox:latest"
-			mockParseStoreReference()
+			mockParseStoreReference(storeMock, "localhost/busybox:latest")
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
@@ -782,7 +774,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on canonical copy image", func() {
 			// Given
 			const imageName = "docker://localhost/busybox@sha256:" + testSHA256
-			mockParseStoreReference()
+			mockParseStoreReference(storeMock, "localhost/busybox@sha256:"+testSHA256)
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{

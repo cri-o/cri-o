@@ -2,7 +2,9 @@ package storage_test
 
 import (
 	"fmt"
+	"strings"
 
+	cstorage "github.com/containers/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -47,5 +49,25 @@ func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.M
 		storeMock.EXPECT().GraphDriverName().Return(""),
 		storeMock.EXPECT().GraphRoot().Return(""),
 		storeMock.EXPECT().RunRoot().Return(""),
+	)
+}
+
+// containers/image/storage.Transport.ParseStoreReference
+// expectedImageName can be "" to bypass the “is this a valid digest prefix” check  FIXME: the caller should actually demonstrate knowledge of the right value
+func mockParseStoreReference(storeMock *containerstoragemock.MockStore, expectedImageName string) mockSequence {
+	// ParseStoreReference calls store.Image() to check whether short strings are possible prefixes of IDs of existing images
+	// (either using the unambiguous "@idPrefix" syntax, or the ambiguous "idPrefix" syntax).
+	// None of our tests use ID prefixes (only full IDs), so we can safely and correctly return ErrImageUnknown in all such cases;
+	// it only matters that we include, or not, the mock expectation.
+	//
+	// This hard-codes a heuristic in ParseStoreReference for whether to consider expectedImageName a possible ID prefix.
+	// The "@" check also happens to exclude full @digest values, which can happen but would not trigger a store.Image() lookup.
+	var c1 *gomock.Call
+	if len(expectedImageName) >= 3 && !strings.ContainsAny(expectedImageName, "@:") {
+		c1 = storeMock.EXPECT().Image(expectedImageName).Return(nil, cstorage.ErrImageUnknown)
+	}
+	return inOrder(
+		c1,
+		mockStorageReferenceStringWithinTransport(storeMock),
 	)
 }
