@@ -121,6 +121,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
 		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
+	s.ContainerStateToDisk(podInfraContainer)
 
 	sb.SetStopped()
 	resp = &pb.StopPodSandboxResponse{}
