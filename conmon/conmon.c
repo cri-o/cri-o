@@ -922,6 +922,9 @@ static char *setup_attach_socket(void)
 	if (fchmod(attach_socket_fd, 0700))
 		pexit("Failed to change attach socket permissions");
 
+	if (unlink(attach_addr.sun_path) == -1 && errno != ENOENT)
+		pexitf("Failed to remove existing attach socket: %s", attach_addr.sun_path);
+
 	if (bind(attach_socket_fd, (struct sockaddr *)&attach_addr, sizeof(struct sockaddr_un)) == -1)
 		pexitf("Failed to bind attach socket: %s", attach_sock_path);
 
