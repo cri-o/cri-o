@@ -42,9 +42,9 @@ var _ = t.Describe("Runtime", func() {
 		mockCtrl.Finish()
 	})
 
-	// Mock helpers
-	mockToCreate := func() {
-		inOrder(
+	// The part of createContainerOrPodSandbox before a CreateContainer call, if the image already exists locally.
+	mockCreateContainerOrPodSandboxImageExists := func() mockSequence {
+		return inOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockParseStoreReference(storeMock, "imagename"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
@@ -543,8 +543,8 @@ var _ = t.Describe("Runtime", func() {
 
 			BeforeEach(func() {
 				// Given
-				mockToCreate()
-				gomock.InOrder(
+				inOrder(
+					mockCreateContainerOrPodSandboxImageExists(),
 					storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(&cs.Container{ID: "id"}, nil),
@@ -646,8 +646,8 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on run dir error", func() {
 			// Given
-			mockToCreate()
-			gomock.InOrder(
+			inOrder(
+				mockCreateContainerOrPodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
@@ -678,8 +678,8 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on container dir error", func() {
 			// Given
-			mockToCreate()
-			gomock.InOrder(
+			inOrder(
+				mockCreateContainerOrPodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
@@ -707,8 +707,8 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a pod sandbox on set names error", func() {
 			// Given
-			mockToCreate()
-			gomock.InOrder(
+			inOrder(
+				mockCreateContainerOrPodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
@@ -734,8 +734,8 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a pod sandbox on names retrieval error", func() {
 			// Given
-			mockToCreate()
-			gomock.InOrder(
+			inOrder(
+				mockCreateContainerOrPodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
@@ -759,8 +759,8 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a pod sandbox on main creation error", func() {
 			// Given
-			mockToCreate()
-			gomock.InOrder(
+			inOrder(
+				mockCreateContainerOrPodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
@@ -779,8 +779,8 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on main creation error", func() {
 			// Given
-			mockToCreate()
-			gomock.InOrder(
+			inOrder(
+				mockCreateContainerOrPodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
