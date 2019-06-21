@@ -7,7 +7,6 @@ import (
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	cs "github.com/containers/storage"
-	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/pkg/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
@@ -49,11 +48,8 @@ var _ = t.Describe("Runtime", func() {
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockParseStoreReference(storeMock, "imagename"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			storeMock.EXPECT().Image(gomock.Any()).
-				Return(&cs.Image{
-					ID:    "123",
-					Names: []string{"imagename"},
-				}, nil).Times(2),
+			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+			mockResolveImage(storeMock, "docker.io/library/imagename:latest", "123"),
 			storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 				Return(testManifest, nil),
 			storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -830,11 +826,8 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{
-						ID:    "123",
-						Names: []string{"imagename"},
-					}, nil).Times(2),
+				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+				mockResolveImage(storeMock, "docker.io/library/imagename:latest", "123"),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
 				storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -867,22 +860,13 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockParseStoreReference(storeMock, "pauseimagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				// istorage.Transport.GetStoreImage
-				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(nil, cstorage.ErrImageUnknown),
-				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(nil, cstorage.ErrImageUnknown),
-				mockStorageReferenceStringWithinTransport(storeMock),
-				mockStorageReferenceStringWithinTransport(storeMock),
-
+				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", ""),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), "pauseimagename", expectedCopyOptions).Return(pulledRef, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				// istorage.Transport.GetStoreImage
-				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(&cs.Image{}, nil),
+				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "123"),
 
 				// ref.NewImage (resolveImage requires storeMock.Image() to return an object matching the input somewhat)
-				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(&cs.Image{
-					ID:    "nonempty",
-					Names: []string{"docker.io/library/pauseimagename:latest"},
-				}, nil),
+				mockResolveImage(storeMock, "docker.io/library/pauseimagename:latest", "nonempty"),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
 				storeMock.EXPECT().ListImageBigData(gomock.Any()).

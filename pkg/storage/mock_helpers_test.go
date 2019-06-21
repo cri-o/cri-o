@@ -71,3 +71,37 @@ func mockParseStoreReference(storeMock *containerstoragemock.MockStore, expected
 		mockStorageReferenceStringWithinTransport(storeMock),
 	)
 }
+
+// containers/image/storage.Transport.GetStoreImage
+// expectedImageName must be in the fully normalized format (reference.Named.String())!
+// resolvedImageID may be "" to simulate a missing image
+func mockGetStoreImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockSequence {
+	if resolvedImageID == "" {
+		return inOrder(
+			storeMock.EXPECT().Image(expectedImageName).Return(nil, cstorage.ErrImageUnknown),
+			mockResolveImage(storeMock, expectedImageName, ""),
+		)
+	}
+	return inOrder(
+		storeMock.EXPECT().Image(expectedImageName).
+			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}}, nil),
+	)
+}
+
+// containers/image/storage.storageReference.resolveImage
+// expectedImageName must be in the fully normalized format (reference.Named.String())!
+// resolvedImageID may be "" to simulate a missing image
+func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockSequence {
+	if resolvedImageID == "" {
+		return inOrder(
+			storeMock.EXPECT().Image(expectedImageName).Return(nil, cstorage.ErrImageUnknown),
+			// Assuming expectedImageName does not have a digest, so resolveName does not call ImagesByDigest
+			mockStorageReferenceStringWithinTransport(storeMock),
+			mockStorageReferenceStringWithinTransport(storeMock),
+		)
+	}
+	return inOrder(
+		storeMock.EXPECT().Image(expectedImageName).
+			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}}, nil),
+	)
+}
