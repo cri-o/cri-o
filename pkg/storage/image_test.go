@@ -53,11 +53,8 @@ var _ = t.Describe("Image", func() {
 	})
 
 	mockParseStoreReference := func() {
-		gomock.InOrder(
-			storeMock.EXPECT().GraphOptions().Return([]string{}),
-			storeMock.EXPECT().GraphDriverName().Return(""),
-			storeMock.EXPECT().GraphRoot().Return(""),
-			storeMock.EXPECT().RunRoot().Return(""),
+		inOrder(
+			mockStorageReferenceStringWithinTransport(storeMock),
 		)
 	}
 

@@ -3,6 +3,7 @@ package storage_test
 import (
 	"fmt"
 
+	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 )
@@ -37,4 +38,14 @@ func inOrder(calls ...interface{}) mockSequence {
 		last = elem.last
 	}
 	return mockSequence{first, last}
+}
+
+// containers/image/storage.storageReference.StringWithinTransport
+func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.MockStore) mockSequence {
+	return inOrder(
+		storeMock.EXPECT().GraphOptions().Return([]string{}),
+		storeMock.EXPECT().GraphDriverName().Return(""),
+		storeMock.EXPECT().GraphRoot().Return(""),
+		storeMock.EXPECT().RunRoot().Return(""),
+	)
 }

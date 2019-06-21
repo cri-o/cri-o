@@ -45,14 +45,11 @@ var _ = t.Describe("Runtime", func() {
 
 	// Mock helpers
 	mockToCreate := func() {
-		gomock.InOrder(
+		inOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			storeMock.EXPECT().Image(gomock.Any()).
 				Return(nil, cstorage.ErrImageUnknown),
-			storeMock.EXPECT().GraphOptions().Return([]string{}),
-			storeMock.EXPECT().GraphDriverName().Return(""),
-			storeMock.EXPECT().GraphRoot().Return(""),
-			storeMock.EXPECT().RunRoot().Return(""),
+			mockStorageReferenceStringWithinTransport(storeMock),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			storeMock.EXPECT().Image(gomock.Any()).
 				Return(&cs.Image{
@@ -831,13 +828,10 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on image pull error", func() {
 			// Given
-			gomock.InOrder(
+			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
-				storeMock.EXPECT().GraphOptions().Return([]string{}),
-				storeMock.EXPECT().GraphDriverName().Return(""),
-				storeMock.EXPECT().GraphRoot().Return(""),
-				storeMock.EXPECT().RunRoot().Return(""),
+				mockStorageReferenceStringWithinTransport(storeMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{
@@ -869,37 +863,25 @@ var _ = t.Describe("Runtime", func() {
 		var err error
 
 		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *copy.Options) {
-			gomock.InOrder(
+			inOrder(
 				// istorage.Transport.ParseStoreReference
 				storeMock.EXPECT().Image(gomock.Any()).Return(nil, cstorage.ErrImageUnknown),
-				storeMock.EXPECT().GraphOptions().Return([]string{}),
-				storeMock.EXPECT().GraphDriverName().Return(""),
-				storeMock.EXPECT().GraphRoot().Return(""),
-				storeMock.EXPECT().RunRoot().Return(""),
+				mockStorageReferenceStringWithinTransport(storeMock),
 			)
 			pulledRef, err := istorage.Transport.ParseStoreReference(storeMock, "pauseimagename")
 			Expect(err).To(BeNil())
-			gomock.InOrder(
+			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				// istorage.Transport.ParseStoreReference
 				storeMock.EXPECT().Image(gomock.Any()).Return(nil, cstorage.ErrImageUnknown),
-				storeMock.EXPECT().GraphOptions().Return([]string{}),
-				storeMock.EXPECT().GraphDriverName().Return(""),
-				storeMock.EXPECT().GraphRoot().Return(""),
-				storeMock.EXPECT().RunRoot().Return(""),
+				mockStorageReferenceStringWithinTransport(storeMock),
 
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				// istorage.Transport.GetStoreImage
 				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(nil, cstorage.ErrImageUnknown),
 				storeMock.EXPECT().Image("docker.io/library/pauseimagename:latest").Return(nil, cstorage.ErrImageUnknown),
-				storeMock.EXPECT().GraphOptions().Return([]string{}),
-				storeMock.EXPECT().GraphDriverName().Return(""),
-				storeMock.EXPECT().GraphRoot().Return(""),
-				storeMock.EXPECT().RunRoot().Return(""),
-				storeMock.EXPECT().GraphOptions().Return([]string{}),
-				storeMock.EXPECT().GraphDriverName().Return(""),
-				storeMock.EXPECT().GraphRoot().Return(""),
-				storeMock.EXPECT().RunRoot().Return(""),
+				mockStorageReferenceStringWithinTransport(storeMock),
+				mockStorageReferenceStringWithinTransport(storeMock),
 
 				imageServerMock.EXPECT().PullImage(gomock.Any(), "pauseimagename", expectedCopyOptions).Return(pulledRef, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
