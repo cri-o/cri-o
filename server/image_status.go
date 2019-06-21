@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	pkgstorage "github.com/cri-o/cri-o/pkg/storage"
+	pkgstorage "github.com/cri-o/cri-o/internal/pkg/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

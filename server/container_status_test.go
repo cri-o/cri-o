@@ -3,8 +3,8 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/oci"
-	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"

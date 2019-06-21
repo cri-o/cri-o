@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"github.com/go-zoo/bone"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"

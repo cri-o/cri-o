@@ -6,7 +6,7 @@ import (
 	"os"
 
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/pkg/signals"
+	"github.com/cri-o/cri-o/internal/pkg/signals"
 	"github.com/cri-o/cri-o/server"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"

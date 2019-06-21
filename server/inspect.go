@@ -8,9 +8,9 @@ import (
 	"net/http"
 
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/lib/sandbox"
-	"github.com/cri-o/cri-o/oci"
-	"github.com/cri-o/cri-o/types"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/go-zoo/bone"
 	"github.com/sirupsen/logrus"
 )

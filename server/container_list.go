@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"

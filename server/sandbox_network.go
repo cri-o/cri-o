@@ -7,7 +7,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/cri-o/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cri-o/cri-o/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	units "github.com/docker/go-units"

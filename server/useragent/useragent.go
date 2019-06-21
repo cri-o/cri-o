@@ -4,7 +4,7 @@ import (
 	"context"
 	"runtime"
 
-	"github.com/cri-o/cri-o/version"
+	"github.com/cri-o/cri-o/internal/version"
 )
 
 // Get is the User-Agent the CRI-O daemon uses to identify itself.
