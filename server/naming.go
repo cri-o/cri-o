@@ -46,30 +46,43 @@ func makeContainerName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *
 	}, nameDelimiter)
 }
 
-func (s *Server) generatePodIDandName(sandboxConfig *pb.PodSandboxConfig) (id, name string, err error) {
-	id = stringid.GenerateNonCryptoID()
-	if sandboxConfig.Metadata.Namespace == "" {
-		return "", "", fmt.Errorf("cannot generate pod ID without namespace")
+func (s *Server) ReservePodIDAndName(config *pb.PodSandboxConfig) (id, name string, err error) {
+
+	if config == nil || config.Metadata == nil || config.Metadata.Namespace == "" {
+		return "", "", fmt.Errorf("cannot generate pod name without namespace")
 	}
-	name, err = s.ReservePodName(id, makeSandboxName(sandboxConfig))
+
+	id = stringid.GenerateNonCryptoID()
+	name, err = s.ReservePodName(id, makeSandboxName(config))
+
 	if err != nil {
 		return "", "", err
 	}
-	return id, name, err
+	return id, name, nil
 }
 
-func (s *Server) generateContainerIDandNameForSandbox(sandboxConfig *pb.PodSandboxConfig) (id, name string, err error) {
-	id = stringid.GenerateNonCryptoID()
-	name, err = s.ReserveContainerName(id, makeSandboxContainerName(sandboxConfig))
-	if err != nil {
-		return "", "", err
+func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (name string, err error) {
+
+	if config == nil || config.Metadata == nil {
+		return "", fmt.Errorf("cannot generate sandbox container name without metadata")
 	}
-	return id, name, err
+
+	id := stringid.GenerateNonCryptoID()
+	name, err = s.ReserveContainerName(id, makeSandboxContainerName(config))
+	if err != nil {
+		return "", err
+	}
+	return name, err
 }
 
-func (s *Server) generateContainerIDandName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *pb.ContainerConfig) (id, name string, err error) {
+func (s *Server) ReserveContainerIDandName(sandboxMetadata *pb.PodSandboxMetadata, config *pb.ContainerConfig) (id, name string, err error) {
+
+	if config == nil || config.Metadata == nil || sandboxMetadata == nil {
+		return "", "", fmt.Errorf("cannot generate container name without metadata")
+	}
+
 	id = stringid.GenerateNonCryptoID()
-	name, err = s.ReserveContainerName(id, makeContainerName(sandboxMetadata, containerConfig))
+	name, err = s.ReserveContainerName(id, makeContainerName(sandboxMetadata, config))
 	if err != nil {
 		return "", "", err
 	}

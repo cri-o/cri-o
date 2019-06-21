@@ -560,7 +560,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
 
-	containerID, containerName, err := s.generateContainerIDandName(sb.Metadata(), containerConfig)
+	containerID, containerName, err := s.ReserveContainerIDandName(sb.Metadata(), containerConfig)
 	if err != nil {
 		return nil, err
 	}

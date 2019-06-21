@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"regexp"
 
 	"github.com/cri-o/cri-o/oci"
 	"golang.org/x/net/context"
@@ -70,10 +69,6 @@ func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
 
 	return handler, nil
 }
-
-var (
-	conflictRE = regexp.MustCompile(`already reserved for pod "([0-9a-z]+)"`)
-)
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
