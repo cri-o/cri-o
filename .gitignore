@@ -19,6 +19,7 @@ coverprofile
 *gomock_reflect*
 lib/state.json
 result-*bin
+*_junit.xml
 
 ./Vagrantfile
 .vagrant/
