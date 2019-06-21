@@ -10,6 +10,8 @@ import (
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/pkg/storage"
+	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
+	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,14 +19,28 @@ import (
 
 // The actual test suite
 var _ = t.Describe("Runtime", func() {
+	var (
+		mockCtrl        *gomock.Controller
+		storeMock       *containerstoragemock.MockStore
+		imageServerMock *criostoragemock.MockImageServer
+	)
+
 	// The system under test
 	var sut storage.RuntimeServer
 
 	// Prepare the system under test and register a test name and key before
 	// each test
 	BeforeEach(func() {
+		// Setup the mocks
+		mockCtrl = gomock.NewController(GinkgoT())
+		storeMock = containerstoragemock.NewMockStore(mockCtrl)
+		imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
+
 		sut = storage.GetRuntimeService(context.Background(), imageServerMock)
 		Expect(sut).NotTo(BeNil())
+	})
+	AfterEach(func() {
+		mockCtrl.Finish()
 	})
 
 	// Mock helpers

@@ -10,10 +10,11 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/pkg/storage"
+	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 )
 
 // The actual test suite
@@ -25,11 +26,20 @@ var _ = t.Describe("Image", func() {
 		testSHA256    = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
 	)
 
+	var (
+		mockCtrl  *gomock.Controller
+		storeMock *containerstoragemock.MockStore
+	)
+
 	// The system under test
 	var sut storage.ImageServer
 
 	// Prepare the system under test
 	BeforeEach(func() {
+		// Setup the mocks
+		mockCtrl = gomock.NewController(GinkgoT())
+		storeMock = containerstoragemock.NewMockStore(mockCtrl)
+
 		var err error
 		sut, err = storage.GetImageService(
 			context.Background(), nil, storeMock, "",
@@ -37,6 +47,9 @@ var _ = t.Describe("Image", func() {
 		)
 		Expect(err).To(BeNil())
 		Expect(sut).NotTo(BeNil())
+	})
+	AfterEach(func() {
+		mockCtrl.Finish()
 	})
 
 	mockParseStoreReference := func() {
@@ -337,7 +350,6 @@ var _ = t.Describe("Image", func() {
 			mockGetRef()
 			gomock.InOrder(
 				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
-				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
 			)
 
 			// When
@@ -460,7 +472,6 @@ var _ = t.Describe("Image", func() {
 			// Given
 			mockGetRef()
 			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
 				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
 			)
 
@@ -612,7 +623,6 @@ var _ = t.Describe("Image", func() {
 			// Given
 			mockGetRef()
 			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
 				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
 			)
 
