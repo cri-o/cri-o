@@ -49,13 +49,7 @@ var _ = t.Describe("Runtime", func() {
 			mockParseStoreReference(storeMock, "imagename"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
-			mockResolveImage(storeMock, "docker.io/library/imagename:latest", "123"),
-			storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
-				Return(testManifest, nil),
-			storeMock.EXPECT().ListImageBigData(gomock.Any()).
-				Return([]string{""}, nil),
-			storeMock.EXPECT().ImageBigDataSize(gomock.Any(), gomock.Any()).
-				Return(int64(0), nil),
+			mockNewImage(storeMock, "docker.io/library/imagename:latest", "123"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -803,13 +797,14 @@ var _ = t.Describe("Runtime", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		It("should fail to create a container on image pull error", func() {
+		It("should fail to create a container on error accessing local image", func() {
 			// Given
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+				// storageReference.newImage:
 				mockResolveImage(storeMock, "docker.io/library/imagename:latest", "123"),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
@@ -847,17 +842,9 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().PullImage(gomock.Any(), "pauseimagename", expectedCopyOptions).Return(pulledRef, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "123"),
+				mockNewImage(storeMock, "docker.io/library/pauseimagename:latest", "nonempty"),
 
-				// ref.NewImage (resolveImage requires storeMock.Image() to return an object matching the input somewhat)
-				mockResolveImage(storeMock, "docker.io/library/pauseimagename:latest", "nonempty"),
-				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
-					Return(testManifest, nil),
-				storeMock.EXPECT().ListImageBigData(gomock.Any()).
-					Return([]string{""}, nil),
-				storeMock.EXPECT().ImageBigDataSize(gomock.Any(), gomock.Any()).
-					Return(int64(0), nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),

@@ -105,3 +105,24 @@ func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageNa
 			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}}, nil),
 	)
 }
+
+// containers/image/storage.storageImageSource.getSize
+func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mockSequence {
+	return inOrder(
+		storeMock.EXPECT().ListImageBigData(gomock.Any()).
+			Return([]string{""}, nil), // A single entry
+		storeMock.EXPECT().ImageBigDataSize(gomock.Any(), gomock.Any()).
+			Return(int64(0), nil),
+		// FIXME: This should also walk through the layer list and call store.Layer() on each, but we would have to mock the whole layer list.
+	)
+}
+
+// containers/image/storage.storageReference.newImage
+func mockNewImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockSequence {
+	return inOrder(
+		mockResolveImage(storeMock, expectedImageName, resolvedImageID),
+		storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
+			Return(testManifest, nil),
+		mockStorageImageSourceGetSize(storeMock),
+	)
+}
