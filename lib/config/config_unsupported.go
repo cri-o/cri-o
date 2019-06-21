@@ -1,6 +1,6 @@
 // +build !linux
 
-package lib
+package config
 
 func selinuxEnabled() bool {
 	return false

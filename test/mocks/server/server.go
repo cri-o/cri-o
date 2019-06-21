@@ -5,7 +5,7 @@
 package servermock
 
 import (
-	lib "github.com/cri-o/cri-o/lib"
+	config "github.com/cri-o/cri-o/lib/config"
 	server "github.com/cri-o/cri-o/server"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
@@ -49,10 +49,10 @@ func (mr *MockConfigIfaceMockRecorder) GetData() *gomock.Call {
 }
 
 // GetLibConfigIface mocks base method
-func (m *MockConfigIface) GetLibConfigIface() lib.ConfigIface {
+func (m *MockConfigIface) GetLibConfigIface() config.Iface {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLibConfigIface")
-	ret0, _ := ret[0].(lib.ConfigIface)
+	ret0, _ := ret[0].(config.Iface)
 	return ret0
 }
 

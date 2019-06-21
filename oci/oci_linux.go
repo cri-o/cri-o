@@ -28,8 +28,8 @@ func createConmonUnitName(name string) string {
 
 func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) {
 	// Move conmon to specified cgroup
-	if r.conmonCgroup == "pod" || r.conmonCgroup == "" {
-		if r.cgroupManager == SystemdCgroupsManager {
+	if r.config.ConmonCgroup == "pod" || r.config.ConmonCgroup == "" {
+		if r.config.CgroupManager == SystemdCgroupsManager {
 			logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createConmonUnitName(c.id))
 			if err := utils.RunUnderSystemdScope(pid, cgroupParent, createConmonUnitName(c.id)); err != nil {
 				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
@@ -52,9 +52,9 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 		}
-	} else if strings.HasSuffix(r.conmonCgroup, ".slice") {
-		logrus.Debugf("Running conmon under custom slice %s and unitName %s", r.conmonCgroup, createConmonUnitName(c.id))
-		if err := utils.RunUnderSystemdScope(pid, r.conmonCgroup, createConmonUnitName(c.id)); err != nil {
+	} else if strings.HasSuffix(r.config.ConmonCgroup, ".slice") {
+		logrus.Debugf("Running conmon under custom slice %s and unitName %s", r.config.ConmonCgroup, createConmonUnitName(c.id))
+		if err := utils.RunUnderSystemdScope(pid, r.config.ConmonCgroup, createConmonUnitName(c.id)); err != nil {
 			logrus.Warnf("Failed to add conmon to custom systemd sandbox cgroup: %v", err)
 		}
 	}

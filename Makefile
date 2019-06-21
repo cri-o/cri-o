@@ -242,7 +242,7 @@ testunit-bin:
 mockgen: \
 	mock-containerstorage \
 	mock-criostorage \
-	mock-lib \
+	mock-lib-config \
 	mock-oci \
 	mock-sandbox \
 	mock-server \
@@ -263,12 +263,12 @@ mock-criostorage: ${MOCKGEN}
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
 		github.com/cri-o/cri-o/pkg/storage ImageServer,RuntimeServer
 
-mock-lib: ${MOCKGEN}
+mock-lib-config: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
-		-package libmock \
+		-package libconfigmock \
 		-destination ${MOCK_PATH}/lib/lib.go \
-		github.com/cri-o/cri-o/lib ConfigIface
+		github.com/cri-o/cri-o/lib/config Iface
 
 mock-oci: ${MOCKGEN}
 	${MOCKGEN} \

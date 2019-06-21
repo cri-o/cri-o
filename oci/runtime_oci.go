@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/pkg/findprocess"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/docker/pkg/pools"
@@ -35,9 +36,6 @@ const (
 
 	// Command line flag used to specify the run root directory
 	rootFlag = "--root"
-
-	// default run root to be used for OCI runtime if it is not set by handler
-	defaultRunRoot = "/run/runc"
 )
 
 // runtimeOCI is the Runtime interface implementation relying on conmon to
@@ -50,8 +48,8 @@ type runtimeOCI struct {
 }
 
 // newRuntimeOCI creates a new runtimeOCI instance
-func newRuntimeOCI(r *Runtime, handler *RuntimeHandler) RuntimeImpl {
-	runRoot := defaultRunRoot
+func newRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeImpl {
+	runRoot := config.DefaultRuntimeRoot
 	if handler.RuntimeRoot != "" {
 		runRoot = handler.RuntimeRoot
 	}
@@ -86,10 +84,10 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	defer parentStartPipe.Close()
 
 	var args []string
-	if r.cgroupManager == SystemdCgroupsManager {
+	if r.config.CgroupManager == SystemdCgroupsManager {
 		args = append(args, "-s")
 	}
-	if r.cgroupManager == CgroupfsCgroupsManager {
+	if r.config.CgroupManager == CgroupfsCgroupsManager {
 		args = append(args, "--syslog")
 	}
 
@@ -101,17 +99,17 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 		"-b", c.bundlePath,
 		"-p", filepath.Join(c.bundlePath, "pidfile"),
 		"-l", c.logPath,
-		"--exit-dir", r.containerExitsDir,
-		"--socket-dir-path", r.containerAttachSocketDir,
+		"--exit-dir", r.config.ContainerExitsDir,
+		"--socket-dir-path", r.config.ContainerAttachSocketDir,
 		"--log-level", logrus.GetLevel().String(),
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
-	if r.logSizeMax >= 0 {
-		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
+	if r.config.LogSizeMax >= 0 {
+		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.config.LogSizeMax))
 	}
-	if r.logToJournald {
+	if r.config.LogToJournald {
 		args = append(args, "--log-path", "journald:")
 	}
-	if r.noPivot {
+	if r.config.NoPivot {
 		args = append(args, "--no-pivot")
 	}
 	if c.terminal {
@@ -124,9 +122,9 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	}
 	logrus.WithFields(logrus.Fields{
 		"args": args,
-	}).Debugf("running conmon: %s", r.conmonPath)
+	}).Debugf("running conmon: %s", r.config.Conmon)
 
-	cmd := exec.Command(r.conmonPath, args...)
+	cmd := exec.Command(r.config.Conmon, args...)
 	cmd.Dir = c.bundlePath
 	cmd.SysProcAttr = sysProcAttrPlatform()
 	cmd.Stdin = os.Stdin
@@ -137,7 +135,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	}
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = r.conmonEnv
+	cmd.Env = r.config.ConmonEnv
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("_OCI_SYNCPIPE=%d", 3),
 		fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
@@ -387,7 +385,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	}
 	args = append(args,
 		"-l", logPath,
-		"--socket-dir-path", r.containerAttachSocketDir,
+		"--socket-dir-path", r.config.ContainerAttachSocketDir,
 		"--log-level", logrus.GetLevel().String())
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
@@ -403,14 +401,14 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 		"--exec-process-spec", processFile.Name(),
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
-	cmd := exec.Command(r.conmonPath, args...)
+	cmd := exec.Command(r.config.Conmon, args...)
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = r.conmonEnv
+	cmd.Env = r.config.ConmonEnv
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
@@ -658,7 +656,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	}
 
 	if c.state.Status == ContainerStateStopped {
-		exitFilePath := filepath.Join(r.containerExitsDir, c.id)
+		exitFilePath := filepath.Join(r.config.ContainerExitsDir, c.id)
 		var fi os.FileInfo
 		err = kwait.ExponentialBackoff(
 			kwait.Backoff{
@@ -764,7 +762,7 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 		}
 	})
 
-	attachSocketPath := filepath.Join(r.containerAttachSocketDir, c.ID(), "attach")
+	attachSocketPath := filepath.Join(r.config.ContainerAttachSocketDir, c.ID(), "attach")
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
 	if err != nil {
 		return fmt.Errorf("failed to connect to container %s attach socket: %v", c.ID(), err)

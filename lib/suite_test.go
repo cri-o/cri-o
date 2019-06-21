@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/lib"
+	libconfig "github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	. "github.com/cri-o/cri-o/test/framework"
@@ -31,7 +32,7 @@ func TestLib(t *testing.T) {
 var (
 	t              *TestFramework
 	mockCtrl       *gomock.Controller
-	libMock        *libmock.MockConfigIface
+	libMock        *libmock.MockIface
 	storeMock      *containerstoragemock.MockStore
 	ociRuntimeMock *ocimock.MockRuntimeImpl
 	testManifest   []byte
@@ -45,9 +46,6 @@ var (
 const (
 	sandboxID   = "sandboxID"
 	containerID = "containerID"
-
-	validFilePath = "/bin/sh"
-	invalidPath   = "/wrong"
 )
 
 var _ = BeforeSuite(func() {
@@ -101,7 +99,7 @@ var _ = BeforeSuite(func() {
 
 	// Setup the mocks
 	mockCtrl = gomock.NewController(GinkgoT())
-	libMock = libmock.NewMockConfigIface(mockCtrl)
+	libMock = libmock.NewMockIface(mockCtrl)
 	storeMock = containerstoragemock.NewMockStore(mockCtrl)
 	ociRuntimeMock = ocimock.NewMockRuntimeImpl(mockCtrl)
 
@@ -125,7 +123,7 @@ func beforeEach() {
 	logrus.SetLevel(logrus.PanicLevel)
 
 	// Set the config
-	config, err := lib.DefaultConfig(nil)
+	config, err := libconfig.DefaultConfig(nil)
 	Expect(err).To(BeNil())
 	config.FileLocking = false
 	config.LogDir = "."

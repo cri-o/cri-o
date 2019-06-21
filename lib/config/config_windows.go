@@ -1,6 +1,6 @@
 // +build windows
 
-package lib
+package config
 
 import "github.com/cri-o/cri-o/oci"
 

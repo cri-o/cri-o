@@ -9,7 +9,7 @@ import (
 	"time"
 
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/lib"
+	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/server"
@@ -37,8 +37,8 @@ func TestServer(t *testing.T) {
 }
 
 var (
-	libConfig         *lib.Config
-	libMock           *libmock.MockConfigIface
+	libConfig         *config.Config
+	libMock           *libmock.MockIface
 	mockCtrl          *gomock.Controller
 	serverConfig      *server.Config
 	serverMock        *servermock.MockConfigIface
@@ -70,7 +70,7 @@ var _ = BeforeSuite(func() {
 
 	// Setup the mocks
 	mockCtrl = gomock.NewController(GinkgoT())
-	libMock = libmock.NewMockConfigIface(mockCtrl)
+	libMock = libmock.NewMockIface(mockCtrl)
 	storeMock = containerstoragemock.NewMockStore(mockCtrl)
 	serverMock = servermock.NewMockConfigIface(mockCtrl)
 	imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
@@ -155,7 +155,7 @@ var beforeEach = func() {
 	serverConfig.HooksDir = []string{emptyDir}
 
 	// Prepare the library config
-	libConfig, err = lib.DefaultConfig(nil)
+	libConfig, err = config.DefaultConfig(nil)
 	Expect(err).To(BeNil())
 	libConfig.FileLocking = false
 	libConfig.Runtimes["runc"] = serverConfig.Runtimes["runc"]
@@ -251,7 +251,7 @@ func createDummyState() {
 }
 
 func mockRuncInLibConfig() {
-	libConfig.Runtimes["runc"] = oci.RuntimeHandler{
+	libConfig.Runtimes["runc"] = config.RuntimeHandler{
 		RuntimePath: "/bin/echo",
 	}
 }

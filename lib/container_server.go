@@ -13,6 +13,7 @@ import (
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/registrar"
 	cstorage "github.com/containers/storage"
+	libconfig "github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
@@ -43,7 +44,7 @@ type ContainerServer struct {
 
 	stateLock sync.Locker
 	state     *containerServerState
-	config    *Config
+	config    *libconfig.Config
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -82,7 +83,7 @@ func (c *ContainerServer) PodIDIndex() *truncindex.TruncIndex {
 }
 
 // Config gets the configuration for the ContainerServer
-func (c *ContainerServer) Config() *Config {
+func (c *ContainerServer) Config() *libconfig.Config {
 	return c.config
 }
 
@@ -92,7 +93,7 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 }
 
 // New creates a new ContainerServer with options provided
-func New(ctx context.Context, systemContext *types.SystemContext, configIface ConfigIface) (*ContainerServer, error) {
+func New(ctx context.Context, systemContext *types.SystemContext, configIface libconfig.Iface) (*ContainerServer, error) {
 	if configIface == nil {
 		return nil, fmt.Errorf("provided config is nil")
 	}
@@ -103,7 +104,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface Co
 	config := configIface.GetData()
 
 	if config == nil {
-		return nil, fmt.Errorf("cannot create container server: ConfigIface is nil")
+		return nil, fmt.Errorf("cannot create container server: interface is nil")
 	}
 
 	imageService, err := storage.GetImageService(ctx, systemContext, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
@@ -113,7 +114,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface Co
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
 
-	runtime, err := oci.New(config.DefaultRuntime, config.Runtimes, config.Conmon, config.ConmonEnv, config.ConmonCgroup, config.CgroupManager, config.ContainerExitsDir, config.ContainerAttachSocketDir, config.LogSizeMax, config.LogToJournald, config.NoPivot, config.CtrStopTimeout)
+	runtime, err := oci.New(config)
 	if err != nil {
 		return nil, err
 	}

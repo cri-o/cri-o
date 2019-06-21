@@ -1,6 +1,6 @@
 // +build !windows
 
-package lib
+package config
 
 // Defaults for linux/unix if none are specified
 const (
