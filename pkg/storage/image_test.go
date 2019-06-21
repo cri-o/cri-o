@@ -60,8 +60,8 @@ var _ = t.Describe("Image", func() {
 		)
 	}
 
-	mockListImage := func() {
-		gomock.InOrder(
+	mockListImage := func() mockSequence {
+		return inOrder(
 			storeMock.EXPECT().Image(gomock.Any()).
 				Return(&cs.Image{ID: testImageName}, nil),
 			storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -262,8 +262,8 @@ var _ = t.Describe("Image", func() {
 	t.Describe("UntagImage", func() {
 		It("should succeed to untag an image", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: testImageName}, nil),
 				storeMock.EXPECT().Image(gomock.Any()).
@@ -290,8 +290,8 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to untag an image with invalid name", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
 			)
 
@@ -304,8 +304,8 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to untag an image with failed reference preparation", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: "otherImage"}, nil),
 			)
@@ -371,8 +371,8 @@ var _ = t.Describe("Image", func() {
 	t.Describe("ImageStatus", func() {
 		It("should succeed to get the image status with digest", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: testImageName,
 						Names: []string{"a@sha256:" + testSHA256,
@@ -386,9 +386,7 @@ var _ = t.Describe("Image", func() {
 					Return([]string{""}, nil),
 				storeMock.EXPECT().ImageBigDataSize(gomock.Any(), gomock.Any()).
 					Return(int64(0), nil),
-			)
-			mockListImage()
-			gomock.InOrder(
+				mockListImage(),
 				storeMock.EXPECT().ImageBigDataDigest(gomock.Any(), gomock.Any()).
 					Return(digest.Digest("a:"+testSHA256), nil),
 			)
@@ -413,8 +411,8 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to get on wrong store image", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
 			)
 
@@ -428,8 +426,8 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to get on wrong image search", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: testImageName}, nil),
 				storeMock.EXPECT().Image(gomock.Any()).
@@ -448,8 +446,8 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to get on wrong image config digest", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: testImageName}, nil),
 				storeMock.EXPECT().Image(gomock.Any()).
@@ -496,8 +494,8 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to list multiple images without filter", func() {
 			// Given
-			mockLoop := func() {
-				gomock.InOrder(
+			mockLoop := func() mockSequence {
+				return inOrder(
 					storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 						Return(testManifest, nil),
 					storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -517,12 +515,12 @@ var _ = t.Describe("Image", func() {
 						{ID: testSHA256}},
 					nil),
 				mockParseStoreReference(storeMock, "@"+testSHA256),
+				mockListImage(),
+				mockLoop(),
+				mockParseStoreReference(storeMock, "@"+testSHA256),
+				mockListImage(),
+				mockLoop(),
 			)
-			mockListImage()
-			mockLoop()
-			mockParseStoreReference(storeMock, "@"+testSHA256)
-			mockListImage()
-			mockLoop()
 
 			// When
 			res, err := sut.ListImages(&types.SystemContext{}, "")
@@ -534,13 +532,11 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to list images with filter", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: testImageName}, nil),
-			)
-			mockListImage()
-			gomock.InOrder(
+				mockListImage(),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
 				storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -564,8 +560,8 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to list images on wrong image retrieval", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
 			)
 
@@ -592,13 +588,11 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to list images with filter on wrong append cache", func() {
 			// Given
-			mockGetRef()
-			gomock.InOrder(
+			inOrder(
+				mockGetRef(),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: testImageName}, nil),
-			)
-			mockListImage()
-			gomock.InOrder(
+				mockListImage(),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
 			)
