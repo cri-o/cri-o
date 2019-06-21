@@ -259,54 +259,6 @@ var _ = t.Describe("Image", func() {
 		})
 	})
 
-	t.Describe("RemoveImage", func() {
-		It("should succeed to remove an image on first store ref", func() {
-			// Given
-			mockGetRef()
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-				storeMock.EXPECT().DeleteImage(gomock.Any(), gomock.Any()).
-					Return(nil, nil),
-			)
-
-			// When
-			err := sut.RemoveImage(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
-		It("should succeed to remove an image on second store ref", func() {
-			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).Return(nil, t.TestError),
-			)
-			mockGetRef()
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-				storeMock.EXPECT().DeleteImage(gomock.Any(), gomock.Any()).
-					Return(nil, nil),
-			)
-
-			// When
-			err := sut.RemoveImage(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
-		It("should fail to remove an image with invalid name", func() {
-			// Given
-			// When
-			err := sut.RemoveImage(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-	})
-
 	t.Describe("UntagImage", func() {
 		It("should succeed to untag an image", func() {
 			// Given

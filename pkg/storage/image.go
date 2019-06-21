@@ -95,8 +95,6 @@ type ImageServer interface {
 	// UntagImage removes a name from the specified image, and if it was
 	// the only name the image had, removes the image.
 	UntagImage(systemContext *types.SystemContext, imageName string) error
-	// RemoveImage deletes the specified image.
-	RemoveImage(systemContext *types.SystemContext, imageName string) error
 	// GetStore returns the reference to the storage library Store which
 	// the image server uses to hold images, and is the destination used
 	// when it's asked to pull an image.
@@ -476,14 +474,6 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 		}
 	}
 
-	return ref.DeleteImage(svc.ctx, systemContext)
-}
-
-func (svc *imageService) RemoveImage(systemContext *types.SystemContext, nameOrID string) error {
-	ref, err := svc.getRef(nameOrID)
-	if err != nil {
-		return err
-	}
 	return ref.DeleteImage(svc.ctx, systemContext)
 }
 
