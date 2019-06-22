@@ -34,7 +34,7 @@ github.com/blang/semver
 # github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 github.com/checkpoint-restore/go-criu/rpc
 github.com/checkpoint-restore/go-criu
-# github.com/containerd/cgroups v0.0.0-20180515175038-5e610833b720
+# github.com/containerd/cgroups v0.0.0-20190603164311-51b62d303d38
 github.com/containerd/cgroups
 # github.com/containerd/console v0.0.0-20170925154832-84eeaae905fa
 github.com/containerd/console

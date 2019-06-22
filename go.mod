@@ -9,7 +9,7 @@ require (
 	github.com/VividCortex/ewma v1.1.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b // indirect
-	github.com/containerd/cgroups v0.0.0-20180515175038-5e610833b720
+	github.com/containerd/cgroups v0.0.0-20190603164311-51b62d303d38
 	github.com/containerd/containerd v1.2.7
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
