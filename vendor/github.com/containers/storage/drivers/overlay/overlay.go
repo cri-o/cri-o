@@ -239,6 +239,8 @@ func parseOptions(options []string) (*overlayOptions, error) {
 		}
 		key = strings.ToLower(key)
 		switch key {
+		case ".override_kernel_check", "overlay.override_kernel_check", "overlay2.override_kernel_check":
+			logrus.Warnf("overlay: override_kernel_check option was specified, but is no longer necessary")
 		case ".mountopt", "overlay.mountopt", "overlay2.mountopt":
 			o.mountOptions = val
 		case ".size", "overlay.size", "overlay2.size":
@@ -318,6 +320,8 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		mergedDir := filepath.Join(layerDir, "merged")
 		lower1Dir := filepath.Join(layerDir, "lower1")
 		lower2Dir := filepath.Join(layerDir, "lower2")
+		upperDir := filepath.Join(layerDir, "upper")
+		workDir := filepath.Join(layerDir, "work")
 		defer func() {
 			// Permitted to fail, since the various subdirectories
 			// can be empty or not even there, and the home might
@@ -329,7 +333,9 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		_ = idtools.MkdirAs(mergedDir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(lower1Dir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(lower2Dir, 0700, rootUID, rootGID)
-		flags := fmt.Sprintf("lowerdir=%s:%s", lower1Dir, lower2Dir)
+		_ = idtools.MkdirAs(upperDir, 0700, rootUID, rootGID)
+		_ = idtools.MkdirAs(workDir, 0700, rootUID, rootGID)
+		flags := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s", lower1Dir, lower2Dir, upperDir, workDir)
 		if len(flags) < unix.Getpagesize() {
 			err := mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -339,7 +345,7 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 				logrus.Debugf("overlay test mount with multiple lowers failed %v", err)
 			}
 		}
-		flags = fmt.Sprintf("lowerdir=%s", lower1Dir)
+		flags = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lower1Dir, upperDir, workDir)
 		if len(flags) < unix.Getpagesize() {
 			err := mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -468,7 +474,15 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) (retErr
 func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) (retErr error) {
 	dir := d.dir(id)
 
-	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
+	uidMaps := d.uidMaps
+	gidMaps := d.gidMaps
+
+	if opts != nil && opts.IDMappings != nil {
+		uidMaps = opts.IDMappings.UIDs()
+		gidMaps = opts.IDMappings.GIDs()
+	}
+
+	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
 	if err != nil {
 		return err
 	}
@@ -849,7 +863,17 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 			mountProgram := exec.Command(d.options.mountProgram, "-o", label, target)
 			mountProgram.Dir = d.home
-			return mountProgram.Run()
+			var b bytes.Buffer
+			mountProgram.Stderr = &b
+			err := mountProgram.Run()
+			if err != nil {
+				output := b.String()
+				if output == "" {
+					output = "<stderr empty>"
+				}
+				return errors.Wrapf(err, "using mount program %s: %s", d.options.mountProgram, output)
+			}
+			return nil
 		}
 	} else if len(mountData) > pageSize {
 		//FIXME: We need to figure out to get this to work with additional stores

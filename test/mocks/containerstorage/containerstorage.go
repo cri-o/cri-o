@@ -409,6 +409,21 @@ func (mr *MockStoreMockRecorder) GIDMap() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GIDMap", reflect.TypeOf((*MockStore)(nil).GIDMap))
 }
 
+// GetDigestLock mocks base method
+func (m *MockStore) GetDigestLock(arg0 go_digest.Digest) (storage.Locker, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDigestLock", arg0)
+	ret0, _ := ret[0].(storage.Locker)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDigestLock indicates an expected call of GetDigestLock
+func (mr *MockStoreMockRecorder) GetDigestLock(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDigestLock", reflect.TypeOf((*MockStore)(nil).GetDigestLock), arg0)
+}
+
 // GraphDriver mocks base method
 func (m *MockStore) GraphDriver() (drivers.Driver, error) {
 	m.ctrl.T.Helper()
@@ -855,17 +870,17 @@ func (mr *MockStoreMockRecorder) SetContainerRunDirectoryFile(arg0, arg1, arg2 i
 }
 
 // SetImageBigData mocks base method
-func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte) error {
+func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte, arg3 func([]byte) (go_digest.Digest, error)) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetImageBigData", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetImageBigData", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetImageBigData indicates an expected call of SetImageBigData
-func (mr *MockStoreMockRecorder) SetImageBigData(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetImageBigData(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetImageBigData", reflect.TypeOf((*MockStore)(nil).SetImageBigData), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetImageBigData", reflect.TypeOf((*MockStore)(nil).SetImageBigData), arg0, arg1, arg2, arg3)
 }
 
 // SetMetadata mocks base method

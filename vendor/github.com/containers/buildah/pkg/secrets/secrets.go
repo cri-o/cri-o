@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/storage/pkg/idtools"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -117,7 +117,12 @@ func getMounts(filePath string) []string {
 	}
 	var mounts []string
 	for scanner.Scan() {
-		mounts = append(mounts, scanner.Text())
+		if strings.HasPrefix(strings.TrimSpace(scanner.Text()), "/") {
+			mounts = append(mounts, scanner.Text())
+		} else {
+			logrus.Debugf("skipping unrecognized mount in %v: %q",
+				filePath, scanner.Text())
+		}
 	}
 	return mounts
 }
@@ -132,12 +137,12 @@ func getMountsMap(path string) (string, string, error) {
 }
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-func SecretMounts(mountLabel, containerWorkingDir, mountFile string) []rspec.Mount {
-	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0)
+func SecretMounts(mountLabel, containerWorkingDir, mountFile string, rootless bool) []rspec.Mount {
+	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0, rootless)
 }
 
 // SecretMountsWithUIDGID specifies the uid/gid of the owner
-func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int) []rspec.Mount {
+func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int, rootless bool) []rspec.Mount {
 	var (
 		secretMounts []rspec.Mount
 		mountFiles   []string
@@ -147,17 +152,8 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	// Note for testing purposes only
 	if mountFile == "" {
 		mountFiles = append(mountFiles, []string{OverrideMountsFile, DefaultMountsFile}...)
-		if rootless.IsRootless() {
+		if rootless {
 			mountFiles = append([]string{UserOverrideMountsFile}, mountFiles...)
-			_, err := os.Stat(UserOverrideMountsFile)
-			if err != nil && os.IsNotExist(err) {
-				os.MkdirAll(filepath.Dir(UserOverrideMountsFile), 0755)
-				if f, err := os.Create(UserOverrideMountsFile); err != nil {
-					logrus.Warnf("could not create file %s: %v", UserOverrideMountsFile, err)
-				} else {
-					f.Close()
-				}
-			}
 		}
 	} else {
 		mountFiles = append(mountFiles, mountFile)
@@ -176,7 +172,7 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	// Add FIPS mode secret if /etc/system-fips exists on the host
 	_, err := os.Stat("/etc/system-fips")
 	if err == nil {
-		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir); err != nil {
+		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir, mountPrefix, mountLabel, uid, gid); err != nil {
 			logrus.Errorf("error adding FIPS mode secret to container: %v", err)
 		}
 	} else if os.IsNotExist(err) {
@@ -199,58 +195,79 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 	var mounts []rspec.Mount
 	defaultMountsPaths := getMounts(filePath)
 	for _, path := range defaultMountsPaths {
-		hostDir, ctrDir, err := getMountsMap(path)
+		hostDirOrFile, ctrDirOrFile, err := getMountsMap(path)
 		if err != nil {
 			return nil, err
 		}
-		// skip if the hostDir path doesn't exist
-		if _, err = os.Stat(hostDir); err != nil {
+		// skip if the hostDirOrFile path doesn't exist
+		fileInfo, err := os.Stat(hostDirOrFile)
+		if err != nil {
 			if os.IsNotExist(err) {
-				logrus.Warnf("Path %q from %q doesn't exist, skipping", hostDir, filePath)
+				logrus.Warnf("Path %q from %q doesn't exist, skipping", hostDirOrFile, filePath)
 				continue
 			}
-			return nil, errors.Wrapf(err, "failed to stat %q", hostDir)
+			return nil, errors.Wrapf(err, "failed to stat %q", hostDirOrFile)
 		}
 
-		ctrDirOnHost := filepath.Join(containerWorkingDir, ctrDir)
+		ctrDirOrFileOnHost := filepath.Join(containerWorkingDir, ctrDirOrFile)
 
-		// In the event of a restart, don't want to copy secrets over again as they already would exist in ctrDirOnHost
-		_, err = os.Stat(ctrDirOnHost)
+		// In the event of a restart, don't want to copy secrets over again as they already would exist in ctrDirOrFileOnHost
+		_, err = os.Stat(ctrDirOrFileOnHost)
 		if os.IsNotExist(err) {
-			if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
-				return nil, errors.Wrapf(err, "making container directory %q failed", ctrDirOnHost)
-			}
-			hostDir, err = resolveSymbolicLink(hostDir)
+
+			hostDirOrFile, err = resolveSymbolicLink(hostDirOrFile)
 			if err != nil {
 				return nil, err
 			}
 
-			data, err := getHostSecretData(hostDir)
-			if err != nil {
-				return nil, errors.Wrapf(err, "getting host secret data failed")
-			}
-			for _, s := range data {
-				if err := s.saveTo(ctrDirOnHost); err != nil {
-					return nil, errors.Wrapf(err, "error saving data to container filesystem on host %q", ctrDirOnHost)
+			switch mode := fileInfo.Mode(); {
+			case mode.IsDir():
+				if err = os.MkdirAll(ctrDirOrFileOnHost, 0755); err != nil {
+					return nil, errors.Wrapf(err, "making container directory %q failed", ctrDirOrFileOnHost)
 				}
+				data, err := getHostSecretData(hostDirOrFile)
+				if err != nil {
+					return nil, errors.Wrapf(err, "getting host secret data failed")
+				}
+				for _, s := range data {
+					if err := s.saveTo(ctrDirOrFileOnHost); err != nil {
+						return nil, errors.Wrapf(err, "error saving data to container filesystem on host %q", ctrDirOrFileOnHost)
+					}
+				}
+			case mode.IsRegular():
+				data, err := readFile("", hostDirOrFile)
+				if err != nil {
+					return nil, errors.Wrapf(err, "error reading file %q", hostDirOrFile)
+
+				}
+				for _, s := range data {
+					if err := os.MkdirAll(filepath.Dir(ctrDirOrFileOnHost), 0700); err != nil {
+						return nil, err
+					}
+					if err := ioutil.WriteFile(ctrDirOrFileOnHost, s.data, 0700); err != nil {
+						return nil, errors.Wrapf(err, "error saving data to container filesystem on host %q", ctrDirOrFileOnHost)
+					}
+				}
+			default:
+				return nil, errors.Errorf("unsupported file type for: %q", hostDirOrFile)
 			}
 
-			err = label.Relabel(ctrDirOnHost, mountLabel, false)
+			err = label.Relabel(ctrDirOrFileOnHost, mountLabel, false)
 			if err != nil {
 				return nil, errors.Wrap(err, "error applying correct labels")
 			}
 			if uid != 0 || gid != 0 {
-				if err := rchown(ctrDirOnHost, uid, gid); err != nil {
+				if err := rchown(ctrDirOrFileOnHost, uid, gid); err != nil {
 					return nil, err
 				}
 			}
 		} else if err != nil {
-			return nil, errors.Wrapf(err, "error getting status of %q", ctrDirOnHost)
+			return nil, errors.Wrapf(err, "error getting status of %q", ctrDirOrFileOnHost)
 		}
 
 		m := rspec.Mount{
-			Source:      filepath.Join(mountPrefix, ctrDir),
-			Destination: ctrDir,
+			Source:      filepath.Join(mountPrefix, ctrDirOrFile),
+			Destination: ctrDirOrFile,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},
 		}
@@ -264,12 +281,15 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 // root filesystem if /etc/system-fips exists on hosts.
 // This enables the container to be FIPS compliant and run openssl in
 // FIPS mode as the host is also in FIPS mode.
-func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error {
+func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPrefix, mountLabel string, uid, gid int) error {
 	secretsDir := "/run/secrets"
 	ctrDirOnHost := filepath.Join(containerWorkingDir, secretsDir)
 	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
-		if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
+		if err = idtools.MkdirAllAs(ctrDirOnHost, 0755, uid, gid); err != nil {
 			return errors.Wrapf(err, "making container directory on host failed")
+		}
+		if err = label.Relabel(ctrDirOnHost, mountLabel, false); err != nil {
+			return errors.Wrap(err, "error applying correct labels")
 		}
 	}
 	fipsFile := filepath.Join(ctrDirOnHost, "system-fips")
@@ -284,7 +304,7 @@ func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error 
 
 	if !mountExists(*mounts, secretsDir) {
 		m := rspec.Mount{
-			Source:      ctrDirOnHost,
+			Source:      filepath.Join(mountPrefix, secretsDir),
 			Destination: secretsDir,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},

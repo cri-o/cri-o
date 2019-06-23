@@ -1,10 +1,10 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -12,6 +12,7 @@ import (
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/firewall"
@@ -23,7 +24,6 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 // RuntimeStateStore is a constant indicating which state store implementation
@@ -101,12 +101,17 @@ type Runtime struct {
 	// unused.
 	doRenumber bool
 
+	doMigrate bool
+
 	// valid indicates whether the runtime is ready to use.
 	// valid is set to true when a runtime is returned from GetRuntime(),
 	// and remains true until the runtime is shut down (rendering its
 	// storage unusable). When valid is false, the runtime cannot be used.
 	valid bool
 	lock  sync.RWMutex
+
+	// mechanism to read and write even logs
+	eventer events.Eventer
 }
 
 // OCIRuntimePath contains information about an OCI runtime.
@@ -146,6 +151,8 @@ type RuntimeConfig struct {
 	OCIRuntime string `toml:"runtime"`
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
 	OCIRuntimes map[string][]string `toml:"runtimes"`
+	// RuntimeSupportsJSON is the list of the OCI runtimes that support --format=json
+	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
 	// RuntimePath is the path to OCI runtime binary for launching
 	// containers.
 	// The first path pointing to a valid file will be used
@@ -217,10 +224,17 @@ type RuntimeConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation"`
 	// EnableLabeling indicates wether libpod will support container labeling
 	EnableLabeling bool `toml:"label"`
+	// NetworkCmdPath is the path to the slirp4netns binary
+	NetworkCmdPath string `toml:"network_cmd_path"`
 
 	// NumLocks is the number of locks to make available for containers and
 	// pods.
 	NumLocks uint32 `toml:"num_locks,omitempty"`
+
+	// EventsLogger determines where events should be logged
+	EventsLogger string `toml:"events_logger"`
+	// EventsLogFilePath is where the events log is stored.
+	EventsLogFilePath string `toml:-"events_logfile_path"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -236,13 +250,24 @@ type runtimeConfiguredFrom struct {
 	libpodStaticDirSet    bool
 	libpodTmpDirSet       bool
 	volPathSet            bool
+	conmonPath            bool
+	conmonEnvVars         bool
+	initPath              bool
+	ociRuntimes           bool
+	runtimePath           bool
+	cniPluginDir          bool
+	noPivotRoot           bool
 }
 
-var (
-	defaultRuntimeConfig = RuntimeConfig{
+func defaultRuntimeConfig() (RuntimeConfig, error) {
+	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	if err != nil {
+		return RuntimeConfig{}, err
+	}
+	return RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
-		VolumePath:            filepath.Join(storage.DefaultStoreOptions.GraphRoot, "volumes"),
+		VolumePath:            filepath.Join(storeOpts.GraphRoot, "volumes"),
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
 		OCIRuntime:            "runc",
@@ -271,7 +296,7 @@ var (
 		},
 		InitPath:              DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
-		StaticDir:             filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
+		StaticDir:             filepath.Join(storeOpts.GraphRoot, "libpod"),
 		TmpDir:                "",
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
@@ -282,8 +307,9 @@ var (
 		EnablePortReservation: true,
 		EnableLabeling:        true,
 		NumLocks:              2048,
-	}
-)
+		EventsLogger:          events.DefaultEventerType.String(),
+	}, nil
+}
 
 func getDefaultTmpDir() (string, error) {
 	if !rootless.IsRootless() {
@@ -294,7 +320,17 @@ func getDefaultTmpDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(rootlessRuntimeDir, "libpod", "tmp"), nil
+	libpodRuntimeDir := filepath.Join(rootlessRuntimeDir, "libpod")
+
+	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
+		if !os.IsExist(err) {
+			return "", errors.Wrapf(err, "cannot mkdir %s", libpodRuntimeDir)
+		} else if err := os.Chmod(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
+			// The directory already exist, just set the sticky bit
+			return "", errors.Wrapf(err, "could not set sticky bit on %s", libpodRuntimeDir)
+		}
+	}
+	return filepath.Join(libpodRuntimeDir, "tmp"), nil
 }
 
 // SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
@@ -318,7 +354,23 @@ func SetXdgRuntimeDir(val string) error {
 
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
-func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
+func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime, err error) {
+	return newRuntimeFromConfig(ctx, "", options...)
+}
+
+// NewRuntimeFromConfig creates a new container runtime using the given
+// configuration file for its default configuration. Passed RuntimeOption
+// functions can be used to mutate this configuration further.
+// An error will be returned if the configuration file at the given path does
+// not exist or cannot be loaded
+func NewRuntimeFromConfig(ctx context.Context, userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
+	if userConfigPath == "" {
+		return nil, errors.New("invalid configuration file specified")
+	}
+	return newRuntimeFromConfig(ctx, userConfigPath, options...)
+}
+
+func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
 	runtime.configuredFrom = new(runtimeConfiguredFrom)
@@ -328,12 +380,19 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	if err != nil {
 		return nil, err
 	}
-	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
+
+	defRunConf, err := defaultRuntimeConfig()
+	if err != nil {
+		return nil, err
+	}
+	if err := JSONDeepCopy(defRunConf, runtime.config); err != nil {
+		return nil, errors.Wrapf(err, "error copying runtime default config")
+	}
 	runtime.config.TmpDir = tmpDir
 
-	storageConf, err := util.GetDefaultStoreOptions()
+	storageConf, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving rootless storage config")
+		return nil, errors.Wrapf(err, "error retrieving storage config")
 	}
 	runtime.config.StorageConfig = storageConf
 	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
@@ -353,11 +412,6 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 		rootlessConfigPath = filepath.Join(home, ".config/containers/libpod.conf")
 
-		configPath = rootlessConfigPath
-		if _, err := os.Stat(configPath); err != nil {
-			foundConfig = false
-		}
-
 		runtimeDir, err := util.GetRootlessRuntimeDir()
 		if err != nil {
 			return nil, err
@@ -365,11 +419,24 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 		// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
 		// So make sure the env variable is set.
-		err = SetXdgRuntimeDir(runtimeDir)
-		if err != nil {
+		if err := SetXdgRuntimeDir(runtimeDir); err != nil {
 			return nil, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 		}
 
+	}
+
+	if userConfigPath != "" {
+		configPath = userConfigPath
+		if _, err := os.Stat(configPath); err != nil {
+			// If the user specified a config file, we must fail immediately
+			// when it doesn't exist
+			return nil, errors.Wrapf(err, "cannot stat %s", configPath)
+		}
+	} else if rootless.IsRootless() {
+		configPath = rootlessConfigPath
+		if _, err := os.Stat(configPath); err != nil {
+			foundConfig = false
+		}
 	} else if _, err := os.Stat(OverrideConfigPath); err == nil {
 		// Use the override configuration path
 		configPath = OverrideConfigPath
@@ -405,6 +472,27 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if tmpConfig.VolumePath != "" {
 			runtime.configuredFrom.volPathSet = true
 		}
+		if tmpConfig.ConmonPath != nil {
+			runtime.configuredFrom.conmonPath = true
+		}
+		if tmpConfig.ConmonEnvVars != nil {
+			runtime.configuredFrom.conmonEnvVars = true
+		}
+		if tmpConfig.InitPath != "" {
+			runtime.configuredFrom.initPath = true
+		}
+		if tmpConfig.OCIRuntimes != nil {
+			runtime.configuredFrom.ociRuntimes = true
+		}
+		if tmpConfig.RuntimePath != nil {
+			runtime.configuredFrom.runtimePath = true
+		}
+		if tmpConfig.CNIPluginDir != nil {
+			runtime.configuredFrom.cniPluginDir = true
+		}
+		if tmpConfig.NoPivotRoot {
+			runtime.configuredFrom.noPivotRoot = true
+		}
 
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
@@ -424,12 +512,27 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			}
 
 			// Cherry pick the settings we want from the global configuration
-			runtime.config.ConmonPath = tmpConfig.ConmonPath
-			runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
-			runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
-			runtime.config.RuntimePath = tmpConfig.RuntimePath
-			runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
-			runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
+			if !runtime.configuredFrom.conmonPath {
+				runtime.config.ConmonPath = tmpConfig.ConmonPath
+			}
+			if !runtime.configuredFrom.conmonEnvVars {
+				runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
+			}
+			if !runtime.configuredFrom.initPath {
+				runtime.config.InitPath = tmpConfig.InitPath
+			}
+			if !runtime.configuredFrom.ociRuntimes {
+				runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
+			}
+			if !runtime.configuredFrom.runtimePath {
+				runtime.config.RuntimePath = tmpConfig.RuntimePath
+			}
+			if !runtime.configuredFrom.cniPluginDir {
+				runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
+			}
+			if !runtime.configuredFrom.noPivotRoot {
+				runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
+			}
 			break
 		}
 	}
@@ -440,83 +543,42 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			return nil, errors.Wrapf(err, "error configuring runtime")
 		}
 	}
-	if err := makeRuntime(runtime); err != nil {
-		return nil, err
-	}
-
-	if !foundConfig && rootlessConfigPath != "" {
-		os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
-		file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-		if err != nil && !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
+	if rootlessConfigPath != "" {
+		// storage.conf
+		storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
+		if err != nil {
+			return nil, err
 		}
-		if err == nil {
-			defer file.Close()
-			enc := toml.NewEncoder(file)
-			if err := enc.Encode(runtime.config); err != nil {
-				os.Remove(rootlessConfigPath)
+		if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
+			if err := util.WriteStorageConfigFile(&runtime.config.StorageConfig, storageConfFile); err != nil {
+				return nil, errors.Wrapf(err, "cannot write config file %s", storageConfFile)
+			}
+		}
+
+		if !foundConfig {
+			os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
+			file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+			if err != nil && !os.IsExist(err) {
+				return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
+			}
+			if err == nil {
+				defer file.Close()
+				enc := toml.NewEncoder(file)
+				if err := enc.Encode(runtime.config); err != nil {
+					os.Remove(rootlessConfigPath)
+				}
 			}
 		}
 	}
-
-	return runtime, nil
-}
-
-// NewRuntimeFromConfig creates a new container runtime using the given
-// configuration file for its default configuration. Passed RuntimeOption
-// functions can be used to mutate this configuration further.
-// An error will be returned if the configuration file at the given path does
-// not exist or cannot be loaded
-func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
-	runtime = new(Runtime)
-	runtime.config = new(RuntimeConfig)
-	runtime.configuredFrom = new(runtimeConfiguredFrom)
-
-	// Set three fields not in the TOML config
-	runtime.config.StateType = defaultRuntimeConfig.StateType
-	runtime.config.OCIRuntime = defaultRuntimeConfig.OCIRuntime
-	runtime.config.StorageConfig = storage.StoreOptions{}
-
-	tmpDir, err := getDefaultTmpDir()
-	if err != nil {
+	if err := makeRuntime(ctx, runtime); err != nil {
 		return nil, err
 	}
-	runtime.config.TmpDir = tmpDir
-
-	// Check to see if the given configuration file exists
-	if _, err := os.Stat(configPath); err != nil {
-		return nil, errors.Wrapf(err, "error checking existence of configuration file %s", configPath)
-	}
-
-	// Read contents of the config file
-	contents, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
-	}
-
-	// Decode configuration file
-	if _, err := toml.Decode(string(contents), runtime.config); err != nil {
-		return nil, errors.Wrapf(err, "error decoding configuration from file %s", configPath)
-	}
-
-	// Overwrite the config with user-given configuration options
-	for _, opt := range options {
-		if err := opt(runtime); err != nil {
-			return nil, errors.Wrapf(err, "error configuring runtime")
-		}
-	}
-
-	if err := makeRuntime(runtime); err != nil {
-		return nil, err
-	}
-
 	return runtime, nil
 }
 
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
-func makeRuntime(runtime *Runtime) (err error) {
-
+func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// Backward compatibility for `runtime_path`
 	if runtime.config.RuntimePath != nil {
 		// Don't print twice in rootless mode.
@@ -675,6 +737,8 @@ func makeRuntime(runtime *Runtime) (err error) {
 		runtime.config.VolumePath = dbConfig.VolumePath
 	}
 
+	runtime.config.EventsLogFilePath = filepath.Join(runtime.config.TmpDir, "events", "events.log")
+
 	logrus.Debugf("Using graph driver %s", runtime.config.StorageConfig.GraphDriverName)
 	logrus.Debugf("Using graph root %s", runtime.config.StorageConfig.GraphRoot)
 	logrus.Debugf("Using run root %s", runtime.config.StorageConfig.RunRoot)
@@ -695,13 +759,24 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	// Set up containers/storage
 	var store storage.Store
-	if rootless.SkipStorageSetup() {
+	if os.Geteuid() != 0 {
 		logrus.Debug("Not configuring container store")
 	} else {
 		store, err = storage.GetStore(runtime.config.StorageConfig)
 		if err != nil {
 			return err
 		}
+
+		defer func() {
+			if err != nil && store != nil {
+				// Don't forcibly shut down
+				// We could be opening a store in use by another libpod
+				_, err2 := store.Shutdown(false)
+				if err2 != nil {
+					logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
+				}
+			}
+		}()
 	}
 
 	runtime.store = store
@@ -709,24 +784,24 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	// Set up image runtime and store in runtime
 	ir := image.NewImageRuntimeFromStore(runtime.store)
-	if err != nil {
-		return err
-	}
 
 	runtime.imageRuntime = ir
 
 	// Setting signaturepolicypath
 	ir.SignaturePolicyPath = runtime.config.SignaturePolicyPath
-	defer func() {
-		if err != nil && store != nil {
-			// Don't forcibly shut down
-			// We could be opening a store in use by another libpod
-			_, err2 := store.Shutdown(false)
-			if err2 != nil {
-				logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
-			}
-		}
-	}()
+
+	// Set logfile path for events
+	ir.EventsLogFilePath = runtime.config.EventsLogFilePath
+	// Set logger type
+	ir.EventsLogger = runtime.config.EventsLogger
+
+	// Setup the eventer
+	eventer, err := runtime.newEventer()
+	if err != nil {
+		return err
+	}
+	runtime.eventer = eventer
+	ir.Eventer = eventer
 
 	// Set up a storage service for creating container root filesystems from
 	// images
@@ -749,12 +824,29 @@ func makeRuntime(runtime *Runtime) (err error) {
 		}
 	}
 
+	// Create events log dir
+	if err := os.MkdirAll(filepath.Dir(runtime.config.EventsLogFilePath), 0700); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating events dirs %s", filepath.Dir(runtime.config.EventsLogFilePath))
+		}
+	}
+
+	supportsJSON := false
+	for _, r := range runtime.config.RuntimeSupportsJSON {
+		if r == runtime.config.OCIRuntime {
+			supportsJSON = true
+			break
+		}
+	}
+
 	// Make an OCI runtime to perform container operations
 	ociRuntime, err := newOCIRuntime(runtime.ociRuntimePath,
 		runtime.conmonPath, runtime.config.ConmonEnvVars,
 		runtime.config.CgroupManager, runtime.config.TmpDir,
 		runtime.config.MaxLogSize, runtime.config.NoPivotRoot,
-		runtime.config.EnablePortReservation)
+		runtime.config.EnablePortReservation,
+		supportsJSON)
 	if err != nil {
 		return err
 	}
@@ -803,16 +895,33 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// TODO: we can't close the FD in this lock, so we should keep it around
 	// and use it to lock important operations
 	aliveLock.Lock()
-	locked := true
 	doRefresh := false
 	defer func() {
-		if locked {
+		if aliveLock.Locked() {
 			aliveLock.Unlock()
 		}
 	}()
 
 	_, err = os.Stat(runtimeAliveFile)
 	if err != nil {
+		// If we need to refresh, then it is safe to assume there are
+		// no containers running.  Create immediately a namespace, as
+		// we will need to access the storage.
+		if os.Geteuid() != 0 {
+			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
+			pausePid, err := util.GetRootlessPauseProcessPidPath()
+			if err != nil {
+				return errors.Wrapf(err, "could not get pause process pid file path")
+			}
+			became, ret, err := rootless.BecomeRootInUserNS(pausePid)
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+
+		}
 		// If the file doesn't exist, we need to refresh the state
 		// This will trigger on first use as well, but refreshing an
 		// empty state only creates a single file
@@ -834,7 +943,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 		if os.IsNotExist(errors.Cause(err)) {
 			manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to get new shm lock manager")
 			}
 		} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
 			logrus.Debugf("Number of locks does not match - removing old locks")
@@ -868,16 +977,8 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
 	if doRefresh {
-		if os.Geteuid() != 0 {
-			aliveLock.Unlock()
-			locked = false
-			if err2 := runtime.refreshRootless(); err2 != nil {
-				return err2
-			}
-		} else {
-			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
-				return err2
-			}
+		if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
+			return err2
 		}
 	}
 
@@ -885,24 +986,32 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// further
 	runtime.valid = true
 
+	if runtime.doMigrate {
+		if err := runtime.migrate(ctx); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 // GetConfig returns a copy of the configuration used by the runtime
-func (r *Runtime) GetConfig() *RuntimeConfig {
+func (r *Runtime) GetConfig() (*RuntimeConfig, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil
+		return nil, ErrRuntimeStopped
 	}
 
 	config := new(RuntimeConfig)
 
 	// Copy so the caller won't be able to modify the actual config
-	deepcopier.Copy(r.config).To(config)
+	if err := JSONDeepCopy(r.config, config); err != nil {
+		return nil, errors.Wrapf(err, "error copying config")
+	}
 
-	return config
+	return config, nil
 }
 
 // Shutdown shuts down the runtime and associated containers and storage
@@ -949,22 +1058,12 @@ func (r *Runtime) Shutdown(force bool) error {
 	return lastError
 }
 
-// Reconfigures the runtime after a reboot for a rootless process
-func (r *Runtime) refreshRootless() error {
-	// Take advantage of a command that requires a new userns
-	// so that we are running as the root user and able to use refresh()
-	cmd := exec.Command(os.Args[0], "info")
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrapf(err, "Error running %s info while refreshing state", os.Args[0])
-	}
-	return nil
-}
-
 // Reconfigures the runtime after a reboot
 // Refreshes the state, recreating temporary files
 // Does not check validity as the runtime is not valid until after this has run
 func (r *Runtime) refresh(alivePath string) error {
+	logrus.Debugf("Podman detected system restart - performing state refresh")
+
 	// First clear the state in the database
 	if err := r.state.Refresh(); err != nil {
 		return err
@@ -1005,6 +1104,8 @@ func (r *Runtime) refresh(alivePath string) error {
 	}
 	defer file.Close()
 
+	r.newSystemEvent(events.Refresh)
+
 	return nil
 }
 
@@ -1030,16 +1131,20 @@ func (r *Runtime) Info() ([]InfoData, error) {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
 	registries := make(map[string]interface{})
-	registries["registries"] = reg
-	info = append(info, InfoData{Type: "registries", Data: registries})
+	registries["search"] = reg
 
-	i, err := sysreg.GetInsecureRegistries()
+	ireg, err := sysreg.GetInsecureRegistries()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
-	insecureRegistries := make(map[string]interface{})
-	insecureRegistries["registries"] = i
-	info = append(info, InfoData{Type: "insecure registries", Data: insecureRegistries})
+	registries["insecure"] = ireg
+
+	breg, err := sysreg.GetBlockedRegistries()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting registries")
+	}
+	registries["blocked"] = breg
+	info = append(info, InfoData{Type: "registries", Data: registries})
 	return info, nil
 }
 

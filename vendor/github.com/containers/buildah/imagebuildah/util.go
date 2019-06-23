@@ -17,7 +17,7 @@ import (
 )
 
 func cloneToDirectory(url, dir string) error {
-	if !strings.HasPrefix(url, "git://") {
+	if !strings.HasPrefix(url, "git://") && !strings.HasSuffix(url, ".git") {
 		url = "git://" + url
 	}
 	logrus.Debugf("cloning %q to %q", url, dir)
@@ -72,7 +72,7 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	if err != nil {
 		return "", "", errors.Wrapf(err, "error creating temporary directory for %q", url)
 	}
-	if strings.HasPrefix(url, "git://") {
+	if strings.HasPrefix(url, "git://") || strings.HasSuffix(url, ".git") {
 		err = cloneToDirectory(url, name)
 		if err != nil {
 			if err2 := os.Remove(name); err2 != nil {
@@ -105,34 +105,21 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	return "", "", errors.Errorf("unreachable code reached")
 }
 
+func dedupeStringSlice(slice []string) []string {
+	done := make([]string, 0, len(slice))
+	m := make(map[string]struct{})
+	for _, s := range slice {
+		if _, present := m[s]; !present {
+			m[s] = struct{}{}
+			done = append(done, s)
+		}
+	}
+	return done
+}
+
 // InitReexec is a wrapper for buildah.InitReexec().  It should be called at
 // the start of main(), and if it returns true, main() should return
 // immediately.
 func InitReexec() bool {
 	return buildah.InitReexec()
-}
-
-// ReposToMap parses the specified repotags and returns a map with repositories
-// as keys and the corresponding arrays of tags as values.
-func ReposToMap(repotags []string) map[string][]string {
-	// map format is repo -> tag
-	repos := make(map[string][]string)
-	for _, repo := range repotags {
-		var repository, tag string
-		if strings.Contains(repo, ":") {
-			li := strings.LastIndex(repo, ":")
-			repository = repo[0:li]
-			tag = repo[li+1:]
-		} else if len(repo) > 0 {
-			repository = repo
-			tag = "<none>"
-		} else {
-			logrus.Warnf("Found image with empty name")
-		}
-		repos[repository] = append(repos[repository], tag)
-	}
-	if len(repos) == 0 {
-		repos["<none>"] = []string{"<none>"}
-	}
-	return repos
 }

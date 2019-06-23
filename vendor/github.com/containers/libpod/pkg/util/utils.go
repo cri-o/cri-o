@@ -3,18 +3,22 @@ package util
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	ouser "os/user"
 	"path/filepath"
 	"strings"
-	"syscall"
+	"sync"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -95,7 +99,10 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 			var st struct{}
 			exposedPorts[pair[1]] = st
 		case "ENV":
-			env = append(env, pair[1])
+			if len(pair) < 3 {
+				return v1.ImageConfig{}, errors.Errorf("no value given for environment variable %q", pair[1])
+			}
+			env = append(env, strings.Join(pair[1:], "="))
 		case "ENTRYPOINT":
 			entrypoint = append(entrypoint, pair[1])
 		case "CMD":
@@ -130,11 +137,59 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
-func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
+func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
 	options := storage.IDMappingOptions{
 		HostUIDMapping: true,
 		HostGIDMapping: true,
 	}
+
+	if mode.IsKeepID() {
+		if len(UIDMapSlice) > 0 || len(GIDMapSlice) > 0 {
+			return nil, errors.New("cannot specify custom mappings with --userns=keep-id")
+		}
+		if len(subUIDMap) > 0 || len(subGIDMap) > 0 {
+			return nil, errors.New("cannot specify subuidmap or subgidmap with --userns=keep-id")
+		}
+		if rootless.IsRootless() {
+			uid := rootless.GetRootlessUID()
+			gid := rootless.GetRootlessGID()
+
+			username := os.Getenv("USER")
+			if username == "" {
+				user, err := ouser.LookupId(fmt.Sprintf("%d", uid))
+				if err == nil {
+					username = user.Username
+				}
+			}
+			mappings, err := idtools.NewIDMappings(username, username)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot find mappings for user %s", username)
+			}
+			maxUID, maxGID := 0, 0
+			for _, u := range mappings.UIDs() {
+				maxUID += u.Size
+			}
+			for _, g := range mappings.GIDs() {
+				maxGID += g.Size
+			}
+
+			options.UIDMap, options.GIDMap = nil, nil
+
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: uid})
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
+
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: gid})
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
+
+			options.HostUIDMapping = false
+			options.HostGIDMapping = false
+		}
+		// Simply ignore the setting and do not setup an inner namespace for root as it is a no-op
+		return &options, nil
+	}
+
 	if subGIDMap == "" && subUIDMap != "" {
 		subGIDMap = subUIDMap
 	}
@@ -181,83 +236,10 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 	return &options, nil
 }
 
-// GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir() (string, error) {
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
-	if runtimeDir == "" {
-		tmpDir := filepath.Join("/run", "user", uid)
-		os.MkdirAll(tmpDir, 0700)
-		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
-			runtimeDir = tmpDir
-		}
-	}
-	if runtimeDir == "" {
-		tmpDir := filepath.Join(os.TempDir(), "user", uid)
-		os.MkdirAll(tmpDir, 0700)
-		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
-			runtimeDir = tmpDir
-		}
-	}
-	if runtimeDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return "", fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
-		}
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		runtimeDir = filepath.Join(resolvedHome, "rundir")
-	}
-	return runtimeDir, nil
-}
-
-// GetRootlessDirInfo returns the parent path of where the storage for containers and
-// volumes will be in rootless mode
-func GetRootlessDirInfo() (string, string, error) {
-	rootlessRuntime, err := GetRootlessRuntimeDir()
-	if err != nil {
-		return "", "", err
-	}
-
-	dataDir := os.Getenv("XDG_DATA_HOME")
-	if dataDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return "", "", fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
-		}
-		// runc doesn't like symlinks in the rootfs path, and at least
-		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		dataDir = filepath.Join(resolvedHome, ".local", "share")
-	}
-	return dataDir, rootlessRuntime, nil
-}
-
-// GetRootlessStorageOpts returns the storage opts for containers running as non root
-func GetRootlessStorageOpts() (storage.StoreOptions, error) {
-	var opts storage.StoreOptions
-
-	dataDir, rootlessRuntime, err := GetRootlessDirInfo()
-	if err != nil {
-		return opts, err
-	}
-	opts.RunRoot = rootlessRuntime
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
-		opts.GraphDriverName = "overlay"
-		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
-	} else {
-		opts.GraphDriverName = "vfs"
-	}
-	return opts, nil
-}
+var (
+	rootlessRuntimeDirOnce sync.Once
+	rootlessRuntimeDir     string
+)
 
 type tomlOptionsConfig struct {
 	MountProgram string `toml:"mount_program"`
@@ -288,62 +270,70 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 	return config
 }
 
-// GetDefaultStoreOptions returns the default storage ops for containers
-func GetDefaultStoreOptions() (storage.StoreOptions, error) {
-	var (
-		defaultRootlessRunRoot   string
-		defaultRootlessGraphRoot string
-		err                      error
-	)
-	storageOpts := storage.DefaultStoreOptions
-	if rootless.IsRootless() {
-		storageOpts, err = GetRootlessStorageOpts()
-		if err != nil {
-			return storageOpts, err
-		}
+// WriteStorageConfigFile writes the configuration to a file
+func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf string) error {
+	os.MkdirAll(filepath.Dir(storageConf), 0755)
+	file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open %s", storageConf)
 	}
-
-	storageConf := StorageConfigFile()
-	if _, err = os.Stat(storageConf); err == nil {
-		defaultRootlessRunRoot = storageOpts.RunRoot
-		defaultRootlessGraphRoot = storageOpts.GraphRoot
-		storageOpts = storage.StoreOptions{}
-		storage.ReloadConfigurationFile(storageConf, &storageOpts)
+	tomlConfiguration := getTomlStorage(storageOpts)
+	defer file.Close()
+	enc := toml.NewEncoder(file)
+	if err := enc.Encode(tomlConfiguration); err != nil {
+		os.Remove(storageConf)
+		return err
 	}
-
-	if rootless.IsRootless() {
-		if os.IsNotExist(err) {
-			os.MkdirAll(filepath.Dir(storageConf), 0755)
-			file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-			if err != nil {
-				return storageOpts, errors.Wrapf(err, "cannot open %s", storageConf)
-			}
-
-			tomlConfiguration := getTomlStorage(&storageOpts)
-			defer file.Close()
-			enc := toml.NewEncoder(file)
-			if err := enc.Encode(tomlConfiguration); err != nil {
-				os.Remove(storageConf)
-			}
-		} else if err == nil {
-			// If the file did not specify a graphroot or runroot,
-			// set sane defaults so we don't try and use root-owned
-			// directories
-			if storageOpts.RunRoot == "" {
-				storageOpts.RunRoot = defaultRootlessRunRoot
-			}
-			if storageOpts.GraphRoot == "" {
-				storageOpts.GraphRoot = defaultRootlessGraphRoot
-			}
-		}
-	}
-	return storageOpts, nil
+	return nil
 }
 
-// StorageConfigFile returns the path to the storage config file used
-func StorageConfigFile() string {
-	if rootless.IsRootless() {
-		return filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
+// ParseInputTime takes the users input and to determine if it is valid and
+// returns a time format and error.  The input is compared to known time formats
+// or a duration which implies no-duration
+func ParseInputTime(inputTime string) (time.Time, error) {
+	timeFormats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
+		"2006-01-02Z07:00", "2006-01-02"}
+	// iterate the supported time formats
+	for _, tf := range timeFormats {
+		t, err := time.Parse(tf, inputTime)
+		if err == nil {
+			return t, nil
+		}
 	}
-	return storage.DefaultConfigFile
+
+	// input might be a duration
+	duration, err := time.ParseDuration(inputTime)
+	if err != nil {
+		return time.Time{}, errors.Errorf("unable to interpret time value")
+	}
+	return time.Now().Add(-duration), nil
+}
+
+// GetGlobalOpts checks all global flags and generates the command string
+func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
+	globalFlags := map[string]bool{
+		"cgroup-manager": true, "cni-config-dir": true, "conmon": true, "default-mounts-file": true,
+		"hooks-dir": true, "namespace": true, "root": true, "runroot": true,
+		"runtime": true, "storage-driver": true, "storage-opt": true, "syslog": true,
+		"trace": true, "network-cmd-path": true, "config": true, "cpu-profile": true,
+		"log-level": true, "tmpdir": true}
+	const stringSliceType string = "stringSlice"
+
+	var optsCommand []string
+	c.PodmanCommand.Command.Flags().VisitAll(func(f *pflag.Flag) {
+		if !f.Changed {
+			return
+		}
+		if _, exist := globalFlags[f.Name]; exist {
+			if f.Value.Type() == stringSliceType {
+				flagValue := strings.TrimSuffix(strings.TrimPrefix(f.Value.String(), "["), "]")
+				for _, value := range strings.Split(flagValue, ",") {
+					optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, value))
+				}
+			} else {
+				optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, f.Value.String()))
+			}
+		}
+	})
+	return strings.Join(optsCommand, " ")
 }

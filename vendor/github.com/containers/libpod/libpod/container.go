@@ -10,13 +10,13 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/ulule/deepcopier"
 )
 
 // ContainerStatus represents the current state of a container
@@ -50,6 +50,15 @@ const CgroupfsDefaultCgroupParent = "/libpod_parent"
 // SystemdDefaultCgroupParent is the cgroup parent for the systemd cgroup
 // manager in libpod
 const SystemdDefaultCgroupParent = "machine.slice"
+
+// JournaldLogging is the string conmon expects to specify journald logging
+const JournaldLogging = "journald"
+
+// KubernetesLogging is the string conmon expects when specifying to use the kubernetes logging format
+const KubernetesLogging = "k8s-file"
+
+// JSONLogging is the string conmon expects when specifying to use the json logging format
+const JSONLogging = "json-file"
 
 // DefaultWaitInterval is the default interval between container status checks
 // while waiting.
@@ -102,6 +111,20 @@ func (ns LinuxNS) String() string {
 	}
 }
 
+// Valid restart policy types.
+const (
+	// RestartPolicyNone indicates that no restart policy has been requested
+	// by a container.
+	RestartPolicyNone = ""
+	// RestartPolicyNo is identical in function to RestartPolicyNone.
+	RestartPolicyNo = "no"
+	// RestartPolicyAlways unconditionally restarts the container.
+	RestartPolicyAlways = "always"
+	// RestartPolicyOnFailure restarts the container on non-0 exit code,
+	// with an optional maximum number of retries.
+	RestartPolicyOnFailure = "on-failure"
+)
+
 // Container is a single OCI container.
 // All operations on a Container that access state must begin with a call to
 // syncContainer().
@@ -112,7 +135,6 @@ func (ns LinuxNS) String() string {
 // assume that their callers handled this requirement. Generally speaking, if a
 // function takes the container lock and accesses any part of state, it should
 // syncContainer() immediately after locking.
-// ffjson: skip
 type Container struct {
 	config *ContainerConfig
 
@@ -138,7 +160,6 @@ type Container struct {
 
 // ContainerState contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
-// easyjson:json
 type ContainerState struct {
 	// The current state of the running container
 	State ContainerStatus `json:"state"`
@@ -146,18 +167,12 @@ type ContainerState struct {
 	ConfigPath string `json:"configPath,omitempty"`
 	// RunDir is a per-boot directory for container content
 	RunDir string `json:"runDir,omitempty"`
-	// DestinationRunDir is where the files in RunDir will be accessible for the container.
-	// It is different than RunDir when using userNS
-	DestinationRunDir string `json:"destinationRunDir,omitempty"`
 	// Mounted indicates whether the container's storage has been mounted
 	// for use
 	Mounted bool `json:"mounted,omitempty"`
 	// Mountpoint contains the path to the container's mounted storage as given
-	// by containers/storage.  It can be different than RealMountpoint when
-	// usernamespaces are used
+	// by containers/storage.
 	Mountpoint string `json:"mountPoint,omitempty"`
-	// RealMountpoint contains the path to the container's mounted storage
-	RealMountpoint string `json:"realMountPoint,omitempty"`
 	// StartedTime is the time the container was started
 	StartedTime time.Time `json:"startedTime,omitempty"`
 	// FinishedTime is the time the container finished executing
@@ -185,10 +200,16 @@ type ContainerState struct {
 	// This maps the path the file will be mounted to in the container to
 	// the path of the file on disk outside the container
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
-
-	// UserNSRoot is the directory used as root for the container when using
-	// user namespaces.
-	UserNSRoot string `json:"userNSRoot,omitempty"`
+	// StoppedByUser indicates whether the container was stopped by an
+	// explicit call to the Stop() API.
+	StoppedByUser bool `json:"stoppedByUser,omitempty"`
+	// RestartPolicyMatch indicates whether the conditions for restart
+	// policy have been met.
+	RestartPolicyMatch bool `json:"restartPolicyMatch,omitempty"`
+	// RestartCount is how many times the container was restarted by its
+	// restart policy. This is NOT incremented by normal container restarts
+	// (only by restart policy).
+	RestartCount uint `json:"restartCount,omitempty"`
 
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.
@@ -199,7 +220,6 @@ type ContainerState struct {
 }
 
 // ExecSession contains information on an active exec session
-// easyjson:json
 type ExecSession struct {
 	ID      string   `json:"id"`
 	Command []string `json:"command"`
@@ -209,7 +229,6 @@ type ExecSession struct {
 // ContainerConfig contains all information that was used to create the
 // container. It may not be changed once created.
 // It is stored, read-only, on disk
-// easyjson:json
 type ContainerConfig struct {
 	Spec *spec.Spec `json:"spec"`
 	ID   string     `json:"id"`
@@ -244,6 +263,8 @@ type ContainerConfig struct {
 	// These include the SHM mount.
 	// These must be unmounted before the container's rootfs is unmounted.
 	Mounts []string `json:"mounts,omitempty"`
+	// NamedVolumes lists the named volumes to mount into the container.
+	NamedVolumes []*ContainerNamedVolume `json:"namedVolumes,omitempty"`
 
 	// Security Config
 
@@ -292,6 +313,10 @@ type ContainerConfig struct {
 	// namespace
 	// These are not used unless CreateNetNS is true
 	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+	// UseImageResolvConf indicates that resolv.conf should not be
+	// bind-mounted inside the container.
+	// Conflicts with DNSServer, DNSSearch, DNSOption.
+	UseImageResolvConf bool
 	// DNS servers to use in container resolv.conf
 	// Will override servers in host resolv if set
 	DNSServer []net.IP `json:"dnsServer,omitempty"`
@@ -301,6 +326,10 @@ type ContainerConfig struct {
 	// DNS options to be set in container resolv.conf
 	// With override options in host resolv if set
 	DNSOption []string `json:"dnsOption,omitempty"`
+	// UseImageHosts indicates that /etc/hosts should not be
+	// bind-mounted inside the container.
+	// Conflicts with HostAdd.
+	UseImageHosts bool
 	// Hosts to add in container
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`
@@ -344,8 +373,21 @@ type ContainerConfig struct {
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
+	// LogDriver driver for logs
+	LogDriver string `json:"logDriver"`
 	// File containing the conmon PID
 	ConmonPidFile string `json:"conmonPidFile,omitempty"`
+	// RestartPolicy indicates what action the container will take upon
+	// exiting naturally.
+	// Allowed options are "no" (take no action), "on-failure" (restart on
+	// non-zero exit code, up an a maximum of RestartRetries times),
+	// and "always" (always restart the container on any exit code).
+	// The empty string is treated as the default ("no")
+	RestartPolicy string `json:"restart_policy,omitempty"`
+	// RestartRetries indicates the number of attempts that will be made to
+	// restart the container. Used only if RestartPolicy is set to
+	// "on-failure".
+	RestartRetries uint `json:"restart_retries,omitempty"`
 	// TODO log options for log drivers
 
 	PostConfigureNetNS bool `json:"postConfigureNetNS"`
@@ -356,15 +398,27 @@ type ContainerConfig struct {
 	// ExitCommand is the container's exit command.
 	// This Command will be executed when the container exits
 	ExitCommand []string `json:"exitCommand,omitempty"`
-	// LocalVolumes are the built-in volumes we get from the --volumes-from flag
-	// It picks up the built-in volumes of the container used by --volumes-from
-	LocalVolumes []spec.Mount
 	// IsInfra is a bool indicating whether this container is an infra container used for
 	// sharing kernel namespaces in a pod
 	IsInfra bool `json:"pause"`
 
 	// Systemd tells libpod to setup the container in systemd mode
 	Systemd bool `json:"systemd"`
+
+	// HealthCheckConfig has the health check command and related timings
+	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
+}
+
+// ContainerNamedVolume is a named volume that will be mounted into the
+// container. Each named volume is a libpod Volume present in the state.
+type ContainerNamedVolume struct {
+	// Name is the name of the volume to mount in.
+	// Must resolve to a valid volume present in this Podman.
+	Name string `json:"volumeName"`
+	// Dest is the mount's destination
+	Dest string `json:"dest"`
+	// Options are fstab style mount options
+	Options []string `json:"options,omitempty"`
 }
 
 // ContainerStatus returns a string representation for users
@@ -389,13 +443,38 @@ func (t ContainerStatus) String() string {
 	return "bad state"
 }
 
+// StringToContainerStatus converts a string representation of a containers
+// status into an actual container status type
+func StringToContainerStatus(status string) (ContainerStatus, error) {
+	switch status {
+	case ContainerStateUnknown.String():
+		return ContainerStateUnknown, nil
+	case ContainerStateConfigured.String():
+		return ContainerStateConfigured, nil
+	case ContainerStateCreated.String():
+		return ContainerStateCreated, nil
+	case ContainerStateRunning.String():
+		return ContainerStateRunning, nil
+	case ContainerStateStopped.String():
+		return ContainerStateStopped, nil
+	case ContainerStatePaused.String():
+		return ContainerStatePaused, nil
+	case ContainerStateExited.String():
+		return ContainerStateExited, nil
+	default:
+		return ContainerStateUnknown, errors.Wrapf(ErrInvalidArg, "unknown container state: %s", status)
+	}
+}
+
 // Config accessors
 // Unlocked
 
 // Config returns the configuration used to create the container
 func (c *Container) Config() *ContainerConfig {
 	returnConfig := new(ContainerConfig)
-	deepcopier.Copy(c.config).To(returnConfig)
+	if err := JSONDeepCopy(c.config, returnConfig); err != nil {
+		return nil
+	}
 
 	return returnConfig
 }
@@ -405,7 +484,9 @@ func (c *Container) Config() *ContainerConfig {
 // spec may differ slightly as mounts are added based on the image
 func (c *Container) Spec() *spec.Spec {
 	returnSpec := new(spec.Spec)
-	deepcopier.Copy(c.config.Spec).To(returnSpec)
+	if err := JSONDeepCopy(c.config.Spec, returnSpec); err != nil {
+		return nil
+	}
 
 	return returnSpec
 }
@@ -481,6 +562,22 @@ func (c *Container) ShmSize() int64 {
 // StaticDir returns the directory used to store persistent container files
 func (c *Container) StaticDir() string {
 	return c.config.StaticDir
+}
+
+// NamedVolumes returns the container's named volumes.
+// The name of each is guaranteed to point to a valid libpod Volume present in
+// the state.
+func (c *Container) NamedVolumes() []*ContainerNamedVolume {
+	volumes := []*ContainerNamedVolume{}
+	for _, vol := range c.config.NamedVolumes {
+		newVol := new(ContainerNamedVolume)
+		newVol.Name = vol.Name
+		newVol.Dest = vol.Dest
+		newVol.Options = vol.Options
+		volumes = append(volumes, newVol)
+	}
+
+	return volumes
 }
 
 // Privileged returns whether the container is privileged
@@ -559,7 +656,7 @@ func (c *Container) NewNetNS() bool {
 func (c *Container) PortMappings() ([]ocicni.PortMapping, error) {
 	// First check if the container belongs to a network namespace (like a pod)
 	if len(c.config.NetNsCtr) > 0 {
-		netNsCtr, err := c.runtime.LookupContainer(c.config.NetNsCtr)
+		netNsCtr, err := c.runtime.GetContainer(c.config.NetNsCtr)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to lookup network namespace for container %s", c.ID())
 		}
@@ -672,6 +769,22 @@ func (c *Container) CgroupParent() string {
 // in the runtime
 func (c *Container) LogPath() string {
 	return c.config.LogPath
+}
+
+// RestartPolicy returns the container's restart policy.
+func (c *Container) RestartPolicy() string {
+	return c.config.RestartPolicy
+}
+
+// RestartRetries returns the number of retries that will be attempted when
+// using the "on-failure" restart policy
+func (c *Container) RestartRetries() uint {
+	return c.config.RestartRetries
+}
+
+// LogDriver returns the log driver for this container
+func (c *Container) LogDriver() string {
+	return c.config.LogDriver
 }
 
 // RuntimeName returns the name of the runtime
@@ -948,6 +1061,21 @@ func (c *Container) BindMounts() (map[string]string, error) {
 	return newMap, nil
 }
 
+// StoppedByUser returns whether the container was last stopped by an explicit
+// call to the Stop() API, or whether it exited naturally.
+func (c *Container) StoppedByUser() (bool, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return false, err
+		}
+	}
+
+	return c.state.StoppedByUser, nil
+}
+
 // Misc Accessors
 // Most will require locking
 
@@ -1082,6 +1210,19 @@ func (c *Container) ContainerState() (*ContainerState, error) {
 		}
 	}
 	returnConfig := new(ContainerState)
-	deepcopier.Copy(c.state).To(returnConfig)
+	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
+		return nil, errors.Wrapf(err, "error copying container %s state", c.ID())
+	}
 	return c.state, nil
+}
+
+// HasHealthCheck returns bool as to whether there is a health check
+// defined for the container
+func (c *Container) HasHealthCheck() bool {
+	return c.config.HealthCheckConfig != nil
+}
+
+// HealthCheckConfig returns the command and timing attributes of the health check
+func (c *Container) HealthCheckConfig() *manifest.Schema2HealthConfig {
+	return c.config.HealthCheckConfig
 }

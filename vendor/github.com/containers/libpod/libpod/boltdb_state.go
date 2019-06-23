@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/boltdb/bolt"
+	bolt "github.com/etcd-io/bbolt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -382,6 +382,11 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			return err
 		}
 
+		namesBucket, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		nsBucket, err := getNSBucket(tx)
 		if err != nil {
 			return err
@@ -395,41 +400,59 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			// It might not be in our namespace, but
 			// getContainerFromDB() will handle that case.
 			id = []byte(idOrName)
-		} else {
-			// They did not give us a full container ID.
-			// Search for partial ID or full name matches
-			// Use else-if in case the name is set to a partial ID
-			exists := false
-			err = idBucket.ForEach(func(checkID, checkName []byte) error {
-				// If the container isn't in our namespace, we
-				// can't match it
-				if s.namespaceBytes != nil {
-					ns := nsBucket.Get(checkID)
-					if !bytes.Equal(ns, s.namespaceBytes) {
-						return nil
-					}
-				}
-				if string(checkName) == idOrName {
-					if exists {
-						return errors.Wrapf(ErrCtrExists, "more than one result for ID or name %s", idOrName)
-					}
-					id = checkID
-					exists = true
-				} else if strings.HasPrefix(string(checkID), idOrName) {
-					if exists {
-						return errors.Wrapf(ErrCtrExists, "more than one result for ID or name %s", idOrName)
-					}
-					id = checkID
-					exists = true
-				}
+			return s.getContainerFromDB(id, ctr, ctrBucket)
+		}
 
-				return nil
-			})
-			if err != nil {
-				return err
-			} else if !exists {
-				return errors.Wrapf(ErrNoSuchCtr, "no container with name or ID %s found", idOrName)
+		// Next, check if the full name was given
+		isPod := false
+		fullID := namesBucket.Get([]byte(idOrName))
+		if fullID != nil {
+			// The name exists and maps to an ID.
+			// However, we are not yet certain the ID is a
+			// container.
+			ctrExists = ctrBucket.Bucket(fullID)
+			if ctrExists != nil {
+				// A container bucket matching the full ID was
+				// found.
+				return s.getContainerFromDB(fullID, ctr, ctrBucket)
 			}
+			// Don't error if we have a name match but it's not a
+			// container - there's a chance we have a container with
+			// an ID starting with those characters.
+			// However, so we can return a good error, note whether
+			// this is a pod.
+			isPod = true
+		}
+
+		// We were not given a full container ID or name.
+		// Search for partial ID matches.
+		exists := false
+		err = idBucket.ForEach(func(checkID, checkName []byte) error {
+			// If the container isn't in our namespace, we
+			// can't match it
+			if s.namespaceBytes != nil {
+				ns := nsBucket.Get(checkID)
+				if !bytes.Equal(ns, s.namespaceBytes) {
+					return nil
+				}
+			}
+			if strings.HasPrefix(string(checkID), idOrName) {
+				if exists {
+					return errors.Wrapf(ErrCtrExists, "more than one result for container ID %s", idOrName)
+				}
+				id = checkID
+				exists = true
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		} else if !exists {
+			if isPod {
+				return errors.Wrapf(ErrNoSuchCtr, "%s is a pod, not a container", idOrName)
+			}
+			return errors.Wrapf(ErrNoSuchCtr, "no container with name or ID %s found", idOrName)
 		}
 
 		return s.getContainerFromDB(id, ctr, ctrBucket)
@@ -941,6 +964,11 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 			return err
 		}
 
+		namesBkt, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		nsBkt, err := getNSBucket(tx)
 		if err != nil {
 			return err
@@ -954,41 +982,56 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 			// It might not be in our namespace, but getPodFromDB()
 			// will handle that case.
 			id = []byte(idOrName)
-		} else {
-			// They did not give us a full pod ID.
-			// Search for partial ID or full name matches
-			// Use else-if in case the name is set to a partial ID
-			exists := false
-			err = idBucket.ForEach(func(checkID, checkName []byte) error {
-				// If the pod isn't in our namespace, we
-				// can't match it
-				if s.namespaceBytes != nil {
-					ns := nsBkt.Get(checkID)
-					if !bytes.Equal(ns, s.namespaceBytes) {
-						return nil
-					}
-				}
-				if string(checkName) == idOrName {
-					if exists {
-						return errors.Wrapf(ErrPodExists, "more than one result for ID or name %s", idOrName)
-					}
-					id = checkID
-					exists = true
-				} else if strings.HasPrefix(string(checkID), idOrName) {
-					if exists {
-						return errors.Wrapf(ErrPodExists, "more than one result for ID or name %s", idOrName)
-					}
-					id = checkID
-					exists = true
-				}
+			return s.getPodFromDB(id, pod, podBkt)
+		}
 
-				return nil
-			})
-			if err != nil {
-				return err
-			} else if !exists {
-				return errors.Wrapf(ErrNoSuchPod, "no pod with name or ID %s found", idOrName)
+		// Next, check if the full name was given
+		isCtr := false
+		fullID := namesBkt.Get([]byte(idOrName))
+		if fullID != nil {
+			// The name exists and maps to an ID.
+			// However, we aren't yet sure if the ID is a pod.
+			podExists = podBkt.Bucket(fullID)
+			if podExists != nil {
+				// A pod bucket matching the full ID was found.
+				return s.getPodFromDB(fullID, pod, podBkt)
 			}
+			// Don't error if we have a name match but it's not a
+			// pod - there's a chance we have a pod with an ID
+			// starting with those characters.
+			// However, so we can return a good error, note whether
+			// this is a container.
+			isCtr = true
+		}
+		// They did not give us a full pod name or ID.
+		// Search for partial ID matches.
+		exists := false
+		err = idBucket.ForEach(func(checkID, checkName []byte) error {
+			// If the pod isn't in our namespace, we
+			// can't match it
+			if s.namespaceBytes != nil {
+				ns := nsBkt.Get(checkID)
+				if !bytes.Equal(ns, s.namespaceBytes) {
+					return nil
+				}
+			}
+			if strings.HasPrefix(string(checkID), idOrName) {
+				if exists {
+					return errors.Wrapf(ErrPodExists, "more than one result for ID or name %s", idOrName)
+				}
+				id = checkID
+				exists = true
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		} else if !exists {
+			if isCtr {
+				return errors.Wrapf(ErrNoSuchPod, "%s is a container, not a pod", idOrName)
+			}
+			return errors.Wrapf(ErrNoSuchPod, "no pod with name or ID %s found", idOrName)
 		}
 
 		// We might have found a container ID, but it's OK
@@ -1315,56 +1358,6 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 	return err
 }
 
-// RemoveVolCtrDep updates the container dependencies sub bucket of the given volume.
-// It deletes it from the bucket when found.
-// This is important when force removing a volume and we want to get rid of the dependencies.
-func (s *BoltState) RemoveVolCtrDep(volume *Volume, ctrID string) error {
-	if ctrID == "" {
-		return nil
-	}
-
-	if !s.valid {
-		return ErrDBBadConfig
-	}
-
-	if !volume.valid {
-		return ErrVolumeRemoved
-	}
-
-	volName := []byte(volume.Name())
-
-	db, err := s.getDBCon()
-	if err != nil {
-		return err
-	}
-	defer s.closeDBCon(db)
-
-	err = db.Update(func(tx *bolt.Tx) error {
-		volBkt, err := getVolBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		volDB := volBkt.Bucket(volName)
-		if volDB == nil {
-			volume.valid = false
-			return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database", volume.Name())
-		}
-
-		// Make a subbucket for the containers using the volume
-		ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
-		depCtrID := []byte(ctrID)
-		if depExists := ctrDepsBkt.Get(depCtrID); depExists != nil {
-			if err := ctrDepsBkt.Delete(depCtrID); err != nil {
-				return errors.Wrapf(err, "error deleting container dependencies %q for volume %s in ctrDependencies bucket in DB", ctrID, volume.Name())
-			}
-		}
-
-		return nil
-	})
-	return err
-}
-
 // RemoveVolume removes the given volume from the state
 func (s *BoltState) RemoveVolume(volume *Volume) error {
 	if !s.valid {
@@ -1390,6 +1383,11 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 			return err
 		}
 
+		ctrBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// Check if the volume exists
 		volDB := volBkt.Bucket(volName)
 		if volDB == nil {
@@ -1405,6 +1403,18 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 		if volCtrsBkt != nil {
 			var deps []string
 			err = volCtrsBkt.ForEach(func(id, value []byte) error {
+				// Alright, this is ugly.
+				// But we need it to work around the change in
+				// volume dependency handling, to make sure that
+				// older Podman versions don't cause DB
+				// corruption.
+				// Look up all dependencies and see that they
+				// still exist before appending.
+				ctrExists := ctrBkt.Bucket(id)
+				if ctrExists == nil {
+					return nil
+				}
+
 				deps = append(deps, string(id))
 				return nil
 			})
@@ -1586,6 +1596,11 @@ func (s *BoltState) VolumeInUse(volume *Volume) ([]string, error) {
 			return err
 		}
 
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		volDB := volBucket.Bucket([]byte(volume.Name()))
 		if volDB == nil {
 			volume.valid = false
@@ -1599,6 +1614,13 @@ func (s *BoltState) VolumeInUse(volume *Volume) ([]string, error) {
 
 		// Iterate through and add dependencies
 		err = dependsBkt.ForEach(func(id, value []byte) error {
+			// Look up all dependencies and see that they
+			// still exist before appending.
+			ctrExists := ctrBucket.Bucket(id)
+			if ctrExists == nil {
+				return nil
+			}
+
 			depCtrs = append(depCtrs, string(id))
 
 			return nil

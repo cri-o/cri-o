@@ -10,7 +10,6 @@ type Volume struct {
 }
 
 // VolumeConfig holds the volume's config information
-//easyjson:json
 type VolumeConfig struct {
 	// Name of the volume
 	Name string `json:"name"`
@@ -21,6 +20,8 @@ type VolumeConfig struct {
 	Options       map[string]string `json:"options"`
 	Scope         string            `json:"scope"`
 	IsCtrSpecific bool              `json:"ctrSpecific"`
+	UID           int               `json:"uid"`
+	GID           int               `json:"gid"`
 }
 
 // Name retrieves the volume's name

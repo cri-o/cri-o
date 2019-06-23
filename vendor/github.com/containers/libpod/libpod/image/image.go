@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -22,14 +23,14 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/libpod/common"
 	"github.com/containers/libpod/libpod/driver"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opentracing/opentracing-go"
@@ -64,6 +65,19 @@ type Image struct {
 type Runtime struct {
 	store               storage.Store
 	SignaturePolicyPath string
+	EventsLogFilePath   string
+	EventsLogger        string
+	Eventer             events.Eventer
+}
+
+// InfoImage keep information of Image along with all associated layers
+type InfoImage struct {
+	// ID of image
+	ID string
+	// Tags of image
+	Tags []string
+	// Layers stores all layers of image.
+	Layers []LayerInfo
 }
 
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
@@ -195,7 +209,7 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 		newImage.image = img
 		newImages = append(newImages, &newImage)
 	}
-
+	ir.newImageEvent(events.LoadFromArchive, "")
 	return newImages, nil
 }
 
@@ -341,20 +355,21 @@ func (i *Image) TopLayer() string {
 // outside the context of images
 // TODO: the force param does nothing as of now. Need to move container
 // handling logic here eventually.
-func (i *Image) Remove(force bool) error {
-	parent, err := i.GetParent()
+func (i *Image) Remove(ctx context.Context, force bool) error {
+	parent, err := i.GetParent(ctx)
 	if err != nil {
 		return err
 	}
 	if _, err := i.imageruntime.store.DeleteImage(i.ID(), true); err != nil {
 		return err
 	}
+	i.newImageEvent(events.Remove)
 	for parent != nil {
-		nextParent, err := parent.GetParent()
+		nextParent, err := parent.GetParent(ctx)
 		if err != nil {
 			return err
 		}
-		children, err := parent.GetChildren()
+		children, err := parent.GetChildren(ctx)
 		if err != nil {
 			return err
 		}
@@ -494,6 +509,7 @@ func (i *Image) TagImage(tag string) error {
 		return err
 	}
 	i.reloadImage()
+	defer i.newImageEvent(events.Tag)
 	return nil
 }
 
@@ -514,6 +530,7 @@ func (i *Image) UntagImage(tag string) error {
 		return err
 	}
 	i.reloadImage()
+	defer i.newImageEvent(events.Untag)
 	return nil
 }
 
@@ -543,6 +560,7 @@ func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination
 // PushImageToReference pushes the given image to a location described by the given path
 func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
+	sc.BlobInfoCacheDir = filepath.Join(i.imageruntime.store.GraphRoot(), "cache")
 
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
@@ -562,6 +580,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return errors.Wrapf(err, "Error copying image to the remote destination")
 	}
+	defer i.newImageEvent(events.Push)
 	return nil
 }
 
@@ -640,7 +659,7 @@ func (i *Image) Size(ctx context.Context) (*uint64, error) {
 }
 
 // DriverData gets the driver data from the store on a layer
-func (i *Image) DriverData() (*inspect.Data, error) {
+func (i *Image) DriverData() (*driver.Data, error) {
 	topLayer, err := i.Layer()
 	if err != nil {
 		return nil, err
@@ -662,7 +681,8 @@ type History struct {
 	Comment   string     `json:"comment"`
 }
 
-// History gets the history of an image and information about its layers
+// History gets the history of an image and the IDs of images that are part of
+// its history
 func (i *Image) History(ctx context.Context) ([]*History, error) {
 	img, err := i.toImageRef(ctx)
 	if err != nil {
@@ -673,31 +693,92 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 		return nil, err
 	}
 
-	// Get the IDs of the images making up the history layers
-	// if the images exist locally in the store
+	// Use our layers list to find images that use one of them as its
+	// topmost layer.
+	interestingLayers := make(map[string]bool)
+	layer, err := i.imageruntime.store.Layer(i.TopLayer())
+	if err != nil {
+		return nil, err
+	}
+	for layer != nil {
+		interestingLayers[layer.ID] = true
+		if layer.Parent == "" {
+			break
+		}
+		layer, err = i.imageruntime.store.Layer(layer.Parent)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Get the IDs of the images that share some of our layers.  Hopefully
+	// this step means that we'll be able to avoid reading the
+	// configuration of every single image in local storage later on.
 	images, err := i.imageruntime.GetImages()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting images from store")
 	}
-	imageIDs := []string{i.ID()}
-	if err := i.historyLayerIDs(i.TopLayer(), images, &imageIDs); err != nil {
-		return nil, errors.Wrap(err, "error getting image IDs for layers in history")
+	interestingImages := make([]*Image, 0, len(images))
+	for i := range images {
+		if interestingLayers[images[i].TopLayer()] {
+			interestingImages = append(interestingImages, images[i])
+		}
+	}
+
+	// Build a list of image IDs that correspond to our history entries.
+	historyImages := make([]*Image, len(oci.History))
+	if len(oci.History) > 0 {
+		// The starting image shares its whole history with itself.
+		historyImages[len(historyImages)-1] = i
+		for i := range interestingImages {
+			image, err := images[i].ociv1Image(ctx)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error getting image configuration for image %q", images[i].ID())
+			}
+			// If the candidate has a longer history or no history
+			// at all, then it doesn't share the portion of our
+			// history that we're interested in matching with other
+			// images.
+			if len(image.History) == 0 || len(image.History) > len(historyImages) {
+				continue
+			}
+			// If we don't include all of the layers that the
+			// candidate image does (i.e., our rootfs didn't look
+			// like its rootfs at any point), then it can't be part
+			// of our history.
+			if len(image.RootFS.DiffIDs) > len(oci.RootFS.DiffIDs) {
+				continue
+			}
+			candidateLayersAreUsed := true
+			for i := range image.RootFS.DiffIDs {
+				if image.RootFS.DiffIDs[i] != oci.RootFS.DiffIDs[i] {
+					candidateLayersAreUsed = false
+					break
+				}
+			}
+			if !candidateLayersAreUsed {
+				continue
+			}
+			// If the candidate's entire history is an initial
+			// portion of our history, then we're based on it,
+			// either directly or indirectly.
+			sharedHistory := historiesMatch(oci.History, image.History)
+			if sharedHistory == len(image.History) {
+				historyImages[sharedHistory-1] = images[i]
+			}
+		}
 	}
 
 	var (
-		imageID    string
-		imgIDCount = 0
 		size       int64
 		sizeCount  = 1
 		allHistory []*History
 	)
 
 	for i := len(oci.History) - 1; i >= 0; i-- {
-		if imgIDCount < len(imageIDs) {
-			imageID = imageIDs[imgIDCount]
-			imgIDCount++
-		} else {
-			imageID = "<missing>"
+		imageID := "<missing>"
+		if historyImages[i] != nil {
+			imageID = historyImages[i].ID()
 		}
 		if !oci.History[i].EmptyLayer {
 			size = img.LayerInfos()[len(img.LayerInfos())-sizeCount].Size
@@ -711,7 +792,6 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 			Comment:   oci.History[i].Comment,
 		})
 	}
-
 	return allHistory, nil
 }
 
@@ -904,7 +984,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 		return nil, errors.Wrapf(err, "error updating image config")
 	}
 
-	sc := common.GetSystemContext("", "", false)
+	sc := GetSystemContext("", "", false)
 
 	// if reference not given, get the image digest
 	if reference == "" {
@@ -927,7 +1007,11 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 	if err != nil {
 		return nil, err
 	}
-	return ir.NewFromLocal(reference)
+	newImage, err := ir.NewFromLocal(reference)
+	if err == nil {
+		defer newImage.newImageEvent(events.Import)
+	}
+	return newImage, err
 }
 
 // MatchRepoTag takes a string and tries to match it against an
@@ -986,26 +1070,110 @@ func splitString(input string) string {
 // IsParent goes through the layers in the store and checks if i.TopLayer is
 // the parent of any other layer in store. Double check that image with that
 // layer exists as well.
-func (i *Image) IsParent() (bool, error) {
-	children, err := i.GetChildren()
+func (i *Image) IsParent(ctx context.Context) (bool, error) {
+	children, err := i.getChildren(ctx, 1)
 	if err != nil {
 		return false, err
 	}
 	return len(children) > 0, nil
 }
 
+// historiesMatch returns the number of entries in the histories which have the
+// same contents
+func historiesMatch(a, b []imgspecv1.History) int {
+	i := 0
+	for i < len(a) && i < len(b) {
+		if a[i].Created != nil && b[i].Created == nil {
+			return i
+		}
+		if a[i].Created == nil && b[i].Created != nil {
+			return i
+		}
+		if a[i].Created != nil && b[i].Created != nil {
+			if !a[i].Created.Equal(*(b[i].Created)) {
+				return i
+			}
+		}
+		if a[i].CreatedBy != b[i].CreatedBy {
+			return i
+		}
+		if a[i].Author != b[i].Author {
+			return i
+		}
+		if a[i].Comment != b[i].Comment {
+			return i
+		}
+		if a[i].EmptyLayer != b[i].EmptyLayer {
+			return i
+		}
+		i++
+	}
+	return i
+}
+
+// areParentAndChild checks diff ID and history in the two images and return
+// true if the second should be considered to be directly based on the first
+func areParentAndChild(parent, child *imgspecv1.Image) bool {
+	// the child and candidate parent should share all of the
+	// candidate parent's diff IDs, which together would have
+	// controlled which layers were used
+	if len(parent.RootFS.DiffIDs) > len(child.RootFS.DiffIDs) {
+		return false
+	}
+	childUsesCandidateDiffs := true
+	for i := range parent.RootFS.DiffIDs {
+		if child.RootFS.DiffIDs[i] != parent.RootFS.DiffIDs[i] {
+			childUsesCandidateDiffs = false
+			break
+		}
+	}
+	if !childUsesCandidateDiffs {
+		return false
+	}
+	// the child should have the same history as the parent, plus
+	// one more entry
+	if len(parent.History)+1 != len(child.History) {
+		return false
+	}
+	if historiesMatch(parent.History, child.History) != len(parent.History) {
+		return false
+	}
+	return true
+}
+
 // GetParent returns the image ID of the parent. Return nil if a parent is not found.
-func (i *Image) GetParent() (*Image, error) {
+func (i *Image) GetParent(ctx context.Context) (*Image, error) {
 	images, err := i.imageruntime.GetImages()
 	if err != nil {
 		return nil, err
 	}
-	layer, err := i.imageruntime.store.Layer(i.TopLayer())
+	childLayer, err := i.imageruntime.store.Layer(i.TopLayer())
+	if err != nil {
+		return nil, err
+	}
+	// fetch the configuration for the child image
+	child, err := i.ociv1Image(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, img := range images {
-		if img.TopLayer() == layer.Parent {
+		if img.ID() == i.ID() {
+			continue
+		}
+		candidateLayer := img.TopLayer()
+		// as a child, our top layer is either the candidate parent's
+		// layer, or one that's derived from it, so skip over any
+		// candidate image where we know that isn't the case
+		if candidateLayer != childLayer.Parent && candidateLayer != childLayer.ID {
+			continue
+		}
+		// fetch the configuration for the candidate image
+		candidate, err := img.ociv1Image(ctx)
+		if err != nil {
+			return nil, err
+		}
+		// compare them
+		if areParentAndChild(candidate, child) {
 			return img, nil
 		}
 	}
@@ -1013,36 +1181,53 @@ func (i *Image) GetParent() (*Image, error) {
 }
 
 // GetChildren returns a list of the imageIDs that depend on the image
-func (i *Image) GetChildren() ([]string, error) {
+func (i *Image) GetChildren(ctx context.Context) ([]string, error) {
+	return i.getChildren(ctx, 0)
+}
+
+// getChildren returns a list of at most "max" imageIDs that depend on the image
+func (i *Image) getChildren(ctx context.Context, max int) ([]string, error) {
 	var children []string
 	images, err := i.imageruntime.GetImages()
 	if err != nil {
 		return nil, err
 	}
-	layers, err := i.imageruntime.store.Layers()
+
+	// fetch the configuration for the parent image
+	parent, err := i.ociv1Image(ctx)
 	if err != nil {
 		return nil, err
 	}
+	parentLayer := i.TopLayer()
 
-	for _, layer := range layers {
-		if layer.Parent == i.TopLayer() {
-			if imageID := getImageOfTopLayer(images, layer.ID); len(imageID) > 0 {
-				children = append(children, imageID...)
-			}
+	for _, img := range images {
+		if img.ID() == i.ID() {
+			continue
+		}
+		candidateLayer, err := img.Layer()
+		if err != nil {
+			return nil, err
+		}
+		// if this image's top layer is not our top layer, and is not
+		// based on our top layer, we can skip it
+		if candidateLayer.Parent != parentLayer && candidateLayer.ID != parentLayer {
+			continue
+		}
+		// fetch the configuration for the candidate image
+		candidate, err := img.ociv1Image(ctx)
+		if err != nil {
+			return nil, err
+		}
+		// compare them
+		if areParentAndChild(parent, candidate) {
+			children = append(children, img.ID())
+		}
+		// if we're not building an exhaustive list, maybe we're done?
+		if max > 0 && len(children) >= max {
+			break
 		}
 	}
 	return children, nil
-}
-
-// getImageOfTopLayer returns the image ID where layer is the top layer of the image
-func getImageOfTopLayer(images []*Image, layer string) []string {
-	var matches []string
-	for _, img := range images {
-		if img.TopLayer() == layer {
-			matches = append(matches, img.ID())
-		}
-	}
-	return matches
 }
 
 // InputIsID returns a bool if the user input for an image
@@ -1143,11 +1328,145 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 		}
 	}
 	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
-		if err2 := os.Remove(output); err2 != nil {
-			logrus.Errorf("error deleting %q: %v", output, err)
-		}
 		return errors.Wrapf(err, "unable to save %q", source)
 	}
+	defer i.newImageEvent(events.Save)
+	return nil
+}
 
+// GetConfigBlob returns a schema2image.  If the image is not a schema2, then
+// it will return an error
+func (i *Image) GetConfigBlob(ctx context.Context) (*manifest.Schema2Image, error) {
+	imageRef, err := i.toImageRef(ctx)
+	if err != nil {
+		return nil, err
+	}
+	b, err := imageRef.ConfigBlob(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to get config blob for %s", i.ID())
+	}
+	blob := manifest.Schema2Image{}
+	if err := json.Unmarshal(b, &blob); err != nil {
+		return nil, errors.Wrapf(err, "unable to parse image blob for %s", i.ID())
+	}
+	return &blob, nil
+
+}
+
+// GetHealthCheck returns a HealthConfig for an image.  This function only works with
+// schema2 images.
+func (i *Image) GetHealthCheck(ctx context.Context) (*manifest.Schema2HealthConfig, error) {
+	configBlob, err := i.GetConfigBlob(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return configBlob.ContainerConfig.Healthcheck, nil
+}
+
+// newImageEvent creates a new event based on an image
+func (ir *Runtime) newImageEvent(status events.Status, name string) {
+	e := events.NewEvent(status)
+	e.Type = events.Image
+	e.Name = name
+	if err := ir.Eventer.Write(e); err != nil {
+		logrus.Infof("unable to write event to %s", ir.EventsLogFilePath)
+	}
+}
+
+// newImageEvent creates a new event based on an image
+func (i *Image) newImageEvent(status events.Status) {
+	e := events.NewEvent(status)
+	e.ID = i.ID()
+	e.Type = events.Image
+	if len(i.Names()) > 0 {
+		e.Name = i.Names()[0]
+	}
+	if err := i.imageruntime.Eventer.Write(e); err != nil {
+		logrus.Infof("unable to write event to %s", i.imageruntime.EventsLogFilePath)
+	}
+}
+
+// LayerInfo keeps information of single layer
+type LayerInfo struct {
+	// Layer ID
+	ID string
+	// Parent ID of current layer.
+	ParentID string
+	// ChildID of current layer.
+	// there can be multiple children in case of fork
+	ChildID []string
+	// RepoTag will have image repo names, if layer is top layer of image
+	RepoTags []string
+	// Size stores Uncompressed size of layer.
+	Size int64
+}
+
+// GetLayersMapWithImageInfo returns map of image-layers, with associated information like RepoTags, parent and list of child layers.
+func GetLayersMapWithImageInfo(imageruntime *Runtime) (map[string]*LayerInfo, error) {
+
+	// Memory allocated to store map of layers with key LayerID.
+	// Map will build dependency chain with ParentID and ChildID(s)
+	layerInfoMap := make(map[string]*LayerInfo)
+
+	// scan all layers & fill size and parent id for each layer in layerInfoMap
+	layers, err := imageruntime.store.Layers()
+	if err != nil {
+		return nil, err
+	}
+	for _, layer := range layers {
+		_, ok := layerInfoMap[layer.ID]
+		if !ok {
+			layerInfoMap[layer.ID] = &LayerInfo{
+				ID:       layer.ID,
+				Size:     layer.UncompressedSize,
+				ParentID: layer.Parent,
+			}
+		} else {
+			return nil, fmt.Errorf("detected multiple layers with the same ID %q", layer.ID)
+		}
+	}
+
+	// scan all layers & add all childs for each layers to layerInfo
+	for _, layer := range layers {
+		_, ok := layerInfoMap[layer.ID]
+		if ok {
+			if layer.Parent != "" {
+				layerInfoMap[layer.Parent].ChildID = append(layerInfoMap[layer.Parent].ChildID, layer.ID)
+			}
+		} else {
+			return nil, fmt.Errorf("lookup error: layer-id  %s, not found", layer.ID)
+		}
+	}
+
+	// Add the Repo Tags to Top layer of each image.
+	imgs, err := imageruntime.store.Images()
+	if err != nil {
+		return nil, err
+	}
+	for _, img := range imgs {
+		e, ok := layerInfoMap[img.TopLayer]
+		if !ok {
+			return nil, fmt.Errorf("top-layer for image %s not found local store", img.ID)
+		}
+		e.RepoTags = append(e.RepoTags, img.Names...)
+	}
+	return layerInfoMap, nil
+}
+
+// BuildImageHierarchyMap stores hierarchy of images such that all parent layers using which image is built are stored in imageInfo
+// Layers are added such that  (Start)RootLayer->...intermediate Parent Layer(s)-> TopLayer(End)
+func BuildImageHierarchyMap(imageInfo *InfoImage, layerMap map[string]*LayerInfo, layerID string) error {
+	if layerID == "" {
+		return nil
+	}
+	ll, ok := layerMap[layerID]
+	if !ok {
+		return fmt.Errorf("lookup error: layerid  %s not found", layerID)
+	}
+	if err := BuildImageHierarchyMap(imageInfo, layerMap, ll.ParentID); err != nil {
+		return err
+	}
+
+	imageInfo.Layers = append(imageInfo.Layers, *ll)
 	return nil
 }

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/manifest"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/truncindex"
@@ -83,6 +82,9 @@ type Image struct {
 	// is set before using it.
 	Created time.Time `json:"created,omitempty"`
 
+	// ReadOnly is true if this image resides in a read-only layer store.
+	ReadOnly bool `json:"-"`
+
 	Flags map[string]interface{} `json:"flags,omitempty"`
 }
 
@@ -117,7 +119,7 @@ type ImageStore interface {
 	ROImageStore
 	RWFileBasedStore
 	RWMetadataStore
-	RWBigDataStore
+	RWImageBigDataStore
 	FlaggableStore
 
 	// Create creates an image that has a specified ID (or a random one) and
@@ -160,6 +162,7 @@ func copyImage(i *Image) *Image {
 		BigDataSizes:    copyStringInt64Map(i.BigDataSizes),
 		BigDataDigests:  copyStringDigestMap(i.BigDataDigests),
 		Created:         i.Created,
+		ReadOnly:        i.ReadOnly,
 		Flags:           copyStringInterfaceMap(i.Flags),
 	}
 }
@@ -270,9 +273,10 @@ func (r *imageStore) Load() error {
 				list := digests[digest]
 				digests[digest] = append(list, image)
 			}
+			image.ReadOnly = !r.IsReadWrite()
 		}
 	}
-	if shouldSave && !r.IsReadWrite() {
+	if shouldSave && (!r.IsReadWrite() || !r.Locked()) {
 		return ErrDuplicateImageNames
 	}
 	r.images = images
@@ -291,7 +295,7 @@ func (r *imageStore) Save() error {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to modify the image store at %q", r.imagespath())
 	}
 	if !r.Locked() {
-		return errors.New("image store is not locked")
+		return errors.New("image store is not locked for writing")
 	}
 	rpath := r.imagespath()
 	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
@@ -595,15 +599,7 @@ func (r *imageStore) BigDataSize(id, key string) (int64, error) {
 		return size, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
-		if r.SetBigData(id, key, data) == nil {
-			image, ok := r.lookup(id)
-			if !ok {
-				return -1, ErrImageUnknown
-			}
-			if size, ok := image.BigDataSizes[key]; ok {
-				return size, nil
-			}
-		}
+		return int64(len(data)), nil
 	}
 	return -1, ErrSizeUnknown
 }
@@ -621,17 +617,6 @@ func (r *imageStore) BigDataDigest(id, key string) (digest.Digest, error) {
 	}
 	if d, ok := image.BigDataDigests[key]; ok {
 		return d, nil
-	}
-	if data, err := r.BigData(id, key); err == nil && data != nil {
-		if r.SetBigData(id, key, data) == nil {
-			image, ok := r.lookup(id)
-			if !ok {
-				return "", ErrImageUnknown
-			}
-			if d, ok := image.BigDataDigests[key]; ok {
-				return d, nil
-			}
-		}
 	}
 	return "", ErrDigestUnknown
 }
@@ -655,7 +640,7 @@ func imageSliceWithoutValue(slice []*Image, value *Image) []*Image {
 	return modified
 }
 
-func (r *imageStore) SetBigData(id, key string, data []byte) error {
+func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error {
 	if key == "" {
 		return errors.Wrapf(ErrInvalidBigDataName, "can't set empty name for image big data item")
 	}
@@ -672,7 +657,10 @@ func (r *imageStore) SetBigData(id, key string, data []byte) error {
 	}
 	var newDigest digest.Digest
 	if bigDataNameIsManifest(key) {
-		if newDigest, err = manifest.Digest(data); err != nil {
+		if digestManifest == nil {
+			return errors.Wrapf(ErrDigestUnknown, "error digesting manifest: no manifest digest callback provided")
+		}
+		if newDigest, err = digestManifest(data); err != nil {
 			return errors.Wrapf(err, "error digesting manifest")
 		}
 	} else {
@@ -754,6 +742,14 @@ func (r *imageStore) Wipe() error {
 
 func (r *imageStore) Lock() {
 	r.lockfile.Lock()
+}
+
+func (r *imageStore) RecursiveLock() {
+	r.lockfile.RecursiveLock()
+}
+
+func (r *imageStore) RLock() {
+	r.lockfile.RLock()
 }
 
 func (r *imageStore) Unlock() {

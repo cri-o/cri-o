@@ -7,16 +7,19 @@ import (
 	"regexp"
 	"syscall"
 
+	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
 
 var (
-	nameRegex = regexp.MustCompile("[a-zA-Z0-9_-]+")
+	nameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	regexError = errors.Wrapf(ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
 )
 
 // Runtime Creation Options
@@ -81,11 +84,15 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		// or graphdriveroptions are set, then GraphRoot and RunRoot
 		// must be set
 		if setField {
+			storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+			if err != nil {
+				return err
+			}
 			if rt.config.StorageConfig.GraphRoot == "" {
-				rt.config.StorageConfig.GraphRoot = storage.DefaultStoreOptions.GraphRoot
+				rt.config.StorageConfig.GraphRoot = storeOpts.GraphRoot
 			}
 			if rt.config.StorageConfig.RunRoot == "" {
-				rt.config.StorageConfig.RunRoot = storage.DefaultStoreOptions.RunRoot
+				rt.config.StorageConfig.RunRoot = storeOpts.RunRoot
 			}
 		}
 
@@ -192,6 +199,20 @@ func WithConmonEnv(environment []string) RuntimeOption {
 	}
 }
 
+// WithNetworkCmdPath specifies the path to the slirp4netns binary which manages the
+// runtime.
+func WithNetworkCmdPath(path string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.NetworkCmdPath = path
+
+		return nil
+	}
+}
+
 // WithCgroupManager specifies the manager implementation name which is used to
 // handle cgroups for containers.
 // Current valid values are "cgroupfs" and "systemd".
@@ -271,7 +292,6 @@ func WithTmpDir(dir string) RuntimeOption {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
-
 		rt.config.TmpDir = dir
 		rt.configuredFrom.libpodTmpDirSet = true
 
@@ -412,6 +432,21 @@ func WithRenumber() RuntimeOption {
 		}
 
 		rt.doRenumber = true
+
+		return nil
+	}
+}
+
+// WithMigrate instructs libpod to migrate container configurations to account
+// for changes between Libpod versions. All running containers will be stopped
+// during a migration, then restarted after the migration is complete.
+func WithMigrate() RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.doMigrate = true
 
 		return nil
 	}
@@ -575,7 +610,7 @@ func WithName(name string) CtrCreateOption {
 
 		// Check the name against a regex
 		if !nameRegex.MatchString(name) {
-			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+			return regexError
 		}
 
 		ctr.config.Name = name
@@ -911,7 +946,7 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 
 		ctr.config.PostConfigureNetNS = postConfigureNetNS
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
-		ctr.config.CreateNetNS = !ctr.config.NetMode.IsUserDefined()
+		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
 		ctr.config.Networks = networks
 
@@ -939,6 +974,27 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 		}
 
 		ctr.config.StaticIP = ip
+
+		return nil
+	}
+}
+
+// WithLogDriver sets the log driver for the container
+func WithLogDriver(driver string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		switch driver {
+		case "":
+			return errors.Wrapf(ErrInvalidArg, "log driver must be set")
+		case JournaldLogging, KubernetesLogging, JSONLogging:
+			break
+		default:
+			return errors.Wrapf(ErrInvalidArg, "invalid log driver")
+		}
+
+		ctr.config.LogDriver = driver
 
 		return nil
 	}
@@ -983,6 +1039,9 @@ func WithDNSSearch(searchDomains []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
+		if ctr.config.UseImageResolvConf {
+			return errors.Wrapf(ErrInvalidArg, "cannot add DNS search domains if container will not create /etc/resolv.conf")
+		}
 		ctr.config.DNSSearch = searchDomains
 		return nil
 	}
@@ -993,6 +1052,9 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+		if ctr.config.UseImageResolvConf {
+			return errors.Wrapf(ErrInvalidArg, "cannot add DNS servers if container will not create /etc/resolv.conf")
 		}
 		var dns []net.IP
 		for _, i := range dnsServers {
@@ -1013,6 +1075,9 @@ func WithDNSOption(dnsOptions []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
+		if ctr.config.UseImageResolvConf {
+			return errors.Wrapf(ErrInvalidArg, "cannot add DNS options if container will not create /etc/resolv.conf")
+		}
 		ctr.config.DNSOption = dnsOptions
 		return nil
 	}
@@ -1024,6 +1089,11 @@ func WithHosts(hosts []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
+
+		if ctr.config.UseImageHosts {
+			return errors.Wrapf(ErrInvalidArg, "cannot add hosts if container will not create /etc/hosts")
+		}
+
 		ctr.config.HostAdd = hosts
 		return nil
 	}
@@ -1057,6 +1127,8 @@ func WithGroups(groups []string) CtrCreateOption {
 // These are not added to the container's spec, but will instead be used during
 // commit to populate the volumes of the new image, and to trigger some OCI
 // hooks that are only added if volume mounts are present.
+// Furthermore, they are used in the output of inspect, to filter volumes -
+// only volumes included in this list will be included in the output.
 // Unless explicitly set, committed images will have no volumes.
 // The given volumes slice must not be nil.
 func WithUserVolumes(volumes []string) CtrCreateOption {
@@ -1072,24 +1144,6 @@ func WithUserVolumes(volumes []string) CtrCreateOption {
 		ctr.config.UserVolumes = make([]string, 0, len(volumes))
 		for _, vol := range volumes {
 			ctr.config.UserVolumes = append(ctr.config.UserVolumes, vol)
-		}
-
-		return nil
-	}
-}
-
-// WithLocalVolumes sets the built-in volumes of the container retrieved
-// from a container passed in to the --volumes-from flag.
-// This stores the built-in volume information in the Config so we can
-// add them when creating the container.
-func WithLocalVolumes(volumes []spec.Mount) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return ErrCtrFinalized
-		}
-
-		if volumes != nil {
-			ctr.config.LocalVolumes = append(ctr.config.LocalVolumes, volumes...)
 		}
 
 		return nil
@@ -1170,6 +1224,79 @@ func WithCtrNamespace(ns string) CtrCreateOption {
 	}
 }
 
+// WithUseImageResolvConf tells the container not to bind-mount resolv.conf in.
+// This conflicts with other DNS-related options.
+func WithUseImageResolvConf() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if len(ctr.config.DNSServer) != 0 ||
+			len(ctr.config.DNSSearch) != 0 ||
+			len(ctr.config.DNSOption) != 0 {
+			return errors.Wrapf(ErrInvalidArg, "not creating resolv.conf conflicts with DNS options")
+		}
+
+		ctr.config.UseImageResolvConf = true
+
+		return nil
+	}
+}
+
+// WithUseImageHosts tells the container not to bind-mount /etc/hosts in.
+// This conflicts with WithHosts().
+func WithUseImageHosts() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if len(ctr.config.HostAdd) != 0 {
+			return errors.Wrapf(ErrInvalidArg, "not creating /etc/hosts conflicts with adding to the hosts file")
+		}
+
+		ctr.config.UseImageHosts = true
+
+		return nil
+	}
+}
+
+// WithRestartPolicy sets the container's restart policy. Valid values are
+// "no", "on-failure", and "always". The empty string is allowed, and will be
+// equivalent to "no".
+func WithRestartPolicy(policy string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		switch policy {
+		case RestartPolicyNone, RestartPolicyNo, RestartPolicyOnFailure, RestartPolicyAlways:
+			ctr.config.RestartPolicy = policy
+		default:
+			return errors.Wrapf(ErrInvalidArg, "%q is not a valid restart policy", policy)
+		}
+
+		return nil
+	}
+}
+
+// WithRestartRetries sets the number of retries to use when restarting a
+// container with the "on-failure" restart policy.
+// 0 is an allowed value, and indicates infinite retries.
+func WithRestartRetries(tries uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.RestartRetries = tries
+
+		return nil
+	}
+}
+
 // withIsInfra sets the container to be an infra container. This means the container will be sometimes hidden
 // and expected to be the first container in the pod.
 func withIsInfra() CtrCreateOption {
@@ -1179,6 +1306,35 @@ func withIsInfra() CtrCreateOption {
 		}
 
 		ctr.config.IsInfra = true
+
+		return nil
+	}
+}
+
+// WithNamedVolumes adds the given named volumes to the container.
+func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		destinations := make(map[string]bool)
+
+		for _, vol := range volumes {
+			// Don't check if they already exist.
+			// If they don't we will automatically create them.
+
+			if _, ok := destinations[vol.Dest]; ok {
+				return errors.Wrapf(ErrInvalidArg, "two volumes found with destination %s", vol.Dest)
+			}
+			destinations[vol.Dest] = true
+
+			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
+				Name:    vol.Name,
+				Dest:    vol.Dest,
+				Options: util.ProcessOptions(vol.Options),
+			})
+		}
 
 		return nil
 	}
@@ -1195,7 +1351,7 @@ func WithVolumeName(name string) VolumeCreateOption {
 
 		// Check the name against a regex
 		if !nameRegex.MatchString(name) {
-			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+			return regexError
 		}
 		volume.config.Name = name
 
@@ -1248,6 +1404,32 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 	}
 }
 
+// WithVolumeUID sets the UID that the volume will be created as.
+func WithVolumeUID(uid int) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.UID = uid
+
+		return nil
+	}
+}
+
+// WithVolumeGID sets the GID that the volume will be created as.
+func WithVolumeGID(gid int) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.GID = gid
+
+		return nil
+	}
+}
+
 // withSetCtrSpecific sets a bool notifying libpod that a volume was created
 // specifically for a container.
 // These volumes will be removed when the container is removed and volumes are
@@ -1275,7 +1457,7 @@ func WithPodName(name string) PodCreateOption {
 
 		// Check the name against a regex
 		if !nameRegex.MatchString(name) {
-			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+			return regexError
 		}
 
 		pod.config.Name = name
@@ -1466,6 +1648,17 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 			return ErrPodFinalized
 		}
 		pod.config.InfraContainer.PortBindings = bindings
+		return nil
+	}
+}
+
+// WithHealthCheck adds the healthcheck to the container config
+func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		ctr.config.HealthCheckConfig = healthCheck
 		return nil
 	}
 }

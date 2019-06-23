@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
@@ -363,15 +363,30 @@ func (c *Config) ToFile(path string) error {
 }
 
 // DefaultConfig returns the default configuration for crio.
-func DefaultConfig() *Config {
-	registries, _ := sysregistries.GetRegistries(&types.SystemContext{})
-	insecureRegistries, _ := sysregistries.GetInsecureRegistries(&types.SystemContext{})
+func DefaultConfig() (*Config, error) {
+	registries, err := sysregistriesv2.UnqualifiedSearchRegistries(&types.SystemContext{})
+	if err != nil {
+		registries = nil // Ignore the error otherwise
+	}
+	insecureRegistries := []string{}
+	allRegistries, err := sysregistriesv2.GetRegistries(&types.SystemContext{})
+	if err == nil { // Ignore the error otherwise
+		for _, reg := range allRegistries {
+			if reg.Insecure {
+				insecureRegistries = append(insecureRegistries, reg.Prefix)
+			}
+		}
+	}
+	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	if err != nil {
+		return nil, err
+	}
 	return &Config{
 		RootConfig: RootConfig{
-			Root:            storage.DefaultStoreOptions.GraphRoot,
-			RunRoot:         storage.DefaultStoreOptions.RunRoot,
-			Storage:         storage.DefaultStoreOptions.GraphDriverName,
-			StorageOptions:  storage.DefaultStoreOptions.GraphDriverOptions,
+			Root:            storeOpts.GraphRoot,
+			RunRoot:         storeOpts.RunRoot,
+			Storage:         storeOpts.GraphDriverName,
+			StorageOptions:  storeOpts.GraphDriverOptions,
 			LogDir:          "/var/log/crio/pods",
 			FileLocking:     false,
 			FileLockingPath: lockPath,
@@ -418,7 +433,7 @@ func DefaultConfig() *Config {
 			NetworkDir: cniConfigDir,
 			PluginDirs: []string{cniBinDir},
 		},
-	}
+	}, nil
 }
 
 // Validate is the main entry point for runtime configuration validation

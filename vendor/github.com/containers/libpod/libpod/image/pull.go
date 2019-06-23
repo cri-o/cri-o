@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	cp "github.com/containers/image/copy"
@@ -12,11 +13,11 @@ import (
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
-	"github.com/containers/image/pkg/sysregistries"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/registries"
 	multierror "github.com/hashicorp/go-multierror"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -203,6 +204,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
 		// could be trying to pull from registry with short name
@@ -267,12 +269,13 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		_, err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions)
 		if err != nil {
 			pullErrors = multierror.Append(pullErrors, err)
-			logrus.Debugf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
+			logrus.Errorf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
 			if writer != nil {
 				io.WriteString(writer, "Failed\n")
 			}
 		} else {
 			if !goal.pullAllPairs {
+				ir.newImageEvent(events.Pull, "")
 				return []string{imageInfo.image}, nil
 			}
 			images = append(images, imageInfo.image)
@@ -280,9 +283,8 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	}
 	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
 	if len(images) == 0 {
-		registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{SystemRegistriesConfPath: systemRegistriesConfPath})
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
-			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
+			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in the registries config file.")
 		}
 		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we dont need to yap about registries.
 		if !goal.usedSearchRegistries {
@@ -292,6 +294,9 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			return nil, errors.Errorf("unable to pull image, or you do not have pull access")
 		}
 		return nil, pullErrors
+	}
+	if len(images) > 0 {
+		defer ir.newImageEvent(events.Pull, images[0])
 	}
 	return images, nil
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -24,18 +23,8 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/language"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
-)
-
-var (
-	// localeToLanguageMap maps from locale values to language tags.
-	localeToLanguageMap = map[string]string{
-		"":      "und-u-va-posix",
-		"c":     "und-u-va-posix",
-		"posix": "und-u-va-posix",
-	}
 )
 
 // ContainerServer implements the ImageServer
@@ -115,16 +104,6 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 	return c.storageRuntimeServer
 }
 
-// localeToLanguage translates POSIX locale strings to BCP 47 language tags.
-func localeToLanguage(locale string) string {
-	locale = strings.Replace(strings.SplitN(locale, ".", 2)[0], "_", "-", 1)
-	langString, ok := localeToLanguageMap[strings.ToLower(locale)]
-	if !ok {
-		langString = locale
-	}
-	return langString
-}
-
 // New creates a new ContainerServer with options provided
 func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error) {
 	store, err := configIface.GetStore()
@@ -132,6 +111,10 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		return nil, err
 	}
 	config := configIface.GetData()
+
+	if config == nil {
+		return nil, fmt.Errorf("cannot create container server: ConfigIface is nil")
+	}
 
 	imageService, err := storage.GetImageService(ctx, nil, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
@@ -156,29 +139,6 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		lock = new(sync.Mutex)
 	}
 
-	var locale string
-	var ok bool
-	for _, envVar := range []string{
-		"LC_ALL",
-		"LC_COLLATE",
-		"LANG",
-	} {
-		locale, ok = os.LookupEnv(envVar)
-		if ok {
-			break
-		}
-	}
-
-	langString := localeToLanguage(locale)
-	lang, err := language.Parse(langString)
-	if err != nil {
-		logrus.Warnf("failed to parse language %q: %s", langString, err)
-		lang, err = language.Parse("und-u-va-posix")
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	hookDirectories := config.HooksDir
 	if config.HooksDir == nil {
 		for _, hooksDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
@@ -190,7 +150,7 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		}
 	}
 
-	hooks, err := hooks.New(ctx, hookDirectories, []string{}, lang)
+	newHooks, err := hooks.New(ctx, hookDirectories, []string{})
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +165,7 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 		podNameIndex:         registrar.NewRegistrar(),
 		podIDIndex:           truncindex.NewTruncIndex([]string{}),
 		imageContext:         &types.SystemContext{SignaturePolicyPath: config.SignaturePolicyPath},
-		Hooks:                hooks,
+		Hooks:                newHooks,
 		stateLock:            lock,
 		state: &containerServerState{
 			containers:      oci.NewMemoryStore(),

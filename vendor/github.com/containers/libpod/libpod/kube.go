@@ -69,7 +69,7 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.runtime.LookupContainer(infraID)
+	return p.runtime.GetContainer(infraID)
 }
 
 // GenerateKubeServiceFromV1Pod creates a v1 service object from a v1 pod object
@@ -220,12 +220,11 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 			return kubeContainer, err
 		}
 		kubeContainer.VolumeMounts = volumes
-		return kubeContainer, errors.Wrapf(ErrNotImplemented, "volume names")
 	}
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
 	if err != nil {
-		return kubeContainer, nil
+		return kubeContainer, err
 	}
 
 	portmappings, err := c.PortMappings()
@@ -234,7 +233,7 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 	}
 	ports, err := ocicniPortMappingToContainerPort(portmappings)
 	if err != nil {
-		return kubeContainer, nil
+		return kubeContainer, err
 	}
 
 	containerCommands := c.Command()
@@ -345,7 +344,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, error) {
 	for _, hostSourcePath := range c.config.UserVolumes {
 		vm, err := generateKubeVolumeMount(hostSourcePath, c.config.Spec.Mounts)
 		if err != nil {
-			return vms, err
+			continue
 		}
 		vms = append(vms, vm)
 	}

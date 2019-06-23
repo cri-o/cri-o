@@ -2,16 +2,13 @@ package image
 
 import (
 	"context"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/libpod/common"
 	sysreg "github.com/containers/libpod/pkg/registries"
-	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
@@ -62,24 +59,6 @@ type SearchFilter struct {
 	IsAutomated types.OptionalBool
 	// IsOfficial decides if only official images are displayed.
 	IsOfficial types.OptionalBool
-}
-
-func splitCamelCase(src string) string {
-	entries := camelcase.Split(src)
-	return strings.Join(entries, " ")
-}
-
-// HeaderMap returns the headers of a SearchResult.
-func (s *SearchResult) HeaderMap() map[string]string {
-	v := reflect.Indirect(reflect.ValueOf(s))
-	values := make(map[string]string, v.NumField())
-
-	for i := 0; i < v.NumField(); i++ {
-		key := v.Type().Field(i).Name
-		value := key
-		values[key] = strings.ToUpper(splitCamelCase(value))
-	}
-	return values
 }
 
 // SearchImages searches images based on term and the specified SearchOptions
@@ -157,7 +136,7 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 		limit = options.Limit
 	}
 
-	sc := common.GetSystemContext("", options.Authfile, false)
+	sc := GetSystemContext("", options.Authfile, false)
 	sc.DockerInsecureSkipTLSVerify = options.InsecureSkipTLSVerify
 	// FIXME: Set this more globally.  Probably no reason not to have it in
 	// every types.SystemContext, and to compute the value just once in one

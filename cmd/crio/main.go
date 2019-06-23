@@ -256,8 +256,14 @@ func main() {
 	app.Name = "crio"
 	app.Usage = "crio server"
 	app.Version = strings.Join(v, "\n")
+
+	defConf, err := server.DefaultConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error loading server config: %v", err)
+		os.Exit(1)
+	}
 	app.Metadata = map[string]interface{}{
-		"config": server.DefaultConfig(),
+		"config": defConf,
 	}
 
 	app.Flags = []cli.Flag{

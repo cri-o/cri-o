@@ -12,8 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/libpod/pkg/apparmor"
-	"github.com/containers/libpod/pkg/secrets"
+	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/lib/sandbox"
@@ -870,7 +871,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 	// Add secrets from the default and override mounts.conf files
-	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile)...)
+	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless())...)
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)

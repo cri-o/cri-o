@@ -11,10 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
-	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -32,6 +34,14 @@ type AddAndCopyOptions struct {
 	// If the sources include directory trees, Hasher will be passed
 	// tar-format archives of the directory trees.
 	Hasher io.Writer
+	// Excludes is the contents of the .dockerignore file
+	Excludes []string
+	// The base directory for Excludes and data to copy in
+	ContextDir string
+	// ID mapping options to use when contents to be copied are part of
+	// another container, and need ownerships to be mapped from the host to
+	// that container's values before copying them into the container.
+	IDMappingOptions *IDMappingOptions
 }
 
 // addURL copies the contents of the source URL to the destination.  This is
@@ -84,6 +94,10 @@ func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) 
 // filesystem, optionally extracting contents of local files that look like
 // non-empty archives.
 func (b *Builder) Add(destination string, extract bool, options AddAndCopyOptions, source ...string) error {
+	excludes, err := dockerIgnoreMatcher(options.Excludes, options.ContextDir)
+	if err != nil {
+		return err
+	}
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
 		return err
@@ -94,7 +108,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		}
 	}()
 	// Find out which user (and group) the destination should belong to.
-	user, err := b.user(mountPoint, options.Chown)
+	user, _, err := b.user(mountPoint, options.Chown)
 	if err != nil {
 		return err
 	}
@@ -106,6 +120,12 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
 	dest := mountPoint
 	if destination != "" && filepath.IsAbs(destination) {
+		dir := filepath.Dir(destination)
+		if dir != "." && dir != "/" {
+			if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, dir), 0755, hostOwner); err != nil {
+				return errors.Wrapf(err, "error creating directory %q", filepath.Join(dest, dir))
+			}
+		}
 		dest = filepath.Join(dest, destination)
 	} else {
 		if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, b.WorkDir()), 0755, hostOwner); err != nil {
@@ -136,9 +156,81 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	if len(source) > 1 && (destfi == nil || !destfi.IsDir()) {
 		return errors.Errorf("destination %q is not a directory", dest)
 	}
-	copyFileWithTar := b.copyFileWithTar(&containerOwner, options.Hasher)
-	copyWithTar := b.copyWithTar(&containerOwner, options.Hasher)
+	copyFileWithTar := b.copyFileWithTar(options.IDMappingOptions, &containerOwner, options.Hasher)
+	copyWithTar := b.copyWithTar(options.IDMappingOptions, &containerOwner, options.Hasher)
 	untarPath := b.untarPath(nil, options.Hasher)
+	err = addHelper(excludes, extract, dest, destfi, hostOwner, options, copyFileWithTar, copyWithTar, untarPath, source...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// user returns the user (and group) information which the destination should belong to.
+func (b *Builder) user(mountPoint string, userspec string) (specs.User, string, error) {
+	if userspec == "" {
+		userspec = b.User()
+	}
+
+	uid, gid, homeDir, err := chrootuser.GetUser(mountPoint, userspec)
+	u := specs.User{
+		UID:      uid,
+		GID:      gid,
+		Username: userspec,
+	}
+	if !strings.Contains(userspec, ":") {
+		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
+		if err2 != nil {
+			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
+				err = err2
+			}
+		} else {
+			u.AdditionalGids = groups
+		}
+
+	}
+	return u, homeDir, err
+}
+
+// dockerIgnoreMatcher returns a matcher based on the contents of the .dockerignore file under contextDir
+func dockerIgnoreMatcher(lines []string, contextDir string) (*fileutils.PatternMatcher, error) {
+	// if there's no context dir, there's no .dockerignore file to consult
+	if contextDir == "" {
+		return nil, nil
+	}
+	patterns := []string{".dockerignore"}
+	for _, ignoreSpec := range lines {
+		ignoreSpec = strings.TrimSpace(ignoreSpec)
+		// ignore comments passed back from .dockerignore
+		if ignoreSpec == "" || ignoreSpec[0] == '#' {
+			continue
+		}
+		// if the spec starts with '!' it means the pattern
+		// should be included. make a note so that we can move
+		// it to the front of the updated pattern
+		includeFlag := ""
+		if strings.HasPrefix(ignoreSpec, "!") {
+			includeFlag = "!"
+			ignoreSpec = ignoreSpec[1:]
+		}
+		if ignoreSpec == "" {
+			continue
+		}
+		patterns = append(patterns, includeFlag+filepath.Join(contextDir, ignoreSpec))
+	}
+	// if there are no patterns, save time by not constructing the object
+	if len(patterns) == 0 {
+		return nil, nil
+	}
+	// return a matcher object
+	matcher, err := fileutils.NewPatternMatcher(patterns)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating file matcher using patterns %v", patterns)
+	}
+	return matcher, nil
+}
+
+func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
 	for _, src := range source {
 		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 			// We assume that source is a file, and we're copying
@@ -167,6 +259,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		if len(glob) == 0 {
 			return errors.Wrapf(syscall.ENOENT, "no files found matching %q", src)
 		}
+
 		for _, gsrc := range glob {
 			esrc, err := filepath.EvalSymlinks(gsrc)
 			if err != nil {
@@ -185,11 +278,54 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					return errors.Wrapf(err, "error creating directory %q", dest)
 				}
 				logrus.Debugf("copying %q to %q", esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-				if err = copyWithTar(esrc, dest); err != nil {
-					return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
+				if excludes == nil {
+					if err = copyWithTar(esrc, dest); err != nil {
+						return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
+					}
+					continue
+				}
+				err := filepath.Walk(esrc, func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					skip, err := excludes.Matches(path)
+					if err != nil {
+						return errors.Wrapf(err, "error checking if %s is an excluded path", path)
+					}
+					if skip {
+						return nil
+					}
+					// combine the filename with the dest directory
+					fpath, err := filepath.Rel(esrc, path)
+					if err != nil {
+						return errors.Wrapf(err, "error converting %s to a path relative to %s", path, esrc)
+					}
+					mtime := info.ModTime()
+					atime := mtime
+					times := []syscall.Timespec{
+						syscall.NsecToTimespec(atime.Unix()),
+						syscall.NsecToTimespec(mtime.Unix()),
+					}
+					if info.IsDir() {
+						return addHelperDirectory(esrc, path, filepath.Join(dest, fpath), info, hostOwner, times)
+					}
+					if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+						return addHelperSymlink(path, filepath.Join(dest, fpath), info, hostOwner, times)
+					}
+					if !info.Mode().IsRegular() {
+						return errors.Errorf("error copying %q to %q: source is not a regular file; file mode is %s", path, dest, info.Mode())
+					}
+					if err = copyFileWithTar(path, filepath.Join(dest, fpath)); err != nil {
+						return errors.Wrapf(err, "error copying %q to %q", path, dest)
+					}
+					return nil
+				})
+				if err != nil {
+					return err
 				}
 				continue
 			}
+
 			if !extract || !archive.IsArchivePath(esrc) {
 				// This source is a file, and either it's not an
 				// archive, or we don't care whether or not it's an
@@ -205,6 +341,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				}
 				continue
 			}
+
 			// We're extracting an archive into the destination directory.
 			logrus.Debugf("extracting contents of %q into %q", esrc, dest)
 			if err = untarPath(esrc, dest); err != nil {
@@ -215,28 +352,44 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	return nil
 }
 
-// user returns the user (and group) information which the destination should belong to.
-func (b *Builder) user(mountPoint string, userspec string) (specs.User, error) {
-	if userspec == "" {
-		userspec = b.User()
-	}
-
-	uid, gid, err := chrootuser.GetUser(mountPoint, userspec)
-	u := specs.User{
-		UID:      uid,
-		GID:      gid,
-		Username: userspec,
-	}
-	if !strings.Contains(userspec, ":") {
-		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
-		if err2 != nil {
-			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
-				err = err2
-			}
-		} else {
-			u.AdditionalGids = groups
+func addHelperDirectory(esrc, path, dest string, info os.FileInfo, hostOwner idtools.IDPair, times []syscall.Timespec) error {
+	if err := idtools.MkdirAllAndChownNew(dest, info.Mode().Perm(), hostOwner); err != nil {
+		// discard only EEXIST on the top directory, which would have been created earlier in the caller
+		if !os.IsExist(err) || path != esrc {
+			return errors.Errorf("error creating directory %q", dest)
 		}
-
 	}
-	return u, err
+	if err := idtools.SafeLchown(dest, hostOwner.UID, hostOwner.GID); err != nil {
+		return errors.Wrapf(err, "error setting owner of directory %q to %d:%d", dest, hostOwner.UID, hostOwner.GID)
+	}
+	if err := system.LUtimesNano(dest, times); err != nil {
+		return errors.Wrapf(err, "error setting dates on directory %q", dest)
+	}
+	return nil
+}
+
+func addHelperSymlink(src, dest string, info os.FileInfo, hostOwner idtools.IDPair, times []syscall.Timespec) error {
+	linkContents, err := os.Readlink(src)
+	if err != nil {
+		return errors.Wrapf(err, "error reading contents of symbolic link at %q", src)
+	}
+	if err = os.Symlink(linkContents, dest); err != nil {
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating symbolic link to %q at %q", linkContents, dest)
+		}
+		if err = os.RemoveAll(dest); err != nil {
+			return errors.Wrapf(err, "error clearing symbolic link target %q", dest)
+		}
+		if err = os.Symlink(linkContents, dest); err != nil {
+			return errors.Wrapf(err, "error creating symbolic link to %q at %q (second try)", linkContents, dest)
+		}
+	}
+	if err = idtools.SafeLchown(dest, hostOwner.UID, hostOwner.GID); err != nil {
+		return errors.Wrapf(err, "error setting owner of symbolic link %q to %d:%d", dest, hostOwner.UID, hostOwner.GID)
+	}
+	if err = system.LUtimesNano(dest, times); err != nil {
+		return errors.Wrapf(err, "error setting dates on symbolic link %q", dest)
+	}
+	logrus.Debugf("Symlink(%s, %s)", linkContents, dest)
+	return nil
 }
