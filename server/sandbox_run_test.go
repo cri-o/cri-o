@@ -262,7 +262,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 		It("should succeed with systemd manager with valid memory ", func() {
 			// Given
-			cgroup, tmpDir := prepareCgroupDirs(0644, "5000000")
+			cgroup, tmpDir := prepareCgroupDirs(0644, "13000000")
 
 			// When
 			res, err := server.AddCgroupAnnotation(g, tmpDir,
