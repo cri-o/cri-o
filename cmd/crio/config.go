@@ -108,6 +108,7 @@ default_runtime = "{{ .DefaultRuntime }}"
 no_pivot = {{ .NoPivot }}
 
 # Path to the conmon binary, used for monitoring the OCI runtime.
+# Will be searched for using $PATH if empty.
 conmon = "{{ .Conmon }}"
 
 # Cgroup setting for conmon

@@ -272,6 +272,53 @@ var _ = t.Describe("Config", func() {
 		})
 	})
 
+	t.Describe("ValidateConmonPath", func() {
+		It("should succeed with valid file in $PATH", func() {
+			// Given
+			sut.RuntimeConfig.Conmon = ""
+
+			// When
+			err := sut.RuntimeConfig.ValidateConmonPath(validFilePath)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.RuntimeConfig.Conmon).To(Equal(validFilePath))
+		})
+
+		It("should fail with invalid file in $PATH", func() {
+			// Given
+			sut.RuntimeConfig.Conmon = ""
+
+			// When
+			err := sut.RuntimeConfig.ValidateConmonPath(invalidPath)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should succeed with valid file outside $PATH", func() {
+			// Given
+			sut.RuntimeConfig.Conmon = validDirPath
+
+			// When
+			err := sut.RuntimeConfig.ValidateConmonPath("")
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail with invalid file outside $PATH", func() {
+			// Given
+			sut.RuntimeConfig.Conmon = invalidPath
+
+			// When
+			err := sut.RuntimeConfig.ValidateConmonPath("")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
 	t.Describe("ValidateNetworkConfig", func() {
 		It("should succeed with default config", func() {
 			// Given
