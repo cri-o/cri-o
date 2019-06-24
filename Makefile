@@ -328,6 +328,9 @@ docs/%.8: docs/%.8.md .gopathok ${GO_MD2MAN}
 
 docs: $(MANPAGES)
 
+bundle:
+	bundle/build
+
 install: .gopathok install.bin install.man
 
 install.bin: binaries
@@ -382,6 +385,7 @@ endif
 	bin/crio \
 	bin/pause \
 	binaries \
+	bundle \
 	build-static \
 	clean \
 	default \

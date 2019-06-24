@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+FILES_BIN=(
+    "../bin/crio-x86_64-static-glibc"
+    "../bin/crio-x86_64-static-musl"
+    "../bin/pause-x86_64-static-glibc"
+    "../bin/pause-x86_64-static-musl"
+)
+FILES_MAN=(
+    "../docs/crio.8"
+    "../docs/crio.conf.5"
+)
+FILES_ETC=(
+    "../crictl.yaml"
+    "../crio-umount.conf"
+    "../crio.conf"
+    "../seccomp.json"
+)
+
+TMPDIR=tmp
+rm -rf $TMPDIR
+mkdir -p $TMPDIR/{bin,etc,man}
+
+for FILE in "${FILES_BIN[@]}"; do
+    if [[ ! -f "$FILE" ]]; then
+        echo "File '$FILE' does not exist"
+        exit 1
+    fi
+
+    if [[ ! -x "$FILE" ]]; then
+        echo "File '$FILE' is not exectuable"
+        exit 1
+    fi
+
+    if ! file "$FILE" | grep "statically linked" | grep -q stripped; then
+        echo "Binary '$FILE' is not statically linked and stripped"
+        exit 1
+    fi
+    cp "$FILE" $TMPDIR/bin
+done
+
+for FILE in "${FILES_MAN[@]}"; do
+    if [[ ! -f "$FILE" ]]; then
+        echo "File '$FILE' does not exist"
+        exit 1
+    fi
+    cp "$FILE" $TMPDIR/man
+done
+
+for FILE in "${FILES_ETC[@]}"; do
+    if [[ ! -f "$FILE" ]]; then
+        echo "File '$FILE' does not exist"
+        exit 1
+    fi
+    cp "$FILE" $TMPDIR/etc
+done
+
+cp Makefile $TMPDIR
+
+# Create the archive
+BUNDLE=crio-$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
+ARCHIVE="$BUNDLE.tar.gz"
+rm -f "$ARCHIVE"
+tar cfz "$ARCHIVE" tmp --transform s/tmp/"$BUNDLE"/
+rm -rf tmp
+echo "Created $(pwd)/$ARCHIVE"
+
+# Test the archive
+echo "Testing archive"
+tar xf "$ARCHIVE"
+pushd "$BUNDLE"
+make DESTDIR=test
+popd
+rm -rf "$BUNDLE"

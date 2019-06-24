@@ -37,6 +37,10 @@ workflows:
       - build
       - build-static
       - build-test-binaries
+      - bundle:
+          requires:
+            - build
+            - build-static
       - clang-format
       - ginkgo
       - git-validation
@@ -75,6 +79,7 @@ workflows:
       - lint
       - results:
           requires:
+            - bundle
             - integration
             - integration-critest
             - integration-static-glibc
@@ -106,6 +111,8 @@ jobs:
           root: .
           paths:
             - bin
+            - crio.conf
+            - docs
 
   build-static:
     executor: nix
@@ -143,6 +150,20 @@ jobs:
             - test/bin2img/bin2img
             - test/copyimg/checkseccomp/checkseccomp
             - test/copyimg/copyimg
+
+  bundle:
+    executor: docker
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: bundle
+          command: make bundle
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bundle/*.tar.gz
 
   clang-format:
     executor: docker
@@ -258,6 +279,9 @@ jobs:
       - store_artifacts:
           path: build
           destination: test
+      - store_artifacts:
+          path: bundle
+          destination: bundle
 
   unit-tests:
     executor: docker
