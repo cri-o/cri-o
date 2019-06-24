@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 // GetDiskUsageStats accepts a path to a directory or file
@@ -25,4 +26,24 @@ func GetDiskUsageStats(path string) (dirSize, inodeCount uint64, err error) {
 	}
 
 	return dirSize, inodeCount, err
+}
+
+// IsDirectory tests whether the given path exists and is a directory. It
+// follows symlinks.
+func IsDirectory(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	if !info.Mode().IsDir() {
+		// Return a PathError to be consistent with os.Stat().
+		return &os.PathError{
+			Op:   "stat",
+			Path: path,
+			Err:  syscall.ENOTDIR,
+		}
+	}
+
+	return nil
 }

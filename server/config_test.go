@@ -3,6 +3,7 @@ package server
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/cri-o/cri-o/lib"
@@ -111,10 +112,12 @@ func TestConfigValidateDefaultSuccessOnExecution(t *testing.T) {
 	// since some test systems do not have runc installed, assume a more
 	// generally available executable
 	const validPath = "/bin/sh"
-	defaultConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validPath}
+	validDirPath := path.Join(os.TempDir(), "crio-empty")
+	defer os.RemoveAll(validDirPath)
+	defaultConfig.Runtimes["runc"] = oci.RuntimeHandler{RuntimePath: validDirPath}
 	defaultConfig.Conmon = validPath
-	defaultConfig.NetworkConfig.NetworkDir = validPath
-	defaultConfig.NetworkConfig.PluginDirs = []string{validPath}
+	defaultConfig.NetworkConfig.NetworkDir = validDirPath
+	defaultConfig.NetworkConfig.PluginDirs = []string{validDirPath}
 
 	must(t, defaultConfig.Validate(true))
 }

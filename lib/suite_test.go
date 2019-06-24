@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -39,6 +40,7 @@ var (
 	sut            *lib.ContainerServer
 	mySandbox      *sandbox.Sandbox
 	myContainer    *oci.Container
+	validDirPath   string
 )
 
 const (
@@ -100,6 +102,7 @@ var _ = BeforeSuite(func() {
 	libMock = libmock.NewMockConfigIface(mockCtrl)
 	storeMock = containerstoragemock.NewMockStore(mockCtrl)
 	ociRuntimeMock = ocimock.NewMockRuntimeImpl(mockCtrl)
+	validDirPath = path.Join(os.TempDir(), "crio-empty")
 })
 
 var _ = AfterSuite(func() {
