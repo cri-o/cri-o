@@ -36,7 +36,7 @@ import (
 
 // minMemoryLimit is the minimum memory that must be set for a container.
 // A lower value would result in the container failing to start.
-const minMemoryLimit = 4194304
+const minMemoryLimit = 12582912
 
 type configDevice struct {
 	Device   rspec.LinuxDevice
