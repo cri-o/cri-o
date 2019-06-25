@@ -321,3 +321,8 @@ func (c *Container) SetStartFailed(err error) {
 func (c *Container) Description() string {
 	return fmt.Sprintf("%s/%s/%s", c.Labels()[types.KubernetesPodNamespaceLabel], c.Labels()[types.KubernetesPodNameLabel], c.Labels()[types.KubernetesContainerNameLabel])
 }
+
+// StdinOnce returns whether stdin once is set for the container.
+func (c *Container) StdinOnce() bool {
+	return c.stdinOnce
+}
