@@ -93,6 +93,9 @@ workflows:
 
 jobs:
   build:
+    branches:
+      only:
+        - master
     executor: docker
     steps:
       - checkout
