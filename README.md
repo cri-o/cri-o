@@ -1,4 +1,4 @@
-![CRI-O logo](https://cdn.rawgit.com/kubernetes-sigs/cri-o/master/logo/crio-logo.svg)
+![CRI-O logo](logo/crio-logo.svg)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg?style=flat-square)](#)
