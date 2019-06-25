@@ -122,7 +122,8 @@ conmon_env = [
 selinux = {{ .SELinux }}
 
 # Path to the seccomp.json profile which is used as the default seccomp profile
-# for the runtime.
+# for the runtime. If not specified, then the internal default seccomp profile
+# will be used.
 seccomp_profile = "{{ .SeccompProfile }}"
 
 # Used to change the name of the default AppArmor profile of CRI-O. The default

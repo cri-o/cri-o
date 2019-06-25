@@ -183,7 +183,7 @@ type RuntimeConfig struct {
 	// ConmonCgroup is the cgroup setting used for conmon.
 	ConmonCgroup string `toml:"conmon_cgroup"`
 
-	// SeccompProfile is the seccomp json profile path which is used as the
+	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile"`
 
@@ -405,7 +405,7 @@ func DefaultConfig() (*Config, error) {
 			},
 			ConmonCgroup:             "pod",
 			SELinux:                  selinuxEnabled(),
-			SeccompProfile:           seccompProfilePath,
+			SeccompProfile:           "",
 			ApparmorProfile:          apparmorProfileName,
 			CgroupManager:            cgroupManager,
 			PidsLimit:                DefaultPidsLimit,

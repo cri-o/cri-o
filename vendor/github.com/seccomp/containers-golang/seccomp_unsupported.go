@@ -22,3 +22,18 @@ func LoadProfile(body string, rs *specs.Spec) (*specs.LinuxSeccomp, error) {
 func GetDefaultProfile(rs *specs.Spec) (*specs.LinuxSeccomp, error) {
 	return nil, fmt.Errorf("Seccomp not supported on this platform")
 }
+
+// LoadProfileFromBytes takes a byte slice and decodes the seccomp profile.
+func LoadProfileFromBytes(body []byte, rs *specs.Spec) (*specs.LinuxSeccomp, error) {
+	return nil, fmt.Errorf("Seccomp not supported on this platform")
+}
+
+// LoadProfileFromConfig takes a Seccomp struct and a spec to retrieve a LinuxSeccomp
+func LoadProfileFromConfig(config *Seccomp, specgen *specs.Spec) (*specs.LinuxSeccomp, error) {
+	return nil, fmt.Errorf("Seccomp not supported on this platform")
+}
+
+// IsEnabled returns true if seccomp is enabled for the host.
+func IsEnabled() bool {
+	return false
+}

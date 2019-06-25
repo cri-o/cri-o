@@ -24,7 +24,6 @@ import (
 	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
-	"github.com/cri-o/cri-o/pkg/seccomp"
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -33,6 +32,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	seccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -64,7 +64,7 @@ type StreamService struct {
 // Server implements the RuntimeService and ImageService
 type Server struct {
 	config          Config
-	seccompProfile  seccomp.Seccomp
+	seccompProfile  *seccomp.Seccomp
 	stream          StreamService
 	netPlugin       ocicni.CNIPlugin
 	hostportManager hostport.HostPortManager
@@ -353,15 +353,22 @@ func New(
 	}
 
 	if s.seccompEnabled {
-		seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
-		if fileErr != nil {
-			return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v", config.SeccompProfile, fileErr)
+		if config.SeccompProfile != "" {
+			seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
+			if fileErr != nil {
+				return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v",
+					config.SeccompProfile, fileErr)
+			}
+			var seccompConfig seccomp.Seccomp
+			if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
+				return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
+			}
+			logrus.Infof("using seccomp profile %q", config.SeccompProfile)
+			s.seccompProfile = &seccompConfig
+		} else {
+			logrus.Infof("no seccomp profile specified, using the internal default")
+			s.seccompProfile = seccomp.DefaultProfile()
 		}
-		var seccompConfig seccomp.Seccomp
-		if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
-			return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
-		}
-		s.seccompProfile = seccompConfig
 	}
 
 	if s.appArmorEnabled && s.appArmorProfile == apparmorDefaultProfile {

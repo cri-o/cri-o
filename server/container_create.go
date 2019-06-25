@@ -11,7 +11,6 @@ import (
 
 	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/lib/sandbox"
-	"github.com/cri-o/cri-o/pkg/seccomp"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/utils"
 	dockermounts "github.com/docker/docker/pkg/mount"
@@ -20,6 +19,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	seccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -647,18 +647,32 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error
 		specgen.Config.Linux.Seccomp = nil
 		return nil
 	}
+
+	// Load the default seccomp profile from the server if the profile is a default one
 	if profile == seccompRuntimeDefault || profile == seccompDockerDefault {
-		return seccomp.LoadProfileFromStruct(&s.seccompProfile, specgen)
+		linuxSpecs, err := seccomp.LoadProfileFromConfig(s.seccompProfile, specgen.Config)
+		if err != nil {
+			return err
+		}
+		specgen.Config.Linux.Seccomp = linuxSpecs
+		return nil
 	}
+
+	// Load local seccomp profiles including their availability validation
 	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
 		return fmt.Errorf("unknown seccomp profile option: %q", profile)
 	}
-	fname := strings.TrimPrefix(profile, "localhost/")
+	fname := strings.TrimPrefix(profile, seccompLocalhostPrefix)
 	file, err := ioutil.ReadFile(filepath.FromSlash(fname))
 	if err != nil {
 		return fmt.Errorf("cannot load seccomp profile %q: %v", fname, err)
 	}
-	return seccomp.LoadProfileFromBytes(file, specgen)
+	linuxSpecs, err := seccomp.LoadProfileFromBytes(file, specgen.Config)
+	if err != nil {
+		return err
+	}
+	specgen.Config.Linux.Seccomp = linuxSpecs
+	return nil
 }
 
 // getAppArmorProfileName gets the profile name for the given container.
