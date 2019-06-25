@@ -10,7 +10,7 @@ import (
 )
 
 // Version is the version of the build.
-const Version = "1.14.5-dev"
+const Version = "1.14.5"
 
 // WriteVersionFile writes the version information to a given file
 // file is the location of the old version file
