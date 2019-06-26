@@ -370,8 +370,9 @@ uninstall:
 	done
 
 git-validation: .gopathok git-vars ${GIT_VALIDATION}
-	${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace \
-		-range ${GIT_MERGE_BASE}..HEAD
+	GIT_CHECK_EXCLUDE="vendor" \
+		${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace \
+			-range ${GIT_MERGE_BASE}..HEAD
 
 .PHONY: \
 	.explicit_phony \
