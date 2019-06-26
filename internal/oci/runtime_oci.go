@@ -38,6 +38,9 @@ const (
 
 	// Command line flag used to specify the run root directory
 	rootFlag = "--root"
+
+	// conmonAPIVersion is the current api version to use for conmon
+	conmonAPIVersion = "1"
 )
 
 // runtimeOCI is the Runtime interface implementation relying on conmon to
@@ -139,7 +142,8 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 		"--exit-dir", r.config.ContainerExitsDir,
 		"--socket-dir-path", r.config.ContainerAttachSocketDir,
 		"--log-level", logrus.GetLevel().String(),
-		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
+		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
+		"--api-version", conmonAPIVersion)
 	if r.config.LogSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.config.LogSizeMax))
 	}
@@ -386,7 +390,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 		"-r", r.path,
 		"-p", pidFile.Name(),
 		"-u", sessionID,
-		"-e")
+		"-e", "--api-version", conmonAPIVersion)
 	if timeout > 0 {
 		args = append(args, "-T", fmt.Sprintf("%d", timeout))
 	}
