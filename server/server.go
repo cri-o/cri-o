@@ -577,7 +577,7 @@ func (s *Server) StartExitMonitor() {
 // not exist or is not accessible.
 func (s *Server) StartConfigWatcher(
 	fileName string,
-	reloadFunc func(*types.SystemContext, string) error,
+	reloadFunc func(string) error,
 ) (chan os.Signal, error) {
 	// Validate the arguments
 	if _, err := os.Stat(fileName); err != nil {
@@ -596,7 +596,7 @@ func (s *Server) StartConfigWatcher(
 			// Block until the signal is received
 			<-c
 			logrus.Infof("reloading configuration %q", fileName)
-			if err := reloadFunc(s.systemContext, fileName); err != nil {
+			if err := reloadFunc(fileName); err != nil {
 				logrus.Errorf("unable to reload configuration: %v", err)
 				continue
 			}

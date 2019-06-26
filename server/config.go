@@ -157,8 +157,8 @@ func (c *Config) ToBytes() ([]byte, error) {
 }
 
 // DefaultConfig returns the default configuration for crio.
-func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
-	conf, err := config.DefaultConfig(systemContext)
+func DefaultConfig() (*Config, error) {
+	conf, err := config.DefaultConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -207,9 +207,9 @@ func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) 
 
 // Reload reloads the configuration with the config at the provided `fileName`
 // path. The method errors in case of any read or update failure.
-func (c *Config) Reload(systemContext *types.SystemContext, fileName string) error {
+func (c *Config) Reload(fileName string) error {
 	// Reload the config
-	newConfig, err := DefaultConfig(systemContext)
+	newConfig, err := DefaultConfig()
 	if err != nil {
 		return fmt.Errorf("unable to create default config")
 	}

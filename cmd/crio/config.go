@@ -308,7 +308,7 @@ var configCommand = cli.Command{
 		config := c.App.Metadata["config"].(*server.Config) // nolint: errcheck
 		systemContext := &types.SystemContext{}
 		if c.Bool("default") {
-			config, err = server.DefaultConfig(systemContext)
+			config, err = server.DefaultConfig()
 			if err != nil {
 				return err
 			}

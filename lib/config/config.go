@@ -370,20 +370,7 @@ func (c *Config) ToFile(path string) error {
 }
 
 // DefaultConfig returns the default configuration for crio.
-func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
-	registries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
-	if err != nil {
-		registries = nil // Ignore the error otherwise
-	}
-	insecureRegistries := []string{}
-	allRegistries, err := sysregistriesv2.GetRegistries(systemContext)
-	if err == nil { // Ignore the error otherwise
-		for _, reg := range allRegistries {
-			if reg.Insecure {
-				insecureRegistries = append(insecureRegistries, reg.Prefix)
-			}
-		}
-	}
+func DefaultConfig() (*Config, error) {
 	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err
@@ -434,8 +421,8 @@ func DefaultConfig(systemContext *types.SystemContext) (*Config, error) {
 			PauseCommand:        pauseCommand,
 			SignaturePolicyPath: "",
 			ImageVolumes:        ImageVolumesMkdir,
-			Registries:          registries,
-			InsecureRegistries:  insecureRegistries,
+			Registries:          []string{},
+			InsecureRegistries:  []string{},
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,

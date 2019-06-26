@@ -123,7 +123,7 @@ func beforeEach() {
 	logrus.SetLevel(logrus.PanicLevel)
 
 	// Set the config
-	config, err := libconfig.DefaultConfig(nil)
+	config, err := libconfig.DefaultConfig()
 	Expect(err).To(BeNil())
 	config.FileLocking = false
 	config.LogDir = "."

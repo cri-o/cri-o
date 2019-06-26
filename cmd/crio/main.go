@@ -274,7 +274,7 @@ func main() {
 	app.Version = strings.Join(v, "\n")
 
 	systemContext := &types.SystemContext{}
-	defConf, err := server.DefaultConfig(systemContext)
+	defConf, err := server.DefaultConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error loading server config: %v", err)
 		os.Exit(1)
@@ -371,7 +371,7 @@ func main() {
 		},
 		cli.StringSliceFlag{
 			Name:  "registry",
-			Usage: fmt.Sprintf("registry to be prepended when pulling unqualified images, can be specified multiple times (default: %q)", defConf.Registries),
+			Usage: fmt.Sprintf("registry to be prepended when pulling unqualified images, can be specified multiple times (default: configured in /etc/containers/registries.conf)"),
 		},
 		cli.StringFlag{
 			Name:  "default-transport",

@@ -39,7 +39,7 @@ var _ = AfterSuite(func() {
 
 func beforeEach() {
 	var err error
-	sut, err = config.DefaultConfig(nil)
+	sut, err = config.DefaultConfig()
 	Expect(err).To(BeNil())
 	Expect(sut).NotTo(BeNil())
 }
