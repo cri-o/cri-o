@@ -63,6 +63,7 @@ static gboolean opt_no_pivot = FALSE;
 static gboolean opt_attach = FALSE;
 static char *opt_exec_process_spec = NULL;
 static gboolean opt_exec = FALSE;
+static gboolean opt_exec_updated = FALSE;
 static char *opt_restore_path = NULL;
 static gchar **opt_runtime_opts = NULL;
 static gchar **opt_runtime_args = NULL;
@@ -86,7 +87,7 @@ static GOptionEntry opt_entries[] = {
 	{"runtime", 'r', 0, G_OPTION_ARG_STRING, &opt_runtime_path, "Runtime path", NULL},
 	{"restore", 0, 0, G_OPTION_ARG_STRING, &opt_restore_path, "Restore a container from a checkpoint", NULL},
 	{"restore-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_opts,
-	 "Additional arg to pass to the restore command. Can be specified multiple times. (DEPRECIATED)", NULL},
+	 "Additional arg to pass to the restore command. Can be specified multiple times. (DEPRECATED)", NULL},
 	{"runtime-opt", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_opts,
 	 "Additional opts to pass to the restore or exec command. Can be specified multiple times", NULL},
 	{"runtime-arg", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_runtime_args,
@@ -101,6 +102,7 @@ static GOptionEntry opt_entries[] = {
 	{"conmon-pidfile", 'P', 0, G_OPTION_ARG_STRING, &opt_conmon_pid_file, "Conmon daemon PID file", NULL},
 	{"systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL},
 	{"exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL},
+	{"exec-updated", 0, 0, G_OPTION_ARG_NONE, &opt_exec_updated, "Use the legacy conmon API for exec sessions", NULL},
 	{"exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL},
 	{"exit-dir", 0, 0, G_OPTION_ARG_STRING, &opt_exit_dir, "Path to the directory where exit files are written", NULL},
 	{"exit-command", 0, 0, G_OPTION_ARG_STRING, &opt_exit_command,
@@ -424,7 +426,7 @@ static void check_child_processes(GHashTable *pid_to_handler)
 		cb = g_hash_table_lookup(pid_to_handler, &pid);
 		if (cb) {
 			cb(pid, status, 0);
-		} else {
+		} else if (opt_exec_updated) {
 			ndebugf("couldn't  find cb for pid %d", pid);
 			if (container_status < 0 && container_pid < 0 && opt_exec && opt_terminal) {
 				ndebugf("container status and pid were found prior to callback being registered. calling manually");
@@ -827,7 +829,7 @@ static void container_exit_cb(G_GNUC_UNUSED GPid pid, int status, G_GNUC_UNUSED 
 	   we risk falsely telling the caller of conmon the runtime call failed (because runtime status
 	   wouldn't be set). Instead, don't quit the loop until runtime exit is also called, which should
 	   shortly after. */
-	if (create_pid > 0 && opt_exec && opt_terminal) {
+	if (opt_exec_updated && create_pid > 0 && opt_exec && opt_terminal) {
 		ndebugf("container pid return handled before runtime pid return. Not quitting yet.");
 		return;
 	}
@@ -839,7 +841,13 @@ static void write_sync_fd(int sync_pipe_fd, int res, const char *message)
 {
 	_cleanup_free_ char *escaped_message = NULL;
 	_cleanup_free_ char *json = NULL;
-	const char *res_key = "data";
+	const char *res_key;
+	if (opt_exec_updated)
+		res_key = "data";
+	else if (opt_exec)
+		res_key = "exit_code";
+	else
+		res_key = "pid";
 	ssize_t len;
 
 	if (sync_pipe_fd == -1)
@@ -925,7 +933,6 @@ static char *setup_attach_socket(void)
 
 	attach_sock_path = g_build_filename(opt_socket_path, opt_cuuid, "attach", NULL);
 	ninfof("attach sock path: %s", attach_sock_path);
-	ninfof("symlink path: %s", attach_symlink_dir_path);
 
 	strncpy(attach_addr.sun_path, attach_sock_path, sizeof(attach_addr.sun_path) - 1);
 	ninfof("addr{sun_family=AF_UNIX, sun_path=%s}", attach_addr.sun_path);
@@ -1150,8 +1157,11 @@ int main(int argc, char *argv[])
 	if (!opt_exec && opt_attach)
 		nexit("Attach can only be specified with exec");
 
+	if (!opt_exec_updated && opt_attach)
+		nexit("Attach can only be specified for a non-legacy exec session");
 
-	if (opt_cuuid == NULL)
+	/* The old exec API did not require opt_cuuid */
+	if (opt_exec_updated && opt_cuuid == NULL)
 		nexit("Container UUID not provided. Use --cuuid");
 
 	if (opt_runtime_path == NULL)
@@ -1536,8 +1546,13 @@ int main(int argc, char *argv[])
 
 	g_hash_table_insert(pid_to_handler, (pid_t *)&container_pid, container_exit_cb);
 
-	/* Send the container pid back to parent */
-	write_sync_fd(sync_pipe_fd, container_pid, NULL);
+	/* Send the container pid back to parent
+	 * Only send this pid back if we are using the current exec API. Old consumers expect
+	 * conmon to only send one value down this pipe, which will later be the exit code
+	 * Thus, if we are legacy and we are exec, skip this write.
+	 */
+	if (opt_exec_updated || !opt_exec)
+		write_sync_fd(sync_pipe_fd, container_pid, NULL);
 
 	setup_oom_handling(container_pid);
 
@@ -1554,18 +1569,19 @@ int main(int argc, char *argv[])
 
 	check_child_processes(pid_to_handler);
 	/* There are three cases we want to run this main loop:
-	   1. if we are running create or restore
-	   2. if we are running exec without a terminal
+	   1. If we are using the legacy API
+	   2. if we are running create or restore
+	   3. if we are running exec without a terminal
 	       no matter the speed of the command being executed, having outstanding
 	       output to process from the child process keeps it alive, so we can read the io,
 	       and let the callback handler take care of the container_status as normal.
-	   3. if we are exec with a tty open, and our container_status hasn't been changed
+	   4. if we are exec with a tty open, and our container_status hasn't been changed
 	      by any callbacks yet
 	       specifically, the check child processes call above could set the container
 	       status if it is a quickly exiting command. We only want to run the loop if
 	       this hasn't happened yet.
 	*/
-	if (!opt_exec || !opt_terminal || container_status < 0)
+	if (!opt_exec_updated || !opt_exec || !opt_terminal || container_status < 0)
 		g_main_loop_run(main_loop);
 
 	check_cgroup2_oom();
