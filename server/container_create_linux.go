@@ -345,13 +345,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.systemContext,
 		sb.Name(), sb.ID(),
-		image, imgResult.ID,
+		image, s.config.GlobalAuthFile, imgResult.ID,
 		containerName, containerID,
 		metadata.Name,
 		metadata.Attempt,
 		containerIDMappings,
-		labelOptions,
-		nil)
+		labelOptions)
 	if err != nil {
 		return nil, err
 	}

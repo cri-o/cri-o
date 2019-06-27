@@ -242,12 +242,16 @@ runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 # Default transport for pulling images from a remote container storage.
 default_transport = "{{ .DefaultTransport }}"
 
+# The path to a file containing credentials necessary for pulling images from
+# secure registries. The file is similar to that of /var/lib/kubelet/config.json
+global_auth_file = "{{ .GlobalAuthFile }}"
+
 # The image used to instantiate infra containers.
 # This option supports live configuration reload.
 pause_image = "{{ .PauseImage }}"
 
-# If not empty, the path to a docker/config.json-like file containing credentials
-# necessary for pulling the image specified by pause_image above.
+# The path to a file containing credentials specific for pulling the pause_image from
+# above. The file is similar to that of /var/lib/kubelet/config.json
 # This option supports live configuration reload.
 pause_image_auth_file = "{{ .PauseImageAuthFile }}"
 
