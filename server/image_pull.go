@@ -39,13 +39,13 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		return nil, err
 	}
 	for _, img := range images {
-		var (
-			username string
-			password string
-		)
+		sourceCtx := *s.systemContext // A shallow copy we can modify
+		sourceCtx.DockerRegistryUserAgent = useragent.Get(ctx)
+		sourceCtx.AuthFilePath = s.config.GlobalAuthFile
+
 		if req.GetAuth() != nil {
-			username = req.GetAuth().Username
-			password = req.GetAuth().Password
+			username := req.GetAuth().Username
+			password := req.GetAuth().Password
 			if req.GetAuth().Auth != "" {
 				username, password, err = decodeDockerAuth(req.GetAuth().Auth)
 				if err != nil {
