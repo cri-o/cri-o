@@ -141,7 +141,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with runtime cheks", func() {
 			// Given
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validPath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validPath}
 			sut.Conmon = validPath
 			tmpDir := t.MustTempDir("cni-test")
 			sut.NetworkConfig.PluginDirs = []string{tmpDir}
@@ -157,7 +157,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with invalid network configuration", func() {
 			// Given
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validPath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validPath}
 			sut.Conmon = validPath
 			sut.PluginDirs = []string{validPath}
 			sut.NetworkConfig.NetworkDir = wrongPath

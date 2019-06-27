@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -27,7 +28,6 @@ const (
 	defaultTransport    = "docker://"
 	apparmorProfileName = "crio-default"
 	defaultRuntime      = "runc"
-	defaultRuntimePath  = "/usr/bin/runc"
 	DefaultRuntimeType  = "oci"
 	DefaultRuntimeRoot  = "/run/runc"
 	cgroupManager       = "cgroupfs"
@@ -146,6 +146,9 @@ type RuntimeHandler struct {
 	RuntimeRoot string `toml:"runtime_root"`
 }
 
+// Multiple runtime Handlers in a map
+type Runtimes map[string]*RuntimeHandler
+
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
 	// ConmonEnv is the environment variable list for conmon process.
@@ -227,7 +230,7 @@ type RuntimeConfig struct {
 	// use is picked based on the runtime_handler provided by the CRI. If
 	// no runtime_handler is provided, the runtime will be picked based on
 	// the level of trust of the workload.
-	Runtimes map[string]RuntimeHandler `toml:"runtimes"`
+	Runtimes Runtimes `toml:"runtimes"`
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
@@ -387,9 +390,9 @@ func DefaultConfig() (*Config, error) {
 		},
 		RuntimeConfig: RuntimeConfig{
 			DefaultRuntime: defaultRuntime,
-			Runtimes: map[string]RuntimeHandler{
+			Runtimes: Runtimes{
 				defaultRuntime: {
-					RuntimePath: defaultRuntimePath,
+					RuntimePath: "",
 					RuntimeType: DefaultRuntimeType,
 					RuntimeRoot: DefaultRuntimeRoot,
 				},
@@ -518,12 +521,16 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			// The default config sets runc and its path in the runtimes map, so check for that
 			// first. If it does not exist then we add runc + its path to the runtimes map.
 			if _, ok := c.Runtimes[defaultRuntime]; !ok {
-				c.Runtimes[defaultRuntime] = RuntimeHandler{RuntimePath: defaultRuntimePath, RuntimeType: DefaultRuntimeType, RuntimeRoot: DefaultRuntimeRoot}
+				c.Runtimes[defaultRuntime] = &RuntimeHandler{
+					RuntimePath: "",
+					RuntimeType: DefaultRuntimeType,
+					RuntimeRoot: DefaultRuntimeRoot,
+				}
 			}
 			// Set the DefaultRuntime to runc so we don't fail further along in the code
 			c.DefaultRuntime = defaultRuntime
 		} else {
-			return fmt.Errorf("default_runtime set to %q, but no runtime path is set for it", c.DefaultRuntime)
+			return fmt.Errorf("default_runtime set to %q, but no runtime entry was found for it", c.DefaultRuntime)
 		}
 	}
 
@@ -533,14 +540,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	// check for validation on execution
 	if onExecution {
-		// Validate if runtime_path does exist for each runtime
-		for runtime, handler := range c.Runtimes {
-			if _, err := os.Stat(handler.RuntimePath); os.IsNotExist(err) {
-				return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
-					runtime, err)
-			}
-			logrus.Debugf("found valid runtime '%s' for runtime_path '%s'\n",
-				runtime, handler.RuntimePath)
+		if err := c.ValidateRuntimePaths(); err != nil {
+			return errors.Wrapf(err, "runtime validation")
 		}
 
 		// Validate the system registries configuration
@@ -559,6 +560,31 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 	}
 
+	return nil
+}
+
+// ValidateRuntimePaths checks every runtime if the `RuntimePath` is either set
+// or inside the runtime name is available within the $PATH environment. The method
+// fails on any `RuntimePath` lookup error.
+func (c *RuntimeConfig) ValidateRuntimePaths() error {
+	// Validate if runtime_path does exist for each runtime
+	for runtime, handler := range c.Runtimes {
+
+		if handler.RuntimePath == "" {
+			executable, err := exec.LookPath(runtime)
+			if err != nil {
+				return errors.Wrapf(err, "%q not found in $PATH", runtime)
+			}
+			handler.RuntimePath = executable
+			logrus.Debugf("using runtime executable from $PATH %q", executable)
+
+		} else if _, err := os.Stat(handler.RuntimePath); os.IsNotExist(err) {
+			return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
+				runtime, err)
+		}
+		logrus.Debugf("found valid runtime %q for runtime_path %q",
+			runtime, handler.RuntimePath)
+	}
 	return nil
 }
 

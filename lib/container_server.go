@@ -114,10 +114,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
 
-	runtime, err := oci.New(config)
-	if err != nil {
-		return nil, err
-	}
+	runtime := oci.New(config)
 
 	var lock sync.Locker
 	if config.FileLocking {

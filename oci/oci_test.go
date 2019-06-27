@@ -10,37 +10,16 @@ import (
 // The actual test suite
 var _ = t.Describe("Oci", func() {
 	t.Describe("New", func() {
-		It("should succeed with default runtime", func() {
+		It("should succeed with default config", func() {
 			// Given
 			c, err := config.DefaultConfig()
 			Expect(err).To(BeNil())
-			c.Runtimes = map[string]config.RuntimeHandler{"runc": {
-				RuntimePath: "/bin/sh",
-				RuntimeType: "",
-				RuntimeRoot: "/run/runc",
-			}}
-			c.DefaultRuntime = "runc"
 
 			// When
-			runtime, err := oci.New(c)
+			runtime := oci.New(c)
 
 			// Then
-			Expect(err).To(BeNil())
 			Expect(runtime).NotTo(BeNil())
-		})
-
-		It("should fail if no runtime configured for default runtime", func() {
-			// Given
-			c, err := config.DefaultConfig()
-			Expect(err).To(BeNil())
-			c.DefaultRuntime = ""
-
-			// When
-			runtime, err := oci.New(c)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(runtime).To(BeNil())
 		})
 	})
 
@@ -53,7 +32,7 @@ var _ = t.Describe("Oci", func() {
 			invalidRuntime = "invalid"
 			defaultRuntime = "runc"
 		)
-		runtimes := map[string]config.RuntimeHandler{
+		runtimes := config.Runtimes{
 			defaultRuntime: {
 				RuntimePath: "/bin/sh",
 				RuntimeType: "",
@@ -67,8 +46,7 @@ var _ = t.Describe("Oci", func() {
 			c.DefaultRuntime = defaultRuntime
 			c.Runtimes = runtimes
 
-			sut, err = oci.New(c)
-			Expect(err).To(BeNil())
+			sut = oci.New(c)
 			Expect(sut).NotTo(BeNil())
 		})
 
@@ -89,36 +67,6 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(handler).To(Equal(runtimes[defaultRuntime]))
-		})
-
-		It("should fail to validate an inexisting runtime handler", func() {
-			// Given
-			// When
-			handler, err := sut.ValidateRuntimeHandler("not_existing")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(handler).To(Equal(config.RuntimeHandler{}))
-		})
-
-		It("should fail to validate an invalid runtime path", func() {
-			// Given
-			// When
-			handler, err := sut.ValidateRuntimeHandler(invalidRuntime)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(handler).To(Equal(config.RuntimeHandler{}))
-		})
-
-		It("should fail to validate an empty runtime handler", func() {
-			// Given
-			// When
-			handler, err := sut.ValidateRuntimeHandler("")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(handler).To(Equal(config.RuntimeHandler{}))
 		})
 	})
 

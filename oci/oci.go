@@ -81,40 +81,32 @@ type RuntimeImpl interface {
 }
 
 // New creates a new Runtime with options provided
-func New(c *config.Config) (*Runtime, error) {
-	defRuntime, ok := c.Runtimes[c.DefaultRuntime]
-	if !ok {
-		return nil, fmt.Errorf("no runtime configured for default_runtime=%q", c.DefaultRuntime)
-	}
-	if defRuntime.RuntimePath == "" {
-		return nil, fmt.Errorf("empty runtime path for default_runtime=%q", c.DefaultRuntime)
-	}
-
+func New(c *config.Config) *Runtime {
 	return &Runtime{
 		config:         c,
 		runtimeImplMap: make(map[string]RuntimeImpl),
-	}, nil
+	}
 }
 
 // Runtimes returns the map of OCI runtimes.
-func (r *Runtime) Runtimes() map[string]config.RuntimeHandler {
+func (r *Runtime) Runtimes() config.Runtimes {
 	return r.config.Runtimes
 }
 
 // ValidateRuntimeHandler returns an error if the runtime handler string
 // provided does not match any valid use case.
-func (r *Runtime) ValidateRuntimeHandler(handler string) (config.RuntimeHandler, error) {
+func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
 	if handler == "" {
-		return config.RuntimeHandler{}, fmt.Errorf("empty runtime handler")
+		return nil, fmt.Errorf("empty runtime handler")
 	}
 
 	runtimeHandler, ok := r.config.Runtimes[handler]
 	if !ok {
-		return config.RuntimeHandler{}, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
+		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
 			handler, r.config.Runtimes)
 	}
 	if runtimeHandler.RuntimePath == "" {
-		return config.RuntimeHandler{}, fmt.Errorf("empty runtime path for runtime handler %s", handler)
+		return nil, fmt.Errorf("empty runtime path for runtime handler %s", handler)
 	}
 
 	return runtimeHandler, nil
@@ -205,7 +197,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 
 	// If the runtime type is different from "vm", then let's fallback
 	// onto the OCI implementation by default.
-	return newRuntimeOCI(r, &rh), nil
+	return newRuntimeOCI(r, rh), nil
 }
 
 // RuntimeImpl returns the runtime implementation for a given container
