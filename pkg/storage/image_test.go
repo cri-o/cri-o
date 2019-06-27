@@ -63,17 +63,6 @@ var _ = t.Describe("Image", func() {
 		)
 	}
 
-	// Only about the first half of imageService.buidlImageCacheItem
-	mockBuildImageCacheItemStart := func(expectedImageNameOrID string) mockSequence {
-		return inOrder(
-			// NewImageSource:
-			mockResolveImage(storeMock, expectedImageNameOrID, testSHA256),
-			// imageConfigDigest calling storageImageSource.GetManifest:
-			storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
-				Return(testManifest, nil),
-		)
-	}
-
 	t.Describe("GetImageService", func() {
 		It("should succeed to retrieve an image service", func() {
 			// Given
@@ -365,11 +354,6 @@ var _ = t.Describe("Image", func() {
 					}, nil),
 
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
-				// NewImageSource:
-				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
-				// imageConfigDigest calling storageImageSource.GetManifest:
-				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
-					Return(testManifest, nil),
 				// makeRepoDigests
 				storeMock.EXPECT().Image(testSHA256).
 					Return(&cs.Image{ID: testImageName}, nil),
@@ -429,27 +413,6 @@ var _ = t.Describe("Image", func() {
 			Expect(err).NotTo(BeNil())
 			Expect(res).To(BeNil())
 		})
-
-		It("should fail to get on wrong image config digest", func() {
-			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
-				// NewImageSource:
-				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
-				// imageConfigDigest calling storageImageSource.GetManifest:
-				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
-					Return(nil, t.TestError),
-			)
-
-			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
 	})
 
 	t.Describe("ListImages", func() {
@@ -471,7 +434,7 @@ var _ = t.Describe("Image", func() {
 			// Given
 			mockLoop := func() mockSequence {
 				return inOrder(
-					// in the middle of buildImageCacheItem:
+					// buildImageCacheItem:
 					mockNewImage(storeMock, testSHA256, testSHA256),
 					// makeRepoDigests:
 					storeMock.EXPECT().Image(testSHA256).
@@ -487,10 +450,8 @@ var _ = t.Describe("Image", func() {
 						{ID: testSHA256}},
 					nil),
 				mockParseStoreReference(storeMock, "@"+testSHA256),
-				mockBuildImageCacheItemStart(testSHA256),
 				mockLoop(),
 				mockParseStoreReference(storeMock, "@"+testSHA256),
-				mockBuildImageCacheItemStart(testSHA256),
 				mockLoop(),
 			)
 
@@ -507,8 +468,7 @@ var _ = t.Describe("Image", func() {
 			inOrder(
 				mockGetRef(),
 				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				mockBuildImageCacheItemStart(testNormalizedImageName),
-				// in the middle of buildImageCacheItem:
+				// buildImageCacheItem:
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
 				// makeRepoDigests:
 				storeMock.EXPECT().Image(testSHA256).
@@ -560,9 +520,7 @@ var _ = t.Describe("Image", func() {
 			inOrder(
 				mockGetRef(),
 				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				mockBuildImageCacheItemStart(testNormalizedImageName),
-				// in the middle of buildImageCacheItem:
-				// NewImage is failing:
+				// in buildImageCacheItem, NewImage is failing:
 				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
 				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
 					Return(nil, t.TestError),

@@ -11,7 +11,6 @@ import (
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/manifest"
 	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/signature"
 	istorage "github.com/containers/image/storage"
@@ -174,20 +173,12 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, imageI
 }
 
 func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference) (imageCacheItem, error) {
-	img, err := ref.NewImageSource(svc.ctx, systemContext)
-	if err != nil {
-		return imageCacheItem{}, err
-	}
-	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
-	img.Close()
-	if err != nil {
-		return imageCacheItem{}, err
-	}
 	imageFull, err := ref.NewImage(svc.ctx, systemContext)
 	if err != nil {
 		return imageCacheItem{}, err
 	}
 	defer imageFull.Close()
+	configDigest := imageFull.ConfigInfo().Digest
 	imageConfig, err := imageFull.OCIConfig(svc.ctx)
 	if err != nil {
 		return imageCacheItem{}, err
@@ -291,17 +282,8 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	defer imageFull.Close()
 
 	size := imageSize(imageFull)
+	configDigest := imageFull.ConfigInfo().Digest
 	imageConfig, err := imageFull.OCIConfig(svc.ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	img, err := ref.NewImageSource(svc.ctx, systemContext)
-	if err != nil {
-		return nil, err
-	}
-	defer img.Close()
-	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -328,18 +310,6 @@ func imageSize(img types.Image) *uint64 {
 		return &usum
 	}
 	return nil
-}
-
-func imageConfigDigest(ctx context.Context, img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
-	manifestBytes, manifestType, err := img.GetManifest(ctx, instanceDigest)
-	if err != nil {
-		return "", err
-	}
-	imgManifest, err := manifest.FromBlob(manifestBytes, manifestType)
-	if err != nil {
-		return "", err
-	}
-	return imgManifest.ConfigInfo().Digest, nil
 }
 
 // prepareReference creates an image reference from an image string and set options

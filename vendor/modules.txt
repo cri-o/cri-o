@@ -89,16 +89,15 @@ github.com/containers/image/types
 github.com/containers/image/pkg/sysregistriesv2
 github.com/containers/image/copy
 github.com/containers/image/docker/reference
-github.com/containers/image/manifest
 github.com/containers/image/signature
 github.com/containers/image/storage
 github.com/containers/image/transports/alltransports
 github.com/containers/image/pkg/blobinfocache/memory
+github.com/containers/image/manifest
 github.com/containers/image/image
 github.com/containers/image/pkg/blobinfocache
 github.com/containers/image/pkg/compression
 github.com/containers/image/transports
-github.com/containers/image/pkg/strslice
 github.com/containers/image/version
 github.com/containers/image/internal/tmpdir
 github.com/containers/image/pkg/blobinfocache/none
@@ -112,6 +111,7 @@ github.com/containers/image/openshift
 github.com/containers/image/ostree
 github.com/containers/image/tarball
 github.com/containers/image/pkg/blobinfocache/internal/prioritize
+github.com/containers/image/pkg/strslice
 github.com/containers/image/pkg/blobinfocache/boltdb
 github.com/containers/image/directory/explicitfilepath
 github.com/containers/image/docker/policyconfiguration
