@@ -54,20 +54,20 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 				}
 			}
 		}
-		options := &copy.Options{
-			SourceCtx: &types.SystemContext{
-				DockerRegistryUserAgent: useragent.Get(ctx),
-				SignaturePolicyPath:     s.systemContext.SignaturePolicyPath,
-				AuthFilePath:            s.config.GlobalAuthFile,
-			},
-		}
+		sourceCtx := *s.systemContext // A shallow copy we can modify
+		sourceCtx.DockerRegistryUserAgent = useragent.Get(ctx)
+		sourceCtx.AuthFilePath = s.config.GlobalAuthFile
 
 		// Specifying a username indicates the user intends to send authentication to the registry.
 		if username != "" {
-			options.SourceCtx.DockerAuthConfig = &types.DockerAuthConfig{
+			sourceCtx.DockerAuthConfig = &types.DockerAuthConfig{
 				Username: username,
 				Password: password,
 			}
+		}
+
+		options := &copy.Options{
+			SourceCtx: &sourceCtx,
 		}
 
 		var tmpImg types.ImageCloser
