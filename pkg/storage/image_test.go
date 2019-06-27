@@ -68,8 +68,6 @@ var _ = t.Describe("Image", func() {
 		return inOrder(
 			// NewImageSource:
 			mockResolveImage(storeMock, expectedImageNameOrID, testSHA256),
-			// imageSize:
-			mockStorageImageSourceGetSize(storeMock),
 			// imageConfigDigest calling storageImageSource.GetManifest:
 			storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
 				Return(testManifest, nil),
@@ -369,8 +367,6 @@ var _ = t.Describe("Image", func() {
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
 				// NewImageSource:
 				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
-				// imageSize:
-				mockStorageImageSourceGetSize(storeMock),
 				// imageConfigDigest calling storageImageSource.GetManifest:
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
@@ -442,8 +438,6 @@ var _ = t.Describe("Image", func() {
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
 				// NewImageSource:
 				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
-				// imageSize:
-				mockStorageImageSourceGetSize(storeMock),
 				// imageConfigDigest calling storageImageSource.GetManifest:
 				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
 					Return(nil, t.TestError),

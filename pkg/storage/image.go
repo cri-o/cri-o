@@ -75,11 +75,6 @@ type imageService struct {
 	ctx                         context.Context
 }
 
-// sizer knows its size.
-type sizer interface {
-	Size() (int64, error)
-}
-
 // ImageServer wraps up various CRI-related activities into a reusable
 // implementation.
 type ImageServer interface {
@@ -183,7 +178,6 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	if err != nil {
 		return imageCacheItem{}, err
 	}
-	size := imageSize(img)
 	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
 	img.Close()
 	if err != nil {
@@ -198,6 +192,7 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	if err != nil {
 		return imageCacheItem{}, err
 	}
+	size := imageSize(imageFull)
 	return imageCacheItem{
 		user:         imageConfig.Config.User,
 		size:         size,
@@ -295,6 +290,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	}
 	defer imageFull.Close()
 
+	size := imageSize(imageFull)
 	imageConfig, err := imageFull.OCIConfig(svc.ctx)
 	if err != nil {
 		return nil, err
@@ -305,7 +301,6 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		return nil, err
 	}
 	defer img.Close()
-	size := imageSize(img)
 	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
 	if err != nil {
 		return nil, err
@@ -327,12 +322,10 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	return &result, nil
 }
 
-func imageSize(img types.ImageSource) *uint64 {
-	if s, ok := img.(sizer); ok {
-		if sum, err := s.Size(); err == nil {
-			usum := uint64(sum)
-			return &usum
-		}
+func imageSize(img types.Image) *uint64 {
+	if sum, err := img.Size(); err == nil {
+		usum := uint64(sum)
+		return &usum
 	}
 	return nil
 }
