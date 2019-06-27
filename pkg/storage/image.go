@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"path"
 	"strings"
 	"sync"
 
@@ -522,7 +521,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
 			rem = "library/" + rem
 		}
-		image := path.Join(r, rem)
+		image := r + "/" + rem
 		registry, err := sysregistriesv2.FindRegistry(systemContext, image)
 		if err != nil {
 			return nil, err
