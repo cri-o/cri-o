@@ -7,7 +7,6 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.12
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/containerd/cgroups v0.0.0-20190603164311-51b62d303d38
 	github.com/containerd/containerd v1.2.7
 	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
 	github.com/containerd/go-runc v0.0.0-20190226155025-7d11b49dc076 // indirect
