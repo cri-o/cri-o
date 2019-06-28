@@ -3,6 +3,8 @@ github.com/Azure/go-ansiterm/winterm
 github.com/Azure/go-ansiterm
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
+# github.com/DataDog/zstd v1.4.0
+github.com/DataDog/zstd
 # github.com/Microsoft/go-winio v0.4.12
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/archive/tar
@@ -159,7 +161,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.12.10
+# github.com/containers/storage v1.12.12
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage
 github.com/containers/storage/pkg/idtools
