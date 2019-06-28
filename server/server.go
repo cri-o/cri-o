@@ -27,6 +27,7 @@ import (
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/version"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
@@ -312,6 +313,7 @@ func New(
 	}
 	systemContext = &sc
 
+	systemContext.DockerRegistryUserAgent = useragent.Get(ctx)
 	systemContext.SignaturePolicyPath = config.SignaturePolicyPath
 
 	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0755); err != nil {

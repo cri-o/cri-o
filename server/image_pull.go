@@ -40,7 +40,6 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	}
 	for _, img := range images {
 		sourceCtx := *s.systemContext // A shallow copy we can modify
-		sourceCtx.DockerRegistryUserAgent = useragent.Get(ctx)
 		sourceCtx.AuthFilePath = s.config.GlobalAuthFile
 
 		if req.GetAuth() != nil {
