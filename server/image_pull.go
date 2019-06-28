@@ -8,7 +8,6 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
 	"github.com/cri-o/cri-o/pkg/storage"
-	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -30,6 +29,26 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		image = img.Image
 	}
 
+	sourceCtx := *s.systemContext // A shallow copy we can modify
+	if req.GetAuth() != nil {
+		username := req.GetAuth().Username
+		password := req.GetAuth().Password
+		if req.GetAuth().Auth != "" {
+			username, password, err = decodeDockerAuth(req.GetAuth().Auth)
+			if err != nil {
+				logrus.Debugf("error decoding authentication for image %s: %v", img, err)
+				return nil, err
+			}
+		}
+		// Specifying a username indicates the user intends to send authentication to the registry.
+		if username != "" {
+			sourceCtx.DockerAuthConfig = &types.DockerAuthConfig{
+				Username: username,
+				Password: password,
+			}
+		}
+	}
+
 	var (
 		images []string
 		pulled string
@@ -39,31 +58,6 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		return nil, err
 	}
 	for _, img := range images {
-		sourceCtx := *s.systemContext // A shallow copy we can modify
-
-		if req.GetAuth() != nil {
-			username := req.GetAuth().Username
-			password := req.GetAuth().Password
-			if req.GetAuth().Auth != "" {
-				username, password, err = decodeDockerAuth(req.GetAuth().Auth)
-				if err != nil {
-					logrus.Debugf("error decoding authentication for image %s: %v", img, err)
-					continue
-				}
-			}
-		}
-		sourceCtx := *s.systemContext // A shallow copy we can modify
-		sourceCtx.DockerRegistryUserAgent = useragent.Get(ctx)
-		sourceCtx.AuthFilePath = s.config.GlobalAuthFile
-
-		// Specifying a username indicates the user intends to send authentication to the registry.
-		if username != "" {
-			sourceCtx.DockerAuthConfig = &types.DockerAuthConfig{
-				Username: username,
-				Password: password,
-			}
-		}
-
 		var tmpImg types.ImageCloser
 		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
