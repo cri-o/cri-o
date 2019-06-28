@@ -43,7 +43,6 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.17.1
 	github.com/google/renameio v0.1.0
-	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/ishidawataru/sctp v0.0.0-20180213033435-07191f837fed // indirect
 	github.com/klauspost/compress v1.5.0 // indirect
@@ -57,30 +56,26 @@ require (
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/opencontainers/runc v1.0.0-rc8
 	github.com/opencontainers/runtime-spec v1.0.1
-	github.com/opencontainers/runtime-tools v0.3.1-0.20190418135848-095789df6c2b
+	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.2.2
 	github.com/openshift/imagebuilder v1.1.0 // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20181213164143-d0388bd827cf // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.4
-	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f // indirect
-	github.com/seccomp/libseccomp-golang v0.9.1
+	github.com/seccomp/containers-golang v0.3.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/soheilhy/cmux v0.1.4
-	github.com/syndtr/gocapability v0.0.0-20160928074757-e7cb7fa329f4
+	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
 	github.com/ulikunitz/xz v0.5.6 // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/vbatts/git-validation v1.0.0
 	github.com/vbatts/tar-split v0.11.1 // indirect
 	github.com/vbauerster/mpb v3.4.0+incompatible // indirect
-	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
-	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
-	github.com/xeipuuv/gojsonschema v1.1.0 // indirect
 	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190425145619-16072639606e
+	golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/genproto v0.0.0-20190516172635-bb713bdc0e52 // indirect
 	google.golang.org/grpc v1.21.1

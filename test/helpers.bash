@@ -23,7 +23,7 @@ CONMON_CGROUP=${CONMON_CGROUP:-pod}
 # Path of the pause binary.
 PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/cri-o/bin/pause}
 # Path of the default seccomp profile.
-SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/cri-o/seccomp.json}
+SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/cri-o/vendor/github.com/seccomp/containers-golang/seccomp.json}
 # Name of the default apparmor profile.
 APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
 # Runtime
@@ -235,7 +235,7 @@ function setup_crio() {
 	if [[ -n "$1" ]]; then
 		seccomp="$1"
 	else
-		seccomp="$SECCOMP_PROFILE"
+		seccomp=""
 	fi
 
 	if [[ -n "$2" ]]; then

@@ -17,7 +17,6 @@ FILES_ETC=(
     "../crictl.yaml"
     "../crio-umount.conf"
     "../crio.conf"
-    "../seccomp.json"
 )
 
 TMPDIR=tmp

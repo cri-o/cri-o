@@ -359,7 +359,6 @@ install.man: $(MANPAGES)
 install.config: crio.conf
 	install ${SELINUXOPT} -d $(DATAROOTDIR)/oci/hooks.d
 	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
-	install ${SELINUXOPT} -D -m 644 seccomp.json $(ETCDIR_CRIO)/seccomp.json
 	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	install ${SELINUXOPT} -D -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
 

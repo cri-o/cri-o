@@ -163,7 +163,6 @@ github.com/containers/psgo/internal/host
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage
 github.com/containers/storage/pkg/idtools
-github.com/containers/storage/pkg/stringutils
 github.com/containers/storage/drivers
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/drivers/register
@@ -172,6 +171,7 @@ github.com/containers/storage/pkg/directory
 github.com/containers/storage/pkg/ioutils
 github.com/containers/storage/pkg/parsers
 github.com/containers/storage/pkg/stringid
+github.com/containers/storage/pkg/stringutils
 github.com/containers/storage/pkg/system
 github.com/containers/storage/pkg/truncindex
 github.com/containers/storage/pkg/mount
@@ -606,7 +606,7 @@ github.com/opencontainers/runc/libcontainer/system
 github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.0.1 => github.com/opencontainers/runtime-spec v0.1.2-0.20190408193819-a1b50f621a48
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.3.1-0.20190418135848-095789df6c2b
+# github.com/opencontainers/runtime-tools v0.9.0
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/validate
 github.com/opencontainers/runtime-tools/generate/seccomp
@@ -654,7 +654,7 @@ github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 # github.com/russross/blackfriday v1.5.2
 github.com/russross/blackfriday
-# github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f
+# github.com/seccomp/containers-golang v0.3.1
 github.com/seccomp/containers-golang
 # github.com/seccomp/libseccomp-golang v0.9.1
 github.com/seccomp/libseccomp-golang
@@ -677,7 +677,7 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.0.2
 github.com/spf13/viper
-# github.com/syndtr/gocapability v0.0.0-20160928074757-e7cb7fa329f4
+# github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 github.com/syndtr/gocapability/capability
 # github.com/tchap/go-patricia v2.3.0+incompatible
 github.com/tchap/go-patricia/patricia
@@ -750,7 +750,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190425145619-16072639606e
+# golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry

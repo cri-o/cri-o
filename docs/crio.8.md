@@ -177,7 +177,7 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--selinux**=**true**|**false**: Enable selinux support (default: false)
 
-**--seccomp-profile**="": Path to the seccomp json profile to be used as the runtime's default (default: "/etc/crio/seccomp.json")
+**--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used.
 
 **--signature-policy**="": Path to the signature policy json file (default: "", to use the system-wide default)
 
