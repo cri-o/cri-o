@@ -352,7 +352,7 @@ var _ = t.Describe("Image", func() {
 							"localhost/b@sha256:" + testSHA256,
 							"localhost/c:latest"},
 					}, nil),
-
+				// buildImageCacheItem
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
 				// makeRepoDigests
 				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
@@ -397,8 +397,7 @@ var _ = t.Describe("Image", func() {
 			inOrder(
 				mockGetRef(),
 				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-
-				// storageReference.NewImage fails reading the manifest:
+				// In buildImageCacheItem, storageReference.NewImage fails reading the manifest:
 				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
 				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
 					Return(nil, t.TestError),

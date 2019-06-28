@@ -270,15 +270,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	if err != nil {
 		return nil, err
 	}
-	imageFull, err := ref.NewImage(svc.ctx, systemContext)
-	if err != nil {
-		return nil, err
-	}
-	defer imageFull.Close()
-
-	size := imageSize(imageFull)
-	configDigest := imageFull.ConfigInfo().Digest
-	imageConfig, err := imageFull.OCIConfig(svc.ctx)
+	cacheItem, err := svc.buildImageCacheItem(systemContext, ref) // Single-use-only, not actually cached
 	if err != nil {
 		return nil, err
 	}
@@ -290,10 +282,10 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		Name:         name,
 		RepoTags:     tags,
 		RepoDigests:  repoDigests,
-		Size:         size,
+		Size:         cacheItem.size,
 		Digest:       imageDigest,
-		ConfigDigest: configDigest,
-		User:         imageConfig.Config.User,
+		ConfigDigest: cacheItem.configDigest,
+		User:         cacheItem.user,
 	}
 
 	return &result, nil
