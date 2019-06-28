@@ -175,10 +175,23 @@ crioimage: git-vars
 	$(CONTAINER_RUNTIME) build -t ${CRIO_IMAGE} .
 
 dbuild: crioimage
-	$(CONTAINER_RUNTIME) run --name=${CRIO_INSTANCE} -e BUILDTAGS --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${CRIO_IMAGE} make binaries
+	$(CONTAINER_RUNTIME) run --rm --name=${CRIO_INSTANCE} --privileged \
+		-v $(shell pwd):/go/src/${PROJECT} -w /go/src/${PROJECT} \
+		${CRIO_IMAGE} make
 
-integration: crioimage
-	$(CONTAINER_RUNTIME) run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TEST_USERNS -e TESTFLAGS -e CI -e CRIO_BINARY -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${CRIO_IMAGE} make localintegration
+integration: ${GINKGO} crioimage
+	sudo $(CONTAINER_RUNTIME) run \
+		-e CI=true \
+		-e CRIO_BINARY \
+		-e RUN_CRITEST \
+		-e STORAGE_OPTIONS="--storage-driver=vfs" \
+		-e TESTFLAGS \
+		-e TEST_USERNS \
+		-t --privileged --rm \
+		-v $(shell pwd):/go/src/${PROJECT} \
+		-v ${GINKGO}:/usr/bin/ginkgo \
+		-w /go/src/${PROJECT} \
+		${CRIO_IMAGE} make localintegration ${TESTFLAGS}
 
 define go-build
 	$(shell cd `pwd` && $(GO) build -o ${BUILD_BIN_PATH}/${1} ${2})

@@ -1,63 +1,62 @@
-FROM golang:1.12
+FROM circleci/golang:1.12
+USER root
 
-RUN apt-get update && apt-get install -y \
+RUN echo "deb http://apt.llvm.org/stretch/ llvm-toolchain-stretch main" | \
+    tee -a /etc/apt/sources.list.d/llvm.list && \
+    wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add -
+
+RUN apt-get update &&\
+    apt-get install -y \
     apparmor \
     autoconf \
     automake \
     bison \
+    bsdmainutils \
+    btrfs-tools \
     build-essential \
-    curl \
+    clang-format \
     e2fslibs-dev \
     gawk \
     gettext \
     iptables \
-    pkg-config \
     libaio-dev \
     libapparmor-dev \
     libcap-dev \
-    libfuse-dev \
-    libnet-dev \
-    libnl-3-dev \
-    libprotobuf-dev \
-    libprotobuf-c0-dev \
-    libseccomp2 \
-    libseccomp-dev \
-    libtool \
-    libudev-dev \
-    libsystemd-dev \
-    parallel \
-    protobuf-c-compiler \
-    protobuf-compiler \
-    python-minimal \
-    python-protobuf \
-    libglib2.0-dev \
-    btrfs-tools \
-    libdevmapper1.02.1 \
     libdevmapper-dev \
+    libdevmapper1.02.1 \
+    libfuse-dev \
+    libglib2.0-dev \
     libgpgme11-dev \
     liblzma-dev \
-    netcat \
-    socat \
-    --no-install-recommends \
-    bsdmainutils \
-    && apt-get clean
+    libnet-dev \
+    libnl-3-dev \
+    libprotobuf-c0-dev \
+    libprotobuf-dev \
+    libseccomp-dev \
+    libseccomp2 \
+    libsystemd-dev \
+    libtool \
+    libudev-dev \
+    protobuf-c-compiler \
+    protobuf-compiler \
+    python-protobuf \
+    socat &&\
+    apt-get clean
 
-# install bats
-ENV BATS_COMMIT 8789f910812afbf6b87dd371ee5ae30592f1423f
-RUN cd /tmp \
-    && git clone https://github.com/bats-core/bats-core.git \
-    && cd bats-core \
-    && git checkout -q "$BATS_COMMIT" \
-    && ./install.sh /usr/local
-RUN mkdir -p ~/.parallel && touch ~/.parallel/will-cite
+# Install bats
+RUN cd /tmp &&\
+    git clone https://github.com/bats-core/bats-core.git --depth=1 &&\
+    cd bats-core &&\
+    ./install.sh /usr &&\
+    rm -rf /tmp/bats-core &&\
+    mkdir -p ~/.parallel && touch ~/.parallel/will-cite
 
-# install criu
-ENV CRIU_VERSION 3.9
-RUN mkdir -p /usr/src/criu \
-    && curl -sSL https://github.com/xemul/criu/archive/v${CRIU_VERSION}.tar.gz | tar -v -C /usr/src/criu/ -xz --strip-components=1 \
-    && cd /usr/src/criu \
-    && make install-criu \
-    && rm -rf /usr/src/criu
+# Install crictl and critest
+ENV CRICTL_COMMIT v1.14.0
+RUN wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_COMMIT/crictl-$CRICTL_COMMIT-linux-amd64.tar.gz \
+        | tar xfz - -C /usr/bin &&\
+    wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_COMMIT/critest-$CRICTL_COMMIT-linux-amd64.tar.gz \
+        | tar xfz - -C /usr/bin
 
 # Install runc
 RUN VERSION=v1.0.0-rc8 &&\
@@ -65,27 +64,12 @@ RUN VERSION=v1.0.0-rc8 &&\
     chmod +x /usr/bin/runc
 
 # Install CNI plugins
-RUN VERSION=v0.8.0 &&\
+RUN VERSION=v0.8.1 &&\
     mkdir -p /opt/cni/bin &&\
     wget -qO- https://github.com/containernetworking/plugins/releases/download/$VERSION/cni-plugins-linux-amd64-$VERSION.tgz \
         | tar xfz - -C /opt/cni/bin
-
-# Install crictl
-ENV CRICTL_COMMIT ff8d2e81baf8ff720fb916e42da57c2b772bd19e
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/kubernetes-sigs/cri-tools.git "$GOPATH/src/github.com/kubernetes-sigs/cri-tools" \
-       && cd "$GOPATH/src/github.com/kubernetes-sigs/cri-tools" \
-       && git checkout -q "$CRICTL_COMMIT" \
-       && go install github.com/kubernetes-sigs/cri-tools/cmd/crictl \
-       && cp "$GOPATH"/bin/crictl /usr/bin/ \
-       && rm -rf "$GOPATH"
 
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
-
-WORKDIR /go/src/github.com/cri-o/cri-o
-
-ADD . /go/src/github.com/cri-o/cri-o

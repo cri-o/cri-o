@@ -4,7 +4,7 @@ version: 2.1
 executors:
   docker:
     docker:
-      - image: &image saschagrunert/criocircle
+      - image: &image saschagrunert/criocircle:1.0.0
         user: circleci
     environment:
       GOCACHE: &gocache /tmp/go-build
@@ -230,8 +230,7 @@ jobs:
           name: integration test
           command: |
             docker pull $IMAGE
-            docker run -e APPARMOR_PARAMETERS_FILE_PATH=skip \
-              -e STORAGE_OPTIONS="--storage-driver=vfs" -e CI \
+            docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e CI \
               -e CRIO_BINARY -e TEST_USERNS -e RUN_CRITEST \
               -v $(pwd):$WORKDIR -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
               --privileged --rm -w $WORKDIR \

@@ -14,6 +14,11 @@ function teardown() {
     if [[ "$enabled" -eq 0 ]]; then
         skip "skip this test since apparmor is not enabled."
     fi
+    # apparmor inside containers can be problematic, because they mainly
+    # interact with the host system when running privileged
+    if [[ "$CI" == "true" ]]; then
+        skip "container tests don't support apparmor"
+    fi
 
     start_crio
 
@@ -43,6 +48,9 @@ function teardown() {
     enabled=$(is_apparmor_enabled)
     if [[ "$enabled" -eq 0 ]]; then
         skip "skip this test since apparmor is not enabled."
+    fi
+    if [[ "$CI" == "true" ]]; then
+        skip "container tests don't support apparmor"
     fi
 
     load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
@@ -77,6 +85,9 @@ function teardown() {
     if [[ "$enabled" -eq 0 ]]; then
         skip "skip this test since apparmor is not enabled."
     fi
+    if [[ "$CI" == "true" ]]; then
+        skip "container tests don't support apparmor"
+    fi
 
     load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
     start_crio
@@ -110,6 +121,9 @@ function teardown() {
     if [[ "$enabled" -eq 0 ]]; then
         skip "skip this test since apparmor is not enabled."
     fi
+    if [[ "$CI" == "true" ]]; then
+        skip "container tests don't support apparmor"
+    fi
 
     start_crio
 
@@ -137,6 +151,9 @@ function teardown() {
     enabled=$(is_apparmor_enabled)
     if [[ "$enabled" -eq 0 ]]; then
         skip "skip this test since apparmor is not enabled."
+    fi
+    if [[ "$CI" == "true" ]]; then
+        skip "container tests don't support apparmor"
     fi
 
     start_crio
