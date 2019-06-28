@@ -186,6 +186,21 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	}, nil
 }
 
+func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageCacheItem) ImageResult {
+	name, tags, digests := sortNamesByType(image.Names)
+	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
+	return ImageResult{
+		ID:           image.ID,
+		Name:         name,
+		RepoTags:     tags,
+		RepoDigests:  repoDigests,
+		Size:         cacheItem.size,
+		Digest:       imageDigest,
+		ConfigDigest: cacheItem.configDigest,
+		User:         cacheItem.user,
+	}
+}
+
 func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image, results []ImageResult, newImageCache imageCache) ([]ImageResult, error) {
 	var err error
 	svc.imageCacheLock.Lock()
@@ -207,18 +222,7 @@ func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, 
 		newImageCache[image.ID] = cacheItem
 	}
 
-	name, tags, digests := sortNamesByType(image.Names)
-	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
-	return append(results, ImageResult{
-		ID:           image.ID,
-		Name:         name,
-		RepoTags:     tags,
-		RepoDigests:  repoDigests,
-		Size:         cacheItem.size,
-		Digest:       imageDigest,
-		ConfigDigest: cacheItem.configDigest,
-		User:         cacheItem.user,
-	}), nil
+	return append(results, svc.buildImageResult(image, cacheItem)), nil
 }
 
 func (svc *imageService) ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error) {
@@ -275,19 +279,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 		return nil, err
 	}
 
-	name, tags, digests := sortNamesByType(image.Names)
-	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
-	result := ImageResult{
-		ID:           image.ID,
-		Name:         name,
-		RepoTags:     tags,
-		RepoDigests:  repoDigests,
-		Size:         cacheItem.size,
-		Digest:       imageDigest,
-		ConfigDigest: cacheItem.configDigest,
-		User:         cacheItem.user,
-	}
-
+	result := svc.buildImageResult(image, cacheItem)
 	return &result, nil
 }
 
