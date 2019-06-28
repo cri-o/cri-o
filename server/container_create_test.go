@@ -38,7 +38,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				runtimeServerMock.EXPECT().CreateContainer(
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(storage.ContainerInfo{
 						Config: &v1.Image{}}, nil),
 				runtimeServerMock.EXPECT().StartContainer(gomock.Any()).

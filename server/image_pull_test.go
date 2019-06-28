@@ -132,12 +132,6 @@ var _ = t.Describe("ImagePull", func() {
 
 		It("should fail credential decode erros", func() {
 			// Given
-			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
-			)
-
 			// When
 			response, err := sut.PullImage(context.Background(),
 				&pb.PullImageRequest{

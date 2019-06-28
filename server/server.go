@@ -27,6 +27,7 @@ import (
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/version"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
@@ -76,7 +77,7 @@ type Server struct {
 	*lib.ContainerServer
 	monitorsChan      chan struct{}
 	defaultIDMappings *idtools.IDMappings
-	systemContext     *types.SystemContext
+	systemContext     *types.SystemContext // Never nil
 
 	updateLock sync.RWMutex
 
@@ -305,10 +306,15 @@ func New(
 	}
 	config := configIface.GetData()
 
-	// Setup the system context if not provided
-	if systemContext == nil {
-		systemContext = &types.SystemContext{}
+	// Make a copy of systemContext we can safely modify, and which is never nil. (Note that this is a shallow copy!)
+	sc := types.SystemContext{}
+	if systemContext != nil {
+		sc = *systemContext
 	}
+	systemContext = &sc
+
+	systemContext.AuthFilePath = config.GlobalAuthFile
+	systemContext.DockerRegistryUserAgent = useragent.Get(ctx)
 	systemContext.SignaturePolicyPath = config.SignaturePolicyPath
 
 	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0755); err != nil {

@@ -8,7 +8,6 @@ import (
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
 	"github.com/cri-o/cri-o/pkg/storage"
-	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -30,6 +29,26 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		image = img.Image
 	}
 
+	sourceCtx := *s.systemContext // A shallow copy we can modify
+	if req.GetAuth() != nil {
+		username := req.GetAuth().Username
+		password := req.GetAuth().Password
+		if req.GetAuth().Auth != "" {
+			username, password, err = decodeDockerAuth(req.GetAuth().Auth)
+			if err != nil {
+				logrus.Debugf("error decoding authentication for image %s: %v", img, err)
+				return nil, err
+			}
+		}
+		// Specifying a username indicates the user intends to send authentication to the registry.
+		if username != "" {
+			sourceCtx.DockerAuthConfig = &types.DockerAuthConfig{
+				Username: username,
+				Password: password,
+			}
+		}
+	}
+
 	var (
 		images []string
 		pulled string
@@ -39,39 +58,8 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		return nil, err
 	}
 	for _, img := range images {
-		var (
-			username string
-			password string
-		)
-		if req.GetAuth() != nil {
-			username = req.GetAuth().Username
-			password = req.GetAuth().Password
-			if req.GetAuth().Auth != "" {
-				username, password, err = decodeDockerAuth(req.GetAuth().Auth)
-				if err != nil {
-					logrus.Debugf("error decoding authentication for image %s: %v", img, err)
-					continue
-				}
-			}
-		}
-		options := &copy.Options{
-			SourceCtx: &types.SystemContext{
-				DockerRegistryUserAgent: useragent.Get(ctx),
-				SignaturePolicyPath:     s.systemContext.SignaturePolicyPath,
-				AuthFilePath:            s.config.GlobalAuthFile,
-			},
-		}
-
-		// Specifying a username indicates the user intends to send authentication to the registry.
-		if username != "" {
-			options.SourceCtx.DockerAuthConfig = &types.DockerAuthConfig{
-				Username: username,
-				Password: password,
-			}
-		}
-
 		var tmpImg types.ImageCloser
-		tmpImg, err = s.StorageImageServer().PrepareImage(img, options)
+		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
 			logrus.Debugf("error preparing image %s: %v", img, err)
 			continue
@@ -94,7 +82,10 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			logrus.Debugf("image in store has different ID, re-pulling %s", img)
 		}
 
-		_, err = s.StorageImageServer().PullImage(s.systemContext, img, options)
+		_, err = s.StorageImageServer().PullImage(s.systemContext, img, &copy.Options{
+			SourceCtx:      &sourceCtx,
+			DestinationCtx: s.systemContext,
+		})
 		if err != nil {
 			logrus.Debugf("error pulling image %s: %v", img, err)
 			continue

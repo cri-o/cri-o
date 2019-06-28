@@ -88,7 +88,7 @@ type RuntimeServer interface {
 	// CreateContainer creates a container with the specified ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string) (ContainerInfo, error)
+	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
 	DeleteContainer(idOrName string) error
 
@@ -169,7 +169,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		// Maybe it's some other transport's copy of the image?
 		otherRef, err2 := alltransports.ParseImageName(imageName)
 		if err2 == nil && otherRef.DockerReference() != nil {
-			ref, err = istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), otherRef.DockerReference().Name())
+			ref, err = istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), otherRef.DockerReference().String())
 		}
 		if err != nil {
 			// Maybe the image ID is sufficient?
@@ -189,10 +189,17 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 			return ContainerInfo{}, ErrInvalidImageName
 		}
 		logrus.Debugf("couldn't find image %q, retrieving it", image)
-		options := &copy.Options{SourceCtx: &types.SystemContext{
-			AuthFilePath: imageAuthFile,
-		}}
-		ref, err = r.storageImageServer.PullImage(systemContext, image, options)
+		sourceCtx := types.SystemContext{}
+		if systemContext != nil {
+			sourceCtx = *systemContext // A shallow copy
+		}
+		if imageAuthFile != "" {
+			sourceCtx.AuthFilePath = imageAuthFile
+		}
+		ref, err = r.storageImageServer.PullImage(systemContext, image, &copy.Options{
+			SourceCtx:      &sourceCtx,
+			DestinationCtx: systemContext,
+		})
 		if err != nil {
 			return ContainerInfo{}, err
 		}
@@ -342,8 +349,8 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappings, labelOptions, true)
 }
 
-func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName, "", "", attempt, idMappings, labelOptions, false)
+func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, "", imageID, containerName, containerID, metadataName, "", "", attempt, idMappings, labelOptions, false)
 }
 
 func (r *runtimeService) RemovePodSandbox(idOrName string) error {
