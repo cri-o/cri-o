@@ -130,15 +130,11 @@ func sortNamesByType(names []string) (bestName string, tags, digests []string) {
 	return bestName, tags, digests
 }
 
-func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, imageID string) (imageDigest digest.Digest, repoDigests []string) {
+func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, img *storage.Image) (imageDigest digest.Digest, repoDigests []string) {
 	// Look up the image's digest.
-	img, err := svc.store.Image(imageID)
-	if err != nil {
-		return "", knownRepoDigests
-	}
 	imageDigest = img.Digest
 	if imageDigest == "" {
-		imgDigest, err := svc.store.ImageBigDataDigest(imageID, storage.ImageDigestBigDataKey)
+		imgDigest, err := svc.store.ImageBigDataDigest(img.ID, storage.ImageDigestBigDataKey)
 		if err != nil || imgDigest == "" {
 			return "", knownRepoDigests
 		}
@@ -212,7 +208,7 @@ func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, 
 	}
 
 	name, tags, digests := sortNamesByType(image.Names)
-	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
+	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
 	return append(results, ImageResult{
 		ID:           image.ID,
 		Name:         name,
@@ -288,7 +284,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	}
 
 	name, tags, digests := sortNamesByType(image.Names)
-	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image.ID)
+	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
 	result := ImageResult{
 		ID:           image.ID,
 		Name:         name,

@@ -355,8 +355,6 @@ var _ = t.Describe("Image", func() {
 
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
 				// makeRepoDigests
-				storeMock.EXPECT().Image(testSHA256).
-					Return(&cs.Image{ID: testImageName}, nil),
 				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 					Return(digest.Digest("a:"+testSHA256), nil),
 			)
@@ -437,8 +435,6 @@ var _ = t.Describe("Image", func() {
 					// buildImageCacheItem:
 					mockNewImage(storeMock, testSHA256, testSHA256),
 					// makeRepoDigests:
-					storeMock.EXPECT().Image(testSHA256).
-						Return(&cs.Image{ID: testImageName}, nil),
 					storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 						Return(digest.Digest(""), nil),
 				)
@@ -471,10 +467,8 @@ var _ = t.Describe("Image", func() {
 				// buildImageCacheItem:
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
 				// makeRepoDigests:
-				storeMock.EXPECT().Image(testSHA256).
-					Return(&cs.Image{ID: testImageName,
-						Names:  []string{"a", "b", "c"},
-						Digest: "digest"}, nil),
+				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
+					Return(digest.Digest(""), nil),
 			)
 
 			// When
