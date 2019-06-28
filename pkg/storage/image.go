@@ -350,10 +350,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 		return nil, err
 	}
 
-	options := copy.Options{}
-	if inputOptions != nil {
-		options = *inputOptions // A shallow copy
-	}
+	options := *inputOptions // A shallow copy
 	srcSystemContext, srcRef, err := svc.prepareReference(options.SourceCtx, imageName)
 	if err != nil {
 		return nil, err
