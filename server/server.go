@@ -313,6 +313,7 @@ func New(
 	}
 	systemContext = &sc
 
+	systemContext.AuthFilePath = config.GlobalAuthFile
 	systemContext.DockerRegistryUserAgent = useragent.Get(ctx)
 	systemContext.SignaturePolicyPath = config.SignaturePolicyPath
 
