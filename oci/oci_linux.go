@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -36,7 +36,7 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 			}
 		}
 
-		control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
+		control, err := cgroups.New(filepath.Join(cgroupParent, "/crio-conmon-"+c.id), &rspec.LinuxResources{})
 		if err != nil {
 			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 		}
@@ -48,7 +48,7 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 			// only happens in corner case where one does a manual deletion of the container
 			// through e.g. runc. This should be handled by implementing a conmon monitoring
 			// routine that does the cgroup cleanup once conmon is terminated.
-			if err := control.Add(cgroups.Process{Pid: pid}); err != nil {
+			if err := control.AddPid(pid); err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 		}
@@ -133,36 +133,21 @@ func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
 	)
 
 	if m != nil {
-		if m.Pids != nil {
-			pids = m.Pids.Current
-		}
+		pids = m.Pids.Current
 
-		if m.CPU != nil {
-			if m.CPU.Usage != nil {
-				cpuNano = m.CPU.Usage.Total
-				cpu = genericCalculateCPUPercent(cpuNano, m.CPU.Usage.PerCPU)
-			}
-		}
+		cpuNano = m.CPU.Usage.Total
+		cpu = genericCalculateCPUPercent(cpuNano, m.CPU.Usage.PerCPU)
 
-		if m.Memory != nil {
-			if m.Memory.Usage != nil {
-				memUsage = m.Memory.Usage.Usage
-				memLimit = getMemLimit(m.Memory.Usage.Limit)
-				memPerc = float64(memUsage) / float64(memLimit)
-			}
-		}
+		memUsage = m.Memory.Usage.Usage
+		memLimit = getMemLimit(m.Memory.Usage.Limit)
+		memPerc = float64(memUsage) / float64(memLimit)
 
-		if m.Blkio != nil {
-			for _, entry := range m.Blkio.IoServiceBytesRecursive {
-				if entry == nil {
-					continue
-				}
-				switch strings.ToLower(entry.Op) {
-				case "read":
-					blockInput += entry.Value
-				case "write":
-					blockOutput += entry.Value
-				}
+		for _, entry := range m.Blkio.IoServiceBytesRecursive {
+			switch strings.ToLower(entry.Op) {
+			case "read":
+				blockInput += entry.Value
+			case "write":
+				blockOutput += entry.Value
 			}
 		}
 	}
