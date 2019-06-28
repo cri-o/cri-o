@@ -291,9 +291,8 @@ func imageSize(img types.Image) *uint64 {
 	return nil
 }
 
-// prepareReference creates an image reference from an image string and set options
-// for the source context
-func (svc *imageService) prepareReference(imageName string, options *copy.Options) (types.ImageReference, error) {
+// remoteImageReference creates an image reference from an image string
+func (svc *imageService) remoteImageReference(imageName string) (types.ImageReference, error) {
 	if imageName == "" {
 		return nil, storage.ErrNotAnImage
 	}
@@ -308,6 +307,16 @@ func (svc *imageService) prepareReference(imageName string, options *copy.Option
 			return nil, err
 		}
 		srcRef = srcRef2
+	}
+	return srcRef, nil
+}
+
+// prepareReference creates an image reference from an image string and set options
+// for the source context
+func (svc *imageService) prepareReference(imageName string, options *copy.Options) (types.ImageReference, error) {
+	srcRef, err := svc.remoteImageReference(imageName)
+	if err != nil {
+		return nil, err
 	}
 
 	if options.SourceCtx == nil {
@@ -380,7 +389,7 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 	}
 
 	if !strings.HasPrefix(img.ID, nameOrID) {
-		namedRef, err := svc.prepareReference(nameOrID, &copy.Options{})
+		namedRef, err := svc.remoteImageReference(nameOrID)
 		if err != nil {
 			return err
 		}
