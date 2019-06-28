@@ -111,20 +111,6 @@ func (mr *MockImageServerMockRecorder) PullImage(arg0, arg1, arg2 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PullImage", reflect.TypeOf((*MockImageServer)(nil).PullImage), arg0, arg1, arg2)
 }
 
-// RemoveImage mocks base method
-func (m *MockImageServer) RemoveImage(arg0 *types.SystemContext, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveImage", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveImage indicates an expected call of RemoveImage
-func (mr *MockImageServerMockRecorder) RemoveImage(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveImage", reflect.TypeOf((*MockImageServer)(nil).RemoveImage), arg0, arg1)
-}
-
 // ResolveNames mocks base method
 func (m *MockImageServer) ResolveNames(arg0 *types.SystemContext, arg1 string) ([]string, error) {
 	m.ctrl.T.Helper()
