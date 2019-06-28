@@ -82,7 +82,7 @@ type ImageServer interface {
 	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
 	// PrepareImage returns an Image where the config digest can be grabbed
 	// for further analysis. Call Close() on the resulting image.
-	PrepareImage(imageName string, options *copy.Options) (types.ImageCloser, error)
+	PrepareImage(systemContext *types.SystemContext, imageName string) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
 	PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error)
 	// UntagImage removes a name from the specified image, and if it was
@@ -311,41 +311,36 @@ func (svc *imageService) remoteImageReference(imageName string) (types.ImageRefe
 	return srcRef, nil
 }
 
-// prepareReference creates an image reference from an image string and set options
-// for the source context
-func (svc *imageService) prepareReference(imageName string, options *copy.Options) (types.ImageReference, error) {
+// prepareReference creates an image reference from an image string and returns an updated types.SystemContext (never nil) for the image
+func (svc *imageService) prepareReference(inputSystemContext *types.SystemContext, imageName string) (*types.SystemContext, types.ImageReference, error) {
 	srcRef, err := svc.remoteImageReference(imageName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if options.SourceCtx == nil {
-		options.SourceCtx = &types.SystemContext{}
+	sc := types.SystemContext{}
+	if inputSystemContext != nil {
+		sc = *inputSystemContext // A shallow copy
 	}
-
 	if srcRef.DockerReference() != nil {
 		hostname := reference.Domain(srcRef.DockerReference())
 		if secure := svc.isSecureIndex(hostname); !secure {
-			options.SourceCtx.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
+			sc.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 		}
 	}
-	return srcRef, nil
+	return &sc, srcRef, nil
 }
 
-func (svc *imageService) PrepareImage(imageName string, options *copy.Options) (types.ImageCloser, error) {
-	srcRef, err := svc.prepareReference(imageName, options)
+func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, imageName string) (types.ImageCloser, error) {
+	systemContext, srcRef, err := svc.prepareReference(inputSystemContext, imageName)
 	if err != nil {
 		return nil, err
 	}
 
-	sourceCtx := &types.SystemContext{}
-	if options.SourceCtx != nil {
-		sourceCtx = options.SourceCtx
-	}
-	return srcRef.NewImage(svc.ctx, sourceCtx)
+	return srcRef.NewImage(svc.ctx, systemContext)
 }
 
-func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error) {
+func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, inputOptions *copy.Options) (types.ImageReference, error) {
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
 		return nil, err
@@ -354,14 +349,16 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	if err != nil {
 		return nil, err
 	}
-	if options == nil {
-		options = &copy.Options{}
-	}
 
-	srcRef, err := svc.prepareReference(imageName, options)
+	options := copy.Options{}
+	if inputOptions != nil {
+		options = *inputOptions // A shallow copy
+	}
+	srcSystemContext, srcRef, err := svc.prepareReference(options.SourceCtx, imageName)
 	if err != nil {
 		return nil, err
 	}
+	options.SourceCtx = srcSystemContext
 
 	dest := imageName
 	if srcRef.DockerReference() != nil {
@@ -371,7 +368,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	if err != nil {
 		return nil, err
 	}
-	_, err = copy.Image(svc.ctx, policyContext, destRef, srcRef, options)
+	_, err = copy.Image(svc.ctx, policyContext, destRef, srcRef, &options)
 	if err != nil {
 		return nil, err
 	}

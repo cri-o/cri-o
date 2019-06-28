@@ -582,7 +582,7 @@ var _ = t.Describe("Image", func() {
 			const imageName = "tarball:../../test/testdata/image.tar"
 
 			// When
-			res, err := sut.PrepareImage(imageName, &copy.Options{})
+			res, err := sut.PrepareImage(&types.SystemContext{}, imageName)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -592,7 +592,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on invalid image name", func() {
 			// Given
 			// When
-			res, err := sut.PrepareImage("", &copy.Options{})
+			res, err := sut.PrepareImage(&types.SystemContext{}, "")
 
 			// Then
 			Expect(err).NotTo(BeNil())

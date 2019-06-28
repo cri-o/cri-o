@@ -66,12 +66,8 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			}
 		}
 
-		options := &copy.Options{
-			SourceCtx: &sourceCtx,
-		}
-
 		var tmpImg types.ImageCloser
-		tmpImg, err = s.StorageImageServer().PrepareImage(img, options)
+		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
 			logrus.Debugf("error preparing image %s: %v", img, err)
 			continue
@@ -94,7 +90,9 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			logrus.Debugf("image in store has different ID, re-pulling %s", img)
 		}
 
-		_, err = s.StorageImageServer().PullImage(s.systemContext, img, options)
+		_, err = s.StorageImageServer().PullImage(s.systemContext, img, &copy.Options{
+			SourceCtx: &sourceCtx,
+		})
 		if err != nil {
 			logrus.Debugf("error pulling image %s: %v", img, err)
 			continue
