@@ -326,7 +326,7 @@ func (svc *imageService) prepareReference(imageName string, options *copy.Option
 	if srcRef.DockerReference() != nil {
 		hostname := reference.Domain(srcRef.DockerReference())
 		if secure := svc.isSecureIndex(hostname); !secure {
-			options.SourceCtx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!secure)
+			options.SourceCtx.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 		}
 	}
 	return srcRef, nil
