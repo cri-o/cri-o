@@ -867,7 +867,10 @@ var _ = t.Describe("Runtime", func() {
 			Expect(sut).NotTo(BeNil())
 
 			// Given
-			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{SourceCtx: &types.SystemContext{}})
+			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{
+				SourceCtx:      &types.SystemContext{},
+				DestinationCtx: &types.SystemContext{},
+			})
 
 			// When
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
@@ -883,7 +886,10 @@ var _ = t.Describe("Runtime", func() {
 			Expect(sut).NotTo(BeNil())
 
 			// Given
-			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{SourceCtx: &types.SystemContext{AuthFilePath: "/var/non-default/credentials.json"}})
+			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{
+				SourceCtx:      &types.SystemContext{AuthFilePath: "/var/non-default/credentials.json"},
+				DestinationCtx: &types.SystemContext{},
+			})
 
 			// When
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},

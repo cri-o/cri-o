@@ -189,10 +189,17 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 			return ContainerInfo{}, ErrInvalidImageName
 		}
 		logrus.Debugf("couldn't find image %q, retrieving it", image)
-		options := &copy.Options{SourceCtx: &types.SystemContext{
-			AuthFilePath: imageAuthFile,
-		}}
-		ref, err = r.storageImageServer.PullImage(systemContext, image, options)
+		sourceCtx := types.SystemContext{}
+		if systemContext != nil {
+			sourceCtx = *systemContext // A shallow copy
+		}
+		if imageAuthFile != "" {
+			sourceCtx.AuthFilePath = imageAuthFile
+		}
+		ref, err = r.storageImageServer.PullImage(systemContext, image, &copy.Options{
+			SourceCtx:      &sourceCtx,
+			DestinationCtx: systemContext,
+		})
 		if err != nil {
 			return ContainerInfo{}, err
 		}

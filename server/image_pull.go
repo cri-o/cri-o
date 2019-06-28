@@ -91,7 +91,8 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		}
 
 		_, err = s.StorageImageServer().PullImage(s.systemContext, img, &copy.Options{
-			SourceCtx: &sourceCtx,
+			SourceCtx:      &sourceCtx,
+			DestinationCtx: s.systemContext,
 		})
 		if err != nil {
 			logrus.Debugf("error pulling image %s: %v", img, err)
