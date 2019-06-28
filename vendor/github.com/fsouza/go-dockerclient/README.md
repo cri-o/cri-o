@@ -38,8 +38,7 @@ import (
 )
 
 func main() {
-	endpoint := "unix:///var/run/docker.sock"
-	client, err := docker.NewClient(endpoint)
+	client, err := docker.NewClientFromEnv()
 	if err != nil {
 		panic(err)
 	}
@@ -74,7 +73,7 @@ import (
 )
 
 func main() {
-	endpoint := "tcp://[ip]:[port]"
+	const endpoint = "tcp://[ip]:[port]"
 	path := os.Getenv("DOCKER_CERT_PATH")
 	ca := fmt.Sprintf("%s/ca.pem", path)
 	cert := fmt.Sprintf("%s/cert.pem", path)

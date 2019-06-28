@@ -7,7 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/pkg/errors"
 )
 
@@ -25,22 +26,21 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		}
 	}
 
-	if c.state.State != ContainerStateRunning {
-		return stats, ErrCtrStateInvalid
+	if c.state.State != define.ContainerStateRunning {
+		return stats, define.ErrCtrStateInvalid
 	}
 
 	cgroupPath, err := c.CGroupPath()
 	if err != nil {
 		return nil, err
 	}
-	v1CGroups := GetV1CGroups(getExcludedCGroups())
-	cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(cgroupPath))
+	cgroup, err := cgroups.Load(cgroupPath)
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to load cgroup at %s", cgroupPath)
 	}
 
 	// Ubuntu does not have swap memory in cgroups because swap is often not enabled.
-	cgroupStats, err := cgroup.Stat(cgroups.IgnoreNotExist)
+	cgroupStats, err := cgroup.Stat()
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to obtain cgroup stats")
 	}
@@ -61,7 +61,7 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
-	if conState == ContainerStateRunning {
+	if conState == define.ContainerStateRunning {
 		stats.PIDs = cgroupStats.Pids.Current
 	}
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)

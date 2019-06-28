@@ -13,6 +13,8 @@ env:
     - GOARCH=386 DEP_TOOL=mod GO111MODULE=on
     - GOARCH=amd64 DEP_TOOL=dep GO111MODULE=off
     - GOARCH=386 DEP_TOOL=dep GO111MODULE=off
+  global:
+    - GOPROXY=https://proxy.golang.org
 install:
   - travis-scripts/win-setup.bash
   - make testdeps DEP_TOOL=${DEP_TOOL}
