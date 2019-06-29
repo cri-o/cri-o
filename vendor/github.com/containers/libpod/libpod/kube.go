@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -138,6 +139,11 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 			if err != nil {
 				return nil, err
 			}
+
+			// Since port bindings for the pod are handled by the
+			// infra container, wipe them here.
+			result.Ports = nil
+
 			// We add the original port declarations from the libpod infra container
 			// to the first kubernetes container description because otherwise we loose
 			// the original container/port bindings.
@@ -209,7 +215,7 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 			return kubeContainer, err
 		}
 		kubeContainer.VolumeDevices = devices
-		return kubeContainer, errors.Wrapf(ErrNotImplemented, "linux devices")
+		return kubeContainer, errors.Wrapf(define.ErrNotImplemented, "linux devices")
 	}
 
 	if len(c.config.UserVolumes) > 0 {

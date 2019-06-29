@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -22,7 +24,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	pod, err := newPod(r)
@@ -66,7 +68,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		if pod.config.CgroupParent == "" {
 			pod.config.CgroupParent = CgroupfsDefaultCgroupParent
 		} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
-			return nil, errors.Wrapf(ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
+			return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
 		}
 		// If we are set to use pod cgroups, set the cgroup parent that
 		// all containers in the pod will share
@@ -77,9 +79,13 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		}
 	case SystemdCgroupsManager:
 		if pod.config.CgroupParent == "" {
-			pod.config.CgroupParent = SystemdDefaultCgroupParent
+			if rootless.IsRootless() {
+				pod.config.CgroupParent = SystemdDefaultRootlessCgroupParent
+			} else {
+				pod.config.CgroupParent = SystemdDefaultCgroupParent
+			}
 		} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
-			return nil, errors.Wrapf(ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
+			return nil, errors.Wrapf(define.ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
 		}
 		// If we are set to use pod cgroups, set the cgroup parent that
 		// all containers in the pod will share
@@ -91,7 +97,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 			pod.state.CgroupPath = cgroupPath
 		}
 	default:
-		return nil, errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
+		return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
 	}
 
 	if pod.config.UsePodCgroup {
@@ -146,7 +152,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		force = true
 	}
 	if !removeCtrs && numCtrs > 0 {
-		return errors.Wrapf(ErrCtrExists, "pod %s contains containers and cannot be removed", p.ID())
+		return errors.Wrapf(define.ErrCtrExists, "pod %s contains containers and cannot be removed", p.ID())
 	}
 
 	// Go through and lock all containers so we can operate on them all at
@@ -182,9 +188,8 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	// would prevent removing the CGroups.
 	if p.runtime.config.CgroupManager == CgroupfsCgroupsManager {
 		// Get the conmon CGroup
-		v1CGroups := GetV1CGroups(getExcludedCGroups())
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
-		conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 		if err != nil && err != cgroups.ErrCgroupDeleted {
 			if removalErr == nil {
 				removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup %s", p.ID(), conmonCgroupPath)
@@ -249,9 +254,8 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			// Make sure the conmon cgroup is deleted first
 			// Since the pod is almost gone, don't bother failing
 			// hard - instead, just log errors.
-			v1CGroups := GetV1CGroups(getExcludedCGroups())
 			conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
-			conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+			conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 			if err != nil && err != cgroups.ErrCgroupDeleted {
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup", p.ID())
@@ -268,7 +272,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 					}
 				}
 			}
-			cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(p.state.CgroupPath))
+			cgroup, err := cgroups.Load(p.state.CgroupPath)
 			if err != nil && err != cgroups.ErrCgroupDeleted {
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error retrieving pod %s cgroup", p.ID())
@@ -290,7 +294,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			// keep going so we make sure to evict the pod before
 			// ending up with an inconsistent state.
 			if removalErr == nil {
-				removalErr = errors.Wrapf(ErrInternal, "unrecognized cgroup manager %s when removing pod %s cgroups", p.runtime.config.CgroupManager, p.ID())
+				removalErr = errors.Wrapf(define.ErrInternal, "unrecognized cgroup manager %s when removing pod %s cgroups", p.runtime.config.CgroupManager, p.ID())
 			} else {
 				logrus.Errorf("Unknown cgroups manager %s specified - cannot remove pod %s cgroup", p.runtime.config.CgroupManager, p.ID())
 			}

@@ -15,7 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
@@ -48,13 +49,13 @@ func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd
 			}
 		} else {
 			cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
-			control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cgroupPath), &spec.LinuxResources{})
+			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
 			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			} else {
 				// we need to remove this defer and delete the cgroup once conmon exits
 				// maybe need a conmon monitor?
-				if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
+				if err := control.AddPid(cmd.Process.Pid); err != nil {
 					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 				}
 			}
@@ -246,7 +247,9 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	}
 
 	logDriver := KubernetesLogging
-	if ctr.LogDriver() != "" {
+	if ctr.LogDriver() == JSONLogging {
+		logrus.Errorf("json-file logging specified but not supported. Choosing k8s-file logging instead")
+	} else if ctr.LogDriver() != "" {
 		logDriver = ctr.LogDriver()
 	}
 	args = append(args, "-l", fmt.Sprintf("%s:%s", logDriver, ctr.LogPath()))
@@ -294,7 +297,11 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+	home, err := homeDir()
+	if err != nil {
+		return err
+	}
+	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", home))
 
 	if r.reservePorts && !ctr.config.NetMode.IsSlirp4netns() {
 		ports, err := bindPorts(ctr.config.PortMappings)
@@ -428,19 +435,19 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 				if err == nil {
 					var ociErr ociError
 					if err := json.Unmarshal(data, &ociErr); err == nil {
-						return errors.Wrapf(ErrOCIRuntime, "%s", strings.Trim(ociErr.Msg, "\n"))
+						return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(ociErr.Msg, "\n"))
 					}
 				}
 			}
 			// If we failed to parse the JSON errors, then print the output as it is
 			if ss.si.Message != "" {
-				return errors.Wrapf(ErrOCIRuntime, "%s", ss.si.Message)
+				return errors.Wrapf(define.ErrOCIRuntime, "%s", ss.si.Message)
 			}
-			return errors.Wrapf(ErrInternal, "container create failed")
+			return errors.Wrapf(define.ErrInternal, "container create failed")
 		}
 		ctr.state.PID = ss.si.Pid
 	case <-time.After(ContainerCreateTimeout):
-		return errors.Wrapf(ErrInternal, "container creation timeout")
+		return errors.Wrapf(define.ErrInternal, "container creation timeout")
 	}
 	return nil
 }

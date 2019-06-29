@@ -20,8 +20,10 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/secrets"
+	"github.com/containers/libpod/libpod/define"
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/apparmor"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/criu"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
@@ -349,7 +351,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddProcessEnv("container", "libpod")
 	}
 
-	if rootless.IsRootless() {
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, err
+	}
+	if rootless.IsRootless() && !unified {
 		g.SetLinuxCgroupsPath("")
 	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
 		// When runc is set to use Systemd as a cgroup manager, it
@@ -541,7 +547,7 @@ func (c *Container) checkpointRestoreSupported() (err error) {
 	if !criu.CheckForCriu() {
 		return errors.Errorf("Checkpoint/Restore requires at least CRIU %d", criu.MinCriuVersion)
 	}
-	if !c.runtime.ociRuntime.featureCheckCheckpointing() {
+	if !c.ociRuntime.featureCheckCheckpointing() {
 		return errors.Errorf("Configured runtime does not support checkpoint/restore")
 	}
 	return nil
@@ -567,15 +573,15 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return err
 	}
 
-	if c.state.State != ContainerStateRunning {
-		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
+	if c.state.State != define.ContainerStateRunning {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
 
 	if err := c.checkpointRestoreLabelLog("dump.log"); err != nil {
 		return err
 	}
 
-	if err := c.runtime.ociRuntime.checkpointContainer(c, options); err != nil {
+	if err := c.ociRuntime.checkpointContainer(c, options); err != nil {
 		return err
 	}
 
@@ -599,7 +605,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
 	if !options.KeepRunning {
-		c.state.State = ContainerStateStopped
+		c.state.State = define.ContainerStateStopped
 
 		// Cleanup Storage and Network
 		if err := c.cleanup(ctx); err != nil {
@@ -658,8 +664,8 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return err
 	}
 
-	if (c.state.State != ContainerStateConfigured) && (c.state.State != ContainerStateExited) {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
+	if (c.state.State != define.ContainerStateConfigured) && (c.state.State != define.ContainerStateExited) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
 	}
 
 	if options.TargetFile != "" {
@@ -769,13 +775,13 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if err := c.saveSpec(g.Spec()); err != nil {
 		return err
 	}
-	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent, &options); err != nil {
+	if err := c.ociRuntime.createContainer(c, c.config.CgroupParent, &options); err != nil {
 		return err
 	}
 
 	logrus.Debugf("Restored container %s", c.ID())
 
-	c.state.State = ContainerStateRunning
+	c.state.State = define.ContainerStateRunning
 
 	if !options.Keep {
 		// Delete all checkpoint related files. At this point, in theory, all files
@@ -1068,6 +1074,10 @@ func (c *Container) getHosts() string {
 			fields := strings.SplitN(host, ":", 2)
 			hosts += fmt.Sprintf("%s %s\n", fields[1], fields[0])
 		}
+	}
+	if c.config.NetMode.IsSlirp4netns() {
+		// When using slirp4netns, the interface gets a static IP
+		hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s\n", "10.0.2.100", c.Hostname())
 	}
 	if len(c.state.NetworkStatus) > 0 && len(c.state.NetworkStatus[0].IPs) > 0 {
 		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
