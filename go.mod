@@ -3,7 +3,6 @@ go 1.12
 module github.com/cri-o/cri-o
 
 require (
-	github.com/14rcole/gopopulate v0.0.0-20180821133914-b175b219e774 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.12
 	github.com/blang/semver v3.5.1+incompatible
