@@ -148,7 +148,7 @@ jobs:
           root: .
           paths:
             - test/bin2img/bin2img
-            - test/copyimg/checkseccomp/checkseccomp
+            - test/checkseccomp/checkseccomp
             - test/copyimg/copyimg
 
   bundle:
@@ -231,7 +231,6 @@ jobs:
           command: |
             docker pull $IMAGE
             docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e CI \
-              -e CHECKSECCOMP_BINARY=true \
               -e CRIO_BINARY -e TEST_USERNS -e RUN_CRITEST \
               -v $(pwd):$WORKDIR -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
               --privileged --rm -w $WORKDIR \
