@@ -180,7 +180,7 @@ dbuild: crioimage
 		${CRIO_IMAGE} make
 
 integration: ${GINKGO} crioimage
-	sudo $(CONTAINER_RUNTIME) run \
+	$(CONTAINER_RUNTIME) run \
 		-e CI=true \
 		-e CRIO_BINARY \
 		-e RUN_CRITEST \
