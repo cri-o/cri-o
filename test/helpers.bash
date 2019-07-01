@@ -7,23 +7,23 @@ INTEGRATION_ROOT=$(dirname "$(readlink -f "$BASH_SOURCE")")
 TESTDATA="${INTEGRATION_ROOT}/testdata"
 
 # Root directory of the repository.
-CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
+CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/.."; pwd -P)}
 
 # Path to the crio binary.
 CRIO_BINARY=${CRIO_BINARY:-crio}
-CRIO_BINARY_PATH=${CRIO_BINARY_PATH:-${CRIO_ROOT}/cri-o/bin/$CRIO_BINARY}
+CRIO_BINARY_PATH=${CRIO_BINARY_PATH:-${CRIO_ROOT}/bin/$CRIO_BINARY}
 
 # Path of the crictl binary.
 CRICTL_PATH=$(command -v crictl || true)
 CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
 # Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/bin/conmon}
+CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/bin/conmon}
 # Cgroup for the conmon process
 CONMON_CGROUP=${CONMON_CGROUP:-pod}
 # Path of the pause binary.
-PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/cri-o/bin/pause}
+PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/bin/pause}
 # Path of the default seccomp profile.
-SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/cri-o/vendor/github.com/seccomp/containers-golang/seccomp.json}
+SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/github.com/seccomp/containers-golang/seccomp.json}
 # Name of the default apparmor profile.
 APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
 # Runtime
@@ -51,13 +51,13 @@ BOOT_CONFIG_FILE_PATH=${BOOT_CONFIG_FILE_PATH:-/boot/config-`uname -r`}
 # Path of apparmor parameters file.
 APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/apparmor/parameters/enabled}
 # Path of the bin2img binary.
-BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/cri-o/test/bin2img/bin2img}
+BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/test/bin2img/bin2img}
 # Path of the copyimg binary.
-COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/cri-o/test/copyimg/copyimg}
+COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/test/copyimg/copyimg}
 # Path of tests artifacts.
-ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/cri-o/.artifacts}
+ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/.artifacts}
 # Path of the checkseccomp binary.
-CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/cri-o/test/checkseccomp/checkseccomp}
+CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/test/checkseccomp/checkseccomp}
 # The default log directory where all logs will go unless directly specified by the kubelet
 DEFAULT_LOG_PATH=${DEFAULT_LOG_PATH:-/var/log/crio/pods}
 # Cgroup manager to be used
