@@ -250,7 +250,7 @@ func createDummyState() {
 }
 
 func mockRuncInLibConfig() {
-	libConfig.Runtimes["runc"] = config.RuntimeHandler{
+	libConfig.Runtimes["runc"] = &config.RuntimeHandler{
 		RuntimePath: "/bin/echo",
 	}
 }

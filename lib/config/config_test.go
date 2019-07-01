@@ -51,7 +51,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid network config", func() {
 			// Given
 			sut.RootConfig.LogDir = "."
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validDirPath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validDirPath}
 			sut.Conmon = validFilePath
 			sut.NetworkConfig.NetworkDir = invalidPath
 
@@ -75,7 +75,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed during runtime", func() {
 			// Given
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 
 			// When
@@ -88,7 +88,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with additional devices", func() {
 			// Given
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 
 			// When
@@ -100,7 +100,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with hooks directories", func() {
 			// Given
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 			sut.HooksDir = []string{validDirPath}
 
@@ -113,7 +113,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid hooks directory", func() {
 			// Given
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 			sut.HooksDir = []string{invalidPath}
 
@@ -126,7 +126,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail if the hooks directory is not a directory", func() {
 			// Given
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
 			sut.HooksDir = []string{validFilePath}
 
@@ -139,7 +139,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid conmon path", func() {
 			// Given
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = invalidPath
 			sut.HooksDir = []string{validDirPath}
 
@@ -218,7 +218,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on no default runtime", func() {
 			// Given
-			sut.Runtimes = make(map[string]config.RuntimeHandler)
+			sut.Runtimes = config.Runtimes{}
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, false)
@@ -229,10 +229,43 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on non existing runtime binary", func() {
 			// Given
-			sut.Runtimes["runc"] = config.RuntimeHandler{RuntimePath: "not-existing"}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: "not-existing"}
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ValidateRuntimePaths", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.RuntimeConfig.ValidateRuntimePaths()
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail if executable not in $PATH", func() {
+			// Given
+			sut.Runtimes[invalidPath] = &config.RuntimeHandler{RuntimePath: ""}
+
+			// When
+			err := sut.RuntimeConfig.ValidateRuntimePaths()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with wrong but set runtime_path", func() {
+			// Given
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: invalidPath}
+
+			// When
+			err := sut.RuntimeConfig.ValidateRuntimePaths()
 
 			// Then
 			Expect(err).NotTo(BeNil())

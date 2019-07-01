@@ -125,7 +125,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) (string, error) {
 			if len(fields) != 3 {
 				return path, fmt.Errorf("wrong format for --runtimes: %q", r)
 			}
-			config.Runtimes[fields[0]] = libconfig.RuntimeHandler{
+			config.Runtimes[fields[0]] = &libconfig.RuntimeHandler{
 				RuntimePath: fields[1],
 				RuntimeRoot: fields[2],
 			}
