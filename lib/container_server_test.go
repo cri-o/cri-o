@@ -91,24 +91,6 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(server).To(BeNil())
 		})
 
-		It("should fail with invalid default runtime", func() {
-			// Given
-			config, err := libconfig.DefaultConfig()
-			Expect(err).To(BeNil())
-			config.DefaultRuntime = "invalid-runtime"
-			gomock.InOrder(
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(config),
-			)
-
-			// When
-			server, err := lib.New(context.Background(), nil, libMock)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
-		})
-
 		It("should fail with invalid lockfile", func() {
 			// Given
 			config, err := libconfig.DefaultConfig()
