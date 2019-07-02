@@ -3,6 +3,7 @@ package oci
 import (
 	"io"
 
+	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,7 +16,7 @@ const (
 
 func redirectResponseToOutputStreams(outputStream, errorStream io.WriteCloser, conn io.Reader) error {
 	var err error
-	buf := make([]byte, BufSize+1)
+	buf := make([]byte, config.OCIBufSize+1)
 
 	for {
 		nr, er := conn.Read(buf)

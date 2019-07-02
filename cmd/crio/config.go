@@ -5,7 +5,7 @@ import (
 	"text/template"
 
 	"github.com/containers/image/types"
-	"github.com/cri-o/cri-o/server"
+	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/urfave/cli"
 )
 
@@ -313,21 +313,21 @@ var configCommand = cli.Command{
 		var err error
 		// At this point, app.Before has already parsed the user's chosen
 		// config file. So no need to handle that here.
-		config := c.App.Metadata["config"].(*server.Config) // nolint: errcheck
+		conf := c.App.Metadata["config"].(*config.Config) // nolint: errcheck
 		systemContext := &types.SystemContext{}
 		if c.Bool("default") {
-			config, err = server.DefaultConfig()
+			conf, err = config.DefaultConfig()
 			if err != nil {
 				return err
 			}
 		}
 
 		// Validate the configuration during generation
-		if err = config.Validate(systemContext, false); err != nil {
+		if err = conf.Validate(systemContext, false); err != nil {
 			return err
 		}
 
 		// Output the commented config.
-		return commentedConfigTemplate.ExecuteTemplate(os.Stdout, "config", config)
+		return commentedConfigTemplate.ExecuteTemplate(os.Stdout, "config", conf)
 	},
 }

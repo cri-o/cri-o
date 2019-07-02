@@ -254,7 +254,6 @@ mockgen: \
 	mock-lib-config \
 	mock-oci \
 	mock-sandbox \
-	mock-server \
 	mock-image-types \
 	mock-ocicni-types
 
@@ -292,13 +291,6 @@ mock-sandbox: ${MOCKGEN}
 		-package sandboxmock \
 		-destination ${MOCK_PATH}/sandbox/sandbox.go \
 		github.com/cri-o/cri-o/internal/lib/sandbox NetNsIface
-
-mock-server: ${MOCKGEN}
-	${BUILD_BIN_PATH}/mockgen \
-		${MOCKGEN_FLAGS} \
-		-package servermock \
-		-destination ${MOCK_PATH}/server/server.go \
-		github.com/cri-o/cri-o/server ConfigIface
 
 mock-image-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \

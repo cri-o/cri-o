@@ -38,8 +38,12 @@ var _ = AfterSuite(func() {
 })
 
 func beforeEach() {
-	var err error
-	sut, err = config.DefaultConfig()
+	sut = defaultConfig()
+}
+
+func defaultConfig() *config.Config {
+	c, err := config.DefaultConfig()
 	Expect(err).To(BeNil())
-	Expect(sut).NotTo(BeNil())
+	Expect(c).NotTo(BeNil())
+	return c
 }

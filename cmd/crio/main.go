@@ -37,7 +37,7 @@ var gitCommit = ""
 // DefaultsPath is the path to default configuration files set at build time
 var DefaultsPath string
 
-func mergeConfig(config *server.Config, ctx *cli.Context) (string, error) {
+func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	// Don't parse the config if the user explicitly set it to "".
 	path := ctx.GlobalString("config")
 	if path != "" {
@@ -274,7 +274,7 @@ func main() {
 	app.Version = strings.Join(v, "\n")
 
 	systemContext := &types.SystemContext{}
-	defConf, err := server.DefaultConfig()
+	defConf, err := libconfig.DefaultConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error loading server config: %v", err)
 		os.Exit(1)
@@ -286,7 +286,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config, c",
-			Value: server.CrioConfigPath,
+			Value: libconfig.CrioConfigPath,
 			Usage: "path to configuration file",
 		},
 		cli.StringFlag{
@@ -513,7 +513,7 @@ func main() {
 	var configPath string
 	app.Before = func(c *cli.Context) (err error) {
 		// Load the configuration file.
-		config, ok := c.App.Metadata["config"].(*server.Config)
+		config, ok := c.App.Metadata["config"].(*libconfig.Config)
 		if !ok {
 			return fmt.Errorf("type assertion error when accessing server config")
 		}
@@ -580,7 +580,7 @@ func main() {
 			return fmt.Errorf("command %q not supported", args[0])
 		}
 
-		config, ok := c.App.Metadata["config"].(*server.Config)
+		config, ok := c.App.Metadata["config"].(*libconfig.Config)
 		if !ok {
 			cancel()
 			return fmt.Errorf("type assertion error when accessing server config")
@@ -608,7 +608,7 @@ func main() {
 		}
 
 		// Immediately upon start up, write our new version file
-		if err := version.WriteVersionFile(server.CrioVersionPath, gitCommit); err != nil {
+		if err := version.WriteVersionFile(libconfig.CrioVersionPath, gitCommit); err != nil {
 			logrus.Fatal(err)
 		}
 

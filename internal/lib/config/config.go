@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -18,6 +19,7 @@ import (
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -28,16 +30,19 @@ const (
 	pauseCommand           = "/pause"
 	defaultTransport       = "docker://"
 	defaultRuntime         = "runc"
-	DefaultRuntimeType     = "oci"
+	defaultRuntimeType     = "oci"
 	DefaultRuntimeRoot     = "/run/runc"
 	cgroupManager          = "cgroupfs"
 	DefaultApparmorProfile = "crio-default-" + version.Version
+	defaultGRPCMaxMsgSize  = 16 * 1024 * 1024
+	OCIBufSize             = 8192
 )
 
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
 	RootConfig
+	APIConfig
 	RuntimeConfig
 	ImageConfig
 	NetworkConfig
@@ -314,12 +319,49 @@ type NetworkConfig struct {
 	PluginDirs []string `toml:"plugin_dirs"`
 }
 
+// APIConfig represents the "crio.api" TOML config table.
+type APIConfig struct {
+	// GRPCMaxSendMsgSize is the maximum grpc send message size in bytes.
+	GRPCMaxSendMsgSize int `toml:"grpc_max_send_msg_size"`
+
+	// GRPCMaxRecvMsgSize is the maximum grpc receive message size in bytes.
+	GRPCMaxRecvMsgSize int `toml:"grpc_max_recv_msg_size"`
+
+	// Listen is the path to the AF_LOCAL socket on which cri-o will listen.
+	// This may support proto://addr formats later, but currently this is just
+	// a path.
+	Listen string `toml:"listen"`
+
+	// StreamAddress is the IP address on which the stream server will listen.
+	StreamAddress string `toml:"stream_address"`
+
+	// StreamPort is the port on which the stream server will listen.
+	StreamPort string `toml:"stream_port"`
+
+	// StreamEnableTLS enables encrypted tls transport of the stream server
+	StreamEnableTLS bool `toml:"stream_enable_tls"`
+
+	// StreamTLSCert is the x509 certificate file path used to serve the encrypted stream
+	StreamTLSCert string `toml:"stream_tls_cert"`
+
+	// StreamTLSKey is the key file path used to serve the encrypted stream
+	StreamTLSKey string `toml:"stream_tls_key"`
+
+	// StreamTLSCA is the x509 CA(s) file used to verify and authenticate client
+	// communication with the tls encrypted stream
+	StreamTLSCA string `toml:"stream_tls_ca"`
+
+	// HostIP is the IP address that the server uses where it needs to use the primary host IP.
+	HostIP string `toml:"host_ip"`
+}
+
 // tomlConfig is another way of looking at a Config, which is
 // TOML-friendly (it has all of the explicit tables). It's just used for
 // conversions.
 type tomlConfig struct {
 	Crio struct {
 		RootConfig
+		API     struct{ APIConfig }     `toml:"api"`
 		Runtime struct{ RuntimeConfig } `toml:"runtime"`
 		Image   struct{ ImageConfig }   `toml:"image"`
 		Network struct{ NetworkConfig } `toml:"network"`
@@ -328,6 +370,7 @@ type tomlConfig struct {
 
 func (t *tomlConfig) toConfig(c *Config) {
 	c.RootConfig = t.Crio.RootConfig
+	c.APIConfig = t.Crio.API.APIConfig
 	c.RuntimeConfig = t.Crio.Runtime.RuntimeConfig
 	c.ImageConfig = t.Crio.Image.ImageConfig
 	c.NetworkConfig = t.Crio.Network.NetworkConfig
@@ -335,6 +378,7 @@ func (t *tomlConfig) toConfig(c *Config) {
 
 func (t *tomlConfig) fromConfig(c *Config) {
 	t.Crio.RootConfig = c.RootConfig
+	t.Crio.API.APIConfig = c.APIConfig
 	t.Crio.Runtime.RuntimeConfig = c.RuntimeConfig
 	t.Crio.Image.ImageConfig = c.ImageConfig
 	t.Crio.Network.NetworkConfig = c.NetworkConfig
@@ -365,17 +409,28 @@ func (c *Config) UpdateFromFile(path string) error {
 // Returns errors encountered when generating or writing the file, or nil
 // otherwise.
 func (c *Config) ToFile(path string) error {
-	var w bytes.Buffer
-	e := toml.NewEncoder(&w)
-
-	t := new(tomlConfig)
-	t.fromConfig(c)
-
-	if err := e.Encode(*t); err != nil {
+	b, err := c.ToBytes()
+	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(path, w.Bytes(), 0644)
+	return ioutil.WriteFile(path, b, 0644)
+}
+
+// ToBytes encodes the config into a byte slice. It errors if the encoding
+// fails, which should never happen at all because of general type safeness.
+func (c *Config) ToBytes() ([]byte, error) {
+	var buffer bytes.Buffer
+	e := toml.NewEncoder(&buffer)
+
+	tc := tomlConfig{}
+	tc.fromConfig(c)
+
+	if err := e.Encode(tc); err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }
 
 // DefaultConfig returns the default configuration for crio.
@@ -394,12 +449,19 @@ func DefaultConfig() (*Config, error) {
 			FileLocking:     false,
 			FileLockingPath: lockPath,
 		},
+		APIConfig: APIConfig{
+			Listen:             CrioSocketPath,
+			StreamAddress:      "127.0.0.1",
+			StreamPort:         "0",
+			GRPCMaxSendMsgSize: defaultGRPCMaxMsgSize,
+			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
+		},
 		RuntimeConfig: RuntimeConfig{
 			DefaultRuntime: defaultRuntime,
 			Runtimes: Runtimes{
 				defaultRuntime: {
 					RuntimePath: "",
-					RuntimeType: DefaultRuntimeType,
+					RuntimeType: defaultRuntimeType,
 					RuntimeRoot: DefaultRuntimeRoot,
 				},
 			},
@@ -446,6 +508,14 @@ func DefaultConfig() (*Config, error) {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) error {
+	switch c.ImageVolumes {
+	case ImageVolumesMkdir:
+	case ImageVolumesIgnore:
+	case ImageVolumesBind:
+	default:
+		return fmt.Errorf("unrecognized image volume type specified")
+	}
+
 	if err := c.RootConfig.Validate(onExecution); err != nil {
 		return errors.Wrapf(err, "root config")
 	}
@@ -456,6 +526,42 @@ func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) 
 
 	if err := c.NetworkConfig.Validate(onExecution); err != nil {
 		return errors.Wrapf(err, "network config")
+	}
+
+	if err := c.APIConfig.Validate(onExecution); err != nil {
+		return errors.Wrapf(err, "api config")
+	}
+
+	if !c.SELinux {
+		selinux.SetDisabled()
+	}
+
+	return nil
+}
+
+// Validate is the main entry point for API configuration validation.
+// The parameter `onExecution` specifies if the validation should include
+// execution checks. It returns an `error` on validation failure, otherwise
+// `nil`.
+func (c *APIConfig) Validate(onExecution bool) error {
+	if c.GRPCMaxSendMsgSize <= 0 {
+		c.GRPCMaxSendMsgSize = defaultGRPCMaxMsgSize
+	}
+	if c.GRPCMaxRecvMsgSize <= 0 {
+		c.GRPCMaxRecvMsgSize = defaultGRPCMaxMsgSize
+	}
+
+	if onExecution {
+		if err := os.MkdirAll(filepath.Dir(c.Listen), 0755); err != nil {
+			return err
+		}
+
+		// Remove the socket if it already exists
+		if _, err := os.Stat(c.Listen); err == nil {
+			if err := os.Remove(c.Listen); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -530,7 +636,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			if _, ok := c.Runtimes[defaultRuntime]; !ok {
 				c.Runtimes[defaultRuntime] = &RuntimeHandler{
 					RuntimePath: "",
-					RuntimeType: DefaultRuntimeType,
+					RuntimeType: defaultRuntimeType,
 					RuntimeRoot: DefaultRuntimeRoot,
 				}
 			}
@@ -543,6 +649,17 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	if !(c.ConmonCgroup == "pod" || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
 		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
+	}
+
+	if c.UIDMappings != "" && c.ManageNetworkNSLifecycle {
+		return fmt.Errorf("cannot use UIDMappings with ManageNetworkNSLifecycle")
+	}
+	if c.GIDMappings != "" && c.ManageNetworkNSLifecycle {
+		return fmt.Errorf("cannot use GIDMappings with ManageNetworkNSLifecycle")
+	}
+
+	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
+		return fmt.Errorf("log size max should be negative or >= %d", OCIBufSize)
 	}
 
 	// check for validation on execution

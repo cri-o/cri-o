@@ -31,9 +31,6 @@ const (
 	// SystemdCgroupsManager represents systemd native cgroup manager
 	SystemdCgroupsManager = "systemd"
 
-	// BufSize is the size of buffers passed in to sockets
-	BufSize = 8192
-
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.
 	killContainerTimeout = 2 * time.Minute

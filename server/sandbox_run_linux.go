@@ -435,7 +435,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
-	} else if s.config.Config.ManageNetworkNSLifecycle {
+	} else if s.config.ManageNetworkNSLifecycle {
 		// Create the sandbox network namespace
 		if err := sb.NetNsCreate(nil); err != nil {
 			return nil, err
@@ -557,7 +557,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	var ip string
 	var result cnitypes.Result
 
-	if s.config.Config.ManageNetworkNSLifecycle {
+	if s.config.ManageNetworkNSLifecycle {
 		ip, result, err = s.networkStart(sb)
 		if err != nil {
 			return nil, err
@@ -641,7 +641,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		logrus.Warnf("unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 
-	if !s.config.Config.ManageNetworkNSLifecycle {
+	if !s.config.ManageNetworkNSLifecycle {
 		ip, _, err = s.networkStart(sb)
 		if err != nil {
 			return nil, err
