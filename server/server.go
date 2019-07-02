@@ -46,10 +46,8 @@ import (
 )
 
 const (
-	shutdownFile            = "/var/lib/crio/crio.shutdown"
-	certRefreshInterval     = time.Minute * 5
-	apparmorRuntimeDefault  = "runtime/default"
-	apparmorLocalHostPrefix = "localhost/"
+	shutdownFile        = "/var/lib/crio/crio.shutdown"
+	certRefreshInterval = time.Minute * 5
 )
 
 // StreamService implements streaming.Runtime.
