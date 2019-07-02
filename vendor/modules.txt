@@ -1151,6 +1151,7 @@ k8s.io/kubernetes/pkg/kubelet/types
 k8s.io/kubernetes/pkg/kubelet/leaky
 k8s.io/kubernetes/pkg/kubelet/server/streaming
 k8s.io/kubernetes/pkg/proxy/iptables
+k8s.io/kubernetes/pkg/security/apparmor
 k8s.io/kubernetes/pkg/util/dbus
 k8s.io/kubernetes/pkg/util/iptables
 k8s.io/kubernetes/pkg/util/conntrack
@@ -1192,19 +1193,18 @@ k8s.io/kubernetes/pkg/apis/core/pods
 k8s.io/kubernetes/pkg/capabilities
 k8s.io/kubernetes/pkg/fieldpath
 k8s.io/kubernetes/pkg/master/ports
-k8s.io/kubernetes/pkg/security/apparmor
 k8s.io/kubernetes/pkg/apis/apps
 k8s.io/kubernetes/pkg/util/parsers
 k8s.io/kubernetes/pkg/apis/autoscaling
 # k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a
 k8s.io/utils/exec
 k8s.io/utils/net
+k8s.io/utils/path
 k8s.io/utils/trace
 k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/io
 k8s.io/utils/keymutex
-k8s.io/utils/path
 k8s.io/utils/nsenter
 k8s.io/utils/pointer
 # mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed

@@ -23,6 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/security/apparmor"
 )
 
 const (
@@ -681,10 +682,10 @@ func (s *Server) getAppArmorProfileName(profile string) string {
 		return ""
 	}
 
-	if profile == apparmorRuntimeDefault {
+	if profile == apparmor.ProfileRuntimeDefault {
 		// If the value is runtime/default, then return default profile.
 		return s.appArmorProfile
 	}
 
-	return strings.TrimPrefix(profile, apparmorLocalHostPrefix)
+	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
 }
