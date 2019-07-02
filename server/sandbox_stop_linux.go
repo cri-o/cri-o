@@ -9,10 +9,10 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sys/unix"
@@ -26,7 +26,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("StopPodSandboxRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
@@ -38,8 +37,8 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		// cases.
 
 		resp = &pb.StopPodSandboxResponse{}
-		logrus.Warnf("could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
-		logrus.Debugf("StopPodSandboxResponse %s: %+v", req.PodSandboxId, resp)
+		log.Warnf(ctx, "could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
+		log.Debugf(ctx, "StopPodSandboxResponse %s: %+v", req.PodSandboxId, resp)
 		return resp, nil
 	}
 	stopMutex := sb.StopMutex()
@@ -48,7 +47,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 	if sb.Stopped() {
 		resp = &pb.StopPodSandboxResponse{}
-		logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
 		return resp, nil
 	}
 
@@ -59,7 +57,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	// Clean up sandbox networking and close its network namespace.
-	s.networkStop(sb)
+	s.networkStop(ctx, sb)
 
 	const maxWorkers = 128
 	var waitGroup errgroup.Group
@@ -85,7 +83,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 					}
 					if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
 						// assume container already umounted
-						logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+						log.Warnf(ctx, "failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 					}
 					if err := s.ContainerStateToDisk(c); err != nil {
 						return errors.Wrapf(err, "write container %q state do disk", c.Name())
@@ -133,15 +131,14 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
-		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
+		log.Warnf(ctx, "failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
 	if err := s.ContainerStateToDisk(podInfraContainer); err != nil {
-		logrus.Warnf("error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
+		log.Warnf(ctx, "error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
 	}
 
-	logrus.Infof("Stopped pod sandbox: %s", podInfraContainer.Description())
+	log.Infof(ctx, "stopped pod sandbox: %s", podInfraContainer.Description())
 	sb.SetStopped()
 	resp = &pb.StopPodSandboxResponse{}
-	logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
 	return resp, nil
 }

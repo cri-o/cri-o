@@ -19,13 +19,13 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -52,9 +52,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	pathsToChown := []string{}
 
-	logrus.Debugf("RunPodSandboxRequest %+v", req)
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
-	logrus.Infof("Attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(req.GetConfig().GetLabels()), leaky.PodInfraContainerName)
+	log.Infof(ctx, "attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(req.GetConfig().GetLabels()), leaky.PodInfraContainerName)
 	var processLabel, mountLabel, resolvPath string
 	// process req.Name
 	kubeName := req.GetConfig().GetMetadata().GetName()
@@ -116,7 +115,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer func() {
 		if err != nil {
 			if err2 := s.StorageRuntimeServer().RemovePodSandbox(id); err2 != nil {
-				logrus.Warnf("couldn't cleanup pod sandbox %q: %v", id, err2)
+				log.Warnf(ctx, "couldn't cleanup pod sandbox %q: %v", id, err2)
 			}
 		}
 	}()
@@ -266,7 +265,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		defer func() {
 			if err != nil {
 				if err2 := unix.Unmount(shmPath, unix.MNT_DETACH); err2 != nil {
-					logrus.Warnf("failed to unmount shm for pod: %v", err2)
+					log.Warnf(ctx, "failed to unmount shm for pod: %v", err2)
 				}
 			}
 		}()
@@ -293,7 +292,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer func() {
 		if err != nil {
 			if err2 := s.CtrIDIndex().Delete(id); err2 != nil {
-				logrus.Warnf("couldn't delete ctr id %s from idIndex", id)
+				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", id)
 			}
 		}
 	}()
@@ -364,7 +363,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		parent = cgroupMemorySubsystemMountPathV1
 	}
 
-	cgroupParent, err := AddCgroupAnnotation(g, parent, s.config.CgroupManager, req.GetConfig().GetLinux().GetCgroupParent(), id)
+	cgroupParent, err := AddCgroupAnnotation(ctx, g, parent, s.config.CgroupManager, req.GetConfig().GetLinux().GetCgroupParent(), id)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +391,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer func() {
 		if err != nil {
 			if err := s.removeSandbox(id); err != nil {
-				logrus.Warnf("could not remove pod sandbox: %v", err)
+				log.Warnf(ctx, "could not remove pod sandbox: %v", err)
 			}
 		}
 	}()
@@ -404,7 +403,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer func() {
 		if err != nil {
 			if err := s.PodIDIndex().Delete(id); err != nil {
-				logrus.Warnf("couldn't delete pod id %s from idIndex", id)
+				log.Warnf(ctx, "couldn't delete pod id %s from idIndex", id)
 			}
 		}
 	}()
@@ -421,13 +420,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		split := strings.SplitN(defaultSysctl, "=", 2)
 		if len(split) == 2 {
 			if err := validateSysctl(split[0], hostNetwork, hostIPC); err != nil {
-				logrus.Warnf("sysctl not valid %q: %v - skipping...", defaultSysctl, err)
+				log.Warnf(ctx, "sysctl not valid %q: %v - skipping...", defaultSysctl, err)
 				continue
 			}
 			g.AddLinuxSysctl(split[0], split[1])
 			continue
 		}
-		logrus.Warnf("sysctl %q not of the format sysctl_name=value", defaultSysctl)
+		log.Warnf(ctx, "sysctl %q not of the format sysctl_name=value", defaultSysctl)
 	}
 	// extract linux sysctls from annotations and pass down to oci runtime
 	// Will override any duplicate default systcl from crio.conf
@@ -459,7 +458,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 
 			if netnsErr := sb.NetNsRemove(); netnsErr != nil {
-				logrus.Warnf("Failed to remove networking namespace: %v", netnsErr)
+				log.Warnf(ctx, "Failed to remove networking namespace: %v", netnsErr)
 			}
 		}()
 
@@ -570,7 +569,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	var result cnitypes.Result
 
 	if s.config.ManageNetworkNSLifecycle {
-		ip, result, err = s.networkStart(sb)
+		ip, result, err = s.networkStart(ctx, sb)
 		if err != nil {
 			return nil, err
 		}
@@ -579,7 +578,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		defer func() {
 			if err != nil {
-				s.networkStop(sb)
+				s.networkStop(ctx, sb)
 			}
 		}()
 	}
@@ -592,7 +591,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)
 	sb.SetSeccompProfilePath(spp)
 	if !privileged {
-		if err := s.setupSeccomp(&g, spp); err != nil {
+		if err := s.setupSeccomp(ctx, &g, spp); err != nil {
 			return nil, err
 		}
 	}
@@ -635,32 +634,32 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			// Clean-up steps from RemovePodSanbox
 			timeout := int64(10)
 			if err2 := s.Runtime().StopContainer(ctx, container, timeout); err2 != nil {
-				logrus.Warnf("failed to stop container %s: %v", container.Name(), err2)
+				log.Warnf(ctx, "failed to stop container %s: %v", container.Name(), err2)
 			}
 			if err2 := s.Runtime().WaitContainerStateStopped(ctx, container); err2 != nil {
-				logrus.Warnf("failed to get container 'stopped' status %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+				log.Warnf(ctx, "failed to get container 'stopped' status %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
 			if err2 := s.Runtime().DeleteContainer(container); err2 != nil {
-				logrus.Warnf("failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+				log.Warnf(ctx, "failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
 			if err2 := s.ContainerStateToDisk(container); err2 != nil {
-				logrus.Warnf("failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+				log.Warnf(ctx, "failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
 		}
 	}()
 
 	if err := s.ContainerStateToDisk(container); err != nil {
-		logrus.Warnf("unable to write containers %s state to disk: %v", container.ID(), err)
+		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 
 	if !s.config.ManageNetworkNSLifecycle {
-		ip, _, err = s.networkStart(sb)
+		ip, _, err = s.networkStart(ctx, sb)
 		if err != nil {
 			return nil, err
 		}
 		defer func() {
 			if err != nil {
-				s.networkStop(sb)
+				s.networkStop(ctx, sb)
 			}
 		}()
 	}
@@ -668,9 +667,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb.SetCreated()
 
-	logrus.Infof("Ran pod sandbox with infra container: %s", container.Description())
+	log.Infof(ctx, "ran pod sandbox with infra container: %s", container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
-	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
 	return resp, nil
 }
 
@@ -687,7 +685,7 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 	return shmPath, nil
 }
 
-func AddCgroupAnnotation(g generate.Generator, mountPath, cgroupManager, cgroupParent, id string) (string, error) {
+func AddCgroupAnnotation(ctx context.Context, g generate.Generator, mountPath, cgroupManager, cgroupParent, id string) (string, error) {
 	if cgroupParent != "" {
 		if cgroupManager == oci.SystemdCgroupsManager {
 			if len(cgroupParent) <= 6 || !strings.HasSuffix(path.Base(cgroupParent), ".slice") {
@@ -718,7 +716,7 @@ func AddCgroupAnnotation(g generate.Generator, mountPath, cgroupManager, cgroupP
 			fileData, err := ioutil.ReadFile(filepath.Join(mountPath, slicePath, filename))
 			if err != nil {
 				if os.IsNotExist(err) {
-					logrus.Warnf("Failed to find %s for slice: %q", filename, cgroupParent)
+					log.Warnf(ctx, "Failed to find %s for slice: %q", filename, cgroupParent)
 				} else {
 					return "", errors.Wrapf(err, "error reading %s file for slice %q", filename, cgroupParent)
 				}

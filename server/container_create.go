@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"github.com/cri-o/cri-o/utils"
 	dockermounts "github.com/docker/docker/pkg/mount"
@@ -20,8 +22,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	seccomp "github.com/seccomp/containers-golang"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/security/apparmor"
 )
@@ -156,7 +156,7 @@ func getSourceMount(source string, mountInfos []*dockermounts.Info) (path, optio
 	return "", "", fmt.Errorf("could not find source mount of %s", source)
 }
 
-func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string) ([]rspec.Mount, error) {
+func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string) ([]rspec.Mount, error) {
 	mounts := []rspec.Mount{}
 	for dest := range containerInfo.Config.Config.Volumes {
 		fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, dest), rootfs)
@@ -181,7 +181,7 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 				}
 			}
 
-			logrus.Debugf("Adding bind mounted volume: %s to %s", src, dest)
+			log.Debugf(ctx, "Adding bind mounted volume: %s to %s", src, dest)
 			mounts = append(mounts, rspec.Mount{
 				Source:      src,
 				Destination: dest,
@@ -190,9 +190,9 @@ func addImageVolumes(rootfs string, s *Server, containerInfo *storage.ContainerI
 			})
 
 		case config.ImageVolumesIgnore:
-			logrus.Debugf("Ignoring volume %v", dest)
+			log.Debugf(ctx, "ignoring volume %v", dest)
 		default:
-			logrus.Fatalf("Unrecognized image volumes setting")
+			log.Errorf(ctx, "unrecognized image volumes setting")
 		}
 	}
 	return mounts, nil
@@ -214,12 +214,12 @@ func resolveSymbolicLink(path, scope string) (string, error) {
 	return symlink.FollowSymlinkInScope(path, scope)
 }
 
-func addDevices(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
-	return addDevicesPlatform(sb, containerConfig, specgen)
+func addDevices(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+	return addDevicesPlatform(ctx, sb, containerConfig, specgen)
 }
 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
-func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
+func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
 	// # Start the nginx container using the default command, but use custom
 	// arguments (arg1 .. argN) for that command.
 	// kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
@@ -261,13 +261,13 @@ func buildOCIProcessArgs(containerKubeConfig *pb.ContainerConfig, imageOCIConfig
 
 	processArgs := append([]string{entrypoint}, args...)
 
-	logrus.Debugf("OCI process args %v", processArgs)
+	log.Debugf(ctx, "OCI process args %v", processArgs)
 
 	return processArgs, nil
 }
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
-func setupContainerUser(specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
+func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
 	if sc == nil {
 		return nil
 	}
@@ -294,7 +294,7 @@ func setupContainerUser(specgen *generate.Generator, rootfs, mountLabel, ctrRunD
 		imageUser,
 		sc.GetRunAsUser(),
 	)
-	logrus.Debugf("CONTAINER USER: %+v", containerUser)
+	log.Debugf(ctx, "CONTAINER USER: %+v", containerUser)
 
 	// Add uid, gid and groups from user
 	uid, gid, addGroups, err := utils.GetUserInfo(rootfs, containerUser)
@@ -503,9 +503,9 @@ func ensureSaneLogPath(logPath string) error {
 }
 
 // addSecretsBindMounts mounts user defined secrets to the container
-func addSecretsBindMounts(mountLabel, ctrRunDir string, defaultMounts []string, specgen generate.Generator) ([]rspec.Mount, error) {
+func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, defaultMounts []string, specgen generate.Generator) ([]rspec.Mount, error) {
 	containerMounts := specgen.Config.Mounts
-	mounts, err := secretMounts(defaultMounts, mountLabel, ctrRunDir, containerMounts)
+	mounts, err := secretMounts(ctx, defaultMounts, mountLabel, ctrRunDir, containerMounts)
 	if err != nil {
 		return nil, err
 	}
@@ -519,8 +519,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("CreateContainerRequest %+v", req)
-	logrus.Infof("Attempting to create container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
+	log.Infof(ctx, "Attempting to create container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
@@ -580,7 +579,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		if err != nil {
 			err2 := s.StorageRuntimeServer().DeleteContainer(containerID)
 			if err2 != nil {
-				logrus.Warnf("Failed to cleanup container directory: %v", err2)
+				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
 		}
 	}()
@@ -598,7 +597,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	defer func() {
 		if err != nil {
 			if err2 := s.CtrIDIndex().Delete(containerID); err2 != nil {
-				logrus.Warnf("couldn't delete ctr id %s from idIndex", containerID)
+				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", containerID)
 			}
 		}
 	}()
@@ -608,17 +607,17 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	if err := s.ContainerStateToDisk(container); err != nil {
-		logrus.Warnf("unable to write containers %s state to disk: %v", container.ID(), err)
+		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 
 	container.SetCreated()
 
-	logrus.Infof("Created container: %s", container.Description())
+	log.Infof(ctx, "Created container: %s", container.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
 	}
 
-	logrus.Debugf("CreateContainerResponse: %+v", resp)
+	log.Debugf(ctx, "CreateContainerResponse: %+v", resp)
 	return resp, nil
 }
 
@@ -631,7 +630,7 @@ func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
 	return false
 }
 
-func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error {
+func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, profile string) error {
 	if profile == "" {
 		// running w/o seccomp, aka unconfined
 		specgen.Config.Linux.Seccomp = nil
@@ -641,7 +640,7 @@ func (s *Server) setupSeccomp(specgen *generate.Generator, profile string) error
 		if profile != seccompUnconfined {
 			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
 		}
-		logrus.Warn("seccomp is not enabled in your kernel, running container without profile")
+		log.Warnf(ctx, "seccomp is not enabled in your kernel, running container without profile")
 	}
 	if profile == seccompUnconfined {
 		// running w/o seccomp, aka unconfined

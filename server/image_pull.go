@@ -7,8 +7,8 @@ import (
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -21,7 +21,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("PullImageRequest: %+v", req)
+	log.Debugf(ctx, "PullImageRequest: %+v", req)
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
 	image := ""
 	img := req.GetImage()
@@ -36,7 +36,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		if req.GetAuth().Auth != "" {
 			username, password, err = decodeDockerAuth(req.GetAuth().Auth)
 			if err != nil {
-				logrus.Debugf("error decoding authentication for image %s: %v", img, err)
+				log.Debugf(ctx, "error decoding authentication for image %s: %v", img, err)
 				return nil, err
 			}
 		}
@@ -61,7 +61,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		var tmpImg types.ImageCloser
 		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
-			logrus.Debugf("error preparing image %s: %v", img, err)
+			log.Debugf(ctx, "error preparing image %s: %v", img, err)
 			continue
 		}
 		defer tmpImg.Close()
@@ -73,13 +73,13 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			if tmpImgConfigDigest.String() == "" {
 				// this means we are playing with a schema1 image, in which
 				// case, we're going to repull the image in any case
-				logrus.Debugf("image config digest is empty, re-pulling image")
+				log.Debugf(ctx, "image config digest is empty, re-pulling image")
 			} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
-				logrus.Debugf("image %s already in store, skipping pull", img)
+				log.Debugf(ctx, "image %s already in store, skipping pull", img)
 				pulled = img
 				break
 			}
-			logrus.Debugf("image in store has different ID, re-pulling %s", img)
+			log.Debugf(ctx, "image in store has different ID, re-pulling %s", img)
 		}
 
 		_, err = s.StorageImageServer().PullImage(s.systemContext, img, &copy.Options{
@@ -87,7 +87,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			DestinationCtx: s.systemContext,
 		})
 		if err != nil {
-			logrus.Debugf("error pulling image %s: %v", img, err)
+			log.Debugf(ctx, "error pulling image %s: %v", img, err)
 			continue
 		}
 		pulled = img
@@ -107,7 +107,6 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	resp = &pb.PullImageResponse{
 		ImageRef: imageRef,
 	}
-	logrus.Debugf("PullImageResponse: %+v", resp)
 	return resp, nil
 }
 

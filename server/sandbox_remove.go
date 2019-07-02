@@ -7,9 +7,9 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/pkg/storage"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -23,7 +23,6 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("RemovePodSandboxRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
@@ -35,7 +34,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		// cases.
 
 		resp = &pb.RemovePodSandboxResponse{}
-		logrus.Warnf("could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
+		log.Warnf(ctx, "could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
 		return resp, nil
 	}
 
@@ -51,7 +50,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 				timeout := int64(10)
 				if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
 					// Assume container is already stopped
-					logrus.Warnf("failed to stop container %s: %v", c.Name(), err)
+					log.Warnf(ctx, "failed to stop container %s: %v", c.Name(), err)
 				}
 				if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
 					return nil, fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
@@ -71,7 +70,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 		if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
 			// assume container already umounted
-			logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+			log.Warnf(ctx, "failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 		}
 		if err := s.StorageRuntimeServer().DeleteContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
@@ -89,7 +88,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	// Remove the files related to the sandbox
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
-		logrus.Warnf("failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
+		log.Warnf(ctx, "failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
 	if err := s.StorageRuntimeServer().RemovePodSandbox(sb.ID()); err != nil && err != pkgstorage.ErrInvalidSandboxID {
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.ID(), err)
@@ -102,14 +101,13 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	s.ReleasePodName(sb.Name())
 	if err := s.removeSandbox(sb.ID()); err != nil {
-		logrus.Warnf("failed to remove sandbox: %v", err)
+		log.Warnf(ctx, "failed to remove sandbox: %v", err)
 	}
 	if err := s.PodIDIndex().Delete(sb.ID()); err != nil {
 		return nil, fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.ID(), err)
 	}
 
-	logrus.Infof("Removed pod sandbox with infra container: %s", podInfraContainer.Description())
+	log.Infof(ctx, "removed pod sandbox with infra container: %s", podInfraContainer.Description())
 	resp = &pb.RemovePodSandboxResponse{}
-	logrus.Debugf("RemovePodSandboxResponse %+v", resp)
 	return resp, nil
 }

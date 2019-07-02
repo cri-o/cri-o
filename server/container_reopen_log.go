@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -18,7 +17,6 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainer
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("ReopenContainerLogRequest %+v", req)
 	containerID := req.ContainerId
 	c := s.GetContainer(containerID)
 
@@ -40,6 +38,5 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainer
 		resp = &pb.ReopenContainerLogResponse{}
 	}
 
-	logrus.Debugf("ReopenContainerLogResponse %s: %+v", containerID, resp)
 	return resp, err
 }

@@ -149,7 +149,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 		It("should succeed with empty parent cgroup and manager", func() {
 			// When
-			res, err := server.AddCgroupAnnotation(g, "", "", "", "id")
+			res, err := server.AddCgroupAnnotation(context.Background(), g, "",
+				"", "", "id")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -162,7 +163,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			const cgroup = "someCgroup"
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, "", "manager", cgroup, "id")
+			res, err := server.AddCgroupAnnotation(context.Background(), g, "",
+				"manager", cgroup, "id")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -176,7 +178,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 			const cgroup = "some.slice"
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, "",
+			res, err := server.AddCgroupAnnotation(context.Background(), g, "",
 				oci.SystemdCgroupsManager, cgroup, "id")
 
 			// Then
@@ -189,7 +191,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			const cgroup = "some.slice"
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, "", "manager", cgroup, "id")
+			res, err := server.AddCgroupAnnotation(context.Background(), g, "",
+				"manager", cgroup, "id")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -201,7 +204,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 			const cgroup = "someCgroup"
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, "",
+			res, err := server.AddCgroupAnnotation(context.Background(), g, "",
 				oci.SystemdCgroupsManager, cgroup, "id")
 
 			// Then
@@ -214,7 +217,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 			const cgroup = "some--wrong.slice"
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, "",
+			res, err := server.AddCgroupAnnotation(context.Background(), g, "",
 				oci.SystemdCgroupsManager, cgroup, "id")
 
 			// Then
@@ -237,8 +240,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			cgroup, tmpDir := prepareCgroupDirs(0222, "")
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, tmpDir,
-				oci.SystemdCgroupsManager, cgroup, "id")
+			res, err := server.AddCgroupAnnotation(context.Background(), g,
+				tmpDir, oci.SystemdCgroupsManager, cgroup, "id")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -250,8 +253,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			cgroup, tmpDir := prepareCgroupDirs(0644, "")
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, tmpDir,
-				oci.SystemdCgroupsManager, cgroup, "id")
+			res, err := server.AddCgroupAnnotation(context.Background(), g,
+				tmpDir, oci.SystemdCgroupsManager, cgroup, "id")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -263,8 +266,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			cgroup, tmpDir := prepareCgroupDirs(0644, "13000000")
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, tmpDir,
-				oci.SystemdCgroupsManager, cgroup, "id")
+			res, err := server.AddCgroupAnnotation(context.Background(), g,
+				tmpDir, oci.SystemdCgroupsManager, cgroup, "id")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -276,8 +279,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			cgroup, tmpDir := prepareCgroupDirs(0644, "10")
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, tmpDir,
-				oci.SystemdCgroupsManager, cgroup, "id")
+			res, err := server.AddCgroupAnnotation(context.Background(), g,
+				tmpDir, oci.SystemdCgroupsManager, cgroup, "id")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -289,8 +292,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			cgroup, tmpDir := prepareCgroupDirs(0644, "invalid")
 
 			// When
-			res, err := server.AddCgroupAnnotation(g, tmpDir,
-				oci.SystemdCgroupsManager, cgroup, "id")
+			res, err := server.AddCgroupAnnotation(context.Background(), g,
+				tmpDir, oci.SystemdCgroupsManager, cgroup, "id")
 
 			// Then
 			Expect(err).NotTo(BeNil())

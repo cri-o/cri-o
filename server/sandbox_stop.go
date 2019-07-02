@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -15,13 +15,13 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 // stopAllPodSandboxes removes all pod sandboxes
 func (s *Server) stopAllPodSandboxes(ctx context.Context) {
-	logrus.Debugf("stopAllPodSandboxes")
+	log.Debugf(ctx, "stopAllPodSandboxes")
 	for _, sb := range s.ContainerServer.ListSandboxes() {
 		pod := &pb.StopPodSandboxRequest{
 			PodSandboxId: sb.ID(),
 		}
 		if _, err := s.StopPodSandbox(ctx, pod); err != nil {
-			logrus.Warnf("could not StopPodSandbox %s: %v", sb.ID(), err)
+			log.Warnf(ctx, "could not StopPodSandbox %s: %v", sb.ID(), err)
 		}
 	}
 }

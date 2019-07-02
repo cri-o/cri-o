@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/pkg/storage"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -17,7 +16,6 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("ListImagesRequest: %+v", req)
 	filter := ""
 	reqFilter := req.GetFilter()
 	if reqFilter != nil {
@@ -35,7 +33,6 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 		image := ConvertImage(&results[i])
 		resp.Images = append(resp.Images, image)
 	}
-	logrus.Debugf("ListImagesResponse: %+v", resp)
 	return resp, nil
 }
 

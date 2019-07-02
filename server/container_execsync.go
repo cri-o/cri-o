@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -17,7 +17,6 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("ExecSyncRequest %+v", req)
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err
@@ -47,7 +46,6 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		ExitCode: execResp.ExitCode,
 	}
 
-	logrus.Infof("Exec'd %s in %s", cmd, c.Description())
-	logrus.Debugf("ExecSyncResponse: %+v", resp)
+	log.Infof(ctx, "exec'd %s in %s", cmd, c.Description())
 	return resp, nil
 }

@@ -1,16 +1,17 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // SecretData info
@@ -100,7 +101,7 @@ func getHostSecretData(hostDir string) ([]SecretData, error) {
 
 // secretMount copies the contents of host directory to container directory
 // and returns a list of mounts
-func secretMounts(defaultMountsPaths []string, mountLabel, containerWorkingDir string, runtimeMounts []rspec.Mount) ([]rspec.Mount, error) {
+func secretMounts(ctx context.Context, defaultMountsPaths []string, mountLabel, containerWorkingDir string, runtimeMounts []rspec.Mount) ([]rspec.Mount, error) {
 	mounts := make([]rspec.Mount, 0, len(defaultMountsPaths))
 	for _, path := range defaultMountsPaths {
 		hostDir, ctrDir, err := getMountsMap(path)
@@ -109,14 +110,14 @@ func secretMounts(defaultMountsPaths []string, mountLabel, containerWorkingDir s
 		}
 		// skip if the hostDir path doesn't exist
 		if _, err := os.Stat(hostDir); os.IsNotExist(err) {
-			logrus.Warnf("%q doesn't exist, skipping", hostDir)
+			log.Warnf(ctx, "%q doesn't exist, skipping", hostDir)
 			continue
 		}
 
 		ctrDirOnHost := filepath.Join(containerWorkingDir, ctrDir)
 		// skip if ctrDir has already been mounted by caller
 		if isAlreadyMounted(runtimeMounts, ctrDir) {
-			logrus.Warnf("%q has already been mounted; cannot override mount", ctrDir)
+			log.Warnf(ctx, "%q has already been mounted; cannot override mount", ctrDir)
 			continue
 		}
 

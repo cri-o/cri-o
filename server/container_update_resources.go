@@ -7,7 +7,6 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -19,7 +18,6 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateCon
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("UpdateContainerResources %+v", req)
 
 	c, err := s.GetContainerFromShortID(req.GetContainerId())
 	if err != nil {

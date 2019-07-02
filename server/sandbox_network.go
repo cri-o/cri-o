@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -8,13 +9,13 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error
-func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitypes.Result, err error) {
+func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIP string, result cnitypes.Result, err error) {
 	if sb.HostNetwork() {
 		return s.hostIP, nil, nil
 	}
@@ -28,7 +29,7 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 	// but an error happened between plugin success and the end of networkStart()
 	defer func() {
 		if err != nil {
-			s.networkStop(sb)
+			s.networkStop(ctx, sb)
 		}
 	}()
 
@@ -46,7 +47,7 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 
 	// only one cnitypes.Result is returned since newPodNetwork sets Networks list empty
 	result = tmp[0]
-	logrus.Debugf("CNI setup result: %v", result)
+	log.Debugf(ctx, "CNI setup result: %v", result)
 
 	network, err := cnicurrent.GetResult(result)
 	if err != nil {
@@ -103,7 +104,7 @@ func (s *Server) getSandboxIP(sb *sandbox.Sandbox) (string, error) {
 
 // networkStop cleans up and removes a pod's network.  It is best-effort and
 // must call the network plugin even if the network namespace is already gone
-func (s *Server) networkStop(sb *sandbox.Sandbox) {
+func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) {
 	if sb.HostNetwork() {
 		return
 	}
@@ -113,17 +114,17 @@ func (s *Server) networkStop(sb *sandbox.Sandbox) {
 		PortMappings: sb.PortMappings(),
 		HostNetwork:  false,
 	}); err != nil {
-		logrus.Warnf("failed to remove hostport for pod sandbox %s(%s): %v",
+		log.Warnf(ctx, "failed to remove hostport for pod sandbox %s(%s): %v",
 			sb.Name(), sb.ID(), err)
 	}
 
 	podNetwork, err := newPodNetwork(sb)
 	if err != nil {
-		logrus.Warnf(err.Error())
+		log.Warnf(ctx, err.Error())
 		return
 	}
 	if err := s.netPlugin.TearDownPod(podNetwork); err != nil {
-		logrus.Warnf("failed to destroy network for pod sandbox %s(%s): %v",
+		log.Warnf(ctx, "failed to destroy network for pod sandbox %s(%s): %v",
 			sb.Name(), sb.ID(), err)
 	}
 }

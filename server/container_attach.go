@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -19,7 +18,6 @@ func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (resp *pb.At
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("AttachRequest %+v", req)
 
 	resp, err = s.getAttach(req)
 	if err != nil {

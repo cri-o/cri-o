@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -17,7 +17,6 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("StartContainerRequest %+v", req)
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err
@@ -36,7 +35,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 			c.SetStartFailed(err)
 		}
 		if err := s.ContainerStateToDisk(c); err != nil {
-			logrus.Warnf("unable to write containers %s state to disk: %v", c.ID(), err)
+			log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 	}()
 
@@ -45,8 +44,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 
-	logrus.Infof("Started container: %s", c.Description())
+	log.Infof(ctx, "Started container: %s", c.Description())
 	resp = &pb.StartContainerResponse{}
-	logrus.Debugf("StartContainerResponse %+v", resp)
 	return resp, nil
 }

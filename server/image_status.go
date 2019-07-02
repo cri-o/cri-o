@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/pkg/storage"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -22,7 +22,6 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("ImageStatusRequest: %+v", req)
 	image := ""
 	img := req.GetImage()
 	if img != nil {
@@ -47,11 +46,11 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 		status, err := s.StorageImageServer().ImageStatus(s.systemContext, image)
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUnknown {
-				logrus.Warnf("imageStatus: can't find %s", image)
+				log.Warnf(ctx, "imageStatus: can't find %s", image)
 				notfound = true
 				continue
 			}
-			logrus.Warnf("imageStatus: error getting status from %s: %v", image, err)
+			log.Warnf(ctx, "imageStatus: error getting status from %s: %v", image, err)
 			lastErr = err
 			continue
 		}
@@ -85,7 +84,6 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 	if notfound && resp == nil {
 		return &pb.ImageStatusResponse{}, nil
 	}
-	logrus.Debugf("ImageStatusResponse: %+v", resp)
 	return resp, nil
 }
 
