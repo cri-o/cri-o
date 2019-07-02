@@ -592,28 +592,6 @@ func main() {
 			return err
 		}
 
-		if config.GRPCMaxSendMsgSize <= 0 {
-			config.GRPCMaxSendMsgSize = server.DefaultGRPCMaxMsgSize
-		}
-		if config.GRPCMaxRecvMsgSize <= 0 {
-			config.GRPCMaxRecvMsgSize = server.DefaultGRPCMaxMsgSize
-		}
-
-		if !config.SELinux {
-			disableSELinux()
-		}
-
-		if err := os.MkdirAll(filepath.Dir(config.Listen), 0755); err != nil {
-			cancel()
-			return err
-		}
-
-		// Remove the socket if it already exists
-		if _, err := os.Stat(config.Listen); err == nil {
-			if err := os.Remove(config.Listen); err != nil {
-				logrus.Fatal(err)
-			}
-		}
 		lis, err := server.Listen("unix", config.Listen)
 		if err != nil {
 			logrus.Fatalf("failed to listen: %v", err)
