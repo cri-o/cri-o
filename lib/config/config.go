@@ -16,6 +16,7 @@ import (
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/cri-o/version"
 	units "github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -23,14 +24,14 @@ import (
 
 // Defaults if none are specified
 const (
-	pauseImage          = "k8s.gcr.io/pause:3.1"
-	pauseCommand        = "/pause"
-	defaultTransport    = "docker://"
-	apparmorProfileName = "crio-default"
-	defaultRuntime      = "runc"
-	DefaultRuntimeType  = "oci"
-	DefaultRuntimeRoot  = "/run/runc"
-	cgroupManager       = "cgroupfs"
+	pauseImage             = "k8s.gcr.io/pause:3.1"
+	pauseCommand           = "/pause"
+	defaultTransport       = "docker://"
+	defaultRuntime         = "runc"
+	DefaultRuntimeType     = "oci"
+	DefaultRuntimeRoot     = "/run/runc"
+	cgroupManager          = "cgroupfs"
+	DefaultApparmorProfile = "crio-default-" + version.Version
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -409,7 +410,7 @@ func DefaultConfig() (*Config, error) {
 			ConmonCgroup:             "pod",
 			SELinux:                  selinuxEnabled(),
 			SeccompProfile:           "",
-			ApparmorProfile:          apparmorProfileName,
+			ApparmorProfile:          DefaultApparmorProfile,
 			CgroupManager:            cgroupManager,
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,

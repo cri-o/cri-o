@@ -22,13 +22,13 @@ import (
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/lib"
+	libconfig "github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/server/useragent"
-	"github.com/cri-o/cri-o/version"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
@@ -46,10 +46,8 @@ import (
 )
 
 const (
-	shutdownFile        = "/var/lib/crio/crio.shutdown"
-	certRefreshInterval = time.Minute * 5
-
-	apparmorDefaultProfile  = "crio-default-" + version.Version
+	shutdownFile            = "/var/lib/crio/crio.shutdown"
+	certRefreshInterval     = time.Minute * 5
 	apparmorRuntimeDefault  = "runtime/default"
 	apparmorLocalHostPrefix = "localhost/"
 )
@@ -377,10 +375,13 @@ func New(
 		}
 	}
 
-	if s.appArmorEnabled && s.appArmorProfile == apparmorDefaultProfile {
-		if err := apparmor.InstallDefault(apparmorDefaultProfile); err != nil {
-			return nil, fmt.Errorf("ensuring the default apparmor profile %q is installed failed: %v", apparmorDefaultProfile, err)
+	if s.appArmorEnabled && config.ApparmorProfile == libconfig.DefaultApparmorProfile {
+		logrus.Infof("installing default apparmor profile: %v", libconfig.DefaultApparmorProfile)
+		if err := apparmor.InstallDefault(libconfig.DefaultApparmorProfile); err != nil {
+			return nil, fmt.Errorf("ensuring the default apparmor profile %q is installed failed: %v", libconfig.DefaultApparmorProfile, err)
 		}
+	} else {
+		logrus.Infof("assuming user-provided apparmor profile: %v", config.ApparmorProfile)
 	}
 
 	if err := configureMaxThreads(); err != nil {
