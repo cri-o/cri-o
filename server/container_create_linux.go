@@ -16,6 +16,7 @@ import (
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
+	libconfig "github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
@@ -424,13 +425,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		appArmorProfileName := s.getAppArmorProfileName(containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile())
 		if appArmorProfileName != "" {
 			// reload default apparmor profile if it is unloaded.
-			if s.appArmorProfile == apparmorDefaultProfile {
-				isLoaded, err := apparmor.IsLoaded(apparmorDefaultProfile)
+			if s.appArmorProfile == libconfig.DefaultApparmorProfile {
+				isLoaded, err := apparmor.IsLoaded(libconfig.DefaultApparmorProfile)
 				if err != nil {
 					return nil, err
 				}
 				if !isLoaded {
-					if err := apparmor.InstallDefault(apparmorDefaultProfile); err != nil {
+					if err := apparmor.InstallDefault(libconfig.DefaultApparmorProfile); err != nil {
 						return nil, err
 					}
 				}
