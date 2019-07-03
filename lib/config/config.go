@@ -403,7 +403,7 @@ func DefaultConfig() (*Config, error) {
 					RuntimeRoot: DefaultRuntimeRoot,
 				},
 			},
-			Conmon: conmonPath,
+			Conmon: "",
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
@@ -562,8 +562,9 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			}
 		}
 
-		if _, err := os.Stat(c.Conmon); err != nil {
-			return errors.Wrapf(err, "invalid conmon path")
+		// Validate the conmon path
+		if err := c.ValidateConmonPath("conmon"); err != nil {
+			return errors.Wrapf(err, "conmon validation")
 		}
 	}
 
@@ -592,6 +593,24 @@ func (c *RuntimeConfig) ValidateRuntimePaths() error {
 		logrus.Debugf("found valid runtime %q for runtime_path %q",
 			runtime, handler.RuntimePath)
 	}
+	return nil
+}
+
+// ValidateConmonPath checks if `Conmon` is set within the `RuntimeConfig`.
+// If this is not the case, it tries to find it within the $PATH variable.
+// In any other case, it simply checks if `Conmon` is a valid file.
+func (c *RuntimeConfig) ValidateConmonPath(executable string) error {
+	if c.Conmon == "" {
+		conmon, err := exec.LookPath(executable)
+		if err != nil {
+			return err
+		}
+		c.Conmon = conmon
+		logrus.Debugf("using conmon from $PATH")
+	} else if _, err := os.Stat(c.Conmon); err != nil {
+		return errors.Wrapf(err, "invalid conmon path")
+	}
+	logrus.Infof("using conmon executable %q", c.Conmon)
 	return nil
 }
 

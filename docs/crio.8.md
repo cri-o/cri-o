@@ -89,7 +89,7 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--config**="": path to configuration file
 
-**--conmon**="": path to the conmon executable (default: "/usr/local/libexec/crio/conmon")
+**--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")
 
 **--cpu-profile**="": set the CPU profile file path
 

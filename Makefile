@@ -347,7 +347,7 @@ install: .gopathok install.bin install.man
 
 install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
-	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
+	install ${SELINUXOPT} -D -m 755 bin/conmon $(BINDIR)/conmon
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 
 install.man: $(MANPAGES)
@@ -372,7 +372,7 @@ install.systemd:
 
 uninstall:
 	rm -f $(BINDIR)/crio
-	rm -f $(LIBEXECDIR)/crio/conmon
+	rm -f $(BINDIR)/conmon
 	rm -f $(LIBEXECDIR)/crio/pause
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
