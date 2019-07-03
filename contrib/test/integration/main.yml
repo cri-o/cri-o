@@ -20,7 +20,7 @@
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
       vars:
-        cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
+        cri_tools_git_version: v1.15.0
 
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
@@ -71,7 +71,7 @@
       include: "build/cri-tools.yml"
       vars:
         force_clone: true
-        cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
+        cri_tools_git_version: v1.15.0
     - name: run cri-o integration tests
       include: test.yml
 
@@ -86,7 +86,7 @@
       include: "build/cri-tools.yml"
       vars:
         force_clone: true
-        cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
+        cri_tools_git_version: v1.15.0
     - name: run critest validation and benchmarks
       include: critest.yml
 

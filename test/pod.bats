@@ -276,9 +276,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 
 	cleanup_ctrs
 	cleanup_pods
