@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
 	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/oci"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// DefaultGRPCMaxMsgSize is the default message size maximum for grpc APIs.
-	DefaultGRPCMaxMsgSize = 16 * 1024 * 1024
-)
+// defaultGRPCMaxMsgSize is the default message size maximum for grpc APIs.
+const defaultGRPCMaxMsgSize = 16 * 1024 * 1024
 
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
@@ -168,8 +168,8 @@ func DefaultConfig() (*Config, error) {
 			Listen:             CrioSocketPath,
 			StreamAddress:      "127.0.0.1",
 			StreamPort:         "0",
-			GRPCMaxSendMsgSize: DefaultGRPCMaxMsgSize,
-			GRPCMaxRecvMsgSize: DefaultGRPCMaxMsgSize,
+			GRPCMaxSendMsgSize: defaultGRPCMaxMsgSize,
+			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
 		},
 	}, nil
 }
@@ -200,6 +200,30 @@ func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) 
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < oci.BufSize {
 		return fmt.Errorf("log size max should be negative or >= %d", oci.BufSize)
+	}
+
+	if c.GRPCMaxSendMsgSize <= 0 {
+		c.GRPCMaxSendMsgSize = defaultGRPCMaxMsgSize
+	}
+	if c.GRPCMaxRecvMsgSize <= 0 {
+		c.GRPCMaxRecvMsgSize = defaultGRPCMaxMsgSize
+	}
+
+	if !c.SELinux {
+		selinux.SetDisabled()
+	}
+
+	if onExecution {
+		if err := os.MkdirAll(filepath.Dir(c.Listen), 0755); err != nil {
+			return err
+		}
+
+		// Remove the socket if it already exists
+		if _, err := os.Stat(c.Listen); err == nil {
+			if err := os.Remove(c.Listen); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

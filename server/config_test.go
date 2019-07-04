@@ -26,6 +26,17 @@ var _ = t.Describe("Config", func() {
 		return config
 	}
 
+	var runtimeValidConfig = func() *server.Config {
+		sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validPath}
+		sut.Conmon = validPath
+		tmpDir := t.MustTempDir("cni-test")
+		sut.NetworkConfig.PluginDirs = []string{tmpDir}
+		sut.NetworkDir = os.TempDir()
+		sut.LogDir = "."
+		sut.Listen = t.MustTempFile("crio.sock")
+		return sut
+	}
+
 	BeforeEach(func() {
 		sut = defaultConfig()
 	})
@@ -141,12 +152,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with runtime cheks", func() {
 			// Given
-			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validPath}
-			sut.Conmon = validPath
-			tmpDir := t.MustTempDir("cni-test")
-			sut.NetworkConfig.PluginDirs = []string{tmpDir}
-			sut.NetworkDir = os.TempDir()
-			sut.LogDir = "."
+			sut = runtimeValidConfig()
 
 			// When
 			err := sut.Validate(nil, true)
@@ -157,9 +163,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with invalid network configuration", func() {
 			// Given
-			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validPath}
-			sut.Conmon = validPath
-			sut.PluginDirs = []string{validPath}
+			sut = runtimeValidConfig()
 			sut.NetworkConfig.NetworkDir = wrongPath
 
 			// When
@@ -221,6 +225,52 @@ var _ = t.Describe("Config", func() {
 
 			// When
 			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should succeed with negative GRPCMaxSendMsgSize", func() {
+			// Given
+			sut.GRPCMaxSendMsgSize = -100
+
+			// When
+			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with negative GRPCMaxRecvMsgSize", func() {
+			// Given
+			sut.GRPCMaxRecvMsgSize = -100
+
+			// When
+			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail on invalid Listen directory", func() {
+			// Given
+			sut = runtimeValidConfig()
+			sut.Listen = "/proc/dir/crio.sock"
+
+			// When
+			err := sut.Validate(nil, true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail if socket removal fails", func() {
+			// Given
+			sut = runtimeValidConfig()
+			sut.Listen = "/proc"
+
+			// When
+			err := sut.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
