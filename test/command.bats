@@ -3,7 +3,7 @@
 load helpers
 
 @test "crio commands" {
-	run ${CRIO_BINARY_PATH} --config /dev/null config > /dev/null
+	run ${CRIO_BINARY_PATH} -c /dev/null config > /dev/null
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run ${CRIO_BINARY_PATH} badoption > /dev/null

@@ -87,7 +87,7 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--cni-plugin-dir**="": CNI plugin binaries directory (default: "/opt/cni/bin/")
 
-**--config**="": path to configuration file
+**--config, -c**="": path to configuration file
 
 **--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")
 
@@ -143,7 +143,7 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--log-format**="": Set the format used by logs ('text' (default), or 'json') (default: "text")
 
-**--log-level**="": log crio messages above specified level: debug, info, warn, error (default), fatal or panic
+**--log-level, -l**="": log crio messages above specified level: debug, info, warn, error (default), fatal or panic
 
 **--log-dir**="": default log directory where all logs will go unless directly specified by the kubelet
 
@@ -167,7 +167,7 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--read-only**=**true**|**false**: Run all containers in read-only mode (default: false). Automatically mount tmpfs on `/run`, `/tmp` and `/var/tmp`.
 
-**--root**="": The crio root dir (default: "/var/lib/containers/storage")
+**--root, -r**="": The crio root dir (default: "/var/lib/containers/storage")
 
 **--registry**="": Registry host which will be prepended to unqualified images, can be specified multiple times
 
@@ -181,7 +181,7 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--signature-policy**="": Path to the signature policy json file (default: "", to use the system-wide default)
 
-**--storage-driver**: OCI storage driver (default: "overlay")
+**--storage-driver, -s**: OCI storage driver (default: "overlay")
 
 **--storage-opt**: OCI storage driver option (no default)
 

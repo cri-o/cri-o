@@ -184,7 +184,7 @@ integration: ${GINKGO} crioimage
 		-e CI=true \
 		-e CRIO_BINARY \
 		-e RUN_CRITEST \
-		-e STORAGE_OPTIONS="--storage-driver=vfs" \
+		-e STORAGE_OPTIONS="-s=vfs" \
 		-e TESTFLAGS \
 		-e TEST_USERNS \
 		-t --privileged --rm \
