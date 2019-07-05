@@ -100,11 +100,15 @@ github.com/containers/libpod v0.8.3-0.20190628005010-4aa109f00e95 h1:b5fISjEVoZb
 github.com/containers/libpod v0.8.3-0.20190628005010-4aa109f00e95/go.mod h1:dO1PO7t9N5BfdGX0bXhwgBuEgm8DC4QLir8vgdl3ZDY=
 github.com/containers/libpod v0.8.3-0.20190628140055-5e42bf071760 h1:JrdoLRKPp84uxgaOKmXP6DK02KU5p6nNEoKWJeD3bbs=
 github.com/containers/libpod v0.8.3-0.20190628140055-5e42bf071760/go.mod h1:dO1PO7t9N5BfdGX0bXhwgBuEgm8DC4QLir8vgdl3ZDY=
+github.com/containers/libpod v1.4.4 h1:ImfKNDgs1WLyJ8zhcBBhiXhb2mVRgPzP58nSsC1aiPc=
+github.com/containers/libpod v1.4.4/go.mod h1:ZdYOq3W7RqABw6T6luVSWfS5GBXKQ1KzWPL1n8vjVhI=
 github.com/containers/psgo v1.3.0 h1:kDhiA4gNNyJ2qCzmOuBf6AmrF/Pp+6Jo98P68R7fB8I=
 github.com/containers/psgo v1.3.0/go.mod h1:7MELvPTW1fj6yMrwD9I1Iasx1vU+hKlRkHXAJ51sFtU=
 github.com/containers/storage v1.12.10/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
 github.com/containers/storage v1.12.12 h1:gao0GNzjmSX4Ai/StOHtUVIrBguC0OKyvx/ZMwBdyuY=
 github.com/containers/storage v1.12.12/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
+github.com/containers/storage v1.12.13 h1:GtaLCY8p1Drlk1Oew581jGvB137UaO+kpz0HII67T0A=
+github.com/containers/storage v1.12.13/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
 github.com/coreos/bbolt v1.3.1-coreos.6/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/bbolt v1.3.3/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
