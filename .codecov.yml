@@ -10,7 +10,13 @@ coverage:
   range: 50..75
 
   status:
-    project: true
+    project:
+      default:
+        enabled: true
+        # allowed to drop coverage and still result in a "success" commit status
+        threshold: null
+        if_not_found: success
+        if_ci_failed: error
     patch: true
     changes: false
 
