@@ -285,7 +285,7 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "config",
+			Name:  "config, c",
 			Value: server.CrioConfigPath,
 			Usage: "path to configuration file",
 		},
@@ -320,7 +320,7 @@ func main() {
 			Usage: "set the format used by logs ('text' (default), or 'json')",
 		},
 		cli.StringFlag{
-			Name:  "log-level",
+			Name:  "log-level, l",
 			Value: "error",
 			Usage: "log messages above specified level: debug, info, warn, error (default), fatal or panic",
 		},
@@ -346,7 +346,7 @@ func main() {
 			Usage: fmt.Sprintf("path to signature policy file (default: %q)", defConf.SignaturePolicyPath),
 		},
 		cli.StringFlag{
-			Name:  "root",
+			Name:  "root, r",
 			Usage: fmt.Sprintf("crio root dir (default: %q)", defConf.Root),
 		},
 		cli.StringFlag{
@@ -354,7 +354,7 @@ func main() {
 			Usage: fmt.Sprintf("crio state dir (default: %q)", defConf.RunRoot),
 		},
 		cli.StringFlag{
-			Name:  "storage-driver",
+			Name:  "storage-driver, s",
 			Usage: fmt.Sprintf("storage driver (default: %q)", defConf.Storage),
 		},
 		cli.StringSliceFlag{
