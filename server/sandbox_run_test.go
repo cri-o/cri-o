@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/libpod/pkg/annotations"
 	"github.com/cri-o/cri-o/oci"
-	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/server"
 	"github.com/golang/mock/gomock"

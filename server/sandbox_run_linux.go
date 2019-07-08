@@ -14,10 +14,10 @@ import (
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
-	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"

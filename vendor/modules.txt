@@ -122,6 +122,7 @@ github.com/containers/image/oci/internal
 github.com/containers/image/pkg/sysregistries
 # github.com/containers/libpod v1.4.4
 github.com/containers/libpod/pkg/hooks/0.1.0
+github.com/containers/libpod/pkg/annotations
 github.com/containers/libpod/pkg/hooks
 github.com/containers/libpod/pkg/registrar
 github.com/containers/libpod/pkg/rootless
@@ -141,7 +142,6 @@ github.com/containers/libpod/libpod/image
 github.com/containers/libpod/libpod/layers
 github.com/containers/libpod/libpod/lock
 github.com/containers/libpod/libpod/logs
-github.com/containers/libpod/pkg/annotations
 github.com/containers/libpod/pkg/criu
 github.com/containers/libpod/pkg/ctime
 github.com/containers/libpod/pkg/firewall
