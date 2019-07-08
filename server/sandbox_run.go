@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"

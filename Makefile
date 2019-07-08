@@ -136,7 +136,7 @@ crio.conf: bin/crio
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
 
-conmon/config.h: git-vars cmd/crio-config/config.go oci/oci.go
+conmon/config.h: git-vars cmd/crio-config/config.go internal/oci/oci.go
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
 	( cd conmon && $(CURDIR)/bin/crio-config )
 
@@ -270,28 +270,28 @@ mock-criostorage: ${MOCKGEN}
 		${MOCKGEN_FLAGS} \
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
-		github.com/cri-o/cri-o/pkg/storage ImageServer,RuntimeServer
+		github.com/cri-o/cri-o/internal/pkg/storage ImageServer,RuntimeServer
 
 mock-lib-config: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package libconfigmock \
 		-destination ${MOCK_PATH}/lib/lib.go \
-		github.com/cri-o/cri-o/lib/config Iface
+		github.com/cri-o/cri-o/internal/lib/config Iface
 
 mock-oci: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
-		github.com/cri-o/cri-o/oci RuntimeImpl
+		github.com/cri-o/cri-o/internal/oci RuntimeImpl
 
 mock-sandbox: ${MOCKGEN}
 	${MOCKGEN} \
 		${MOCKGEN_FLAGS} \
 		-package sandboxmock \
 		-destination ${MOCK_PATH}/sandbox/sandbox.go \
-		github.com/cri-o/cri-o/lib/sandbox NetNsIface
+		github.com/cri-o/cri-o/internal/lib/sandbox NetNsIface
 
 mock-server: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"

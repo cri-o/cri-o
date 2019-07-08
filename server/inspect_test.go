@@ -6,9 +6,9 @@ import (
 
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
-	"github.com/cri-o/cri-o/lib/config"
-	"github.com/cri-o/cri-o/lib/sandbox"
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 

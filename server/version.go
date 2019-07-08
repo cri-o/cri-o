@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/cri-o/cri-o/version"
+	"github.com/cri-o/cri-o/internal/version"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )

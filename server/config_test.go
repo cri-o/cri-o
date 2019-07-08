@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cri-o/cri-o/lib/config"
+	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

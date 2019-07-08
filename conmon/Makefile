@@ -26,7 +26,7 @@ else ifeq ($(shell pkg-config --exists libsystemd && echo "0" || echo "1"), 0)
 	override CFLAGS += $(shell pkg-config --cflags libsystemd) -D USE_JOURNALD=0
 endif
 
-config.h: ../oci/oci.go
+config.h: ../internal/oci/oci.go
 	$(MAKE) -C .. conmon/config.h
 
 ../bin/conmon: config.h $(obj) | ../bin

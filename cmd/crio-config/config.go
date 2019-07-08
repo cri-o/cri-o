@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/cri-o/cri-o/lib/config"
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/sirupsen/logrus"
 )
 

@@ -5,7 +5,7 @@
 package servermock
 
 import (
-	config "github.com/cri-o/cri-o/lib/config"
+	config "github.com/cri-o/cri-o/internal/lib/config"
 	server "github.com/cri-o/cri-o/server"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"

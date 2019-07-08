@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/cri-o/cri-o/lib/sandbox"
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/pkg/errors"

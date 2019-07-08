@@ -5,8 +5,8 @@ package server
 import (
 	"fmt"
 
-	"github.com/cri-o/cri-o/lib/sandbox"
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"

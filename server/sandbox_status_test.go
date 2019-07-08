@@ -3,7 +3,7 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"

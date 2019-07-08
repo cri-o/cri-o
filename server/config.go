@@ -9,8 +9,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
-	"github.com/cri-o/cri-o/lib/config"
-	"github.com/cri-o/cri-o/oci"
+	"github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/internal/oci"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
