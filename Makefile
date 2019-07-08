@@ -197,13 +197,10 @@ define go-build
 	$(shell cd `pwd` && $(GO) build -o ${BUILD_BIN_PATH}/${1} ${2})
 endef
 
-${BUILD_BIN_PATH}:
-	mkdir -p ${BUILD_BIN_PATH}
-
-${GO_MD2MAN}: ${BUILD_BIN_PATH}
+${GO_MD2MAN}:
 	$(call go-build,go-md2man,./vendor/github.com/cpuguy83/go-md2man)
 
-${GINKGO}: ${BUILD_BIN_PATH}
+${GINKGO}:
 	$(call go-build,ginkgo,./vendor/github.com/onsi/ginkgo/ginkgo)
 
 ${MOCKGEN}:
