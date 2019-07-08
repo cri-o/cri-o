@@ -194,26 +194,27 @@ integration: ${GINKGO} crioimage
 		${CRIO_IMAGE} make localintegration ${TESTFLAGS}
 
 define go-build
-	$(shell cd `pwd` && $(GO) build -o ${BUILD_BIN_PATH}/${1} ${2})
+	$(shell cd `pwd` && $(GO) build -o $(BUILD_BIN_PATH)/$(shell basename $(1)) $(1))
+	@echo > /dev/null
 endef
 
 ${GO_MD2MAN}:
-	$(call go-build,go-md2man,./vendor/github.com/cpuguy83/go-md2man)
+	$(call go-build,./vendor/github.com/cpuguy83/go-md2man)
 
 ${GINKGO}:
-	$(call go-build,ginkgo,./vendor/github.com/onsi/ginkgo/ginkgo)
+	$(call go-build,./vendor/github.com/onsi/ginkgo/ginkgo)
 
 ${MOCKGEN}:
-	$(call go-build,mockgen,./vendor/github.com/golang/mock/mockgen)
+	$(call go-build,./vendor/github.com/golang/mock/mockgen)
 
 ${GIT_VALIDATION}:
-	$(call go-build,git-validation,./vendor/github.com/vbatts/git-validation)
+	$(call go-build,./vendor/github.com/vbatts/git-validation)
 
 ${RELEASE_TOOL}:
-	$(call go-build,release-tool,./vendor/github.com/containerd/project/cmd/release-tool)
+	$(call go-build,./vendor/github.com/containerd/project/cmd/release-tool)
 
 ${GOLANGCI_LINT}:
-	$(call go-build,golangci-lint,./vendor/github.com/golangci/golangci-lint/cmd/golangci-lint)
+	$(call go-build,./vendor/github.com/golangci/golangci-lint/cmd/golangci-lint)
 
 vendor:
 	export GO111MODULE=on \
