@@ -32,7 +32,7 @@ func main() {
 			Usage: "turn on debug logging",
 		},
 		cli.StringFlag{
-			Name:  "root",
+			Name:  "root, r",
 			Usage: "graph root directory",
 		},
 		cli.StringFlag{
@@ -40,7 +40,7 @@ func main() {
 			Usage: "run root directory",
 		},
 		cli.StringFlag{
-			Name:  "storage-driver",
+			Name:  "storage-driver, s",
 			Usage: "storage driver",
 		},
 		cli.StringSliceFlag{
