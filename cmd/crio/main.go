@@ -207,7 +207,7 @@ func mergeConfig(config *server.Config, ctx *cli.Context) (string, error) {
 }
 
 func writeCrioGoroutineStacks() {
-	path := filepath.Join("/tmp", fmt.Sprintf("crio-goroutine-stacks-%s.log", strings.ReplaceAll(time.Now().Format(time.RFC3339), ":", "")))
+	path := filepath.Join("/tmp", fmt.Sprintf("crio-goroutine-stacks-%s.log", strings.Replace(time.Now().Format(time.RFC3339), ":", "", -1))) // nolint: gocritic
 	if err := utils.WriteGoroutineStacksToFile(path); err != nil {
 		logrus.Warnf("Failed to write goroutine stacks: %s", err)
 	}
