@@ -29,19 +29,20 @@ func createConmonUnitName(name string) string {
 func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) {
 	// Move conmon to specified cgroup
 	if r.config.ConmonCgroup == "pod" || r.config.ConmonCgroup == "" {
-		if r.config.CgroupManager == SystemdCgroupsManager {
+		switch r.config.CgroupManager {
+		case SystemdCgroupsManager:
 			logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createConmonUnitName(c.id))
 			if err := utils.RunUnderSystemdScope(pid, cgroupParent, createConmonUnitName(c.id)); err != nil {
 				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 			}
-		}
-
-		control, err := cgroups.New(filepath.Join(cgroupParent, "/crio-conmon-"+c.id), &rspec.LinuxResources{})
-		if err != nil {
-			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-		}
-
-		if control != nil {
+		case CgroupfsCgroupsManager:
+			control, err := cgroups.New(filepath.Join(cgroupParent, "/crio-conmon-"+c.id), &rspec.LinuxResources{})
+			if err != nil {
+				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+			}
+			if control == nil {
+				break
+			}
 			// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
 			// always fail as conmon's pid is still there.
 			// Fortunately, kubelet takes care of deleting this for us, so the leak will
@@ -51,6 +52,9 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 			if err := control.AddPid(pid); err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
+		default:
+			// error for an unknown cgroups manager
+			logrus.Errorf("unknown cgroups manager %q for sandbox cgroup", r.config.CgroupManager)
 		}
 	} else if strings.HasSuffix(r.config.ConmonCgroup, ".slice") {
 		logrus.Debugf("Running conmon under custom slice %s and unitName %s", r.config.ConmonCgroup, createConmonUnitName(c.id))
