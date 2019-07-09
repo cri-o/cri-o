@@ -1,40 +1,52 @@
 ---
 version: 2.1
 
+stdenv: &stdenv
+  environment:
+    GOCACHE: &gocache /tmp/go-build
+    IMAGE: &image saschagrunert/criocircle:1.0.0
+    JOBS: &jobs 8
+    WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
+
 executors:
-  docker:
+  container:
     docker:
-      - image: &image saschagrunert/criocircle:1.0.0
+      - image: *image
         user: circleci
-    environment:
-      GOCACHE: &gocache /tmp/go-build
-      JOBS: &jobs 8
-    working_directory: &workdir /go/src/github.com/cri-o/cri-o
-  docker-base:
+    <<: *stdenv
+    working_directory: *workdir
+
+  container-legacy:
+    docker:
+      - image: saschagrunert/criocircle:1.0.0-go-1.10
+        user: circleci
+    <<: *stdenv
+    working_directory: *workdir
+
+  container-base:
     docker:
       - image: circleci/golang
-    environment:
-      GOCACHE: *gocache
-      JOBS: *jobs
+    <<: *stdenv
     working_directory: *workdir
+
   nix:
     docker:
       - image: saschagrunert/crionix:1.0.0
+
   machine:
     machine:
       docker_layer_caching: true
       image: ubuntu-1604:201903-01
-    environment:
-      GOCACHE: *gocache
-      IMAGE: *image
-      JOBS: *jobs
-      WORKDIR: *workdir
+    <<: *stdenv
 
 workflows:
   version: 2
   pipeline:
     jobs:
       - build
+      - build:
+          name: build-legacy
+          executor: container-legacy
       - build-static
       - build-test-binaries
       - bundle:
@@ -93,17 +105,22 @@ workflows:
 
 jobs:
   build:
-    executor: docker
+    parameters:
+      executor:
+        type: string
+        default: container
+    executor: << parameters.executor >>
     steps:
       - checkout
       - restore_cache:
           keys:
-            - v1-build-{{ checksum "go.sum" }}
+            - v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
+      - run: go version
       - run:
           name: build
           command: make -j $JOBS
       - save_cache:
-          key: v1-build-{{ checksum "go.sum" }}
+          key: v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
           paths:
             - *gocache
             - build/bin/go-md2man
@@ -131,7 +148,7 @@ jobs:
             - bin
 
   build-test-binaries:
-    executor: docker-base
+    executor: container-base
     steps:
       - checkout
       - restore_cache:
@@ -152,7 +169,7 @@ jobs:
             - test/copyimg/copyimg
 
   bundle:
-    executor: docker
+    executor: container
     steps:
       - checkout
       - attach_workspace:
@@ -166,13 +183,13 @@ jobs:
             - bundle/*.tar.gz
 
   clang-format:
-    executor: docker
+    executor: container
     steps:
       - checkout
       - run: make fmt
 
   ginkgo:
-    executor: docker
+    executor: container
     steps:
       - checkout
       - restore_cache:
@@ -192,7 +209,7 @@ jobs:
             - build/bin/ginkgo
 
   git-validation:
-    executor: docker-base
+    executor: container-base
     steps:
       - checkout
       - restore_cache:
@@ -263,7 +280,7 @@ jobs:
             - build/bin/golangci-lint
 
   results:
-    executor: docker-base
+    executor: container-base
     steps:
       - attach_workspace:
           at: .
@@ -280,7 +297,7 @@ jobs:
           destination: bundle
 
   unit-tests:
-    executor: docker
+    executor: container
     steps:
       - checkout
       - attach_workspace:
@@ -313,7 +330,7 @@ jobs:
             - build/junit
 
   vendor:
-    executor: docker-base
+    executor: container-base
     steps:
       - checkout
       - restore_cache:
