@@ -17,7 +17,7 @@ Latest version of `runc` is expected to be installed on the system. It is picked
 
 **Required**
 
-Fedora, CentOS, RHEL, and related distributions:
+Fedora, RHEL<=7, CentOS and related distributions:
 
 ```bash
 yum install -y \
@@ -29,7 +29,6 @@ yum install -y \
   glibc-devel \
   glibc-static \
   go \
-  golang-github-cpuguy83-go-md2man \
   gpgme-devel \
   libassuan-devel \
   libgpg-error-devel \
@@ -38,6 +37,47 @@ yum install -y \
   pkgconfig \
   runc
 ```
+
+RHEL 8 distributions:
+Make sure you are subscribed to the following repositories: \
+BaseOS/x86_64 \
+Appstream/x86_64
+
+Follow the guide below to subscribe to the repositories if not already subscribed:\
+https://access.redhat.com/solutions/265523
+
+This requires go version 1.12 or greater.
+
+```bash
+yum install -y \
+  containers-common \
+  device-mapper-devel \
+  git \
+  glib2-devel \
+  glibc-devel \
+  glibc-static \
+  runc \
+```
+
+Here is a link on how to install a source rpm on RHEL: \
+https://www.itechlounge.net/2012/12/linux-how-to-install-source-rpm-on-rhelcentos/
+
+Dependency: gpgme-devel \
+Link: http://download.eng.bos.redhat.com/brewroot/packages/gpgme/1.10.0/6.el8/x86_64/
+
+Dependency: go-md2man \
+Command: go get github.com/cpuguy83/go-md2man
+
+The following dependencies:
+```bash
+  libassuan \
+  libgpg-error \
+  libseccomp \
+  libselinux \
+  pkgconfig \
+```
+are found on the following page: \
+Link: https://downloads.redhat.com/redhat/rhel/rhel-8-beta/baseos/source/Packages/
 
 On Ubuntu distributions, there is a dedicated PPA provided by
 [Project Atomic](https://www.projectatomic.io/):
