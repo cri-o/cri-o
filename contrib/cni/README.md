@@ -24,7 +24,7 @@ Download the `CNI` plugins source tree:
 ```bash
 git clone https://github.com/containernetworking/plugins
 cd plugins
-git checkout v0.7.4
+git checkout v0.8.1
 ```
 
 Build the `CNI` plugins:
@@ -36,19 +36,23 @@ Build the `CNI` plugins:
 Output:
 
 ```
-Building API
-Building reference CLI
 Building plugins
-   flannel
-   tuning
-   bridge
-   ipvlan
-   loopback
-   macvlan
-   ptp
-   dhcp
-   host-local
-   noop
+  bandwidth
+  firewall
+  flannel
+  portmap
+  sbr
+  tuning
+  bridge
+  host-device
+  ipvlan
+  loopback
+  macvlan
+  ptp
+  vlan
+  dhcp
+  host-local
+  static
 ```
 
 Install the `CNI` plugins:
