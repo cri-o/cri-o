@@ -136,7 +136,7 @@ crio.conf: bin/crio
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
 
-conmon/config.h: git-vars cmd/crio-config/config.go oci/oci.go
+conmon/config.h: cmd/crio-config/config.go oci/oci.go
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
 	( cd conmon && $(CURDIR)/bin/crio-config )
 
