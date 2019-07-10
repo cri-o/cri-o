@@ -221,8 +221,8 @@ func (r *runtimeVM) startRuntimeDaemon(c *Container) error {
 		return err
 	}
 
-	cl := ttrpc.NewClient(conn)
-	cl.OnClose(func() { conn.Close() })
+	options := ttrpc.WithOnClose(func() { conn.Close() })
+	cl := ttrpc.NewClient(conn, options)
 
 	// Update the runtime structure
 	r.client = cl
