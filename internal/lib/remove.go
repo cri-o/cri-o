@@ -44,6 +44,7 @@ func (c *ContainerServer) Remove(ctx context.Context, container string, force bo
 		return "", errors.Wrapf(err, "failed to delete storage for container %s", ctrID)
 	}
 
+	ctr.CleanupConmonCgroup()
 	c.ReleaseContainerName(ctr.Name())
 
 	if err := c.ctrIDIndex.Delete(ctrID); err != nil {
