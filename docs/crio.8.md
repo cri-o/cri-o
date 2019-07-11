@@ -159,6 +159,8 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
+**--global-auth-file**="": Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
+
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
 
 **--profile**="": enable pprof remote profiler on localhost:6060
