@@ -266,7 +266,7 @@ func main() {
 
 	var v []string
 	v = append(v, version.Version)
-	if gitCommit != "" {
+	if gitCommit != "" && gitCommit != "unknown" {
 		v = append(v, fmt.Sprintf("commit: %s", gitCommit))
 	}
 	app.Name = "crio"
