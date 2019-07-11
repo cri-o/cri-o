@@ -76,6 +76,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) (string, error) {
 	if ctx.GlobalIsSet("pause-image-auth-file") {
 		config.PauseImageAuthFile = ctx.GlobalString("pause-image-auth-file")
 	}
+	if ctx.GlobalIsSet("global-auth-file") {
+		config.GlobalAuthFile = ctx.GlobalString("global-auth-file")
+	}
 	if ctx.GlobalIsSet("signature-policy") {
 		config.SignaturePolicyPath = ctx.GlobalString("signature-policy")
 	}
@@ -339,7 +342,11 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "pause-image-auth-file",
-			Usage: fmt.Sprintf("path to a config file containing credentials for --pause-image (default: %s)", defConf.PauseImageAuthFile),
+			Usage: fmt.Sprintf("path to a config file containing credentials for --pause-image (default: %q)", defConf.PauseImageAuthFile),
+		},
+		cli.StringFlag{
+			Name:  "global-auth-file",
+			Usage: fmt.Sprintf("path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: %q)", defConf.GlobalAuthFile),
 		},
 		cli.StringFlag{
 			Name:  "signature-policy",
