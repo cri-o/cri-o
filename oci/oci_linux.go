@@ -36,13 +36,17 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 			}
 		case CgroupfsCgroupsManager:
-			control, err := cgroups.New(filepath.Join(cgroupParent, "/crio-conmon-"+c.id), &rspec.LinuxResources{})
+			cgroupPath := filepath.Join(cgroupParent, "/crio-conmon-"+c.id)
+			control, err := cgroups.New(cgroupPath, &rspec.LinuxResources{})
 			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 			if control == nil {
 				break
 			}
+			// Record conmon's cgroup path in the container, so we can properly
+			// clean it up when removing the container.
+			c.conmonCgroupfsPath = cgroupPath
 			// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
 			// always fail as conmon's pid is still there.
 			// Fortunately, kubelet takes care of deleting this for us, so the leak will

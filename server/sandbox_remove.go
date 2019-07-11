@@ -67,6 +67,8 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 			continue
 		}
 
+		c.CleanupConmonCgroup()
+
 		if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
 			// assume container already umounted
 			logrus.Warnf("failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
@@ -83,6 +85,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	s.removeInfraContainer(podInfraContainer)
+	podInfraContainer.CleanupConmonCgroup()
 
 	// Remove the files related to the sandbox
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
