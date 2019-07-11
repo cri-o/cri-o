@@ -270,6 +270,11 @@ pause_command = "{{ .PauseCommand }}"
 # refer to containers-policy.json(5) for more details.
 signature_policy = "{{ .SignaturePolicyPath }}"
 
+# List of registries to skip TLS verification for pulling images. Please
+# consider configuring the registries via /etc/containers/registries.conf before
+# changing them here.
+#insecure_registries = "{{ .InsecureRegistries }}"
+
 # Controls how image volumes are handled. The valid values are mkdir, bind and
 # ignore; the latter will ignore volumes entirely.
 image_volumes = "{{ .ImageVolumes }}"
