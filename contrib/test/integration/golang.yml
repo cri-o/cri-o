@@ -19,6 +19,7 @@
   with_items:
     - go
     - godoc
+    - gofmt
 
 - name: ensure user profile exists
   file:

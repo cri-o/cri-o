@@ -4,10 +4,10 @@
   git:
     repo: "https://github.com/containernetworking/plugins.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
-    version: "dcf7368eeab15e2affc6256f0bb1e84dd46a34de"
+    version: "v0.8.1"
 
 - name: build plugins
-  command: "./build.sh"
+  command: "./build_linux.sh"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
 
@@ -26,11 +26,5 @@
     - loopback
     - macvlan
     - ptp
-    - sample
     - tuning
     - vlan
-
-- name: build plugins
-  command: "./build.sh"
-  args:
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
