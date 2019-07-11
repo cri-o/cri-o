@@ -194,6 +194,9 @@ container_exits_dir = "{{ .ContainerExitsDir }}"
 # Path to directory for container attach sockets.
 container_attach_socket_dir = "{{ .ContainerAttachSocketDir }}"
 
+# The prefix to use for the source of the bind mounts.
+bind_mount_prefix = ""
+
 # If set to true, all containers will run in read-only mode.
 read_only = {{ .ReadOnly }}
 

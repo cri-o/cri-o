@@ -157,6 +157,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **container_attach_socket_dir**="/var/run/crio"
   Path to directory for container attach sockets.
 
+**bind_mount_prefix**=""
+  The prefix to use for the source of the bind mounts.
+
 **read_only**=false
   If set to true, all containers will run in read-only mode.
 
