@@ -157,6 +157,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **pids_limit**=1024
   Maximum number of processes allowed in a container.
 
+**log_to_journald**=false
+  Whether container output should be logged to journald in addition to the kuberentes log file.
+
 **log_size_max**=-1
   Maximum size allowed for the container log file. Negative numbers indicate that no size limit is imposed. If it is positive, it must be >= 8192 to match/exceed conmon's read buffer. The file is truncated and re-opened so the limit is never exceeded.
 
