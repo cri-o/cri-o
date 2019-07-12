@@ -15,11 +15,33 @@ import (
 var _ = t.Describe("Config", func() {
 	BeforeEach(beforeEach)
 
+	var runtimeValidConfig = func() *config.Config {
+		sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
+		sut.Conmon = validFilePath
+		tmpDir := t.MustTempDir("cni-test")
+		sut.NetworkConfig.PluginDirs = []string{tmpDir}
+		sut.NetworkDir = os.TempDir()
+		sut.LogDir = "."
+		sut.Listen = t.MustTempFile("crio.sock")
+		return sut
+	}
+
 	t.Describe("ValidateConfig", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// When
 			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with runtime checks", func() {
+			// Given
+			sut = runtimeValidConfig()
+
+			// When
+			err := sut.Validate(nil, true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -37,6 +59,18 @@ var _ = t.Describe("Config", func() {
 		})
 
 		It("should fail with invalid runtime config", func() {
+			// Given
+			sut = runtimeValidConfig()
+			sut.Listen = "/proc"
+
+			// When
+			err := sut.Validate(nil, true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with invalid api config", func() {
 			// Given
 			sut.RootConfig.LogDir = "."
 			sut.AdditionalDevices = []string{invalidPath}
@@ -57,6 +91,77 @@ var _ = t.Describe("Config", func() {
 
 			// When
 			err := sut.Validate(nil, true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on unrecognized image volume type", func() {
+			// Given
+			sut.ImageVolumes = invalidPath
+
+			// When
+			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on wrong default ulimits", func() {
+			// Given
+			sut.DefaultUlimits = []string{"invalid=-1:-1"}
+
+			// When
+			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+	})
+
+	t.Describe("ValidateAPIConfig", func() {
+		It("should succeed with negative GRPCMaxSendMsgSize", func() {
+			// Given
+			sut.GRPCMaxSendMsgSize = -100
+
+			// When
+			err := sut.APIConfig.Validate(false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with negative GRPCMaxRecvMsgSize", func() {
+			// Given
+			sut.GRPCMaxRecvMsgSize = -100
+
+			// When
+			err := sut.APIConfig.Validate(false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail on invalid Listen directory", func() {
+			// Given
+			sut = runtimeValidConfig()
+			sut.Listen = "/proc/dir/crio.sock"
+
+			// When
+			err := sut.APIConfig.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail if socket removal fails", func() {
+			// Given
+			sut = runtimeValidConfig()
+			sut.Listen = "/proc"
+
+			// When
+			err := sut.APIConfig.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -236,6 +341,77 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail wrong UID mappings", func() {
+			// Given
+			sut.UIDMappings = "value"
+			sut.ManageNetworkNSLifecycle = true
+
+			// When
+			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail wrong GID mappings", func() {
+			// Given
+			sut.GIDMappings = "value"
+			sut.ManageNetworkNSLifecycle = true
+
+			// When
+			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail wrong max log size", func() {
+			// Given
+			sut.LogSizeMax = 1
+
+			// When
+			err := sut.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on invalid conmon cgroup", func() {
+			// Given
+			sut.ConmonCgroup = "wrong"
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should succeed without defaultRuntime set", func() {
+			// Given
+			sut.DefaultRuntime = ""
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.DefaultRuntime).To(Equal("runc"))
+		})
+
+		It("should succeed without Runtimes and DefaultRuntime set", func() {
+			// Given
+			sut.DefaultRuntime = ""
+			sut.Runtimes = config.Runtimes{}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.DefaultRuntime).To(Equal("runc"))
 		})
 	})
 
@@ -549,6 +725,18 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(config).To(BeNil())
+		})
+	})
+
+	t.Describe("ToBytes", func() {
+		It("should succeed", func() {
+			// Given
+			// When
+			res, err := sut.ToBytes()
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
 		})
 	})
 })

@@ -40,9 +40,9 @@ func (s *Server) getIDMappingsInfo() types.IDMappings {
 
 func (s *Server) getInfo() types.CrioInfo {
 	return types.CrioInfo{
-		StorageDriver:     s.config.Config.Storage,
-		StorageRoot:       s.config.Config.Root,
-		CgroupDriver:      s.config.Config.CgroupManager,
+		StorageDriver:     s.config.Storage,
+		StorageRoot:       s.config.Root,
+		CgroupDriver:      s.config.CgroupManager,
 		DefaultIDMappings: s.getIDMappingsInfo(),
 	}
 }

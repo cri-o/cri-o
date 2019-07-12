@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	libconfig "github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -295,7 +296,7 @@ type ulimit struct {
 	soft uint64
 }
 
-func getUlimitsFromConfig(config *Config) ([]ulimit, error) {
+func getUlimitsFromConfig(config *libconfig.Config) ([]ulimit, error) {
 	ulimits := make([]ulimit, 0, len(config.RuntimeConfig.DefaultUlimits))
 	for _, u := range config.RuntimeConfig.DefaultUlimits {
 		ul, err := units.ParseUlimit(u)

@@ -1058,7 +1058,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	return volumes, ociMounts, nil
 }
 
-func getDevicesFromConfig(config *Config) ([]configDevice, error) {
+func getDevicesFromConfig(config *libconfig.Config) ([]configDevice, error) {
 	linuxdevs := make([]configDevice, 0, len(config.RuntimeConfig.AdditionalDevices))
 
 	for _, d := range config.RuntimeConfig.AdditionalDevices {

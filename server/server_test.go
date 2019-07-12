@@ -39,7 +39,7 @@ var _ = t.Describe("Server", func() {
 			mockNewServer()
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -55,7 +55,7 @@ var _ = t.Describe("Server", func() {
 
 			// When
 			server, err := server.New(
-				context.Background(), nil, tmpFile, serverMock,
+				context.Background(), nil, tmpFile, libMock,
 			)
 
 			// Then
@@ -71,7 +71,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.GIDMappings = "1:1:1"
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -86,7 +86,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamTLSCert = "../test/testdata/cert.pem"
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -97,10 +97,9 @@ var _ = t.Describe("Server", func() {
 			// Given
 			testError := errors.Wrap(errors.New("/dev/null"), "error")
 			gomock.InOrder(
-				serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				serverMock.EXPECT().GetLibConfigIface().Return(libMock),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(libConfig),
+				libMock.EXPECT().GetData().Return(serverConfig),
 				storeMock.EXPECT().Containers().
 					Return([]cstorage.Container{
 						{},
@@ -122,7 +121,7 @@ var _ = t.Describe("Server", func() {
 			)
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -142,12 +141,12 @@ var _ = t.Describe("Server", func() {
 		It("should fail when socket dir creation erros", func() {
 			// Given
 			gomock.InOrder(
-				serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 			)
 			serverConfig.ContainerAttachSocketDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -157,27 +156,12 @@ var _ = t.Describe("Server", func() {
 		It("should fail when container exits dir creation erros", func() {
 			// Given
 			gomock.InOrder(
-				serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 			)
 			serverConfig.ContainerExitsDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
-		})
-
-		It("should fail when library config is nil", func() {
-			// Given
-			gomock.InOrder(
-				serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				serverMock.EXPECT().GetLibConfigIface().Return(nil),
-			)
-
-			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -187,15 +171,14 @@ var _ = t.Describe("Server", func() {
 		It("should fail when CNI init errors", func() {
 			// Given
 			gomock.InOrder(
-				serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				serverMock.EXPECT().GetLibConfigIface().Return(libMock),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(libConfig),
+				libMock.EXPECT().GetData().Return(serverConfig),
 			)
 			serverConfig.NetworkDir = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -205,17 +188,16 @@ var _ = t.Describe("Server", func() {
 		DescribeTable("should fail with wrong ID mappings", func(u, g string) {
 			// Given
 			gomock.InOrder(
-				serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				serverMock.EXPECT().GetLibConfigIface().Return(libMock),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(libConfig),
+				libMock.EXPECT().GetData().Return(serverConfig),
 			)
 
 			serverConfig.UIDMappings = u
 			serverConfig.GIDMappings = g
 
 			// When
-			sut, err := server.New(context.Background(), nil, "", serverMock)
+			sut, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -229,15 +211,14 @@ var _ = t.Describe("Server", func() {
 		It("should fail with inavailable seccomp profile", func() {
 			// Given
 			gomock.InOrder(
-				serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				serverMock.EXPECT().GetLibConfigIface().Return(libMock),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(libConfig),
+				libMock.EXPECT().GetData().Return(serverConfig),
 			)
 			serverConfig.SeccompProfile = invalidDir
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -247,15 +228,14 @@ var _ = t.Describe("Server", func() {
 		It("should fail with wrong seccomp profile", func() {
 			// Given
 			gomock.InOrder(
-				serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				serverMock.EXPECT().GetLibConfigIface().Return(libMock),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(libConfig),
+				libMock.EXPECT().GetData().Return(serverConfig),
 			)
 			serverConfig.SeccompProfile = "/dev/null"
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -269,7 +249,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamPort = invalid
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -284,7 +264,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamTLSKey = invalid
 
 			// When
-			server, err := server.New(context.Background(), nil, "", serverMock)
+			server, err := server.New(context.Background(), nil, "", libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())

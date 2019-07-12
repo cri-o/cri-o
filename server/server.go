@@ -60,7 +60,7 @@ type StreamService struct {
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	config          Config
+	config          libconfig.Config
 	seccompProfile  *seccomp.Seccomp
 	stream          StreamService
 	netPlugin       ocicni.CNIPlugin
@@ -271,7 +271,7 @@ func configureMaxThreads() error {
 	return nil
 }
 
-func getIDMappings(config *Config) (*idtools.IDMappings, error) {
+func getIDMappings(config *libconfig.Config) (*idtools.IDMappings, error) {
 	if config.UIDMappings == "" || config.GIDMappings == "" {
 		return nil, nil
 	}
@@ -294,7 +294,7 @@ func New(
 	ctx context.Context,
 	systemContext *types.SystemContext,
 	configPath string,
-	configIface ConfigIface,
+	configIface libconfig.Iface,
 ) (*Server, error) {
 
 	if configIface == nil || configIface.GetData() == nil {
@@ -321,7 +321,7 @@ func New(
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := lib.New(ctx, systemContext, configIface.GetLibConfigIface())
+	containerServer, err := lib.New(ctx, systemContext, configIface)
 	if err != nil {
 		return nil, err
 	}

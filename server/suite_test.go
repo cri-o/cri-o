@@ -20,7 +20,6 @@ import (
 	libmock "github.com/cri-o/cri-o/test/mocks/lib"
 	ocimock "github.com/cri-o/cri-o/test/mocks/oci"
 	ocicnitypesmock "github.com/cri-o/cri-o/test/mocks/ocicni"
-	servermock "github.com/cri-o/cri-o/test/mocks/server"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,11 +36,9 @@ func TestServer(t *testing.T) {
 }
 
 var (
-	libConfig         *config.Config
 	libMock           *libmock.MockIface
 	mockCtrl          *gomock.Controller
-	serverConfig      *server.Config
-	serverMock        *servermock.MockConfigIface
+	serverConfig      *config.Config
 	storeMock         *containerstoragemock.MockStore
 	imageServerMock   *criostoragemock.MockImageServer
 	runtimeServerMock *criostoragemock.MockRuntimeServer
@@ -72,7 +69,6 @@ var _ = BeforeSuite(func() {
 	mockCtrl = gomock.NewController(GinkgoT())
 	libMock = libmock.NewMockIface(mockCtrl)
 	storeMock = containerstoragemock.NewMockStore(mockCtrl)
-	serverMock = servermock.NewMockConfigIface(mockCtrl)
 	imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
 	runtimeServerMock = criostoragemock.NewMockRuntimeServer(mockCtrl)
 	imageCloserMock = imagetypesmock.NewMockImageCloser(mockCtrl)
@@ -140,7 +136,7 @@ var beforeEach = func() {
 	// Prepare the server config
 	testPath = "test"
 	var err error
-	serverConfig, err = server.DefaultConfig()
+	serverConfig, err = config.DefaultConfig()
 	Expect(err).To(BeNil())
 	serverConfig.ContainerAttachSocketDir = testPath
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
@@ -152,17 +148,6 @@ var beforeEach = func() {
 	serverConfig.NetworkDir = emptyDir
 	serverConfig.PluginDirs = []string{emptyDir}
 	serverConfig.HooksDir = []string{emptyDir}
-
-	// Prepare the library config
-	libConfig, err = config.DefaultConfig()
-	Expect(err).To(BeNil())
-	libConfig.FileLocking = false
-	libConfig.Runtimes["runc"] = serverConfig.Runtimes["runc"]
-	libConfig.LogDir = serverConfig.LogDir
-
-	libConfig.NetworkDir = serverConfig.NetworkDir
-	libConfig.PluginDirs = serverConfig.PluginDirs
-	libConfig.HooksDir = serverConfig.HooksDir
 
 	// Initialize test container and sandbox
 	testSandbox, err = sandbox.New(sandboxID, "", "", "", "",
@@ -196,7 +181,7 @@ var afterEach = func() {
 var setupSUT = func() {
 	var err error
 	mockNewServer()
-	sut, err = server.New(context.Background(), nil, "", serverMock)
+	sut, err = server.New(context.Background(), nil, "", libMock)
 	Expect(err).To(BeNil())
 	Expect(sut).NotTo(BeNil())
 
@@ -208,10 +193,9 @@ var setupSUT = func() {
 
 func mockNewServer() {
 	gomock.InOrder(
-		serverMock.EXPECT().GetData().Times(2).Return(serverConfig),
-		serverMock.EXPECT().GetLibConfigIface().Return(libMock),
+		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 		libMock.EXPECT().GetStore().Return(storeMock, nil),
-		libMock.EXPECT().GetData().Return(libConfig),
+		libMock.EXPECT().GetData().Return(serverConfig),
 		storeMock.EXPECT().Containers().
 			Return([]cstorage.Container{}, nil),
 	)
@@ -250,7 +234,7 @@ func createDummyState() {
 }
 
 func mockRuncInLibConfig() {
-	libConfig.Runtimes["runc"] = &config.RuntimeHandler{
+	serverConfig.Runtimes["runc"] = &config.RuntimeHandler{
 		RuntimePath: "/bin/echo",
 	}
 }
