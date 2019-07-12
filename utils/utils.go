@@ -76,10 +76,12 @@ func RunUnderSystemdScope(pid int, slice, unitName string) error {
 		return err
 	}
 	properties = append(properties,
-		systemdDbus.PropSlice(slice),
 		newProp("PIDs", []uint32{uint32(pid)}),
 		newProp("Delegate", true),
 		newProp("DefaultDependencies", false))
+	if slice != "" {
+		properties = append(properties, systemdDbus.PropSlice(slice))
+	}
 	ch := make(chan string)
 	_, err = conn.StartTransientUnit(unitName, "replace", properties, ch)
 	if err != nil {
