@@ -190,6 +190,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **ctr_stop_timeout**=10
   The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container.
 
+**manage_network_ns_lifecycle**=false
+  ManageNetworkNSLifecycle determines whether we pin and remove network namespace and manage its lifecycle.
+
 ### CRIO.RUNTIME.RUNTIMES TABLE
 The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime_handler provided by the CRI.  If no runtime_handler is provided, the runtime will be picked based on the level of trust of the workload.
 
