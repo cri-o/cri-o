@@ -77,6 +77,9 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
 
+**default_ulimits**=[]
+  A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>".
+
 **default_runtime**="runc"
   The _name_ of the OCI runtime to be used as the default.
 
