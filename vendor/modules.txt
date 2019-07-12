@@ -54,11 +54,11 @@ github.com/containerd/containerd/defaults
 github.com/containerd/continuity/pathdriver
 # github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448
 github.com/containerd/fifo
-# github.com/containerd/go-runc v0.0.0-20190226155025-7d11b49dc076
+# github.com/containerd/go-runc v0.0.0-20190603165425-9007c2405372
 github.com/containerd/go-runc
-# github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
+# github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
 github.com/containerd/project/cmd/release-tool
-# github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
+# github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl v0.0.0-20190228175220-2a93cfde8c20
 github.com/containerd/typeurl
@@ -215,6 +215,8 @@ github.com/coreos/pkg/dlopen
 # github.com/cpuguy83/go-md2man v1.0.10
 github.com/cpuguy83/go-md2man
 github.com/cpuguy83/go-md2man/md2man
+# github.com/creack/pty v1.1.7
+github.com/creack/pty
 # github.com/cri-o/ocicni v0.1.1-0.20190423014352-8a4ca077a093
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.2
@@ -338,7 +340,7 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/strings
-# github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
+# github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 github.com/godbus/dbus
 # github.com/gogo/protobuf v1.2.1
 github.com/gogo/protobuf/proto
@@ -507,7 +509,7 @@ github.com/klauspost/cpuid
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/kr/pty v1.1.5
+# github.com/kr/pty v1.1.8
 github.com/kr/pty
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
@@ -730,7 +732,7 @@ golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
-# golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 golang.org/x/net/context
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
@@ -751,7 +753,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0
+# golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
@@ -837,7 +839,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 # google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.21.1
+# google.golang.org/grpc v1.22.0
 google.golang.org/grpc
 google.golang.org/grpc/codes
 google.golang.org/grpc/status
@@ -864,6 +866,7 @@ google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
 google.golang.org/grpc/resolver/dns
 google.golang.org/grpc/resolver/passthrough
+google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/tap
 google.golang.org/grpc/balancer/base

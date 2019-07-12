@@ -8,9 +8,9 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/containerd v1.2.7
 	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
-	github.com/containerd/go-runc v0.0.0-20190226155025-7d11b49dc076 // indirect
-	github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
-	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
+	github.com/containerd/go-runc v0.0.0-20190603165425-9007c2405372 // indirect
+	github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
+	github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
 	github.com/containers/buildah v1.9.0
@@ -24,13 +24,13 @@ require (
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-zoo/bone v1.3.0
-	github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
+	github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.17.1
 	github.com/google/renameio v0.1.0
 	github.com/hpcloud/tail v1.0.0
-	github.com/kr/pty v1.1.5
+	github.com/kr/pty v1.1.8
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
@@ -47,10 +47,10 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli v1.20.0
 	github.com/vbatts/git-validation v1.0.0
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0
-	google.golang.org/grpc v1.21.1
+	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+	google.golang.org/grpc v1.22.0
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
