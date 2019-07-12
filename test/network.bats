@@ -182,7 +182,7 @@ function teardown() {
 	# ensure that the server cleaned up sandbox networking if the sandbox
 	# failed after network setup
 	rm -f /var/lib/cni/networks/crionet_test_args/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | wc -l)
+	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | grep -v lock | wc -l)
 	[[ "${num_allocated}" == "0" ]]
 }
 
@@ -196,6 +196,6 @@ function teardown() {
 	# ensure that the server cleaned up sandbox networking if the sandbox
 	# failed during network setup after the CNI plugin itself succeeded
 	rm -f /var/lib/cni/networks/crionet_test_args/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | wc -l)
+	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args | grep -v lock | wc -l)
 	[[ "${num_allocated}" == "0" ]]
 }
