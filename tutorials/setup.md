@@ -197,6 +197,18 @@ nix-build nix
 The resulting binary should be now available in `result-bin/bin` and
 `result-2-bin/bin`.
 
+### Creating a release archive
+
+A release bundle consists of all static binaries, the man pages and
+configuration files like `crio.conf`. The `release-bundle` target can be used to
+build a new release archive within the current repository:
+
+```
+make release-bundle
+...
+Created ./bundle/crio-v1.15.0.tar.gz
+```
+
 ## Setup CNI networking
 
 A proper description of setting up CNI networking is given in the
