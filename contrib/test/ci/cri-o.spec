@@ -176,6 +176,10 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/Godeps/_workspace:%{gopath}
 %dir %{_datadir}/oci-umount
 %dir %{_datadir}/oci-umount/oci-umount.d
 %{_datadir}/oci-umount/oci-umount.d/%{service_name}-umount.conf
+%{_unitdir}/%{service_name}-wipe.service
+%dir %{_libexecdir}/%{service_name}/%{service_name}-wipe
+%{_libexecdir}/%{service_name}/%{service_name}-wipe/*
+
 
 %changelog
 * Wed May 08 2019 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.13-1.ci
