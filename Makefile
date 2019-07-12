@@ -123,8 +123,9 @@ build-static: git-vars
 		"nix-build cri-o/nix --argstr revision $(COMMIT_NO) && \
 		mkdir -p cri-o/bin && \
 		cp result-*bin/bin/crio-* cri-o/bin && \
-		cp result-*bin/libexec/crio/* cri-o/bin && \
-		chown -R $(shell id -u):$(shell id -g) cri-o/bin"
+		cp result-*bin/libexec/crio/* cri-o/bin"
+
+release-bundle: clean build-static docs crio.conf bundle
 
 nix-image: git-vars
 	time $(CONTAINER_RUNTIME) build -t $(NIX_IMAGE) \
@@ -401,5 +402,6 @@ git-validation: .gopathok git-vars ${GIT_VALIDATION}
 	lint \
 	local-cross \
 	nix-image \
+	release-bundle \
 	uninstall \
 	vendor
