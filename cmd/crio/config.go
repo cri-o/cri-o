@@ -194,6 +194,9 @@ container_exits_dir = "{{ .ContainerExitsDir }}"
 # Path to directory for container attach sockets.
 container_attach_socket_dir = "{{ .ContainerAttachSocketDir }}"
 
+# The prefix to use for the source of the bind mounts.
+bind_mount_prefix = ""
+
 # If set to true, all containers will run in read-only mode.
 read_only = {{ .ReadOnly }}
 
@@ -269,6 +272,11 @@ pause_command = "{{ .PauseCommand }}"
 # policy (i.e., /etc/containers/policy.json) is most often preferred. Please
 # refer to containers-policy.json(5) for more details.
 signature_policy = "{{ .SignaturePolicyPath }}"
+
+# List of registries to skip TLS verification for pulling images. Please
+# consider configuring the registries via /etc/containers/registries.conf before
+# changing them here.
+#insecure_registries = "{{ .InsecureRegistries }}"
 
 # Controls how image volumes are handled. The valid values are mkdir, bind and
 # ignore; the latter will ignore volumes entirely.

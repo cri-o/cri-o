@@ -77,11 +77,20 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
 
+**default_ulimits**=[]
+  A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>".
+
+**default_runtime**="runc"
+  The _name_ of the OCI runtime to be used as the default.
+
 **no_pivot**=*false*
   If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 
 **conmon**=""
   Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty.
+
+**conmon_cgroup**="pod"
+  Cgroup setting for conmon
 
 **conmon_env**=["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
   Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime.
@@ -148,6 +157,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **pids_limit**=1024
   Maximum number of processes allowed in a container.
 
+**log_to_journald**=false
+  Whether container output should be logged to journald in addition to the kuberentes log file.
+
 **log_size_max**=-1
   Maximum size allowed for the container log file. Negative numbers indicate that no size limit is imposed. If it is positive, it must be >= 8192 to match/exceed conmon's read buffer. The file is truncated and re-opened so the limit is never exceeded.
 
@@ -156,6 +168,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 
 **container_attach_socket_dir**="/var/run/crio"
   Path to directory for container attach sockets.
+
+**bind_mount_prefix**=""
+  The prefix to use for the source of the bind mounts.
 
 **read_only**=false
   If set to true, all containers will run in read-only mode.
@@ -174,6 +189,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 
 **ctr_stop_timeout**=10
   The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container.
+
+**manage_network_ns_lifecycle**=false
+  ManageNetworkNSLifecycle determines whether we pin and remove network namespace and manage its lifecycle.
 
 ### CRIO.RUNTIME.RUNTIMES TABLE
 The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime_handler provided by the CRI.  If no runtime_handler is provided, the runtime will be picked based on the level of trust of the workload.
