@@ -42,7 +42,7 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
 **file_locking**=false
   If set to false, in-memory locking will be used instead of file-based locking. This option is being depreciated and will soon no longer exist.
 
-**file_locking_path**="/runc/crio.lock"
+**file_locking_path**="/run/crio.lock"
   Path to the lock file. This option is being deprecated and will soon no longer exist.
 
 
