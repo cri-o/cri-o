@@ -10,9 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containerd/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/types"
@@ -42,6 +44,7 @@ type Container struct {
 	imageRef               string
 	mountPoint             string
 	seccompProfilePath     string
+	conmonCgroupfsPath     string
 	intermediateMountPoint string
 	labels                 fields.Set
 	annotations            fields.Set
@@ -114,6 +117,28 @@ func (c *Container) SetSpec(s *specs.Spec) {
 // Spec returns a copy of the spec for the container
 func (c *Container) Spec() specs.Spec {
 	return *c.spec
+}
+
+// ConmonCgroupfsPath returns the path to conmon's cgroup. This is only set when
+// cgroupfs is used as a cgroup manager.
+func (c *Container) ConmonCgroupfsPath() string {
+	return c.conmonCgroupfsPath
+}
+
+// CleanupConmonCgroup cleans up conmon's group when using cgroupfs.
+func (c *Container) CleanupConmonCgroup() {
+	path := c.ConmonCgroupfsPath()
+	if path == "" {
+		return
+	}
+
+	cg, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(path))
+	if err != nil {
+		logrus.Infof("error loading conmon cgroup of container %s: %v", c.ID(), err)
+	}
+	if err := cg.Delete(); err != nil {
+		logrus.Infof("error deleting conmon cgroup of container %s: %v", c.ID(), err)
+	}
 }
 
 // GetStopSignal returns the container's own stop signal configured from the
