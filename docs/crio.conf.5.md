@@ -224,7 +224,7 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **pause_command**="/pause"
   The command to run to have a container stay in the paused state. This option supports live configuration reload.
 
-**signature_policy**="/etc/containers/policy.json"
+**signature_policy**=""
   Path to the file which decides what sort of policy we use when deciding whether or not to trust an image that we've pulled. It is not recommended that this option be used, as the default behavior of using the system-wide default policy (i.e., /etc/containers/policy.json) is most often preferred. Please refer to containers-policy.json(5) for more details.
 
 **image_volumes**="mkdir"
