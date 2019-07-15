@@ -31,9 +31,14 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 		}
 	case CgroupfsCgroupsManager:
-		control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/crio-conmon-"+c.id)), &rspec.LinuxResources{})
+		cgroupPath := filepath.Join(cgroupParent, "/crio-conmon-"+c.id)
+		control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cgroupPath), &rspec.LinuxResources{})
 		if err != nil {
 			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+		}
+
+		if control == nil {
+			break
 		}
 
 		// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
@@ -45,6 +50,10 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 		if err := control.Add(cgroups.Process{Pid: pid}); err != nil {
 			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 		}
+
+		// Record conmon's cgroup path in the container, so we can properly
+		// clean it up when removing the container.
+		c.conmonCgroupfsPath = cgroupPath
 	}
 }
 
