@@ -88,7 +88,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **default_runtime**="runc"
   The _name_ of the OCI runtime to be used as the default.
 
-**no_pivot**=*false*
+**no_pivot**=false
   If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 
 **conmon**=""
