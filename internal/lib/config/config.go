@@ -474,6 +474,7 @@ func DefaultConfig() (*Config, error) {
 			SeccompProfile:           "",
 			ApparmorProfile:          DefaultApparmorProfile,
 			CgroupManager:            cgroupManager,
+			DefaultMountsFile:        "",
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: ContainerAttachSocketDir,

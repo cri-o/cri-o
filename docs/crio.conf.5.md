@@ -147,7 +147,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **default_mounts**=[]
   List of default mounts for each container. **Deprecated:** this option will be removed in future versions in favor of `default_mounts_file`.
 
-**default_mounts_file**="/etc/containers/mounts.conf"
+**default_mounts_file**=""
   Path to the file specifying the defaults mounts for each container. The format of the config is /SRC:/DST, one mount per line. Notice that CRI-O reads its default mounts from the following two files:
 
     1) `/etc/containers/mounts.conf` (i.e., default_mounts_file): This is the override file, where users can either add in their own default mounts, or override the default mounts shipped with the package.

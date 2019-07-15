@@ -452,9 +452,8 @@ func main() {
 			Usage: fmt.Sprintf("add one or more default mount paths in the form host:container (deprecated) (default: %q)", defConf.DefaultMounts),
 		},
 		cli.StringFlag{
-			Name:   "default-mounts-file",
-			Usage:  fmt.Sprintf("path to default mounts file (default: %q)", defConf.DefaultMountsFile),
-			Hidden: true,
+			Name:  "default-mounts-file",
+			Usage: fmt.Sprintf("path to default mounts file (default: %q)", defConf.DefaultMountsFile),
 		},
 		cli.StringFlag{
 			Name:  "default-capabilities",
