@@ -67,6 +67,7 @@ LOG_SIZE_MAX_LIMIT=${LOG_SIZE_MAX_LIMIT:--1}
 STREAM_PORT=${STREAM_PORT:-10010}
 
 TESTDIR=$(mktemp -d)
+RANDOM_STRING=${TESTDIR: -10}
 
 # podman pull needs a configuration file for shortname pulls
 export REGISTRIES_CONFIG_PATH="$INTEGRATION_ROOT/registries.conf"
@@ -113,7 +114,15 @@ fi
 CRIO_SOCKET="$TESTDIR/crio.sock"
 CRIO_CONFIG="$TESTDIR/crio.conf"
 CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
-CRIO_CNI_PLUGIN=${CRIO_CNI_PLUGIN:-/opt/cni/bin/}
+CRIO_LOG="$TESTDIR/crio.log"
+
+# Copy all the CNI dependencies around to ensure encapsulated tests
+CRIO_CNI_PLUGIN="$TESTDIR/cni-bin"
+mkdir "$CRIO_CNI_PLUGIN"
+cp /opt/cni/bin/* "$CRIO_CNI_PLUGIN"
+cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
+sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
+
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
@@ -419,7 +428,7 @@ function write_plugin_test_args_network_conf() {
 	cat >$CRIO_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
     "cniVersion": "0.2.0",
-    "name": "crionet_test_args",
+    "name": "crionet_test_args_$RANDOM_STRING",
     "type": "cni_plugin_helper.bash",
     "bridge": "cni0",
     "isGateway": true,
@@ -435,7 +444,7 @@ function write_plugin_test_args_network_conf() {
 EOF
 
 	if [[ -n "$2" ]]; then
-		echo "DEBUG_ARGS=$2" > /tmp/cni_plugin_helper_input.env
+		echo "DEBUG_ARGS=$2" > "$TESTDIR"/cni_plugin_helper_input.env
 	fi
 
 	echo 0
@@ -463,6 +472,7 @@ function parse_pod_ip() {
 		if [ "$cidr" == "$arg" ]
 		then
 			echo `echo "$arg" | sed "s/\/[0-9][0-9]//"`
+			break
 		fi
 	done
 }
