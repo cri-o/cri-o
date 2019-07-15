@@ -73,6 +73,11 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 **stream_tls_ca**=""
   Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change, and CRI-O will automatically pick up the changes within 5 minutes.
 
+**grpc_max_send_msg_size**=16777216
+  Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
+
+**grpc_max_recv_msg_size**=16777216
+  Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 * 1024 * 1024.
 
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
