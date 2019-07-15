@@ -10,9 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/types"
@@ -42,6 +44,7 @@ type Container struct {
 	imageRef           string
 	mountPoint         string
 	seccompProfilePath string
+	conmonCgroupfsPath string
 	labels             fields.Set
 	annotations        fields.Set
 	crioAnnotations    fields.Set
@@ -115,6 +118,12 @@ func (c *Container) Spec() specs.Spec {
 	return *c.spec
 }
 
+// ConmonCgroupfsPath returns the path to conmon's cgroup. This is only set when
+// cgroupfs is used as a cgroup manager.
+func (c *Container) ConmonCgroupfsPath() string {
+	return c.conmonCgroupfsPath
+}
+
 // GetStopSignal returns the container's own stop signal configured from the
 // image configuration or the default one.
 func (c *Container) GetStopSignal() string {
@@ -173,6 +182,21 @@ func (c *Container) Name() string {
 // ID returns the id of the container.
 func (c *Container) ID() string {
 	return c.id
+}
+
+// CleanupConmonCgroup cleans up conmon's group when using cgroupfs.
+func (c *Container) CleanupConmonCgroup() {
+	path := c.ConmonCgroupfsPath()
+	if path == "" {
+		return
+	}
+	cg, err := cgroups.Load(path)
+	if err != nil {
+		logrus.Infof("error loading conmon cgroup of container %s: %v", c.ID(), err)
+	}
+	if err := cg.Delete(); err != nil {
+		logrus.Infof("error deleting conmon cgroup of container %s: %v", c.ID(), err)
+	}
 }
 
 // SetSeccompProfilePath sets the seccomp profile path
