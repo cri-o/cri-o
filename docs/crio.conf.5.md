@@ -42,7 +42,7 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
 **file_locking**=false
   If set to false, in-memory locking will be used instead of file-based locking. This option is being depreciated and will soon no longer exist.
 
-**file_locking_path**="/runc/crio.lock"
+**file_locking_path**="/run/crio.lock"
   Path to the lock file. This option is being deprecated and will soon no longer exist.
 
 
@@ -73,6 +73,11 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 **stream_tls_ca**=""
   Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change, and CRI-O will automatically pick up the changes within 5 minutes.
 
+**grpc_max_send_msg_size**=16777216
+  Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
+
+**grpc_max_recv_msg_size**=16777216
+  Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 * 1024 * 1024.
 
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
@@ -83,7 +88,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **default_runtime**="runc"
   The _name_ of the OCI runtime to be used as the default.
 
-**no_pivot**=*false*
+**no_pivot**=false
   If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 
 **conmon**=""
@@ -147,7 +152,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **default_mounts**=[]
   List of default mounts for each container. **Deprecated:** this option will be removed in future versions in favor of `default_mounts_file`.
 
-**default_mounts_file**="/etc/containers/mounts.conf"
+**default_mounts_file**=""
   Path to the file specifying the defaults mounts for each container. The format of the config is /SRC:/DST, one mount per line. Notice that CRI-O reads its default mounts from the following two files:
 
     1) `/etc/containers/mounts.conf` (i.e., default_mounts_file): This is the override file, where users can either add in their own default mounts, or override the default mounts shipped with the package.
@@ -187,7 +192,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **gid_mappings**=""
   The GID mappings for the user namespace of each container. A range is specified in the form containerGID:HostGID:Size. Multiple ranges must be separated by comma.
 
-**ctr_stop_timeout**=10
+**ctr_stop_timeout**=0
   The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container.
 
 **manage_network_ns_lifecycle**=false
@@ -219,7 +224,7 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **pause_command**="/pause"
   The command to run to have a container stay in the paused state. This option supports live configuration reload.
 
-**signature_policy**="/etc/containers/policy.json"
+**signature_policy**=""
   Path to the file which decides what sort of policy we use when deciding whether or not to trust an image that we've pulled. It is not recommended that this option be used, as the default behavior of using the system-wide default policy (i.e., /etc/containers/policy.json) is most often preferred. Please refer to containers-policy.json(5) for more details.
 
 **image_volumes**="mkdir"

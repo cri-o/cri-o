@@ -60,6 +60,9 @@ file_locking_path = "{{ .FileLockingPath }}"
 # Path to AF_LOCAL socket on which CRI-O will listen.
 listen = "{{ .Listen }}"
 
+# Host IP considered as the primary IP to use by CRI-O for things such as host network IP.
+host_ip = "{{ .HostIP }}"
+
 # IP address on which the stream server will listen.
 stream_address = "{{ .StreamAddress }}"
 
