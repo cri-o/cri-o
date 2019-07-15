@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script wraps the CNI 'bridge' plugin to provide additional testing
 # capabilities
@@ -25,12 +25,14 @@ elif [[ -z "${K8S_POD_NAME}" ]]; then
 	exit 1
 fi
 
-echo "FOUND_CNI_CONTAINERID=${CNI_CONTAINERID}" >> /tmp/plugin_test_args.out
-echo "FOUND_K8S_POD_NAMESPACE=${K8S_POD_NAMESPACE}" >> /tmp/plugin_test_args.out
-echo "FOUND_K8S_POD_NAME=${K8S_POD_NAME}" >> /tmp/plugin_test_args.out
+TEST_DIR=%TEST_DIR%
 
-. /tmp/cni_plugin_helper_input.env
-rm -f /tmp/cni_plugin_helper_input.env
+echo "FOUND_CNI_CONTAINERID=${CNI_CONTAINERID}" >> "$TEST_DIR"/plugin_test_args.out
+echo "FOUND_K8S_POD_NAMESPACE=${K8S_POD_NAMESPACE}" >> "$TEST_DIR"/plugin_test_args.out
+echo "FOUND_K8S_POD_NAME=${K8S_POD_NAME}" >> "$TEST_DIR"/plugin_test_args.out
+
+. "$TEST_DIR"/cni_plugin_helper_input.env
+rm -f "$TEST_DIR"/cni_plugin_helper_input.env
 
 result=$(/opt/cni/bin/bridge $@) || exit $?
 
