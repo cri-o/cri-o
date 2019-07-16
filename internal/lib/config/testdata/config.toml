@@ -3,7 +3,6 @@
   runroot = "/var/run/containers/storage"
   storage_driver = "overlay2"
   log_dir = "/var/log/crio/pods"
-  file_locking = false
   [crio.runtime]
     runtime = "/usr/bin/runc"
     conmon = "/usr/local/libexec/crio/conmon"

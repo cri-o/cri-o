@@ -6,7 +6,6 @@ package config
 const (
 	cniConfigDir             = "/etc/cni/net.d/"
 	cniBinDir                = "/opt/cni/bin/"
-	lockPath                 = "/run/crio.lock"
 	containerExitsDir        = "/var/run/crio/exits"
 	ContainerAttachSocketDir = "/var/run/crio"
 

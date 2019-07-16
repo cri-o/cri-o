@@ -116,17 +116,6 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 
 	runtime := oci.New(config)
 
-	var lock sync.Locker
-	if config.FileLocking {
-		fileLock, err := cstorage.GetLockfile(config.FileLockingPath)
-		if err != nil {
-			return nil, fmt.Errorf("error obtaining lockfile: %v", err)
-		}
-		lock = fileLock
-	} else {
-		lock = new(sync.Mutex)
-	}
-
 	hookDirectories := config.HooksDir
 	if config.HooksDir == nil {
 		for _, hooksDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
@@ -152,7 +141,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 		podNameIndex:         registrar.NewRegistrar(),
 		podIDIndex:           truncindex.NewTruncIndex([]string{}),
 		Hooks:                newHooks,
-		stateLock:            lock,
+		stateLock:            &sync.Mutex{},
 		state: &containerServerState{
 			containers:      oci.NewMemoryStore(),
 			infraContainers: oci.NewMemoryStore(),

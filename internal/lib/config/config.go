@@ -134,14 +134,6 @@ type RootConfig struct {
 	// LogDir is the default log directory where all logs will go unless kubelet
 	// tells us to put them somewhere else.
 	LogDir string `toml:"log_dir"`
-
-	// FileLocking specifies whether to use file-based or in-memory locking
-	// File-based locking is required when multiple users of lib are
-	// present on the same system
-	FileLocking bool `toml:"file_locking"`
-
-	// FileLockingPath specifies the path to use for the locking.
-	FileLockingPath string `toml:"file_locking_path"`
 }
 
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
@@ -441,13 +433,11 @@ func DefaultConfig() (*Config, error) {
 	}
 	return &Config{
 		RootConfig: RootConfig{
-			Root:            storeOpts.GraphRoot,
-			RunRoot:         storeOpts.RunRoot,
-			Storage:         storeOpts.GraphDriverName,
-			StorageOptions:  storeOpts.GraphDriverOptions,
-			LogDir:          "/var/log/crio/pods",
-			FileLocking:     false,
-			FileLockingPath: lockPath,
+			Root:           storeOpts.GraphRoot,
+			RunRoot:        storeOpts.RunRoot,
+			Storage:        storeOpts.GraphDriverName,
+			StorageOptions: storeOpts.GraphDriverOptions,
+			LogDir:         "/var/log/crio/pods",
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,

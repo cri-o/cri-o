@@ -125,7 +125,6 @@ func beforeEach() {
 	// Set the config
 	config, err := libconfig.DefaultConfig()
 	Expect(err).To(BeNil())
-	config.FileLocking = false
 	config.LogDir = "."
 	config.HooksDir = []string{}
 
