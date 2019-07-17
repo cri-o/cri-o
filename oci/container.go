@@ -193,6 +193,7 @@ func (c *Container) CleanupConmonCgroup() {
 	cg, err := cgroups.Load(path)
 	if err != nil {
 		logrus.Infof("error loading conmon cgroup of container %s: %v", c.ID(), err)
+		return
 	}
 	if err := cg.Delete(); err != nil {
 		logrus.Infof("error deleting conmon cgroup of container %s: %v", c.ID(), err)
