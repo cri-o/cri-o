@@ -15,11 +15,14 @@ crio
 [--cni-plugin-dir=[value]]
 [--config=[value]]
 [--conmon=[value]]
+[--conmon-cgroup=[value]]
 [--cpu-profile=[value]]
 [--default-capabilities=[value]]
 [--default-mounts=[value]]
+[--default-mounts-file=[value]]
 [--default-transport=[value]]
 [--default-runtime=[value]]
+[--runtimes=[value]]
 [--default-sysctls=[value]]
 [--default-ulimits=[value]]
 [--default-transport=[value]]
@@ -28,28 +31,31 @@ crio
 [--help|-h]
 [--hooks-dir=[value]]
 [--insecure-registry=[value]]
+[--image-volumes=[value]]
 [--listen=[value]]
 [--log=[value]]
 [--log-format value]
-[--log-level value]
+[--log-level, -l value]
 [--log-dir value]
+[--log-size-max value]
 [--log-journald]
 [--metrics-port value]
 [--pause-command=[value]]
 [--pause-image=[value]]
 [--pause-image-auth-file=[value]]
+[--global-auth-file=[value]]
 [--pids-limit=[value]]
 [--profile=[value]]
 [--profile-port=[value]]
 [--read-only]
 [--registry=[value]]
-[--root=[value]]
+[--root, -r=[value]]
 [--runroot=[value]]
 [--runtime=[value]]
 [--seccomp-profile=[value]]
 [--selinux]
 [--signature-policy=[value]]
-[--storage-driver=[value]]
+[--storage-driver, -s=[value]]
 [--storage-opt=[value]]
 [--stream-address=[value]]
 [--stream-port=[value]]
@@ -90,13 +96,19 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")
 
+**--conmon-cgroup**="": cgroup used for conmon process (default: "pod")
+
 **--cpu-profile**="": set the CPU profile file path
 
 **--default-capabilities**="": capabilities to add to the containers (default: "CHOWN, DAC_OVERRIDE, FSETID, FOWNER, NET_RAW, SETGID, SETUID, SETPCAP, NET_BIND_SERVICE, SYS_CHROOT, KILL)
 
 **--default-mounts**="": add one or more default mount paths in the form host:container (deprecated - add the default mounts to /etc/containers/mounts.conf instead)
 
+**--default-mounts-file**="": path to default mounts file (default: "")
+
 **--default-runtime**="": default OCI runtime from the runtimes config (default: "runc")
+
+**--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root
 
 **--default-sysctls**="": sysctls to add to the containers
 
@@ -122,7 +134,7 @@ For the bind-mount conditions, only mounts explicitly requested by Kubernetes co
 
 If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/oci/hooks.d` and `/etc/containers/oci/hooks.d` in order of increasing precedence.  Using these defaults is deprecated, and callers should migrate to explicitly setting `hooks_dir`.
 
-**--insecure-registry=**: Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
+**--insecure-registry**="": Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
 
 1. List of insecure registries can contain an element with CIDR notation to specify a whole subnet.
 2. Insecure registries accept HTTP or accept HTTPS with certificates from unknown CAs.
@@ -180,9 +192,9 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--signature-policy**="": Path to the signature policy json file (default: "", to use the system-wide default)
 
-**--storage-driver, -s**: OCI storage driver (default: "overlay")
+**--storage-driver, -s**="": OCI storage driver (default: "overlay")
 
-**--storage-opt**: OCI storage driver option (no default)
+**--storage-opt**="": OCI storage driver option (no default)
 
 **--stream-address**="": bind address for streaming socket
 
