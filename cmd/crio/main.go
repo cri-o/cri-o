@@ -94,9 +94,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.GlobalIsSet("storage-opt") {
 		config.StorageOptions = ctx.GlobalStringSlice("storage-opt")
 	}
-	if ctx.GlobalIsSet("file-locking") {
-		config.FileLocking = ctx.GlobalBool("file-locking")
-	}
 	if ctx.GlobalIsSet("insecure-registry") {
 		config.InsecureRegistries = ctx.GlobalStringSlice("insecure-registry")
 	}
@@ -367,12 +364,6 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "storage-opt",
 			Usage: fmt.Sprintf("storage driver option (default: %q)", defConf.StorageOptions),
-		},
-		// XXX: DEPRECATED
-		cli.BoolFlag{
-			Name:   "file-locking",
-			Usage:  fmt.Sprintf("enable or disable file-based locking (depreciated) (default: %t)", defConf.FileLocking),
-			Hidden: true,
 		},
 		cli.StringSliceFlag{
 			Name:  "insecure-registry",

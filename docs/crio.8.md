@@ -24,7 +24,6 @@ crio
 [--default-ulimits=[value]]
 [--default-transport=[value]]
 [--enable-metrics]
-[--file-locking]
 [--gid-mappings=[value]]
 [--help|-h]
 [--hooks-dir=[value]]
@@ -106,8 +105,6 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is
 
 **--enable-metrics**: Enable metrics endpoint. Default is localhost:9090
-
-**--file-locking**: enable or disable file-based locking
 
 **--gid-mappings**: Specify the GID mappings to use for user namespace
 

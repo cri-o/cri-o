@@ -45,15 +45,6 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
-# If set to false, in-memory locking will be used instead of file-based locking.
-# **Deprecated** this option will be removed in the future.
-file_locking = {{ .FileLocking }}
-
-# Path to the lock file.
-# **Deprecated** this option will be removed in the future.
-file_locking_path = "{{ .FileLockingPath }}"
-
-
 # The crio.api table contains settings for the kubelet/gRPC interface.
 [crio.api]
 
