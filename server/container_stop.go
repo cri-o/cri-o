@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -15,7 +15,6 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("StopContainerRequest %+v", req)
 
 	// save container description to print
 	c, err := s.GetContainerFromShortID(req.ContainerId)
@@ -29,8 +28,7 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		return nil, err
 	}
 
-	logrus.Infof("Stopped container %s", description)
+	log.Infof(ctx, "stopped container: %s", description)
 	resp = &pb.StopContainerResponse{}
-	logrus.Debugf("StopContainerResponse %s: %+v", req.ContainerId, resp)
 	return resp, nil
 }

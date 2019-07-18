@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -19,8 +18,6 @@ func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (resp *pb.ExecRe
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-
-	logrus.Debugf("ExecRequest %+v", req)
 
 	resp, err = s.getExec(req)
 	if err != nil {

@@ -3,6 +3,7 @@
 package server
 
 import (
+	"context"
 	"testing"
 
 	"github.com/opencontainers/runtime-tools/generate"
@@ -23,7 +24,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 			},
 		},
 	}
-	_, binds, err := addOCIBindMounts("", config, &specgen, "")
+	_, binds, err := addOCIBindMounts(context.Background(), "", config, &specgen, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -58,7 +59,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 			},
 		},
 	}
-	_, binds, err := addOCIBindMounts("", config, &specgen, "")
+	_, binds, err := addOCIBindMounts(context.Background(), "", config, &specgen, "")
 	if err != nil {
 		t.Error(err)
 	}

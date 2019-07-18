@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -30,14 +30,14 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 
 // filterContainerList applies a protobuf-defined filter to retrieve only intended containers. Not matching
 // the filter is not considered an error but will return an empty response.
-func (s *Server) filterContainerList(filter *pb.ContainerFilter, origCtrList []*oci.Container) []*oci.Container {
+func (s *Server) filterContainerList(ctx context.Context, filter *pb.ContainerFilter, origCtrList []*oci.Container) []*oci.Container {
 	// Filter using container id and pod id first.
 	if filter.Id != "" {
 		id, err := s.CtrIDIndex().Get(filter.Id)
 		if err != nil {
 			// If we don't find a container ID with a filter, it should not
 			// be considered an error.  Log a warning and return an empty struct
-			logrus.Warnf("unable to find container ID %s", filter.Id)
+			log.Warnf(ctx, "unable to find container ID %s", filter.Id)
 			return []*oci.Container{}
 		}
 		c := s.ContainerServer.GetContainer(id)
@@ -58,7 +58,7 @@ func (s *Server) filterContainerList(filter *pb.ContainerFilter, origCtrList []*
 		}
 		return pod.Containers().List()
 	}
-	logrus.Debug("no filters were applied, returning full container list")
+	log.Debugf(ctx, "no filters were applied, returning full container list")
 	return origCtrList
 }
 
@@ -69,7 +69,6 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("ListContainersRequest %+v", req)
 
 	var ctrs []*pb.Container
 	filter := req.GetFilter()
@@ -79,7 +78,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	}
 
 	if filter != nil {
-		ctrList = s.filterContainerList(filter, ctrList)
+		ctrList = s.filterContainerList(ctx, filter, ctrList)
 	}
 
 	for _, ctr := range ctrList {
@@ -125,6 +124,5 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 	resp = &pb.ListContainersResponse{
 		Containers: ctrs,
 	}
-	logrus.Debugf("ListContainersResponse: %+v", resp)
 	return resp, nil
 }

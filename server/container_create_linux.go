@@ -20,6 +20,7 @@ import (
 	libconfig "github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"github.com/cri-o/cri-o/utils"
 	dockermounts "github.com/docker/docker/pkg/mount"
@@ -30,7 +31,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -50,7 +50,7 @@ func findCgroupMountpoint(name string) error {
 	return err
 }
 
-func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
 	sp := specgen.Config
 	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 		hostDevices, err := devices.HostDevices()
@@ -136,7 +136,7 @@ func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig
 				// nolint: errcheck
 				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {
 					if e != nil {
-						logrus.Debugf("addDevice walk: %v", e)
+						log.Debugf(ctx, "addDevice walk: %v", e)
 					}
 					childDevice, e := devices.DeviceFromPath(dpath, device.Permissions)
 					if e != nil {
@@ -371,14 +371,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		if err != nil {
 			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
 			if err2 != nil {
-				logrus.Warnf("Failed to cleanup container directory: %v", err2)
+				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
 		}
 	}()
 	specgen.SetLinuxMountLabel(mountLabel)
 	specgen.SetProcessSelinuxLabel(processLabel)
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(mountLabel, containerConfig, &specgen, s.config.RuntimeConfig.BindMountPrefix)
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, &specgen, s.config.RuntimeConfig.BindMountPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +389,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
-	configuredDevices, err := getDevicesFromConfig(&s.config)
+	configuredDevices, err := getDevicesFromConfig(ctx, &s.config)
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddLinuxResourcesDevice(d.Resource.Allow, d.Resource.Type, d.Resource.Major, d.Resource.Minor, d.Resource.Access)
 	}
 
-	if err := addDevices(sb, containerConfig, &specgen); err != nil {
+	if err := addDevices(ctx, sb, containerConfig, &specgen); err != nil {
 		return nil, err
 	}
 
@@ -452,9 +452,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	if !filepath.IsAbs(logPath) {
 		// XXX: It's not really clear what this should be versus the sbox logDirectory.
-		logrus.Warnf("requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
+		log.Warnf(ctx, "requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
 		logPath = filepath.Join(sboxLogDir, logPath)
-		logrus.Warnf("logPath from relative path is now absolute: %s", logPath)
+		log.Warnf(ctx, "logPath from relative path is now absolute: %s", logPath)
 	}
 
 	// Handle https://issues.k8s.io/44043
@@ -462,11 +462,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		return nil, err
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"sbox.logdir": sboxLogDir,
-		"ctr.logfile": containerConfig.GetLogPath(),
-		"log_path":    logPath,
-	}).Debugf("setting container's log_path")
+	log.Debugf(ctx, "setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
+		sboxLogDir, containerConfig.GetLogPath(), logPath,
+	)
 
 	specgen.SetProcessTerminal(containerConfig.Tty)
 	if containerConfig.Tty {
@@ -573,7 +571,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	// Join the namespace paths for the pod sandbox container.
 	podInfraState := sb.InfraContainer().State()
 
-	logrus.Debugf("pod container state %+v", podInfraState)
+	log.Debugf(ctx, "pod container state %+v", podInfraState)
 
 	ipcNsPath := fmt.Sprintf("/proc/%d/ns/ipc", podInfraState.Pid)
 	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.IPCNamespace), ipcNsPath); err != nil {
@@ -724,7 +722,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	if !privileged {
-		if err := s.setupSeccomp(&specgen, spp); err != nil {
+		if err := s.setupSeccomp(ctx, &specgen, spp); err != nil {
 			return nil, err
 		}
 	}
@@ -748,12 +746,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// Add image volumes
-	volumeMounts, err := addImageVolumes(mountPoint, s, &containerInfo, mountLabel)
+	volumeMounts, err := addImageVolumes(ctx, mountPoint, s, &containerInfo, mountLabel)
 	if err != nil {
 		return nil, err
 	}
 
-	processArgs, err := buildOCIProcessArgs(containerConfig, containerImageConfig)
+	processArgs, err := buildOCIProcessArgs(ctx, containerConfig, containerImageConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -787,9 +785,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	var secretMounts []rspec.Mount
 	if len(s.config.DefaultMounts) > 0 {
 		// This option has been deprecated, once it is removed in the later versions, delete the server/secrets.go file as well
-		logrus.Warnf("--default-mounts has been deprecated and will be removed in future versions. Add mounts to either %q or %q", secrets.DefaultMountsFile, secrets.OverrideMountsFile)
+		log.Warnf(ctx, "--default-mounts has been deprecated and will be removed in future versions. Add mounts to either %q or %q", secrets.DefaultMountsFile, secrets.OverrideMountsFile)
 		var err error
-		secretMounts, err = addSecretsBindMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMounts, specgen)
+		secretMounts, err = addSecretsBindMounts(ctx, mountLabel, containerInfo.RunDir, s.config.DefaultMounts, specgen)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount secrets: %v", err)
 		}
@@ -829,7 +827,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	// Setup user and groups
 	if linux != nil {
-		if err := setupContainerUser(&specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
+		if err := setupContainerUser(ctx, &specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -928,7 +926,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	mounts := containerConfig.GetMounts()
@@ -1021,7 +1019,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 				}
 			}
 		default:
-			logrus.Warnf("Unknown propagation mode for hostPath %q", mount.HostPath)
+			log.Warnf(ctx, "unknown propagation mode for hostPath %q", mount.HostPath)
 			options = append(options, "rprivate")
 		}
 
@@ -1058,7 +1056,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 	return volumes, ociMounts, nil
 }
 
-func getDevicesFromConfig(config *libconfig.Config) ([]configDevice, error) {
+func getDevicesFromConfig(ctx context.Context, config *libconfig.Config) ([]configDevice, error) {
 	linuxdevs := make([]configDevice, 0, len(config.RuntimeConfig.AdditionalDevices))
 
 	for _, d := range config.RuntimeConfig.AdditionalDevices {
@@ -1067,7 +1065,7 @@ func getDevicesFromConfig(config *libconfig.Config) ([]configDevice, error) {
 			return nil, err
 		}
 
-		logrus.Debugf("adding device src=%s dst=%s mode=%s", src, dst, permissions)
+		log.Debugf(ctx, "adding device src=%s dst=%s mode=%s", src, dst, permissions)
 
 		dev, err := devices.DeviceFromPath(src, permissions)
 		if err != nil {

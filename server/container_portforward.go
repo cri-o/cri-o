@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -18,7 +17,6 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (r
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("PortForwardRequest %+v", req)
 
 	resp, err = s.getPortForward(req)
 	if err != nil {

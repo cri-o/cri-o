@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -18,7 +18,6 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("RemoveImageRequest: %+v", req)
 	image := ""
 	img := req.GetImage()
 	if img != nil {
@@ -42,7 +41,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 	for _, img := range images {
 		err = s.StorageImageServer().UntagImage(s.systemContext, img)
 		if err != nil {
-			logrus.Debugf("error deleting image %s: %v", img, err)
+			log.Debugf(ctx, "error deleting image %s: %v", img, err)
 			continue
 		}
 		deleted = true
@@ -52,6 +51,5 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 		return nil, err
 	}
 	resp = &pb.RemoveImageResponse{}
-	logrus.Debugf("RemoveImageResponse: %+v", resp)
 	return resp, nil
 }

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -17,7 +16,6 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("PodSandboxStatusRequest %+v", req)
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		return nil, err
@@ -55,6 +53,5 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		},
 	}
 
-	logrus.Debugf("PodSandboxStatusResponse: %+v", resp)
 	return resp, nil
 }

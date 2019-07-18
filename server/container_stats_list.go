@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -27,14 +27,14 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 			PodSandboxId:  req.Filter.PodSandboxId,
 			LabelSelector: req.Filter.LabelSelector,
 		}
-		ctrList = s.filterContainerList(cFilter, ctrList)
+		ctrList = s.filterContainerList(ctx, cFilter, ctrList)
 	}
 
 	allStats := make([]*pb.ContainerStats, 0, len(ctrList))
 	for _, container := range ctrList {
 		stats, err := s.Runtime().ContainerStats(container)
 		if err != nil {
-			logrus.Warnf("unable to get stats for container %s", container.ID())
+			log.Warnf(ctx, "unable to get stats for container %s", container.ID())
 			continue
 		}
 		response := buildContainerStats(stats, container)

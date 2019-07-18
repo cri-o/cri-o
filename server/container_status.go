@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -23,7 +23,6 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("ContainerStatusRequest %+v", req)
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	if cState.ExitCode == -1 {
 		err := s.Runtime().UpdateContainerStatus(c)
 		if err != nil {
-			logrus.Warnf("Failed to UpdateStatus of container %s: %v", c.ID(), err)
+			log.Warnf(ctx, "Failed to UpdateStatus of container %s: %v", c.ID(), err)
 		}
 		cState = c.State()
 	}
@@ -106,6 +105,5 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		}
 	}
 
-	logrus.Debugf("ContainerStatusResponse: %+v", resp)
 	return resp, nil
 }

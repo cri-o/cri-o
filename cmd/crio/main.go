@@ -18,6 +18,7 @@ import (
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	libconfig "github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/signals"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/cri-o/cri-o/server"
@@ -595,6 +596,8 @@ func main() {
 		}
 
 		grpcServer := grpc.NewServer(
+			grpc.UnaryInterceptor(log.UnaryInterceptor()),
+			grpc.StreamInterceptor(log.StreamInterceptor()),
 			grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)

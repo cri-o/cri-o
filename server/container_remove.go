@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -16,7 +16,6 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		recordOperation(operation, time.Now())
 		recordError(operation, err)
 	}()
-	logrus.Debugf("RemoveContainerRequest: %+v", req)
 
 	// save container description to print
 	c, err := s.GetContainerFromShortID(req.ContainerId)
@@ -29,8 +28,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, err
 	}
 
-	logrus.Infof("Removed container %s", c.Description())
+	log.Infof(ctx, "Removed container %s", c.Description())
 	resp = &pb.RemoveContainerResponse{}
-	logrus.Debugf("RemoveContainerResponse: %+v", resp)
 	return resp, nil
 }

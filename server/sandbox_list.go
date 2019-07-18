@@ -5,7 +5,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -37,7 +37,6 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		recordError(operation, err)
 	}()
 
-	logrus.Debugf("ListPodSandboxRequest %+v", req)
 	var pods []*pb.PodSandbox
 	var podList []*sandbox.Sandbox
 	podList = append(podList, s.ContainerServer.ListSandboxes()...)
@@ -51,7 +50,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 				// Not finding an ID in a filtered list should not be considered
 				// and error; it might have been deleted when stop was done.
 				// Log and return an empty struct.
-				logrus.Warnf("unable to find pod %s with filter", filter.Id)
+				log.Warnf(ctx, "unable to find pod %s with filter", filter.Id)
 				return &pb.ListPodSandboxResponse{}, nil
 			}
 			sb := s.getSandbox(id)
@@ -98,6 +97,5 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 	resp = &pb.ListPodSandboxResponse{
 		Items: pods,
 	}
-	logrus.Debugf("ListPodSandboxResponse %+v", resp)
 	return resp, nil
 }
