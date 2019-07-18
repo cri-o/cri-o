@@ -208,6 +208,7 @@ func makeAccessible(path string, uid, gid int) error {
 	return nil
 }
 
+// nolint:gocyclo
 func (s *Server) createSandboxContainer(ctx context.Context, containerID, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
@@ -510,7 +511,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 		if privileged {
 			specgen.SetupPrivileged(true)
-			setOCIBindMountsPrivileged(&specgen)
 		} else {
 			capabilities := linux.GetSecurityContext().GetCapabilities()
 			// Ensure we don't get a nil pointer error if the config
@@ -570,6 +570,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			}
 		}
 	}
+
 	// Join the namespace paths for the pod sandbox container.
 	podInfraState := sb.InfraContainer().State()
 
@@ -606,7 +607,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 		if !isInCRIMounts("/sys", containerConfig.GetMounts()) {
 			specgen.RemoveMount("/sys")
-			specgen.RemoveMount("/sys/cgroup")
+			specgen.RemoveMount("/sys/fs/cgroup")
 			sysMnt := rspec.Mount{
 				Destination: "/sys",
 				Type:        "bind",
@@ -625,6 +626,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
 			return nil, err
+		}
+
+		if privileged {
+			specgen.RemoveMount("/sys")
+			specgen.RemoveMount("/sys/fs/cgroup")
+			sysMnt := rspec.Mount{
+				Destination: "/sys",
+				Type:        "bind",
+				Source:      "/sys",
+				Options:     []string{"nosuid", "noexec", "nodev", "rw", "rbind"},
+			}
+			specgen.AddMount(sysMnt)
 		}
 	}
 
@@ -684,6 +697,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			Options:     append(options, "bind"),
 		}
 		specgen.AddMount(mnt)
+	}
+
+	if privileged {
+		setOCIBindMountsPrivileged(&specgen)
 	}
 
 	// Set hostname and add env for hostname
@@ -905,13 +922,8 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 func setOCIBindMountsPrivileged(g *generate.Generator) {
 	spec := g.Config
 	// clear readonly for /sys and cgroup
-	for i, m := range spec.Mounts {
-		if spec.Mounts[i].Destination == "/sys" {
-			clearReadOnly(&spec.Mounts[i])
-		}
-		if m.Type == "cgroup" {
-			clearReadOnly(&spec.Mounts[i])
-		}
+	for i := range spec.Mounts {
+		clearReadOnly(&spec.Mounts[i])
 	}
 	spec.Linux.ReadonlyPaths = nil
 	spec.Linux.MaskedPaths = nil
@@ -920,7 +932,9 @@ func setOCIBindMountsPrivileged(g *generate.Generator) {
 func clearReadOnly(m *rspec.Mount) {
 	var opt []string
 	for _, o := range m.Options {
-		if o != "ro" {
+		if o == "rw" {
+			return
+		} else if o != "ro" {
 			opt = append(opt, o)
 		}
 	}
