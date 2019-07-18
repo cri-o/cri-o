@@ -15,6 +15,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/containers/libpod/pkg/annotations"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -32,7 +33,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
-const cgroupMemorySubsystemMountPath = "/sys/fs/cgroup/memory"
+const cgroupMemorySubsystemMountPathV1 = "/sys/fs/cgroup/memory"
+const cgroupMemorySubsystemMountPathV2 = "/sys/fs/cgroup"
 
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	const operation = "run_pod_sandbox"
@@ -351,8 +353,18 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
 
-	cgroupParent, err := AddCgroupAnnotation(g, cgroupMemorySubsystemMountPath,
-		s.config.CgroupManager, req.GetConfig().GetLinux().GetCgroupParent(), id)
+	parent := ""
+	cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, err
+	}
+	if cgroupv2 {
+		parent = cgroupMemorySubsystemMountPathV2
+	} else {
+		parent = cgroupMemorySubsystemMountPathV1
+	}
+
+	cgroupParent, err := AddCgroupAnnotation(g, parent, s.config.CgroupManager, req.GetConfig().GetLinux().GetCgroupParent(), id)
 	if err != nil {
 		return nil, err
 	}
@@ -691,13 +703,24 @@ func AddCgroupAnnotation(g generate.Generator, mountPath, cgroupManager, cgroupP
 			if err != nil {
 				return "", errors.Wrapf(err, "error expanding systemd slice path for %q", cgroupParent)
 			}
+			filename := ""
+			cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+			if err != nil {
+				return "", err
+			}
+			if cgroupv2 {
+				filename = "memory.max"
+			} else {
+				filename = "memory.limit_in_bytes"
+			}
+
 			// read in the memory limit from the memory.limit_in_bytes file
-			fileData, err := ioutil.ReadFile(filepath.Join(mountPath, slicePath, "memory.limit_in_bytes"))
+			fileData, err := ioutil.ReadFile(filepath.Join(mountPath, slicePath, filename))
 			if err != nil {
 				if os.IsNotExist(err) {
-					logrus.Warnf("Failed to find memory.limit_in_bytes for slice: %q", cgroupParent)
+					logrus.Warnf("Failed to find %s for slice: %q", filename, cgroupParent)
 				} else {
-					return "", errors.Wrapf(err, "error reading memory.limit_in_bytes file for slice %q", cgroupParent)
+					return "", errors.Wrapf(err, "error reading %s file for slice %q", filename, cgroupParent)
 				}
 			} else {
 				// strip off the newline character and convert it to an int
