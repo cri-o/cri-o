@@ -1434,9 +1434,11 @@ int main(int argc, char *argv[])
 			ret = waitpid(create_pid, &runtime_status, 0);
 		while (ret < 0 && errno == EINTR);
 		if (ret < 0) {
-			int old_errno = errno;
-			kill(create_pid, SIGKILL);
-			errno = old_errno;
+			if (create_pid > 0) {
+				int old_errno = errno;
+				kill(create_pid, SIGKILL);
+				errno = old_errno;
+			}
 			pexitf("Failed to wait for `runtime %s`", opt_exec ? "exec" : "create");
 		}
 	}
@@ -1524,7 +1526,8 @@ int main(int argc, char *argv[])
 	const char *exit_message = NULL;
 
 	if (timed_out) {
-		kill(container_pid, SIGKILL);
+		if (container_pid > 0)
+			kill(container_pid, SIGKILL);
 		exit_message = "command timed out";
 	} else {
 		exit_status = get_exit_status(container_status);
