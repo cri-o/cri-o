@@ -1623,3 +1623,34 @@ function teardown() {
 	cleanup_pods
 	stop_crio
 }
+
+
+@test "privileged ctr -- check for rw mounts" {
+	start_crio
+
+	run crictl runp "$TESTDATA"/sandbox_config_privileged.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	[ "$status" -eq 0 ]
+
+	run crictl exec "$ctr_id" grep ro\, /proc/mounts
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "tmpfs /sys/fs/cgroup tmpfs" ]]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	cleanup_ctrs
+	cleanup_pods
+	stop_crio
+}
