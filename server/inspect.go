@@ -89,7 +89,7 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 		Root:            ctr.MountPoint(),
 		LogPath:         ctr.LogPath(),
 		Sandbox:         ctr.Sandbox(),
-		IP:              sb.IP(),
+		IPs:             sb.IPs(),
 	}, nil
 
 }

@@ -48,13 +48,13 @@ function teardown() {
 
 	IFS=" "
 	ip=`parse_pod_ip $inet`
-	[[ "$out" =~ "\"ip_address\":\"$ip\"" ]]
+	[[ "$out" =~ "\"ip_addresses\":[\"$ip\"]" ]]
 	[[ "$output" =~ "\"ip\": \"$ip\"" ]]
 
 
 # TODO: add some other check based on the json below:
 #
-# {"name":"k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1","pid":27477,"image":"redis:alpine","created_time":1505223601111546169,"labels":{"batch":"no","type":"small"},"annotations":{"daemon":"crio","owner":"dragon"},"log_path":"/var/log/crio/pods/297d014ba2c54236779da0c2f80dfba45dc31b106e4cd126a1c3c6d78edc2201/81567e9573ea798d6494c9aab156103ee91b72180fd3841a7c24d2ca39886ba2.log","root":"/tmp/tmp.0bkjphWudF/crio/overlay/d7cfc1de83cab9f377a4a1542427d2a019e85a70c1c660a9e6cf9e254df68873/merged","sandbox":"297d014ba2c54236779da0c2f80dfba45dc31b106e4cd126a1c3c6d78edc2201","ip_address":"10.88.9.153"}
+# {"name":"k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1","pid":27477,"image":"redis:alpine","created_time":1505223601111546169,"labels":{"batch":"no","type":"small"},"annotations":{"daemon":"crio","owner":"dragon"},"log_path":"/var/log/crio/pods/297d014ba2c54236779da0c2f80dfba45dc31b106e4cd126a1c3c6d78edc2201/81567e9573ea798d6494c9aab156103ee91b72180fd3841a7c24d2ca39886ba2.log","root":"/tmp/tmp.0bkjphWudF/crio/overlay/d7cfc1de83cab9f377a4a1542427d2a019e85a70c1c660a9e6cf9e254df68873/merged","sandbox":"297d014ba2c54236779da0c2f80dfba45dc31b106e4cd126a1c3c6d78edc2201","ip_addresses":"[10.88.9.153]"}
 
 	cleanup_ctrs
 	cleanup_pods

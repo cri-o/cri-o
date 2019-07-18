@@ -222,11 +222,11 @@ func (s *Server) restore() {
 		if ok := deletedPods[sb.ID()]; ok {
 			continue
 		}
-		ip, err := s.getSandboxIP(sb)
+		ips, err := s.getSandboxIPs(sb)
 		if err != nil {
 			logrus.Warnf("could not restore sandbox IP for %v: %v", sb.ID(), err)
 		}
-		sb.AddIP(ip)
+		sb.AddIPs(ips)
 	}
 }
 

@@ -5,6 +5,7 @@ package libpod
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"net"
 	"os"
 	"os/exec"
@@ -28,21 +29,23 @@ import (
 
 // Get an OCICNI network config
 func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP) ocicni.PodNetwork {
+	defaultNetwork := r.netPlugin.GetDefaultNetworkName()
 	network := ocicni.PodNetwork{
-		Name:         name,
-		Namespace:    name, // TODO is there something else we should put here? We don't know about Kube namespaces
-		ID:           id,
-		NetNS:        nsPath,
-		PortMappings: ports,
-		Networks:     networks,
+		Name:      name,
+		Namespace: name, // TODO is there something else we should put here? We don't know about Kube namespaces
+		ID:        id,
+		NetNS:     nsPath,
+		Networks:  networks,
+		RuntimeConfig: map[string]ocicni.RuntimeConfig{
+			defaultNetwork: {PortMappings: ports},
+		},
 	}
 
 	if staticIP != nil {
-		defaultNetwork := r.netPlugin.GetDefaultNetworkName()
-
 		network.Networks = []string{defaultNetwork}
-		network.NetworkConfig = make(map[string]ocicni.NetworkConfig)
-		network.NetworkConfig[defaultNetwork] = ocicni.NetworkConfig{IP: staticIP.String()}
+		network.RuntimeConfig = map[string]ocicni.RuntimeConfig{
+			defaultNetwork: {IP: staticIP.String(), PortMappings: ports},
+		}
 	}
 
 	return network
@@ -166,8 +169,8 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "failed to open pipe")
 	}
-	defer syncR.Close()
-	defer syncW.Close()
+	defer errorhandling.CloseQuiet(syncR)
+	defer errorhandling.CloseQuiet(syncW)
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	apiSocket := filepath.Join(ctr.ociRuntime.tmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
@@ -292,14 +295,14 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 				return errors.Wrapf(err, "cannot shutdown the socket %s", apiSocket)
 			}
 			buf := make([]byte, 2048)
-			len, err := conn.Read(buf)
+			readLength, err := conn.Read(buf)
 			if err != nil {
 				return errors.Wrapf(err, "cannot read from control socket %s", apiSocket)
 			}
 			// if there is no 'error' key in the received JSON data, then the operation was
 			// successful.
 			var y map[string]interface{}
-			if err := json.Unmarshal(buf[0:len], &y); err != nil {
+			if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
 				return errors.Wrapf(err, "error parsing error status from slirp4netns")
 			}
 			if e, found := y["error"]; found {
@@ -330,7 +333,9 @@ func (r *Runtime) setupNetNS(ctr *Container) (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "cannot open %s", nsPath)
 	}
-	mountPointFd.Close()
+	if err := mountPointFd.Close(); err != nil {
+		return err
+	}
 
 	if err := unix.Mount(nsProcess, nsPath, "none", unix.MS_BIND, ""); err != nil {
 		return errors.Wrapf(err, "cannot mount %s", nsPath)
@@ -350,12 +355,12 @@ func (r *Runtime) setupNetNS(ctr *Container) (err error) {
 
 // Join an existing network namespace
 func joinNetNS(path string) (ns.NetNS, error) {
-	ns, err := ns.GetNS(path)
+	netNS, err := ns.GetNS(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving network namespace at %s", path)
 	}
 
-	return ns, nil
+	return netNS, nil
 }
 
 // Close a network namespace.

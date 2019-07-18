@@ -565,11 +565,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	var ip string
+	var ips []string
 	var result cnitypes.Result
 
 	if s.config.ManageNetworkNSLifecycle {
-		ip, result, err = s.networkStart(ctx, sb)
+		ips, result, err = s.networkStart(ctx, sb)
 		if err != nil {
 			return nil, err
 		}
@@ -583,8 +583,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}()
 	}
 
-	g.AddAnnotation(annotations.IP, ip)
-	sb.AddIP(ip)
+	for idx, ip := range ips {
+		g.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
+	}
+	sb.AddIPs(ips)
 	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
 
 	spp := securityContext.GetSeccompProfilePath()
@@ -653,7 +655,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	if !s.config.ManageNetworkNSLifecycle {
-		ip, _, err = s.networkStart(ctx, sb)
+		ips, _, err = s.networkStart(ctx, sb)
 		if err != nil {
 			return nil, err
 		}
@@ -663,7 +665,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 		}()
 	}
-	sb.AddIP(ip)
+	sb.AddIPs(ips)
 
 	sb.SetCreated()
 

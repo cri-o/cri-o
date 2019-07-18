@@ -65,7 +65,7 @@ func TestGetContainerInfo(t *testing.T) {
 	}
 	getSandboxFunc := func(id string) *sandbox.Sandbox {
 		s := &sandbox.Sandbox{}
-		s.AddIP("1.1.1.42")
+		s.AddIPs([]string{"1.1.1.42"})
 		return s
 	}
 	ci, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
@@ -96,8 +96,8 @@ func TestGetContainerInfo(t *testing.T) {
 	if ci.Sandbox != "testsandboxid" {
 		t.Fatalf("expected sandbox to be testsandboxid, got %s", ci.Sandbox)
 	}
-	if ci.IP != "1.1.1.42" {
-		t.Fatalf("expected ip 1.1.1.42, got %s", ci.IP)
+	if ci.IPs[0] != "1.1.1.42" {
+		t.Fatalf("expected ip 1.1.1.42, got %s", ci.IPs[0])
 	}
 	if len(ci.Annotations) == 0 {
 		t.Fatal("annotations are empty")
@@ -177,7 +177,7 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 	}
 	getSandboxFunc := func(id string) *sandbox.Sandbox {
 		s := &sandbox.Sandbox{}
-		s.AddIP("1.1.1.42")
+		s.AddIPs([]string{"1.1.1.42"})
 		return s
 	}
 	_, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)

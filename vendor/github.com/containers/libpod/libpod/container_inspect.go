@@ -145,6 +145,7 @@ type InspectContainerState struct {
 	OOMKilled   bool               `json:"OOMKilled"`
 	Dead        bool               `json:"Dead"`
 	Pid         int                `json:"Pid"`
+	ConmonPid   int                `json:"ConmonPid,omitempty"`
 	ExitCode    int32              `json:"ExitCode"`
 	Error       string             `json:"Error"` // TODO
 	StartedAt   time.Time          `json:"StartedAt"`
@@ -205,12 +206,12 @@ func (c *Container) Inspect(size bool) (*InspectContainerData, error) {
 func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) (*InspectContainerData, error) {
 	config := c.config
 	runtimeInfo := c.state
-	spec, err := c.specFromState()
+	stateSpec, err := c.specFromState()
 	if err != nil {
 		return nil, err
 	}
 
-	// Process is allowed to be nil in the spec
+	// Process is allowed to be nil in the stateSpec
 	args := []string{}
 	if config.Spec.Process != nil {
 		args = config.Spec.Process.Args
@@ -243,7 +244,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		}
 	}
 
-	mounts, err := c.getInspectMounts(spec)
+	mounts, err := c.getInspectMounts(stateSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -254,13 +255,14 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		Path:    path,
 		Args:    args,
 		State: &InspectContainerState{
-			OciVersion: spec.Version,
+			OciVersion: stateSpec.Version,
 			Status:     runtimeInfo.State.String(),
 			Running:    runtimeInfo.State == define.ContainerStateRunning,
 			Paused:     runtimeInfo.State == define.ContainerStatePaused,
 			OOMKilled:  runtimeInfo.OOMKilled,
 			Dead:       runtimeInfo.State.String() == "bad state",
 			Pid:        runtimeInfo.PID,
+			ConmonPid:  runtimeInfo.ConmonPID,
 			ExitCode:   runtimeInfo.ExitCode,
 			Error:      "", // can't get yet
 			StartedAt:  runtimeInfo.StartedTime,
@@ -283,9 +285,9 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		Driver:          driverData.Name,
 		MountLabel:      config.MountLabel,
 		ProcessLabel:    config.ProcessLabel,
-		EffectiveCaps:   spec.Process.Capabilities.Effective,
-		BoundingCaps:    spec.Process.Capabilities.Bounding,
-		AppArmorProfile: spec.Process.ApparmorProfile,
+		EffectiveCaps:   stateSpec.Process.Capabilities.Effective,
+		BoundingCaps:    stateSpec.Process.Capabilities.Bounding,
+		AppArmorProfile: stateSpec.Process.ApparmorProfile,
 		ExecIDs:         execIDs,
 		GraphDriver:     driverData,
 		Mounts:          mounts,
@@ -336,7 +338,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 	// Get information on the container's network namespace (if present)
 	data = c.getContainerNetworkInfo(data)
 
-	inspectConfig, err := c.generateInspectContainerConfig(spec)
+	inspectConfig, err := c.generateInspectContainerConfig(stateSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -368,58 +370,41 @@ func (c *Container) getInspectMounts(ctrSpec *spec.Spec) ([]InspectMount, error)
 		return inspectMounts, nil
 	}
 
-	// We need to parse all named volumes and mounts into maps, so we don't
-	// end up with repeated lookups for each user volume.
-	// Map destination to struct, as destination is what is stored in
-	// UserVolumes.
-	namedVolumes := make(map[string]*ContainerNamedVolume)
-	mounts := make(map[string]spec.Mount)
-	for _, namedVol := range c.config.NamedVolumes {
-		namedVolumes[namedVol.Dest] = namedVol
-	}
-	for _, mount := range ctrSpec.Mounts {
-		mounts[mount.Destination] = mount
-	}
+	namedVolumes, mounts := c.sortUserVolumes(ctrSpec)
+	for _, volume := range namedVolumes {
+		mountStruct := InspectMount{}
+		mountStruct.Type = "volume"
+		mountStruct.Destination = volume.Dest
+		mountStruct.Name = volume.Name
 
-	for _, vol := range c.config.UserVolumes {
-		// We need to look up the volumes.
-		// First: is it a named volume?
-		if volume, ok := namedVolumes[vol]; ok {
-			mountStruct := InspectMount{}
-			mountStruct.Type = "volume"
-			mountStruct.Destination = volume.Dest
-			mountStruct.Name = volume.Name
-
-			// For src and driver, we need to look up the named
-			// volume.
-			volFromDB, err := c.runtime.state.Volume(volume.Name)
-			if err != nil {
-				return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
-			}
-			mountStruct.Driver = volFromDB.Driver()
-			mountStruct.Source = volFromDB.MountPoint()
-
-			parseMountOptionsForInspect(volume.Options, &mountStruct)
-
-			inspectMounts = append(inspectMounts, mountStruct)
-		} else if mount, ok := mounts[vol]; ok {
-			// It's a mount.
-			// Is it a tmpfs? If so, discard.
-			if mount.Type == "tmpfs" {
-				continue
-			}
-
-			mountStruct := InspectMount{}
-			mountStruct.Type = "bind"
-			mountStruct.Source = mount.Source
-			mountStruct.Destination = mount.Destination
-
-			parseMountOptionsForInspect(mount.Options, &mountStruct)
-
-			inspectMounts = append(inspectMounts, mountStruct)
+		// For src and driver, we need to look up the named
+		// volume.
+		volFromDB, err := c.runtime.state.Volume(volume.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
 		}
-		// We couldn't find a mount. Log a warning.
-		logrus.Warnf("Could not find mount at destination %q when building inspect output for container %s", vol, c.ID())
+		mountStruct.Driver = volFromDB.Driver()
+		mountStruct.Source = volFromDB.MountPoint()
+
+		parseMountOptionsForInspect(volume.Options, &mountStruct)
+
+		inspectMounts = append(inspectMounts, mountStruct)
+	}
+	for _, mount := range mounts {
+		// It's a mount.
+		// Is it a tmpfs? If so, discard.
+		if mount.Type == "tmpfs" {
+			continue
+		}
+
+		mountStruct := InspectMount{}
+		mountStruct.Type = "bind"
+		mountStruct.Source = mount.Source
+		mountStruct.Destination = mount.Destination
+
+		parseMountOptionsForInspect(mount.Options, &mountStruct)
+
+		inspectMounts = append(inspectMounts, mountStruct)
 	}
 
 	return inspectMounts, nil

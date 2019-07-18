@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/kubeutils"
 	"github.com/containers/libpod/utils"
 	"github.com/docker/docker/pkg/term"
@@ -18,10 +19,6 @@ import (
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 )
-
-//#include <sys/un.h>
-// extern int unix_path_length(){struct sockaddr_un addr; return sizeof(addr.sun_path) - 1;}
-import "C"
 
 /* Sync with stdpipe_t in conmon.c */
 const (
@@ -70,7 +67,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 			logrus.Debugf("Could not open ctl file: %v", err)
 			return
 		}
-		defer controlFile.Close()
+		defer errorhandling.CloseQuiet(controlFile)
 
 		logrus.Debugf("Received a resize event: %+v", size)
 		if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width); err != nil {
@@ -80,7 +77,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 
 	socketPath := c.AttachSocketPath()
 
-	maxUnixLength := int(C.unix_path_length())
+	maxUnixLength := unixPathLength()
 	if maxUnixLength < len(socketPath) {
 		socketPath = socketPath[0:maxUnixLength]
 	}
@@ -112,7 +109,9 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		var err error
 		if streams.AttachInput {
 			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
-			conn.CloseWrite()
+			if err := conn.CloseWrite(); err != nil {
+				logrus.Error("failed to close write in attach")
+			}
 		}
 		stdinDone <- err
 	}()
@@ -149,7 +148,9 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeO
 			default:
 				logrus.Infof("Received unexpected attach type %+d", buf[0])
 			}
-
+			if dst == nil {
+				return errors.New("output destination cannot be nil")
+			}
 			if doWrite {
 				nw, ew := dst.Write(buf[1:nr])
 				if ew != nil {
