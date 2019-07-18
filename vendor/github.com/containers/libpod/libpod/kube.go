@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
@@ -156,6 +155,7 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 			// Deduplicate volumes, so if containers in the pod share a volume, it's only
 			// listed in the volumes section once
 			for _, vol := range volumes {
+				vol := vol
 				deDupPodVolumes[vol.Name] = &vol
 			}
 		}
@@ -179,7 +179,7 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 	labels["app"] = removeUnderscores(podName)
 	om := v12.ObjectMeta{
 		// The name of the pod is container_name-libpod
-		Name:   fmt.Sprintf("%s", removeUnderscores(podName)),
+		Name:   removeUnderscores(podName),
 		Labels: labels,
 		// CreationTimestamp seems to be required, so adding it; in doing so, the timestamp
 		// will reflect time this is run (not container create time) because the conversion

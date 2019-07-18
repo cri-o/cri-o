@@ -80,23 +80,41 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			g.AddLinuxMaskedPaths("/sys/kernel")
 		}
 	}
+	gid5Available := true
 	if isRootless {
 		nGids, err := getAvailableGids()
 		if err != nil {
 			return nil, err
 		}
-		if nGids < 5 {
-			// If we have no GID mappings, the gid=5 default option would fail, so drop it.
-			g.RemoveMount("/dev/pts")
-			devPts := spec.Mount{
-				Destination: "/dev/pts",
-				Type:        "devpts",
-				Source:      "devpts",
-				Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
-			}
-			g.AddMount(devPts)
-		}
+		gid5Available = nGids >= 5
 	}
+	// When using a different user namespace, check that the GID 5 is mapped inside
+	// the container.
+	if gid5Available && len(config.IDMappings.GIDMap) > 0 {
+		mappingFound := false
+		for _, r := range config.IDMappings.GIDMap {
+			if r.ContainerID <= 5 && 5 < r.ContainerID+r.Size {
+				mappingFound = true
+				break
+			}
+		}
+		if !mappingFound {
+			gid5Available = false
+		}
+
+	}
+	if !gid5Available {
+		// If we have no GID mappings, the gid=5 default option would fail, so drop it.
+		g.RemoveMount("/dev/pts")
+		devPts := spec.Mount{
+			Destination: "/dev/pts",
+			Type:        "devpts",
+			Source:      "devpts",
+			Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+		}
+		g.AddMount(devPts)
+	}
+
 	if inUserNS && config.IpcMode.IsHost() {
 		g.RemoveMount("/dev/mqueue")
 		devMqueue := spec.Mount{
@@ -246,10 +264,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		// If privileged, we need to add all the host devices to the
 		// spec.  We do not add the user provided ones because we are
 		// already adding them all.
-		if !rootless.IsRootless() {
-			if err := config.AddPrivilegedDevices(&g); err != nil {
-				return nil, err
-			}
+		if err := config.AddPrivilegedDevices(&g); err != nil {
+			return nil, err
 		}
 	} else {
 		for _, devicePath := range config.Devices {
@@ -305,6 +321,10 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	if err := addIpcNS(config, &g); err != nil {
+		return nil, err
+	}
+
+	if err := addCgroupNS(config, &g); err != nil {
 		return nil, err
 	}
 	configSpec := g.Config
@@ -397,6 +417,62 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 				}
 				m.Options = append(m.Options, o)
 			}
+		}
+	}
+
+	// Add annotations
+	if configSpec.Annotations == nil {
+		configSpec.Annotations = make(map[string]string)
+	}
+
+	if config.CidFile != "" {
+		configSpec.Annotations[libpod.InspectAnnotationCIDFile] = config.CidFile
+	}
+
+	if config.Rm {
+		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseFalse
+	}
+
+	if len(config.VolumesFrom) > 0 {
+		configSpec.Annotations[libpod.InspectAnnotationVolumesFrom] = strings.Join(config.VolumesFrom, ",")
+	}
+
+	if config.Privileged {
+		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseFalse
+	}
+
+	if config.PublishAll {
+		configSpec.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseFalse
+	}
+
+	if config.Init {
+		configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseFalse
+	}
+
+	for _, opt := range config.SecurityOpts {
+		// Split on both : and =
+		splitOpt := strings.Split(opt, "=")
+		if len(splitOpt) == 1 {
+			splitOpt = strings.Split(opt, ":")
+		}
+		if len(splitOpt) < 2 {
+			continue
+		}
+		switch splitOpt[0] {
+		case "label":
+			configSpec.Annotations[libpod.InspectAnnotationLabel] = splitOpt[1]
+		case "seccomp":
+			configSpec.Annotations[libpod.InspectAnnotationSeccomp] = splitOpt[1]
+		case "apparmor":
+			configSpec.Annotations[libpod.InspectAnnotationApparmor] = splitOpt[1]
 		}
 	}
 
@@ -548,6 +624,23 @@ func addIpcNS(config *CreateConfig, g *generate.Generator) error {
 	return nil
 }
 
+func addCgroupNS(config *CreateConfig, g *generate.Generator) error {
+	cgroupMode := config.CgroupMode
+	if cgroupMode.IsNS() {
+		return g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), NS(string(cgroupMode)))
+	}
+	if cgroupMode.IsHost() {
+		return g.RemoveLinuxNamespace(spec.CgroupNamespace)
+	}
+	if cgroupMode.IsPrivate() {
+		return g.AddOrReplaceLinuxNamespace(spec.CgroupNamespace, "")
+	}
+	if cgroupMode.IsContainer() {
+		logrus.Debug("Using container cgroup mode")
+	}
+	return nil
+}
+
 func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	var (
 		kernelMax  uint64 = 1048576
@@ -557,6 +650,14 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	)
 
 	for _, u := range config.Resources.Ulimit {
+		if u == "host" {
+			if len(config.Resources.Ulimit) != 1 {
+				return errors.New("ulimit can use host only once")
+			}
+			g.Config.Process.Rlimits = nil
+			break
+		}
+
 		ul, err := units.ParseUlimit(u)
 		if err != nil {
 			return errors.Wrapf(err, "ulimit option %q requires name=SOFT:HARD, failed to be parsed", u)

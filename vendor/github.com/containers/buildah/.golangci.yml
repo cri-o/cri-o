@@ -16,13 +16,18 @@ linters:
     - dupl
     - errcheck
     - gofmt
+    - goimports
     - gosimple
     - govet
     - ineffassign
+    - misspell
     - nakedret
     - staticcheck
     - structcheck
+    - stylecheck
     - typecheck
+    - unconvert
+    - unparam
     - unused
     - varcheck
     # - gochecknoglobals
@@ -30,15 +35,10 @@ linters:
     # - goconst
     # - gocritic
     # - gocyclo
-    # - goimports
     # - golint
     # - gosec
     # - interfacer
     # - lll
     # - maligned
-    # - misspell
     # - prealloc
     # - scopelint
-    # - stylecheck
-    # - unconvert
-    # - unparam

@@ -4,6 +4,7 @@ package apparmor
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -91,17 +92,37 @@ func InstallDefault(name string) error {
 		return err
 	}
 	if err := cmd.Start(); err != nil {
-		pipe.Close()
+		if pipeErr := pipe.Close(); pipeErr != nil {
+			logrus.Errorf("unable to close apparmor pipe: %q", pipeErr)
+		}
 		return err
 	}
 	if err := p.generateDefault(pipe); err != nil {
-		pipe.Close()
-		cmd.Wait()
+		if pipeErr := pipe.Close(); pipeErr != nil {
+			logrus.Errorf("unable to close apparmor pipe: %q", pipeErr)
+		}
+		if cmdErr := cmd.Wait(); cmdErr != nil {
+			logrus.Errorf("unable to wait for apparmor command: %q", cmdErr)
+		}
 		return err
 	}
 
-	pipe.Close()
+	if pipeErr := pipe.Close(); pipeErr != nil {
+		logrus.Errorf("unable to close apparmor pipe: %q", pipeErr)
+	}
 	return cmd.Wait()
+}
+
+// DefaultContent returns the default profile content as byte slice. The
+// profile is named as the provided `name`. The function errors if the profile
+// generation fails.
+func DefaultContent(name string) ([]byte, error) {
+	p := profileData{Name: name}
+	var bytes bytes.Buffer
+	if err := p.generateDefault(&bytes); err != nil {
+		return nil, err
+	}
+	return bytes.Bytes(), nil
 }
 
 // IsLoaded checks if a profile with the given name has been loaded into the
