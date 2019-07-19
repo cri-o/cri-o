@@ -4,7 +4,7 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image saschagrunert/criocircle:1.0.0
+    IMAGE: &image saschagrunert/criocircle:1.1.0
     JOBS: &jobs 8
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
 
@@ -18,7 +18,7 @@ executors:
 
   container-legacy:
     docker:
-      - image: saschagrunert/criocircle:1.0.0-go-1.10
+      - image: saschagrunert/criocircle:1.1.0-go-1.10
         user: circleci
     <<: *stdenv
     working_directory: *workdir

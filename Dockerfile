@@ -52,10 +52,11 @@ RUN cd /tmp &&\
     mkdir -p ~/.parallel && touch ~/.parallel/will-cite
 
 # Install crictl and critest
-ENV CRICTL_COMMIT v1.14.0
-RUN wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_COMMIT/crictl-$CRICTL_COMMIT-linux-amd64.tar.gz \
+ENV CRICTL_COMMIT v1.15.0
+RUN VERSION=$CRICTL_COMMIT &&\
+    wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-$VERSION-linux-amd64.tar.gz \
         | tar xfz - -C /usr/bin &&\
-    wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_COMMIT/critest-$CRICTL_COMMIT-linux-amd64.tar.gz \
+    wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/critest-$VERSION-linux-amd64.tar.gz \
         | tar xfz - -C /usr/bin
 
 # Install runc
