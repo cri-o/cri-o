@@ -6,7 +6,7 @@ import (
 	"github.com/containers/libpod/pkg/registrar"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/oci"
 	"github.com/pkg/errors"
 )
 

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/cri-o/cri-o/pkg/oci"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -26,17 +27,17 @@ func createConmonUnitName(name string) string {
 	return createUnitName("crio-conmon", name)
 }
 
-func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) {
+func (r *runtimeOCI) createContainerPlatform(c *oci.Container, cgroupParent string, pid int) {
 	// Move conmon to specified cgroup
 	if r.config.ConmonCgroup == "pod" || r.config.ConmonCgroup == "" {
 		switch r.config.CgroupManager {
 		case SystemdCgroupsManager:
-			logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createConmonUnitName(c.id))
-			if err := utils.RunUnderSystemdScope(pid, cgroupParent, createConmonUnitName(c.id)); err != nil {
+			logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createConmonUnitName(c.ID()))
+			if err := utils.RunUnderSystemdScope(pid, cgroupParent, createConmonUnitName(c.ID())); err != nil {
 				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 			}
 		case CgroupfsCgroupsManager:
-			cgroupPath := filepath.Join(cgroupParent, "/crio-conmon-"+c.id)
+			cgroupPath := filepath.Join(cgroupParent, "/crio-conmon-"+c.ID())
 			control, err := cgroups.New(cgroupPath, &rspec.LinuxResources{})
 			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
@@ -46,7 +47,7 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 			}
 			// Record conmon's cgroup path in the container, so we can properly
 			// clean it up when removing the container.
-			c.conmonCgroupfsPath = cgroupPath
+			c.ConmonCgroupfsPath = cgroupPath
 			// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
 			// always fail as conmon's pid is still there.
 			// Fortunately, kubelet takes care of deleting this for us, so the leak will
@@ -61,8 +62,8 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 			logrus.Errorf("unknown cgroups manager %q for sandbox cgroup", r.config.CgroupManager)
 		}
 	} else if strings.HasSuffix(r.config.ConmonCgroup, ".slice") {
-		logrus.Debugf("Running conmon under custom slice %s and unitName %s", r.config.ConmonCgroup, createConmonUnitName(c.id))
-		if err := utils.RunUnderSystemdScope(pid, r.config.ConmonCgroup, createConmonUnitName(c.id)); err != nil {
+		logrus.Debugf("Running conmon under custom slice %s and unitName %s", r.config.ConmonCgroup, createConmonUnitName(c.ID()))
+		if err := utils.RunUnderSystemdScope(pid, r.config.ConmonCgroup, createConmonUnitName(c.ID())); err != nil {
 			logrus.Warnf("Failed to add conmon to custom systemd sandbox cgroup: %v", err)
 		}
 	}
@@ -93,7 +94,7 @@ func loadFactory(root string) (libcontainer.Factory, error) {
 }
 
 // libcontainerStats gets the stats for the container with the given id from runc/libcontainer
-func (r *runtimeOCI) libcontainerStats(ctr *Container) (*libcontainer.Stats, error) {
+func (r *runtimeOCI) libcontainerStats(ctr *oci.Container) (*libcontainer.Stats, error) {
 	factory, err := loadFactory(r.root)
 	if err != nil {
 		return nil, err
@@ -105,13 +106,13 @@ func (r *runtimeOCI) libcontainerStats(ctr *Container) (*libcontainer.Stats, err
 	return container.Stats()
 }
 
-func (r *runtimeOCI) containerStats(ctr *Container) (*ContainerStats, error) {
+func (r *runtimeOCI) containerStats(ctr *oci.Container) (*oci.ContainerStats, error) {
 	libcontainerStats, err := r.libcontainerStats(ctr)
 	if err != nil {
 		return nil, err
 	}
 	cgroupStats := libcontainerStats.CgroupStats
-	stats := new(ContainerStats)
+	stats := &oci.ContainerStats{}
 	stats.Container = ctr.ID()
 	stats.CPUNano = cgroupStats.CpuStats.CpuUsage.TotalUsage
 	stats.SystemNano = time.Now().UnixNano()
@@ -126,7 +127,7 @@ func (r *runtimeOCI) containerStats(ctr *Container) (*ContainerStats, error) {
 	return stats, nil
 }
 
-func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
+func metricsToCtrStats(c *oci.Container, m *cgroups.Metrics) *oci.ContainerStats {
 	var (
 		cpu         float64
 		cpuNano     uint64
@@ -160,7 +161,7 @@ func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
 		}
 	}
 
-	return &ContainerStats{
+	return &oci.ContainerStats{
 		Container:   c.ID(),
 		CPU:         cpu,
 		CPUNano:     cpuNano,

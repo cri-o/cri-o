@@ -5,6 +5,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -25,12 +26,12 @@ var _ = t.Describe("ContainerStatus", func() {
 
 	t.Describe("ContainerStatus", func() {
 		DescribeTable("should succeed", func(
-			givenState *oci.ContainerState,
+			givenState *publicOCI.ContainerState,
 			expectedState pb.ContainerState,
 		) {
 			// Given
 			addContainerAndSandbox()
-			testContainer.AddVolume(oci.ContainerVolume{})
+			testContainer.AddVolume(publicOCI.ContainerVolume{})
 			testContainer.SetState(givenState)
 
 			gomock.InOrder(
@@ -51,21 +52,21 @@ var _ = t.Describe("ContainerStatus", func() {
 			Expect(len(response.Status.Mounts)).To(BeEquivalentTo(1))
 			Expect(response.Status.State).To(Equal(expectedState))
 		},
-			Entry("Created", &oci.ContainerState{
+			Entry("Created", &publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
 			}, pb.ContainerState_CONTAINER_CREATED),
-			Entry("Running", &oci.ContainerState{
+			Entry("Running", &publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			}, pb.ContainerState_CONTAINER_RUNNING),
-			Entry("Stopped: ExitCode 0", &oci.ContainerState{
+			Entry("Stopped: ExitCode 0", &publicOCI.ContainerState{
 				ExitCode: 0,
 				State:    specs.State{Status: oci.ContainerStateStopped},
 			}, pb.ContainerState_CONTAINER_EXITED),
-			Entry("Stopped: ExitCode -1", &oci.ContainerState{
+			Entry("Stopped: ExitCode -1", &publicOCI.ContainerState{
 				ExitCode: -1,
 				State:    specs.State{Status: oci.ContainerStateStopped},
 			}, pb.ContainerState_CONTAINER_EXITED),
-			Entry("Stopped: OOMKilled", &oci.ContainerState{
+			Entry("Stopped: OOMKilled", &publicOCI.ContainerState{
 				OOMKilled: true,
 				State:     specs.State{Status: oci.ContainerStateStopped},
 			}, pb.ContainerState_CONTAINER_EXITED),

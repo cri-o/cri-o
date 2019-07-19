@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,7 +26,7 @@ var _ = t.Describe("ContainerStart", func() {
 		It("shoud succeed", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -34,7 +35,7 @@ var _ = t.Describe("ContainerStart", func() {
 					Return(nil),
 				ociRuntimeMock.EXPECT().ExecSyncContainer(
 					gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(&oci.ExecSyncResponse{}, nil),
+					Return(&publicOCI.ExecSyncResponse{}, nil),
 			)
 
 			// When
@@ -52,7 +53,7 @@ var _ = t.Describe("ContainerStart", func() {
 		It("shoud fail if exec sync erros", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -79,7 +80,7 @@ var _ = t.Describe("ContainerStart", func() {
 		It("shoud fail if command is nil", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -100,7 +101,7 @@ var _ = t.Describe("ContainerStart", func() {
 		It("shoud fail if container status invalid", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
 			})
 			addContainerAndSandbox()
@@ -121,7 +122,7 @@ var _ = t.Describe("ContainerStart", func() {
 		It("shoud fail if container status update erros", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
 			})
 			addContainerAndSandbox()

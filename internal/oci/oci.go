@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/pkg/oci"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
@@ -45,43 +46,15 @@ const (
 // information about the runtime.
 type Runtime struct {
 	config              *config.Config
-	runtimeImplMap      map[string]RuntimeImpl
+	runtimeImplMap      map[string]oci.RuntimeImpl
 	runtimeImplMapMutex sync.RWMutex
-}
-
-// RuntimeImpl is an interface used by the caller to interact with the
-// container runtime. The purpose of this interface being to abstract
-// implementations and their associated assumptions regarding the way to
-// interact with containers. This will allow for new implementations of
-// this interface, especially useful for the case of VM based container
-// runtimes. Assumptions based on the fact that a container process runs
-// on the host will be limited to the RuntimeOCI implementation.
-type RuntimeImpl interface {
-	CreateContainer(*Container, string) error
-	StartContainer(*Container) error
-	ExecContainer(*Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
-		bool, <-chan remotecommand.TerminalSize) error
-	ExecSyncContainer(*Container, []string, int64) (*ExecSyncResponse, error)
-	UpdateContainer(*Container, *rspec.LinuxResources) error
-	StopContainer(context.Context, *Container, int64) error
-	DeleteContainer(*Container) error
-	UpdateContainerStatus(*Container) error
-	PauseContainer(*Container) error
-	UnpauseContainer(*Container) error
-	ContainerStats(*Container) (*ContainerStats, error)
-	SignalContainer(*Container, syscall.Signal) error
-	AttachContainer(*Container, io.Reader, io.WriteCloser, io.WriteCloser,
-		bool, <-chan remotecommand.TerminalSize) error
-	PortForwardContainer(*Container, int32, io.ReadWriter) error
-	ReopenContainerLog(*Container) error
-	WaitContainerStateStopped(context.Context, *Container) error
 }
 
 // New creates a new Runtime with options provided
 func New(c *config.Config) *Runtime {
 	return &Runtime{
 		config:         c,
-		runtimeImplMap: make(map[string]RuntimeImpl),
+		runtimeImplMap: make(map[string]oci.RuntimeImpl),
 	}
 }
 
@@ -112,7 +85,7 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 // WaitContainerStateStopped runs a loop polling UpdateStatus(), seeking for
 // the container status to be updated to 'stopped'. Either it gets the expected
 // status and returns nil, or it reaches the timeout and returns an error.
-func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (err error) {
+func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *oci.Container) (err error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -172,15 +145,15 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 	return nil
 }
 
-func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
+func (r *Runtime) newRuntimeImpl(c *oci.Container) (oci.RuntimeImpl, error) {
 	// Define the current runtime handler as the default runtime handler.
 	rh := r.config.Runtimes[r.config.DefaultRuntime]
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this
 	// specific container.
-	if c.runtimeHandler != "" {
-		runtimeHandler, err := r.ValidateRuntimeHandler(c.runtimeHandler)
+	if c.RuntimeHandler() != "" {
+		runtimeHandler, err := r.ValidateRuntimeHandler(c.RuntimeHandler())
 		if err != nil {
 			return nil, err
 		}
@@ -198,7 +171,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 }
 
 // RuntimeImpl returns the runtime implementation for a given container
-func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
+func (r *Runtime) RuntimeImpl(c *oci.Container) (oci.RuntimeImpl, error) {
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
 	r.runtimeImplMapMutex.RUnlock()
@@ -210,7 +183,7 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 }
 
 // CreateContainer creates a container.
-func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
+func (r *Runtime) CreateContainer(c *oci.Container, cgroupParent string) error {
 	// Instantiate a new runtime implementation for this new container
 	impl, err := r.newRuntimeImpl(c)
 	if err != nil {
@@ -226,7 +199,7 @@ func (r *Runtime) CreateContainer(c *Container, cgroupParent string) error {
 }
 
 // StartContainer starts a container.
-func (r *Runtime) StartContainer(c *Container) error {
+func (r *Runtime) StartContainer(c *oci.Container) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -236,7 +209,7 @@ func (r *Runtime) StartContainer(c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *Runtime) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *Runtime) ExecContainer(c *oci.Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -246,7 +219,7 @@ func (r *Runtime) ExecContainer(c *Container, cmd []string, stdin io.Reader, std
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *Runtime) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+func (r *Runtime) ExecSyncContainer(c *oci.Container, command []string, timeout int64) (*oci.ExecSyncResponse, error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
@@ -256,7 +229,7 @@ func (r *Runtime) ExecSyncContainer(c *Container, command []string, timeout int6
 }
 
 // UpdateContainer updates container resources
-func (r *Runtime) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
+func (r *Runtime) UpdateContainer(c *oci.Container, res *rspec.LinuxResources) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -266,7 +239,7 @@ func (r *Runtime) UpdateContainer(c *Container, res *rspec.LinuxResources) error
 }
 
 // StopContainer stops a container. Timeout is given in seconds.
-func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+func (r *Runtime) StopContainer(ctx context.Context, c *oci.Container, timeout int64) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -276,7 +249,7 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 }
 
 // DeleteContainer deletes a container.
-func (r *Runtime) DeleteContainer(c *Container) error {
+func (r *Runtime) DeleteContainer(c *oci.Container) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -292,7 +265,7 @@ func (r *Runtime) DeleteContainer(c *Container) error {
 }
 
 // UpdateContainerStatus refreshes the status of the container.
-func (r *Runtime) UpdateContainerStatus(c *Container) error {
+func (r *Runtime) UpdateContainerStatus(c *oci.Container) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -302,7 +275,7 @@ func (r *Runtime) UpdateContainerStatus(c *Container) error {
 }
 
 // PauseContainer pauses a container.
-func (r *Runtime) PauseContainer(c *Container) error {
+func (r *Runtime) PauseContainer(c *oci.Container) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -312,7 +285,7 @@ func (r *Runtime) PauseContainer(c *Container) error {
 }
 
 // UnpauseContainer unpauses a container.
-func (r *Runtime) UnpauseContainer(c *Container) error {
+func (r *Runtime) UnpauseContainer(c *oci.Container) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -322,7 +295,7 @@ func (r *Runtime) UnpauseContainer(c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *Runtime) ContainerStats(c *Container) (*ContainerStats, error) {
+func (r *Runtime) ContainerStats(c *oci.Container) (*oci.ContainerStats, error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
@@ -332,7 +305,7 @@ func (r *Runtime) ContainerStats(c *Container) (*ContainerStats, error) {
 }
 
 // SignalContainer sends a signal to a container process.
-func (r *Runtime) SignalContainer(c *Container, sig syscall.Signal) error {
+func (r *Runtime) SignalContainer(c *oci.Container, sig syscall.Signal) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -342,7 +315,7 @@ func (r *Runtime) SignalContainer(c *Container, sig syscall.Signal) error {
 }
 
 // AttachContainer attaches IO to a running container.
-func (r *Runtime) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *Runtime) AttachContainer(c *oci.Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -352,7 +325,7 @@ func (r *Runtime) AttachContainer(c *Container, inputStream io.Reader, outputStr
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *Runtime) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
+func (r *Runtime) PortForwardContainer(c *oci.Container, port int32, stream io.ReadWriter) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -362,20 +335,13 @@ func (r *Runtime) PortForwardContainer(c *Container, port int32, stream io.ReadW
 }
 
 // ReopenContainerLog reopens the log file of a container.
-func (r *Runtime) ReopenContainerLog(c *Container) error {
+func (r *Runtime) ReopenContainerLog(c *oci.Container) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
 	return impl.ReopenContainerLog(c)
-}
-
-// ExecSyncResponse is returned from ExecSync.
-type ExecSyncResponse struct {
-	Stdout   []byte
-	Stderr   []byte
-	ExitCode int32
 }
 
 // ExecSyncError wraps command's streams, exit code and error on ExecSync error.

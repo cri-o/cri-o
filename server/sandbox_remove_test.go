@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,7 +27,7 @@ var _ = t.Describe("RemovePodSandbox", func() {
 		It("should succeed", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -62,7 +63,7 @@ var _ = t.Describe("RemovePodSandbox", func() {
 		It("should fail when container stop errors", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()

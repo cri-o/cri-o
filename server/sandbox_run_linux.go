@@ -20,6 +20,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -512,7 +513,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs().Path(), labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := publicOCI.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs().Path(), labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

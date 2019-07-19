@@ -2,6 +2,7 @@ package oci_test
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -15,7 +16,7 @@ var _ = t.Describe("History", func() {
 	BeforeEach(func() {
 		testContainer1 := getTestContainer()
 		testContainer2 := getTestContainer()
-		sut = oci.History([]*oci.Container{testContainer1, testContainer2})
+		sut = oci.History([]*publicOCI.Container{testContainer1, testContainer2})
 	})
 
 	It("should succeed to get the history len", func() {

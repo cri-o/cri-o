@@ -9,7 +9,7 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/oci"
 	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/go-zoo/bone"
 	"github.com/sirupsen/logrus"

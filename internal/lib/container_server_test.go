@@ -10,7 +10,7 @@ import (
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib"
 	libconfig "github.com/cri-o/cri-o/internal/lib/config"
-	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

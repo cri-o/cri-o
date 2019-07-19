@@ -7,22 +7,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer"
 )
 
-// ContainerStats contains the statistics information for a running container
-type ContainerStats struct {
-	Container   string
-	CPU         float64
-	CPUNano     uint64
-	SystemNano  int64
-	MemUsage    uint64
-	MemLimit    uint64
-	MemPerc     float64
-	NetInput    uint64
-	NetOutput   uint64
-	BlockInput  uint64
-	BlockOutput uint64
-	PIDs        uint64
-}
-
 // Returns the total number of bytes transmitted and received for the given container stats
 func getContainerNetIO(stats *libcontainer.Stats) (received, transmitted uint64) {
 	for _, iface := range stats.Interfaces {

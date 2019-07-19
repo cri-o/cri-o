@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,7 +27,7 @@ var _ = t.Describe("ContainerStart", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
 			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
 			})
 			gomock.InOrder(
@@ -51,7 +52,7 @@ var _ = t.Describe("ContainerStart", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
 			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
 			})
 			gomock.InOrder(

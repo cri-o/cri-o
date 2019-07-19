@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -24,7 +25,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 		It("should succeed", func() {
 			// Given
 			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			testSandbox.SetCreated()

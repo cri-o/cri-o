@@ -22,6 +22,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/cri-o/cri-o/utils"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
@@ -170,7 +171,7 @@ func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfi
 }
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
-func (s *Server) createContainerPlatform(container, infraContainer *oci.Container, cgroupParent string) error {
+func (s *Server) createContainerPlatform(container, infraContainer *publicOCI.Container, cgroupParent string) error {
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		rootPair := s.defaultIDMappings.RootPair()
 
@@ -209,7 +210,7 @@ func makeAccessible(path string, uid, gid int) error {
 }
 
 // nolint:gocyclo
-func (s *Server) createSandboxContainer(ctx context.Context, containerID, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*oci.Container, error) {
+func (s *Server) createSandboxContainer(ctx context.Context, containerID, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (*publicOCI.Container, error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
@@ -861,7 +862,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	crioAnnotations := specgen.Config.Annotations
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs().Path(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := publicOCI.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, sb.NetNs().Path(), labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
@@ -942,8 +943,8 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]oci.ContainerVolume, []rspec.Mount, error) {
-	volumes := []oci.ContainerVolume{}
+func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]publicOCI.ContainerVolume, []rspec.Mount, error) {
+	volumes := []publicOCI.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	mounts := containerConfig.GetMounts()
 
@@ -1045,7 +1046,7 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 			}
 		}
 
-		volumes = append(volumes, oci.ContainerVolume{
+		volumes = append(volumes, publicOCI.ContainerVolume{
 			ContainerPath: dest,
 			HostPath:      src,
 			Readonly:      mount.Readonly,

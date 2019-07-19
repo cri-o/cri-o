@@ -3,7 +3,7 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

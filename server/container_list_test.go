@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -23,7 +24,7 @@ var _ = t.Describe("ContainerList", func() {
 
 	t.Describe("ContainerList", func() {
 		DescribeTable("should succeed", func(
-			givenState *oci.ContainerState,
+			givenState *publicOCI.ContainerState,
 			expectedState pb.ContainerState,
 			created bool,
 		) {
@@ -46,16 +47,16 @@ var _ = t.Describe("ContainerList", func() {
 				Expect(response.Containers[0].State).To(Equal(expectedState))
 			}
 		},
-			Entry("Created 1", &oci.ContainerState{
+			Entry("Created 1", &publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
 			}, pb.ContainerState_CONTAINER_CREATED, true),
-			Entry("Created 2", &oci.ContainerState{
+			Entry("Created 2", &publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
 			}, pb.ContainerState_CONTAINER_CREATED, false),
-			Entry("Running", &oci.ContainerState{
+			Entry("Running", &publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			}, pb.ContainerState_CONTAINER_RUNNING, true),
-			Entry("Stopped", &oci.ContainerState{
+			Entry("Stopped", &publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
 			}, pb.ContainerState_CONTAINER_EXITED, true),
 		)

@@ -2,6 +2,7 @@ package lib_test
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,7 +18,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			myContainer.SetState(&oci.ContainerState{
+			myContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
 			})
 			addContainerAndSandbox()

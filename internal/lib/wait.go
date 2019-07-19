@@ -2,12 +2,13 @@ package lib
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-func isStopped(c *ContainerServer, ctr *oci.Container) bool {
+func isStopped(c *ContainerServer, ctr *publicOCI.Container) bool {
 	if err := c.runtime.UpdateContainerStatus(ctr); err != nil {
 		logrus.Warnf("unable to update containers %s status: %v", ctr.ID(), err)
 	}

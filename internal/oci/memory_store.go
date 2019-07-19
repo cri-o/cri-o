@@ -1,31 +1,35 @@
 package oci
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/cri-o/cri-o/pkg/oci"
+)
 
 // memoryStore implements a Store in memory.
 type memoryStore struct {
-	s map[string]*Container
+	s map[string]*oci.Container
 	sync.RWMutex
 }
 
 // NewMemoryStore initializes a new memory store.
 func NewMemoryStore() ContainerStorer {
 	return &memoryStore{
-		s: make(map[string]*Container),
+		s: make(map[string]*oci.Container),
 	}
 }
 
 // Add appends a new container to the memory store.
 // It overrides the id if it existed before.
-func (c *memoryStore) Add(id string, cont *Container) {
+func (c *memoryStore) Add(id string, cont *oci.Container) {
 	c.Lock()
 	c.s[id] = cont
 	c.Unlock()
 }
 
 // Get returns a container from the store by id.
-func (c *memoryStore) Get(id string) *Container {
-	var res *Container
+func (c *memoryStore) Get(id string) *oci.Container {
+	var res *oci.Container
 	c.RLock()
 	res = c.s[id]
 	c.RUnlock()
@@ -41,7 +45,7 @@ func (c *memoryStore) Delete(id string) {
 
 // List returns a sorted list of containers from the store.
 // The containers are ordered by creation date.
-func (c *memoryStore) List() []*Container {
+func (c *memoryStore) List() []*oci.Container {
 	containers := History(c.all())
 	containers.sort()
 	return containers
@@ -55,7 +59,7 @@ func (c *memoryStore) Size() int {
 }
 
 // First returns the first container found in the store by a given filter.
-func (c *memoryStore) First(filter StoreFilter) *Container {
+func (c *memoryStore) First(filter StoreFilter) *oci.Container {
 	for _, cont := range c.all() {
 		if filter == nil || filter(cont) {
 			return cont
@@ -74,7 +78,7 @@ func (c *memoryStore) ApplyAll(apply StoreReducer) {
 	wg := new(sync.WaitGroup)
 	for _, cont := range c.all() {
 		wg.Add(1)
-		go func(container *Container) {
+		go func(container *oci.Container) {
 			apply(container)
 			wg.Done()
 		}(cont)
@@ -83,9 +87,9 @@ func (c *memoryStore) ApplyAll(apply StoreReducer) {
 	wg.Wait()
 }
 
-func (c *memoryStore) all() []*Container {
+func (c *memoryStore) all() []*oci.Container {
 	c.RLock()
-	containers := make([]*Container, 0, len(c.s))
+	containers := make([]*oci.Container, 0, len(c.s))
 	for _, cont := range c.s {
 		containers = append(containers, cont)
 	}

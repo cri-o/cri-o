@@ -9,6 +9,7 @@ import (
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -96,7 +97,7 @@ type Sandbox struct {
 	seccompProfilePath string
 	labels             fields.Set
 	annotations        map[string]string
-	infraContainer     *oci.Container
+	infraContainer     *publicOCI.Container
 	metadata           *pb.PodSandboxMetadata
 	nsOpts             *pb.NamespaceOption
 	stopMutex          sync.RWMutex
@@ -246,7 +247,7 @@ func (s *Sandbox) Annotations() map[string]string {
 }
 
 // InfraContainer returns the infrastructure container for the sandbox
-func (s *Sandbox) InfraContainer() *oci.Container {
+func (s *Sandbox) InfraContainer() *publicOCI.Container {
 	return s.infraContainer
 }
 
@@ -325,23 +326,23 @@ func (s *Sandbox) PortMappings() []*hostport.PortMapping {
 }
 
 // AddContainer adds a container to the sandbox
-func (s *Sandbox) AddContainer(c *oci.Container) {
+func (s *Sandbox) AddContainer(c *publicOCI.Container) {
 	s.containers.Add(c.Name(), c)
 }
 
 // GetContainer retrieves a container from the sandbox
-func (s *Sandbox) GetContainer(name string) *oci.Container {
+func (s *Sandbox) GetContainer(name string) *publicOCI.Container {
 	return s.containers.Get(name)
 }
 
 // RemoveContainer deletes a container from the sandbox
-func (s *Sandbox) RemoveContainer(c *oci.Container) {
+func (s *Sandbox) RemoveContainer(c *publicOCI.Container) {
 	s.containers.Delete(c.Name())
 }
 
 // SetInfraContainer sets the infrastructure container of a sandbox
 // Attempts to set the infrastructure container after one is already present will throw an error
-func (s *Sandbox) SetInfraContainer(infraCtr *oci.Container) error {
+func (s *Sandbox) SetInfraContainer(infraCtr *publicOCI.Container) error {
 	if s.infraContainer != nil {
 		return fmt.Errorf("sandbox already has an infra container")
 	} else if infraCtr == nil {

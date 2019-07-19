@@ -2,6 +2,7 @@ package oci_test
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -22,7 +23,7 @@ var _ = t.Describe("MemoryStore", func() {
 	t.Describe("MemoryStore", func() {
 		var (
 			sut           oci.ContainerStorer
-			testContainer *oci.Container
+			testContainer *publicOCI.Container
 		)
 
 		const containerID = "id"
@@ -105,7 +106,7 @@ var _ = t.Describe("MemoryStore", func() {
 			Expect(sut.Get(containerID)).NotTo(BeNil())
 
 			// When
-			container := sut.First(func(*oci.Container) bool { return true })
+			container := sut.First(func(*publicOCI.Container) bool { return true })
 
 			// Then
 			Expect(container).NotTo(BeNil())
@@ -131,7 +132,7 @@ var _ = t.Describe("MemoryStore", func() {
 			Expect(sut.Get(containerID)).NotTo(BeNil())
 
 			// When
-			container := sut.First(func(*oci.Container) bool { return false })
+			container := sut.First(func(*publicOCI.Container) bool { return false })
 
 			// Then
 			Expect(container).To(BeNil())
@@ -139,12 +140,12 @@ var _ = t.Describe("MemoryStore", func() {
 
 		It("should succeed apply", func() {
 			// Given
-			newContainerState := &oci.ContainerState{ExitCode: -1}
+			newContainerState := &publicOCI.ContainerState{ExitCode: -1}
 			sut.Add(containerID, testContainer)
 			Expect(sut.Get(containerID)).NotTo(BeNil())
 
 			// When
-			sut.ApplyAll(func(container *oci.Container) {
+			sut.ApplyAll(func(container *publicOCI.Container) {
 				container.SetState(newContainerState)
 			})
 

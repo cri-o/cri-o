@@ -44,13 +44,13 @@ type Container struct {
 	imageRef           string
 	mountPoint         string
 	seccompProfilePath string
-	conmonCgroupfsPath string
+	ConmonCgroupfsPath string
 	labels             fields.Set
 	annotations        fields.Set
 	crioAnnotations    fields.Set
 	state              *ContainerState
 	metadata           *pb.ContainerMetadata
-	opLock             sync.RWMutex
+	opLock             *sync.RWMutex
 	spec               *specs.Spec
 	idMappings         *idtools.IDMappings
 	terminal           bool
@@ -79,7 +79,17 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id, name, bundlePath, logPath, netns string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce, privileged bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(
+	id, name, bundlePath, logPath, netns string,
+	labels, crioAnnotations, annotations map[string]string,
+	image, imageName, imageRef string,
+	metadata *pb.ContainerMetadata,
+	sandbox string,
+	terminal, stdin, stdinOnce, privileged bool,
+	runtimeHandler, dir string,
+	created time.Time,
+	stopSignal string,
+) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -96,6 +106,7 @@ func NewContainer(id, name, bundlePath, logPath, netns string, labels, crioAnnot
 		privileged:      privileged,
 		runtimeHandler:  runtimeHandler,
 		metadata:        metadata,
+		opLock:          &sync.RWMutex{},
 		annotations:     annotations,
 		crioAnnotations: crioAnnotations,
 		image:           image,
@@ -116,12 +127,6 @@ func (c *Container) SetSpec(s *specs.Spec) {
 // Spec returns a copy of the spec for the container
 func (c *Container) Spec() specs.Spec {
 	return *c.spec
-}
-
-// ConmonCgroupfsPath returns the path to conmon's cgroup. This is only set when
-// cgroupfs is used as a cgroup manager.
-func (c *Container) ConmonCgroupfsPath() string {
-	return c.conmonCgroupfsPath
 }
 
 // GetStopSignal returns the container's own stop signal configured from the
@@ -186,7 +191,7 @@ func (c *Container) ID() string {
 
 // CleanupConmonCgroup cleans up conmon's group when using cgroupfs.
 func (c *Container) CleanupConmonCgroup() {
-	path := c.ConmonCgroupfsPath()
+	path := c.ConmonCgroupfsPath
 	if path == "" {
 		return
 	}
@@ -350,4 +355,24 @@ func (c *Container) Description() string {
 // StdinOnce returns whether stdin once is set for the container.
 func (c *Container) StdinOnce() bool {
 	return c.stdinOnce
+}
+
+// Stdin returns whether stdin is set for the container.
+func (c *Container) Stdin() bool {
+	return c.stdin
+}
+
+// Terminal returns whether tha terminal attribute is set for the container.
+func (c *Container) Terminal() bool {
+	return c.terminal
+}
+
+// RuntimeHandler returns the runtime handler as string
+func (c *Container) RuntimeHandler() string {
+	return c.runtimeHandler
+}
+
+// OpLock returns the internal RWLock for the container
+func (c *Container) OpLock() *sync.RWMutex {
+	return c.opLock
 }

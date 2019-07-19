@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,7 +21,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			myContainer.SetState(&oci.ContainerState{
+			myContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -48,7 +49,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail when wait for container state stopped errors", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			myContainer.SetState(&oci.ContainerState{
+			myContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -70,7 +71,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail when storage stop fails", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			myContainer.SetState(&oci.ContainerState{
+			myContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -94,7 +95,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail when runtime stop fails", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			myContainer.SetState(&oci.ContainerState{
+			myContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -114,7 +115,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail container paused", func() {
 			// Given
 			sut.SetRuntime(ociRuntimeMock)
-			myContainer.SetState(&oci.ContainerState{
+			myContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStatePaused},
 			})
 			addContainerAndSandbox()

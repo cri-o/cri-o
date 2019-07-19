@@ -18,6 +18,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/truncindex"
@@ -31,7 +32,7 @@ import (
 
 // ContainerServer implements the ImageServer
 type ContainerServer struct {
-	runtime              oci.RuntimeImpl
+	runtime              publicOCI.RuntimeImpl
 	store                cstorage.Store
 	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
@@ -48,7 +49,7 @@ type ContainerServer struct {
 }
 
 // Runtime returns the oci runtime for the ContainerServer
-func (c *ContainerServer) Runtime() oci.RuntimeImpl {
+func (c *ContainerServer) Runtime() publicOCI.RuntimeImpl {
 	return c.runtime
 }
 
@@ -389,7 +390,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	scontainer, err := publicOCI.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -397,7 +398,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
 
 	if m.Annotations[annotations.Volumes] != "" {
-		containerVolumes := []oci.ContainerVolume{}
+		containerVolumes := []publicOCI.ContainerVolume{}
 		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
 			return fmt.Errorf("failed to unmarshal container volumes: %v", err)
 		}
@@ -516,7 +517,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, img, imgName, imgRef, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := publicOCI.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], sb.NetNs().Path(), labels, m.Annotations, kubeAnnotations, img, imgName, imgRef, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -540,7 +541,7 @@ func isTrue(annotaton string) bool {
 
 // ContainerStateFromDisk retrieves information on the state of a running container
 // from the disk
-func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
+func (c *ContainerServer) ContainerStateFromDisk(ctr *publicOCI.Container) error {
 	if err := ctr.FromDisk(); err != nil {
 		return err
 	}
@@ -553,7 +554,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
-func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
+func (c *ContainerServer) ContainerStateToDisk(ctr *publicOCI.Container) error {
 	if err := c.Runtime().UpdateContainerStatus(ctr); err != nil {
 		logrus.Warnf("error updating the container status %q: %v", ctr.ID(), err)
 	}
@@ -626,7 +627,7 @@ type containerServerState struct {
 }
 
 // AddContainer adds a container to the container state store
-func (c *ContainerServer) AddContainer(ctr *oci.Container) {
+func (c *ContainerServer) AddContainer(ctr *publicOCI.Container) {
 	newSandbox := c.state.sandboxes.Get(ctr.Sandbox())
 	if newSandbox == nil {
 		return
@@ -636,17 +637,17 @@ func (c *ContainerServer) AddContainer(ctr *oci.Container) {
 }
 
 // AddInfraContainer adds a container to the container state store
-func (c *ContainerServer) AddInfraContainer(ctr *oci.Container) {
+func (c *ContainerServer) AddInfraContainer(ctr *publicOCI.Container) {
 	c.state.infraContainers.Add(ctr.ID(), ctr)
 }
 
 // GetContainer returns a container by its ID
-func (c *ContainerServer) GetContainer(id string) *oci.Container {
+func (c *ContainerServer) GetContainer(id string) *publicOCI.Container {
 	return c.state.containers.Get(id)
 }
 
 // GetInfraContainer returns a container by its ID
-func (c *ContainerServer) GetInfraContainer(id string) *oci.Container {
+func (c *ContainerServer) GetInfraContainer(id string) *publicOCI.Container {
 	return c.state.infraContainers.Get(id)
 }
 
@@ -656,7 +657,7 @@ func (c *ContainerServer) HasContainer(id string) bool {
 }
 
 // RemoveContainer removes a container from the container state store
-func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
+func (c *ContainerServer) RemoveContainer(ctr *publicOCI.Container) {
 	sbID := ctr.Sandbox()
 	sb := c.state.sandboxes.Get(sbID)
 	if sb == nil {
@@ -667,23 +668,23 @@ func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 }
 
 // RemoveInfraContainer removes a container from the container state store
-func (c *ContainerServer) RemoveInfraContainer(ctr *oci.Container) {
+func (c *ContainerServer) RemoveInfraContainer(ctr *publicOCI.Container) {
 	c.state.infraContainers.Delete(ctr.ID())
 }
 
 // listContainers returns a list of all containers stored by the server state
-func (c *ContainerServer) listContainers() []*oci.Container {
+func (c *ContainerServer) listContainers() []*publicOCI.Container {
 	return c.state.containers.List()
 }
 
 // ListContainers returns a list of all containers stored by the server state
 // that match the given filter function
-func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) ([]*oci.Container, error) {
+func (c *ContainerServer) ListContainers(filters ...func(*publicOCI.Container) bool) ([]*publicOCI.Container, error) {
 	containers := c.listContainers()
 	if len(filters) == 0 {
 		return containers, nil
 	}
-	filteredContainers := make([]*oci.Container, 0, len(containers))
+	filteredContainers := make([]*publicOCI.Container, 0, len(containers))
 	for _, container := range containers {
 		for _, filter := range filters {
 			if filter(container) {
@@ -709,7 +710,7 @@ func (c *ContainerServer) GetSandbox(id string) *sandbox.Sandbox {
 }
 
 // GetSandboxContainer returns a sandbox's infra container
-func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
+func (c *ContainerServer) GetSandboxContainer(id string) *publicOCI.Container {
 	sb := c.state.sandboxes.Get(id)
 	if sb == nil {
 		return nil

@@ -6,8 +6,6 @@ import (
 
 	"github.com/cri-o/cri-o/pkg/oci"
 	. "github.com/cri-o/cri-o/test/framework"
-	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -16,22 +14,16 @@ import (
 // TestOci runs the created specs
 func TestOci(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunFrameworkSpecs(t, "Oci")
+	RunFrameworkSpecs(t, "Public OCI")
 }
 
 var (
-	t         *TestFramework
-	mockCtrl  *gomock.Controller
-	storeMock *containerstoragemock.MockStore
+	t *TestFramework
 )
 
 var _ = BeforeSuite(func() {
 	t = NewTestFramework(NilFunc, NilFunc)
 	t.Setup()
-
-	// Setup the mocks
-	mockCtrl = gomock.NewController(GinkgoT())
-	storeMock = containerstoragemock.NewMockStore(mockCtrl)
 })
 
 func getTestContainer() *oci.Container {
@@ -48,5 +40,4 @@ func getTestContainer() *oci.Container {
 
 var _ = AfterSuite(func() {
 	t.Teardown()
-	mockCtrl.Finish()
 })

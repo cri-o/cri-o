@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"

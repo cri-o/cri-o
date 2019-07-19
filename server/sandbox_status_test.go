@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	publicOCI "github.com/cri-o/cri-o/pkg/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -24,7 +25,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 		It("should succeed", func() {
 			// Given
 			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 
@@ -40,7 +41,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 		It("should succeed with multiple IPs", func() {
 			// Given
 			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetState(&publicOCI.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			const (

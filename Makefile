@@ -285,7 +285,7 @@ mock-oci: ${MOCKGEN}
 		${MOCKGEN_FLAGS} \
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
-		github.com/cri-o/cri-o/internal/oci RuntimeImpl
+		github.com/cri-o/cri-o/pkg/oci RuntimeImpl
 
 mock-sandbox: ${MOCKGEN}
 	${MOCKGEN} \

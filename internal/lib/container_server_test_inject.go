@@ -5,8 +5,8 @@
 package lib
 
 import (
-	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/pkg/oci"
 )
 
 // SetStorageRuntimeServer sets the runtime server for the ContainerServer

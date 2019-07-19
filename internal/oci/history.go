@@ -1,10 +1,14 @@
 package oci
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/cri-o/cri-o/pkg/oci"
+)
 
 // History is a convenience type for storing a list of containers,
 // sorted by creation date in descendant order.
-type History []*Container
+type History []*oci.Container
 
 // Len returns the number of containers in the history.
 func (history *History) Len() int {
@@ -16,7 +20,7 @@ func (history *History) Len() int {
 func (history *History) Less(i, j int) bool {
 	containers := *history
 	// FIXME: state access should be serialized
-	return containers[j].state.Created.Before(containers[i].state.Created)
+	return containers[j].StateNoLock().Created.Before(containers[i].StateNoLock().Created)
 }
 
 // Swap switches containers i and j positions in the history.
