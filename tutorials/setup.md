@@ -38,7 +38,7 @@ yum install -y \
   runc
 ```
 
-RHEL 8 distributions:
+RHEL 8 distributions:\
 Make sure you are subscribed to the following repositories: \
 BaseOS/x86_64 \
 Appstream/x86_64
@@ -283,10 +283,10 @@ For more information about this file see [registries.conf(5)](https://github.com
 
 ### Recommended - Use systemd cgroups.
 
-By default, CRI-O uses cgroupfs as a cgroup driver. However, we recommend using systemd as a cgroup driver. You can change your cgroup driver in crio.conf:
+By default, CRI-O uses cgroupfs as a cgroup manager. However, we recommend using systemd as a cgroup manager. You can change your cgroup manager in crio.conf:
 
 ```
-cgroup_driver = "systemd"
+cgroup_manager = "systemd"
 ```
 
 ### Optional - Modify verbosity of logs in /etc/crio/crio.conf
