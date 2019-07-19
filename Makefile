@@ -377,6 +377,9 @@ git-validation: .gopathok git-vars ${GIT_VALIDATION}
 		${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace \
 			-range ${GIT_MERGE_BASE}..HEAD
 
+docs-validation:
+	$(GO) run -tags "$(BUILDTAGS)" ./test/docs-validation
+
 .PHONY: \
 	.explicit_phony \
 	git-validation \
@@ -389,6 +392,7 @@ git-validation: .gopathok git-vars ${GIT_VALIDATION}
 	clean \
 	default \
 	docs \
+	docs-validation \
 	help \
 	install \
 	lint \
