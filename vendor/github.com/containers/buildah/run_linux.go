@@ -175,7 +175,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	if !(contains(volumes, "/etc/resolv.conf") || (len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none")) {
-		resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions)
+		resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions, namespaceOptions)
 		if err != nil {
 			return err
 		}
@@ -462,7 +462,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 }
 
 // addNetworkConfig copies files from host and sets them up to bind mount into container
-func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string) (string, error) {
+func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string, namespaceOptions NamespaceOptions) (string, error) {
 	stat, err := os.Stat(hostPath)
 	if err != nil {
 		return "", errors.Wrapf(err, "error statting %q for container %q", hostPath, b.ContainerID)
@@ -479,6 +479,16 @@ func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDP
 	if len(dnsSearch) > 0 {
 		search = dnsSearch
 	}
+
+	if b.Isolation == IsolationOCIRootless {
+		ns := namespaceOptions.Find(string(specs.NetworkNamespace))
+		if ns != nil && !ns.Host && ns.Path == "" {
+			// if we are using slirp4netns, also add the built-in DNS server.
+			logrus.Debugf("adding slirp4netns 10.0.2.3 built-in DNS server")
+			nameservers = append([]string{"10.0.2.3"}, nameservers...)
+		}
+	}
+
 	if len(dnsServers) != 0 {
 		dns, err := getDNSIP(dnsServers)
 		if err != nil {
@@ -944,8 +954,8 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	}
 
 	return func() {
-		cmd.Process.Kill()
-		cmd.Wait()
+		cmd.Process.Kill() // nolint:errcheck
+		cmd.Wait()         // nolint:errcheck
 	}, nil
 }
 
@@ -1131,11 +1141,11 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 		if err := setNonblock(rfd, readDesc[rfd], true); err != nil {
 			return
 		}
-		setNonblock(wfd, writeDesc[wfd], false)
+		setNonblock(wfd, writeDesc[wfd], false) // nolint:errcheck
 	}
 
 	if copyPipes {
-		setNonblock(stdioPipe[unix.Stdin][1], writeDesc[stdioPipe[unix.Stdin][1]], true)
+		setNonblock(stdioPipe[unix.Stdin][1], writeDesc[stdioPipe[unix.Stdin][1]], true) // nolint:errcheck
 	}
 
 	runCopyStdioPassData(stdio, copyPipes, stdioPipe, copyConsole, consoleListener, finishCopy, finishedCopy, spec, relayMap, relayBuffer, readDesc, writeDesc)
@@ -1598,7 +1608,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		return nil, errors.Wrapf(err, "error cleaning up overlay content for %s", b.ContainerID)
 	}
 
-	parseMount := func(host, container string, options []string) (specs.Mount, error) {
+	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
 		var foundrw, foundro, foundz, foundZ, foundO bool
 		var rootProp string
 		for _, opt := range options {
@@ -1641,18 +1651,22 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		if rootProp == "" {
 			options = append(options, "private")
 		}
+		if mountType != "tmpfs" {
+			mountType = "bind"
+			options = append(options, "rbind")
+		}
 		return specs.Mount{
 			Destination: container,
-			Type:        "bind",
+			Type:        mountType,
 			Source:      host,
-			Options:     append(options, "rbind"),
+			Options:     options,
 		}, nil
 	}
 
 	// Bind mount volumes specified for this particular Run() invocation
 	for _, i := range optionMounts {
 		logrus.Debugf("setting up mounted volume at %q", i.Destination)
-		mount, err := parseMount(i.Source, i.Destination, i.Options)
+		mount, err := parseMount(i.Type, i.Source, i.Destination, i.Options)
 		if err != nil {
 			return nil, err
 		}
@@ -1666,7 +1680,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			options = strings.Split(spliti[2], ",")
 		}
 		options = append(options, "rbind")
-		mount, err := parseMount(spliti[0], spliti[1], options)
+		mount, err := parseMount("bind", spliti[0], spliti[1], options)
 		if err != nil {
 			return nil, err
 		}

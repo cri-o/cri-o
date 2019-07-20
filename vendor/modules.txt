@@ -71,7 +71,7 @@ github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.9.0
+# github.com/containers/buildah v1.9.1
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
@@ -286,7 +286,7 @@ github.com/docker/go-connections/sockets
 github.com/docker/go-metrics
 # github.com/docker/go-units v0.4.0
 github.com/docker/go-units
-# github.com/docker/libnetwork v0.8.0-dev.2.0.20180608203834-19279f049241
+# github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
 github.com/docker/libnetwork/resolvconf
 github.com/docker/libnetwork/types
 github.com/docker/libnetwork/resolvconf/dns
@@ -496,7 +496,7 @@ github.com/ijc/Gotty
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
-# github.com/ishidawataru/sctp v0.0.0-20180213033435-07191f837fed
+# github.com/ishidawataru/sctp v0.0.0-20180918013207-6e2cb1366111
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.6
 github.com/json-iterator/go
