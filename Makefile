@@ -35,7 +35,7 @@ OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell selinuxenabled 2>/dev/null && echo -Z)
 
-BUILD_INFO := $(shell date +%s)
+SOURCE_DATE_EPOCH ?= $(shell date +%s)
 
 GO_MD2MAN := ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
@@ -62,7 +62,7 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
-BASE_LDFLAGS = ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
+BASE_LDFLAGS = ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${SOURCE_DATE_EPOCH}
 LDFLAGS = -ldflags '${BASE_LDFLAGS}'
 
 all: binaries crio.conf docs
