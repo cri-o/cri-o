@@ -25,7 +25,7 @@ executors:
 
   container-base:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12
     <<: *stdenv
     working_directory: *workdir
 
@@ -149,7 +149,7 @@ jobs:
             - bin
 
   build-test-binaries:
-    executor: container-base
+    executor: container
     steps:
       - checkout
       - restore_cache:
@@ -225,7 +225,7 @@ jobs:
             - build/bin/ginkgo
 
   git-validation:
-    executor: container-base
+    executor: container
     steps:
       - checkout
       - restore_cache:
