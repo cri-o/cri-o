@@ -76,7 +76,7 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
 
 **default_ulimits**=[]
-  A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>".
+  A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>", for example:"nofile=1024:2048". If nothing is set here, settings will be inherited from the CRI-O daemon.
 
 **default_runtime**="runc"
   The _name_ of the OCI runtime to be used as the default.
@@ -129,7 +129,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
  List of default sysctls. If it is empty or commented out, only the sysctls defined in the container json file by the user/kube will be added.
 
 **additional_devices**=[]
-  List of additional devices. If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
+  List of additional devices. Specified as "<device-on-host>:<device-on-container>:<permissions>", for example: "--additional-devices=/dev/sdc:/dev/xvdc:rwm". If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
 
 **hooks_dir**=["*path*", ...]
   Each `*.json` file in the path configures a hook for CRI-O containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  CRI-O currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
@@ -168,7 +168,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
   Path to directory for container attach sockets.
 
 **bind_mount_prefix**=""
-  The prefix to use for the source of the bind mounts.
+  A prefix to use for the source of the bind mounts. This option would be useful when running CRI-O in a container and the / directory on the host is mounted as /host in the container. Then if CRI-O runs with the --bind-mount-prefix=/host option, CRI-O would add the /host directory to any bind mounts it hands over to CRI. If Kubernetes asked to have /var/lib/foobar bind mounted into the container, then CRI-O would bind mount /host/var/lib/foobar. Since CRI-O itself is running in a container with / or the host mounted on /host, the container would end up with /var/lib/foobar from the host mounted in the container rather than /var/lib/foobar from the CRI-O container.
 
 **read_only**=false
   If set to true, all containers will run in read-only mode.
