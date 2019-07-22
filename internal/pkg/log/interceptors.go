@@ -69,5 +69,5 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 }
 
 func addRequestID(ctx context.Context) context.Context {
-	return context.WithValue(ctx, id{}, uuid.New().String())
+	return context.WithValue(ctx, ID{}, uuid.New().String())
 }
