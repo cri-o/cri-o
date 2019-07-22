@@ -133,7 +133,7 @@ For more guidance in running `CRI-O`, visit our [tutorial page](tutorial.md)
 [libpod-hooks]: https://github.com/containers/libpod/blob/v0.6.2/pkg/hooks/README.md
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks
 
-#### The HTTP API
+#### The HTTP status API
 
 CRI-O exposes per default the [gRPC](https://grpc.io/) API to fulfill the
 Container Runtime Interface (CRI) of Kubernetes. Besides this, there exists an
@@ -161,6 +161,21 @@ The following API entry points are currently supported:
 | `/info`           | `application/json` | General information about the runtime, like `storage_driver` and `storage_root`.   |
 | `/containers/:id` | `application/json` | Dedicated container information, like `name`, `pid` and `image`.                   |
 | `/config`         | `application/toml` | The complete TOML configuration (defaults to `/etc/crio/crio.conf`) used by CRI-O. |
+
+The tool `crio-status` can be used to access the API with a dedicated command
+line tool. It supports all API endpoints via the dedicated subcommands `config`,
+`info` and `containers`, for example:
+
+```
+$ sudo go run cmd/crio-status/main.go info
+cgroup driver: cgroupfs
+storage driver: btrfs
+storage root: /var/lib/containers/storage
+default GID mappings (format <container>:<host>:<size>):
+  0:0:4294967295
+default UID mappings (format <container>:<host>:<size>):
+  0:0:4294967295
+```
 
 ## Weekly Meeting
 A weekly meeting is held to discuss CRI-O development. It is open to everyone.

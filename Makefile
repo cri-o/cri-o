@@ -31,6 +31,7 @@ MOCK_PATH := ${PWD}/test/mocks
 MOCKGEN_FLAGS := --build_flags='--tags=test $(BUILDTAGS)'
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
+FISHINSTALLDIR=${PREFIX}/share/fish/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell selinuxenabled 2>/dev/null && echo -Z)
@@ -117,6 +118,9 @@ test/checkseccomp/checkseccomp: git-vars .gopathok $(wildcard test/checkseccomp/
 
 bin/crio: git-vars .gopathok
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
+
+bin/crio-status: git-vars .gopathok
+	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static: git-vars
 	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(NIX_IMAGE) sh -c \
@@ -315,7 +319,7 @@ codecov:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/conmon bin/pause
+binaries: bin/crio bin/conmon bin/pause bin/crio-status
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -334,10 +338,11 @@ docs: $(MANPAGES)
 bundle:
 	bundle/build
 
-install: .gopathok install.bin install.man
+install: .gopathok install.bin install.man install.completions
 
 install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
+	install ${SELINUXOPT} -D -m 755 bin/crio-status $(BINDIR)/crio-status
 	install ${SELINUXOPT} -D -m 755 bin/conmon $(BINDIR)/conmon
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 
@@ -355,6 +360,9 @@ install.config: crio.conf
 
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 ${FISHINSTALLDIR}
+	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} ./completions/bash/crio-status
+	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} ./completions/fish/crio-status.fish
 
 install.systemd:
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
@@ -363,6 +371,7 @@ install.systemd:
 
 uninstall:
 	rm -f $(BINDIR)/crio
+	rm -f $(BINDIR)/crio-status
 	rm -f $(BINDIR)/conmon
 	rm -f $(LIBEXECDIR)/crio/pause
 	for i in $(filter %.5,$(MANPAGES)); do \
@@ -371,6 +380,8 @@ uninstall:
 	for i in $(filter %.8,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done
+	rm -f ${BASHINSTALLDIR}/crio-status
+	rm -f ${FISHINSTALLDIR}/crio-status.fish
 
 git-validation: .gopathok git-vars ${GIT_VALIDATION}
 	GIT_CHECK_EXCLUDE="vendor" \
@@ -385,6 +396,7 @@ docs-validation:
 	git-validation \
 	bin/conmon \
 	bin/crio \
+	bin/crio-status \
 	bin/pause \
 	binaries \
 	bundle \
