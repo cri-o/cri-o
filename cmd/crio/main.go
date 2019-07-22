@@ -532,6 +532,7 @@ func main() {
 			return err
 		}
 		logrus.SetLevel(level)
+		logrus.AddHook(log.NewFilenameHook())
 
 		if path := c.GlobalString("log"); path != "" {
 			f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0666)
