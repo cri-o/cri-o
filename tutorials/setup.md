@@ -102,7 +102,11 @@ apt-get update -qq && apt-get install -y \
   libselinux1-dev \
   pkg-config \
   go-md2man \
-  cri-o-runc
+  cri-o-runc \
+  libudev-dev \
+  software-properties-common \
+  gcc \
+  make
 ```
 
 **Caveats and Notes:**
