@@ -352,6 +352,9 @@ function teardown() {
 }
 
 @test "ctr journald logging" {
+	if [[ "$TRAVIS" == "true" ]]; then
+		skip "travis does not support journald logging"
+	fi
 	# ensure we have journald logging capability
 	enabled=$(check_journald)
 	if [[ "$enabled" -ne 0 ]]; then
