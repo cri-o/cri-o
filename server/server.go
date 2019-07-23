@@ -405,11 +405,37 @@ func New(
 
 	hostIP := net.ParseIP(config.HostIP)
 	if hostIP == nil {
+		// First, attempt to find a primary IP from /proc/net/route deterministically
 		hostIP, err = knet.ChooseBindAddress(nil)
 		if err != nil {
-			return nil, err
+			// if that fails, check if we can find a primary IP address unambiguously
+			allAddrs, err2 := net.InterfaceAddrs()
+			if err2 != nil {
+				return nil, errors.Wrapf(err, "Failed to read InterfaceAddrs after failing to choose bind address")
+			}
+
+			// we are hoping for exactly 1 possible IP
+			numPossibleIPs := 0
+			// adapted from: https://stackoverflow.com/a/31551220
+			for _, addr := range allAddrs {
+				if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+					if ipnet.IP.To4() != nil {
+						numPossibleIPs++
+						hostIP = ipnet.IP
+						if numPossibleIPs > 1 {
+							break
+						}
+					}
+				}
+			}
+
+			// If there is no clear primary IP, we should fail
+			if numPossibleIPs != 1 {
+				return nil, errors.Wrapf(err, "Failed to find one IP address after failing to choose bind address")
+			}
 		}
 	}
+
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
 		bindAddress = hostIP
