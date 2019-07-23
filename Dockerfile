@@ -30,7 +30,7 @@ RUN apt-get update &&\
     liblzma-dev \
     libnet-dev \
     libnl-3-dev \
-    libprotobuf-c0-dev \
+    libprotobuf-c-dev \
     libprotobuf-dev \
     libseccomp-dev \
     libseccomp2 \
