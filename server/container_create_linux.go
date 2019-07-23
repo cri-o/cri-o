@@ -764,8 +764,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddAnnotation("org.opencontainers.image.stopSignal", containerImageConfig.Config.StopSignal)
 	}
 
+	// Setup user and groups
+	if linux != nil {
+		if err := setupContainerUser(ctx, &specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
+			return nil, err
+		}
+	}
+
 	// Add image volumes
-	volumeMounts, err := addImageVolumes(ctx, mountPoint, s, &containerInfo, mountLabel)
+	volumeMounts, err := addImageVolumes(ctx, mountPoint, s, &containerInfo, mountLabel, &specgen)
 	if err != nil {
 		return nil, err
 	}
@@ -840,13 +847,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	if s.ContainerServer.Hooks != nil {
 		if _, err := s.ContainerServer.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.GetMounts()) > 0); err != nil {
-			return nil, err
-		}
-	}
-
-	// Setup user and groups
-	if linux != nil {
-		if err := setupContainerUser(ctx, &specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
 			return nil, err
 		}
 	}

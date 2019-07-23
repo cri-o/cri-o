@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/pkg/log"
@@ -156,7 +157,7 @@ func getSourceMount(source string, mountInfos []*dockermounts.Info) (path, optio
 	return "", "", fmt.Errorf("could not find source mount of %s", source)
 }
 
-func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string) ([]rspec.Mount, error) {
+func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string, specgen *generate.Generator) ([]rspec.Mount, error) {
 	mounts := []rspec.Mount{}
 	for dest := range containerInfo.Config.Config.Volumes {
 		fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, dest), rootfs)
@@ -165,7 +166,8 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 		}
 		switch s.config.ImageVolumes {
 		case config.ImageVolumesMkdir:
-			if err1 := os.MkdirAll(fp, 0755); err1 != nil {
+			IDs := idtools.IDPair{UID: int(specgen.Config.Process.User.UID), GID: int(specgen.Config.Process.User.GID)}
+			if err1 := idtools.MkdirAllAndChownNew(fp, 0755, IDs); err1 != nil {
 				return nil, err1
 			}
 		case config.ImageVolumesBind:
