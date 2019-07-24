@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containers/image/types"
+	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/registrar"
@@ -45,6 +46,8 @@ type ContainerServer struct {
 	stateLock sync.Locker
 	state     *containerServerState
 	config    *libconfig.Config
+
+	imageRuntime *libpodImage.Runtime
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -60,6 +63,11 @@ func (c *ContainerServer) Store() cstorage.Store {
 // StorageImageServer returns the ImageServer for the ContainerServer
 func (c *ContainerServer) StorageImageServer() storage.ImageServer {
 	return c.storageImageServer
+}
+
+// ImageRuntime returns the runtime for container image handling
+func (c *ContainerServer) ImageRuntime() *libpodImage.Runtime {
+	return c.imageRuntime
 }
 
 // CtrNameIndex returns the Registrar for the ContainerServer
@@ -131,6 +139,12 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 		return nil, err
 	}
 
+	// Interface with libpod and apply the system context values
+	imageRuntime := libpodImage.NewImageRuntimeFromStore(store)
+	if systemContext != nil {
+		imageRuntime.SignaturePolicyPath = systemContext.SignaturePolicyPath
+	}
+
 	return &ContainerServer{
 		runtime:              runtime,
 		store:                store,
@@ -148,7 +162,8 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 			sandboxes:       sandbox.NewMemoryStore(),
 			processLevels:   make(map[string]int),
 		},
-		config: config,
+		config:       config,
+		imageRuntime: imageRuntime,
 	}, nil
 }
 

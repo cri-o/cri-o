@@ -15,7 +15,7 @@ require (
 	github.com/containernetworking/plugins v0.8.1
 	github.com/containers/buildah v1.9.2
 	github.com/containers/image v2.0.1+incompatible
-	github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c
+	github.com/containers/libpod v0.0.0
 	github.com/containers/storage v1.12.14
 	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -61,6 +61,7 @@ require (
 )
 
 replace (
+	github.com/containers/libpod => github.com/openSUSE/libpod v0.8.3-0.20190725104508-7630f1b52efb
 	github.com/godbus/dbus => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v0.1.2-0.20190408193819-a1b50f621a48
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20190717003725-704790e04128

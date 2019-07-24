@@ -1,9 +1,13 @@
 package server
 
 import (
+	"fmt"
+	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -24,48 +28,84 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 			filter = filterImage.Image
 		}
 	}
-	results, err := s.StorageImageServer().ListImages(s.systemContext, filter)
-	if err != nil {
-		return nil, err
-	}
+
 	resp = &pb.ListImagesResponse{}
-	for i := range results {
-		image := ConvertImage(&results[i])
-		resp.Images = append(resp.Images, image)
+	images, err := s.ImageRuntime().GetImages()
+	for _, img := range images {
+		if RefMatchesImage(ctx, filter, img) {
+			img := ConvertImage(ctx, img)
+			resp.Images = append(resp.Images, img)
+		}
 	}
+
 	return resp, nil
 }
 
-func ConvertImage(from *storage.ImageResult) *pb.Image {
+// RefMatchesImage checks if the provided ref matches any image name or ID.
+// Empty ref's are automatically allowed.
+func RefMatchesImage(ctx context.Context, ref string, img *image.Image) bool {
+	if ref == "" {
+		return true
+	}
+
+	filter := fmt.Sprintf("*%s*", ref)
+
+	// Replacing all '/' with '|' so that filepath.Match() can work
+	// '|' character is not valid in image name, so this is safe
+	prepareRef := func(r string) string {
+		return strings.Replace(r, "/", "|", -1) // nolint: gocritic
+	}
+
+	filter = prepareRef(filter)
+
+	for _, name := range img.Names() {
+		match, err := filepath.Match(filter, prepareRef(name))
+		if err != nil {
+			log.Errorf(ctx, "failed to match %s and %s, %q", name, ref, err)
+		}
+		if match {
+			return true
+		}
+	}
+
+	strippedRef := strings.Replace(ref, "@", "", -1) // nolint: gocritic
+	return strings.Contains(img.ID(), strippedRef)
+}
+
+func ConvertImage(ctx context.Context, from *image.Image) *pb.Image {
 	if from == nil {
 		return nil
 	}
 
+	log.Debugf(ctx, "inspecting image: %+v", from)
+	inspectData, err := from.Inspect(ctx)
+	if err != nil {
+		return nil
+	}
+
 	repoTags := []string{"<none>:<none>"}
-	if len(from.RepoTags) > 0 {
-		repoTags = from.RepoTags
+	if len(inspectData.RepoTags) > 0 {
+		repoTags = inspectData.RepoTags
 	}
 
 	repoDigests := []string{"<none>@<none>"}
-	if len(from.RepoDigests) > 0 {
-		repoDigests = from.RepoDigests
+	if len(inspectData.RepoDigests) > 0 {
+		repoDigests = inspectData.RepoDigests
 	}
 
 	to := &pb.Image{
-		Id:          from.ID,
+		Id:          inspectData.ID,
 		RepoTags:    repoTags,
 		RepoDigests: repoDigests,
 	}
 
-	uid, username := getUserFromImage(from.User)
+	uid, username := getUserFromImage(inspectData.User)
 	to.Username = username
 
 	if uid != nil {
 		to.Uid = &pb.Int64Value{Value: *uid}
 	}
-	if from.Size != nil {
-		to.Size_ = *from.Size
-	}
+	to.Size_ = uint64(inspectData.Size)
 
 	return to
 }
