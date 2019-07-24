@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
     cleanup_test
 }

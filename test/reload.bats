@@ -3,6 +3,7 @@
 load helpers
 
 function setup() {
+	setup_test
     start_crio
 
     # the default log_level is `error` so we have to adapt it before running

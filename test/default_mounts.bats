@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
@@ -34,9 +38,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "key.pem" ]]
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
 }
 
 @test "default mounts correctly sorted with other mounts" {
@@ -71,9 +72,6 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "Testing secrets mounts. I am mounted!" ]]
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
 }
 
 @test "test deprecated --default-mounts flag" {
@@ -90,7 +88,4 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "test.txt" ]]
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
 }

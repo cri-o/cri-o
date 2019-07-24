@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
@@ -29,9 +33,6 @@ function teardown() {
 	run crictl rmp "$id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "pod remove" {
@@ -53,9 +54,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "pod stop ignores not found sandboxes" {
@@ -75,10 +73,6 @@ function teardown() {
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "pod list filtering" {
@@ -169,8 +163,6 @@ function teardown() {
 	run crictl rmp "$pod3_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_pods
-	stop_crio
 }
 
 @test "pod metadata in list & status" {
@@ -197,9 +189,6 @@ function teardown() {
 	[[ "$output" =~ "UID: redhat-test-crio" ]]
 	[[ "$output" =~ "Namespace: redhat.test.crio" ]]
 	[[ "$output" =~ "Attempt: 1" ]]
-
-	cleanup_pods
-	stop_crio
 }
 
 @test "pass pod sysctls to runtime" {
@@ -241,9 +230,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "net.ipv4.ip_forward = 1" ]]
-
-	cleanup_pods
-	stop_crio
 }
 
 @test "pod stop idempotent" {
@@ -258,10 +244,6 @@ function teardown() {
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "pod remove idempotent" {
@@ -276,10 +258,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "pod stop idempotent with ctrs already stopped" {
@@ -301,10 +279,6 @@ function teardown() {
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "restart crio and still get pod status" {
@@ -322,10 +296,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" != "" ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "invalid systemd cgroup_parent fail" {
@@ -362,7 +332,4 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "Burstable-pod_integration_tests_123.slice" ]]
-
-	cleanup_pods
-	stop_crio
 }

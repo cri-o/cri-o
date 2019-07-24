@@ -6,6 +6,10 @@ IMAGE=quay.io/crio/pause
 SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
 UNSIGNED_IMAGE=quay.io/crio/hello-world:latest
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
@@ -24,9 +28,6 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "container status when created by image ID" {
@@ -49,10 +50,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
 	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "container status when created by image tagged reference" {
@@ -75,10 +72,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
 	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "container status when created by image canonical reference" {
@@ -105,10 +98,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
 	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "image pull and list" {
@@ -132,7 +121,6 @@ function teardown() {
 	echo "$output"
 	[ "$output" != "" ]
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull with signature" {
@@ -142,7 +130,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull without signature" {
@@ -151,7 +138,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull and list by tag and ID" {
@@ -177,7 +163,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull and list by digest and ID" {
@@ -203,7 +188,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image list with filter" {
@@ -227,7 +211,6 @@ function teardown() {
 		status=1
 	done
 	cleanup_images
-	stop_crio
 }
 
 @test "image list/remove" {
@@ -253,7 +236,6 @@ function teardown() {
 		status=1
 	done
 	cleanup_images
-	stop_crio
 }
 
 @test "image status/remove" {
@@ -283,5 +265,4 @@ function teardown() {
 		status=1
 	done
 	cleanup_images
-	stop_crio
 }

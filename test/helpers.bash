@@ -76,78 +76,6 @@ STREAM_PORT=${STREAM_PORT:-10010}
 # Metrics Port
 CONTAINER_METRICS_PORT=${CONTAINER_METRICS_PORT:-9090}
 
-TESTDIR=$(mktemp -d)
-RANDOM_STRING=${TESTDIR: -10}
-
-# Setup default hooks dir
-HOOKSDIR=$TESTDIR/hooks
-mkdir ${HOOKSDIR}
-HOOKS_OPTS="--hooks-dir=$HOOKSDIR"
-
-HOOKSCHECK=$TESTDIR/hookscheck
-CONTAINER_EXITS_DIR=$TESTDIR/containers/exits
-CONTAINER_ATTACH_SOCKET_DIR=$TESTDIR/containers
-# capabilities to add to the containers
-CONTAINER_DEFAULT_CAPABILITIES=${CONTAINER_DEFAULT_CAPABILITIES:-"$capabilities"}
-# bind port for streaming socket
-CONTAINER_STREAM_PORT=${CONTAINER_STREAM_PORT:-"$((STREAM_PORT + BATS_TEST_NUMBER))"}
-# path to default mounts file
-CONTAINER_DEFAULT_MOUNTS_FILE=${CONTAINER_DEFAULT_MOUNTS_FILE:-"$TESTDIR/containers/mounts.conf"}
-# default seccomp profile path
-CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-"$seccomp"}
-# default apparmor profile name
-CONTAINER_APPARMOR_PROFILE=${CONTAINER_APPARMOR_PROFILE:-"$apparmor"}
-# path to signature policy file
-CONTAINER_SIGNATURE_POLICY=${CONTAINER_SIGNATURE_POLICY:-"$INTEGRATION_ROOT"/policy.json}
-# level of log messages
-CONTAINER_LOG_LEVEL=${CONTAINER_LOG_LEVEL:-"debug"}
-
-# Setup default mounts using deprecated --default-mounts flag
-# should be removed, once the flag is removed
-MOUNT_PATH="$TESTDIR/secrets"
-mkdir ${MOUNT_PATH}
-MOUNT_FILE="${MOUNT_PATH}/test.txt"
-touch ${MOUNT_FILE}
-echo "Testing secrets mounts!" > ${MOUNT_FILE}
-DEFAULT_MOUNTS_OPTS="--default-mounts=${MOUNT_PATH}:/container/path1"
-
-# Setup default secrets mounts
-mkdir $TESTDIR/containers
-touch $TESTDIR/containers/mounts.conf
-echo "$TESTDIR/rhel/secrets:/run/secrets" > $TESTDIR/containers/mounts.conf
-mkdir -p $TESTDIR/rhel/secrets
-touch $TESTDIR/rhel/secrets/test.txt
-echo "Testing secrets mounts. I am mounted!" > $TESTDIR/rhel/secrets/test.txt
-mkdir -p $TESTDIR/symlink/target
-touch $TESTDIR/symlink/target/key.pem
-ln -s $TESTDIR/symlink/target $TESTDIR/rhel/secrets/mysymlink
-
-# We may need to set some default storage options.
-case "$(stat -f -c %T ${TESTDIR})" in
-    aufs)
-        # None of device mapper, overlay, or aufs can be used dependably over aufs, and of course btrfs and zfs can't,
-        # and we have to explicitly specify the "vfs" driver in order to use it, so do that now.
-        STORAGE_OPTIONS=${STORAGE_OPTIONS:--s vfs}
-        ;;
-esac
-
-if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
-    . /etc/selinux/config
-    filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
-    chcon -R ${filelabel} $TESTDIR
-fi
-CRIO_SOCKET="$TESTDIR/crio.sock"
-CRIO_CONFIG="$TESTDIR/crio.conf"
-CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
-CRIO_LOG="$TESTDIR/crio.log"
-
-# Copy all the CNI dependencies around to ensure encapsulated tests
-CRIO_CNI_PLUGIN="$TESTDIR/cni-bin"
-mkdir "$CRIO_CNI_PLUGIN"
-cp /opt/cni/bin/* "$CRIO_CNI_PLUGIN"
-cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
-sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
-
 POD_IPV4_CIDR="10.88.0.0/16"
 POD_IPV4_CIDR_START="10.88"
 POD_IPV4_DEF_ROUTE="0.0.0.0/0"
@@ -156,61 +84,122 @@ POD_IPV6_CIDR="1100:200::/24"
 POD_IPV6_CIDR_START="1100:200::"
 POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
-cp "$CONMON_BINARY" "$TESTDIR/conmon"
-
-PATH=$PATH:$TESTDIR
-
 CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID,SETPCAP,NET_BIND_SERVICE,SYS_CHROOT,KILL"
 
 # Make sure we have a copy of the redis:alpine image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/redis-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling quay.io/crio/redis"
-        rm -fr "$ARTIFACTS_PATH"/redis-image
-        exit 1
-    fi
+	mkdir -p "$ARTIFACTS_PATH"/redis-image
+	if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+		echo "Error pulling quay.io/crio/redis"
+		rm -fr "$ARTIFACTS_PATH"/redis-image
+		exit 1
+	fi
 fi
 
 # Make sure we have a copy of the runcom/stderr-test image.
 if ! [ -d "$ARTIFACTS_PATH"/stderr-test ]; then
-    mkdir -p "$ARTIFACTS_PATH"/stderr-test
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/stderr-test:latest --export-to=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling quay.io/crio/stderr-test"
-        rm -fr "$ARTIFACTS_PATH"/stderr-test
-        exit 1
-    fi
+	mkdir -p "$ARTIFACTS_PATH"/stderr-test
+	if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/stderr-test:latest --export-to=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+		echo "Error pulling quay.io/crio/stderr-test"
+		rm -fr "$ARTIFACTS_PATH"/stderr-test
+		exit 1
+	fi
 fi
 
 # Make sure we have a copy of the busybox:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/busybox-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/busybox:latest --export-to=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling quay.io/crio/busybox"
-        rm -fr "$ARTIFACTS_PATH"/busybox-image
-        exit 1
-    fi
+	mkdir -p "$ARTIFACTS_PATH"/busybox-image
+	if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/busybox:latest --export-to=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+		echo "Error pulling quay.io/crio/busybox"
+		rm -fr "$ARTIFACTS_PATH"/busybox-image
+		exit 1
+	fi
 fi
 
 # Make sure we have a copy of the mrunalp/oom:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/oom-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/oom-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/oom:latest --export-to=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling quay.io/crio/oom"
-        rm -fr "$ARTIFACTS_PATH"/oom-image
-        exit 1
-    fi
+	mkdir -p "$ARTIFACTS_PATH"/oom-image
+	if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/oom:latest --export-to=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+		echo "Error pulling quay.io/crio/oom"
+		rm -fr "$ARTIFACTS_PATH"/oom-image
+		exit 1
+	fi
 fi
 
 # Make sure we have a copy of the mrunalp/image-volume-test:latest image.
 if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/image-volume-test:latest --export-to=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-        echo "Error pulling quay.io/crio/image-volume-test-image"
-        rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
-        exit 1
-    fi
+	mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
+	if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/image-volume-test:latest --export-to=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+		echo "Error pulling quay.io/crio/image-volume-test-image"
+		rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
+		exit 1
+	fi
 fi
+
+function setup_test() {
+	TESTDIR=$(mktemp -d)
+	RANDOM_STRING=${TESTDIR: -10}
+
+	# Setup default hooks dir
+	HOOKSDIR=$TESTDIR/hooks
+	mkdir ${HOOKSDIR}
+	HOOKS_OPTS="--hooks-dir=$HOOKSDIR"
+
+	HOOKSCHECK=$TESTDIR/hookscheck
+	CONTAINER_EXITS_DIR=$TESTDIR/containers/exits
+	CONTAINER_ATTACH_SOCKET_DIR=$TESTDIR/containers
+
+	# Setup default mounts using deprecated --default-mounts flag
+	# should be removed, once the flag is removed
+	MOUNT_PATH="$TESTDIR/secrets"
+	mkdir ${MOUNT_PATH}
+	MOUNT_FILE="${MOUNT_PATH}/test.txt"
+	touch ${MOUNT_FILE}
+	echo "Testing secrets mounts!" > ${MOUNT_FILE}
+	DEFAULT_MOUNTS_OPTS="--default-mounts=${MOUNT_PATH}:/container/path1"
+
+	# Setup default secrets mounts
+	mkdir $TESTDIR/containers
+	touch $TESTDIR/containers/mounts.conf
+	echo "$TESTDIR/rhel/secrets:/run/secrets" > $TESTDIR/containers/mounts.conf
+	mkdir -p $TESTDIR/rhel/secrets
+	touch $TESTDIR/rhel/secrets/test.txt
+	echo "Testing secrets mounts. I am mounted!" > $TESTDIR/rhel/secrets/test.txt
+	mkdir -p $TESTDIR/symlink/target
+	touch $TESTDIR/symlink/target/key.pem
+	ln -s $TESTDIR/symlink/target $TESTDIR/rhel/secrets/mysymlink
+
+	# We may need to set some default storage options.
+	case "$(stat -f -c %T ${TESTDIR})" in
+		aufs)
+			# None of device mapper, overlay, or aufs can be used dependably over aufs, and of course btrfs and zfs can't,
+			# and we have to explicitly specify the "vfs" driver in order to use it, so do that now.
+			STORAGE_OPTIONS=${STORAGE_OPTIONS:--s vfs}
+			;;
+	esac
+
+	if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
+		. /etc/selinux/config
+		filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
+		chcon -R ${filelabel} $TESTDIR
+	fi
+	CRIO_SOCKET="$TESTDIR/crio.sock"
+	CRIO_CONFIG="$TESTDIR/crio.conf"
+	CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
+	CRIO_LOG="$TESTDIR/crio.log"
+
+	# Copy all the CNI dependencies around to ensure encapsulated tests
+	CRIO_CNI_PLUGIN="$TESTDIR/cni-bin"
+	mkdir "$CRIO_CNI_PLUGIN"
+	cp /opt/cni/bin/* "$CRIO_CNI_PLUGIN"
+	cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
+	sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
+
+	cp "$CONMON_BINARY" "$TESTDIR/conmon"
+
+	PATH=$PATH:$TESTDIR
+}
+
 # Run crio using the binary specified by $CRIO_BINARY_PATH.
 # This must ONLY be run on engines created with `start_crio`.
 function crio() {
@@ -453,8 +442,7 @@ function cleanup_test() {
 	cleanup_pods
 	stop_crio
 	cleanup_lvm
-	# Best effort remove the test dir, as sometime it is still busy
-	rm -rf "$TESTDIR" || true
+	rm -r "$TESTDIR"
 }
 
 

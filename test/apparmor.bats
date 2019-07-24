@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
     cleanup_test
 }
@@ -35,10 +39,6 @@ function teardown() {
     run crictl exec --sync "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -eq 0 ]
-
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
 }
 
 # 2. test running with loading a specific apparmor profile as crio default apparmor profile.
@@ -71,9 +71,6 @@ function teardown() {
     echo "$output"
     [[ "$output" =~ "Permission denied" ]]
 
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
     remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
 }
 
@@ -107,9 +104,6 @@ function teardown() {
     echo "$output"
     [[ "$output" =~ "Permission denied" ]]
 
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
     remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
 }
 
@@ -138,10 +132,6 @@ function teardown() {
     echo "$output"
     [ "$status" -ne 0 ]
     [[ "$output" =~ "Creating container failed" ]]
-
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
 }
 
 # 5. test running with default apparmor profile unloaded.
@@ -169,8 +159,4 @@ function teardown() {
     run crictl create "$pod_id" "$TESTDIR"/apparmor_container5.json "$TESTDIR"/apparmor5.json
     echo "$output"
     [ "$status" -ne 0 ]
-
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
 }

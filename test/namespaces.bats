@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
@@ -30,7 +34,4 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }

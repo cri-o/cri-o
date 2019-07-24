@@ -2,13 +2,17 @@
 
 load helpers
 
+function setup() {
+	setup_test
+	sed "s|HOOKSCHECK|${HOOKSCHECK}|" "$INTEGRATION_ROOT"/hooks/checkhook.sh > ${HOOKSDIR}/checkhook.sh
+	chmod +x ${HOOKSDIR}/checkhook.sh
+	sed "s|HOOKSDIR|${HOOKSDIR}|" "$INTEGRATION_ROOT"/hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
+
+}
+
 function teardown() {
 	cleanup_test
 }
-
-sed "s|HOOKSCHECK|${HOOKSCHECK}|" hooks/checkhook.sh > ${HOOKSDIR}/checkhook.sh
-chmod +x ${HOOKSDIR}/checkhook.sh
-sed "s|HOOKSDIR|${HOOKSDIR}|" hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
 
 @test "pod test hooks" {
 	rm -f ${HOOKSCHECK}
@@ -33,7 +37,4 @@ sed "s|HOOKSDIR|${HOOKSDIR}|" hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
 	run cat ${HOOKSCHECK}
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }

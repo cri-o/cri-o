@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
@@ -33,8 +37,4 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" ls /dev/shm/testdata
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }

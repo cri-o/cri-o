@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
@@ -37,10 +41,6 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 # 2. test running with ctr runtime/default
@@ -75,10 +75,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 	[[ "$output" =~ "Operation not permitted" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 # 3. test running with ctr unconfined and profile empty
@@ -112,10 +108,6 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 # 4. test running with ctr wrong profile name
@@ -143,10 +135,6 @@ function teardown() {
 	[[ "$status" -ne 0 ]]
 	[[ "$output" =~ "unknown seccomp profile option:"  ]]
 	[[ "$output" =~ "wontwork"  ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 # 5. test running with ctr localhost/profile_name
@@ -179,10 +167,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 	[[ "$output" =~ "Operation not permitted" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 # 6. test running with ctr docker/default
@@ -217,8 +201,4 @@ function teardown() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 	[[ "$output" =~ "Operation not permitted" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
