@@ -30,7 +30,7 @@ Key:
 ## What is the scope of this project?
 
 CRI-O is meant to provide an integration path between OCI conformant runtimes and the kubelet.
-Specifically, it implements the Kubelet [Container Runtime Interface (CRI)](https://github.com/kubernetes/community/blob/master/contributors/devel/container-runtime-interface.md) using OCI conformant runtimes.
+Specifically, it implements the Kubelet [Container Runtime Interface (CRI)](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-node/container-runtime-interface.md) using OCI conformant runtimes.
 The scope of CRI-O is tied to the scope of the CRI.
 
 At a high level, we expect the scope of CRI-O to be restricted to the following functionalities:
