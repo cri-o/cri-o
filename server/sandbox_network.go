@@ -19,7 +19,7 @@ func (s *Server) networkStart(sb *sandbox.Sandbox) (podIP string, result cnitype
 		return s.hostIP, nil, nil
 	}
 
-	podNetwork, err := newPodNetwork(sb)
+	podNetwork, err := s.newPodNetwork(sb)
 	if err != nil {
 		return
 	}
@@ -84,7 +84,7 @@ func (s *Server) getSandboxIP(sb *sandbox.Sandbox) (string, error) {
 		return s.hostIP, nil
 	}
 
-	podNetwork, err := newPodNetwork(sb)
+	podNetwork, err := s.newPodNetwork(sb)
 	if err != nil {
 		return "", err
 	}
@@ -117,7 +117,7 @@ func (s *Server) networkStop(sb *sandbox.Sandbox) {
 			sb.Name(), sb.ID(), err)
 	}
 
-	podNetwork, err := newPodNetwork(sb)
+	podNetwork, err := s.newPodNetwork(sb)
 	if err != nil {
 		logrus.Warnf(err.Error())
 		return

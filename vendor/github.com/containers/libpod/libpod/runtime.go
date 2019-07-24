@@ -81,6 +81,10 @@ var (
 	DefaultSHMLockPath = "/libpod_lock"
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
 	DefaultRootlessSHMLockPath = "/libpod_rootless_lock"
+
+	// DefaultDetachKeys is the default keys sequence for detaching a
+	// container
+	DefaultDetachKeys = "ctrl-p,ctrl-q"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -121,6 +125,9 @@ type Runtime struct {
 
 	// mechanism to read and write even logs
 	eventer events.Eventer
+
+	// noStore indicates whether we need to interact with a store or not
+	noStore bool
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -232,10 +239,15 @@ type RuntimeConfig struct {
 	// pods.
 	NumLocks uint32 `toml:"num_locks,omitempty"`
 
+	// LockType is the type of locking to use.
+	LockType string `toml:"lock_type,omitempty"`
+
 	// EventsLogger determines where events should be logged
 	EventsLogger string `toml:"events_logger"`
 	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:-"events_logfile_path"`
+	EventsLogFilePath string `toml:"-events_logfile_path"`
+	//DetachKeys is the sequence of keys used to detach a container
+	DetachKeys string `toml:"detach_keys"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -308,6 +320,8 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		EnableLabeling:        true,
 		NumLocks:              2048,
 		EventsLogger:          events.DefaultEventerType.String(),
+		DetachKeys:            DefaultDetachKeys,
+		LockType:              "shm",
 	}, nil
 }
 
@@ -629,7 +643,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		}
 
 		if configPath != "" {
-			os.MkdirAll(filepath.Dir(configPath), 0755)
+			if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+				return nil, err
+			}
 			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 			if err != nil && !os.IsExist(err) {
 				return nil, errors.Wrapf(err, "cannot open file %s", configPath)
@@ -638,7 +654,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 				defer file.Close()
 				enc := toml.NewEncoder(file)
 				if err := enc.Encode(runtime.config); err != nil {
-					os.Remove(configPath)
+					if removeErr := os.Remove(configPath); removeErr != nil {
+						logrus.Debugf("unable to remove %s: %q", configPath, err)
+					}
 				}
 			}
 		}
@@ -647,6 +665,62 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		return nil, err
 	}
 	return runtime, nil
+}
+
+func getLockManager(runtime *Runtime) (lock.Manager, error) {
+	var err error
+	var manager lock.Manager
+
+	switch runtime.config.LockType {
+	case "file":
+		lockPath := filepath.Join(runtime.config.TmpDir, "locks")
+		manager, err = lock.OpenFileLockManager(lockPath)
+		if err != nil {
+			if os.IsNotExist(errors.Cause(err)) {
+				manager, err = lock.NewFileLockManager(lockPath)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to get new file lock manager")
+				}
+			} else {
+				return nil, err
+			}
+		}
+
+	case "", "shm":
+		lockPath := DefaultSHMLockPath
+		if rootless.IsRootless() {
+			lockPath = fmt.Sprintf("%s_%d", DefaultRootlessSHMLockPath, rootless.GetRootlessUID())
+		}
+		// Set up the lock manager
+		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
+		if err != nil {
+			if os.IsNotExist(errors.Cause(err)) {
+				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to get new shm lock manager")
+				}
+			} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
+				logrus.Debugf("Number of locks does not match - removing old locks")
+
+				// ERANGE indicates a lock numbering mismatch.
+				// Since we're renumbering, this is not fatal.
+				// Remove the earlier set of locks and recreate.
+				if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil {
+					return nil, errors.Wrapf(err, "error removing libpod locks file %s", lockPath)
+				}
+
+				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, err
+			}
+		}
+	default:
+		return nil, errors.Wrapf(define.ErrInvalidArg, "unknown lock type %s", runtime.config.LockType)
+	}
+	return manager, nil
 }
 
 // Make a new runtime based on the given configuration
@@ -777,39 +851,23 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	var store storage.Store
 	if os.Geteuid() != 0 {
 		logrus.Debug("Not configuring container store")
+	} else if runtime.noStore {
+		logrus.Debug("No store required. Not opening container store.")
 	} else {
-		store, err = storage.GetStore(runtime.config.StorageConfig)
-		if err != nil {
+		if err := runtime.configureStore(); err != nil {
 			return err
 		}
-
-		defer func() {
-			if err != nil && store != nil {
-				// Don't forcibly shut down
-				// We could be opening a store in use by another libpod
-				_, err2 := store.Shutdown(false)
-				if err2 != nil {
-					logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
-				}
-			}
-		}()
 	}
-
-	runtime.store = store
-	is.Transport.SetStore(store)
-
-	// Set up image runtime and store in runtime
-	ir := image.NewImageRuntimeFromStore(runtime.store)
-
-	runtime.imageRuntime = ir
-
-	// Setting signaturepolicypath
-	ir.SignaturePolicyPath = runtime.config.SignaturePolicyPath
-
-	// Set logfile path for events
-	ir.EventsLogFilePath = runtime.config.EventsLogFilePath
-	// Set logger type
-	ir.EventsLogger = runtime.config.EventsLogger
+	defer func() {
+		if err != nil && store != nil {
+			// Don't forcibly shut down
+			// We could be opening a store in use by another libpod
+			_, err2 := store.Shutdown(false)
+			if err2 != nil {
+				logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
+			}
+		}
+	}()
 
 	// Setup the eventer
 	eventer, err := runtime.newEventer()
@@ -817,7 +875,9 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		return err
 	}
 	runtime.eventer = eventer
-	ir.Eventer = eventer
+	if runtime.imageRuntime != nil {
+		runtime.imageRuntime.Eventer = eventer
+	}
 
 	// Set up a storage service for creating container root filesystems from
 	// images
@@ -1031,37 +1091,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
-	lockPath := DefaultSHMLockPath
-	if rootless.IsRootless() {
-		lockPath = fmt.Sprintf("%s_%d", DefaultRootlessSHMLockPath, rootless.GetRootlessUID())
-	}
-	// Set up the lock manager
-	manager, err := lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
+	runtime.lockManager, err = getLockManager(runtime)
 	if err != nil {
-		if os.IsNotExist(errors.Cause(err)) {
-			manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
-			if err != nil {
-				return errors.Wrapf(err, "failed to get new shm lock manager")
-			}
-		} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
-			logrus.Debugf("Number of locks does not match - removing old locks")
-
-			// ERANGE indicates a lock numbering mismatch.
-			// Since we're renumbering, this is not fatal.
-			// Remove the earlier set of locks and recreate.
-			if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil {
-				return errors.Wrapf(err, "error removing libpod locks file %s", lockPath)
-			}
-
-			manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
+		return err
 	}
-	runtime.lockManager = manager
 
 	// If we're renumbering locks, do it now.
 	// It breaks out of normal runtime init, and will not return a valid
@@ -1075,6 +1108,13 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
 	if doRefresh {
+		// Ensure we have a store before refresh occurs
+		if runtime.store == nil {
+			if err := runtime.configureStore(); err != nil {
+				return err
+			}
+		}
+
 		if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
 			return err2
 		}
@@ -1112,6 +1152,13 @@ func (r *Runtime) GetConfig() (*RuntimeConfig, error) {
 	return config, nil
 }
 
+// DeferredShutdown shuts down the runtime without exposing any
+// errors. This is only meant to be used when the runtime is being
+// shutdown within a defer statement; else use Shutdown
+func (r *Runtime) DeferredShutdown(force bool) {
+	_ = r.Shutdown(force)
+}
+
 // Shutdown shuts down the runtime and associated containers and storage
 // If force is true, containers and mounted storage will be shut down before
 // cleaning up; if force is false, an error will be returned if there are
@@ -1141,6 +1188,8 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	var lastError error
+	// If no store was requested, it can bew nil and there is no need to
+	// attempt to shut it down
 	if r.store != nil {
 		if _, err := r.store.Shutdown(force); err != nil {
 			lastError = errors.Wrapf(err, "Error shutting down container storage")
@@ -1271,7 +1320,29 @@ func (r *Runtime) generateName() (string, error) {
 	// The code should never reach here.
 }
 
-// ImageRuntime returns the imageruntime for image resolution
+// Configure store and image runtime
+func (r *Runtime) configureStore() error {
+	store, err := storage.GetStore(r.config.StorageConfig)
+	if err != nil {
+		return err
+	}
+
+	r.store = store
+	is.Transport.SetStore(store)
+
+	ir := image.NewImageRuntimeFromStore(r.store)
+	ir.SignaturePolicyPath = r.config.SignaturePolicyPath
+	ir.EventsLogFilePath = r.config.EventsLogFilePath
+	ir.EventsLogger = r.config.EventsLogger
+
+	r.imageRuntime = ir
+
+	return nil
+}
+
+// ImageRuntime returns the imageruntime for image operations.
+// If WithNoStore() was used, no image runtime will be available, and this
+// function will return nil.
 func (r *Runtime) ImageRuntime() *image.Runtime {
 	return r.imageRuntime
 }

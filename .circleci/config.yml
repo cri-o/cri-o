@@ -12,7 +12,7 @@ executors:
     working_directory: &workdir /go/src/github.com/cri-o/cri-o
   docker-base:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12
     environment:
       GOCACHE: *gocache
       JOBS: *jobs
@@ -131,7 +131,7 @@ jobs:
             - bin
 
   build-test-binaries:
-    executor: docker-base
+    executor: docker
     steps:
       - checkout
       - restore_cache:
@@ -192,7 +192,7 @@ jobs:
             - build/bin/ginkgo
 
   git-validation:
-    executor: docker-base
+    executor: docker
     steps:
       - checkout
       - restore_cache:

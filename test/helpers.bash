@@ -466,7 +466,7 @@ function prepare_network_conf() {
 	mkdir -p $CRIO_CNI_CONFIG
 	cat >$CRIO_CNI_CONFIG/10-crio.conf <<-EOF
 {
-    "cniVersion": "0.2.0",
+    "cniVersion": "0.3.0",
     "name": "crionet",
     "type": "bridge",
     "bridge": "cni0",
@@ -489,7 +489,7 @@ function write_plugin_test_args_network_conf() {
 	mkdir -p $CRIO_CNI_CONFIG
 	cat >$CRIO_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
-    "cniVersion": "0.2.0",
+    "cniVersion": "0.3.0",
     "name": "crionet_test_args_$RANDOM_STRING",
     "type": "cni_plugin_helper.bash",
     "bridge": "cni0",

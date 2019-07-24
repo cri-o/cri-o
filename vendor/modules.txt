@@ -84,7 +84,7 @@ github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/pkg/cli
-# github.com/containers/image v2.0.0+incompatible
+# github.com/containers/image v2.0.1+incompatible
 github.com/containers/image/types
 github.com/containers/image/pkg/sysregistriesv2
 github.com/containers/image/copy
@@ -120,7 +120,7 @@ github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
 github.com/containers/image/pkg/sysregistries
-# github.com/containers/libpod v0.8.3-0.20190628140055-5e42bf071760
+# github.com/containers/libpod v0.8.3-0.20190724015923-3c6b11178953
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/hooks
 github.com/containers/libpod/pkg/registrar
@@ -130,6 +130,7 @@ github.com/containers/libpod/pkg/cgroups
 github.com/containers/libpod/pkg/apparmor
 github.com/containers/libpod/pkg/lookup
 github.com/containers/libpod/pkg/hooks/1.0.0
+github.com/containers/libpod/pkg/errorhandling
 github.com/containers/libpod/libpod
 github.com/containers/libpod/libpod/define
 github.com/containers/libpod/pkg/namespaces
@@ -153,16 +154,17 @@ github.com/containers/libpod/pkg/resolvconf
 github.com/containers/libpod/utils
 github.com/containers/libpod/cmd/podman/cliconfig
 github.com/containers/libpod/pkg/inspect
+github.com/containers/libpod/libpod/lock/file
 github.com/containers/libpod/libpod/lock/shm
 github.com/containers/libpod/pkg/resolvconf/dns
-# github.com/containers/psgo v1.3.0
+# github.com/containers/psgo v1.3.1
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities
 github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.12.12
+# github.com/containers/storage v1.12.13
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage
 github.com/containers/storage/pkg/idtools
@@ -215,7 +217,7 @@ github.com/coreos/pkg/dlopen
 # github.com/cpuguy83/go-md2man v1.0.10
 github.com/cpuguy83/go-md2man
 github.com/cpuguy83/go-md2man/md2man
-# github.com/cri-o/ocicni v0.1.1-0.20190423014352-8a4ca077a093
+# github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin

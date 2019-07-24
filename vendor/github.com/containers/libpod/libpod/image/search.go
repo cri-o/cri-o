@@ -99,7 +99,9 @@ func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
 
 	ctx := context.Background()
 	for i := range registries {
-		sem.Acquire(ctx, 1)
+		if err := sem.Acquire(ctx, 1); err != nil {
+			return nil, err
+		}
 		go searchImageInRegistryHelper(i, registries[i])
 	}
 
@@ -215,21 +217,18 @@ func ParseSearchFilter(filter []string) (*SearchFilter, error) {
 				return nil, errors.Wrapf(err, "incorrect value type for stars filter")
 			}
 			sFilter.Stars = stars
-			break
 		case "is-automated":
 			if len(arr) == 2 && arr[1] == "false" {
 				sFilter.IsAutomated = types.OptionalBoolFalse
 			} else {
 				sFilter.IsAutomated = types.OptionalBoolTrue
 			}
-			break
 		case "is-official":
 			if len(arr) == 2 && arr[1] == "false" {
 				sFilter.IsOfficial = types.OptionalBoolFalse
 			} else {
 				sFilter.IsOfficial = types.OptionalBoolTrue
 			}
-			break
 		default:
 			return nil, errors.Errorf("invalid filter type %q", f)
 		}

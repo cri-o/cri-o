@@ -300,6 +300,15 @@ func WithTmpDir(dir string) RuntimeOption {
 	}
 }
 
+// WithNoStore sets a bool on the runtime that we do not need
+// any containers storage.
+func WithNoStore() RuntimeOption {
+	return func(rt *Runtime) error {
+		rt.noStore = true
+		return nil
+	}
+}
+
 // WithMaxLogSize sets the maximum size of container logs.
 // Positive sizes are limits in bytes, -1 is unlimited.
 func WithMaxLogSize(limit int64) RuntimeOption {
@@ -316,7 +325,7 @@ func WithMaxLogSize(limit int64) RuntimeOption {
 
 // WithNoPivotRoot sets the runtime to use MS_MOVE instead of PIVOT_ROOT when
 // starting containers.
-func WithNoPivotRoot(noPivot bool) RuntimeOption {
+func WithNoPivotRoot() RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return config2.ErrRuntimeFinalized
@@ -1143,10 +1152,7 @@ func WithUserVolumes(volumes []string) CtrCreateOption {
 		}
 
 		ctr.config.UserVolumes = make([]string, 0, len(volumes))
-		for _, vol := range volumes {
-			ctr.config.UserVolumes = append(ctr.config.UserVolumes, vol)
-		}
-
+		ctr.config.UserVolumes = append(ctr.config.UserVolumes, volumes...)
 		return nil
 	}
 }
@@ -1163,10 +1169,7 @@ func WithEntrypoint(entrypoint []string) CtrCreateOption {
 		}
 
 		ctr.config.Entrypoint = make([]string, 0, len(entrypoint))
-		for _, str := range entrypoint {
-			ctr.config.Entrypoint = append(ctr.config.Entrypoint, str)
-		}
-
+		ctr.config.Entrypoint = append(ctr.config.Entrypoint, entrypoint...)
 		return nil
 	}
 }
@@ -1183,10 +1186,7 @@ func WithCommand(command []string) CtrCreateOption {
 		}
 
 		ctr.config.Command = make([]string, 0, len(command))
-		for _, str := range command {
-			ctr.config.Command = append(ctr.config.Command, str)
-		}
-
+		ctr.config.Command = append(ctr.config.Command, command...)
 		return nil
 	}
 }

@@ -1,4 +1,4 @@
-// +build linux
+// +build linux,cgo
 
 package rootless
 
@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/godbus/dbus"
@@ -41,8 +42,7 @@ const (
 )
 
 func runInUser() error {
-	os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
-	return nil
+	return os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
 }
 
 var (
@@ -57,9 +57,15 @@ func IsRootless() bool {
 		rootlessGIDInit := int(C.rootless_gid())
 		if rootlessUIDInit != 0 {
 			// This happens if we joined the user+mount namespace as part of
-			os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
-			os.Setenv("_CONTAINERS_ROOTLESS_UID", fmt.Sprintf("%d", rootlessUIDInit))
-			os.Setenv("_CONTAINERS_ROOTLESS_GID", fmt.Sprintf("%d", rootlessGIDInit))
+			if err := os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done"); err != nil {
+				logrus.Errorf("failed to set environment variable %s as %s", "_CONTAINERS_USERNS_CONFIGURED", "done")
+			}
+			if err := os.Setenv("_CONTAINERS_ROOTLESS_UID", fmt.Sprintf("%d", rootlessUIDInit)); err != nil {
+				logrus.Errorf("failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_UID", rootlessUIDInit)
+			}
+			if err := os.Setenv("_CONTAINERS_ROOTLESS_GID", fmt.Sprintf("%d", rootlessGIDInit)); err != nil {
+				logrus.Errorf("failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_GID", rootlessGIDInit)
+			}
 		}
 		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
 	})
@@ -105,10 +111,8 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 
 	args := []string{path, fmt.Sprintf("%d", pid)}
 	args = appendTriplet(args, 0, hostID, 1)
-	if mappings != nil {
-		for _, i := range mappings {
-			args = appendTriplet(args, i.ContainerID+1, i.HostID, i.Size)
-		}
+	for _, i := range mappings {
+		args = appendTriplet(args, i.ContainerID+1, i.HostID, i.Size)
 	}
 	cmd := exec.Cmd{
 		Path: path,
@@ -185,18 +189,24 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 		}
 
 		if ns == currentNS {
-			syscall.Close(int(nextFd))
+			if err := syscall.Close(int(nextFd)); err != nil {
+				return nil, err
+			}
 
 			// Drop O_CLOEXEC for the fd.
 			_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_SETFD, 0)
 			if errno != 0 {
-				syscall.Close(int(fd))
+				if err := syscall.Close(int(fd)); err != nil {
+					logrus.Errorf("failed to close file descriptor %d", fd)
+				}
 				return nil, errno
 			}
 
 			return os.NewFile(fd, "userns child"), nil
 		}
-		syscall.Close(int(fd))
+		if err := syscall.Close(int(fd)); err != nil {
+			return nil, err
+		}
 		fd = nextFd
 	}
 }
@@ -208,14 +218,18 @@ func EnableLinger() (string, error) {
 
 	conn, err := dbus.SystemBus()
 	if err == nil {
-		defer conn.Close()
+		defer func() {
+			if err := conn.Close(); err != nil {
+				logrus.Errorf("unable to close dbus connection: %q", err)
+			}
+		}()
 	}
 
 	lingerEnabled := false
 
 	// If we have a D-BUS connection, attempt to read the LINGER property from it.
 	if conn != nil {
-		path := dbus.ObjectPath((fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid)))
+		path := dbus.ObjectPath(fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid))
 		ret, err := conn.Object("org.freedesktop.login1", path).GetProperty("org.freedesktop.login1.User.Linger")
 		if err == nil && ret.Value().(bool) {
 			lingerEnabled = true
@@ -252,7 +266,9 @@ func EnableLinger() (string, error) {
 		if lingerEnabled && lingerFile != "" {
 			f, err := os.Create(lingerFile)
 			if err == nil {
-				f.Close()
+				if err := f.Close(); err != nil {
+					logrus.Errorf("failed to close %s", f.Name())
+				}
 			} else {
 				logrus.Debugf("could not create linger file: %v", err)
 			}
@@ -265,7 +281,7 @@ func EnableLinger() (string, error) {
 
 	// If we have a D-BUS connection, attempt to read the RUNTIME PATH from it.
 	if conn != nil {
-		path := dbus.ObjectPath((fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid)))
+		path := dbus.ObjectPath(fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid))
 		ret, err := conn.Object("org.freedesktop.login1", path).GetProperty("org.freedesktop.login1.User.RuntimePath")
 		if err == nil {
 			return strings.Trim(ret.String(), "\"\n"), nil
@@ -296,13 +312,21 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	if err != nil {
 		return false, -1, err
 	}
-	defer userNS.Close()
+	defer func() {
+		if err := userNS.Close(); err != nil {
+			logrus.Errorf("unable to close namespace: %q", err)
+		}
+	}()
 
 	mountNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/mnt", pid))
 	if err != nil {
 		return false, -1, err
 	}
-	defer userNS.Close()
+	defer func() {
+		if err := mountNS.Close(); err != nil {
+			logrus.Errorf("unable to close namespace: %q", err)
+		}
+	}()
 
 	fd, err := getUserNSFirstChild(userNS.Fd())
 	if err != nil {
@@ -348,9 +372,13 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 	}
 	r, w := os.NewFile(uintptr(fds[0]), "sync host"), os.NewFile(uintptr(fds[1]), "sync child")
 
-	defer r.Close()
-	defer w.Close()
-	defer w.Write([]byte("0"))
+	defer errorhandling.CloseQuiet(r)
+	defer errorhandling.CloseQuiet(w)
+	defer func() {
+		if _, err := w.Write([]byte("0")); err != nil {
+			logrus.Errorf("failed to write byte 0: %q", err)
+		}
+	}()
 
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid, cFileToRead, fileOutputFD)
 	pid := int(pidC)
@@ -361,9 +389,9 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	if username == "" {
-		user, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
+		userID, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
 		if err == nil {
-			username = user.Username
+			username = userID.Username
 		}
 	}
 	mappings, err := idtools.NewIDMappings(username, username)
@@ -412,7 +440,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		return false, -1, errors.Wrapf(err, "write to sync pipe")
 	}
 
-	b := make([]byte, 1, 1)
+	b := make([]byte, 1)
 	_, err = w.Read(b)
 	if err != nil {
 		return false, -1, errors.Wrapf(err, "read from sync pipe")
@@ -458,7 +486,9 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 				continue
 			}
 
-			syscall.Kill(int(pidC), s.(syscall.Signal))
+			if err := syscall.Kill(int(pidC), s.(syscall.Signal)); err != nil {
+				logrus.Errorf("failed to kill %d", int(pidC))
+			}
 		}
 	}()
 
@@ -519,17 +549,19 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 			r, w := os.NewFile(uintptr(fds[0]), "read file"), os.NewFile(uintptr(fds[1]), "write file")
 
-			defer w.Close()
-			defer r.Close()
+			defer errorhandling.CloseQuiet(w)
+			defer errorhandling.CloseQuiet(r)
 
 			if _, _, err := becomeRootInUserNS("", path, w); err != nil {
 				lastErr = err
 				continue
 			}
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				return false, 0, err
+			}
 			defer func() {
-				r.Close()
+				errorhandling.CloseQuiet(r)
 				C.reexec_in_user_namespace_wait(-1, 0)
 			}()
 

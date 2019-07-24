@@ -30,7 +30,7 @@ type CgroupControl struct {
 	additionalControllers []controller
 }
 
-// CPUUsage keeps stats for the CPU usage
+// CPUUsage keeps stats for the CPU usage (unit: nanoseconds)
 type CPUUsage struct {
 	Kernel uint64
 	Total  uint64
@@ -149,6 +149,55 @@ func (c *CgroupControl) getCgroupv1Path(name string) string {
 	return filepath.Join(cgroupRoot, name, c.path)
 }
 
+// createCgroupv2Path creates the cgroupv2 path and enables all the available controllers
+func createCgroupv2Path(path string) (Err error) {
+	content, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
+	if err != nil {
+		return errors.Wrapf(err, "read /sys/fs/cgroup/cgroup.controllers")
+	}
+	if !strings.HasPrefix(path, "/sys/fs/cgroup/") {
+		return fmt.Errorf("invalid cgroup path %s", path)
+	}
+
+	res := ""
+	for i, c := range strings.Split(strings.TrimSpace(string(content)), " ") {
+		if i == 0 {
+			res = fmt.Sprintf("+%s", c)
+		} else {
+			res = res + fmt.Sprintf(" +%s", c)
+		}
+	}
+	resByte := []byte(res)
+
+	current := "/sys/fs"
+	elements := strings.Split(path, "/")
+	for i, e := range elements[3:] {
+		current = filepath.Join(current, e)
+		if i > 0 {
+			if err := os.Mkdir(current, 0755); err != nil {
+				if !os.IsExist(err) {
+					return errors.Wrapf(err, "mkdir %s", path)
+				}
+			} else {
+				// If the directory was created, be sure it is not left around on errors.
+				defer func() {
+					if Err != nil {
+						os.Remove(current)
+					}
+				}()
+			}
+		}
+		// We enable the controllers for all the path components except the last one.  It is not allowed to add
+		// PIDs if there are already enabled controllers.
+		if i < len(elements[3:])-1 {
+			if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), resByte, 0755); err != nil {
+				return errors.Wrapf(err, "write %s", filepath.Join(current, "cgroup.subtree_control"))
+			}
+		}
+	}
+	return nil
+}
+
 // initialize initializes the specified hierarchy
 func (c *CgroupControl) initialize() (err error) {
 	createdSoFar := map[string]controllerHandler{}
@@ -161,6 +210,11 @@ func (c *CgroupControl) initialize() (err error) {
 			}
 		}
 	}()
+	if c.cgroup2 {
+		if err := createCgroupv2Path(filepath.Join(cgroupRoot, c.path)); err != nil {
+			return errors.Wrapf(err, "error creating cgroup path %s", c.path)
+		}
+	}
 	for name, handler := range handlers {
 		created, err := handler.Create(c)
 		if err != nil {
@@ -220,12 +274,6 @@ func readFileAsUint64(path string) (uint64, error) {
 	return ret, nil
 }
 
-func (c *CgroupControl) writePidToTasks(pid int, name string) error {
-	path := filepath.Join(c.getCgroupv1Path(name), "tasks")
-	payload := []byte(fmt.Sprintf("%d", pid))
-	return ioutil.WriteFile(path, payload, 0644)
-}
-
 // New creates a new cgroup control
 func New(path string, resources *spec.LinuxResources) (*CgroupControl, error) {
 	cgroup2, err := IsCgroup2UnifiedMode()
@@ -278,6 +326,13 @@ func Load(path string) (*CgroupControl, error) {
 		systemd: false,
 	}
 	if !cgroup2 {
+		controllers, err := getAvailableControllers(handlers, false)
+		if err != nil {
+			return nil, err
+		}
+		control.additionalControllers = controllers
+	}
+	if !cgroup2 {
 		for name := range handlers {
 			p := control.getCgroupv1Path(name)
 			if _, err := os.Stat(p); err != nil {
@@ -305,10 +360,39 @@ func (c *CgroupControl) Delete() error {
 	return c.DeleteByPath(c.path)
 }
 
+// rmDirRecursively delete recursively a cgroup directory.
+// It differs from os.RemoveAll as it doesn't attempt to unlink files.
+// On cgroupfs we are allowed only to rmdir empty directories.
+func rmDirRecursively(path string) error {
+	if err := os.Remove(path); err == nil || os.IsNotExist(err) {
+		return nil
+	}
+	entries, err := ioutil.ReadDir(path)
+	if err != nil {
+		return errors.Wrapf(err, "read %s", path)
+	}
+	for _, i := range entries {
+		if i.IsDir() {
+			if err := rmDirRecursively(filepath.Join(path, i.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	if err := os.Remove(path); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "remove %s", path)
+		}
+	}
+	return nil
+}
+
 // DeleteByPath deletes the specified cgroup path
 func (c *CgroupControl) DeleteByPath(path string) error {
 	if c.systemd {
 		return systemdDestroy(path)
+	}
+	if c.cgroup2 {
+		return rmDirRecursively(filepath.Join(cgroupRoot, c.path))
 	}
 	var lastError error
 	for _, h := range handlers {
@@ -318,8 +402,11 @@ func (c *CgroupControl) DeleteByPath(path string) error {
 	}
 
 	for _, ctr := range c.additionalControllers {
+		if ctr.symlink {
+			continue
+		}
 		p := c.getCgroupv1Path(ctr.name)
-		if err := os.Remove(p); err != nil {
+		if err := rmDirRecursively(p); err != nil {
 			lastError = errors.Wrapf(err, "remove %s", p)
 		}
 	}
@@ -341,7 +428,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 	pidString := []byte(fmt.Sprintf("%d\n", pid))
 
 	if c.cgroup2 {
-		p := filepath.Join(cgroupRoot, c.path, "tasks")
+		p := filepath.Join(cgroupRoot, c.path, "cgroup.procs")
 		if err := ioutil.WriteFile(p, pidString, 0644); err != nil {
 			return errors.Wrapf(err, "write %s", p)
 		}

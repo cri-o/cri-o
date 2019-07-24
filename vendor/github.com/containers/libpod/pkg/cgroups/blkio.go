@@ -30,14 +30,14 @@ func (c *blkioHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error
 // Create the cgroup
 func (c *blkioHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("io create not implemented for cgroup v2")
+		return false, nil
 	}
 	return ctr.createCgroupDirectory(Blkio)
 }
 
 // Destroy the cgroup
 func (c *blkioHandler) Destroy(ctr *CgroupControl) error {
-	return os.Remove(ctr.getCgroupv1Path(Blkio))
+	return rmDirRecursively(ctr.getCgroupv1Path(Blkio))
 }
 
 // Stat fills a metrics structure with usage stats for the controller
