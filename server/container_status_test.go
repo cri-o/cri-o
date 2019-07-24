@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/oci"
-	"github.com/cri-o/cri-o/pkg/storage"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -32,11 +30,6 @@ var _ = t.Describe("ContainerStatus", func() {
 			addContainerAndSandbox()
 			testContainer.AddVolume(oci.ContainerVolume{})
 			testContainer.SetState(givenState)
-
-			gomock.InOrder(
-				imageServerMock.EXPECT().ImageStatus(gomock.Any(),
-					gomock.Any()).Return(&storage.ImageResult{}, nil),
-			)
 
 			// When
 			response, err := sut.ContainerStatus(context.Background(),
