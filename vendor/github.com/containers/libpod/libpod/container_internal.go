@@ -31,7 +31,8 @@ import (
 
 const (
 	// name of the directory holding the artifacts
-	artifactsDir = "artifacts"
+	artifactsDir      = "artifacts"
+	execDirPermission = 0755
 )
 
 // rootFsSize gets the size of the container's root filesystem
@@ -132,14 +133,91 @@ func (c *Container) AttachSocketPath() string {
 	return filepath.Join(c.ociRuntime.socketsDir, c.ID(), "attach")
 }
 
-// Get PID file path for a container's exec session
-func (c *Container) execPidPath(sessionID string) string {
-	return filepath.Join(c.state.RunDir, "exec_pid_"+sessionID)
-}
-
 // exitFilePath gets the path to the container's exit file
 func (c *Container) exitFilePath() string {
 	return filepath.Join(c.ociRuntime.exitsDir, c.ID())
+}
+
+// create a bundle path and associated files for an exec session
+func (c *Container) createExecBundle(sessionID string) (err error) {
+	bundlePath := c.execBundlePath(sessionID)
+	if createErr := os.MkdirAll(bundlePath, execDirPermission); createErr != nil {
+		return createErr
+	}
+	defer func() {
+		if err != nil {
+			if err2 := os.RemoveAll(bundlePath); err != nil {
+				logrus.Warnf("error removing exec bundle after creation caused another error: %v", err2)
+			}
+		}
+	}()
+	if err2 := os.MkdirAll(c.execExitFileDir(sessionID), execDirPermission); err2 != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err2) {
+			err = errors.Wrapf(err2, "error creating OCI runtime exit file path %s", c.execExitFileDir(sessionID))
+		}
+	}
+	return
+}
+
+// cleanup an exec session after its done
+func (c *Container) cleanupExecBundle(sessionID string) error {
+	return os.RemoveAll(c.execBundlePath(sessionID))
+}
+
+// the path to a containers exec session bundle
+func (c *Container) execBundlePath(sessionID string) string {
+	return filepath.Join(c.bundlePath(), sessionID)
+}
+
+// Get PID file path for a container's exec session
+func (c *Container) execPidPath(sessionID string) string {
+	return filepath.Join(c.execBundlePath(sessionID), "exec_pid")
+}
+
+// the log path for an exec session
+func (c *Container) execLogPath(sessionID string) string {
+	return filepath.Join(c.execBundlePath(sessionID), "exec_log")
+}
+
+// the socket conmon creates for an exec session
+func (c *Container) execAttachSocketPath(sessionID string) string {
+	return filepath.Join(c.ociRuntime.socketsDir, sessionID, "attach")
+}
+
+// execExitFileDir gets the path to the container's exit file
+func (c *Container) execExitFileDir(sessionID string) string {
+	return filepath.Join(c.execBundlePath(sessionID), "exit")
+}
+
+// execOCILog returns the file path for the exec sessions oci log
+func (c *Container) execOCILog(sessionID string) string {
+	if !c.ociRuntime.supportsJSON {
+		return ""
+	}
+	return filepath.Join(c.execBundlePath(sessionID), "oci-log")
+}
+
+// readExecExitCode reads the exit file for an exec session and returns
+// the exit code
+func (c *Container) readExecExitCode(sessionID string) (int, error) {
+	exitFile := filepath.Join(c.execExitFileDir(sessionID), c.ID())
+	chWait := make(chan error)
+	defer close(chWait)
+
+	_, err := WaitForFile(exitFile, chWait, time.Second*5)
+	if err != nil {
+		return -1, err
+	}
+	ec, err := ioutil.ReadFile(exitFile)
+	if err != nil {
+		return -1, err
+	}
+	ecInt, err := strconv.Atoi(string(ec))
+	if err != nil {
+		return -1, err
+	}
+	return ecInt, nil
 }
 
 // Wait for the container's exit file to appear.
@@ -352,6 +430,16 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		},
 		LabelOpts: c.config.LabelOpts,
 	}
+	if c.restoreFromCheckpoint {
+		// If restoring from a checkpoint, the root file-system
+		// needs to be mounted with the same SELinux labels as
+		// it was mounted previously.
+		if options.Flags == nil {
+			options.Flags = make(map[string]interface{})
+		}
+		options.Flags["ProcessLabel"] = c.config.ProcessLabel
+		options.Flags["MountLabel"] = c.config.MountLabel
+	}
 	if c.config.Privileged {
 		privOpt := func(opt string) bool {
 			for _, privopt := range []string{"nodev", "nosuid", "noexec"} {
@@ -452,6 +540,7 @@ func (c *Container) teardownStorage() error {
 // It does not save the results - assumes the database will do that for us
 func resetState(state *ContainerState) error {
 	state.PID = 0
+	state.ConmonPID = 0
 	state.Mountpoint = ""
 	state.Mounted = false
 	if state.State != define.ContainerStateExited {
@@ -554,7 +643,7 @@ func (c *Container) removeConmonFiles() error {
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
 		}
-	} else if err == nil {
+	} else {
 		// Rename should replace the old exit file (if it exists)
 		if err := os.Rename(exitFile, oldExitFile); err != nil {
 			return errors.Wrapf(err, "error renaming container %s exit file", c.ID())
@@ -567,11 +656,11 @@ func (c *Container) removeConmonFiles() error {
 func (c *Container) export(path string) error {
 	mountPoint := c.state.Mountpoint
 	if !c.state.Mounted {
-		mount, err := c.runtime.store.Mount(c.ID(), c.config.MountLabel)
+		containerMount, err := c.runtime.store.Mount(c.ID(), c.config.MountLabel)
 		if err != nil {
 			return errors.Wrapf(err, "error mounting container %q", c.ID())
 		}
-		mountPoint = mount
+		mountPoint = containerMount
 		defer func() {
 			if _, err := c.runtime.store.Unmount(c.ID(), false); err != nil {
 				logrus.Errorf("error unmounting container %q: %v", c.ID(), err)
@@ -609,7 +698,7 @@ func (c *Container) isStopped() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return (c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused), nil
+	return c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused, nil
 }
 
 // save container state to the database
@@ -804,34 +893,6 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 	return notRunning, nil
 }
 
-// Check if a container's dependencies are running
-// Returns a []string containing the IDs of dependencies that are not running
-// Assumes depencies are already locked, and will be passed in
-// Accepts a map[string]*Container containing, at a minimum, the locked
-// dependency containers
-// (This must be a map from container ID to container)
-func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container) ([]string, error) {
-	deps := c.Dependencies()
-	notRunning := []string{}
-
-	for _, dep := range deps {
-		depCtr, ok := depCtrs[dep]
-		if !ok {
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "container %s depends on container %s but it is not on containers passed to checkDependenciesRunning", c.ID(), dep)
-		}
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-
-		if depCtr.state.State != define.ContainerStateRunning {
-			notRunning = append(notRunning, dep)
-		}
-	}
-
-	return notRunning, nil
-}
-
 func (c *Container) completeNetworkSetup() error {
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {
@@ -855,19 +916,19 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	span.SetTag("struct", "container")
 	defer span.Finish()
 
-	// Generate the OCI spec
-	spec, err := c.generateSpec(ctx)
+	// Generate the OCI newSpec
+	newSpec, err := c.generateSpec(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Save the OCI spec to disk
-	if err := c.saveSpec(spec); err != nil {
+	// Save the OCI newSpec to disk
+	if err := c.saveSpec(newSpec); err != nil {
 		return err
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.ociRuntime.createContainer(c, c.config.CgroupParent, nil); err != nil {
+	if err := c.ociRuntime.createContainer(c, nil); err != nil {
 		return err
 	}
 
@@ -1043,6 +1104,8 @@ func (c *Container) stop(timeout uint) error {
 		return err
 	}
 
+	c.state.PID = 0
+	c.state.ConmonPID = 0
 	c.state.StoppedByUser = true
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error saving container %s state after stopping", c.ID())
@@ -1164,8 +1227,8 @@ func (c *Container) cleanupStorage() error {
 		return nil
 	}
 
-	for _, mount := range c.config.Mounts {
-		if err := c.unmountSHM(mount); err != nil {
+	for _, containerMount := range c.config.Mounts {
+		if err := c.unmountSHM(containerMount); err != nil {
 			return err
 		}
 	}
@@ -1279,6 +1342,7 @@ func (c *Container) postDeleteHooks(ctx context.Context) (err error) {
 				return err
 			}
 			for i, hook := range extensionHooks {
+				hook := hook
 				logrus.Debugf("container %s: invoke poststop hook %d, path %s", c.ID(), i, hook.Path)
 				var stderr, stdout bytes.Buffer
 				hookErr, err := exec.Run(ctx, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
@@ -1396,14 +1460,14 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 				}
 				return nil, err
 			}
-			hooks, err := manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+			ociHooks, err := manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
 			if err != nil {
 				return nil, err
 			}
-			if len(hooks) > 0 || config.Hooks != nil {
-				logrus.Warnf("implicit hook directories are deprecated; set --hooks-dir=%q explicitly to continue to load hooks from this directory", hDir)
+			if len(ociHooks) > 0 || config.Hooks != nil {
+				logrus.Warnf("implicit hook directories are deprecated; set --ociHooks-dir=%q explicitly to continue to load ociHooks from this directory", hDir)
 			}
-			for i, hook := range hooks {
+			for i, hook := range ociHooks {
 				allHooks[i] = hook
 			}
 		}
@@ -1528,9 +1592,40 @@ func (c *Container) prepareCheckpointExport() (err error) {
 		logrus.Debugf("generating spec for container %q failed with %v", c.ID(), err)
 		return err
 	}
-	if err := c.writeJSONFile(g.Spec(), "spec.dump"); err != nil {
+	if err := c.writeJSONFile(g.Config, "spec.dump"); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// sortUserVolumes sorts the volumes specified for a container
+// between named and normal volumes
+func (c *Container) sortUserVolumes(ctrSpec *spec.Spec) ([]*ContainerNamedVolume, []spec.Mount) {
+	namedUserVolumes := []*ContainerNamedVolume{}
+	userMounts := []spec.Mount{}
+
+	// We need to parse all named volumes and mounts into maps, so we don't
+	// end up with repeated lookups for each user volume.
+	// Map destination to struct, as destination is what is stored in
+	// UserVolumes.
+	namedVolumes := make(map[string]*ContainerNamedVolume)
+	mounts := make(map[string]spec.Mount)
+	for _, namedVol := range c.config.NamedVolumes {
+		namedVolumes[namedVol.Dest] = namedVol
+	}
+	for _, mount := range ctrSpec.Mounts {
+		mounts[mount.Destination] = mount
+	}
+
+	for _, vol := range c.config.UserVolumes {
+		if volume, ok := namedVolumes[vol]; ok {
+			namedUserVolumes = append(namedUserVolumes, volume)
+		} else if mount, ok := mounts[vol]; ok {
+			userMounts = append(userMounts, mount)
+		} else {
+			logrus.Warnf("Could not find mount at destination %q when parsing user volumes for container %s", vol, c.ID())
+		}
+	}
+	return namedUserVolumes, userMounts
 }

@@ -247,6 +247,15 @@ func (s *BoltState) getDBCon() (*bolt.DB, error) {
 	return db, nil
 }
 
+// deferredCloseDBCon closes the bolt db but instead of returning an
+// error it logs the error. it is meant to be used within the confines
+// of a defer statement only
+func (s *BoltState) deferredCloseDBCon(db *bolt.DB) {
+	if err := s.closeDBCon(db); err != nil {
+		logrus.Errorf("failed to close libpod db: %q", err)
+	}
+}
+
 // Close a connection to the database.
 // MUST be used in place of `db.Close()` to ensure proper unlocking of the
 // state.
@@ -339,7 +348,6 @@ func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 }
 
 func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
-	valid := true
 	ctrBkt := ctrsBkt.Bucket(id)
 	if ctrBkt == nil {
 		return errors.Wrapf(define.ErrNoSuchCtr, "container %s not found in DB", string(id))
@@ -386,7 +394,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	}
 
 	ctr.runtime = s.runtime
-	ctr.valid = valid
+	ctr.valid = true
 
 	return nil
 }
@@ -480,7 +488,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	if err != nil {
 		return err
 	}
-	defer s.closeDBCon(db)
+	defer s.deferredCloseDBCon(db)
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		idsBucket, err := getIDBucket(tx)
@@ -639,7 +647,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 
 		// Add ctr to pod
-		if pod != nil {
+		if pod != nil && podCtrs != nil {
 			if err := podCtrs.Put(ctrID, ctrName); err != nil {
 				return errors.Wrapf(err, "error adding container %s to pod %s", ctr.ID(), pod.ID())
 			}
@@ -737,7 +745,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		}
 	}
 
-	if podDB != nil {
+	if podDB != nil && pod != nil {
 		// Check if the container is in the pod, remove it if it is
 		podCtrs := podDB.Bucket(containersBkt)
 		if podCtrs == nil {

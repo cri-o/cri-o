@@ -2,7 +2,6 @@ package cgroups
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -26,14 +25,14 @@ func (c *memHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 // Create the cgroup
 func (c *memHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("memory create not implemented for cgroup v2")
+		return false, nil
 	}
 	return ctr.createCgroupDirectory(Memory)
 }
 
 // Destroy the cgroup
 func (c *memHandler) Destroy(ctr *CgroupControl) error {
-	return os.Remove(ctr.getCgroupv1Path(Memory))
+	return rmDirRecursively(ctr.getCgroupv1Path(Memory))
 }
 
 // Stat fills a metrics structure with usage stats for the controller

@@ -30,6 +30,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			gomock.InOrder(
+				cniPluginMock.EXPECT().GetDefaultNetworkName().Return(""),
 				cniPluginMock.EXPECT().TearDownPod(gomock.Any()).
 					Return(nil),
 				ociRuntimeMock.EXPECT().StopContainer(gomock.Any(),
@@ -59,6 +60,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			gomock.InOrder(
+				cniPluginMock.EXPECT().GetDefaultNetworkName().Return(""),
 				cniPluginMock.EXPECT().TearDownPod(gomock.Any()).
 					Return(nil),
 				ociRuntimeMock.EXPECT().StopContainer(gomock.Any(),
@@ -88,6 +90,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			gomock.InOrder(
+				cniPluginMock.EXPECT().GetDefaultNetworkName().Return(""),
 				cniPluginMock.EXPECT().TearDownPod(gomock.Any()).
 					Return(nil),
 				ociRuntimeMock.EXPECT().StopContainer(gomock.Any(),
@@ -113,6 +116,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			gomock.InOrder(
+				cniPluginMock.EXPECT().GetDefaultNetworkName().Return(""),
 				cniPluginMock.EXPECT().TearDownPod(gomock.Any()).
 					Return(nil),
 				ociRuntimeMock.EXPECT().StopContainer(gomock.Any(),
@@ -157,6 +161,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Given
 			addContainerAndSandbox()
 			gomock.InOrder(
+				cniPluginMock.EXPECT().GetDefaultNetworkName().Return(""),
 				cniPluginMock.EXPECT().TearDownPod(gomock.Any()).Return(t.TestError),
 			)
 

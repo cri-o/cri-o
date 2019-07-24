@@ -52,7 +52,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 	if err != nil {
 		return nil, errors.Wrapf(err, "error initializing container variables")
 	}
-	return r.setupContainer(ctx, ctr, true)
+	return r.setupContainer(ctx, ctr)
 }
 
 func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConfig) (c *Container, err error) {
@@ -68,6 +68,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		ctr.config.ShmSize = DefaultShmSize
 	} else {
 		// This is a restore from an imported checkpoint
+		ctr.restoreFromCheckpoint = true
 		if err := JSONDeepCopy(config, ctr.config); err != nil {
 			return nil, errors.Wrapf(err, "error copying container config for restore")
 		}
@@ -119,10 +120,10 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, errors.Wrapf(err, "error running container create option")
 		}
 	}
-	return r.setupContainer(ctx, ctr, false)
+	return r.setupContainer(ctx, ctr)
 }
 
-func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bool) (c *Container, err error) {
+func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Container, err error) {
 	// Allocate a lock for the container
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
@@ -131,6 +132,14 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 	ctr.lock = lock
 	ctr.config.LockID = ctr.lock.ID()
 	logrus.Debugf("Allocated lock %d for container %s", ctr.lock.ID(), ctr.ID())
+
+	defer func() {
+		if err != nil {
+			if err2 := ctr.lock.Free(); err2 != nil {
+				logrus.Errorf("Error freeing lock for container after creation failed: %v", err2)
+			}
+		}
+	}()
 
 	ctr.valid = true
 	ctr.state.State = config2.ContainerStateConfigured
@@ -203,7 +212,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 		return nil, errors.Wrapf(config2.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
 	}
 
-	if restore {
+	if ctr.restoreFromCheckpoint {
 		// Remove information about bind mount
 		// for new container from imported checkpoint
 		g := generate.Generator{Config: ctr.config.Spec}
@@ -228,7 +237,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 		}
 	}()
 
-	if rootless.IsRootless() && ctr.config.ConmonPidFile == "" {
+	if ctr.config.ConmonPidFile == "" {
 		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
 	}
 
@@ -423,20 +432,12 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		// from the state elsewhere
 		if !removePod {
 			if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-				if cleanupErr == nil {
-					cleanupErr = err
-				} else {
-					logrus.Errorf("removing container from pod: %v", err)
-				}
+				cleanupErr = err
 			}
 		}
 	} else {
 		if err := r.state.RemoveContainer(c); err != nil {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("removing container: %v", err)
-			}
+			cleanupErr = err
 		}
 	}
 

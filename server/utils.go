@@ -100,7 +100,7 @@ func parseDNSOptions(servers, searches, options []string, path string) error {
 	return nil
 }
 
-func newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
+func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 	var egress, ingress int64 = 0, 0
 
 	if val, ok := sb.Annotations()["kubernetes.io/egress-bandwidth"]; ok {
@@ -135,13 +135,16 @@ func newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 		}
 	}
 
+	network := s.netPlugin.GetDefaultNetworkName()
 	return ocicni.PodNetwork{
 		Name:      sb.KubeName(),
 		Namespace: sb.Namespace(),
 		Networks:  make([]string, 0),
 		ID:        sb.ID(),
 		NetNS:     sb.NetNsPath(),
-		Bandwidth: bwConfig,
+		RuntimeConfig: map[string]ocicni.RuntimeConfig{
+			network: {Bandwidth: bwConfig},
+		},
 	}, nil
 }
 

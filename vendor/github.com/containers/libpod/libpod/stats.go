@@ -3,6 +3,7 @@
 package libpod
 
 import (
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -45,10 +46,6 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		return stats, errors.Wrapf(err, "unable to obtain cgroup stats")
 	}
 	conState := c.state.State
-	if err != nil {
-		return stats, errors.Wrapf(err, "unable to determine container state")
-	}
-
 	netStats, err := getContainerNetIO(c)
 	if err != nil {
 		return nil, err
@@ -89,7 +86,7 @@ func getMemLimit(cgroupLimit uint64) uint64 {
 		return cgroupLimit
 	}
 
-	physicalLimit := uint64(si.Totalram)
+	physicalLimit := si.Totalram
 	if cgroupLimit > physicalLimit {
 		return physicalLimit
 	}
@@ -105,7 +102,11 @@ func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, previousSystem uin
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
 		// gets a ratio of container cpu usage total, multiplies it by the number of cores (4 cores running
 		// at 100% utilization should be 400% utilization), and multiplies that by 100 to get a percentage
-		cpuPercent = (cpuDelta / systemDelta) * float64(len(stats.CPU.Usage.PerCPU)) * 100
+		nCPUS := len(stats.CPU.Usage.PerCPU)
+		if nCPUS == 0 {
+			nCPUS = runtime.NumCPU()
+		}
+		cpuPercent = (cpuDelta / systemDelta) * float64(nCPUS) * 100
 	}
 	return cpuPercent
 }

@@ -3,7 +3,6 @@ package cgroups
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -35,15 +34,12 @@ func (c *pidHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 
 // Create the cgroup
 func (c *pidHandler) Create(ctr *CgroupControl) (bool, error) {
-	if ctr.cgroup2 {
-		return false, fmt.Errorf("pid create not implemented for cgroup v2")
-	}
 	return ctr.createCgroupDirectory(Pids)
 }
 
 // Destroy the cgroup
 func (c *pidHandler) Destroy(ctr *CgroupControl) error {
-	return os.Remove(ctr.getCgroupv1Path(Pids))
+	return rmDirRecursively(ctr.getCgroupv1Path(Pids))
 }
 
 // Stat fills a metrics structure with usage stats for the controller
