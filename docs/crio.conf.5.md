@@ -111,6 +111,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
   The default list is:
 ```
   default_capabilities = [
+          "AUDIT_WRITE",
           "CHOWN",
           "DAC_OVERRIDE",
           "FSETID",

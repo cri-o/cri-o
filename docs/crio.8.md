@@ -100,7 +100,7 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 
 **--cpu-profile**="": set the CPU profile file path
 
-**--default-capabilities**="": capabilities to add to the containers (default: "CHOWN, DAC_OVERRIDE, FSETID, FOWNER, NET_RAW, SETGID, SETUID, SETPCAP, NET_BIND_SERVICE, SYS_CHROOT, KILL)
+**--default-capabilities**="": capabilities to add to the containers (default: "AUDIT_WRITE, CHOWN, DAC_OVERRIDE, FSETID, FOWNER, NET_RAW, SETGID, SETUID, SETPCAP, NET_BIND_SERVICE, SYS_CHROOT, KILL)
 
 **--default-mounts**="": add one or more default mount paths in the form host:container (deprecated - add the default mounts to /etc/containers/mounts.conf instead)
 

@@ -97,6 +97,7 @@ const (
 
 // DefaultCapabilities for the default_capabilities option in the crio.conf file
 var DefaultCapabilities = []string{
+	"AUDIT_WRITE",
 	"CHOWN",
 	"DAC_OVERRIDE",
 	"FSETID",
