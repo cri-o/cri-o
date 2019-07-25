@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
@@ -60,24 +59,18 @@ type imageCacheItem struct {
 	configDigest digest.Digest
 }
 
-type imageCache map[string]imageCacheItem
-
 type imageService struct {
 	store                       storage.Store
 	defaultTransport            string
 	insecureRegistryCIDRs       []*net.IPNet
 	indexConfigs                map[string]*indexInfo
 	unqualifiedSearchRegistries []string
-	imageCache                  imageCache
-	imageCacheLock              sync.Mutex
 	ctx                         context.Context
 }
 
 // ImageServer wraps up various CRI-related activities into a reusable
 // implementation.
 type ImageServer interface {
-	// ListImages returns list of all images which match the filter.
-	ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error)
 	// ImageStatus returns status of an image which matches the filter.
 	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
 	// PrepareImage returns an Image where the config digest can be grabbed
@@ -199,70 +192,6 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		ConfigDigest: cacheItem.configDigest,
 		User:         cacheItem.user,
 	}
-}
-
-func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image, results []ImageResult, newImageCache imageCache) ([]ImageResult, error) {
-	var err error
-	svc.imageCacheLock.Lock()
-	cacheItem, ok := svc.imageCache[image.ID]
-	svc.imageCacheLock.Unlock()
-	if !ok {
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
-		if err != nil {
-			return results, err
-		}
-		if newImageCache == nil {
-			svc.imageCacheLock.Lock()
-			svc.imageCache[image.ID] = cacheItem
-			svc.imageCacheLock.Unlock()
-		} else {
-			newImageCache[image.ID] = cacheItem
-		}
-	} else if newImageCache != nil {
-		newImageCache[image.ID] = cacheItem
-	}
-
-	return append(results, svc.buildImageResult(image, cacheItem)), nil
-}
-
-func (svc *imageService) ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error) {
-	var results []ImageResult
-	if filter != "" {
-		// we never remove entries from cache unless unfiltered ListImages call is made. Is it safe?
-		ref, err := svc.getRef(filter)
-		if err != nil {
-			return nil, err
-		}
-		if image, err := istorage.Transport.GetStoreImage(svc.store, ref); err == nil {
-			results, err = svc.appendCachedResult(systemContext, ref, image, []ImageResult{}, nil)
-			if err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		images, err := svc.store.Images()
-		if err != nil {
-			return nil, err
-		}
-		newImageCache := make(imageCache, len(images))
-		for i := range images {
-			image := &images[i]
-			ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
-			if err != nil {
-				return nil, err
-			}
-			results, err = svc.appendCachedResult(systemContext, ref, image, results, newImageCache)
-			if err != nil {
-				return nil, err
-			}
-		}
-		// replace image cache with cache we just built
-		// this invalidates all stale entries in cache
-		svc.imageCacheLock.Lock()
-		svc.imageCache = newImageCache
-		svc.imageCacheLock.Unlock()
-	}
-	return results, nil
 }
 
 func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrID string) (*ImageResult, error) {
@@ -542,7 +471,6 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 		defaultTransport:      defaultTransport,
 		indexConfigs:          make(map[string]*indexInfo),
 		insecureRegistryCIDRs: make([]*net.IPNet, 0),
-		imageCache:            make(map[string]imageCacheItem),
 		ctx:                   ctx,
 	}
 
