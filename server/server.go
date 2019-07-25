@@ -376,7 +376,20 @@ func New(
 	if s.appArmorEnabled && config.ApparmorProfile == libconfig.DefaultApparmorProfile {
 		logrus.Infof("installing default apparmor profile: %v", libconfig.DefaultApparmorProfile)
 		if err := apparmor.InstallDefault(libconfig.DefaultApparmorProfile); err != nil {
-			return nil, fmt.Errorf("ensuring the default apparmor profile %q is installed failed: %v", libconfig.DefaultApparmorProfile, err)
+			return nil, errors.Wrapf(err,
+				"installing default apparmor profile %q failed",
+				libconfig.DefaultApparmorProfile,
+			)
+		}
+		if logrus.IsLevelEnabled(logrus.TraceLevel) {
+			profileContent, err := apparmor.DefaultContent(libconfig.DefaultApparmorProfile)
+			if err != nil {
+				return nil, errors.Wrapf(err,
+					"retrieving default apparmor profile %q content failed",
+					libconfig.DefaultApparmorProfile,
+				)
+			}
+			logrus.Tracef("default apparmor profile contents: %s", profileContent)
 		}
 	} else {
 		logrus.Infof("assuming user-provided apparmor profile: %v", config.ApparmorProfile)
