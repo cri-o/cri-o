@@ -703,7 +703,7 @@ func AddCgroupAnnotation(g generate.Generator, mountPath, cgroupManager, cgroupP
 				// strip off the newline character and convert it to an int
 				strMemory := strings.TrimRight(string(fileData), "\n")
 				if strMemory != "" {
-					memoryLimit, err := strconv.Atoi(strMemory)
+					memoryLimit, err := strconv.ParseInt(strMemory, 10, 64)
 					if err != nil {
 						return "", errors.Wrapf(err, "error converting cgroup memory value from string to int %q", strMemory)
 					}
