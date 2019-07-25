@@ -15,10 +15,10 @@ GO110 := 1.10
 GOVERSION := $(findstring $(GO110),$(shell go version))
 GIT_COMMIT ?= $(if $(shell git rev-parse --short HEAD),$(shell git rev-parse --short HEAD),$(error "git failed"))
 BUILD_INFO := $(if $(shell date +%s),$(shell date +%s),$(error "date failed"))
-CNI_COMMIT := $(shell GO111MODULE=on go list -m github.com/containernetworking/cni | awk '{ print $$2 }')
 STATIC_STORAGETAGS = "containers_image_ostree_stub containers_image_openpgp exclude_graphdriver_devicemapper $(STORAGE_TAGS)"
 
-RUNC_COMMIT := 2c632d1a2de0192c3f18a2542ccb6f30a8719b1f
+CNI_COMMIT := $(shell sed -n 's;\tgithub.com/containernetworking/cni \([^ \n]*\).*$\;\1;p' go.mod)
+RUNC_COMMIT := $(shell sed -n 's;\tgithub.com/opencontainers/runc \([^ \n]*\).*$\;\1;p' go.mod)
 LIBSECCOMP_COMMIT := release-2.3
 
 EXTRALDFLAGS :=
@@ -117,7 +117,7 @@ install.runc:
 
 .PHONY: test-integration
 test-integration: install.tools
-	./tests/tools/ginkgo -v tests/e2e/.
+	./tests/tools/ginkgo $(BUILDFLAGS) -v tests/e2e/.
 	cd tests; ./test_runner.sh
 
 tests/testreport/testreport: tests/testreport/testreport.go

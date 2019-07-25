@@ -31,7 +31,8 @@ import (
 
 const (
 	// name of the directory holding the artifacts
-	artifactsDir = "artifacts"
+	artifactsDir      = "artifacts"
+	execDirPermission = 0755
 )
 
 // rootFsSize gets the size of the container's root filesystem
@@ -132,14 +133,91 @@ func (c *Container) AttachSocketPath() string {
 	return filepath.Join(c.ociRuntime.socketsDir, c.ID(), "attach")
 }
 
-// Get PID file path for a container's exec session
-func (c *Container) execPidPath(sessionID string) string {
-	return filepath.Join(c.state.RunDir, "exec_pid_"+sessionID)
-}
-
 // exitFilePath gets the path to the container's exit file
 func (c *Container) exitFilePath() string {
 	return filepath.Join(c.ociRuntime.exitsDir, c.ID())
+}
+
+// create a bundle path and associated files for an exec session
+func (c *Container) createExecBundle(sessionID string) (err error) {
+	bundlePath := c.execBundlePath(sessionID)
+	if createErr := os.MkdirAll(bundlePath, execDirPermission); createErr != nil {
+		return createErr
+	}
+	defer func() {
+		if err != nil {
+			if err2 := os.RemoveAll(bundlePath); err != nil {
+				logrus.Warnf("error removing exec bundle after creation caused another error: %v", err2)
+			}
+		}
+	}()
+	if err2 := os.MkdirAll(c.execExitFileDir(sessionID), execDirPermission); err2 != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err2) {
+			err = errors.Wrapf(err2, "error creating OCI runtime exit file path %s", c.execExitFileDir(sessionID))
+		}
+	}
+	return
+}
+
+// cleanup an exec session after its done
+func (c *Container) cleanupExecBundle(sessionID string) error {
+	return os.RemoveAll(c.execBundlePath(sessionID))
+}
+
+// the path to a containers exec session bundle
+func (c *Container) execBundlePath(sessionID string) string {
+	return filepath.Join(c.bundlePath(), sessionID)
+}
+
+// Get PID file path for a container's exec session
+func (c *Container) execPidPath(sessionID string) string {
+	return filepath.Join(c.execBundlePath(sessionID), "exec_pid")
+}
+
+// the log path for an exec session
+func (c *Container) execLogPath(sessionID string) string {
+	return filepath.Join(c.execBundlePath(sessionID), "exec_log")
+}
+
+// the socket conmon creates for an exec session
+func (c *Container) execAttachSocketPath(sessionID string) string {
+	return filepath.Join(c.ociRuntime.socketsDir, sessionID, "attach")
+}
+
+// execExitFileDir gets the path to the container's exit file
+func (c *Container) execExitFileDir(sessionID string) string {
+	return filepath.Join(c.execBundlePath(sessionID), "exit")
+}
+
+// execOCILog returns the file path for the exec sessions oci log
+func (c *Container) execOCILog(sessionID string) string {
+	if !c.ociRuntime.supportsJSON {
+		return ""
+	}
+	return filepath.Join(c.execBundlePath(sessionID), "oci-log")
+}
+
+// readExecExitCode reads the exit file for an exec session and returns
+// the exit code
+func (c *Container) readExecExitCode(sessionID string) (int, error) {
+	exitFile := filepath.Join(c.execExitFileDir(sessionID), c.ID())
+	chWait := make(chan error)
+	defer close(chWait)
+
+	_, err := WaitForFile(exitFile, chWait, time.Second*5)
+	if err != nil {
+		return -1, err
+	}
+	ec, err := ioutil.ReadFile(exitFile)
+	if err != nil {
+		return -1, err
+	}
+	ecInt, err := strconv.Atoi(string(ec))
+	if err != nil {
+		return -1, err
+	}
+	return ecInt, nil
 }
 
 // Wait for the container's exit file to appear.
@@ -815,34 +893,6 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 	return notRunning, nil
 }
 
-// Check if a container's dependencies are running
-// Returns a []string containing the IDs of dependencies that are not running
-// Assumes depencies are already locked, and will be passed in
-// Accepts a map[string]*Container containing, at a minimum, the locked
-// dependency containers
-// (This must be a map from container ID to container)
-func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container) ([]string, error) {
-	deps := c.Dependencies()
-	notRunning := []string{}
-
-	for _, dep := range deps {
-		depCtr, ok := depCtrs[dep]
-		if !ok {
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "container %s depends on container %s but it is not on containers passed to checkDependenciesRunning", c.ID(), dep)
-		}
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-
-		if depCtr.state.State != define.ContainerStateRunning {
-			notRunning = append(notRunning, dep)
-		}
-	}
-
-	return notRunning, nil
-}
-
 func (c *Container) completeNetworkSetup() error {
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {
@@ -877,8 +927,8 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 		return err
 	}
 
-	// With the newSpec complete, do an OCI create
-	if err := c.ociRuntime.createContainer(c, c.config.CgroupParent, nil); err != nil {
+	// With the spec complete, do an OCI create
+	if err := c.ociRuntime.createContainer(c, nil); err != nil {
 		return err
 	}
 
@@ -1292,6 +1342,7 @@ func (c *Container) postDeleteHooks(ctx context.Context) (err error) {
 				return err
 			}
 			for i, hook := range extensionHooks {
+				hook := hook
 				logrus.Debugf("container %s: invoke poststop hook %d, path %s", c.ID(), i, hook.Path)
 				var stderr, stdout bytes.Buffer
 				hookErr, err := exec.Run(ctx, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
@@ -1541,7 +1592,7 @@ func (c *Container) prepareCheckpointExport() (err error) {
 		logrus.Debugf("generating spec for container %q failed with %v", c.ID(), err)
 		return err
 	}
-	if err := c.writeJSONFile(g.Spec(), "spec.dump"); err != nil {
+	if err := c.writeJSONFile(g.Config, "spec.dump"); err != nil {
 		return err
 	}
 

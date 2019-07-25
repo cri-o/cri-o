@@ -445,7 +445,7 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading container config")
 		}
-		if err := json.Unmarshal([]byte(content), &returnSpec); err != nil {
+		if err := json.Unmarshal(content, &returnSpec); err != nil {
 			return nil, errors.Wrapf(err, "error unmarshalling container config")
 		}
 	} else {
@@ -639,10 +639,7 @@ func (c *Container) HostsAdd() []string {
 // trigger some OCI hooks.
 func (c *Container) UserVolumes() []string {
 	volumes := make([]string, 0, len(c.config.UserVolumes))
-	for _, vol := range c.config.UserVolumes {
-		volumes = append(volumes, vol)
-	}
-
+	volumes = append(volumes, c.config.UserVolumes...)
 	return volumes
 }
 
@@ -650,10 +647,7 @@ func (c *Container) UserVolumes() []string {
 // This is not added to the spec, but is instead used during image commit.
 func (c *Container) Entrypoint() []string {
 	entrypoint := make([]string, 0, len(c.config.Entrypoint))
-	for _, str := range c.config.Entrypoint {
-		entrypoint = append(entrypoint, str)
-	}
-
+	entrypoint = append(entrypoint, c.config.Entrypoint...)
 	return entrypoint
 }
 
@@ -661,10 +655,7 @@ func (c *Container) Entrypoint() []string {
 // This is not added to the spec, but is instead used during image commit
 func (c *Container) Command() []string {
 	command := make([]string, 0, len(c.config.Command))
-	for _, str := range c.config.Command {
-		command = append(command, str)
-	}
-
+	command = append(command, c.config.Command...)
 	return command
 }
 
@@ -1039,7 +1030,7 @@ func (c *Container) StoppedByUser() (bool, error) {
 
 // NamespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
-func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
+func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:interfacer
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -1052,11 +1043,11 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 		return "", errors.Wrapf(define.ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
 	}
 
-	if ns == InvalidNS {
+	if linuxNS == InvalidNS {
 		return "", errors.Wrapf(define.ErrInvalidArg, "invalid namespace requested from container %s", c.ID())
 	}
 
-	return fmt.Sprintf("/proc/%d/ns/%s", c.state.PID, ns.String()), nil
+	return fmt.Sprintf("/proc/%d/ns/%s", c.state.PID, linuxNS.String()), nil
 }
 
 // CGroupPath returns a cgroups "path" for a given container.

@@ -22,6 +22,8 @@ github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd/go.mod h1:64YH
 github.com/Microsoft/go-winio v0.4.11/go.mod h1:VhR8bwka0BXejwEJY73c50VrPtXAaKcyvVC4A4RozmA=
 github.com/Microsoft/go-winio v0.4.12 h1:xAfWHN1IrQ0NJ9TBC0KBZoqLjzDTr1ML+4MywiUOryc=
 github.com/Microsoft/go-winio v0.4.12/go.mod h1:VhR8bwka0BXejwEJY73c50VrPtXAaKcyvVC4A4RozmA=
+github.com/Microsoft/go-winio v0.4.13 h1:Hmi80lzZuI/CaYmlJp/b+FjZdRZhKu9c2mDVqKlLWVs=
+github.com/Microsoft/go-winio v0.4.13/go.mod h1:qXqCSQ3Xa7+6tgxaGTIe4Kpcdsi+P8jBhyzoq1bpyYA=
 github.com/Microsoft/hcsshim v0.8.3/go.mod h1:Op3hHsoHPAvb6lceZHDtd9OkTew38wNoXnJs8iY7rUg=
 github.com/Microsoft/hcsshim v0.8.6 h1:ZfF0+zZeYdzMIVMZHKtDKJvLHj76XCuVae/jNkjj0IA=
 github.com/Microsoft/hcsshim v0.8.6/go.mod h1:Op3hHsoHPAvb6lceZHDtd9OkTew38wNoXnJs8iY7rUg=
@@ -111,14 +113,20 @@ github.com/containers/buildah v1.9.0 h1:ktVRCGNoVfW8PlTuCKUeh+zGdqn1Nik80DSWvGX+
 github.com/containers/buildah v1.9.0/go.mod h1:1CsiLJvyU+h+wOjnqJJOWuJCVcMxZOr5HN/gHGdzJxY=
 github.com/containers/buildah v1.9.1 h1:3tbhJAxfSDVfsywbcjhywojIzriAGPX83eFoExdk9L0=
 github.com/containers/buildah v1.9.1/go.mod h1:I2eUf8JzmWOpsvwRXQyvd7aWSaPk8DRvKNXXPm8c7LI=
+github.com/containers/buildah v1.9.2 h1:dg87r1W1poWVQE0lTmP3BzaqgEI5IRudZ3jKjNIZ3xQ=
+github.com/containers/buildah v1.9.2/go.mod h1:UFq7EQtnDEEZv42AE7ZbmQMN+mSWSg1JIMwjYW1bn48=
 github.com/containers/image v2.0.0+incompatible h1:FTr6Br7jlIKNCKMjSOMbAxKp2keQ0//jzJaYNTVhauk=
 github.com/containers/image v2.0.0+incompatible/go.mod h1:8Vtij257IWSanUQKe1tAeNOm2sRVkSqQTVQ1IlwI3+M=
+github.com/containers/image v2.0.1+incompatible h1:w39mlElA/aSFZ6moFa5N+A4MWu9c8hgdMiMMYnH94Hs=
+github.com/containers/image v2.0.1+incompatible/go.mod h1:8Vtij257IWSanUQKe1tAeNOm2sRVkSqQTVQ1IlwI3+M=
 github.com/containers/libpod v0.8.3-0.20190628005010-4aa109f00e95 h1:b5fISjEVoZbR8jNmN9A1p2sZjBT1op9HeaA9T/zEu6s=
 github.com/containers/libpod v0.8.3-0.20190628005010-4aa109f00e95/go.mod h1:dO1PO7t9N5BfdGX0bXhwgBuEgm8DC4QLir8vgdl3ZDY=
 github.com/containers/libpod v0.8.3-0.20190628140055-5e42bf071760 h1:JrdoLRKPp84uxgaOKmXP6DK02KU5p6nNEoKWJeD3bbs=
 github.com/containers/libpod v0.8.3-0.20190628140055-5e42bf071760/go.mod h1:dO1PO7t9N5BfdGX0bXhwgBuEgm8DC4QLir8vgdl3ZDY=
 github.com/containers/libpod v0.8.3-0.20190711082319-144567b42dba h1:I6X1anNYQZZ/N7G2Exz4drQ6Yc398NwCuXJ+qEHvHAs=
 github.com/containers/libpod v0.8.3-0.20190711082319-144567b42dba/go.mod h1:xKKFpwDA599508AxpTVhBjyszJHai31knNdt+sWQUTA=
+github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c h1:Ij2gjy8dtDLfamYDP4XhXIE1Y52IDB7K1PgiOW7ROEQ=
+github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c/go.mod h1:xNVFFyH9mnKlWMSdXXQKxym9Cr0xtmUGsiE1Ab6QkMk=
 github.com/containers/libpod v1.4.4 h1:ImfKNDgs1WLyJ8zhcBBhiXhb2mVRgPzP58nSsC1aiPc=
 github.com/containers/libpod v1.4.4/go.mod h1:ZdYOq3W7RqABw6T6luVSWfS5GBXKQ1KzWPL1n8vjVhI=
 github.com/containers/psgo v1.3.0 h1:kDhiA4gNNyJ2qCzmOuBf6AmrF/Pp+6Jo98P68R7fB8I=
@@ -130,6 +138,8 @@ github.com/containers/storage v1.12.12 h1:gao0GNzjmSX4Ai/StOHtUVIrBguC0OKyvx/ZMw
 github.com/containers/storage v1.12.12/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
 github.com/containers/storage v1.12.13 h1:GtaLCY8p1Drlk1Oew581jGvB137UaO+kpz0HII67T0A=
 github.com/containers/storage v1.12.13/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
+github.com/containers/storage v1.12.14 h1:S1QGlC15gj5JOvB73W5tpVBApS4I7b/6rvxfflBAg+Q=
+github.com/containers/storage v1.12.14/go.mod h1:QsZp4XMJjyPNNbQHZeyNW3OmhwsWviI+7S6iOcu6a4c=
 github.com/coreos/bbolt v1.3.1-coreos.6/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/bbolt v1.3.3/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
@@ -179,6 +189,7 @@ github.com/docker/distribution v0.0.0-20170726174610-edc3ab29cdff/go.mod h1:J2gT
 github.com/docker/distribution v0.0.0-20170817175659-5f6282db7d65/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/distribution v2.7.1+incompatible h1:a5mlkVzth6W5A4fOsS3D2EO5BUmsJpcB+cRlLU7cSug=
 github.com/docker/distribution v2.7.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
+github.com/docker/docker v0.0.0-20171019062838-86f080cff091/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v0.7.3-0.20180827131323-0c5f8d2b9b23/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v0.7.3-0.20190309235953-33c3200e0d16/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
@@ -489,6 +500,8 @@ github.com/klauspost/compress v1.4.1/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0
 github.com/klauspost/compress v1.5.0/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/compress v1.7.1 h1:VRD0WLa8rweLB7alA5WMSVkoAtrI8xou5RrNd4JUlR0=
 github.com/klauspost/compress v1.7.1/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
+github.com/klauspost/compress v1.7.2 h1:liMOoeIvFpr9kEvalrZ7VVBA4wGf7zfOgwBjzz/5g2Y=
+github.com/klauspost/compress v1.7.2/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/cpuid v0.0.0-20180405133222-e7e905edc00e/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/cpuid v1.2.0/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
@@ -635,6 +648,8 @@ github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFSt
 github.com/ostreedev/ostree-go v0.0.0-20181112201119-9ab99253d365/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
 github.com/ostreedev/ostree-go v0.0.0-20181213164143-d0388bd827cf h1:tap+MXBMnRjexGsKGhIk4hV2QWASgxEvx8NMTtoSi8U=
 github.com/ostreedev/ostree-go v0.0.0-20181213164143-d0388bd827cf/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
+github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913 h1:TnbXhKzrTOyuvWrjI8W6pcoI9XPbLHFXCdN2dtUw7Rw=
+github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-toml v1.0.1/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pelletier/go-toml v1.1.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
@@ -937,6 +952,7 @@ golang.org/x/time v0.0.0-20190308202827-9d24e82272b4/go.mod h1:tRJNPiyCQ0inRvYxb
 golang.org/x/tools v0.0.0-20170824195420-5d2fd3ccab98/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20170915040203-e531a2a1c15f/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20180221164845-07fd8470d635/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+golang.org/x/tools v0.0.0-20180810170437-e96c4e24768d/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20181011042414-1f849cf54d09/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20181030221726-6c7e314b6563/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
@@ -1019,6 +1035,7 @@ gopkg.in/yaml.v2 v2.0.0-20170812160011-eb3733d160e7/go.mod h1:JAlM8MvJe8wmxCU4Bl
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.2 h1:ZCJp+EgiOT7lHqUV2J862kp8Qj64Jo6az82+3Td9dZw=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gotest.tools v0.0.0-20190624233834-05ebafbffc79/go.mod h1:R//lfYlUuTOTfblYI3lGoAAAebUdzjvbmQsuB7Ykd90=
 gotest.tools v2.1.0+incompatible/go.mod h1:DsYFclhRJ6vuDpmuTbkuFWG+y2sxOXAzmJt81HFBacw=
 gotest.tools v2.2.0+incompatible/go.mod h1:DsYFclhRJ6vuDpmuTbkuFWG+y2sxOXAzmJt81HFBacw=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
