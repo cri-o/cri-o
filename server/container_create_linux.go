@@ -495,7 +495,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 
 		if privileged {
 			specgen.SetupPrivileged(true)
-			setOCIBindMountsPrivileged(&specgen)
 		} else {
 			capabilities := linux.GetSecurityContext().GetCapabilities()
 			// Ensure we don't get a nil pointer error if the config
@@ -688,6 +687,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 		// bind mount the pod resolver file
 		specgen.AddMount(mnt)
+	}
+
+	if privileged {
+		setOCIBindMountsPrivileged(&specgen)
 	}
 
 	if sb.HostnamePath() != "" {
@@ -980,14 +983,8 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 
 func setOCIBindMountsPrivileged(g *generate.Generator) {
 	spec := g.Spec()
-	// clear readonly for /sys and cgroup
-	for i, m := range spec.Mounts {
-		if spec.Mounts[i].Destination == "/sys" {
-			clearReadOnly(&spec.Mounts[i])
-		}
-		if m.Type == "cgroup" {
-			clearReadOnly(&spec.Mounts[i])
-		}
+	for i := range spec.Mounts {
+		clearReadOnly(&spec.Mounts[i])
 	}
 	spec.Linux.ReadonlyPaths = nil
 	spec.Linux.MaskedPaths = nil
@@ -996,7 +993,9 @@ func setOCIBindMountsPrivileged(g *generate.Generator) {
 func clearReadOnly(m *rspec.Mount) {
 	var opt []string
 	for _, o := range m.Options {
-		if o != "ro" {
+		if o == "rw" {
+			return
+		} else if o != "ro" {
 			opt = append(opt, o)
 		}
 	}
