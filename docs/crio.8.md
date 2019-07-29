@@ -61,6 +61,19 @@ crio
 [--stream-port=[value]]
 [--uid-mappings=[value]]
 [--version|-v]
+[--conmon-env=[value]]
+[--container-attach-socket-dir=[value]]
+[--container-exits-dir=[value]]
+[--ctr-stop-timeout=[value]]
+[--grpc-max-recv-msg-size=[value]]
+[--grpc-max-send-msg-size=[value]]
+[--host-ip=[value]]
+[--manage-network-ns-lifecycle]
+[--no-pivot]
+[--stream-enable-tls]
+[--stream-tls-ca=[value]]
+[--stream-tls-cert=[value]]
+[--stream-tls-key=[value]]
 ```
 # DESCRIPTION
 OCI-based implementation of Kubernetes Container Runtime Interface Daemon
@@ -203,6 +216,32 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 **--uid-mappings**="": Specify the UID mappings to use for user namespace
 
 **--version, -v**: Print the version
+
+**--conmon-env**="": environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+
+**--container-attach-socket-dir**="": path to directory for container attach sockets (default: "/var/run/crio")
+
+**--container-exits-dir**="": path to directory in which container exit files are written to by conmon (default: "/var/run/crio/exits")
+
+**--ctr-stop-timeout**="": the minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container (default: 0)
+
+**--grpc-max-recv-msg-size**="": maximum grpc receive message size in bytes (default: 16 * 1024 * 1024)
+
+**--grpc-max-send-msg-size**="": maximum grpc receive message size (default: 16 * 1024 * 1024)
+
+**--host-ip**="": host IP considered as the primary IP to use by CRI-O for things such as host network IP (default: "")
+
+**--manage-network-ns-lifecycle**: determines whether we pin and remove network namespace and manage its lifecycle (default: false)
+
+**--no-pivot**: if true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)
+
+**--stream-enable-tls**: enable encrypted TLS transport of the stream server (default: false)
+
+**--stream-tls-ca**="": path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
+
+**--stream-tls-cert**="": path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
+
+**--stream-tls-key**="": path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
 
 # COMMANDS
 CRI-O's default command is to start the daemon. However, it currently offers a

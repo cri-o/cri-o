@@ -72,11 +72,11 @@ stream_enable_tls = {{ .StreamEnableTLS }}
 stream_tls_cert = "{{ .StreamTLSCert }}"
 
 # Path to the key file used to serve the encrypted stream. This file can
-# change, and CRI-O will automatically pick up the changes within 5 minutes.
+# change and CRI-O will automatically pick up the changes within 5 minutes.
 stream_tls_key = "{{ .StreamTLSKey }}"
 
 # Path to the x509 CA(s) file used to verify and authenticate client
-# communication with the encrypted stream. This file can change, and CRI-O will
+# communication with the encrypted stream. This file can change and CRI-O will
 # automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
 
