@@ -1,6 +1,12 @@
-export GO111MODULE=off
-
 GO ?= go
+
+# test for go module support
+ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
+export GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
+else
+export GO_BUILD=$(GO) build
+endif
+
 PROJECT := github.com/cri-o/cri-o
 CRIO_IMAGE = crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
 CRIO_INSTANCE := crio_dev
@@ -107,16 +113,16 @@ bin/pause:
 	$(MAKE) -C pause
 
 test/bin2img/bin2img: git-vars .gopathok $(wildcard test/bin2img/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/bin2img
+	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/bin2img
 
 test/copyimg/copyimg: git-vars .gopathok $(wildcard test/copyimg/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
+	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
 
 test/checkseccomp/checkseccomp: git-vars .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
 bin/crio: git-vars .gopathok
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
 build-static: git-vars
 	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(NIX_IMAGE) sh -c \
@@ -138,7 +144,7 @@ release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
 
 conmon/config.h: cmd/crio-config/config.go internal/oci/oci.go
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
+	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
 	( cd conmon && $(CURDIR)/bin/crio-config )
 
 clean:
@@ -170,7 +176,7 @@ bin/crio.cross.%: git-vars .gopathok .explicit_phony
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO) build $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
 crioimage: git-vars
 	$(CONTAINER_RUNTIME) build -t ${CRIO_IMAGE} .
@@ -195,7 +201,7 @@ integration: ${GINKGO} crioimage
 		${CRIO_IMAGE} make localintegration ${TESTFLAGS}
 
 define go-build
-	$(shell cd `pwd` && $(GO) build -o $(BUILD_BIN_PATH)/$(shell basename $(1)) $(1))
+	$(shell cd `pwd` && $(GO_BUILD) -o $(BUILD_BIN_PATH)/$(shell basename $(1)) $(1))
 	@echo > /dev/null
 endef
 
