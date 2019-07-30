@@ -111,7 +111,7 @@ type VolumeSource struct {
 	// +optional
 	FlexVolume *FlexVolumeSource
 
-	// Cinder represents a cinder volume attached and mounted on kubelets host machine
+	// Cinder represents a cinder volume attached and mounted on kubelets host machine.
 	// +optional
 	Cinder *CinderVolumeSource
 
@@ -196,7 +196,7 @@ type PersistentVolumeSource struct {
 	// provisioned/attached using an exec based plugin.
 	// +optional
 	FlexVolume *FlexPersistentVolumeSource
-	// Cinder represents a cinder volume attached and mounted on kubelets host machine
+	// Cinder represents a cinder volume attached and mounted on kubelets host machine.
 	// +optional
 	Cinder *CinderPersistentVolumeSource
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
@@ -229,7 +229,7 @@ type PersistentVolumeSource struct {
 	// +optional
 	Local *LocalVolumeSource
 	// StorageOS represents a StorageOS volume that is attached to the kubelet's host machine and mounted into the pod
-	// More info: https://releases.k8s.io/HEAD/examples/volumes/storageos/README.md
+	// More info: https://examples.k8s.io/volumes/storageos/README.md
 	// +optional
 	StorageOS *StorageOSPersistentVolumeSource
 	// CSI (Container Storage Interface) represents storage that is handled by an external CSI driver.
@@ -947,22 +947,22 @@ type GlusterfsVolumeSource struct {
 // Glusterfs volumes do not support ownership management or SELinux relabeling.
 type GlusterfsPersistentVolumeSource struct {
 	// EndpointsName is the endpoint name that details Glusterfs topology.
-	// More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
+	// More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
 	EndpointsName string
 
 	// Path is the Glusterfs volume path.
-	// More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
+	// More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
 	Path string
 
 	// ReadOnly here will force the Glusterfs volume to be mounted with read-only permissions.
 	// Defaults to false.
-	// More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
+	// More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
 	// +optional
 	ReadOnly bool
 
 	// EndpointsNamespace is the namespace that contains Glusterfs endpoint.
 	// If this field is empty, the EndpointNamespace defaults to the same namespace as the bound PVC.
-	// More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
+	// More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
 	// +optional
 	EndpointsNamespace *string
 }
@@ -1034,7 +1034,7 @@ type RBDPersistentVolumeSource struct {
 // in the same region as the kubelet. Cinder volumes support ownership
 // management and SELinux relabeling.
 type CinderVolumeSource struct {
-	// Unique id of the volume used to identify the cinder volume
+	// Unique id of the volume used to identify the cinder volume.
 	VolumeID string
 	// Filesystem type to mount.
 	// Must be a filesystem type supported by the host operating system.
@@ -1056,7 +1056,7 @@ type CinderVolumeSource struct {
 // in the same region as the kubelet. Cinder volumes support ownership
 // management and SELinux relabeling.
 type CinderPersistentVolumeSource struct {
-	// Unique id of the volume used to identify the cinder volume
+	// Unique id of the volume used to identify the cinder volume.
 	VolumeID string
 	// Filesystem type to mount.
 	// Must be a filesystem type supported by the host operating system.
@@ -2591,6 +2591,15 @@ type PodSpec struct {
 	InitContainers []Container
 	// List of containers belonging to the pod.
 	Containers []Container
+	// EphemeralContainers is the list of ephemeral containers that run in this pod. Ephemeral containers
+	// are added to an existing pod as a result of a user-initiated action such as troubleshooting.
+	// This list is read-only in the pod spec. It may not be specified in a create or modified in an
+	// update of a pod or pod template.
+	// To add an ephemeral container use the pod's ephemeralcontainers subresource, which allows update
+	// using the EphemeralContainers kind.
+	// This field is alpha-level and is only honored by servers that enable the EphemeralContainers feature.
+	// +optional
+	EphemeralContainers []EphemeralContainer
 	// +optional
 	RestartPolicy RestartPolicy
 	// Optional duration in seconds the pod needs to terminate gracefully. May be decreased in delete request.
@@ -2715,6 +2724,13 @@ type PodSpec struct {
 	// If not specified, the default is true.
 	// +optional
 	EnableServiceLinks *bool
+	// TopologySpreadConstraints describes how a group of pods ought to spread across topology
+	// domains. Scheduler will schedule pods in a way which abides by the constraints.
+	// This field is alpha-level and is only honored by clusters that enables the EvenPodsSpread
+	// feature.
+	// All topologySpreadConstraints are ANDed.
+	// +optional
+	TopologySpreadConstraints []TopologySpreadConstraint
 }
 
 // HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
@@ -2768,7 +2784,9 @@ type PodSecurityContext struct {
 	// takes precedence for that container.
 	// +optional
 	SELinuxOptions *SELinuxOptions
-	// Windows security options.
+	// The Windows specific settings applied to all containers.
+	// If unspecified, the options within a container's SecurityContext will be used.
+	// If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
 	// +optional
 	WindowsOptions *WindowsSecurityContextOptions
 	// The UID to run the entrypoint of the container process.
@@ -2864,6 +2882,106 @@ type PodIP struct {
 	IP string
 }
 
+type EphemeralContainerCommon struct {
+	// Required: This must be a DNS_LABEL.  Each container in a pod must
+	// have a unique name.
+	Name string
+	// Required.
+	Image string
+	// Optional: The docker image's entrypoint is used if this is not provided; cannot be updated.
+	// Variable references $(VAR_NAME) are expanded using the container's environment.  If a variable
+	// cannot be resolved, the reference in the input string will be unchanged.  The $(VAR_NAME) syntax
+	// can be escaped with a double $$, ie: $$(VAR_NAME).  Escaped references will never be expanded,
+	// regardless of whether the variable exists or not.
+	// +optional
+	Command []string
+	// Optional: The docker image's cmd is used if this is not provided; cannot be updated.
+	// Variable references $(VAR_NAME) are expanded using the container's environment.  If a variable
+	// cannot be resolved, the reference in the input string will be unchanged.  The $(VAR_NAME) syntax
+	// can be escaped with a double $$, ie: $$(VAR_NAME).  Escaped references will never be expanded,
+	// regardless of whether the variable exists or not.
+	// +optional
+	Args []string
+	// Optional: Defaults to Docker's default.
+	// +optional
+	WorkingDir string
+	// Ports are not allowed for ephemeral containers.
+	// +optional
+	Ports []ContainerPort
+	// List of sources to populate environment variables in the container.
+	// The keys defined within a source must be a C_IDENTIFIER. All invalid keys
+	// will be reported as an event when the container is starting. When a key exists in multiple
+	// sources, the value associated with the last source will take precedence.
+	// Values defined by an Env with a duplicate key will take precedence.
+	// Cannot be updated.
+	// +optional
+	EnvFrom []EnvFromSource
+	// +optional
+	Env []EnvVar
+	// Resources are not allowed for ephemeral containers. Ephemeral containers use spare resources
+	// already allocated to the pod.
+	// +optional
+	Resources ResourceRequirements
+	// +optional
+	VolumeMounts []VolumeMount
+	// volumeDevices is the list of block devices to be used by the container.
+	// This is a beta feature.
+	// +optional
+	VolumeDevices []VolumeDevice
+	// Probes are not allowed for ephemeral containers.
+	// +optional
+	LivenessProbe *Probe
+	// Probes are not allowed for ephemeral containers.
+	// +optional
+	ReadinessProbe *Probe
+	// Lifecycle is not allowed for ephemeral containers.
+	// +optional
+	Lifecycle *Lifecycle
+	// Required.
+	// +optional
+	TerminationMessagePath string
+	// +optional
+	TerminationMessagePolicy TerminationMessagePolicy
+	// Required: Policy for pulling images for this container
+	ImagePullPolicy PullPolicy
+	// SecurityContext is not allowed for ephemeral containers.
+	// +optional
+	SecurityContext *SecurityContext
+
+	// Variables for interactive containers, these have very specialized use-cases (e.g. debugging)
+	// and shouldn't be used for general purpose containers.
+	// +optional
+	Stdin bool
+	// +optional
+	StdinOnce bool
+	// +optional
+	TTY bool
+}
+
+// EphemeralContainerCommon converts to Container. All fields must be kept in sync between
+// these two types.
+var _ = Container(EphemeralContainerCommon{})
+
+// An EphemeralContainer is a special type of container which doesn't come with any resource
+// or scheduling guarantees but can be added to a pod that has already been created. They are
+// intended for user-initiated activities such as troubleshooting a running pod.
+// Ephemeral containers will not be restarted when they exit, and they will be killed if the
+// pod is removed or restarted. If an ephemeral container causes a pod to exceed its resource
+// allocation, the pod may be evicted.
+// Ephemeral containers are added via a pod's ephemeralcontainers subresource and will appear
+// in the pod spec once added.
+// This is an alpha feature enabled by the EphemeralContainers feature flag.
+type EphemeralContainer struct {
+	EphemeralContainerCommon
+
+	// If set, the name of the container from PodSpec that this ephemeral container targets.
+	// The ephemeral container will be run in the namespaces (IPC, PID, etc) of this container.
+	// If not set then the ephemeral container is run in whatever namespaces are shared
+	// for the pod. Note that the container runtime must support this feature.
+	// +optional
+	TargetContainerName string
+}
+
 // PodStatus represents information about the status of a pod. Status may trail the actual
 // state of a system.
 type PodStatus struct {
@@ -2911,6 +3029,11 @@ type PodStatus struct {
 	// when we have done this.
 	// +optional
 	ContainerStatuses []ContainerStatus
+
+	// Status for any ephemeral containers that running in this pod.
+	// This field is alpha-level and is only honored by servers that enable the EphemeralContainers feature.
+	// +optional
+	EphemeralContainerStatuses []ContainerStatus
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -3917,6 +4040,18 @@ type Binding struct {
 	Target ObjectReference
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// A list of ephemeral containers used in API operations
+type EphemeralContainers struct {
+	metav1.TypeMeta
+	// +optional
+	metav1.ObjectMeta
+
+	// The new set of ephemeral containers to use for a pod.
+	EphemeralContainers []EphemeralContainer
+}
+
 // Preconditions must be fulfilled before an operation (update, delete, etc.) is carried out.
 type Preconditions struct {
 	// Specifies the target UID.
@@ -4704,7 +4839,9 @@ type SecurityContext struct {
 	// PodSecurityContext, the value specified in SecurityContext takes precedence.
 	// +optional
 	SELinuxOptions *SELinuxOptions
-	// Windows security options.
+	// The Windows specific settings applied to all containers.
+	// If unspecified, the options from the PodSecurityContext will be used.
+	// If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
 	// +optional
 	WindowsOptions *WindowsSecurityContextOptions
 	// The UID to run the entrypoint of the container process.
@@ -4786,6 +4923,14 @@ type WindowsSecurityContextOptions struct {
 	// This field is alpha-level and is only honored by servers that enable the WindowsGMSA feature flag.
 	// +optional
 	GMSACredentialSpec *string
+
+	// The UserName in Windows to run the entrypoint of the container process.
+	// Defaults to the user specified in image metadata if unspecified.
+	// May also be set in PodSecurityContext. If set in both SecurityContext and
+	// PodSecurityContext, the value specified in SecurityContext takes precedence.
+	// This field is alpha-level and it is only honored by servers that enable the WindowsRunAsUserName feature flag.
+	// +optional
+	RunAsUserName *string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -4822,3 +4967,64 @@ const (
 	// DefaultHardPodAffinityWeight defines the weight of the implicit PreferredDuringScheduling affinity rule.
 	DefaultHardPodAffinitySymmetricWeight int32 = 1
 )
+
+type UnsatisfiableConstraintAction string
+
+const (
+	// DoNotSchedule instructs the scheduler not to schedule the pod
+	// when constraints are not satisfied.
+	DoNotSchedule UnsatisfiableConstraintAction = "DoNotSchedule"
+	// ScheduleAnyway instructs the scheduler to schedule the pod
+	// even if constraints are not satisfied.
+	ScheduleAnyway UnsatisfiableConstraintAction = "ScheduleAnyway"
+)
+
+// TopologySpreadConstraint specifies how to spread matching pods among the given topology.
+type TopologySpreadConstraint struct {
+	// MaxSkew describes the degree to which pods may be unevenly distributed.
+	// It's the maximum permitted difference between the number of matching pods in
+	// any two topology domains of a given topology type.
+	// For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same
+	// labelSelector spread as 1/1/0:
+	// +-------+-------+-------+
+	// | zone1 | zone2 | zone3 |
+	// +-------+-------+-------+
+	// |   P   |   P   |       |
+	// +-------+-------+-------+
+	// - if MaxSkew is 1, incoming pod can only be scheduled to zone3 to become 1/1/1;
+	// scheduling it onto zone1(zone2) would make the ActualSkew(2-0) on zone1(zone2)
+	// violate MaxSkew(1).
+	// - if MaxSkew is 2, incoming pod can be scheduled onto any zone.
+	// It's a required field. Default value is 1 and 0 is not allowed.
+	MaxSkew int32
+	// TopologyKey is the key of node labels. Nodes that have a label with this key
+	// and identical values are considered to be in the same topology.
+	// We consider each <key, value> as a "bucket", and try to put balanced number
+	// of pods into each bucket.
+	// It's a required field.
+	TopologyKey string
+	// WhenUnsatisfiable indicates how to deal with a pod if it doesn't satisfy
+	// the spread constraint.
+	// - DoNotSchedule (default) tells the scheduler not to schedule it
+	// - ScheduleAnyway tells the scheduler to still schedule it
+	// It's considered as "Unsatisfiable" if and only if placing incoming pod on any
+	// topology violates "MaxSkew".
+	// For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same
+	// labelSelector spread as 3/1/1:
+	// +-------+-------+-------+
+	// | zone1 | zone2 | zone3 |
+	// +-------+-------+-------+
+	// | P P P |   P   |   P   |
+	// +-------+-------+-------+
+	// If WhenUnsatisfiable is set to DoNotSchedule, incoming pod can only be scheduled
+	// to zone2(zone3) to become 3/2/1(3/1/2) as ActualSkew(2-1) on zone2(zone3) satisfies
+	// MaxSkew(1). In other words, the cluster can still be imbalanced, but scheduler
+	// won't make it *more* imbalanced.
+	// It's a required field.
+	WhenUnsatisfiable UnsatisfiableConstraintAction
+	// LabelSelector is used to find matching pods.
+	// Pods that match this label selector are counted to determine the number of pods
+	// in their corresponding topology domain.
+	// +optional
+	LabelSelector *metav1.LabelSelector
+}

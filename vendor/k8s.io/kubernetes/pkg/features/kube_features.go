@@ -48,6 +48,15 @@ const (
 	// SYS_TIME). This should only be enabled if user namespace remapping is enabled in the docker daemon.
 	ExperimentalHostUserNamespaceDefaultingGate featuregate.Feature = "ExperimentalHostUserNamespaceDefaulting"
 
+	// owner: @vishh
+	// alpha: v1.5
+	//
+	// DEPRECATED - This feature is deprecated by Pod Priority and Preemption as of Kubernetes 1.13.
+	// Ensures guaranteed scheduling of pods marked with a special pod annotation `scheduler.alpha.kubernetes.io/critical-pod`
+	// and also prevents them from being evicted from a node.
+	// Note: This feature is not supported for `BestEffort` pods.
+	ExperimentalCriticalPodAnnotation featuregate.Feature = "ExperimentalCriticalPodAnnotation"
+
 	// owner: @jiayingz
 	// beta: v1.10
 	//
@@ -113,10 +122,10 @@ const (
 	ExpandCSIVolumes featuregate.Feature = "ExpandCSIVolumes"
 
 	// owner: @verb
-	// alpha: v1.10
+	// alpha: v1.16
 	//
-	// Allows running a "debug container" in a pod namespaces to troubleshoot a running pod.
-	DebugContainers featuregate.Feature = "DebugContainers"
+	// Allows running an ephemeral container in pod namespaces to troubleshoot a running pod.
+	EphemeralContainers featuregate.Feature = "EphemeralContainers"
 
 	// owner: @verb
 	// beta: v1.12
@@ -408,6 +417,12 @@ const (
 	// Enables GMSA support for Windows workloads.
 	WindowsGMSA featuregate.Feature = "WindowsGMSA"
 
+	// owner: @bclau
+	// alpha: v1.16
+	//
+	// Enables support for running container entrypoints as different usernames than their default ones.
+	WindowsRunAsUserName featuregate.Feature = "WindowsRunAsUserName"
+
 	// owner: @adisky
 	// alpha: v1.14
 	//
@@ -456,6 +471,12 @@ const (
 	//
 	// Enables ipv6 dual stack
 	IPv6DualStack featuregate.Feature = "IPv6DualStack"
+
+	// owner: @Huang-Wei
+	// alpha: v1.16
+	//
+	// Schedule pods evenly across available topology domains.
+	EvenPodsSpread featuregate.Feature = "EvenPodsSpread"
 )
 
 func init() {
@@ -470,13 +491,14 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	DynamicKubeletConfig: {Default: true, PreRelease: featuregate.Beta},
 	ExperimentalHostUserNamespaceDefaultingGate: {Default: false, PreRelease: featuregate.Beta},
 	DevicePlugins:                       {Default: true, PreRelease: featuregate.Beta},
+	ExperimentalCriticalPodAnnotation:   {Default: false, PreRelease: featuregate.Alpha},
 	TaintBasedEvictions:                 {Default: true, PreRelease: featuregate.Beta},
 	RotateKubeletServerCertificate:      {Default: true, PreRelease: featuregate.Beta},
 	RotateKubeletClientCertificate:      {Default: true, PreRelease: featuregate.Beta},
 	PersistentLocalVolumes:              {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.17
 	LocalStorageCapacityIsolation:       {Default: true, PreRelease: featuregate.Beta},
 	Sysctls:                             {Default: true, PreRelease: featuregate.Beta},
-	DebugContainers:                     {Default: false, PreRelease: featuregate.Alpha},
+	EphemeralContainers:                 {Default: false, PreRelease: featuregate.Alpha},
 	PodShareProcessNamespace:            {Default: true, PreRelease: featuregate.Beta},
 	PodPriority:                         {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.18
 	TaintNodesByCondition:               {Default: true, PreRelease: featuregate.Beta},
@@ -526,12 +548,14 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	TTLAfterFinished:                    {Default: false, PreRelease: featuregate.Alpha},
 	KubeletPodResources:                 {Default: true, PreRelease: featuregate.Beta},
 	WindowsGMSA:                         {Default: false, PreRelease: featuregate.Alpha},
+	WindowsRunAsUserName:                {Default: false, PreRelease: featuregate.Alpha},
 	ServiceLoadBalancerFinalizer:        {Default: false, PreRelease: featuregate.Alpha},
 	LocalStorageCapacityIsolationFSQuotaMonitoring: {Default: false, PreRelease: featuregate.Alpha},
 	NonPreemptingPriority:                          {Default: false, PreRelease: featuregate.Alpha},
 	VolumePVCDataSource:                            {Default: false, PreRelease: featuregate.Alpha},
 	PodOverhead:                                    {Default: false, PreRelease: featuregate.Alpha},
 	IPv6DualStack:                                  {Default: false, PreRelease: featuregate.Alpha},
+	EvenPodsSpread:                                 {Default: false, PreRelease: featuregate.Alpha},
 
 	// inherited features from generic apiserver, relisted here to get a conflict if it is changed
 	// unintentionally on either side:
