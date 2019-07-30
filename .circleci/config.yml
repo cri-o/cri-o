@@ -6,6 +6,7 @@ stdenv: &stdenv
     GOCACHE: &gocache /tmp/go-build
     IMAGE: &image saschagrunert/criocircle:1.1.0
     JOBS: &jobs 8
+    PODMANCACHE: &podmancache /tmp/podman
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
 
 executors:
@@ -39,6 +40,35 @@ executors:
       image: ubuntu-1604:201903-01
     <<: *stdenv
 
+setupPodman: &setupPodman
+  run:
+    name: setup podman
+    command: |
+      # Install podman
+      sudo add-apt-repository ppa:projectatomic/ppa -y
+      sudo apt-get update
+      sudo apt-get install podman -y
+
+      # Setup registries
+      printf '[registries.search]\nregistries = ["docker.io"]\n' > tmp
+      sudo cp tmp /etc/containers/registries.conf
+
+      # Setup CNI
+      sudo sed -i 's;"subnet": .*;"subnet": "172.88.0.0/16",;g' \
+        /etc/cni/net.d/87-podman-bridge.conflist
+
+      # Setup cache and storage dirs
+      sudo mkdir -p $GOCACHE
+      sudo sed -i 's;runroot = .*;runroot = "'$PODMANCACHE'/run";g' \
+        /etc/containers/storage.conf
+      sudo sed -i 's;graphroot = .*;graphroot = "'$PODMANCACHE'/lib";g' \
+        /etc/containers/storage.conf
+
+changeCachePermissions: &changeCachePermissions
+  run:
+    name: fix cache permissions
+    command: sudo chown -R $(id -u):$(id -g) $GOCACHE $PODMANCACHE
+
 workflows:
   version: 2
   pipeline:
@@ -61,6 +91,7 @@ workflows:
           requires:
             - build
             - build-test-binaries
+            - ginkgo
       - integration:
           name: integration-critest
           run_critest: '1'
@@ -75,6 +106,7 @@ workflows:
           requires:
             - build
             - build-test-binaries
+            - ginkgo
       - integration:
           name: integration-static-glibc
           crio_binary: crio-x86_64-static-glibc
@@ -82,6 +114,7 @@ workflows:
             - build
             - build-static
             - build-test-binaries
+            - ginkgo
       - integration:
           name: integration-static-musl
           crio_binary: crio-x86_64-static-musl
@@ -89,6 +122,7 @@ workflows:
             - build
             - build-static
             - build-test-binaries
+            - ginkgo
       - lint
       - results:
           requires:
@@ -259,20 +293,28 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+      - restore_cache:
+          keys:
+            - v1-podman-integration-{{ checksum ".circleci/config.yml" }}
+      - <<: *setupPodman
       - run:
           name: integration test
           command: |
-            docker pull $IMAGE
-            docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e CI \
-              -e CRIO_BINARY -e TEST_USERNS -e RUN_CRITEST \
+            sudo podman run -e STORAGE_OPTIONS="--storage-driver=vfs" \
+              -e CI=true -e CRIO_BINARY -e TEST_USERNS -e RUN_CRITEST \
               -v $(pwd):$WORKDIR -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
-              --privileged --rm -w $WORKDIR \
+              --privileged -w $WORKDIR \
               $IMAGE test/test_runner.sh $TEST_ARGS
           environment:
             CRIO_BINARY: "<< parameters.crio_binary >>"
             RUN_CRITEST: "<< parameters.run_critest >>"
             TEST_ARGS: "<< parameters.test_args >>"
             TEST_USERNS: "<< parameters.test_userns >>"
+      - <<: *changeCachePermissions
+      - save_cache:
+          key: v1-podman-integration-{{ checksum ".circleci/config.yml" }}
+          paths:
+            - *podmancache
 
   lint:
     executor: machine
@@ -281,14 +323,21 @@ jobs:
       - restore_cache:
           keys:
             - v1-golangci-lint-{{ checksum "go.sum" }}
+      - restore_cache:
+          keys:
+            - v1-podman-lint-{{ checksum ".circleci/config.yml" }}
+      - <<: *setupPodman
       - run:
           name: lint
           command: |
-            docker pull $IMAGE
-            docker run --privileged --rm -e GOCACHE \
+            sudo podman run -e GOCACHE \
               -v $GOCACHE:$GOCACHE -v $(pwd):$WORKDIR \
               -w $WORKDIR $IMAGE make lint
-            sudo chown -R $(id -u):$(id -g) $GOCACHE
+      - <<: *changeCachePermissions
+      - save_cache:
+          key: v1-podman-lint-{{ checksum ".circleci/config.yml" }}
+          paths:
+            - *podmancache
       - save_cache:
           key: v1-golangci-lint-{{ checksum "go.sum" }}
           paths:
