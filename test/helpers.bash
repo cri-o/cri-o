@@ -195,6 +195,17 @@ function setup_test() {
 	cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
 	sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
 
+	# verify we have a conmon binary copied to the correct place
+	if ! test -f "$CONMON_BINARY"; then
+		SYSTEM_CONMON=$(which conmon)
+		if [ ! -z ${SYSTEM_CONMON+x} ]; then
+			cp "$SYSTEM_CONMON" "$CONMON_BINARY"
+		else
+			echo "No conmon binary to be found"
+			exit 1
+		fi
+	fi
+
 	cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
 	PATH=$PATH:$TESTDIR
