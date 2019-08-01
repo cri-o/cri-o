@@ -55,10 +55,12 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 		return
 	}
 
-	for _, podIPConfig := range network.IPs {
+	for idx, podIPConfig := range network.IPs {
 		podIP := strings.Split(podIPConfig.Address.String(), "/")[0]
 
-		if len(sb.PortMappings()) > 0 {
+		// Apply the hostport mappings only for the first IP to avoid allocating
+		// the same host port twice
+		if idx == 0 && len(sb.PortMappings()) > 0 {
 			ip := net.ParseIP(podIP)
 			if ip == nil {
 				err = fmt.Errorf("failed to get valid ip address for sandbox %s(%s)", sb.Name(), sb.ID())
