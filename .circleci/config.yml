@@ -262,12 +262,22 @@ jobs:
       - run:
           name: integration test
           command: |
+            sudo ip6tables --list >/dev/null # enable necessary kernel modules
             docker pull $IMAGE
-            docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e CI \
-              -e CRIO_BINARY -e TEST_USERNS -e RUN_CRITEST \
-              -v $(pwd):$WORKDIR -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
-              --privileged --rm -w $WORKDIR \
-              $IMAGE test/test_runner.sh $TEST_ARGS
+            docker run \
+              --privileged \
+              --rm \
+              --sysctl net.ipv6.conf.all.disable_ipv6=0 \
+              -e CI=true \
+              -e CRIO_BINARY \
+              -e RUN_CRITEST \
+              -e STORAGE_OPTIONS="-s=vfs" \
+              -e TEST_USERNS \
+              -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
+              -v $(pwd):$WORKDIR \
+              -w $WORKDIR \
+              $IMAGE \
+              test/test_runner.sh $TEST_ARGS
           environment:
             CRIO_BINARY: "<< parameters.crio_binary >>"
             RUN_CRITEST: "<< parameters.run_critest >>"

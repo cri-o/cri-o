@@ -191,15 +191,18 @@ integration: ${GINKGO} crioimage
 	$(CONTAINER_RUNTIME) run \
 		-e CI=true \
 		-e CRIO_BINARY \
+		-e JOBS \
 		-e RUN_CRITEST \
 		-e STORAGE_OPTIONS="-s=vfs" \
 		-e TESTFLAGS \
 		-e TEST_USERNS \
-		-t --privileged --rm \
+		-it --privileged --rm \
 		-v $(shell pwd):/go/src/${PROJECT} \
 		-v ${GINKGO}:/usr/bin/ginkgo \
 		-w /go/src/${PROJECT} \
-		${CRIO_IMAGE} make localintegration ${TESTFLAGS}
+		--sysctl net.ipv6.conf.all.disable_ipv6=0 \
+		${CRIO_IMAGE} \
+		make localintegration
 
 define go-build
 	$(shell cd `pwd` && $(GO) build -o $(BUILD_BIN_PATH)/$(shell basename $(1)) $(1))

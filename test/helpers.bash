@@ -134,8 +134,13 @@ cp /opt/cni/bin/* "$CRIO_CNI_PLUGIN"
 cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
 sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
 
-POD_CIDR="10.88.0.0/16"
-POD_CIDR_MASK="10.88.*.*"
+POD_IPV4_CIDR="10.88.0.0/16"
+POD_IPV4_CIDR_START="10.88"
+POD_IPV4_DEF_ROUTE="0.0.0.0/0"
+
+POD_IPV6_CIDR="1100:200::/24"
+POD_IPV6_CIDR_START="1100:200::"
+POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
 cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
@@ -273,7 +278,7 @@ function setup_crio() {
 	else
 		netfunc="prepare_network_conf"
 	fi
-	${netfunc} $POD_CIDR
+	${netfunc}
 
 }
 
@@ -478,9 +483,13 @@ function prepare_network_conf() {
     "ipMasq": true,
     "ipam": {
         "type": "host-local",
-        "subnet": "$1",
         "routes": [
-            { "dst": "0.0.0.0/0"  }
+            { "dst": "$POD_IPV4_DEF_ROUTE" },
+            { "dst": "$POD_IPV6_DEF_ROUTE" }
+        ],
+        "ranges": [
+            [{ "subnet": "$POD_IPV4_CIDR" }],
+            [{ "subnet": "$POD_IPV6_CIDR" }]
         ]
     }
 }
@@ -501,74 +510,78 @@ function write_plugin_test_args_network_conf() {
     "ipMasq": true,
     "ipam": {
         "type": "host-local",
-        "subnet": "$1",
+        "subnet": "$POD_IPV4_CIDR",
         "routes": [
-            { "dst": "0.0.0.0/0"  }
+            { "dst": "$POD_IPV4_DEF_ROUTE"  }
         ]
     }
 }
 EOF
 
-	if [[ -n "$2" ]]; then
-		echo "DEBUG_ARGS=$2" > "$TESTDIR"/cni_plugin_helper_input.env
+	if [[ -n "$1" ]]; then
+		echo "DEBUG_ARGS=$1" > "$TESTDIR"/cni_plugin_helper_input.env
 	fi
 
 	echo 0
 }
 
 function prepare_plugin_test_args_network_conf() {
-	write_plugin_test_args_network_conf $1 ""
+	write_plugin_test_args_network_conf
 }
 
 function prepare_plugin_test_args_network_conf_malformed_result() {
-	write_plugin_test_args_network_conf $1 "malformed-result"
+	write_plugin_test_args_network_conf "malformed-result"
 }
 
 function check_pod_cidr() {
 	run crictl exec --sync $1 ip addr show dev eth0 scope global 2>&1
 	echo "$output"
 	[ "$status" -eq 0  ]
-	[[ "$output" =~ $POD_CIDR_MASK  ]]
+	[[ "$output" =~ $POD_IPV4_CIDR_START ]]
+	[[ "$output" =~ $POD_IPV6_CIDR_START ]]
 }
 
 function parse_pod_ip() {
-	for arg
-	do
-		cidr=`echo "$arg" | grep $POD_CIDR_MASK`
-		if [ "$cidr" == "$arg" ]
-		then
-			echo `echo "$arg" | sed "s/\/[0-9][0-9]//"`
-			break
-		fi
-	done
+    inet=$(crictl exec --sync "$1" ip addr show dev eth0 scope global 2>&1 | grep "$2")
+    echo "$inet" | sed -n 's;.*\('"$3"'.*\)/.*;\1;p'
+}
+
+function parse_pod_ipv4() {
+    parse_pod_ip "$1" 'inet ' $POD_IPV4_CIDR_START
+}
+
+function parse_pod_ipv6() {
+    parse_pod_ip "$1" inet6 $POD_IPV6_CIDR_START
 }
 
 function get_host_ip() {
-	gateway_dev=`ip -o route show default 0.0.0.0/0 | sed 's/.*dev \([^[:space:]]*\).*/\1/'`
+	gateway_dev=`ip -o route show default $POD_IPV4_DEF_ROUTE | sed 's/.*dev \([^[:space:]]*\).*/\1/'`
 	[ "$gateway_dev" ]
 	host_ip=`ip -o -4 addr show dev $gateway_dev scope global | sed 's/.*inet \([0-9.]*\).*/\1/'`
 }
 
 function ping_pod() {
-	inet=`crictl exec --sync $1 ip addr show dev eth0 scope global 2>&1 | grep inet`
+    ipv4=$(parse_pod_ipv4 "$1")
+    ping -W 1 -c 5 "$ipv4"
+    echo "$output"
+    [ "$status" -eq 0 ]
 
-	IFS=" "
-	ip=`parse_pod_ip $inet`
-
-	ping -W 1 -c 5 $ip
-
-	echo $?
+    ipv6=$(parse_pod_ipv6 "$1")
+    ping6 -W 1 -c 5 "$ipv6"
+    echo "$output"
+    [ "$status" -eq 0 ]
 }
 
 function ping_pod_from_pod() {
-	inet=`crictl exec --sync $1 ip addr show dev eth0 scope global 2>&1 | grep inet`
+    ipv4=$(parse_pod_ipv4 "$1")
+    run crictl exec --sync "$2" ping -W 1 -c 2 "$ipv4"
+    echo "$output"
+    [ "$status" -eq 0 ]
 
-	IFS=" "
-	ip=`parse_pod_ip $inet`
-
-	run crictl exec --sync $2 ping -W 1 -c 2 $ip
-	echo "$output"
-	[ "$status" -eq 0   ]
+    ipv6=$(parse_pod_ipv6 "$1")
+    run crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"
+    echo "$output"
+    [ "$status" -eq 0 ]
 }
 
 
