@@ -26,7 +26,7 @@
       include: "build/kubernetes.yml"
       vars:
         k8s_git_version: "release-1.15"
-        k8s_github_fork: "kubernetes"
+        k8s_github_fork: "haircommander"
         crio_socket: "/var/run/crio/crio.sock"
 
     - name: clone build and install runc
@@ -102,7 +102,7 @@
       vars:
         force_clone: true
         k8s_git_version: "release-1.12"
-        k8s_github_fork: "kubernetes"
+        k8s_github_fork: "haircommander"
         crio_socket: "/var/run/crio/crio.sock"
     - name: run k8s node-e2e tests
       include: node-e2e.yml
@@ -119,7 +119,7 @@
       vars:
         force_clone: true
         k8s_git_version: "master"
-        k8s_github_fork: "kubernetes"
+        k8s_github_fork: "haircommander"
         crio_socket: "/var/run/crio/crio.sock"
     - name: run k8s e2e tests
       include: e2e.yml
@@ -136,7 +136,7 @@
       vars:
         force_clone: true
         k8s_git_version: "master"
-        k8s_github_fork: "kubernetes"
+        k8s_github_fork: "haircommander"
         crio_socket: "/var/run/crio/crio.sock"
     - name: run k8s e2e features tests
       include: e2e-features.yml
