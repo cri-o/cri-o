@@ -442,7 +442,7 @@ function cleanup_test() {
 	cleanup_pods
 	stop_crio
 	cleanup_lvm
-	rm -r "$TESTDIR"
+	rm -r "$TESTDIR" || true
 }
 
 
