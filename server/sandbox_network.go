@@ -62,6 +62,15 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 		// the same host port twice
 		if idx == 0 && len(sb.PortMappings()) > 0 {
 			ip := net.ParseIP(podIP)
+
+			if ip.To4() == nil {
+				// Skip IPv6 addresses since they're currently not supported by
+				// the hostport manager. Beside this, it would not make much
+				// sense to try to expose the same port twice in IPv6 dual
+				// stack mode.
+				continue
+			}
+
 			if ip == nil {
 				err = fmt.Errorf("failed to get valid ip address for sandbox %s(%s)", sb.Name(), sb.ID())
 				return
