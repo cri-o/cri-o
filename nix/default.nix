@@ -56,8 +56,19 @@ let
     postInstall = "";
   });
 
+  # TODO: remove the build phase patch after CRI-O 1.16.0 release in nixpkgs
+  patchBuildPhase = pkg: pkg.overrideDerivation(old: {
+    buildPhase = ''
+      pushd go/src/${old.goPackagePath}
+      make -C pause
+      go build -tags ${old.makeFlags} -o bin/crio -buildmode=pie \
+        -ldflags '-s -w -linkmode external -extldflags "-static -lm"' \
+        ${old.goPackagePath}/cmd/crio
+    '';
+  });
+
   self = {
-    cri-o-static-musl = (muslPkgs.cri-o.overrideAttrs(old: {
+    cri-o-static-musl = patchBuildPhase ((muslPkgs.cri-o.overrideAttrs(old: {
       name = "cri-o-x86_64-static-musl-${revision}";
       buildInputs = old.buildInputs ++ [ muslPkgs.systemd ];
       src = ./..;
@@ -71,8 +82,8 @@ let
       libgpgerror = (static muslPkgs.libgpgerror);
       libseccomp = (static muslPkgs.libseccomp);
       lvm2 = (patchLvm2 (static muslPkgs.lvm2));
-    };
-    cri-o-static-glibc = (glibcPkgs.cri-o.overrideAttrs(old: {
+    });
+    cri-o-static-glibc = patchBuildPhase ((glibcPkgs.cri-o.overrideAttrs(old: {
       name = "cri-o-x86_64-static-glibc-${revision}";
       buildInputs = old.buildInputs ++ [ glibcPkgs.systemd ];
       src = ./..;
@@ -85,6 +96,6 @@ let
       libgpgerror = (static glibcPkgs.libgpgerror);
       libseccomp = (static glibcPkgs.libseccomp);
       lvm2 = (patchLvm2 (static glibcPkgs.lvm2));
-    };
+    });
   };
 in self
