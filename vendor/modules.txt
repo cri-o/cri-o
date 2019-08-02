@@ -70,7 +70,7 @@ github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.9.2
+# github.com/containers/buildah v1.10.0
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
@@ -83,7 +83,7 @@ github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/pkg/cli
-# github.com/containers/image v2.0.1+incompatible
+# github.com/containers/image v3.0.0+incompatible
 github.com/containers/image/types
 github.com/containers/image/pkg/sysregistriesv2
 github.com/containers/image/copy
@@ -118,7 +118,7 @@ github.com/containers/image/pkg/docker/config
 github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
-github.com/containers/image/pkg/sysregistries
+github.com/containers/image/pkg/keyctl
 # github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/annotations
@@ -163,7 +163,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.12.14
+# github.com/containers/storage v1.12.16
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage
 github.com/containers/storage/pkg/idtools

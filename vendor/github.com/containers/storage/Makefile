@@ -67,11 +67,12 @@ local-gccgo: ## build using gccgo on the host
 	GCCGO=$(PWD)/hack/gccgo-wrapper.sh $(GO) build -compiler gccgo $(BUILDFLAGS) -o containers-storage.gccgo ./cmd/containers-storage
 
 local-cross: ## cross build the binaries for arm, darwin, and\nfreebsd
-	@for target in linux/amd64 linux/386 linux/arm darwin/amd64 windows/amd64 ; do \
+	@for target in linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64 linux/ppc64le darwin/amd64 windows/amd64 ; do \
 		os=`echo $${target} | cut -f1 -d/` ; \
 		arch=`echo $${target} | cut -f2 -d/` ; \
 		suffix=$${os}.$${arch} ; \
-		$(MAKE) GOOS=$${os} GOARCH=$${arch} FLAGS="-o containers-storage.$${suffix}" AUTOTAGS="$(NATIVETAGS)" local-binary || exit 1; \
+		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage ; \
+		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage || exit 1 ; \
 	done
 
 cross: ## cross build the binaries for arm, darwin, and\nfreebsd using VMs
