@@ -8,7 +8,6 @@ stdenv: &stdenv
     IMAGELEGACY: &imagelegacy quay.io/haircommander/cri-o-go-1.10:latest
     JOBS: &jobs 8
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
-    CONMONLOCATION: &conmonlocation /bin/conmon
 
 executors:
   container:
@@ -143,6 +142,7 @@ jobs:
           command: |
             nix-build nix --argstr revision $CIRCLE_SHA1
             mkdir -p bin
+            cp result-*bin/bin/crio-* bin
             cp result-*bin/libexec/crio/* bin
       - persist_to_workspace:
           root: .
@@ -159,9 +159,6 @@ jobs:
       - run:
           name: build
           command: make test-binaries -j $JOBS
-      - run:
-          name: install conmon
-          command: cp $CONMONLOCATION bin
       - save_cache:
           key: v1-build-test-binaries-{{ checksum "go.sum" }}
           paths:
@@ -172,7 +169,6 @@ jobs:
             - test/bin2img/bin2img
             - test/checkseccomp/checkseccomp
             - test/copyimg/copyimg
-            - bin/conmon
 
   bundle:
     executor: container
