@@ -9,6 +9,7 @@ import (
 	drivers "github.com/containers/storage/drivers"
 	archive "github.com/containers/storage/pkg/archive"
 	idtools "github.com/containers/storage/pkg/idtools"
+	lockfile "github.com/containers/storage/pkg/lockfile"
 	gomock "github.com/golang/mock/gomock"
 	go_digest "github.com/opencontainers/go-digest"
 	io "io"
@@ -410,10 +411,10 @@ func (mr *MockStoreMockRecorder) GIDMap() *gomock.Call {
 }
 
 // GetDigestLock mocks base method
-func (m *MockStore) GetDigestLock(arg0 go_digest.Digest) (storage.Locker, error) {
+func (m *MockStore) GetDigestLock(arg0 go_digest.Digest) (lockfile.Locker, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDigestLock", arg0)
-	ret0, _ := ret[0].(storage.Locker)
+	ret0, _ := ret[0].(lockfile.Locker)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
