@@ -16,7 +16,7 @@ require (
 	github.com/containers/buildah v1.9.0
 	github.com/containers/image v2.0.1+incompatible
 	github.com/containers/libpod v0.8.3-0.20190724015923-3c6b11178953
-	github.com/containers/storage v1.12.13
+	github.com/containers/storage v1.12.16
 	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -47,9 +47,9 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli v1.20.0
 	github.com/vbatts/git-validation v1.0.0
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0
+	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 	google.golang.org/grpc v1.21.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
