@@ -381,39 +381,12 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	hostIP := net.ParseIP(config.HostIP)
-	if hostIP == nil {
-		// First, attempt to find a primary IP from /proc/net/route deterministically
-		hostIP, err = knet.ChooseBindAddress(nil)
-		if err != nil {
-			// if that fails, check if we can find a primary IP address unambiguously
-			allAddrs, err2 := net.InterfaceAddrs()
-			if err2 != nil {
-				return nil, errors.Wrapf(err, "Failed to read InterfaceAddrs after failing to choose bind address")
-			}
-
-			// we are hoping for exactly 1 possible IP
-			numPossibleIPs := 0
-			// adapted from: https://stackoverflow.com/a/31551220
-			for _, addr := range allAddrs {
-				if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-					if ipnet.IP.To4() != nil {
-						numPossibleIPs++
-						hostIP = ipnet.IP
-						if numPossibleIPs > 1 {
-							break
-						}
-					}
-				}
-			}
-
-			// If there is no clear primary IP, we should fail
-			if numPossibleIPs != 1 {
-				return nil, errors.Wrapf(err, "Failed to find one IP address after failing to choose bind address")
-			}
-		}
+	hostIP, err := s.getHostIP(config.HostIP)
+	if err != nil {
+		return nil, err
 	}
 
+	logrus.Infof("Choose host IP %s", hostIP)
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
 		bindAddress = hostIP
@@ -463,6 +436,45 @@ func New(ctx context.Context, config *Config) (*Server, error) {
 
 	logrus.Debugf("sandboxes: %v", s.ContainerServer.ListSandboxes())
 	return s, nil
+}
+
+func (s *Server) getHostIP(configIP string) (net.IP, error) {
+	// emulate kubelet behavior of choosing hostIP
+	// ref: k8s/pkg/kubelet/nodestatus/setters.go
+
+	// use configured value if set
+	if configIP != "" {
+		if hostIP := net.ParseIP(configIP); hostIP != nil && isValidHostIP(hostIP) {
+			return hostIP, nil
+		}
+		return nil, errors.Errorf("configured host IP is invalid %s", configIP)
+	}
+
+	// Otherwise use kubernetes utility to choose hostIP
+	// there exists the chance for both hostIP and err to be nil, so check both
+	if hostIP, err := knet.ChooseHostInterface(); err != nil && hostIP != nil {
+		return hostIP, nil
+	}
+
+	// attempt to find an IP from the hostname
+	if hostname, err := os.Hostname(); err == nil {
+		if hostIP := net.ParseIP(hostname); hostIP != nil && isValidHostIP(hostIP) {
+			return hostIP, nil
+		}
+	}
+
+	// if that fails, check if we can find a primary IP address unambiguously
+	if allAddrs, err := net.InterfaceAddrs(); err == nil {
+		// adapted from: https://stackoverflow.com/a/31551220
+		for _, addr := range allAddrs {
+			if ipnet, ok := addr.(*net.IPNet); ok {
+				if !isValidHostIP(ipnet.IP) {
+					return ipnet.IP, nil
+				}
+			}
+		}
+	}
+	return nil, errors.Errorf("Unable to find a hostIP")
 }
 
 func (s *Server) addSandbox(sb *sandbox.Sandbox) {

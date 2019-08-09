@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -278,4 +279,25 @@ func getUlimitsFromConfig(config Config) ([]ulimit, error) {
 // Translate container labels to a description of the container
 func translateLabelsToDescription(labels map[string]string) string {
 	return fmt.Sprintf("%s/%s/%s", labels[types.KubernetesPodNamespaceLabel], labels[types.KubernetesPodNameLabel], labels[types.KubernetesContainerNameLabel])
+}
+
+// Validate given hostIP IP belongs to the current host
+// adapted from github.com/kubernetes/kubernetes/pkg/kubelet/kubelet_node_status.go
+func isValidHostIP(hostIP net.IP) bool {
+	if hostIP.To4() == nil {
+		return false
+	}
+	if hostIP.IsLoopback() {
+		return false
+	}
+	if hostIP.IsMulticast() {
+		return false
+	}
+	if hostIP.IsLinkLocalUnicast() {
+		return false
+	}
+	if hostIP.IsUnspecified() {
+		return false
+	}
+	return true
 }
