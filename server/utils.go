@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -319,4 +320,25 @@ func getUlimitsFromConfig(config *libconfig.Config) ([]ulimit, error) {
 // Translate container labels to a description of the container
 func translateLabelsToDescription(labels map[string]string) string {
 	return fmt.Sprintf("%s/%s/%s", labels[types.KubernetesPodNamespaceLabel], labels[types.KubernetesPodNameLabel], labels[types.KubernetesContainerNameLabel])
+}
+
+// Validate given hostIP IP belongs to the current host
+// adapted from github.com/kubernetes/kubernetes/pkg/kubelet/kubelet_node_status.go
+func validateHostIP(hostIP net.IP) error {
+	if hostIP.To4() == nil {
+		return fmt.Errorf("hostIP must be a valid IP address")
+	}
+	if hostIP.IsLoopback() {
+		return fmt.Errorf("hostIP can't be loopback address")
+	}
+	if hostIP.IsMulticast() {
+		return fmt.Errorf("hostIP can't be a multicast address")
+	}
+	if hostIP.IsLinkLocalUnicast() {
+		return fmt.Errorf("hostIP can't be a link-local unicast address")
+	}
+	if hostIP.IsUnspecified() {
+		return fmt.Errorf("hostIP can't be an all zeros address")
+	}
+	return nil
 }
