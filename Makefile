@@ -37,7 +37,7 @@ SELINUXOPT ?= $(shell selinuxenabled 2>/dev/null && echo -Z)
 
 SOURCE_DATE_EPOCH ?= $(shell date +%s)
 
-GO_MD2MAN := ${BUILD_BIN_PATH}/go-md2man
+GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
