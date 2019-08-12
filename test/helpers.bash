@@ -19,8 +19,8 @@ CRIO_STATUS_BINARY_PATH=${CRIO_STATUS_BINARY_PATH:-${CRIO_ROOT}/bin/crio-status}
 # Path of the crictl binary.
 CRICTL_PATH=$(command -v crictl || true)
 CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
-# Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/bin/conmon}
+# Path of the conmon binary set as a variable to allow overwriting.
+CONMON_BINARY=${CONMON_BINARY:-$(which conmon)}
 # Cgroup for the conmon process
 CONTAINER_CONMON_CGROUP=${CONTAINER_CONMON_CGROUP:-pod}
 # Path of the pause binary.
@@ -195,19 +195,6 @@ function setup_test() {
 	cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
 	sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
 
-	# verify we have a conmon binary copied to the correct place
-	if ! test -f "$CONMON_BINARY"; then
-		SYSTEM_CONMON=$(which conmon)
-		if [ ! -z ${SYSTEM_CONMON+x} ]; then
-			cp "$SYSTEM_CONMON" "$CONMON_BINARY"
-		else
-			echo "No conmon binary to be found"
-			exit 1
-		fi
-	fi
-
-	cp "$CONMON_BINARY" "$TESTDIR/conmon"
-
 	PATH=$PATH:$TESTDIR
 }
 
@@ -282,7 +269,7 @@ function setup_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$TESTDIR/conmon" --listen "$CRIO_SOCKET" --registry "quay.io" --registry "docker.io" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --registry "quay.io" --registry "docker.io" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	sed -ie 's;\(container_exits_dir =\) \(.*\);\1 "'$CONTAINER_EXITS_DIR'";g' $CRIO_CONFIG
 	sed -ie 's;\(container_attach_socket_dir =\) \(.*\);\1 "'$CONTAINER_ATTACH_SOCKET_DIR'";g' $CRIO_CONFIG

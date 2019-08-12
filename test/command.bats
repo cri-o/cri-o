@@ -41,7 +41,7 @@ load helpers
 
 @test "invalid metrics port" {
 	mkdir -p "$TESTDIR/cni/net.d"
-	opt="--conmon $TESTDIR/conmon --cni-config-dir $TESTDIR/cni/net.d"
+	opt="--cni-config-dir $TESTDIR/cni/net.d"
 	run ${CRIO_BINARY_PATH} ${opt} --metrics-port foo --enable-metrics
 	echo $output
 	[ "$status" -ne 0 ]
@@ -54,7 +54,7 @@ load helpers
 
 @test "invalid log max" {
 	mkdir -p "$TESTDIR/cni/net.d"
-	opt="--conmon $TESTDIR/conmon --cni-config-dir $TESTDIR/cni/net.d"
+	opt="--cni-config-dir $TESTDIR/cni/net.d"
 	run ${CRIO_BINARY_PATH} ${opt} --log-size-max foo
 	echo $output
 	[ "$status" -ne 0 ]
@@ -63,7 +63,7 @@ load helpers
 
 @test "log max boundary testing" {
 	mkdir -p "$TESTDIR/cni/net.d"
-	opt="--conmon $TESTDIR/conmon --cni-config-dir $TESTDIR/cni/net.d"
+	opt="--cni-config-dir $TESTDIR/cni/net.d"
 	# log size max is special zero value
 	run ${CRIO_BINARY_PATH} ${opt} --log-size-max 0
 	echo $output
