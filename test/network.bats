@@ -9,7 +9,6 @@ function setup() {
 function teardown() {
 	cleanup_test
 	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/*
-	chmod 0755 $CONMON_BINARY
 }
 
 @test "ensure correct hostname" {
@@ -168,6 +167,8 @@ function teardown() {
 }
 
 @test "Clean up network if pod sandbox fails" {
+	cp $(which conmon) "$TESTDIR"/conmon
+	CONMON_BINARY="$TESTDIR"/conmon
 	start_crio "" "" "" "" "prepare_plugin_test_args_network_conf"
 
 	# make conmon non-executable to cause the sandbox setup to fail after
