@@ -457,7 +457,7 @@ func main() {
 		},
 		cli.StringSliceFlag{
 			Name:  "default-ulimits",
-			Usage: fmt.Sprintf("ulimits to apply to conatainers by default (name=soft:hard) (default: %q)", defConf.DefaultUlimits),
+			Usage: fmt.Sprintf("ulimits to apply to containers by default (name=soft:hard) (default: %q)", defConf.DefaultUlimits),
 		},
 		cli.BoolFlag{
 			Name:  "profile",
