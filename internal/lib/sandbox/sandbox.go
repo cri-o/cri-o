@@ -185,7 +185,7 @@ func (s *Sandbox) SeccompProfilePath() string {
 	return s.seccompProfilePath
 }
 
-// AddIP stores the ip in the sandbox
+// AddIPs stores the ip in the sandbox
 func (s *Sandbox) AddIPs(ips []string) {
 	s.ips = ips
 }
@@ -205,7 +205,7 @@ func (s *Sandbox) StopMutex() *sync.RWMutex {
 	return &s.stopMutex
 }
 
-// IP returns the ip of the sandbox
+// IPs returns the ip of the sandbox
 func (s *Sandbox) IPs() []string {
 	return s.ips
 }
