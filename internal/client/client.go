@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"syscall"
 	"time"
 
 	"github.com/cri-o/cri-o/pkg/types"
+	"github.com/cri-o/cri-o/server"
 )
 
 const (
@@ -20,6 +22,7 @@ const (
 type CrioClient interface {
 	DaemonInfo() (types.CrioInfo, error)
 	ContainerInfo(string) (*types.ContainerInfo, error)
+	ConfigInfo() (string, error)
 }
 
 type crioClientImpl struct {
@@ -71,7 +74,7 @@ func (c *crioClientImpl) getRequest(path string) (*http.Request, error) {
 // info endpoint.
 func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
 	info := types.CrioInfo{}
-	req, err := c.getRequest("/info")
+	req, err := c.getRequest(server.InspectInfoEndpoint)
 	if err != nil {
 		return info, err
 	}
@@ -87,7 +90,7 @@ func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
 // ContainerInfo returns container info by querying
 // the cri-o container endpoint.
 func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) {
-	req, err := c.getRequest("/containers/" + id)
+	req, err := c.getRequest(server.InspectContainersEndpoint + "/" + id)
 	if err != nil {
 		return nil, err
 	}
@@ -101,4 +104,22 @@ func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) 
 		return nil, err
 	}
 	return &cInfo, nil
+}
+
+// ConfigInfo returns current config as TOML string
+func (c *crioClientImpl) ConfigInfo() (string, error) {
+	req, err := c.getRequest(server.InspectConfigEndpoint)
+	if err != nil {
+		return "", err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(body), nil
 }

@@ -94,11 +94,17 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 
 }
 
+const (
+	InspectConfigEndpoint     = "/config"
+	InspectContainersEndpoint = "/containers"
+	InspectInfoEndpoint       = "/info"
+)
+
 // GetInfoMux returns the mux used to serve info requests
 func (s *Server) GetInfoMux() *bone.Mux {
 	mux := bone.New()
 
-	mux.Get("/config", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(InspectConfigEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		b, err := s.config.ToBytes()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -112,7 +118,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 		}
 	}))
 
-	mux.Get("/info", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(InspectInfoEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ci := s.getInfo()
 		js, err := json.Marshal(ci)
 		if err != nil {
@@ -125,7 +131,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 		}
 	}))
 
-	mux.Get("/containers/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(InspectContainersEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := bone.GetValue(req, "id")
 		ci, err := s.getContainerInfo(containerID, s.GetContainer, s.getInfraContainer, s.getSandbox)
 		if err != nil {
