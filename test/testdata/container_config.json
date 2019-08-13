@@ -51,6 +51,9 @@
 			"memory_limit_in_bytes": 268435456
 		},
 		"security_context": {
+			"run_as_user":{
+				"value": 0
+			},
 			"namespace_options": {
 				"pid": 1
 			},
