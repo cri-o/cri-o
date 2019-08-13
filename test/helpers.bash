@@ -544,16 +544,16 @@ function check_pod_cidr() {
 }
 
 function parse_pod_ip() {
-    inet=$(crictl exec --sync "$1" ip addr show dev eth0 scope global 2>&1 | grep "$2")
-    echo "$inet" | sed -n 's;.*\('"$3"'.*\)/.*;\1;p'
+	inet=$(crictl exec --sync "$1" ip addr show dev eth0 scope global 2>&1 | grep "$2")
+	echo "$inet" | sed -n 's;.*\('"$3"'.*\)/.*;\1;p'
 }
 
 function parse_pod_ipv4() {
-    parse_pod_ip "$1" 'inet ' $POD_IPV4_CIDR_START
+	parse_pod_ip "$1" 'inet ' $POD_IPV4_CIDR_START
 }
 
 function parse_pod_ipv6() {
-    parse_pod_ip "$1" inet6 $POD_IPV6_CIDR_START
+	parse_pod_ip "$1" inet6 $POD_IPV6_CIDR_START
 }
 
 function get_host_ip() {
@@ -563,27 +563,27 @@ function get_host_ip() {
 }
 
 function ping_pod() {
-    ipv4=$(parse_pod_ipv4 "$1")
-    ping -W 1 -c 5 "$ipv4"
-    echo "$output"
-    [ "$status" -eq 0 ]
+	ipv4=$(parse_pod_ipv4 "$1")
+	ping -W 1 -c 5 "$ipv4"
+	echo "$output"
+	[ "$status" -eq 0 ]
 
-    ipv6=$(parse_pod_ipv6 "$1")
-    ping6 -W 1 -c 5 "$ipv6"
-    echo "$output"
-    [ "$status" -eq 0 ]
+	ipv6=$(parse_pod_ipv6 "$1")
+	ping6 -W 1 -c 5 "$ipv6"
+	echo "$output"
+	[ "$status" -eq 0 ]
 }
 
 function ping_pod_from_pod() {
-    ipv4=$(parse_pod_ipv4 "$1")
-    run crictl exec --sync "$2" ping -W 1 -c 2 "$ipv4"
-    echo "$output"
-    [ "$status" -eq 0 ]
+	ipv4=$(parse_pod_ipv4 "$1")
+	run crictl exec --sync "$2" ping -W 1 -c 2 "$ipv4"
+	echo "$output"
+	[ "$status" -eq 0 ]
 
-    ipv6=$(parse_pod_ipv6 "$1")
-    run crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"
-    echo "$output"
-    [ "$status" -eq 0 ]
+	ipv6=$(parse_pod_ipv6 "$1")
+	run crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"
+	echo "$output"
+	[ "$status" -eq 0 ]
 }
 
 
