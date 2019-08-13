@@ -44,12 +44,10 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	inet=`crictl exec --sync "$ctr_id" ip addr show dev eth0 scope global 2>&1 | grep inet`
-
-	IFS=" "
-	ip=`parse_pod_ip $inet`
-	[[ "$out" =~ "\"ip_addresses\":[\"$ip\"]" ]]
-	[[ "$output" =~ "\"ip\": \"$ip\"" ]]
+	ipv4=$(parse_pod_ipv4 "$ctr_id")
+	ipv6=$(parse_pod_ipv6 "$ctr_id")
+	[[ "$out" =~ "\"ip_addresses\":[\"$ipv4\",\"$ipv6\"]" ]]
+	[[ "$output" =~ "\"ip\": \"$ipv4\"" ]]
 
 
 # TODO: add some other check based on the json below:
