@@ -71,7 +71,7 @@ type BudResults struct {
 	Squash              bool
 	Tag                 []string
 	Target              string
-	TlsVerify           bool
+	TLSVerify           bool
 }
 
 // FromAndBugResults represents the results for common flags
@@ -90,7 +90,7 @@ type FromAndBudResults struct {
 	DNSSearch    []string
 	DNSServers   []string
 	DNSOptions   []string
-	HttpProxy    bool
+	HTTPProxy    bool
 	Isolation    string
 	Memory       string
 	MemorySwap   string
@@ -118,7 +118,9 @@ func GetNameSpaceFlags(flags *NameSpaceResults) pflag.FlagSet {
 	fs.StringVar(&flags.Network, string(specs.NetworkNamespace), "", "'container', `path` of network namespace to join, or 'host'")
 	// TODO How do we alias net and network?
 	fs.StringVar(&flags.Network, "net", "", "'container', `path` of network namespace to join, or 'host'")
-	fs.MarkHidden("net")
+	if err := fs.MarkHidden("net"); err != nil {
+		panic(fmt.Sprintf("error marking net flag as hidden: %v", err))
+	}
 	fs.StringVar(&flags.CNIConfigDir, "cni-config-dir", util.DefaultCNIConfigDir, "`directory` of CNI configuration files")
 	fs.StringVar(&flags.CNIPlugInPath, "cni-plugin-path", util.DefaultCNIPluginPath, "`path` of CNI network plugins")
 	fs.StringVar(&flags.PID, string(specs.PIDNamespace), "", "container, `path` of PID namespace to join, or 'host'")
@@ -164,7 +166,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.Squash, "squash", false, "Squash newly built layers into a single new layer.")
 	fs.StringArrayVarP(&flags.Tag, "tag", "t", []string{}, "tagged `name` to apply to the built image")
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
-	fs.BoolVar(&flags.TlsVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
+	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	return fs
 }
 
@@ -172,7 +174,9 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs := pflag.FlagSet{}
 	fs.StringSliceVar(&flags.AddHost, "add-host", []string{}, "add a custom host-to-IP mapping (`host:ip`) (default [])")
 	fs.StringVar(&flags.BlobCache, "blob-cache", "", "assume image blobs in the specified directory will be available for pushing")
-	fs.MarkHidden("blob-cache")
+	if err := fs.MarkHidden("blob-cache"); err != nil {
+		panic(fmt.Sprintf("error marking net flag as hidden: %v", err))
+	}
 	fs.StringSliceVar(&flags.CapAdd, "cap-add", []string{}, "add the specified capability when running (default [])")
 	fs.StringSliceVar(&flags.CapDrop, "cap-drop", []string{}, "drop the specified capability when running (default [])")
 	fs.StringVar(&flags.CgroupParent, "cgroup-parent", "", "optional parent cgroup for the container")
@@ -184,7 +188,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringSliceVar(&flags.DNSSearch, "dns-search", []string{}, "Set custom DNS search domains")
 	fs.StringSliceVar(&flags.DNSServers, "dns", []string{}, "Set custom DNS servers")
 	fs.StringSliceVar(&flags.DNSOptions, "dns-option", []string{}, "Set custom DNS options")
-	fs.BoolVar(&flags.HttpProxy, "http-proxy", true, "pass thru HTTP Proxy environment variables")
+	fs.BoolVar(&flags.HTTPProxy, "http-proxy", true, "pass thru HTTP Proxy environment variables")
 	fs.StringVar(&flags.Isolation, "isolation", DefaultIsolation(), "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.")
 	fs.StringVarP(&flags.Memory, "memory", "m", "", "memory limit (format: <number>[<unit>], where unit = b, k, m or g)")
 	fs.StringVar(&flags.MemorySwap, "memory-swap", "", "swap limit equal to memory plus swap: '-1' to enable unlimited swap")

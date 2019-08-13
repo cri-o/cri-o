@@ -46,7 +46,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	canMountSys := true
 
 	isRootless := rootless.IsRootless()
-	inUserNS := isRootless || (len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0) && !config.UsernsMode.IsHost()
+	hasUserns := config.UsernsMode.IsContainer() || config.UsernsMode.IsNS() || len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0
+	inUserNS := isRootless || (hasUserns && !config.UsernsMode.IsHost())
 
 	if inUserNS && config.NetMode.IsHost() {
 		canMountSys = false
@@ -173,10 +174,20 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	hostname := config.Hostname
-	if hostname == "" && (config.NetMode.IsHost() || config.UtsMode.IsHost()) {
-		hostname, err = os.Hostname()
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to retrieve hostname")
+	if hostname == "" {
+		if utsCtrID := config.UtsMode.Container(); utsCtrID != "" {
+			utsCtr, err := runtime.GetContainer(utsCtrID)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to retrieve hostname from dependency container %s", utsCtrID)
+			}
+			hostname = utsCtr.Hostname()
+		} else if config.NetMode.IsHost() || config.UtsMode.IsHost() {
+			hostname, err = os.Hostname()
+			if err != nil {
+				return nil, errors.Wrap(err, "unable to retrieve hostname of the host")
+			}
+		} else {
+			logrus.Debug("No hostname set; container's hostname will default to runtime default")
 		}
 	}
 	g.RemoveHostname()
@@ -540,8 +551,8 @@ func addPidNS(config *CreateConfig, g *generate.Generator) error {
 	if pidMode.IsHost() {
 		return g.RemoveLinuxNamespace(string(spec.PIDNamespace))
 	}
-	if pidMode.IsContainer() {
-		logrus.Debug("using container pidmode")
+	if pidCtr := pidMode.Container(); pidCtr != "" {
+		logrus.Debugf("using container %s pidmode", pidCtr)
 	}
 	if IsPod(string(pidMode)) {
 		logrus.Debug("using pod pidmode")
@@ -551,17 +562,16 @@ func addPidNS(config *CreateConfig, g *generate.Generator) error {
 
 func addUserNS(config *CreateConfig, g *generate.Generator) error {
 	if IsNS(string(config.UsernsMode)) {
-		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, NS(string(config.UsernsMode))); err != nil {
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), NS(string(config.UsernsMode))); err != nil {
 			return err
 		}
-
 		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
 		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
 		g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
 	}
 
 	if (len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0) && !config.UsernsMode.IsHost() {
-		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, ""); err != nil {
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
 			return err
 		}
 	}
@@ -572,19 +582,19 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 	netMode := config.NetMode
 	if netMode.IsHost() {
 		logrus.Debug("Using host netmode")
-		return g.RemoveLinuxNamespace(spec.NetworkNamespace)
+		return g.RemoveLinuxNamespace(string(spec.NetworkNamespace))
 	} else if netMode.IsNone() {
 		logrus.Debug("Using none netmode")
 		return nil
 	} else if netMode.IsBridge() {
 		logrus.Debug("Using bridge netmode")
 		return nil
-	} else if netMode.IsContainer() {
-		logrus.Debug("Using container netmode")
+	} else if netCtr := netMode.Container(); netCtr != "" {
+		logrus.Debugf("using container %s netmode", netCtr)
 		return nil
 	} else if IsNS(string(netMode)) {
 		logrus.Debug("Using ns netmode")
-		return g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, NS(string(netMode)))
+		return g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), NS(string(netMode)))
 	} else if IsPod(string(netMode)) {
 		logrus.Debug("Using pod netmode, unless pod is not sharing")
 		return nil
@@ -604,7 +614,10 @@ func addUTSNS(config *CreateConfig, g *generate.Generator) error {
 		return g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), NS(string(utsMode)))
 	}
 	if utsMode.IsHost() {
-		return g.RemoveLinuxNamespace(spec.UTSNamespace)
+		return g.RemoveLinuxNamespace(string(spec.UTSNamespace))
+	}
+	if utsCtr := utsMode.Container(); utsCtr != "" {
+		logrus.Debugf("using container %s utsmode", utsCtr)
 	}
 	return nil
 }
@@ -615,10 +628,10 @@ func addIpcNS(config *CreateConfig, g *generate.Generator) error {
 		return g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), NS(string(ipcMode)))
 	}
 	if ipcMode.IsHost() {
-		return g.RemoveLinuxNamespace(spec.IPCNamespace)
+		return g.RemoveLinuxNamespace(string(spec.IPCNamespace))
 	}
-	if ipcMode.IsContainer() {
-		logrus.Debug("Using container ipcmode")
+	if ipcCtr := ipcMode.Container(); ipcCtr != "" {
+		logrus.Debugf("Using container %s ipcmode", ipcCtr)
 	}
 
 	return nil
@@ -630,13 +643,13 @@ func addCgroupNS(config *CreateConfig, g *generate.Generator) error {
 		return g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), NS(string(cgroupMode)))
 	}
 	if cgroupMode.IsHost() {
-		return g.RemoveLinuxNamespace(spec.CgroupNamespace)
+		return g.RemoveLinuxNamespace(string(spec.CgroupNamespace))
 	}
 	if cgroupMode.IsPrivate() {
-		return g.AddOrReplaceLinuxNamespace(spec.CgroupNamespace, "")
+		return g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), "")
 	}
-	if cgroupMode.IsContainer() {
-		logrus.Debug("Using container cgroup mode")
+	if cgCtr := cgroupMode.Container(); cgCtr != "" {
+		logrus.Debugf("Using container %s cgroup mode", cgCtr)
 	}
 	return nil
 }

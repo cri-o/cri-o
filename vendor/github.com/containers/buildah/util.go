@@ -8,7 +8,6 @@ import (
 
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -18,7 +17,7 @@ import (
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/system"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -182,7 +181,6 @@ func (b *Builder) copyFileWithTar(tarIDMappingOptions *IDMappingOptions, chownOp
 			}
 			pipeWriter.Close()
 			pipeWriter = nil
-			return
 		}(f)
 
 		untar := b.untar(chownOpts, hasher)
@@ -280,17 +278,17 @@ func (b *Builder) untar(chownOpts *idtools.IDPair, hasher io.Writer) func(tarArc
 func isRegistryBlocked(registry string, sc *types.SystemContext) (bool, error) {
 	reginfo, err := sysregistriesv2.FindRegistry(sc, registry)
 	if err != nil {
-		return false, errors.Wrapf(err, "unable to parse the registries configuration (%s)", sysregistries.RegistriesConfPath(sc))
+		return false, errors.Wrapf(err, "unable to parse the registries configuration (%s)", sysregistriesv2.ConfigPath(sc))
 	}
 	if reginfo != nil {
 		if reginfo.Blocked {
-			logrus.Debugf("registry %q is marked as blocked in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
+			logrus.Debugf("registry %q is marked as blocked in registries configuration %q", registry, sysregistriesv2.ConfigPath(sc))
 		} else {
-			logrus.Debugf("registry %q is not marked as blocked in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
+			logrus.Debugf("registry %q is not marked as blocked in registries configuration %q", registry, sysregistriesv2.ConfigPath(sc))
 		}
 		return reginfo.Blocked, nil
 	}
-	logrus.Debugf("registry %q is not listed in registries configuration %q, assuming it's not blocked", registry, sysregistries.RegistriesConfPath(sc))
+	logrus.Debugf("registry %q is not listed in registries configuration %q, assuming it's not blocked", registry, sysregistriesv2.ConfigPath(sc))
 	return false, nil
 }
 
