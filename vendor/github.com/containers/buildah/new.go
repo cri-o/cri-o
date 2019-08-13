@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/util"
-	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/manifest"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
@@ -185,7 +186,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		return nil, "", nil, fmt.Errorf("internal error: %d candidates (%#v) vs. %d failures (%#v)", len(candidates), candidates, len(failures), failures)
 	}
 
-	registriesConfPath := sysregistries.RegistriesConfPath(systemContext)
+	registriesConfPath := sysregistriesv2.ConfigPath(systemContext)
 	switch len(failures) {
 	case 0:
 		if searchRegistriesWereUsedButEmpty {
@@ -254,6 +255,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	}
 	image := options.FromImage
 	imageID := ""
+	imageDigest := ""
 	topLayer := ""
 	if img != nil {
 		image = getImageName(imageNamePrefix(image), img)
@@ -265,6 +267,11 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		src, err = ref.NewImage(ctx, systemContext)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error instantiating image for %q", transports.ImageName(ref))
+		}
+		if manifestBytes, _, err := src.Manifest(ctx); err == nil {
+			if manifestDigest, err := manifest.Digest(manifestBytes); err == nil {
+				imageDigest = manifestDigest.String()
+			}
 		}
 		defer src.Close()
 	}
@@ -327,6 +334,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		Type:                  containerType,
 		FromImage:             image,
 		FromImageID:           imageID,
+		FromImageDigest:       imageDigest,
 		Container:             name,
 		ContainerID:           container.ID,
 		ImageAnnotations:      map[string]string{},

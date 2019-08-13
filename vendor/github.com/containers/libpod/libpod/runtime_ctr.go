@@ -52,6 +52,8 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 	if err != nil {
 		return nil, errors.Wrapf(err, "error initializing container variables")
 	}
+	// For an imported checkpoint no one has ever set the StartedTime. Set it now.
+	ctr.state.StartedTime = time.Now()
 	return r.setupContainer(ctx, ctr)
 }
 
@@ -394,13 +396,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	// Check that the container's in a good state to be removed
 	if c.state.State == config2.ContainerStateRunning {
-		if err := c.ociRuntime.stopContainer(c, c.StopTimeout()); err != nil {
+		if err := c.stop(c.StopTimeout()); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
-		}
-
-		// Need to update container state to make sure we know it's stopped
-		if err := c.waitForExitFileAndSync(); err != nil {
-			return err
 		}
 	}
 

@@ -14,19 +14,21 @@ const (
 	LogFile EventerType = iota
 	// Journald indicates journald should be used to log events
 	Journald EventerType = iota
+	// Null is a no-op events logger. It does not read or write events.
+	Null EventerType = iota
 )
 
 // Event describes the attributes of a libpod event
 type Event struct {
 	// ContainerExitCode is for storing the exit code of a container which can
 	// be used for "internal" event notification
-	ContainerExitCode int
+	ContainerExitCode int `json:",omitempty"`
 	// ID can be for the container, image, volume, etc
-	ID string
+	ID string `json:",omitempty"`
 	// Image used where applicable
-	Image string
+	Image string `json:",omitempty"`
 	// Name where applicable
-	Name string
+	Name string `json:",omitempty"`
 	// Status describes the event that occurred
 	Status Status
 	// Time the event occurred
@@ -51,6 +53,8 @@ type Eventer interface {
 	Write(event Event) error
 	// Read an event from the backend
 	Read(options ReadOptions) error
+	// String returns the type of event logger
+	String() string
 }
 
 // ReadOptions describe the attributes needed to read event logs

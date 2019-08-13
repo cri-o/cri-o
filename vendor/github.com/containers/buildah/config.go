@@ -422,6 +422,16 @@ func (b *Builder) Volumes() []string {
 	return nil
 }
 
+// CheckVolume returns True if the location exists in the image's list of locations
+// which should be mounted from outside of the container when a container
+// based on an image built from this container is run
+
+func (b *Builder) CheckVolume(v string) bool {
+	_, OCIv1Volume := b.OCIv1.Config.Volumes[v]
+	_, DockerVolume := b.Docker.Config.Volumes[v]
+	return OCIv1Volume || DockerVolume
+}
+
 // AddVolume adds a location to the image's list of locations which should be
 // mounted from outside of the container when a container based on an image
 // built from this container is run.
@@ -565,7 +575,7 @@ func (b *Builder) SetHealthcheck(config *docker.HealthConfig) {
 }
 
 // AddPrependedEmptyLayer adds an item to the history that we'll create when
-// commiting the image, after any history we inherit from the base image, but
+// committing the image, after any history we inherit from the base image, but
 // before the history item that we'll use to describe the new layer that we're
 // adding.
 func (b *Builder) AddPrependedEmptyLayer(created *time.Time, createdBy, author, comment string) {
@@ -589,7 +599,7 @@ func (b *Builder) ClearPrependedEmptyLayers() {
 }
 
 // AddAppendedEmptyLayer adds an item to the history that we'll create when
-// commiting the image, after the history item that we'll use to describe the
+// committing the image, after the history item that we'll use to describe the
 // new layer that we're adding.
 func (b *Builder) AddAppendedEmptyLayer(created *time.Time, createdBy, author, comment string) {
 	if created != nil {
