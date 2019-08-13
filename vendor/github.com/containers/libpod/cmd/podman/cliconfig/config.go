@@ -16,6 +16,7 @@ type MainFlags struct {
 	CniConfigDir      string
 	ConmonPath        string
 	DefaultMountsFile string
+	EventsBackend     string
 	HooksDir          []string
 	MaxWorks          int
 	Namespace         string
@@ -436,6 +437,7 @@ type RestoreValues struct {
 	Import         string
 	Name           string
 	IgnoreRootfs   bool
+	IgnoreStaticIP bool
 }
 
 type RmValues struct {
