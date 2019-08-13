@@ -97,7 +97,9 @@ up a PR and add it to the list.
 ### Installing CRI-O
 To install CRI-O, you can use your distributions package manager:
 
-Fedora, CentOS, RHEL, and related distributions:
+Fedora 30 and later:
+```sudo dnf module install cri-o```
+Fedora 29, CentOS, RHEL, and related distributions:
 ```sudo yum install crio```
 openSUSE:
 ```sudo zypper install cri-o```
