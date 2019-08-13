@@ -6,6 +6,7 @@ run:
     - seccomp
     - selinux
     - test
+    - exclude_graphdriver_btrfs
   concurrency: 6
   deadline: 5m
 linters:
