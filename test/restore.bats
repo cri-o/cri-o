@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
@@ -77,10 +81,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	output=`echo "$output" | grep State`
 	[[ "${output}" == "${ctr_status_info}" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "crio restore with bad state and pod stopped" {
@@ -104,9 +104,6 @@ function teardown() {
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_pods
-	stop_crio
 }
 
 @test "crio restore with bad state and ctr stopped" {
@@ -136,10 +133,6 @@ function teardown() {
 	run crictl stop "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "crio restore with bad state and ctr removed" {
@@ -174,10 +167,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 1 ]
 	[[ "${output}" =~ "not found" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "crio restore with bad state and pod removed" {
@@ -205,9 +194,6 @@ function teardown() {
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_pods
-	stop_crio
 }
 
 @test "crio restore with bad state" {
@@ -269,10 +255,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "crio restore with missing config.json" {
@@ -317,8 +299,4 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }

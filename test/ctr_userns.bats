@@ -2,6 +2,10 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
@@ -45,8 +49,4 @@ function teardown() {
 	echo "$out"
 	[[ "$out" =~ "100000" ]]
 	[[ "$out" =~ "200000" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }

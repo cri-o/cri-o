@@ -2,13 +2,14 @@
 
 load helpers
 
+function setup() {
+	setup_test
+}
+
 function teardown() {
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
+	cleanup_test
 	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/*
 	chmod 0755 $CONMON_BINARY
-	cleanup_test
 }
 
 @test "ensure correct hostname" {

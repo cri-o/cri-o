@@ -2,7 +2,13 @@
 
 load helpers
 
+function setup() {
+	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
+	setup_test
+}
+
 function teardown() {
+	rm -f "$newconfig"
 	cleanup_test
 }
 
@@ -34,10 +40,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "reason: Completed" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr termination reason Error" {
@@ -61,10 +63,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "reason: Error" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ulimits" {
@@ -104,9 +102,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "additional devices support" {
@@ -138,9 +133,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "additional devices permissions" {
@@ -204,9 +196,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 
@@ -232,9 +221,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr lifecycle" {
@@ -302,9 +288,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "" ]]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 
@@ -316,7 +299,6 @@ function teardown() {
 	pod_id="$output"
 
 	# Create a new container.
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"echo here is some output \&\& echo and some from stderr >\&2"|' "$newconfig"
 	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
@@ -345,10 +327,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr journald logging" {
@@ -368,7 +346,6 @@ function teardown() {
 	stderr="here is some error"
 
 	# Create a new container.
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"echo '"$stdout"' \&\& echo '"$stderr"' >\&2"|' "$newconfig"
 	cat "$newconfig"
@@ -396,10 +373,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr logging [tty=true]" {
@@ -410,7 +383,6 @@ function teardown() {
 	pod_id="$output"
 
 	# Create a new container.
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"echo here is some output"|' "$newconfig"
 	sed -i 's|"tty": false,|"tty": true,|' "$newconfig"
@@ -442,10 +414,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr log max" {
@@ -456,7 +424,6 @@ function teardown() {
 	pod_id="$output"
 
 	# Create a new container.
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
 	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
@@ -485,10 +452,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr log max with default value" {
@@ -500,7 +463,6 @@ function teardown() {
 	pod_id="$output"
 
 	# Create a new container.
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
 	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
@@ -529,10 +491,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr log max with minimum value" {
@@ -544,7 +502,6 @@ function teardown() {
 	pod_id="$output"
 
 	# Create a new container.
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
 	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
@@ -573,10 +530,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr partial line logging" {
@@ -587,7 +540,6 @@ function teardown() {
 	pod_id="$output"
 
 	# Create a new container.
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"echo -n hello"|' "$newconfig"
 	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
@@ -615,10 +567,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 # regression test for #127
@@ -645,10 +593,6 @@ function teardown() {
 		echo "$output"
 		[ "$status" -eq 0 ]
 	done
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr list filtering" {
@@ -749,9 +693,6 @@ function teardown() {
 	run crictl rmp "$pod3_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr list label filtering" {
@@ -815,9 +756,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr metadata in list & status" {
@@ -844,10 +782,6 @@ function teardown() {
 	# TODO: expected value should not hard coded here
 	[[ "$output" =~ "Name: container1" ]]
 	[[ "$output" =~ "Attempt: 1" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr execsync conflicting with conmon flags parsing" {
@@ -867,9 +801,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "hello world" ]]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr execsync" {
@@ -899,9 +830,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr device add" {
@@ -916,7 +844,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_redis_device.json "$newconfig"
 	sed -i 's|"%containerdevicepath%"|"/dev/mynull"|' "$newconfig"
 
@@ -939,9 +866,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "privileged ctr device add" {
@@ -956,7 +880,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_redis_device.json "$newconfig"
 	sed -i 's|"%containerdevicepath%"|"/dev/mynull"|' "$newconfig"
 	sed -i 's|"%privilegedboolean%"|true|' "$newconfig"
@@ -978,9 +901,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "privileged ctr add duplicate device as host" {
@@ -995,7 +915,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	cp "$TESTDATA"/container_redis_device.json "$newconfig"
 	sed -i 's|"%containerdevicepath%"|"/dev/random"|' "$newconfig"
 	sed -i 's|"%privilegedboolean%"|true|' "$newconfig"
@@ -1003,9 +922,6 @@ function teardown() {
 	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json
 	echo "$output"
 	[ "$status" -ne 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr hostname env" {
@@ -1028,9 +944,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr execsync failure" {
@@ -1049,10 +962,6 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" doesnotexist
 	echo "$output"
 	[ "$status" -ne 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr execsync exit code" {
@@ -1071,9 +980,6 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" false
 	echo "$output"
 	[ "$status" -ne 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr execsync std{out,err}" {
@@ -1113,9 +1019,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr stop idempotent" {
@@ -1137,10 +1040,6 @@ function teardown() {
 	run crictl stop "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr caps drop" {
@@ -1154,10 +1053,6 @@ function teardown() {
 	run crictl create "$TESTDIR"/container_config_caps.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr with default list of capabilities from crio.conf" {
@@ -1184,9 +1079,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr with list of capabilities given by user in crio.conf" {
@@ -1214,9 +1106,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "run ctr with image with Config.Volumes" {
@@ -1236,10 +1125,6 @@ function teardown() {
 	run crictl create "$pod_id" "$TESTDIR"/container_config_volumes.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr oom" {
@@ -1279,9 +1164,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr /etc/resolv.conf rw/ro mode" {
@@ -1308,9 +1190,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run wait_until_exit "$ctr_id"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr create with non-existent command" {
@@ -1330,9 +1209,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr create with non-existent command [tty]" {
@@ -1352,9 +1228,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr update resources" {
@@ -1408,10 +1281,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "10000" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr correctly setup working directory" {
@@ -1437,10 +1306,6 @@ function teardown() {
 	[ "$status" -ne 0 ]
 	ctr_id="$output"
 	[[ "$output" =~ "not a directory" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr execsync conflicting with conmon env" {
@@ -1465,9 +1330,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "acustompathinpath" ]]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr resources" {
@@ -1492,10 +1354,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "0" ]]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr with non-root user has no effective capabilities" {
@@ -1525,9 +1383,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr with low memory configured should not be created" {
@@ -1548,9 +1403,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr expose metrics with default port" {
@@ -1584,9 +1436,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 @test "ctr expose metrics with custom port" {
@@ -1620,9 +1469,6 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
 
 
@@ -1650,8 +1496,4 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
