@@ -636,3 +636,7 @@ function wait_for_log() {
         CNT=$((CNT + 1))
     done
 }
+
+function replace_config() {
+    sed -ie 's;\('$1' = "\).*\("\);\1'$2'\2;' "$CRIO_CONFIG"
+}

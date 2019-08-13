@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# vim: set syntax=sh:
 
 load helpers
 
@@ -13,10 +14,6 @@ function setup() {
 
 function teardown() {
     cleanup_test
-}
-
-function replace_config() {
-    sed -ie 's;\('$1' = "\).*\("\);\1'$2'\2;' "$CRIO_CONFIG"
 }
 
 function expect_log_success() {
