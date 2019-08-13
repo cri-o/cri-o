@@ -634,19 +634,15 @@ func (c *Container) removeConmonFiles() error {
 		return errors.Wrapf(err, "error removing container %s OOM file", c.ID())
 	}
 
-	// Instead of outright deleting the exit file, rename it (if it exists).
-	// We want to retain it so we can get the exit code of containers which
-	// are removed (at least until we have a workable events system)
+	// Remove the exit file so we don't leak memory in tmpfs
 	exitFile := filepath.Join(c.ociRuntime.exitsDir, c.ID())
-	oldExitFile := filepath.Join(c.ociRuntime.exitsDir, fmt.Sprintf("%s-old", c.ID()))
 	if _, err := os.Stat(exitFile); err != nil {
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
 		}
 	} else {
-		// Rename should replace the old exit file (if it exists)
-		if err := os.Rename(exitFile, oldExitFile); err != nil {
-			return errors.Wrapf(err, "error renaming container %s exit file", c.ID())
+		if err := os.Remove(exitFile); err != nil {
+			return errors.Wrapf(err, "error removing container %s exit file", c.ID())
 		}
 	}
 
@@ -1112,7 +1108,13 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	// Wait until we have an exit file, and sync once we do
-	return c.waitForExitFileAndSync()
+	if err := c.waitForExitFileAndSync(); err != nil {
+		return err
+	}
+
+	c.newContainerEvent(events.Stop)
+
+	return nil
 }
 
 // Internal, non-locking function to pause a container
@@ -1150,8 +1152,26 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 	c.newContainerEvent(events.Restart)
 
 	if c.state.State == define.ContainerStateRunning {
+		conmonPID := c.state.ConmonPID
 		if err := c.stop(timeout); err != nil {
 			return err
+		}
+		// Old versions of conmon have a bug where they create the exit file before
+		// closing open file descriptors causing a race condition when restarting
+		// containers with open ports since we cannot bind the ports as they're not
+		// yet closed by conmon.
+		//
+		// Killing the old conmon PID is ~okay since it forces the FDs of old conmons
+		// to be closed, while it's a NOP for newer versions which should have
+		// exited already.
+		if conmonPID != 0 {
+			// Ignore errors from FindProcess() as conmon could already have exited.
+			p, err := os.FindProcess(conmonPID)
+			if p != nil && err == nil {
+				if err = p.Kill(); err != nil {
+					logrus.Debugf("error killing conmon process: %v", err)
+				}
+			}
 		}
 	}
 	defer func() {
@@ -1474,10 +1494,6 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 	} else {
 		manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"precreate", "poststop"})
 		if err != nil {
-			if os.IsNotExist(err) {
-				logrus.Warnf("Requested OCI hooks directory %q does not exist", c.runtime.config.HooksDir)
-				return nil, nil
-			}
 			return nil, err
 		}
 

@@ -13,10 +13,10 @@ require (
 	github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.10.0
+	github.com/containers/buildah v1.10.1
 	github.com/containers/image v3.0.2+incompatible
-	github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c
-	github.com/containers/storage v1.13.1
+	github.com/containers/libpod v1.5.0
+	github.com/containers/storage v1.13.2
 	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca

@@ -70,8 +70,9 @@ github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.10.0
+# github.com/containers/buildah v1.10.1
 github.com/containers/buildah/pkg/secrets
+github.com/containers/buildah/pkg/parse
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/util
@@ -119,7 +120,7 @@ github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
 github.com/containers/image/pkg/keyctl
-# github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c
+# github.com/containers/libpod v1.5.0
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/annotations
 github.com/containers/libpod/pkg/hooks
@@ -163,7 +164,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.13.1
+# github.com/containers/storage v1.13.2
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage
 github.com/containers/storage/pkg/idtools
@@ -723,7 +724,7 @@ github.com/vbauerster/mpb/internal
 # github.com/vishvananda/netlink v1.0.0
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
-# github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc
+# github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
 github.com/vishvananda/netns
 # github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f
 github.com/xeipuuv/gojsonpointer
