@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/storage/pkg/idtools"
@@ -464,6 +465,13 @@ func New(
 			configPath, err)
 	}
 
+	// Start a configuration watcher for the registries of the SystemContext
+	registriesPath := sysregistriesv2.ConfigPath(s.systemContext)
+	if _, err := s.StartConfigWatcher(registriesPath, s.ReloadRegistries); err != nil {
+		logrus.Warnf("unable to start config watcher for file %q: %v",
+			registriesPath, err)
+	}
+
 	return s, nil
 }
 
@@ -630,4 +638,15 @@ func (s *Server) StartConfigWatcher(
 
 	logrus.Debugf("registered SIGHUP watcher for file %q", fileName)
 	return c, nil
+}
+
+// ReloadRegistries reloads the registry configuration from the servers
+// `SystemContext`. The method errors in case of any update failure.
+func (s *Server) ReloadRegistries(file string) error {
+	registries, err := sysregistriesv2.TryUpdatingCache(s.systemContext)
+	if err != nil {
+		return errors.Wrapf(err, "system registries reload failed: %s", file)
+	}
+	logrus.Infof("applied new registry configuration: %+v", registries)
+	return nil
 }
