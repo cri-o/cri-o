@@ -10,7 +10,7 @@ function teardown() {
 	if ! grep pids /proc/self/cgroup; then
 		skip "pids cgroup controller is not mounted"
 	fi
-	PIDS_LIMIT=1234 start_crio
+	CONTAINER_PIDS_LIMIT=1234 start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -43,7 +43,7 @@ function teardown() {
 	if [[ "$CI" == "true" ]]; then
 		skip "CI container tests don't support systemd cgroups"
 	fi
-	CONMON_CGROUP="customcrioconmon.slice" CGROUP_MANAGER="systemd" start_crio
+	CONTAINER_CONMON_CGROUP="customcrioconmon.slice" CONTAINER_CGROUP_MANAGER="systemd" start_crio
 	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "Burstablecriotest123.slice"; json.dump(obj, sys.stdout)')
 	echo "$cgroup_parent_config" > "$TESTDIR"/sandbox_config_slice.json
 	run crictl runp "$TESTDIR"/sandbox_config_slice.json

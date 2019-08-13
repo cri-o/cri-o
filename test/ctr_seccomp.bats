@@ -15,11 +15,12 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_crio "$TESTDIR"/seccomp_profile1.json
+	export CONTAINER_SECCOMP_PROFILE=""$TESTDIR"/seccomp_profile1.json"
+	start_crio
 
 	sed -e 's/%VALUE%/unconfined/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
 	run crictl runp "$TESTDATA"/sandbox_config.json
@@ -51,11 +52,12 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_crio "$TESTDIR"/seccomp_profile1.json
+	export CONTAINER_SECCOMP_PROFILE=""$TESTDIR"/seccomp_profile1.json"
+	start_crio
 
 	sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp2.json
 	run crictl runp "$TESTDATA"/sandbox_config.json
@@ -88,11 +90,12 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_crio "$TESTDIR"/seccomp_profile1.json
+	export CONTAINER_SECCOMP_PROFILE=""$TESTDIR"/seccomp_profile1.json"
+	start_crio
 
 	sed -e 's/%VALUE%//g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
 	run crictl runp "$TESTDATA"/sandbox_config.json
@@ -123,11 +126,12 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_crio "$TESTDIR"/seccomp_profile1.json
+	export CONTAINER_SECCOMP_PROFILE=""$TESTDIR"/seccomp_profile1.json"
+	start_crio
 
 	sed -e 's/%VALUE%/wontwork/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
 	run crictl runp "$TESTDATA"/sandbox_config.json
@@ -155,7 +159,7 @@ function teardown() {
 
 	start_crio
 
-	sed -e 's/"chmod",//' "$SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
@@ -190,11 +194,12 @@ function teardown() {
 		skip "skip this test since seccomp is not enabled."
 	fi
 
-	sed -e 's/"chmod",//' "$SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
+	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
 
-	start_crio "$TESTDIR"/seccomp_profile1.json
+	export CONTAINER_SECCOMP_PROFILE=""$TESTDIR"/seccomp_profile1.json"
+	start_crio
 
 	sed -e 's/%VALUE%/docker\/default/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp2.json
 	run crictl runp "$TESTDATA"/sandbox_config.json

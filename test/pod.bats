@@ -203,7 +203,7 @@ function teardown() {
 }
 
 @test "pass pod sysctls to runtime" {
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
 	export TEST_SYSCTL="net.ipv4.ip_forward=1"
@@ -329,7 +329,7 @@ function teardown() {
 }
 
 @test "invalid systemd cgroup_parent fail" {
-	if [[ "$CGROUP_MANAGER" != "systemd" ]]; then
+	if [[ "$CONTAINER_CGROUP_MANAGER" != "systemd" ]]; then
 		skip "need systemd cgroup manager"
 	fi
 
@@ -345,7 +345,7 @@ function teardown() {
 }
 
 @test "systemd cgroup_parent correctly set" {
-	if [[ "$CGROUP_MANAGER" != "systemd" ]]; then
+	if [[ "$CONTAINER_CGROUP_MANAGER" != "systemd" ]]; then
 		skip "need systemd cgroup manager"
 	fi
 

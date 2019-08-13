@@ -110,7 +110,7 @@ function teardown() {
 }
 
 @test "additional devices support" {
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
 	DEVICES="--additional-devices /dev/null:/dev/qifoo:rwm" start_crio
@@ -149,7 +149,7 @@ function teardown() {
 	local readonly device="/dev/loop-control"
 	local readonly timeout=30
 
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
 
@@ -449,7 +449,7 @@ function teardown() {
 }
 
 @test "ctr log max" {
-	LOG_SIZE_MAX_LIMIT=10000 start_crio
+	CONTAINER_LOG_SIZE_MAX=10000 start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -537,7 +537,7 @@ function teardown() {
 
 @test "ctr log max with minimum value" {
 	# Start crio with minimum log size max value 8192
-	LOG_SIZE_MAX_LIMIT=8192 start_crio
+	CONTAINER_LOG_SIZE_MAX=8192 start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -907,7 +907,7 @@ function teardown() {
 @test "ctr device add" {
 	# In an user namespace we can only bind mount devices from the host, not mknod
 	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
 	start_crio
@@ -947,7 +947,7 @@ function teardown() {
 @test "privileged ctr device add" {
 	# In an user namespace we can only bind mount devices from the host, not mknod
 	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
 	start_crio
@@ -986,7 +986,7 @@ function teardown() {
 @test "privileged ctr add duplicate device as host" {
 	# In an user namespace we can only bind mount devices from the host, not mknod
 	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
 	start_crio
@@ -1190,7 +1190,8 @@ function teardown() {
 }
 
 @test "ctr with list of capabilities given by user in crio.conf" {
-	start_crio "" "" "" "CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID" ""
+	export CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID"
+	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1219,7 +1220,7 @@ function teardown() {
 }
 
 @test "run ctr with image with Config.Volumes" {
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
 	start_crio
@@ -1559,7 +1560,7 @@ function teardown() {
 	# ensure metrics port is listening
 	listened=$(check_metrics_port $port)
 	if [[ "$listened" -ne 0 ]]; then
-		skip "$METRICS_PORT is not listening"
+		skip "$CONTAINER_METRICS_PORT is not listening"
 	fi
 
 	run crictl runp "$TESTDATA"/sandbox_config.json
@@ -1591,11 +1592,11 @@ function teardown() {
 @test "ctr expose metrics with custom port" {
 	# start crio with custom port
 	port="4321"
-	METRICS_PORT=$port start_crio_metrics
+	CONTAINER_METRICS_PORT=$port start_crio_metrics
 	# ensure metrics port is listening
 	listened=$(check_metrics_port $port)
 	if [[ "$listened" -ne 0 ]]; then
-		skip "$METRICS_PORT is not listening"
+		skip "$CONTAINER_METRICS_PORT is not listening"
 	fi
 
 	run crictl runp "$TESTDATA"/sandbox_config.json
