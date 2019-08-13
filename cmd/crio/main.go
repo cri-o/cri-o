@@ -204,6 +204,46 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.GlobalIsSet("additional-devices") {
 		config.AdditionalDevices = ctx.GlobalStringSlice("additional-devices")
 	}
+	if ctx.GlobalIsSet("conmon-env") {
+		config.ConmonEnv = ctx.GlobalStringSlice("conmon-env")
+	}
+	if ctx.GlobalIsSet("container-attach-socket-dir") {
+		config.ContainerAttachSocketDir = ctx.GlobalString("container-attach-socket-dir")
+	}
+	if ctx.GlobalIsSet("container-exits-dir") {
+		config.ContainerExitsDir = ctx.GlobalString("container-exits-dir")
+	}
+	if ctx.GlobalIsSet("ctr-stop-timeout") {
+		config.CtrStopTimeout = ctx.GlobalInt64("ctr-stop-timeout")
+	}
+	if ctx.GlobalIsSet("grpc-max-recv-msg-size") {
+		config.GRPCMaxRecvMsgSize = ctx.GlobalInt("grpc-max-recv-msg-size")
+	}
+	if ctx.GlobalIsSet("grpc-max-send-msg-size") {
+		config.GRPCMaxSendMsgSize = ctx.GlobalInt("grpc-max-send-msg-size")
+	}
+	if ctx.GlobalIsSet("host-ip") {
+		config.HostIP = ctx.GlobalString("host-ip")
+	}
+	if ctx.GlobalIsSet("manage-network-ns-lifecycle") {
+		config.ManageNetworkNSLifecycle = ctx.GlobalBool("manage-network-ns-lifecycle")
+	}
+	if ctx.GlobalIsSet("no-pivot") {
+		config.NoPivot = ctx.GlobalBool("no-pivot")
+	}
+	if ctx.GlobalIsSet("stream-enable-tls") {
+		config.StreamEnableTLS = ctx.GlobalBool("stream-enable-tls")
+	}
+	if ctx.GlobalIsSet("stream-tls-ca") {
+		config.StreamTLSCA = ctx.GlobalString("stream-tls-ca")
+	}
+	if ctx.GlobalIsSet("stream-tls-cert") {
+		config.StreamTLSCert = ctx.GlobalString("stream-tls-cert")
+	}
+	if ctx.GlobalIsSet("stream-tls-key") {
+		config.StreamTLSKey = ctx.GlobalString("stream-tls-key")
+	}
+
 	return path, nil
 }
 
@@ -498,6 +538,58 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "additional-devices",
 			Usage: fmt.Sprintf("devices to add to the containers (default: %q)", defConf.AdditionalDevices),
+		},
+		cli.StringSliceFlag{
+			Name:  "conmon-env",
+			Usage: fmt.Sprintf("environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: %q)", defConf.ConmonEnv),
+		},
+		cli.StringFlag{
+			Name:  "container-attach-socket-dir",
+			Usage: fmt.Sprintf("path to directory for container attach sockets (default: %q)", defConf.ContainerAttachSocketDir),
+		},
+		cli.StringFlag{
+			Name:  "container-exits-dir",
+			Usage: fmt.Sprintf("path to directory in which container exit files are written to by conmon (default: %q)", defConf.ContainerExitsDir),
+		},
+		cli.Int64Flag{
+			Name:  "ctr-stop-timeout",
+			Usage: fmt.Sprintf("the minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container (default: %q)", defConf.CtrStopTimeout),
+		},
+		cli.IntFlag{
+			Name:  "grpc-max-recv-msg-size",
+			Usage: fmt.Sprintf("maximum grpc receive message size in bytes (default: %q)", defConf.GRPCMaxRecvMsgSize),
+		},
+		cli.IntFlag{
+			Name:  "grpc-max-send-msg-size",
+			Usage: fmt.Sprintf("maximum grpc receive message size (default: %q)", defConf.GRPCMaxSendMsgSize),
+		},
+		cli.StringFlag{
+			Name:  "host-ip",
+			Usage: fmt.Sprintf("host IP considered as the primary IP to use by CRI-O for things such as host network IP (default: %q)", defConf.HostIP),
+		},
+		cli.BoolFlag{
+			Name:  "manage-network-ns-lifecycle",
+			Usage: fmt.Sprintf("determines whether we pin and remove network namespace and manage its lifecycle (default: %v)", defConf.ManageNetworkNSLifecycle),
+		},
+		cli.BoolFlag{
+			Name:  "no-pivot",
+			Usage: fmt.Sprintf("if true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: %v)", defConf.NoPivot),
+		},
+		cli.BoolFlag{
+			Name:  "stream-enable-tls",
+			Usage: fmt.Sprintf("enable encrypted TLS transport of the stream server (default: %v)", defConf.StreamEnableTLS),
+		},
+		cli.StringFlag{
+			Name:  "stream-tls-ca",
+			Usage: fmt.Sprintf("path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSCA),
+		},
+		cli.StringFlag{
+			Name:  "stream-tls-cert",
+			Usage: fmt.Sprintf("path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSCert),
+		},
+		cli.StringFlag{
+			Name:  "stream-tls-key",
+			Usage: fmt.Sprintf("path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSKey),
 		},
 	}
 

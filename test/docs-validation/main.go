@@ -40,24 +40,6 @@ var (
 		"storage_driver",   // user dependent
 	}
 
-	// CLI options which should be not checked at all
-	excludedCLIOptions = []string{
-		"conmon-env",                  // not existing
-		"container-attach-socket-dir", // not existing
-		"container-exits-dir",         // not existing
-		"ctr-stop-timeout",            // not existing
-		"file-locking-path",           // not existing
-		"grpc-max-recv-msg-size",      // not existing
-		"grpc-max-send-msg-size",      // not existing
-		"host-ip",                     // not existing
-		"manage-network-ns-lifecycle", // not existing
-		"no-pivot",                    // not existing
-		"stream-enable-tls",           // not existing
-		"stream-tls-ca",               // not existing
-		"stream-tls-cert",             // not existing
-		"stream-tls-key",              // not existing
-	}
-
 	// Mapping for inconsistencies between tags and CLI arguments
 	tagToCLIOption = map[string]string{
 		"network_dir":         "cni-config-dir",
@@ -169,12 +151,6 @@ func validateCli(cfg *config.Config) (failed bool) {
 		if val, ok := tagToCLIOption[entry.tag]; ok {
 			logrus.Debugf("Mapping `%s` to `%s`", entry.tag, val)
 			cliOption = val
-		}
-
-		// Skip whitelisted items
-		if stringInSlice(cliOption, excludedCLIOptions) {
-			logrus.Debugf("Skipping excluded CLI option `%s`", cliOption)
-			continue
 		}
 
 		// Lookup the tag

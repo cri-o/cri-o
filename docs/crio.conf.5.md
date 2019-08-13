@@ -58,13 +58,13 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
   Enable encrypted TLS transport of the stream server.
 
 **stream_tls_cert**=""
-  Path to the x509 certificate file used to serve the encrypted stream. This file can change, and CRI-O will automatically pick up the changes within 5 minutes.
+  Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
 **stream_tls_key**=""
-  Path to the key file used to serve the encrypted stream. This file can change, and CRI-O will automatically pick up the changes within 5 minutes.
+  Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
 **stream_tls_ca**=""
-  Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change, and CRI-O will automatically pick up the changes within 5 minutes.
+  Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
 **grpc_max_send_msg_size**=16777216
   Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
