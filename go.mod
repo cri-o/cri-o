@@ -14,8 +14,9 @@ require (
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
 	github.com/containers/buildah v1.10.1
+	github.com/containers/conmon v0.3.0 // indirect
 	github.com/containers/image v3.0.2+incompatible
-	github.com/containers/libpod v1.5.0
+	github.com/containers/libpod v0.8.3-0.20190726082505-4674d00f4638
 	github.com/containers/storage v1.13.2
 	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -48,6 +49,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli v1.21.0
 	github.com/vbatts/git-validation v1.0.0
+	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa

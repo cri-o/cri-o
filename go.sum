@@ -139,6 +139,8 @@ github.com/containers/libpod v0.8.3-0.20190711082319-144567b42dba h1:I6X1anNYQZZ
 github.com/containers/libpod v0.8.3-0.20190711082319-144567b42dba/go.mod h1:xKKFpwDA599508AxpTVhBjyszJHai31knNdt+sWQUTA=
 github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c h1:Ij2gjy8dtDLfamYDP4XhXIE1Y52IDB7K1PgiOW7ROEQ=
 github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c/go.mod h1:xNVFFyH9mnKlWMSdXXQKxym9Cr0xtmUGsiE1Ab6QkMk=
+github.com/containers/libpod v0.8.3-0.20190726082505-4674d00f4638 h1:NP2hmqqbBLIYfijRxXbqjo0htzPOjleqWOLEvs3iJSI=
+github.com/containers/libpod v0.8.3-0.20190726082505-4674d00f4638/go.mod h1:xNVFFyH9mnKlWMSdXXQKxym9Cr0xtmUGsiE1Ab6QkMk=
 github.com/containers/libpod v1.4.4 h1:ImfKNDgs1WLyJ8zhcBBhiXhb2mVRgPzP58nSsC1aiPc=
 github.com/containers/libpod v1.4.4/go.mod h1:ZdYOq3W7RqABw6T6luVSWfS5GBXKQ1KzWPL1n8vjVhI=
 github.com/containers/libpod v1.5.0 h1:1wpfO0OjapF3ZRP5V1AO3EEiEumrA2XoeqO3rWp2Ijw=

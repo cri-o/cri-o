@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage/pkg/stringid"
@@ -249,11 +248,8 @@ func (config *CreateConfig) getVolumesFrom(runtime *libpod.Runtime) (map[string]
 	finalNamedVolumes := make(map[string]*libpod.ContainerNamedVolume)
 
 	for _, vol := range config.VolumesFrom {
-		var (
-			options  = []string{}
-			err      error
-			splitVol = strings.SplitN(vol, ":", 2)
-		)
+		options := []string{}
+		splitVol := strings.SplitN(vol, ":", 2)
 		if len(splitVol) == 2 {
 			if strings.Contains(splitVol[1], "Z") ||
 				strings.Contains(splitVol[1], "private") ||
@@ -261,10 +257,12 @@ func (config *CreateConfig) getVolumesFrom(runtime *libpod.Runtime) (map[string]
 				strings.Contains(splitVol[1], "shared") {
 				return nil, nil, errors.Errorf("invalid options %q, can only specify 'ro', 'rw', and 'z", splitVol[1])
 			}
-
-			if options, err = parse.ValidateVolumeOpts(strings.Split(splitVol[1], ",")); err != nil {
+			options = strings.Split(splitVol[1], ",")
+			opts, err := ValidateVolumeOpts(options)
+			if err != nil {
 				return nil, nil, err
 			}
+			options = opts
 		}
 		ctr, err := runtime.LookupContainer(splitVol[0])
 		if err != nil {
@@ -410,42 +408,13 @@ func getBindMount(args []string) (spec.Mount, error) {
 
 	setSource := false
 	setDest := false
-	setRORW := false
 
 	for _, val := range args {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
 		case "bind-nonrecursive":
 			newMount.Options = append(newMount.Options, "bind")
-		case "ro", "rw":
-			if setRORW {
-				return newMount, errors.Wrapf(optionArgError, "cannot pass 'ro' or 'rw' options more than once")
-			}
-			setRORW = true
-			// Can be formatted as one of:
-			// ro
-			// ro=[true|false]
-			// rw
-			// rw=[true|false]
-			if len(kv) == 1 {
-				newMount.Options = append(newMount.Options, kv[0])
-			} else if len(kv) == 2 {
-				switch strings.ToLower(kv[1]) {
-				case "true":
-					newMount.Options = append(newMount.Options, kv[0])
-				case "false":
-					// Set the opposite only for rw
-					// ro's opposite is the default
-					if kv[0] == "rw" {
-						newMount.Options = append(newMount.Options, "ro")
-					}
-				default:
-					return newMount, errors.Wrapf(optionArgError, "%s must be set to true or false, instead received %q", kv[0], kv[1])
-				}
-			} else {
-				return newMount, errors.Wrapf(optionArgError, "badly formatted option %q", val)
-			}
-		case "nosuid", "nodev", "noexec":
+		case "ro", "nosuid", "nodev", "noexec":
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
 			newMount.Options = append(newMount.Options, kv[0])
@@ -460,7 +429,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
-			if err := parse.ValidateVolumeHostDir(kv[1]); err != nil {
+			if err := ValidateVolumeHostDir(kv[1]); err != nil {
 				return newMount, err
 			}
 			newMount.Source = kv[1]
@@ -469,7 +438,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
-			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
+			if err := ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
 			newMount.Destination = kv[1]
@@ -487,11 +456,12 @@ func getBindMount(args []string) (spec.Mount, error) {
 		newMount.Source = newMount.Destination
 	}
 
-	options, err := parse.ValidateVolumeOpts(newMount.Options)
+	opts, err := ValidateVolumeOpts(newMount.Options)
 	if err != nil {
 		return newMount, err
 	}
-	newMount.Options = options
+	newMount.Options = opts
+
 	return newMount, nil
 }
 
@@ -525,7 +495,7 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
-			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
+			if err := ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
 			newMount.Destination = kv[1]
@@ -569,7 +539,7 @@ func getNamedVolume(args []string) (*libpod.ContainerNamedVolume, error) {
 			if len(kv) == 1 {
 				return nil, errors.Wrapf(optionArgError, kv[0])
 			}
-			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
+			if err := ValidateVolumeCtrDir(kv[1]); err != nil {
 				return nil, err
 			}
 			newVolume.Dest = kv[1]
@@ -589,6 +559,75 @@ func getNamedVolume(args []string) (*libpod.ContainerNamedVolume, error) {
 	return newVolume, nil
 }
 
+// ValidateVolumeHostDir validates a volume mount's source directory
+func ValidateVolumeHostDir(hostDir string) error {
+	if len(hostDir) == 0 {
+		return errors.Errorf("host directory cannot be empty")
+	}
+	if filepath.IsAbs(hostDir) {
+		if _, err := os.Stat(hostDir); err != nil {
+			return errors.Wrapf(err, "error checking path %q", hostDir)
+		}
+	}
+	// If hostDir is not an absolute path, that means the user wants to create a
+	// named volume. This will be done later on in the code.
+	return nil
+}
+
+// ValidateVolumeCtrDir validates a volume mount's destination directory.
+func ValidateVolumeCtrDir(ctrDir string) error {
+	if len(ctrDir) == 0 {
+		return errors.Errorf("container directory cannot be empty")
+	}
+	if !filepath.IsAbs(ctrDir) {
+		return errors.Errorf("invalid container path %q, must be an absolute path", ctrDir)
+	}
+	return nil
+}
+
+// ValidateVolumeOpts validates a volume's options
+func ValidateVolumeOpts(options []string) ([]string, error) {
+	var foundRootPropagation, foundRWRO, foundLabelChange, bindType int
+	finalOpts := make([]string, 0, len(options))
+	for _, opt := range options {
+		switch opt {
+		case "rw", "ro":
+			foundRWRO++
+			if foundRWRO > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", strings.Join(options, ", "))
+			}
+		case "z", "Z":
+			foundLabelChange++
+			if foundLabelChange > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", strings.Join(options, ", "))
+			}
+		case "private", "rprivate", "shared", "rshared", "slave", "rslave":
+			foundRootPropagation++
+			if foundRootPropagation > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", strings.Join(options, ", "))
+			}
+		case "bind", "rbind":
+			bindType++
+			if bindType > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]bind' option", strings.Join(options, ", "))
+			}
+		case "cached", "delegated":
+			// The discarded ops are OS X specific volume options
+			// introduced in a recent Docker version.
+			// They have no meaning on Linux, so here we silently
+			// drop them. This matches Docker's behavior (the options
+			// are intended to be always safe to use, even not on OS
+			// X).
+			continue
+		default:
+			return nil, errors.Errorf("invalid mount option %q", opt)
+		}
+		finalOpts = append(finalOpts, opt)
+	}
+	return finalOpts, nil
+}
+
+// GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
 func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string]*libpod.ContainerNamedVolume, error) {
 	mounts := make(map[string]spec.Mount)
 	volumes := make(map[string]*libpod.ContainerNamedVolume)
@@ -600,7 +639,6 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 			options []string
 			src     string
 			dest    string
-			err     error
 		)
 
 		splitVol := strings.Split(vol, ":")
@@ -615,15 +653,18 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 			dest = splitVol[1]
 		}
 		if len(splitVol) > 2 {
-			if options, err = parse.ValidateVolumeOpts(strings.Split(splitVol[2], ",")); err != nil {
+			options = strings.Split(splitVol[2], ",")
+			opts, err := ValidateVolumeOpts(options)
+			if err != nil {
 				return nil, nil, err
 			}
+			options = opts
 		}
 
-		if err := parse.ValidateVolumeHostDir(src); err != nil {
+		if err := ValidateVolumeHostDir(src); err != nil {
 			return nil, nil, err
 		}
-		if err := parse.ValidateVolumeCtrDir(dest); err != nil {
+		if err := ValidateVolumeCtrDir(dest); err != nil {
 			return nil, nil, err
 		}
 

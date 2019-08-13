@@ -4,30 +4,17 @@ import (
 	"strings"
 )
 
-const (
-	bridgeType    = "bridge"
-	containerType = "container"
-	defaultType   = "default"
-	hostType      = "host"
-	noneType      = "none"
-	nsType        = "ns"
-	podType       = "pod"
-	privateType   = "private"
-	shareableType = "shareable"
-	slirpType     = "slirp4netns"
-)
-
 // CgroupMode represents cgroup mode in the container.
 type CgroupMode string
 
 // IsHost indicates whether the container uses the host's cgroup.
 func (n CgroupMode) IsHost() bool {
-	return n == hostType
+	return n == "host"
 }
 
 // IsNS indicates a cgroup namespace passed in by path (ns:<path>)
 func (n CgroupMode) IsNS() bool {
-	return strings.HasPrefix(string(n), nsType)
+	return strings.HasPrefix(string(n), "ns:")
 }
 
 // NS gets the path associated with a ns:<path> cgroup ns
@@ -42,13 +29,13 @@ func (n CgroupMode) NS() string {
 // IsContainer indicates whether the container uses a new cgroup namespace.
 func (n CgroupMode) IsContainer() bool {
 	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	return len(parts) > 1 && parts[0] == "container"
 }
 
 // Container returns the name of the container whose cgroup namespace is going to be used.
 func (n CgroupMode) Container() string {
 	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
+	if len(parts) > 1 {
 		return parts[1]
 	}
 	return ""
@@ -56,15 +43,15 @@ func (n CgroupMode) Container() string {
 
 // IsPrivate indicates whether the container uses the a private cgroup.
 func (n CgroupMode) IsPrivate() bool {
-	return n == privateType
+	return n == "private"
 }
 
 // Valid indicates whether the Cgroup namespace is valid.
 func (n CgroupMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", hostType, privateType, nsType:
-	case containerType:
+	case "", "host", "private", "ns":
+	case "container":
 		if len(parts) != 2 || parts[1] == "" {
 			return false
 		}
@@ -79,7 +66,7 @@ type UsernsMode string
 
 // IsHost indicates whether the container uses the host's userns.
 func (n UsernsMode) IsHost() bool {
-	return n == hostType
+	return n == "host"
 }
 
 // IsKeepID indicates whether container uses a mapping where the (uid, gid) on the host is lept inside of the namespace.
@@ -89,50 +76,27 @@ func (n UsernsMode) IsKeepID() bool {
 
 // IsPrivate indicates whether the container uses the a private userns.
 func (n UsernsMode) IsPrivate() bool {
-	return !(n.IsHost() || n.IsContainer())
+	return !(n.IsHost())
 }
 
 // Valid indicates whether the userns is valid.
 func (n UsernsMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", hostType, "keep-id", nsType:
-	case containerType:
-		if len(parts) != 2 || parts[1] == "" {
-			return false
-		}
+	case "", "host", "keep-id":
 	default:
 		return false
 	}
 	return true
 }
 
-// IsNS indicates a userns namespace passed in by path (ns:<path>)
-func (n UsernsMode) IsNS() bool {
-	return strings.HasPrefix(string(n), "ns:")
-}
-
-// NS gets the path associated with a ns:<path> userns ns
-func (n UsernsMode) NS() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 {
-		return parts[1]
-	}
-	return ""
-}
-
 // IsContainer indicates whether container uses a container userns.
 func (n UsernsMode) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	return false
 }
 
 // Container is the id of the container which network this container is connected to.
 func (n UsernsMode) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
-		return parts[1]
-	}
 	return ""
 }
 
@@ -146,19 +110,19 @@ func (n UTSMode) IsPrivate() bool {
 
 // IsHost indicates whether the container uses the host's UTS namespace.
 func (n UTSMode) IsHost() bool {
-	return n == hostType
+	return n == "host"
 }
 
 // IsContainer indicates whether the container uses a container's UTS namespace.
 func (n UTSMode) IsContainer() bool {
 	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	return len(parts) > 1 && parts[0] == "container"
 }
 
 // Container returns the name of the container whose uts namespace is going to be used.
 func (n UTSMode) Container() string {
 	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
+	if len(parts) > 1 {
 		return parts[1]
 	}
 	return ""
@@ -168,8 +132,8 @@ func (n UTSMode) Container() string {
 func (n UTSMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", hostType:
-	case containerType:
+	case "", "host":
+	case "container":
 		if len(parts) != 2 || parts[1] == "" {
 			return false
 		}
@@ -184,28 +148,28 @@ type IpcMode string
 
 // IsPrivate indicates whether the container uses its own private ipc namespace which cannot be shared.
 func (n IpcMode) IsPrivate() bool {
-	return n == privateType
+	return n == "private"
 }
 
 // IsHost indicates whether the container shares the host's ipc namespace.
 func (n IpcMode) IsHost() bool {
-	return n == hostType
+	return n == "host"
 }
 
 // IsShareable indicates whether the container's ipc namespace can be shared with another container.
 func (n IpcMode) IsShareable() bool {
-	return n == shareableType
+	return n == "shareable"
 }
 
 // IsContainer indicates whether the container uses another container's ipc namespace.
 func (n IpcMode) IsContainer() bool {
 	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	return len(parts) > 1 && parts[0] == "container"
 }
 
 // IsNone indicates whether container IpcMode is set to "none".
 func (n IpcMode) IsNone() bool {
-	return n == noneType
+	return n == "none"
 }
 
 // IsEmpty indicates whether container IpcMode is empty
@@ -221,7 +185,7 @@ func (n IpcMode) Valid() bool {
 // Container returns the name of the container ipc stack is going to be used.
 func (n IpcMode) Container() string {
 	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
+	if len(parts) > 1 && parts[0] == "container" {
 		return parts[1]
 	}
 	return ""
@@ -237,21 +201,21 @@ func (n PidMode) IsPrivate() bool {
 
 // IsHost indicates whether the container uses the host's pid namespace.
 func (n PidMode) IsHost() bool {
-	return n == hostType
+	return n == "host"
 }
 
 // IsContainer indicates whether the container uses a container's pid namespace.
 func (n PidMode) IsContainer() bool {
 	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	return len(parts) > 1 && parts[0] == "container"
 }
 
 // Valid indicates whether the pid namespace is valid.
 func (n PidMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", hostType:
-	case containerType:
+	case "", "host":
+	case "container":
 		if len(parts) != 2 || parts[1] == "" {
 			return false
 		}
@@ -264,7 +228,7 @@ func (n PidMode) Valid() bool {
 // Container returns the name of the container whose pid namespace is going to be used.
 func (n PidMode) Container() string {
 	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
+	if len(parts) > 1 {
 		return parts[1]
 	}
 	return ""
@@ -275,17 +239,17 @@ type NetworkMode string
 
 // IsNone indicates whether container isn't using a network stack.
 func (n NetworkMode) IsNone() bool {
-	return n == noneType
+	return n == "none"
 }
 
 // IsHost indicates whether the container uses the host's network stack.
 func (n NetworkMode) IsHost() bool {
-	return n == hostType
+	return n == "host"
 }
 
 // IsDefault indicates whether container uses the default network stack.
 func (n NetworkMode) IsDefault() bool {
-	return n == defaultType
+	return n == "default"
 }
 
 // IsPrivate indicates whether container uses its private network stack.
@@ -296,13 +260,13 @@ func (n NetworkMode) IsPrivate() bool {
 // IsContainer indicates whether container uses a container network stack.
 func (n NetworkMode) IsContainer() bool {
 	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	return len(parts) > 1 && parts[0] == "container"
 }
 
 // Container is the id of the container which network this container is connected to.
 func (n NetworkMode) Container() string {
 	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
+	if len(parts) > 1 {
 		return parts[1]
 	}
 	return ""
@@ -318,17 +282,17 @@ func (n NetworkMode) UserDefined() string {
 
 // IsBridge indicates whether container uses the bridge network stack
 func (n NetworkMode) IsBridge() bool {
-	return n == bridgeType
+	return n == "bridge"
 }
 
 // IsSlirp4netns indicates if we are running a rootless network stack
 func (n NetworkMode) IsSlirp4netns() bool {
-	return n == slirpType
+	return n == "slirp4netns"
 }
 
 // IsNS indicates a network namespace passed in by path (ns:<path>)
 func (n NetworkMode) IsNS() bool {
-	return strings.HasPrefix(string(n), nsType)
+	return strings.HasPrefix(string(n), "ns:")
 }
 
 // NS gets the path associated with a ns:<path> network ns
@@ -342,7 +306,7 @@ func (n NetworkMode) NS() string {
 
 // IsPod returns whether the network refers to pod networking
 func (n NetworkMode) IsPod() bool {
-	return n == podType
+	return n == "pod"
 }
 
 // IsUserDefined indicates user-created network

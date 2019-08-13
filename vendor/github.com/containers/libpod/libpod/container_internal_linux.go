@@ -185,11 +185,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
 		if c.config.PostConfigureNetNS {
-			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), ""); err != nil {
+			if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, ""); err != nil {
 				return nil, err
 			}
 		} else {
-			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS.Path()); err != nil {
+			if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path()); err != nil {
 				return nil, err
 			}
 		}
@@ -310,18 +310,13 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 	if c.config.PIDNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, PIDNS, c.config.PIDNsCtr, spec.PIDNamespace); err != nil {
+		if err := c.addNamespaceContainer(&g, PIDNS, c.config.PIDNsCtr, string(spec.PIDNamespace)); err != nil {
 			return nil, err
 		}
 	}
 	if c.config.UserNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, UserNS, c.config.UserNsCtr, spec.UserNamespace); err != nil {
 			return nil, err
-		}
-		if len(g.Config.Linux.UIDMappings) == 0 {
-			// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
-			g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
-			g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
 		}
 	}
 	if c.config.UTSNsCtr != "" {
@@ -340,7 +335,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
 
 	for _, i := range c.config.Spec.Linux.Namespaces {
-		if i.Type == spec.UTSNamespace {
+		if string(i.Type) == spec.UTSNamespace {
 			hostname := c.Hostname()
 			g.SetHostname(hostname)
 			g.AddProcessEnv("HOSTNAME", hostname)
@@ -466,20 +461,20 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		g.AddMount(tmpfsMnt)
 	}
 
-	unified, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return err
-	}
+	// rootless containers have no write access to /sys/fs/cgroup, so don't
+	// add any mount into the container.
+	if !rootless.IsRootless() {
+		cgroupPath, err := c.CGroupPath()
+		if err != nil {
+			return err
+		}
+		sourcePath := filepath.Join("/sys/fs/cgroup/systemd", cgroupPath)
 
-	if unified {
-		g.RemoveMount("/sys/fs/cgroup")
-
-		sourcePath := filepath.Join("/sys/fs/cgroup")
 		systemdMnt := spec.Mount{
-			Destination: "/sys/fs/cgroup",
+			Destination: "/sys/fs/cgroup/systemd",
 			Type:        "bind",
 			Source:      sourcePath,
-			Options:     []string{"bind", "private", "rw"},
+			Options:     []string{"bind", "private"},
 		}
 		g.AddMount(systemdMnt)
 	} else {
@@ -496,7 +491,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 }
 
 // Add an existing container's namespace to the spec
-func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr string, specNS spec.LinuxNamespaceType) error {
+func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr string, specNS string) error {
 	nsCtr, err := c.runtime.state.Container(ctr)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving dependency %s of container %s from state", ctr, c.ID())
@@ -508,7 +503,7 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 		return err
 	}
 
-	if err := g.AddOrReplaceLinuxNamespace(string(specNS), nsPath); err != nil {
+	if err := g.AddOrReplaceLinuxNamespace(specNS, nsPath); err != nil {
 		return err
 	}
 
@@ -725,14 +720,6 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return err
 	}
 
-	// If a container is restored multiple times from an exported checkpoint with
-	// the help of '--import --name', the restore will fail if during 'podman run'
-	// a static container IP was set with '--ip'. The user can tell the restore
-	// process to ignore the static IP with '--ignore-static-ip'
-	if options.IgnoreStaticIP {
-		c.config.StaticIP = nil
-	}
-
 	// Read network configuration from checkpoint
 	// Currently only one interface with one IP is supported.
 	networkStatusFile, err := os.Open(filepath.Join(c.bundlePath(), "network.status"))
@@ -742,7 +729,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// TODO: This implicit restoring with or without IP depending on an
 	//       unrelated restore parameter (--name) does not seem like the
 	//       best solution.
-	if err == nil && options.Name == "" && !options.IgnoreStaticIP {
+	if err == nil && options.Name == "" {
 		// The file with the network.status does exist. Let's restore the
 		// container with the same IP address as during checkpointing.
 		defer networkStatusFile.Close()
@@ -795,7 +782,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// We want to have the same network namespace as before.
 	if c.config.CreateNetNS {
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS.Path()); err != nil {
+		if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path()); err != nil {
 			return err
 		}
 	}

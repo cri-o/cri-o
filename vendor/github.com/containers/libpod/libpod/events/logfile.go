@@ -55,7 +55,7 @@ func (e EventLogFile) Read(options ReadOptions) error {
 			return err
 		}
 		switch event.Type {
-		case Image, Volume, Pod, System, Container:
+		case Image, Volume, Pod, Container:
 		//	no-op
 		default:
 			return errors.Errorf("event type %s is not valid in %s", event.Type.String(), e.options.LogFilePath)
@@ -70,9 +70,4 @@ func (e EventLogFile) Read(options ReadOptions) error {
 	}
 	close(options.EventChannel)
 	return nil
-}
-
-// String returns a string representation of the logger
-func (e EventLogFile) String() string {
-	return LogFile.String()
 }

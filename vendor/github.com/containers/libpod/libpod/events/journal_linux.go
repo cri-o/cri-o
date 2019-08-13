@@ -54,17 +54,14 @@ func (e EventJournalD) Read(options ReadOptions) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to generate event options")
 	}
-	j, err := sdjournal.NewJournal() //nolint
+	podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"} //nolint
+	j, err := sdjournal.NewJournal()                                              //nolint
 	if err != nil {
 		return err
 	}
-	// TODO AddMatch and Seek seem to conflict
-	// Issue filed upstream -> https://github.com/coreos/go-systemd/issues/315
-	// Leaving commented code in case upstream fixes things
-	//podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"} //nolint
-	//if err := j.AddMatch(podmanJournal.String()); err != nil {
-	//	return errors.Wrap(err, "failed to add filter for event log")
-	//}
+	if err := j.AddMatch(podmanJournal.String()); err != nil {
+		return errors.Wrap(err, "failed to add filter for event log")
+	}
 	if len(options.Since) == 0 && len(options.Until) == 0 && options.Stream {
 		if err := j.SeekTail(); err != nil {
 			return errors.Wrap(err, "failed to seek end of journal")
@@ -98,12 +95,6 @@ func (e EventJournalD) Read(options ReadOptions) error {
 		entry, err := j.GetEntry()
 		if err != nil {
 			return err
-		}
-		// TODO this keeps us from feeding the podman event parser with
-		// with regular journal content; it can be removed if the above
-		// problem with AddMatch is resolved.
-		if entry.Fields["PODMAN_EVENT"] == "" {
-			continue
 		}
 		newEvent, err := newEventFromJournalEntry(entry)
 		if err != nil {
@@ -154,9 +145,4 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 	}
 	return &newEvent, nil
-}
-
-// String returns a string representation of the logger
-func (e EventJournalD) String() string {
-	return Journald.String()
 }

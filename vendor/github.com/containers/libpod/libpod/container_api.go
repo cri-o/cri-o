@@ -187,7 +187,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		c.state.State == define.ContainerStateExited {
 		return define.ErrCtrStopped
 	}
-
+	defer c.newContainerEvent(events.Stop)
 	return c.stop(timeout)
 }
 
@@ -773,11 +773,6 @@ type ContainerCheckpointOptions struct {
 	// IgnoreRootfs tells the API to not export changes to
 	// the container's root file-system (or to not import)
 	IgnoreRootfs bool
-	// IgnoreStaticIP tells the API to ignore the IP set
-	// during 'podman run' with '--ip'. This is especially
-	// important to be able to restore a container multiple
-	// times with '--import --name'.
-	IgnoreStaticIP bool
 }
 
 // Checkpoint checkpoints a container

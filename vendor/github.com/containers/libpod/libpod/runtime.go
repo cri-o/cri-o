@@ -1,16 +1,12 @@
 package libpod
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -55,7 +51,7 @@ const (
 var (
 	// InstallPrefix is the prefix where podman will be installed.
 	// It can be overridden at build time.
-	installPrefix = "/usr"
+	installPrefix = "/usr/local"
 	// EtcDir is the sysconfdir where podman should look for system config files.
 	// It can be overridden at build time.
 	etcDir = "/etc"
@@ -297,7 +293,6 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 				"/sbin/runc",
 				"/bin/runc",
 				"/usr/lib/cri-o-runc/sbin/runc",
-				"/run/current-system/sw/bin/runc",
 			},
 		},
 		ConmonPath: []string{
@@ -307,7 +302,6 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 			"/usr/sbin/conmon",
 			"/usr/local/bin/conmon",
 			"/usr/local/sbin/conmon",
-			"/run/current-system/sw/bin/conmon",
 		},
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -331,19 +325,16 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 	}, nil
 }
 
-// SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
-// containers/image uses XDG_RUNTIME_DIR to locate the auth file, XDG_CONFIG_HOME is
-// use for the libpod.conf configuration file.
-// SetXdgDirs internally calls EnableLinger() so that the user's processes are not
+// SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
+// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
+// It internally calls EnableLinger() so that the user's processes are not
 // killed once the session is terminated.  EnableLinger() also attempts to
 // get the runtime directory when XDG_RUNTIME_DIR is not specified.
-// This function should only be called when running rootless.
-func SetXdgDirs() error {
+func SetXdgRuntimeDir() error {
 	if !rootless.IsRootless() {
 		return nil
 	}
 
-	// Setup XDG_RUNTIME_DIR
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 
 	runtimeDirLinger, err := rootless.EnableLinger()
@@ -370,16 +361,6 @@ func SetXdgDirs() error {
 	}
 	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
 		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
-	}
-
-	// Setup XDG_CONFIG_HOME
-	if cfgHomeDir := os.Getenv("XDG_CONFIG_HOME"); cfgHomeDir == "" {
-		if cfgHomeDir, err = util.GetRootlessConfigHomeDir(); err != nil {
-			return err
-		}
-		if err = os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
-			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
-		}
 	}
 	return nil
 }
@@ -742,43 +723,11 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 	return manager, nil
 }
 
-// probeConmon calls conmon --version and verifies it is a new enough version for
-// the runtime expectations podman currently has
-func probeConmon(conmonBinary string) error {
-	cmd := exec.Command(conmonBinary, "--version")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
-
-	matches := r.FindStringSubmatch(out.String())
-	if len(matches) != 4 {
-		return errors.Wrapf(err, "conmon version changed format")
-	}
-	major, err := strconv.Atoi(matches[1])
-	if err != nil || major < 1 {
-		return define.ErrConmonOutdated
-	}
-	// conmon used to be shipped with CRI-O, and was versioned along with it.
-	// even though the conmon that came with crio-1.9 to crio-1.15 has a higher
-	// version number than conmon 1.0.0, 1.0.0 is newer, so we need this check
-	minor, err := strconv.Atoi(matches[2])
-	if err != nil || minor > 9 {
-		return define.ErrConmonOutdated
-	}
-
-	return nil
-}
-
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// Find a working conmon binary
 	foundConmon := false
-	foundOutdatedConmon := false
 	for _, path := range runtime.config.ConmonPath {
 		stat, err := os.Stat(path)
 		if err != nil {
@@ -787,35 +736,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		if stat.IsDir() {
 			continue
 		}
-		if err := probeConmon(path); err != nil {
-			logrus.Warnf("conmon at %s invalid: %v", path, err)
-			foundOutdatedConmon = true
-			continue
-		}
 		foundConmon = true
 		runtime.conmonPath = path
-		logrus.Debugf("using conmon: %q", path)
 		break
 	}
-
-	// Search the $PATH as last fallback
 	if !foundConmon {
-		if conmon, err := exec.LookPath("conmon"); err == nil {
-			if err := probeConmon(conmon); err != nil {
-				logrus.Warnf("conmon at %s is invalid: %v", conmon, err)
-				foundOutdatedConmon = true
-			} else {
-				foundConmon = true
-				runtime.conmonPath = conmon
-				logrus.Debugf("using conmon from $PATH: %q", conmon)
-			}
-		}
-	}
-
-	if !foundConmon {
-		if foundOutdatedConmon {
-			return errors.Wrapf(define.ErrConmonOutdated, "please update to v1.0.0 or later")
-		}
 		return errors.Wrapf(define.ErrInvalidArg,
 			"could not find a working conmon binary (configured options: %v)",
 			runtime.config.ConmonPath)
@@ -1011,6 +936,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.OCIRuntimes {
+		if len(paths) == 0 {
+			return errors.Wrapf(define.ErrInvalidArg, "must provide at least 1 path to OCI runtime %s", name)
+		}
+
 		supportsJSON := false
 		for _, r := range runtime.config.RuntimeSupportsJSON {
 			if r == name {

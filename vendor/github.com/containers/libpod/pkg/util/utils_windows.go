@@ -27,8 +27,3 @@ func GetRootlessPauseProcessPidPath() (string, error) {
 func GetRootlessRuntimeDir() (string, error) {
 	return "", errors.New("this function is not implemented for windows")
 }
-
-// GetRootlessConfigHomeDir returns the config home directory when running as non root
-func GetRootlessConfigHomeDir() (string, error) {
-	return "", errors.New("this function is not implemented for windows")
-}
