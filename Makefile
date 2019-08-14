@@ -11,7 +11,6 @@ export GO_BUILD=$(GO) build
 endif
 
 PROJECT := github.com/cri-o/cri-o
-CRIO_IMAGE = crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
 CRIO_INSTANCE := crio_dev
 PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
@@ -78,6 +77,11 @@ VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
 BASE_LDFLAGS = ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${SOURCE_DATE_EPOCH}
 LDFLAGS = -ldflags '${BASE_LDFLAGS}'
+
+TESTIMAGE_VERSION := 1.0.0
+TESTIMAGE_REGISTRY := quay.io/crio
+TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
+TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
 all: binaries crio.conf docs
 
@@ -175,15 +179,20 @@ bin/crio.cross.%: git-vars .gopathok .explicit_phony
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
-crioimage: git-vars
-	$(CONTAINER_RUNTIME) build -t ${CRIO_IMAGE} .
+local-image:
+	$(TESTIMAGE_SCRIPT)
 
-dbuild: crioimage
+test-images:
+	$(TESTIMAGE_SCRIPT) -g 1.12 -a amd64
+	$(TESTIMAGE_SCRIPT) -g 1.12 -a 386
+	$(TESTIMAGE_SCRIPT) -g 1.10 -a amd64
+
+dbuild:
 	$(CONTAINER_RUNTIME) run --rm --name=${CRIO_INSTANCE} --privileged \
 		-v $(shell pwd):/go/src/${PROJECT} -w /go/src/${PROJECT} \
-		${CRIO_IMAGE} make
+		$(TESTIMAGE_NAME) make
 
-integration: ${GINKGO} crioimage
+integration: ${GINKGO}
 	$(CONTAINER_RUNTIME) run \
 		-e CI=true \
 		-e CRIO_BINARY \
@@ -197,7 +206,7 @@ integration: ${GINKGO} crioimage
 		-v ${GINKGO}:/usr/bin/ginkgo \
 		-w /go/src/${PROJECT} \
 		--sysctl net.ipv6.conf.all.disable_ipv6=0 \
-		${CRIO_IMAGE} \
+		$(TESTIMAGE_NAME) \
 		make localintegration
 
 define go-build
@@ -433,5 +442,8 @@ docs-validation:
 	local-cross \
 	nix-image \
 	release-bundle \
+	testunit \
+	testunit-bin \
+	test-images \
 	uninstall \
 	vendor

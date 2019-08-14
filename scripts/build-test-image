@@ -1,0 +1,269 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if ! command -v buildah >/dev/null; then
+    echo "buildah does not exist but is required for running this script"
+    exit 1
+fi
+
+# Versions to be used
+declare -A VERSIONS=(
+    ["cni-plugins"]=v0.8.1
+    ["conmon"]=v2.0.0
+    ["cri-tools"]=v1.15.0
+    ["runc"]=v1.0.0-rc8
+)
+
+# Available architectures and go versions
+ARCH_386=386
+ARCH_AMD64=amd64
+GO_112=1.12
+GO_110=1.10
+
+# The default values
+TARGET_IMAGE=crio-build
+REGISTRY=
+ARCH=$ARCH_AMD64
+GO=$GO_112
+BASE_IMAGE=docker.io/golang
+TAG=latest
+DRYRUN=false
+WORK_CTR=
+
+# All supported image digests
+declare -A IMAGES=(
+    # go 1.12.8 digests
+    ["$GO_112:$ARCH_AMD64"]=2e26d966bd353054990a17f8856ffa66ca6f8a02b2c9fc748ae4bea65817a578
+    ["$GO_112:$ARCH_386"]=fda5925d674d472a0f16e9e7976246852e3c03b1819d84b4e41b030eca9cb373
+
+    # go 1.10.8 digests
+    ["$GO_110:$ARCH_AMD64"]=eac40ba14416262e26def90a2d6f10d6ff579ea61c267963f6cbfbbe63b0ea7b
+)
+
+usage() {
+    printf "Usage: %s -a <%s|%s> -g <%s|%s> [ -r REGISTRY ] [ -t IMAGE ] [ -v TAG ] [ -d ] [ -h ]\n\n" \
+        "$(basename "$0")" $ARCH_AMD64 $ARCH_386 $GO_112 $GO_110
+    echo "Possible arguments:"
+    printf "  -a\ttarget architecture of the image (default: '%s')\n" $ARCH
+    printf "  -d\tdon’t build the image, only print the resulting image name and exit\n"
+    printf "  -g\tgo version which should be used (default: '%s')\n" $GO
+    printf "  -r\tregistry to be added to the target image (default: '%s')\n" $REGISTRY
+    printf "  -t\ttarget image name (default: '%s-%s-go%s')\n" $TARGET_IMAGE $ARCH $GO
+    printf "  -v\timage version tag to be used (default: '%s')\n" $TAG
+    printf "  -h\tShow this help message\n"
+}
+
+parse_args() {
+    while getopts 'a:g:r:t:v:w:dh' OPTION; do
+        case "$OPTION" in
+        a)
+            ARCH="$OPTARG"
+            ;;
+        d)
+            DRYRUN=true
+            ;;
+        g)
+            GO="$OPTARG"
+            ;;
+        r)
+            REGISTRY="$OPTARG"
+            ;;
+        t)
+            TARGET_IMAGE="$OPTARG"
+            ;;
+        v)
+            TAG="$OPTARG"
+            ;;
+        w)
+            WORK_CTR="$OPTARG"
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        ?)
+            usage
+            exit 1
+            ;;
+        esac
+    done
+
+    # Validate the inputs
+    if [[ "$ARCH" != "$ARCH_AMD64" ]] && [[ "$ARCH" != "$ARCH_386" ]]; then
+        printf "Invalid architecture specified: %s\n\n" "$ARCH"
+        exit 1
+    fi
+
+    if [[ "$GO" != "$GO_112" ]] && [[ "$GO" != "$GO_110" ]]; then
+        printf "Invalid go version specified: %s\n\n" "$GO"
+        exit 1
+    fi
+
+    KEY=$GO:$ARCH
+    if [[ "${IMAGES[$KEY]:-NO}" == NO ]]; then
+        echo "Invalid architecture and go version combination specified:"
+        printf "architecture: %s\ngo version: %s\n\n" "$ARCH" "$GO"
+        exit 1
+    fi
+
+    TARGET_IMAGE=$TARGET_IMAGE-$ARCH-go$GO:$TAG
+    if [[ $REGISTRY != "" ]]; then
+        TARGET_IMAGE=$REGISTRY/$TARGET_IMAGE
+    fi
+
+    if [[ "$DRYRUN" == true ]]; then
+        echo -n "$TARGET_IMAGE"
+        exit 0
+    fi
+}
+
+unshare() {
+    echo "Building target image: $TARGET_IMAGE"
+    BASE_IMAGE=$BASE_IMAGE@sha256:${IMAGES[$KEY]}
+    echo "Using base image: $BASE_IMAGE"
+
+    WORK_CTR=$(buildah from --pull "$BASE_IMAGE")
+    buildah unshare "$0" -w "$WORK_CTR" "$@"
+    exit 0
+}
+
+main() {
+    parse_args "$@"
+
+    if [[ $WORK_CTR == "" ]]; then
+        unshare "$@"
+    fi
+
+    MOUNT_DIR=$(buildah mount "$WORK_CTR")
+
+    set -x
+    install_packages
+    install_bats
+    install_conmon
+    install_cri_tools
+    install_runc
+    install_cni_plugins
+    install_files
+
+    buildah unmount "$WORK_CTR"
+    buildah config --arch "$ARCH" "$WORK_CTR"
+    buildah commit --squash "$WORK_CTR" "$TARGET_IMAGE"
+    buildah images "$TARGET_IMAGE"
+}
+
+run() {
+    buildah run -t "$WORK_CTR" "$@"
+}
+
+install_packages() {
+    run apt-get update
+    run apt-get install -y \
+        apparmor \
+        autoconf \
+        automake \
+        bison \
+        bsdmainutils \
+        btrfs-progs \
+        build-essential \
+        clang-format \
+        e2fslibs-dev \
+        gawk \
+        gettext \
+        iptables \
+        libaio-dev \
+        libapparmor-dev \
+        libcap-dev \
+        libdevmapper-dev \
+        libdevmapper1.02.1 \
+        libfuse-dev \
+        libglib2.0-dev \
+        libgpgme-dev \
+        liblzma-dev \
+        libnet1-dev \
+        libnl-3-dev \
+        libprotobuf-c-dev \
+        libprotobuf-dev \
+        libseccomp-dev \
+        libsystemd-dev \
+        libtool \
+        libudev-dev \
+        netcat-openbsd \
+        parallel \
+        protobuf-c-compiler \
+        protobuf-compiler \
+        python-protobuf \
+        socat
+    if [[ "$GO" == "$GO_112" ]]; then
+        run apt-get install -y libbtrfs-dev
+    fi
+    run apt-get clean
+    rm -rf "$MOUNT_DIR"/var/lib/apt/lists/*
+}
+
+install_bats() {
+    run git clone https://github.com/bats-core/bats-core --depth=1
+    run ./bats-core/install.sh /usr
+    run rm -rf bats-core
+    run mkdir -p ~/.parallel
+    run touch ~/.parallel/will-cite
+}
+
+install_conmon() {
+    run git clone https://github.com/containers/conmon
+    run bash -c "\
+        cd conmon && \
+        git checkout ${VERSIONS["conmon"]} && \
+        make PREFIX=/ all install"
+    run rm -rf conmon
+}
+
+install_cri_tools() {
+    ARCHIVE=${VERSIONS["cri-tools"]}-linux-$ARCH.tar.gz
+    URL=https://github.com/kubernetes-sigs/cri-tools/releases/download
+
+    BINARIES=(crictl critest)
+    for BINARY in "${BINARIES[@]}"; do
+        TARBALL=$BINARY-$ARCHIVE
+        echo "Downloading $TARBALL"
+        wget $URL/"${VERSIONS["cri-tools"]}"/"$TARBALL"
+        tar xf "$TARBALL" -C "$MOUNT_DIR"/usr/bin
+        run "$BINARY" --version
+        rm "$TARBALL"
+    done
+}
+
+install_cni_plugins() {
+    if [[ "$ARCH" != "$ARCH_AMD64" ]]; then
+        echo "CNI plugins are not available pre-built for $ARCH"
+        return
+    fi
+    URL=https://github.com/containernetworking/plugins/releases/download
+    TARBALL=cni-plugins-linux-$ARCH-${VERSIONS["cni-plugins"]}.tgz
+    CNI_DIR="$MOUNT_DIR"/opt/cni/bin
+    mkdir -p "$CNI_DIR"
+    wget $URL/"${VERSIONS["cni-plugins"]}"/"$TARBALL"
+    tar xf "$TARBALL" -C "$CNI_DIR"
+    rm "$TARBALL"
+    ls -lah "$CNI_DIR"
+}
+
+install_runc() {
+    if [[ "$ARCH" != "$ARCH_AMD64" ]]; then
+        echo "runc is not available pre-built for $ARCH"
+        return
+    fi
+    URL=https://github.com/opencontainers/runc/releases/download
+    BINARY="$MOUNT_DIR"/usr/bin/runc
+    wget -O "$BINARY" $URL/"${VERSIONS["runc"]}"/runc."$ARCH"
+    chmod +x "$BINARY"
+    run runc --version
+}
+
+install_files() {
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    mkdir -p "$MOUNT_DIR"/etc/containers/registries.d
+    cp "$REPO_ROOT"/test/policy.json "$MOUNT_DIR"/etc/containers
+    cp "$REPO_ROOT"/test/redhat_sigstore.yaml \
+        "$MOUNT_DIR"/etc/containers/registries.d/registry.access.redhat.com.yaml
+}
+
+main "$@"

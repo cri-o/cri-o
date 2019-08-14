@@ -702,7 +702,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid path", func() {
 			// Given
 			// When
-			err := sut.ToFile("/proc/invalid")
+			err := sut.ToFile(invalidPath)
 
 			// Then
 			Expect(err).NotTo(BeNil())

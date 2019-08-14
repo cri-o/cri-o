@@ -23,7 +23,7 @@ var (
 
 const (
 	validFilePath = "/bin/sh"
-	invalidPath   = "/wrong"
+	invalidPath   = "/proc/invalid"
 )
 
 var _ = BeforeSuite(func() {

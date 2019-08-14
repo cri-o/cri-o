@@ -34,8 +34,7 @@ var _ = t.Describe("Secrets", func() {
 		It("should fail with invalid dir", func() {
 			// Given
 			sut := server.SecretData{}
-			secretsDir := "/invalid"
-			defer os.RemoveAll(secretsDir)
+			secretsDir := "/proc/invalid" // nolint: gosec
 
 			// When
 			err := sut.SaveTo(secretsDir)
