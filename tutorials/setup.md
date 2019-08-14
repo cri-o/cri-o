@@ -253,6 +253,20 @@ make release-bundle
 Created ./bundle/crio-v1.15.0.tar.gz
 ```
 
+## Download conmon
+[conmon](https://github.com/containers/conmon) is a per-container daemon that `CRI-O` uses to monitor container logs and exit information.
+`conmon` needs to be downloaded with `CRI-O`.
+
+running:
+```bash
+git clone github.com/containers/conmon
+cd conmon
+make
+sudo make install
+```
+will download conmon to your $PATH.
+
+
 ## Setup CNI networking
 
 A proper description of setting up CNI networking is given in the
