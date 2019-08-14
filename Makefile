@@ -104,13 +104,6 @@ endif
 lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} run
 
-fmt: cfmt
-
-cfmt:
-	find . '(' -name '*.h' -o -name '*.c' ')' ! -path './vendor/*'  -exec clang-format -i {} \+
-	git diff --exit-code
-
-
 bin/pause:
 	$(MAKE) -C pause
 
