@@ -4,8 +4,8 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/haircommander/cri-o-go-1.12:latest
-    IMAGELEGACY: &imagelegacy quay.io/haircommander/cri-o-go-1.10:latest
+    IMAGE: &image quay.io/crio/circle-1.12:1.2.0
+    IMAGELEGACY: &imagelegacy quay.io/crio/circle-1.10:1.2.0
     JOBS: &jobs 8
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
 
@@ -54,7 +54,6 @@ workflows:
           requires:
             - build
             - build-static
-      - clang-format
       - docs-validation
       - ginkgo
       - git-validation
@@ -183,12 +182,6 @@ jobs:
           root: .
           paths:
             - bundle/*.tar.gz
-
-  clang-format:
-    executor: container
-    steps:
-      - checkout
-      - run: make fmt
 
   docs-validation:
     executor: container
