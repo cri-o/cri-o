@@ -72,24 +72,6 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(err).NotTo(BeNil())
 			Expect(server).To(BeNil())
 		})
-
-		It("should fail with invalid hooks dir", func() {
-			// Given
-			config, err := libconfig.DefaultConfig()
-			Expect(err).To(BeNil())
-			config.HooksDir = []string{"/invalid-dir"}
-			gomock.InOrder(
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(config),
-			)
-
-			// When
-			server, err := lib.New(context.Background(), nil, libMock)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
-		})
 	})
 
 	t.Describe("Getter", func() {

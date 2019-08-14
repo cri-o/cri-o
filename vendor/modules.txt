@@ -35,9 +35,9 @@ github.com/blang/semver
 # github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 github.com/checkpoint-restore/go-criu/rpc
 github.com/checkpoint-restore/go-criu
-# github.com/containerd/console v0.0.0-20170925154832-84eeaae905fa
+# github.com/containerd/console v0.0.0-20181022165439-0650fd9eeb50
 github.com/containerd/console
-# github.com/containerd/containerd v1.2.7
+# github.com/containerd/containerd v1.2.9
 github.com/containerd/containerd/api/types/task
 github.com/containerd/containerd/namespaces
 github.com/containerd/containerd/runtime/v2/shim
@@ -47,6 +47,7 @@ github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/events
 github.com/containerd/containerd/log
 github.com/containerd/containerd/sys
+github.com/containerd/containerd/sys/reaper
 github.com/containerd/containerd/api/types
 github.com/containerd/containerd/defaults
 # github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc
@@ -68,12 +69,14 @@ github.com/containernetworking/cni/pkg/types/020
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v0.8.1
+# github.com/containernetworking/plugins v0.8.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.10.1
+# github.com/containers/buildah v1.11.2
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/parse
+github.com/containers/buildah/pkg/umask
 github.com/containers/buildah
+github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/util
 github.com/containers/buildah/bind
@@ -82,7 +85,7 @@ github.com/containers/buildah/docker
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
-github.com/containers/buildah/pkg/unshare
+github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/cli
 # github.com/containers/image v3.0.2+incompatible
 github.com/containers/image/types
@@ -120,7 +123,7 @@ github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
 github.com/containers/image/pkg/keyctl
-# github.com/containers/libpod v1.5.0
+# github.com/containers/libpod v1.5.1
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/annotations
 github.com/containers/libpod/pkg/hooks
@@ -205,12 +208,11 @@ github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/pkg/ostree
 github.com/containers/storage/drivers/copy
-# github.com/coreos/go-iptables v0.4.1
+# github.com/coreos/go-iptables v0.4.2
 github.com/coreos/go-iptables/iptables
-# github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
+# github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/dbus
-github.com/coreos/go-systemd/util
 github.com/coreos/go-systemd/activation
 github.com/coreos/go-systemd/sdjournal
 github.com/coreos/go-systemd/journal
@@ -219,6 +221,8 @@ github.com/coreos/pkg/dlopen
 # github.com/cpuguy83/go-md2man v1.0.10
 github.com/cpuguy83/go-md2man
 github.com/cpuguy83/go-md2man/md2man
+# github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d
+github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/creack/pty v1.1.7
 github.com/creack/pty
 # github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -556,7 +560,7 @@ github.com/nbutton23/zxcvbn-go/adjacency
 github.com/nbutton23/zxcvbn-go/entropy
 github.com/nbutton23/zxcvbn-go/frequency
 github.com/nbutton23/zxcvbn-go/data
-# github.com/onsi/ginkgo v1.8.0
+# github.com/onsi/ginkgo v1.10.1
 github.com/onsi/ginkgo/ginkgo
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/reporters
@@ -583,7 +587,7 @@ github.com/onsi/ginkgo/internal/containernode
 github.com/onsi/ginkgo/internal/leafnodes
 github.com/onsi/ginkgo/internal/spec
 github.com/onsi/ginkgo/internal/specrunner
-# github.com/onsi/gomega v1.5.0
+# github.com/onsi/gomega v1.7.0
 github.com/onsi/gomega
 github.com/onsi/gomega/internal/assertion
 github.com/onsi/gomega/internal/asyncassertion
@@ -601,7 +605,7 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go/v1
 github.com/opencontainers/image-spec/specs-go
-# github.com/opencontainers/runc v1.0.0-rc8
+# github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
 github.com/opencontainers/runc/libcontainer
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/cgroups/systemd
@@ -613,6 +617,7 @@ github.com/opencontainers/runc/libcontainer/cgroups/fs
 github.com/opencontainers/runc/libcontainer/configs/validate
 github.com/opencontainers/runc/libcontainer/intelrdt
 github.com/opencontainers/runc/libcontainer/keys
+github.com/opencontainers/runc/libcontainer/logs
 github.com/opencontainers/runc/libcontainer/mount
 github.com/opencontainers/runc/libcontainer/seccomp
 github.com/opencontainers/runc/libcontainer/stacktrace
@@ -627,9 +632,11 @@ github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/error
-# github.com/opencontainers/selinux v1.2.2
+# github.com/opencontainers/selinux v1.3.0
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
+# github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
+github.com/openshift/api/config/v1
 # github.com/openshift/imagebuilder v1.1.0
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/parser
@@ -668,10 +675,14 @@ github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 # github.com/russross/blackfriday v1.5.2
 github.com/russross/blackfriday
+# github.com/russross/blackfriday/v2 v2.0.1
+github.com/russross/blackfriday/v2
 # github.com/seccomp/containers-golang v0.3.1
 github.com/seccomp/containers-golang
 # github.com/seccomp/libseccomp-golang v0.9.1
 github.com/seccomp/libseccomp-golang
+# github.com/shurcooL/sanitized_anchor_name v1.0.0
+github.com/shurcooL/sanitized_anchor_name
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/soheilhy/cmux v0.1.4
@@ -704,7 +715,7 @@ github.com/ulikunitz/xz/lzma
 github.com/ulikunitz/xz/internal/hash
 # github.com/ultraware/funlen v0.0.1
 github.com/ultraware/funlen
-# github.com/urfave/cli v1.21.0
+# github.com/urfave/cli v1.22.1
 github.com/urfave/cli
 # github.com/vbatts/git-validation v1.0.0
 github.com/vbatts/git-validation
@@ -853,7 +864,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 # google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.22.1
+# google.golang.org/grpc v1.23.1
 google.golang.org/grpc
 google.golang.org/grpc/codes
 google.golang.org/grpc/status

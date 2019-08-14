@@ -36,6 +36,7 @@ import (
 	"github.com/docker/libnetwork/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -121,6 +122,20 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		g.SetProcessArgs(nil)
 	}
 
+	for _, d := range b.Devices {
+		sDev := spec.LinuxDevice{
+			Type:     string(d.Type),
+			Path:     d.Path,
+			Major:    d.Major,
+			Minor:    d.Minor,
+			FileMode: &d.FileMode,
+			UID:      &d.Uid,
+			GID:      &d.Gid,
+		}
+		g.AddDevice(sDev)
+		g.AddLinuxResourcesDevice(true, string(d.Type), &d.Major, &d.Minor, d.Permissions)
+	}
+
 	setupMaskedPaths(g)
 	setupReadOnlyPaths(g)
 
@@ -180,6 +195,24 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			return err
 		}
 		bindFiles["/etc/resolv.conf"] = resolvFile
+	}
+	// Empty file, so no need to recreate if it exists
+	if _, ok := bindFiles["/run/.containerenv"]; !ok {
+		// Empty string for now, but we may consider populating this later
+		containerenvPath := filepath.Join(path, "/run/.containerenv")
+		if err = os.MkdirAll(filepath.Dir(containerenvPath), 0755); err != nil && !os.IsExist(err) {
+			return err
+		}
+		emptyFile, err := os.Create(containerenvPath)
+		if err != nil {
+			return err
+		}
+		emptyFile.Close()
+		if err := label.Relabel(containerenvPath, b.MountLabel, false); err != nil {
+			return errors.Wrapf(err, "error relabeling %q in container %q", containerenvPath, b.ContainerID)
+		}
+
+		bindFiles["/run/.containerenv"] = containerenvPath
 	}
 
 	err = b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, b.CommonBuildOpts.Volumes, b.CommonBuildOpts.ShmSize, namespaceOptions)
@@ -343,7 +376,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	net := namespaceOptions.Find(string(specs.NetworkNamespace))
 	hostNetwork := net == nil || net.Host
 	user := namespaceOptions.Find(string(specs.UserNamespace))
-	hostUser := user == nil || user.Host
+	hostUser := (user == nil || user.Host) && !unshare.IsRootless()
 
 	// Copy mounts from the generated list.
 	mountCgroups := true
@@ -431,7 +464,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
-	copyWithTar := b.copyWithTar(nil, nil, nil)
+	copyWithTar := b.copyWithTar(nil, nil, nil, false)
 	builtins, err := runSetupBuiltinVolumes(b.MountLabel, mountPoint, cdir, copyWithTar, builtinVolumes, int(rootUID), int(rootGID))
 	if err != nil {
 		return err
@@ -1384,8 +1417,7 @@ func runUsingRuntimeMain() {
 		os.Exit(1)
 	}
 	// Set ourselves up to read the container's exit status.  We're doing this in a child process
-	// so that we won't mess with the setting in a caller of the library. This stubs to OS specific
-	// calls
+	// so that we won't mess with the setting in a caller of the library.
 	if err := setChildProcess(); err != nil {
 		os.Exit(1)
 	}
