@@ -480,7 +480,7 @@ function prepare_network_conf() {
     "cniVersion": "0.3.1",
     "name": "crionet",
     "type": "bridge",
-    "bridge": "cni0",
+    "bridge": "cni$RANDOM_STRING",
     "isGateway": true,
     "ipMasq": true,
     "ipam": {
@@ -507,7 +507,7 @@ function write_plugin_test_args_network_conf() {
     "cniVersion": "0.3.1",
     "name": "crionet_test_args_$RANDOM_STRING",
     "type": "cni_plugin_helper.bash",
-    "bridge": "cni0",
+    "bridge": "cni$RANDOM_STRING",
     "isGateway": true,
     "ipMasq": true,
     "ipam": {
