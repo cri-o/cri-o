@@ -1,3 +1,5 @@
+export GOPROXY=https://proxy.golang.org
+
 SELINUXTAG := $(shell ./selinux_tag.sh)
 APPARMORTAG := $(shell hack/apparmor_tag.sh)
 STORAGETAGS := $(shell ./btrfs_tag.sh) $(shell ./btrfs_installed_tag.sh) $(shell ./libdm_tag.sh) $(shell ./ostree_tag.sh)
@@ -21,15 +23,16 @@ export GO_BUILD=$(GO) build
 endif
 
 GIT_COMMIT ?= $(if $(shell git rev-parse --short HEAD),$(shell git rev-parse --short HEAD),$(error "git failed"))
-BUILD_INFO := $(if $(shell date +%s),$(shell date +%s),$(error "date failed"))
+SOURCE_DATE_EPOCH ?= $(if $(shell date +%s),$(shell date +%s),$(error "date failed"))
 STATIC_STORAGETAGS = "containers_image_ostree_stub containers_image_openpgp exclude_graphdriver_devicemapper $(STORAGE_TAGS)"
 
 CNI_COMMIT := $(shell sed -n 's;\tgithub.com/containernetworking/cni \([^ \n]*\).*$\;\1;p' go.mod)
-RUNC_COMMIT := $(shell sed -n 's;\tgithub.com/opencontainers/runc \([^ \n]*\).*$\;\1;p' go.mod)
+#RUNC_COMMIT := $(shell sed -n 's;\tgithub.com/opencontainers/runc \([^ \n]*\).*$\;\1;p' go.mod)
+RUNC_COMMIT := v1.0.0-rc8
 LIBSECCOMP_COMMIT := release-2.3
 
 EXTRALDFLAGS :=
-LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(BUILD_INFO) -X main.cniVersion=$(CNI_COMMIT)' $(EXTRALDFLAGS)
+LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT)' $(EXTRALDFLAGS)
 SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go pkg/unshare/*.c pkg/unshare/*.go util/*.go
 
 all: buildah imgtype docs
@@ -52,7 +55,7 @@ imgtype: *.go docker/*.go util/*.go tests/imgtype/imgtype.go
 
 .PHONY: clean
 clean:
-	$(RM) -r buildah imgtype build buildah.static
+	$(RM) -r buildah imgtype build buildah.static buildah.darwin tests/testreport/testreport
 	$(MAKE) -C docs clean
 
 .PHONY: docs
@@ -65,19 +68,9 @@ docs: install.tools ## build the docs on the host
 gopath:
 	test $(shell pwd) = $(shell cd ../../../../src/github.com/containers/buildah ; pwd)
 
-# We use https://github.com/lk4d4/vndr to manage dependencies.
-.PHONY: deps
-deps: gopath
-	env GOPATH=$(shell cd ../../../.. ; pwd) vndr
-
 .PHONY: validate
 validate: install.tools
-	# Run gofmt on version 1.11 and higher
-ifneq ($(GO110),$(GOVERSION))
-	@./tests/validate/gofmt.sh
-endif
 	@./tests/validate/whitespace.sh
-	@./tests/validate/govet.sh
 	@./tests/validate/git-validation.sh
 
 .PHONY: install.tools
@@ -124,7 +117,7 @@ install.runc:
 
 .PHONY: test-integration
 test-integration: install.tools
-	./tests/tools/ginkgo $(BUILDFLAGS) -v tests/e2e/.
+	./tests/tools/build/ginkgo $(BUILDFLAGS) -v tests/e2e/.
 	cd tests; ./test_runner.sh
 
 tests/testreport/testreport: tests/testreport/testreport.go
