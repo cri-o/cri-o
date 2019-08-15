@@ -4,7 +4,15 @@ Before=crio.service
 RequiresMountsFor=/var/lib/containers
 
 [Service]
-ExecStart=/bin/bash /usr/local/libexec/crio/crio-wipe/crio-wipe.bash
+EnvironmentFile=-/etc/sysconfig/crio
+ExecStart=/usr/local/bin/crio \
+          $CRIO_CONFIG_OPTIONS \
+          $CRIO_RUNTIME_OPTIONS \
+          $CRIO_STORAGE_OPTIONS \
+          $CRIO_NETWORK_OPTIONS \
+          $CRIO_METRICS_OPTIONS \
+		  wipe
+
 Type=oneshot
 
 [Install]
