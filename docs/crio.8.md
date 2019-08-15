@@ -61,6 +61,7 @@ crio
 [--stream-port=[value]]
 [--uid-mappings=[value]]
 [--version|-v]
+[--version-file=[value]]
 [--conmon-env=[value]]
 [--container-attach-socket-dir=[value]]
 [--container-exits-dir=[value]]
@@ -214,6 +215,8 @@ For the bind-mount conditions, only mounts explicitly requested by Kubernetes co
 **--uid-mappings**="": Specify the UID mappings to use for user namespace
 
 **--version, -v**: Print the version
+
+**--version-file**="": Location for crio to lay down the version file
 
 **--conmon-env**="": environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
 

@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i config complete completion help h
+        if contains -- $i config complete completion wipe help h
             return 1
         end
     end
@@ -56,11 +56,11 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l profile -d 'enable pprof r
 complete -c crio -n '__fish_crio_no_subcommand' -f -l profile-port -r -d 'port for the pprof profiler'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l read-only -d 'setup all unprivileged containers to run as read-only (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l registry -r -d 'registry to be prepended when pulling unqualified images, can be specified multiple times (default: configured in /etc/containers/registries.conf)'
-complete -c crio -n '__fish_crio_no_subcommand' -l root -s r -r -d 'crio root dir (default: "/home/sascha/.local/share/containers/storage")'
+complete -c crio -n '__fish_crio_no_subcommand' -l root -s r -r -d 'crio root dir (default: "/home/pehunt/.local/share/containers/storage")'
 complete -c crio -n '__fish_crio_no_subcommand' -l runroot -r -d 'crio state dir (default: "/run/user/1000")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l runtimes -r -d 'OCI runtimes, format is runtime_name:runtime_path:runtime_root'
 complete -c crio -n '__fish_crio_no_subcommand' -l seccomp-profile -r -d 'default seccomp profile path (default: "")'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'enable selinux support (default: false)'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'enable selinux support (default: true)'
 complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy -r -d 'path to signature policy file (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 'storage driver (default: "overlay")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-opt -r -d 'storage driver option (default: ["overlay.mount_program=/usr/bin/fuse-overlayfs"])'
@@ -71,6 +71,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-ca -r -d 'path to 
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-cert -r -d 'path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-key -r -d 'path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l uid-mappings -r -d 'specify the UID mappings to use for the user namespace (default: "")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l version-file -r -d 'Location for CRI-O to lay down the version file'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l help -s h -d 'show help'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l version -s v -d 'print the version'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l help -s h -d 'show help'
@@ -80,5 +81,7 @@ complete -r -c crio -n '__fish_crio_no_subcommand' -a 'config' -d 'generate crio
 complete -c crio -n '__fish_seen_subcommand_from config' -f -l default -d 'output the default configuration'
 complete -c crio -n '__fish_seen_subcommand_from complete completion' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'complete completion' -d 'Output shell completion code'
+complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_crio_no_subcommand' -a 'wipe' -d 'wipe CRI-O\'s container and image storage'
 complete -c crio -n '__fish_seen_subcommand_from help h' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'help h' -d 'Shows a list of commands or help for one command'

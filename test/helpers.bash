@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Root directory of integration tests.
-INTEGRATION_ROOT=$(dirname "$(readlink -f "$BASH_SOURCE")")
+INTEGRATION_ROOT=${INTEGRATION_ROOT:-$(dirname "$(readlink -f "$BASH_SOURCE")")}
 
 # Test data path.
 TESTDATA="${INTEGRATION_ROOT}/testdata"
@@ -85,6 +85,7 @@ POD_IPV6_CIDR_START="1100:200::"
 POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
 CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID,SETPCAP,NET_BIND_SERVICE,SYS_CHROOT,KILL"
+TEST_SYSCTL=${TEST_SYSCTL:-}
 
 # Make sure we have a copy of the redis:alpine image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
@@ -176,6 +177,8 @@ function setup_test() {
 			# and we have to explicitly specify the "vfs" driver in order to use it, so do that now.
 			STORAGE_OPTIONS=${STORAGE_OPTIONS:--s vfs}
 			;;
+		*)
+			STORAGE_OPTIONS=${STORAGE_OPTIONS:-}
 	esac
 
 	if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -314,15 +317,19 @@ function pull_test_containers() {
 	VOLUME_IMAGEID=$(crictl inspecti quay.io/crio/image-volume-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
 }
 
-# Start crio.
-function start_crio() {
-	setup_crio "$@"
+function start_crio_no_setup() {
 	"$CRIO_BINARY_PATH" \
 		--default-mounts-file "$TESTDIR/containers/mounts.conf" \
 		-l debug \
 		-c "$CRIO_CONFIG" \
 		&> >(tee "$CRIO_LOG") & CRIO_PID=$!
 	wait_until_reachable
+}
+
+# Start crio.
+function start_crio() {
+	setup_crio "$@"
+	start_crio_no_setup
 	pull_test_containers
 }
 
@@ -406,15 +413,18 @@ function cleanup_pods() {
 	fi
 }
 
-# Stop crio.
-function stop_crio() {
-	if [ "$CRIO_PID" != "" ]; then
+function stop_crio_no_clean() {
+	if [ ! -z "${CRIO_PID+x}" ]; then
 		kill "$CRIO_PID" >/dev/null 2>&1
 		wait "$CRIO_PID"
-		rm -f "$CRIO_CONFIG"
-		CRIO_PID=
+		unset CRIO_PID
 	fi
+}
 
+# Stop crio.
+function stop_crio() {
+	stop_crio_no_clean
+	rm -f "$CRIO_CONFIG"
 	cleanup_network_conf
 }
 
@@ -430,10 +440,10 @@ function restart_crio() {
 }
 
 function cleanup_lvm() {
-	if [ "$LVM_DEVICE" != "" ]; then
+	if [ ! -z "${LVM_DEVICE+x}" ]; then
 		lvm lvremove -y storage/thinpool
 		lvm vgremove -y storage
-		lvm pvremove -y $LVM_DEVICE
+		lvm pvremove -y "$LVM_DEVICE"
 	fi
 }
 

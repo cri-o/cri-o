@@ -358,8 +358,6 @@ install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 bin/crio-status $(BINDIR)/crio-status
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
-	install ${SELINUXOPT} -d -m 755 $(LIBEXECDIR)/crio/crio-wipe
-	install ${SELINUXOPT} -D -m 755 contrib/crio-wipe/*.bash $(LIBEXECDIR)/crio/crio-wipe/
 
 install.man: $(MANPAGES)
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
