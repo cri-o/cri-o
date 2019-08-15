@@ -2,7 +2,6 @@
 
 set -eu
 
-
 dir=${0%/*}
 source "$dir/lib.bash"
 
