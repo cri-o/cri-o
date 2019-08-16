@@ -30,7 +30,7 @@ import (
 
 // ContainerServer implements the ImageServer
 type ContainerServer struct {
-	runtime              oci.RuntimeImpl
+	runtime              *oci.Runtime
 	store                cstorage.Store
 	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
@@ -47,7 +47,7 @@ type ContainerServer struct {
 }
 
 // Runtime returns the oci runtime for the ContainerServer
-func (c *ContainerServer) Runtime() oci.RuntimeImpl {
+func (c *ContainerServer) Runtime() *oci.Runtime {
 	return c.runtime
 }
 

@@ -1,11 +1,9 @@
 package server
 
 import (
-	"fmt"
 	"os"
 	"path"
 
-	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -58,12 +56,7 @@ func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
 		return handler, nil
 	}
 
-	runtime, ok := s.Runtime().(*oci.Runtime)
-	if !ok {
-		return "", fmt.Errorf("runtime interface conversion error")
-	}
-
-	if _, err := runtime.ValidateRuntimeHandler(handler); err != nil {
+	if _, err := s.Runtime().ValidateRuntimeHandler(handler); err != nil {
 		return "", err
 	}
 
