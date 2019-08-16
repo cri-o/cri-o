@@ -14,6 +14,8 @@
             --provider=local
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
+                        --ginkgo.noColor
+                        --ginkgo.succinct
                         --ginkgo.focus=\[Feature:SecurityContext\]
                         --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.support.inline.execution.and.attach|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config|Pods.should.support.pod.readiness.gates
                         --report-dir={{ artifacts }}"
