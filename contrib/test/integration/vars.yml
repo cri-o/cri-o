@@ -20,6 +20,10 @@ int_test_env:
     STORAGE_OPTIONS: >
         --storage-driver=overlay
 
+# for ssh ID generation
+ssh_user: "{{ lookup('env','USER') }}"
+ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
+
 # Additional environment variables for integration tests w/ userNS enabled
 userns_int_test_env:
     TEST_USERNS: "1"  # Consumed by test/test_runner.sh, by way of Makefile
