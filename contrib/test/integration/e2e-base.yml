@@ -11,6 +11,14 @@
         runtime_type = "oci"
         runtime_root = "/run/runc"
 
+- name: create ssh keys
+  user:
+    name: "{{ ssh_user }}"
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: "{{ ssh_location }}"
+  register: keyfile
+
 - name: enable and start CRI-O
   systemd:
     name: crio
