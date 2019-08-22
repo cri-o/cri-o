@@ -11,6 +11,17 @@
         runtime_type = "oci"
         runtime_root = "/run/runc"
 
+- name: create ssh keys
+  shell: ssh-keygen -b 2048 -t rsa -f "{{ ssh_location }}" -q -N ""
+  args:
+    creates: "{{ ssh_location }}"
+
+- name: add key file to authorized_users
+  authorized_key:
+    user: "{{ ssh_user }}"
+    state: present
+    key: "{{ lookup('file', ssh_location + '.pub') }} "
+
 - name: enable and start CRI-O
   systemd:
     name: crio
