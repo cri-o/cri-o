@@ -1,16 +1,29 @@
 #!/usr/bin/env bats
 
+# This test suite tests crio-wipe runs when expected
+# based on the found version file and crio version
+# it uses rm -rf as a remove func, as it's easier to test
+# a wipe happened
+
+load test-lib
 load lib
-load helpers
+
+function remove_func() {
+	rm -rf "$CONTAINERS_STORAGE_DIR"
+}
+
+function setup() {
+	CONTAINERS_STORAGE_DIR="$TESTDIR/crio"
+}
 
 function teardown() {
-	cleanup_test
+	crio_wipe::test::cleanup
 }
 
 @test "don't upgrade if not told to wipe" {
-	prepare_test "crio version 1.1.1"
+	crio_wipe::test::prepare "crio version 1.1.1"
 	WIPE=1
-	run main
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 0 ]
@@ -18,8 +31,8 @@ function teardown() {
 }
 
 @test "upgrade with no version file" {
-	prepare_test "crio version 1.1.1"
-	run main
+	crio_wipe::test::prepare "crio version 1.1.1"
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 0 ]
@@ -27,8 +40,8 @@ function teardown() {
 }
 
 @test "don't upgrade with same version" {
-	prepare_test "crio version 1.13.1" "\"1.13.1\""
-	run main
+	crio_wipe::test::prepare "crio version 1.13.1" "\"1.13.1\""
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 0 ]
@@ -36,8 +49,8 @@ function teardown() {
 }
 
 @test "don't upgrade for sub-minor releases" {
-	prepare_test "crio version 1.13.2" "\"1.13.1\""
-	run main
+	crio_wipe::test::prepare "crio version 1.13.2" "\"1.13.1\""
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 0 ]
@@ -45,8 +58,8 @@ function teardown() {
 }
 
 @test "upgrade for minor releases" {
-	prepare_test "crio version 1.14.0" "\"1.13.1\""
-	run main
+	crio_wipe::test::prepare "crio version 1.14.0" "\"1.13.1\""
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 0 ]
@@ -54,8 +67,8 @@ function teardown() {
 }
 
 @test "upgrade for major release" {
-	prepare_test "crio version 2.0.0" "\"1.13.1\""
-	run main
+	crio_wipe::test::prepare "crio version 2.0.0" "\"1.13.1\""
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 0 ]
@@ -63,8 +76,8 @@ function teardown() {
 }
 
 @test "fail and not upgrade with bad version format" {
-	prepare_test "crio version bad format" "\"1.13.1\""
-	run main
+	crio_wipe::test::prepare "crio version bad format" "\"1.13.1\""
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 1 ]
@@ -72,8 +85,8 @@ function teardown() {
 }
 
 @test "fail and not upgrade with bad minor version format" {
-	prepare_test "crio version 1.bad minor format.11" "\"1.13.1\""
-	run main
+	crio_wipe::test::prepare "crio version 1.bad minor format.11" "\"1.13.1\""
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 1 ]
@@ -81,8 +94,8 @@ function teardown() {
 }
 
 @test "fail and upgrade with faulty version file" {
-	prepare_test "crio version 1.1.1" "bad format"
-	run main
+	crio_wipe::test::prepare "crio version 1.1.1" "bad format"
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 0 ]
@@ -90,8 +103,8 @@ function teardown() {
 }
 
 @test "fail and upgrade with faulty minor version in version file" {
-	prepare_test "crio version 1.14.11" "\"1.x.14\""
-	run main
+	crio_wipe::test::prepare "crio version 1.14.11" "\"1.x.14\""
+	run crio_wipe::main
 	echo "$status"
 	echo "$output"
 	[ "$status" == 0 ]

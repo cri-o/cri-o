@@ -6,22 +6,27 @@ import (
 	"os"
 
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/pkg/clicommon"
-	"github.com/cri-o/cri-o/internal/pkg/storage"
-	"github.com/cri-o/cri-o/internal/version"
+	"github.com/containers/storage/pkg/reexec"
+	"github.com/cri-o/cri-o/pkg/clicommon"
+	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 func main() {
+	if reexec.Init() {
+		fmt.Fprintf(os.Stderr, "unable to initialize container storage\n")
+		os.Exit(-1)
+	}
 	app := cli.NewApp()
-	app.Name = "crio-wipe"
+	app.Name = "crio-wiper"
 	app.Usage = "A tool to clear CRI-O's container and image storage"
 	app.Version = version.Version
 	app.CommandNotFound = func(*cli.Context, string) { os.Exit(1) }
 	app.OnUsageError = func(c *cli.Context, e error, b bool) error { return e }
-	app.Action = crioWipe
+	app.Action = crioWiper
 
 	var err error
 	app.Flags, app.Metadata, err = clicommon.GetFlagsAndMetadata()
@@ -36,8 +41,8 @@ func main() {
 	}
 }
 
-func crioWipe(c *cli.Context) error {
-	_, config, err := clicommon.GetConfigFromContext(c)
+func crioWiper(c *cli.Context) error {
+	config, err := clicommon.GetConfigFromContext(c)
 	if err != nil {
 		return err
 	}
@@ -46,6 +51,7 @@ func crioWipe(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	cstore := ContainerStore{store}
 	if err := cstore.wipeCrio(); err != nil {
 		return err
@@ -93,7 +99,6 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 			continue
 		}
 		// CRI-O pods differ from libpod pods because they contain a PodName and PodID annotation
-		// TODO FIXME maybe have a better way to filter podman
 		if metadata.PodName == "" || metadata.PodID == "" {
 			continue
 		}

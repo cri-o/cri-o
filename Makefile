@@ -92,6 +92,9 @@ bin/conmon: conmon/config.h
 bin/pause:
 	$(MAKE) -C pause
 
+contrib/crio-wipe/crio-wiper: git-vars .gopathok $(wildcard contrib/crio-wipe/*.go)
+	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/contrib/crio-wipe/
+
 test/bin2img/bin2img: git-vars .gopathok $(wildcard test/bin2img/*.go)
 	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
 
@@ -130,6 +133,7 @@ endif
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
+	rm -f contrib/crio-wipe/crio-wiper
 
 # the approach here, rather than this target depending on the build targets
 # directly, is such that each target should try to build regardless if it
@@ -226,7 +230,7 @@ codecov:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/conmon bin/pause
+binaries: bin/crio bin/conmon bin/pause contrib/crio-wipe/crio-wiper
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -247,8 +251,8 @@ install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 	install ${SELINUXOPT} -d -m 755 $(LIBEXECDIR)/crio/crio-wipe
-	install ${SELINUXOPT} -d -m 755 $(LIBEXECDIR)/crio/crio-wipe/crio-wiper
 	install ${SELINUXOPT} -D -m 755 contrib/crio-wipe/*.bash $(LIBEXECDIR)/crio/crio-wipe/
+	install ${SELINUXOPT} -D -m 755 contrib/crio-wipe/crio-wiper $(LIBEXECDIR)/crio/crio-wipe/
 
 install.man: $(MANPAGES)
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
@@ -329,6 +333,7 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 	.gitvalidation \
 	bin/conmon \
 	bin/crio \
+	contrib/crio-wipe/crio-wiper \
 	bin/pause \
 	binaries \
 	clean \

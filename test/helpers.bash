@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Root directory of integration tests.
-INTEGRATION_ROOT=$(dirname "$(readlink -f "$BASH_SOURCE")")
+INTEGRATION_ROOT=${INTEGRATION_ROOT:-$(dirname "$(readlink -f "$BASH_SOURCE")")}
 
 # Test data path.
 TESTDATA="${INTEGRATION_ROOT}/testdata"
@@ -100,6 +100,8 @@ case "$(stat -f -c %T ${TESTDIR})" in
         # and we have to explicitly specify the "vfs" driver in order to use it, so do that now.
         STORAGE_OPTIONS=${STORAGE_OPTIONS:---storage-driver vfs}
         ;;
+	*)
+		STORAGE_OPTIONS=${STORAGE_OPTIONS:-}
 esac
 
 if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
@@ -119,6 +121,7 @@ cp "$CONMON_BINARY" "$TESTDIR/conmon"
 PATH=$PATH:$TESTDIR
 
 DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID,SETPCAP,NET_BIND_SERVICE,SYS_CHROOT,KILL"
+TEST_SYSCTL=${TEST_SYSCTL:-}
 
 # Make sure we have a copy of the redis:alpine image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
@@ -170,6 +173,7 @@ if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
     fi
 fi
 # Run crio using the binary specified by $CRIO_BINARY.
+
 # This must ONLY be run on engines created with `start_crio`.
 function crio() {
 	"$CRIO_BINARY" --listen "$CRIO_SOCKET" "$@"
@@ -284,9 +288,12 @@ function pull_test_containers() {
 # Start crio.
 function start_crio() {
 	setup_crio "$@"
+	start_crio_no_setup
+}
+
+function start_crio_no_setup() {
 	"$CRIO_BINARY" --default-mounts-file "$TESTDIR/containers/mounts.conf" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
 	wait_until_reachable
-	pull_test_containers
 }
 
 # Start crio with journald logging
@@ -351,15 +358,18 @@ function cleanup_pods() {
 	fi
 }
 
-# Stop crio.
-function stop_crio() {
-	if [ "$CRIO_PID" != "" ]; then
+function stop_crio_no_clean() {
+	if [ ! -z "${CRIO_PID+x}" ]; then
 		kill "$CRIO_PID" >/dev/null 2>&1
 		wait "$CRIO_PID"
-		rm -f "$CRIO_CONFIG"
-		CRIO_PID=
+		unset CRIO_PID
 	fi
+}
 
+# Stop crio.
+function stop_crio() {
+	stop_crio_no_clean
+	rm -f "$CRIO_CONFIG"
 	cleanup_network_conf
 }
 
@@ -375,10 +385,10 @@ function restart_crio() {
 }
 
 function cleanup_lvm() {
-	if [ "$LVM_DEVICE" != "" ]; then
+	if [ ! -z "${LVM_DEVICE+x}" ]; then
 		lvm lvremove -y storage/thinpool
 		lvm vgremove -y storage
-		lvm pvremove -y $LVM_DEVICE
+		lvm pvremove -y "$LVM_DEVICE"
 	fi
 }
 

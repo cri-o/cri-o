@@ -14,6 +14,7 @@
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
 /build
+/contrib/crio-wipe/crio-wiper
 coverprofile
 .gdb_history
 *gomock_reflect*

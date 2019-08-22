@@ -10,6 +10,11 @@ VERSION_FILE_LOCATION="/var/lib/crio/version"
 CONTAINERS_STORAGE_DIR="/var/lib/containers"
 NEW_VERSION=$(crio --version)
 WIPE=0
+CONFIG="/etc/crio/crio.conf"
+
+remove_func() {
+	$dir/crio-wiper --config "$CONFIG"
+}
 
 print_usage() {
 	echo "$(basename $0) [-f version-file-location] [-d containers-storage-dir] [-w wipe]"
@@ -20,6 +25,7 @@ while getopts 'f:d:w:h' OPTION; do
 	case "$OPTION" in
 		f) VERSION_FILE_LOCATION="$OPTARG" ;;
 		d) CONTAINERS_STORAGE_DIR="$OPTARG" ;;
+		c) CONFIG="$OPTARG" ;;
 		w)
 		# We need to make sure arguments to -w are integers.
 		# the way to check this is verifying it can be compared with -eq,
@@ -37,4 +43,4 @@ while getopts 'f:d:w:h' OPTION; do
 done
 shift "$(($OPTIND -1))"
 
-main
+crio_wipe::main
