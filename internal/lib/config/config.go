@@ -30,12 +30,13 @@ const (
 	pauseCommand           = "/pause"
 	defaultTransport       = "docker://"
 	defaultRuntime         = "runc"
-	defaultRuntimeType     = "oci"
+	DefaultRuntimeType     = "oci"
 	DefaultRuntimeRoot     = "/run/runc"
 	cgroupManager          = "cgroupfs"
 	DefaultApparmorProfile = "crio-default-" + version.Version
 	defaultGRPCMaxMsgSize  = 16 * 1024 * 1024
 	OCIBufSize             = 8192
+	RuntimeTypeVM          = "vm"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -451,7 +452,7 @@ func DefaultConfig() (*Config, error) {
 			Runtimes: Runtimes{
 				defaultRuntime: {
 					RuntimePath: "",
-					RuntimeType: defaultRuntimeType,
+					RuntimeType: DefaultRuntimeType,
 					RuntimeRoot: DefaultRuntimeRoot,
 				},
 			},
@@ -627,7 +628,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			if _, ok := c.Runtimes[defaultRuntime]; !ok {
 				c.Runtimes[defaultRuntime] = &RuntimeHandler{
 					RuntimePath: "",
-					RuntimeType: defaultRuntimeType,
+					RuntimeType: DefaultRuntimeType,
 					RuntimeRoot: DefaultRuntimeRoot,
 				}
 			}
@@ -655,7 +656,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	// check for validation on execution
 	if onExecution {
-		if err := c.ValidateRuntimePaths(); err != nil {
+		if err := c.ValidateRuntimes(); err != nil {
 			return errors.Wrapf(err, "runtime validation")
 		}
 
@@ -679,27 +680,13 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	return nil
 }
 
-// ValidateRuntimePaths checks every runtime if the `RuntimePath` is either set
-// or inside the runtime name is available within the $PATH environment. The method
-// fails on any `RuntimePath` lookup error.
-func (c *RuntimeConfig) ValidateRuntimePaths() error {
+// ValidateRuntimes checks every runtime if its members are valid
+func (c *RuntimeConfig) ValidateRuntimes() error {
 	// Validate if runtime_path does exist for each runtime
-	for runtime, handler := range c.Runtimes {
-
-		if handler.RuntimePath == "" {
-			executable, err := exec.LookPath(runtime)
-			if err != nil {
-				return errors.Wrapf(err, "%q not found in $PATH", runtime)
-			}
-			handler.RuntimePath = executable
-			logrus.Debugf("using runtime executable from $PATH %q", executable)
-
-		} else if _, err := os.Stat(handler.RuntimePath); os.IsNotExist(err) {
-			return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
-				runtime, err)
+	for name, handler := range c.Runtimes {
+		if err := handler.Validate(name); err != nil {
+			return err
 		}
-		logrus.Debugf("found valid runtime %q for runtime_path %q",
-			runtime, handler.RuntimePath)
 	}
 	return nil
 }
@@ -760,5 +747,43 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		}
 	}
 
+	return nil
+}
+
+// Validate checks if the whole runtime is valid.
+func (r *RuntimeHandler) Validate(name string) error {
+	if err := r.ValidateRuntimePath(name); err != nil {
+		return err
+	}
+	return r.ValidateRuntimeType(name)
+}
+
+// ValidateRuntimePath checks if the `RuntimePath` is either set or available
+// within the $PATH environment. The method fails on any `RuntimePath` lookup
+// error.
+func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
+	if r.RuntimePath == "" {
+		executable, err := exec.LookPath(name)
+		if err != nil {
+			return errors.Wrapf(err, "%q not found in $PATH", name)
+		}
+		r.RuntimePath = executable
+		logrus.Debugf("using runtime executable from $PATH %q", executable)
+
+	} else if _, err := os.Stat(r.RuntimePath); os.IsNotExist(err) {
+		return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
+			name, err)
+	}
+	logrus.Debugf("found valid runtime %q for runtime_path %q",
+		name, r.RuntimePath)
+	return nil
+}
+
+// ValidateRuntimeType checks if the `RuntimeType` is valid.
+func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
+	if r.RuntimeType != "" && r.RuntimeType != DefaultRuntimeType && r.RuntimeType != RuntimeTypeVM {
+		return errors.Errorf("invalid `runtime_type` %q for runtime %q",
+			r.RuntimeType, name)
+	}
 	return nil
 }
