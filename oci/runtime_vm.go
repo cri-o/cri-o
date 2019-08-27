@@ -539,6 +539,12 @@ func (r *runtimeVM) UpdateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	// This can happen on restore, for example if we switch the runtime type
+	// for a container from "oci" to "vm" for the same runtime.
+	if r.task == nil {
+		return errors.New("runtime not correctly setup")
+	}
+
 	response, err := r.task.State(r.ctx, &task.StateRequest{
 		ID: c.ID(),
 	})
