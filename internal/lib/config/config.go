@@ -251,7 +251,7 @@ type RuntimeConfig struct {
 	SELinux bool `toml:"selinux"`
 
 	// Whether container output should be logged to journald in addition
-	// to the kuberentes log file
+	// to the kubernetes log file
 	LogToJournald bool `toml:"log_to_journald"`
 
 	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
@@ -755,7 +755,7 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 			c.PluginDirs = append(c.PluginDirs, c.PluginDir)
 
 			// Empty the pluginDir so on future config calls we don't print it out
-			// thus seemlessly transitioning and depreciating the option
+			// thus seamlessly transitioning and depreciating the option
 			c.PluginDir = ""
 		}
 	}
