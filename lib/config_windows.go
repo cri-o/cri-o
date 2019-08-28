@@ -12,4 +12,5 @@ const (
 	cniBinDir          = "C:\\cni\\bin\\"
 	lockPath           = "C:\\crio\\run\\crio.lock"
 	containerExitsDir  = oci.ContainerExitsDir
+	crioConfigPath     = "C:\\crio\\etc\\version"
 )

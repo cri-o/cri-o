@@ -55,6 +55,7 @@ crio
 [--stream-port=[value]]
 [--uid-mappings=[value]]
 [--version|-v]
+[--version-file-location=[value]]
 ```
 # DESCRIPTION
 OCI-based implementation of Kubernetes Container Runtime Interface Daemon
@@ -189,6 +190,8 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 **--uid-mappings**="": Specify the UID mappings to use for user namespace
 
 **--version, -v**: Print the version
+
+**--version-file-location**="": location for where crio will lay down the version file, and crio-wipe will attempt to read a version file from.
 
 # COMMANDS
 CRI-O's default command is to start the daemon. However, it currently offers a

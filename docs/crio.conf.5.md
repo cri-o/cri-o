@@ -43,6 +43,8 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
 **file_locking_path**="/runc/crio.lock"
   Path to the lock file.
 
+**version_file_location**="/var/lib/crio/version"
+  Location for crio to lay the version file down, and for crio-wipe to look for the version file.
 
 ## CRIO.API TABLE
 The `crio.api` table contains settings for the kubelet/gRPC interface.

@@ -39,12 +39,15 @@ var commentedConfigTemplate = template.Must(template.New("config").Parse(`
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
+# Location for CRI-O to place the version file, and for crio-wipe to look for the
+# version file
+version_file_location = "{{ .VersionFileLocation }}"
+
 # If set to false, in-memory locking will be used instead of file-based locking.
 file_locking = {{ .FileLocking }}
 
 # Path to the lock file.
 file_locking_path = "{{ .FileLockingPath }}"
-
 
 # The crio.api table contains settings for the kubelet/gRPC interface.
 [crio.api]

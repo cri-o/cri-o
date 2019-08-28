@@ -185,6 +185,9 @@ func mergeConfig(config *server.Config, ctx *cli.Context) error {
 	if ctx.GlobalIsSet("additional-devices") {
 		config.AdditionalDevices = ctx.GlobalStringSlice("additional-devices")
 	}
+	if ctx.GlobalIsSet("version-file-location") {
+		config.VersionFileLocation = ctx.GlobalString("version-file-location")
+	}
 	return nil
 }
 
@@ -506,6 +509,10 @@ func getCrioFlags(defConf *server.Config) []cli.Flag {
 		cli.StringFlag{
 			Name:  "stream-tls-key",
 			Usage: fmt.Sprintf("path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSKey),
+		},
+		cli.StringFlag{
+			Name:  "version-file-location",
+			Usage: fmt.Sprintf("path to where CRI-O should put the version file, as well as where crio-wipe will check for the version file. (default: %s)", defConf.VersionFileLocation),
 		},
 	}
 }

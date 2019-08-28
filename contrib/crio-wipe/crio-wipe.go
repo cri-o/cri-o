@@ -9,7 +9,6 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/pkg/clicommon"
 	"github.com/cri-o/cri-o/pkg/storage"
-	"github.com/cri-o/cri-o/server"
 	"github.com/cri-o/cri-o/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -49,7 +48,7 @@ func crioWiper(c *cli.Context) error {
 	}
 
 	// First, check if we need to upgrade at all
-	shouldWipe, err := version.ShouldCrioWipe(server.CrioVersionPath)
+	shouldWipe, err := version.ShouldCrioWipe(config.VersionFileLocation)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 	}
