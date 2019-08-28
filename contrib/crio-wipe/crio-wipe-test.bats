@@ -6,7 +6,6 @@
 INTEGRATION_ROOT=$BATS_TEST_DIRNAME/../../test
 load $INTEGRATION_ROOT/helpers.bash
 load test-lib
-load lib
 
 PODMAN_BINARY=${PODMAN_BINARY:-$(command -v podman)}
 
@@ -23,47 +22,14 @@ function teardown() {
 	fi
 }
 
-function remove_func() {
-	$BATS_TEST_DIRNAME/crio-wiper --config "$CRIO_CONFIG"
-}
-
-# test_crio_wiped checks if a running crio instance
-# has no containers, pods or images
-function test_crio_wiped() {
-	run crictl pods -v
-	[ "$status" -eq 0 ]
-	[ "$output" == "" ]
-
-	run crictl ps -v
-	[ "$status" -eq 0 ]
-	[ "$output" == "" ]
-
-	# TODO FIXME, we fail on this check because crio-wipe only wipes
-	# if crio has a corresponding container to the image.
-	# run crictl images -v
-	# [ "$status" -eq 0 ]
-	# [ "$output" == "" ]
-}
-
-function start_crio_with_stopped_pod() {
-	start_crio "" "" "" "" ""
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	run crictl stopp "$output"
-	echo "$output"
-	[ "$status" -eq 0 ]
-}
-
 @test "clear simple sandbox" {
-	start_crio_with_stopped_pod
+	crio_wipe::test::start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	crio_wipe::test::run_crio_wipe
 
 	start_crio_no_setup
-	test_crio_wiped
+	crio_wipe::test::test_crio_wiped
 }
 
 
@@ -72,7 +38,7 @@ function start_crio_with_stopped_pod() {
 		skip "Podman not installed"
 	fi
 
-	start_crio_with_stopped_pod
+	crio_wipe::test::start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	crio_wipe::test::run_podman_with_args run --name test -d quay.io/crio/busybox:latest top

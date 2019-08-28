@@ -32,8 +32,37 @@ function crio_wipe::test::run_podman_with_args() {
 
 # run crio_wipe calls crio_wipe and tests it succeeded
 function crio_wipe::test::run_crio_wipe() {
-	run crio_wipe::main
+	run $BATS_TEST_DIRNAME/crio-wipe --config "$CRIO_CONFIG" --version-file-location "$VERSION_FILE_LOCATION"
 	echo "$status"
+	echo "$output"
+	[ "$status" -eq 0 ]
+}
+
+# test_crio_wiped checks if a running crio instance
+# has no containers, pods or images
+function crio_wipe::test::test_crio_wiped() {
+	run crictl pods -v
+	[ "$status" -eq 0 ]
+	[ "$output" == "" ]
+
+	run crictl ps -v
+	[ "$status" -eq 0 ]
+	[ "$output" == "" ]
+
+	# TODO FIXME, we fail on this check because crio-wipe only wipes
+	# if crio has a corresponding container to the image.
+	# run crictl images -v
+	# [ "$status" -eq 0 ]
+	# [ "$output" == "" ]
+}
+
+function crio_wipe::test::start_crio_with_stopped_pod() {
+	start_crio "" "" "" "" ""
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crictl stopp "$output"
 	echo "$output"
 	[ "$status" -eq 0 ]
 }

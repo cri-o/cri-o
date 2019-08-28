@@ -4,7 +4,7 @@ Before=crio.service
 RequiresMountsFor=/var/lib/containers
 
 [Service]
-ExecStart=/bin/bash /usr/local/libexec/crio/crio-wipe/crio-wipe.bash
+ExecStart=/usr/local/libexec/crio/crio-wipe/crio-wipe
 Type=oneshot
 
 [Install]

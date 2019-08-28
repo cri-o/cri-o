@@ -9,6 +9,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/pkg/clicommon"
 	"github.com/cri-o/cri-o/pkg/storage"
+	"github.com/cri-o/cri-o/server"
 	"github.com/cri-o/cri-o/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -21,7 +22,7 @@ func main() {
 		os.Exit(-1)
 	}
 	app := cli.NewApp()
-	app.Name = "crio-wiper"
+	app.Name = "crio-wipe"
 	app.Usage = "A tool to clear CRI-O's container and image storage"
 	app.Version = version.Version
 	app.CommandNotFound = func(*cli.Context, string) { os.Exit(1) }
@@ -45,6 +46,18 @@ func crioWiper(c *cli.Context) error {
 	config, err := clicommon.GetConfigFromContext(c)
 	if err != nil {
 		return err
+	}
+
+	// First, check if we need to upgrade at all
+	shouldWipe, err := version.ShouldCrioWipe(server.CrioVersionPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+	}
+
+	// if we should not wipe, exit with no error
+	if !shouldWipe {
+		fmt.Println("major and minor version unchanged; no wipe needed")
+		return nil
 	}
 
 	store, err := config.GetStore()
