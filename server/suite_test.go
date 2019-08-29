@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -134,8 +135,9 @@ var beforeEach = func() {
 		}}`)
 
 	// Prepare the server config
-	testPath = "test"
 	var err error
+	testPath, err = filepath.Abs("test")
+	Expect(err).To(BeNil())
 	serverConfig, err = config.DefaultConfig()
 	Expect(err).To(BeNil())
 	serverConfig.ContainerAttachSocketDir = testPath

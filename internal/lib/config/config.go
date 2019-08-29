@@ -564,6 +564,9 @@ func (c *APIConfig) Validate(onExecution bool) error {
 // `nil`.
 func (c *RootConfig) Validate(onExecution bool) error {
 	if onExecution {
+		if !filepath.IsAbs(c.LogDir) {
+			return errors.New("log_dir is not an absolute path")
+		}
 		if err := os.MkdirAll(c.LogDir, 0700); err != nil {
 			return errors.Wrapf(err, "invalid log_dir")
 		}

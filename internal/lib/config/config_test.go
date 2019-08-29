@@ -21,7 +21,7 @@ var _ = t.Describe("Config", func() {
 		tmpDir := t.MustTempDir("cni-test")
 		sut.NetworkConfig.PluginDirs = []string{tmpDir}
 		sut.NetworkDir = os.TempDir()
-		sut.LogDir = "."
+		sut.LogDir = "/"
 		sut.Listen = t.MustTempFile("crio.sock")
 		return sut
 	}
@@ -47,7 +47,7 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail with invalid root config", func() {
+		It("should fail with invalid log_dir", func() {
 			// Given
 			sut.RootConfig.LogDir = "/dev/null"
 
@@ -72,7 +72,6 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with invalid api config", func() {
 			// Given
-			sut.RootConfig.LogDir = "."
 			sut.AdditionalDevices = []string{invalidPath}
 
 			// When
@@ -84,7 +83,6 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with invalid network config", func() {
 			// Given
-			sut.RootConfig.LogDir = "."
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validDirPath}
 			sut.Conmon = validFilePath
 			sut.NetworkConfig.NetworkDir = invalidPath
@@ -615,7 +613,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed during runtime", func() {
 			// Given
-			sut.RootConfig.LogDir = "."
+			sut = runtimeValidConfig()
 
 			// When
 			err := sut.RootConfig.Validate(true)
@@ -630,6 +628,17 @@ var _ = t.Describe("Config", func() {
 
 			// When
 			err := sut.RootConfig.Validate(true)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with non absolute log_dir", func() {
+			// Given
+			sut.RootConfig.LogDir = "test"
+
+			// When
+			err := sut.Validate(nil, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
