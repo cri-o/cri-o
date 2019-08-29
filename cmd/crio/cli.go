@@ -1,4 +1,4 @@
-package clicommon
+package main
 
 import (
 	"fmt"

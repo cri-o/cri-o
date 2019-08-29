@@ -16,7 +16,6 @@ import (
 
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/cri-o/pkg/clicommon"
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/server"
 	"github.com/cri-o/cri-o/utils"
@@ -95,7 +94,7 @@ func main() {
 	app.Version = strings.Join(v, "\n")
 
 	var err error
-	app.Flags, app.Metadata, err = clicommon.GetFlagsAndMetadata()
+	app.Flags, app.Metadata, err = GetFlagsAndMetadata()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
@@ -106,10 +105,11 @@ func main() {
 
 	app.Commands = []cli.Command{
 		configCommand,
+		wipeCommand,
 	}
 
 	app.Before = func(c *cli.Context) (err error) {
-		config, err := clicommon.GetConfigFromContext(c)
+		config, err := GetConfigFromContext(c)
 		if err != nil {
 			return err
 		}

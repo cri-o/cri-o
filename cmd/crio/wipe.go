@@ -6,8 +6,6 @@ import (
 	"os"
 
 	cstorage "github.com/containers/storage"
-	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/cri-o/pkg/clicommon"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/version"
 	"github.com/pkg/errors"
@@ -15,34 +13,14 @@ import (
 	"github.com/urfave/cli"
 )
 
-func main() {
-	if reexec.Init() {
-		fmt.Fprintf(os.Stderr, "unable to initialize container storage\n")
-		os.Exit(-1)
-	}
-	app := cli.NewApp()
-	app.Name = "crio-wipe"
-	app.Usage = "A tool to clear CRI-O's container and image storage"
-	app.Version = version.Version
-	app.CommandNotFound = func(*cli.Context, string) { os.Exit(1) }
-	app.OnUsageError = func(c *cli.Context, e error, b bool) error { return e }
-	app.Action = crioWiper
-
-	var err error
-	app.Flags, app.Metadata, err = clicommon.GetFlagsAndMetadata()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-		os.Exit(1)
-	}
-
-	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+var wipeCommand = cli.Command{
+	Name:   "wipe",
+	Usage:  "wipe CRI-O's container and image storage",
+	Action: crioWipe,
 }
 
-func crioWiper(c *cli.Context) error {
-	config, err := clicommon.GetConfigFromContext(c)
+func crioWipe(c *cli.Context) error {
+	config, err := GetConfigFromContext(c)
 	if err != nil {
 		return err
 	}

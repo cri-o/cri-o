@@ -191,7 +191,7 @@ If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/
 
 **--version, -v**: Print the version
 
-**--version-file-location**="": location for where crio will lay down the version file, and crio-wipe will attempt to read a version file from.
+**--version-file-location**="": Location for crio to lay down the version file.
 
 # COMMANDS
 CRI-O's default command is to start the daemon. However, it currently offers a

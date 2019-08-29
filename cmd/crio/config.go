@@ -289,10 +289,11 @@ var configCommand = cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
-		var err error
-		// At this point, app.Before has already parsed the user's chosen
-		// config file. So no need to handle that here.
-		config := c.App.Metadata["config"].(*server.Config)
+		config, err := GetConfigFromContext(c)
+		if err != nil {
+			return err
+		}
+
 		if c.Bool("default") {
 			config, err = server.DefaultConfig()
 			if err != nil {
