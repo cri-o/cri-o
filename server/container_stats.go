@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
@@ -38,9 +37,9 @@ func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsReque
 		recordError(operation, err)
 	}()
 
-	container := s.GetContainer(req.ContainerId)
-	if container == nil {
-		return nil, fmt.Errorf("invalid container")
+	container, err := s.GetContainerFromShortID(req.ContainerId)
+	if err != nil {
+		return nil, err
 	}
 
 	stats, err := s.Runtime().ContainerStats(container)
