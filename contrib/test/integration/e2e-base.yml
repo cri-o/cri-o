@@ -72,3 +72,20 @@
 
 - name: Enable iptables NAT for the bridge
   command: sysctl -w net.bridge.bridge-nf-call-iptables=1
+
+- name: make test binary
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+    params:
+      WHAT: test/e2e/e2e.test
+
+- name: make kubectl binary
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+    params:
+      WHAT: cmd/kubectl
+
+- name: add kubectl and e2e.test to path
+  shell: export PATH="$PATH:$PWD/_output/bin/kubectl:$PWD/_output/bin/e2e.test"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
