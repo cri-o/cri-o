@@ -29,6 +29,9 @@
         k8s_github_fork: "kubernetes"
         crio_socket: "/var/run/crio/crio.sock"
 
+    - name: clone build and install kubetest
+      include: "build/kubetest.yml"
+
     - name: clone build and install runc
       include: "build/runc.yml"
       when: "{{ build_runc | default(True) | bool}}"
@@ -117,10 +120,14 @@
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
-        force_clone: true
-        k8s_git_version: "release-1.16"
-        k8s_github_fork: "kubernetes"
-        crio_socket: "/var/run/crio/crio.sock"
+          force_clone: True
+          k8s_git_version: "release-1.15"
+          k8s_github_fork: "kubernetes"
+          crio_socket: "/var/run/crio/crio.sock"
+
+    - name: clone build and install kubetest
+      include: "build/kubetest.yml"
+
     - name: run k8s e2e tests
       include: e2e.yml
 
@@ -134,9 +141,13 @@
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
-        force_clone: true
-        k8s_git_version: "release-1.16"
-        k8s_github_fork: "kubernetes"
-        crio_socket: "/var/run/crio/crio.sock"
+          force_clone: True
+          k8s_git_version: "master"
+          k8s_github_fork: "kubernetes"
+          crio_socket: "/var/run/crio/crio.sock"
+
+    - name: clone build and install kubetest
+      include: "build/kubetest.yml"
+
     - name: run k8s e2e features tests
       include: e2e-features.yml
