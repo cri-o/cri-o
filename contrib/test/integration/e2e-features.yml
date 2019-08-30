@@ -9,7 +9,8 @@
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
   set_fact:
     e2e_shell_cmd: >
-        KUBE_CONTAINER_RUNTIME="remote" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y /usr/bin/go run hack/e2e.go
+        KUBE_CONTAINER_RUNTIME="remote" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y
+            "{{ ansible_env.GOPATH }}"/bin/kubetest
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
                         --ginkgo.focus=\[Feature:SecurityContext\]
