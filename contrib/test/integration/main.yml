@@ -28,6 +28,9 @@
         k8s_github_fork: "runcom"
         crio_socket: "/var/run/crio.sock"
 
+    - name: clone build and install kubetest
+      include: "build/kubetest.yml"
+
     - name: clone build and install runc
       include: "build/runc.yml"
       when: "{{ build_runc | default(True) | bool}}"
@@ -121,6 +124,10 @@
           k8s_git_version: "release-1.13"
           k8s_github_fork: "kubernetes"
           crio_socket: "/var/run/crio/crio.sock"
+
+    - name: clone build and install kubetest
+      include: "build/kubetest.yml"
+
     - name: run k8s e2e tests
       include: e2e.yml
 
@@ -138,5 +145,9 @@
           k8s_git_version: "release-1.13"
           k8s_github_fork: "kubernetes"
           crio_socket: "/var/run/crio/crio.sock"
+
+    - name: clone build and install kubetest
+      include: "build/kubetest.yml"
+
     - name: run k8s e2e features tests
       include: e2e-features.yml
