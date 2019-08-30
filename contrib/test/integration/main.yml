@@ -35,6 +35,9 @@
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
 
+    - name: clone build and install cfssl
+      include: "build/cfssl.yml"
+
 - hosts: all
   remote_user: root
   vars_files:

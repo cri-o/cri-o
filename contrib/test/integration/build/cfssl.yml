@@ -1,0 +1,19 @@
+---
+
+- name: clone cloudflare cfssl source repo
+  git:
+    repo: "https://github.com/cloudflare/cfssl.git"
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/cloudflare/cfssl"
+    # after https://github.com/cloudflare/cfssl/pull/1027 go 1.11 isn't supported
+    version: "633726f6bcb7574626ae05ae72ca3c8dbc51810f"
+    force: "{{ force_clone | default(False) | bool}}"
+
+
+- name: compile cfssl binaries
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cloudflare/cfssl"
+
+- name: install cfssl binaries
+  shell: GO111MODULE=on go get -u ./cmd/*
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cloudflare/cfssl"
