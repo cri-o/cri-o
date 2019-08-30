@@ -71,3 +71,9 @@
         KUBECONFIG=/var/run/kubernetes/admin.kubeconfig
     regexp: 'KUBECONFIG='
     state: present
+
+- name: install kubectl (for kubetest)
+  copy:
+    src: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/bin/kubectl"
+    dest: "{{ ansible_env.GOPATH }}/bin/kubectl"
+    mode: "preserve"
