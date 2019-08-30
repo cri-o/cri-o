@@ -289,6 +289,7 @@ function pull_test_containers() {
 function start_crio() {
 	setup_crio "$@"
 	start_crio_no_setup
+	pull_test_containers
 }
 
 function start_crio_no_setup() {

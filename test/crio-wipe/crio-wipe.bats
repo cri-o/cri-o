@@ -3,23 +3,23 @@
 # this test suite tests crio wipe running with combinations of cri-o and
 # podman.
 
-load helpers
+load ../helpers
 PODMAN_BINARY=${PODMAN_BINARY:-$(command -v podman)}
 
 function setup() {
+	if [ -z ${PODMAN_BINARY+x} ]; then
+		skip "Podman not installed"
+	fi
+
 	# create and set our version file
 	VERSION_FILE_LOCATION="$TESTDIR"/version.tmp
-	if [[ ! -z ${1+x} ]]; then
-		echo "$1" > "$VERSION_FILE_LOCATION"
-	fi
+	echo "\"1.1.1\"" > "$VERSION_FILE_LOCATION"
 }
 
 function teardown() {
 	cleanup_test
-	if [ ! -z ${PODMAN_BINARY+x} ]; then
-		run_podman_with_args stop -a
-		run_podman_with_args rm -fa
-	fi
+	run_podman_with_args stop -a
+	run_podman_with_args rm -fa
 }
 
 function run_podman_with_args() {
@@ -30,7 +30,7 @@ function run_podman_with_args() {
 
 # run crio_wipe calls crio_wipe and tests it succeeded
 function run_crio_wipe() {
-	run $CRIO_BINARY --config "$CRIO_CONFIG" --version-file-location "$VERSION_FILE_LOCATION" wipe
+	run $CRIO_BINARY --config "$CRIO_CONFIG" --version-file "$VERSION_FILE_LOCATION" wipe
 	echo "$status"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -71,9 +71,6 @@ function start_crio_with_stopped_pod() {
 
 
 @test "don't clear podman containers" {
-	if [ -z ${PODMAN_BINARY+x} ]; then
-		skip "Podman not installed"
-	fi
 
 	start_crio_with_stopped_pod
 	stop_crio_no_clean

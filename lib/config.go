@@ -137,9 +137,8 @@ type RootConfig struct {
 	// FileLockingPath specifies the path to use for the locking.
 	FileLockingPath string `toml:"file_locking_path"`
 
-	// VersionFileLocation is the location the version file will be placed by CRI-O
-	// as well as the location crio-wipe will look
-	VersionFileLocation string `toml:"version_file_location"`
+	// VersionFile is the location the version file will be placed by CRI-O
+	VersionFile string `toml:"version_file"`
 }
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -388,14 +387,14 @@ func DefaultConfig() (*Config, error) {
 	}
 	return &Config{
 		RootConfig: RootConfig{
-			Root:                storeOpts.GraphRoot,
-			RunRoot:             storeOpts.RunRoot,
-			Storage:             storeOpts.GraphDriverName,
-			StorageOptions:      storeOpts.GraphDriverOptions,
-			LogDir:              "/var/log/crio/pods",
-			FileLocking:         false,
-			FileLockingPath:     lockPath,
-			VersionFileLocation: crioVersionPath,
+			Root:            storeOpts.GraphRoot,
+			RunRoot:         storeOpts.RunRoot,
+			Storage:         storeOpts.GraphDriverName,
+			StorageOptions:  storeOpts.GraphDriverOptions,
+			LogDir:          "/var/log/crio/pods",
+			FileLocking:     false,
+			FileLockingPath: lockPath,
+			VersionFile:     crioVersionPath,
 		},
 		RuntimeConfig: RuntimeConfig{
 			DefaultRuntime: defaultRuntime,

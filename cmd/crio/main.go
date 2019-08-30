@@ -16,6 +16,7 @@ import (
 
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/cri-o/cri-o/pkg/criocli"
 	"github.com/cri-o/cri-o/pkg/signals"
 	"github.com/cri-o/cri-o/server"
 	"github.com/cri-o/cri-o/utils"
@@ -94,9 +95,9 @@ func main() {
 	app.Version = strings.Join(v, "\n")
 
 	var err error
-	app.Flags, app.Metadata, err = GetFlagsAndMetadata()
+	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -109,7 +110,7 @@ func main() {
 	}
 
 	app.Before = func(c *cli.Context) (err error) {
-		config, err := GetConfigFromContext(c)
+		config, err := criocli.GetConfigFromContext(c)
 		if err != nil {
 			return err
 		}
@@ -214,7 +215,8 @@ func main() {
 			logrus.Fatal(err)
 		}
 
-		if err := version.WriteVersionFile(config.VersionFileLocation, gitCommit); err != nil {
+		// Immediately upon start up, write our new version file
+		if err := version.WriteVersionFile(config.VersionFile, gitCommit); err != nil {
 			logrus.Fatal(err)
 		}
 

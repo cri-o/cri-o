@@ -6,6 +6,7 @@ import (
 	"os"
 
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/pkg/criocli"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/version"
 	"github.com/pkg/errors"
@@ -20,13 +21,13 @@ var wipeCommand = cli.Command{
 }
 
 func crioWipe(c *cli.Context) error {
-	config, err := GetConfigFromContext(c)
+	config, err := criocli.GetConfigFromContext(c)
 	if err != nil {
 		return err
 	}
 
 	// First, check if we need to upgrade at all
-	shouldWipe, err := version.ShouldCrioWipe(config.VersionFileLocation)
+	shouldWipe, err := version.ShouldCrioWipe(config.VersionFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 	}

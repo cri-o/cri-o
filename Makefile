@@ -226,7 +226,7 @@ codecov:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/conmon bin/pause bin/crio-status
+binaries: bin/crio bin/conmon bin/pause
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -326,7 +326,6 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 	.gitvalidation \
 	bin/conmon \
 	bin/crio \
-	bin/crio-status \
 	bin/pause \
 	binaries \
 	clean \
