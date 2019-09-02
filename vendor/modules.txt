@@ -70,7 +70,7 @@ github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.10.1
+# github.com/containers/buildah v1.11.0
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah
@@ -83,6 +83,7 @@ github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
+github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/cli
 # github.com/containers/image v3.0.2+incompatible
 github.com/containers/image/types
@@ -120,7 +121,7 @@ github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
 github.com/containers/image/pkg/keyctl
-# github.com/containers/libpod v1.5.0
+# github.com/containers/libpod v0.8.3-0.20190912225510-b095d8a794ed
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/annotations
 github.com/containers/libpod/pkg/hooks
@@ -145,7 +146,6 @@ github.com/containers/libpod/libpod/lock
 github.com/containers/libpod/libpod/logs
 github.com/containers/libpod/pkg/criu
 github.com/containers/libpod/pkg/ctime
-github.com/containers/libpod/pkg/firewall
 github.com/containers/libpod/pkg/hooks/exec
 github.com/containers/libpod/pkg/kubeutils
 github.com/containers/libpod/pkg/netns
@@ -205,8 +205,6 @@ github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/pkg/ostree
 github.com/containers/storage/drivers/copy
-# github.com/coreos/go-iptables v0.4.1
-github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/dbus
@@ -627,9 +625,11 @@ github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/error
-# github.com/opencontainers/selinux v1.2.2
+# github.com/opencontainers/selinux v1.3.0
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
+# github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
+github.com/openshift/api/config/v1
 # github.com/openshift/imagebuilder v1.1.0
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/parser

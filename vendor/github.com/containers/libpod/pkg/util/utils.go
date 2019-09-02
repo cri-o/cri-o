@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"os"
-	ouser "os/user"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -156,22 +155,15 @@ func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []strin
 			uid := rootless.GetRootlessUID()
 			gid := rootless.GetRootlessGID()
 
-			username := os.Getenv("USER")
-			if username == "" {
-				user, err := ouser.LookupId(fmt.Sprintf("%d", uid))
-				if err == nil {
-					username = user.Username
-				}
-			}
-			mappings, err := idtools.NewIDMappings(username, username)
+			uids, gids, err := rootless.GetConfiguredMappings()
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot find mappings for user %s", username)
+				return nil, errors.Wrapf(err, "cannot read mappings")
 			}
 			maxUID, maxGID := 0, 0
-			for _, u := range mappings.UIDs() {
+			for _, u := range uids {
 				maxUID += u.Size
 			}
-			for _, g := range mappings.GIDs() {
+			for _, g := range gids {
 				maxGID += g.Size
 			}
 
@@ -355,4 +347,33 @@ func OpenExclusiveFile(path string) (*os.File, error) {
 		}
 	}
 	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+}
+
+// PullType whether to pull new image
+type PullType int
+
+const (
+	// PullImageAlways always try to pull new image when create or run
+	PullImageAlways PullType = iota
+	// PullImageMissing pulls image if it is not locally
+	PullImageMissing
+	// PullImageNever will never pull new image
+	PullImageNever
+)
+
+// ValidatePullType check if the pullType from CLI is valid and returns the valid enum type
+// if the value from CLI is invalid returns the error
+func ValidatePullType(pullType string) (PullType, error) {
+	switch pullType {
+	case "always":
+		return PullImageAlways, nil
+	case "missing":
+		return PullImageMissing, nil
+	case "never":
+		return PullImageNever, nil
+	case "":
+		return PullImageMissing, nil
+	default:
+		return PullImageMissing, errors.Errorf("invalid pull type %q", pullType)
+	}
 }

@@ -205,13 +205,18 @@ func (s *Server) restore() {
 	// release the name associated with you.
 	for containerID := range podContainers {
 		if err := s.LoadContainer(containerID); err != nil {
-			logrus.Warnf("could not restore container %s: %v", containerID, err)
-			for _, n := range names[containerID] {
-				if err := s.Store().DeleteContainer(n); err != nil {
-					logrus.Warnf("unable to delete container %s: %v", n, err)
+			// containers of other runtimes should not be deleted
+			if err == lib.ErrIsNonCrioContainer {
+				logrus.Infof("ignoring non CRI-O container %s", containerID)
+			} else {
+				logrus.Warnf("could not restore container %s: %v", containerID, err)
+				for _, n := range names[containerID] {
+					if err := s.Store().DeleteContainer(n); err != nil {
+						logrus.Warnf("unable to delete container %s: %v", n, err)
+					}
+					// Release the container name
+					s.ReleaseContainerName(n)
 				}
-				// Release the container name
-				s.ReleaseContainerName(n)
 			}
 		}
 	}

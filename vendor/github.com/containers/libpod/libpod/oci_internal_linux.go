@@ -21,6 +21,7 @@ import (
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/lookup"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/coreos/go-systemd/activation"
@@ -36,7 +37,7 @@ import (
 func (r *OCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (err error) {
 	var stderrBuf bytes.Buffer
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -247,10 +248,14 @@ func (r *OCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*os.File
 	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 		env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
 	}
-	if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
-		env = append(env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
-		fds := activation.Files(false)
-		extraFiles = append(extraFiles, fds...)
+	if !r.sdNotify {
+		if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
+			env = append(env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
+			fds := activation.Files(false)
+			extraFiles = append(extraFiles, fds...)
+		}
+	} else {
+		logrus.Debug("disabling SD notify")
 	}
 	return env, extraFiles, nil
 }
@@ -259,7 +264,7 @@ func (r *OCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*os.File
 func (r *OCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath string) []string {
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{"--api-version", "1"}
-	if r.cgroupManager == SystemdCgroupsManager {
+	if r.cgroupManager == SystemdCgroupsManager && !ctr.config.NoCgroups {
 		args = append(args, "-s")
 	}
 	args = append(args, "-c", ctr.ID())
@@ -302,6 +307,10 @@ func (r *OCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath
 	}
 	if ociLogPath != "" {
 		args = append(args, "--runtime-arg", "--log-format=json", "--runtime-arg", "--log", fmt.Sprintf("--runtime-arg=%s", ociLogPath))
+	}
+	if ctr.config.NoCgroups {
+		logrus.Debugf("Running with no CGroups")
+		args = append(args, "--runtime-arg", "--cgroup-manager", "--runtime-arg", "disabled")
 	}
 	return args
 }
@@ -351,8 +360,22 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
 // it then signals for conmon to start by sending nonse data down the start fd
 func (r *OCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File, uuid string) error {
-	cgroupParent := ctr.CgroupParent()
-	if os.Geteuid() == 0 {
+	mustCreateCgroup := true
+	// If cgroup creation is disabled - just signal.
+	if ctr.config.NoCgroups {
+		mustCreateCgroup = false
+	}
+
+	if rootless.IsRootless() {
+		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
+		if err != nil {
+			return err
+		}
+		mustCreateCgroup = !ownsCgroup
+	}
+
+	if mustCreateCgroup {
+		cgroupParent := ctr.CgroupParent()
 		if r.cgroupManager == SystemdCgroupsManager {
 			unitName := createUnitName("libpod-conmon", ctr.ID())
 
@@ -447,6 +470,15 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
+			if ociLog != "" {
+				ociLogData, err := ioutil.ReadFile(ociLog)
+				if err == nil {
+					var ociErr ociError
+					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
+						return -1, getOCIRuntimeError(ociErr.Msg)
+					}
+				}
+			}
 			return -1, errors.Wrapf(ss.err, "error reading container (probably exited) json message")
 		}
 		logrus.Debugf("Received: %d", ss.si.Data)
@@ -474,10 +506,11 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 }
 
 func getOCIRuntimeError(runtimeMsg string) error {
-	if match, _ := regexp.MatchString(".*permission denied.*", runtimeMsg); match {
+	r := strings.ToLower(runtimeMsg)
+	if match, _ := regexp.MatchString(".*permission denied.*|.*operation not permitted.*", r); match {
 		return errors.Wrapf(define.ErrOCIRuntimePermissionDenied, "%s", strings.Trim(runtimeMsg, "\n"))
 	}
-	if match, _ := regexp.MatchString(".*executable file not found in.*", runtimeMsg); match {
+	if match, _ := regexp.MatchString(".*executable file not found in.*|.*no such file or directory.*", r); match {
 		return errors.Wrapf(define.ErrOCIRuntimeNotFound, "%s", strings.Trim(runtimeMsg, "\n"))
 	}
 	return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(runtimeMsg, "\n"))

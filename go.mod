@@ -13,9 +13,9 @@ require (
 	github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.10.1
+	github.com/containers/buildah v1.11.0
 	github.com/containers/image v3.0.2+incompatible
-	github.com/containers/libpod v1.5.0
+	github.com/containers/libpod v0.8.3-0.20190912225510-b095d8a794ed
 	github.com/containers/storage v1.13.2
 	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -39,7 +39,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc8
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.0
-	github.com/opencontainers/selinux v1.2.2
+	github.com/opencontainers/selinux v1.3.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/seccomp/containers-golang v0.3.1

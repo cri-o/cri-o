@@ -3,10 +3,12 @@ package lib_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
+	"github.com/containers/libpod/pkg/annotations"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib"
 	libconfig "github.com/cri-o/cri-o/internal/lib/config"
@@ -84,24 +86,6 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 			// When
 			server, err := lib.New(context.Background(), nil, nil)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
-		})
-
-		It("should fail with invalid hooks dir", func() {
-			// Given
-			config, err := libconfig.DefaultConfig()
-			Expect(err).To(BeNil())
-			config.HooksDir = []string{"/invalid-dir"}
-			gomock.InOrder(
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(config),
-			)
-
-			// When
-			server, err := lib.New(context.Background(), nil, libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -757,6 +741,26 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with non CRI-O managed container", func() {
+			// Given
+			manifest := bytes.Replace(testManifest,
+				[]byte(`"io.kubernetes.cri-o.Annotations": "{}",`),
+				[]byte(fmt.Sprintf("%q: %q,", annotations.ContainerManager,
+					annotations.ContainerManagerLibpod)), 1,
+			)
+			gomock.InOrder(
+				storeMock.EXPECT().
+					FromContainerDirectory(gomock.Any(), gomock.Any()).
+					Return(manifest, nil),
+			)
+
+			// When
+			err := sut.LoadContainer("id")
+
+			// Then
+			Expect(err).To(Equal(lib.ErrIsNonCrioContainer))
 		})
 	})
 

@@ -23,7 +23,6 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
-	"github.com/containers/libpod/pkg/firewall"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -77,10 +76,6 @@ var (
 	// place of the configuration file pointed to by ConfigPath.
 	OverrideConfigPath = etcDir + "/containers/libpod.conf"
 
-	// DefaultInfraImage to use for infra container
-
-	// DefaultInfraCommand to be run in an infra container
-
 	// DefaultSHMLockPath is the default path for SHM locks
 	DefaultSHMLockPath = "/libpod_lock"
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
@@ -108,7 +103,6 @@ type Runtime struct {
 	netPlugin         ocicni.CNIPlugin
 	conmonPath        string
 	imageRuntime      *image.Runtime
-	firewallBackend   firewall.FirewallBackend
 	lockManager       lock.Manager
 	configuredFrom    *runtimeConfiguredFrom
 
@@ -163,8 +157,12 @@ type RuntimeConfig struct {
 	OCIRuntime string `toml:"runtime"`
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
 	OCIRuntimes map[string][]string `toml:"runtimes"`
-	// RuntimeSupportsJSON is the list of the OCI runtimes that support --format=json
+	// RuntimeSupportsJSON is the list of the OCI runtimes that support
+	// --format=json.
 	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
+	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
+	// running containers without CGroups.
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups"`
 	// RuntimePath is the path to OCI runtime binary for launching
 	// containers.
 	// The first path pointing to a valid file will be used
@@ -252,6 +250,10 @@ type RuntimeConfig struct {
 	EventsLogFilePath string `toml:"-events_logfile_path"`
 	//DetachKeys is the sequence of keys used to detach a container
 	DetachKeys string `toml:"detach_keys"`
+
+	// SDNotify tells Libpod to allow containers to notify the host
+	// systemd of readiness using the SD_NOTIFY mechanism
+	SDNotify bool
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -261,19 +263,22 @@ type RuntimeConfig struct {
 // If they were not, we may override them with information from the database,
 // if it exists and differs from what is present in the system already.
 type runtimeConfiguredFrom struct {
-	storageGraphDriverSet bool
-	storageGraphRootSet   bool
-	storageRunRootSet     bool
-	libpodStaticDirSet    bool
-	libpodTmpDirSet       bool
-	volPathSet            bool
-	conmonPath            bool
-	conmonEnvVars         bool
-	initPath              bool
-	ociRuntimes           bool
-	runtimePath           bool
-	cniPluginDir          bool
-	noPivotRoot           bool
+	storageGraphDriverSet    bool
+	storageGraphRootSet      bool
+	storageRunRootSet        bool
+	libpodStaticDirSet       bool
+	libpodTmpDirSet          bool
+	volPathSet               bool
+	conmonPath               bool
+	conmonEnvVars            bool
+	initPath                 bool
+	ociRuntimes              bool
+	runtimePath              bool
+	cniPluginDir             bool
+	noPivotRoot              bool
+	runtimeSupportsJSON      bool
+	runtimeSupportsNoCgroups bool
+	ociRuntime               bool
 }
 
 func defaultRuntimeConfig() (RuntimeConfig, error) {
@@ -281,10 +286,17 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 	if err != nil {
 		return RuntimeConfig{}, err
 	}
+	graphRoot := storeOpts.GraphRoot
+	if graphRoot == "" {
+		logrus.Warnf("Storage configuration is unset - using hardcoded default paths")
+		graphRoot = "/var/lib/containers/storage"
+	}
+	volumePath := filepath.Join(graphRoot, "volumes")
+	staticDir := filepath.Join(graphRoot, "libpod")
 	return RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
-		VolumePath:            filepath.Join(storeOpts.GraphRoot, "volumes"),
+		VolumePath:            volumePath,
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
 		OCIRuntime:            "runc",
@@ -314,7 +326,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		},
 		InitPath:              define.DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
-		StaticDir:             filepath.Join(storeOpts.GraphRoot, "libpod"),
+		StaticDir:             staticDir,
 		TmpDir:                "",
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
@@ -363,7 +375,7 @@ func SetXdgDirs() error {
 
 	if runtimeDir == "" {
 		var err error
-		runtimeDir, err = util.GetRootlessRuntimeDir()
+		runtimeDir, err = util.GetRuntimeDir()
 		if err != nil {
 			return err
 		}
@@ -389,11 +401,11 @@ func getDefaultTmpDir() (string, error) {
 		return "/var/run/libpod", nil
 	}
 
-	rootlessRuntimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
-	libpodRuntimeDir := filepath.Join(rootlessRuntimeDir, "libpod")
+	libpodRuntimeDir := filepath.Join(runtimeDir, "libpod")
 
 	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
 		if !os.IsExist(err) {
@@ -593,6 +605,15 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		if tmpConfig.NoPivotRoot {
 			runtime.configuredFrom.noPivotRoot = true
 		}
+		if tmpConfig.RuntimeSupportsJSON != nil {
+			runtime.configuredFrom.runtimeSupportsJSON = true
+		}
+		if tmpConfig.RuntimeSupportsNoCgroups != nil {
+			runtime.configuredFrom.runtimeSupportsNoCgroups = true
+		}
+		if tmpConfig.OCIRuntime != "" {
+			runtime.configuredFrom.ociRuntime = true
+		}
 
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
@@ -633,6 +654,16 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			if !runtime.configuredFrom.noPivotRoot {
 				runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
 			}
+			if !runtime.configuredFrom.runtimeSupportsJSON {
+				runtime.config.RuntimeSupportsJSON = tmpConfig.RuntimeSupportsJSON
+			}
+			if !runtime.configuredFrom.runtimeSupportsNoCgroups {
+				runtime.config.RuntimeSupportsNoCgroups = tmpConfig.RuntimeSupportsNoCgroups
+			}
+			if !runtime.configuredFrom.ociRuntime {
+				runtime.config.OCIRuntime = tmpConfig.OCIRuntime
+			}
+
 			break
 		}
 	}
@@ -776,6 +807,20 @@ func probeConmon(conmonBinary string) error {
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
+	// Let's sanity-check some paths first.
+	// Relative paths can cause nasty bugs, because core paths we use could
+	// shift between runs (or even parts of the program - the OCI runtime
+	// uses a different working directory than we do, for example.
+	if !filepath.IsAbs(runtime.config.StaticDir) {
+		return errors.Wrapf(define.ErrInvalidArg, "static directory must be an absolute path - instead got %q", runtime.config.StaticDir)
+	}
+	if !filepath.IsAbs(runtime.config.TmpDir) {
+		return errors.Wrapf(define.ErrInvalidArg, "temporary directory must be an absolute path - instead got %q", runtime.config.TmpDir)
+	}
+	if !filepath.IsAbs(runtime.config.VolumePath) {
+		return errors.Wrapf(define.ErrInvalidArg, "volume path must be an absolute path - instead got %q", runtime.config.VolumePath)
+	}
+
 	// Find a working conmon binary
 	foundConmon := false
 	foundOutdatedConmon := false
@@ -975,6 +1020,16 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
+	// Make lookup tables for runtime support
+	supportsJSON := make(map[string]bool)
+	supportsNoCgroups := make(map[string]bool)
+	for _, r := range runtime.config.RuntimeSupportsJSON {
+		supportsJSON[r] = true
+	}
+	for _, r := range runtime.config.RuntimeSupportsNoCgroups {
+		supportsNoCgroups[r] = true
+	}
+
 	// Get us at least one working OCI runtime.
 	runtime.ociRuntimes = make(map[string]*OCIRuntime)
 
@@ -992,15 +1047,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 		name := filepath.Base(runtime.config.RuntimePath[0])
 
-		supportsJSON := false
-		for _, r := range runtime.config.RuntimeSupportsJSON {
-			if r == name {
-				supportsJSON = true
-				break
-			}
-		}
+		json := supportsJSON[name]
+		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, supportsJSON)
+		ociRuntime, err := newOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			return err
 		}
@@ -1011,15 +1061,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.OCIRuntimes {
-		supportsJSON := false
-		for _, r := range runtime.config.RuntimeSupportsJSON {
-			if r == name {
-				supportsJSON = true
-				break
-			}
-		}
+		json := supportsJSON[name]
+		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, supportsJSON)
+		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
@@ -1039,15 +1084,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		if strings.HasPrefix(runtime.config.OCIRuntime, "/") {
 			name := filepath.Base(runtime.config.OCIRuntime)
 
-			supportsJSON := false
-			for _, r := range runtime.config.RuntimeSupportsJSON {
-				if r == name {
-					supportsJSON = true
-					break
-				}
-			}
+			json := supportsJSON[name]
+			nocgroups := supportsNoCgroups[name]
 
-			ociRuntime, err := newOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, supportsJSON)
+			ociRuntime, err := newOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, json, nocgroups)
 			if err != nil {
 				return err
 			}
@@ -1090,17 +1130,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 		runtime.netPlugin = netPlugin
 	}
-
-	// Set up a firewall backend
-	backendType := ""
-	if rootless.IsRootless() {
-		backendType = "none"
-	}
-	fwBackend, err := firewall.GetBackend(backendType)
-	if err != nil {
-		return err
-	}
-	runtime.firewallBackend = fwBackend
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this

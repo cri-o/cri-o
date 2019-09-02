@@ -48,18 +48,20 @@ const (
 // OCIRuntime represents an OCI-compatible runtime that libpod can call into
 // to perform container operations
 type OCIRuntime struct {
-	name          string
-	path          string
-	conmonPath    string
-	conmonEnv     []string
-	cgroupManager string
-	tmpDir        string
-	exitsDir      string
-	socketsDir    string
-	logSizeMax    int64
-	noPivot       bool
-	reservePorts  bool
-	supportsJSON  bool
+	name              string
+	path              string
+	conmonPath        string
+	conmonEnv         []string
+	cgroupManager     string
+	tmpDir            string
+	exitsDir          string
+	socketsDir        string
+	logSizeMax        int64
+	noPivot           bool
+	reservePorts      bool
+	supportsJSON      bool
+	supportsNoCgroups bool
+	sdNotify          bool
 }
 
 // ociError is used to parse the OCI runtime JSON log.  It is not part of the
@@ -72,7 +74,7 @@ type ociError struct {
 
 // Make a new OCI runtime with provided options.
 // The first path that points to a valid executable will be used.
-func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *RuntimeConfig, supportsJSON bool) (*OCIRuntime, error) {
+func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *RuntimeConfig, supportsJSON, supportsNoCgroups bool) (*OCIRuntime, error) {
 	if name == "" {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "the OCI runtime must be provided a non-empty name")
 	}
@@ -87,10 +89,12 @@ func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *R
 	runtime.logSizeMax = runtimeCfg.MaxLogSize
 	runtime.noPivot = runtimeCfg.NoPivotRoot
 	runtime.reservePorts = runtimeCfg.EnablePortReservation
+	runtime.sdNotify = runtimeCfg.SDNotify
 
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.
 	runtime.supportsJSON = supportsJSON
+	runtime.supportsNoCgroups = supportsNoCgroups
 
 	foundPath := false
 	for _, path := range paths {
@@ -211,7 +215,7 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) error {
 	exitFile := ctr.exitFilePath()
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -334,7 +338,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 // Sets time the container was started, but does not save it.
 func (r *OCIRuntime) startContainer(ctr *Container) error {
 	// TODO: streams should probably *not* be our STDIN/OUT/ERR - redirect to buffers?
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -354,7 +358,7 @@ func (r *OCIRuntime) startContainer(ctr *Container) error {
 // killContainer sends the given signal to the given container
 func (r *OCIRuntime) killContainer(ctr *Container, signal uint) error {
 	logrus.Debugf("Sending signal %d to container %s", signal, ctr.ID())
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -368,7 +372,7 @@ func (r *OCIRuntime) killContainer(ctr *Container, signal uint) error {
 
 // deleteContainer deletes a container from the OCI runtime
 func (r *OCIRuntime) deleteContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -378,7 +382,7 @@ func (r *OCIRuntime) deleteContainer(ctr *Container) error {
 
 // pauseContainer pauses the given container
 func (r *OCIRuntime) pauseContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -388,7 +392,7 @@ func (r *OCIRuntime) pauseContainer(ctr *Container) error {
 
 // unpauseContainer unpauses the given container
 func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}

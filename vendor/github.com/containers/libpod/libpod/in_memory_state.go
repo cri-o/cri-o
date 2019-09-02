@@ -425,6 +425,26 @@ func (s *InMemoryState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 	return nil
 }
 
+// RewriteVolumeConfig rewrites a volume's configuration.
+// This function is DANGEROUS, even with in-memory state.
+// Please read the full comment in state.go before using it.
+func (s *InMemoryState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	// If the volume does not exist, return error
+	stateVol, ok := s.volumes[volume.Name()]
+	if !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	stateVol.config = newCfg
+
+	return nil
+}
+
 // Volume retrieves a volume from its full name
 func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	if name == "" {
@@ -437,6 +457,41 @@ func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	}
 
 	return vol, nil
+}
+
+// LookupVolume finds a volume from an unambiguous partial ID.
+func (s *InMemoryState) LookupVolume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, define.ErrEmptyID
+	}
+
+	vol, ok := s.volumes[name]
+	if ok {
+		return vol, nil
+	}
+
+	// Alright, we've failed to find by full name. Now comes the expensive
+	// part.
+	// Loop through all volumes and look for matches.
+	var (
+		foundMatch bool
+		candidate  *Volume
+	)
+	for volName, vol := range s.volumes {
+		if strings.HasPrefix(volName, name) {
+			if foundMatch {
+				return nil, errors.Wrapf(define.ErrVolumeExists, "more than one result for volume name %q", name)
+			}
+			candidate = vol
+			foundMatch = true
+		}
+	}
+
+	if !foundMatch {
+		return nil, errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found", name)
+	}
+
+	return candidate, nil
 }
 
 // HasVolume checks if a volume with the given name is present in the state
@@ -483,6 +538,36 @@ func (s *InMemoryState) RemoveVolume(volume *Volume) error {
 	}
 
 	delete(s.volumes, volume.Name())
+
+	return nil
+}
+
+// UpdateVolume updates a volume from the database.
+// For the in-memory state, this is a no-op.
+func (s *InMemoryState) UpdateVolume(volume *Volume) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	return nil
+}
+
+// SaveVolume saves a volume's state to the database.
+// For the in-memory state, this is a no-op.
+func (s *InMemoryState) SaveVolume(volume *Volume) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
 
 	return nil
 }

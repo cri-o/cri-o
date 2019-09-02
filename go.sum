@@ -123,6 +123,8 @@ github.com/containers/buildah v1.10.0 h1:V7c9Nc2K+YxWUMUvkCWtaVxWO8YjIvHhzcFxaVM
 github.com/containers/buildah v1.10.0/go.mod h1:TriEK5llnDkeiozHQ0Lp8PLJdRRGYbLzB+CkwiaR+xk=
 github.com/containers/buildah v1.10.1 h1:YBFHZkpbWCxUR/gjRAZrRzs2E0DfdUe3+/8OA9filWY=
 github.com/containers/buildah v1.10.1/go.mod h1:ZTyMFo3IQlu9tYndtnAf0Tjf2NdeUL6bY2/TpP9uIuU=
+github.com/containers/buildah v1.11.0 h1:w0jZybDBTb5lvBKmFuuncxbb3D+D68EHnngIcAXFKjg=
+github.com/containers/buildah v1.11.0/go.mod h1:vIO922hCyTe9LEUlcH/oyaMdXy6xX/YdxR6huEOAM0o=
 github.com/containers/conmon v0.3.0/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image v2.0.0+incompatible h1:FTr6Br7jlIKNCKMjSOMbAxKp2keQ0//jzJaYNTVhauk=
 github.com/containers/image v2.0.0+incompatible/go.mod h1:8Vtij257IWSanUQKe1tAeNOm2sRVkSqQTVQ1IlwI3+M=
@@ -139,6 +141,8 @@ github.com/containers/libpod v0.8.3-0.20190711082319-144567b42dba h1:I6X1anNYQZZ
 github.com/containers/libpod v0.8.3-0.20190711082319-144567b42dba/go.mod h1:xKKFpwDA599508AxpTVhBjyszJHai31knNdt+sWQUTA=
 github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c h1:Ij2gjy8dtDLfamYDP4XhXIE1Y52IDB7K1PgiOW7ROEQ=
 github.com/containers/libpod v0.8.3-0.20190722204618-a12a2312ac5c/go.mod h1:xNVFFyH9mnKlWMSdXXQKxym9Cr0xtmUGsiE1Ab6QkMk=
+github.com/containers/libpod v0.8.3-0.20190912225510-b095d8a794ed h1:UiFAN9CFQhCYTHHEC+WlU7Ma9sEcf7Sj7dClaBixWXo=
+github.com/containers/libpod v0.8.3-0.20190912225510-b095d8a794ed/go.mod h1:KxymoqDb4z8nRKnDNfca5RHA/OuSsb++llQqf0DuJJk=
 github.com/containers/libpod v1.4.4 h1:ImfKNDgs1WLyJ8zhcBBhiXhb2mVRgPzP58nSsC1aiPc=
 github.com/containers/libpod v1.4.4/go.mod h1:ZdYOq3W7RqABw6T6luVSWfS5GBXKQ1KzWPL1n8vjVhI=
 github.com/containers/libpod v1.5.0 h1:1wpfO0OjapF3ZRP5V1AO3EEiEumrA2XoeqO3rWp2Ijw=
@@ -167,6 +171,7 @@ github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-iptables v0.4.1 h1:TyEMaK2xD/EcB0385QcvX/OvI2XI7s4SJEI2EhZFfEU=
 github.com/coreos/go-iptables v0.4.1/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
+github.com/coreos/go-iptables v0.4.2/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
 github.com/coreos/go-oidc v0.0.0-20180117170138-065b426bd416/go.mod h1:CgnwVTmzoESiwO9qyAFEMiHoZ1nMCKZlZ9V6mm3/LKc=
 github.com/coreos/go-semver v0.0.0-20180108230905-e214231b295a/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
@@ -647,6 +652,10 @@ github.com/onsi/gomega v1.5.0 h1:izbySO9zDPmjJ8rDjLvkA2zJHIo+HkYXHnf7eN7SSyo=
 github.com/onsi/gomega v1.5.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/openSUSE/libpod v0.8.3-0.20190703080029-c11d135c479a h1:hevBDu+t+qwn5qcx5E00A+dtbexcnZnJ3kFnpRFAH+8=
 github.com/openSUSE/libpod v0.8.3-0.20190703080029-c11d135c479a/go.mod h1:xEDKT7sKL/JrSr28gCvLi/luABW7Rdn35LqhQj86zII=
+github.com/openSUSE/libpod v0.8.3-0.20190903092254-bbcd586f5542 h1:K920Ig90Pftf0x7oy563cX16EBpDtlpAF41P3aa2a8U=
+github.com/openSUSE/libpod v0.8.3-0.20190903092254-bbcd586f5542/go.mod h1:MmGR7Pkr8K/bfe8mUo9rODEa/BOrxRWztfPibc8xFes=
+github.com/openSUSE/libpod v0.8.3-0.20190903100258-0b2927e598b3 h1:OL3dGGVA8bU3M/BBNTgpoWh8iU0acqeYzrquuogU3SY=
+github.com/openSUSE/libpod v0.8.3-0.20190903100258-0b2927e598b3/go.mod h1:MmGR7Pkr8K/bfe8mUo9rODEa/BOrxRWztfPibc8xFes=
 github.com/opencontainers/go-digest v0.0.0-20170106003457-a6d0ee40d420/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
 github.com/opencontainers/go-digest v1.0.0-rc1 h1:WzifXhOVOEOuFYOJAW6aQqW0TooG2iki3E3Ii+WN7gQ=
 github.com/opencontainers/go-digest v1.0.0-rc1/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
@@ -669,6 +678,10 @@ github.com/opencontainers/runtime-tools v0.9.0/go.mod h1:r3f7wjNzSs2extwzU3Y+6pK
 github.com/opencontainers/selinux v0.0.0-20170621221121-4a2974bf1ee9/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
 github.com/opencontainers/selinux v1.2.2 h1:Kx9J6eDG5/24A6DtUquGSpJQ+m2MUTahn4FtGEe8bFg=
 github.com/opencontainers/selinux v1.2.2/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
+github.com/opencontainers/selinux v1.3.0 h1:xsI95WzPZu5exzA6JzkLSfdr/DilzOhCJOqGe5TgR0g=
+github.com/opencontainers/selinux v1.3.0/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
+github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible h1:s55wx8JIG/CKnewev892HifTBrtKzMdvgB3rm4rxC2s=
+github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible/go.mod h1:dh9o4Fs58gpFXGSYfnVxGR9PnV53I8TW84pQaJDdGiY=
 github.com/openshift/imagebuilder v1.1.0 h1:oT704SkwMEzmIMU/+Uv1Wmvt+p10q3v2WuYMeFI18c4=
 github.com/openshift/imagebuilder v1.1.0/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
 github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
@@ -738,6 +751,7 @@ github.com/russross/blackfriday v0.0.0-20170610170232-067529f716f4/go.mod h1:JO/
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735/go.mod h1:807d1WSdnB0XRJzKNil9Om6lcp/3a0v4qIHxIXzX/Yc=
+github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8/go.mod h1:Z0q5wiBQGYcxhMZ6gUqHn6pYNLypFAvaL3UvgZLR0U4=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/seccomp/containers-golang v0.0.0-20180629143253-cdfdaa7543f4/go.mod h1:f/98/SnvAzhAEFQJ3u836FePXvcbE8BS0YGMQNn4mhA=
 github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f h1:OtU/w6sBKmXYaw2KEODxjcYi3oPSyyslhgGFgIJVGAI=

@@ -24,8 +24,6 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-const unknownPackage = "Unknown"
-
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
 func makeAccessible(path string, uid, gid int) error {
 	for ; path != "/"; path = filepath.Dir(path) {
@@ -114,36 +112,12 @@ func (r *OCIRuntime) createContainer(ctr *Container, restoreOptions *ContainerCh
 	return r.createOCIContainer(ctr, restoreOptions)
 }
 
-func rpmVersion(path string) string {
-	output := unknownPackage
-	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
-	if outp, err := cmd.Output(); err == nil {
-		output = string(outp)
-	}
-	return strings.Trim(output, "\n")
-}
-
-func dpkgVersion(path string) string {
-	output := unknownPackage
-	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
-	if outp, err := cmd.Output(); err == nil {
-		output = string(outp)
-	}
-	return strings.Trim(output, "\n")
-}
-
 func (r *OCIRuntime) pathPackage() string {
-	if out := rpmVersion(r.path); out != unknownPackage {
-		return out
-	}
-	return dpkgVersion(r.path)
+	return packageVersion(r.path)
 }
 
 func (r *OCIRuntime) conmonPackage() string {
-	if out := rpmVersion(r.conmonPath); out != unknownPackage {
-		return out
-	}
-	return dpkgVersion(r.conmonPath)
+	return packageVersion(r.conmonPath)
 }
 
 // execContainer executes a command in a running container
@@ -208,7 +182,7 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		}
 	}()
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return -1, nil, err
 	}
@@ -428,16 +402,18 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 	}
 
 	var args []string
-	if rootless.IsRootless() {
+	if rootless.IsRootless() || ctr.config.NoCgroups {
 		// we don't use --all for rootless containers as the OCI runtime might use
 		// the cgroups to determine the PIDs, but for rootless containers there is
 		// not any.
+		// Same logic for NoCgroups - we can't use cgroups as the user
+		// explicitly requested none be created.
 		args = []string{"kill", ctr.ID(), "KILL"}
 	} else {
 		args = []string{"kill", "--all", ctr.ID(), "KILL"}
 	}
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -487,7 +463,7 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 	if len(execSessions) == 0 {
 		return nil
 	}
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
