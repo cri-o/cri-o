@@ -16,6 +16,11 @@
 - name: build kubernetes
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+    target: clean
+
+- name: build kubernetes
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
 
 - name: Add custom cluster service file for the e2e testing
   copy:
