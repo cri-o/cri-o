@@ -217,12 +217,16 @@ func main() {
 			logrus.Errorf("error encoding manifest: %v", err)
 			os.Exit(1)
 		}
-		err = img.PutManifest(ctx, mbytes)
+		err = img.PutManifest(ctx, mbytes, nil)
 		if err != nil {
 			logrus.Errorf("error saving manifest: %v", err)
 			os.Exit(1)
 		}
-		err = img.Commit(ctx)
+		err = img.Commit(ctx, &unparsedImage{
+			imageReference: ref,
+			manifestBytes:  mbytes,
+			manifestType:   v1.MediaTypeImageManifest,
+		})
 		if err != nil {
 			logrus.Errorf("error committing image: %v", err)
 			os.Exit(1)
@@ -233,4 +237,21 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
 	}
+}
+
+type unparsedImage struct {
+	imageReference types.ImageReference
+	manifestBytes  []byte
+	manifestType   string
+	signatures     [][]byte
+}
+
+func (u *unparsedImage) Reference() types.ImageReference {
+	return u.imageReference
+}
+func (u *unparsedImage) Manifest(context.Context) (manifestBytes []byte, manifestType string, err error) {
+	return u.manifestBytes, u.manifestType, nil
+}
+func (u *unparsedImage) Signatures(context.Context) ([][]byte, error) {
+	return u.signatures, nil
 }
