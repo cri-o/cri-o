@@ -188,7 +188,7 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 		return imageCacheItem{}, err
 	}
 	size := imageSize(img)
-	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
+	configDigest, err := imageConfigDigest(svc.ctx, systemContext, img, nil)
 	img.Close()
 	if err != nil {
 		return imageCacheItem{}, err
@@ -310,7 +310,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	}
 	defer img.Close()
 	size := imageSize(img)
-	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
+	configDigest, err := imageConfigDigest(svc.ctx, systemContext, img, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -341,10 +341,24 @@ func imageSize(img types.ImageSource) *uint64 {
 	return nil
 }
 
-func imageConfigDigest(ctx context.Context, img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
+func imageConfigDigest(ctx context.Context, sys *types.SystemContext, img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
 	manifestBytes, manifestType, err := img.GetManifest(ctx, instanceDigest)
 	if err != nil {
 		return "", err
+	}
+	if manifest.MIMETypeIsMultiImage(manifestType) {
+		list, err := manifest.ListFromBlob(manifestBytes, manifestType)
+		if err != nil {
+			return "", err
+		}
+		digest, err := list.ChooseInstance(sys)
+		if err != nil {
+			return "", err
+		}
+		manifestBytes, manifestType, err = img.GetManifest(ctx, &digest)
+		if err != nil {
+			return "", err
+		}
 	}
 	imgManifest, err := manifest.FromBlob(manifestBytes, manifestType)
 	if err != nil {
