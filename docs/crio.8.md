@@ -26,6 +26,7 @@ crio
 [--container-attach-socket-dir]=[value]
 [--container-exits-dir]=[value]
 [--ctr-stop-timeout]=[value]
+[--decryption-keys-path]=[value]
 [--default-capabilities]=[value]
 [--default-mounts-file]=[value]
 [--default-mounts]=[value]
@@ -132,6 +133,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--container-exits-dir**="": Path to directory in which container exit files are written to by conmon (default: "/var/run/crio/exits")
 
 **--ctr-stop-timeout**="": The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container (default: 0)
+
+**--decryption-keys-path**="": Path to load keys for image decryption. (default: "/etc/crio/keys/")
 
 **--default-capabilities**="": Capabilities to add to the containers (default: ["CHOWN" "DAC_OVERRIDE" "FSETID" "FOWNER" "NET_RAW" "SETGID" "SETUID" "SETPCAP" "NET_BIND_SERVICE" "SYS_CHROOT" "KILL"])
 

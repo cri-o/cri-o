@@ -17,6 +17,7 @@ require (
 	github.com/containers/conmon v2.0.8+incompatible
 	github.com/containers/image/v5 v5.1.0
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
+	github.com/containers/ocicrypt v0.0.0-20190930154801-b87a4a69c741
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.15.3
 	github.com/coreos/go-systemd/v22 v22.0.0

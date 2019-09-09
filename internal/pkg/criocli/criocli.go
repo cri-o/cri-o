@@ -116,6 +116,11 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.IsSet("default-runtime") {
 		config.DefaultRuntime = ctx.String("default-runtime")
 	}
+
+	if ctx.IsSet("decryption-keys-path") {
+		config.DecryptionKeysPath = ctx.String("decryption-keys-path")
+	}
+
 	if ctx.IsSet("runtimes") {
 		runtimes := ctx.StringSlice("runtimes")
 		for _, r := range runtimes {
@@ -409,6 +414,10 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Name:    "default-transport",
 			Usage:   fmt.Sprintf("A prefix to prepend to image names that cannot be pulled as-is (default: %q)", defConf.DefaultTransport),
 			EnvVars: []string{"CONTAINER_DEFAULT_TRANSPORT"},
+		},
+		&cli.StringFlag{
+			Name:  "decryption-keys-path",
+			Usage: fmt.Sprintf("Path to load keys for image decryption. (default: %q)", defConf.DecryptionKeysPath),
 		},
 		// XXX: DEPRECATED
 		&cli.StringFlag{
