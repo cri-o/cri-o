@@ -38,7 +38,7 @@
 		"cgroup_parent": "/Burstable/pod_123-456",
 		"security_context": {
 			"namespace_options": {
-				"network": 0,
+				"network": 2,
 				"pid": 1,
 				"ipc": 0
 			}
