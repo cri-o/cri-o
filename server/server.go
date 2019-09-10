@@ -68,8 +68,7 @@ type Server struct {
 	hostportManager hostport.HostPortManager
 
 	appArmorProfile string
-	hostIP          string
-	bindAddress     string
+	hostIPs         []string
 
 	*lib.ContainerServer
 	monitorsChan      chan struct{}
@@ -443,13 +442,17 @@ func New(
 	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	hostIP := s.getHostIP(config.HostIP)
+	hostIPs := s.getHostIPs(config.HostIP)
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
-		bindAddress = hostIP
+		bindAddress = hostIPs[0]
 	}
-	s.bindAddress = bindAddress.String()
-	s.hostIP = hostIP.String()
+	ips := []string{}
+	for _, ip := range hostIPs {
+		ips = append(ips, ip.String())
+	}
+	s.hostIPs = ips
+	logrus.Infof("using host IPs: %v", s.hostIPs)
 
 	_, err = net.LookupPort("tcp", config.StreamPort)
 	if err != nil {
@@ -514,43 +517,77 @@ func New(
 	return s, nil
 }
 
-func (s *Server) getHostIP(configIP string) net.IP {
+func (s *Server) getHostIPs(configIP string) []net.IP {
 	// emulate kubelet behavior of choosing hostIP
 	// ref: k8s/pkg/kubelet/nodestatus/setters.go
+	var rootIP net.IP
 
 	// use configured value if set
 	if hostIP := net.ParseIP(configIP); hostIP != nil {
-		return hostIP
+		rootIP = hostIP
 	}
 
 	// Otherwise use kubernetes utility to choose hostIP
 	// there exists the chance for both hostIP and err to be nil, so check both
-	if hostIP, err := knet.ChooseHostInterface(); err != nil && hostIP != nil {
-		return hostIP
+	if rootIP == nil {
+		if hostIP, err := knet.ChooseHostInterface(); err != nil && hostIP != nil {
+			rootIP = hostIP
+		}
 	}
 
 	// attempt to find an IP from the hostname
-	if hostname, err := os.Hostname(); err == nil {
-		if hostIP := net.ParseIP(hostname); hostIP != nil && validateHostIP(hostIP) == nil {
-			return hostIP
+	if rootIP == nil {
+		if hostname, err := os.Hostname(); err == nil {
+			if hostIP := net.ParseIP(hostname); hostIP != nil && validateHostIP(hostIP) == nil {
+				rootIP = hostIP
+			}
 		}
 	}
 
 	// if that fails, check if we can find a primary IP address unambiguously
-	if allAddrs, err := net.InterfaceAddrs(); err == nil {
-		// adapted from: https://stackoverflow.com/a/31551220
-		for _, addr := range allAddrs {
-			if ipnet, ok := addr.(*net.IPNet); ok {
-				if validateHostIP(ipnet.IP) == nil {
-					return ipnet.IP
+	if rootIP == nil {
+		if allAddrs, err := net.InterfaceAddrs(); err == nil {
+			for _, addr := range allAddrs {
+				if ipnet, ok := addr.(*net.IPNet); ok {
+					if validateHostIP(ipnet.IP) == nil {
+						rootIP = ipnet.IP
+						break
+					}
 				}
 			}
 		}
 	}
 
-	localhost := net.IPv4(127, 0, 0, 1)
-	logrus.Warnf("unable to find a host IP, falling back to %v", localhost)
-	return localhost
+	if rootIP == nil {
+		rootIP = net.IPv4(127, 0, 0, 1)
+		logrus.Warnf("unable to find a host IP, falling back to %v", rootIP)
+	}
+
+	// Search for an additional IP
+	ips := []net.IP{rootIP}
+	if ifaces, err := net.Interfaces(); err == nil {
+		for _, iface := range ifaces {
+			if addrs, err := iface.Addrs(); err == nil {
+				searchThisInterface := false
+				for _, addr := range addrs {
+					if ipnet, ok := addr.(*net.IPNet); ok {
+						ip := ipnet.IP
+						if ip.Equal(rootIP) {
+							searchThisInterface = true
+						}
+						if searchThisInterface &&
+							!ip.Equal(rootIP) &&
+							ip.IsGlobalUnicast() {
+							ips = append(ips, ipnet.IP)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return ips
 }
 
 func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
