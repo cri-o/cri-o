@@ -292,7 +292,7 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 
 .install.release:
 	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
-		go get -u github.com/containerd/project/cmd/release-tool; \
+		go get -u github.com/containerd/release-tool; \
 	fi
 
 .install.gitvalidation: .gopathok
