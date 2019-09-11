@@ -10,7 +10,7 @@
 # requiring go 1.12. In all cases, just choose the commit before 1.12 was
 # added as a hard requirement
 - name: replace version of modules needed for kubetest
-  shell: "GO111MODULE=on go get {{ item }}"
+  shell: "GOSUMDB=sum.golang.org GOPROXY=https://proxy.golang.org GO111MODULE=on go get {{ item }}"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
   with_items:
