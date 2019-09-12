@@ -19,12 +19,16 @@ done
 
 if [[ -z "${CNI_CONTAINERID}" ]]; then
 	exit 1
-elif [[ -z "${K8S_POD_NAMESPACE}" ]]; then
-	exit 1
-elif [[ -z "${K8S_POD_NAME}" ]]; then
-	exit 1
 fi
-
+K8S_POD_NAMESPACE=${K8S_POD_NAMESPACE:-}
+K8S_POD_NAME=${K8S_POD_NAME:-}
+if [[ "${CNI_COMMAND}" != "VERSION" ]]; then
+ if [[ -z "${K8S_POD_NAMESPACE}" ]]; then
+	exit 1
+ elif [[ -z "${K8S_POD_NAME}" ]]; then
+	exit 1
+ fi
+fi
 echo "FOUND_CNI_CONTAINERID=${CNI_CONTAINERID}" >> /tmp/plugin_test_args.out
 echo "FOUND_K8S_POD_NAMESPACE=${K8S_POD_NAMESPACE}" >> /tmp/plugin_test_args.out
 echo "FOUND_K8S_POD_NAME=${K8S_POD_NAME}" >> /tmp/plugin_test_args.out
