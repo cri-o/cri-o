@@ -1068,6 +1068,8 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 		}
 		src := filepath.Join(bindMountPrefix, mount.GetHostPath())
 
+		mountPointCreated := false
+
 		resolvedSrc, err := resolveSymbolicLink(src, bindMountPrefix)
 		if err == nil {
 			src = resolvedSrc
@@ -1076,6 +1078,8 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
 			} else if err = os.MkdirAll(src, 0755); err != nil {
 				return nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
+			} else {
+				mountPointCreated = true
 			}
 		}
 
@@ -1115,7 +1119,7 @@ func addOCIBindMounts(mountLabel string, containerConfig *pb.ContainerConfig, sp
 			options = append(options, "rprivate")
 		}
 
-		if mount.SelinuxRelabel {
+		if mount.SelinuxRelabel || mountPointCreated {
 			if err := securityLabel(src, mountLabel, false); err != nil {
 				return nil, nil, err
 			}
