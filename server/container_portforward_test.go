@@ -3,11 +3,8 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -49,95 +46,6 @@ var _ = t.Describe("ContainerPortforward", func() {
 	})
 
 	t.Describe("StreamServer: PortForward", func() {
-		It("shoud succeed", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-			addContainerAndSandboxRuntimeServer()
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(nil),
-				ociRuntimeMock.EXPECT().PortForwardContainer(gomock.Any(),
-					gomock.Any(), gomock.Any()).Return(nil),
-			)
-
-			// When
-			err := testStreamService.PortForward(testSandbox.ID(), 0, nil)
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
-		It("shoud fail when PortForwardContainer errors", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-			addContainerAndSandboxRuntimeServer()
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(nil),
-				ociRuntimeMock.EXPECT().PortForwardContainer(gomock.Any(),
-					gomock.Any(), gomock.Any()).Return(t.TestError),
-			)
-
-			// When
-			err := testStreamService.PortForward(testSandbox.ID(), 0, nil)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("shoud fail when container status update errors", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			addContainerAndSandboxRuntimeServer()
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(t.TestError),
-			)
-
-			// When
-			err := testStreamService.PortForward(testSandbox.ID(), 0, nil)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("shoud fail when container is not running", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			addContainerAndSandboxRuntimeServer()
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(nil),
-			)
-
-			// When
-			err := testStreamService.PortForward(testSandbox.ID(), 0, nil)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("shoud fail when container is not available", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			Expect(testStreamService.RuntimeServer().
-				AddSandbox(testSandbox)).To(BeNil())
-			Expect(testStreamService.RuntimeServer().PodIDIndex().
-				Add(testSandbox.ID()))
-
-			// When
-			err := testStreamService.PortForward(testSandbox.ID(), 0, nil)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("shoud fail when sandbox not found", func() {
 			// Given
 			// When

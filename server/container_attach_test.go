@@ -3,11 +3,8 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -50,86 +47,6 @@ var _ = t.Describe("ContainerAttach", func() {
 	})
 
 	t.Describe("StreamServer: Attach", func() {
-		It("shoud succeed", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-			addContainerAndSandboxRuntimeServer()
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(nil),
-				ociRuntimeMock.EXPECT().AttachContainer(gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any()).Return(nil),
-			)
-
-			// When
-			err := testStreamService.Attach(testContainer.ID(),
-				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
-		It("shoud fail if container attach errors", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-			addContainerAndSandboxRuntimeServer()
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(nil),
-				ociRuntimeMock.EXPECT().AttachContainer(gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-					gomock.Any()).Return(t.TestError),
-			)
-
-			// When
-			err := testStreamService.Attach(testContainer.ID(),
-				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("shoud fail if container is not running errors", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			addContainerAndSandboxRuntimeServer()
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(nil),
-			)
-
-			// When
-			err := testStreamService.Attach(testContainer.ID(),
-				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("shoud fail if container status update errors", func() {
-			// Given
-			testStreamService.RuntimeServer().SetRuntime(ociRuntimeMock)
-			addContainerAndSandboxRuntimeServer()
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(t.TestError),
-			)
-
-			// When
-			err := testStreamService.Attach(testContainer.ID(),
-				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("shoud fail if container was not found", func() {
 			// Given
 			// When

@@ -216,14 +216,6 @@ func addContainerAndSandbox() {
 	Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
 }
 
-func addContainerAndSandboxRuntimeServer() {
-	Expect(testStreamService.RuntimeServer().AddSandbox(testSandbox)).To(BeNil())
-	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-	testStreamService.RuntimeServer().AddContainer(testContainer)
-	Expect(testStreamService.RuntimeServer().CtrIDIndex().Add(testContainer.ID()))
-	Expect(testStreamService.RuntimeServer().PodIDIndex().Add(testSandbox.ID()))
-}
-
 var mockDirs = func(manifest []byte) {
 	gomock.InOrder(
 		storeMock.EXPECT().
