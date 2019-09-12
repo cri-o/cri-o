@@ -1,10 +1,13 @@
 ---
 
+# checkout the kubetest version right before it requires go 1.13
+# the repos that require go 1.12 will be fixed up below
 - name: clone test-infra source repo
   git:
     repo: "https://github.com/kubernetes/test-infra.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
     force: "{{ force_clone | default(False) | bool}}"
+    version: f9516fc71fa3fe370d420a61c0b1943c4a9d1dcd
 
 # the following replacements get around the specific packages
 # requiring go 1.12. In all cases, just choose the commit before 1.12 was
