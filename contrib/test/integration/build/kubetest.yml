@@ -1,0 +1,37 @@
+---
+
+- name: clone test-infra source repo
+  git:
+    repo: "https://github.com/kubernetes/test-infra.git"
+    dest: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
+    force: "{{ force_clone | default(False) | bool}}"
+
+# the following replacements get around the specific packages
+# requiring go 1.12. In all cases, just choose the commit before 1.12 was
+# added as a hard requirement
+- name: replace version of modules needed for kubetest
+  shell: "GOSUMDB=sum.golang.org GOPROXY=https://proxy.golang.org GO111MODULE=on go get {{ item }}"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
+  with_items:
+    - github.com/pelletier/go-toml@e1803f96f6945c1061f538abc1a01a18f4d963fb
+    - golang.org/x/sys/unix@b354f8bf4d9e3ed38f0fd66d9dc82e9b9bb040c3
+    - github.com/google/gofuzz@24818f796faf91cd76ec7bddd72458fbced7a6c1
+    - k8s.io/klog@aeddeeced515f4c31fa65bfc24332b3e7763cc5c
+    - github.com/googleapis/gnostic/extensions@2cd1770abea2142aac63457a545e906881551c54
+    - github.com/json-iterator/go@0ff49de124c6f76f8494e194af75bde0f1a49a29
+    - k8s.io/utils/integer@21c4ce38f2a793ec01e925ddc31216500183b773
+
+# per https://github.com/kubernetes/test-infra/issues/14070 we need to download
+# kubetest with go module 1.11 on and without -u. As of the time of writing this,
+# neither are happening in hack/e2e.go. instead, add this, and set --get=false when
+# running e2e
+- name: download kubetest deps
+  shell: GO111MODULE=on GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org go mod download
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
+
+- name: install kubetest
+  shell: GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org GO111MODULE=on go build -o "{{ ansible_env.GOPATH }}"/bin/kubetest ./kubetest
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
