@@ -246,8 +246,6 @@ install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
-	install ${SELINUXOPT} -d -m 755 $(LIBEXECDIR)/crio/crio-wipe
-	install ${SELINUXOPT} -D -m 755 contrib/crio-wipe/*.bash $(LIBEXECDIR)/crio/crio-wipe/
 
 install.man: $(MANPAGES)
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
@@ -294,7 +292,7 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 
 .install.release:
 	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
-		go get -u github.com/containerd/project/cmd/release-tool; \
+		go get -u github.com/containerd/release-tool; \
 	fi
 
 .install.gitvalidation: .gopathok
