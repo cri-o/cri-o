@@ -52,7 +52,6 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	if len(sb.IPs()) > 1 {
 		resp.Status.Network.AdditionalIps = toPodIPs(sb.IPs()[1:])
 	}
-
 	return resp, nil
 }
 
