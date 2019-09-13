@@ -188,7 +188,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 		rh = runtimeHandler
 	}
 
-	if rh.RuntimeType == RuntimeTypeVM {
+	if rh.RuntimeType == config.RuntimeTypeVM {
 		return newRuntimeVM(rh.RuntimePath), nil
 	}
 
