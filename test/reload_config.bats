@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# vim: set syntax=sh:
 
 load helpers
 
@@ -15,32 +16,6 @@ function teardown() {
     cleanup_test
 }
 
-function replace_config() {
-    sed -ie 's;\('$1' = "\).*\("\);\1'$2'\2;' "$CRIO_CONFIG"
-}
-
-function reload_crio() {
-    kill -HUP $CRIO_PID
-}
-
-function wait_for_log() {
-    CNT=0
-    while true; do
-        if [[ $CNT -gt 50 ]]; then
-            echo wait for log timed out
-            exit 1
-        fi
-
-        if grep -q "$1" "$CRIO_LOG"; then
-            break
-        fi
-
-        echo "waiting for log entry to appear ($CNT): $1"
-        sleep 0.1
-        CNT=$((CNT + 1))
-    done
-}
-
 function expect_log_success() {
     wait_for_log '"set config '$1' to \\"'$2'\\""'
 }
@@ -49,7 +24,7 @@ function expect_log_failure() {
     wait_for_log "unable to reload configuration: $1"
 }
 
-@test "should succeed to reload" {
+@test "reload config should succeed" {
     # when
     reload_crio
 
@@ -57,7 +32,7 @@ function expect_log_failure() {
     ps --pid $CRIO_PID &>/dev/null
 }
 
-@test "should succeed to reload 'log_level'" {
+@test "reload config should succeed with 'log_level'" {
     # given
     NEW_LEVEL="warn"
     OPTION="log_level"
@@ -70,7 +45,7 @@ function expect_log_failure() {
     expect_log_success $OPTION $NEW_LEVEL
 }
 
-@test "should fail to reload 'log_level' if invalid" {
+@test "reload config should fail with 'log_level' if invalid" {
     # when
     replace_config "log_level" "invalid"
     reload_crio
@@ -80,7 +55,7 @@ function expect_log_failure() {
 }
 
 
-@test "should fail to reload if config is malformed" {
+@test "reload config should fail with if config is malformed" {
     # when
     replace_config "log_level" '\"'
     reload_crio
@@ -89,7 +64,7 @@ function expect_log_failure() {
     expect_log_failure "unable to decode configuration"
 }
 
-@test "should succeed to reload 'pause_image'" {
+@test "reload config should succeed with 'pause_image'" {
     # given
     NEW_OPTION="new-image"
     OPTION="pause_image"
@@ -102,7 +77,7 @@ function expect_log_failure() {
     expect_log_success $OPTION $NEW_OPTION
 }
 
-@test "should succeed to reload 'pause_command'" {
+@test "reload config should succeed with 'pause_command'" {
     # given
     NEW_OPTION="new-command"
     OPTION="pause_command"
@@ -115,7 +90,7 @@ function expect_log_failure() {
     expect_log_success $OPTION $NEW_OPTION
 }
 
-@test "should succeed to reload 'pause_image_auth_file'" {
+@test "reload config should succeed with 'pause_image_auth_file'" {
     # given
     NEW_OPTION="$TESTDIR/auth_file"
     OPTION="pause_image_auth_file"
@@ -129,7 +104,7 @@ function expect_log_failure() {
     expect_log_success $OPTION $NEW_OPTION
 }
 
-@test "should fail to reload non existing 'pause_image_auth_file'" {
+@test "reload config should fail with non existing 'pause_image_auth_file'" {
     # given
     NEW_OPTION="$TESTDIR/auth_file"
     OPTION="pause_image_auth_file"

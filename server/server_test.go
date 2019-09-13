@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/pkg/signals"
 	"github.com/cri-o/cri-o/server"
@@ -393,6 +394,49 @@ var _ = t.Describe("Server", func() {
 
 			// When
 			_, err := sut.StartConfigWatcher(tmpFile, nil)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ReloadRegistries", func() {
+		// The test registries file
+		regConf := ""
+
+		// Prepare the sut
+		BeforeEach(func() {
+			regConf = t.MustTempFile("reload-registries")
+			ctx := &types.SystemContext{SystemRegistriesConfPath: regConf}
+			setupSUTWithContext(ctx)
+		})
+
+		It("should succeed to reload registries", func() {
+			// Given
+			// When
+			err := sut.ReloadRegistries(regConf)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail if registries file got deleted", func() {
+			// Given
+			Expect(os.Remove(regConf)).To(BeNil())
+
+			// When
+			err := sut.ReloadRegistries(regConf)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail if registries file is invalid", func() {
+			// Given
+			Expect(ioutil.WriteFile(regConf, []byte("invalid"), 0755)).To(BeNil())
+
+			// When
+			err := sut.ReloadRegistries(regConf)
 
 			// Then
 			Expect(err).NotTo(BeNil())
