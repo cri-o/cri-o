@@ -170,6 +170,11 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 			if err1 := idtools.MkdirAllAndChownNew(fp, 0755, IDs); err1 != nil {
 				return nil, err1
 			}
+			if mountLabel != "" {
+				if err1 := securityLabel(fp, mountLabel, true); err1 != nil {
+					return nil, err1
+				}
+			}
 		case config.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
