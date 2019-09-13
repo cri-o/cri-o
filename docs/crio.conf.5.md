@@ -145,8 +145,6 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 
   For the bind-mount conditions, only mounts explicitly requested by Kubernetes configuration are considered.  Bind mounts that CRI-O inserts by default (e.g. `/dev/shm`) are not considered.
 
-  If `hooks_dir` is unset, CRI-O will currently default to `/usr/share/containers/oci/hooks.d` and `/etc/containers/oci/hooks.d` in order of increasing precedence.  Using these defaults is deprecated, and callers should migrate to explicitly setting `hooks_dir`.
-
 **default_mounts**=[]
   List of default mounts for each container. **Deprecated:** this option will be removed in future versions in favor of `default_mounts_file`.
 
