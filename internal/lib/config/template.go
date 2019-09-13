@@ -227,13 +227,43 @@ manage_network_ns_lifecycle = {{ .ManageNetworkNSLifecycle }}
 # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
 # The runtime to use is picked based on the runtime_handler provided by the CRI.
 # If no runtime_handler is provided, the runtime will be picked based on the level
-# of trust of the workload.
+# of trust of the workload. Each entry in the table should follow the format:
+#
+#[crio.runtime.runtimes.runtime-handler]
+#  runtime_path = "/path/to/the/executable"
+#  runtime_type = "oci"
+#  runtime_root = "/path/to/the/root"
+#
+# Where:
+# - runtime-handler: name used to identify the runtime
+# - runtime_path (optional, string): absolute path to the runtime executable in
+#   the host filesystem. If omitted, the runtime-handler identifier should match
+#   the runtime executable name, and the runtime executable should be placed
+#   in $PATH.
+# - runtime_type (optional, string): type of runtime, one of: "oci", "vm". If
+#   omitted, an "oci" runtime is assumed.
+# - runtime_root (optional, string): root directory for storage of containers
+#   state.
+
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]
 runtime_path = "{{ $runtime_handler.RuntimePath }}"
 runtime_type = "{{ $runtime_handler.RuntimeType }}"
 runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 {{ end }}
+
+# Kata Containers is an OCI runtime, where containers are run inside lightweight
+# VMs. Kata provides additional isolation towards the host, minimizing the host attack
+# surface and mitigating the consequences of containers breakout.
+
+# Kata Containers with the default configured VMM
+#[crio.runtime.runtimes.kata-runtime]
+
+# Kata Containers with the QEMU VMM
+#[crio.runtime.runtimes.kata-qemu]
+
+# Kata Containers with the Firecracker VMM
+#[crio.runtime.runtimes.kata-fc]
 
 # The crio.image table contains settings pertaining to the management of OCI images.
 #
