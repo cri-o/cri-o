@@ -32,12 +32,7 @@ import (
 	utilexec "k8s.io/utils/exec"
 )
 
-const (
-	fifoGlobalDir = "/tmp/crio/fifo"
-
-	// RuntimeTypeVM is the type representing the RuntimeVM implementation.
-	RuntimeTypeVM = "vm"
-)
+const fifoGlobalDir = "/tmp/crio/fifo"
 
 // runtimeVM is the Runtime interface implementation that is more appropriate
 // for VM based container runtimes.

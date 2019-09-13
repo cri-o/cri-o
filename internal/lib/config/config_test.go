@@ -16,7 +16,9 @@ var _ = t.Describe("Config", func() {
 	BeforeEach(beforeEach)
 
 	var runtimeValidConfig = func() *config.Config {
-		sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
+		sut.Runtimes["runc"] = &config.RuntimeHandler{
+			RuntimePath: validFilePath, RuntimeType: config.DefaultRuntimeType,
+		}
 		sut.Conmon = validFilePath
 		tmpDir := t.MustTempDir("cni-test")
 		sut.NetworkConfig.PluginDirs = []string{tmpDir}
@@ -180,7 +182,10 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed during runtime", func() {
 			// Given
-			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+				RuntimeType: config.DefaultRuntimeType,
+			}
 			sut.Conmon = validFilePath
 
 			// When
@@ -193,7 +198,10 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with additional devices", func() {
 			// Given
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
-			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+				RuntimeType: config.DefaultRuntimeType,
+			}
 			sut.Conmon = validFilePath
 
 			// When
@@ -205,7 +213,10 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with hooks directories", func() {
 			// Given
-			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+				RuntimeType: config.DefaultRuntimeType,
+			}
 			sut.Conmon = validFilePath
 			sut.HooksDir = []string{validDirPath}
 
@@ -415,11 +426,24 @@ var _ = t.Describe("Config", func() {
 		})
 	})
 
-	t.Describe("ValidateRuntimePaths", func() {
+	t.Describe("ValidateRuntimes", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimePaths()
+			err := sut.RuntimeConfig.ValidateRuntimes()
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with empty runtime_type", func() {
+			// Given
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+			}
+
+			// When
+			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
 			Expect(err).To(BeNil())
@@ -430,7 +454,7 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes[invalidPath] = &config.RuntimeHandler{RuntimePath: ""}
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimePaths()
+			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -441,7 +465,21 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: invalidPath}
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimePaths()
+			err := sut.RuntimeConfig.ValidateRuntimes()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with wrong runtime_type", func() {
+			// Given
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+				RuntimeType: "wrong",
+			}
+
+			// When
+			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
 			Expect(err).NotTo(BeNil())
