@@ -8,7 +8,9 @@ crio.conf - configuration file of the CRI-O OCI Kubernetes Container Runtime dae
 # DESCRIPTION
 The CRI-O configuration file specifies all of the available configuration options and command-line flags for the [crio(8) OCI Kubernetes Container Runtime daemon][crio], but in a TOML format that can be more easily modified and versioned.
 
-CRI-O supports partial configuration reload during runtime, which can be done by sending SIGHUP to the running process. Currently supported options are explicitly marked with 'This option supports live configuration reload'.
+CRI-O supports partial configuration reload during runtime, which can be done by sending SIGHUP to the running process. Currently supported options in `crio.conf` are explicitly marked with 'This option supports live configuration reload'.
+
+The containers-registries.conf(5) file can be reloaded as well by sending SIGHUP to the `crio` process.
 
 The default crio.conf is located at /etc/crio/crio.conf.
 

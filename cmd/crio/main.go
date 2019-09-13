@@ -631,6 +631,13 @@ func main() {
 			Name:  "stream-tls-key",
 			Usage: fmt.Sprintf("path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSKey),
 		},
+		cli.StringFlag{
+			Name:        "registries-conf",
+			Usage:       "path to the registries.conf file",
+			Destination: &systemContext.SystemRegistriesConfPath,
+			Hidden:      true,
+			EnvVar:      "CONTAINERS_REGISTRIES_CONF",
+		},
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))

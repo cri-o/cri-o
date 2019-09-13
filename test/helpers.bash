@@ -614,3 +614,29 @@ function wait_until_exit() {
 	done
 	return 1
 }
+
+function reload_crio() {
+    kill -HUP $CRIO_PID
+}
+
+function wait_for_log() {
+    CNT=0
+    while true; do
+        if [[ $CNT -gt 50 ]]; then
+            echo wait for log timed out
+            exit 1
+        fi
+
+        if grep -q "$1" "$CRIO_LOG"; then
+            break
+        fi
+
+        echo "waiting for log entry to appear ($CNT): $1"
+        sleep 0.1
+        CNT=$((CNT + 1))
+    done
+}
+
+function replace_config() {
+    sed -ie 's;\('$1' = "\).*\("\);\1'$2'\2;' "$CRIO_CONFIG"
+}
