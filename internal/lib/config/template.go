@@ -48,6 +48,10 @@ const templateString = `# The CRI-O configuration file specifies all of the avai
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
+# The default log directory where all logs will go unless directly specified by
+# the kubelet. The log directory specified must be an absolute directory.
+log_dir = "{{ .LogDir }}"
+
 # The crio.api table contains settings for the kubelet/gRPC interface.
 [crio.api]
 
@@ -201,9 +205,6 @@ read_only = {{ .ReadOnly }}
 # are fatal, panic, error, warn, info, and debug. This option supports live
 # configuration reload.
 log_level = "{{ .LogLevel }}"
-
-# The default log directory where all logs will go unless directly specified by the kubelet
-log_dir = "{{ .LogDir }}"
 
 # The UID mappings for the user namespace of each container. A range is
 # specified in the form containerUID:HostUID:Size. Multiple ranges must be

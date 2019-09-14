@@ -41,6 +41,9 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
 **storage_option**=[]
   List to pass options to the storage driver. Please refer to containers-storage.conf(5) to see all available storage options.
 
+**log_dir**="/var/log/crio/pods"
+  The default log directory where all logs will go unless directly specified by the kubelet. The log directory specified must be an absolute directory.
+
 ## CRIO.API TABLE
 The `crio.api` table contains settings for the kubelet/gRPC interface.
 
@@ -177,9 +180,6 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 
 **log_level**="error"
   Changes the verbosity of the logs based on the level it is set to. Options are fatal, panic, error, warn, info, and debug. This option supports live configuration reload.
-
-**log_dir**="/var/log/crio/pods"
-  The default log directory where all logs will go unless directly specified by the kubelet
 
 **uid_mappings**=""
   The UID mappings for the user namespace of each container. A range is specified in the form containerUID:HostUID:Size. Multiple ranges must be separated by comma.
