@@ -1,0 +1,23 @@
+---
+
+- name: clone conmon source repo
+  git:
+    repo: "https://github.com/containers/conmon.git"
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
+    version: "6f3572558b97bc60dd8f8c7f0807748e6ce2c440"
+
+- name: build conmon
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
+
+- name: install conmon
+  make:
+    target: "install"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
+
+- name: copy conmon to cri-o repo
+  make:
+    target: "install"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
+    params:
+        PREFIX: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"

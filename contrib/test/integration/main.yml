@@ -39,6 +39,10 @@
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
 
+    - name: install conmon
+      include: "build/conmon.yml"
+
+
 - hosts: all
   remote_user: root
   vars_files:
@@ -57,6 +61,10 @@
         version: "1.12.9"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
+
+    - name: clone build and install conmon
+      include: "build/conmon.yml"
+
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
       include: "disable_swap.yml"
