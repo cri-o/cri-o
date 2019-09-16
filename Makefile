@@ -1,5 +1,8 @@
 GO ?= go
 
+export GOPROXY=https://proxy.golang.org
+export GOSUMDB=https://sum.golang.org
+
 # test for go module support
 ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
 export GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
