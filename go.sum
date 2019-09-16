@@ -89,6 +89,8 @@ github.com/containernetworking/plugins v0.8.2/go.mod h1:TxALKWZpWL79BC3GOYKJzzXr
 github.com/containers/buildah v1.11.4-0.20191028173731-21b4778b359e/go.mod h1:Igrk75FAxLnzDaHUbtpWB8pwL+Bv+cnakWMvqAXW2v8=
 github.com/containers/buildah v1.11.4 h1:hHh3Tclf5LL1bunlZxYJjwMi5DmFBug8Q0HpuMH8Lo0=
 github.com/containers/buildah v1.11.4/go.mod h1:Igrk75FAxLnzDaHUbtpWB8pwL+Bv+cnakWMvqAXW2v8=
+github.com/containers/conmon v2.0.2+incompatible h1:h2HCdd/EBpwFn7RT82Y2GyXnVUHWxk1Jm4cESSZG4P8=
+github.com/containers/conmon v2.0.2+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.0.0/go.mod h1:MgiLzCfIeo8lrHi+4Lb8HP+rh513sm0Mlk6RrhjFOLY=
 github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0 h1:iV4aHKRoPcHp5BISsuiPMyaCjGJfLKp/FUMAG1NeqvE=
 github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0/go.mod h1:MgiLzCfIeo8lrHi+4Lb8HP+rh513sm0Mlk6RrhjFOLY=
@@ -825,7 +827,6 @@ k8s.io/gengo v0.0.0-20190116091435-f8a0810f38af/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8
 k8s.io/heapster v1.2.0-beta.1/go.mod h1:h1uhptVXMwC8xtZBYsPXKVi8fpdlYkTs6k949KozGrM=
 k8s.io/klog v0.3.0/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
 k8s.io/klog v0.3.1/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
-k8s.io/klog v0.3.3 h1:niceAagH1tzskmaie/icWd7ci1wbG7Bf2c6YGcQv+3c=
 k8s.io/klog v0.3.3/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
 k8s.io/klog v1.0.0 h1:Pt+yjF5aB1xDSVbau4VsWe+dQNzA0qv1LlXdC2dF6Q8=
 k8s.io/klog v1.0.0/go.mod h1:4Bi6QPql/J/LkTDqv7R/cd3hPo4k2DG6Ptcz060Ez5I=

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/rootless"
@@ -414,7 +415,7 @@ func DefaultConfig() (*Config, error) {
 			CgroupManager:            cgroupManager,
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
-			ContainerAttachSocketDir: ContainerAttachSocketDir,
+			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
 			LogSizeMax:               DefaultLogSizeMax,
 			LogToJournald:            DefaultLogToJournald,
 			DefaultCapabilities:      DefaultCapabilities,

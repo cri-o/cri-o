@@ -92,6 +92,8 @@ github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/cli
+# github.com/containers/conmon v2.0.2+incompatible
+github.com/containers/conmon/runner/config
 # github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0
 github.com/containers/image/v5/types
 github.com/containers/image/v5/pkg/sysregistriesv2

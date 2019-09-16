@@ -75,7 +75,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build crio, conmon and pause"
+	@echo " * 'binaries' - Build crio, and pause"
 	@echo " * 'release-note' - Generate release note"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
@@ -94,14 +94,11 @@ endif
 lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} run
 
-fmt: cfmt
+fmt: gofmt
 
-cfmt:
-	find . '(' -name '*.h' -o -name '*.c' ')' ! -path './vendor/*'  -exec clang-format -i {} \+
+gofmt:
+	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
-
-bin/conmon: conmon/config.h
-	$(MAKE) -C conmon
 
 bin/pause:
 	$(MAKE) -C pause
@@ -137,10 +134,6 @@ crio.conf: bin/crio
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
 
-conmon/config.h: cmd/crio-config/config.go oci/oci.go
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
-	( cd conmon && $(CURDIR)/bin/crio-config )
-
 clean:
 ifneq ($(GOPATH),)
 	rm -f "$(GOPATH)/.gopathok"
@@ -152,7 +145,6 @@ endif
 	find . -name \#\* -delete
 	rm -f bin/crio
 	rm -f bin/crio.cross.*
-	$(MAKE) -C conmon clean
 	$(MAKE) -C pause clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
@@ -325,7 +317,7 @@ codecov:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/conmon bin/pause
+binaries: bin/crio bin/pause
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -348,7 +340,6 @@ install: .gopathok install.bin install.man
 
 install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
-	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 	install ${SELINUXOPT} -d -m 755 $(LIBEXECDIR)/crio/crio-wipe
 	install ${SELINUXOPT} -D -m 755 contrib/crio-wipe/*.bash $(LIBEXECDIR)/crio/crio-wipe/
@@ -376,7 +367,6 @@ install.systemd:
 
 uninstall:
 	rm -f $(BINDIR)/crio
-	rm -f $(LIBEXECDIR)/crio/conmon
 	rm -f $(LIBEXECDIR)/crio/pause
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
@@ -393,7 +383,6 @@ git-validation: .gopathok git-vars ${GIT_VALIDATION}
 .PHONY: \
 	.explicit_phony \
 	git-validation \
-	bin/conmon \
 	bin/crio \
 	bin/pause \
 	binaries \
