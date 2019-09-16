@@ -469,6 +469,11 @@ func New(
 			registriesPath, err)
 	}
 
+	// Start the metrics server if configured to be enabled
+	if err := s.startMetricsServer(); err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -555,6 +560,25 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
 	}
 	return sb, nil
+}
+
+func (s *Server) startMetricsServer() error {
+	if s.config.EnableMetrics {
+		me, err := s.CreateMetricsEndpoint()
+		if err != nil {
+			return errors.Wrapf(err, "failed to create metrics endpoint")
+		}
+		l, err := net.Listen("tcp", fmt.Sprintf(":%v", s.config.MetricsPort))
+		if err != nil {
+			return errors.Wrapf(err, "failed to create listener for metrics")
+		}
+		go func() {
+			if err := http.Serve(l, me); err != nil {
+				logrus.Fatalf("failed to serve metrics endpoint: %v", err)
+			}
+		}()
+	}
+	return nil
 }
 
 // CreateMetricsEndpoint creates a /metrics endpoint

@@ -239,6 +239,15 @@ The `crio.network` table containers settings pertaining to the management of CNI
 **plugin_dirs**=["/opt/cni/bin/",]
   List of paths to directories where CNI plugin binaries are located.
 
+## CRIO.METRICS TABLE
+The `crio.metrics` table containers settings pertaining to the Prometheus based metrics retrieval.
+
+**enable_metrics**=false
+  Globally enable or disable metrics support.
+
+**metrics_port**=9090
+  The port on which the metrics server will listen.
+
 # SEE ALSO
 containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
 
