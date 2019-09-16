@@ -3,6 +3,7 @@ package oci
 import (
 	"io"
 
+	conmon "github.com/containers/conmon/runner/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,7 +16,7 @@ const (
 
 func redirectResponseToOutputStreams(outputStream, errorStream io.WriteCloser, conn io.Reader) error {
 	var err error
-	buf := make([]byte, BufSize+1)
+	buf := make([]byte, conmon.BufSize+1)
 
 	for {
 		nr, er := conn.Read(buf)

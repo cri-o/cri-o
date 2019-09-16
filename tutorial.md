@@ -206,6 +206,20 @@ RuntimeApiVersion:  v1alpha1
 > you can run `export CONTAINER_RUNTIME_ENDPOINT=unix:///var/run/crio/crio.sock`
 > or `cp crictl.yaml /etc/crictl.yaml` from this repo
 
+### Download conmon
+[conmon](https://github.com/containers/conmon) is a per-container daemon that `CRI-O` uses to monitor container logs and exit information.
+`conmon` needs to be downloaded with `CRI-O`.
+
+running:
+```bash
+git clone github.com/containers/conmon
+cd conmon
+make
+sudo make install
+```
+will download conmon to your $PATH.
+
+
 ### CNI plugins
 
 This tutorial will use the latest version of `CNI` plugins from the master branch and build it from source.

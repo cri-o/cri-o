@@ -44,6 +44,10 @@
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
 
+    - name: install conmon
+      include: "build/conmon.yml"
+
+
 - hosts: all
   remote_user: root
   vars_files:
@@ -66,6 +70,9 @@
     - name: clone build and install crun
       include: "build/crun.yml"
       when: "{{ build_crun | default(False) | bool}}"
+
+    - name: clone build and install conmon
+      include: "build/conmon.yml"
 
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
