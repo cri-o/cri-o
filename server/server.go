@@ -403,10 +403,7 @@ func New(
 	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	hostIP, err := s.getHostIP(config.HostIP)
-	if err != nil {
-		return nil, err
-	}
+	hostIP := s.getHostIP(config.HostIP)
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
 		bindAddress = hostIP
@@ -472,25 +469,25 @@ func New(
 	return s, nil
 }
 
-func (s *Server) getHostIP(configIP string) (net.IP, error) {
+func (s *Server) getHostIP(configIP string) net.IP {
 	// emulate kubelet behavior of choosing hostIP
 	// ref: k8s/pkg/kubelet/nodestatus/setters.go
 
 	// use configured value if set
 	if hostIP := net.ParseIP(configIP); hostIP != nil {
-		return hostIP, nil
+		return hostIP
 	}
 
 	// Otherwise use kubernetes utility to choose hostIP
 	// there exists the chance for both hostIP and err to be nil, so check both
 	if hostIP, err := knet.ChooseHostInterface(); err != nil && hostIP != nil {
-		return hostIP, nil
+		return hostIP
 	}
 
 	// attempt to find an IP from the hostname
 	if hostname, err := os.Hostname(); err == nil {
 		if hostIP := net.ParseIP(hostname); hostIP != nil && validateHostIP(hostIP) == nil {
-			return hostIP, nil
+			return hostIP
 		}
 	}
 
@@ -500,12 +497,15 @@ func (s *Server) getHostIP(configIP string) (net.IP, error) {
 		for _, addr := range allAddrs {
 			if ipnet, ok := addr.(*net.IPNet); ok {
 				if validateHostIP(ipnet.IP) == nil {
-					return ipnet.IP, nil
+					return ipnet.IP
 				}
 			}
 		}
 	}
-	return nil, errors.Errorf("Unable to find a hostIP")
+
+	localhost := net.IPv4(127, 0, 0, 1)
+	logrus.Warnf("unable to find a host IP, falling back to %v", localhost)
+	return localhost
 }
 
 func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
