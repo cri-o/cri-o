@@ -63,23 +63,6 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(server).To(BeNil())
 		})
 
-		It("should fail when Store is nil", func() {
-			config, err := libconfig.DefaultConfig()
-			Expect(err).To(BeNil())
-			// Given
-			gomock.InOrder(
-				libMock.EXPECT().GetStore().Return(nil, nil),
-				libMock.EXPECT().GetData().Return(config),
-			)
-
-			// When
-			server, err := lib.New(context.Background(), nil, libMock)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
-		})
-
 		It("should fail when config is nil", func() {
 			// Given
 			// When
