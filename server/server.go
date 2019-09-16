@@ -403,12 +403,9 @@ func New(
 	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	hostIP := net.ParseIP(config.HostIP)
-	if hostIP == nil {
-		hostIP, err = knet.ChooseBindAddress(nil)
-		if err != nil {
-			return nil, err
-		}
+	hostIP, err := s.getHostIP(config.HostIP)
+	if err != nil {
+		return nil, err
 	}
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
@@ -473,6 +470,42 @@ func New(
 	}
 
 	return s, nil
+}
+
+func (s *Server) getHostIP(configIP string) (net.IP, error) {
+	// emulate kubelet behavior of choosing hostIP
+	// ref: k8s/pkg/kubelet/nodestatus/setters.go
+
+	// use configured value if set
+	if hostIP := net.ParseIP(configIP); hostIP != nil {
+		return hostIP, nil
+	}
+
+	// Otherwise use kubernetes utility to choose hostIP
+	// there exists the chance for both hostIP and err to be nil, so check both
+	if hostIP, err := knet.ChooseHostInterface(); err != nil && hostIP != nil {
+		return hostIP, nil
+	}
+
+	// attempt to find an IP from the hostname
+	if hostname, err := os.Hostname(); err == nil {
+		if hostIP := net.ParseIP(hostname); hostIP != nil && validateHostIP(hostIP) == nil {
+			return hostIP, nil
+		}
+	}
+
+	// if that fails, check if we can find a primary IP address unambiguously
+	if allAddrs, err := net.InterfaceAddrs(); err == nil {
+		// adapted from: https://stackoverflow.com/a/31551220
+		for _, addr := range allAddrs {
+			if ipnet, ok := addr.(*net.IPNet); ok {
+				if validateHostIP(ipnet.IP) == nil {
+					return ipnet.IP, nil
+				}
+			}
+		}
+	}
+	return nil, errors.Errorf("Unable to find a hostIP")
 }
 
 func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
