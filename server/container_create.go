@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib/config"
@@ -521,11 +520,6 @@ func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, def
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
-	const operation = "create_container"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
 	log.Infof(ctx, "Attempting to create container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	s.updateLock.RLock()
@@ -624,7 +618,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		ContainerId: containerID,
 	}
 
-	log.Debugf(ctx, "CreateContainerResponse: %+v", resp)
 	return resp, nil
 }
 

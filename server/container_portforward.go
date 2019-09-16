@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
@@ -12,12 +11,6 @@ import (
 
 // PortForward prepares a streaming endpoint to forward ports from a PodSandbox.
 func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (resp *pb.PortForwardResponse, err error) {
-	const operation = "port_forward"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	resp, err = s.getPortForward(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare portforward endpoint")

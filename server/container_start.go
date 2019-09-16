@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
@@ -12,11 +11,6 @@ import (
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (resp *pb.StartContainerResponse, err error) {
-	const operation = "start_container"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err

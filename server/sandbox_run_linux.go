@@ -37,12 +37,6 @@ const cgroupMemorySubsystemMountPathV1 = "/sys/fs/cgroup/memory"
 const cgroupMemorySubsystemMountPathV2 = "/sys/fs/cgroup"
 
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
-	const operation = "run_pod_sandbox"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
 
