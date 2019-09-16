@@ -4,7 +4,6 @@ import (
 	"context"
 	goflag "flag"
 	"fmt"
-	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -242,6 +241,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	}
 	if ctx.GlobalIsSet("stream-tls-key") {
 		config.StreamTLSKey = ctx.GlobalString("stream-tls-key")
+	}
+	if ctx.GlobalIsSet("enable-metrics") {
+		config.EnableMetrics = ctx.GlobalBool("enable-metrics")
+	}
+	if ctx.GlobalIsSet("metrics-port") {
+		config.MetricsPort = ctx.GlobalInt("metrics-port")
 	}
 
 	return path, nil
@@ -750,23 +755,6 @@ func main() {
 		// Immediately upon start up, write our new version file
 		if err := version.WriteVersionFile(libconfig.CrioVersionPath, gitCommit); err != nil {
 			logrus.Fatal(err)
-		}
-
-		if c.GlobalBool("enable-metrics") {
-			metricsPort := c.GlobalInt("metrics-port")
-			me, err := service.CreateMetricsEndpoint()
-			if err != nil {
-				logrus.Fatalf("Failed to create metrics endpoint: %v", err)
-			}
-			l, err := net.Listen("tcp", fmt.Sprintf(":%v", metricsPort))
-			if err != nil {
-				logrus.Fatalf("Failed to create listener for metrics: %v", err)
-			}
-			go func() {
-				if err := http.Serve(l, me); err != nil {
-					logrus.Fatalf("Failed to serve metrics endpoint: %v", err)
-				}
-			}()
 		}
 
 		runtime.RegisterRuntimeServiceServer(grpcServer, service)

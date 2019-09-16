@@ -48,6 +48,7 @@ type Config struct {
 	RuntimeConfig
 	ImageConfig
 	NetworkConfig
+	MetricsConfig
 }
 
 // Iface provides a config interface for data encapsulation
@@ -349,6 +350,16 @@ type APIConfig struct {
 	HostIP string `toml:"host_ip"`
 }
 
+// MetricsConfig specifies all necessary configuration for Prometheus based
+// metrics retrieval
+type MetricsConfig struct {
+	// EnableMetrics can be used to globally enable or disable metrics support
+	EnableMetrics bool `toml:"enable_metrics"`
+
+	// MetricsPort is the port on which the metrics server will listen.
+	MetricsPort int `toml:"metrics_port"`
+}
+
 // tomlConfig is another way of looking at a Config, which is
 // TOML-friendly (it has all of the explicit tables). It's just used for
 // conversions.
@@ -359,6 +370,7 @@ type tomlConfig struct {
 		Runtime struct{ RuntimeConfig } `toml:"runtime"`
 		Image   struct{ ImageConfig }   `toml:"image"`
 		Network struct{ NetworkConfig } `toml:"network"`
+		Metrics struct{ MetricsConfig } `toml:"metrics"`
 	} `toml:"crio"`
 }
 
@@ -368,6 +380,7 @@ func (t *tomlConfig) toConfig(c *Config) {
 	c.RuntimeConfig = t.Crio.Runtime.RuntimeConfig
 	c.ImageConfig = t.Crio.Image.ImageConfig
 	c.NetworkConfig = t.Crio.Network.NetworkConfig
+	c.MetricsConfig = t.Crio.Metrics.MetricsConfig
 }
 
 func (t *tomlConfig) fromConfig(c *Config) {
@@ -376,6 +389,7 @@ func (t *tomlConfig) fromConfig(c *Config) {
 	t.Crio.Runtime.RuntimeConfig = c.RuntimeConfig
 	t.Crio.Image.ImageConfig = c.ImageConfig
 	t.Crio.Network.NetworkConfig = c.NetworkConfig
+	t.Crio.Metrics.MetricsConfig = c.MetricsConfig
 }
 
 // UpdateFromFile populates the Config from the TOML-encoded file at the given path.
@@ -492,6 +506,10 @@ func DefaultConfig() (*Config, error) {
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
 			PluginDirs: []string{cniBinDir},
+		},
+		MetricsConfig: MetricsConfig{
+			EnableMetrics: false,
+			MetricsPort:   9090,
 		},
 	}, nil
 }
