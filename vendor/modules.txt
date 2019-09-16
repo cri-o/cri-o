@@ -84,6 +84,8 @@ github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/pkg/cli
+# github.com/containers/conmon v2.0.0+incompatible
+github.com/containers/conmon/runner/config
 # github.com/containers/image v3.0.2+incompatible
 github.com/containers/image/types
 github.com/containers/image/pkg/sysregistriesv2
