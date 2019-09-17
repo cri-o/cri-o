@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/buildah/pkg/cgroups"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/signature"
@@ -249,6 +250,12 @@ func Runtime() string {
 	if runtime != "" {
 		return runtime
 	}
+
+	// Need to switch default until runc supports cgroups v2
+	if unified, _ := cgroups.IsCgroup2UnifiedMode(); unified {
+		return "crun"
+	}
+
 	return DefaultRuntime
 }
 
@@ -373,4 +380,18 @@ func LogIfNotRetryable(err error, what string) (retry bool) {
 // or EAGAIN or EIO syscall.Errno.
 func LogIfUnexpectedWhileDraining(err error, what string) {
 	logIfNotErrno(err, what, syscall.EINTR, syscall.EAGAIN, syscall.EIO)
+}
+
+// TruncateString trims the given string to the provided maximum amount of
+// characters and shortens it with `...`.
+func TruncateString(str string, to int) string {
+	newStr := str
+	if len(str) > to {
+		const tr = "..."
+		if to > len(tr) {
+			to -= len(tr)
+		}
+		newStr = str[0:to] + tr
+	}
+	return newStr
 }
