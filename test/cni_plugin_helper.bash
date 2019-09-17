@@ -3,10 +3,6 @@
 # This script wraps the CNI 'bridge' plugin to provide additional testing
 # capabilities
 
-if [[ -z "${CNI_ARGS}" ]]; then
-	exit 1
-fi
-
 IFS=';' read -ra array <<< "${CNI_ARGS}"
 for arg in "${array[@]}"; do
 	IFS='=' read -ra item <<< "${arg}"
@@ -33,8 +29,10 @@ echo "FOUND_CNI_CONTAINERID=${CNI_CONTAINERID}" >> /tmp/plugin_test_args.out
 echo "FOUND_K8S_POD_NAMESPACE=${K8S_POD_NAMESPACE}" >> /tmp/plugin_test_args.out
 echo "FOUND_K8S_POD_NAME=${K8S_POD_NAME}" >> /tmp/plugin_test_args.out
 
-. /tmp/cni_plugin_helper_input.env
-rm -f /tmp/cni_plugin_helper_input.env
+if [[ "${CNI_COMMAND}" != "VERSION" ]]; then
+  . /tmp/cni_plugin_helper_input.env
+  rm -f /tmp/cni_plugin_helper_input.env
+fi
 
 result=$(/opt/cni/bin/bridge $@) || exit $?
 
