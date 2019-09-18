@@ -53,7 +53,6 @@ squash.
 Test your changes by running:
 
 ```console
-$ make fmt
 $ make lint
 ```
 
