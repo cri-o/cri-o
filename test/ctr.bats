@@ -1497,3 +1497,20 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 }
+
+@test "annotations passed through" {
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl inspectp $pod_id | run grep '"owner": "hmeng"'
+	run crictl inspectp $pod_id | run grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	stop_crio
+}
