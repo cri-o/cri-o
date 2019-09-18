@@ -69,6 +69,12 @@ RUN VERSION=v0.8.1 &&\
     wget -qO- https://github.com/containernetworking/plugins/releases/download/$VERSION/cni-plugins-linux-amd64-$VERSION.tgz \
         | tar xfz - -C /opt/cni/bin
 
+# Install conmon
+RUN VERSION=v2.0.0 &&\
+    git clone https://github.com/containers/conmon &&\
+	cd conmon && git checkout $VERSION &&\
+	make && make PREFIX=/ install && cd .. && rm -rf conmon/
+
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
