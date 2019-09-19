@@ -18,10 +18,13 @@ FILES_ETC=(
     "../crio-umount.conf"
     "../crio.conf"
 )
+COMPLETIONS="../completions"
 
 TMPDIR=tmp
 rm -rf $TMPDIR
 mkdir -p $TMPDIR/{bin,etc,man}
+
+cp -r $COMPLETIONS $TMPDIR
 
 for FILE in "${FILES_BIN[@]}"; do
     if [[ ! -f "$FILE" ]]; then

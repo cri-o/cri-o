@@ -1,0 +1,14 @@
+_cli_zsh_autocomplete() {
+
+  local -a cmds
+  cmds=('config:retrieve the configuration as a TOML string' 'c:retrieve the configuration as a TOML string' 'info:retrieve generic information' 'i:retrieve generic information' 'containers:retrieve information about containers' 'container:retrieve information about containers' 'cs:retrieve information about containers' 's:retrieve information about containers' 'complete:Output shell completion code' 'completion:Output shell completion code' 'help:Shows a list of commands or help for one command' 'h:Shows a list of commands or help for one command')
+  _describe 'commands' cmds
+
+  local -a opts
+  opts=('--socket' '--help' '--version')
+  _describe 'global options' opts
+
+  return
+}
+
+compdef _cli_zsh_autocomplete crio-status
