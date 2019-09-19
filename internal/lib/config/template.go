@@ -329,4 +329,13 @@ network_dir = "{{ .NetworkDir }}"
 # Paths to directories where CNI plugin binaries are located.
 plugin_dirs = [
 {{ range $opt := .PluginDirs }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+
+# A necessary configuration for Prometheus based metrics retrieval
+[crio.metrics]
+
+# Globally enable or disable metrics support.
+enable_metrics = {{ .EnableMetrics }}
+
+# The port on which the metrics server will listen.
+metrics_port = {{ .MetricsPort }}
 `
