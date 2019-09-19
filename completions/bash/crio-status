@@ -1,51 +1,24 @@
-#!/usr/bin/env bash
-
-_crio_status() {
-    local cur first args commands
-
-    cur=${COMP_WORDS[COMP_CWORD]}
-    first=$(_first)
-
-    GLOBAL_COMMANDS="config containers help info"
-    GLOBAL_OPTIONS="-s --socket -h --help"
-    ROOT_OPTIONS="-v --version"
-
-    case "${first}" in
-    config)
-        args="$GLOBAL_OPTIONS"
-        commands=""
-        ;;
-    containers)
-        args="$GLOBAL_OPTIONS"
-        commands=""
-        ;;
-    info)
-        args="$GLOBAL_OPTIONS"
-        commands=""
-        ;;
-    *)
-        args="$GLOBAL_OPTIONS $ROOT_OPTIONS"
-        commands="$GLOBAL_COMMANDS"
-        ;;
-    esac
-
-    if [[ $cur == -* ]]; then
-        mapfile -t COMPREPLY < <(compgen -W "$args" -- "$cur")
-    else
-        mapfile -t COMPREPLY < <(compgen -W "$commands" -- "$cur")
-    fi
+_cli_bash_autocomplete() {
+    local cur opts base
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    opts="config
+c
+info
+i
+containers
+container
+cs
+s
+complete
+completion
+help
+h
+--socket
+--help
+--version"
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    return 0
 }
 
-_first() {
-    local first i
-    first=
-    for ((i = 1; i < ${#COMP_WORDS[@]}; ++i)); do
-        if [[ ${COMP_WORDS[i]} != -* ]]; then
-            first=${COMP_WORDS[i]}
-            break
-        fi
-    done
-    echo "$first"
-}
-
-complete -F _crio_status crio-status
+complete -F _cli_bash_autocomplete crio-status
