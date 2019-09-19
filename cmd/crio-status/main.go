@@ -20,7 +20,12 @@ const (
 func main() {
 	app := cli.NewApp()
 	app.Name = "crio-status"
+	app.Authors = []cli.Author{
+		{Name: "Sascha Grunert", Email: "sgrunert@suse.com"},
+	}
+	app.Author = app.Authors[0].Name
 	app.Usage = "A tool for CRI-O status retrieval"
+	app.Description = app.Usage
 	app.Version = version.Version
 	app.CommandNotFound = func(*cli.Context, string) { os.Exit(1) }
 	app.OnUsageError = func(c *cli.Context, e error, b bool) error { return e }
@@ -39,18 +44,12 @@ func main() {
 		},
 	}
 	app.Flags = flags
-	app.Commands = []cli.Command{{
+	app.Commands = []cli.Command{completion.Command, {
 		Action:  config,
 		Aliases: []string{"c"},
 		Flags:   flags,
 		Name:    "config",
-		Usage:   "retrieve the configuration as a TOML string",
-	}, {
-		Action:  info,
-		Aliases: []string{"i"},
-		Flags:   flags,
-		Name:    "info",
-		Usage:   "retrieve generic information",
+		Usage:   "Show the configuration of CRI-O as TOML string.",
 	}, {
 		Action:  containers,
 		Aliases: []string{"container", "cs", "s"},
@@ -59,15 +58,46 @@ func main() {
 			Usage: "the container ID",
 		}),
 		Name:  "containers",
-		Usage: "retrieve information about containers",
-	},
-		completion.Command,
-	}
+		Usage: "Display detailed information about the provided container ID.",
+	}, {
+		Action:  info,
+		Aliases: []string{"i"},
+		Flags:   flags,
+		Name:    "info",
+		Usage:   "Retrieve generic information about CRI-O, like the cgroup and storage driver.",
+	}, {
+		Action: man,
+		Name:   "man",
+		Usage:  "Generate the man page documentation.",
+	}, {
+		Action:  markdown,
+		Name:    "markdown",
+		Aliases: []string{"md"},
+		Usage:   "Generate the markdown documentation.",
+	}}
 
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func man(c *cli.Context) error {
+	res, err := c.App.ToMan()
+	if err != nil {
+		return err
+	}
+	fmt.Print(res)
+	return nil
+}
+
+func markdown(c *cli.Context) error {
+	res, err := c.App.ToMarkdown()
+	if err != nil {
+		return err
+	}
+	fmt.Print(strings.TrimSpace(res))
+	return nil
 }
 
 func config(c *cli.Context) error {

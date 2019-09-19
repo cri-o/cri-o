@@ -345,6 +345,10 @@ completions: binaries
 
 docs: $(MANPAGES) completions
 
+docs-generation:
+	bin/crio-status md  > docs/crio-status.8.md
+	bin/crio-status man > docs/crio-status.8
+
 bundle:
 	bundle/build
 
