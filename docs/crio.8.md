@@ -254,6 +254,10 @@ it later with **--config**. Global options will modify the output.
 **--default**
   Output the default configuration (without taking into account any configuration options).
 
+## complete, completion
+
+Generate bash, fish or zsh completions.
+
 ## FILES
 
 **crio.conf** (`/etc/crio/crio.conf`)

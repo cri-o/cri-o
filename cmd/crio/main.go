@@ -18,6 +18,7 @@ import (
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	libconfig "github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/internal/pkg/completion"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/signals"
 	"github.com/cri-o/cri-o/internal/version"
@@ -326,15 +327,17 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:   "config, c",
-			Value:  libconfig.CrioConfigPath,
-			Usage:  "path to configuration file",
-			EnvVar: "CONTAINER_CONFIG",
+			Name:      "config, c",
+			Value:     libconfig.CrioConfigPath,
+			Usage:     "path to configuration file",
+			EnvVar:    "CONTAINER_CONFIG",
+			TakesFile: true,
 		},
 		cli.StringFlag{
-			Name:   "conmon",
-			Usage:  fmt.Sprintf("path to the conmon executable (default: %q)", defConf.Conmon),
-			EnvVar: "CONTAINER_CONMON",
+			Name:      "conmon",
+			Usage:     fmt.Sprintf("path to the conmon executable (default: %q)", defConf.Conmon),
+			EnvVar:    "CONTAINER_CONMON",
+			TakesFile: true,
 		},
 		cli.StringFlag{
 			Name:   "conmon-cgroup",
@@ -342,9 +345,10 @@ func main() {
 			EnvVar: "CONTAINER_CONMON_CGROUP",
 		},
 		cli.StringFlag{
-			Name:   "listen",
-			Usage:  fmt.Sprintf("path to crio socket (default: %q)", defConf.Listen),
-			EnvVar: "CONTAINER_LISTEN",
+			Name:      "listen",
+			Usage:     fmt.Sprintf("path to crio socket (default: %q)", defConf.Listen),
+			EnvVar:    "CONTAINER_LISTEN",
+			TakesFile: true,
 		},
 		cli.StringFlag{
 			Name:   "stream-address",
@@ -357,10 +361,11 @@ func main() {
 			EnvVar: "CONTAINER_STREAM_PORT",
 		},
 		cli.StringFlag{
-			Name:   "log",
-			Value:  "",
-			Usage:  "set the log file path where internal debug information is written",
-			EnvVar: "CONTAINER_LOG",
+			Name:      "log",
+			Value:     "",
+			Usage:     "set the log file path where internal debug information is written",
+			EnvVar:    "CONTAINER_LOG",
+			TakesFile: true,
 		},
 		cli.StringFlag{
 			Name:   "log-format",
@@ -375,10 +380,11 @@ func main() {
 			EnvVar: "CONTAINER_LOG_LEVEL",
 		},
 		cli.StringFlag{
-			Name:   "log-dir",
-			Value:  "",
-			Usage:  "default log directory where all logs will go unless directly specified by the kubelet",
-			EnvVar: "CONTAINER_LOG_DIR",
+			Name:      "log-dir",
+			Value:     "",
+			Usage:     "default log directory where all logs will go unless directly specified by the kubelet",
+			EnvVar:    "CONTAINER_LOG_DIR",
+			TakesFile: true,
 		},
 		cli.StringFlag{
 			Name:   "pause-command",
@@ -391,29 +397,34 @@ func main() {
 			EnvVar: "CONTAINER_PAUSE_IMAGE",
 		},
 		cli.StringFlag{
-			Name:   "pause-image-auth-file",
-			Usage:  fmt.Sprintf("path to a config file containing credentials for --pause-image (default: %q)", defConf.PauseImageAuthFile),
-			EnvVar: "CONTAINER_PAUSE_IMAGE_AUTH_FILE",
+			Name:      "pause-image-auth-file",
+			Usage:     fmt.Sprintf("path to a config file containing credentials for --pause-image (default: %q)", defConf.PauseImageAuthFile),
+			EnvVar:    "CONTAINER_PAUSE_IMAGE_AUTH_FILE",
+			TakesFile: true,
 		},
 		cli.StringFlag{
-			Name:   "global-auth-file",
-			Usage:  fmt.Sprintf("path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: %q)", defConf.GlobalAuthFile),
-			EnvVar: "CONTAINER_GLOBAL_AUTH_FILE",
+			Name:      "global-auth-file",
+			Usage:     fmt.Sprintf("path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: %q)", defConf.GlobalAuthFile),
+			EnvVar:    "CONTAINER_GLOBAL_AUTH_FILE",
+			TakesFile: true,
 		},
 		cli.StringFlag{
-			Name:   "signature-policy",
-			Usage:  fmt.Sprintf("path to signature policy file (default: %q)", defConf.SignaturePolicyPath),
-			EnvVar: "CONTAINER_SIGNATURE_POLICY",
+			Name:      "signature-policy",
+			Usage:     fmt.Sprintf("path to signature policy file (default: %q)", defConf.SignaturePolicyPath),
+			EnvVar:    "CONTAINER_SIGNATURE_POLICY",
+			TakesFile: true,
 		},
 		cli.StringFlag{
-			Name:   "root, r",
-			Usage:  fmt.Sprintf("crio root dir (default: %q)", defConf.Root),
-			EnvVar: "CONTAINER_ROOT",
+			Name:      "root, r",
+			Usage:     fmt.Sprintf("crio root dir (default: %q)", defConf.Root),
+			EnvVar:    "CONTAINER_ROOT",
+			TakesFile: true,
 		},
 		cli.StringFlag{
-			Name:   "runroot",
-			Usage:  fmt.Sprintf("crio state dir (default: %q)", defConf.RunRoot),
-			EnvVar: "CONTAINER_RUNROOT",
+			Name:      "runroot",
+			Usage:     fmt.Sprintf("crio state dir (default: %q)", defConf.RunRoot),
+			EnvVar:    "CONTAINER_RUNROOT",
+			TakesFile: true,
 		},
 		cli.StringFlag{
 			Name:   "storage-driver, s",
@@ -454,9 +465,10 @@ func main() {
 			Usage: "OCI runtimes, format is runtime_name:runtime_path:runtime_root",
 		},
 		cli.StringFlag{
-			Name:   "seccomp-profile",
-			Usage:  fmt.Sprintf("default seccomp profile path (default: %q)", defConf.SeccompProfile),
-			EnvVar: "CONTAINER_SECCOMP_PROFILE",
+			Name:      "seccomp-profile",
+			Usage:     fmt.Sprintf("default seccomp profile path (default: %q)", defConf.SeccompProfile),
+			EnvVar:    "CONTAINER_SECCOMP_PROFILE",
+			TakesFile: true,
 		},
 		cli.StringFlag{
 			Name:   "apparmor-profile",
@@ -491,9 +503,10 @@ func main() {
 			EnvVar: "CONTAINER_LOG_JOURNALD",
 		},
 		cli.StringFlag{
-			Name:   "cni-config-dir",
-			Usage:  fmt.Sprintf("CNI configuration files directory (default: %q)", defConf.NetworkDir),
-			EnvVar: "CONTAINER_CNI_CONFIG_DIR",
+			Name:      "cni-config-dir",
+			Usage:     fmt.Sprintf("CNI configuration files directory (default: %q)", defConf.NetworkDir),
+			EnvVar:    "CONTAINER_CNI_CONFIG_DIR",
+			TakesFile: true,
 		},
 		cli.StringSliceFlag{
 			Name:  "cni-plugin-dir",
@@ -514,9 +527,10 @@ func main() {
 			Usage: fmt.Sprintf("add one or more default mount paths in the form host:container (deprecated) (default: %q)", defConf.DefaultMounts),
 		},
 		cli.StringFlag{
-			Name:   "default-mounts-file",
-			Usage:  fmt.Sprintf("path to default mounts file (default: %q)", defConf.DefaultMountsFile),
-			EnvVar: "CONTAINER_DEFAULT_MOUNTS_FILE",
+			Name:      "default-mounts-file",
+			Usage:     fmt.Sprintf("path to default mounts file (default: %q)", defConf.DefaultMountsFile),
+			EnvVar:    "CONTAINER_DEFAULT_MOUNTS_FILE",
+			TakesFile: true,
 		},
 		cli.StringFlag{
 			Name:   "default-capabilities",
@@ -584,12 +598,14 @@ func main() {
 			Usage: fmt.Sprintf("environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: %q)", defConf.ConmonEnv),
 		},
 		cli.StringFlag{
-			Name:  "container-attach-socket-dir",
-			Usage: fmt.Sprintf("path to directory for container attach sockets (default: %q)", defConf.ContainerAttachSocketDir),
+			Name:      "container-attach-socket-dir",
+			Usage:     fmt.Sprintf("path to directory for container attach sockets (default: %q)", defConf.ContainerAttachSocketDir),
+			TakesFile: true,
 		},
 		cli.StringFlag{
-			Name:  "container-exits-dir",
-			Usage: fmt.Sprintf("path to directory in which container exit files are written to by conmon (default: %q)", defConf.ContainerExitsDir),
+			Name:      "container-exits-dir",
+			Usage:     fmt.Sprintf("path to directory in which container exit files are written to by conmon (default: %q)", defConf.ContainerExitsDir),
+			TakesFile: true,
 		},
 		cli.Int64Flag{
 			Name:  "ctr-stop-timeout",
@@ -620,16 +636,19 @@ func main() {
 			Usage: fmt.Sprintf("enable encrypted TLS transport of the stream server (default: %v)", defConf.StreamEnableTLS),
 		},
 		cli.StringFlag{
-			Name:  "stream-tls-ca",
-			Usage: fmt.Sprintf("path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSCA),
+			Name:      "stream-tls-ca",
+			Usage:     fmt.Sprintf("path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSCA),
+			TakesFile: true,
 		},
 		cli.StringFlag{
-			Name:  "stream-tls-cert",
-			Usage: fmt.Sprintf("path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSCert),
+			Name:      "stream-tls-cert",
+			Usage:     fmt.Sprintf("path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSCert),
+			TakesFile: true,
 		},
 		cli.StringFlag{
-			Name:  "stream-tls-key",
-			Usage: fmt.Sprintf("path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSKey),
+			Name:      "stream-tls-key",
+			Usage:     fmt.Sprintf("path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSKey),
+			TakesFile: true,
 		},
 		cli.StringFlag{
 			Name:        "registries-conf",
@@ -637,6 +656,7 @@ func main() {
 			Destination: &systemContext.SystemRegistriesConfPath,
 			Hidden:      true,
 			EnvVar:      "CONTAINERS_REGISTRIES_CONF",
+			TakesFile:   true,
 		},
 	}
 
@@ -645,6 +665,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		configCommand,
+		completion.Command,
 	}
 
 	var configPath string

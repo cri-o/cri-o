@@ -41,6 +41,7 @@ MOCKGEN_FLAGS := --build_flags='--tags=test $(BUILDTAGS)'
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
+ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell selinuxenabled 2>/dev/null && echo -Z)
@@ -334,7 +335,15 @@ docs/%.8: docs/%.8.md .gopathok ${GO_MD2MAN}
 	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
 		(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
-docs: $(MANPAGES)
+completions: binaries
+	bin/crio complete bash > completions/bash/crio
+	bin/crio complete fish > completions/fish/crio.fish
+	bin/crio complete zsh  > completions/zsh/_crio
+	bin/crio-status complete bash > completions/bash/crio-status
+	bin/crio-status complete fish > completions/fish/crio-status.fish
+	bin/crio-status complete zsh  > completions/zsh/_crio-status
+
+docs: $(MANPAGES) completions
 
 bundle:
 	bundle/build
@@ -363,8 +372,13 @@ install.config: crio.conf
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
 	install ${SELINUXOPT} -d -m 755 ${FISHINSTALLDIR}
-	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} ./completions/bash/crio-status
-	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} ./completions/fish/crio-status.fish
+	install ${SELINUXOPT} -d -m 755 ${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} completions/bash/crio
+	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} completions/fish/crio.fish
+	install ${SELINUXOPT} -D -m 644 -t ${ZSHINSTALLDIR}  completions/zsh/_crio
+	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} completions/bash/crio-status
+	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} completions/fish/crio-status.fish
+	install ${SELINUXOPT} -D -m 644 -t ${ZSHINSTALLDIR}  completions/zsh/_crio-status
 
 install.systemd:
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
@@ -382,8 +396,12 @@ uninstall:
 	for i in $(filter %.8,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done
+	rm -f ${BASHINSTALLDIR}/crio
+	rm -f ${FISHINSTALLDIR}/crio.fish
+	rm -f ${ZSHINSTALLDIR}/_crio
 	rm -f ${BASHINSTALLDIR}/crio-status
 	rm -f ${FISHINSTALLDIR}/crio-status.fish
+	rm -f ${ZSHINSTALLDIR}/_crio-status
 
 git-validation: .gopathok git-vars ${GIT_VALIDATION}
 	GIT_CHECK_EXCLUDE="vendor" \
@@ -403,6 +421,7 @@ docs-validation:
 	bundle \
 	build-static \
 	clean \
+	completions \
 	default \
 	docs \
 	docs-validation \
