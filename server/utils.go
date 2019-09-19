@@ -129,11 +129,11 @@ func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 		bwConfig = &ocicni.BandwidthConfig{}
 		if ingress > 0 {
 			bwConfig.IngressRate = uint64(ingress)
-			bwConfig.IngressBurst = math.MaxUint64
+			bwConfig.IngressBurst = math.MaxUint32 * 8 // 4GB burst limit
 		}
 		if egress > 0 {
 			bwConfig.EgressRate = uint64(egress)
-			bwConfig.EgressBurst = math.MaxUint64
+			bwConfig.EgressBurst = math.MaxUint32 * 8 // 4GB burst limit
 		}
 	}
 
