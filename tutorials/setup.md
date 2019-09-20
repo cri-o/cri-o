@@ -259,7 +259,7 @@ Created ./bundle/crio-v1.15.0.tar.gz
 
 running:
 ```bash
-git clone github.com/containers/conmon
+git clone https://github.com/containers/conmon
 cd conmon
 make
 sudo make install
