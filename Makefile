@@ -300,9 +300,10 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 		go get -u github.com/vbatts/git-validation; \
 	fi
 
+# we have to build with this commit, because after golangci-lint breaks with go 1.10, which is still supported
 .install.golangci-lint: .gopathok
 	if [ ! -x "$(GOPATH)/bin/golangci-lint" ]; then \
-		go get -u github.com/golangci/golangci-lint/cmd/golangci-lint; \
+		$(GOPKGDIR)/hack/install-golangci-lint.sh; \
 	fi
 
 .install.md2man: .gopathok
