@@ -54,6 +54,9 @@ workflows:
           requires:
             - build
             - build-static
+      - docs-generation:
+          requires:
+            - build
       - docs-validation
       - ginkgo
       - git-validation
@@ -182,6 +185,25 @@ jobs:
           root: .
           paths:
             - bundle/*.tar.gz
+
+  docs-generation:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          keys:
+            - v1-docs-generation-{{ checksum "go.sum" }}
+      - run:
+          name: doc generation
+          command: |
+            sudo make docs-generation
+            hack/tree_status.sh
+      - save_cache:
+          key: v1-docs-generation-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
 
   docs-validation:
     executor: container

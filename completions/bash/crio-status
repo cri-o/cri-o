@@ -2,16 +2,19 @@ _cli_bash_autocomplete() {
     local cur opts base
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    opts="config
+    opts="complete
+completion
+config
 c
-info
-i
 containers
 container
 cs
 s
-complete
-completion
+info
+i
+man
+markdown
+md
 help
 h
 --socket
