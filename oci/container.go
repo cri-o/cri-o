@@ -269,7 +269,7 @@ func (c *Container) NetNsPath() (string, error) {
 	}
 
 	if c.netns == "" {
-		return fmt.Sprintf("/proc/%d/ns/net", c.state.Pid), nil
+		return fmt.Sprintf("/var/run/netns/%s", c.id), nil
 	}
 
 	return c.netns, nil
