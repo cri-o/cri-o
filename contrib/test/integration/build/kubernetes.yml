@@ -13,6 +13,14 @@
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
 
+# There were issues where the known violations upstream didn't match those found.
+# Since we're pulling right from upstream, and not changing anything, there shouldn't be risk in doing this
+- name: update api violations
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+    target: "generated_files"
+    params: UPDATE_API_KNOWN_VIOLATIONS=true
+
 - name: build kubernetes
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"

@@ -30,6 +30,8 @@
 
     - name: clone build and install kubetest
       include: "build/kubetest.yml"
+      vars:
+        force_clone: true
 
     - name: clone build and install runc
       include: "build/runc.yml"
@@ -127,6 +129,8 @@
 
     - name: clone build and install kubetest
       include: "build/kubetest.yml"
+      vars:
+        force_clone: true
 
     - name: run k8s e2e tests
       include: e2e.yml
@@ -148,6 +152,8 @@
 
     - name: clone build and install kubetest
       include: "build/kubetest.yml"
+      vars:
+        force_clone: true
 
     - name: run k8s e2e features tests
       include: e2e-features.yml
