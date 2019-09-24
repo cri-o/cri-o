@@ -373,7 +373,7 @@ func (s *Sandbox) NetNsPath() string {
 	if s.netns == nil || s.netns.Get() == nil ||
 		s.netns.Get().symlink == nil {
 		if s.infraContainer != nil {
-			return fmt.Sprintf("/proc/%v/ns/net", s.infraContainer.State().Pid)
+			return fmt.Sprintf("/var/run/netns/%s", s.infraContainer.ID())
 		}
 		return ""
 	}

@@ -155,7 +155,7 @@ var _ = t.Describe("Container", func() {
 
 	It("should succeed get NetNsPath if not provided", func() {
 		// Given
-		container, err := oci.NewContainer("", "", "", "", "",
+		container, err := oci.NewContainer("ctrid", "", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
 			"", "", "", &pb.ContainerMetadata{}, "",
 			false, false, false, false, "", "", time.Now(), "")
@@ -167,7 +167,7 @@ var _ = t.Describe("Container", func() {
 
 		// Then
 		Expect(err).To(BeNil())
-		Expect(path).To(Equal("/proc/0/ns/net"))
+		Expect(path).To(Equal("/var/run/netns/ctrid"))
 	})
 
 	It("should fail get NetNsPath if container state nil", func() {

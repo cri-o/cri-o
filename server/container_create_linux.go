@@ -619,7 +619,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		if netNsPath == "" {
 			// The sandbox does not have a permanent namespace,
 			// it's on the host one.
-			netNsPath = fmt.Sprintf("/proc/%d/ns/net", podInfraState.Pid)
+			netNsPath = fmt.Sprintf("/var/run/netns/%s", podInfraState.ID)
 		}
 
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
