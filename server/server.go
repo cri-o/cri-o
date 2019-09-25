@@ -221,6 +221,37 @@ func (s *Server) restore() {
 		}
 		sb.AddIP(ip)
 	}
+
+	// Clean up orphaned exit files
+	var exitIDs []string
+
+	exitDir := s.Config().RuntimeConfig.ContainerExitsDir
+	err = filepath.Walk(exitDir, func(path string, info os.FileInfo, err error) error {
+		exitFileName := filepath.Base(path)
+		if path != exitDir {
+			exitIDs = append(exitIDs, exitFileName)
+		}
+		return nil
+	})
+	if err != nil {
+		logrus.Warnf("Failed to walk exit dir %v: %v", exitDir, err)
+	}
+	for _, exitID := range exitIDs {
+		logrus.Warnf("Checking exit file: %v", exitID)
+		ctr := s.GetContainer(exitID)
+		if ctr != nil {
+			continue
+		} else {
+			sb := s.GetSandbox(exitID)
+			if sb != nil {
+				continue
+			}
+		}
+		logrus.Warnf("Removing exit file: %v", exitID)
+		if err := os.Remove(filepath.Join(exitDir, exitID)); err != nil && !os.IsNotExist(err) {
+			logrus.Warnf("Failed to remove container exit file during restore cleanup %s: %v", exitID, err)
+		}
+	}
 }
 
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown

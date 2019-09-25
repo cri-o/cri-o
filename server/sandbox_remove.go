@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/containers/storage"
@@ -98,6 +100,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	s.ReleaseContainerName(podInfraContainer.Name())
 	if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
 		return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.ID(), err)
+	}
+	if err := os.Remove(filepath.Join(s.Config().RuntimeConfig.ContainerExitsDir, podInfraContainer.ID())); err != nil && !os.IsNotExist(err) {
+		return nil, errors.Wrapf(err, "failed to remove pod infra container exit file %s", podInfraContainer.ID())
 	}
 
 	s.ReleasePodName(sb.Name())
