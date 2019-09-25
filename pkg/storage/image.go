@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 
@@ -189,6 +190,8 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageCacheItem) ImageResult {
 	name, tags, digests := sortNamesByType(image.Names)
 	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
+	sort.Strings(tags)
+	sort.Strings(repoDigests)
 	return ImageResult{
 		ID:           image.ID,
 		Name:         name,
