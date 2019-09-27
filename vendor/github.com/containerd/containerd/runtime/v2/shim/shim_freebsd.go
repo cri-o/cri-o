@@ -1,3 +1,5 @@
+// +build freebsd
+
 /*
    Copyright The containerd Authors.
 
@@ -14,18 +16,14 @@
    limitations under the License.
 */
 
-package sys
+package shim
 
-// SetOOMScore sets the oom score for the process
-//
-// Not implemented on Windows
-func SetOOMScore(pid, score int) error {
-	return nil
+import "github.com/containerd/ttrpc"
+
+func newServer() (*ttrpc.Server, error) {
+	return ttrpc.NewServer()
 }
 
-// GetOOMScoreAdj gets the oom score for a process
-//
-// Not implemented on Windows
-func GetOOMScoreAdj(pid int) (int, error) {
-	return 0, nil
+func subreaper() error {
+	return nil
 }

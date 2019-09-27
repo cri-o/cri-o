@@ -1,3 +1,5 @@
+// +build windows
+
 /*
    Copyright The containerd Authors.
 
@@ -14,43 +16,19 @@
    limitations under the License.
 */
 
-package shim
+package ttrpcutil
 
 import (
 	"context"
 	"net"
 	"os"
-	"syscall"
 	"time"
 
 	winio "github.com/Microsoft/go-winio"
 	"github.com/pkg/errors"
 )
 
-const shimBinaryFormat = "containerd-shim-%s-%s.exe"
-
-func getSysProcAttr() *syscall.SysProcAttr {
-	return nil
-}
-
-// AnonReconnectDialer returns a dialer for an existing npipe on containerd reconnection
-func AnonReconnectDialer(address string, timeout time.Duration) (net.Conn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	c, err := winio.DialPipeContext(ctx, address)
-	if os.IsNotExist(err) {
-		return nil, errors.Wrap(os.ErrNotExist, "npipe not found on reconnect")
-	} else if err == context.DeadlineExceeded {
-		return nil, errors.Wrapf(err, "timed out waiting for npipe %s", address)
-	} else if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
-// AnonDialer returns a dialer for a npipe
-func AnonDialer(address string, timeout time.Duration) (net.Conn, error) {
+func ttrpcDial(address string, timeout time.Duration) (net.Conn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
