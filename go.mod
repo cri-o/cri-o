@@ -27,7 +27,7 @@ require (
 	github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/mock v1.3.1
-	github.com/golangci/golangci-lint v1.17.1
+	github.com/golangci/golangci-lint v1.18.0
 	github.com/google/renameio v0.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/kr/pty v1.1.5
