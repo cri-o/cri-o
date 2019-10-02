@@ -3,7 +3,7 @@ package config_test
 import (
 	"testing"
 
-	"github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

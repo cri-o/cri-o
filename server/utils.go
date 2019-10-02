@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	libconfig "github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	units "github.com/docker/go-units"

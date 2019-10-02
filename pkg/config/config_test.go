@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/pkg/config"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

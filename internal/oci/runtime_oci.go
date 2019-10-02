@@ -15,8 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/pkg/findprocess"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/fsnotify/fsnotify"
