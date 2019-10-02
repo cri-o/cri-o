@@ -16,7 +16,7 @@ require (
 	github.com/containers/buildah v1.10.1
 	github.com/containers/image v3.0.2+incompatible
 	github.com/containers/libpod v1.5.0
-	github.com/containers/storage v1.13.3
+	github.com/containers/storage v1.13.4
 	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -27,7 +27,7 @@ require (
 	github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/mock v1.3.1
-	github.com/golangci/golangci-lint v1.17.1
+	github.com/golangci/golangci-lint v1.18.0
 	github.com/google/renameio v0.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/kr/pty v1.1.5

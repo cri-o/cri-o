@@ -23,7 +23,7 @@ github.com/Microsoft/hcsshim/internal/timeout
 github.com/Microsoft/hcsshim/internal/schema2
 github.com/Microsoft/hcsshim/internal/longpath
 github.com/Microsoft/hcsshim/internal/safefile
-# github.com/OpenPeeDeeP/depguard v0.0.0-20180806142446-a69c782687b2
+# github.com/OpenPeeDeeP/depguard v1.0.0
 github.com/OpenPeeDeeP/depguard
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
@@ -163,7 +163,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.13.3
+# github.com/containers/storage v1.13.4
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage
 github.com/containers/storage/pkg/idtools
@@ -310,7 +310,7 @@ github.com/fsouza/go-dockerclient/internal/jsonmessage
 github.com/fsouza/go-dockerclient/internal/term
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
-# github.com/go-critic/go-critic v0.0.0-20181204210945-1df300866540
+# github.com/go-critic/go-critic v0.3.5-0.20190526074819-1df300866540
 github.com/go-critic/go-critic/checkers
 github.com/go-critic/go-critic/checkers/internal/lintutil
 # github.com/go-lintpack/lintpack v0.5.2
@@ -371,12 +371,12 @@ github.com/golangci/dupl/printer
 github.com/golangci/dupl/syntax
 github.com/golangci/dupl/suffixtree
 github.com/golangci/dupl/syntax/golang
-# github.com/golangci/errcheck v0.0.0-20181003203344-ef45e06d44b6
+# github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6
 github.com/golangci/errcheck/golangci
 github.com/golangci/errcheck/internal/errcheck
 # github.com/golangci/go-misc v0.0.0-20180628070357-927a3d87b613
 github.com/golangci/go-misc/deadcode
-# github.com/golangci/go-tools v0.0.0-20180109140146-af6baa5dc196
+# github.com/golangci/go-tools v0.0.0-20190318055746-e32c54105b7c
 github.com/golangci/go-tools/config
 github.com/golangci/go-tools/lint
 github.com/golangci/go-tools/lint/lintutil
@@ -401,10 +401,10 @@ github.com/golangci/go-tools/callgraph/static
 github.com/golangci/goconst
 # github.com/golangci/gocyclo v0.0.0-20180528134321-2becd97e67ee
 github.com/golangci/gocyclo/pkg/gocyclo
-# github.com/golangci/gofmt v0.0.0-20181105071733-0b8337e80d98
+# github.com/golangci/gofmt v0.0.0-20181222123516-0b8337e80d98
 github.com/golangci/gofmt/gofmt
 github.com/golangci/gofmt/goimports
-# github.com/golangci/golangci-lint v1.17.1
+# github.com/golangci/golangci-lint v1.18.0
 github.com/golangci/golangci-lint/cmd/golangci-lint
 github.com/golangci/golangci-lint/pkg/commands
 github.com/golangci/golangci-lint/pkg/config
@@ -415,23 +415,23 @@ github.com/golangci/golangci-lint/pkg/lint
 github.com/golangci/golangci-lint/pkg/lint/linter
 github.com/golangci/golangci-lint/pkg/lint/lintersdb
 github.com/golangci/golangci-lint/pkg/logutils
+github.com/golangci/golangci-lint/pkg/packages
 github.com/golangci/golangci-lint/pkg/printers
 github.com/golangci/golangci-lint/pkg/report
 github.com/golangci/golangci-lint/pkg/result
 github.com/golangci/golangci-lint/pkg/result/processors
 github.com/golangci/golangci-lint/pkg/lint/astcache
-github.com/golangci/golangci-lint/pkg/packages
 github.com/golangci/golangci-lint/pkg/timeutils
 github.com/golangci/golangci-lint/pkg/golinters
 github.com/golangci/golangci-lint/pkg/golinters/goanalysis
 github.com/golangci/golangci-lint/pkg/golinters/goanalysis/passes/nilness
 github.com/golangci/golangci-lint/pkg/golinters/goanalysis/checker
-# github.com/golangci/gosec v0.0.0-20180901114220-66fb7fc33547
+# github.com/golangci/gosec v0.0.0-20190211064107-66fb7fc33547
 github.com/golangci/gosec
 github.com/golangci/gosec/rules
-# github.com/golangci/ineffassign v0.0.0-20180808204949-42439a7714cc
+# github.com/golangci/ineffassign v0.0.0-20190609212857-42439a7714cc
 github.com/golangci/ineffassign
-# github.com/golangci/lint-1 v0.0.0-20180610141402-ee948d087217
+# github.com/golangci/lint-1 v0.0.0-20190420132249-ee948d087217
 github.com/golangci/lint-1
 # github.com/golangci/maligned v0.0.0-20180506175553-b1d89398deca
 github.com/golangci/maligned
@@ -692,13 +692,15 @@ github.com/spf13/viper
 github.com/syndtr/gocapability/capability
 # github.com/tchap/go-patricia v2.3.0+incompatible
 github.com/tchap/go-patricia/patricia
-# github.com/timakin/bodyclose v0.0.0-20190407043127-4a873e97b2bb
+# github.com/timakin/bodyclose v0.0.0-20190721030226-87058b9bfcec
 github.com/timakin/bodyclose/passes/bodyclose
 # github.com/ulikunitz/xz v0.5.6
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
 github.com/ulikunitz/xz/internal/hash
+# github.com/ultraware/funlen v0.0.1
+github.com/ultraware/funlen
 # github.com/urfave/cli v1.20.0
 github.com/urfave/cli
 # github.com/vbatts/git-validation v1.0.0
@@ -789,7 +791,7 @@ golang.org/x/text/width
 golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190624190245-7f2218787638
+# golang.org/x/tools v0.0.0-20190909030654-5b82db07426d
 golang.org/x/tools/go/packages
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/packagesdriver
@@ -1221,7 +1223,7 @@ k8s.io/utils/pointer
 mvdan.cc/interfacer/check
 # mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b
 mvdan.cc/lint
-# mvdan.cc/unparam v0.0.0-20190124213536-fbb59629db34
+# mvdan.cc/unparam v0.0.0-20190209190245-fbb59629db34
 mvdan.cc/unparam/check
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml
