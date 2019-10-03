@@ -283,7 +283,7 @@ mock-lib-config: ${MOCKGEN}
 		${MOCKGEN_FLAGS} \
 		-package libconfigmock \
 		-destination ${MOCK_PATH}/lib/lib.go \
-		github.com/cri-o/cri-o/internal/lib/config Iface
+		github.com/cri-o/cri-o/pkg/config Iface
 
 mock-oci: ${MOCKGEN}
 	${MOCKGEN} \

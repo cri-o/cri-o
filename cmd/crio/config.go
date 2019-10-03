@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/image/types"
-	"github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/urfave/cli"
 )
 

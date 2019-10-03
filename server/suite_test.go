@@ -11,9 +11,9 @@ import (
 
 	"github.com/containers/image/types"
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
 	. "github.com/cri-o/cri-o/test/framework"
 	imagetypesmock "github.com/cri-o/cri-o/test/mocks/containers/image"

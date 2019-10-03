@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/lib"
-	libconfig "github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 	. "github.com/cri-o/cri-o/test/framework"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	libmock "github.com/cri-o/cri-o/test/mocks/lib"
