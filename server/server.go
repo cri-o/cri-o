@@ -161,6 +161,11 @@ func (s *Server) restore() {
 			logrus.Warnf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
 			continue
 		}
+		if !storage.IsCrioContainer(metadata) {
+			logrus.Debugf("container %s determined to not be a CRI-O container or sandbox", container.ID)
+			continue
+		}
+
 		names[container.ID] = container.Names
 		if metadata.Pod {
 			pods[container.ID] = &metadata
