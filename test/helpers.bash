@@ -271,6 +271,8 @@ function setup_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --registry "quay.io" --registry "docker.io" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
+	# make sure we don't run with nodev, or else mounting a readonly rootfs will fail: https://github.com/cri-o/cri-o/issues/1929#issuecomment-474240498
+	sed -r -e 's/nodev(,)?//g' -i $CRIO_CONFIG
 	sed -ie 's;\(container_exits_dir =\) \(.*\);\1 "'$CONTAINER_EXITS_DIR'";g' $CRIO_CONFIG
 	sed -ie 's;\(container_attach_socket_dir =\) \(.*\);\1 "'$CONTAINER_ATTACH_SOCKET_DIR'";g' $CRIO_CONFIG
 	# Prepare the CNI configuration files, we're running with non host networking by default
