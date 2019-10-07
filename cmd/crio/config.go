@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/types"
 	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/urfave/cli"
 )
