@@ -89,8 +89,7 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 		if err := json.Unmarshal([]byte(metadataString), &metadata); err != nil {
 			continue
 		}
-		// CRI-O pods differ from libpod pods because they contain a PodName and PodID annotation
-		if metadata.PodName == "" || metadata.PodID == "" {
+		if !storage.IsCrioContainer(metadata) {
 			continue
 		}
 		crioContainers = append(crioContainers, id)
