@@ -137,6 +137,9 @@ type RootConfig struct {
 	// LogDir is the default log directory where all logs will go unless kubelet
 	// tells us to put them somewhere else.
 	LogDir string `toml:"log_dir"`
+
+	// VersionFile is the location CRI-O will lay down the version file
+	VersionFile string `toml:"version_file"`
 }
 
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
@@ -454,6 +457,7 @@ func DefaultConfig() (*Config, error) {
 			Storage:        storeOpts.GraphDriverName,
 			StorageOptions: storeOpts.GraphDriverOptions,
 			LogDir:         "/var/log/crio/pods",
+			VersionFile:    CrioVersionPath,
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,

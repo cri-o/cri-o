@@ -170,8 +170,8 @@ github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
 # github.com/containers/storage v1.13.4
-github.com/containers/storage/pkg/reexec
 github.com/containers/storage
+github.com/containers/storage/pkg/reexec
 github.com/containers/storage/pkg/idtools
 github.com/containers/storage/drivers
 github.com/containers/storage/pkg/archive
