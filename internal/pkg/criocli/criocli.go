@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/types"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
