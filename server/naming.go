@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/docker/docker/pkg/stringid"
+	"github.com/containers/storage/pkg/stringid"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
