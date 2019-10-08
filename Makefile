@@ -1,4 +1,12 @@
 GO ?= go
+
+# test for go module support
+ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
+export GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
+else
+export GO_BUILD=$(GO) build
+endif
+
 EPOCH_TEST_COMMIT ?= 1cc5a27
 PROJECT := github.com/cri-o/cri-o
 CRIO_IMAGE = crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
@@ -157,11 +165,11 @@ ${BUILD_BIN_PATH}/ginkgo:
 	mkdir -p ${BUILD_BIN_PATH}
 	$(GO) build -o ${BUILD_BIN_PATH}/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo
 
-vendor: .install.vndr
-	$(GOPATH)/bin/vndr \
-		-whitelist "github.com/onsi/ginkgo" \
-		-whitelist "github.com/golang/mock" \
-		${PKG}
+vendor:
+	export GO111MODULE=on \
+		$(GO) mod tidy && \
+		$(GO) mod vendor && \
+		$(GO) mod verify
 
 ${BUILD_BIN_PATH}/mockgen:
 	mkdir -p ${BUILD_BIN_PATH}
@@ -310,9 +318,6 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 	if [ ! -x "$(GOPATH)/bin/go-md2man" ]; then \
 		go get -u github.com/cpuguy83/go-md2man; \
 	fi
-
-.install.vndr: .gopathok
-	$(GO) get -u github.com/LK4D4/vndr
 
 .install.ostree: .gopathok
 	if ! pkg-config ostree-1 2> /dev/null ; then \
