@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -298,6 +299,95 @@ var _ = t.Describe("RunPodSandbox", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(res).To(Equal(""))
+		})
+	})
+
+	t.Describe("PauseCommand", func() {
+		var cfg *config.Config
+
+		BeforeEach(func() {
+			// Given
+			var err error
+			cfg, err = config.DefaultConfig()
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with default config", func() {
+			// When
+			res, err := server.PauseCommand(cfg, nil)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal([]string{sut.Config().PauseCommand}))
+		})
+
+		It("should succeed with Entrypoint", func() {
+			// Given
+			cfg.PauseCommand = ""
+			entrypoint := []string{"/custom-pause"}
+			image := &v1.Image{Config: v1.ImageConfig{Entrypoint: entrypoint}}
+
+			// When
+			res, err := server.PauseCommand(cfg, image)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(entrypoint))
+		})
+
+		It("should succeed with Cmd", func() {
+			// Given
+			cfg.PauseCommand = ""
+			cmd := []string{"some-cmd"}
+			image := &v1.Image{Config: v1.ImageConfig{Cmd: cmd}}
+
+			// When
+			res, err := server.PauseCommand(cfg, image)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(cmd))
+		})
+
+		It("should succeed with Entrypoint and Cmd", func() {
+			// Given
+			cfg.PauseCommand = ""
+			entrypoint := "/custom-pause"
+			cmd := "some-cmd"
+			image := &v1.Image{Config: v1.ImageConfig{
+				Entrypoint: []string{entrypoint},
+				Cmd:        []string{cmd},
+			}}
+
+			// When
+			res, err := server.PauseCommand(cfg, image)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(res).To(HaveLen(2))
+			Expect(res[0]).To(Equal(entrypoint))
+			Expect(res[1]).To(Equal(cmd))
+		})
+
+		It("should fail if config is nil", func() {
+			// When
+			res, err := server.PauseCommand(nil, nil)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(res).To(BeNil())
+		})
+
+		It("should fail if image config is nil", func() {
+			// Given
+			cfg.PauseCommand = ""
+
+			// When
+			res, err := server.PauseCommand(cfg, nil)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(res).To(BeNil())
 		})
 	})
 })
