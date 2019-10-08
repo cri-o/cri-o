@@ -14,7 +14,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -217,8 +216,8 @@ func (c *Container) Kill(signal uint) error {
 }
 
 // Exec starts a new process inside the container
-// Returns an exit code and an error. If Exec was not able to exec in the container before a failure, an exit code of 126 is returned.
-// If another generic error happens, an exit code of 125 is returned.
+// Returns an exit code and an error. If Exec was not able to exec in the container before a failure, an exit code of define.ExecErrorCodeCannotInvoke is returned.
+// If another generic error happens, an exit code of define.ExecErrorCodeGeneric is returned.
 // Sometimes, the $RUNTIME exec call errors, and if that is the case, the exit code is the exit code of the call.
 // Otherwise, the exit code will be the exit code of the executed call inside of the container.
 // TODO investigate allowing exec without attaching
@@ -273,6 +272,11 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 			logrus.Errorf("Error removing exec session %s bundle path for container %s: %v", sessionID, c.ID(), err)
 		}
 	}()
+
+	// if the user is empty, we should inherit the user that the container is currently running with
+	if user == "" {
+		user = c.config.User
+	}
 
 	pid, attachChan, err := c.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, user, sessionID, streams, preserveFDs, resize, detachKeys)
 	if err != nil {
@@ -519,24 +523,25 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
-	err := wait.PollImmediateInfinite(waitTimeout,
-		func() (bool, error) {
-			logrus.Debugf("Checking container %s status...", c.ID())
-			stopped, err := c.isStopped()
-			if err != nil {
-				return false, err
-			}
-			if !stopped {
-				return false, nil
-			}
-			return true, nil
-		},
-	)
-	if err != nil {
-		return 0, err
+
+	exitFile := c.exitFilePath()
+	chWait := make(chan error, 1)
+
+	defer close(chWait)
+
+	for {
+		// ignore errors here, it is only used to avoid waiting
+		// too long.
+		_, _ = WaitForFile(exitFile, chWait, waitTimeout)
+
+		stopped, err := c.isStopped()
+		if err != nil {
+			return -1, err
+		}
+		if stopped {
+			return c.state.ExitCode, nil
+		}
 	}
-	exitCode := c.state.ExitCode
-	return exitCode, nil
 }
 
 // Cleanup unmounts all mount points in container and cleans up container storage
@@ -815,4 +820,13 @@ func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 	defer c.newContainerEvent(events.Restore)
 	return c.restore(ctx, options)
+}
+
+// AutoRemove indicates whether the container will be removed after it is executed
+func (c *Container) AutoRemove() bool {
+	spec := c.config.Spec
+	if spec.Annotations == nil {
+		return false
+	}
+	return c.Spec().Annotations[InspectAnnotationAutoremove] == InspectResponseTrue
 }

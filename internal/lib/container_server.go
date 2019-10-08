@@ -28,6 +28,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
+// ContainerManagerCRIO specifies an annotation value which indicates that the
+// container has been created by CRI-O. Usually used together with the key
+// `io.container.manager`.
+const ContainerManagerCRIO = "cri-o"
+
 // ContainerServer implements the ImageServer
 type ContainerServer struct {
 	runtime              oci.RuntimeImpl
@@ -252,7 +257,11 @@ func (c *ContainerServer) Update() error {
 	for containerID := range newPodContainers {
 		// load this container
 		if err = c.LoadContainer(containerID); err != nil {
-			logrus.Warnf("could not load new sandbox container %s: %v, ignoring", containerID, err)
+			if err == ErrIsNonCrioContainer {
+				logrus.Infof("ignoring non CRI-O container %s", containerID)
+			} else {
+				logrus.Warnf("could not load new sandbox container %s: %v, ignoring", containerID, err)
+			}
 		} else {
 			logrus.Debugf("loaded new pod container %s: %v", containerID, err)
 		}
@@ -431,6 +440,8 @@ func configNetNsPath(spec *rspec.Spec) (string, error) {
 	return "", fmt.Errorf("missing networking namespace")
 }
 
+var ErrIsNonCrioContainer = errors.New("non CRI-O container")
+
 // LoadContainer loads a container from the disk into the container store
 func (c *ContainerServer) LoadContainer(id string) error {
 	config, err := c.store.FromContainerDirectory(id, "config.json")
@@ -441,6 +452,12 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	if err := json.Unmarshal(config, &m); err != nil {
 		return err
 	}
+
+	// Do not interact with containers of others
+	if manager, ok := m.Annotations[annotations.ContainerManager]; ok && manager != ContainerManagerCRIO {
+		return ErrIsNonCrioContainer
+	}
+
 	labels := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return err

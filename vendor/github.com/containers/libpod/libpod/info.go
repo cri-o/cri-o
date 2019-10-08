@@ -6,17 +6,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // top-level "host" info
@@ -27,6 +30,15 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = rootless.IsRootless()
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading cgroups mode")
+	}
+	cgroupVersion := "v1"
+	if unified {
+		cgroupVersion = "v2"
+	}
+	info["CgroupVersion"] = cgroupVersion
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading memory info")
@@ -44,6 +56,20 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		"package": r.defaultOCIRuntime.conmonPackage(),
 		"version": conmonVersion,
 	}
+	if rootless.IsRootless() {
+		if path, err := exec.LookPath("slirp4netns"); err == nil {
+			logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
+			version, err := programVersion(path)
+			if err != nil {
+				logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
+			}
+			program := map[string]interface{}{}
+			program["Executable"] = path
+			program["Version"] = version
+			program["Package"] = packageVersion(path)
+			info["slirp4netns"] = program
+		}
+	}
 	info["OCIRuntime"] = map[string]interface{}{
 		"path":    r.defaultOCIRuntime.path,
 		"package": r.defaultOCIRuntime.pathPackage(),
@@ -53,7 +79,6 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		"distribution": hostDistributionInfo["Distribution"],
 		"version":      hostDistributionInfo["Version"],
 	}
-
 	info["BuildahVersion"] = buildah.Version
 	kv, err := readKernelVersion()
 	if err != nil {
@@ -113,7 +138,24 @@ func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 	info["GraphRoot"] = r.store.GraphRoot()
 	info["RunRoot"] = r.store.RunRoot()
 	info["GraphDriverName"] = r.store.GraphDriverName()
-	info["GraphOptions"] = r.store.GraphOptions()
+	graphOptions := map[string]interface{}{}
+	for _, o := range r.store.GraphOptions() {
+		split := strings.SplitN(o, "=", 2)
+		if strings.HasSuffix(split[0], "mount_program") {
+			version, err := programVersion(split[1])
+			if err != nil {
+				logrus.Warnf("Failed to retrieve program version for %s: %v", split[1], err)
+			}
+			program := map[string]interface{}{}
+			program["Executable"] = split[1]
+			program["Version"] = version
+			program["Package"] = packageVersion(split[1])
+			graphOptions[split[0]] = program
+		} else {
+			graphOptions[split[0]] = split[1]
+		}
+	}
+	info["GraphOptions"] = graphOptions
 	info["VolumePath"] = r.config.VolumePath
 
 	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
