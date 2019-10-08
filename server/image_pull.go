@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/copy"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/sirupsen/logrus"

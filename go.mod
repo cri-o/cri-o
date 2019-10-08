@@ -15,19 +15,19 @@ require (
 	github.com/containerd/containerd v1.2.2
 	github.com/containerd/fifo v0.0.0-20180307165137-3d5202aec260 // indirect
 	github.com/containerd/go-runc v0.0.0-20180907222934-5a6d9f37cfa3 // indirect
-	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
+	github.com/containerd/ttrpc v0.0.0-20190828172938-92c8520ef9f8
 	github.com/containerd/typeurl v0.0.0-20180627222232-a93fcdb778cd // indirect
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 	github.com/containernetworking/plugins v0.7.5
-	github.com/containers/buildah v1.8.4
-	github.com/containers/image v2.0.1-0.20190917185454-0d870c59cc81+incompatible
-	github.com/containers/libpod v1.4.2-0.20190913185349-b0b16bbea62f
+	github.com/containers/buildah v1.11.4
+	github.com/containers/image/v5 v5.0.0
+	github.com/containers/libpod v1.6.3-0.20191111140219-de32b89eff09
 	github.com/containers/psgo v1.3.0 // indirect
 	github.com/containers/storage v1.12.11-0.20190912205451-e30d5056f279
 	github.com/coreos/go-iptables v0.3.1-0.20180704133345-25d087f3cffd // indirect
 	github.com/coreos/go-systemd v0.0.0-20161114122254-48702e0da86b
 	github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf // indirect
-	github.com/cri-o/ocicni v0.1.1-0.20190911050816-7bd73e9a7f59
+	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 	github.com/cyphar/filepath-securejoin v0.2.1 // indirect
 	github.com/docker/distribution v2.6.0-rc.1.0.20170817175659-5f6282db7d65+incompatible // indirect
 	github.com/docker/docker v1.4.2-0.20190307005417-54dddadc7d5d
@@ -42,7 +42,7 @@ require (
 	github.com/fsouza/go-dockerclient v1.3.0 // indirect
 	github.com/ghodss/yaml v1.0.1-0.20180820084758-c7ce16629ff4 // indirect
 	github.com/go-zoo/bone v0.0.0-20170711140942-031b4005dfe2
-	github.com/godbus/dbus v4.1.0+incompatible
+	github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/groupcache v0.0.0-20170421005642-b710c8433bd1 // indirect
 	github.com/golang/mock v1.2.0
@@ -72,12 +72,12 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180320133207-05fbef0ca5da // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618 // indirect
 	github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c // indirect
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
+	github.com/onsi/ginkgo v1.10.3
+	github.com/onsi/gomega v1.7.1
 	github.com/opencontainers/go-digest v1.0.0-rc1.0.20180430190053-c9281466c8b2
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/opencontainers/runc v1.0.0-rc6.0.20190322180631-11fc498ffa5c
-	github.com/opencontainers/runtime-spec v1.0.2-0.20180909173843-eba862dc2470
+	github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
 	github.com/opencontainers/runtime-tools v0.6.0
 	github.com/opencontainers/selinux v1.0.1-0.20190313214808-9e2c5215628a
 	github.com/openshift/imagebuilder v0.0.0-20190308124740-705fe9255c57 // indirect
@@ -114,21 +114,30 @@ require (
 	google.golang.org/grpc v1.23.0
 	gopkg.in/inf.v0 v0.9.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
-	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
-	k8s.io/apiextensions-apiserver v0.0.0-20190315093550-53c4693659ed // indirect
-	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
-	k8s.io/apiserver v0.0.0-20190313205120-8b27c41bdbb1 // indirect
-	k8s.io/client-go v11.0.0+incompatible
-	k8s.io/cloud-provider v0.0.0-20190314002645-c892ea32361a // indirect
-	k8s.io/csi-api v0.0.0-20190314001839-693d387aa133 // indirect
+	k8s.io/api release-1.14
+	k8s.io/apiextensions-apiserver release-1.14
+	k8s.io/apimachinery release-1.14
+	k8s.io/apiserver release-1.14
+	k8s.io/client-go kubernetes-1.14.8
+	k8s.io/cloud-provider release-1.14
+	k8s.io/csi-api release-1.14 // indirect
 	k8s.io/klog v0.0.0-20181108234604-8139d8cb77af // indirect
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
-	k8s.io/kubernetes v1.14.0
+	k8s.io/kubernetes release-1.14
 	k8s.io/utils v0.0.0-20190221042446-c2654d5206da
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
 
 replace (
+	k8s.io/api => k8s.io/api kubernetes-1.14.0
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver kubernetes-1.14.0
+	k8s.io/apimachinery => k8s.io/apimachinery kubernetes-1.14.0
+	k8s.io/apiserver => k8s.io/apiserver kubernetes-1.14.0
+	k8s.io/client-go => k8s.io/client-go kubernetes-1.14.0
+	k8s.io/cloud-provider => k8s.io/cloud-provider kubernetes-1.14.0
+	k8s.io/csi-api => k8s.io/csi-api kubernetes-1.14.0
+	k8s.io/klog => k8s.io/klog v0.0.0-20181108234604-8139d8cb77af
+	k8s.io/kubernetes => k8s.io/kubernetes v1.14.0
 	google.golang.org/grpc => github.com/grpc/grpc-go v1.23.0
 	sigs.k8s.io/yaml => github.com/kubernetes-sigs/yaml v1.1.0
 )
