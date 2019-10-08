@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -23,8 +24,6 @@ import (
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 )
-
-const unknownPackage = "Unknown"
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
 func makeAccessible(path string, uid, gid int) error {
@@ -114,36 +113,12 @@ func (r *OCIRuntime) createContainer(ctr *Container, restoreOptions *ContainerCh
 	return r.createOCIContainer(ctr, restoreOptions)
 }
 
-func rpmVersion(path string) string {
-	output := unknownPackage
-	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
-	if outp, err := cmd.Output(); err == nil {
-		output = string(outp)
-	}
-	return strings.Trim(output, "\n")
-}
-
-func dpkgVersion(path string) string {
-	output := unknownPackage
-	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
-	if outp, err := cmd.Output(); err == nil {
-		output = string(outp)
-	}
-	return strings.Trim(output, "\n")
-}
-
 func (r *OCIRuntime) pathPackage() string {
-	if out := rpmVersion(r.path); out != unknownPackage {
-		return out
-	}
-	return dpkgVersion(r.path)
+	return packageVersion(r.path)
 }
 
 func (r *OCIRuntime) conmonPackage() string {
-	if out := rpmVersion(r.conmonPath); out != unknownPackage {
-		return out
-	}
-	return dpkgVersion(r.conmonPath)
+	return packageVersion(r.conmonPath)
 }
 
 // execContainer executes a command in a running container
@@ -208,7 +183,7 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		}
 	}()
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return -1, nil, err
 	}
@@ -225,7 +200,7 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog)
 
 	if preserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", string(preserveFDs))...)
+		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.Itoa(preserveFDs))...)
 	}
 
 	for _, capability := range capAdd {
@@ -262,6 +237,12 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		return -1, nil, err
 	}
 
+	if preserveFDs > 0 {
+		for fd := 3; fd < 3+preserveFDs; fd++ {
+			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
+		}
+	}
+
 	// we don't want to step on users fds they asked to preserve
 	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
 	execCmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", preserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", preserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", preserveFDs+5))
@@ -272,12 +253,6 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	execCmd.Dir = c.execBundlePath(sessionID)
 	execCmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
-	}
-
-	if preserveFDs > 0 {
-		for fd := 3; fd < 3+preserveFDs; fd++ {
-			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
-		}
 	}
 
 	err = startCommandGivenSelinux(execCmd)
@@ -428,16 +403,18 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 	}
 
 	var args []string
-	if rootless.IsRootless() {
+	if rootless.IsRootless() || ctr.config.NoCgroups {
 		// we don't use --all for rootless containers as the OCI runtime might use
 		// the cgroups to determine the PIDs, but for rootless containers there is
 		// not any.
+		// Same logic for NoCgroups - we can't use cgroups as the user
+		// explicitly requested none be created.
 		args = []string{"kill", ctr.ID(), "KILL"}
 	} else {
 		args = []string{"kill", "--all", ctr.ID(), "KILL"}
 	}
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -487,7 +464,7 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 	if len(execSessions) == 0 {
 		return nil
 	}
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}

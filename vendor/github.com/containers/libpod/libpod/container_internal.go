@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
@@ -21,6 +22,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -162,7 +164,15 @@ func (c *Container) createExecBundle(sessionID string) (err error) {
 
 // cleanup an exec session after its done
 func (c *Container) cleanupExecBundle(sessionID string) error {
-	return os.RemoveAll(c.execBundlePath(sessionID))
+	if err := os.RemoveAll(c.execBundlePath(sessionID)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	// Clean up the sockets dir. Issue #3962
+	// Also ignore if it doesn't exist for some reason; hence the conditional return below
+	if err := os.RemoveAll(filepath.Join(c.ociRuntime.socketsDir, sessionID)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 // the path to a containers exec session bundle
@@ -612,7 +622,11 @@ func (c *Container) refresh() error {
 		return err
 	}
 
-	return nil
+	if rootless.IsRootless() {
+		return nil
+	}
+
+	return c.refreshCNI()
 }
 
 // Remove conmon attach socket and terminal resize FIFO
@@ -636,14 +650,8 @@ func (c *Container) removeConmonFiles() error {
 
 	// Remove the exit file so we don't leak memory in tmpfs
 	exitFile := filepath.Join(c.ociRuntime.exitsDir, c.ID())
-	if _, err := os.Stat(exitFile); err != nil {
-		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
-		}
-	} else {
-		if err := os.Remove(exitFile); err != nil {
-			return errors.Wrapf(err, "error removing container %s exit file", c.ID())
-		}
+	if err := os.Remove(exitFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s exit file", c.ID())
 	}
 
 	return nil
@@ -788,7 +796,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 	}
 
 	// Build a dependency graph of containers
-	graph, err := buildContainerGraph(depCtrs)
+	graph, err := BuildContainerGraph(depCtrs)
 	if err != nil {
 		return errors.Wrapf(err, "error generating dependency graph for container %s", c.ID())
 	}
@@ -911,6 +919,12 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "init")
 	span.SetTag("struct", "container")
 	defer span.Finish()
+
+	// Unconditionally remove conmon temporary files.
+	// We've been running into far too many issues where they block startup.
+	if err := c.removeConmonFiles(); err != nil {
+		return err
+	}
 
 	// Generate the OCI newSpec
 	newSpec, err := c.generateSpec(ctx)
@@ -1119,6 +1133,20 @@ func (c *Container) stop(timeout uint) error {
 
 // Internal, non-locking function to pause a container
 func (c *Container) pause() error {
+	if c.config.NoCgroups {
+		return errors.Wrapf(define.ErrNoCgroups, "cannot pause without using CGroups")
+	}
+
+	if rootless.IsRootless() {
+		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return errors.Wrap(err, "failed to determine cgroupversion")
+		}
+		if !cgroupv2 {
+			return errors.Wrap(define.ErrNoCgroups, "can not pause containers on rootless containers with cgroup V1")
+		}
+	}
+
 	if err := c.ociRuntime.pauseContainer(c); err != nil {
 		return err
 	}
@@ -1132,6 +1160,10 @@ func (c *Container) pause() error {
 
 // Internal, non-locking function to unpause a container
 func (c *Container) unpause() error {
+	if c.config.NoCgroups {
+		return errors.Wrapf(define.ErrNoCgroups, "cannot unpause without using CGroups")
+	}
+
 	if err := c.ociRuntime.unpauseContainer(c); err != nil {
 		return err
 	}
@@ -1205,7 +1237,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 // TODO: Add ability to override mount label so we can use this for Mount() too
 // TODO: Can we use this for export? Copying SHM into the export might not be
 // good
-func (c *Container) mountStorage() (string, error) {
+func (c *Container) mountStorage() (_ string, Err error) {
 	var err error
 	// Container already mounted, nothing to do
 	if c.state.Mounted {
@@ -1225,18 +1257,91 @@ func (c *Container) mountStorage() (string, error) {
 		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
 			return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
 		}
+		defer func() {
+			if Err != nil {
+				if err := c.unmountSHM(c.config.ShmDir); err != nil {
+					logrus.Errorf("Error unmounting SHM for container %s after mount error: %v", c.ID(), err)
+				}
+			}
+		}()
 	}
 
-	// TODO: generalize this mount code so it will mount every mount in ctr.config.Mounts
+	// We need to mount the container before volumes - to ensure the copyup
+	// works properly.
 	mountPoint := c.config.Rootfs
 	if mountPoint == "" {
 		mountPoint, err = c.mount()
 		if err != nil {
 			return "", err
 		}
+		defer func() {
+			if Err != nil {
+				if err := c.unmount(false); err != nil {
+					logrus.Errorf("Error unmounting container %s after mount error: %v", c.ID(), err)
+				}
+			}
+		}()
+	}
+
+	// Request a mount of all named volumes
+	for _, v := range c.config.NamedVolumes {
+		vol, err := c.mountNamedVolume(v, mountPoint)
+		if err != nil {
+			return "", err
+		}
+		defer func() {
+			if Err == nil {
+				return
+			}
+			vol.lock.Lock()
+			if err := vol.unmount(false); err != nil {
+				logrus.Errorf("Error unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
+			}
+			vol.lock.Unlock()
+		}()
 	}
 
 	return mountPoint, nil
+}
+
+// Mount a single named volume into the container.
+// If necessary, copy up image contents into the volume.
+// Does not verify that the name volume given is actually present in container
+// config.
+// Returns the volume that was mounted.
+func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string) (*Volume, error) {
+	vol, err := c.runtime.state.Volume(v.Name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+	}
+
+	vol.lock.Lock()
+	defer vol.lock.Unlock()
+	if vol.needsMount() {
+		if err := vol.mount(); err != nil {
+			return nil, errors.Wrapf(err, "error mounting volume %s for container %s", vol.Name(), c.ID())
+		}
+	}
+	// The volume may need a copy-up. Check the state.
+	if err := vol.update(); err != nil {
+		return nil, err
+	}
+	if vol.state.NeedsCopyUp {
+		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
+		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
+		}
+		if err := c.copyWithTarFromImage(srcDir, vol.MountPoint()); err != nil && !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
+		}
+
+		vol.state.NeedsCopyUp = false
+		if err := vol.save(); err != nil {
+			return nil, err
+		}
+	}
+	return vol, nil
 }
 
 // cleanupStorage unmounts and cleans up the container's root filesystem
@@ -1247,14 +1352,19 @@ func (c *Container) cleanupStorage() error {
 		return nil
 	}
 
+	var cleanupErr error
+
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
-			return err
+			if cleanupErr != nil {
+				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = err
 		}
 	}
 
 	if c.config.Rootfs != "" {
-		return nil
+		return cleanupErr
 	}
 
 	if err := c.unmount(false); err != nil {
@@ -1262,21 +1372,54 @@ func (c *Container) cleanupStorage() error {
 		// error
 		// We still want to be able to kick the container out of the
 		// state
-		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown || errors.Cause(err) == storage.ErrLayerNotMounted {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
-			return nil
+		} else {
+			if cleanupErr != nil {
+				logrus.Errorf("Error cleaning up container %s storage: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = err
+		}
+	}
+
+	// Request an unmount of all named volumes
+	for _, v := range c.config.NamedVolumes {
+		vol, err := c.runtime.state.Volume(v.Name)
+		if err != nil {
+			if cleanupErr != nil {
+				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+
+			// We need to try and unmount every volume, so continue
+			// if they fail.
+			continue
 		}
 
-		return err
+		if vol.needsMount() {
+			vol.lock.Lock()
+			if err := vol.unmount(false); err != nil {
+				if cleanupErr != nil {
+					logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+				}
+				cleanupErr = errors.Wrapf(err, "error unmounting volume %s for container %s", vol.Name(), c.ID())
+			}
+			vol.lock.Unlock()
+		}
 	}
 
 	c.state.Mountpoint = ""
 	c.state.Mounted = false
 
 	if c.valid {
-		return c.save()
+		if err := c.save(); err != nil {
+			if cleanupErr != nil {
+				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = err
+		}
 	}
-	return nil
+	return cleanupErr
 }
 
 // Unmount the a container and free its resources
@@ -1542,15 +1685,11 @@ func (c *Container) unmount(force bool) error {
 }
 
 // this should be from chrootarchive.
-func (c *Container) copyWithTarFromImage(src, dest string) error {
-	mountpoint, err := c.mount()
-	if err != nil {
-		return err
-	}
+// Container MUST be mounted before calling.
+func (c *Container) copyWithTarFromImage(source, dest string) error {
 	a := archive.NewDefaultArchiver()
-	source := filepath.Join(mountpoint, src)
 
-	if err = c.copyOwnerAndPerms(source, dest); err != nil {
+	if err := c.copyOwnerAndPerms(source, dest); err != nil {
 		return err
 	}
 	return a.CopyWithTar(source, dest)
