@@ -3,9 +3,9 @@ package storage_test
 import (
 	"context"
 
-	"github.com/containers/image/copy"
-	istorage "github.com/containers/image/storage"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/copy"
+	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/pkg/storage"

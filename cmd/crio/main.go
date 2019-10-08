@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	libconfig "github.com/cri-o/cri-o/lib/config"

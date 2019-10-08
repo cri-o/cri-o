@@ -9,9 +9,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/containers/image/pkg/blobinfocache/memory"
-	"github.com/containers/image/storage"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/pkg/blobinfocache/memory"
+	"github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/rootless"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"

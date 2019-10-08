@@ -4,7 +4,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/server"
 	"github.com/urfave/cli"
 )

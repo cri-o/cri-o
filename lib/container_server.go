@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/registrar"
 	cstorage "github.com/containers/storage"

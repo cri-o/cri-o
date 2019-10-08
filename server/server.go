@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/lib"

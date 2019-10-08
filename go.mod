@@ -10,14 +10,14 @@ require (
 	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
 	github.com/containerd/go-runc v0.0.0-20190226155025-7d11b49dc076 // indirect
 	github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
-	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
+	github.com/containerd/ttrpc v0.0.0-20190828172938-92c8520ef9f8
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.10.1
-	github.com/containers/image v3.0.2+incompatible
-	github.com/containers/libpod v1.5.0
+	github.com/containers/buildah v1.11.4
+	github.com/containers/image/v5 v5.0.0
+	github.com/containers/libpod e7540d0406c49b22de245246d16ebc6e1778df37
 	github.com/containers/storage v1.13.7
-	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
 	github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295
