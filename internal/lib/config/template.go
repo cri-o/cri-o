@@ -291,7 +291,9 @@ pause_image = "{{ .PauseImage }}"
 pause_image_auth_file = "{{ .PauseImageAuthFile }}"
 
 # The command to run to have a container stay in the paused state.
-# This option supports live configuration reload.
+# When explicitly set to "", it will fallback to the entrypoint and command
+# specified in the pause image. When commented out, it will fallback to the
+# default: "/pause". This option supports live configuration reload.
 pause_command = "{{ .PauseCommand }}"
 
 # Path to the file which decides what sort of policy we use when deciding
