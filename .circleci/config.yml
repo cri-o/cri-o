@@ -22,7 +22,6 @@ executors:
       - image: saschagrunert/crionix:1.0.0
   machine:
     machine:
-      docker_layer_caching: true
       image: ubuntu-1604:201903-01
     environment:
       GOCACHE: *gocache
