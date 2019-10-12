@@ -159,6 +159,16 @@ func (s *BoltState) Refresh() error {
 			return err
 		}
 
+		allVolsBucket, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// Iterate through all IDs. Check if they are containers.
 		// If they are, unmarshal their state, and then clear
 		// PID, mountpoint, and state for all of them
@@ -231,6 +241,44 @@ func (s *BoltState) Refresh() error {
 
 			if err := ctrBkt.Put(stateKey, newStateBytes); err != nil {
 				return errors.Wrapf(err, "error updating state for container %s in DB", string(id))
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		// Now refresh volumes
+		err = allVolsBucket.ForEach(func(id, name []byte) error {
+			dbVol := volBucket.Bucket(id)
+			if dbVol == nil {
+				return errors.Wrapf(define.ErrInternal, "inconsistency in state - volume %s is in all volumes bucket but volume not found", string(id))
+			}
+
+			// Get the state
+			volStateBytes := dbVol.Get(stateKey)
+			if volStateBytes == nil {
+				// If the volume doesn't have a state, nothing to do
+				return nil
+			}
+
+			oldState := new(VolumeState)
+
+			if err := json.Unmarshal(volStateBytes, oldState); err != nil {
+				return errors.Wrapf(err, "error unmarshalling state for volume %s", string(id))
+			}
+
+			// Reset mount count to 0
+			oldState.MountCount = 0
+
+			newState, err := json.Marshal(oldState)
+			if err != nil {
+				return errors.Wrapf(err, "error marshalling state for volume %s", string(id))
+			}
+
+			if err := dbVol.Put(stateKey, newState); err != nil {
+				return errors.Wrapf(err, "error storing new state for volume %s", string(id))
 			}
 
 			return nil
@@ -870,7 +918,7 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 
 	newCfgJSON, err := json.Marshal(newCfg)
 	if err != nil {
-		return errors.Wrapf(err, "error marshalling new configuration JSON for container %s", pod.ID())
+		return errors.Wrapf(err, "error marshalling new configuration JSON for pod %s", pod.ID())
 	}
 
 	db, err := s.getDBCon()
@@ -893,6 +941,50 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 
 		if err := podDB.Put(configKey, newCfgJSON); err != nil {
 			return errors.Wrapf(err, "error updating pod %s config JSON", pod.ID())
+		}
+
+		return nil
+	})
+	return err
+}
+
+// RewriteVolumeConfig rewrites a volume's configuration.
+// WARNING: This function is DANGEROUS. Do not use without reading the full
+// comment on this function in state.go.
+func (s *BoltState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	newCfgJSON, err := json.Marshal(newCfg)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling new configuration JSON for volume %q", volume.Name())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volDB := volBkt.Bucket([]byte(volume.Name()))
+		if volDB == nil {
+			volume.valid = false
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found in DB", volume.Name())
+		}
+
+		if err := volDB.Put(configKey, newCfgJSON); err != nil {
+			return errors.Wrapf(err, "error updating volume %q config JSON", volume.Name())
 		}
 
 		return nil
@@ -1308,6 +1400,15 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 		return errors.Wrapf(err, "error marshalling volume %s config to JSON", volume.Name())
 	}
 
+	// Volume state is allowed to not exist
+	var volStateJSON []byte
+	if volume.state != nil {
+		volStateJSON, err = json.Marshal(volume.state)
+		if err != nil {
+			return errors.Wrapf(err, "error marshalling volume %s state to JSON", volume.Name())
+		}
+	}
+
 	db, err := s.getDBCon()
 	if err != nil {
 		return err
@@ -1346,6 +1447,12 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 
 		if err := newVol.Put(configKey, volConfigJSON); err != nil {
 			return errors.Wrapf(err, "error storing volume %s configuration in DB", volume.Name())
+		}
+
+		if volStateJSON != nil {
+			if err := newVol.Put(stateKey, volStateJSON); err != nil {
+				return errors.Wrapf(err, "error storing volume %s state in DB", volume.Name())
+			}
 		}
 
 		if err := allVolsBkt.Put(volName, volName); err != nil {
@@ -1439,6 +1546,103 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 	return err
 }
 
+// UpdateVolume updates the volume's state from the database.
+func (s *BoltState) UpdateVolume(volume *Volume) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	newState := new(VolumeState)
+	volumeName := []byte(volume.Name())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volToUpdate := volBucket.Bucket(volumeName)
+		if volToUpdate == nil {
+			volume.valid = false
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %s found in database", volume.Name())
+		}
+
+		stateBytes := volToUpdate.Get(stateKey)
+		if stateBytes == nil {
+			// Having no state is valid.
+			// Return nil, use the empty state.
+			return nil
+		}
+
+		if err := json.Unmarshal(stateBytes, newState); err != nil {
+			return errors.Wrapf(err, "error unmarshalling volume %s state", volume.Name())
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	volume.state = newState
+
+	return nil
+}
+
+// SaveVolume saves the volume's state to the database.
+func (s *BoltState) SaveVolume(volume *Volume) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	volumeName := []byte(volume.Name())
+
+	var newStateJSON []byte
+	if volume.state != nil {
+		stateJSON, err := json.Marshal(volume.state)
+		if err != nil {
+			return errors.Wrapf(err, "error marshalling volume %s state to JSON", volume.Name())
+		}
+		newStateJSON = stateJSON
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volToUpdate := volBucket.Bucket(volumeName)
+		if volToUpdate == nil {
+			volume.valid = false
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %s found in database", volume.Name())
+		}
+
+		return volToUpdate.Put(stateKey, newStateJSON)
+	})
+	return err
+}
+
 // AllVolumes returns all volumes present in the state
 func (s *BoltState) AllVolumes() ([]*Volume, error) {
 	if !s.valid {
@@ -1473,6 +1677,7 @@ func (s *BoltState) AllVolumes() ([]*Volume, error) {
 
 			volume := new(Volume)
 			volume.config = new(VolumeConfig)
+			volume.state = new(VolumeState)
 
 			if err := s.getVolumeFromDB(id, volume, volBucket); err != nil {
 				if errors.Cause(err) != define.ErrNSMismatch {
@@ -1507,6 +1712,7 @@ func (s *BoltState) Volume(name string) (*Volume, error) {
 
 	volume := new(Volume)
 	volume.config = new(VolumeConfig)
+	volume.state = new(VolumeState)
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -1527,6 +1733,75 @@ func (s *BoltState) Volume(name string) (*Volume, error) {
 	}
 
 	return volume, nil
+}
+
+// LookupVolume locates a volume from a partial name.
+func (s *BoltState) LookupVolume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, define.ErrDBClosed
+	}
+
+	volName := []byte(name)
+
+	volume := new(Volume)
+	volume.config = new(VolumeConfig)
+	volume.state = new(VolumeState)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		allVolsBkt, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Check for exact match on name
+		volDB := volBkt.Bucket(volName)
+		if volDB != nil {
+			return s.getVolumeFromDB(volName, volume, volBkt)
+		}
+
+		// No exact match. Search all names.
+		foundMatch := false
+		err = allVolsBkt.ForEach(func(checkName, checkName2 []byte) error {
+			if strings.HasPrefix(string(checkName), name) {
+				if foundMatch {
+					return errors.Wrapf(define.ErrVolumeExists, "more than one result for volume name %q", name)
+				}
+				foundMatch = true
+				volName = checkName
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		if !foundMatch {
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found", name)
+		}
+
+		return s.getVolumeFromDB(volName, volume, volBkt)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return volume, nil
+
 }
 
 // HasVolume returns true if the given volume exists in the state, otherwise it returns false

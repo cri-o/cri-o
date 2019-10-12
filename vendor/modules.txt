@@ -125,7 +125,7 @@ github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/docker/tarfile
 github.com/containers/image/oci/internal
 github.com/containers/image/pkg/keyctl
-# github.com/containers/libpod v1.5.1
+# github.com/containers/libpod v1.6.1
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/annotations
 github.com/containers/libpod/pkg/hooks
@@ -150,7 +150,6 @@ github.com/containers/libpod/libpod/lock
 github.com/containers/libpod/libpod/logs
 github.com/containers/libpod/pkg/criu
 github.com/containers/libpod/pkg/ctime
-github.com/containers/libpod/pkg/firewall
 github.com/containers/libpod/pkg/hooks/exec
 github.com/containers/libpod/pkg/kubeutils
 github.com/containers/libpod/pkg/netns
@@ -210,8 +209,6 @@ github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/pkg/ostree
 github.com/containers/storage/drivers/copy
-# github.com/coreos/go-iptables v0.4.2
-github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/dbus
@@ -283,7 +280,7 @@ github.com/docker/docker/api/types/strslice
 github.com/docker/docker/api/types/swarm/runtime
 github.com/docker/docker/pkg/fileutils
 github.com/docker/docker/pkg/stdcopy
-# github.com/docker/docker-credential-helpers v0.6.2
+# github.com/docker/docker-credential-helpers v0.6.3
 github.com/docker/docker-credential-helpers/client
 github.com/docker/docker-credential-helpers/credentials
 # github.com/docker/go-connections v0.4.0
@@ -702,7 +699,7 @@ github.com/spf13/cast
 github.com/spf13/cobra
 # github.com/spf13/jwalterweatherman v1.1.0
 github.com/spf13/jwalterweatherman
-# github.com/spf13/pflag v1.0.3
+# github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
 # github.com/spf13/viper v1.4.0
 github.com/spf13/viper

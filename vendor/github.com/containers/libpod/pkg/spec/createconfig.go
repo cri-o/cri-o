@@ -64,6 +64,7 @@ type CreateConfig struct {
 	CidFile            string
 	ConmonPidFile      string
 	Cgroupns           string
+	Cgroups            string
 	CgroupParent       string            // cgroup-parent
 	Command            []string          // Full command that will be used
 	UserCommand        []string          // User-entered command (or image CMD)
@@ -206,6 +207,9 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		logrus.Debugf("adding container to pod %s", c.Pod)
 		options = append(options, runtime.WithPod(pod))
 	}
+	if c.Cgroups == "disabled" {
+		options = append(options, libpod.WithNoCgroups())
+	}
 	if len(c.PortBindings) > 0 {
 		portBindings, err = c.CreatePortBindings()
 		if err != nil {
@@ -271,7 +275,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
-		postConfigureNetNS := c.NetMode.IsSlirp4netns() || (hasUserns && !c.UsernsMode.IsHost())
+		postConfigureNetNS := hasUserns && !c.UsernsMode.IsHost()
 		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, string(c.NetMode), networks))
 	}
 

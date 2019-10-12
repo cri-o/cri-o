@@ -108,9 +108,9 @@ var _ = t.Describe("Server", func() {
 						{},
 					}, testError),
 				storeMock.EXPECT().Metadata(gomock.Any()).
-					Return(`{"Pod": false}`, nil),
+					Return(`{"Pod": false, "pod-name": "name", "pod-id": "id" }`, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
-					Return(`{"Pod": true}`, nil),
+					Return(`{"Pod": true, "pod-name": "name", "pod-id": "id" }`, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return("", t.TestError),
 				storeMock.EXPECT().

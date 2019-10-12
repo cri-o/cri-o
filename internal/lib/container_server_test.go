@@ -3,10 +3,12 @@ package lib_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
+	"github.com/containers/libpod/pkg/annotations"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -722,6 +724,26 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with non CRI-O managed container", func() {
+			// Given
+			manifest := bytes.Replace(testManifest,
+				[]byte(`"io.kubernetes.cri-o.Annotations": "{}",`),
+				[]byte(fmt.Sprintf("%q: %q,", annotations.ContainerManager,
+					annotations.ContainerManagerLibpod)), 1,
+			)
+			gomock.InOrder(
+				storeMock.EXPECT().
+					FromContainerDirectory(gomock.Any(), gomock.Any()).
+					Return(manifest, nil),
+			)
+
+			// When
+			err := sut.LoadContainer("id")
+
+			// Then
+			Expect(err).To(Equal(lib.ErrIsNonCrioContainer))
 		})
 	})
 

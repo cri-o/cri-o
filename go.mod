@@ -16,7 +16,7 @@ require (
 	github.com/containers/buildah v1.11.2
 	github.com/containers/conmon v2.0.0+incompatible
 	github.com/containers/image v3.0.2+incompatible
-	github.com/containers/libpod v1.5.1
+	github.com/containers/libpod v1.6.1
 	github.com/containers/storage v1.13.4
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10

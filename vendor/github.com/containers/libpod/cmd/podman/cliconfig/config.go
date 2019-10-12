@@ -1,6 +1,8 @@
 package cliconfig
 
 import (
+	"net"
+
 	"github.com/spf13/cobra"
 )
 
@@ -39,6 +41,7 @@ type MainFlags struct {
 	VarlinkAddress       string
 	ConnectionName       string
 	RemoteConfigFilePath string
+	Port                 int
 }
 
 type AttachValues struct {
@@ -156,6 +159,7 @@ type GenerateKubeValues struct {
 type GenerateSystemdValues struct {
 	PodmanCommand
 	Name          bool
+	Files         bool
 	RestartPolicy string
 	StopTimeout   int
 }
@@ -258,6 +262,32 @@ type MountValues struct {
 	Latest  bool
 }
 
+type NetworkCreateValues struct {
+	PodmanCommand
+	Driver     string
+	Gateway    net.IP
+	Internal   bool
+	IPamDriver string
+	IPRange    net.IPNet
+	IPV6       bool
+	Network    net.IPNet
+}
+
+type NetworkListValues struct {
+	PodmanCommand
+	Filter []string
+	Quiet  bool
+}
+
+type NetworkRmValues struct {
+	PodmanCommand
+	Force bool
+}
+
+type NetworkInspectValues struct {
+	PodmanCommand
+}
+
 type PauseValues struct {
 	PodmanCommand
 	All bool
@@ -286,6 +316,7 @@ type PodCreateValues struct {
 	LabelFile    []string
 	Labels       []string
 	Name         string
+	Hostname     string
 	PodIDFile    string
 	Publish      []string
 	Share        string
@@ -408,6 +439,7 @@ type PushValues struct {
 	CertDir          string
 	Compress         bool
 	Creds            string
+	Digestfile       string
 	Format           string
 	Quiet            bool
 	RemoveSignatures bool
@@ -488,10 +520,15 @@ type SearchValues struct {
 	TlsVerify bool
 }
 
+type TrustValues struct {
+	PodmanCommand
+}
+
 type SignValues struct {
 	PodmanCommand
 	Directory string
 	SignBy    string
+	CertDir   string
 }
 
 type StartValues struct {
