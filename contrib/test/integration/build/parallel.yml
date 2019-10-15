@@ -1,9 +1,17 @@
 ---
+- name:
+  include_vars:
+      file: python3.yml
+
 - name: install parallel package for Fedora
   package:
     name: parallel
     state: present
-  when: ansible_distribution in ['Fedora', 'CentOS']
+  when: not supports_python3 and ansible_distribution in ['Fedora', 'CentOS']
+
+- name: install parallel package for Fedora > 30
+  shell: sudo yum install -y parallel
+  when: supports_python3 and ansible_distribution in ['Fedora', 'CentOS']
 
 - name: download parallel sources
   unarchive:
