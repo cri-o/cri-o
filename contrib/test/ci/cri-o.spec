@@ -64,6 +64,7 @@ Provides: ocid = %{version}-%{release}
 Provides: %{service_name} = %{version}-%{release}
 Requires: containernetworking-plugins >= 0.7.5-1
 Requires: conmon
+Requires: libseccomp >= 2.4.1-1
 
 %description
 %{summary}
