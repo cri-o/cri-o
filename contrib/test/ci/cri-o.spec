@@ -105,7 +105,7 @@ make GO_MD2MAN=go-md2man bin/pause docs
       --selinux \
       --cgroup-manager "systemd" \
       --storage-driver "overlay" \
-      --conmon "%{_bindir}/conmon" \
+      --conmon "%{_libexecdir}/%{service_name}/conmon" \
       --cni-plugin-dir "%{_libexecdir}/cni" \
       --default-mounts "%{_datadir}/rhel/secrets:/run/secrets" \
       --storage-opt "overlay.override_kernel_check=1" \
