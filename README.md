@@ -110,7 +110,7 @@ On Ubuntu distributions, there is a dedicated PPA provided by
 ```bash
 sudo apt-add-repository ppa:projectatomic/ppa
 sudo apt-get update -qq
-sudo apt-get install crio
+sudo apt-get install cri-o-[REQUIRED VERSION]
 ```
 
 Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
