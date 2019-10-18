@@ -18,49 +18,69 @@ FILES_ETC=(
     "../crio-umount.conf"
     "../crio.conf"
 )
+FILES_CONTRIB=(
+    "../contrib/cni/10-crio-bridge.conf"
+    "../contrib/policy.json"
+    "../contrib/systemd/crio-shutdown.service"
+    "../contrib/systemd/crio-wipe.service"
+    "../contrib/systemd/crio.service"
+)
 COMPLETIONS="../completions"
 
 TMPDIR=tmp
 rm -rf $TMPDIR
-mkdir -p $TMPDIR/{bin,etc,man}
+mkdir -p $TMPDIR/{bin,contrib,etc,man}
 
 cp -r $COMPLETIONS $TMPDIR
 
+ERRORED=0
 for FILE in "${FILES_BIN[@]}"; do
     if [[ ! -f "$FILE" ]]; then
         echo "File '$FILE' does not exist"
-        exit 1
-    fi
-
-    if [[ ! -x "$FILE" ]]; then
+        ERRORED=1
+    elif [[ ! -x "$FILE" ]]; then
         echo "File '$FILE' is not exectuable"
-        exit 1
-    fi
-
-    if ! file "$FILE" | grep "statically linked" | grep -q stripped; then
+        ERRORED=1
+    elif ! file "$FILE" | grep "statically linked" | grep -q stripped; then
         echo "Binary '$FILE' is not statically linked and stripped"
-        exit 1
+        ERRORED=1
+    else
+        cp "$FILE" $TMPDIR/bin
     fi
-    cp "$FILE" $TMPDIR/bin
 done
 
 for FILE in "${FILES_MAN[@]}"; do
     if [[ ! -f "$FILE" ]]; then
         echo "File '$FILE' does not exist"
-        exit 1
+        ERRORED=1
+    else
+        cp "$FILE" $TMPDIR/man
     fi
-    cp "$FILE" $TMPDIR/man
 done
 
 for FILE in "${FILES_ETC[@]}"; do
     if [[ ! -f "$FILE" ]]; then
         echo "File '$FILE' does not exist"
-        exit 1
+        ERRORED=1
+    else
+        cp "$FILE" $TMPDIR/etc
     fi
-    cp "$FILE" $TMPDIR/etc
+done
+for FILE in "${FILES_CONTRIB[@]}"; do
+    if [[ ! -f "$FILE" ]]; then
+        echo "File '$FILE' does not exist"
+        ERRORED=1
+    else
+        cp "$FILE" $TMPDIR/contrib
+    fi
 done
 
+if [[ $ERRORED == 1 ]]; then
+    exit 1
+fi
+
 cp Makefile $TMPDIR
+cp README.md $TMPDIR
 
 # Create the archive
 BUNDLE=crio-$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
