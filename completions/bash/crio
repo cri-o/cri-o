@@ -5,6 +5,7 @@ _cli_bash_autocomplete() {
     opts="config
 complete
 completion
+wipe
 help
 h
 --additional-devices
@@ -71,6 +72,7 @@ h
 --stream-tls-cert
 --stream-tls-key
 --uid-mappings
+--version-file
 --help
 --version"
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )

@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/cri-o/cri-o/internal/lib/config"
+	"github.com/cri-o/cri-o/internal/pkg/criocli"
 	"github.com/urfave/cli"
 )
 
@@ -18,10 +19,11 @@ var configCommand = cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
-		var err error
-		// At this point, app.Before has already parsed the user's chosen
-		// config file. So no need to handle that here.
-		conf := c.App.Metadata["config"].(*config.Config) // nolint: errcheck
+		_, conf, err := criocli.GetConfigFromContext(c)
+		if err != nil {
+			return err
+		}
+
 		systemContext := &types.SystemContext{}
 		if c.Bool("default") {
 			conf, err = config.DefaultConfig()
