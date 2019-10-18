@@ -364,11 +364,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	hostIPC := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE
 	hostPID := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE
+	hostNet := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
 	if hostPID || hostIPC {
 		processLabel, mountLabel = "", ""
 	}
+
+	if hostNet {
+		processLabel = ""
+	}
+
 	defer func() {
 		if err != nil {
 			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
