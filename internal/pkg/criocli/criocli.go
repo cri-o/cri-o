@@ -590,8 +590,10 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			TakesFile:   true,
 		},
 		cli.StringFlag{
-			Name:  "version-file",
-			Usage: "Location for CRI-O to lay down the version file",
+			Name:      "version-file",
+			Usage:     "Location for CRI-O to lay down the version file",
+			EnvVar:    "CONTAINER_VERSION_FILE",
+			TakesFile: true,
 		},
 	}
 }
