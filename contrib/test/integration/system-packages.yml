@@ -1,0 +1,150 @@
+---
+- name: include variable to check if python2-dnf can be installed
+  include: python3.yml
+
+- name: Make sure we have all required packages for RHEL 7 and Fedora <= 30
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - atomic-registries
+    - container-selinux
+    - curl
+    - device-mapper-devel
+    - expect
+    - findutils
+    - gcc
+    - git
+    - glib2-devel
+    - glibc-devel
+    - glibc-static
+    - gpgme-devel
+    - hostname
+    - iproute
+    - iptables
+    - krb5-workstation
+    - libassuan-devel
+    - libffi-devel
+    - libgpg-error-devel
+    - libguestfs-tools
+    - libseccomp-devel
+    - libselinux-python
+    - libsemanage-python
+    - libvirt-client
+    - libvirt-python
+    - libxml2-devel
+    - libxslt-devel
+    - make
+    - mlocate
+    - nfs-utils
+    - nmap-ncat
+    - oci-register-machine
+    - oci-systemd-hook
+    - oci-umount
+    - openssl
+    - openssl-devel
+    - ostree-devel
+    - pkgconfig
+    - python
+    - python2-crypto
+    - python-devel
+    - python-rhsm-certificates
+    - python-virtualenv
+    - PyYAML
+    - redhat-rpm-config
+    - rpcbind
+    - rsync
+    - sed
+    - skopeo-containers
+    - socat
+    - tar
+    - wget
+  async: '{{ 20 * 60 }}'
+  poll: 10
+  when: supports_python3 is not defined or not supports_python3
+
+- name: Make sure we have all required packages for RHEL 8 and Fedora >=30
+  raw: >
+    yum install -y \
+    atomic-registries \
+    container-selinux \
+    curl \
+    device-mapper-devel \
+    expect \
+    findutils \
+    gcc \
+    git \
+    glib2-devel \
+    glibc-devel \
+    glibc-static \
+    gpgme-devel \
+    hostname \
+    iproute \
+    iptables \
+    krb5-workstation \
+    libassuan-devel \
+    libffi-devel \
+    libgpg-error-devel \
+    libguestfs-tools \
+    libseccomp-devel \
+    libselinux-python \
+    libsemanage-python \
+    libvirt-client \
+    libvirt-python \
+    libxml2-devel \
+    libxslt-devel \
+    make \
+    mlocate \
+    nfs-utils \
+    nmap-ncat \
+    oci-register-machine \
+    oci-systemd-hook \
+    oci-umount \
+    openssl \
+    openssl-devel \
+    pkgconfig \
+    python \
+    python2-crypto \
+    python2-boto \
+    python-devel \
+    python-rhsm-certificates \
+    python-virtualenv \
+    PyYAML \
+    redhat-rpm-config \
+    rpcbind \
+    rsync \
+    sed \
+    skopeo-containers \
+    socat \
+    tar \
+    wget
+  when: supports_python3 is defined and supports_python3
+
+- name: Add Fedora <=29 specific packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+   - python2-boto
+   - btrfs-progs-devel
+  when: (supports_python3 is not defined or not supports_python3) and ansible_distribution in ['Fedora']
+
+- name: Add python-boto for RHEL and CentOS
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+   - python-boto
+  when: (supports_python3 is not defined or not supports_python3) and ansible_distribution in ['RedHat', 'Centos']
+
+- name: Update all packages
+  package:
+    name: '*'
+    state: latest
+  async: 600
+  poll: 10
+  when: supports_python3 is not defined or not supports_python3
+
+- name: Update all packages RHEL 8 and Fedora >= 30
+  shell: sudo yum update -y
+  when: supports_python3 is defined and supports_python3
