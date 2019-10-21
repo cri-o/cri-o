@@ -17,7 +17,6 @@ import (
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	libconfig "github.com/cri-o/cri-o/internal/lib/config"
-	"github.com/cri-o/cri-o/internal/pkg/completion"
 	"github.com/cri-o/cri-o/internal/pkg/criocli"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/signals"
@@ -117,7 +116,7 @@ func main() {
 
 	app.Commands = []cli.Command{
 		configCommand,
-		completion.Command,
+		criocli.Completion,
 		wipeCommand,
 	}
 
