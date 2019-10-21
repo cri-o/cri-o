@@ -62,6 +62,7 @@ require (
 )
 
 replace (
+	github.com/containers/storage => github.com/haircommander/storage v0.0.0-20191021183909-22197c81b988
 	github.com/godbus/dbus => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v0.1.2-0.20190408193819-a1b50f621a48
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2

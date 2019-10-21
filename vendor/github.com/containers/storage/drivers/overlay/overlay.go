@@ -935,23 +935,8 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		absLowers = append(absLowers, path.Join(dir, "empty"))
 		relLowers = append(relLowers, path.Join(id, "empty"))
 	}
-	// user namespace requires this to move a directory from lower to upper.
-	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
-	if err != nil {
-		return "", err
-	}
-	diffDir := path.Join(dir, "diff")
-	if readWrite {
-		if err := idtools.MkdirAllAs(diffDir, 0755, rootUID, rootGID); err != nil && !os.IsExist(err) {
-			return "", err
-		}
-	}
 
 	mergedDir := path.Join(dir, "merged")
-	// Create the driver merged dir
-	if err := idtools.MkdirAs(mergedDir, 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
-		return "", err
-	}
 	if count := d.ctr.Increment(mergedDir); count > 1 {
 		return mergedDir, nil
 	}
@@ -964,6 +949,8 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			}
 		}
 	}()
+
+	diffDir := path.Join(dir, "diff")
 
 	var opts string
 	if readWrite {
@@ -1050,11 +1037,6 @@ func (d *Driver) Put(id string) error {
 	if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil && !os.IsNotExist(err) {
 		logrus.Debugf("Failed to unmount %s overlay: %s - %v", id, mountpoint, err)
 	}
-
-	if err := unix.Rmdir(mountpoint); err != nil && !os.IsNotExist(err) {
-		logrus.Debugf("Failed to remove mountpoint %s overlay: %s - %v", id, mountpoint, err)
-	}
-
 	return nil
 }
 

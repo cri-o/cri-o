@@ -533,6 +533,10 @@ github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0/go.mod h1:8NvIoxWQoOIhqOTXgf
 github.com/grpc-ecosystem/grpc-gateway v1.3.0/go.mod h1:RSKVYQBd5MCa4OVpNdGskqpgL2+G+NZTnrVHpWWfpdw=
 github.com/grpc-ecosystem/grpc-gateway v1.9.0/go.mod h1:vNeuVxBJEsws4ogUvrchl83t/GYV9WGTSLVdBhOQFDY=
 github.com/grpc-ecosystem/grpc-gateway v1.9.2/go.mod h1:vNeuVxBJEsws4ogUvrchl83t/GYV9WGTSLVdBhOQFDY=
+github.com/haircommander/storage v0.0.0-20191021182542-76c9b4aafacd h1:U+wXm4R5rgiAo6F4EgqSPK4VbQnqvWyj4BBAGq5NQwQ=
+github.com/haircommander/storage v0.0.0-20191021182542-76c9b4aafacd/go.mod h1:6D8nK2sU9V7nEmAraINRs88ZEscM5C5DK+8Npp27GeA=
+github.com/haircommander/storage v0.0.0-20191021183909-22197c81b988 h1:kTaAYH5xffHcwYXD5w2+bPRhWosrcx49aKqNOtJBxr8=
+github.com/haircommander/storage v0.0.0-20191021183909-22197c81b988/go.mod h1:6D8nK2sU9V7nEmAraINRs88ZEscM5C5DK+8Npp27GeA=
 github.com/hashicorp/errwrap v1.0.0 h1:hLrqtEDnRye3+sgx6z4qVLNuviH3MR5aQ0ykNJa/UYA=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/go-multierror v1.0.0 h1:iVjPR7a6H0tWELX5NxNe7bYopibicUzc7uPribsnS6o=
