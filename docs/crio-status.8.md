@@ -49,6 +49,10 @@ Display detailed information about the provided container ID.
 
 **--id, -i**="": the container ID
 
+## complete, completion
+
+Generate bash, fish or zsh completions.
+
 # HISTORY
 
 Jul 2019, Initial version by Sascha Grunert <sgrunert@suse.com>

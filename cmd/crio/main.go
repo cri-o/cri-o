@@ -117,6 +117,7 @@ func main() {
 	app.Commands = []cli.Command{
 		configCommand,
 		wipeCommand,
+		criocli.Completion,
 	}
 
 	var configPath string

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/cri-o/cri-o/internal/client"
+	"github.com/cri-o/cri-o/internal/pkg/criocli"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/urfave/cli"
 )
@@ -34,6 +35,7 @@ func main() {
 				"absolute path to the unix socket (default: %q)",
 				defaultSocket,
 			),
+			TakesFile: true,
 		},
 	}
 	app.Flags = flags
@@ -58,7 +60,9 @@ func main() {
 		}),
 		Name:  "containers",
 		Usage: "retrieve information about containers",
-	}}
+	},
+		criocli.Completion,
+	}
 
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
