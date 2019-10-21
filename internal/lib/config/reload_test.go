@@ -114,6 +114,43 @@ var _ = t.Describe("Config", func() {
 		})
 	})
 
+	t.Describe("ReloadLogFilter", func() {
+		It("should succeed without any config change", func() {
+			// Given
+			// When
+			err := sut.ReloadLogFilter(sut)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with config change", func() {
+			// Given
+			const newLogFilter = "fatal"
+			newConfig := defaultConfig()
+			newConfig.LogFilter = newLogFilter
+
+			// When
+			err := sut.ReloadLogFilter(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.LogFilter).To(Equal(newLogFilter))
+		})
+
+		It("should fail with invalid log_filter", func() {
+			// Given
+			newConfig := defaultConfig()
+			newConfig.LogFilter = "("
+
+			// When
+			err := sut.ReloadLogFilter(newConfig)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
 	t.Describe("ReloadPauseImage", func() {
 		It("should succeed without any config change", func() {
 			// Given

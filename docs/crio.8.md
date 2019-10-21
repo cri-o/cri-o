@@ -34,11 +34,12 @@ crio
 [--image-volumes=[value]]
 [--listen=[value]]
 [--log=[value]]
-[--log-format value]
-[--log-level, -l value]
 [--log-dir value]
-[--log-size-max value]
+[--log-filter value]
+[--log-format value]
 [--log-journald]
+[--log-level, -l value]
+[--log-size-max value]
 [--metrics-port value]
 [--pause-command=[value]]
 [--pause-image=[value]]
@@ -162,15 +163,17 @@ For the bind-mount conditions, only mounts explicitly requested by Kubernetes co
 
 **--log**="": Set the log file path where internal debug information is written
 
+**--log-dir**="": default log directory where all logs will go unless directly specified by the kubelet
+
+**--log-filter**="": filter the log messages by the provided regular expression. For example 'request:.\*' filters all gRPC requests.
+
 **--log-format**="": Set the format used by logs ('text' (default), or 'json') (default: "text")
+
+**--log-journald**: log to systemd journal in addition to the kubernetes log specified with **--log**
 
 **--log-level, -l**="": log crio messages above specified level: debug, info, warn, error (default), fatal or panic
 
-**--log-dir**="": default log directory where all logs will go unless directly specified by the kubelet
-
 **--log-size-max**="": Maximum log size in bytes for a container (default: -1 (no limit)). If it is positive, it must be >= 8192 (to match/exceed conmon read buffer).
-
-**--log-journald**: log to systemd journal in addition to the kubernetes log specified with **--log**
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 

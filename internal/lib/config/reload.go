@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,6 +22,9 @@ func (c *Config) Reload(fileName string) error {
 
 	// Reload all available options
 	if err := c.ReloadLogLevel(newConfig); err != nil {
+		return err
+	}
+	if err := c.ReloadLogFilter(newConfig); err != nil {
 		return err
 	}
 	if err := c.ReloadPauseImage(newConfig); err != nil {
@@ -51,6 +55,23 @@ func (c *Config) ReloadLogLevel(newConfig *Config) error {
 
 		logrus.SetLevel(level)
 		c.LogLevel = newConfig.LogLevel
+	}
+	return nil
+}
+
+// ReloadLogFilter updates the LogFilter with the provided `newConfig`. It errors
+// if the filter is not applicable.
+func (c *Config) ReloadLogFilter(newConfig *Config) error {
+	if c.LogFilter != newConfig.LogFilter {
+		hook, err := log.NewFilterHook(newConfig.LogFilter)
+		if err != nil {
+			return err
+		}
+		logger := logrus.StandardLogger()
+		log.RemoveHook(logger, "FilterHook")
+		logConfig("log_filter", newConfig.LogFilter)
+		logger.AddHook(hook)
+		c.LogFilter = newConfig.LogFilter
 	}
 	return nil
 }

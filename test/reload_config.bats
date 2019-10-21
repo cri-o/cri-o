@@ -4,7 +4,7 @@
 load helpers
 
 function setup() {
-	setup_test
+    setup_test
     start_crio
 
     # the default log_level is `error` so we have to adapt it before running
@@ -115,4 +115,30 @@ function expect_log_failure() {
 
     # then
     expect_log_failure "stat $NEW_OPTION"
+}
+
+@test "reload config should succeed with 'log_filter'" {
+    # given
+    NEW_FILTER="new"
+    OPTION="log_filter"
+
+    # when
+    replace_config $OPTION $NEW_FILTER
+    reload_crio
+
+    # then
+    expect_log_success $OPTION $NEW_FILTER
+}
+
+@test "reload config should fail with invalid 'log_filter'" {
+    # given
+    NEW_FILTER=")"
+    OPTION="log_filter"
+
+    # when
+    replace_config $OPTION $NEW_FILTER
+    reload_crio
+
+    # then
+    expect_log_failure "custom log level filter does not compile"
 }
