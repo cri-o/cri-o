@@ -1,4 +1,4 @@
-package completion
+package criocli
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-var Command = cli.Command{
+var Completion = cli.Command{
 	Name:        "complete",
 	Aliases:     []string{"completion"},
 	Usage:       "Output shell completion code",

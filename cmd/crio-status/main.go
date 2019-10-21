@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/cri-o/cri-o/internal/client"
-	"github.com/cri-o/cri-o/internal/pkg/completion"
+	"github.com/cri-o/cri-o/internal/pkg/criocli"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/urfave/cli"
 )
@@ -44,7 +44,7 @@ func main() {
 		},
 	}
 	app.Flags = flags
-	app.Commands = []cli.Command{completion.Command, {
+	app.Commands = []cli.Command{criocli.Completion, {
 		Action:  config,
 		Aliases: []string{"c"},
 		Flags:   flags,
