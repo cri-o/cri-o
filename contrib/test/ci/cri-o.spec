@@ -2,7 +2,7 @@
 # Any changes here will NOT automagically land in your distro's rpm after
 # an update.
 
-%global with_debug 1
+%global with_debug 0
 
 %if 0%{?with_debug}
 %global _find_debuginfo_dwz_opts %{nil}
@@ -175,9 +175,9 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/Godeps/_workspace:%{gopath}
 %dir %{_datadir}/oci-umount/oci-umount.d
 %{_datadir}/oci-umount/oci-umount.d/%{service_name}-umount.conf
 %{_unitdir}/%{service_name}-wipe.service
-%{_datadir}/bash-completion/completions/%{service_name}-status
-%{_datadir}/fish/completions/%{service_name}-status.fish
-
+%{_datadir}/bash-completion/completions/%{service_name}*
+%{_datadir}/fish/completions/%{service_name}*.fish
+%{_datadir}/zsh/site-functions/_%{service_name}*
 
 %changelog
 * Wed May 08 2019 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.13-1.ci
