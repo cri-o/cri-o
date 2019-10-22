@@ -2,14 +2,17 @@ package server
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/server/metrics"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -80,15 +83,65 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 			} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
 				log.Debugf(ctx, "image %s already in store, skipping pull", img)
 				pulled = img
+
+				// Skipped bytes metrics
+				if storedImage.Size != nil {
+					counter, err := metrics.CRIOImagePullsByNameSkipped.GetMetricWithLabelValues(img)
+					if err != nil {
+						log.Warnf(ctx, "Unable to write image pull name (skipped) metrics: %v", err)
+					} else {
+						counter.Add(float64(*storedImage.Size))
+					}
+				}
+
 				break
 			}
 			log.Debugf(ctx, "image in store has different ID, re-pulling %s", img)
 		}
 
+		// Pull by collecting progress metrics
+		progress := make(chan types.ProgressProperties)
+		go func() {
+			for p := range progress {
+				if p.Artifact.Size > 0 {
+					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
+						p.Event, img, p.Artifact.Digest, p.Offset,
+						float64(p.Offset)/float64(p.Artifact.Size)*100,
+					)
+				} else {
+					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes",
+						p.Event, img, p.Artifact.Digest, p.Offset,
+					)
+				}
+
+				// Metrics for every digest
+				digestCounter, err := metrics.CRIOImagePullsByDigest.GetMetricWithLabelValues(
+					img, p.Artifact.Digest.String(), p.Artifact.MediaType,
+					fmt.Sprintf("%d", p.Artifact.Size),
+				)
+				if err != nil {
+					log.Warnf(ctx, "Unable to write image pull digest metrics: %v", err)
+				} else {
+					digestCounter.Add(float64(p.OffsetUpdate))
+				}
+
+				// Metrics for the overall image
+				nameCounter, err := metrics.CRIOImagePullsByName.GetMetricWithLabelValues(
+					img, fmt.Sprintf("%d", imageSize(tmpImg)),
+				)
+				if err != nil {
+					log.Warnf(ctx, "Unable to write image pull name metrics: %v", err)
+				} else {
+					nameCounter.Add(float64(p.OffsetUpdate))
+				}
+			}
+		}()
 		_, err = s.StorageImageServer().PullImage(s.systemContext, img, &copy.Options{
 			SourceCtx:        &sourceCtx,
 			DestinationCtx:   s.systemContext,
 			OciDecryptConfig: dcc,
+			ProgressInterval: time.Second,
+			Progress:         progress,
 		})
 		if err != nil {
 			log.Debugf(ctx, "error pulling image %s: %v", img, err)
@@ -127,4 +180,23 @@ func decodeDockerAuth(s string) (user, password string, err error) {
 	user = parts[0]
 	password = strings.Trim(parts[1], "\x00")
 	return user, password, nil
+}
+
+func imageSize(img types.ImageCloser) (size int64) {
+	for _, layer := range img.LayerInfos() {
+		if layer.Size > 0 {
+			size += layer.Size
+		} else {
+			return -1
+		}
+	}
+
+	configSize := img.ConfigInfo().Size
+	if configSize >= 0 {
+		size += configSize
+	} else {
+		return -1
+	}
+
+	return size
 }
