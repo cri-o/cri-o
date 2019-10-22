@@ -188,6 +188,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.GlobalIsSet("log-level") {
 		config.LogLevel = ctx.GlobalString("log-level")
 	}
+	if ctx.GlobalIsSet("log-filter") {
+		config.LogFilter = ctx.GlobalString("log-filter")
+	}
 	if ctx.GlobalIsSet("log-dir") {
 		config.LogDir = ctx.GlobalString("log-dir")
 	}
@@ -309,6 +312,11 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Value:  "error",
 			Usage:  "log messages above specified level: debug, info, warn, error (default), fatal or panic",
 			EnvVar: "CONTAINER_LOG_LEVEL",
+		},
+		cli.StringFlag{
+			Name:   "log-filter",
+			Usage:  "filter the log messages by the provided regular expression. For example 'request:.*' filters all gRPC requests.",
+			EnvVar: "CONTAINER_LOG_FILTER",
 		},
 		cli.StringFlag{
 			Name:      "log-dir",

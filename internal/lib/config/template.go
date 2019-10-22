@@ -209,6 +209,10 @@ read_only = {{ .ReadOnly }}
 # configuration reload.
 log_level = "{{ .LogLevel }}"
 
+# Filter the log messages by the provided regular expression.
+# This option supports live configuration reload.
+log_filter = "{{ .LogFilter }}"
+
 # The UID mappings for the user namespace of each container. A range is
 # specified in the form containerUID:HostUID:Size. Multiple ranges must be
 # separated by comma.

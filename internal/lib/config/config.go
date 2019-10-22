@@ -230,6 +230,9 @@ type RuntimeConfig struct {
 	// Options are fatal, panic, error (default), warn, info, and debug.
 	LogLevel string `toml:"log_level"`
 
+	// LogFilter specifies a regular expression to filter the log messages
+	LogFilter string `toml:"log_filter"`
+
 	// Runtimes defines a list of OCI compatible runtimes. The runtime to
 	// use is picked based on the runtime_handler provided by the CRI. If
 	// no runtime_handler is provided, the runtime will be picked based on
