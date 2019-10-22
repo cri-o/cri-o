@@ -223,9 +223,12 @@ gid_mappings = "{{ .GIDMappings }}"
 # regarding the proper termination of the container.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
-# ManageNetworkNSLifecycle determines whether we pin and remove network namespace
-# and manage its lifecycle.
-manage_network_ns_lifecycle = {{ .ManageNetworkNSLifecycle }}
+# **DEPRECATED** this option is being replaced by manage_ns_lifecycle, which is described below.
+# manage_network_ns_lifecycle = {{ .ManageNSLifecycle }}
+
+# ManageNSLifecycle determines whether we pin and remove namespaces
+# and manage their lifecycle
+manage_ns_lifecycle = {{ .ManageNSLifecycle }}
 
 # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
 # The runtime to use is picked based on the runtime_handler provided by the CRI.

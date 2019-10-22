@@ -298,7 +298,7 @@ mock-sandbox: ${MOCKGEN}
 		${MOCKGEN_FLAGS} \
 		-package sandboxmock \
 		-destination ${MOCK_PATH}/sandbox/sandbox.go \
-		github.com/cri-o/cri-o/internal/lib/sandbox NetNsIface
+		github.com/cri-o/cri-o/internal/lib/sandbox NamespaceIface
 
 mock-image-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \

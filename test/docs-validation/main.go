@@ -28,8 +28,9 @@ const (
 var (
 	// Tags which should be not checked at all
 	excludedTags = []string{
-		"plugin_dir", // deprecated
-		"runtimes",   // printed as separate table
+		"plugin_dir",                  // deprecated
+		"runtimes",                    // printed as separate table
+		"manage_network_ns_lifecycle", // deprecated
 	}
 
 	// Tags where it should not validate the values

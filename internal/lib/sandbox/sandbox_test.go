@@ -269,14 +269,14 @@ var _ = t.Describe("Sandbox", func() {
 		It("should succeed", func() {
 			// Given
 			gomock.InOrder(
-				netNsIfaceMock.EXPECT().Initialized().Return(false),
-				netNsIfaceMock.EXPECT().Initialize().Return(netNsIfaceMock, nil),
-				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).Return(nil),
-				netNsIfaceMock.EXPECT().Remove().Return(nil),
+				namespaceIfaceMock.EXPECT().Initialized().Return(false),
+				namespaceIfaceMock.EXPECT().Initialize("net").Return(namespaceIfaceMock, nil),
+				namespaceIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).Return(nil),
+				namespaceIfaceMock.EXPECT().Remove().Return(nil),
 			)
 
 			// When
-			err := testSandbox.NetNsCreate(netNsIfaceMock)
+			err := testSandbox.NetNsCreate(namespaceIfaceMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -294,16 +294,16 @@ var _ = t.Describe("Sandbox", func() {
 		It("should fail on failed symlink creation", func() {
 			// Given
 			gomock.InOrder(
-				netNsIfaceMock.EXPECT().Initialized().Return(false),
-				netNsIfaceMock.EXPECT().Initialize().
-					Return(netNsIfaceMock, nil),
-				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
+				namespaceIfaceMock.EXPECT().Initialized().Return(false),
+				namespaceIfaceMock.EXPECT().Initialize("net").
+					Return(namespaceIfaceMock, nil),
+				namespaceIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
 					Return(t.TestError),
-				netNsIfaceMock.EXPECT().Close().Return(nil),
+				namespaceIfaceMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
-			err := testSandbox.NetNsCreate(netNsIfaceMock)
+			err := testSandbox.NetNsCreate(namespaceIfaceMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -312,16 +312,16 @@ var _ = t.Describe("Sandbox", func() {
 		It("should fail on failed symlink creation (with close error)", func() {
 			// Given
 			gomock.InOrder(
-				netNsIfaceMock.EXPECT().Initialized().Return(false),
-				netNsIfaceMock.EXPECT().Initialize().
-					Return(netNsIfaceMock, nil),
-				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
+				namespaceIfaceMock.EXPECT().Initialized().Return(false),
+				namespaceIfaceMock.EXPECT().Initialize("net").
+					Return(namespaceIfaceMock, nil),
+				namespaceIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
 					Return(t.TestError),
-				netNsIfaceMock.EXPECT().Close().Return(t.TestError),
+				namespaceIfaceMock.EXPECT().Close().Return(t.TestError),
 			)
 
 			// When
-			err := testSandbox.NetNsCreate(netNsIfaceMock)
+			err := testSandbox.NetNsCreate(namespaceIfaceMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -330,13 +330,13 @@ var _ = t.Describe("Sandbox", func() {
 		It("should fail on initialization error", func() {
 			// Given
 			gomock.InOrder(
-				netNsIfaceMock.EXPECT().Initialized().Return(false),
-				netNsIfaceMock.EXPECT().Initialize().
+				namespaceIfaceMock.EXPECT().Initialized().Return(false),
+				namespaceIfaceMock.EXPECT().Initialize("net").
 					Return(nil, t.TestError),
 			)
 
 			// When
-			err := testSandbox.NetNsCreate(netNsIfaceMock)
+			err := testSandbox.NetNsCreate(namespaceIfaceMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -345,48 +345,36 @@ var _ = t.Describe("Sandbox", func() {
 		It("should fail when already initialized", func() {
 			// Given
 			gomock.InOrder(
-				netNsIfaceMock.EXPECT().Initialized().Return(true),
+				namespaceIfaceMock.EXPECT().Initialized().Return(true),
 			)
 
 			// When
-			err := testSandbox.NetNsCreate(netNsIfaceMock)
+			err := testSandbox.NetNsCreate(namespaceIfaceMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
 	})
 
-	t.Describe("HostNetNsPath", func() {
-		It("should succeed", func() {
-			// Given
-			// When
-			hostnet, err := sandbox.HostNetNsPath()
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(hostnet).NotTo(BeNil())
-		})
-	})
-
-	t.Describe("NetNsGet", func() {
+	t.Describe("NsGet", func() {
 		BeforeEach(func() {
 			gomock.InOrder(
-				netNsIfaceMock.EXPECT().Initialized().Return(false),
-				netNsIfaceMock.EXPECT().Initialize().
-					Return(netNsIfaceMock, nil),
-				netNsIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
+				namespaceIfaceMock.EXPECT().Initialized().Return(false),
+				namespaceIfaceMock.EXPECT().Initialize("net").
+					Return(namespaceIfaceMock, nil),
+				namespaceIfaceMock.EXPECT().SymlinkCreate(gomock.Any()).
 					Return(nil),
 			)
-			Expect(testSandbox.NetNsCreate(netNsIfaceMock)).To(BeNil())
+			Expect(testSandbox.NetNsCreate(namespaceIfaceMock)).To(BeNil())
 		})
 
 		It("should succeed", func() {
 			// Given
 			gomock.InOrder(
-				netNsIfaceMock.EXPECT().Get().Return(&sandbox.NetNs{}),
+				namespaceIfaceMock.EXPECT().Get().Return(&sandbox.Namespace{}),
 			)
 			// When
-			ns, err := testSandbox.NetNsGet("/proc/self/ns",
+			ns, err := testSandbox.NsGet("/proc/self/ns",
 				"../../../tmp/test")
 
 			// Then
@@ -403,14 +391,14 @@ var _ = t.Describe("Sandbox", func() {
 		It("should succeed with symlink", func() {
 			// Given
 			gomock.InOrder(
-				netNsIfaceMock.EXPECT().Get().Return(&sandbox.NetNs{}),
+				namespaceIfaceMock.EXPECT().Get().Return(&sandbox.Namespace{}),
 			)
 			const link = "ns-link"
 			Expect(os.Symlink("/proc/self/ns", link)).To(BeNil())
 			defer os.RemoveAll(link)
 
 			// When
-			ns, err := testSandbox.NetNsGet(link, "../../../tmp/test")
+			ns, err := testSandbox.NsGet(link, "../../../tmp/test")
 
 			// Then
 			defer os.RemoveAll(ns.Path())
@@ -424,7 +412,7 @@ var _ = t.Describe("Sandbox", func() {
 			// Given
 
 			// When
-			ns, err := testSandbox.NetNsGet("", "")
+			ns, err := testSandbox.NsGet("", "")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -437,7 +425,21 @@ var _ = t.Describe("Sandbox", func() {
 			defer os.RemoveAll("/tmp/noperm")
 
 			// When
-			ns, err := testSandbox.NetNsGet("/proc/self/ns",
+			ns, err := testSandbox.NsGet("/proc/self/ns",
+				"../../../tmp/noperm/test")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(ns).To(BeNil())
+		})
+
+		It("should fail on invalid permissions", func() {
+			// Given
+			Expect(os.MkdirAll("/tmp/noperm", 0000)).To(BeNil())
+			defer os.RemoveAll("/tmp/noperm")
+
+			// When
+			ns, err := testSandbox.NsGet("/proc/self/ns",
 				"../../../tmp/noperm/test")
 
 			// Then

@@ -335,16 +335,36 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	sb.SetSeccompProfilePath(spp)
 	sb.SetNamespaceOptions(&nsOpts)
 
-	// We add a netNS only if we can load a permanent one.
+	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	if c.config.ManageNetworkNSLifecycle {
-		netNsPath, err := configNetNsPath(&m)
+	if c.config.ManageNSLifecycle {
+		netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
 		if err == nil {
 			nsErr := sb.NetNsJoin(netNsPath, sb.Name())
 			// If we can't load the networking namespace
 			// because it's closed, we just set the sb netns
 			// pointer to nil. Otherwise we return an error.
-			if nsErr != nil && nsErr != sandbox.ErrClosedNetNS {
+			if nsErr != nil && nsErr != sandbox.ErrClosedNS {
+				return nsErr
+			}
+		}
+		ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
+		if err == nil {
+			nsErr := sb.IpcNsJoin(ipcNsPath, sb.Name())
+			// If we can't load the IPC namespace
+			// because it's closed, we just set the sb ipcns
+			// pointer to nil. Otherwise we return an error.
+			if nsErr != nil && nsErr != sandbox.ErrClosedNS {
+				return nsErr
+			}
+		}
+		utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
+		if err == nil {
+			nsErr := sb.UtsNsJoin(utsNsPath, sb.Name())
+			// If we can't load the UTS namespace
+			// because it's closed, we just set the sb pidns
+			// pointer to nil. Otherwise we return an error.
+			if nsErr != nil && nsErr != sandbox.ErrClosedNS {
 				return nsErr
 			}
 		}
@@ -424,9 +444,9 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	return nil
 }
 
-func configNetNsPath(spec *rspec.Spec) (string, error) {
+func configNsPath(spec *rspec.Spec, nsType rspec.LinuxNamespaceType) (string, error) {
 	for _, ns := range spec.Linux.Namespaces {
-		if ns.Type != rspec.NetworkNamespace {
+		if ns.Type != nsType {
 			continue
 		}
 

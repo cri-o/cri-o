@@ -3,72 +3,14 @@ package sandbox
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
-
-func isSymbolicLink(path string) (bool, error) {
-	fi, err := os.Lstat(path)
-	if err != nil {
-		return false, err
-	}
-
-	return fi.Mode()&os.ModeSymlink == os.ModeSymlink, nil
-}
-
-// NetNsGet returns the NetNs associated with the given nspath and name
-func (s *Sandbox) NetNsGet(nspath, name string) (*NetNs, error) {
-	if err := ns.IsNSorErr(nspath); err != nil {
-		return nil, ErrClosedNetNS
-	}
-
-	symlink, symlinkErr := isSymbolicLink(nspath)
-	if symlinkErr != nil {
-		return nil, symlinkErr
-	}
-
-	var resolvedNsPath string
-	if symlink {
-		path, err := os.Readlink(nspath)
-		if err != nil {
-			return nil, err
-		}
-		resolvedNsPath = path
-	} else {
-		resolvedNsPath = nspath
-	}
-
-	netNs, err := getNetNs(resolvedNsPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if symlink {
-		fd, err := os.Open(nspath)
-		if err != nil {
-			return nil, err
-		}
-
-		netNs.symlink = fd
-	} else if err := netNs.SymlinkCreate(name); err != nil {
-		return nil, err
-	}
-
-	return netNs, nil
-}
-
-// HostNetNsPath returns the current network namespace for the host
-func HostNetNsPath() (string, error) {
-	return hostNetNsPath()
-}
 
 // Sandbox contains data surrounding kubernetes sandboxes on the server
 type Sandbox struct {
@@ -84,7 +26,9 @@ type Sandbox struct {
 	containers     oci.ContainerStorer
 	processLabel   string
 	mountLabel     string
-	netns          NetNsIface
+	netns          NamespaceIface
+	ipcns          NamespaceIface
+	utsns          NamespaceIface
 	shmPath        string
 	cgroupParent   string
 	runtimeHandler string
@@ -106,42 +50,11 @@ type Sandbox struct {
 	hostNetwork        bool
 }
 
-// NetNsIface provides a generic network namespace interface
-type NetNsIface interface {
-	// Close closes this network namespace
-	Close() error
+// DefaultShmSize is the default shm size
+const DefaultShmSize = 64 * 1024 * 1024
 
-	// Get returns the native NetNs
-	Get() *NetNs
-
-	// Initialize does the necessary setup
-	Initialize() (NetNsIface, error)
-
-	// Initialized returns true if already initialized
-	Initialized() bool
-
-	// Remove ensures this network namespace handle is closed and removed
-	Remove() error
-
-	// SymlinkCreate creates all necessary symlinks
-	SymlinkCreate(string) error
-}
-
-const (
-	// DefaultShmSize is the default shm size
-	DefaultShmSize = 64 * 1024 * 1024
-	// NsRunDir is the default directory in which running network namespaces
-	// are stored
-	NsRunDir = "/var/run/netns"
-)
-
-var (
-	// ErrIDEmpty is the error returned when the id of the sandbox is empty
-	ErrIDEmpty = errors.New("PodSandboxId should not be empty")
-	// ErrClosedNetNS is the error returned when the network namespace of the
-	// sandbox is closed
-	ErrClosedNetNS = errors.New("PodSandbox networking namespace is closed")
-)
+// ErrIDEmpty is the error returned when the id of the sandbox is empty
+var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
@@ -355,69 +268,6 @@ func (s *Sandbox) RemoveInfraContainer() {
 	s.infraContainer = nil
 }
 
-// NetNs retrieves the network namespace of the sandbox
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) NetNs() *NetNs {
-	if s.netns == nil {
-		return nil
-	}
-	return s.netns.Get()
-}
-
-// NetNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) NetNsPath() string {
-	if s.netns == nil || s.netns.Get() == nil ||
-		s.netns.Get().symlink == nil {
-		if s.infraContainer != nil {
-			return fmt.Sprintf("/proc/%v/ns/net", s.infraContainer.State().Pid)
-		}
-		return ""
-	}
-
-	return s.netns.Get().symlink.Name()
-}
-
-// UserNsPath returns the path to the user namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) UserNsPath() string {
-	if s.infraContainer != nil {
-		return fmt.Sprintf("/proc/%v/ns/user", s.infraContainer.State().Pid)
-	}
-	return ""
-}
-
-// NetNsCreate creates a new network namespace for the sandbox
-func (s *Sandbox) NetNsCreate(netNs NetNsIface) error {
-	// Create a new netNs if nil provided
-	if netNs == nil {
-		netNs = &NetNs{}
-	}
-
-	// Check if interface is already initialized
-	if netNs.Initialized() {
-		return fmt.Errorf("net NS already initialized")
-	}
-
-	netNs, err := netNs.Initialize()
-	if err != nil {
-		return err
-	}
-
-	if err := netNs.SymlinkCreate(s.name); err != nil {
-		logrus.Warnf("Could not create nentns symlink %v", err)
-
-		if err1 := netNs.Close(); err1 != nil {
-			return err1
-		}
-
-		return err
-	}
-
-	s.netns = netNs
-	return nil
-}
-
 // SetStopped sets the sandbox state to stopped.
 // This should be set after a stop operation succeeds
 // so that subsequent stops can return fast.
@@ -429,33 +279,6 @@ func (s *Sandbox) SetStopped() {
 // set to stopped.
 func (s *Sandbox) Stopped() bool {
 	return s.stopped
-}
-
-// NetNsJoin attempts to join the sandbox to an existing network namespace
-// This will fail if the sandbox is already part of a network namespace
-func (s *Sandbox) NetNsJoin(nspath, name string) error {
-	if s.netns != nil {
-		return fmt.Errorf("sandbox already has a network namespace, cannot join another")
-	}
-
-	netNS, err := s.NetNsGet(nspath, name)
-	if err != nil {
-		return err
-	}
-
-	s.netns = netNS
-
-	return nil
-}
-
-// NetNsRemove removes the network namespace associated with the sandbox
-func (s *Sandbox) NetNsRemove() error {
-	if s.netns == nil {
-		logrus.Warn("no networking namespace")
-		return nil
-	}
-
-	return s.netns.Remove()
 }
 
 // SetCreated sets the created status of sandbox to true

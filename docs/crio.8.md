@@ -70,6 +70,7 @@ crio
 [--grpc-max-send-msg-size=[value]]
 [--host-ip=[value]]
 [--manage-network-ns-lifecycle]
+[--manage-ns-lifecycle]
 [--no-pivot]
 [--stream-enable-tls]
 [--stream-tls-ca=[value]]
@@ -232,7 +233,9 @@ For the bind-mount conditions, only mounts explicitly requested by Kubernetes co
 
 **--host-ip**="": host IP considered as the primary IP to use by CRI-O for things such as host network IP (default: "")
 
-**--manage-network-ns-lifecycle**: determines whether we pin and remove network namespace and manage its lifecycle (default: false)
+**--manage-network-ns-lifecycle**: **DEPRECATED** this option is being replaced by `manage_ns_lifecycle`, which is described below.
+
+**--manage-ns-lifecycle**: determines whether we pin and remove namespaces and manage their lifecycle (default: false)
 
 **--no-pivot**: if true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)
 
