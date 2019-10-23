@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/manifest"
+	"github.com/containers/image/v4/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/pkg/util"
@@ -96,7 +96,7 @@ type InspectContainerData struct {
 	Path            string                      `json:"Path"`
 	Args            []string                    `json:"Args"`
 	State           *InspectContainerState      `json:"State"`
-	ImageID         string                      `json:"Image"`
+	Image           string                      `json:"Image"`
 	ImageName       string                      `json:"ImageName"`
 	Rootfs          string                      `json:"Rootfs"`
 	Pod             string                      `json:"Pod"`
@@ -268,6 +268,11 @@ type InspectContainerHostConfig struct {
 	// populated.
 	// TODO.
 	Cgroup string `json:"Cgroup"`
+	// Cgroups contains the container's CGroup mode.
+	// Allowed values are "default" (container is creating CGroups) and
+	// "disabled" (container is not creating CGroups).
+	// This is Libpod-specific and not included in `docker inspect`.
+	Cgroups string `json:"Cgroups"`
 	// Links is unused, and provided purely for Docker compatibility.
 	Links []string `json:"Links"`
 	// OOMScoreAdj is an adjustment that will be made to the container's OOM
@@ -713,7 +718,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 			StartedAt:  runtimeInfo.StartedTime,
 			FinishedAt: runtimeInfo.FinishedTime,
 		},
-		ImageID:         config.RootfsImageID,
+		Image:           config.RootfsImageID,
 		ImageName:       config.RootfsImageName,
 		ExitCommand:     config.ExitCommand,
 		Namespace:       config.Namespace,
@@ -958,6 +963,11 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	restartPolicy.Name = c.config.RestartPolicy
 	restartPolicy.MaximumRetryCount = c.config.RestartRetries
 	hostConfig.RestartPolicy = restartPolicy
+	if c.config.NoCgroups {
+		hostConfig.Cgroups = "disabled"
+	} else {
+		hostConfig.Cgroups = "default"
+	}
 
 	hostConfig.Dns = make([]string, 0, len(c.config.DNSServer))
 	for _, dns := range c.config.DNSServer {

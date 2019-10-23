@@ -5,31 +5,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
-	types2 "github.com/containernetworking/cni/pkg/types"
-	cp "github.com/containers/image/copy"
-	"github.com/containers/image/directory"
-	dockerarchive "github.com/containers/image/docker/archive"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/manifest"
-	ociarchive "github.com/containers/image/oci/archive"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/tarball"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/transports/alltransports"
-	"github.com/containers/image/types"
+	cp "github.com/containers/image/v4/copy"
+	"github.com/containers/image/v4/directory"
+	dockerarchive "github.com/containers/image/v4/docker/archive"
+	"github.com/containers/image/v4/docker/reference"
+	"github.com/containers/image/v4/manifest"
+	ociarchive "github.com/containers/image/v4/oci/archive"
+	is "github.com/containers/image/v4/storage"
+	"github.com/containers/image/v4/tarball"
+	"github.com/containers/image/v4/transports"
+	"github.com/containers/image/v4/transports/alltransports"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -85,9 +84,6 @@ func NewImageRuntimeFromStore(store storage.Store) *Runtime {
 // NewImageRuntimeFromOptions creates an Image Runtime including the store given
 // store options
 func NewImageRuntimeFromOptions(options storage.StoreOptions) (*Runtime, error) {
-	if reexec.Init() {
-		return nil, errors.Errorf("unable to reexec")
-	}
 	store, err := setStore(options)
 	if err != nil {
 		return nil, err
@@ -135,7 +131,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool, label *string) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, label *string, pullType util.PullType) (*Image, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
 	span.SetTag("type", "runtime")
 	defer span.Finish()
@@ -145,11 +141,13 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		InputName:    name,
 		imageruntime: ir,
 	}
-	if !forcePull {
+	if pullType != util.PullImageAlways {
 		localImage, err := newImage.getLocalImage()
 		if err == nil {
 			newImage.image = localImage
 			return &newImage, nil
+		} else if pullType == util.PullImageNever {
+			return nil, err
 		}
 	}
 
@@ -381,11 +379,6 @@ func (i *Image) Remove(ctx context.Context, force bool) error {
 	return nil
 }
 
-// Decompose an Image
-func (i *Image) Decompose() error {
-	return types2.NotImplementedError
-}
-
 // TODO: Rework this method to not require an assembly of the fq name with transport
 /*
 // GetManifest tries to GET an images manifest, returns nil on success and err on failure
@@ -553,7 +546,7 @@ func (i *Image) UntagImage(tag string) error {
 
 // PushImageToHeuristicDestination pushes the given image to "destination", which is heuristically parsed.
 // Use PushImageToReference if the destination is known precisely.
-func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, digestFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -571,11 +564,11 @@ func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination
 			return err
 		}
 	}
-	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, additionalDockerArchiveTags)
+	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, digestFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, additionalDockerArchiveTags)
 }
 
 // PushImageToReference pushes the given image to a location described by the given path
-func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, digestFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
 	sc.BlobInfoCacheDir = filepath.Join(i.imageruntime.store.GraphRoot(), "cache")
 
@@ -597,9 +590,21 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, manifestMIMEType, additionalDockerArchiveTags)
 	copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath() // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 	// Copy the image to the remote destination
-	_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
+	manifestBytes, err := cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {
 		return errors.Wrapf(err, "Error copying image to the remote destination")
+	}
+	digest, err := manifest.Digest(manifestBytes)
+	if err != nil {
+		return errors.Wrapf(err, "error computing digest of manifest of new image %q", transports.ImageName(dest))
+	}
+
+	logrus.Debugf("Successfully pushed %s with digest %s", transports.ImageName(dest), digest.String())
+
+	if digestFile != "" {
+		if err = ioutil.WriteFile(digestFile, []byte(digest.String()), 0644); err != nil {
+			return errors.Wrapf(err, "failed to write digest to file %q", digestFile)
+		}
 	}
 	i.newImageEvent(events.Push)
 	return nil
@@ -1356,7 +1361,7 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 			return err
 		}
 	}
-	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
+	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
 		return errors.Wrapf(err, "unable to save %q", source)
 	}
 	i.newImageEvent(events.Save)

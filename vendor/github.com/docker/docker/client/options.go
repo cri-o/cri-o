@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/docker/go-connections/sockets"
 	"github.com/docker/go-connections/tlsconfig"
@@ -102,6 +103,14 @@ func WithHTTPClient(client *http.Client) Opt {
 	}
 }
 
+// WithTimeout configures the time limit for requests made by the HTTP client
+func WithTimeout(timeout time.Duration) Opt {
+	return func(c *Client) error {
+		c.client.Timeout = timeout
+		return nil
+	}
+}
+
 // WithHTTPHeaders overrides the client default http headers
 func WithHTTPHeaders(headers map[string]string) Opt {
 	return func(c *Client) error {
@@ -147,6 +156,17 @@ func WithVersion(version string) Opt {
 			c.version = version
 			c.manualOverride = true
 		}
+		return nil
+	}
+}
+
+// WithAPIVersionNegotiation enables automatic API version negotiation for the client.
+// With this option enabled, the client automatically negotiates the API version
+// to use when making requests. API version negotiation is performed on the first
+// request; subsequent requests will not re-negotiate.
+func WithAPIVersionNegotiation() Opt {
+	return func(c *Client) error {
+		c.negotiateVersion = true
 		return nil
 	}
 }

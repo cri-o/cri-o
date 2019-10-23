@@ -2,13 +2,12 @@ package createconfig
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
-	pmount "github.com/containers/storage/pkg/mount"
+	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -302,9 +301,29 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	blockAccessToKernelFilesystems(config, &g)
 
 	// RESOURCES - PIDS
-	if config.Resources.PidsLimit != 0 {
-		g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
-		addedResources = true
+	if config.Resources.PidsLimit > 0 {
+		// if running on rootless on a cgroupv1 machine or using the cgroupfs manager, pids
+		// limit is not supported.  If the value is still the default
+		// then ignore the settings.  If the caller asked for a
+		// non-default, then try to use it.
+		setPidLimit := true
+		if rootless.IsRootless() {
+			cgroup2, err := cgroups.IsCgroup2UnifiedMode()
+			if err != nil {
+				return nil, err
+			}
+			runtimeConfig, err := runtime.GetConfig()
+			if err != nil {
+				return nil, err
+			}
+			if (!cgroup2 || runtimeConfig.CgroupManager != libpod.SystemdCgroupsManager) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
+				setPidLimit = false
+			}
+		}
+		if setPidLimit {
+			g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
+			addedResources = true
+		}
 	}
 
 	for name, val := range config.Env {
@@ -368,7 +387,11 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// BIND MOUNTS
 	configSpec.Mounts = supercedeUserMounts(userMounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
-	configSpec.Mounts = initFSMounts(configSpec.Mounts)
+	finalMounts, err := initFSMounts(configSpec.Mounts)
+	if err != nil {
+		return nil, err
+	}
+	configSpec.Mounts = finalMounts
 
 	// BLOCK IO
 	blkio, err := config.CreateBlockIO()
@@ -385,6 +408,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		if err != nil {
 			return nil, err
 		}
+		if !addedResources {
+			configSpec.Linux.Resources = &spec.LinuxResources{}
+		}
 		if addedResources && !cgroup2 {
 			return nil, errors.New("invalid configuration, cannot set resources with rootless containers not using cgroups v2 unified mode")
 		}
@@ -394,41 +420,16 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 	}
 
-	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
-	mounts, err := pmount.GetMounts()
-	if err != nil {
-		return nil, err
-	}
-	for i := range configSpec.Mounts {
-		m := &configSpec.Mounts[i]
-		isBind := false
-		for _, o := range m.Options {
-			if o == "bind" || o == "rbind" {
-				isBind = true
-				break
-			}
+	switch config.Cgroups {
+	case "disabled":
+		if addedResources {
+			return nil, errors.New("cannot specify resource limits when cgroups are disabled is specified")
 		}
-		if !isBind {
-			continue
-		}
-		mount, err := findMount(m.Source, mounts)
-		if err != nil {
-			return nil, err
-		}
-		if mount == nil {
-			continue
-		}
-	next_option:
-		for _, o := range strings.Split(mount.Opts, ",") {
-			if o == "nosuid" || o == "noexec" || o == "nodev" {
-				for _, e := range m.Options {
-					if e == o {
-						continue next_option
-					}
-				}
-				m.Options = append(m.Options, o)
-			}
-		}
+		configSpec.Linux.Resources = &spec.LinuxResources{}
+	case "enabled", "":
+		// Do nothing
+	default:
+		return nil, errors.New("unrecognized option for cgroups; supported are 'default' and 'disabled'")
 	}
 
 	// Add annotations
@@ -488,25 +489,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	return configSpec, nil
-}
-
-func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
-	var err error
-	target, err = filepath.Abs(target)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot resolve %s", target)
-	}
-	var bestSoFar *pmount.Info
-	for _, i := range mounts {
-		if bestSoFar != nil && len(bestSoFar.Mountpoint) > len(i.Mountpoint) {
-			// Won't be better than what we have already found
-			continue
-		}
-		if strings.HasPrefix(target, i.Mountpoint) {
-			bestSoFar = i
-		}
-	}
-	return bestSoFar, nil
 }
 
 func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {

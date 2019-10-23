@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -30,8 +31,8 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 		return nil, err
 	}
 
-	// Set Pod hostname as Pod name
-	g.Config.Hostname = p.config.Name
+	// Set Pod hostname
+	g.Config.Hostname = p.config.Hostname
 
 	isRootless := rootless.IsRootless()
 
@@ -98,7 +99,9 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	if isRootless {
 		netmode = "slirp4netns"
 	}
-	options = append(options, WithNetNS(p.config.InfraContainer.PortBindings, isRootless, netmode, networks))
+	// PostConfigureNetNS should not be set since user namespace sharing is not implemented
+	// and rootless networking no longer supports post configuration setup
+	options = append(options, WithNetNS(p.config.InfraContainer.PortBindings, false, netmode, networks))
 
 	return r.newContainer(ctx, g.Config, options...)
 }
@@ -111,7 +114,7 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, define.ErrRuntimeStopped
 	}
 
-	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, false, nil)
+	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing)
 	if err != nil {
 		return nil, err
 	}

@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/image/pkg/sysregistriesv2"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/pkg/sysregistriesv2"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib"

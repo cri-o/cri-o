@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"github.com/containers/image/copy"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/copy"
+	"github.com/containers/image/v4/types"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"golang.org/x/net/context"

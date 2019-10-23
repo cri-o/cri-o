@@ -17,13 +17,13 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/types"
+	is "github.com/containers/image/v4/storage"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
-	"github.com/containers/libpod/pkg/firewall"
+	"github.com/containers/libpod/pkg/cgroups"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -77,10 +77,6 @@ var (
 	// place of the configuration file pointed to by ConfigPath.
 	OverrideConfigPath = etcDir + "/containers/libpod.conf"
 
-	// DefaultInfraImage to use for infra container
-
-	// DefaultInfraCommand to be run in an infra container
-
 	// DefaultSHMLockPath is the default path for SHM locks
 	DefaultSHMLockPath = "/libpod_lock"
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
@@ -103,12 +99,11 @@ type Runtime struct {
 	store             storage.Store
 	storageService    *storageService
 	imageContext      *types.SystemContext
-	defaultOCIRuntime *OCIRuntime
-	ociRuntimes       map[string]*OCIRuntime
+	defaultOCIRuntime OCIRuntime
+	ociRuntimes       map[string]OCIRuntime
 	netPlugin         ocicni.CNIPlugin
 	conmonPath        string
 	imageRuntime      *image.Runtime
-	firewallBackend   firewall.FirewallBackend
 	lockManager       lock.Manager
 	configuredFrom    *runtimeConfiguredFrom
 
@@ -119,6 +114,10 @@ type Runtime struct {
 	doRenumber bool
 
 	doMigrate bool
+	// System migrate can move containers to a new runtime.
+	// We make no promises that these migrated containers work on the new
+	// runtime, though.
+	migrateRuntime string
 
 	// valid indicates whether the runtime is ready to use.
 	// valid is set to true when a runtime is returned from GetRuntime(),
@@ -163,8 +162,12 @@ type RuntimeConfig struct {
 	OCIRuntime string `toml:"runtime"`
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
 	OCIRuntimes map[string][]string `toml:"runtimes"`
-	// RuntimeSupportsJSON is the list of the OCI runtimes that support --format=json
+	// RuntimeSupportsJSON is the list of the OCI runtimes that support
+	// --format=json.
 	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
+	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
+	// running containers without CGroups.
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups"`
 	// RuntimePath is the path to OCI runtime binary for launching
 	// containers.
 	// The first path pointing to a valid file will be used
@@ -249,9 +252,15 @@ type RuntimeConfig struct {
 	// EventsLogger determines where events should be logged
 	EventsLogger string `toml:"events_logger"`
 	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:"-events_logfile_path"`
+	EventsLogFilePath string `toml:"events_logfile_path"`
 	//DetachKeys is the sequence of keys used to detach a container
 	DetachKeys string `toml:"detach_keys"`
+
+	// SDNotify tells Libpod to allow containers to notify the host
+	// systemd of readiness using the SD_NOTIFY mechanism
+	SDNotify bool
+	// CgroupCheck verifies if the cgroup check for correct OCI runtime has been done.
+	CgroupCheck bool `toml:"cgroup_check,omitempty"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -261,21 +270,22 @@ type RuntimeConfig struct {
 // If they were not, we may override them with information from the database,
 // if it exists and differs from what is present in the system already.
 type runtimeConfiguredFrom struct {
-	storageGraphDriverSet bool
-	storageGraphRootSet   bool
-	storageRunRootSet     bool
-	libpodStaticDirSet    bool
-	libpodTmpDirSet       bool
-	volPathSet            bool
-	conmonPath            bool
-	conmonEnvVars         bool
-	initPath              bool
-	ociRuntimes           bool
-	runtimePath           bool
-	cniPluginDir          bool
-	noPivotRoot           bool
-	runtimeSupportsJSON   bool
-	ociRuntime            bool
+	storageGraphDriverSet    bool
+	storageGraphRootSet      bool
+	storageRunRootSet        bool
+	libpodStaticDirSet       bool
+	libpodTmpDirSet          bool
+	volPathSet               bool
+	conmonPath               bool
+	conmonEnvVars            bool
+	initPath                 bool
+	ociRuntimes              bool
+	runtimePath              bool
+	cniPluginDir             bool
+	noPivotRoot              bool
+	runtimeSupportsJSON      bool
+	runtimeSupportsNoCgroups bool
+	ociRuntime               bool
 }
 
 func defaultRuntimeConfig() (RuntimeConfig, error) {
@@ -283,10 +293,17 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 	if err != nil {
 		return RuntimeConfig{}, err
 	}
+	graphRoot := storeOpts.GraphRoot
+	if graphRoot == "" {
+		logrus.Warnf("Storage configuration is unset - using hardcoded default paths")
+		graphRoot = "/var/lib/containers/storage"
+	}
+	volumePath := filepath.Join(graphRoot, "volumes")
+	staticDir := filepath.Join(graphRoot, "libpod")
 	return RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
-		VolumePath:            filepath.Join(storeOpts.GraphRoot, "volumes"),
+		VolumePath:            volumePath,
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
 		OCIRuntime:            "runc",
@@ -316,7 +333,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		},
 		InitPath:              define.DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
-		StaticDir:             filepath.Join(storeOpts.GraphRoot, "libpod"),
+		StaticDir:             staticDir,
 		TmpDir:                "",
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
@@ -365,13 +382,20 @@ func SetXdgDirs() error {
 
 	if runtimeDir == "" {
 		var err error
-		runtimeDir, err = util.GetRootlessRuntimeDir()
+		runtimeDir, err = util.GetRuntimeDir()
 		if err != nil {
 			return err
 		}
 	}
 	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
 		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+	}
+
+	if rootless.IsRootless() && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
+		sessionAddr := filepath.Join(runtimeDir, "bus")
+		if _, err := os.Stat(sessionAddr); err == nil {
+			os.Setenv("DBUS_SESSION_BUS_ADDRESS", fmt.Sprintf("unix:path=%s", sessionAddr))
+		}
 	}
 
 	// Setup XDG_CONFIG_HOME
@@ -391,11 +415,11 @@ func getDefaultTmpDir() (string, error) {
 		return "/var/run/libpod", nil
 	}
 
-	rootlessRuntimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
-	libpodRuntimeDir := filepath.Join(rootlessRuntimeDir, "libpod")
+	libpodRuntimeDir := filepath.Join(runtimeDir, "libpod")
 
 	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
 		if !os.IsExist(err) {
@@ -565,6 +589,10 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 				configPath)
 		}
 
+		if err := cgroupV2Check(configPath, tmpConfig); err != nil {
+			return nil, err
+		}
+
 		if tmpConfig.StaticDir != "" {
 			runtime.configuredFrom.libpodStaticDirSet = true
 		}
@@ -597,6 +625,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		}
 		if tmpConfig.RuntimeSupportsJSON != nil {
 			runtime.configuredFrom.runtimeSupportsJSON = true
+		}
+		if tmpConfig.RuntimeSupportsNoCgroups != nil {
+			runtime.configuredFrom.runtimeSupportsNoCgroups = true
 		}
 		if tmpConfig.OCIRuntime != "" {
 			runtime.configuredFrom.ociRuntime = true
@@ -644,8 +675,19 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			if !runtime.configuredFrom.runtimeSupportsJSON {
 				runtime.config.RuntimeSupportsJSON = tmpConfig.RuntimeSupportsJSON
 			}
+			if !runtime.configuredFrom.runtimeSupportsNoCgroups {
+				runtime.config.RuntimeSupportsNoCgroups = tmpConfig.RuntimeSupportsNoCgroups
+			}
 			if !runtime.configuredFrom.ociRuntime {
 				runtime.config.OCIRuntime = tmpConfig.OCIRuntime
+			}
+
+			cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
+			if err != nil {
+				return nil, err
+			}
+			if cgroupsV2 {
+				runtime.config.CgroupCheck = true
 			}
 
 			break
@@ -791,6 +833,20 @@ func probeConmon(conmonBinary string) error {
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
+	// Let's sanity-check some paths first.
+	// Relative paths can cause nasty bugs, because core paths we use could
+	// shift between runs (or even parts of the program - the OCI runtime
+	// uses a different working directory than we do, for example.
+	if !filepath.IsAbs(runtime.config.StaticDir) {
+		return errors.Wrapf(define.ErrInvalidArg, "static directory must be an absolute path - instead got %q", runtime.config.StaticDir)
+	}
+	if !filepath.IsAbs(runtime.config.TmpDir) {
+		return errors.Wrapf(define.ErrInvalidArg, "temporary directory must be an absolute path - instead got %q", runtime.config.TmpDir)
+	}
+	if !filepath.IsAbs(runtime.config.VolumePath) {
+		return errors.Wrapf(define.ErrInvalidArg, "volume path must be an absolute path - instead got %q", runtime.config.VolumePath)
+	}
+
 	// Find a working conmon binary
 	foundConmon := false
 	foundOutdatedConmon := false
@@ -990,8 +1046,18 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
+	// Make lookup tables for runtime support
+	supportsJSON := make(map[string]bool)
+	supportsNoCgroups := make(map[string]bool)
+	for _, r := range runtime.config.RuntimeSupportsJSON {
+		supportsJSON[r] = true
+	}
+	for _, r := range runtime.config.RuntimeSupportsNoCgroups {
+		supportsNoCgroups[r] = true
+	}
+
 	// Get us at least one working OCI runtime.
-	runtime.ociRuntimes = make(map[string]*OCIRuntime)
+	runtime.ociRuntimes = make(map[string]OCIRuntime)
 
 	// Is the old runtime_path defined?
 	if runtime.config.RuntimePath != nil {
@@ -1007,15 +1073,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 		name := filepath.Base(runtime.config.RuntimePath[0])
 
-		supportsJSON := false
-		for _, r := range runtime.config.RuntimeSupportsJSON {
-			if r == name {
-				supportsJSON = true
-				break
-			}
-		}
+		json := supportsJSON[name]
+		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, supportsJSON)
+		ociRuntime, err := newConmonOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			return err
 		}
@@ -1026,15 +1087,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.OCIRuntimes {
-		supportsJSON := false
-		for _, r := range runtime.config.RuntimeSupportsJSON {
-			if r == name {
-				supportsJSON = true
-				break
-			}
-		}
+		json := supportsJSON[name]
+		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, supportsJSON)
+		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
@@ -1054,15 +1110,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		if strings.HasPrefix(runtime.config.OCIRuntime, "/") {
 			name := filepath.Base(runtime.config.OCIRuntime)
 
-			supportsJSON := false
-			for _, r := range runtime.config.RuntimeSupportsJSON {
-				if r == name {
-					supportsJSON = true
-					break
-				}
-			}
+			json := supportsJSON[name]
+			nocgroups := supportsNoCgroups[name]
 
-			ociRuntime, err := newOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, supportsJSON)
+			ociRuntime, err := newConmonOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, json, nocgroups)
 			if err != nil {
 				return err
 			}
@@ -1105,17 +1156,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 		runtime.netPlugin = netPlugin
 	}
-
-	// Set up a firewall backend
-	backendType := ""
-	if rootless.IsRootless() {
-		backendType = "none"
-	}
-	fwBackend, err := firewall.GetBackend(backendType)
-	if err != nil {
-		return err
-	}
-	runtime.firewallBackend = fwBackend
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this
@@ -1436,4 +1476,43 @@ func (r *Runtime) ImageRuntime() *image.Runtime {
 // SystemContext returns the imagecontext
 func (r *Runtime) SystemContext() *types.SystemContext {
 	return r.imageContext
+}
+
+// GetOCIRuntimePath retrieves the path of the default OCI runtime.
+func (r *Runtime) GetOCIRuntimePath() string {
+	return r.defaultOCIRuntime.Path()
+}
+
+// Since runc does not currently support cgroupV2
+// Change to default crun on first running of libpod.conf
+// TODO Once runc has support for cgroups, this function should be removed.
+func cgroupV2Check(configPath string, tmpConfig *RuntimeConfig) error {
+	if !tmpConfig.CgroupCheck && rootless.IsRootless() {
+		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return err
+		}
+		if cgroupsV2 {
+			path, err := exec.LookPath("crun")
+			if err != nil {
+				logrus.Warnf("Can not find crun package on the host, containers might fail to run on cgroup V2 systems without crun: %q", err)
+				// Can't find crun path so do nothing
+				return nil
+			}
+			tmpConfig.CgroupCheck = true
+			tmpConfig.OCIRuntime = path
+			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE, 0666)
+			if err != nil {
+				return errors.Wrapf(err, "cannot open file %s", configPath)
+			}
+			defer file.Close()
+			enc := toml.NewEncoder(file)
+			if err := enc.Encode(tmpConfig); err != nil {
+				if removeErr := os.Remove(configPath); removeErr != nil {
+					logrus.Debugf("unable to remove %s: %q", configPath, err)
+				}
+			}
+		}
+	}
+	return nil
 }

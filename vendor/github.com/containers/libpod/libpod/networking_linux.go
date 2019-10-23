@@ -17,7 +17,6 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/libpod/pkg/errorhandling"
-	"github.com/containers/libpod/pkg/firewall"
 	"github.com/containers/libpod/pkg/netns"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -86,26 +85,11 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		networkStatus = append(networkStatus, resultCurrent)
 	}
 
-	// Add firewall rules to ensure the container has network access.
-	// Will not be necessary once CNI firewall plugin merges upstream.
-	// https://github.com/containernetworking/plugins/pull/75
-	for _, netStatus := range networkStatus {
-		firewallConf := &firewall.FirewallNetConf{
-			PrevResult: netStatus,
-		}
-		if err := r.firewallBackend.Add(firewallConf); err != nil {
-			return nil, errors.Wrapf(err, "error adding firewall rules for container %s", ctr.ID())
-		}
-	}
-
 	return networkStatus, nil
 }
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result, err error) {
-	if rootless.IsRootless() {
-		return nil, nil, errors.New("cannot configure a new network namespace in rootless mode, only --network=slirp4netns is supported")
-	}
 	ctrNS, err := netns.NewNS()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
@@ -123,7 +107,10 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
-	networkStatus, err := r.configureNetNS(ctr, ctrNS)
+	networkStatus := []*cnitypes.Result{}
+	if !rootless.IsRootless() {
+		networkStatus, err = r.configureNetNS(ctr, ctrNS)
+	}
 	return ctrNS, networkStatus, err
 }
 
@@ -140,20 +127,17 @@ type slirp4netnsCmd struct {
 	Args    slirp4netnsCmdArg `json:"arguments"`
 }
 
-func checkSlirpFlags(path string) (bool, bool, error) {
+func checkSlirpFlags(path string) (bool, bool, bool, error) {
 	cmd := exec.Command(path, "--help")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, false, err
+		return false, false, false, err
 	}
-	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), nil
+	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), strings.Contains(string(out), "--enable-sandbox"), nil
 }
 
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
-	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
-	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
-
 	path := r.config.NetworkCmdPath
 
 	if path == "" {
@@ -173,13 +157,13 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer errorhandling.CloseQuiet(syncW)
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
-	apiSocket := filepath.Join(ctr.ociRuntime.tmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
+	apiSocket := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
 
 	cmdArgs := []string{}
 	if havePortMapping {
-		cmdArgs = append(cmdArgs, "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID))
+		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
 	}
-	dhp, mtu, err := checkSlirpFlags(path)
+	dhp, mtu, sandbox, err := checkSlirpFlags(path)
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s", path)
 	}
@@ -189,13 +173,41 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	if mtu {
 		cmdArgs = append(cmdArgs, "--mtu", "65520")
 	}
-	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
+	if sandbox {
+		cmdArgs = append(cmdArgs, "--enable-sandbox")
+	}
+
+	// the slirp4netns arguments being passed are describes as follows:
+	// from the slirp4netns documentation: https://github.com/rootless-containers/slirp4netns
+	// -c, --configure Brings up the tap interface
+	// -e, --exit-fd=FD specify the FD for terminating slirp4netns
+	// -r, --ready-fd=FD specify the FD to write to when the initialization steps are finished
+	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4")
+	if !ctr.config.PostConfigureNetNS {
+		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
+		if err != nil {
+			return errors.Wrapf(err, "failed to create rootless network sync pipe")
+		}
+		cmdArgs = append(cmdArgs, "--netns-type=path", ctr.state.NetNS.Path(), "tap0")
+	} else {
+		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
+		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
+		cmdArgs = append(cmdArgs, fmt.Sprintf("%d", ctr.state.PID), "tap0")
+	}
 
 	cmd := exec.Command(path, cmdArgs...)
-
+	logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
+
+	// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
+	if sandbox {
+		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
+		cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
+	}
+
+	// Leak one end of the pipe in slirp4netns, the other will be sent to conmon
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncR, syncW)
 
 	if err := cmd.Start(); err != nil {
@@ -390,42 +402,30 @@ func (r *Runtime) closeNetNS(ctr *Container) error {
 }
 
 // Tear down a network namespace, undoing all state associated with it.
-// The CNI firewall rules will be removed, the namespace will be unmounted,
-// and the file descriptor associated with it closed.
 func (r *Runtime) teardownNetNS(ctr *Container) error {
 	if ctr.state.NetNS == nil {
 		// The container has no network namespace, we're set
 		return nil
 	}
 
-	// Remove firewall rules we added on configuring the container.
-	// Will not be necessary once CNI firewall plugin merges upstream.
-	// https://github.com/containernetworking/plugins/pull/75
-	for _, netStatus := range ctr.state.NetworkStatus {
-		firewallConf := &firewall.FirewallNetConf{
-			PrevResult: netStatus,
-		}
-		if err := r.firewallBackend.Del(firewallConf); err != nil {
-			return errors.Wrapf(err, "error removing firewall rules for container %s", ctr.ID())
-		}
-	}
-
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
-	var requestedIP net.IP
-	if ctr.requestedIP != nil {
-		requestedIP = ctr.requestedIP
-		// cancel request for a specific IP in case the container is reused later
-		ctr.requestedIP = nil
-	} else {
-		requestedIP = ctr.config.StaticIP
-	}
+	// rootless containers do not use the CNI plugin
+	if !rootless.IsRootless() {
+		var requestedIP net.IP
+		if ctr.requestedIP != nil {
+			requestedIP = ctr.requestedIP
+			// cancel request for a specific IP in case the container is reused later
+			ctr.requestedIP = nil
+		} else {
+			requestedIP = ctr.config.StaticIP
+		}
 
-	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
+		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
 
-	// The network may have already been torn down, so don't fail here, just log
-	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
-		return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
+		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
+			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
+		}
 	}
 
 	// First unmount the namespace
@@ -462,6 +462,12 @@ func getContainerNetNS(ctr *Container) (string, error) {
 
 func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	var netStats *netlink.LinkStatistics
+	// rootless v2 cannot seem to resolve its network connection to
+	// collect statistics.  For now, we allow stats to at least run
+	// by returning nil
+	if rootless.IsRootless() {
+		return netStats, nil
+	}
 	netNSPath, netPathErr := getContainerNetNS(ctr)
 	if netPathErr != nil {
 		return nil, netPathErr

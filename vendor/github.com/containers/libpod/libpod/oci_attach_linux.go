@@ -47,7 +47,11 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 
 	registerResizeFunc(resize, c.bundlePath())
 
-	socketPath := buildSocketPath(c.AttachSocketPath())
+	attachSock, err := c.AttachSocketPath()
+	if err != nil {
+		return err
+	}
+	socketPath := buildSocketPath(attachSock)
 
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
 	if err != nil {
@@ -107,15 +111,18 @@ func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-c
 
 	logrus.Debugf("Attaching to container %s exec session %s", c.ID(), sessionID)
 
-	registerResizeFunc(resize, c.execBundlePath(sessionID))
-
 	// set up the socket path, such that it is the correct length and location for exec
-	socketPath := buildSocketPath(c.execAttachSocketPath(sessionID))
+	sockPath, err := c.execAttachSocketPath(sessionID)
+	if err != nil {
+		return err
+	}
+	socketPath := buildSocketPath(sockPath)
 
 	// 2: read from attachFd that the parent process has set up the console socket
 	if _, err := readConmonPipeData(attachFd, ""); err != nil {
 		return err
 	}
+
 	// 2: then attach
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
 	if err != nil {
@@ -126,6 +133,10 @@ func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-c
 			logrus.Errorf("unable to close socket: %q", err)
 		}
 	}()
+
+	// Register the resize func after we've read the attach socket, as we know at this point the
+	// 'ctl' file has been created in conmon
+	registerResizeFunc(resize, c.execBundlePath(sessionID))
 
 	// start listening on stdio of the process
 	receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)

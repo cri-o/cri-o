@@ -1,7 +1,10 @@
 package define
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -27,4 +30,21 @@ func TranslateExecErrorToExitCode(originalEC int, err error) int {
 		return ExecErrorCodeNotFound
 	}
 	return originalEC
+}
+
+// ExitCode reads the error message when failing to executing container process
+// and then returns 0 if no error, ExecErrorCodeNotFound if command does not exist, or ExecErrorCodeCannotInvoke for
+// all other errors
+func ExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	e := strings.ToLower(err.Error())
+	logrus.Debugf("ExitCode msg: %q", e)
+	if strings.Contains(e, "not found") ||
+		strings.Contains(e, "no such file") {
+		return ExecErrorCodeNotFound
+	}
+
+	return ExecErrorCodeCannotInvoke
 }

@@ -61,6 +61,14 @@ var (
 	// the user.
 	ErrDetach = utils.ErrDetach
 
+	// ErrNoCgroups indicates that the container does not have its own
+	// CGroup.
+	ErrNoCgroups = errors.New("this container does not have a cgroup")
+
+	// ErrRootless indicates that the given command cannot but run without
+	// root.
+	ErrRootless = errors.New("operation requires root privileges")
+
 	// ErrRuntimeStopped indicates that the runtime has already been shut
 	// down and no further operations can be performed on it
 	ErrRuntimeStopped = errors.New("runtime has already been stopped")
@@ -107,6 +115,10 @@ var (
 	// ErrOCIRuntimeNotFound indicates the OCI runtime attempted to invoke a command
 	// that was not found
 	ErrOCIRuntimeNotFound = errors.New("OCI runtime command not found error")
+
+	// ErrOCIRuntimeUnavailable indicates that the OCI runtime associated to a container
+	// could not be found in the configuration
+	ErrOCIRuntimeUnavailable = errors.New("OCI runtime not available in the current configuration")
 
 	// ErrConmonOutdated indicates the version of conmon found (whether via the configuration or $PATH)
 	// is out of date for the current podman version
