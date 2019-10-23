@@ -29,7 +29,7 @@ func crioWipe(c *cli.Context) error {
 	// First, check if we need to upgrade at all
 	shouldWipe, err := version.ShouldCrioWipe(config.VersionFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprint(os.Stderr, err.Error())
 	}
 
 	// if we should not wipe, exit with no error

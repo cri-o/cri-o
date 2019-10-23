@@ -300,25 +300,19 @@ jobs:
             TEST_USERNS: "<< parameters.test_userns >>"
 
   lint:
-    executor: machine
+    executor: container
     steps:
       - checkout
       - restore_cache:
           keys:
-            - v1-golangci-lint-{{ checksum "go.sum" }}
+            - v2-lint-{{ checksum "go.sum" }}
       - run:
           name: lint
-          command: |
-            docker pull $IMAGE
-            docker run --privileged --rm -e GOCACHE \
-              -v $GOCACHE:$GOCACHE -v $(pwd):$WORKDIR \
-              -w $WORKDIR $IMAGE make lint
-            sudo chown -R $(id -u):$(id -g) $GOCACHE
+          command: make lint
       - save_cache:
-          key: v1-golangci-lint-{{ checksum "go.sum" }}
+          key: v2-lint-{{ checksum "go.sum" }}
           paths:
             - *gocache
-            - build/bin/golangci-lint
 
   results:
     executor: container-base

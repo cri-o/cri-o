@@ -20,8 +20,6 @@ var _ = t.Describe("ImageStatus", func() {
 	})
 	AfterEach(afterEach)
 
-	const imageID = "imageID"
-
 	t.Describe("ImageStatus", func() {
 		It("should succeed", func() {
 			// Given
