@@ -22,7 +22,9 @@ import (
 	"github.com/cri-o/cri-o/internal/pkg/signals"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/cri-o/cri-o/server"
+	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli"
@@ -211,7 +213,10 @@ func main() {
 		}
 
 		grpcServer := grpc.NewServer(
-			grpc.UnaryInterceptor(log.UnaryInterceptor()),
+			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+				metrics.UnaryInterceptor(),
+				log.UnaryInterceptor(),
+			)),
 			grpc.StreamInterceptor(log.StreamInterceptor()),
 			grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),

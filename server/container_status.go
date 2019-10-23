@@ -2,7 +2,6 @@ package server
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
@@ -18,11 +17,6 @@ const (
 
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (resp *pb.ContainerStatusResponse, err error) {
-	const operation = "container_status"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err

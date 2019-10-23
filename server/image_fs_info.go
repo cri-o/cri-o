@@ -32,12 +32,6 @@ func getStorageFsInfo(store storage.Store) (*pb.FilesystemUsage, error) {
 
 // ImageFsInfo returns information of the filesystem that is used to store images.
 func (s *Server) ImageFsInfo(ctx context.Context, req *pb.ImageFsInfoRequest) (resp *pb.ImageFsInfoResponse, err error) {
-	const operation = "image_fs_info"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	store := s.StorageImageServer().GetStore()
 	fsUsage, err := getStorageFsInfo(store)
 

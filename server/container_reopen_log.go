@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
@@ -11,12 +10,6 @@ import (
 
 // ReopenContainerLog reopens the containers log file
 func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainerLogRequest) (resp *pb.ReopenContainerLogResponse, err error) {
-	const operation = "container_reopen_log"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	containerID := req.ContainerId
 	c := s.GetContainer(containerID)
 

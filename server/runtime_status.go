@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"time"
 
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -13,12 +12,6 @@ const networkNotReadyReason = "NetworkPluginNotReady"
 
 // Status returns the status of the runtime
 func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.StatusResponse, err error) {
-	const operation = "status"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	runtimeCondition := &pb.RuntimeCondition{
 		Type:   pb.RuntimeReady,
 		Status: true,

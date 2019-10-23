@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
@@ -13,12 +12,6 @@ import (
 
 // Exec prepares a streaming endpoint to execute a command in the container.
 func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (resp *pb.ExecResponse, err error) {
-	const operation = "exec"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	resp, err = s.getExec(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare exec endpoint: %v", err)

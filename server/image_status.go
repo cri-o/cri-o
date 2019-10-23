@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/pkg/log"
@@ -16,12 +15,6 @@ import (
 
 // ImageStatus returns the status of the image.
 func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (resp *pb.ImageStatusResponse, err error) {
-	const operation = "image_status"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	image := ""
 	img := req.GetImage()
 	if img != nil {

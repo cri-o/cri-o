@@ -1,8 +1,6 @@
 package server
 
 import (
-	"time"
-
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
@@ -31,12 +29,6 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 
 // ListPodSandbox returns a list of SandBoxes.
 func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (resp *pb.ListPodSandboxResponse, err error) {
-	const operation = "list_pod_sandbox"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	var pods []*pb.PodSandbox
 	var podList []*sandbox.Sandbox
 	podList = append(podList, s.ContainerServer.ListSandboxes()...)

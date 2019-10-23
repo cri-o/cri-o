@@ -1,8 +1,6 @@
 package server
 
 import (
-	"time"
-
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -10,12 +8,6 @@ import (
 
 // ListImages lists existing images.
 func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (resp *pb.ListImagesResponse, err error) {
-	const operation = "list_images"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	filter := ""
 	reqFilter := req.GetFilter()
 	if reqFilter != nil {

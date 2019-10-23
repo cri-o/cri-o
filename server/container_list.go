@@ -1,8 +1,6 @@
 package server
 
 import (
-	"time"
-
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
@@ -64,12 +62,6 @@ func (s *Server) filterContainerList(ctx context.Context, filter *pb.ContainerFi
 
 // ListContainers lists all containers by filters.
 func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (resp *pb.ListContainersResponse, err error) {
-	const operation = "list_containers"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	var ctrs []*pb.Container
 	filter := req.GetFilter()
 	ctrList, err := s.ContainerServer.ListContainers()

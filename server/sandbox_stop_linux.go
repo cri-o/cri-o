@@ -4,7 +4,6 @@ package server
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -20,12 +19,6 @@ import (
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (resp *pb.StopPodSandboxResponse, err error) {
-	const operation = "stop_pod_sandbox"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {

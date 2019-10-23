@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/gogo/protobuf/proto"
@@ -13,12 +12,6 @@ import (
 
 // UpdateContainerResources updates ContainerConfig of the container.
 func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateContainerResourcesRequest) (resp *pb.UpdateContainerResourcesResponse, err error) {
-	const operation = "update_container_resources"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	c, err := s.GetContainerFromShortID(req.GetContainerId())
 	if err != nil {
 		return nil, err

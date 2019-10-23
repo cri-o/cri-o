@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/base64"
 	"strings"
-	"time"
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/types"
@@ -15,13 +14,6 @@ import (
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp *pb.PullImageResponse, err error) {
-	const operation = "pull_image"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
-	log.Debugf(ctx, "PullImageRequest: %+v", req)
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
 	image := ""
 	img := req.GetImage()

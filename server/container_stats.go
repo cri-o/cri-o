@@ -1,8 +1,6 @@
 package server
 
 import (
-	"time"
-
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -31,12 +29,6 @@ func buildContainerStats(stats *oci.ContainerStats, container *oci.Container) *p
 // ContainerStats returns stats of the container. If the container does not
 // exist, the call returns an error.
 func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsRequest) (resp *pb.ContainerStatsResponse, err error) {
-	const operation = "container_stats"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	container, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err

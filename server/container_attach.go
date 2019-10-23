@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
@@ -13,12 +12,6 @@ import (
 
 // Attach prepares a streaming endpoint to attach to a running container.
 func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (resp *pb.AttachResponse, err error) {
-	const operation = "attach"
-	defer func() {
-		recordOperation(operation, time.Now())
-		recordError(operation, err)
-	}()
-
 	resp, err = s.getAttach(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare attach endpoint")
