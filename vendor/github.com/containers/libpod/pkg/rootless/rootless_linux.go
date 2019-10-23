@@ -3,7 +3,9 @@
 package rootless
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,15 +16,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"unsafe"
 
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/docker/docker/pkg/signal"
 	"github.com/godbus/dbus"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 /*
@@ -106,7 +107,7 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 	}
 
 	appendTriplet := func(l []string, a, b, c int) []string {
-		return append(l, fmt.Sprintf("%d", a), fmt.Sprintf("%d", b), fmt.Sprintf("%d", c))
+		return append(l, strconv.Itoa(a), strconv.Itoa(b), strconv.Itoa(c))
 	}
 
 	args := []string{path, fmt.Sprintf("%d", pid)}
@@ -128,7 +129,7 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 
 func readUserNs(path string) (string, error) {
 	b := make([]byte, 256)
-	_, err := syscall.Readlink(path, b)
+	_, err := unix.Readlink(path, b)
 	if err != nil {
 		return "", err
 	}
@@ -141,7 +142,7 @@ func readUserNsFd(fd uintptr) (string, error) {
 
 func getParentUserNs(fd uintptr) (uintptr, error) {
 	const nsGetParent = 0xb702
-	ret, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(nsGetParent), 0)
+	ret, _, errno := unix.Syscall(unix.SYS_IOCTL, fd, uintptr(nsGetParent), 0)
 	if errno != 0 {
 		return 0, errno
 	}
@@ -177,7 +178,7 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 	for {
 		nextFd, err := getParentUserNs(fd)
 		if err != nil {
-			if err == syscall.ENOTTY {
+			if err == unix.ENOTTY {
 				return os.NewFile(fd, "userns child"), nil
 			}
 			return nil, errors.Wrapf(err, "cannot get parent user namespace")
@@ -189,14 +190,14 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 		}
 
 		if ns == currentNS {
-			if err := syscall.Close(int(nextFd)); err != nil {
+			if err := unix.Close(int(nextFd)); err != nil {
 				return nil, err
 			}
 
 			// Drop O_CLOEXEC for the fd.
-			_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_SETFD, 0)
+			_, _, errno := unix.Syscall(unix.SYS_FCNTL, fd, unix.F_SETFD, 0)
 			if errno != 0 {
-				if err := syscall.Close(int(fd)); err != nil {
+				if err := unix.Close(int(fd)); err != nil {
 					logrus.Errorf("failed to close file descriptor %d", fd)
 				}
 				return nil, errno
@@ -204,7 +205,7 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 
 			return os.NewFile(fd, "userns child"), nil
 		}
-		if err := syscall.Close(int(fd)); err != nil {
+		if err := unix.Close(int(fd)); err != nil {
 			return nil, err
 		}
 		fd = nextFd
@@ -345,6 +346,32 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	return true, int(ret), nil
 }
 
+// GetConfiguredMappings returns the additional IDs configured for the current user.
+func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
+	var uids, gids []idtools.IDMap
+	username := os.Getenv("USER")
+	if username == "" {
+		var id string
+		if os.Geteuid() == 0 {
+			id = strconv.Itoa(GetRootlessUID())
+		} else {
+			id = strconv.Itoa(os.Geteuid())
+		}
+		userID, err := user.LookupId(id)
+		if err == nil {
+			username = userID.Username
+		}
+	}
+	mappings, err := idtools.NewIDMappings(username, username)
+	if err != nil {
+		logrus.Errorf("cannot find mappings for user %s: %v", username, err)
+	} else {
+		uids = mappings.UIDs()
+		gids = mappings.GIDs()
+	}
+	return uids, gids, nil
+}
+
 func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
@@ -366,7 +393,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_DGRAM, 0)
+	fds, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM, 0)
 	if err != nil {
 		return false, -1, err
 	}
@@ -386,25 +413,14 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
 
-	var uids, gids []idtools.IDMap
-	username := os.Getenv("USER")
-	if username == "" {
-		userID, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
-		if err == nil {
-			username = userID.Username
-		}
-	}
-	mappings, err := idtools.NewIDMappings(username, username)
+	uids, gids, err := GetConfiguredMappings()
 	if err != nil {
-		logrus.Warnf("cannot find mappings for user %s: %v", username, err)
-	} else {
-		uids = mappings.UIDs()
-		gids = mappings.GIDs()
+		return false, -1, err
 	}
 
 	uidsMapped := false
-	if mappings != nil && uids != nil {
-		err := tryMappingTool("newuidmap", pid, os.Getuid(), uids)
+	if uids != nil {
+		err := tryMappingTool("newuidmap", pid, os.Geteuid(), uids)
 		uidsMapped = err == nil
 	}
 	if !uidsMapped {
@@ -414,22 +430,24 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write setgroups file")
 		}
+		logrus.Debugf("write setgroups file exited with 0")
 
 		uidMap := fmt.Sprintf("/proc/%d/uid_map", pid)
-		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getuid())), 0666)
+		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0666)
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write uid_map")
 		}
+		logrus.Debugf("write uid_map exited with 0")
 	}
 
 	gidsMapped := false
-	if mappings != nil && gids != nil {
-		err := tryMappingTool("newgidmap", pid, os.Getgid(), gids)
+	if gids != nil {
+		err := tryMappingTool("newgidmap", pid, os.Getegid(), gids)
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {
 		gidMap := fmt.Sprintf("/proc/%d/gid_map", pid)
-		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getgid())), 0666)
+		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0666)
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write gid_map")
 		}
@@ -472,21 +490,21 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 
 	signals := []os.Signal{}
 	for sig := 0; sig < numSig; sig++ {
-		if sig == int(syscall.SIGTSTP) {
+		if sig == int(unix.SIGTSTP) {
 			continue
 		}
-		signals = append(signals, syscall.Signal(sig))
+		signals = append(signals, unix.Signal(sig))
 	}
 
 	gosignal.Notify(c, signals...)
 	defer gosignal.Reset()
 	go func() {
 		for s := range c {
-			if s == signal.SIGCHLD || s == signal.SIGPIPE {
+			if s == unix.SIGCHLD || s == unix.SIGPIPE {
 				continue
 			}
 
-			if err := syscall.Kill(int(pidC), s.(syscall.Signal)); err != nil {
+			if err := unix.Kill(int(pidC), s.(unix.Signal)); err != nil {
 				logrus.Errorf("failed to kill %d", int(pidC))
 			}
 		}
@@ -541,7 +559,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 			lastErr = nil
 			break
 		} else {
-			fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_DGRAM, 0)
+			fds, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM, 0)
 			if err != nil {
 				lastErr = err
 				continue
@@ -549,10 +567,10 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 			r, w := os.NewFile(uintptr(fds[0]), "read file"), os.NewFile(uintptr(fds[1]), "write file")
 
-			defer errorhandling.CloseQuiet(w)
 			defer errorhandling.CloseQuiet(r)
 
 			if _, _, err := becomeRootInUserNS("", path, w); err != nil {
+				w.Close()
 				lastErr = err
 				continue
 			}
@@ -561,7 +579,6 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 				return false, 0, err
 			}
 			defer func() {
-				errorhandling.CloseQuiet(r)
 				C.reexec_in_user_namespace_wait(-1, 0)
 			}()
 
@@ -585,4 +602,86 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 	}
 
 	return joinUserAndMountNS(uint(pausePid), pausePidPath)
+}
+func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open %s", path)
+	}
+	defer file.Close()
+
+	mappings := []idtools.IDMap{}
+
+	buf := bufio.NewReader(file)
+	for {
+		line, _, err := buf.ReadLine()
+		if err != nil {
+			if err == io.EOF {
+				return mappings, nil
+			}
+			return nil, errors.Wrapf(err, "cannot read line from %s", path)
+		}
+		if line == nil {
+			return mappings, nil
+		}
+
+		containerID, hostID, size := 0, 0, 0
+		if _, err := fmt.Sscanf(string(line), "%d %d %d", &containerID, &hostID, &size); err != nil {
+			return nil, errors.Wrapf(err, "cannot parse %s", string(line))
+		}
+		mappings = append(mappings, idtools.IDMap{ContainerID: containerID, HostID: hostID, Size: size})
+	}
+}
+
+func matches(id int, configuredIDs []idtools.IDMap, currentIDs []idtools.IDMap) bool {
+	// The first mapping is the host user, handle it separately.
+	if currentIDs[0].HostID != id || currentIDs[0].Size != 1 {
+		return false
+	}
+
+	currentIDs = currentIDs[1:]
+	if len(currentIDs) != len(configuredIDs) {
+		return false
+	}
+
+	// It is fine to iterate sequentially as both slices are sorted.
+	for i := range currentIDs {
+		if currentIDs[i].HostID != configuredIDs[i].HostID {
+			return false
+		}
+		if currentIDs[i].Size != configuredIDs[i].Size {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ConfigurationMatches checks whether the additional uids/gids configured for the user
+// match the current user namespace.
+func ConfigurationMatches() (bool, error) {
+	if !IsRootless() || os.Geteuid() != 0 {
+		return true, nil
+	}
+
+	uids, gids, err := GetConfiguredMappings()
+	if err != nil {
+		return false, err
+	}
+
+	currentUIDs, err := ReadMappingsProc("/proc/self/uid_map")
+	if err != nil {
+		return false, err
+	}
+
+	if !matches(GetRootlessUID(), uids, currentUIDs) {
+		return false, err
+	}
+
+	currentGIDs, err := ReadMappingsProc("/proc/self/gid_map")
+	if err != nil {
+		return false, err
+	}
+
+	return matches(GetRootlessGID(), gids, currentGIDs), nil
 }

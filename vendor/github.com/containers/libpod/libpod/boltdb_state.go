@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"sync"
 
@@ -159,6 +160,16 @@ func (s *BoltState) Refresh() error {
 			return err
 		}
 
+		allVolsBucket, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// Iterate through all IDs. Check if they are containers.
 		// If they are, unmarshal their state, and then clear
 		// PID, mountpoint, and state for all of them
@@ -231,6 +242,44 @@ func (s *BoltState) Refresh() error {
 
 			if err := ctrBkt.Put(stateKey, newStateBytes); err != nil {
 				return errors.Wrapf(err, "error updating state for container %s in DB", string(id))
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		// Now refresh volumes
+		err = allVolsBucket.ForEach(func(id, name []byte) error {
+			dbVol := volBucket.Bucket(id)
+			if dbVol == nil {
+				return errors.Wrapf(define.ErrInternal, "inconsistency in state - volume %s is in all volumes bucket but volume not found", string(id))
+			}
+
+			// Get the state
+			volStateBytes := dbVol.Get(stateKey)
+			if volStateBytes == nil {
+				// If the volume doesn't have a state, nothing to do
+				return nil
+			}
+
+			oldState := new(VolumeState)
+
+			if err := json.Unmarshal(volStateBytes, oldState); err != nil {
+				return errors.Wrapf(err, "error unmarshalling state for volume %s", string(id))
+			}
+
+			// Reset mount count to 0
+			oldState.MountCount = 0
+
+			newState, err := json.Marshal(oldState)
+			if err != nil {
+				return errors.Wrapf(err, "error marshalling state for volume %s", string(id))
+			}
+
+			if err := dbVol.Put(stateKey, newState); err != nil {
+				return errors.Wrapf(err, "error storing new state for volume %s", string(id))
 			}
 
 			return nil
@@ -359,6 +408,60 @@ func (s *BoltState) Container(id string) (*Container, error) {
 	return ctr, nil
 }
 
+// LookupContainerID retrieves a container ID from the state by full or unique
+// partial ID or name
+func (s *BoltState) LookupContainerID(idOrName string) (string, error) {
+	if idOrName == "" {
+		return "", define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return "", define.ErrDBClosed
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return "", err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	var id []byte
+	err = db.View(func(tx *bolt.Tx) error {
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		namesBucket, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		nsBucket, err := getNSBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		fullID, err := s.lookupContainerID(idOrName, ctrBucket, namesBucket, nsBucket)
+		// Check if it is in our namespace
+		if s.namespaceBytes != nil {
+			ns := nsBucket.Get(fullID)
+			if !bytes.Equal(ns, s.namespaceBytes) {
+				return errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+			}
+		}
+		id = fullID
+		return err
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	retID := string(id)
+	return retID, nil
+}
+
 // LookupContainer retrieves a container from the state by full or unique
 // partial ID or name
 func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
@@ -396,67 +499,9 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			return err
 		}
 
-		// First, check if the ID given was the actual container ID
-		var id []byte
-		ctrExists := ctrBucket.Bucket([]byte(idOrName))
-		if ctrExists != nil {
-			// A full container ID was given.
-			// It might not be in our namespace, but
-			// getContainerFromDB() will handle that case.
-			id = []byte(idOrName)
-			return s.getContainerFromDB(id, ctr, ctrBucket)
-		}
-
-		// Next, check if the full name was given
-		isPod := false
-		fullID := namesBucket.Get([]byte(idOrName))
-		if fullID != nil {
-			// The name exists and maps to an ID.
-			// However, we are not yet certain the ID is a
-			// container.
-			ctrExists = ctrBucket.Bucket(fullID)
-			if ctrExists != nil {
-				// A container bucket matching the full ID was
-				// found.
-				return s.getContainerFromDB(fullID, ctr, ctrBucket)
-			}
-			// Don't error if we have a name match but it's not a
-			// container - there's a chance we have a container with
-			// an ID starting with those characters.
-			// However, so we can return a good error, note whether
-			// this is a pod.
-			isPod = true
-		}
-
-		// We were not given a full container ID or name.
-		// Search for partial ID matches.
-		exists := false
-		err = ctrBucket.ForEach(func(checkID, checkName []byte) error {
-			// If the container isn't in our namespace, we
-			// can't match it
-			if s.namespaceBytes != nil {
-				ns := nsBucket.Get(checkID)
-				if !bytes.Equal(ns, s.namespaceBytes) {
-					return nil
-				}
-			}
-			if strings.HasPrefix(string(checkID), idOrName) {
-				if exists {
-					return errors.Wrapf(define.ErrCtrExists, "more than one result for container ID %s", idOrName)
-				}
-				id = checkID
-				exists = true
-			}
-
-			return nil
-		})
+		id, err := s.lookupContainerID(idOrName, ctrBucket, namesBucket, nsBucket)
 		if err != nil {
 			return err
-		} else if !exists {
-			if isPod {
-				return errors.Wrapf(define.ErrNoSuchCtr, "%s is a pod, not a container", idOrName)
-			}
-			return errors.Wrapf(define.ErrNoSuchCtr, "no container with name or ID %s found", idOrName)
 		}
 
 		return s.getContainerFromDB(id, ctr, ctrBucket)
@@ -614,9 +659,13 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return err
 	}
 
-	// Handle network namespace
-	if err := replaceNetNS(netNSPath, ctr, newState); err != nil {
-		return err
+	// Handle network namespace.
+	if os.Geteuid() == 0 {
+		// Do it only when root, either on the host or as root in the
+		// user namespace.
+		if err := replaceNetNS(netNSPath, ctr, newState); err != nil {
+			return err
+		}
 	}
 
 	// New state compiled successfully, swap it into the current state
@@ -812,6 +861,39 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
+// GetContainerConfig returns a container config from the database by full ID
+func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
+	if len(id) == 0 {
+		return nil, define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, define.ErrDBClosed
+	}
+
+	config := new(ContainerConfig)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		return s.getContainerConfigFromDB([]byte(id), config, ctrBucket)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
 // RewriteContainerConfig rewrites a container's configuration.
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
@@ -870,7 +952,7 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 
 	newCfgJSON, err := json.Marshal(newCfg)
 	if err != nil {
-		return errors.Wrapf(err, "error marshalling new configuration JSON for container %s", pod.ID())
+		return errors.Wrapf(err, "error marshalling new configuration JSON for pod %s", pod.ID())
 	}
 
 	db, err := s.getDBCon()
@@ -893,6 +975,50 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 
 		if err := podDB.Put(configKey, newCfgJSON); err != nil {
 			return errors.Wrapf(err, "error updating pod %s config JSON", pod.ID())
+		}
+
+		return nil
+	})
+	return err
+}
+
+// RewriteVolumeConfig rewrites a volume's configuration.
+// WARNING: This function is DANGEROUS. Do not use without reading the full
+// comment on this function in state.go.
+func (s *BoltState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	newCfgJSON, err := json.Marshal(newCfg)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling new configuration JSON for volume %q", volume.Name())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volDB := volBkt.Bucket([]byte(volume.Name()))
+		if volDB == nil {
+			volume.valid = false
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found in DB", volume.Name())
+		}
+
+		if err := volDB.Put(configKey, newCfgJSON); err != nil {
+			return errors.Wrapf(err, "error updating volume %q config JSON", volume.Name())
 		}
 
 		return nil
@@ -1308,6 +1434,15 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 		return errors.Wrapf(err, "error marshalling volume %s config to JSON", volume.Name())
 	}
 
+	// Volume state is allowed to not exist
+	var volStateJSON []byte
+	if volume.state != nil {
+		volStateJSON, err = json.Marshal(volume.state)
+		if err != nil {
+			return errors.Wrapf(err, "error marshalling volume %s state to JSON", volume.Name())
+		}
+	}
+
 	db, err := s.getDBCon()
 	if err != nil {
 		return err
@@ -1346,6 +1481,12 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 
 		if err := newVol.Put(configKey, volConfigJSON); err != nil {
 			return errors.Wrapf(err, "error storing volume %s configuration in DB", volume.Name())
+		}
+
+		if volStateJSON != nil {
+			if err := newVol.Put(stateKey, volStateJSON); err != nil {
+				return errors.Wrapf(err, "error storing volume %s state in DB", volume.Name())
+			}
 		}
 
 		if err := allVolsBkt.Put(volName, volName); err != nil {
@@ -1439,6 +1580,103 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 	return err
 }
 
+// UpdateVolume updates the volume's state from the database.
+func (s *BoltState) UpdateVolume(volume *Volume) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	newState := new(VolumeState)
+	volumeName := []byte(volume.Name())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volToUpdate := volBucket.Bucket(volumeName)
+		if volToUpdate == nil {
+			volume.valid = false
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %s found in database", volume.Name())
+		}
+
+		stateBytes := volToUpdate.Get(stateKey)
+		if stateBytes == nil {
+			// Having no state is valid.
+			// Return nil, use the empty state.
+			return nil
+		}
+
+		if err := json.Unmarshal(stateBytes, newState); err != nil {
+			return errors.Wrapf(err, "error unmarshalling volume %s state", volume.Name())
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	volume.state = newState
+
+	return nil
+}
+
+// SaveVolume saves the volume's state to the database.
+func (s *BoltState) SaveVolume(volume *Volume) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	volumeName := []byte(volume.Name())
+
+	var newStateJSON []byte
+	if volume.state != nil {
+		stateJSON, err := json.Marshal(volume.state)
+		if err != nil {
+			return errors.Wrapf(err, "error marshalling volume %s state to JSON", volume.Name())
+		}
+		newStateJSON = stateJSON
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volToUpdate := volBucket.Bucket(volumeName)
+		if volToUpdate == nil {
+			volume.valid = false
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %s found in database", volume.Name())
+		}
+
+		return volToUpdate.Put(stateKey, newStateJSON)
+	})
+	return err
+}
+
 // AllVolumes returns all volumes present in the state
 func (s *BoltState) AllVolumes() ([]*Volume, error) {
 	if !s.valid {
@@ -1473,6 +1711,7 @@ func (s *BoltState) AllVolumes() ([]*Volume, error) {
 
 			volume := new(Volume)
 			volume.config = new(VolumeConfig)
+			volume.state = new(VolumeState)
 
 			if err := s.getVolumeFromDB(id, volume, volBucket); err != nil {
 				if errors.Cause(err) != define.ErrNSMismatch {
@@ -1507,6 +1746,7 @@ func (s *BoltState) Volume(name string) (*Volume, error) {
 
 	volume := new(Volume)
 	volume.config = new(VolumeConfig)
+	volume.state = new(VolumeState)
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -1527,6 +1767,75 @@ func (s *BoltState) Volume(name string) (*Volume, error) {
 	}
 
 	return volume, nil
+}
+
+// LookupVolume locates a volume from a partial name.
+func (s *BoltState) LookupVolume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, define.ErrDBClosed
+	}
+
+	volName := []byte(name)
+
+	volume := new(Volume)
+	volume.config = new(VolumeConfig)
+	volume.state = new(VolumeState)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		allVolsBkt, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Check for exact match on name
+		volDB := volBkt.Bucket(volName)
+		if volDB != nil {
+			return s.getVolumeFromDB(volName, volume, volBkt)
+		}
+
+		// No exact match. Search all names.
+		foundMatch := false
+		err = allVolsBkt.ForEach(func(checkName, checkName2 []byte) error {
+			if strings.HasPrefix(string(checkName), name) {
+				if foundMatch {
+					return errors.Wrapf(define.ErrVolumeExists, "more than one result for volume name %q", name)
+				}
+				foundMatch = true
+				volName = checkName
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		if !foundMatch {
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found", name)
+		}
+
+		return s.getVolumeFromDB(volName, volume, volBkt)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return volume, nil
+
 }
 
 // HasVolume returns true if the given volume exists in the state, otherwise it returns false

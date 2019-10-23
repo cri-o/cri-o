@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
-	"github.com/containers/image/manifest"
+	"github.com/containers/image/v4/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	nameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
-	regexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
+	NameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	RegexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
 )
 
 // Runtime Creation Options
@@ -463,6 +463,28 @@ func WithMigrate() RuntimeOption {
 	}
 }
 
+// WithMigrateRuntime instructs Libpod to change the default OCI runtime on all
+// containers during a migration. This is not used if `MigrateRuntime()` is not
+// also passed.
+// Libpod makes no promises that your containers continue to work with the new
+// runtime - migrations between dissimilar runtimes may well break things.
+// Use with caution.
+func WithMigrateRuntime(requestedRuntime string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		if requestedRuntime == "" {
+			return errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty name for new runtime")
+		}
+
+		rt.migrateRuntime = requestedRuntime
+
+		return nil
+	}
+}
+
 // WithEventsLogger sets the events backend to use.
 // Currently supported values are "file" for file backend and "journald" for
 // journald backend.
@@ -478,6 +500,15 @@ func WithEventsLogger(logger string) RuntimeOption {
 
 		rt.config.EventsLogger = logger
 
+		return nil
+	}
+}
+
+// WithEnableSDNotify sets a runtime option so we know whether to disable socket/FD
+// listening
+func WithEnableSDNotify() RuntimeOption {
+	return func(rt *Runtime) error {
+		rt.config.SDNotify = true
 		return nil
 	}
 }
@@ -639,8 +670,8 @@ func WithName(name string) CtrCreateOption {
 		}
 
 		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
-			return regexError
+		if !NameRegex.MatchString(name) {
+			return RegexError
 		}
 
 		ctr.config.Name = name
@@ -836,6 +867,10 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 
 		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
 			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		}
+
+		if ctr.config.NoCgroups {
+			return errors.Wrapf(define.ErrInvalidArg, "container has disabled creation of CGroups, which is incompatible with sharing a PID namespace")
 		}
 
 		ctr.config.PIDNsCtr = nsCtr.ID()
@@ -1047,6 +1082,27 @@ func WithLogPath(path string) CtrCreateOption {
 	}
 }
 
+// WithNoCgroups disables the creation of CGroups for the new container.
+func WithNoCgroups() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		if ctr.config.CgroupParent != "" {
+			return errors.Wrapf(define.ErrInvalidArg, "NoCgroups conflicts with CgroupParent")
+		}
+
+		if ctr.config.PIDNsCtr != "" {
+			return errors.Wrapf(define.ErrInvalidArg, "NoCgroups requires a private PID namespace and cannot be used when PID namespace is shared with another container")
+		}
+
+		ctr.config.NoCgroups = true
+
+		return nil
+	}
+}
+
 // WithCgroupParent sets the Cgroup Parent of the new container.
 func WithCgroupParent(parent string) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1056,6 +1112,10 @@ func WithCgroupParent(parent string) CtrCreateOption {
 
 		if parent == "" {
 			return errors.Wrapf(define.ErrInvalidArg, "cgroup parent cannot be empty")
+		}
+
+		if ctr.config.NoCgroups {
+			return errors.Wrapf(define.ErrInvalidArg, "CgroupParent conflicts with NoCgroups")
 		}
 
 		ctr.config.CgroupParent = parent
@@ -1351,13 +1411,29 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 			}
 			destinations[vol.Dest] = true
 
+			mountOpts, err := util.ProcessOptions(vol.Options, false, nil)
+			if err != nil {
+				return errors.Wrapf(err, "error processing options for named volume %q mounted at %q", vol.Name, vol.Dest)
+			}
+
 			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
 				Name:    vol.Name,
 				Dest:    vol.Dest,
-				Options: util.ProcessOptions(vol.Options),
+				Options: mountOpts,
 			})
 		}
 
+		return nil
+	}
+}
+
+// WithHealthCheck adds the healthcheck to the container config
+func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.HealthCheckConfig = healthCheck
 		return nil
 	}
 }
@@ -1372,12 +1448,25 @@ func WithVolumeName(name string) VolumeCreateOption {
 		}
 
 		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
-			return regexError
+		if !NameRegex.MatchString(name) {
+			return RegexError
 		}
 		volume.config.Name = name
 
 		return nil
+	}
+}
+
+// WithVolumeDriver sets the volume's driver.
+// It is presently not implemented, but will be supported in a future Podman
+// release.
+func WithVolumeDriver(driver string) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		return define.ErrNotImplemented
 	}
 }
 
@@ -1392,19 +1481,6 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 		for key, value := range labels {
 			volume.config.Labels[key] = value
 		}
-
-		return nil
-	}
-}
-
-// WithVolumeDriver sets the driver of the volume.
-func WithVolumeDriver(driver string) VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return define.ErrVolumeFinalized
-		}
-
-		volume.config.Driver = driver
 
 		return nil
 	}
@@ -1478,11 +1554,29 @@ func WithPodName(name string) PodCreateOption {
 		}
 
 		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
-			return regexError
+		if !NameRegex.MatchString(name) {
+			return RegexError
 		}
 
 		pod.config.Name = name
+
+		return nil
+	}
+}
+
+// WithPodHostname sets the hostname of the pod.
+func WithPodHostname(hostname string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		// Check the hostname against a regex
+		if !NameRegex.MatchString(hostname) {
+			return RegexError
+		}
+
+		pod.config.Hostname = hostname
 
 		return nil
 	}
@@ -1670,17 +1764,6 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 			return define.ErrPodFinalized
 		}
 		pod.config.InfraContainer.PortBindings = bindings
-		return nil
-	}
-}
-
-// WithHealthCheck adds the healthcheck to the container config
-func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return define.ErrCtrFinalized
-		}
-		ctr.config.HealthCheckConfig = healthCheck
 		return nil
 	}
 }

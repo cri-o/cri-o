@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/types"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"

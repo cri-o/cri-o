@@ -5,6 +5,8 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -37,7 +39,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	}
 
 	// Build a dependency graph of containers in the pod
-	graph, err := buildContainerGraph(allCtrs)
+	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
 	}
@@ -121,7 +123,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		if timeout > -1 {
 			stopTimeout = uint(timeout)
 		}
-		if err := ctr.stop(stopTimeout); err != nil {
+		if err := ctr.stop(stopTimeout, false); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
@@ -161,6 +163,16 @@ func (p *Pod) Pause() (map[string]error, error) {
 
 	if !p.valid {
 		return nil, define.ErrPodRemoved
+	}
+
+	if rootless.IsRootless() {
+		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to determine cgroupversion")
+		}
+		if !cgroupv2 {
+			return nil, errors.Wrap(define.ErrNoCgroups, "can not pause pods containing rootless containers with cgroup V1")
+		}
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
@@ -289,7 +301,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	}
 
 	// Build a dependency graph of containers in the pod
-	graph, err := buildContainerGraph(allCtrs)
+	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
 	}
@@ -358,7 +370,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 			continue
 		}
 
-		if err := ctr.ociRuntime.killContainer(ctr, signal); err != nil {
+		if err := ctr.ociRuntime.KillContainer(ctr, signal, false); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
