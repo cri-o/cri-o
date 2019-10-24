@@ -38,6 +38,7 @@ Summary: Kubernetes Container Runtime Interface for OCI-based containers
 License: ASL 2.0
 URL: %{git0}
 Source0: %{name}-test.tar.gz
+Source1: seccomp.json
 Source3: %{service_name}-network.sysconfig
 Source4: %{service_name}-storage.sysconfig
 Source5: %{service_name}-metrics.sysconfig
@@ -118,7 +119,6 @@ install -p -m 644 contrib/cni/10-crio-bridge.conf %{buildroot}%{_sysconfdir}/cni
 install -p -m 644 contrib/cni/99-loopback.conf %{buildroot}%{_sysconfdir}/cni/net.d/200-loopback.conf
 
 install -dp %{buildroot}%{_sysconfdir}/sysconfig
-install -p -m 644 contrib/sysconfig/%{service_name} %{buildroot}%{_sysconfdir}/sysconfig/%{service_name}
 install -p -m 644 %{SOURCE3} %{buildroot}%{_sysconfdir}/sysconfig/%{service_name}-network
 install -p -m 644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/%{service_name}-storage
 install -p -m 644 %{SOURCE5} %{buildroot}%{_sysconfdir}/sysconfig/%{service_name}-metrics
@@ -129,6 +129,9 @@ make PREFIX=%{buildroot}%{_usr} DESTDIR=%{buildroot} \
             install.config \
             install.man \
             install.systemd
+
+# install seccomp.json
+install -p -m 644 %{SOURCE1} %{buildroot}%{_sysconfdir}/%{service_name}/seccomp.json
 
 install -dp %{buildroot}%{_sharedstatedir}/containers
 
@@ -157,8 +160,8 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/Godeps/_workspace:%{gopath}
 %{_mandir}/man5/%{service_name}.conf.5*
 %{_mandir}/man8/%{service_name}*.8*
 %dir %{_sysconfdir}/%{service_name}
+%config(noreplace) %{_sysconfdir}/%{service_name}/seccomp.json
 %config(noreplace) %{_sysconfdir}/%{service_name}/%{service_name}.conf
-%config(noreplace) %{_sysconfdir}/sysconfig/%{service_name}
 %config(noreplace) %{_sysconfdir}/sysconfig/%{service_name}-storage
 %config(noreplace) %{_sysconfdir}/sysconfig/%{service_name}-network
 %config(noreplace) %{_sysconfdir}/sysconfig/%{service_name}-metrics

@@ -31,6 +31,9 @@ tar czf "${rpm_tmp_dir}/SOURCES/${OS_RPM_NAME}-test.tar.gz" \
 	.
 cp -r "${ci_data}/." "${rpm_tmp_dir}/SOURCES"
 
+# make seccomp.json available for rpmbuild
+cp vendor/github.com/seccomp/containers-golang/seccomp.json contrib/test/ci/.
+
 echo "${OS_GIT_COMMIT}"
 yum-builddep -y "${OS_RPM_SPECFILE}"
 
