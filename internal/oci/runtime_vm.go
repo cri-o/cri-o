@@ -177,7 +177,9 @@ func (r *runtimeVM) startRuntimeDaemon(c *Container) error {
 		r.ctx,
 		newRuntimePath,
 		"",
+		"",
 		c.BundlePath(),
+		nil,
 		args...,
 	)
 	if err != nil {
