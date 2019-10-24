@@ -120,8 +120,11 @@ jobs:
             - v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
       - run: go version
       - run:
-          name: build
-          command: make -j $JOBS
+          command: make binaries -j $JOBS
+      - run:
+          command: make crio.conf
+      - run:
+          command: make docs -j $JOBS
       - save_cache:
           key: v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
           paths:
