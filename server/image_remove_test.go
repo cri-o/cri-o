@@ -19,8 +19,6 @@ var _ = t.Describe("ImageRemove", func() {
 	})
 	AfterEach(afterEach)
 
-	const imageID = "imageID"
-
 	t.Describe("ImageRemove", func() {
 		It("should succeed", func() {
 			// Given

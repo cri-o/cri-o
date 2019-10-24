@@ -221,7 +221,11 @@ ${RELEASE_TOOL}:
 	$(call go-build,./vendor/github.com/containerd/project/cmd/release-tool)
 
 ${GOLANGCI_LINT}:
-	$(call go-build,./vendor/github.com/golangci/golangci-lint/cmd/golangci-lint)
+	export \
+		VERSION=v1.21.0 \
+		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
+		BINDIR=${BUILD_BIN_PATH} && \
+	curl -sfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
 
 vendor:
 	export GO111MODULE=on \

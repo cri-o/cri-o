@@ -243,7 +243,7 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 	// happens, the container status is retrieved to be updated.
 	var err error
 	go func() {
-		_, _, err = r.wait(r.ctx, c.ID(), "")
+		_, err = r.wait(r.ctx, c.ID(), "")
 		if err == nil {
 			err = r.UpdateContainerStatus(c)
 		}
@@ -388,7 +388,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	execCh := make(chan error)
 	go func() {
 		// Wait for the process to terminate
-		exitCode, _, err = r.wait(ctx, c.ID(), execID)
+		exitCode, err = r.wait(ctx, c.ID(), execID)
 		if err != nil {
 			execCh <- err
 		}
@@ -460,7 +460,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 	stopCh := make(chan error)
 	go func() {
-		if _, _, err := r.wait(ctx, c.ID(), ""); err != nil {
+		if _, err := r.wait(ctx, c.ID(), ""); err != nil {
 			stopCh <- errdefs.FromGRPC(err)
 		}
 
@@ -727,16 +727,16 @@ func (r *runtimeVM) start(ctx context.Context, ctrID, execID string) error {
 	return nil
 }
 
-func (r *runtimeVM) wait(ctx context.Context, ctrID, execID string) (int32, time.Time, error) {
+func (r *runtimeVM) wait(ctx context.Context, ctrID, execID string) (int32, error) {
 	resp, err := r.task.Wait(ctx, &task.WaitRequest{
 		ID:     ctrID,
 		ExecID: execID,
 	})
 	if err != nil {
-		return -1, time.Time{}, errdefs.FromGRPC(err)
+		return -1, errdefs.FromGRPC(err)
 	}
 
-	return int32(resp.ExitStatus), resp.ExitedAt, nil
+	return int32(resp.ExitStatus), nil
 }
 
 func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal syscall.Signal, all bool) error {

@@ -124,7 +124,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 		"args": args,
 	}).Debugf("running conmon: %s", r.config.Conmon)
 
-	cmd := exec.Command(r.config.Conmon, args...)
+	cmd := exec.Command(r.config.Conmon, args...) // nolint: gosec
 	cmd.Dir = c.bundlePath
 	cmd.SysProcAttr = sysProcAttrPlatform()
 	cmd.Stdin = os.Stdin
@@ -301,7 +301,7 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 
 	args := []string{rootFlag, r.root, "exec"}
 	args = append(args, "--process", processFile.Name(), c.ID())
-	execCmd := exec.Command(r.path, args...)
+	execCmd := exec.Command(r.path, args...) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
@@ -401,7 +401,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 		"--exec-process-spec", processFile.Name(),
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
-	cmd := exec.Command(r.config.Conmon, args...)
+	cmd := exec.Command(r.config.Conmon, args...) // nolint: gosec
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
@@ -486,7 +486,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 // UpdateContainer updates container resources
 func (r *runtimeOCI) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
-	cmd := exec.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.id)
+	cmd := exec.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.id) // nolint: gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -634,7 +634,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id)
+	cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
