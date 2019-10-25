@@ -91,7 +91,6 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 		Sandbox:         ctr.Sandbox(),
 		IPs:             sb.IPs(),
 	}, nil
-
 }
 
 const (

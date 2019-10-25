@@ -13,7 +13,6 @@ import (
 func TestAddOCIBindsForDev(t *testing.T) {
 	specgen, err := generate.New("linux")
 	if err != nil {
-
 		t.Error(err)
 	}
 	config := &pb.ContainerConfig{
@@ -48,7 +47,6 @@ func TestAddOCIBindsForDev(t *testing.T) {
 func TestAddOCIBindsForSys(t *testing.T) {
 	specgen, err := generate.New("linux")
 	if err != nil {
-
 		t.Error(err)
 	}
 	config := &pb.ContainerConfig{

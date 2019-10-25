@@ -15,5 +15,4 @@ func findStringInSignalMap(killSignal syscall.Signal) (string, error) {
 		}
 	}
 	return "", errors.Errorf("unable to convert signal to string")
-
 }

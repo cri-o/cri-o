@@ -30,7 +30,6 @@ func StreamInterceptor() grpc.StreamServerInterceptor {
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
 	) error {
-
 		newCtx := addRequestID(stream.Context())
 		newStream := NewServerStream(stream)
 		newStream.NewContext = newCtx
@@ -52,7 +51,6 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-
 		newCtx := addRequestID(ctx)
 		Debugf(newCtx, "request: %+v", req)
 

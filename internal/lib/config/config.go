@@ -798,7 +798,6 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 		}
 		r.RuntimePath = executable
 		logrus.Debugf("using runtime executable from $PATH %q", executable)
-
 	} else if _, err := os.Stat(r.RuntimePath); os.IsNotExist(err) {
 		return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
 			name, err)

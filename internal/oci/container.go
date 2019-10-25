@@ -298,7 +298,6 @@ func (c *Container) AddVolume(v ContainerVolume) {
 // Volumes returns the list of container volumes.
 func (c *Container) Volumes() []ContainerVolume {
 	return c.volumes
-
 }
 
 // SetMountPoint sets the container mount point
