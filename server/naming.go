@@ -47,7 +47,6 @@ func makeContainerName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *
 }
 
 func (s *Server) ReservePodIDAndName(config *pb.PodSandboxConfig) (id, name string, err error) {
-
 	if config == nil || config.Metadata == nil || config.Metadata.Namespace == "" {
 		return "", "", fmt.Errorf("cannot generate pod name without namespace")
 	}
@@ -62,7 +61,6 @@ func (s *Server) ReservePodIDAndName(config *pb.PodSandboxConfig) (id, name stri
 }
 
 func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (name string, err error) {
-
 	if config == nil || config.Metadata == nil {
 		return "", fmt.Errorf("cannot generate sandbox container name without metadata")
 	}
@@ -76,7 +74,6 @@ func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (
 }
 
 func (s *Server) ReserveContainerIDandName(sandboxMetadata *pb.PodSandboxMetadata, config *pb.ContainerConfig) (id, name string, err error) {
-
 	if config == nil || config.Metadata == nil || sandboxMetadata == nil {
 		return "", "", fmt.Errorf("cannot generate container name without metadata")
 	}

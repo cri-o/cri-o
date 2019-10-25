@@ -110,7 +110,6 @@ func zshCompletion(c *cli.Context) error {
 			strings.Join(opts, "' '"),
 			c.App.Name))
 	return nil
-
 }
 
 func fishCompletion(c *cli.Context) error {

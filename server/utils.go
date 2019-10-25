@@ -110,7 +110,6 @@ func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 		} else if iegress, isok := egressQ.AsInt64(); isok {
 			egress = iegress
 		}
-
 	}
 	if val, ok := sb.Annotations()["kubernetes.io/ingress-bandwidth"]; ok {
 		ingressQ, err := resource.ParseQuantity(val)

@@ -613,7 +613,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
 			}
 		}
-
 	}
 
 	if err := s.createContainerPlatform(container, nil, sb.CgroupParent()); err != nil {
@@ -753,7 +752,6 @@ func PauseCommand(cfg *config.Config, image *v1.Image) ([]string, error) {
 	if cfg.PauseCommand == "" {
 		if image == nil ||
 			(len(image.Config.Entrypoint) == 0 && len(image.Config.Cmd) == 0) {
-
 			return nil, fmt.Errorf(
 				"unable to run pause image %q: %s",
 				cfg.PauseImage,
@@ -764,7 +762,6 @@ func PauseCommand(cfg *config.Config, image *v1.Image) ([]string, error) {
 		cmd = append(cmd, image.Config.Entrypoint...)
 		cmd = append(cmd, image.Config.Cmd...)
 		return cmd, nil
-
 	}
 	return []string{cfg.PauseCommand}, nil
 }

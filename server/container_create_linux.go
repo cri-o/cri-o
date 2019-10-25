@@ -128,10 +128,8 @@ func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfi
 		// if the device is not a device node
 		// try to see if it's a directory holding many devices
 		if err == devices.ErrNotADevice {
-
 			// check if it is a directory
 			if e := utils.IsDirectory(path); e == nil {
-
 				// mount the internal devices recursively
 				// nolint: errcheck
 				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {
@@ -428,7 +426,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	// set this container's apparmor profile if it is set by sandbox
 	if s.appArmorEnabled && !privileged {
-
 		appArmorProfileName := s.getAppArmorProfileName(containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile())
 		if appArmorProfileName != "" {
 			// reload default apparmor profile if it is unloaded.
@@ -446,7 +443,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 			specgen.SetProcessApparmorProfile(appArmorProfileName)
 		}
-
 	}
 
 	logPath := containerConfig.GetLogPath()
@@ -1072,7 +1068,6 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 			Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
 		}
 		specgen.AddMount(m)
-
 	}
 
 	return volumes, ociMounts, nil

@@ -17,6 +17,7 @@ linters:
     - bodyclose
     - deadcode
     - depguard
+    - dogsled
     - dupl
     - errcheck
     - gochecknoinits
@@ -44,13 +45,12 @@ linters:
     - unparam
     - unused
     - varcheck
-    # - dogsled
+    - whitespace
     # - funlen
     # - gochecknoglobals
     # - gocognit
     # - godox
     # - lll
-    # - whitespace
     # - wsl
 linters-settings:
   errcheck:

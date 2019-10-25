@@ -224,7 +224,6 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
 		r.path, rootFlag, r.root, "start", c.id); err != nil {
-
 		return err
 	}
 	c.state.Started = time.Now()
@@ -582,7 +581,6 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	if timeout > 0 {
 		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
 			r.path, rootFlag, r.root, "kill", c.id, c.GetStopSignal()); err != nil {
-
 			if err := checkProcessGone(c); err != nil {
 				return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 			}
@@ -596,7 +594,6 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
 		r.path, rootFlag, r.root, "kill", c.id, "KILL"); err != nil {
-
 		if err := checkProcessGone(c); err != nil {
 			return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 		}

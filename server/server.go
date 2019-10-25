@@ -182,7 +182,6 @@ func (s *Server) restore() {
 			} else {
 				s.ReleasePodName(n)
 			}
-
 		}
 		// Go through the containers and delete any container that was under the deleted pod
 		logrus.Warnf("deleting all containers under sandbox %s since it could not be restored", sbID)
@@ -240,7 +239,6 @@ func (s *Server) cleanupSandboxesOnShutdown(ctx context.Context) {
 		if err != nil {
 			logrus.Warnf("Failed to remove %q", shutdownFile)
 		}
-
 	}
 }
 
@@ -296,7 +294,6 @@ func New(
 	configPath string,
 	configIface libconfig.Iface,
 ) (*Server, error) {
-
 	if configIface == nil || configIface.GetData() == nil {
 		return nil, fmt.Errorf("provided configuration interface or its data is nil")
 	}
