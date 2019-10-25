@@ -138,14 +138,6 @@ function teardown() {
 	cleanup_images
 }
 
-@test "image pull without signature" {
-	start_crio "" "" --no-pause-image
-	run crictl image pull "$UNSIGNED_IMAGE"
-	echo "$output"
-	[ "$status" -ne 0 ]
-	cleanup_images
-}
-
 @test "image pull and list by tag and ID" {
 	start_crio "" "" --no-pause-image
 	run crictl pull "$IMAGE:go"
