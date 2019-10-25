@@ -212,7 +212,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl rm "$ctr_id"
+	run crictl rm -f "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run crictl stopp "$pod_id"
