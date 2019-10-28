@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/types"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/pkg/signals"
 	"github.com/cri-o/cri-o/server"
