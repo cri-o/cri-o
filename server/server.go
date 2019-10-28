@@ -474,40 +474,45 @@ func New(
 	return s, nil
 }
 
-func (s *Server) getHostIPs(configIP string) []net.IP {
+func (s *Server) getHostIPs(configIPs []string) []net.IP {
 	// emulate kubelet behavior of choosing hostIP
 	// ref: k8s/pkg/kubelet/nodestatus/setters.go
-	var rootIP net.IP
+	ips := []net.IP{}
 
 	// use configured value if set
-	if hostIP := net.ParseIP(configIP); hostIP != nil {
-		rootIP = hostIP
+	for _, ip := range configIPs {
+		// The configuration validation already ensures valid IPs
+		ips = append(ips, net.ParseIP(ip))
+	}
+	// Abort if the maximum amount of adresses is already specified
+	if len(ips) > 1 {
+		return ips
 	}
 
 	// Otherwise use kubernetes utility to choose hostIP
 	// there exists the chance for both hostIP and err to be nil, so check both
-	if rootIP == nil {
+	if len(ips) == 0 {
 		if hostIP, err := knet.ChooseHostInterface(); err != nil && hostIP != nil {
-			rootIP = hostIP
+			ips = append(ips, hostIP)
 		}
 	}
 
 	// attempt to find an IP from the hostname
-	if rootIP == nil {
+	if len(ips) == 0 {
 		if hostname, err := os.Hostname(); err == nil {
 			if hostIP := net.ParseIP(hostname); hostIP != nil && validateHostIP(hostIP) == nil {
-				rootIP = hostIP
+				ips = append(ips, hostIP)
 			}
 		}
 	}
 
 	// if that fails, check if we can find a primary IP address unambiguously
-	if rootIP == nil {
+	if len(ips) == 0 {
 		if allAddrs, err := net.InterfaceAddrs(); err == nil {
 			for _, addr := range allAddrs {
 				if ipnet, ok := addr.(*net.IPNet); ok {
 					if validateHostIP(ipnet.IP) == nil {
-						rootIP = ipnet.IP
+						ips = append(ips, ipnet.IP)
 						break
 					}
 				}
@@ -515,13 +520,12 @@ func (s *Server) getHostIPs(configIP string) []net.IP {
 		}
 	}
 
-	if rootIP == nil {
-		rootIP = net.IPv4(127, 0, 0, 1)
-		logrus.Warnf("unable to find a host IP, falling back to %v", rootIP)
+	if len(ips) == 0 {
+		ips = append(ips, net.IPv4(127, 0, 0, 1))
+		logrus.Warnf("unable to find a host IP, falling back to: %v", ips)
 	}
 
 	// Search for an additional IP
-	ips := []net.IP{rootIP}
 	if ifaces, err := net.Interfaces(); err == nil {
 		for _, iface := range ifaces {
 			if addrs, err := iface.Addrs(); err == nil {
@@ -529,11 +533,11 @@ func (s *Server) getHostIPs(configIP string) []net.IP {
 				for _, addr := range addrs {
 					if ipnet, ok := addr.(*net.IPNet); ok {
 						ip := ipnet.IP
-						if ip.Equal(rootIP) {
+						if ip.Equal(ips[0]) {
 							searchThisInterface = true
 						}
 						if searchThisInterface &&
-							!ip.Equal(rootIP) &&
+							!ip.Equal(ips[0]) &&
 							ip.IsGlobalUnicast() {
 							ips = append(ips, ipnet.IP)
 							break

@@ -101,7 +101,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 		config.StreamAddress = ctx.GlobalString("stream-address")
 	}
 	if ctx.GlobalIsSet("host-ip") {
-		config.HostIP = ctx.GlobalString("host-ip")
+		config.HostIP = ctx.GlobalStringSlice("host-ip")
 	}
 	if ctx.GlobalIsSet("stream-port") {
 		config.StreamPort = ctx.GlobalString("stream-port")
@@ -214,9 +214,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	}
 	if ctx.GlobalIsSet("grpc-max-send-msg-size") {
 		config.GRPCMaxSendMsgSize = ctx.GlobalInt("grpc-max-send-msg-size")
-	}
-	if ctx.GlobalIsSet("host-ip") {
-		config.HostIP = ctx.GlobalString("host-ip")
 	}
 	if ctx.GlobalIsSet("manage-network-ns-lifecycle") {
 		config.ManageNetworkNSLifecycle = ctx.GlobalBool("manage-network-ns-lifecycle")
@@ -574,9 +571,9 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Usage:  fmt.Sprintf("maximum grpc receive message size (default: %q)", defConf.GRPCMaxSendMsgSize),
 			EnvVar: "CONTAINER_GRPC_MAX_SEND_MSG_SIZE",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:   "host-ip",
-			Usage:  fmt.Sprintf("host IP considered as the primary IP to use by CRI-O for things such as host network IP (default: %q)", defConf.HostIP),
+			Usage:  fmt.Sprintf("Host IPs are the addresses to be used for the host network and can be specified up to two times (default: %q)", defConf.HostIP),
 			EnvVar: "CONTAINER_HOST_IP",
 		},
 		cli.BoolFlag{
