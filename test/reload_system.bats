@@ -6,9 +6,9 @@ load helpers
 function setup() {
     setup_test
     export TEST_IMAGE=quay.io/saschagrunert/hello-world \
-           CONTAINERS_REGISTRIES_CONF="$TESTDIR/containers/registries.conf"
+           CONTAINER_REGISTRIES_CONF="$TESTDIR/containers/registries.conf"
     printf "[[registry]]\nlocation = 'quay.io/saschagrunert'\nblocked = true" \
-        >> $CONTAINERS_REGISTRIES_CONF
+        >> $CONTAINER_REGISTRIES_CONF
 }
 
 function teardown() {
@@ -46,7 +46,7 @@ function expect_pull_image() {
     # given
     start_crio
     replace_config "log_level" "debug"
-    sed -i 's;true;false;g' "$CONTAINERS_REGISTRIES_CONF"
+    sed -i 's;true;false;g' "$CONTAINER_REGISTRIES_CONF"
 
     # when
     reload_crio
@@ -59,7 +59,7 @@ function expect_pull_image() {
 @test "reload system registries should fail on invalid syntax in file" {
     # given
     start_crio
-    echo invalid >> "$CONTAINERS_REGISTRIES_CONF"
+    echo invalid >> "$CONTAINER_REGISTRIES_CONF"
 
     # when
     reload_crio
