@@ -17,6 +17,8 @@
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
                         --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config|Pods.should.support.pod.readiness.gates|\[sig-storage\].In-tree.Volumes.\[Driver:.local\]|\[sig-storage\].CSI.Volumes.CSI.Topology.test.using.GCE.PD.driver|\[sig\-storage\]\sCSI\sVolumes\s\[Driver\:\scsi\-hostpath\]\s\[Testpattern\:\sDynamic\sPV\s\(block\svolmode\)\]\svolumes\sshould\sstore\sdata
+                        --ginkgo.noColor
+                        --ginkgo.succinct
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax highlighting: "
