@@ -233,7 +233,7 @@ For the bind-mount conditions, only mounts explicitly requested by Kubernetes co
 
 **--grpc-max-send-msg-size**="": maximum grpc receive message size (default: 16 * 1024 * 1024)
 
-**--host-ip**="": host IP considered as the primary IP to use by CRI-O for things such as host network IP (default: "")
+**--host-ip**="": Host IPs are the addresses to be used for the host network and can be specified up to two times (default: [])
 
 **--manage-network-ns-lifecycle**: determines whether we pin and remove network namespace and manage its lifecycle (default: false)
 
