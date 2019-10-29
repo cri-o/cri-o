@@ -99,9 +99,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		s.defaultIDMappings,
 		labelOptions)
 	mountLabel = podContainer.MountLabel
-	if !s.privilegedSandbox(req) {
-		processLabel = podContainer.ProcessLabel
-	}
+	processLabel = podContainer.ProcessLabel
+
 	if errors.Cause(err) == storage.ErrDuplicateName {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
 	}
