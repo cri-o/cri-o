@@ -48,6 +48,15 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 	volume.config.CreatedTime = time.Now()
 
+	// Check if volume with given name exists.
+	exists, err := r.state.HasVolume(volume.config.Name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error checking if volume with name %s exists", volume.config.Name)
+	}
+	if exists {
+		return nil, errors.Wrapf(define.ErrVolumeExists, "volume with name %s already exists", volume.config.Name)
+	}
+
 	if volume.config.Driver == define.VolumeDriverLocal {
 		logrus.Debugf("Validating options for local driver")
 		// Validate options
@@ -157,7 +166,14 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 
 	// If the volume is still mounted - force unmount it
 	if err := v.unmount(true); err != nil {
-		return errors.Wrapf(err, "error unmounting volume %s", v.Name())
+		if force {
+			// If force is set, evict the volume, even if errors
+			// occur. Otherwise we'll never be able to get rid of
+			// them.
+			logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
+		} else {
+			return errors.Wrapf(err, "error unmounting volume %s", v.Name())
+		}
 	}
 
 	// Set volume as invalid so it can no longer be used

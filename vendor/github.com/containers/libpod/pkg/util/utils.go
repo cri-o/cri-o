@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -318,7 +318,7 @@ func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf strin
 	if err := os.MkdirAll(filepath.Dir(storageConf), 0755); err != nil {
 		return err
 	}
-	storageFile, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	storageFile, err := os.OpenFile(storageConf, os.O_RDWR|os.O_TRUNC, 0600)
 	if err != nil {
 		return errors.Wrapf(err, "cannot open %s", storageConf)
 	}

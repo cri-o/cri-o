@@ -14,11 +14,10 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/BurntSushi/toml"
-	is "github.com/containers/image/v4/storage"
-	"github.com/containers/image/v4/types"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
@@ -85,6 +84,15 @@ var (
 	// DefaultDetachKeys is the default keys sequence for detaching a
 	// container
 	DefaultDetachKeys = "ctrl-p,ctrl-q"
+
+	// minConmonMajor is the major version required for conmon
+	minConmonMajor = 2
+
+	// minConmonMinor is the minor version required for conmon
+	minConmonMinor = 0
+
+	// minConmonPatch is the sub-minor version required for conmon
+	minConmonPatch = 1
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -99,8 +107,8 @@ type Runtime struct {
 	store             storage.Store
 	storageService    *storageService
 	imageContext      *types.SystemContext
-	defaultOCIRuntime *OCIRuntime
-	ociRuntimes       map[string]*OCIRuntime
+	defaultOCIRuntime OCIRuntime
+	ociRuntimes       map[string]OCIRuntime
 	netPlugin         ocicni.CNIPlugin
 	conmonPath        string
 	imageRuntime      *image.Runtime
@@ -114,6 +122,10 @@ type Runtime struct {
 	doRenumber bool
 
 	doMigrate bool
+	// System migrate can move containers to a new runtime.
+	// We make no promises that these migrated containers work on the new
+	// runtime, though.
+	migrateRuntime string
 
 	// valid indicates whether the runtime is ready to use.
 	// valid is set to true when a runtime is returned from GetRuntime(),
@@ -349,10 +361,6 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
 // containers/image uses XDG_RUNTIME_DIR to locate the auth file, XDG_CONFIG_HOME is
 // use for the libpod.conf configuration file.
-// SetXdgDirs internally calls EnableLinger() so that the user's processes are not
-// killed once the session is terminated.  EnableLinger() also attempts to
-// get the runtime directory when XDG_RUNTIME_DIR is not specified.
-// This function should only be called when running rootless.
 func SetXdgDirs() error {
 	if !rootless.IsRootless() {
 		return nil
@@ -360,21 +368,6 @@ func SetXdgDirs() error {
 
 	// Setup XDG_RUNTIME_DIR
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-
-	runtimeDirLinger, err := rootless.EnableLinger()
-	if err != nil {
-		return errors.Wrapf(err, "error enabling user session")
-	}
-	if runtimeDir == "" && runtimeDirLinger != "" {
-		if _, err := os.Stat(runtimeDirLinger); err != nil && os.IsNotExist(err) {
-			chWait := make(chan error)
-			defer close(chWait)
-			if _, err := WaitForFile(runtimeDirLinger, chWait, time.Second*10); err != nil {
-				return errors.Wrapf(err, "waiting for directory '%s'", runtimeDirLinger)
-			}
-		}
-		runtimeDir = runtimeDirLinger
-	}
 
 	if runtimeDir == "" {
 		var err error
@@ -396,10 +389,11 @@ func SetXdgDirs() error {
 
 	// Setup XDG_CONFIG_HOME
 	if cfgHomeDir := os.Getenv("XDG_CONFIG_HOME"); cfgHomeDir == "" {
-		if cfgHomeDir, err = util.GetRootlessConfigHomeDir(); err != nil {
+		cfgHomeDir, err := util.GetRootlessConfigHomeDir()
+		if err != nil {
 			return err
 		}
-		if err = os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
+		if err := os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
 			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
 		}
 	}
@@ -522,6 +516,17 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	tmpDir, err := getDefaultTmpDir()
 	if err != nil {
 		return nil, err
+	}
+
+	// storage.conf
+	storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
+	if err != nil {
+		return nil, err
+	}
+
+	createStorageConfFile := false
+	if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
+		createStorageConfFile = true
 	}
 
 	defRunConf, err := defaultRuntimeConfig()
@@ -698,27 +703,21 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	}
 
 	if rootless.IsRootless() && configPath == "" {
-		configPath, err := getRootlessConfigPath()
-		if err != nil {
-			return nil, err
-		}
-
-		// storage.conf
-		storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
-		if err != nil {
-			return nil, err
-		}
-		if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
+		if createStorageConfFile {
 			if err := util.WriteStorageConfigFile(&runtime.config.StorageConfig, storageConfFile); err != nil {
 				return nil, errors.Wrapf(err, "cannot write config file %s", storageConfFile)
 			}
 		}
 
+		configPath, err := getRootlessConfigPath()
+		if err != nil {
+			return nil, err
+		}
 		if configPath != "" {
-			if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(configPath), 0711); err != nil {
 				return nil, err
 			}
-			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
 			if err != nil && !os.IsExist(err) {
 				return nil, errors.Wrapf(err, "cannot open file %s", configPath)
 			}
@@ -798,6 +797,7 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 // probeConmon calls conmon --version and verifies it is a new enough version for
 // the runtime expectations podman currently has
 func probeConmon(conmonBinary string) error {
+	versionFormatErr := "conmon version changed format"
 	cmd := exec.Command(conmonBinary, "--version")
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -809,18 +809,39 @@ func probeConmon(conmonBinary string) error {
 
 	matches := r.FindStringSubmatch(out.String())
 	if len(matches) != 4 {
-		return errors.Wrapf(err, "conmon version changed format")
+		return errors.Wrapf(err, versionFormatErr)
 	}
 	major, err := strconv.Atoi(matches[1])
-	if err != nil || major < 1 {
+	if err != nil {
+		return errors.Wrapf(err, versionFormatErr)
+	}
+	if major < minConmonMajor {
 		return define.ErrConmonOutdated
 	}
-	// conmon used to be shipped with CRI-O, and was versioned along with it.
-	// even though the conmon that came with crio-1.9 to crio-1.15 has a higher
-	// version number than conmon 1.0.0, 1.0.0 is newer, so we need this check
+	if major > minConmonMajor {
+		return nil
+	}
+
 	minor, err := strconv.Atoi(matches[2])
-	if err != nil || minor > 9 {
+	if err != nil {
+		return errors.Wrapf(err, versionFormatErr)
+	}
+	if minor < minConmonMinor {
 		return define.ErrConmonOutdated
+	}
+	if minor > minConmonMinor {
+		return nil
+	}
+
+	patch, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return errors.Wrapf(err, versionFormatErr)
+	}
+	if patch < minConmonPatch {
+		return define.ErrConmonOutdated
+	}
+	if patch > minConmonPatch {
+		return nil
 	}
 
 	return nil
@@ -881,7 +902,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	if !foundConmon {
 		if foundOutdatedConmon {
-			return errors.Wrapf(define.ErrConmonOutdated, "please update to v1.0.0 or later")
+			return errors.Errorf("please update to v%d.%d.%d or later: %v", minConmonMajor, minConmonMinor, minConmonPatch, define.ErrConmonOutdated)
 		}
 		return errors.Wrapf(define.ErrInvalidArg,
 			"could not find a working conmon binary (configured options: %v)",
@@ -1053,7 +1074,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	}
 
 	// Get us at least one working OCI runtime.
-	runtime.ociRuntimes = make(map[string]*OCIRuntime)
+	runtime.ociRuntimes = make(map[string]OCIRuntime)
 
 	// Is the old runtime_path defined?
 	if runtime.config.RuntimePath != nil {
@@ -1072,7 +1093,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		json := supportsJSON[name]
 		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, json, nocgroups)
+		ociRuntime, err := newConmonOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			return err
 		}
@@ -1086,7 +1107,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		json := supportsJSON[name]
 		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, json, nocgroups)
+		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
@@ -1109,7 +1130,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 			json := supportsJSON[name]
 			nocgroups := supportsNoCgroups[name]
 
-			ociRuntime, err := newOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, json, nocgroups)
+			ociRuntime, err := newConmonOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, json, nocgroups)
 			if err != nil {
 				return err
 			}
@@ -1474,11 +1495,35 @@ func (r *Runtime) SystemContext() *types.SystemContext {
 	return r.imageContext
 }
 
+// GetOCIRuntimePath retrieves the path of the default OCI runtime.
+func (r *Runtime) GetOCIRuntimePath() string {
+	return r.defaultOCIRuntime.Path()
+}
+
 // Since runc does not currently support cgroupV2
 // Change to default crun on first running of libpod.conf
 // TODO Once runc has support for cgroups, this function should be removed.
 func cgroupV2Check(configPath string, tmpConfig *RuntimeConfig) error {
 	if !tmpConfig.CgroupCheck && rootless.IsRootless() {
+		if tmpConfig.CgroupManager == SystemdCgroupsManager {
+			// If we are running rootless and the systemd manager is requested, be sure that dbus is accessible
+			session := os.Getenv("DBUS_SESSION_BUS_ADDRESS")
+			hasSession := session != ""
+			if hasSession && strings.HasPrefix(session, "unix:path=") {
+				_, err := os.Stat(strings.TrimPrefix(session, "unix:path="))
+				hasSession = err == nil
+			}
+
+			if !hasSession {
+				logrus.Warningf("The cgroups manager is set to systemd but there is no systemd user session available")
+				logrus.Warningf("For using systemd, you may need to login using an user session")
+				logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibily as root)", rootless.GetRootlessUID())
+				logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
+
+				tmpConfig.CgroupManager = CgroupfsCgroupsManager
+			}
+
+		}
 		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
 			return err
@@ -1492,7 +1537,7 @@ func cgroupV2Check(configPath string, tmpConfig *RuntimeConfig) error {
 			}
 			tmpConfig.CgroupCheck = true
 			tmpConfig.OCIRuntime = path
-			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE, 0666)
+			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
 				return errors.Wrapf(err, "cannot open file %s", configPath)
 			}

@@ -131,13 +131,13 @@ func (c *Container) CheckpointPath() string {
 }
 
 // AttachSocketPath retrieves the path of the container's attach socket
-func (c *Container) AttachSocketPath() string {
-	return filepath.Join(c.ociRuntime.socketsDir, c.ID(), "attach")
+func (c *Container) AttachSocketPath() (string, error) {
+	return c.ociRuntime.AttachSocketPath(c)
 }
 
 // exitFilePath gets the path to the container's exit file
-func (c *Container) exitFilePath() string {
-	return filepath.Join(c.ociRuntime.exitsDir, c.ID())
+func (c *Container) exitFilePath() (string, error) {
+	return c.ociRuntime.ExitFilePath(c)
 }
 
 // create a bundle path and associated files for an exec session
@@ -167,12 +167,8 @@ func (c *Container) cleanupExecBundle(sessionID string) error {
 	if err := os.RemoveAll(c.execBundlePath(sessionID)); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	// Clean up the sockets dir. Issue #3962
-	// Also ignore if it doesn't exist for some reason; hence the conditional return below
-	if err := os.RemoveAll(filepath.Join(c.ociRuntime.socketsDir, sessionID)); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	return nil
+
+	return c.ociRuntime.ExecContainerCleanup(c, sessionID)
 }
 
 // the path to a containers exec session bundle
@@ -191,8 +187,8 @@ func (c *Container) execLogPath(sessionID string) string {
 }
 
 // the socket conmon creates for an exec session
-func (c *Container) execAttachSocketPath(sessionID string) string {
-	return filepath.Join(c.ociRuntime.socketsDir, sessionID, "attach")
+func (c *Container) execAttachSocketPath(sessionID string) (string, error) {
+	return c.ociRuntime.ExecAttachSocketPath(c, sessionID)
 }
 
 // execExitFileDir gets the path to the container's exit file
@@ -202,7 +198,7 @@ func (c *Container) execExitFileDir(sessionID string) string {
 
 // execOCILog returns the file path for the exec sessions oci log
 func (c *Container) execOCILog(sessionID string) string {
-	if !c.ociRuntime.supportsJSON {
+	if !c.ociRuntime.SupportsJSONErrors() {
 		return ""
 	}
 	return filepath.Join(c.execBundlePath(sessionID), "oci-log")
@@ -233,12 +229,15 @@ func (c *Container) readExecExitCode(sessionID string) (int, error) {
 // Wait for the container's exit file to appear.
 // When it does, update our state based on it.
 func (c *Container) waitForExitFileAndSync() error {
-	exitFile := c.exitFilePath()
+	exitFile, err := c.exitFilePath()
+	if err != nil {
+		return err
+	}
 
 	chWait := make(chan error)
 	defer close(chWait)
 
-	_, err := WaitForFile(exitFile, chWait, time.Second*5)
+	_, err = WaitForFile(exitFile, chWait, time.Second*5)
 	if err != nil {
 		// Exit file did not appear
 		// Reset our state
@@ -253,7 +252,7 @@ func (c *Container) waitForExitFileAndSync() error {
 		return err
 	}
 
-	if err := c.ociRuntime.updateContainerStatus(c, false); err != nil {
+	if err := c.checkExitFile(); err != nil {
 		return err
 	}
 
@@ -329,7 +328,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 
 	// Is the container running again?
 	// If so, we don't have to do anything
-	if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 		return false, nil
 	} else if c.state.State == define.ContainerStateUnknown {
 		return false, errors.Wrapf(define.ErrInternal, "invalid container state encountered in restart attempt!")
@@ -360,8 +359,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 		if err := c.reinit(ctx, true); err != nil {
 			return false, err
 		}
-	} else if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateExited {
+	} else if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
 		// Initialize the container
 		if err := c.init(ctx, true); err != nil {
 			return false, err
@@ -371,6 +369,18 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 		return false, err
 	}
 	return true, nil
+}
+
+// Ensure that the container is in a specific state or state.
+// Returns true if the container is in one of the given states,
+// or false otherwise.
+func (c *Container) ensureState(states ...define.ContainerStatus) bool {
+	for _, state := range states {
+		if state == c.state.State {
+			return true
+		}
+	}
+	return false
 }
 
 // Sync this container with on-disk state and runtime status
@@ -383,14 +393,13 @@ func (c *Container) syncContainer() error {
 	}
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
-	if (c.state.State != define.ContainerStateUnknown) &&
-		(c.state.State != define.ContainerStateConfigured) &&
-		(c.state.State != define.ContainerStateExited) {
+	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStatePaused) {
 		oldState := c.state.State
-		// TODO: optionally replace this with a stat for the exit file
-		if err := c.ociRuntime.updateContainerStatus(c, false); err != nil {
+
+		if err := c.checkExitFile(); err != nil {
 			return err
 		}
+
 		// Only save back to DB if state changed
 		if c.state.State != oldState {
 			// Check for a restart policy match
@@ -516,7 +525,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 // Tear down a container's storage prior to removal
 func (c *Container) teardownStorage() error {
-	if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
 
@@ -534,7 +543,7 @@ func (c *Container) teardownStorage() error {
 		// error - we wanted it gone, it is already gone.
 		// Potentially another tool using containers/storage already
 		// removed it?
-		if err == storage.ErrNotAContainer || err == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
 			logrus.Warnf("Storage for container %s already removed", c.ID())
 			return nil
 		}
@@ -649,7 +658,10 @@ func (c *Container) removeConmonFiles() error {
 	}
 
 	// Remove the exit file so we don't leak memory in tmpfs
-	exitFile := filepath.Join(c.ociRuntime.exitsDir, c.ID())
+	exitFile, err := c.exitFilePath()
+	if err != nil {
+		return err
+	}
 	if err := os.Remove(exitFile); err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "error removing container %s exit file", c.ID())
 	}
@@ -718,10 +730,7 @@ func (c *Container) save() error {
 // Otherwise, this function will return with error if there are dependencies of this container that aren't running.
 func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err error) {
 	// Container must be created or stopped to be started
-	if !(c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateCreated ||
-		c.state.State == define.ContainerStateStopped ||
-		c.state.State == define.ContainerStateExited) {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
@@ -752,8 +761,7 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err err
 		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
-	} else if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateExited {
+	} else if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
 		// Or initialize it if necessary
 		if err := c.init(ctx, false); err != nil {
 			return err
@@ -938,7 +946,14 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.ociRuntime.createContainer(c, nil); err != nil {
+	if err := c.ociRuntime.CreateContainer(c, nil); err != nil {
+		// Fedora 31 is carrying a patch to display improved error
+		// messages to better handle the V2 transition. This is NOT
+		// upstream in any OCI runtime.
+		// TODO: Remove once runc supports cgroupsv2
+		if strings.Contains(err.Error(), "this version of runc doesn't work on cgroups v2") {
+			logrus.Errorf("oci runtime %q does not support CGroups V2: use system migrate to mitigate", c.ociRuntime.Name())
+		}
 		return err
 	}
 
@@ -977,7 +992,7 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 
 	// If the container is not ContainerStateStopped or
 	// ContainerStateCreated, do nothing.
-	if c.state.State != define.ContainerStateStopped && c.state.State != define.ContainerStateCreated {
+	if !c.ensureState(define.ContainerStateStopped, define.ContainerStateCreated) {
 		return nil
 	}
 
@@ -1068,8 +1083,7 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
-	} else if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateExited {
+	} else if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
 		if err := c.init(ctx, false); err != nil {
 			return err
 		}
@@ -1085,7 +1099,7 @@ func (c *Container) start() error {
 		logrus.Debugf("Starting container %s with command %v", c.ID(), c.config.Spec.Process.Args)
 	}
 
-	if err := c.ociRuntime.startContainer(c); err != nil {
+	if err := c.ociRuntime.StartContainer(c); err != nil {
 		return err
 	}
 	logrus.Debugf("Started container %s", c.ID())
@@ -1107,10 +1121,28 @@ func (c *Container) start() error {
 }
 
 // Internal, non-locking function to stop container
-func (c *Container) stop(timeout uint) error {
+func (c *Container) stop(timeout uint, all bool) error {
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
-	if err := c.ociRuntime.stopContainer(c, timeout); err != nil {
+	// We can't use --all if CGroups aren't present.
+	// Rootless containers with CGroups v1 and NoCgroups are both cases
+	// where this can happen.
+	if all {
+		if c.config.NoCgroups {
+			all = false
+		} else if rootless.IsRootless() {
+			// Only do this check if we need to
+			unified, err := cgroups.IsCgroup2UnifiedMode()
+			if err != nil {
+				return err
+			}
+			if !unified {
+				all = false
+			}
+		}
+	}
+
+	if err := c.ociRuntime.StopContainer(c, timeout, all); err != nil {
 		return err
 	}
 
@@ -1147,7 +1179,7 @@ func (c *Container) pause() error {
 		}
 	}
 
-	if err := c.ociRuntime.pauseContainer(c); err != nil {
+	if err := c.ociRuntime.PauseContainer(c); err != nil {
 		return err
 	}
 
@@ -1164,7 +1196,7 @@ func (c *Container) unpause() error {
 		return errors.Wrapf(define.ErrNoCgroups, "cannot unpause without using CGroups")
 	}
 
-	if err := c.ociRuntime.unpauseContainer(c); err != nil {
+	if err := c.ociRuntime.UnpauseContainer(c); err != nil {
 		return err
 	}
 
@@ -1177,7 +1209,7 @@ func (c *Container) unpause() error {
 
 // Internal, non-locking function to restart a container
 func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err error) {
-	if c.state.State == define.ContainerStateUnknown || c.state.State == define.ContainerStatePaused {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
 	}
 
@@ -1185,7 +1217,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 
 	if c.state.State == define.ContainerStateRunning {
 		conmonPID := c.state.ConmonPID
-		if err := c.stop(timeout); err != nil {
+		if err := c.stop(timeout, false); err != nil {
 			return err
 		}
 		// Old versions of conmon have a bug where they create the exit file before
@@ -1472,7 +1504,7 @@ func (c *Container) delete(ctx context.Context) (err error) {
 	span.SetTag("struct", "container")
 	defer span.Finish()
 
-	if err := c.ociRuntime.deleteContainer(c); err != nil {
+	if err := c.ociRuntime.DeleteContainer(c); err != nil {
 		return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
 	}
 
@@ -1705,9 +1737,8 @@ func (c *Container) checkReadyForRemoval() error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
 	}
 
-	if c.state.State == define.ContainerStateRunning ||
-		c.state.State == define.ContainerStatePaused {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed without force", c.ID(), c.state.State.String())
 	}
 
 	if len(c.state.ExecSessions) != 0 {
@@ -1783,4 +1814,36 @@ func (c *Container) sortUserVolumes(ctrSpec *spec.Spec) ([]*ContainerNamedVolume
 		}
 	}
 	return namedUserVolumes, userMounts
+}
+
+// Check for an exit file, and handle one if present
+func (c *Container) checkExitFile() error {
+	// If the container's not running, nothing to do.
+	if !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
+		return nil
+	}
+
+	exitFile, err := c.exitFilePath()
+	if err != nil {
+		return err
+	}
+
+	// Check for the exit file
+	info, err := os.Stat(exitFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Container is still running, no error
+			return nil
+		}
+
+		return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
+	}
+
+	// Alright, it exists. Transition to Stopped state.
+	c.state.State = define.ContainerStateStopped
+	c.state.PID = 0
+	c.state.ConmonPID = 0
+
+	// Read the exit file to get our stopped time and exit code.
+	return c.handleExitFile(exitFile, info)
 }
