@@ -14,18 +14,5 @@
    limitations under the License.
 */
 
-package sys
-
-// SetOOMScore sets the oom score for the process
-//
-// Not implemented on Windows
-func SetOOMScore(pid, score int) error {
-	return nil
-}
-
-// GetOOMScoreAdj gets the oom score for a process
-//
-// Not implemented on Windows
-func GetOOMScoreAdj(pid int) (int, error) {
-	return 0, nil
-}
+// Package events defines the event pushing and subscription service.
+package events

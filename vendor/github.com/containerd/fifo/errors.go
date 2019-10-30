@@ -14,18 +14,17 @@
    limitations under the License.
 */
 
-package sys
+package fifo
 
-// SetOOMScore sets the oom score for the process
-//
-// Not implemented on Windows
-func SetOOMScore(pid, score int) error {
-	return nil
-}
+import (
+	"errors"
+)
 
-// GetOOMScoreAdj gets the oom score for a process
-//
-// Not implemented on Windows
-func GetOOMScoreAdj(pid int) (int, error) {
-	return 0, nil
-}
+var (
+	ErrClosed       = errors.New("fifo closed")
+	ErrCtrlClosed   = errors.New("control of closed fifo")
+	ErrRdFrmWRONLY  = errors.New("reading from write-only fifo")
+	ErrReadClosed   = errors.New("reading from a closed fifo")
+	ErrWrToRDONLY   = errors.New("writing to read-only fifo")
+	ErrWriteClosed  = errors.New("writing to a closed fifo")
+)

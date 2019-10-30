@@ -1,3 +1,5 @@
+// +build !windows
+
 /*
    Copyright The containerd Authors.
 
@@ -14,18 +16,15 @@
    limitations under the License.
 */
 
-package sys
+package ttrpcutil
 
-// SetOOMScore sets the oom score for the process
-//
-// Not implemented on Windows
-func SetOOMScore(pid, score int) error {
-	return nil
-}
+import (
+	"net"
+	"strings"
+	"time"
+)
 
-// GetOOMScoreAdj gets the oom score for a process
-//
-// Not implemented on Windows
-func GetOOMScoreAdj(pid int) (int, error) {
-	return 0, nil
+func ttrpcDial(address string, timeout time.Duration) (net.Conn, error) {
+	address = strings.TrimPrefix(address, "unix://")
+	return net.DialTimeout("unix", address, timeout)
 }
