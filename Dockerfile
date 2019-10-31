@@ -52,11 +52,15 @@ RUN cd /tmp &&\
     mkdir -p ~/.parallel && touch ~/.parallel/will-cite
 
 # Install crictl and critest
+# note: the chowns are to avoid this problem: https://circleci.com/docs/2.0/high-uid-error/
+# which occured first when building release 1.16.1
 RUN VERSION=v1.16.1 &&\
     wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-$VERSION-linux-amd64.tar.gz \
-        | tar xfz - -C /usr/bin &&\
-    wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/critest-$VERSION-linux-amd64.tar.gz \
-        | tar xfz - -C /usr/bin
+        | tar xfz - -C /usr/bin \
+	&& chown root:root /usr/bin/crictl \
+	&& wget -qO- https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/critest-$VERSION-linux-amd64.tar.gz \
+        | tar xfz - -C /usr/bin \
+	&& chown root:root /usr/bin/critest
 
 # Install runc
 RUN VERSION=v1.0.0-rc8 &&\
