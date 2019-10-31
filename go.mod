@@ -16,12 +16,12 @@ require (
 	github.com/containers/buildah v1.11.4
 	github.com/containers/conmon v2.0.0+incompatible
 	github.com/containers/image/v5 v5.0.0
-	github.com/containers/libpod 0bfdeae6ddfab22990eaa472317d65e79a222db3
+	github.com/containers/libpod v1.6.3-0.20191031190106-0bfdeae6ddfa
 	github.com/containers/storage v1.13.5
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
-	github.com/docker/docker v1.4.2-0.20190710153559-aa8249ae1b8b
+	github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-zoo/bone v1.3.0

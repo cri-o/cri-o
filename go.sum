@@ -160,6 +160,9 @@ github.com/containers/buildah v1.11.2 h1:U6Abrp1J7H19vHvhqIran4Xvw+Z3WIqMM86fIt9
 github.com/containers/buildah v1.11.2/go.mod h1:CtnP3vsLiU3xgKvkhdb4b0IzYwXNzHRv3ezl4z+RPC0=
 github.com/containers/buildah v1.11.3 h1:L5vFj+ao58IGq3G30jN94vRQrIgMU/uTOEKduDr3Nyg=
 github.com/containers/buildah v1.11.3/go.mod h1:jqZmSU/PhFwTHHlOotnw4bbs1JbkRQLh8dut5DF4Qek=
+github.com/containers/buildah v1.11.4-0.20191028173731-21b4778b359e/go.mod h1:Igrk75FAxLnzDaHUbtpWB8pwL+Bv+cnakWMvqAXW2v8=
+github.com/containers/buildah v1.11.4 h1:hHh3Tclf5LL1bunlZxYJjwMi5DmFBug8Q0HpuMH8Lo0=
+github.com/containers/buildah v1.11.4/go.mod h1:Igrk75FAxLnzDaHUbtpWB8pwL+Bv+cnakWMvqAXW2v8=
 github.com/containers/conmon v0.3.0/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/conmon v1.0.0-rc2 h1:d9x08VKHhWmMxMzTtj/FtGyDjiSoMvgxu0oveP70EzY=
 github.com/containers/conmon v1.0.0-rc2/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
@@ -174,6 +177,8 @@ github.com/containers/image v3.0.2+incompatible h1:B1lqAE8MUPCrsBLE86J0gnXleeRq8
 github.com/containers/image v3.0.2+incompatible/go.mod h1:8Vtij257IWSanUQKe1tAeNOm2sRVkSqQTVQ1IlwI3+M=
 github.com/containers/image/v4 v4.0.1 h1:idNGHChj0Pyv3vLrxul2oSVMZLeFqpoq3CjLeVgapSQ=
 github.com/containers/image/v4 v4.0.1/go.mod h1:0ASJH1YgJiX/eqFZObqepgsvIA4XjCgpyfwn9pDGafA=
+github.com/containers/image/v5 v5.0.0 h1:arnXgbt1ucsC/ndtSpiQY87rA0UjhF+/xQnPzqdBDn4=
+github.com/containers/image/v5 v5.0.0/go.mod h1:MgiLzCfIeo8lrHi+4Lb8HP+rh513sm0Mlk6RrhjFOLY=
 github.com/containers/libpod v0.8.3-0.20190628005010-4aa109f00e95 h1:b5fISjEVoZbR8jNmN9A1p2sZjBT1op9HeaA9T/zEu6s=
 github.com/containers/libpod v0.8.3-0.20190628005010-4aa109f00e95/go.mod h1:dO1PO7t9N5BfdGX0bXhwgBuEgm8DC4QLir8vgdl3ZDY=
 github.com/containers/libpod v0.8.3-0.20190628140055-5e42bf071760 h1:JrdoLRKPp84uxgaOKmXP6DK02KU5p6nNEoKWJeD3bbs=
@@ -190,6 +195,8 @@ github.com/containers/libpod v1.5.1 h1:Msp7bvAmNOeVfo8RW2QcRrcCCMYMBVHq6mWok97xq
 github.com/containers/libpod v1.5.1/go.mod h1:S5TOYh/q+DFAsTeGH0gUS3kYr9MLD2HUC9umQpwwSCk=
 github.com/containers/libpod v1.6.2 h1:LCWOORGmuwaSrSYoKWxtXf9DzEoX0ah1r0zjp0CYcBk=
 github.com/containers/libpod v1.6.2/go.mod h1:mCAL58VuUSz9LzNZwnekFNUxnfenKdxnESYwN4cfhWw=
+github.com/containers/libpod v1.6.3-0.20191031190106-0bfdeae6ddfa h1:deRdsW9VeSUBSsdBB/ZLQPIilmKfJJjdN4Lj7xqJFvM=
+github.com/containers/libpod v1.6.3-0.20191031190106-0bfdeae6ddfa/go.mod h1:0cMCjEgo5ZSvPpCEHLsd6hlsH2bqcf4NKS9UR2qaHxw=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/psgo v1.3.0 h1:kDhiA4gNNyJ2qCzmOuBf6AmrF/Pp+6Jo98P68R7fB8I=
@@ -286,6 +293,8 @@ github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295 h1:s3aSftc5noimmnh
 github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v1.4.2-0.20190710153559-aa8249ae1b8b h1:+Ga+YpCDpcY1fln6GI0fiiirpqHGcob5/Vk3oKNuGdU=
 github.com/docker/docker v1.4.2-0.20190710153559-aa8249ae1b8b/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce h1:H3csZuxZESJeeEiOxq4YXPNmLFbjl7u2qVBrAAGX/sA=
+github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker-credential-helpers v0.6.0/go.mod h1:WRaJzqw3CTB9bk10avuGsjVBZsD05qeibJ1/TYlvc0Y=
 github.com/docker/docker-credential-helpers v0.6.1/go.mod h1:WRaJzqw3CTB9bk10avuGsjVBZsD05qeibJ1/TYlvc0Y=
 github.com/docker/docker-credential-helpers v0.6.2 h1:CrW9H1VMf3a4GrtyAi7IUJjkJVpwBBpX0+mvkvYJaus=
@@ -347,6 +356,8 @@ github.com/fsouza/go-dockerclient v1.4.1 h1:W7wuJ3IB48WYZv/UBk9dCTIb9oX805+L9KIm
 github.com/fsouza/go-dockerclient v1.4.1/go.mod h1:PUNHxbowDqRXfRgZqMz1OeGtbWC6VKyZvJ99hDjB0qs=
 github.com/fsouza/go-dockerclient v1.4.4 h1:Sd5nD4wdAgiPxvrbYUzT2ZZNmPk3z+GGnZ+frvw8z04=
 github.com/fsouza/go-dockerclient v1.4.4/go.mod h1:PrwszSL5fbmsESocROrOGq/NULMXRw+bajY0ltzD6MA=
+github.com/fsouza/go-dockerclient v1.5.0 h1:7OtayOe5HnoG+KWMHgyyPymwaodnB2IDYuVfseKyxbA=
+github.com/fsouza/go-dockerclient v1.5.0/go.mod h1:AqZZK/zFO3phxYxlTsAaeAMSdQ9mgHuhy+bjN034Qds=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v0.0.0-20161207003320-04f313413ffd/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v0.0.0-20180820084758-c7ce16629ff4/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
@@ -746,6 +757,7 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/mohae/deepcopy v0.0.0-20170603005431-491d3605edfb/go.mod h1:TaXosZuwdSHYgviHp1DAtfrULt5eUgsSMsZf+YrPgl8=
 github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c h1:nXxl5PrvVm2L/wCy8dQu6DMTwH4oIuGN8GJDAlqDdVE=
 github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c/go.mod h1:BbKIizmSmc5MMPqRYbxO4ZU0S0+P200+tUnFx7PXmsc=
+github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
 github.com/morikuni/aec v1.0.0/go.mod h1:BbKIizmSmc5MMPqRYbxO4ZU0S0+P200+tUnFx7PXmsc=
 github.com/mozilla/tls-observatory v0.0.0-20180409132520-8791a200eb40/go.mod h1:SrKMQvPiws7F7iqYp8/TX+IhxCYhzr6N/1yb8cwHsGk=
 github.com/mrunalp/fileutils v0.0.0-20160930181131-4ee1cc9a8058/go.mod h1:x8F1gnqOkIEiO4rqoeEEEqQbo7HjGMTvyoq3gej4iT0=
@@ -821,6 +833,8 @@ github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible h1:s5
 github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible/go.mod h1:dh9o4Fs58gpFXGSYfnVxGR9PnV53I8TW84pQaJDdGiY=
 github.com/openshift/imagebuilder v1.1.0 h1:oT704SkwMEzmIMU/+Uv1Wmvt+p10q3v2WuYMeFI18c4=
 github.com/openshift/imagebuilder v1.1.0/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
+github.com/openshift/imagebuilder v1.1.1 h1:KAUR31p8UBJdfVO42azWgb+LeMAed2zaKQ19e0C0X2I=
+github.com/openshift/imagebuilder v1.1.1/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
 github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/ostreedev/ostree-go v0.0.0-20181112201119-9ab99253d365/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
@@ -1081,6 +1095,8 @@ golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4 h1:ydJNl0ENAG67pFbB+9tfhi
 golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 h1:HuIa8hRrWRSrqYzx1qI49NNxhdi2PrY7gxVSq1JjLDc=
 golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
+golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad h1:5E5raQxcv+6CZ11RrBYQe5WRbUIWpScjh0kvHZkZIrQ=
+golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190125153040-c74c464bbbf2/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190306152737-a1d7652674e8/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=

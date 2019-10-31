@@ -10,7 +10,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containers/image/v4/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -1059,9 +1059,9 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() (string, error) {
 	switch c.runtime.config.CgroupManager {
-	case CgroupfsCgroupsManager:
+	case define.CgroupfsCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case SystemdCgroupsManager:
+	case define.SystemdCgroupsManager:
 		if rootless.IsRootless() {
 			uid := rootless.GetRootlessUID()
 			return filepath.Join(c.config.CgroupParent, fmt.Sprintf("user-%d.slice/user@%d.service/user.slice", uid, uid), createUnitName("libpod", c.ID())), nil
@@ -1184,4 +1184,13 @@ func (c *Container) HasHealthCheck() bool {
 // HealthCheckConfig returns the command and timing attributes of the health check
 func (c *Container) HealthCheckConfig() *manifest.Schema2HealthConfig {
 	return c.config.HealthCheckConfig
+}
+
+// AutoRemove indicates whether the container will be removed after it is executed
+func (c *Container) AutoRemove() bool {
+	spec := c.config.Spec
+	if spec.Annotations == nil {
+		return false
+	}
+	return c.Spec().Annotations[InspectAnnotationAutoremove] == InspectResponseTrue
 }

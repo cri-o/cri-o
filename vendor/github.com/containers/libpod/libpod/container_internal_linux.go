@@ -550,6 +550,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
 		}
 		g.AddMount(systemdMnt)
+		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
 
 	return nil
@@ -1325,14 +1326,14 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	}
 	if (rootless.IsRootless() && !unified) || c.config.NoCgroups {
 		return "", nil
-	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+	} else if c.runtime.config.CgroupManager == define.SystemdCgroupsManager {
 		// When runc is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
-	} else if c.runtime.config.CgroupManager == CgroupfsCgroupsManager {
+	} else if c.runtime.config.CgroupManager == define.CgroupfsCgroupsManager {
 		cgroupPath, err := c.CGroupPath()
 		if err != nil {
 			return "", err

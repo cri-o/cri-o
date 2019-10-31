@@ -75,7 +75,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 
 	if config == nil {
 		ctr.config.ID = stringid.GenerateNonCryptoID()
-		ctr.config.ShmSize = DefaultShmSize
+		ctr.config.ShmSize = define.DefaultShmSize
 	} else {
 		// This is a restore from an imported checkpoint
 		ctr.restoreFromCheckpoint = true
@@ -215,7 +215,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 	// Only if we're actually configuring CGroups.
 	if !ctr.config.NoCgroups {
 		switch r.config.CgroupManager {
-		case CgroupfsCgroupsManager:
+		case define.CgroupfsCgroupsManager:
 			if ctr.config.CgroupParent == "" {
 				if pod != nil && pod.config.UsePodCgroup {
 					podCgroup, err := pod.CgroupPath()
@@ -232,7 +232,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 			} else if strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
 				return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
 			}
-		case SystemdCgroupsManager:
+		case define.SystemdCgroupsManager:
 			if ctr.config.CgroupParent == "" {
 				if pod != nil && pod.config.UsePodCgroup {
 					podCgroup, err := pod.CgroupPath()
@@ -295,21 +295,32 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 	// Maintain an array of them - we need to lock them later.
 	ctrNamedVolumes := make([]*Volume, 0, len(ctr.config.NamedVolumes))
 	for _, vol := range ctr.config.NamedVolumes {
-		// Check if it exists already
-		dbVol, err := r.state.Volume(vol.Name)
-		if err == nil {
-			ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
-			// The volume exists, we're good
-			continue
-		} else if errors.Cause(err) != define.ErrNoSuchVolume {
-			return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
+		isAnonymous := false
+		if vol.Name == "" {
+			// Anonymous volume. We'll need to create it.
+			// It needs a name first.
+			vol.Name = stringid.GenerateNonCryptoID()
+			isAnonymous = true
+		} else {
+			// Check if it exists already
+			dbVol, err := r.state.Volume(vol.Name)
+			if err == nil {
+				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
+				// The volume exists, we're good
+				continue
+			} else if errors.Cause(err) != define.ErrNoSuchVolume {
+				return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
+			}
 		}
 
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
 		// The volume does not exist, so we need to create it.
-		newVol, err := r.newVolume(ctx, WithVolumeName(vol.Name), withSetCtrSpecific(),
-			WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
+		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
+		if isAnonymous {
+			volOptions = append(volOptions, withSetCtrSpecific())
+		}
+		newVol, err := r.newVolume(ctx, volOptions...)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)
 		}

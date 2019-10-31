@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -318,7 +319,7 @@ func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf strin
 	if err := os.MkdirAll(filepath.Dir(storageConf), 0755); err != nil {
 		return err
 	}
-	storageFile, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	storageFile, err := os.OpenFile(storageConf, os.O_RDWR|os.O_TRUNC, 0600)
 	if err != nil {
 		return errors.Wrapf(err, "cannot open %s", storageConf)
 	}
@@ -439,4 +440,17 @@ func ExitCode(err error) int {
 	}
 
 	return 126
+}
+
+// HomeDir returns the home directory for the current user.
+func HomeDir() (string, error) {
+	home := os.Getenv("HOME")
+	if home == "" {
+		usr, err := user.LookupId(fmt.Sprintf("%d", rootless.GetRootlessUID()))
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to resolve HOME directory")
+		}
+		home = usr.HomeDir
+	}
+	return home, nil
 }

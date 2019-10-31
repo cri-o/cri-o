@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
-	"github.com/containers/image/v4/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -39,30 +39,30 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 
 		if config.RunRoot != "" {
 			rt.config.StorageConfig.RunRoot = config.RunRoot
-			rt.configuredFrom.storageRunRootSet = true
+			rt.config.StorageConfigRunRootSet = true
 			setField = true
 		}
 
 		if config.GraphRoot != "" {
 			rt.config.StorageConfig.GraphRoot = config.GraphRoot
-			rt.configuredFrom.storageGraphRootSet = true
+			rt.config.StorageConfigGraphRootSet = true
 
 			// Also set libpod static dir, so we are a subdirectory
 			// of the c/storage store by default
 			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
-			rt.configuredFrom.libpodStaticDirSet = true
+			rt.config.StaticDirSet = true
 
 			// Also set libpod volume path, so we are a subdirectory
 			// of the c/storage store by default
 			rt.config.VolumePath = filepath.Join(config.GraphRoot, "volumes")
-			rt.configuredFrom.volPathSet = true
+			rt.config.VolumePathSet = true
 
 			setField = true
 		}
 
 		if config.GraphDriverName != "" {
 			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
-			rt.configuredFrom.storageGraphDriverSet = true
+			rt.config.StorageConfigGraphDriverNameSet = true
 			setField = true
 		}
 
@@ -135,13 +135,13 @@ func WithSignaturePolicy(path string) RuntimeOption {
 // Please note that information is not portable between backing states.
 // As such, if this differs between two libpods running on the same system,
 // they will not share containers, and unspecified behavior may occur.
-func WithStateType(storeType RuntimeStateStore) RuntimeOption {
+func WithStateType(storeType define.RuntimeStateStore) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return define.ErrRuntimeFinalized
 		}
 
-		if storeType == InvalidStateStore {
+		if storeType == define.InvalidStateStore {
 			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid state store type")
 		}
 
@@ -224,9 +224,9 @@ func WithCgroupManager(manager string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		if manager != CgroupfsCgroupsManager && manager != SystemdCgroupsManager {
+		if manager != define.CgroupfsCgroupsManager && manager != define.SystemdCgroupsManager {
 			return errors.Wrapf(define.ErrInvalidArg, "CGroup manager must be one of %s and %s",
-				CgroupfsCgroupsManager, SystemdCgroupsManager)
+				define.CgroupfsCgroupsManager, define.SystemdCgroupsManager)
 		}
 
 		rt.config.CgroupManager = manager
@@ -244,7 +244,7 @@ func WithStaticDir(dir string) RuntimeOption {
 		}
 
 		rt.config.StaticDir = dir
-		rt.configuredFrom.libpodStaticDirSet = true
+		rt.config.StaticDirSet = true
 
 		return nil
 	}
@@ -295,7 +295,7 @@ func WithTmpDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 		rt.config.TmpDir = dir
-		rt.configuredFrom.libpodTmpDirSet = true
+		rt.config.TmpDirSet = true
 
 		return nil
 	}
@@ -395,7 +395,7 @@ func WithVolumePath(volPath string) RuntimeOption {
 		}
 
 		rt.config.VolumePath = volPath
-		rt.configuredFrom.volPathSet = true
+		rt.config.VolumePathSet = true
 
 		return nil
 	}
@@ -1014,6 +1014,13 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
+
+		if rootless.IsRootless() {
+			if len(networks) > 0 {
+				return errors.New("cannot use CNI networks with rootless containers")
+			}
+		}
+
 		ctr.config.Networks = networks
 
 		return nil
@@ -1487,6 +1494,8 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 }
 
 // WithVolumeOptions sets the options of the volume.
+// If the "local" driver has been selected, options will be validated. There are
+// currently 3 valid options for the "local" driver - o, type, and device.
 func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
@@ -1495,6 +1504,13 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 
 		volume.config.Options = make(map[string]string)
 		for key, value := range options {
+			switch key {
+			case "type", "device", "o":
+				volume.config.Options[key] = value
+			default:
+				return errors.Wrapf(define.ErrInvalidArg, "unrecognized volume option %q is not supported with local driver", key)
+			}
+
 			volume.config.Options[key] = value
 		}
 
