@@ -236,6 +236,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.GlobalIsSet("version-file") {
 		config.VersionFile = ctx.GlobalString("version-file")
 	}
+	if ctx.GlobalIsSet("enable-metrics") {
+		config.EnableMetrics = ctx.GlobalBool("enable-metrics")
+	}
+	if ctx.GlobalIsSet("metrics-port") {
+		config.MetricsPort = ctx.GlobalInt("metrics-port")
+	}
 
 	return path, nil
 }
