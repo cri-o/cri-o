@@ -305,7 +305,7 @@ mock-image-types: ${MOCKGEN}
 		${MOCKGEN_FLAGS} \
 		-package imagetypesmock \
 		-destination ${MOCK_PATH}/containers/image/types.go \
-		github.com/containers/image/v4/types ImageCloser
+		github.com/containers/image/v5/types ImageCloser
 
 mock-ocicni-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \

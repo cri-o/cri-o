@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
-	"github.com/containers/image/v4/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -458,6 +458,28 @@ func WithMigrate() RuntimeOption {
 		}
 
 		rt.doMigrate = true
+
+		return nil
+	}
+}
+
+// WithMigrateRuntime instructs Libpod to change the default OCI runtime on all
+// containers during a migration. This is not used if `MigrateRuntime()` is not
+// also passed.
+// Libpod makes no promises that your containers continue to work with the new
+// runtime - migrations between dissimilar runtimes may well break things.
+// Use with caution.
+func WithMigrateRuntime(requestedRuntime string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		if requestedRuntime == "" {
+			return errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty name for new runtime")
+		}
+
+		rt.migrateRuntime = requestedRuntime
 
 		return nil
 	}
@@ -992,6 +1014,13 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
+
+		if rootless.IsRootless() {
+			if len(networks) > 0 {
+				return errors.New("cannot use CNI networks with rootless containers")
+			}
+		}
+
 		ctr.config.Networks = networks
 
 		return nil
@@ -1465,6 +1494,8 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 }
 
 // WithVolumeOptions sets the options of the volume.
+// If the "local" driver has been selected, options will be validated. There are
+// currently 3 valid options for the "local" driver - o, type, and device.
 func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
@@ -1473,6 +1504,13 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 
 		volume.config.Options = make(map[string]string)
 		for key, value := range options {
+			switch key {
+			case "type", "device", "o":
+				volume.config.Options[key] = value
+			default:
+				return errors.Wrapf(define.ErrInvalidArg, "unrecognized volume option %q is not supported with local driver", key)
+			}
+
 			volume.config.Options[key] = value
 		}
 

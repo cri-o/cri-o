@@ -10,7 +10,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containers/image/v4/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -129,7 +129,7 @@ type Container struct {
 	valid      bool
 	lock       lock.Locker
 	runtime    *Runtime
-	ociRuntime *OCIRuntime
+	ociRuntime OCIRuntime
 
 	rootlessSlirpSyncR *os.File
 	rootlessSlirpSyncW *os.File
@@ -1184,4 +1184,13 @@ func (c *Container) HasHealthCheck() bool {
 // HealthCheckConfig returns the command and timing attributes of the health check
 func (c *Container) HealthCheckConfig() *manifest.Schema2HealthConfig {
 	return c.config.HealthCheckConfig
+}
+
+// AutoRemove indicates whether the container will be removed after it is executed
+func (c *Container) AutoRemove() bool {
+	spec := c.config.Spec
+	if spec.Annotations == nil {
+		return false
+	}
+	return c.Spec().Annotations[InspectAnnotationAutoremove] == InspectResponseTrue
 }

@@ -32,9 +32,7 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		}
 	}
 
-	if !(c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateStopped ||
-		c.state.State == define.ContainerStateExited) {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has already been created in runtime", c.ID())
 	}
 
@@ -176,18 +174,15 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		}
 	}
 
-	if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateUnknown ||
-		c.state.State == define.ContainerStatePaused {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created, running, or stopped containers. %s is in state %s", c.ID(), c.state.State.String())
-	}
-
-	if c.state.State == define.ContainerStateStopped ||
-		c.state.State == define.ContainerStateExited {
+	if c.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
 		return define.ErrCtrStopped
 	}
 
-	return c.stop(timeout)
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created or running containers. %s is in state %s", c.ID(), c.state.State.String())
+	}
+
+	return c.stop(timeout, false)
 }
 
 // Kill sends a signal to a container
@@ -201,16 +196,19 @@ func (c *Container) Kill(signal uint) error {
 		}
 	}
 
+	// TODO: Is killing a paused container OK?
 	if c.state.State != define.ContainerStateRunning {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only kill running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
-	defer c.newContainerEvent(events.Kill)
-	if err := c.ociRuntime.killContainer(c, signal); err != nil {
+	// Hardcode all = false, we only use all when removing.
+	if err := c.ociRuntime.KillContainer(c, signal, false); err != nil {
 		return err
 	}
 
 	c.state.StoppedByUser = true
+
+	c.newContainerEvent(events.Kill)
 
 	return c.save()
 }
@@ -221,7 +219,7 @@ func (c *Container) Kill(signal uint) error {
 // Sometimes, the $RUNTIME exec call errors, and if that is the case, the exit code is the exit code of the call.
 // Otherwise, the exit code will be the exit code of the executed call inside of the container.
 // TODO investigate allowing exec without attaching
-func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir string, streams *AttachStreams, preserveFDs int, resize chan remotecommand.TerminalSize, detachKeys string) (int, error) {
+func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []string, user, workDir string, streams *AttachStreams, preserveFDs uint, resize chan remotecommand.TerminalSize, detachKeys string) (int, error) {
 	var capList []string
 	if !c.batched {
 		c.lock.Lock()
@@ -232,10 +230,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 		}
 	}
 
-	conState := c.state.State
-
-	// TODO can probably relax this once we track exec sessions
-	if conState != define.ContainerStateRunning {
+	if c.state.State != define.ContainerStateRunning {
 		return define.ExecErrorCodeCannotInvoke, errors.Wrapf(define.ErrCtrStateInvalid, "cannot exec into container that is not running")
 	}
 
@@ -278,7 +273,19 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 		user = c.config.User
 	}
 
-	pid, attachChan, err := c.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, user, sessionID, streams, preserveFDs, resize, detachKeys)
+	opts := new(ExecOptions)
+	opts.Cmd = cmd
+	opts.CapAdd = capList
+	opts.Env = env
+	opts.Terminal = tty
+	opts.Cwd = workDir
+	opts.User = user
+	opts.Streams = streams
+	opts.PreserveFDs = preserveFDs
+	opts.Resize = resize
+	opts.DetachKeys = detachKeys
+
+	pid, attachChan, err := c.ociRuntime.ExecContainer(c, sessionID, opts)
 	if err != nil {
 		ec := define.ExecErrorCodeGeneric
 		// Conmon will pass a non-zero exit code from the runtime as a pid here.
@@ -377,11 +384,10 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		c.lock.Unlock()
 	}
 
-	if c.state.State != define.ContainerStateCreated &&
-		c.state.State != define.ContainerStateRunning &&
-		c.state.State != define.ContainerStateExited {
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
+
 	defer c.newContainerEvent(events.Attach)
 	return c.attach(streams, keys, resize, false, nil)
 }
@@ -418,7 +424,7 @@ func (c *Container) Unmount(force bool) error {
 			return errors.Wrapf(err, "can't determine how many times %s is mounted, refusing to unmount", c.ID())
 		}
 		if mounted == 1 {
-			if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
+			if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 				return errors.Wrapf(define.ErrCtrStateInvalid, "cannot unmount storage for container %s as it is running or paused", c.ID())
 			}
 			if len(c.state.ExecSessions) != 0 {
@@ -524,7 +530,10 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 		return -1, define.ErrCtrRemoved
 	}
 
-	exitFile := c.exitFilePath()
+	exitFile, err := c.exitFilePath()
+	if err != nil {
+		return -1, err
+	}
 	chWait := make(chan error, 1)
 
 	defer close(chWait)
@@ -557,7 +566,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	}
 
 	// Check if state is good
-	if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
 	}
 
@@ -635,11 +644,9 @@ func (c *Container) Sync() error {
 
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
-	if (c.state.State != define.ContainerStateUnknown) &&
-		(c.state.State != define.ContainerStateConfigured) &&
-		(c.state.State != define.ContainerStateExited) {
+	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopped) {
 		oldState := c.state.State
-		if err := c.ociRuntime.updateContainerStatus(c, true); err != nil {
+		if err := c.ociRuntime.UpdateContainerStatus(c); err != nil {
 			return err
 		}
 		// Only save back to DB if state changed
@@ -649,6 +656,7 @@ func (c *Container) Sync() error {
 			}
 		}
 	}
+
 	defer c.newContainerEvent(events.Sync)
 	return nil
 }
@@ -687,7 +695,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 
 	// Next, if the container is running, stop it
 	if c.state.State == define.ContainerStateRunning {
-		if err := c.stop(c.config.StopTimeout); err != nil {
+		if err := c.stop(c.config.StopTimeout, false); err != nil {
 			return err
 		}
 	}
@@ -696,8 +704,10 @@ func (c *Container) Refresh(ctx context.Context) error {
 	if len(c.state.ExecSessions) > 0 {
 		logrus.Infof("Killing %d exec sessions in container %s. They will not be restored after refresh.",
 			len(c.state.ExecSessions), c.ID())
-		if err := c.ociRuntime.execStopContainer(c, c.config.StopTimeout); err != nil {
-			return err
+	}
+	for _, session := range c.state.ExecSessions {
+		if err := c.ociRuntime.ExecStopContainer(c, session.ID, c.StopTimeout()); err != nil {
+			return errors.Wrapf(err, "error stopping exec session %s of container %s", session.ID, c.ID())
 		}
 	}
 
@@ -820,13 +830,4 @@ func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 	defer c.newContainerEvent(events.Restore)
 	return c.restore(ctx, options)
-}
-
-// AutoRemove indicates whether the container will be removed after it is executed
-func (c *Container) AutoRemove() bool {
-	spec := c.config.Spec
-	if spec.Annotations == nil {
-		return false
-	}
-	return c.Spec().Annotations[InspectAnnotationAutoremove] == InspectResponseTrue
 }

@@ -102,7 +102,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 
 	ctr.config.StopTimeout = define.CtrRemoveTimeout
 
-	ctr.config.OCIRuntime = r.defaultOCIRuntime.name
+	ctr.config.OCIRuntime = r.defaultOCIRuntime.Name()
 
 	// Set namespace based on current runtime namespace
 	// Do so before options run so they can override it
@@ -167,8 +167,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 
 	// Check NoCgroups support
 	if ctr.config.NoCgroups {
-		if !ctr.ociRuntime.supportsNoCgroups {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "requested OCI runtime %s is not compatible with NoCgroups", ctr.ociRuntime.name)
+		if !ctr.ociRuntime.SupportsNoCgroups() {
+			return nil, errors.Wrapf(define.ErrInvalidArg, "requested OCI runtime %s is not compatible with NoCgroups", ctr.ociRuntime.Name())
 		}
 	}
 
@@ -264,6 +264,14 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 		g.RemoveMount("/etc/hosts")
 		g.RemoveMount("/run/.containerenv")
 		g.RemoveMount("/run/secrets")
+
+		// Regenerate CGroup paths so they don't point to the old
+		// container ID.
+		cgroupPath, err := ctr.getOCICgroupPath()
+		if err != nil {
+			return nil, err
+		}
+		g.SetLinuxCgroupsPath(cgroupPath)
 	}
 
 	// Set up storage for the container
@@ -287,21 +295,32 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 	// Maintain an array of them - we need to lock them later.
 	ctrNamedVolumes := make([]*Volume, 0, len(ctr.config.NamedVolumes))
 	for _, vol := range ctr.config.NamedVolumes {
-		// Check if it exists already
-		dbVol, err := r.state.Volume(vol.Name)
-		if err == nil {
-			ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
-			// The volume exists, we're good
-			continue
-		} else if errors.Cause(err) != define.ErrNoSuchVolume {
-			return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
+		isAnonymous := false
+		if vol.Name == "" {
+			// Anonymous volume. We'll need to create it.
+			// It needs a name first.
+			vol.Name = stringid.GenerateNonCryptoID()
+			isAnonymous = true
+		} else {
+			// Check if it exists already
+			dbVol, err := r.state.Volume(vol.Name)
+			if err == nil {
+				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
+				// The volume exists, we're good
+				continue
+			} else if errors.Cause(err) != define.ErrNoSuchVolume {
+				return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
+			}
 		}
 
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
 		// The volume does not exist, so we need to create it.
-		newVol, err := r.newVolume(ctx, WithVolumeName(vol.Name), withSetCtrSpecific(),
-			WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
+		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
+		if isAnonymous {
+			volOptions = append(volOptions, withSetCtrSpecific())
+		}
+		newVol, err := r.newVolume(ctx, volOptions...)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)
 		}
@@ -430,7 +449,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	}
 
 	if c.state.State == define.ContainerStatePaused {
-		if err := c.ociRuntime.killContainer(c, 9); err != nil {
+		if err := c.ociRuntime.KillContainer(c, 9, false); err != nil {
 			return err
 		}
 		if err := c.unpause(); err != nil {
@@ -444,15 +463,15 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	// Check that the container's in a good state to be removed
 	if c.state.State == define.ContainerStateRunning {
-		if err := c.stop(c.StopTimeout()); err != nil {
+		if err := c.stop(c.StopTimeout(), true); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
 	}
 
 	// Check that all of our exec sessions have finished
-	if len(c.state.ExecSessions) != 0 {
-		if err := c.ociRuntime.execStopContainer(c, c.StopTimeout()); err != nil {
-			return err
+	for _, session := range c.state.ExecSessions {
+		if err := c.ociRuntime.ExecStopContainer(c, session.ID, c.StopTimeout()); err != nil {
+			return errors.Wrapf(err, "error stopping exec session %s of container %s", session.ID, c.ID())
 		}
 	}
 
@@ -576,9 +595,31 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	if !r.valid {
 		return "", define.ErrRuntimeStopped
 	}
+
 	id, err := r.state.LookupContainerID(idOrName)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to find container %q in state", idOrName)
+	}
+
+	// Begin by trying a normal removal. Valid containers will be removed normally.
+	tmpCtr, err := r.state.Container(id)
+	if err == nil {
+		logrus.Infof("Container %s successfully retrieved from state, attempting normal removal", id)
+		// Assume force = true for the evict case
+		err = r.removeContainer(ctx, tmpCtr, true, removeVolume, false)
+		if !tmpCtr.valid {
+			// If the container is marked invalid, remove succeeded
+			// in kicking it out of the state - no need to continue.
+			return id, err
+		}
+
+		if err == nil {
+			// Something has gone seriously wrong - no error but
+			// container was not removed.
+			logrus.Errorf("Container %s not removed with no error", id)
+		} else {
+			logrus.Warnf("Failed to removal container %s normally, proceeding with evict: %v", id, err)
+		}
 	}
 
 	// Error out if the container does not exist in libpod

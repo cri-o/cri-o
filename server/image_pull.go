@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/v4/copy"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"golang.org/x/net/context"

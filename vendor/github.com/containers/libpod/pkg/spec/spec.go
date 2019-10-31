@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -299,10 +300,35 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 
 	blockAccessToKernelFilesystems(config, &g)
 
+	var runtimeConfig *libpod.RuntimeConfig
+
+	if runtime != nil {
+		runtimeConfig, err = runtime.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// RESOURCES - PIDS
-	if config.Resources.PidsLimit != 0 {
-		g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
-		addedResources = true
+	if config.Resources.PidsLimit > 0 {
+		// if running on rootless on a cgroupv1 machine or using the cgroupfs manager, pids
+		// limit is not supported.  If the value is still the default
+		// then ignore the settings.  If the caller asked for a
+		// non-default, then try to use it.
+		setPidLimit := true
+		if rootless.IsRootless() {
+			cgroup2, err := cgroups.IsCgroup2UnifiedMode()
+			if err != nil {
+				return nil, err
+			}
+			if (!cgroup2 || (runtimeConfig != nil && runtimeConfig.CgroupManager != libpod.SystemdCgroupsManager)) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
+				setPidLimit = false
+			}
+		}
+		if setPidLimit {
+			g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
+			addedResources = true
+		}
 	}
 
 	for name, val := range config.Env {
@@ -390,10 +416,13 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		if !addedResources {
 			configSpec.Linux.Resources = &spec.LinuxResources{}
 		}
-		if addedResources && !cgroup2 {
-			return nil, errors.New("invalid configuration, cannot set resources with rootless containers not using cgroups v2 unified mode")
+
+		canUseResources := cgroup2 && runtimeConfig != nil && (runtimeConfig.CgroupManager == libpod.SystemdCgroupsManager)
+
+		if addedResources && !canUseResources {
+			return nil, errors.New("invalid configuration, cannot specify resource limits without cgroups v2 and --cgroup-manager=systemd")
 		}
-		if !cgroup2 {
+		if !canUseResources {
 			// Force the resources block to be empty instead of having default values.
 			configSpec.Linux.Resources = &spec.LinuxResources{}
 		}

@@ -267,6 +267,7 @@ type MountValues struct {
 type NetworkCreateValues struct {
 	PodmanCommand
 	Driver     string
+	DisableDNS bool
 	Gateway    net.IP
 	Internal   bool
 	IPamDriver string
@@ -430,6 +431,8 @@ type PullValues struct {
 	Authfile        string
 	CertDir         string
 	Creds           string
+	OverrideArch    string
+	OverrideOS      string
 	Quiet           bool
 	SignaturePolicy string
 	TlsVerify       bool
@@ -651,6 +654,7 @@ type SystemRenumberValues struct {
 
 type SystemMigrateValues struct {
 	PodmanCommand
+	NewRuntime string
 }
 
 type SystemDfValues struct {

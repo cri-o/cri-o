@@ -37,12 +37,6 @@ func GetRootlessGID() int {
 	return -1
 }
 
-// EnableLinger configures the system to not kill the user processes once the session
-// terminates
-func EnableLinger() (string, error) {
-	return "", nil
-}
-
 // TryJoinFromFilePaths attempts to join the namespaces of the pid files in paths.
 // This is useful when there are already running containers and we
 // don't have a pause process yet.  We can use the paths to the conmon
@@ -64,4 +58,9 @@ func ConfigurationMatches() (bool, error) {
 // GetConfiguredMappings returns the additional IDs configured for the current user.
 func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	return nil, nil, errors.New("this function is not supported on this os")
+}
+
+// ReadMappingsProc returns the uid_map and gid_map
+func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
+	return nil, nil
 }

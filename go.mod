@@ -7,22 +7,22 @@ require (
 	github.com/Microsoft/go-winio v0.4.14
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v0.0.0-20191003151125-bec0ecbda146 // indirect
-	github.com/containerd/containerd v1.2.9
+	github.com/containerd/containerd v1.3.0
 	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
 	github.com/containerd/go-runc v0.0.0-20190603165425-9007c2405372 // indirect
 	github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
 	github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.2
-	github.com/containers/buildah v1.11.3
+	github.com/containers/buildah v1.11.4
 	github.com/containers/conmon v2.0.0+incompatible
-	github.com/containers/image/v4 v4.0.1
-	github.com/containers/libpod v0.8.3-0.20191004181823-d3f59bedb393
-	github.com/containers/storage v1.13.4
+	github.com/containers/image/v5 v5.0.0
+	github.com/containers/libpod v1.6.3-0.20191030134509-63b57f514746
+	github.com/containers/storage v1.13.5
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
-	github.com/docker/docker v1.4.2-0.20190710153559-aa8249ae1b8b
+	github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-zoo/bone v1.3.0
