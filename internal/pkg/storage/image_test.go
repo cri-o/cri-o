@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/containers/image/v4/copy"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/rootless"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
