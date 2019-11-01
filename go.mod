@@ -14,10 +14,10 @@ require (
 	github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.2
-	github.com/containers/buildah v1.11.4
+	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.0+incompatible
 	github.com/containers/image/v5 v5.0.0
-	github.com/containers/libpod v1.6.3-0.20191030134509-63b57f514746
+	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
 	github.com/containers/storage v1.13.5
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -34,7 +34,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/hpcloud/tail v1.0.0
 	github.com/kr/pty v1.1.8
-	github.com/onsi/ginkgo v1.10.1
+	github.com/onsi/ginkgo v1.10.3
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
