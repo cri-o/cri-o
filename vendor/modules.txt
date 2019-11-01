@@ -90,7 +90,7 @@ github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/cli
-# github.com/containers/conmon v2.0.0+incompatible
+# github.com/containers/conmon v2.0.2+incompatible
 github.com/containers/conmon/runner/config
 # github.com/containers/image/v5 v5.0.0
 github.com/containers/image/v5/types
@@ -418,7 +418,7 @@ github.com/morikuni/aec
 github.com/mrunalp/fileutils
 # github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c
 github.com/mtrmac/gpgme
-# github.com/onsi/ginkgo v1.10.1
+# github.com/onsi/ginkgo v1.10.3
 github.com/onsi/ginkgo/ginkgo
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/reporters
@@ -445,7 +445,7 @@ github.com/onsi/ginkgo/internal/containernode
 github.com/onsi/ginkgo/internal/leafnodes
 github.com/onsi/ginkgo/internal/spec
 github.com/onsi/ginkgo/internal/specrunner
-# github.com/onsi/gomega v1.7.0
+# github.com/onsi/gomega v1.7.1
 github.com/onsi/gomega
 github.com/onsi/gomega/internal/assertion
 github.com/onsi/gomega/internal/asyncassertion
@@ -516,7 +516,7 @@ github.com/pquerna/ffjson/fflib/v1
 github.com/pquerna/ffjson/inception
 github.com/pquerna/ffjson/shared
 github.com/pquerna/ffjson/fflib/v1/internal
-# github.com/prometheus/client_golang v1.1.0 => github.com/prometheus/client_golang v0.9.2
+# github.com/prometheus/client_golang v1.2.1 => github.com/prometheus/client_golang v0.9.2
 github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
