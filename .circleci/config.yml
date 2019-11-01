@@ -4,8 +4,9 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/circle-1.12:1.2.0
-    IMAGELEGACY: &imagelegacy quay.io/crio/circle-1.10:1.2.0
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.12:1.0.0
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.10:1.0.0
+    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.12:1.0.0
     JOBS: &jobs 8
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
 
@@ -13,14 +14,18 @@ executors:
   container:
     docker:
       - image: *image
-        user: circleci
     <<: *stdenv
     working_directory: *workdir
 
   container-legacy:
     docker:
       - image: *imagelegacy
-        user: circleci
+    <<: *stdenv
+    working_directory: *workdir
+
+  container-386:
+    docker:
+      - image: *image386
     <<: *stdenv
     working_directory: *workdir
 
@@ -45,8 +50,11 @@ workflows:
     jobs:
       - build
       - build:
-          name: build-legacy
+          name: build-go1.10
           executor: container-legacy
+      - build:
+          name: build-386
+          executor: container-386
       - build-static
       - build-test-binaries
       - bundle:
@@ -119,6 +127,7 @@ jobs:
           keys:
             - v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
       - run: go version
+      - run: go env
       - run:
           command: make binaries -j $JOBS
       - run:
@@ -200,7 +209,7 @@ jobs:
       - run:
           name: doc generation
           command: |
-            sudo make docs-generation
+            make docs-generation
             hack/tree_status.sh
       - save_cache:
           key: v1-docs-generation-{{ checksum "go.sum" }}

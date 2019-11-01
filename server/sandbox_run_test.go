@@ -226,32 +226,19 @@ var _ = t.Describe("RunPodSandbox", func() {
 			Expect(res).To(Equal(""))
 		})
 
-		var prepareCgroupDirs = func(perm os.FileMode, content string) (string, string) {
+		var prepareCgroupDirs = func(content string) (string, string) {
 			const cgroup = "some.slice"
 			tmpDir := t.MustTempDir("cgroup")
 			Expect(os.MkdirAll(filepath.Join(tmpDir, cgroup), 0755)).To(BeNil())
 			Expect(ioutil.WriteFile(
 				filepath.Join(tmpDir, cgroup, "memory.limit_in_bytes"),
-				[]byte(content), perm)).To(BeNil())
+				[]byte(content), 0644)).To(BeNil())
 			return cgroup, tmpDir
 		}
 
-		It("should fail with systemd manager if memory read fails", func() {
-			// Given
-			cgroup, tmpDir := prepareCgroupDirs(0222, "")
-
-			// When
-			res, err := server.AddCgroupAnnotation(context.Background(), g,
-				tmpDir, oci.SystemdCgroupsManager, cgroup, "id")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(Equal(""))
-		})
-
 		It("should succeed with systemd manager if memory string empty", func() {
 			// Given
-			cgroup, tmpDir := prepareCgroupDirs(0644, "")
+			cgroup, tmpDir := prepareCgroupDirs("")
 
 			// When
 			res, err := server.AddCgroupAnnotation(context.Background(), g,
@@ -264,7 +251,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 		It("should succeed with systemd manager with valid memory ", func() {
 			// Given
-			cgroup, tmpDir := prepareCgroupDirs(0644, "13000000")
+			cgroup, tmpDir := prepareCgroupDirs("13000000")
 
 			// When
 			res, err := server.AddCgroupAnnotation(context.Background(), g,
@@ -277,7 +264,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 		It("should fail with systemd manager with too low memory", func() {
 			// Given
-			cgroup, tmpDir := prepareCgroupDirs(0644, "10")
+			cgroup, tmpDir := prepareCgroupDirs("10")
 
 			// When
 			res, err := server.AddCgroupAnnotation(context.Background(), g,
@@ -290,7 +277,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 		It("should fail with systemd manager with invalid memory ", func() {
 			// Given
-			cgroup, tmpDir := prepareCgroupDirs(0644, "invalid")
+			cgroup, tmpDir := prepareCgroupDirs("invalid")
 
 			// When
 			res, err := server.AddCgroupAnnotation(context.Background(), g,
