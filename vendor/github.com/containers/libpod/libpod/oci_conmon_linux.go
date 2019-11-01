@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/errorhandling"
@@ -58,7 +59,7 @@ type ConmonOCIRuntime struct {
 // The first path that points to a valid executable will be used.
 // Deliberately private. Someone should not be able to construct this outside of
 // libpod.
-func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *RuntimeConfig, supportsJSON, supportsNoCgroups bool) (OCIRuntime, error) {
+func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *config.Config, supportsJSON, supportsNoCgroups bool) (OCIRuntime, error) {
 	if name == "" {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "the OCI runtime must be provided a non-empty name")
 	}
@@ -114,7 +115,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
 
-	if runtime.cgroupManager != CgroupfsCgroupsManager && runtime.cgroupManager != SystemdCgroupsManager {
+	if runtime.cgroupManager != define.CgroupfsCgroupsManager && runtime.cgroupManager != define.SystemdCgroupsManager {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager specified: %s", runtime.cgroupManager)
 	}
 
@@ -602,7 +603,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	if err != nil {
 		return -1, nil, errors.Wrapf(err, "cannot start container %s", c.ID())
 	}
-	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe, sessionID); err != nil {
+	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe); err != nil {
 		return -1, nil, err
 	}
 
@@ -986,7 +987,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if err != nil {
 		return err
 	}
-	if err := r.moveConmonToCgroupAndSignal(ctr, cmd, parentStartPipe, ctr.ID()); err != nil {
+	if err := r.moveConmonToCgroupAndSignal(ctr, cmd, parentStartPipe); err != nil {
 		return err
 	}
 	/* Wait for initial setup and fork, and reap child */
@@ -1023,8 +1024,8 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 	if err != nil {
 		return nil, err
 	}
-
 	pspec := c.config.Spec.Process
+	pspec.SelinuxLabel = c.config.ProcessLabel
 	pspec.Args = cmd
 	// We need to default this to false else it will inherit terminal as true
 	// from the container.
@@ -1092,7 +1093,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*o
 	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
 	env = append(env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
-	home, err := homeDir()
+	home, err := util.HomeDir()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1118,7 +1119,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*o
 func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath string) []string {
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{"--api-version", "1"}
-	if r.cgroupManager == SystemdCgroupsManager && !ctr.config.NoCgroups {
+	if r.cgroupManager == define.SystemdCgroupsManager && !ctr.config.NoCgroups {
 		args = append(args, "-s")
 	}
 	args = append(args, "-c", ctr.ID())
@@ -1213,24 +1214,16 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
 // it then signals for conmon to start by sending nonse data down the start fd
-func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File, uuid string) error {
+func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File) error {
 	mustCreateCgroup := true
 	// If cgroup creation is disabled - just signal.
 	if ctr.config.NoCgroups {
 		mustCreateCgroup = false
 	}
 
-	if rootless.IsRootless() {
-		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
-		if err != nil {
-			return err
-		}
-		mustCreateCgroup = !ownsCgroup
-	}
-
 	if mustCreateCgroup {
 		cgroupParent := ctr.CgroupParent()
-		if r.cgroupManager == SystemdCgroupsManager {
+		if r.cgroupManager == define.SystemdCgroupsManager {
 			unitName := createUnitName("libpod-conmon", ctr.ID())
 
 			realCgroupParent := cgroupParent
@@ -1353,7 +1346,7 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 			return ss.si.Data, errors.Wrapf(define.ErrInternal, "container create failed")
 		}
 		data = ss.si.Data
-	case <-time.After(ContainerCreateTimeout):
+	case <-time.After(define.ContainerCreateTimeout):
 		return -1, errors.Wrapf(define.ErrInternal, "container creation timeout")
 	}
 	return data, nil

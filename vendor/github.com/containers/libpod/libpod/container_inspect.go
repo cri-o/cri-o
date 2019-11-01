@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/v4/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/pkg/util"
@@ -1322,9 +1322,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	// Need to check if it's the default, and not print if so.
 	defaultCgroupParent := ""
 	switch c.runtime.config.CgroupManager {
-	case CgroupfsCgroupsManager:
+	case define.CgroupfsCgroupsManager:
 		defaultCgroupParent = CgroupfsDefaultCgroupParent
-	case SystemdCgroupsManager:
+	case define.SystemdCgroupsManager:
 		defaultCgroupParent = SystemdDefaultCgroupParent
 	}
 	if c.config.CgroupParent != defaultCgroupParent {

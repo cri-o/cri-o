@@ -5,16 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 
-	"github.com/containers/image/v4/copy"
-	"github.com/containers/image/v4/docker/reference"
-	"github.com/containers/image/v4/pkg/sysregistriesv2"
-	"github.com/containers/image/v4/signature"
-	istorage "github.com/containers/image/v4/storage"
-	"github.com/containers/image/v4/transports/alltransports"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
+	"github.com/containers/image/v5/signature"
+	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
@@ -195,6 +196,8 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageCacheItem) ImageResult {
 	name, tags, digests := sortNamesByType(image.Names)
 	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
+	sort.Strings(tags)
+	sort.Strings(repoDigests)
 	return ImageResult{
 		ID:           image.ID,
 		Name:         name,
