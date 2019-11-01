@@ -1088,7 +1088,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.RunDir, c.RootUID(), c.RootGID(), rootless.IsRootless())
+	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.RunDir, c.RootUID(), c.RootGID(), rootless.IsRootless(), false)
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -1326,14 +1326,14 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	}
 	if (rootless.IsRootless() && !unified) || c.config.NoCgroups {
 		return "", nil
-	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+	} else if c.runtime.config.CgroupManager == define.SystemdCgroupsManager {
 		// When runc is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
-	} else if c.runtime.config.CgroupManager == CgroupfsCgroupsManager {
+	} else if c.runtime.config.CgroupManager == define.CgroupfsCgroupsManager {
 		cgroupPath, err := c.CGroupPath()
 		if err != nil {
 			return "", err
