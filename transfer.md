@@ -1,16 +1,22 @@
 # CRI-O Usage Transfer
 
-This document outlines useful information for ops and dev transfer as it relates to infrastructure that utilizes CRI-O.
+This document outlines useful information for operations and development transfer as it relates to infrastructure that utilizes CRI-O.
 
 ## Operational Transfer
 
 ## Abstract
 
-The `crio` daemon is intended to provide the [CRI](https://github.com/kubernetes/community/blob/master/contributors/devel/container-runtime-interface.md) socket needed for Kubernetes to use for automating deployment, scaling, and management of containerized applications (See the document for [configuring kubernetes to use CRI-O](./kubernetes.md) for more information on that).
-Therefore the [crictl](https://github.com/kubernetes-incubator/cri-tools) command line is a client that interfaces to the same grpc socket as the kubernetes daemon would, for talking to the `crio` daemon.
-In many ways [crictl](https://github.com/kubernetes-incubator/cri-tools) is only as feature rich as the Kubernetes CRI requires.
-There are additional tools e.g. [`podman`](https://github.com/containers/libpod) and [`buildah`](https://github.com/projectatomic/buildah) that provide a feature rich set of commands for all operational needs in a Kubernetes environment.
+The `crio` daemon is intended to provide the CRI socket needed for Kubernetes to use for automating deployment, scaling, and management of containerized applications (See the document for [configuring kubernetes to use CRI-O](./tutorials/kubernetes.md) for more information).
+Therefore the [crictl][1] command line is a client that interfaces to the same gRPC socket as the kubernetes daemon would, for talking to the `crio` daemon.
+In many ways [crictl][1] is only as feature rich as the Kubernetes CRI requires.
+There are additional tools e.g. [Podman](https://github.com/containers/libpod) and [Buildah](https://github.com/projectatomic/buildah) that provide a feature rich set of commands for all operational needs in a Kubernetes environment.
 
+Please note that the full interoperability between CRI-O and Podman cannot be
+guaranteed at this time. For example, it is not possible to interact with CRI-O
+containers via Podman commands. To do this, please use tools which interferes
+with the CRI, like [crictl][1].
+
+[1]: https://github.com/kubernetes-sigs/cri-tools
 
 ## System Tools
 
