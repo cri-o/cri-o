@@ -496,6 +496,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			specgen.SetProcessOOMScoreAdj(int(resources.GetOomScoreAdj()))
 			specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
 			specgen.SetLinuxResourcesCPUMems(resources.GetCpusetMems())
+
+			hugepageLimits := resources.GetHugepageLimits()
+			for _, limit := range hugepageLimits {
+				specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
+			}
 		}
 
 		var cgPath string
