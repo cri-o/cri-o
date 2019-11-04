@@ -61,6 +61,9 @@ workflows:
           requires:
             - build
             - build-static
+      - completions-validation:
+          requires:
+            - build
       - docs-generation:
           requires:
             - build
@@ -196,6 +199,25 @@ jobs:
           root: .
           paths:
             - bundle/*.tar.gz
+
+  completions-validation:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          keys:
+            - v1-completions-validation-{{ checksum "go.sum" }}
+      - run:
+          name: doc validation
+          command: |
+            sudo make completions
+            hack/tree_status.sh
+      - save_cache:
+          key: v1-completions-validation-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
 
   docs-generation:
     executor: container
