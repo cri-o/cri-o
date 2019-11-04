@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,5 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package dbus provides an injectable interface and implementations for D-Bus communication
-package dbus // import "k8s.io/kubernetes/pkg/util/dbus"
+package metrics
+
+import "github.com/prometheus/client_golang/prometheus"
+
+// Labels represents a collection of label name -> value mappings.
+type Labels prometheus.Labels

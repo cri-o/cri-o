@@ -92,7 +92,7 @@ type EndpointChangeTracker struct {
 	items map[types.NamespacedName]*endpointsChange
 	// makeEndpointInfo allows proxier to inject customized information when processing endpoint.
 	makeEndpointInfo makeEndpointFunc
-	// endpointSliceCache holds a simplified version of endpoint slices
+	// endpointSliceCache holds a simplified version of endpoint slices.
 	endpointSliceCache *EndpointSliceCache
 	// isIPv6Mode indicates if change tracker is under IPv6/IPv4 mode. Nil means not applicable.
 	isIPv6Mode *bool
@@ -190,39 +190,54 @@ func (ect *EndpointChangeTracker) EndpointSliceUpdate(endpointSlice *discovery.E
 	ect.lock.Lock()
 	defer ect.lock.Unlock()
 
-	change, ok := ect.items[namespacedName]
-	if !ok {
-		change = &endpointsChange{}
-		change.previous = ect.endpointSliceCache.EndpointsMap(namespacedName)
-		ect.items[namespacedName] = change
+	changeNeeded := ect.endpointSliceCache.updatePending(endpointSlice, removeSlice)
+
+	if changeNeeded {
+		metrics.EndpointChangesPending.Inc()
+		if t := getLastChangeTriggerTime(endpointSlice.Annotations); !t.IsZero() {
+			ect.lastChangeTriggerTimes[namespacedName] =
+				append(ect.lastChangeTriggerTimes[namespacedName], t)
+		}
 	}
 
-	if removeSlice {
-		ect.endpointSliceCache.Delete(endpointSlice)
-	} else {
-		ect.endpointSliceCache.Update(endpointSlice)
+	return changeNeeded
+}
+
+// checkoutChanges returns a list of pending endpointsChanges and marks them as
+// applied.
+func (ect *EndpointChangeTracker) checkoutChanges() []*endpointsChange {
+	ect.lock.Lock()
+	defer ect.lock.Unlock()
+
+	metrics.EndpointChangesPending.Set(0)
+
+	if ect.endpointSliceCache != nil {
+		return ect.endpointSliceCache.checkoutChanges()
 	}
 
-	if t := getLastChangeTriggerTime(endpointSlice.Annotations); !t.IsZero() {
-		ect.lastChangeTriggerTimes[namespacedName] =
-			append(ect.lastChangeTriggerTimes[namespacedName], t)
+	changes := []*endpointsChange{}
+	for _, change := range ect.items {
+		changes = append(changes, change)
 	}
+	ect.items = make(map[types.NamespacedName]*endpointsChange)
+	return changes
+}
 
-	change.current = ect.endpointSliceCache.EndpointsMap(namespacedName)
-	// if change.previous equal to change.current, it means no change
-	if reflect.DeepEqual(change.previous, change.current) {
-		delete(ect.items, namespacedName)
-		// Reset the lastChangeTriggerTimes for this service. Given that the network programming
-		// SLI is defined as the duration between a time of an event and a time when the network was
-		// programmed to incorporate that event, if there are events that happened between two
-		// consecutive syncs and that canceled each other out, e.g. pod A added -> pod A deleted,
-		// there will be no network programming for them and thus no network programming latency metric
-		// should be exported.
-		delete(ect.lastChangeTriggerTimes, namespacedName)
+// checkoutTriggerTimes applies the locally cached trigger times to a map of
+// trigger times that have been passed in and empties the local cache.
+func (ect *EndpointChangeTracker) checkoutTriggerTimes(lastChangeTriggerTimes *map[types.NamespacedName][]time.Time) {
+	ect.lock.Lock()
+	defer ect.lock.Unlock()
+
+	for k, v := range ect.lastChangeTriggerTimes {
+		prev, ok := (*lastChangeTriggerTimes)[k]
+		if !ok {
+			(*lastChangeTriggerTimes)[k] = v
+		} else {
+			(*lastChangeTriggerTimes)[k] = append(prev, v...)
+		}
 	}
-
-	metrics.EndpointChangesPending.Set(float64(len(ect.items)))
-	return len(ect.items) > 0
+	ect.lastChangeTriggerTimes = make(map[types.NamespacedName][]time.Time)
 }
 
 // getLastChangeTriggerTime returns the time.Time value of the
@@ -315,6 +330,7 @@ func (ect *EndpointChangeTracker) endpointsToEndpointsMap(endpoints *v1.Endpoint
 			svcPortName := ServicePortName{
 				NamespacedName: types.NamespacedName{Namespace: endpoints.Namespace, Name: endpoints.Name},
 				Port:           port.Name,
+				Protocol:       port.Protocol,
 			}
 			for i := range ss.Addresses {
 				addr := &ss.Addresses[i]
@@ -327,7 +343,7 @@ func (ect *EndpointChangeTracker) endpointsToEndpointsMap(endpoints *v1.Endpoint
 				if ect.isIPv6Mode != nil && utilnet.IsIPv6String(addr.IP) != *ect.isIPv6Mode {
 					// Emit event on the corresponding service which had a different
 					// IP version than the endpoint.
-					utilproxy.LogAndEmitIncorrectIPVersionEvent(ect.recorder, "endpoints", addr.IP, endpoints.Name, endpoints.Namespace, "")
+					utilproxy.LogAndEmitIncorrectIPVersionEvent(ect.recorder, "endpoints", addr.IP, endpoints.Namespace, endpoints.Name, "")
 					continue
 				}
 				isLocal := addr.NodeName != nil && *addr.NodeName == ect.hostname
@@ -350,29 +366,19 @@ func (ect *EndpointChangeTracker) endpointsToEndpointsMap(endpoints *v1.Endpoint
 // The changes map is cleared after applying them.
 // In addition it returns (via argument) and resets the lastChangeTriggerTimes for all endpoints
 // that were changed and will result in syncing the proxy rules.
-func (em EndpointsMap) apply(changes *EndpointChangeTracker, staleEndpoints *[]ServiceEndpoint,
+func (em EndpointsMap) apply(ect *EndpointChangeTracker, staleEndpoints *[]ServiceEndpoint,
 	staleServiceNames *[]ServicePortName, lastChangeTriggerTimes *map[types.NamespacedName][]time.Time) {
-	if changes == nil {
+	if ect == nil {
 		return
 	}
-	changes.lock.Lock()
-	defer changes.lock.Unlock()
-	for _, change := range changes.items {
+
+	changes := ect.checkoutChanges()
+	for _, change := range changes {
 		em.unmerge(change.previous)
 		em.merge(change.current)
 		detectStaleConnections(change.previous, change.current, staleEndpoints, staleServiceNames)
 	}
-	changes.items = make(map[types.NamespacedName]*endpointsChange)
-	metrics.EndpointChangesPending.Set(0)
-	for k, v := range changes.lastChangeTriggerTimes {
-		prev, ok := (*lastChangeTriggerTimes)[k]
-		if !ok {
-			(*lastChangeTriggerTimes)[k] = v
-		} else {
-			(*lastChangeTriggerTimes)[k] = append(prev, v...)
-		}
-	}
-	changes.lastChangeTriggerTimes = make(map[types.NamespacedName][]time.Time)
+	ect.checkoutTriggerTimes(lastChangeTriggerTimes)
 }
 
 // Merge ensures that the current EndpointsMap contains all <service, endpoints> pairs from the EndpointsMap passed in.
@@ -410,6 +416,10 @@ func (em EndpointsMap) getLocalEndpointIPs() map[types.NamespacedName]sets.Strin
 // is used to store stale udp service in order to clear udp conntrack later.
 func detectStaleConnections(oldEndpointsMap, newEndpointsMap EndpointsMap, staleEndpoints *[]ServiceEndpoint, staleServiceNames *[]ServicePortName) {
 	for svcPortName, epList := range oldEndpointsMap {
+		if svcPortName.Protocol != v1.ProtocolUDP {
+			continue
+		}
+
 		for _, ep := range epList {
 			stale := true
 			for i := range newEndpointsMap[svcPortName] {
@@ -426,6 +436,10 @@ func detectStaleConnections(oldEndpointsMap, newEndpointsMap EndpointsMap, stale
 	}
 
 	for svcPortName, epList := range newEndpointsMap {
+		if svcPortName.Protocol != v1.ProtocolUDP {
+			continue
+		}
+
 		// For udp service, if its backend changes from 0 to non-0. There may exist a conntrack entry that could blackhole traffic to the service.
 		if len(epList) > 0 && len(oldEndpointsMap[svcPortName]) == 0 {
 			*staleServiceNames = append(*staleServiceNames, svcPortName)

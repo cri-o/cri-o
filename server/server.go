@@ -41,7 +41,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 	iptablesproxy "k8s.io/kubernetes/pkg/proxy/iptables"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
 )
@@ -327,7 +326,7 @@ func New(
 	if err != nil {
 		return nil, err
 	}
-	iptInterface := utiliptables.New(utilexec.New(), utildbus.New(), utiliptables.ProtocolIpv4)
+	iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIpv4)
 	if _, err := iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain); err != nil {
 		logrus.Warnf("unable to ensure iptables chain: %v", err)
 	}

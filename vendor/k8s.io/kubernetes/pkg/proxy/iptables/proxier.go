@@ -32,7 +32,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	discovery "k8s.io/api/discovery/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -200,8 +200,9 @@ type Proxier struct {
 	nodeIP         net.IP
 	portMapper     utilproxy.PortOpener
 	recorder       record.EventRecorder
-	healthChecker  healthcheck.Server
-	healthzServer  healthcheck.HealthzUpdater
+
+	serviceHealthServer healthcheck.ServiceHealthServer
+	healthzServer       healthcheck.ProxierHealthUpdater
 
 	// Since converting probabilities (floats) to strings is expensive
 	// and we are using only probabilities in the format of 1/n, we are
@@ -257,7 +258,7 @@ func NewProxier(ipt utiliptables.Interface,
 	hostname string,
 	nodeIP net.IP,
 	recorder record.EventRecorder,
-	healthzServer healthcheck.HealthzUpdater,
+	healthzServer healthcheck.ProxierHealthUpdater,
 	nodePortAddresses []string,
 ) (*Proxier, error) {
 	// Set the route_localnet sysctl we need for
@@ -278,11 +279,6 @@ func NewProxier(ipt utiliptables.Interface,
 	masqueradeValue := 1 << uint(masqueradeBit)
 	masqueradeMark := fmt.Sprintf("%#08x/%#08x", masqueradeValue, masqueradeValue)
 
-	if nodeIP == nil {
-		klog.Warning("invalid nodeIP, initializing kube-proxy with 127.0.0.1 as nodeIP")
-		nodeIP = net.ParseIP("127.0.0.1")
-	}
-
 	if len(clusterCIDR) == 0 {
 		klog.Warning("clusterCIDR not specified, unable to distinguish between internal and external traffic")
 	} else if utilnet.IsIPv6CIDRString(clusterCIDR) != ipt.IsIpv6() {
@@ -291,7 +287,7 @@ func NewProxier(ipt utiliptables.Interface,
 
 	endpointSlicesEnabled := utilfeature.DefaultFeatureGate.Enabled(features.EndpointSlice)
 
-	healthChecker := healthcheck.NewServer(hostname, recorder, nil, nil) // use default implementations of deps
+	serviceHealthServer := healthcheck.NewServiceHealthServer(hostname, recorder)
 
 	isIPv6 := ipt.IsIpv6()
 	proxier := &Proxier{
@@ -309,7 +305,7 @@ func NewProxier(ipt utiliptables.Interface,
 		nodeIP:                   nodeIP,
 		portMapper:               &listenPortOpener{},
 		recorder:                 recorder,
-		healthChecker:            healthChecker,
+		serviceHealthServer:      serviceHealthServer,
 		healthzServer:            healthzServer,
 		precomputedProbabilities: make([]string, 0, 1001),
 		iptablesData:             bytes.NewBuffer(nil),
@@ -323,7 +319,13 @@ func NewProxier(ipt utiliptables.Interface,
 	}
 	burstSyncs := 2
 	klog.V(3).Infof("minSyncPeriod: %v, syncPeriod: %v, burstSyncs: %d", minSyncPeriod, syncPeriod, burstSyncs)
-	proxier.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, syncPeriod, burstSyncs)
+	// We pass syncPeriod to ipt.Monitor, which will call us only if it needs to.
+	// We need to pass *some* maxInterval to NewBoundedFrequencyRunner anyway though.
+	// time.Hour is arbitrary.
+	proxier.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, time.Hour, burstSyncs)
+	go ipt.Monitor(utiliptables.Chain("KUBE-PROXY-CANARY"),
+		[]utiliptables.Table{utiliptables.TableMangle, utiliptables.TableNAT, utiliptables.TableFilter},
+		proxier.syncProxyRules, syncPeriod, wait.NeverStop)
 	return proxier, nil
 }
 
@@ -432,7 +434,7 @@ func CleanupLeftovers(ipt utiliptables.Interface) (encounteredError bool) {
 }
 
 func computeProbability(n int) string {
-	return fmt.Sprintf("%0.5f", 1.0/float64(n))
+	return fmt.Sprintf("%0.10f", 1.0/float64(n))
 }
 
 // This assumes proxier.mu is held
@@ -455,6 +457,9 @@ func (proxier *Proxier) probability(n int) string {
 
 // Sync is called to synchronize the proxier state to iptables as soon as possible.
 func (proxier *Proxier) Sync() {
+	if proxier.healthzServer != nil {
+		proxier.healthzServer.QueuedUpdate()
+	}
 	proxier.syncRunner.Run()
 }
 
@@ -462,7 +467,7 @@ func (proxier *Proxier) Sync() {
 func (proxier *Proxier) SyncLoop() {
 	// Update healthz timestamp at beginning in case Sync() never succeeds.
 	if proxier.healthzServer != nil {
-		proxier.healthzServer.UpdateTimestamp()
+		proxier.healthzServer.Updated()
 	}
 	proxier.syncRunner.Loop(wait.NeverStop)
 }
@@ -489,7 +494,7 @@ func (proxier *Proxier) OnServiceAdd(service *v1.Service) {
 // service object is observed.
 func (proxier *Proxier) OnServiceUpdate(oldService, service *v1.Service) {
 	if proxier.serviceChanges.Update(oldService, service) && proxier.isInitialized() {
-		proxier.syncRunner.Run()
+		proxier.Sync()
 	}
 }
 
@@ -1443,19 +1448,18 @@ func (proxier *Proxier) syncProxyRules() {
 	}
 	proxier.portsMap = replacementPortsMap
 
-	// Update healthz timestamp.
 	if proxier.healthzServer != nil {
-		proxier.healthzServer.UpdateTimestamp()
+		proxier.healthzServer.Updated()
 	}
 	metrics.SyncProxyRulesLastTimestamp.SetToCurrentTime()
 
-	// Update healthchecks.  The endpoints list might include services that are
-	// not "OnlyLocal", but the services list will not, and the healthChecker
+	// Update service healthchecks.  The endpoints list might include services that are
+	// not "OnlyLocal", but the services list will not, and the serviceHealthServer
 	// will just drop those endpoints.
-	if err := proxier.healthChecker.SyncServices(serviceUpdateResult.HCServiceNodePorts); err != nil {
+	if err := proxier.serviceHealthServer.SyncServices(serviceUpdateResult.HCServiceNodePorts); err != nil {
 		klog.Errorf("Error syncing healthcheck services: %v", err)
 	}
-	if err := proxier.healthChecker.SyncEndpoints(endpointUpdateResult.HCEndpointsLocalIPSize); err != nil {
+	if err := proxier.serviceHealthServer.SyncEndpoints(endpointUpdateResult.HCEndpointsLocalIPSize); err != nil {
 		klog.Errorf("Error syncing healthcheck endpoints: %v", err)
 	}
 

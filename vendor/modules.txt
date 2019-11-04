@@ -320,7 +320,7 @@ github.com/fsouza/go-dockerclient
 github.com/ghodss/yaml
 # github.com/go-zoo/bone v1.3.0
 github.com/go-zoo/bone
-# github.com/godbus/dbus v4.1.0+incompatible => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
+# github.com/godbus/dbus v0.0.0 => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 github.com/godbus/dbus
 # github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 github.com/gogo/protobuf/proto
@@ -463,7 +463,7 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 github.com/opencontainers/image-spec/specs-go/v1
 github.com/opencontainers/image-spec/specs-go
-# github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
+# github.com/opencontainers/runc v1.0.0-rc9
 github.com/opencontainers/runc/libcontainer
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/cgroups/systemd
@@ -490,7 +490,7 @@ github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/error
-# github.com/opencontainers/selinux v1.3.0
+# github.com/opencontainers/selinux v1.3.1-0.20190929122143-5215b1806f52
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 # github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
@@ -520,17 +520,15 @@ github.com/pquerna/ffjson/fflib/v1/internal
 github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
-# github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
+# github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.0.0-20181126121408-4724e9255275
+# github.com/prometheus/common v0.4.1
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
-# github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a
+# github.com/prometheus/procfs v0.0.2
 github.com/prometheus/procfs
-github.com/prometheus/procfs/nfs
-github.com/prometheus/procfs/xfs
-github.com/prometheus/procfs/internal/util
+github.com/prometheus/procfs/internal/fs
 # github.com/russross/blackfriday v1.5.2
 github.com/russross/blackfriday
 # github.com/russross/blackfriday/v2 v2.0.1
@@ -704,7 +702,7 @@ gopkg.in/inf.v0
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.4
 gopkg.in/yaml.v2
-# k8s.io/api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20190913145653-2bd9643cee5b
+# k8s.io/api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20191029164530-fd61642e68bd
 k8s.io/api/core/v1
 k8s.io/api/discovery/v1alpha1
 k8s.io/api/authentication/v1
@@ -743,9 +741,9 @@ k8s.io/api/storage/v1beta1
 k8s.io/api/authentication/v1beta1
 k8s.io/api/authorization/v1
 k8s.io/api/authorization/v1beta1
-# k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20190913145653-2bd9643cee5b
+# k8s.io/apiextensions-apiserver v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20191029164530-fd61642e68bd
 k8s.io/apiextensions-apiserver/pkg/features
-# k8s.io/apimachinery v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20190913145653-2bd9643cee5b
+# k8s.io/apimachinery v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20191029164530-fd61642e68bd
 k8s.io/apimachinery/pkg/util/wait
 k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/api/resource
@@ -795,12 +793,12 @@ k8s.io/apimachinery/pkg/util/framer
 k8s.io/apimachinery/pkg/util/yaml
 k8s.io/apimachinery/pkg/util/uuid
 k8s.io/apimachinery/pkg/apis/meta/v1beta1
-# k8s.io/apiserver v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20190913145653-2bd9643cee5b
+# k8s.io/apiserver v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20191029164530-fd61642e68bd
 k8s.io/apiserver/pkg/util/feature
 k8s.io/apiserver/pkg/features
 k8s.io/apiserver/pkg/server/httplog
 k8s.io/apiserver/pkg/util/wsstream
-# k8s.io/client-go v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20190913145653-2bd9643cee5b
+# k8s.io/client-go v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20191029164530-fd61642e68bd
 k8s.io/client-go/tools/remotecommand
 k8s.io/client-go/rest
 k8s.io/client-go/transport/spdy
@@ -954,20 +952,20 @@ k8s.io/client-go/listers/scheduling/v1beta1
 k8s.io/client-go/listers/settings/v1alpha1
 k8s.io/client-go/listers/storage/v1
 k8s.io/client-go/listers/storage/v1alpha1
-# k8s.io/cloud-provider v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20190913145653-2bd9643cee5b
+# k8s.io/cloud-provider v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20191029164530-fd61642e68bd
 k8s.io/cloud-provider
-# k8s.io/component-base v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20190913145653-2bd9643cee5b
+# k8s.io/component-base v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20191029164530-fd61642e68bd
 k8s.io/component-base/featuregate
 k8s.io/component-base/metrics
 k8s.io/component-base/metrics/legacyregistry
 k8s.io/component-base/version
-# k8s.io/cri-api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20190913145653-2bd9643cee5b
+# k8s.io/cri-api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20191029164530-fd61642e68bd
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
-# k8s.io/klog v0.4.0
+# k8s.io/klog v1.0.0
 k8s.io/klog
 # k8s.io/kube-openapi v0.0.0-20190816220812-743ec37842bf
 k8s.io/kube-openapi/pkg/util/proto
-# k8s.io/kubernetes v0.0.0 => k8s.io/kubernetes v1.16.0
+# k8s.io/kubernetes v0.0.0 => k8s.io/kubernetes v1.17.0-beta.0
 k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport
 k8s.io/kubernetes/pkg/kubelet/container
 k8s.io/kubernetes/pkg/kubelet/types
@@ -975,7 +973,6 @@ k8s.io/kubernetes/pkg/kubelet/leaky
 k8s.io/kubernetes/pkg/kubelet/server/streaming
 k8s.io/kubernetes/pkg/proxy/iptables
 k8s.io/kubernetes/pkg/security/apparmor
-k8s.io/kubernetes/pkg/util/dbus
 k8s.io/kubernetes/pkg/util/iptables
 k8s.io/kubernetes/pkg/util/conntrack
 k8s.io/kubernetes/pkg/api/legacyscheme
@@ -1006,7 +1003,7 @@ k8s.io/kubernetes/pkg/apis/core/v1/helper
 k8s.io/kubernetes/pkg/volume/util/fsquota
 k8s.io/kubernetes/pkg/apis/core/helper
 k8s.io/kubernetes/pkg/volume/util/fsquota/common
-# k8s.io/utils v0.0.0-20190920012459-5008bf6f8cd6
+# k8s.io/utils v0.0.0-20191010214722-8d271d903fe4
 k8s.io/utils/exec
 k8s.io/utils/net
 k8s.io/utils/path
