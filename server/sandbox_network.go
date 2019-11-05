@@ -17,7 +17,7 @@ import (
 // or an error
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, err error) {
 	if sb.HostNetwork() {
-		return s.hostIPs, nil, nil
+		return nil, nil, nil
 	}
 
 	podNetwork, err := s.newPodNetwork(sb)
@@ -89,7 +89,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 // getSandboxIP retrieves the IP address for the sandbox
 func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) (podIPs []string, err error) {
 	if sb.HostNetwork() {
-		return s.hostIPs, nil
+		return nil, nil
 	}
 
 	podNetwork, err := s.newPodNetwork(sb)

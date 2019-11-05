@@ -67,7 +67,6 @@ type Server struct {
 	hostportManager hostport.HostPortManager
 
 	appArmorProfile string
-	hostIPs         []string
 
 	*lib.ContainerServer
 	monitorsChan      chan struct{}
@@ -398,17 +397,11 @@ func New(
 	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	hostIPs := s.getHostIPs(config.HostIP)
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
+		hostIPs := s.getHostIPs(config.HostIP)
 		bindAddress = hostIPs[0]
 	}
-	ips := []string{}
-	for _, ip := range hostIPs {
-		ips = append(ips, ip.String())
-	}
-	s.hostIPs = ips
-	logrus.Infof("using host IPs: %v", s.hostIPs)
 
 	_, err = net.LookupPort("tcp", config.StreamPort)
 	if err != nil {
