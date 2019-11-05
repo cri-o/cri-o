@@ -212,7 +212,7 @@ jobs:
       - run:
           name: doc validation
           command: |
-            sudo make completions
+            make completions
             hack/tree_status.sh
       - save_cache:
           key: v1-completions-validation-{{ checksum "go.sum" }}
