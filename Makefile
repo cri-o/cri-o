@@ -54,8 +54,6 @@ GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
-NIX_IMAGE := saschagrunert/crionix:1.0.0
-
 # pass crio CLI options to generate custom crio.conf build time
 CONF_OVERRIDES ?=
 
@@ -82,6 +80,8 @@ TESTIMAGE_VERSION := 1.1.1
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
+
+TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:$(TESTIMAGE_VERSION)
 
 all: binaries crio.conf docs
 
@@ -134,17 +134,13 @@ bin/crio-status: git-vars .gopathok
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static: git-vars
-	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(NIX_IMAGE) sh -c \
-		"nix-build cri-o/nix --argstr revision $(COMMIT_NO) && \
+	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(TESTIMAGE_NIX) sh -c \
+		"nix build -f cri-o/nix --argstr revision $(COMMIT_NO) && \
 		mkdir -p cri-o/bin && \
 		cp result-*bin/bin/crio-* cri-o/bin && \
 		cp result-*bin/libexec/crio/* cri-o/bin"
 
 release-bundle: clean build-static docs crio.conf bundle
-
-nix-image: git-vars
-	time $(CONTAINER_RUNTIME) build -t $(NIX_IMAGE) \
-		--build-arg COMMIT=$(COMMIT_NO) -f Dockerfile-nix .
 
 crio.conf: bin/crio
 	./bin/crio --config="" $(CONF_OVERRIDES) config  > crio.conf
@@ -190,6 +186,10 @@ test-images:
 	$(TESTIMAGE_SCRIPT) -g 1.13 -a amd64
 	$(TESTIMAGE_SCRIPT) -g 1.13 -a 386
 	$(TESTIMAGE_SCRIPT) -g 1.10 -a amd64
+
+test-image-nix: git-vars
+	time $(CONTAINER_RUNTIME) build -t $(TESTIMAGE_NIX) \
+		--build-arg COMMIT=$(COMMIT_NO) -f Dockerfile-nix .
 
 dbuild:
 	$(CONTAINER_RUNTIME) run --rm --name=${CRIO_INSTANCE} --privileged \
@@ -451,10 +451,10 @@ docs-validation:
 	install \
 	lint \
 	local-cross \
-	nix-image \
 	release-bundle \
 	testunit \
 	testunit-bin \
 	test-images \
+	test-image-nix \
 	uninstall \
 	vendor
