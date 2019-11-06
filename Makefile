@@ -78,7 +78,7 @@ SHRINKFLAGS := -s -w
 BASE_LDFLAGS = ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${SOURCE_DATE_EPOCH}
 LDFLAGS = -ldflags '${BASE_LDFLAGS}'
 
-TESTIMAGE_VERSION := 1.0.0
+TESTIMAGE_VERSION := 1.1.0
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
@@ -183,8 +183,8 @@ local-image:
 	$(TESTIMAGE_SCRIPT)
 
 test-images:
-	$(TESTIMAGE_SCRIPT) -g 1.12 -a amd64
-	$(TESTIMAGE_SCRIPT) -g 1.12 -a 386
+	$(TESTIMAGE_SCRIPT) -g 1.13 -a amd64
+	$(TESTIMAGE_SCRIPT) -g 1.13 -a 386
 	$(TESTIMAGE_SCRIPT) -g 1.10 -a amd64
 
 dbuild:

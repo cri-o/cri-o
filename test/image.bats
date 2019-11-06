@@ -27,7 +27,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_id="$output"
 	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
-	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
+	run crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -46,7 +46,7 @@ function teardown() {
 
 	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
 
-	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
+	run crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -135,14 +135,6 @@ function teardown() {
 	run crictl pull "$SIGNED_IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_images
-}
-
-@test "image pull without signature" {
-	start_crio "" "" --no-pause-image
-	run crictl image pull "$UNSIGNED_IMAGE"
-	echo "$output"
-	[ "$status" -ne 0 ]
 	cleanup_images
 }
 

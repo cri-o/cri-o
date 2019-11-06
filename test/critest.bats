@@ -3,7 +3,7 @@
 load helpers
 
 function setup() {
-	setup_test
+    setup_test
 }
 
 function teardown() {
@@ -20,15 +20,13 @@ function teardown() {
 
     start_crio
 
-    run critest --parallel $JOBS \
+    critest --parallel 8 \
                 --runtime-endpoint "${CRIO_SOCKET}" \
                 --image-endpoint "${CRIO_SOCKET}" \
                 --ginkgo.focus="${CRI_FOCUS}" \
                 --ginkgo.skip="${CRI_SKIP}" \
-                --ginkgo.flakeAttempts=3
+                --ginkgo.flakeAttempts=3 >&3
 
-
-    echo "$output"
     [ "$status" -eq 0 ]
 
     stop_crio

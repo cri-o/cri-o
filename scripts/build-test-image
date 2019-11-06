@@ -7,23 +7,23 @@ fi
 
 # Versions to be used
 declare -A VERSIONS=(
-    ["cni-plugins"]=v0.8.1
+    ["cni-plugins"]=v0.8.2
     ["conmon"]=v2.0.0
-    ["cri-tools"]=v1.15.0
-    ["runc"]=v1.0.0-rc8
+    ["cri-tools"]=v1.16.1
+    ["runc"]=v1.0.0-rc9
 )
 
 # Available architectures and go versions
 ARCH_386=386
 ARCH_AMD64=amd64
-GO_112=1.12
+GO_113=1.13
 GO_110=1.10
 
 # The default values
 TARGET_IMAGE=crio-build
 REGISTRY=
 ARCH=$ARCH_AMD64
-GO=$GO_112
+GO=$GO_113
 BASE_IMAGE=docker.io/golang
 TAG=latest
 DRYRUN=false
@@ -31,9 +31,9 @@ WORK_CTR=
 
 # All supported image digests
 declare -A IMAGES=(
-    # go 1.12.8 digests
-    ["$GO_112:$ARCH_AMD64"]=2e26d966bd353054990a17f8856ffa66ca6f8a02b2c9fc748ae4bea65817a578
-    ["$GO_112:$ARCH_386"]=fda5925d674d472a0f16e9e7976246852e3c03b1819d84b4e41b030eca9cb373
+    # go 1.13.4 digests
+    ["$GO_113:$ARCH_AMD64"]=80bf73289b856e9a9cb518e76380575b4328b031dd9f593c7c7b3c75c5598048
+    ["$GO_113:$ARCH_386"]=eab1380f36935fa5787b1b88fcaf4b33c50d3f782277adee544d3c434b345bf4
 
     # go 1.10.8 digests
     ["$GO_110:$ARCH_AMD64"]=eac40ba14416262e26def90a2d6f10d6ff579ea61c267963f6cbfbbe63b0ea7b
@@ -41,7 +41,7 @@ declare -A IMAGES=(
 
 usage() {
     printf "Usage: %s -a <%s|%s> -g <%s|%s> [ -r REGISTRY ] [ -t IMAGE ] [ -v TAG ] [ -d ] [ -h ]\n\n" \
-        "$(basename "$0")" $ARCH_AMD64 $ARCH_386 $GO_112 $GO_110
+        "$(basename "$0")" $ARCH_AMD64 $ARCH_386 $GO_113 $GO_110
     echo "Possible arguments:"
     printf "  -a\ttarget architecture of the image (default: '%s')\n" $ARCH
     printf "  -d\tdon’t build the image, only print the resulting image name and exit\n"
@@ -93,7 +93,7 @@ parse_args() {
         exit 1
     fi
 
-    if [[ "$GO" != "$GO_112" ]] && [[ "$GO" != "$GO_110" ]]; then
+    if [[ "$GO" != "$GO_113" ]] && [[ "$GO" != "$GO_110" ]]; then
         printf "Invalid go version specified: %s\n\n" "$GO"
         exit 1
     fi
@@ -192,7 +192,7 @@ install_packages() {
         protobuf-compiler \
         python-protobuf \
         socat
-    if [[ "$GO" == "$GO_112" ]]; then
+    if [[ "$GO" == "$GO_113" ]]; then
         run apt-get install -y libbtrfs-dev
     fi
     run apt-get clean
@@ -224,8 +224,9 @@ install_cri_tools() {
     for BINARY in "${BINARIES[@]}"; do
         TARBALL=$BINARY-$ARCHIVE
         echo "Downloading $TARBALL"
-        wget $URL/"${VERSIONS["cri-tools"]}"/"$TARBALL"
+        wget -O "$TARBALL" $URL/"${VERSIONS["cri-tools"]}"/"$TARBALL"
         tar xf "$TARBALL" -C "$MOUNT_DIR"/usr/bin
+        run chown root:root /usr/bin/$BINARY # https://circleci.com/docs/2.0/high-uid-error
         run "$BINARY" --version
         rm "$TARBALL"
     done
@@ -240,7 +241,7 @@ install_cni_plugins() {
     TARBALL=cni-plugins-linux-$ARCH-${VERSIONS["cni-plugins"]}.tgz
     CNI_DIR="$MOUNT_DIR"/opt/cni/bin
     mkdir -p "$CNI_DIR"
-    wget $URL/"${VERSIONS["cni-plugins"]}"/"$TARBALL"
+    wget -O "$TARBALL" $URL/"${VERSIONS["cni-plugins"]}"/"$TARBALL"
     tar xf "$TARBALL" -C "$CNI_DIR"
     rm "$TARBALL"
     ls -lah "$CNI_DIR"
