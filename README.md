@@ -78,7 +78,7 @@ Note that kpod and its container management and debugging commands have moved to
 
 ## CRI-O Usage Transfer
 
-[Useful information for ops and dev transfer as it relates to infrastructure that utilizes CRI-O](/transfer.md)
+We provide [useful information for operations and development transfer](transfer.md) as it relates to infrastructure that utilizes CRI-O.
 
 ## Communication
 
