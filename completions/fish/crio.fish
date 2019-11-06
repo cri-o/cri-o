@@ -63,7 +63,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l runtimes -r -d 'OCI runtim
 complete -c crio -n '__fish_crio_no_subcommand' -l seccomp-profile -r -d 'default seccomp profile path (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'enable selinux support (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy -r -d 'path to signature policy file (default: "")'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 'storage driver (default: "btrfs")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 'storage driver (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-opt -r -d 'storage driver option (default: [])'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-address -r -d 'bind address for streaming socket (default: "127.0.0.1")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-enable-tls -d 'enable encrypted TLS transport of the stream server (default: false)'
