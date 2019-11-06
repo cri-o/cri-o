@@ -4,6 +4,9 @@ _cli_bash_autocomplete() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     opts="complete
 completion
+man
+markdown
+md
 config
 c
 containers
@@ -12,9 +15,6 @@ cs
 s
 info
 i
-man
-markdown
-md
 help
 h
 --socket

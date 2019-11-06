@@ -10,12 +10,14 @@ import (
 )
 
 var configCommand = cli.Command{
-	Name:  "config",
-	Usage: "generate crio configuration files",
+	Name: "config",
+	Usage: `Outputs a commented version of the configuration file that could be used
+by CRI-O. This allows you to save you current configuration setup and then load
+it later with **--config**. Global options will modify the output.`,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "default",
-			Usage: "output the default configuration",
+			Usage: "Output the default configuration (without taking into account any configuration options).",
 		},
 	},
 	Action: func(c *cli.Context) error {

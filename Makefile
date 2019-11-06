@@ -359,6 +359,8 @@ docs: $(MANPAGES)
 docs-generation:
 	bin/crio-status md  > docs/crio-status.8.md
 	bin/crio-status man > docs/crio-status.8
+	bin/crio --config="" md  > docs/crio.8.md
+	bin/crio --config="" man > docs/crio.8
 
 bundle:
 	bundle/build
