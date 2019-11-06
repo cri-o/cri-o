@@ -479,7 +479,7 @@ func DefaultConfig() (*Config, error) {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			ConmonCgroup:             "pod",
+			ConmonCgroup:             "system.slice",
 			SELinux:                  selinuxEnabled(),
 			SeccompProfile:           "",
 			ApparmorProfile:          DefaultApparmorProfile,
