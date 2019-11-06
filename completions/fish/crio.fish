@@ -17,7 +17,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l cni-config-dir -r -d 'CNI con
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-plugin-dir -r -d 'CNI plugin binaries directory (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -l config -s c -r -d 'path to configuration file'
 complete -c crio -n '__fish_crio_no_subcommand' -l conmon -r -d 'path to the conmon executable (default: "")'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-cgroup -r -d 'cgroup used for conmon process (default: "pod")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-cgroup -r -d 'cgroup used for conmon process (default: "system.slice")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-env -r -d 'environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"])'
 complete -c crio -n '__fish_crio_no_subcommand' -l container-attach-socket-dir -r -d 'path to directory for container attach sockets (default: "/var/run/crio")'
 complete -c crio -n '__fish_crio_no_subcommand' -l container-exits-dir -r -d 'path to directory in which container exit files are written to by conmon (default: "/var/run/crio/exits")'
