@@ -7,20 +7,15 @@
     version: "{{ cri_tools_git_version }}"
     force: "{{ force_clone | default(False) | bool}}"
 
-- name: install crictl
-  command: "/usr/bin/go install github.com/kubernetes-sigs/cri-tools/cmd/crictl"
+- name: build cri-tools
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
 
-- name: install critest
-  command: "/usr/bin/go test -c github.com/kubernetes-sigs/cri-tools/cmd/critest -o {{ ansible_env.GOPATH }}/bin/critest"
-
-- name: link crictl
+- name: link crictl and critest
   file:
-    src: "{{ ansible_env.GOPATH }}/bin/crictl"
-    dest: /usr/bin/crictl
+    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools/_output/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
     state: link
-
-- name: link critest
-  file:
-    src: "{{ ansible_env.GOPATH }}/bin/critest"
-    dest: /usr/bin/critest
-    state: link
+  with_items:
+    - "critest"
+    - "crictl"
