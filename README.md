@@ -3,7 +3,6 @@
 
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg?style=flat-square)](#)
 [![CircleCI](https://circleci.com/gh/cri-o/cri-o.svg?style=shield)](https://circleci.com/gh/cri-o/cri-o)
-[![Build Status](https://img.shields.io/travis/cri-o/cri-o.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/cri-o/cri-o)
 [![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2298/badge)](https://bestpractices.coreinfrastructure.org/projects/2298)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/cri-o/cri-o)
