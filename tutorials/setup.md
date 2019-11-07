@@ -124,7 +124,9 @@ git clone https://github.com/cri-o/cri-o # or your fork
 cd cri-o
 ```
 
-Make sure your `CRI-O` and `kubernetes` versions are of matching major versions. For instance, if you want to be compatible with the latest kubernetes release, you'll need to use the latest tagged release of `CRI-O` on branch release-1.15
+Make sure your `CRI-O` and `kubernetes` versions are of matching major versions.
+For instance, if you want to be compatible with the latest kubernetes release,
+you'll need to use the latest tagged release of `CRI-O` on branch `release-1.16`.
 
 ## Build
 
