@@ -11,7 +11,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-        version: "1.11.6"
+        version: "1.13.4"
 
     - name: clone build and install bats
       include: "build/bats.yml"
@@ -19,11 +19,10 @@
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
       vars:
-        cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
+        cri_tools_git_version: "f8a6b3dfbb7a54f696be9c6748cbcb830ee32021"
 
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
-      vars:
       vars:
         k8s_git_version: "release-1.15"
         k8s_github_fork: "kubernetes"
@@ -56,7 +55,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-          version: "1.12.2"
+        version: "1.13.4"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
   post_tasks:
@@ -90,8 +89,8 @@
     - name: setup critest
       include: "build/cri-tools.yml"
       vars:
-          force_clone: True
-          cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
+        force_clone: True
+        cri_tools_git_version: "ff8d2e81baf8ff720fb916e42da57c2b772bd19e"
     - name: run critest validation and benchmarks
       include: critest.yml
 
