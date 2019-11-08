@@ -41,7 +41,7 @@
 - name: wait for the cluster to be running
   command: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/bin/kubectl get service kubernetes --namespace default"
   register: kube_poll
-  until: kube_poll | succeeded
+  until: kube_poll.rc == 0
   retries: 100
   delay: 30
 
