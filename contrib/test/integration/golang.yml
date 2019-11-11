@@ -51,8 +51,6 @@
 - name: install Go tools and dependencies
   shell: /usr/bin/go get -u "github.com/{{ item }}"
   with_items:
-    - tools/godep
     - onsi/ginkgo/ginkgo
     - onsi/gomega
-    - cloudflare/cfssl/cmd/...
     - jteeuwen/go-bindata/go-bindata
