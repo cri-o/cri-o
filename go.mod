@@ -18,14 +18,14 @@ require (
 	github.com/containers/image/v5 v5.0.0
 	github.com/containers/libpod v1.6.3-0.20191031190106-0bfdeae6ddfa
 	github.com/containers/storage v1.13.5
-	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
+	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
 	github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-zoo/bone v1.3.0
-	github.com/godbus/dbus v0.0.0
+	github.com/godbus/dbus/v5 v5.0.3
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/mock v1.3.1
 	github.com/google/renameio v0.1.0

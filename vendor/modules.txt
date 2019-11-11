@@ -219,11 +219,13 @@ github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/drivers/copy
 # github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
-github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/dbus
 github.com/coreos/go-systemd/activation
 github.com/coreos/go-systemd/sdjournal
 github.com/coreos/go-systemd/journal
+# github.com/coreos/go-systemd/v22 v22.0.0
+github.com/coreos/go-systemd/v22/daemon
+github.com/coreos/go-systemd/v22/dbus
 # github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 github.com/coreos/pkg/dlopen
 # github.com/cpuguy83/go-md2man v1.0.10
@@ -320,8 +322,10 @@ github.com/fsouza/go-dockerclient
 github.com/ghodss/yaml
 # github.com/go-zoo/bone v1.3.0
 github.com/go-zoo/bone
-# github.com/godbus/dbus v0.0.0 => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
+# github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 github.com/godbus/dbus
+# github.com/godbus/dbus/v5 v5.0.3
+github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/types
