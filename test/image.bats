@@ -106,6 +106,32 @@ function teardown() {
 	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
 }
 
+@test "container status when created by image list canonical reference" {
+	start_crio
+
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	sed -e "s|%VALUE%|$IMAGE_LIST_DIGEST|g" -e 's|"/bin/ls"|"/bin/sleep", "1d"|g' "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagelistref.json
+
+	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imagelistref.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	run crictl inspect "$ctr_id" --output yaml
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "$output" =~ "image: $IMAGE_LIST_DIGEST" ]]
+	[[ "$output" =~ "imageRef: $IMAGE_LIST_DIGEST" ]]
+}
+
 @test "image pull and list" {
 	start_crio "" "" --no-pause-image
 	run crictl pull "$IMAGE"
