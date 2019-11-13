@@ -7,9 +7,9 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
-func hasNamespace(config *rspec.Spec, ns string) bool {
+func hasNamespace(config *rspec.Spec, ns rspec.LinuxNamespaceType) bool {
 	for _, n := range config.Linux.Namespaces {
-		if string(n.Type) == ns {
+		if n.Type == ns {
 			return true
 		}
 	}

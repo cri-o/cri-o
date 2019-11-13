@@ -413,7 +413,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, "")
+		g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), "")
 		for _, uidmap := range s.defaultIDMappings.UIDs() {
 			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
 		}
