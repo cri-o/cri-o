@@ -881,7 +881,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID string,
 		}
 	}
 	// Add secrets from the default and override mounts.conf files
-	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless())...)
+	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), false)...)
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)
