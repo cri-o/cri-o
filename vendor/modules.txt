@@ -94,16 +94,16 @@ github.com/containers/buildah/pkg/cli
 github.com/containers/conmon/runner/config
 # github.com/containers/image/v5 v5.0.0
 github.com/containers/image/v5/types
-github.com/containers/image/v5/pkg/sysregistriesv2
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/docker/reference
+github.com/containers/image/v5/pkg/sysregistriesv2
 github.com/containers/image/v5/signature
 github.com/containers/image/v5/storage
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/pkg/blobinfocache/memory
 github.com/containers/image/v5/pkg/compression/types
-github.com/containers/image/v5/manifest
 github.com/containers/image/v5/image
+github.com/containers/image/v5/manifest
 github.com/containers/image/v5/pkg/blobinfocache
 github.com/containers/image/v5/pkg/compression
 github.com/containers/image/v5/transports
@@ -135,9 +135,9 @@ github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/annotations
 github.com/containers/libpod/pkg/hooks
 github.com/containers/libpod/pkg/registrar
+github.com/containers/libpod/pkg/cgroups
 github.com/containers/libpod/pkg/rootless
 github.com/containers/libpod/pkg/spec
-github.com/containers/libpod/pkg/cgroups
 github.com/containers/libpod/pkg/apparmor
 github.com/containers/libpod/pkg/lookup
 github.com/containers/libpod/pkg/hooks/1.0.0
@@ -195,8 +195,8 @@ github.com/containers/storage/pkg/stringutils
 github.com/containers/storage/pkg/system
 github.com/containers/storage/pkg/tarlog
 github.com/containers/storage/pkg/truncindex
-github.com/containers/storage/pkg/mount
 github.com/containers/storage/pkg/homedir
+github.com/containers/storage/pkg/mount
 github.com/containers/storage/pkg/chrootarchive
 github.com/containers/storage/pkg/fileutils
 github.com/containers/storage/pkg/longpath
@@ -260,14 +260,14 @@ github.com/docker/docker/pkg/pools
 github.com/docker/docker/pkg/signal
 github.com/docker/docker/pkg/term
 github.com/docker/docker/pkg/longpath
-github.com/docker/docker/oci/caps
 github.com/docker/docker/pkg/system
 github.com/docker/docker/pkg/term/windows
+github.com/docker/docker/oci/caps
 github.com/docker/docker/api/types/versions
+github.com/docker/docker/client
 github.com/docker/docker/pkg/namesgenerator
 github.com/docker/docker/pkg/parsers
 github.com/docker/docker/errdefs
-github.com/docker/docker/client
 github.com/docker/docker/pkg/homedir
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -280,14 +280,14 @@ github.com/docker/docker/api/types/registry
 github.com/docker/docker/api/types/swarm
 github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/volume
-github.com/docker/docker/pkg/archive
-github.com/docker/docker/pkg/fileutils
-github.com/docker/docker/pkg/jsonmessage
-github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/api/types/mount
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/strslice
 github.com/docker/docker/api/types/swarm/runtime
+github.com/docker/docker/pkg/archive
+github.com/docker/docker/pkg/fileutils
+github.com/docker/docker/pkg/jsonmessage
+github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/idtools
 # github.com/docker/docker-credential-helpers v0.6.3
 github.com/docker/docker-credential-helpers/client
@@ -469,9 +469,9 @@ github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/cgroups/systemd
 github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/user
-github.com/opencontainers/runc/libcontainer/configs
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups/fs
+github.com/opencontainers/runc/libcontainer/configs
 github.com/opencontainers/runc/libcontainer/configs/validate
 github.com/opencontainers/runc/libcontainer/intelrdt
 github.com/opencontainers/runc/libcontainer/keys

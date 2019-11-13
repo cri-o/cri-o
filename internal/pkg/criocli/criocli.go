@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/types"
-	libconfig "github.com/cri-o/cri-o/internal/lib/config"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"

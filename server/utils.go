@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	libconfig "github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	units "github.com/docker/go-units"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"

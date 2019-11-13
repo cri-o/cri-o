@@ -1,8 +1,8 @@
 package oci_test
 
 import (
-	"github.com/cri-o/cri-o/internal/lib/config"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
