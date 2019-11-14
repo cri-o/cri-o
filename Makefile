@@ -89,7 +89,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build crio, and pause"
+	@echo " * 'binaries' - Build crio, pause, and pinns"
 	@echo " * 'release-note' - Generate release note"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
@@ -110,6 +110,9 @@ lint: .gopathok ${GOLANGCI_LINT}
 
 bin/pause:
 	$(MAKE) -C pause
+
+bin/pinns:
+	$(MAKE) -C pinns
 
 test/bin2img/bin2img: git-vars .gopathok $(wildcard test/bin2img/*.go)
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/bin2img
@@ -157,6 +160,7 @@ endif
 	rm -f bin/crio
 	rm -f bin/crio.cross.*
 	$(MAKE) -C pause clean
+	$(MAKE) -C pinns clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
@@ -321,7 +325,7 @@ codecov:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/pause bin/crio-status
+binaries: bin/crio bin/pause bin/crio-status bin/pinns
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -358,6 +362,7 @@ install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 bin/crio-status $(BINDIR)/crio-status
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
+	install ${SELINUXOPT} -D -m 755 bin/pinns $(LIBEXECDIR)/crio/pinns
 
 install.man: $(MANPAGES)
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
@@ -392,6 +397,7 @@ uninstall:
 	rm -f $(BINDIR)/crio
 	rm -f $(BINDIR)/crio-status
 	rm -f $(LIBEXECDIR)/crio/pause
+	rm -f $(LIBEXECDIR)/crio/pinns
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
 	done
@@ -419,6 +425,7 @@ docs-validation:
 	bin/crio \
 	bin/crio-status \
 	bin/pause \
+	bin/pinns \
 	binaries \
 	bundle \
 	build-static \
