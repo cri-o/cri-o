@@ -49,11 +49,11 @@ func (n *Namespace) Initialized() bool {
 
 // Initialize does the necessary setup for a Namespace
 // It does not do the bind mounting and nspinning
-func (n *Namespace) Initialize(nsType string) (NamespaceIface, error) {
+func (n *Namespace) Initialize(nsType string) NamespaceIface {
 	n.nsType = nsType
 	n.closed = false
 	n.initialized = true
-	return n, nil
+	return n
 }
 
 // Creates a new persistent namespace and returns an object

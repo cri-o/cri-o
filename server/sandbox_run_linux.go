@@ -746,14 +746,14 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox. The caller should defer the cleanup funcs if there is an error, to make sure
 // each namespace we are managing is properly cleaned up.
 func (s *Server) configureGeneratorForNamespaces(ctx context.Context, hostNetwork, hostIPC, hostPID bool, sb *sandbox.Sandbox, g generate.Generator) (cleanupFuncs []func(), err error) {
-	managedNamespaces := make([]string)
+	managedNamespaces := make([]string, 0, 3)
 	if hostNetwork {
 		err = g.RemoveLinuxNamespace(string(runtimespec.NetworkNamespace))
 		if err != nil {
 			return
 		}
 	} else if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, sb.NETNS)
+		managedNamespaces = append(managedNamespaces, sandbox.NETNS)
 	}
 
 	if hostIPC {
@@ -762,35 +762,32 @@ func (s *Server) configureGeneratorForNamespaces(ctx context.Context, hostNetwor
 			return
 		}
 	} else if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, sb.IPCNS)
+		managedNamespaces = append(managedNamespaces, sandbox.IPCNS)
 	}
 
 	// There's no option to set hostUTS
-	if s.config.ManageNsLifecycle {
-		managedNamespaces = append(managedNamespaces, sb.UTSNS)
+	if s.config.ManageNSLifecycle {
+		managedNamespaces = append(managedNamespaces, sandbox.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
 		nsPaths, err := sb.CreateSandboxNamespaces(managedNamespaces)
+		if err != nil {
+			return nil, err
+		}
+
+		specToPath := map[string]string {
+			sandbox.IPCNS: runtimespec.IPCNamespace,
+			sandbox.NETNS: runtimespec.NetworkNamespace,
+			sandbox.UTSNS: runtimespec.UTSNamespace,
+		}
+
+		for nsType, path := range nsPaths {
+			err = g.AddOrReplaceLinuxNamespace(string(specToPath[nsType]), path)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
-
-		//// Create the sandbox network namespace
-		//if err = sb.NetNsCreate(nil); err != nil {
-		//	return
-		//}
-
-		//cleanupFuncs = append(cleanupFuncs, func() {
-		//	if netnsErr := sb.NetNsRemove(); netnsErr != nil {
-		//		log.Warnf(ctx, "Failed to remove networking namespace: %v", netnsErr)
-		//	}
-		//})
-
-		//// Pass the created namespace path to the runtime
-		//err = g.AddOrReplaceLinuxNamespace(string(runtimespec.NetworkNamespace), sb.NetNsPath())
-		//if err != nil {
-		//	return nil, err
-		//}
-
-		// Create the sandbox network namespace
 
 	// Since we need a process to hold open the PID namespace, CRI-O can't manage the NS lifecycle
 	if hostPID {

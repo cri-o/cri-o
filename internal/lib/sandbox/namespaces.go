@@ -28,7 +28,7 @@ type NamespaceIface interface {
 	Get() *Namespace
 
 	// Initialize does the necessary setup
-	Initialize(nsType string) (NamespaceIface, error)
+	Initialize(nsType string) NamespaceIface
 
 	// Initialized returns true if already initialized
 	Initialized() bool
@@ -41,21 +41,52 @@ type NamespaceIface interface {
 }
 
 
-func (s *Sandbox) CreateSandboxNamespaces(managedNamespaces []string) (map[string]int, error) {
+func (s *Sandbox) CreateSandboxNamespaces(managedNamespaces []string) (map[string]string, error) {
 	namespaces, err := createNewNamespaces(managedNamespaces)
 	if err != nil {
 		return nil, err
 	}
 
+	nsTypeToPath := make(map[string]string)
+
 	namespaceIfaces := make([]NamespaceIface, 0)
 	for _, namespace := range namespaces {
-		namespaceIface, err := namespace.Initialize(namespace.nsType)
+		var namespaceIface NamespaceIface
+		namespaceIface = namespace.Initialize(namespace.nsType)
+		defer func(){
+			if err != nil {
+				if err1 := namespaceIface.Remove(); err1 != nil {
+					logrus.Warnf("removing namespace interface returned: %v", err1)
+				}
+			}
+		}()
+		namespaceIfaces = append(namespaceIfaces, namespaceIface)
+
+		// TODO FIXME I'm not sure we need this anymore
+		err = namespaceIface.SymlinkCreate(s.name)
 		if err != nil {
 			return nil, err
 		}
-		namespaceIfaces = append(namespaceIfaces, namespaceIface)
+
+
+		switch namespace.nsType {
+			case NETNS:
+				s.netns = namespaceIface
+				nsTypeToPath[NETNS] = namespace.symlink.Name()
+			case IPCNS:
+				s.ipcns = namespaceIface
+				nsTypeToPath[IPCNS] = namespace.symlink.Name()
+			case UTSNS:
+				s.utsns = namespaceIface
+				nsTypeToPath[UTSNS] = namespace.symlink.Name()
+			default:
+				// This should never happen
+				err = errors.New("Invalid namespace type")
+				return nil, err
+		}
 	}
-	return nil, nil
+
+	return nsTypeToPath, nil
 }
 
 // NetNs specific functions
@@ -75,15 +106,15 @@ func (s *Sandbox) NetNsPath() string {
 	return s.nsPath(s.netns, NETNS)
 }
 
-// NetNsCreate creates a new network namespace for the sandbox
-func (s *Sandbox) NetNsCreate(netNs NamespaceIface) error {
-	netNs, err := s.nsCreate(netNs, NETNS)
-	if err != nil {
-		return err
-	}
-	s.netns = netNs
-	return nil
-}
+//// NetNsCreate creates a new network namespace for the sandbox
+//func (s *Sandbox) NetNsCreate(netNs NamespaceIface) error {
+//	netNs, err := s.nsCreate(netNs, NETNS)
+//	if err != nil {
+//		return err
+//	}
+//	s.netns = netNs
+//	return nil
+//}
 
 // NetNsJoin attempts to join the sandbox to an existing network namespace
 // This will fail if the sandbox is already part of a network namespace
@@ -129,15 +160,15 @@ func (s *Sandbox) IpcNsPath() string {
 	return s.nsPath(s.ipcns, IPCNS)
 }
 
-// IpcNsCreate creates a new IPC namespace for the sandbox
-func (s *Sandbox) IpcNsCreate(ipcNs NamespaceIface) error {
-	ipcNs, err := s.nsCreate(ipcNs, IPCNS)
-	if err != nil {
-		return err
-	}
-	s.ipcns = ipcNs
-	return nil
-}
+//// IpcNsCreate creates a new IPC namespace for the sandbox
+//func (s *Sandbox) IpcNsCreate(ipcNs NamespaceIface) error {
+//	ipcNs, err := s.nsCreate(ipcNs, IPCNS)
+//	if err != nil {
+//		return err
+//	}
+//	s.ipcns = ipcNs
+//	return nil
+//}
 
 // IpcNsJoin attempts to join the sandbox to an existing IPC namespace
 // This will fail if the sandbox is already part of a IPC namespace
@@ -183,15 +214,15 @@ func (s *Sandbox) UtsNsPath() string {
 	return s.nsPath(s.utsns, UTSNS)
 }
 
-// UtsNsCreate creates a new UTS namespace for the sandbox
-func (s *Sandbox) UtsNsCreate(utsNs NamespaceIface) error {
-	utsNs, err := s.nsCreate(utsNs, UTSNS)
-	if err != nil {
-		return err
-	}
-	s.utsns = utsNs
-	return nil
-}
+//// UtsNsCreate creates a new UTS namespace for the sandbox
+//func (s *Sandbox) UtsNsCreate(utsNs NamespaceIface) error {
+//	utsNs, err := s.nsCreate(utsNs, UTSNS)
+//	if err != nil {
+//		return err
+//	}
+//	s.utsns = utsNs
+//	return nil
+//}
 
 // UtsNsJoin attempts to join the sandbox to an existing UTS namespace
 // This will fail if the sandbox is already part of a UTS namespace
@@ -234,34 +265,25 @@ func (s *Sandbox) nsPath(ns NamespaceIface, nsType string) string {
 	return ns.Get().symlink.Name()
 }
 
-// nsCreate creates a new namespace of type nsType for the sandbox
-func (s *Sandbox) nsCreate(nsIface NamespaceIface, nsType string) (NamespaceIface, error) {
-	// Create a new netNs if nil provided
-	if nsIface == nil {
-		nsIface = &Namespace{}
-	}
-
-	// Check if interface is already initialized
-	if nsIface.Initialized() {
-		return nsIface, fmt.Errorf("%s NS already initialized", nsType)
-	}
-
-	nsIface, err := nsIface.Initialize(nsType)
-	if err != nil {
-		return nsIface, err
-	}
-
-	if err := nsIface.SymlinkCreate(s.name); err != nil {
-		logrus.Warnf("Could not create %sns symlink %v", nsType, err)
-
-		if err1 := nsIface.Close(); err1 != nil {
-			return nsIface, err1
-		}
-
-		return nsIface, err
-	}
-	return nsIface, nil
-}
+//// nsCreate creates a new namespace of type nsType for the sandbox
+//func (s *Sandbox) nsCreate(nsIface NamespaceIface, nsType string) (NamespaceIface, error) {
+//	// Create a new netNs if nil provided
+//	if nsIface == nil {
+//		nsIface = &Namespace{}
+//	}
+//
+//	// Check if interface is already initialized
+//	if nsIface.Initialized() {
+//		return nsIface, fmt.Errorf("%s NS already initialized", nsType)
+//	}
+//
+//	nsIface := nsIface.Initialize(nsType)
+//	if err != nil {
+//		return nsIface, err
+//	}
+//
+//	return nsIface, nil
+//}
 
 // NsGet returns the Namespace associated with the given nspath and name
 func (s *Sandbox) NsGet(nspath, name string) (*Namespace, error) {
