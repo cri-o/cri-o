@@ -17,7 +17,21 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const pinnsPath string = "/usr/libexec/crio/pinns"
+const pinnsSearchPath string = [
+	"/usr/local/libexec/crio/pinns"
+	"/usr/libexec/crio/pinns"
+	"pinns"
+]
+
+func findPinnsPath() string {
+	for _, path := range pinnsPath {
+		if _, err := exec.LookPath(path); err == nil {
+			return path
+		}
+	}
+	return ""
+}
+
 
 // Namespace handles data pertaining to a namespace
 type Namespace struct {
@@ -99,6 +113,10 @@ func createNewNamespaces(nsTypes []string) ([]*Namespace, error) {
 		})
 	}
 
+	pinnsPath := findPinnsPath()
+	if pinnsPath == "" {
+		return nil, errors.Error("Can't find pinns to pin namespaces")
+	}
 	if _, err := exec.Command(pinnsPath, pinnsArgs...).Output(); err != nil {
 		// cleanup after ourselves
 		for _, info := range mountedNamespaces {
