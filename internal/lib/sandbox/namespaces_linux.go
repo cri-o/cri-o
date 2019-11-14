@@ -49,10 +49,6 @@ func (n *Namespace) Initialized() bool {
 
 // Initialize does the necessary setup for a Namespace
 func (n *Namespace) Initialize(nsType string) (NamespaceIface, error) {
-	ns, err := newNS(nsType)
-	if err != nil {
-		return nil, err
-	}
 	n.ns = ns
 	n.nsType = nsType
 	n.closed = false
@@ -62,48 +58,67 @@ func (n *Namespace) Initialize(nsType string) (NamespaceIface, error) {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func newNS(nsType string) (NS, error) {
-	typeToFlag := map[string]int{
-		NETNS: unix.CLONE_NEWNET,
-		IPCNS: unix.CLONE_NEWIPC,
-		UTSNS: unix.CLONE_NEWUTS,
+func createNewNamespaces(nsTypes []string) ([]NS, error) {
+	type namespaceInfo struct{
+		flag int
+		path string
+		set bool
 	}
 
-	flag, ok := typeToFlag[nsType]
-	if !ok {
-		return nil, fmt.Errorf("invalid namespace type: %s", nsType)
+	typeToFlag := map[string]*namespaceInfo{
+		NETNS: &namespaceInfo{
+			flag: unix.CLONE_NEWNET,
+			set: false,
+		},
+		IPCNS: &namespaceInfo{
+			flag: unix.CLONE_NEWIPC,
+			set: false,
+		},
+		UTSNS: &namespaceInfo{
+			flag: unix.CLONE_NEWUTS,
+			set: false,
+		},
 	}
 
-	b := make([]byte, 16)
-	_, err := rand.Reader.Read(b)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate random %sns name: %v", nsType, err)
+	for nsType := range nsTypes {
+		info, ok := typeToFlag[nsType]
+		if !ok {
+			return nil, fmt.Errorf("invalid namespace type: %s", nsType)
+		}
+
+		b := make([]byte, 16)
+		_, err := rand.Reader.Read(b)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate random %sns name: %v", nsType, err)
+		}
+
+		nsRunDir := getRunDirGivenType(nsType)
+
+		err = os.MkdirAll(nsRunDir, 0755)
+		if err != nil {
+			return nil, err
+		}
+
+		// create an empty file at the mount point
+		nsName := fmt.Sprintf("%s-%x-%x-%x-%x-%x", nsType, b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+		nsPath := path.Join(nsRunDir, nsName)
+		mountPointFd, err := os.Create(nsPath)
+		if err != nil {
+			return nil, err
+		}
+		mountPointFd.Close()
+
+		// Ensure the mount point is cleaned up on errors; if the namespace
+		// was successfully mounted this will have no effect because the file
+		// is in-use
+		defer os.RemoveAll(nsPath)
+		info.path = nsPath
+		info.set = true
 	}
-
-	nsRunDir := getRunDirGivenType(nsType)
-
-	err = os.MkdirAll(nsRunDir, 0755)
-	if err != nil {
-		return nil, err
-	}
-
-	// create an empty file at the mount point
-	nsName := fmt.Sprintf("%s-%x-%x-%x-%x-%x", nsType, b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-	nsPath := path.Join(nsRunDir, nsName)
-	mountPointFd, err := os.Create(nsPath)
-	if err != nil {
-		return nil, err
-	}
-	mountPointFd.Close()
-
-	// Ensure the mount point is cleaned up on errors; if the namespace
-	// was successfully mounted this will have no effect because the file
-	// is in-use
-	defer os.RemoveAll(nsPath)
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 
+	mountedNamespaces := make([]string, 0)
 	// do namespace work in a dedicated goroutine, so that we can safely
 	// Lock/Unlock OSThread without upsetting the lock/unlock state of
 	// the caller of this function
@@ -111,50 +126,71 @@ func newNS(nsType string) (NS, error) {
 		defer wg.Done()
 		runtime.LockOSThread()
 
-		var origNS nspkg.NetNS
-		origNS, err = nspkg.GetNS(getCurrentThreadNSPath(nsType))
-		if err != nil {
-			return
+		originalNamespaces := make([]nspkg.NetNS, 0)
+		flags := 0
+
+		for nsType, info := range typeToFlag {
+			var origNS nspkg.NetNS
+			origNS, err = nspkg.GetNS(getCurrentThreadNSPath(nsType))
+			if err != nil {
+				return
+			}
+			defer origNS.Close()
+			originalNamespaces = append(originalNamespaces, origNS)
+			flags |= info.flag
 		}
-		defer origNS.Close()
 
 		// create a new ns on the current thread
-		err = unix.Unshare(flag)
+		// unshare all at once, for efficiency
+		err = unix.Unshare(flags)
 		if err != nil {
 			return
 		}
+
 		defer func() {
-			if err := origNS.Set(); err != nil {
-				logrus.Warnf("unable to set %s namespace: %v", nsType, err)
+			for _, origNS := range originalNamespaces {
+				if err := origNS.Set(); err != nil {
+					logrus.Warnf("unable to set %s namespace: %v", nsType, err)
+				}
 			}
 		}()
 
-		// bind mount the new ns from the current thread onto the mount point
-		err = unix.Mount(getCurrentThreadNSPath(nsType), nsPath, "none", unix.MS_BIND, "")
-		if err != nil {
-			return
-		}
+		for nsType, info := range typeToFlag {
+			// bind mount the new ns from the current thread onto the mount point
+			err = unix.Mount(getCurrentThreadNSPath(nsType), info.path, "none", unix.MS_BIND, "")
+			if err != nil {
+				return
+			}
+			mountedNamespaces = append(mountedNamespaces(info.path))
 
-		_, err = os.Open(nsPath)
-		if err != nil {
-			return
+			_, err = os.Open(info.path)
+			if err != nil {
+				return
+			}
 		}
 	})()
 	wg.Wait()
 
 	if err != nil {
-		if unmountErr := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
-			return nil, errors.Wrapf(err, "unable to unmount %v: %v",
-				nsPath, unmountErr)
+		for _, nsPath := range mountedNamespaces {
+			failedUmounts := make([]string, 0)
+			if unmountErr := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
+				failedUmounts = append(failedUmounts, nsPath)
+			}
+			return nil, errors.Wrapf(err, "unable to unmount %v", failedUmounts)
 		}
 		return nil, fmt.Errorf("failed to create %s namespace: %v", nsType, err)
 	}
 
-	ret, err := nspkg.GetNS(nsPath)
-	if err != nil {
-		return nil, err
+	returnedNamespaces := make([]NamespaceIface, 0)
+	for _, info := range mountedNamespaces {
+		ret, err := nspkg.GetNS(nsPath)
+		if err != nil {
+			return nil, err
+		}
+		returnedNamespaces = append(returnedNamespaces, ret.(NS))
 	}
-	return ret.(NS), nil
+	return returnedNamespaces, nil
 }
 
 func getCurrentThreadNSPath(nsType string) string {

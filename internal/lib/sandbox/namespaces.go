@@ -19,7 +19,7 @@ const (
 // sandbox is closed
 var ErrClosedNS = errors.New("PodSandbox namespace is closed")
 
-// NamespaceIface provides a generic network namespace interface
+// NamespaceIface provides a generic namespace interface
 type NamespaceIface interface {
 	// Close closes this network namespace
 	Close() error
@@ -38,6 +38,22 @@ type NamespaceIface interface {
 
 	// SymlinkCreate creates all necessary symlinks
 	SymlinkCreate(string) error
+}
+
+
+func (s *Sandbox) CreateSandboxNamespaces(managedNamespaces []string) (map[string]int, error) {
+	namespaceIfaces, err := createNewNamespaces(managedNamespaces)
+	if err != nil {
+		return nil, err
+	}
+
+	for idx := range namespaceIfaces {
+		namespaceIface, err := namespaceIfaces[idx].Initialize()
+		if err != nil {
+			return nil, err
+		}
+		namespaceIfaces[idx] = namespaceIface
+	}
 }
 
 // NetNs specific functions
