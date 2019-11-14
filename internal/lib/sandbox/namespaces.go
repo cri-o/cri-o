@@ -42,18 +42,20 @@ type NamespaceIface interface {
 
 
 func (s *Sandbox) CreateSandboxNamespaces(managedNamespaces []string) (map[string]int, error) {
-	namespaceIfaces, err := createNewNamespaces(managedNamespaces)
+	namespaces, err := createNewNamespaces(managedNamespaces)
 	if err != nil {
 		return nil, err
 	}
 
-	for idx := range namespaceIfaces {
-		namespaceIface, err := namespaceIfaces[idx].Initialize()
+	namespaceIfaces := make([]NamespaceIface, 0)
+	for _, namespace := range namespaces {
+		namespaceIface, err := namespace.Initialize(namespace.nsType)
 		if err != nil {
 			return nil, err
 		}
-		namespaceIfaces[idx] = namespaceIface
+		namespaceIfaces = append(namespaceIfaces, namespaceIface)
 	}
+	return nil, nil
 }
 
 // NetNs specific functions

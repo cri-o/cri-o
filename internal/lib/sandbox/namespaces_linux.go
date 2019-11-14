@@ -6,18 +6,18 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
-	"path"
+	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
+
+const pinnsPath string = "/usr/libexec/crio/pinns"
 
 // Namespace handles data pertaining to a namespace
 type Namespace struct {
@@ -48,8 +48,8 @@ func (n *Namespace) Initialized() bool {
 }
 
 // Initialize does the necessary setup for a Namespace
+// It does not do the bind mounting and nspinning
 func (n *Namespace) Initialize(nsType string) (NamespaceIface, error) {
-	n.ns = ns
 	n.nsType = nsType
 	n.closed = false
 	n.initialized = true
@@ -58,146 +58,72 @@ func (n *Namespace) Initialize(nsType string) (NamespaceIface, error) {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func createNewNamespaces(nsTypes []string) ([]NS, error) {
-	type namespaceInfo struct{
-		flag int
-		path string
-		set bool
+func createNewNamespaces(nsTypes []string) ([]*Namespace, error) {
+	typeToArg := map[string]string {
+		IPCNS: "-i",
+		UTSNS: "-u",
+		NETNS: "-n",
 	}
 
-	typeToFlag := map[string]*namespaceInfo{
-		NETNS: &namespaceInfo{
-			flag: unix.CLONE_NEWNET,
-			set: false,
-		},
-		IPCNS: &namespaceInfo{
-			flag: unix.CLONE_NEWIPC,
-			set: false,
-		},
-		UTSNS: &namespaceInfo{
-			flag: unix.CLONE_NEWUTS,
-			set: false,
-		},
-	}
-
-	for nsType := range nsTypes {
-		info, ok := typeToFlag[nsType]
-		if !ok {
-			return nil, fmt.Errorf("invalid namespace type: %s", nsType)
-		}
-
-		b := make([]byte, 16)
-		_, err := rand.Reader.Read(b)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate random %sns name: %v", nsType, err)
-		}
-
-		nsRunDir := getRunDirGivenType(nsType)
-
-		err = os.MkdirAll(nsRunDir, 0755)
-		if err != nil {
-			return nil, err
-		}
-
-		// create an empty file at the mount point
-		nsName := fmt.Sprintf("%s-%x-%x-%x-%x-%x", nsType, b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-		nsPath := path.Join(nsRunDir, nsName)
-		mountPointFd, err := os.Create(nsPath)
-		if err != nil {
-			return nil, err
-		}
-		mountPointFd.Close()
-
-		// Ensure the mount point is cleaned up on errors; if the namespace
-		// was successfully mounted this will have no effect because the file
-		// is in-use
-		defer os.RemoveAll(nsPath)
-		info.path = nsPath
-		info.set = true
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	mountedNamespaces := make([]string, 0)
-	// do namespace work in a dedicated goroutine, so that we can safely
-	// Lock/Unlock OSThread without upsetting the lock/unlock state of
-	// the caller of this function
-	go (func() {
-		defer wg.Done()
-		runtime.LockOSThread()
-
-		originalNamespaces := make([]nspkg.NetNS, 0)
-		flags := 0
-
-		for nsType, info := range typeToFlag {
-			var origNS nspkg.NetNS
-			origNS, err = nspkg.GetNS(getCurrentThreadNSPath(nsType))
-			if err != nil {
-				return
-			}
-			defer origNS.Close()
-			originalNamespaces = append(originalNamespaces, origNS)
-			flags |= info.flag
-		}
-
-		// create a new ns on the current thread
-		// unshare all at once, for efficiency
-		err = unix.Unshare(flags)
-		if err != nil {
-			return
-		}
-
-		defer func() {
-			for _, origNS := range originalNamespaces {
-				if err := origNS.Set(); err != nil {
-					logrus.Warnf("unable to set %s namespace: %v", nsType, err)
-				}
-			}
-		}()
-
-		for nsType, info := range typeToFlag {
-			// bind mount the new ns from the current thread onto the mount point
-			err = unix.Mount(getCurrentThreadNSPath(nsType), info.path, "none", unix.MS_BIND, "")
-			if err != nil {
-				return
-			}
-			mountedNamespaces = append(mountedNamespaces(info.path))
-
-			_, err = os.Open(info.path)
-			if err != nil {
-				return
-			}
-		}
-	})()
-	wg.Wait()
-
+	// create the namespace dir
+	b := make([]byte, 16)
+	_, err := rand.Reader.Read(b)
 	if err != nil {
-		for _, nsPath := range mountedNamespaces {
+		return nil, fmt.Errorf("failed to generate random pinDir name: %v", err)
+	}
+
+	const runDir = "/var/run"
+	pinDir := fmt.Sprintf("%s/%x-%x-%x-%x-%x", runDir, b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+
+	err = os.MkdirAll(pinDir, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	pinnsArgs := []string{"-d", pinDir}
+	type namespaceInfo struct{
+		path string
+		nsType string
+	}
+
+	mountedNamespaces := make([]namespaceInfo, 0, len(nsTypes))
+	for _, nsType := range nsTypes {
+		arg, ok := typeToArg[nsType]
+		if !ok {
+			return nil, errors.Errorf("Invalid namespace type: %s", nsType)
+		}
+		pinnsArgs = append(pinnsArgs, arg)
+		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
+			path: filepath.Join(pinDir, nsType),
+			nsType: nsType,
+		})
+	}
+
+	if _, err := exec.Command(pinnsPath, pinnsArgs...).Output(); err != nil {
+		// cleanup after ourselves
+		for _, info := range mountedNamespaces {
 			failedUmounts := make([]string, 0)
-			if unmountErr := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
-				failedUmounts = append(failedUmounts, nsPath)
+			if unmountErr := unix.Unmount(info.path, unix.MNT_DETACH); unmountErr != nil {
+				failedUmounts = append(failedUmounts, info.path)
 			}
 			return nil, errors.Wrapf(err, "unable to unmount %v", failedUmounts)
 		}
-		return nil, fmt.Errorf("failed to create %s namespace: %v", nsType, err)
+		return nil, fmt.Errorf("failed to pin namespaces %v: %v", nsTypes, err)
 	}
 
-	returnedNamespaces := make([]NamespaceIface, 0)
+	returnedNamespaces := make([]*Namespace, 0)
 	for _, info := range mountedNamespaces {
-		ret, err := nspkg.GetNS(nsPath)
+		ret, err := nspkg.GetNS(info.path)
 		if err != nil {
 			return nil, err
 		}
-		returnedNamespaces = append(returnedNamespaces, ret.(NS))
+
+		returnedNamespaces = append(returnedNamespaces, &Namespace{
+			ns: ret.(NS),
+			nsType: info.nsType,
+		})
 	}
 	return returnedNamespaces, nil
-}
-
-func getCurrentThreadNSPath(nsType string) string {
-	// /proc/self/ns/%s returns the namespace of the main thread, not
-	// of whatever thread this goroutine is running on.  Make sure we
-	// use the thread's namespace since the thread is switching around
-	return fmt.Sprintf("/proc/%d/task/%d/ns/%s", os.Getpid(), unix.Gettid(), nsType)
 }
 
 func getNamespace(nsPath string) (*Namespace, error) {
