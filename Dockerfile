@@ -74,7 +74,7 @@ RUN VERSION=v0.8.1 &&\
         | tar xfz - -C /opt/cni/bin
 
 # Install conmon
-RUN VERSION=v2.0.0 &&\
+RUN VERSION=v2.0.3 &&\
     git clone https://github.com/containers/conmon &&\
 	cd conmon && git checkout $VERSION &&\
 	make && make PREFIX=/ install && cd .. && rm -rf conmon/
