@@ -83,6 +83,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **conmon**="/usr/local/libexec/crio/conmon"
   Path to the conmon binary, used for monitoring the OCI runtime.
 
+**conmon_cgroup**="system.slice"
+  Cgroup setting for conmon
+
 **conmon_env**=["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
   Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime.
 
