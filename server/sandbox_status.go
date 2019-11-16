@@ -2,7 +2,6 @@ package server
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/pkg/log"
 
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -54,7 +53,6 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		resp.Status.Network.AdditionalIps = toPodIPs(sb.IPs()[1:])
 	}
 
-	log.Debugf(ctx, "PodSandboxStatusResponse: %+v", resp)
 	return resp, nil
 }
 
