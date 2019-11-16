@@ -207,8 +207,8 @@ bind_mount_prefix = ""
 read_only = {{ .ReadOnly }}
 
 # Changes the verbosity of the logs based on the level it is set to. Options
-# are fatal, panic, error, warn, info, and debug. This option supports live
-# configuration reload.
+# are fatal, panic, error, warn, info, debug and trace. This option supports
+# live configuration reload.
 log_level = "{{ .LogLevel }}"
 
 # Filter the log messages by the provided regular expression.

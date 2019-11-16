@@ -320,7 +320,7 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		cli.StringFlag{
 			Name:   "log-level, l",
 			Value:  "error",
-			Usage:  "Log messages above specified level: debug, info, warn, error (default), fatal or panic",
+			Usage:  "Log messages above specified level: trace, debug, info, warn, error (default), fatal or panic",
 			EnvVar: "CONTAINER_LOG_LEVEL",
 		},
 		cli.StringFlag{
