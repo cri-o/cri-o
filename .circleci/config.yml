@@ -13,14 +13,12 @@ executors:
   container:
     docker:
       - image: *image
-        user: circleci
     <<: *stdenv
     working_directory: *workdir
 
   container-legacy:
     docker:
       - image: *imagelegacy
-        user: circleci
     <<: *stdenv
     working_directory: *workdir
 
