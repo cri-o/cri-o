@@ -175,7 +175,7 @@ func validateCli(cfg *config.Config) (failed bool) {
 		if len(split) == 2 {
 			split[1] = "-" + split[1]
 		}
-		option := strings.Join(split, sep)
+		option := strings.Join(split, "|")
 
 		// Validate synopsis
 		synopsisMatch, err := regexp.Match(`\[`+option+`.*\]`, crioCLIDoc)

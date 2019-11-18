@@ -2,9 +2,12 @@ _cli_bash_autocomplete() {
     local cur opts base
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    opts="config
-complete
+    opts="complete
 completion
+man
+markdown
+md
+config
 wipe
 help
 h

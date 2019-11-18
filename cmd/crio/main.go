@@ -80,6 +80,20 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 	}()
 }
 
+const usage = `OCI-based implementation of Kubernetes Container Runtime Interface Daemon
+
+crio is meant to provide an integration path between OCI conformant runtimes
+and the kubelet. Specifically, it implements the Kubelet Container Runtime
+Interface (CRI) using OCI conformant runtimes. The scope of crio is tied to the
+scope of the CRI.
+
+1. Support multiple image formats including the existing Docker and OCI image formats.
+2. Support for multiple means to download images including trust & image verification.
+3. Container image management (managing image layers, overlay filesystems, etc).
+4. Container process lifecycle management.
+5. Monitoring and logging required to satisfy the CRI.
+6. Resource isolation as required by the CRI.`
+
 func main() {
 	// https://github.com/kubernetes/kubernetes/issues/17162
 	if err := goflag.CommandLine.Parse([]string{}); err != nil {
@@ -99,7 +113,10 @@ func main() {
 		v = append(v, fmt.Sprintf("commit: %s", gitCommit))
 	}
 	app.Name = "crio"
-	app.Usage = "crio server"
+	app.Usage = "OCI-based implementation of Kubernetes Container Runtime Interface"
+	app.Author = "The CRI-O Maintainers"
+	app.UsageText = usage
+	app.Description = app.Usage
 	app.Version = strings.Join(v, "\n")
 
 	systemContext := &types.SystemContext{}
@@ -114,11 +131,11 @@ func main() {
 	sort.Sort(cli.FlagsByName(app.Flags))
 	sort.Sort(cli.FlagsByName(configCommand.Flags))
 
-	app.Commands = []cli.Command{
+	app.Commands = criocli.DefaultCommands
+	app.Commands = append(app.Commands, []cli.Command{
 		configCommand,
-		criocli.Completion,
 		wipeCommand,
-	}
+	}...)
 
 	var configPath string
 	app.Before = func(c *cli.Context) (err error) {

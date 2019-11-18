@@ -20,10 +20,7 @@ const (
 func main() {
 	app := cli.NewApp()
 	app.Name = "crio-status"
-	app.Authors = []cli.Author{
-		{Name: "Sascha Grunert", Email: "sgrunert@suse.com"},
-	}
-	app.Author = app.Authors[0].Name
+	app.Author = "The CRI-O Maintainers"
 	app.Usage = "A tool for CRI-O status retrieval"
 	app.Description = app.Usage
 	app.Version = version.Version
@@ -44,7 +41,8 @@ func main() {
 		},
 	}
 	app.Flags = flags
-	app.Commands = []cli.Command{criocli.Completion, {
+	app.Commands = criocli.DefaultCommands
+	app.Commands = append(app.Commands, []cli.Command{{
 		Action:  config,
 		Aliases: []string{"c"},
 		Flags:   flags,
@@ -65,39 +63,12 @@ func main() {
 		Flags:   flags,
 		Name:    "info",
 		Usage:   "Retrieve generic information about CRI-O, like the cgroup and storage driver.",
-	}, {
-		Action: man,
-		Name:   "man",
-		Usage:  "Generate the man page documentation.",
-	}, {
-		Action:  markdown,
-		Name:    "markdown",
-		Aliases: []string{"md"},
-		Usage:   "Generate the markdown documentation.",
-	}}
+	}}...)
 
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-}
-
-func man(c *cli.Context) error {
-	res, err := c.App.ToMan()
-	if err != nil {
-		return err
-	}
-	fmt.Print(res)
-	return nil
-}
-
-func markdown(c *cli.Context) error {
-	res, err := c.App.ToMarkdown()
-	if err != nil {
-		return err
-	}
-	fmt.Print(strings.TrimSpace(res))
-	return nil
 }
 
 func config(c *cli.Context) error {

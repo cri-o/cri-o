@@ -7,33 +7,35 @@ import (
 	"github.com/urfave/cli"
 )
 
-var Completion = cli.Command{
-	Name:        "complete",
-	Aliases:     []string{"completion"},
-	Usage:       "Output shell completion code",
-	ArgsUsage:   "SHELL",
-	Description: "Output shell completion code for bash, zsh or fish.",
-	Action: func(c *cli.Context) error {
-		// select bash by default for backwards compatibility
-		if c.NArg() == 0 {
-			return bashCompletion(c)
-		}
+func completion() cli.Command {
+	return cli.Command{
+		Name:        "complete",
+		Aliases:     []string{"completion"},
+		Usage:       "Generate bash, fish or zsh completions.",
+		ArgsUsage:   "SHELL",
+		Description: "Output shell completion code for bash, zsh or fish.",
+		Action: func(c *cli.Context) error {
+			// select bash by default for backwards compatibility
+			if c.NArg() == 0 {
+				return bashCompletion(c)
+			}
 
-		if c.NArg() != 1 {
-			return cli.ShowSubcommandHelp(c)
-		}
+			if c.NArg() != 1 {
+				return cli.ShowSubcommandHelp(c)
+			}
 
-		switch c.Args().First() {
-		case "bash":
-			return bashCompletion(c)
-		case "fish":
-			return fishCompletion(c)
-		case "zsh":
-			return zshCompletion(c)
-		default:
-			return fmt.Errorf("only bash, fish or zsh are supported")
-		}
-	},
+			switch c.Args().First() {
+			case "bash":
+				return bashCompletion(c)
+			case "fish":
+				return fishCompletion(c)
+			case "zsh":
+				return zshCompletion(c)
+			default:
+				return fmt.Errorf("only bash, fish or zsh are supported")
+			}
+		},
+	}
 }
 
 const bashCompletionTemplate = `_cli_bash_autocomplete() {
