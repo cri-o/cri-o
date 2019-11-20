@@ -820,8 +820,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			return nil, fmt.Errorf("failed to mount secrets: %v", err)
 		}
 	}
+	// Check for FIPS_DISABLE label in the pod config
+	disableFips := false
+	if value, ok := sandboxConfig.GetLabels()["FIPS_DISABLE"]; ok && value == "true" {
+		disableFips = true
+	}
 	// Add secrets from the default and override mounts.conf files
-	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless())...)
+	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), disableFips)...)
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)

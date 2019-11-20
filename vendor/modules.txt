@@ -74,7 +74,7 @@ github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.11.4
+# github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/umask
@@ -130,7 +130,7 @@ github.com/containers/image/v5/pkg/tlsclientconfig
 github.com/containers/image/v5/docker/tarfile
 github.com/containers/image/v5/oci/internal
 github.com/containers/image/v5/internal/pkg/keyctl
-# github.com/containers/libpod v1.6.3-0.20191031190106-0bfdeae6ddfa
+# github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
 github.com/containers/libpod/pkg/hooks/0.1.0
 github.com/containers/libpod/pkg/annotations
 github.com/containers/libpod/pkg/hooks
