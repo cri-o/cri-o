@@ -167,6 +167,8 @@ github.com/containers/buildah v1.11.3/go.mod h1:jqZmSU/PhFwTHHlOotnw4bbs1JbkRQLh
 github.com/containers/buildah v1.11.4-0.20191028173731-21b4778b359e/go.mod h1:Igrk75FAxLnzDaHUbtpWB8pwL+Bv+cnakWMvqAXW2v8=
 github.com/containers/buildah v1.11.4 h1:hHh3Tclf5LL1bunlZxYJjwMi5DmFBug8Q0HpuMH8Lo0=
 github.com/containers/buildah v1.11.4/go.mod h1:Igrk75FAxLnzDaHUbtpWB8pwL+Bv+cnakWMvqAXW2v8=
+github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982 h1:5WUe09k2sJSbmxwLHZLHc41TrIPrP0GlbhX+WDJBqvs=
+github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982/go.mod h1:eGWB4tLoo0hIBuytQpvgUC0hk2mvl2ofaYBeDsU/qoc=
 github.com/containers/conmon v0.3.0/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/conmon v1.0.0-rc2 h1:d9x08VKHhWmMxMzTtj/FtGyDjiSoMvgxu0oveP70EzY=
 github.com/containers/conmon v1.0.0-rc2/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
@@ -205,6 +207,9 @@ github.com/containers/libpod v1.6.2 h1:LCWOORGmuwaSrSYoKWxtXf9DzEoX0ah1r0zjp0CYc
 github.com/containers/libpod v1.6.2/go.mod h1:mCAL58VuUSz9LzNZwnekFNUxnfenKdxnESYwN4cfhWw=
 github.com/containers/libpod v1.6.3-0.20191031190106-0bfdeae6ddfa h1:deRdsW9VeSUBSsdBB/ZLQPIilmKfJJjdN4Lj7xqJFvM=
 github.com/containers/libpod v1.6.3-0.20191031190106-0bfdeae6ddfa/go.mod h1:0cMCjEgo5ZSvPpCEHLsd6hlsH2bqcf4NKS9UR2qaHxw=
+github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50 h1:htMcfTu+mPPx1hcNqxUrGhdaCTGYQ1WB+I7GA/Jiffw=
+github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50/go.mod h1:9VZM1iXAuT2JyITthBM6wzxfqAy2F5nT4sHhsjKDrho=
+github.com/containers/libpod v1.6.3 h1:omluszOpVeEXo+CxvDmxOm90o4FmjEbgidaNeqey0/w=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/psgo v1.3.0 h1:kDhiA4gNNyJ2qCzmOuBf6AmrF/Pp+6Jo98P68R7fB8I=
@@ -812,6 +817,7 @@ github.com/onsi/ginkgo v1.9.0 h1:SZjF721BByVj8QH636/8S2DnX4n0Re3SteMmw3N+tzc=
 github.com/onsi/ginkgo v1.9.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.10.1 h1:q/mM8GF/n0shIN8SaAZ0V+jnLPzen6WIVZdiwrRlMlo=
 github.com/onsi/ginkgo v1.10.1/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
+github.com/onsi/ginkgo v1.10.2/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.10.3 h1:OoxbjfXVZyod1fmWYhI7SEyaD8B00ynP3T+D5GiyHOY=
 github.com/onsi/ginkgo v1.10.3/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/gomega v0.0.0-20151007035656-2152b45fa28a/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
