@@ -199,16 +199,16 @@ manager](https://nixos.org/nix/download.html) or setup a new container image
 from the root directory of this repository by executing:
 
 ```
-make nix-image
+make test-image-nix
 ```
 
 Please note that you can specify the container runtime and image name by
 specifying:
 
 ```
-make nix-image \
+make test-image-nix \
     CONTAINER_RUNTIME=podman \
-    NIX_IMAGE=crionix
+    TESTIMAGE_NIX=crionix
 ```
 
 The overall build process can take a tremendous amount of CPU time depending on
@@ -237,7 +237,7 @@ installed nix package manager, simply run the following command from the root
 directory of this repository:
 
 ```
-nix-build nix
+nix build -f nix
 ```
 
 The resulting binary should be now available in `result-bin/bin` and

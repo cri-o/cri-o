@@ -2,8 +2,8 @@ let
   nixpkgs = builtins.fetchTarball {
     name = "nixos-unstable";
     url = "https://github.com/nixos/nixpkgs/archive/" +
-      "3d26aeea173e2bc979dea1f5cbcbfbb9b5f73a47.tar.gz";
-    sha256 = "1is048xxm69qirgrq2iws22dnj98gzkz8i8m00js6kfkl4kzigkp";
+      "f28fad5e2fe777534f1c2719a40e69812085dfe5.tar.gz";
+    sha256 = "0qb021c3y2k1ai0vvadv9cd6vacj0lsd5xv2a4ir1hhn0pnc5g59";
   };
   nixpkgsMuslSystemd = builtins.fetchTarball {
     name = "nixos-systemd-musl";
