@@ -172,20 +172,41 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 	return nil
 }
 
-func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
+func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
 	// Define the current runtime handler as the default runtime handler.
 	rh := r.config.Runtimes[r.config.DefaultRuntime]
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this
 	// specific container.
-	if c.runtimeHandler != "" {
-		runtimeHandler, err := r.ValidateRuntimeHandler(c.runtimeHandler)
+	if handler != "" {
+		runtimeHandler, err := r.ValidateRuntimeHandler(handler)
 		if err != nil {
 			return nil, err
 		}
 
 		rh = runtimeHandler
+	}
+
+	return rh, nil
+}
+
+// PrivelegedRuntimeHandler returns a boolean value configured for the
+// runtimeHandler indicating if devices on the host are passed/not passed
+// to a container running as privileged.
+func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
+	rh, err := r.getRuntimeHandler(handler)
+	if err != nil {
+		return false, err
+	}
+
+	return rh.PrivilegedWithoutHostDevices, nil
+}
+
+func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
+	rh, err := r.getRuntimeHandler(c.runtimeHandler)
+	if err != nil {
+		return nil, err
 	}
 
 	if rh.RuntimeType == config.RuntimeTypeVM {

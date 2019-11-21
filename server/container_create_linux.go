@@ -50,9 +50,9 @@ func findCgroupMountpoint(name string) error {
 	return err
 }
 
-func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
 	sp := specgen.Config
-	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
+	if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() && !privilegedWithoutHostDevices {
 		hostDevices, err := devices.HostDevices()
 		if err != nil {
 			return err
@@ -406,7 +406,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddLinuxResourcesDevice(d.Resource.Allow, d.Resource.Type, d.Resource.Major, d.Resource.Minor, d.Resource.Access)
 	}
 
-	if err := addDevices(ctx, sb, containerConfig, &specgen); err != nil {
+	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := addDevices(ctx, sb, containerConfig, privilegedWithoutHostDevices, &specgen); err != nil {
 		return nil, err
 	}
 

@@ -16,7 +16,7 @@ func findCgroupMountpoint(name string) error {
 	return fmt.Errorf("no cgroups on this platform")
 }
 
-func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
+func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
 	return nil
 }
 

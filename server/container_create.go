@@ -220,8 +220,8 @@ func resolveSymbolicLink(path, scope string) (string, error) {
 	return symlink.FollowSymlinkInScope(path, scope)
 }
 
-func addDevices(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, specgen *generate.Generator) error {
-	return addDevicesPlatform(ctx, sb, containerConfig, specgen)
+func addDevices(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
+	return addDevicesPlatform(ctx, sb, containerConfig, privilegedWithoutHostDevices, specgen)
 }
 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
