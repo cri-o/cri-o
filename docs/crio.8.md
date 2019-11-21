@@ -204,7 +204,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--log-journald**: Log to systemd journal (journald) in addition to kubernetes log file (default: false)
 
-**--log-level, -l**="": Log messages above specified level: debug, info, warn, error (default), fatal or panic (default: error)
+**--log-level, -l**="": Log messages above specified level: trace, debug, info, warn, error (default), fatal or panic (default: error)
 
 **--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 (to match/exceed conmon read buffer) (default: -1, no limit) (default: -1)
 

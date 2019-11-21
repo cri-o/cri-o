@@ -69,7 +69,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l log-dir -r -d 'Default log di
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-filter -r -d 'Filter the log messages by the provided regular expression. For example \'request.\*\' filters all gRPC requests.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-format -r -d 'Set the format used by logs (\'text\' (default), or \'json\')'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-journald -d 'Log to systemd journal (journald) in addition to kubernetes log file (default: false)'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l log-level -s l -r -d 'Log messages above specified level: debug, info, warn, error (default), fatal or panic'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l log-level -s l -r -d 'Log messages above specified level: trace, debug, info, warn, error (default), fatal or panic'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-size-max -r -d 'Maximum log size in bytes for a container. If it is positive, it must be >= 8192 (to match/exceed conmon read buffer) (default: -1, no limit)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l manage-network-ns-lifecycle -d 'Determines whether we pin and remove network namespace and manage its lifecycle (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-port -r -d 'Port for the metrics endpoint (default: 9090)'
