@@ -12,7 +12,7 @@ function teardown() {
 }
 
 function run_crio_status() {
-    run ${CRIO_STATUS_BINARY_PATH} $@ --socket=${CRIO_SOCKET}
+    run ${CRIO_STATUS_BINARY_PATH} $@
 }
 
 @test "status should fail if no subcommand is provided" {
@@ -24,18 +24,9 @@ function run_crio_status() {
     [ "$status" -eq 1 ]
 }
 
-@test "status should fail with invalid socket" {
-    # when
-    run ${CRIO_STATUS_BINARY_PATH} config
-    echo "$output"
-
-    # then
-    [ "$status" -eq 1 ]
-}
-
 @test "status should succeed to retrieve the config" {
     # when
-    run_crio_status config
+    run_crio_status --socket=${CRIO_SOCKET} config
     echo "$output"
 
     # then
@@ -54,7 +45,7 @@ function run_crio_status() {
 
 @test "status should succeed to retrieve the info" {
     # when
-    run_crio_status info
+    run_crio_status --socket=${CRIO_SOCKET} info
     echo "$output"
 
     # then
@@ -73,20 +64,20 @@ function run_crio_status() {
 
 @test "succeed to retrieve the container info" {
     # given
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod="$output"
-	run crictl create "$pod" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr="$output"
-	run crictl start "$ctr"
-	echo "$output"
-	[ "$status" -eq 0 ]
+    run crictl runp "$TESTDATA"/sandbox_config.json
+    echo "$output"
+    [ "$status" -eq 0 ]
+    pod="$output"
+    run crictl create "$pod" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+    echo "$output"
+    [ "$status" -eq 0 ]
+    ctr="$output"
+    run crictl start "$ctr"
+    echo "$output"
+    [ "$status" -eq 0 ]
 
     # when
-    run_crio_status containers --id "$ctr"
+    run_crio_status --socket=${CRIO_SOCKET} containers --id "$ctr"
     echo "$output"
 
     # then
@@ -96,7 +87,7 @@ function run_crio_status() {
 
 @test "should fail to retrieve the container info without ID" {
     # when
-    run_crio_status containers
+    run_crio_status --socket=${CRIO_SOCKET} containers
     echo "$output"
 
     # then

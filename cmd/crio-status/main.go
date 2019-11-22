@@ -8,7 +8,7 @@ import (
 	"github.com/cri-o/cri-o/internal/client"
 	"github.com/cri-o/cri-o/internal/pkg/criocli"
 	"github.com/cri-o/cri-o/internal/version"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 func main() {
 	app := cli.NewApp()
 	app.Name = "crio-status"
-	app.Author = "The CRI-O Maintainers"
+	app.Authors = []*cli.Author{{Name: "The CRI-O Maintainers"}}
 	app.Usage = "A tool for CRI-O status retrieval"
 	app.Description = app.Usage
 	app.Version = version.Version
@@ -30,37 +30,34 @@ func main() {
 		return fmt.Errorf("expecting a valid subcommand")
 	}
 
-	flags := []cli.Flag{
-		cli.StringFlag{
-			Name: socketArg + ", s",
-			Usage: fmt.Sprintf(
-				"absolute path to the unix socket (default: %q)",
-				defaultSocket,
-			),
+	app.Flags = []cli.Flag{
+		&cli.StringFlag{
+			Name:      socketArg,
+			Aliases:   []string{"s"},
+			Usage:     "absolute path to the unix socket",
+			Value:     defaultSocket,
 			TakesFile: true,
 		},
 	}
-	app.Flags = flags
 	app.Commands = criocli.DefaultCommands
-	app.Commands = append(app.Commands, []cli.Command{{
+	app.Commands = append(app.Commands, []*cli.Command{{
 		Action:  config,
 		Aliases: []string{"c"},
-		Flags:   flags,
 		Name:    "config",
 		Usage:   "Show the configuration of CRI-O as TOML string.",
 	}, {
 		Action:  containers,
 		Aliases: []string{"container", "cs", "s"},
-		Flags: append(flags, cli.StringFlag{
-			Name:  idArg + ", i",
-			Usage: "the container ID",
-		}),
+		Flags: []cli.Flag{&cli.StringFlag{
+			Name:    idArg,
+			Aliases: []string{"i"},
+			Usage:   "the container ID",
+		}},
 		Name:  "containers",
 		Usage: "Display detailed information about the provided container ID.",
 	}, {
 		Action:  info,
 		Aliases: []string{"i"},
-		Flags:   flags,
 		Name:    "info",
 		Usage:   "Retrieve generic information about CRI-O, like the cgroup and storage driver.",
 	}}...)
@@ -155,11 +152,5 @@ func info(c *cli.Context) error {
 }
 
 func crioClient(c *cli.Context) (client.CrioClient, error) {
-	socket := defaultSocket
-	if c.GlobalString(socketArg) != "" {
-		socket = c.GlobalString(socketArg)
-	} else if c.String(socketArg) != "" {
-		socket = c.String(socketArg)
-	}
-	return client.New(socket)
+	return client.New(c.String(socketArg))
 }

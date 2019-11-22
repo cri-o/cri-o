@@ -11,10 +11,10 @@ import (
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var wipeCommand = cli.Command{
+var wipeCommand = &cli.Command{
 	Name:   "wipe",
 	Usage:  "wipe CRI-O's container and image storage",
 	Action: crioWipe,

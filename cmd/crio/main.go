@@ -26,7 +26,7 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -114,7 +114,7 @@ func main() {
 	}
 	app.Name = "crio"
 	app.Usage = "OCI-based implementation of Kubernetes Container Runtime Interface"
-	app.Author = "The CRI-O Maintainers"
+	app.Authors = []*cli.Author{{Name: "The CRI-O Maintainers"}}
 	app.UsageText = usage
 	app.Description = app.Usage
 	app.Version = strings.Join(v, "\n")
@@ -132,7 +132,7 @@ func main() {
 	sort.Sort(cli.FlagsByName(configCommand.Flags))
 
 	app.Commands = criocli.DefaultCommands
-	app.Commands = append(app.Commands, []cli.Command{
+	app.Commands = append(app.Commands, []*cli.Command{
 		configCommand,
 		wipeCommand,
 	}...)
@@ -165,7 +165,7 @@ func main() {
 		}
 		logrus.AddHook(filterHook)
 
-		if path := c.GlobalString("log"); path != "" {
+		if path := c.String("log"); path != "" {
 			f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0666)
 			if err != nil {
 				return err
@@ -173,13 +173,13 @@ func main() {
 			logrus.SetOutput(f)
 		}
 
-		switch c.GlobalString("log-format") {
+		switch c.String("log-format") {
 		case "text":
 			// retain logrus's default.
 		case "json":
 			logrus.SetFormatter(new(logrus.JSONFormatter))
 		default:
-			return fmt.Errorf("unknown log-format %q", c.GlobalString("log-format"))
+			return fmt.Errorf("unknown log-format %q", c.String("log-format"))
 		}
 
 		return nil
@@ -187,8 +187,8 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		ctx, cancel := context.WithCancel(context.Background())
-		if c.GlobalBool("profile") {
-			profilePort := c.GlobalInt("profile-port")
+		if c.Bool("profile") {
+			profilePort := c.Int("profile-port")
 			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
 			go func() {
 				logrus.Debugf("starting profiling server on %v", profileEndpoint)
@@ -198,16 +198,9 @@ func main() {
 			}()
 		}
 
-		args := c.Args()
-		if len(args) > 0 {
-			for i := range app.Commands {
-				command := &app.Commands[i]
-				if args[0] == command.Name {
-					break
-				}
-			}
+		if c.Args().Len() > 0 {
 			cancel()
-			return fmt.Errorf("command %q not supported", args[0])
+			return fmt.Errorf("command %q not supported", c.Args().Get(0))
 		}
 
 		config, ok := c.App.Metadata["config"].(*libconfig.Config)

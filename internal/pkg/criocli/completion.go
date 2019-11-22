@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-func completion() cli.Command {
-	return cli.Command{
+func completion() *cli.Command {
+	return &cli.Command{
 		Name:        "complete",
 		Aliases:     []string{"completion"},
 		Usage:       "Generate bash, fish or zsh completions.",
@@ -51,8 +51,7 @@ complete -F _cli_bash_autocomplete %s`
 
 func bashCompletion(c *cli.Context) error {
 	subcommands := []string{}
-	for i := range c.App.Commands {
-		command := &c.App.Commands[i]
+	for _, command := range c.App.Commands {
 		if command.Hidden {
 			continue
 		}
@@ -63,7 +62,7 @@ func bashCompletion(c *cli.Context) error {
 
 	for _, flag := range c.App.Flags {
 		// only includes full flag name.
-		subcommands = append(subcommands, "--"+strings.Split(flag.GetName(), ",")[0])
+		subcommands = append(subcommands, "--"+flag.Names()[0])
 	}
 
 	fmt.Fprintln(c.App.Writer,
@@ -90,8 +89,7 @@ compdef _cli_zsh_autocomplete %s`
 
 func zshCompletion(c *cli.Context) error {
 	subcommands := []string{}
-	for i := range c.App.Commands {
-		command := &c.App.Commands[i]
+	for _, command := range c.App.Commands {
 		if command.Hidden {
 			continue
 		}
@@ -103,7 +101,7 @@ func zshCompletion(c *cli.Context) error {
 	opts := []string{}
 	for _, flag := range c.App.Flags {
 		// only includes full flag name.
-		opts = append(opts, "--"+strings.Split(flag.GetName(), ",")[0])
+		opts = append(opts, "--"+flag.Names()[0])
 	}
 
 	fmt.Fprintln(c.App.Writer,

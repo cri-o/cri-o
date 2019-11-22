@@ -20,9 +20,9 @@ type entry struct {
 }
 
 const (
-	crioMainPath = "internal/pkg/criocli/criocli.go"
-	crioCLIPath  = "docs/crio.8.md"
-	crioConfPath = "docs/crio.conf.5.md"
+	crioCLIGoPath  = "internal/pkg/criocli/criocli.go"
+	crioCLIMdPath  = "docs/crio.8.md"
+	crioConfMdPath = "docs/crio.conf.5.md"
 )
 
 var (
@@ -78,7 +78,7 @@ func validateTags(cfg *config.Config) (failed bool) {
 	entries := allEntries(cfg)
 
 	// Open the documentation
-	crioConfDoc := openFile(crioConfPath)
+	crioConfDoc := openFile(crioConfMdPath)
 
 	// Parse the template into a buffer
 	var templateBytes bytes.Buffer
@@ -89,7 +89,7 @@ func validateTags(cfg *config.Config) (failed bool) {
 	// Check if the found toml tags are available within the template and docs
 	logrus.Infof(
 		"Verifying TOML tags of `config.go` to `TemplateString` and `%s`",
-		crioConfPath,
+		crioConfMdPath,
 	)
 	for _, entry := range entries {
 		// Skip whitelisted items
@@ -119,7 +119,7 @@ func validateTags(cfg *config.Config) (failed bool) {
 		if err != nil || !docsMatch {
 			logrus.Errorf(
 				"Tag `%s` with expected value `%s` not found in `%s`",
-				entry.tag, entry.value, crioConfPath,
+				entry.tag, entry.value, crioConfMdPath,
 			)
 			failed = true
 		}
@@ -136,12 +136,12 @@ func validateTags(cfg *config.Config) (failed bool) {
 func validateCli(cfg *config.Config) (failed bool) {
 	logrus.Infof(
 		"Verifying command line arguments of `%s` to `%s`",
-		crioMainPath, crioCLIPath,
+		crioCLIGoPath, crioCLIMdPath,
 	)
 
 	entries := allEntries(cfg)
-	crioMain := openFile(crioMainPath)
-	crioCLIDoc := openFile(crioCLIPath)
+	cliGo := openFile(crioCLIGoPath)
+	crioCLIDoc := openFile(crioCLIMdPath)
 
 	for _, entry := range entries {
 		// Assume a simple tag to CLI option conversion
@@ -154,45 +154,39 @@ func validateCli(cfg *config.Config) (failed bool) {
 		}
 
 		// Lookup the tag
-		r := regexp.MustCompile(`.*Name:\s+"(` + cliOption + `.*)",`)
-		matches := r.FindStringSubmatch(string(crioMain))
+		nameMatches := regexp.
+			MustCompile(`.*Name:\s+"(` + cliOption + `.*)",`).
+			FindStringSubmatch(string(cliGo))
 
 		// Check if we have enough sub-matches
-		if len(matches) != 2 {
+		if len(nameMatches) != 2 {
 			logrus.Errorf(
 				"No matching CLI option `%s` found (tag `%s`) in `%s`",
-				cliOption, entry.tag, crioMainPath,
+				cliOption, entry.tag, crioCLIGoPath,
 			)
 			failed = true
 			continue
 		}
 
 		// Prepare the option to match the expected output
-		const sep = ", "
-		split := strings.Split(matches[1], sep)
-
-		split[0] = "--" + split[0]
-		if len(split) == 2 {
-			split[1] = "-" + split[1]
-		}
-		option := strings.Join(split, "|")
+		option := "--" + nameMatches[1]
 
 		// Validate synopsis
 		synopsisMatch, err := regexp.Match(`\[`+option+`.*\]`, crioCLIDoc)
 		if err != nil || !synopsisMatch {
 			logrus.Errorf(
 				"CLI option `%s` not found in synopsis of `%s`",
-				option, crioCLIPath,
+				option, crioCLIMdPath,
 			)
 			failed = true
 		}
 
 		// Validate descriptions
-		descriptionMatch, err := regexp.Match(`\*\*`+option+`\*\*`, crioCLIDoc)
+		descriptionMatch, err := regexp.Match(`\*\*`+option+`.*\*\*`, crioCLIDoc)
 		if err != nil || !descriptionMatch {
 			logrus.Errorf(
 				"CLI option `%s` not found in description of `%s`",
-				option, crioCLIPath,
+				option, crioCLIMdPath,
 			)
 			failed = true
 		}
