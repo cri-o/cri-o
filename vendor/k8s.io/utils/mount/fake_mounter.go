@@ -27,13 +27,17 @@ import (
 // FakeMounter implements mount.Interface for tests.
 type FakeMounter struct {
 	MountPoints []MountPoint
-	Log         []FakeAction
+	log         []FakeAction
 	// Error to return for a path when calling IsLikelyNotMountPoint
 	MountCheckErrors map[string]error
 	// Some tests run things in parallel, make sure the mounter does not produce
 	// any golang's DATA RACE warnings.
-	mutex sync.Mutex
+	mutex       sync.Mutex
+	UnmountFunc UnmountFunc
 }
+
+// UnmountFunc is a function callback to be executed during the Unmount() call.
+type UnmountFunc func(path string) error
 
 var _ Interface = &FakeMounter{}
 
@@ -52,12 +56,28 @@ type FakeAction struct {
 	FSType string // applies only to "mount" actions
 }
 
+// NewFakeMounter returns a FakeMounter struct that implements Interface and is
+// suitable for testing purposes.
+func NewFakeMounter(mps []MountPoint) *FakeMounter {
+	return &FakeMounter{
+		MountPoints: mps,
+	}
+}
+
 // ResetLog clears all the log entries in FakeMounter
 func (f *FakeMounter) ResetLog() {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 
-	f.Log = []FakeAction{}
+	f.log = []FakeAction{}
+}
+
+// GetLog returns the slice of FakeActions taken by the mounter
+func (f *FakeMounter) GetLog() []FakeAction {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	return f.log
 }
 
 // Mount records the mount event and updates the in-memory mount points for FakeMounter
@@ -99,7 +119,7 @@ func (f *FakeMounter) Mount(source string, target string, fstype string, options
 	}
 	f.MountPoints = append(f.MountPoints, MountPoint{Device: source, Path: absTarget, Type: fstype, Opts: opts})
 	klog.V(5).Infof("Fake mounter: mounted %s to %s", source, absTarget)
-	f.Log = append(f.Log, FakeAction{Action: FakeActionMount, Target: absTarget, Source: source, FSType: fstype})
+	f.log = append(f.log, FakeAction{Action: FakeActionMount, Target: absTarget, Source: source, FSType: fstype})
 	return nil
 }
 
@@ -117,6 +137,12 @@ func (f *FakeMounter) Unmount(target string) error {
 	newMountpoints := []MountPoint{}
 	for _, mp := range f.MountPoints {
 		if mp.Path == absTarget {
+			if f.UnmountFunc != nil {
+				err := f.UnmountFunc(absTarget)
+				if err != nil {
+					return err
+				}
+			}
 			klog.V(5).Infof("Fake mounter: unmounted %s from %s", mp.Device, absTarget)
 			// Don't copy it to newMountpoints
 			continue
@@ -124,7 +150,7 @@ func (f *FakeMounter) Unmount(target string) error {
 		newMountpoints = append(newMountpoints, MountPoint{Device: mp.Device, Path: mp.Path, Type: mp.Type})
 	}
 	f.MountPoints = newMountpoints
-	f.Log = append(f.Log, FakeAction{Action: FakeActionUnmount, Target: absTarget})
+	f.log = append(f.log, FakeAction{Action: FakeActionUnmount, Target: absTarget})
 	delete(f.MountCheckErrors, target)
 	return nil
 }

@@ -49,6 +49,29 @@ func shouldHide(currentVersion *semver.Version, deprecatedVersion *semver.Versio
 	return false
 }
 
+func validateShowHiddenMetricsVersion(currentVersion semver.Version, targetVersionStr string) error {
+	if targetVersionStr == "" {
+		return nil
+	}
+
+	validVersionStr := fmt.Sprintf("%d.%d", currentVersion.Major, currentVersion.Minor-1)
+	if targetVersionStr != validVersionStr {
+		return fmt.Errorf("--show-hidden-metrics-for-version must be omitted or have the value '%v'. Only the previous minor version is allowed", validVersionStr)
+	}
+
+	return nil
+}
+
+// ValidateShowHiddenMetricsVersion checks invalid version for which show hidden metrics.
+func ValidateShowHiddenMetricsVersion(v string) []error {
+	err := validateShowHiddenMetricsVersion(parseVersion(version.Get()), v)
+	if err != nil {
+		return []error{err}
+	}
+
+	return nil
+}
+
 // SetShowHidden will enable showing hidden metrics. This will no-opt
 // after the initial call
 func SetShowHidden() {
@@ -78,6 +101,8 @@ type KubeRegistry interface {
 	RawRegister(prometheus.Collector) error
 	// Deprecated
 	RawMustRegister(...prometheus.Collector)
+	CustomRegister(c StableCollector) error
+	CustomMustRegister(cs ...StableCollector)
 	Register(Registerable) error
 	MustRegister(...Registerable)
 	Unregister(Registerable) bool
@@ -115,6 +140,29 @@ func (kr *kubeRegistry) MustRegister(cs ...Registerable) {
 		}
 	}
 	kr.PromRegistry.MustRegister(metrics...)
+}
+
+// CustomRegister registers a new custom collector.
+func (kr *kubeRegistry) CustomRegister(c StableCollector) error {
+	if c.Create(&kr.version, c) {
+		return kr.PromRegistry.Register(c)
+	}
+
+	return nil
+}
+
+// CustomMustRegister works like CustomRegister but registers any number of
+// StableCollectors and panics upon the first registration that causes an
+// error.
+func (kr *kubeRegistry) CustomMustRegister(cs ...StableCollector) {
+	collectors := make([]prometheus.Collector, 0, len(cs))
+	for _, c := range cs {
+		if c.Create(&kr.version, c) {
+			collectors = append(collectors, c)
+		}
+	}
+
+	kr.PromRegistry.MustRegister(collectors...)
 }
 
 // RawRegister takes a native prometheus.Collector and registers the collector
