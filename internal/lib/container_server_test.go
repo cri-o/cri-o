@@ -748,23 +748,6 @@ var _ = t.Describe("ContainerServer", func() {
 	})
 
 	t.Describe("ContainerStateFromDisk", func() {
-		It("should succeed", func() {
-			// Given
-			sut.SetRuntime(ociRuntimeMock)
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Times(2).Return(nil),
-			)
-			Expect(sut.ContainerStateToDisk(myContainer)).To(BeNil())
-			defer os.Remove(myContainer.StatePath())
-
-			// When
-			err := sut.ContainerStateFromDisk(myContainer)
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
 		It("should fail when file not found", func() {
 			// Given
 			// When
@@ -776,22 +759,6 @@ var _ = t.Describe("ContainerServer", func() {
 	})
 
 	t.Describe("ContainerStateToDisk", func() {
-		It("should succeed", func() {
-			// Given
-			sut.SetRuntime(ociRuntimeMock)
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any()).
-					Return(nil),
-			)
-
-			// When
-			err := sut.ContainerStateToDisk(myContainer)
-			defer os.Remove(myContainer.StatePath())
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
 		It("should fail when state path invalid", func() {
 			// Given
 			container, err := oci.NewContainer(containerID, "", "", "", "",

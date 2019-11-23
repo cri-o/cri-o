@@ -148,6 +148,9 @@ type RuntimeHandler struct {
 	RuntimePath string `toml:"runtime_path"`
 	RuntimeType string `toml:"runtime_type"`
 	RuntimeRoot string `toml:"runtime_root"`
+	// PrivilegedWithoutHostDevices can be used to restrict passing host devices
+	// to a container running as privileged.
+	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices"`
 }
 
 // Multiple runtime Handlers in a map

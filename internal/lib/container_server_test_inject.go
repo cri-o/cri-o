@@ -5,7 +5,6 @@
 package lib
 
 import (
-	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 )
 
@@ -17,9 +16,4 @@ func (c *ContainerServer) SetStorageRuntimeServer(server storage.RuntimeServer) 
 // SetStorageImageServer sets the ImageServer for the ContainerServer
 func (c *ContainerServer) SetStorageImageServer(server storage.ImageServer) {
 	c.storageImageServer = server
-}
-
-// SetRuntime can be used to explicitly specify a runtime.
-func (c *ContainerServer) SetRuntime(runtime oci.RuntimeImpl) {
-	c.runtime = runtime
 }

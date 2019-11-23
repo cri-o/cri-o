@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -38,28 +37,6 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
-		})
-
-		It("should fail if update container erros", func() {
-			// Given
-			sut.SetRuntime(ociRuntimeMock)
-			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-			gomock.InOrder(
-				ociRuntimeMock.EXPECT().UpdateContainer(gomock.Any(),
-					gomock.Any()).Return(t.TestError),
-			)
-
-			// When
-			response, err := sut.UpdateContainerResources(context.Background(),
-				&pb.UpdateContainerResourcesRequest{
-					ContainerId: testContainer.ID()})
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(response).To(BeNil())
 		})
 
 		It("should fail when container is not in created/running state", func() {
