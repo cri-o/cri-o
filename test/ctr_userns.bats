@@ -14,6 +14,7 @@ function teardown() {
 	if test \! -e /proc/self/uid_map; then
 		skip "userNS not available"
 	fi
+    export MANAGE_NETNS_LIFECYCLE=false
 	export CONTAINER_UID_MAPPINGS="0:100000:100000"
 	export CONTAINER_GID_MAPPINGS="0:200000:100000"
 

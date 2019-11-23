@@ -504,6 +504,7 @@ func DefaultConfig() (*Config, error) {
 			DefaultUlimits:           []string{},
 			AdditionalDevices:        []string{},
 			HooksDir:                 []string{hooks.DefaultDir},
+			ManageNetworkNSLifecycle: true,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,

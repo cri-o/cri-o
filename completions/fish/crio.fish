@@ -71,7 +71,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l log-format -r -d 'Set the 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-journald -d 'Log to systemd journal (journald) in addition to kubernetes log file (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-level -s l -r -d 'Log messages above specified level: trace, debug, info, warn, error, fatal or panic'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-size-max -r -d 'Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l manage-network-ns-lifecycle -d 'Determines whether we pin and remove network namespace and manage its lifecycle (default: false)'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l manage-network-ns-lifecycle -d 'Determines whether we pin and remove network namespace and manage its lifecycle (default: true)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-port -r -d 'Port for the metrics endpoint'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l no-pivot -d 'If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-command -r -d 'Path to the pause executable in the pause image (default: "/pause")'

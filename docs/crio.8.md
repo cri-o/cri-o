@@ -208,7 +208,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer (default: -1)
 
-**--manage-network-ns-lifecycle**: Determines whether we pin and remove network namespace and manage its lifecycle (default: false)
+**--manage-network-ns-lifecycle**: Determines whether we pin and remove network namespace and manage its lifecycle (default: true)
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 

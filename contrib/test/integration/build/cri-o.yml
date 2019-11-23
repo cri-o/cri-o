@@ -29,14 +29,6 @@
     target: install.config
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
-- name: set manage network ns lifecycle
-  replace:
-    regexp: 'manage_network_ns_lifecycle.*=.*false'
-    replace: 'manage_network_ns_lifecycle = true'
-    name: /etc/crio/crio.conf
-    backup: yes
-  when: manage_network_ns_lifecycle
-
 - name: install configs
   copy:
     src: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/{{ item.src }}"

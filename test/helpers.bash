@@ -71,6 +71,8 @@ CONTAINER_LOG_SIZE_MAX=${CONTAINER_LOG_SIZE_MAX:--1}
 STREAM_PORT=${STREAM_PORT:-10010}
 # Metrics Port
 CONTAINER_METRICS_PORT=${CONTAINER_METRICS_PORT:-9090}
+# Manage the network namespace lifecycle
+MANAGE_NETNS_LIFECYCLE=${MANAGE_NETNS_LIFECYCLE:-true}
 
 POD_IPV4_CIDR="10.88.0.0/16"
 POD_IPV4_CIDR_START="10.88"
@@ -275,7 +277,7 @@ function setup_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --registry "quay.io" --registry "docker.io" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS --default-sysctls "$TEST_SYSCTL" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --registry "quay.io" --registry "docker.io" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS --default-sysctls "$TEST_SYSCTL" --manage-network-ns-lifecycle="$MANAGE_NETNS_LIFECYCLE" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	# make sure we don't run with nodev, or else mounting a readonly rootfs will fail: https://github.com/cri-o/cri-o/issues/1929#issuecomment-474240498
 	sed -r -e 's/nodev(,)?//g' -i $CRIO_CONFIG

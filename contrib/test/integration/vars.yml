@@ -4,7 +4,6 @@
 integration_selinux_enabled: True
 e2e_selinux_enabled: False
 node_e2e_selinux_enabled: False
-manage_network_ns_lifecycle: False
 
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
