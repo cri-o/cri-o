@@ -3,6 +3,7 @@ _cli_bash_autocomplete() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     opts="config
+wipe
 complete
 completion
 help
@@ -71,6 +72,7 @@ h
 --stream-tls-cert
 --stream-tls-key
 --uid-mappings
+--version-file
 --help
 --version"
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )

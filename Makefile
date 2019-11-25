@@ -79,6 +79,11 @@ SHRINKFLAGS := -s -w
 BASE_LDFLAGS = ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${SOURCE_DATE_EPOCH}
 LDFLAGS = -ldflags '${BASE_LDFLAGS}'
 
+TESTIMAGE_VERSION := 1.1.1
+TESTIMAGE_REGISTRY := quay.io/crio
+TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
+TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
+
 all: binaries crio.conf docs
 
 include Makefile.inc
@@ -177,6 +182,13 @@ bin/crio.cross.%: git-vars .gopathok .explicit_phony
 
 crioimage: git-vars
 	$(CONTAINER_RUNTIME) build -t ${CRIO_IMAGE} .
+
+local-image:
+	$(TESTIMAGE_SCRIPT)
+
+test-images:
+	$(TESTIMAGE_SCRIPT) -g 1.13 -a amd64
+	$(TESTIMAGE_SCRIPT) -g 1.10 -a amd64
 
 dbuild: crioimage
 	$(CONTAINER_RUNTIME) run --rm --name=${CRIO_INSTANCE} --privileged \
@@ -429,5 +441,8 @@ docs-validation:
 	local-cross \
 	nix-image \
 	release-bundle \
+	testunit \
+	testunit-bin \
+	test-images \
 	uninstall \
 	vendor

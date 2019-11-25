@@ -4,8 +4,8 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/circle-1.12:1.16.0
-    IMAGELEGACY: &imagelegacy quay.io/crio/circle-1.10:1.16.0
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.13:1.1.1
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.10:1.1.1
     JOBS: &jobs 8
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
 
@@ -13,14 +13,12 @@ executors:
   container:
     docker:
       - image: *image
-        user: circleci
     <<: *stdenv
     working_directory: *workdir
 
   container-legacy:
     docker:
       - image: *imagelegacy
-        user: circleci
     <<: *stdenv
     working_directory: *workdir
 
