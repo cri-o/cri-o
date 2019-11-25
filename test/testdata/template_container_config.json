@@ -35,7 +35,6 @@
 		"owner": "dragon",
 		"daemon": "crio"
 	},
-	"privileged": true,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
@@ -49,6 +48,7 @@
 			"memory_limit_in_bytes": 268435456
 		},
 		"security_context": {
+			"privileged": true,
 			"readonly_rootfs": false,
 			"selinux_options": {
 				"user": "system_u",

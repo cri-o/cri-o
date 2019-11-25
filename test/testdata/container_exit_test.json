@@ -14,7 +14,6 @@
 			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 		}
 	],
-	"readonly_rootfs": true,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
@@ -23,7 +22,8 @@
 		"security_context": {
 			"namespace_options": {
 				"pid": 1
-			}
+			},
+			"readonly_rootfs": true
 		}
 	}
 }

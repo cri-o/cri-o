@@ -35,7 +35,6 @@
   "annotations": {
     "pod": "podsandbox1"
   },
-  "readonly_rootfs": false,
   "log_path": "",
   "stdin": false,
   "stdin_once": false,
@@ -55,6 +54,7 @@
       "namespace_options": {
         "pid": 1
       },
+      "readonly_rootfs": false,
       "capabilities": {
         "add_capabilities": ["sys_admin"]
       }
