@@ -267,9 +267,12 @@ type RuntimeConfig struct {
 	// to the kubernetes log file
 	LogToJournald bool `toml:"log_to_journald"`
 
-	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
-	// and manage its lifecycle
+	// Deprecated: In favor of ManageNSLifecycle (described below)
 	ManageNetworkNSLifecycle bool `toml:"manage_network_ns_lifecycle"`
+
+	// ManageNSLifecycle determines whether we pin and remove namespaces
+	// and manage their lifecycle
+	ManageNSLifecycle bool `toml:"manage_ns_lifecycle"`
 
 	// ReadOnly run all pods/containers in read-only mode.
 	// This mode will mount tmpfs on /run, /tmp and /var/tmp, if those are not mountpoints
@@ -502,6 +505,7 @@ func DefaultConfig() (*Config, error) {
 			DefaultSysctls:           []string{},
 			DefaultUlimits:           []string{},
 			AdditionalDevices:        []string{},
+			ManageNSLifecycle:        false,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
@@ -686,11 +690,15 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
 	}
 
-	if c.UIDMappings != "" && c.ManageNetworkNSLifecycle {
-		return fmt.Errorf("cannot use UIDMappings with ManageNetworkNSLifecycle")
+	// while ManageNetworkNSLifecycle is being deprecated, set
+	// ManageNSLifecycle to be true if either are
+	c.ManageNSLifecycle = c.ManageNetworkNSLifecycle || c.ManageNSLifecycle
+
+	if c.UIDMappings != "" && c.ManageNSLifecycle {
+		return fmt.Errorf("cannot use UIDMappings with ManageNSLifecycle")
 	}
-	if c.GIDMappings != "" && c.ManageNetworkNSLifecycle {
-		return fmt.Errorf("cannot use GIDMappings with ManageNetworkNSLifecycle")
+	if c.GIDMappings != "" && c.ManageNSLifecycle {
+		return fmt.Errorf("cannot use GIDMappings with ManageNSLifecycle")
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {

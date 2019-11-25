@@ -53,6 +53,7 @@ crio
 [--log]=[value]
 [--manage-network-ns-lifecycle]
 [--metrics-port]=[value]
+[--manage-ns-lifecycle]
 [--no-pivot]
 [--pause-command]=[value]
 [--pause-image-auth-file]=[value]
@@ -270,6 +271,10 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 
 # COMMANDS
+**--manage-network-ns-lifecycle**: **DEPRECATED** this option is being replaced by `manage_ns_lifecycle`, which is described below.
+
+**--manage-ns-lifecycle**: determines whether we pin and remove namespaces and manage their lifecycle (default: false)
+>>>>>>> 69d78655e... Allow CRI-O to manage IPC and UTS namespaces
 
 ## complete, completion
 

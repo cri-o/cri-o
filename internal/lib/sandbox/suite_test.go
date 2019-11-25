@@ -21,10 +21,10 @@ func TestSandbox(t *testing.T) {
 }
 
 var (
-	t              *TestFramework
-	testSandbox    *sandbox.Sandbox
-	mockCtrl       *gomock.Controller
-	netNsIfaceMock *sandboxmock.MockNetNsIface
+	t                  *TestFramework
+	testSandbox        *sandbox.Sandbox
+	mockCtrl           *gomock.Controller
+	namespaceIfaceMock *sandboxmock.MockNamespaceIface
 )
 
 var _ = BeforeSuite(func() {
@@ -35,7 +35,7 @@ var _ = BeforeSuite(func() {
 
 	// Setup the mocks
 	mockCtrl = gomock.NewController(GinkgoT())
-	netNsIfaceMock = sandboxmock.NewMockNetNsIface(mockCtrl)
+	namespaceIfaceMock = sandboxmock.NewMockNamespaceIface(mockCtrl)
 })
 
 var _ = AfterSuite(func() {

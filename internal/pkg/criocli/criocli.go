@@ -222,8 +222,8 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.GlobalIsSet("grpc-max-send-msg-size") {
 		config.GRPCMaxSendMsgSize = ctx.GlobalInt("grpc-max-send-msg-size")
 	}
-	if ctx.GlobalIsSet("manage-network-ns-lifecycle") {
-		config.ManageNetworkNSLifecycle = ctx.GlobalBool("manage-network-ns-lifecycle")
+	if ctx.GlobalIsSet("manage-ns-lifecycle") {
+		config.ManageNSLifecycle = ctx.GlobalBool("manage-ns-lifecycle")
 	}
 	if ctx.GlobalIsSet("no-pivot") {
 		config.NoPivot = ctx.GlobalBool("no-pivot")
@@ -615,9 +615,14 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			EnvVar: "CONTAINER_HOST_IP",
 		},
 		cli.BoolFlag{
-			Name:   "manage-network-ns-lifecycle",
-			Usage:  fmt.Sprintf("Determines whether we pin and remove network namespace and manage its lifecycle (default: %v)", defConf.ManageNetworkNSLifecycle),
+			Name:  "manage-network-ns-lifecycle",
+			Usage: "Deprecated: this option is being replaced by `manage_ns_lifecycle`, which is described below",
 			EnvVar: "CONTAINER_MANAGE_NETWORK_NS_LIFECYCLE",
+		},
+		cli.BoolFlag{
+			Name:   "manage-ns-lifecycle",
+			Usage:  fmt.Sprintf("determines whether we pin and remove namespaces and manage their lifecycle (default: %v)", defConf.ManageNSLifecycle),
+			EnvVar: "CONTAINER_MANAGE_NS_LIFECYCLE",
 		},
 		cli.BoolFlag{
 			Name:   "no-pivot",

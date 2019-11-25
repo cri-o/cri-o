@@ -31,11 +31,11 @@
 
 - name: set manage network ns lifecycle
   replace:
-    regexp: 'manage_network_ns_lifecycle.*=.*false'
-    replace: 'manage_network_ns_lifecycle = true'
+    regexp: 'manage_ns_lifecycle.*=.*false'
+    replace: 'manage_ns_lifecycle = true'
     name: /etc/crio/crio.conf
     backup: yes
-  when: manage_network_ns_lifecycle
+  when: manage_ns_lifecycle
 
 - name: install configs
   copy:
