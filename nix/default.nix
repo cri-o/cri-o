@@ -52,6 +52,27 @@ let
       name = "cri-o-x86_64-static-musl-${revision}";
       buildInputs = old.buildInputs ++ [ muslPkgs.systemd ];
       src = ./..;
+
+      # TODO: remove the build phase patch after CRI-O 1.17.0 release in nixpkgs
+      buildPhase = ''
+        pushd go/src/${old.goPackagePath}
+
+        # Build the crio binaries
+        function build() {
+          go build \
+            -tags ${old.makeFlags} \
+            -o bin/"$1" \
+            -buildmode=pie \
+            -ldflags '-s -w -linkmode external -extldflags "-static"' \
+            ${old.goPackagePath}/cmd/"$1"
+        }
+        build crio
+        build crio-status
+      '';
+      installPhase = ''
+        install -Dm755 bin/crio $bin/bin/crio-x86_64-static-musl
+        install -Dm755 bin/crio-status $bin/bin/crio-status-x86_64-static-musl
+      '';
     })).override {
       flavor = "-x86_64-static-musl";
       ldflags = ''-linkmode external -extldflags "-static"'';
@@ -67,6 +88,27 @@ let
       name = "cri-o-x86_64-static-glibc-${revision}";
       buildInputs = old.buildInputs ++ [ glibcPkgs.systemd ];
       src = ./..;
+
+      # TODO: remove the build phase patch after CRI-O 1.17.0 release in nixpkgs
+      buildPhase = ''
+        pushd go/src/${old.goPackagePath}
+
+        # Build the crio binaries
+        function build() {
+          go build \
+            -tags ${old.makeFlags} \
+            -o bin/"$1" \
+            -buildmode=pie \
+            -ldflags '-s -w -linkmode external -extldflags "-static -lm"' \
+            ${old.goPackagePath}/cmd/"$1"
+        }
+        build crio
+        build crio-status
+      '';
+      installPhase = ''
+        install -Dm755 bin/crio $bin/bin/crio-x86_64-static-glibc
+        install -Dm755 bin/crio-status $bin/bin/crio-status-x86_64-static-glibc
+      '';
     })).override {
       flavor = "-x86_64-static-glibc";
       ldflags = ''-linkmode external -extldflags "-static -lm"'';

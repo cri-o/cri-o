@@ -23,8 +23,6 @@ CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
 CONMON_BINARY=${CONMON_BINARY:-$(which conmon)}
 # Cgroup for the conmon process
 CONTAINER_CONMON_CGROUP=${CONTAINER_CONMON_CGROUP:-pod}
-# Path of the pause binary.
-PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/bin/pause}
 # Path of the default seccomp profile.
 CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/github.com/seccomp/containers-golang/seccomp.json}
 # Name of the default apparmor profile.
@@ -53,8 +51,6 @@ APPARMOR_TEST_PROFILE_NAME=${APPARMOR_TEST_PROFILE_NAME:-apparmor-test-deny-writ
 BOOT_CONFIG_FILE_PATH=${BOOT_CONFIG_FILE_PATH:-/boot/config-`uname -r`}
 # Path of apparmor parameters file.
 APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/apparmor/parameters/enabled}
-# Path of the bin2img binary.
-BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/test/bin2img/bin2img}
 # Path of the copyimg binary.
 COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/test/copyimg/copyimg}
 # Path of tests artifacts.
@@ -93,6 +89,16 @@ if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
 	if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
 		echo "Error pulling quay.io/crio/redis"
 		rm -fr "$ARTIFACTS_PATH"/redis-image
+		exit 1
+	fi
+fi
+
+# Make sure we have a copy of the k8s.gcr.io/pause:3.1 image.
+if ! [ -d "$ARTIFACTS_PATH"/pause-image ]; then
+	mkdir -p "$ARTIFACTS_PATH"/pause-image
+	if ! "$COPYIMG_BINARY" --import-from=docker://k8s.gcr.io/pause:3.1 --export-to=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+		echo "Error pulling k8s.gcr.io/pause:3.1"
+		rm -fr "$ARTIFACTS_PATH"/pause-image
 		exit 1
 	fi
 fi
@@ -256,17 +262,14 @@ function setup_crio() {
 		apparmor="$CONTAINER_APPARMOR_PROFILE"
 	fi
 
-	# Don't forget: bin2img, copyimg, and crio have their own default drivers, so if you override any, you probably need to override them all
-	if ! [ "$3" = "--no-pause-image" ] ; then
-		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
-	fi
-
 	if [[ -n "$4" ]]; then
 		capabilities="$4"
 	else
 		capabilities="$CONTAINER_DEFAULT_CAPABILITIES"
 	fi
 
+	# Don't forget: copyimg and crio have their own default drivers, so if you override any, you probably need to override them all
+	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=k8s.gcr.io/pause:3.1 --import-from=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/oom:latest --import-from=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json

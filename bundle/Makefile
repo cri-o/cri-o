@@ -25,8 +25,6 @@ install:
 	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-x86_64-static-glibc
 	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-x86_64-static-musl
 	ln -sf $(BINDIR)/$(DEFAULT_BINARY) $(BINDIR)/crio
-	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/pause-x86_64-static-glibc
-	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/pause-x86_64-static-musl
 	install $(SELINUX) -D -m 644 -t $(ETCDIR) etc/crictl.yaml
 	install $(SELINUX) -D -m 644 -t $(OCIDIR) etc/crio-umount.conf
 	install $(SELINUX) -D -m 644 -t $(ETCDIR)/crio etc/crio.conf
@@ -46,8 +44,6 @@ uninstall:
 	rm $(BINDIR)/crio
 	rm $(BINDIR)/crio-x86_64-static-glibc
 	rm $(BINDIR)/crio-x86_64-static-musl
-	rm $(BINDIR)/pause-x86_64-static-glibc
-	rm $(BINDIR)/pause-x86_64-static-musl
 	rm $(ETCDIR)/crictl.yaml
 	rm $(OCIDIR)/crio-umount.conf
 	rm $(ETCDIR)/crio/crio.conf

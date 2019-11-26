@@ -229,9 +229,6 @@ resulting binaries should now be available within:
 - `bin/crio-x86_64-static-glibc`
 - `bin/crio-x86_64-static-musl`
 
-- `bin/pause-x86_64-static-glibc`
-- `bin/pause-x86_64-static-musl`
-
 To build the binaries without any prepared container and via the already
 installed nix package manager, simply run the following command from the root
 directory of this repository:

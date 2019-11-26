@@ -133,7 +133,7 @@ function teardown() {
 }
 
 @test "image pull and list" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -157,7 +157,7 @@ function teardown() {
 
 @test "image pull with signature" {
 	skip "registry has some issues"
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 	run crictl pull "$SIGNED_IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -165,7 +165,7 @@ function teardown() {
 }
 
 @test "image pull and list by tag and ID" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 	run crictl pull "$IMAGE:go"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -190,7 +190,7 @@ function teardown() {
 }
 
 @test "image pull and list by digest and ID" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 	run crictl pull quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -215,7 +215,7 @@ function teardown() {
 }
 
 @test "image pull and list by manifest list digest" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 
 	run crictl pull ${IMAGE_LIST_DIGEST}
 	echo "$output"
@@ -279,7 +279,7 @@ function teardown() {
 }
 
 @test "image pull and list by manifest list tag" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 
 	run crictl pull ${IMAGE_LIST_TAG}
 	echo "$output"
@@ -343,7 +343,7 @@ function teardown() {
 }
 
 @test "image pull and list by manifest list and individual digest" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 
 	run crictl pull ${IMAGE_LIST_DIGEST}
 	echo "$output"
@@ -411,7 +411,7 @@ function teardown() {
 }
 
 @test "image pull and list by individual and manifest list digest" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 
 	case $(go env GOARCH) in
 	amd64)
@@ -479,7 +479,7 @@ function teardown() {
 }
 
 @test "image list with filter" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -502,7 +502,7 @@ function teardown() {
 }
 
 @test "image list/remove" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -527,7 +527,7 @@ function teardown() {
 }
 
 @test "image status/remove" {
-	start_crio "" "" --no-pause-image
+	start_crio "" ""
 	run crictl pull "$IMAGE"
 	echo "$output"
 	[ "$status" -eq 0 ]

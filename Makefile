@@ -81,7 +81,7 @@ TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
-TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:$(TESTIMAGE_VERSION)
+TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.1.0
 
 all: binaries crio.conf docs
 
@@ -93,7 +93,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build crio, pause, and pinns"
+	@echo " * 'binaries' - Build crio and pinns"
 	@echo " * 'release-note' - Generate release note"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
@@ -112,14 +112,8 @@ endif
 lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} run
 
-bin/pause:
-	$(MAKE) -C pause
-
 bin/pinns:
 	$(MAKE) -C pinns
-
-test/bin2img/bin2img: git-vars .gopathok $(wildcard test/bin2img/*.go)
-	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/bin2img
 
 test/copyimg/copyimg: git-vars .gopathok $(wildcard test/copyimg/*.go)
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
@@ -137,8 +131,7 @@ build-static: git-vars
 	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(TESTIMAGE_NIX) sh -c \
 		"nix build -f cri-o/nix --argstr revision $(COMMIT_NO) && \
 		mkdir -p cri-o/bin && \
-		cp result-*bin/bin/crio-* cri-o/bin && \
-		cp result-*bin/libexec/crio/* cri-o/bin"
+		cp result-*bin/bin/crio-* cri-o/bin"
 
 release-bundle: clean build-static docs crio.conf bundle
 
@@ -159,9 +152,7 @@ endif
 	find . -name \#\* -delete
 	rm -f bin/crio
 	rm -f bin/crio.cross.*
-	$(MAKE) -C pause clean
 	$(MAKE) -C pinns clean
-	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -rf ${BUILD_BIN_PATH}
@@ -336,8 +327,8 @@ codecov:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/pause bin/crio-status bin/pinns
-test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
+binaries: bin/crio bin/crio-status bin/pinns
+test-binaries: test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
@@ -374,7 +365,6 @@ install: .gopathok install.bin install.man install.completions
 install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 bin/crio-status $(BINDIR)/crio-status
-	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 	install ${SELINUXOPT} -D -m 755 bin/pinns $(LIBEXECDIR)/crio/pinns
 
 install.man: $(MANPAGES)
@@ -409,7 +399,6 @@ install.systemd:
 uninstall:
 	rm -f $(BINDIR)/crio
 	rm -f $(BINDIR)/crio-status
-	rm -f $(LIBEXECDIR)/crio/pause
 	rm -f $(LIBEXECDIR)/crio/pinns
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
@@ -437,7 +426,6 @@ docs-validation:
 	git-validation \
 	bin/crio \
 	bin/crio-status \
-	bin/pause \
 	bin/pinns \
 	binaries \
 	bundle \
