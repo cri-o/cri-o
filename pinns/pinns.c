@@ -41,9 +41,9 @@ int main(int argc, char **argv) {
   int unshare_flags = 0;
   int c;
   char *pin_path = NULL;
-  bool bind_net;
-  bool bind_uts;
-  bool bind_ipc;
+  bool bind_net = false;
+  bool bind_uts = false;
+  bool bind_ipc = false;
 
   static const struct option long_options[] = {
       {"help", no_argument, NULL, 'h'},
