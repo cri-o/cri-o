@@ -4,20 +4,20 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.14
+	github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/containerd v1.3.1
 	github.com/containerd/fifo v0.0.0-20190816180239-bda0ff6ed73c // indirect
 	github.com/containerd/go-runc v0.0.0-20190923131748-a2952bc25f51 // indirect
 	github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
-	github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
+	github.com/containerd/ttrpc v0.0.0-20190828154514-0e0f228740de
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.3
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.3+incompatible
 	github.com/containers/image/v5 v5.0.0
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
-	github.com/containers/storage v1.13.5
+	github.com/containers/storage v1.15.2
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -57,7 +57,7 @@ require (
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
 	k8s.io/cri-api v0.0.0
-	k8s.io/kubernetes v0.0.0
+	k8s.io/kubernetes v1.13.0
 	k8s.io/utils v0.0.0-20191114200735-6ca3b61696b6
 )
 
