@@ -641,6 +641,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		if privileged {
 			specgen.RemoveMount("/sys")
 			specgen.RemoveMount("/sys/fs/cgroup")
+
 			sysMnt := rspec.Mount{
 				Destination: "/sys",
 				Type:        "bind",
@@ -648,6 +649,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 				Options:     []string{"nosuid", "noexec", "nodev", "rw", "rbind"},
 			}
 			specgen.AddMount(sysMnt)
+
+			cgroupMnt := rspec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime"},
+			}
+			specgen.AddMount(cgroupMnt)
+
 		}
 	}
 
