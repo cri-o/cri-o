@@ -6,13 +6,13 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.14
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/containerd/containerd v1.3.0
+	github.com/containerd/containerd v1.3.1
 	github.com/containerd/fifo v0.0.0-20190816180239-bda0ff6ed73c // indirect
 	github.com/containerd/go-runc v0.0.0-20190923131748-a2952bc25f51 // indirect
 	github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
 	github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
 	github.com/containernetworking/cni v0.7.1
-	github.com/containernetworking/plugins v0.8.2
+	github.com/containernetworking/plugins v0.8.3
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.3+incompatible
 	github.com/containers/image/v5 v5.0.0
@@ -52,7 +52,7 @@ require (
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20190919044723-0c1ff786ef13
-	google.golang.org/grpc v1.24.0
+	google.golang.org/grpc v1.25.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
