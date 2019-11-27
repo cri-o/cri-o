@@ -249,6 +249,8 @@ github.com/containers/psgo v1.3.1 h1:1kE+jJ9Ou5f9zQT/M2IdeSclsKWsXrSFlOcnqc+F2TA
 github.com/containers/psgo v1.3.1/go.mod h1:LLiRMmxZ6FWP4bB/fOUu6kDT+4okk/ZCeeykqh0O5Ns=
 github.com/containers/psgo v1.3.2 h1:jYfppPih3S/j2Yi5O14AXjd8GfCx1ph9L3YsoK3adko=
 github.com/containers/psgo v1.3.2/go.mod h1:ENXXLQ5E1At4K0EUsGogXBJi/C28gwqkONWeLPI9fJ8=
+github.com/containers/psgo v1.4.0 h1:D8B4fZCCZhYgc8hDyMPCiShOinmOB1TP1qe46sSC19k=
+github.com/containers/psgo v1.4.0/go.mod h1:ENXXLQ5E1At4K0EUsGogXBJi/C28gwqkONWeLPI9fJ8=
 github.com/containers/storage v1.12.10/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
 github.com/containers/storage v1.12.12 h1:gao0GNzjmSX4Ai/StOHtUVIrBguC0OKyvx/ZMwBdyuY=
 github.com/containers/storage v1.12.12/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
