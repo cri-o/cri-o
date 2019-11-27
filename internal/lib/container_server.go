@@ -49,6 +49,8 @@ type ContainerServer struct {
 	stateLock sync.Locker
 	state     *containerServerState
 	config    *libconfig.Config
+
+	*conmonmon
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -125,7 +127,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 		return nil, err
 	}
 
-	return &ContainerServer{
+	cs := &ContainerServer{
 		runtime:              runtime,
 		store:                store,
 		storageImageServer:   imageService,
@@ -143,7 +145,12 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 			processLevels:   make(map[string]int),
 		},
 		config: config,
-	}, nil
+	}
+
+	cmm := cs.newConmonmon(runtime)
+	cs.conmonmon = cmm
+
+	return cs, nil
 }
 
 // Update makes changes to the server's state (lists of pods and containers) to
@@ -408,7 +415,9 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
 	}
 	sb.SetCreated()
-
+	if err := c.MonitorConmon(scontainer); err != nil {
+		return fmt.Errorf("error adding conmon of sandbox container %s to monitoring loop: %v", scontainer.ID(), err)
+	}
 	if err := label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
@@ -537,6 +546,10 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	ctr.SetCreated()
 
 	c.AddContainer(ctr)
+	if err := c.MonitorConmon(ctr); err != nil {
+		return fmt.Errorf("error adding conmon of %s to monitoring loop: %v", ctr.ID(), err)
+	}
+
 	return c.ctrIDIndex.Add(id)
 }
 

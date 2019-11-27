@@ -83,6 +83,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
 			return nil, fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.ID(), err)
 		}
+		s.StopMonitoringConmon(c)
 	}
 
 	s.removeInfraContainer(podInfraContainer)
