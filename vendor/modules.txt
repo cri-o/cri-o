@@ -59,8 +59,6 @@ github.com/containerd/continuity/sysx
 github.com/containerd/fifo
 # github.com/containerd/go-runc v0.0.0-20190923131748-a2952bc25f51
 github.com/containerd/go-runc
-# github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
-github.com/containerd/project/cmd/release-tool
 # github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl v0.0.0-20190228175220-2a93cfde8c20

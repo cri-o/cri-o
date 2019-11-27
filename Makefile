@@ -51,7 +51,6 @@ GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
-RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
 # pass crio CLI options to generate custom crio.conf build time
@@ -220,9 +219,6 @@ ${MOCKGEN}:
 
 ${GIT_VALIDATION}:
 	$(call go-build,./vendor/github.com/vbatts/git-validation)
-
-${RELEASE_TOOL}:
-	$(call go-build,./vendor/github.com/containerd/project/cmd/release-tool)
 
 ${GOLANGCI_LINT}:
 	export \
