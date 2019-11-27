@@ -161,7 +161,6 @@ jobs:
             nix-build nix --argstr revision $CIRCLE_SHA1
             mkdir -p bin
             cp result-*bin/bin/crio-* bin
-            cp result-*bin/libexec/crio/* bin
       - persist_to_workspace:
           root: .
           paths:
@@ -184,7 +183,6 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - test/bin2img/bin2img
             - test/checkseccomp/checkseccomp
             - test/copyimg/copyimg
 
