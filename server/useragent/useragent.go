@@ -1,14 +1,13 @@
 package useragent
 
 import (
-	"context"
 	"runtime"
 
 	"github.com/cri-o/cri-o/internal/version"
 )
 
 // Get is the User-Agent the CRI-O daemon uses to identify itself.
-func Get(ctx context.Context) string {
+func Get() string {
 	httpVersion := make([]VersionInfo, 0, 4)
 	httpVersion = append(httpVersion,
 		VersionInfo{Name: "cri-o", Version: version.Version},

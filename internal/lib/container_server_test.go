@@ -42,7 +42,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), nil, libMock)
+			server, err := lib.New(context.Background(), libMock)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -56,7 +56,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), nil, libMock)
+			server, err := lib.New(context.Background(), libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -66,7 +66,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail when config is nil", func() {
 			// Given
 			// When
-			server, err := lib.New(context.Background(), nil, nil)
+			server, err := lib.New(context.Background(), nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())

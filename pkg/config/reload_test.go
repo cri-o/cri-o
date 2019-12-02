@@ -214,4 +214,39 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 	})
+
+	t.Describe("ReloadRegistries", func() {
+		It("should succeed to reload registries", func() {
+			// Given
+			// When
+			err := sut.ReloadRegistries()
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail if registries file does not exist", func() {
+			// Given
+			sut.SystemContext.SystemRegistriesConfPath = invalidPath
+
+			// When
+			err := sut.ReloadRegistries()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail if registries file is invalid", func() {
+			// Given
+			regConf := t.MustTempFile("reload-registries")
+			Expect(ioutil.WriteFile(regConf, []byte("invalid"), 0755)).To(BeNil())
+			sut.SystemContext.SystemRegistriesConfPath = regConf
+
+			// When
+			err := sut.ReloadRegistries()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
 })

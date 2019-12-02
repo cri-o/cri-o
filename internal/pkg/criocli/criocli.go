@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/v5/types"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -263,14 +262,14 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	return path, nil
 }
 
-func GetFlagsAndMetadata(systemContext *types.SystemContext) ([]cli.Flag, map[string]interface{}, error) {
+func GetFlagsAndMetadata() ([]cli.Flag, map[string]interface{}, error) {
 	config, err := libconfig.DefaultConfig()
 	if err != nil {
 		return nil, nil, errors.Errorf("error loading server config: %v", err)
 	}
 
 	// TODO FIXME should be crio wipe flags
-	flags := getCrioFlags(config, systemContext)
+	flags := getCrioFlags(config)
 
 	metadata := map[string]interface{}{
 		"config": config,
@@ -278,7 +277,7 @@ func GetFlagsAndMetadata(systemContext *types.SystemContext) ([]cli.Flag, map[st
 	return flags, metadata, nil
 }
 
-func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext) []cli.Flag {
+func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:      "config",
@@ -715,7 +714,7 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		&cli.StringFlag{
 			Name:        "registries-conf",
 			Usage:       "path to the registries.conf file",
-			Destination: &systemContext.SystemRegistriesConfPath,
+			Destination: &defConf.SystemContext.SystemRegistriesConfPath,
 			Hidden:      true,
 			EnvVars:     []string{"CONTAINER_REGISTRIES_CONF"},
 			TakesFile:   true,

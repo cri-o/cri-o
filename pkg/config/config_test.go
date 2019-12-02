@@ -36,7 +36,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// When
-			err := sut.Validate(nil, false)
+			err := sut.Validate(false)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -47,7 +47,7 @@ var _ = t.Describe("Config", func() {
 			sut = runtimeValidConfig()
 
 			// When
-			err := sut.Validate(nil, true)
+			err := sut.Validate(true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -58,7 +58,7 @@ var _ = t.Describe("Config", func() {
 			sut.RootConfig.LogDir = "/dev/null"
 
 			// When
-			err := sut.Validate(nil, true)
+			err := sut.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -70,7 +70,7 @@ var _ = t.Describe("Config", func() {
 			sut.Listen = "/proc"
 
 			// When
-			err := sut.Validate(nil, true)
+			err := sut.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -81,7 +81,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{invalidPath}
 
 			// When
-			err := sut.Validate(nil, true)
+			err := sut.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -94,7 +94,7 @@ var _ = t.Describe("Config", func() {
 			sut.NetworkConfig.NetworkDir = invalidPath
 
 			// When
-			err := sut.Validate(nil, true)
+			err := sut.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -105,7 +105,7 @@ var _ = t.Describe("Config", func() {
 			sut.ImageVolumes = invalidPath
 
 			// When
-			err := sut.Validate(nil, false)
+			err := sut.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -116,7 +116,7 @@ var _ = t.Describe("Config", func() {
 			sut.DefaultUlimits = []string{"invalid=-1:-1"}
 
 			// When
-			err := sut.Validate(nil, false)
+			err := sut.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -380,7 +380,7 @@ var _ = t.Describe("Config", func() {
 			sut.ManageNSLifecycle = true
 
 			// When
-			err := sut.Validate(nil, false)
+			err := sut.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -392,7 +392,7 @@ var _ = t.Describe("Config", func() {
 			sut.ManageNSLifecycle = true
 
 			// When
-			err := sut.Validate(nil, false)
+			err := sut.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -403,7 +403,7 @@ var _ = t.Describe("Config", func() {
 			sut.LogSizeMax = 1
 
 			// When
-			err := sut.Validate(nil, false)
+			err := sut.Validate(false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -706,7 +706,7 @@ var _ = t.Describe("Config", func() {
 			sut.RootConfig.LogDir = "test"
 
 			// When
-			err := sut.Validate(nil, true)
+			err := sut.Validate(true)
 
 			// Then
 			Expect(err).NotTo(BeNil())

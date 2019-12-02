@@ -280,7 +280,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if image == "" {
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
 	}
-	images, err := s.StorageImageServer().ResolveNames(s.systemContext, image)
+	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -295,7 +295,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		imgResultErr error
 	)
 	for _, img := range images {
-		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.systemContext, img)
+		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
 		if imgResultErr == nil {
 			break
 		}
@@ -328,7 +328,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	containerIDMappings := s.defaultIDMappings
 	metadata := containerConfig.GetMetadata()
 
-	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.systemContext,
+	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
 		image, imgResult.ID,
 		containerName, containerID,

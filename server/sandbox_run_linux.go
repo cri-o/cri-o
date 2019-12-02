@@ -86,7 +86,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if selinuxConfig != nil {
 		labelOptions = getLabelOptions(selinuxConfig)
 	}
-	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.systemContext,
+	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
 		name, id,
 		s.config.PauseImage,
 		s.config.PauseImageAuthFile,

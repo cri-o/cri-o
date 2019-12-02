@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/cri-o/cri-o/internal/pkg/log"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,6 +30,9 @@ func (c *Config) Reload(fileName string) error {
 		return err
 	}
 	if err := c.ReloadPauseImage(newConfig); err != nil {
+		return err
+	}
+	if err := c.ReloadRegistries(); err != nil {
 		return err
 	}
 
@@ -94,5 +99,20 @@ func (c *Config) ReloadPauseImage(newConfig *Config) error {
 		c.PauseCommand = newConfig.PauseCommand
 		logConfig("pause_command", c.PauseCommand)
 	}
+	return nil
+}
+
+// ReloadRegistries reloads the registry configuration from the Configs
+// `SystemContext`. The method errors in case of any update failure.
+func (c *Config) ReloadRegistries() error {
+	registries, err := sysregistriesv2.TryUpdatingCache(c.SystemContext)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"system registries reload failed: %s",
+			sysregistriesv2.ConfigPath(c.SystemContext),
+		)
+	}
+	logrus.Infof("applied new registry configuration: %+v", registries)
 	return nil
 }

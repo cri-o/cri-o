@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/internal/pkg/criocli"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/urfave/cli/v2"
@@ -26,7 +25,6 @@ it later with **--config**. Global options will modify the output.`,
 			return err
 		}
 
-		systemContext := &types.SystemContext{}
 		if c.Bool("default") {
 			conf, err = config.DefaultConfig()
 			if err != nil {
@@ -35,7 +33,7 @@ it later with **--config**. Global options will modify the output.`,
 		}
 
 		// Validate the configuration during generation
-		if err = conf.Validate(systemContext, false); err != nil {
+		if err = conf.Validate(false); err != nil {
 			return err
 		}
 
