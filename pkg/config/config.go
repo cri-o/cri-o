@@ -13,6 +13,7 @@ import (
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
@@ -497,6 +498,7 @@ func DefaultConfig() (*Config, error) {
 			LogLevel:                 "error",
 			DefaultSysctls:           []string{},
 			DefaultUlimits:           []string{},
+			HooksDir:                 []string{hooks.DefaultDir},
 			AdditionalDevices:        []string{},
 		},
 		ImageConfig: ImageConfig{
