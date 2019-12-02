@@ -12,8 +12,8 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/cri-o/cri-o/utils"
-	"github.com/opencontainers/runc/libcontainer"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -83,45 +83,32 @@ func newPipe() (parent, child *os.File, err error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
-func loadFactory(root string) (libcontainer.Factory, error) {
-	abs, err := filepath.Abs(root)
+func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerStats, error) {
+	cg, err := cgroups.Load(cgroup)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "unable to load cgroup at %s", cgroup)
 	}
-	cgroupManager := libcontainer.Cgroupfs
-	return libcontainer.New(abs, cgroupManager, libcontainer.CriuPath(""))
-}
 
-// libcontainerStats gets the stats for the container with the given id from runc/libcontainer
-func (r *runtimeOCI) libcontainerStats(ctr *Container) (*libcontainer.Stats, error) {
-	factory, err := loadFactory(r.root)
+	cgroupStats, err := cg.Stat()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "unable to obtain cgroup stats")
 	}
-	container, err := factory.Load(ctr.ID())
-	if err != nil {
-		return nil, err
-	}
-	return container.Stats()
-}
 
-func (r *runtimeOCI) containerStats(ctr *Container) (*ContainerStats, error) {
-	libcontainerStats, err := r.libcontainerStats(ctr)
-	if err != nil {
-		return nil, err
-	}
-	cgroupStats := libcontainerStats.CgroupStats
-	stats := new(ContainerStats)
+	stats := &ContainerStats{}
 	stats.Container = ctr.ID()
-	stats.CPUNano = cgroupStats.CpuStats.CpuUsage.TotalUsage
+	stats.CPUNano = cgroupStats.CPU.Usage.Total
 	stats.SystemNano = time.Now().UnixNano()
-	stats.CPU = calculateCPUPercent(libcontainerStats)
-	stats.MemUsage = cgroupStats.MemoryStats.Usage.Usage
-	stats.MemLimit = getMemLimit(cgroupStats.MemoryStats.Usage.Limit)
+	stats.CPU = calculateCPUPercent(cgroupStats)
+	stats.MemUsage = cgroupStats.Memory.Usage.Usage
+	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
 	stats.MemPerc = float64(stats.MemUsage) / float64(stats.MemLimit)
-	stats.PIDs = cgroupStats.PidsStats.Current
-	stats.BlockInput, stats.BlockOutput = calculateBlockIO(libcontainerStats)
-	stats.NetInput, stats.NetOutput = getContainerNetIO(libcontainerStats)
+	stats.PIDs = cgroupStats.Pids.Current
+	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
+
+	if ctr.state != nil {
+		netNsPath := fmt.Sprintf("/proc/%d/ns/net", ctr.state.Pid)
+		stats.NetInput, stats.NetOutput = getContainerNetIO(netNsPath)
+	}
 
 	return stats, nil
 }

@@ -52,8 +52,9 @@ func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsReque
 	if err != nil {
 		return nil, err
 	}
+	cgroup := s.GetSandbox(container.Sandbox()).CgroupParent()
 
-	stats, err := s.Runtime().ContainerStats(container)
+	stats, err := s.Runtime().ContainerStats(container, cgroup)
 	if err != nil {
 		return nil, err
 	}

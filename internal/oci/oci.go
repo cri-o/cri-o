@@ -68,7 +68,7 @@ type RuntimeImpl interface {
 	UpdateContainerStatus(*Container) error
 	PauseContainer(*Container) error
 	UnpauseContainer(*Container) error
-	ContainerStats(*Container) (*ContainerStats, error)
+	ContainerStats(*Container, string) (*ContainerStats, error)
 	SignalContainer(*Container, syscall.Signal) error
 	AttachContainer(*Container, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
@@ -355,13 +355,13 @@ func (r *Runtime) UnpauseContainer(c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *Runtime) ContainerStats(c *Container) (*ContainerStats, error) {
+func (r *Runtime) ContainerStats(c *Container, cgroup string) (*ContainerStats, error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return impl.ContainerStats(c)
+	return impl.ContainerStats(c, cgroup)
 }
 
 // SignalContainer sends a signal to a container process.

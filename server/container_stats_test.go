@@ -19,21 +19,6 @@ var _ = t.Describe("ContainerStats", func() {
 	AfterEach(afterEach)
 
 	t.Describe("ContainerStats", func() {
-		It("should fail when container stats failed", func() {
-			// Given
-			addContainerAndSandbox()
-
-			// When
-			response, err := sut.ContainerStats(context.Background(),
-				&pb.ContainerStatsRequest{
-					ContainerId: testContainer.ID(),
-				})
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(response).To(BeNil())
-		})
-
 		It("should fail on invalid container", func() {
 			// Given
 			// When

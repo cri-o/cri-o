@@ -621,7 +621,7 @@ func (r *runtimeVM) UnpauseContainer(c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeVM) ContainerStats(c *Container) (*ContainerStats, error) {
+func (r *runtimeVM) ContainerStats(c *Container, _ string) (*ContainerStats, error) {
 	logrus.Debug("runtimeVM.ContainerStats() start")
 	defer logrus.Debug("runtimeVM.ContainerStats() end")
 
