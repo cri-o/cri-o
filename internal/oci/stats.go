@@ -4,7 +4,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/types"
 )
 
 // ContainerStats contains the statistics information for a running container
@@ -24,16 +24,16 @@ type ContainerStats struct {
 }
 
 // Returns the total number of bytes transmitted and received for the given container stats
-func getContainerNetIO(stats *libcontainer.Stats) (received, transmitted uint64) {
-	for _, iface := range stats.Interfaces {
+func getContainerNetIO(stats *types.Stats) (received, transmitted uint64) {
+	for _, iface := range stats.NetworkInterfaces {
 		received += iface.RxBytes
 		transmitted += iface.TxBytes
 	}
-	return
+	return received, transmitted
 }
 
-func calculateBlockIO(stats *libcontainer.Stats) (read, write uint64) {
-	for _, blkIOEntry := range stats.CgroupStats.BlkioStats.IoServiceBytesRecursive {
+func calculateBlockIO(stats *types.Stats) (read, write uint64) {
+	for _, blkIOEntry := range stats.Blkio.IoServicedRecursive {
 		switch strings.ToLower(blkIOEntry.Op) {
 		case "read":
 			read += blkIOEntry.Value
@@ -41,7 +41,7 @@ func calculateBlockIO(stats *libcontainer.Stats) (read, write uint64) {
 			write += blkIOEntry.Value
 		}
 	}
-	return
+	return read, write
 }
 
 // getMemory limit returns the memory limit for a given cgroup

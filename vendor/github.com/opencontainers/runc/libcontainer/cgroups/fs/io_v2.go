@@ -17,11 +17,11 @@ type IOGroupV2 struct {
 }
 
 func (s *IOGroupV2) Name() string {
-	return "blkio"
+	return "io"
 }
 
 func (s *IOGroupV2) Apply(d *cgroupData) error {
-	_, err := d.join("blkio")
+	_, err := d.join("io")
 	if err != nil && !cgroups.IsNotFound(err) {
 		return err
 	}
@@ -29,73 +29,31 @@ func (s *IOGroupV2) Apply(d *cgroupData) error {
 }
 
 func (s *IOGroupV2) Set(path string, cgroup *configs.Cgroup) error {
-	cgroupsv2 := cgroups.IsCgroup2UnifiedMode()
-
 	if cgroup.Resources.BlkioWeight != 0 {
-		filename := "blkio.weight"
-		if cgroupsv2 {
-			filename = "io.bfq.weight"
-		}
+		filename := "io.bfq.weight"
 		if err := writeFile(path, filename, strconv.FormatUint(uint64(cgroup.Resources.BlkioWeight), 10)); err != nil {
 			return err
 		}
 	}
 
-	if cgroup.Resources.BlkioLeafWeight != 0 {
-		if err := writeFile(path, "blkio.leaf_weight", strconv.FormatUint(uint64(cgroup.Resources.BlkioLeafWeight), 10)); err != nil {
-			return err
-		}
-	}
-	for _, wd := range cgroup.Resources.BlkioWeightDevice {
-		if err := writeFile(path, "blkio.weight_device", wd.WeightString()); err != nil {
-			return err
-		}
-		if err := writeFile(path, "blkio.leaf_weight_device", wd.LeafWeightString()); err != nil {
-			return err
-		}
-	}
 	for _, td := range cgroup.Resources.BlkioThrottleReadBpsDevice {
-		if cgroupsv2 {
-			if err := writeFile(path, "io.max", td.StringName("rbps")); err != nil {
-				return err
-			}
-		} else {
-			if err := writeFile(path, "blkio.throttle.read_bps_device", td.String()); err != nil {
-				return err
-			}
+		if err := writeFile(path, "io.max", td.StringName("rbps")); err != nil {
+			return err
 		}
 	}
 	for _, td := range cgroup.Resources.BlkioThrottleWriteBpsDevice {
-		if cgroupsv2 {
-			if err := writeFile(path, "io.max", td.StringName("wbps")); err != nil {
-				return err
-			}
-		} else {
-			if err := writeFile(path, "blkio.throttle.write_bps_device", td.String()); err != nil {
-				return err
-			}
+		if err := writeFile(path, "io.max", td.StringName("wbps")); err != nil {
+			return err
 		}
 	}
 	for _, td := range cgroup.Resources.BlkioThrottleReadIOPSDevice {
-		if cgroupsv2 {
-			if err := writeFile(path, "io.max", td.StringName("riops")); err != nil {
-				return err
-			}
-		} else {
-			if err := writeFile(path, "blkio.throttle.read_iops_device", td.String()); err != nil {
-				return err
-			}
+		if err := writeFile(path, "io.max", td.StringName("riops")); err != nil {
+			return err
 		}
 	}
 	for _, td := range cgroup.Resources.BlkioThrottleWriteIOPSDevice {
-		if cgroupsv2 {
-			if err := writeFile(path, "io.max", td.StringName("wiops")); err != nil {
-				return err
-			}
-		} else {
-			if err := writeFile(path, "blkio.throttle.write_iops_device", td.String()); err != nil {
-				return err
-			}
+		if err := writeFile(path, "io.max", td.StringName("wiops")); err != nil {
+			return err
 		}
 	}
 
@@ -103,7 +61,7 @@ func (s *IOGroupV2) Set(path string, cgroup *configs.Cgroup) error {
 }
 
 func (s *IOGroupV2) Remove(d *cgroupData) error {
-	return removePath(d.path("blkio"))
+	return removePath(d.path("io"))
 }
 
 func readCgroup2MapFile(path string, name string) (map[string][]string, error) {

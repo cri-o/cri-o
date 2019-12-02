@@ -26,7 +26,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 	for _, container := range ctrList {
 		stats, err := s.Runtime().ContainerStats(container)
 		if err != nil {
-			log.Warnf(ctx, "unable to get stats for container %s", container.ID())
+			log.Warnf(ctx, "unable to get stats for container %s: %v", container.ID(), err)
 			continue
 		}
 		response := s.buildContainerStats(stats, container)

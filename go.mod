@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/cilium/ebpf v0.0.0-20191203103619-60c3aa43f488 // indirect
 	github.com/containerd/containerd v1.3.1
 	github.com/containerd/fifo v0.0.0-20190816180239-bda0ff6ed73c // indirect
 	github.com/containerd/go-runc v0.0.0-20190923131748-a2952bc25f51 // indirect
@@ -37,7 +38,7 @@ require (
 	github.com/onsi/gomega v1.7.1
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
-	github.com/opencontainers/runc v1.0.0-rc9
+	github.com/opencontainers/runc v1.0.0-rc9.0.20191206020744-5e6369538477
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.3.1-0.20190929122143-5215b1806f52
@@ -51,7 +52,7 @@ require (
 	github.com/vbatts/git-validation v1.0.0
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20190919044723-0c1ff786ef13
+	golang.org/x/sys v0.0.0-20191022100944-742c48ecaeb7
 	google.golang.org/grpc v1.25.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

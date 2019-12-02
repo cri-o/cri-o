@@ -1,4 +1,4 @@
-// +build !linux static_build
+// +build !linux
 
 package systemd
 
@@ -40,6 +40,10 @@ func (m *Manager) Destroy() error {
 
 func (m *Manager) GetPaths() map[string]string {
 	return nil
+}
+
+func (m *Manager) GetUnifiedPath() (string, error) {
+	return "", fmt.Errorf("Systemd not supported")
 }
 
 func (m *Manager) GetStats() (*cgroups.Stats, error) {

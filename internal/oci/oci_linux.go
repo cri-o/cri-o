@@ -3,6 +3,7 @@
 package oci
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,8 +13,9 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/cri-o/cri-o/utils"
-	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -83,45 +85,47 @@ func newPipe() (parent, child *os.File, err error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
-func loadFactory(root string) (libcontainer.Factory, error) {
-	abs, err := filepath.Abs(root)
-	if err != nil {
-		return nil, err
-	}
-	cgroupManager := libcontainer.Cgroupfs
-	return libcontainer.New(abs, cgroupManager, libcontainer.CriuPath(""))
-}
-
-// libcontainerStats gets the stats for the container with the given id from runc/libcontainer
-func (r *runtimeOCI) libcontainerStats(ctr *Container) (*libcontainer.Stats, error) {
-	factory, err := loadFactory(r.root)
-	if err != nil {
-		return nil, err
-	}
-	container, err := factory.Load(ctr.ID())
-	if err != nil {
-		return nil, err
-	}
-	return container.Stats()
-}
-
 func (r *runtimeOCI) containerStats(ctr *Container) (*ContainerStats, error) {
-	libcontainerStats, err := r.libcontainerStats(ctr)
+	eventStats, err := r.eventStats(ctr)
 	if err != nil {
 		return nil, err
 	}
-	cgroupStats := libcontainerStats.CgroupStats
-	stats := new(ContainerStats)
+	stats := &ContainerStats{}
 	stats.Container = ctr.ID()
-	stats.CPUNano = cgroupStats.CpuStats.CpuUsage.TotalUsage
+	stats.CPUNano = eventStats.CPU.Usage.Total
 	stats.SystemNano = time.Now().UnixNano()
-	stats.CPU = calculateCPUPercent(libcontainerStats)
-	stats.MemUsage = cgroupStats.MemoryStats.Usage.Usage
-	stats.MemLimit = getMemLimit(cgroupStats.MemoryStats.Usage.Limit)
+	stats.CPU = calculateCPUPercent(eventStats)
+	stats.MemUsage = eventStats.Memory.Usage.Usage
+	stats.MemLimit = getMemLimit(eventStats.Memory.Usage.Limit)
 	stats.MemPerc = float64(stats.MemUsage) / float64(stats.MemLimit)
-	stats.PIDs = cgroupStats.PidsStats.Current
-	stats.BlockInput, stats.BlockOutput = calculateBlockIO(libcontainerStats)
-	stats.NetInput, stats.NetOutput = getContainerNetIO(libcontainerStats)
+	stats.PIDs = eventStats.Pids.Current
+	stats.BlockInput, stats.BlockOutput = calculateBlockIO(eventStats)
+	stats.NetInput, stats.NetOutput = getContainerNetIO(eventStats)
+
+	return stats, nil
+}
+
+// eventStats gets the stats for the container with the given id from an OCI runtime
+func (r *runtimeOCI) eventStats(ctr *Container) (*types.Stats, error) {
+	res, err := utils.ExecCmd(r.path, rootFlag, r.root, "events", "--stats", ctr.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	rawJSON := map[string]*json.RawMessage{}
+	if err := json.Unmarshal([]byte(res), &rawJSON); err != nil {
+		return nil, err
+	}
+
+	data, ok := rawJSON["data"]
+	if !ok {
+		return nil, errors.New("no data in event statistics")
+	}
+
+	stats := &types.Stats{}
+	if err := json.Unmarshal(*data, stats); err != nil {
+		return nil, err
+	}
 
 	return stats, nil
 }

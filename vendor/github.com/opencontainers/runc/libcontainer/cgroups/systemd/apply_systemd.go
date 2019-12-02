@@ -1,4 +1,4 @@
-// +build linux,!static_build
+// +build linux
 
 package systemd
 
@@ -295,6 +295,10 @@ func (m *LegacyManager) GetPaths() map[string]string {
 	paths := m.Paths
 	m.mu.Unlock()
 	return paths
+}
+
+func (m *LegacyManager) GetUnifiedPath() (string, error) {
+	return "", errors.New("unified path is only supported when running in unified mode")
 }
 
 func join(c *configs.Cgroup, subsystem string, pid int) (string, error) {
