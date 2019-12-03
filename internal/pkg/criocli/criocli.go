@@ -314,13 +314,13 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		cli.StringFlag{
 			Name:   "log-format",
 			Value:  "text",
-			Usage:  "Set the format used by logs ('text' (default), or 'json')",
+			Usage:  "Set the format used by logs: 'text' or 'json'",
 			EnvVar: "CONTAINER_LOG_FORMAT",
 		},
 		cli.StringFlag{
 			Name:   "log-level, l",
 			Value:  "error",
-			Usage:  "Log messages above specified level: trace, debug, info, warn, error (default), fatal or panic",
+			Usage:  "Log messages above specified level: trace, debug, info, warn, error, fatal or panic",
 			EnvVar: "CONTAINER_LOG_LEVEL",
 		},
 		cli.StringFlag{
@@ -444,13 +444,13 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		cli.Int64Flag{
 			Name:   "pids-limit",
 			Value:  libconfig.DefaultPidsLimit,
-			Usage:  fmt.Sprintf("Maximum number of processes allowed in a container (default: %d)", libconfig.DefaultPidsLimit),
+			Usage:  "Maximum number of processes allowed in a container",
 			EnvVar: "CONTAINER_PIDS_LIMIT",
 		},
 		cli.Int64Flag{
 			Name:   "log-size-max",
 			Value:  libconfig.DefaultLogSizeMax,
-			Usage:  fmt.Sprintf("Maximum log size in bytes for a container. If it is positive, it must be >= 8192 (to match/exceed conmon read buffer) (default: %d, no limit)", libconfig.DefaultLogSizeMax),
+			Usage:  "Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer",
 			EnvVar: "CONTAINER_LOG_SIZE_MAX",
 		},
 		cli.BoolFlag{
@@ -536,7 +536,7 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		cli.IntFlag{
 			Name:   "profile-port",
 			Value:  6060,
-			Usage:  "Port for the pprof profiler (default: 6060)",
+			Usage:  "Port for the pprof profiler",
 			EnvVar: "CONTAINER_PROFILE_PORT",
 		},
 		cli.BoolFlag{
@@ -547,7 +547,7 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		cli.IntFlag{
 			Name:   "metrics-port",
 			Value:  9090,
-			Usage:  "Port for the metrics endpoint (default: 9090)",
+			Usage:  "Port for the metrics endpoint",
 			EnvVar: "CONTAINER_METRICS_PORT",
 		},
 		cli.BoolFlag{
@@ -596,17 +596,20 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		},
 		cli.Int64Flag{
 			Name:   "ctr-stop-timeout",
-			Usage:  fmt.Sprintf("The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container (default: %q)", defConf.CtrStopTimeout),
+			Usage:  "The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container",
+			Value:  defConf.CtrStopTimeout,
 			EnvVar: "CONTAINER_STOP_TIMEOUT",
 		},
 		cli.IntFlag{
 			Name:   "grpc-max-recv-msg-size",
-			Usage:  fmt.Sprintf("Maximum grpc receive message size in bytes (default: %q)", defConf.GRPCMaxRecvMsgSize),
+			Usage:  "Maximum grpc receive message size in bytes",
+			Value:  defConf.GRPCMaxRecvMsgSize,
 			EnvVar: "CONTAINER_GRPC_MAX_RECV_MSG_SIZE",
 		},
 		cli.IntFlag{
 			Name:   "grpc-max-send-msg-size",
-			Usage:  fmt.Sprintf("Maximum grpc receive message size (default: %q)", defConf.GRPCMaxSendMsgSize),
+			Usage:  "Maximum grpc receive message size",
+			Value:  defConf.GRPCMaxSendMsgSize,
 			EnvVar: "CONTAINER_GRPC_MAX_SEND_MSG_SIZE",
 		},
 		cli.StringSliceFlag{

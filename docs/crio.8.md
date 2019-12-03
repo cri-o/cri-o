@@ -131,7 +131,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--container-exits-dir**="": Path to directory in which container exit files are written to by conmon (default: "/var/run/crio/exits")
 
-**--ctr-stop-timeout**="": The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container (default: '\x00') (default: 0)
+**--ctr-stop-timeout**="": The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container (default: 0)
 
 **--default-capabilities**="": Capabilities to add to the containers (default: ["CHOWN" "DAC_OVERRIDE" "FSETID" "FOWNER" "NET_RAW" "SETGID" "SETUID" "SETPCAP" "NET_BIND_SERVICE" "SYS_CHROOT" "KILL"])
 
@@ -153,9 +153,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--global-auth-file**="": Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: "")
 
-**--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes (default: %!q(int=16777216)) (default: 0)
+**--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes (default: 16777216)
 
-**--grpc-max-send-msg-size**="": Maximum grpc receive message size (default: %!q(int=16777216)) (default: 0)
+**--grpc-max-send-msg-size**="": Maximum grpc receive message size (default: 16777216)
 
 **--help, -h**: show help
 
@@ -200,17 +200,17 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--log-filter**="": Filter the log messages by the provided regular expression. For example 'request.\*' filters all gRPC requests.
 
-**--log-format**="": Set the format used by logs ('text' (default), or 'json') (default: text)
+**--log-format**="": Set the format used by logs: 'text' or 'json' (default: text)
 
 **--log-journald**: Log to systemd journal (journald) in addition to kubernetes log file (default: false)
 
-**--log-level, -l**="": Log messages above specified level: trace, debug, info, warn, error (default), fatal or panic (default: error)
+**--log-level, -l**="": Log messages above specified level: trace, debug, info, warn, error, fatal or panic (default: error)
 
-**--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 (to match/exceed conmon read buffer) (default: -1, no limit) (default: -1)
+**--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer (default: -1)
 
 **--manage-network-ns-lifecycle**: Determines whether we pin and remove network namespace and manage its lifecycle (default: false)
 
-**--metrics-port**="": Port for the metrics endpoint (default: 9090) (default: 9090)
+**--metrics-port**="": Port for the metrics endpoint (default: 9090)
 
 **--no-pivot**: If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)
 
@@ -220,11 +220,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
-**--pids-limit**="": Maximum number of processes allowed in a container (default: 1024) (default: 1024)
+**--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
 
 **--profile**: Enable pprof remote profiler on localhost:6060
 
-**--profile-port**="": Port for the pprof profiler (default: 6060) (default: 6060)
+**--profile-port**="": Port for the pprof profiler (default: 6060)
 
 **--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts tmpfs on `/run`, `/tmp` and `/var/tmp`. (default: false)
 
