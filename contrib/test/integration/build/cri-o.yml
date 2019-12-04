@@ -35,7 +35,6 @@
     replace: 'manage_network_ns_lifecycle = true'
     name: /etc/crio/crio.conf
     backup: yes
-  when: manage_network_ns_lifecycle
 
 - name: install configs
   copy:
