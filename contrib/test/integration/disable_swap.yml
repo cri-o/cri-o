@@ -1,5 +1,4 @@
 ---
-
 - name: All active swap devices are known
   command: 'swapon --show --ifexists --noheadings'
   changed_when: False  # only looking
@@ -12,8 +11,7 @@
 - name: All persistent swap devices from fstab are known
   command: findmnt --fstab --type swap --output SOURCE --noheadings
   # findmnt exit(1) if no swap devices found, expect real errors to appear on stderr
-  failed_when: result | failed and
-               result.stderr | trim | length
+  failed_when: result.rc != 0 and result.stderr | trim | length
   changed_when: False  # only looking
   register: result
 
